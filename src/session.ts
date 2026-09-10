@@ -19,8 +19,8 @@ export type SessionState = Readonly<{
 export type Action = Readonly<
   | { type: "help" }
   | { type: "look" }
-  | { type: "inspect"; target: string }
-  | { type: "move"; destination: string }
+  | { type: "inspect"; target?: string }
+  | { type: "move"; destination?: string }
   | { type: "status" }
   | { type: "inventory" }
   | { type: "quit" }
@@ -107,8 +107,8 @@ function describedRoom(roomId: RoomId): Event {
   };
 }
 
-function normalizeTarget(value: string): string {
-  return value.trim().toLowerCase();
+function normalizeTarget(value: string | undefined): string {
+  return value?.trim().toLowerCase() ?? "";
 }
 
 function resolveRoom(value: string): RoomId | undefined {
@@ -118,7 +118,10 @@ function resolveRoom(value: string): RoomId | undefined {
   )?.id;
 }
 
-function inspect(state: SessionState, target: string): ActionResult {
+function inspect(
+  state: SessionState,
+  target: string | undefined,
+): ActionResult {
   const normalized = normalizeTarget(target);
   if (normalized.length === 0) {
     return {
@@ -163,22 +166,29 @@ function inspect(state: SessionState, target: string): ActionResult {
     };
   }
 
-  return { state, rejection: { reason: "invisible-target", target } };
+  return {
+    state,
+    rejection: { reason: "invisible-target", target: normalized },
+  };
 }
 
-function move(state: SessionState, destination: string): ActionResult {
-  if (normalizeTarget(destination).length === 0) {
+function move(
+  state: SessionState,
+  destination: string | undefined,
+): ActionResult {
+  const normalized = normalizeTarget(destination);
+  if (normalized.length === 0) {
     return {
       state,
       rejection: { reason: "missing-argument", command: "move" },
     };
   }
 
-  const destinationId = resolveRoom(destination);
+  const destinationId = resolveRoom(normalized);
   if (destinationId === undefined) {
     return {
       state,
-      rejection: { reason: "unknown-destination", destination },
+      rejection: { reason: "unknown-destination", destination: normalized },
     };
   }
 

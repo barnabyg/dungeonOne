@@ -109,6 +109,8 @@ test("inspection is limited to visible features and named exits", () => {
 
 test("malformed and illegal movement is rejected without changing state", () => {
   const initial = createSession();
+  const omittedInspect = handleAction(initial, { type: "inspect" });
+  const omittedMove = handleAction(initial, { type: "move" });
   const missingInspect = handleAction(initial, {
     type: "inspect",
     target: "",
@@ -124,6 +126,8 @@ test("malformed and illegal movement is rejected without changing state", () => 
   });
 
   for (const result of [
+    omittedInspect,
+    omittedMove,
     missingInspect,
     missingMove,
     unknownMove,
@@ -132,6 +136,14 @@ test("malformed and illegal movement is rejected without changing state", () => 
     assert.deepEqual(result.state, initial);
     assert.equal("events" in result, false);
   }
+  assert.deepEqual(omittedInspect.rejection, {
+    reason: "missing-argument",
+    command: "inspect",
+  });
+  assert.deepEqual(omittedMove.rejection, {
+    reason: "missing-argument",
+    command: "move",
+  });
   assert.deepEqual(missingInspect.rejection, {
     reason: "missing-argument",
     command: "inspect",
