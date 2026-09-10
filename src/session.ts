@@ -4,12 +4,19 @@ import {
   type EquipmentId,
   type FeatureId,
   type ItemId,
+  type OpponentId,
   type RoomId,
 } from "./adventure.js";
+import {
+  resolveAttack,
+  type AttackResolvedEvent,
+  type CombatantId,
+} from "./combat.js";
+import type { RandomSource } from "./random.js";
 
 export type SessionState = Readonly<{
   locationId: RoomId;
-  status: "playing" | "victory" | "quit";
+  status: "playing" | "victory" | "defeat" | "quit";
   fighter: Readonly<{
     hp: number;
     maxHp: number;
@@ -23,6 +30,9 @@ export type SessionState = Readonly<{
     >
   >;
   doorStates: Readonly<Record<DoorId, Readonly<{ open: boolean }>>>;
+  opponents: Readonly<
+    Record<OpponentId, Readonly<{ hp: number; maxHp: number }>>
+  >;
 }>;
 
 export type Action = Readonly<
@@ -32,6 +42,7 @@ export type Action = Readonly<
   | { type: "move"; destination?: string }
   | { type: "open"; target?: string }
   | { type: "take"; target?: string }
+  | { type: "attack"; target?: string }
   | { type: "status" }
   | { type: "inventory" }
   | { type: "leave" }
@@ -86,6 +97,13 @@ export type Event = Readonly<
       itemIds: readonly ItemId[];
     }
   | { type: "session-quit" }
+  | AttackResolvedEvent
+  | { type: "combat-started"; opponentId: OpponentId }
+  | { type: "turn-started"; combatantId: CombatantId }
+  | {
+      type: "combat-ended";
+      outcome: "goblin-defeated" | "fighter-defeated";
+    }
 >;
 
 export type Rejection = Readonly<
@@ -93,7 +111,7 @@ export type Rejection = Readonly<
   | { reason: "unknown-command"; input: string }
   | {
       reason: "missing-argument";
-      command: "inspect" | "move" | "open" | "take";
+      command: "inspect" | "move" | "open" | "take" | "attack";
     }
   | { reason: "invisible-target"; target: string }
   | { reason: "not-openable"; target: string }
@@ -105,7 +123,10 @@ export type Rejection = Readonly<
       reason: "leave-requirement";
       requirement: "reliquary" | "signet" | "living-fighter";
     }
-  | { reason: "terminal-state"; status: "victory" }
+  | { reason: "combat-restriction" }
+  | { reason: "invalid-attack-target"; target: string }
+  | { reason: "dead-target"; targetId: OpponentId }
+  | { reason: "terminal-state"; status: "victory" | "defeat" }
 >;
 
 export type ActionResult =
@@ -127,6 +148,7 @@ const COMMANDS = [
   "move <location>",
   "open <target>",
   "take <item>",
+  "attack <target>",
   "status",
   "inventory",
   "leave",
@@ -137,7 +159,11 @@ export function createSession(): SessionState {
   return {
     locationId: ADVENTURE.startingRoomId,
     status: "playing",
-    fighter: { hp: 20, maxHp: 20, equipmentIds: ["longsword"] },
+    fighter: {
+      hp: ADVENTURE.fighter.maxHp,
+      maxHp: ADVENTURE.fighter.maxHp,
+      equipmentIds: [ADVENTURE.fighter.weaponId],
+    },
     itemPlacements: {
       signet: {
         type: "room",
@@ -146,6 +172,12 @@ export function createSession(): SessionState {
       },
     },
     doorStates: { "entrance-door": { open: false } },
+    opponents: {
+      goblin: {
+        hp: ADVENTURE.opponents.goblin.maxHp,
+        maxHp: ADVENTURE.opponents.goblin.maxHp,
+      },
+    },
   };
 }
 
@@ -253,6 +285,110 @@ function resolveAccessibleDoor(roomId: RoomId, normalizedName: string) {
       door.name.toLowerCase() === normalizedName &&
       door.roomIds.includes(roomId),
   );
+}
+
+function isActiveCombat(state: SessionState): boolean {
+  const goblin = ADVENTURE.opponents.goblin;
+  return (
+    state.status === "playing" &&
+    state.locationId === goblin.roomId &&
+    state.fighter.hp > 0 &&
+    state.opponents[goblin.id].hp > 0
+  );
+}
+
+function attack(
+  state: SessionState,
+  target: string | undefined,
+  random: Pick<RandomSource, "roll"> | undefined,
+): ActionResult {
+  const normalized = normalizeTarget(target);
+  if (normalized.length === 0) {
+    return {
+      state,
+      rejection: { reason: "missing-argument", command: "attack" },
+    };
+  }
+
+  const goblin = ADVENTURE.opponents.goblin;
+  if (normalized !== goblin.name || state.locationId !== goblin.roomId) {
+    return {
+      state,
+      rejection: { reason: "invalid-attack-target", target: normalized },
+    };
+  }
+  if (state.opponents[goblin.id].hp <= 0) {
+    return {
+      state,
+      rejection: { reason: "dead-target", targetId: goblin.id },
+    };
+  }
+  if (!isActiveCombat(state)) {
+    return {
+      state,
+      rejection: { reason: "invalid-attack-target", target: normalized },
+    };
+  }
+  if (random === undefined) {
+    throw new Error("A random source is required for combat.");
+  }
+
+  const weapon = ADVENTURE.equipment[ADVENTURE.fighter.weaponId];
+  const playerAttack = resolveAttack(
+    {
+      attackerId: "fighter",
+      targetId: goblin.id,
+      attackBonus: ADVENTURE.fighter.attackBonus,
+      targetArmorClass: goblin.armorClass,
+      targetMaxHp: goblin.maxHp,
+      damage: weapon.damage,
+    },
+    state.opponents[goblin.id].hp,
+    random,
+  );
+  let nextState: SessionState = {
+    ...state,
+    opponents: {
+      ...state.opponents,
+      [goblin.id]: {
+        ...state.opponents[goblin.id],
+        hp: playerAttack.targetHp,
+      },
+    },
+  };
+  const events: Event[] = [playerAttack.event];
+
+  if (playerAttack.targetHp === 0) {
+    events.push({ type: "combat-ended", outcome: "goblin-defeated" });
+    return { state: nextState, events };
+  }
+
+  events.push({ type: "turn-started", combatantId: goblin.id });
+  const response = resolveAttack(
+    {
+      attackerId: goblin.id,
+      targetId: "fighter",
+      attackBonus: goblin.attackBonus,
+      targetArmorClass: ADVENTURE.fighter.armorClass,
+      targetMaxHp: ADVENTURE.fighter.maxHp,
+      damage: goblin.damage,
+    },
+    state.fighter.hp,
+    random,
+  );
+  nextState = {
+    ...nextState,
+    status: response.targetHp === 0 ? "defeat" : "playing",
+    fighter: { ...state.fighter, hp: response.targetHp },
+  };
+  events.push(response.event);
+
+  if (response.targetHp === 0) {
+    events.push({ type: "combat-ended", outcome: "fighter-defeated" });
+  } else {
+    events.push({ type: "turn-started", combatantId: "fighter" });
+  }
+  return { state: nextState, events };
 }
 
 function open(state: SessionState, target: string | undefined): ActionResult {
@@ -438,16 +574,27 @@ function move(
   }
 
   const nextState: SessionState = { ...state, locationId: destinationId };
+  const events: Event[] = [
+    {
+      type: "room-entered",
+      fromRoomId: state.locationId,
+      roomId: destinationId,
+    },
+    describedRoom(nextState),
+  ];
+  const goblin = ADVENTURE.opponents.goblin;
+  if (
+    destinationId === goblin.roomId &&
+    nextState.opponents[goblin.id].hp > 0
+  ) {
+    events.push(
+      { type: "combat-started", opponentId: goblin.id },
+      { type: "turn-started", combatantId: "fighter" },
+    );
+  }
   return {
     state: nextState,
-    events: [
-      {
-        type: "room-entered",
-        fromRoomId: state.locationId,
-        roomId: destinationId,
-      },
-      describedRoom(nextState),
-    ],
+    events,
   };
 }
 
@@ -486,18 +633,29 @@ function leave(state: SessionState): ActionResult {
 }
 
 function isGameplayMutation(action: Action): boolean {
-  return ["move", "open", "take", "leave"].includes(action.type);
+  return ["move", "open", "take", "attack", "leave"].includes(action.type);
 }
 
 export function handleAction(
   state: SessionState,
   action: Action,
+  random?: Pick<RandomSource, "roll">,
 ): ActionResult {
-  if (state.status === "victory" && isGameplayMutation(action)) {
+  if (
+    (state.status === "victory" || state.status === "defeat") &&
+    isGameplayMutation(action)
+  ) {
     return {
       state,
-      rejection: { reason: "terminal-state", status: "victory" },
+      rejection: { reason: "terminal-state", status: state.status },
     };
+  }
+  if (
+    isActiveCombat(state) &&
+    isGameplayMutation(action) &&
+    action.type !== "attack"
+  ) {
+    return { state, rejection: { reason: "combat-restriction" } };
   }
 
   switch (action.type) {
@@ -516,6 +674,8 @@ export function handleAction(
       return open(state, action.target);
     case "take":
       return take(state, action.target);
+    case "attack":
+      return attack(state, action.target, random);
     case "status":
       return {
         state,
@@ -553,7 +713,9 @@ export function handleAction(
     case "quit":
       return {
         state:
-          state.status === "victory" ? state : { ...state, status: "quit" },
+          state.status === "victory" || state.status === "defeat"
+            ? state
+            : { ...state, status: "quit" },
         events: [{ type: "session-quit" }],
       };
     default:

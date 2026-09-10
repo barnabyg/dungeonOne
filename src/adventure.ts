@@ -3,6 +3,13 @@ export type DoorId = "entrance-door";
 export type FeatureId = "ruined-archway" | "cold-hearth" | "stone-pedestal";
 export type EquipmentId = "longsword";
 export type ItemId = "signet";
+export type OpponentId = "goblin";
+
+export type DamageDefinition = Readonly<{
+  dice: number;
+  sides: number;
+  modifier: number;
+}>;
 
 export type FeatureDefinition = Readonly<{
   id: FeatureId;
@@ -22,6 +29,18 @@ export type EquipmentDefinition = Readonly<{
   id: EquipmentId;
   name: string;
   description: string;
+  damage: DamageDefinition;
+}>;
+
+export type OpponentDefinition = Readonly<{
+  id: OpponentId;
+  name: string;
+  maxHp: number;
+  armorClass: number;
+  attackBonus: number;
+  attackName: string;
+  damage: DamageDefinition;
+  roomId: RoomId;
 }>;
 
 export type ItemDefinition = Readonly<{
@@ -45,6 +64,13 @@ export type AdventureDefinition = Readonly<{
   doors: Readonly<Record<DoorId, DoorDefinition>>;
   equipment: Readonly<Record<EquipmentId, EquipmentDefinition>>;
   items: Readonly<Record<ItemId, ItemDefinition>>;
+  fighter: Readonly<{
+    maxHp: number;
+    armorClass: number;
+    attackBonus: number;
+    weaponId: EquipmentId;
+  }>;
+  opponents: Readonly<Record<OpponentId, OpponentDefinition>>;
   objective: Readonly<{
     requiredItemId: ItemId;
     escapeRoomId: RoomId;
@@ -117,6 +143,7 @@ export const ADVENTURE: AdventureDefinition = {
       id: "longsword",
       name: "longsword",
       description: "A dependable steel longsword, kept ready at your side.",
+      damage: { dice: 1, sides: 8, modifier: 3 },
     },
   },
   items: {
@@ -125,6 +152,24 @@ export const ADVENTURE: AdventureDefinition = {
       name: "signet",
       description:
         "A silver signet engraved with the fighter's family crest, stolen but unharmed.",
+    },
+  },
+  fighter: {
+    maxHp: 20,
+    armorClass: 16,
+    attackBonus: 5,
+    weaponId: "longsword",
+  },
+  opponents: {
+    goblin: {
+      id: "goblin",
+      name: "goblin",
+      maxHp: 7,
+      armorClass: 13,
+      attackBonus: 4,
+      attackName: "scimitar",
+      damage: { dice: 1, sides: 6, modifier: 2 },
+      roomId: "guardroom",
     },
   },
   objective: {

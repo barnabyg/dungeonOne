@@ -22,6 +22,10 @@ test("canonical commands are parsed case-insensitively", () => {
     type: "take",
     target: "signet",
   });
+  assert.deepEqual(parseCommand("AtTaCk Goblin"), {
+    type: "attack",
+    target: "goblin",
+  });
   assert.deepEqual(parseCommand("STATUS"), { type: "status" });
   assert.deepEqual(parseCommand("Inventory"), { type: "inventory" });
   assert.deepEqual(parseCommand("LEAVE"), { type: "leave" });
@@ -33,6 +37,7 @@ test("argument commands stay structured when their argument is missing", () => {
   assert.deepEqual(parseCommand("move   "), { type: "move", destination: "" });
   assert.deepEqual(parseCommand("open   "), { type: "open", target: "" });
   assert.deepEqual(parseCommand("take   "), { type: "take", target: "" });
+  assert.deepEqual(parseCommand("attack   "), { type: "attack", target: "" });
 });
 
 test("argument-free commands reject extra words instead of guessing intent", () => {

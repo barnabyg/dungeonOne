@@ -30,6 +30,8 @@ export function parseCommand(input: string): Action {
       return { type: "open", target: argument };
     case "take":
       return { type: "take", target: argument };
+    case "attack":
+      return { type: "attack", target: argument };
     default:
       return { type: "unknown", input: command };
   }

@@ -18,6 +18,7 @@ function renderHelp(commands: readonly string[]): string {
     "move <location>": "Walk to a named adjacent location.",
     "open <target>": "Open an accessible door.",
     "take <item>": "Take a visible collectible item.",
+    "attack <target>": "Attack a living opponent with your longsword.",
     status: "Show the fighter's hit points and session status.",
     inventory: "Show fixed equipment and collected items.",
     leave: "Use the reliquary's far exit to complete the objective.",
@@ -122,6 +123,37 @@ function renderEvent(event: Event): string {
       return `The ${ADVENTURE.doors[event.doorId].name} is already open.`;
     case "item-taken":
       return `You take the ${ADVENTURE.items[event.itemId].name}.`;
+    case "combat-started":
+      return `Combat begins against the ${ADVENTURE.opponents[event.opponentId].name}.`;
+    case "turn-started":
+      return `Turn: ${event.combatantId === "fighter" ? "Fighter" : ADVENTURE.opponents[event.combatantId].name}.`;
+    case "attack-resolved": {
+      const attacker =
+        event.attackerId === "fighter"
+          ? {
+              name: "Fighter",
+              attackName: ADVENTURE.equipment[ADVENTURE.fighter.weaponId].name,
+            }
+          : {
+              name: ADVENTURE.opponents[event.attackerId].name,
+              attackName: ADVENTURE.opponents[event.attackerId].attackName,
+            };
+      const targetName =
+        event.targetId === "fighter"
+          ? "Fighter"
+          : ADVENTURE.opponents[event.targetId].name;
+      const outcome =
+        event.outcome === "critical-hit" ? "critical hit" : event.outcome;
+      const damage =
+        event.damage === undefined
+          ? "Damage: none (not rolled)."
+          : `Damage: ${event.damage}.`;
+      return `${attacker.name} attacks ${targetName} with ${attacker.attackName}: d20 ${event.attackRoll} + ${event.attackBonus} = ${event.attackTotal} vs AC ${event.targetArmorClass} — ${outcome}. ${damage} ${targetName} HP: ${event.targetHp}/${event.targetMaxHp}.`;
+    }
+    case "combat-ended":
+      return event.outcome === "goblin-defeated"
+        ? "Combat victory! The goblin is defeated."
+        : "Defeat! The fighter has fallen. You may read the final state, ask for help, or quit.";
     case "victory":
       return `Victory! You escaped through the ${ADVENTURE.objective.exitName} with the stolen signet. To start a new run, launch the game again.`;
     case "status-described":
@@ -157,6 +189,9 @@ function renderRejection(rejection: Rejection): string {
       if (rejection.command === "move") {
         return 'Where do you want to move? Use "move <location>".';
       }
+      if (rejection.command === "attack") {
+        return 'What do you want to attack? Use "attack <target>".';
+      }
       return rejection.command === "open"
         ? 'What do you want to open? Use "open <target>".'
         : 'What do you want to take? Use "take <item>".';
@@ -172,6 +207,12 @@ function renderRejection(rejection: Rejection): string {
       return `The ${ADVENTURE.doors[rejection.doorId].name} to ${ADVENTURE.rooms[rejection.destinationId].name} is closed. Open it before moving through.`;
     case "already-carried":
       return `You are already carrying the ${ADVENTURE.items[rejection.itemId].name}.`;
+    case "combat-restriction":
+      return 'You cannot do that during combat. Attack the goblin with "attack goblin".';
+    case "invalid-attack-target":
+      return `You cannot attack "${rejection.target}" here.`;
+    case "dead-target":
+      return `The ${ADVENTURE.opponents[rejection.targetId].name} is already defeated.`;
     case "leave-requirement":
       if (rejection.requirement === "reliquary") {
         return "You must be in the Reliquary to leave through its far exit. The entrance is not a way to complete the objective.";

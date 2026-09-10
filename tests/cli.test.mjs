@@ -6,15 +6,36 @@ import test from "node:test";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cli = path.join(root, "dist", "cli.js");
+const winningAttacks = ["attack goblin", "attack goblin", "attack goblin"];
 
-function runCli(input) {
-  return spawnSync(process.execPath, [cli], {
+function runCli(input, args = []) {
+  return spawnSync(process.execPath, [cli, ...args], {
     cwd: root,
     encoding: "utf8",
     input,
     timeout: 5_000,
   });
 }
+
+test("built game prints one reproducible seed and rejects invalid startup seeds", () => {
+  const seeded = runCli("quit\n", ["--seed", "4294967295"]);
+  const generated = runCli("quit\n");
+  const invalid = runCli("", ["--seed", "-1"]);
+
+  assert.equal(seeded.status, 0, seeded.stderr);
+  assert.equal(
+    (seeded.stdout.match(/Seed: 4294967295 \(mulberry32-v1\)/g) ?? []).length,
+    1,
+  );
+  assert.equal(generated.status, 0, generated.stderr);
+  assert.equal(
+    (generated.stdout.match(/Seed: \d+ \(mulberry32-v1\)/g) ?? []).length,
+    1,
+  );
+  assert.notEqual(invalid.status, 0);
+  assert.match(invalid.stderr, /unsigned 32-bit integer/i);
+  assert.doesNotMatch(invalid.stdout, /The Stolen Signet/i);
+});
 
 test("built game starts at the entrance, offers help, and quits cleanly", () => {
   const result = runCli("help\nstatus\ninventory\nquit\n");
@@ -46,6 +67,7 @@ test("built game opens the entrance door, visits all rooms, and backtracks", () 
       "open wooden door",
       "open wooden door",
       "move guardroom",
+      ...winningAttacks,
       "inspect entrance",
       "inspect wooden door",
       "inspect cold hearth",
@@ -57,6 +79,7 @@ test("built game opens the entrance door, visits all rooms, and backtracks", () 
       "quit",
       "",
     ].join("\n"),
+    ["--seed", "0"],
   );
 
   assert.equal(result.status, 0, result.stderr);
@@ -90,6 +113,7 @@ test("built game collects the signet once and keeps it inspectable in inventory"
       "take gem",
       "open wooden door",
       "move guardroom",
+      ...winningAttacks,
       "move reliquary",
       "inspect signet",
       "take signet",
@@ -101,6 +125,7 @@ test("built game collects the signet once and keeps it inspectable in inventory"
       "quit",
       "",
     ].join("\n"),
+    ["--seed", "0"],
   );
 
   assert.equal(result.status, 0, result.stderr);
@@ -152,6 +177,7 @@ test("built game requires the signet at the reliquary exit and ends explicitly",
       "leave",
       "open wooden door",
       "move guardroom",
+      ...winningAttacks,
       "move reliquary",
       "leave",
       "take signet",
@@ -164,6 +190,7 @@ test("built game requires the signet at the reliquary exit and ends explicitly",
       "quit",
       "",
     ].join("\n"),
+    ["--seed", "0"],
   );
 
   assert.equal(result.status, 0, result.stderr);
@@ -179,5 +206,66 @@ test("built game requires the signet at the reliquary exit and ends explicitly",
   assert.match(result.stdout, /Session:\s*victory/i);
   assert.match(result.stdout, /Collectibles:\s*signet/i);
   assert.match(result.stdout, /Available commands:/i);
-  assert.equal((result.stdout.match(/Victory!/gi) ?? []).length, 1);
+  assert.equal((result.stdout.match(/^Victory!/gim) ?? []).length, 1);
+});
+
+test("seed 0 survives combat and rejected commands do not disturb its rolls", () => {
+  const result = runCli(
+    [
+      "open wooden door",
+      "move guardroom",
+      "attack",
+      "move reliquary",
+      "status",
+      "dance",
+      ...winningAttacks,
+      "status",
+      "quit",
+      "",
+    ].join("\n"),
+    ["--seed", "0"],
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /What do you want to attack/i);
+  assert.match(result.stdout, /cannot do that during combat/i);
+  assert.match(result.stdout, /don't understand ["']dance["']/i);
+  assert.match(
+    result.stdout,
+    /d20 6 \+ 5 = 11 vs AC 13 — miss[\s\S]*d20 1 \+ 4 = 5 vs AC 16 — miss[\s\S]*d20 5 \+ 5 = 10 vs AC 13 — miss[\s\S]*d20 3 \+ 4 = 7 vs AC 16 — miss[\s\S]*d20 10 \+ 5 = 15 vs AC 13 — hit/i,
+  );
+  assert.match(result.stdout, /Damage: 8[\s\S]*goblin HP: 0\/7/i);
+  assert.match(result.stdout, /Combat victory![\s\S]*Fighter HP: 20\/20/i);
+});
+
+test("seed 121 defeats the fighter and preserves readable final state", () => {
+  const result = runCli(
+    [
+      "open wooden door",
+      "move guardroom",
+      "attack goblin",
+      "attack goblin",
+      "attack goblin",
+      "attack goblin",
+      "attack goblin",
+      "status",
+      "move reliquary",
+      "look",
+      "help",
+      "quit",
+      "",
+    ].join("\n"),
+    ["--seed=121"],
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Seed: 121 \(mulberry32-v1\)/i);
+  assert.match(
+    result.stdout,
+    /goblin attacks Fighter with scimitar: d20 20 \+ 4 = 24 vs AC 16 — critical hit[\s\S]*Damage: 9/i,
+  );
+  assert.match(result.stdout, /Fighter HP: 0\/20[\s\S]*Session: defeat/i);
+  assert.match(result.stdout, /Defeat! The fighter has fallen/i);
+  assert.match(result.stdout, /adventure is over[\s\S]*can't change/i);
+  assert.match(result.stdout, /Guardroom[\s\S]*Available commands:/i);
 });
