@@ -57,6 +57,13 @@ export async function startDashboard(options = {}) {
   const host = options.host ?? "127.0.0.1";
   const port = options.port ?? 0;
   const clock = options.clock ?? Date.now;
+  const notifyError = (error) => {
+    try {
+      options.onError?.(error);
+    } catch {
+      // Observability must never affect verification.
+    }
+  };
   const startedAt = clock();
   const state = {
     activeStage: null,
@@ -68,30 +75,44 @@ export async function startDashboard(options = {}) {
 
   const server = (options.serverFactory ?? createServer)(
     (request, response) => {
-      if (request.url === "/health") {
-        send(response, 200, "text/plain; charset=utf-8", "ok\n");
-        return;
-      }
+      try {
+        if (request.url === "/health") {
+          send(response, 200, "text/plain; charset=utf-8", "ok\n");
+          return;
+        }
 
-      if (request.url === "/api/state") {
-        send(
-          response,
-          200,
-          "application/json; charset=utf-8",
-          JSON.stringify({
-            ...state,
-            elapsedMs: Math.max(0, clock() - startedAt),
-          }),
-        );
-        return;
-      }
+        if (request.url === "/api/state") {
+          send(
+            response,
+            200,
+            "application/json; charset=utf-8",
+            JSON.stringify({
+              ...state,
+              elapsedMs: Math.max(0, clock() - startedAt),
+            }),
+          );
+          return;
+        }
 
-      if (request.url === "/") {
-        send(response, 200, "text/html; charset=utf-8", PAGE);
-        return;
-      }
+        if (request.url === "/") {
+          send(response, 200, "text/html; charset=utf-8", PAGE);
+          return;
+        }
 
-      send(response, 404, "text/plain; charset=utf-8", "Not found\n");
+        send(response, 404, "text/plain; charset=utf-8", "Not found\n");
+      } catch (error) {
+        notifyError(error);
+        if (response.headersSent) {
+          response.destroy();
+        } else {
+          send(
+            response,
+            500,
+            "text/plain; charset=utf-8",
+            "Dashboard unavailable\n",
+          );
+        }
+      }
     },
   );
 
@@ -99,6 +120,7 @@ export async function startDashboard(options = {}) {
     server.once("error", reject);
     server.listen(port, host, () => {
       server.removeListener("error", reject);
+      server.on("error", notifyError);
       resolve();
     });
   });

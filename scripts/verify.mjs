@@ -108,7 +108,14 @@ export async function runVerification(options = {}) {
 
   if (dashboardEnabled) {
     try {
-      dashboard = await startDashboard();
+      dashboard = await startDashboard({
+        onError(error) {
+          write(
+            output,
+            `Dashboard runtime failure; continuing in terminal: ${error.message}`,
+          );
+        },
+      });
       write(output, `TEST_DASHBOARD_URL=${dashboard.url}`);
       try {
         await launchBrowser(dashboard.url);

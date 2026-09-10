@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
 import test from "node:test";
 
 import { startDashboard } from "../scripts/verification/dashboard.mjs";
@@ -42,4 +43,41 @@ test("concurrent dashboards use isolated free ports", async (context) => {
   context.after(() => Promise.all([first.close(), second.close()]));
 
   assert.notEqual(first.url, second.url);
+});
+
+test("post-start server errors are reported without escaping", async (context) => {
+  const errors = [];
+  let server;
+  const dashboard = await startDashboard({
+    onError: (error) => errors.push(error.message),
+    serverFactory: (handler) => {
+      server = createServer(handler);
+      return server;
+    },
+  });
+  context.after(() => dashboard.close());
+
+  assert.doesNotThrow(() => server.emit("error", new Error("socket failed")));
+  assert.deepEqual(errors, ["socket failed"]);
+});
+
+test("endpoint failures return 500 and report degradation", async (context) => {
+  const errors = [];
+  let clockCalls = 0;
+  const dashboard = await startDashboard({
+    clock: () => {
+      clockCalls += 1;
+      if (clockCalls > 1) {
+        throw new Error("clock failed");
+      }
+      return 0;
+    },
+    onError: (error) => errors.push(error.message),
+  });
+  context.after(() => dashboard.close());
+
+  const response = await fetch(`${dashboard.url}/api/state`);
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(errors, ["clock failed"]);
 });
