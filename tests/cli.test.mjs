@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import test from "node:test";
@@ -15,6 +17,15 @@ function runCli(input, args = []) {
     input,
     timeout: 5_000,
   });
+}
+
+function withTemporaryDirectory(run) {
+  const directory = mkdtempSync(path.join(tmpdir(), "dungeon-one-trace-"));
+  try {
+    return run(directory);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 }
 
 test("built game prints one reproducible seed and rejects invalid startup seeds", () => {
@@ -270,4 +281,167 @@ test("seed 207 gives the goblin initiative and defeats the fighter", () => {
   assert.match(result.stdout, /Defeat! The fighter has fallen/i);
   assert.match(result.stdout, /adventure is over[\s\S]*can't change/i);
   assert.match(result.stdout, /Guardroom[\s\S]*Available commands:/i);
+});
+
+test("built CLI exports a complete winning trace without narration or timestamps", () => {
+  withTemporaryDirectory((directory) => {
+    const tracePath = path.join(directory, "winning.json");
+    const rawInputs = [
+      "look",
+      "dance",
+      "open wooden door",
+      "move guardroom",
+      ...winningAttacks,
+      "move reliquary",
+      "take signet",
+      "leave",
+      "status",
+      "move guardroom",
+      "open wooden door",
+      "take signet",
+      "leave",
+      "quit",
+    ];
+    const result = runCli(`${rawInputs.join("\n")}\n`, [
+      "--trace",
+      tracePath,
+      "--seed",
+      "0",
+    ]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Trace exported to .+winning\.json/i);
+    const traceText = readFileSync(tracePath, "utf8");
+    const trace = JSON.parse(traceText);
+
+    assert.equal(trace.formatVersion, 1);
+    assert.equal(trace.rulesVersion, "stolen-signet-rules-v1");
+    assert.deepEqual(trace.adventure, {
+      id: "stolen-signet",
+      version: "1",
+    });
+    assert.deepEqual(trace.random, {
+      algorithm: "mulberry32-v1",
+      initialSeed: 0,
+    });
+    assert.deepEqual(trace.completion, {
+      reason: "quit",
+      outcome: "victory",
+    });
+    assert.deepEqual(
+      trace.actions.map((entry) => entry.rawInput),
+      rawInputs,
+    );
+    assert.deepEqual(trace.actions[1].action, {
+      type: "unknown",
+      input: "dance",
+    });
+    assert.deepEqual(trace.actions[1].result, {
+      type: "rejected",
+      rejection: { reason: "unknown-command", input: "dance" },
+    });
+
+    const enteredCombat = trace.actions.find(
+      (entry) => entry.rawInput === "move guardroom",
+    );
+    assert.deepEqual(enteredCombat.rolls, [
+      { sides: 20, value: 6 },
+      { sides: 20, value: 1 },
+    ]);
+    assert.equal(
+      enteredCombat.result.events.some(
+        (event) => event.type === "combat-started",
+      ),
+      true,
+    );
+    assert.equal(enteredCombat.stateAfter.combat.currentTurn, "fighter");
+
+    const terminalRead = trace.actions.find(
+      (entry) => entry.rawInput === "status",
+    );
+    assert.equal(terminalRead.stateAfter.status, "victory");
+    for (const entry of trace.actions.slice(-5, -1)) {
+      assert.deepEqual(entry.rolls, []);
+      assert.deepEqual(entry.result, {
+        type: "rejected",
+        rejection: { reason: "terminal-state", status: "victory" },
+      });
+      assert.equal(entry.stateAfter.status, "victory");
+    }
+    assert.equal(trace.actions.at(-1).stateAfter.status, "victory");
+    assert.doesNotMatch(traceText, /Victory!|You move|timestamp|createdAt/i);
+  });
+});
+
+test("built CLI exports defeat on EOF and keeps enemy actions within player entries", () => {
+  withTemporaryDirectory((directory) => {
+    const tracePath = path.join(directory, "defeat.json");
+    const inputs = [
+      "open wooden door",
+      "move guardroom",
+      "look",
+      "dance",
+      "open wooden door",
+      "move reliquary",
+      "take signet",
+      "leave",
+      "attack goblin",
+      "attack goblin",
+      "attack goblin",
+    ];
+    const result = runCli(inputs.join("\n"), [
+      "--seed=207",
+      `--trace=${tracePath}`,
+    ]);
+
+    assert.equal(result.status, 0, result.stderr);
+    const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+    assert.deepEqual(trace.completion, {
+      reason: "eof",
+      outcome: "defeat",
+    });
+    assert.equal(trace.actions.length, inputs.length);
+    assert.equal(
+      trace.actions.some((entry) => entry.action.type === "goblin-turn"),
+      false,
+    );
+    for (const entry of trace.actions.slice(2, 8)) {
+      assert.deepEqual(entry.rolls, []);
+      assert.deepEqual(entry.stateAfter, trace.actions[1].stateAfter);
+    }
+    assert.deepEqual(trace.actions[3].result, {
+      type: "rejected",
+      rejection: { reason: "unknown-command", input: "dance" },
+    });
+    for (const entry of trace.actions.slice(4, 8)) {
+      assert.deepEqual(entry.result, {
+        type: "rejected",
+        rejection: { reason: "combat-restriction" },
+      });
+    }
+    assert.equal(trace.actions.at(-1).stateAfter.status, "defeat");
+    assert.equal(
+      trace.actions
+        .at(-1)
+        .result.events.some(
+          (event) =>
+            event.type === "attack-resolved" && event.attackerId === "goblin",
+        ),
+      true,
+    );
+  });
+});
+
+test("trace write failures are clear and do not alter the gameplay outcome", () => {
+  withTemporaryDirectory((directory) => {
+    const result = runCli(
+      "open wooden door\nmove guardroom\nattack goblin\nattack goblin\nmove reliquary\ntake signet\nleave\nquit\n",
+      ["--seed", "0", "--trace", directory],
+    );
+
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /Victory!/i);
+    assert.doesNotMatch(result.stdout, /Trace exported/i);
+    assert.match(result.stderr, /Unable to write session trace/i);
+  });
 });

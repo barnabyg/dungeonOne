@@ -19,6 +19,37 @@ npm.cmd run build
 npm.cmd start -- --seed 0
 ```
 
+To export a diagnostic trace, add `--trace <path>` (or
+`--trace=<path>`):
+
+```powershell
+npm.cmd start -- --seed 0 --trace .\session-trace.json
+```
+
+The file is written when the process reaches normal termination: `quit` or
+end-of-input. A run that has not reached victory or defeat is marked
+`incomplete`; it is a diagnostic record of a voluntarily ended session, not a
+save file and cannot be resumed. A write or serialization error is printed to
+standard error, exits nonzero, and does not change the game outcome.
+
+## Session trace format
+
+Trace format version `1` is JSON and is a compatibility contract. It records
+the rules and built-in adventure versions, random algorithm and initial seed,
+initial authoritative state, and every submitted CLI line in order. Each action
+entry contains the raw input, parsed structured action, random rolls consumed,
+accepted structured events or a typed rejection, and the authoritative state
+afterward. Automatic goblin turns appear as consequences in the player action
+that triggered them; they are not extra inputs.
+
+Traces deliberately exclude timestamps and rendered narration so deterministic
+comparisons can use `initialState`, each `stateAfter`, rolls, and mechanical
+results directly. Read-only commands and invalid input are recorded but consume
+no rolls and invent no world-change events. Export is diagnostic only: there is
+no loader, replay command, database, event-sourcing system, or mid-session
+resume in this increment. Format `1` remains readable support once released;
+removing it requires an explicit compatibility decision.
+
 On macOS or Linux, use `npm` in place of `npm.cmd`. The optional seed must be a decimal integer from `0` through `4294967295`. If omitted, the game chooses one. Every run prints its seed once so it can be replayed. The game then displays the entrance scene and a help hint. Enter `help` to list commands, `quit` to leave cleanly, or send EOF (`Ctrl+Z` then Enter on Windows; `Ctrl+D` on macOS/Linux) to close input cleanly.
 
 ## Deterministic randomness
