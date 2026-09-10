@@ -1,0 +1,30 @@
+{
+  "name": "dungeon-one",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "packageManager": "npm@11.6.4",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check:package": "node scripts/package-checks.mjs",
+    "check:security": "node scripts/security-checks.mjs",
+    "format": "prettier --write \".github/**/*.{yml,yaml}\" \"agent-guidance/**/*.md\" \"src/**/*.ts\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" \"*.config.mjs\" README.md package.json \"tsconfig*.json\"",
+    "format:check": "prettier --check \".github/**/*.{yml,yaml}\" \"agent-guidance/**/*.md\" \"src/**/*.ts\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" \"*.config.mjs\" README.md package.json \"tsconfig*.json\"",
+    "lint": "eslint . --config eslint.style.config.mjs --max-warnings 0",
+    "static": "eslint . --config eslint.bugs.config.mjs --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "verify": "node scripts/verify.mjs",
+    "start": "node dist/cli.js"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.4",
+    "eslint": "10.10.0",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0"
+  }
+}
