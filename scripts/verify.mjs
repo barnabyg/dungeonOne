@@ -62,29 +62,49 @@ async function defaultRunGate(gate, report, output) {
   });
 }
 
-export async function launchBrowserProcess(command, args) {
+export async function launchBrowserProcess(command, args, options = {}) {
   await new Promise((resolve, reject) => {
     let child;
+    let settled = false;
+    let timeout;
+    const settle = (callback) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      callback();
+    };
     try {
       child = spawn(command, args, { stdio: "ignore", windowsHide: true });
     } catch (error) {
       reject(error);
       return;
     }
-    child.once("error", reject);
+    child.once("error", (error) => settle(() => reject(error)));
     child.once("close", (code, signal) => {
       if (code === 0) {
-        resolve();
+        settle(resolve);
         return;
       }
-      reject(
-        new Error(
-          signal
-            ? `Browser launcher ended with signal ${signal}`
-            : `Browser launcher exited with exit code ${code ?? "unknown"}`,
+      settle(() =>
+        reject(
+          new Error(
+            signal
+              ? `Browser launcher ended with signal ${signal}`
+              : `Browser launcher exited with exit code ${code ?? "unknown"}`,
+          ),
         ),
       );
     });
+    const timeoutMs = options.timeoutMs ?? 5_000;
+    timeout = setTimeout(() => {
+      child.kill();
+      child.unref();
+      settle(() =>
+        reject(new Error(`Browser launcher timed out after ${timeoutMs} ms`)),
+      );
+    }, timeoutMs);
   });
 }
 

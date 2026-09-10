@@ -115,6 +115,20 @@ test("browser launcher rejects a started process that exits unsuccessfully", asy
   );
 });
 
+test("browser launcher times out instead of blocking verification", async () => {
+  const startedAt = Date.now();
+
+  await assert.rejects(
+    launchBrowserProcess(
+      process.execPath,
+      ["-e", "setInterval(() => {}, 1_000)"],
+      { timeoutMs: 50 },
+    ),
+    /timed out/i,
+  );
+  assert.equal(Date.now() - startedAt < 2_000, true);
+});
+
 test("verification waits for the dashboard to observe its final result", async () => {
   const lifecycle = [];
   await runVerification({
