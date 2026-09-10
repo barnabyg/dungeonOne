@@ -306,6 +306,49 @@ function isActiveCombat(state: SessionState): boolean {
   );
 }
 
+function resolveGoblinTurn(
+  state: SessionState,
+  random: Pick<RandomSource, "roll">,
+): Readonly<{ state: SessionState; events: readonly Event[] }> {
+  const goblin = ADVENTURE.opponents.goblin;
+  const attack = resolveAttack(
+    {
+      attackerId: goblin.id,
+      targetId: "fighter",
+      attackBonus: goblin.attackBonus,
+      targetArmorClass: ADVENTURE.fighter.armorClass,
+      targetMaxHp: ADVENTURE.fighter.maxHp,
+      damage: goblin.damage,
+    },
+    state.fighter.hp,
+    random,
+  );
+  const fighterDefeated = attack.targetHp === 0;
+  const nextState: SessionState = {
+    ...state,
+    status: fighterDefeated ? "defeat" : "playing",
+    fighter: { ...state.fighter, hp: attack.targetHp },
+    ...(state.combat === undefined
+      ? {}
+      : {
+          combat: {
+            ...state.combat,
+            currentTurn: fighterDefeated ? goblin.id : "fighter",
+          },
+        }),
+  };
+  return {
+    state: nextState,
+    events: [
+      { type: "turn-started", combatantId: goblin.id },
+      attack.event,
+      fighterDefeated
+        ? { type: "combat-ended", outcome: "fighter-defeated" }
+        : { type: "turn-started", combatantId: "fighter" },
+    ],
+  };
+}
+
 function attack(
   state: SessionState,
   target: string | undefined,
@@ -355,7 +398,7 @@ function attack(
     state.opponents[goblin.id].hp,
     random,
   );
-  let nextState: SessionState = {
+  const nextState: SessionState = {
     ...state,
     opponents: {
       ...state.opponents,
@@ -372,32 +415,9 @@ function attack(
     return { state: nextState, events };
   }
 
-  events.push({ type: "turn-started", combatantId: goblin.id });
-  const response = resolveAttack(
-    {
-      attackerId: goblin.id,
-      targetId: "fighter",
-      attackBonus: goblin.attackBonus,
-      targetArmorClass: ADVENTURE.fighter.armorClass,
-      targetMaxHp: ADVENTURE.fighter.maxHp,
-      damage: goblin.damage,
-    },
-    state.fighter.hp,
-    random,
-  );
-  nextState = {
-    ...nextState,
-    status: response.targetHp === 0 ? "defeat" : "playing",
-    fighter: { ...state.fighter, hp: response.targetHp },
-  };
-  events.push(response.event);
-
-  if (response.targetHp === 0) {
-    events.push({ type: "combat-ended", outcome: "fighter-defeated" });
-  } else {
-    events.push({ type: "turn-started", combatantId: "fighter" });
-  }
-  return { state: nextState, events };
+  const goblinTurn = resolveGoblinTurn(nextState, random);
+  events.push(...goblinTurn.events);
+  return { state: goblinTurn.state, events };
 }
 
 function open(state: SessionState, target: string | undefined): ActionResult {
@@ -626,39 +646,13 @@ function move(
         type: "initiative-rolled" as const,
         ...roll,
       })),
-      { type: "turn-started", combatantId: initiative.turnOrder[0] },
     );
     if (initiative.turnOrder[0] === goblin.id) {
-      const openingAttack = resolveAttack(
-        {
-          attackerId: goblin.id,
-          targetId: "fighter",
-          attackBonus: goblin.attackBonus,
-          targetArmorClass: ADVENTURE.fighter.armorClass,
-          targetMaxHp: ADVENTURE.fighter.maxHp,
-          damage: goblin.damage,
-        },
-        nextState.fighter.hp,
-        random,
-      );
-      const fighterDefeated = openingAttack.targetHp === 0;
-      nextState = {
-        ...nextState,
-        status: fighterDefeated ? "defeat" : "playing",
-        fighter: { ...nextState.fighter, hp: openingAttack.targetHp },
-        combat: {
-          opponentId: goblin.id,
-          initiative: initiativeByCombatant,
-          turnOrder: initiative.turnOrder,
-          currentTurn: fighterDefeated ? goblin.id : "fighter",
-        },
-      };
-      events.push(openingAttack.event);
-      if (fighterDefeated) {
-        events.push({ type: "combat-ended", outcome: "fighter-defeated" });
-      } else {
-        events.push({ type: "turn-started", combatantId: "fighter" });
-      }
+      const goblinTurn = resolveGoblinTurn(nextState, random);
+      nextState = goblinTurn.state;
+      events.push(...goblinTurn.events);
+    } else {
+      events.push({ type: "turn-started", combatantId: "fighter" });
     }
   }
   return {
