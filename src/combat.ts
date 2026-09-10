@@ -3,6 +3,22 @@ import type { RandomSource } from "./random.js";
 
 export type CombatantId = "fighter" | OpponentId;
 
+export type InitiativeDefinition = Readonly<{
+  combatantId: CombatantId;
+  bonus: number;
+}>;
+
+export type InitiativeRoll = InitiativeDefinition &
+  Readonly<{
+    roll: number;
+    total: number;
+  }>;
+
+export type InitiativeResolution = Readonly<{
+  rolls: readonly [InitiativeRoll, InitiativeRoll];
+  turnOrder: readonly [CombatantId, CombatantId];
+}>;
+
 export type AttackDefinition = Readonly<{
   attackerId: CombatantId;
   targetId: CombatantId;
@@ -52,6 +68,27 @@ function rollDamage(
     total += rollChecked(random, definition.sides);
   }
   return total;
+}
+
+export function resolveInitiative(
+  first: InitiativeDefinition,
+  second: InitiativeDefinition,
+  random: Pick<RandomSource, "roll">,
+): InitiativeResolution {
+  const firstRoll = rollChecked(random, 20);
+  const secondRoll = rollChecked(random, 20);
+  const rolls = [
+    { ...first, roll: firstRoll, total: firstRoll + first.bonus },
+    { ...second, roll: secondRoll, total: secondRoll + second.bonus },
+  ] as const;
+  const firstActsFirst = rolls[0].total >= rolls[1].total;
+
+  return {
+    rolls,
+    turnOrder: firstActsFirst
+      ? [first.combatantId, second.combatantId]
+      : [second.combatantId, first.combatantId],
+  };
 }
 
 export function resolveAttack(

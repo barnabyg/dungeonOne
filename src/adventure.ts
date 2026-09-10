@@ -38,6 +38,7 @@ export type OpponentDefinition = Readonly<{
   maxHp: number;
   armorClass: number;
   attackBonus: number;
+  initiativeBonus: number;
   attackName: string;
   damage: DamageDefinition;
   roomId: RoomId;
@@ -68,6 +69,7 @@ export type AdventureDefinition = Readonly<{
     maxHp: number;
     armorClass: number;
     attackBonus: number;
+    initiativeBonus: number;
     weaponId: EquipmentId;
   }>;
   opponents: Readonly<Record<OpponentId, OpponentDefinition>>;
@@ -158,6 +160,7 @@ export const ADVENTURE: AdventureDefinition = {
     maxHp: 20,
     armorClass: 16,
     attackBonus: 5,
+    initiativeBonus: 1,
     weaponId: "longsword",
   },
   opponents: {
@@ -167,6 +170,7 @@ export const ADVENTURE: AdventureDefinition = {
       maxHp: 7,
       armorClass: 13,
       attackBonus: 4,
+      initiativeBonus: 2,
       attackName: "scimitar",
       damage: { dice: 1, sides: 6, modifier: 2 },
       roomId: "guardroom",

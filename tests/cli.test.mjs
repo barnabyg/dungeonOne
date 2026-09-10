@@ -6,7 +6,7 @@ import test from "node:test";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cli = path.join(root, "dist", "cli.js");
-const winningAttacks = ["attack goblin", "attack goblin", "attack goblin"];
+const winningAttacks = ["attack goblin", "attack goblin"];
 
 function runCli(input, args = []) {
   return spawnSync(process.execPath, [cli, ...args], {
@@ -232,19 +232,17 @@ test("seed 0 survives combat and rejected commands do not disturb its rolls", ()
   assert.match(result.stdout, /don't understand ["']dance["']/i);
   assert.match(
     result.stdout,
-    /d20 6 \+ 5 = 11 vs AC 13 — miss[\s\S]*d20 1 \+ 4 = 5 vs AC 16 — miss[\s\S]*d20 5 \+ 5 = 10 vs AC 13 — miss[\s\S]*d20 3 \+ 4 = 7 vs AC 16 — miss[\s\S]*d20 10 \+ 5 = 15 vs AC 13 — hit/i,
+    /Initiative: Fighter rolls d20 6 \+ 1 = 7[\s\S]*Initiative: goblin rolls d20 1 \+ 2 = 3[\s\S]*d20 5 \+ 5 = 10 vs AC 13 — miss[\s\S]*d20 3 \+ 4 = 7 vs AC 16 — miss[\s\S]*d20 10 \+ 5 = 15 vs AC 13 — hit/i,
   );
   assert.match(result.stdout, /Damage: 8[\s\S]*goblin HP: 0\/7/i);
   assert.match(result.stdout, /Combat victory![\s\S]*Fighter HP: 20\/20/i);
 });
 
-test("seed 121 defeats the fighter and preserves readable final state", () => {
+test("seed 207 gives the goblin initiative and defeats the fighter", () => {
   const result = runCli(
     [
       "open wooden door",
       "move guardroom",
-      "attack goblin",
-      "attack goblin",
       "attack goblin",
       "attack goblin",
       "attack goblin",
@@ -255,14 +253,18 @@ test("seed 121 defeats the fighter and preserves readable final state", () => {
       "quit",
       "",
     ].join("\n"),
-    ["--seed=121"],
+    ["--seed=207"],
   );
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Seed: 121 \(mulberry32-v1\)/i);
+  assert.match(result.stdout, /Seed: 207 \(mulberry32-v1\)/i);
   assert.match(
     result.stdout,
-    /goblin attacks Fighter with scimitar: d20 20 \+ 4 = 24 vs AC 16 — critical hit[\s\S]*Damage: 9/i,
+    /Initiative: Fighter rolls d20 3 \+ 1 = 4[\s\S]*Initiative: goblin rolls d20 19 \+ 2 = 21[\s\S]*Turn: goblin[\s\S]*goblin attacks Fighter with scimitar: d20 17 \+ 4 = 21 vs AC 16 — hit[\s\S]*Damage: 7/i,
+  );
+  assert.match(
+    result.stdout,
+    /d20 3 \+ 5 = 8 vs AC 13 — miss[\s\S]*d20 19 \+ 4 = 23 vs AC 16 — hit[\s\S]*Damage: 5[\s\S]*d20 6 \+ 5 = 11 vs AC 13 — miss[\s\S]*d20 10 \+ 4 = 14 vs AC 16 — miss[\s\S]*d20 19 \+ 5 = 24 vs AC 13 — hit[\s\S]*Damage: 5[\s\S]*d20 15 \+ 4 = 19 vs AC 16 — hit[\s\S]*Damage: 8/i,
   );
   assert.match(result.stdout, /Fighter HP: 0\/20[\s\S]*Session: defeat/i);
   assert.match(result.stdout, /Defeat! The fighter has fallen/i);

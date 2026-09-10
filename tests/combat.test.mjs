@@ -4,15 +4,26 @@ import test from "node:test";
 import { ADVENTURE } from "../dist/adventure.js";
 import { createSession, handleAction } from "../dist/session.js";
 
-function enterCombat(state = createSession()) {
+function enterCombat(
+  state = createSession(),
+  initiativeRolls = [
+    { sides: 20, value: 10 },
+    { sides: 20, value: 5 },
+  ],
+) {
   const opened = handleAction(state, {
     type: "open",
     target: "wooden door",
   });
-  return handleAction(opened.state, {
-    type: "move",
-    destination: "guardroom",
-  });
+  const initiative = scriptedRoller(initiativeRolls);
+  return handleAction(
+    opened.state,
+    {
+      type: "move",
+      destination: "guardroom",
+    },
+    initiative.random,
+  );
 }
 
 function scriptedRoller(expectedRolls) {
@@ -42,6 +53,7 @@ test("combat statistics live in the adventure definitions", () => {
     maxHp: 20,
     armorClass: 16,
     attackBonus: 5,
+    initiativeBonus: 1,
     weaponId: "longsword",
   });
   assert.deepEqual(ADVENTURE.equipment.longsword.damage, {
@@ -55,20 +67,164 @@ test("combat statistics live in the adventure definitions", () => {
     maxHp: 7,
     armorClass: 13,
     attackBonus: 4,
+    initiativeBonus: 2,
     attackName: "scimitar",
     damage: { dice: 1, sides: 6, modifier: 2 },
     roomId: "guardroom",
   });
 });
 
-test("entering the guardroom starts combat on the fighter turn", () => {
+test("entering the guardroom rolls visible fighter-first initiative once", () => {
   const result = enterCombat();
 
   assert.equal(result.state.locationId, "guardroom");
-  assert.deepEqual(result.events.slice(-2), [
+  assert.deepEqual(result.state.combat, {
+    opponentId: "goblin",
+    initiative: {
+      fighter: { combatantId: "fighter", roll: 10, bonus: 1, total: 11 },
+      goblin: { combatantId: "goblin", roll: 5, bonus: 2, total: 7 },
+    },
+    turnOrder: ["fighter", "goblin"],
+    currentTurn: "fighter",
+  });
+  assert.deepEqual(result.events.slice(-4), [
     { type: "combat-started", opponentId: "goblin" },
+    {
+      type: "initiative-rolled",
+      combatantId: "fighter",
+      roll: 10,
+      bonus: 1,
+      total: 11,
+    },
+    {
+      type: "initiative-rolled",
+      combatantId: "goblin",
+      roll: 5,
+      bonus: 2,
+      total: 7,
+    },
     { type: "turn-started", combatantId: "fighter" },
   ]);
+});
+
+test("a goblin initiative win resolves one opening attack before the fighter turn", () => {
+  const result = enterCombat(createSession(), [
+    { sides: 20, value: 1 },
+    { sides: 20, value: 20 },
+    { sides: 20, value: 1 },
+  ]);
+
+  assert.deepEqual(result.state.combat.turnOrder, ["goblin", "fighter"]);
+  assert.equal(result.state.combat.currentTurn, "fighter");
+  assert.deepEqual(attackEvents(result), [
+    {
+      type: "attack-resolved",
+      attackerId: "goblin",
+      targetId: "fighter",
+      attackRoll: 1,
+      attackBonus: 4,
+      attackTotal: 5,
+      targetArmorClass: 16,
+      outcome: "miss",
+      targetHp: 20,
+      targetMaxHp: 20,
+    },
+  ]);
+  assert.deepEqual(result.events.at(-1), {
+    type: "turn-started",
+    combatantId: "fighter",
+  });
+});
+
+test("initiative ties favour the fighter", () => {
+  const result = enterCombat(createSession(), [
+    { sides: 20, value: 10 },
+    { sides: 20, value: 9 },
+  ]);
+
+  assert.equal(result.state.combat.initiative.fighter.total, 11);
+  assert.equal(result.state.combat.initiative.goblin.total, 11);
+  assert.deepEqual(result.state.combat.turnOrder, ["fighter", "goblin"]);
+  assert.equal(attackEvents(result).length, 0);
+  assert.deepEqual(result.events.at(-1), {
+    type: "turn-started",
+    combatantId: "fighter",
+  });
+});
+
+test("a lethal goblin opening attack ends combat without a pending fighter turn", () => {
+  const initial = createSession();
+  const wounded = {
+    ...initial,
+    fighter: { ...initial.fighter, hp: 3 },
+  };
+  const result = enterCombat(wounded, [
+    { sides: 20, value: 1 },
+    { sides: 20, value: 20 },
+    { sides: 20, value: 12 },
+    { sides: 6, value: 1 },
+  ]);
+
+  assert.equal(result.state.status, "defeat");
+  assert.equal(result.state.fighter.hp, 0);
+  assert.deepEqual(result.events.at(-1), {
+    type: "combat-ended",
+    outcome: "fighter-defeated",
+  });
+  assert.equal(
+    result.events
+      .slice(
+        result.events.findIndex((event) => event.type === "attack-resolved"),
+      )
+      .some(
+        (event) =>
+          event.type === "turn-started" && event.combatantId === "fighter",
+      ),
+    false,
+  );
+});
+
+test("initiative order is retained across rounds and never rerolled", () => {
+  const initial = createSession();
+  const opened = handleAction(initial, {
+    type: "open",
+    target: "wooden door",
+  });
+  const rolls = scriptedRoller([
+    { sides: 20, value: 10 },
+    { sides: 20, value: 5 },
+    { sides: 20, value: 1 },
+    { sides: 20, value: 1 },
+    { sides: 20, value: 20 },
+    { sides: 8, value: 4 },
+    { sides: 8, value: 4 },
+  ]);
+  const entered = handleAction(
+    opened.state,
+    { type: "move", destination: "guardroom" },
+    rolls.random,
+  );
+  const firstRound = handleAction(
+    entered.state,
+    { type: "attack", target: "goblin" },
+    rolls.random,
+  );
+  const secondRound = handleAction(
+    firstRound.state,
+    { type: "attack", target: "goblin" },
+    rolls.random,
+  );
+
+  assert.deepEqual(firstRound.state.combat.turnOrder, ["fighter", "goblin"]);
+  assert.equal(
+    firstRound.events.some((event) => event.type === "initiative-rolled"),
+    false,
+  );
+  assert.equal(
+    secondRound.events.some((event) => event.type === "initiative-rolled"),
+    false,
+  );
+  assert.equal(rolls.drawCount, 7);
 });
 
 test("natural 1 misses without damage and an ordinary total equal to AC hits", () => {

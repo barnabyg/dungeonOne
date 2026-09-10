@@ -125,6 +125,13 @@ function renderEvent(event: Event): string {
       return `You take the ${ADVENTURE.items[event.itemId].name}.`;
     case "combat-started":
       return `Combat begins against the ${ADVENTURE.opponents[event.opponentId].name}.`;
+    case "initiative-rolled": {
+      const combatantName =
+        event.combatantId === "fighter"
+          ? "Fighter"
+          : ADVENTURE.opponents[event.combatantId].name;
+      return `Initiative: ${combatantName} rolls d20 ${event.roll} + ${event.bonus} = ${event.total}.`;
+    }
     case "turn-started":
       return `Turn: ${event.combatantId === "fighter" ? "Fighter" : ADVENTURE.opponents[event.combatantId].name}.`;
     case "attack-resolved": {

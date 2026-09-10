@@ -9,8 +9,10 @@ import {
 } from "./adventure.js";
 import {
   resolveAttack,
+  resolveInitiative,
   type AttackResolvedEvent,
   type CombatantId,
+  type InitiativeRoll,
 } from "./combat.js";
 import type { RandomSource } from "./random.js";
 
@@ -33,6 +35,12 @@ export type SessionState = Readonly<{
   opponents: Readonly<
     Record<OpponentId, Readonly<{ hp: number; maxHp: number }>>
   >;
+  combat?: Readonly<{
+    opponentId: OpponentId;
+    initiative: Readonly<Record<CombatantId, InitiativeRoll>>;
+    turnOrder: readonly [CombatantId, CombatantId];
+    currentTurn: CombatantId;
+  }>;
 }>;
 
 export type Action = Readonly<
@@ -99,6 +107,7 @@ export type Event = Readonly<
   | { type: "session-quit" }
   | AttackResolvedEvent
   | { type: "combat-started"; opponentId: OpponentId }
+  | (InitiativeRoll & { type: "initiative-rolled" })
   | { type: "turn-started"; combatantId: CombatantId }
   | {
       type: "combat-ended";
@@ -536,6 +545,7 @@ function inspect(
 function move(
   state: SessionState,
   destination: string | undefined,
+  random: Pick<RandomSource, "roll"> | undefined,
 ): ActionResult {
   const normalized = normalizeTarget(destination);
   if (normalized.length === 0) {
@@ -573,7 +583,7 @@ function move(
     };
   }
 
-  const nextState: SessionState = { ...state, locationId: destinationId };
+  let nextState: SessionState = { ...state, locationId: destinationId };
   const events: Event[] = [
     {
       type: "room-entered",
@@ -587,10 +597,69 @@ function move(
     destinationId === goblin.roomId &&
     nextState.opponents[goblin.id].hp > 0
   ) {
+    if (random === undefined) {
+      throw new Error("A random source is required for combat.");
+    }
+    const initiative = resolveInitiative(
+      {
+        combatantId: "fighter",
+        bonus: ADVENTURE.fighter.initiativeBonus,
+      },
+      { combatantId: goblin.id, bonus: goblin.initiativeBonus },
+      random,
+    );
+    const initiativeByCombatant = Object.fromEntries(
+      initiative.rolls.map((roll) => [roll.combatantId, roll]),
+    ) as Record<CombatantId, InitiativeRoll>;
+    nextState = {
+      ...nextState,
+      combat: {
+        opponentId: goblin.id,
+        initiative: initiativeByCombatant,
+        turnOrder: initiative.turnOrder,
+        currentTurn: initiative.turnOrder[0],
+      },
+    };
     events.push(
       { type: "combat-started", opponentId: goblin.id },
-      { type: "turn-started", combatantId: "fighter" },
+      ...initiative.rolls.map((roll) => ({
+        type: "initiative-rolled" as const,
+        ...roll,
+      })),
+      { type: "turn-started", combatantId: initiative.turnOrder[0] },
     );
+    if (initiative.turnOrder[0] === goblin.id) {
+      const openingAttack = resolveAttack(
+        {
+          attackerId: goblin.id,
+          targetId: "fighter",
+          attackBonus: goblin.attackBonus,
+          targetArmorClass: ADVENTURE.fighter.armorClass,
+          targetMaxHp: ADVENTURE.fighter.maxHp,
+          damage: goblin.damage,
+        },
+        nextState.fighter.hp,
+        random,
+      );
+      const fighterDefeated = openingAttack.targetHp === 0;
+      nextState = {
+        ...nextState,
+        status: fighterDefeated ? "defeat" : "playing",
+        fighter: { ...nextState.fighter, hp: openingAttack.targetHp },
+        combat: {
+          opponentId: goblin.id,
+          initiative: initiativeByCombatant,
+          turnOrder: initiative.turnOrder,
+          currentTurn: fighterDefeated ? goblin.id : "fighter",
+        },
+      };
+      events.push(openingAttack.event);
+      if (fighterDefeated) {
+        events.push({ type: "combat-ended", outcome: "fighter-defeated" });
+      } else {
+        events.push({ type: "turn-started", combatantId: "fighter" });
+      }
+    }
   }
   return {
     state: nextState,
@@ -669,7 +738,7 @@ export function handleAction(
     case "inspect":
       return inspect(state, action.target);
     case "move":
-      return move(state, action.destination);
+      return move(state, action.destination, random);
     case "open":
       return open(state, action.target);
     case "take":

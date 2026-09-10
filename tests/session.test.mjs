@@ -13,6 +13,13 @@ function afterGoblinVictory(state) {
   };
 }
 
+function enterClearedGuardroom(state) {
+  return handleAction(afterGoblinVictory(state), {
+    type: "move",
+    destination: "guardroom",
+  });
+}
+
 test("read commands expose the fighter and entrance without changing state", () => {
   const initial = createSession();
 
@@ -76,10 +83,7 @@ test("movement visits all three rooms and supports backtracking", () => {
     type: "open",
     target: "wooden door",
   });
-  const guardroom = handleAction(opened.state, {
-    type: "move",
-    destination: "guardroom",
-  });
+  const guardroom = enterClearedGuardroom(opened.state);
   const reliquary = handleAction(afterGoblinVictory(guardroom.state), {
     type: "move",
     destination: "reliquary",
@@ -117,10 +121,7 @@ test("taking the signet transfers it from the reliquary pedestal to inventory", 
     type: "open",
     target: "wooden door",
   });
-  const guardroom = handleAction(opened.state, {
-    type: "move",
-    destination: "guardroom",
-  });
+  const guardroom = enterClearedGuardroom(opened.state);
   const reliquary = handleAction(afterGoblinVictory(guardroom.state), {
     type: "move",
     destination: "reliquary",
@@ -162,10 +163,7 @@ test("the signet is visible only in its room and remains inspectable when carrie
     type: "open",
     target: "wooden door",
   });
-  const guardroom = handleAction(opened.state, {
-    type: "move",
-    destination: "guardroom",
-  });
+  const guardroom = enterClearedGuardroom(opened.state);
   const reliquary = handleAction(afterGoblinVictory(guardroom.state), {
     type: "move",
     destination: "reliquary",
@@ -211,10 +209,7 @@ test("take rejects missing, unknown, remote, and duplicate targets atomically", 
     type: "open",
     target: "wooden door",
   });
-  const guardroom = handleAction(opened.state, {
-    type: "move",
-    destination: "guardroom",
-  });
+  const guardroom = enterClearedGuardroom(opened.state);
   const reliquary = handleAction(afterGoblinVictory(guardroom.state), {
     type: "move",
     destination: "reliquary",
@@ -265,10 +260,7 @@ test("the entrance door blocks movement until opened and stays open from both si
     type: "open",
     target: "wooden door",
   });
-  const guardroom = handleAction(opened.state, {
-    type: "move",
-    destination: "guardroom",
-  });
+  const guardroom = enterClearedGuardroom(opened.state);
   const backtracked = handleAction(afterGoblinVictory(guardroom.state), {
     type: "move",
     destination: "entrance",
@@ -403,10 +395,7 @@ test("open is an informative no-op or rejects invalid targets without changes", 
     type: "open",
     target: "ruined archway",
   });
-  const guardroom = handleAction(opened.state, {
-    type: "move",
-    destination: "guardroom",
-  });
+  const guardroom = enterClearedGuardroom(opened.state);
   const reliquary = handleAction(afterGoblinVictory(guardroom.state), {
     type: "move",
     destination: "reliquary",
@@ -535,10 +524,7 @@ function reachReliquary(state = createSession()) {
     type: "open",
     target: "wooden door",
   });
-  const guardroom = handleAction(opened.state, {
-    type: "move",
-    destination: "guardroom",
-  });
+  const guardroom = enterClearedGuardroom(opened.state);
   return handleAction(afterGoblinVictory(guardroom.state), {
     type: "move",
     destination: "reliquary",
