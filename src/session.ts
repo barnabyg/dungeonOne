@@ -9,7 +9,7 @@ import {
 
 export type SessionState = Readonly<{
   locationId: RoomId;
-  status: "playing" | "quit";
+  status: "playing" | "victory" | "quit";
   fighter: Readonly<{
     hp: number;
     maxHp: number;
@@ -34,6 +34,7 @@ export type Action = Readonly<
   | { type: "take"; target?: string }
   | { type: "status" }
   | { type: "inventory" }
+  | { type: "leave" }
   | { type: "quit" }
   | { type: "empty" }
   | { type: "unknown"; input: string }
@@ -72,6 +73,7 @@ export type Event = Readonly<
   | { type: "door-opened"; doorId: DoorId }
   | { type: "door-already-open"; doorId: DoorId }
   | { type: "item-taken"; itemId: ItemId }
+  | { type: "victory" }
   | {
       type: "status-described";
       hp: number;
@@ -99,6 +101,11 @@ export type Rejection = Readonly<
   | { reason: "nonadjacent-destination"; destinationId: RoomId }
   | { reason: "closed-door"; doorId: DoorId; destinationId: RoomId }
   | { reason: "already-carried"; itemId: ItemId }
+  | {
+      reason: "leave-requirement";
+      requirement: "reliquary" | "signet" | "living-fighter";
+    }
+  | { reason: "terminal-state"; status: "victory" }
 >;
 
 export type ActionResult =
@@ -122,6 +129,7 @@ const COMMANDS = [
   "take <item>",
   "status",
   "inventory",
+  "leave",
   "quit",
 ] as const;
 
@@ -443,10 +451,55 @@ function move(
   };
 }
 
+function leave(state: SessionState): ActionResult {
+  if (state.locationId !== ADVENTURE.objective.escapeRoomId) {
+    return {
+      state,
+      rejection: { reason: "leave-requirement", requirement: "reliquary" },
+    };
+  }
+
+  if (
+    state.itemPlacements[ADVENTURE.objective.requiredItemId].type !==
+    "inventory"
+  ) {
+    return {
+      state,
+      rejection: { reason: "leave-requirement", requirement: "signet" },
+    };
+  }
+
+  if (state.fighter.hp <= 0) {
+    return {
+      state,
+      rejection: {
+        reason: "leave-requirement",
+        requirement: "living-fighter",
+      },
+    };
+  }
+
+  return {
+    state: { ...state, status: "victory" },
+    events: [{ type: "victory" }],
+  };
+}
+
+function isGameplayMutation(action: Action): boolean {
+  return ["move", "open", "take", "leave"].includes(action.type);
+}
+
 export function handleAction(
   state: SessionState,
   action: Action,
 ): ActionResult {
+  if (state.status === "victory" && isGameplayMutation(action)) {
+    return {
+      state,
+      rejection: { reason: "terminal-state", status: "victory" },
+    };
+  }
+
   switch (action.type) {
     case "help":
       return {
@@ -488,6 +541,8 @@ export function handleAction(
           },
         ],
       };
+    case "leave":
+      return leave(state);
     case "empty":
       return { state, rejection: { reason: "empty" } };
     case "unknown":
@@ -497,7 +552,8 @@ export function handleAction(
       };
     case "quit":
       return {
-        state: { ...state, status: "quit" },
+        state:
+          state.status === "victory" ? state : { ...state, status: "quit" },
         events: [{ type: "session-quit" }],
       };
     default:

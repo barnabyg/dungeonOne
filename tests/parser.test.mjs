@@ -24,6 +24,7 @@ test("canonical commands are parsed case-insensitively", () => {
   });
   assert.deepEqual(parseCommand("STATUS"), { type: "status" });
   assert.deepEqual(parseCommand("Inventory"), { type: "inventory" });
+  assert.deepEqual(parseCommand("LEAVE"), { type: "leave" });
   assert.deepEqual(parseCommand("QUIT"), { type: "quit" });
 });
 
@@ -46,6 +47,10 @@ test("argument-free commands reject extra words instead of guessing intent", () 
   assert.deepEqual(parseCommand("quit now"), {
     type: "unknown",
     input: "quit now",
+  });
+  assert.deepEqual(parseCommand("leave reliquary"), {
+    type: "unknown",
+    input: "leave reliquary",
   });
 });
 

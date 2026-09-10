@@ -2,9 +2,12 @@ import { ADVENTURE } from "./adventure.js";
 import type { ActionResult, Event, Rejection } from "./session.js";
 
 export function renderIntroduction(): string {
-  return [ADVENTURE.title, "", 'Type "help" for available commands.'].join(
-    "\n",
-  );
+  return [
+    ADVENTURE.title,
+    "",
+    `Objective: ${ADVENTURE.objective.description}`,
+    'Type "help" for available commands.',
+  ].join("\n");
 }
 
 function renderHelp(commands: readonly string[]): string {
@@ -17,6 +20,7 @@ function renderHelp(commands: readonly string[]): string {
     "take <item>": "Take a visible collectible item.",
     status: "Show the fighter's hit points and session status.",
     inventory: "Show fixed equipment and collected items.",
+    leave: "Use the reliquary's far exit to complete the objective.",
     quit: "Leave the game without completing the adventure.",
   };
 
@@ -118,6 +122,8 @@ function renderEvent(event: Event): string {
       return `The ${ADVENTURE.doors[event.doorId].name} is already open.`;
     case "item-taken":
       return `You take the ${ADVENTURE.items[event.itemId].name}.`;
+    case "victory":
+      return `Victory! You escaped through the ${ADVENTURE.objective.exitName} with the stolen signet. To start a new run, launch the game again.`;
     case "status-described":
       return `Fighter HP: ${event.hp}/${event.maxHp}\nSession: ${event.status}.`;
     case "inventory-described": {
@@ -166,6 +172,16 @@ function renderRejection(rejection: Rejection): string {
       return `The ${ADVENTURE.doors[rejection.doorId].name} to ${ADVENTURE.rooms[rejection.destinationId].name} is closed. Open it before moving through.`;
     case "already-carried":
       return `You are already carrying the ${ADVENTURE.items[rejection.itemId].name}.`;
+    case "leave-requirement":
+      if (rejection.requirement === "reliquary") {
+        return "You must be in the Reliquary to leave through its far exit. The entrance is not a way to complete the objective.";
+      }
+      if (rejection.requirement === "signet") {
+        return "You need the stolen signet before leaving through the far exit.";
+      }
+      return "The fighter must be alive to escape with the signet.";
+    case "terminal-state":
+      return "The adventure is over; you can't change the final state. You may look, inspect, check status or inventory, ask for help, or quit.";
     default:
       rejection satisfies never;
       throw new Error("Unreachable rejection");

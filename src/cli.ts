@@ -27,7 +27,10 @@ for await (const line of lines) {
   state = result.state;
   process.stdout.write(`${renderResult(result)}\n`);
 
-  if (state.status === "quit") {
+  if (
+    state.status === "quit" ||
+    result.events?.some((event) => event.type === "session-quit") === true
+  ) {
     lines.close();
     break;
   }

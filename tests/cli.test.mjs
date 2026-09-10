@@ -145,3 +145,39 @@ test("built game exits cleanly on EOF without an outcome", () => {
   assert.match(result.stdout, /entrance/i);
   assert.doesNotMatch(result.stdout, /victory|defeat/i);
 });
+
+test("built game requires the signet at the reliquary exit and ends explicitly", () => {
+  const result = runCli(
+    [
+      "leave",
+      "open wooden door",
+      "move guardroom",
+      "move reliquary",
+      "leave",
+      "take signet",
+      "leave",
+      "move guardroom",
+      "look",
+      "status",
+      "inventory",
+      "help",
+      "quit",
+      "",
+    ].join("\n"),
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(
+    result.stdout,
+    /Objective: retrieve the stolen signet and leave through the reliquary's far exit/i,
+  );
+  assert.match(result.stdout, /must be in the reliquary/i);
+  assert.match(result.stdout, /need the stolen signet/i);
+  assert.match(result.stdout, /Victory![\s\S]*escaped through the far exit/i);
+  assert.match(result.stdout, /start a new run/i);
+  assert.match(result.stdout, /adventure is over[\s\S]*can't change/i);
+  assert.match(result.stdout, /Session:\s*victory/i);
+  assert.match(result.stdout, /Collectibles:\s*signet/i);
+  assert.match(result.stdout, /Available commands:/i);
+  assert.equal((result.stdout.match(/Victory!/gi) ?? []).length, 1);
+});

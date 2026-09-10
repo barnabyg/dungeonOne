@@ -45,6 +45,12 @@ export type AdventureDefinition = Readonly<{
   doors: Readonly<Record<DoorId, DoorDefinition>>;
   equipment: Readonly<Record<EquipmentId, EquipmentDefinition>>;
   items: Readonly<Record<ItemId, ItemDefinition>>;
+  objective: Readonly<{
+    requiredItemId: ItemId;
+    escapeRoomId: RoomId;
+    exitName: string;
+    description: string;
+  }>;
 }>;
 
 export const ADVENTURE: AdventureDefinition = {
@@ -120,5 +126,12 @@ export const ADVENTURE: AdventureDefinition = {
       description:
         "A silver signet engraved with the fighter's family crest, stolen but unharmed.",
     },
+  },
+  objective: {
+    requiredItemId: "signet",
+    escapeRoomId: "reliquary",
+    exitName: "far exit",
+    description:
+      "Retrieve the stolen signet and leave through the reliquary's far exit.",
   },
 };

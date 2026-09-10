@@ -1,6 +1,6 @@
 # Dungeon One
 
-Dungeon One is an offline, text-first TypeScript game. The current slice of **The Stolen Signet** lets you open the watchtower entrance, explore the entrance, guardroom, and reliquary, and recover the stolen signet through explicit terminal commands. The goblin encounter is not yet active.
+Dungeon One is an offline, text-first TypeScript game. The current non-combat slice of **The Stolen Signet** lets you open the watchtower entrance, explore the entrance, guardroom, and reliquary, recover the stolen signet, and explicitly escape through the reliquary's far exit. The goblin encounter is not yet active.
 
 ## Requirements
 
@@ -35,6 +35,7 @@ Commands and their arguments are case-insensitive. Commands must use the canonic
 | `take <item>`      | Move a visible collectible into inventory, such as `take signet`.                |
 | `status`           | Show the fighter's current and maximum HP and session status.                    |
 | `inventory`        | Show the fixed longsword equipment separately from collected items.              |
+| `leave`            | Attempt to complete the objective through the reliquary's far exit.              |
 | `quit`             | Leave the game cleanly without victory or defeat.                                |
 
 ## Verification
@@ -62,15 +63,14 @@ Focused tests can be run with `npm.cmd test -- --test-name-pattern "pattern"`; t
 
 After `npm.cmd run build`:
 
-1. Run `npm.cmd start`. Expect the title, entrance description, visible ruined archway, guardroom exit, and `help` hint.
+1. Run `npm.cmd start`. Expect the title, the objective to retrieve the stolen signet and use the reliquary's far exit, the entrance description, and the `help` hint.
 2. Enter `status` and `inventory`. Expect a fighter at 20/20 HP, an equipped longsword, and no collectibles.
 3. Enter `inspect ruined archway`, `open wooden door`, `move guardroom`, and `move reliquary`. Expect the inspected crest, the door to open, and descriptions and named exits for both entered rooms.
-4. In the reliquary, expect `look` to show the signet on the stone pedestal. Enter `inspect signet`, `take signet`, `look`, and `inventory`. Expect the signet description, one successful pickup, no signet among the room's visible items, and the signet under collectibles while the longsword remains equipped.
-5. Enter `move guardroom` and `inspect signet`. Expect backtracking through the open passage and the carried signet's description.
-6. Enter `take signet` again. Expect feedback that it is already carried and no duplicate inventory entry.
-7. Start a fresh game and try `take`, `take gem`, and `take signet` at the entrance. Expect actionable feedback for missing, unknown, and remote pickup attempts with unchanged inventory.
-8. Enter a blank line and then `dance`. Expect useful feedback after each and another usable prompt.
-9. Enter `quit`. Expect a clean exit with neither victory nor defeat.
-10. Pipe empty input to `node dist/cli.js`. Expect the starting scene and exit code 0, with neither victory nor defeat.
+4. In the reliquary, expect `look` to show the signet on the stone pedestal. Enter `inspect signet` and `leave`. Expect the signet description, an explanation that the signet is required, and a usable prompt. Then enter `take signet`, `look`, and `inventory`. Expect one successful pickup, no signet among the room's visible items, and the signet under collectibles while the longsword remains equipped.
+5. Enter `leave`. Expect one explicit victory ending and instructions to launch the game again for a new run.
+6. After victory, enter `move guardroom`, `look`, `status`, `inventory`, and `help`. Expect movement to be rejected without changing the final state, while read-only commands show the Reliquary, `victory`, and the carried signet.
+7. Enter `quit`. Expect a clean exit that preserves the victory state. Launch `npm.cmd start` again to begin a fresh run; there is no in-game restart or save/resume system.
+8. Start another fresh game and enter `leave` at the entrance. Expect an explanation that the far exit is in the Reliquary and that the entrance cannot complete the objective. Enter `quit`; expect no victory or defeat.
+9. Pipe empty input to `node dist/cli.js`. Expect the objective and starting scene, exit code 0, and neither victory nor defeat.
 
-Combat, weight, consumables, equipment switching, victory and defeat, AI integration, an external adventure loader, save/resume, deployment, and an installer are intentionally out of scope for issue #4.
+Combat and defeat, weight, consumables, equipment switching, AI integration, an external adventure loader, save/resume, in-game restart, deployment, and an installer are intentionally out of scope for issue #5.

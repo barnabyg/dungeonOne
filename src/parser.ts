@@ -15,6 +15,7 @@ export function parseCommand(input: string): Action {
     case "look":
     case "status":
     case "inventory":
+    case "leave":
     case "quit": {
       if (argument.length > 0) {
         return { type: "unknown", input: command };

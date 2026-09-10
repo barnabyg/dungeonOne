@@ -518,3 +518,104 @@ test("quit ends the session without a gameplay outcome", () => {
   assert.equal(result.state.status, "quit");
   assert.deepEqual(result.events, [{ type: "session-quit" }]);
 });
+
+function reachReliquary(state = createSession()) {
+  const opened = handleAction(state, {
+    type: "open",
+    target: "wooden door",
+  });
+  const guardroom = handleAction(opened.state, {
+    type: "move",
+    destination: "guardroom",
+  });
+  return handleAction(guardroom.state, {
+    type: "move",
+    destination: "reliquary",
+  }).state;
+}
+
+test("leaving wins only for a living fighter carrying the signet in the reliquary", () => {
+  const initial = createSession();
+  const wrongLocation = handleAction(initial, { type: "leave" });
+  const reliquary = reachReliquary(initial);
+  const missingSignet = handleAction(reliquary, { type: "leave" });
+  const taken = handleAction(reliquary, {
+    type: "take",
+    target: "signet",
+  });
+  const dead = { ...taken.state, fighter: { ...taken.state.fighter, hp: 0 } };
+  const deadFighter = handleAction(dead, { type: "leave" });
+  const backtracked = handleAction(taken.state, {
+    type: "move",
+    destination: "guardroom",
+  });
+  const entrance = handleAction(backtracked.state, {
+    type: "move",
+    destination: "entrance",
+  });
+  const entranceWithSignet = handleAction(entrance.state, { type: "leave" });
+  const victory = handleAction(taken.state, { type: "leave" });
+
+  assert.deepEqual(wrongLocation.rejection, {
+    reason: "leave-requirement",
+    requirement: "reliquary",
+  });
+  assert.deepEqual(missingSignet.rejection, {
+    reason: "leave-requirement",
+    requirement: "signet",
+  });
+  assert.deepEqual(deadFighter.rejection, {
+    reason: "leave-requirement",
+    requirement: "living-fighter",
+  });
+  assert.deepEqual(entranceWithSignet.rejection, {
+    reason: "leave-requirement",
+    requirement: "reliquary",
+  });
+  assert.deepEqual(wrongLocation.state, initial);
+  assert.deepEqual(missingSignet.state, reliquary);
+  assert.deepEqual(deadFighter.state, dead);
+  assert.deepEqual(entranceWithSignet.state, entrance.state);
+  assert.equal(taken.state.status, "playing");
+  assert.equal(victory.state.status, "victory");
+  assert.deepEqual(victory.events, [{ type: "victory" }]);
+});
+
+test("victory freezes gameplay mutations but keeps final state readable", () => {
+  const reliquary = reachReliquary();
+  const taken = handleAction(reliquary, {
+    type: "take",
+    target: "signet",
+  });
+  const victory = handleAction(taken.state, { type: "leave" });
+
+  for (const action of [
+    { type: "leave" },
+    { type: "move", destination: "guardroom" },
+    { type: "open", target: "wooden door" },
+    { type: "take", target: "signet" },
+  ]) {
+    const result = handleAction(victory.state, action);
+    assert.deepEqual(result.state, victory.state);
+    assert.deepEqual(result.rejection, {
+      reason: "terminal-state",
+      status: "victory",
+    });
+  }
+
+  for (const action of [
+    { type: "help" },
+    { type: "look" },
+    { type: "inspect", target: "signet" },
+    { type: "status" },
+    { type: "inventory" },
+  ]) {
+    const result = handleAction(victory.state, action);
+    assert.deepEqual(result.state, victory.state);
+    assert.equal(result.rejection, undefined);
+  }
+
+  const quit = handleAction(victory.state, { type: "quit" });
+  assert.deepEqual(quit.state, victory.state);
+  assert.deepEqual(quit.events, [{ type: "session-quit" }]);
+});
