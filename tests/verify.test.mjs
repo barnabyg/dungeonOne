@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { GATES, runVerification } from "../scripts/verify.mjs";
+import {
+  GATES,
+  launchBrowserProcess,
+  runVerification,
+} from "../scripts/verify.mjs";
 
 test("verification gates have the required order", () => {
   assert.deepEqual(
@@ -102,4 +106,11 @@ test("verification reports available automated-test progress", async () => {
     name: "automated tests",
     progress: { completed: 2, total: null },
   });
+});
+
+test("browser launcher rejects a started process that exits unsuccessfully", async () => {
+  await assert.rejects(
+    launchBrowserProcess(process.execPath, ["-e", "process.exit(9)"]),
+    /exit code 9/i,
+  );
 });

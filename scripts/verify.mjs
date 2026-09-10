@@ -62,6 +62,32 @@ async function defaultRunGate(gate, report, output) {
   });
 }
 
+export async function launchBrowserProcess(command, args) {
+  await new Promise((resolve, reject) => {
+    let child;
+    try {
+      child = spawn(command, args, { stdio: "ignore", windowsHide: true });
+    } catch (error) {
+      reject(error);
+      return;
+    }
+    child.once("error", reject);
+    child.once("close", (code, signal) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(
+        new Error(
+          signal
+            ? `Browser launcher ended with signal ${signal}`
+            : `Browser launcher exited with exit code ${code ?? "unknown"}`,
+        ),
+      );
+    });
+  });
+}
+
 export async function openBrowser(url) {
   const [command, args] =
     process.platform === "win32"
@@ -69,19 +95,7 @@ export async function openBrowser(url) {
       : process.platform === "darwin"
         ? ["open", [url]]
         : ["xdg-open", [url]];
-
-  await new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
-    });
-    child.once("error", reject);
-    child.once("spawn", () => {
-      child.unref();
-      resolve();
-    });
-  });
+  await launchBrowserProcess(command, args);
 }
 
 function dashboardDefault(output, environment) {
