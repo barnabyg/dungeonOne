@@ -5,7 +5,23 @@ import { parseCommand } from "../dist/parser.js";
 
 test("canonical commands are parsed case-insensitively", () => {
   assert.deepEqual(parseCommand("  HeLp  "), { type: "help" });
+  assert.deepEqual(parseCommand("LOOK"), { type: "look" });
+  assert.deepEqual(parseCommand("InSpEcT Ruined Archway"), {
+    type: "inspect",
+    target: "ruined archway",
+  });
+  assert.deepEqual(parseCommand("MoVe GuardRoom"), {
+    type: "move",
+    destination: "guardroom",
+  });
+  assert.deepEqual(parseCommand("STATUS"), { type: "status" });
+  assert.deepEqual(parseCommand("Inventory"), { type: "inventory" });
   assert.deepEqual(parseCommand("QUIT"), { type: "quit" });
+});
+
+test("argument commands stay structured when their argument is missing", () => {
+  assert.deepEqual(parseCommand("inspect"), { type: "inspect", target: "" });
+  assert.deepEqual(parseCommand("move   "), { type: "move", destination: "" });
 });
 
 test("empty and unknown input become structured actions", () => {

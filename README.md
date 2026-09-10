@@ -1,6 +1,6 @@
 # Dungeon One
 
-Dungeon One is an offline, text-first TypeScript game. This first executable slice opens **The Stolen Signet** at the ruined watchtower entrance and supports `help` and `quit`.
+Dungeon One is an offline, text-first TypeScript game. The current slice of **The Stolen Signet** lets you explore the entrance, guardroom, and reliquary through explicit terminal commands. Passages are open and the goblin encounter is not yet active.
 
 ## Requirements
 
@@ -20,6 +20,20 @@ npm.cmd start
 ```
 
 On macOS or Linux, use `npm` in place of `npm.cmd`. The game displays the entrance scene and a help hint. Enter `help` to list commands, `quit` to leave cleanly, or send EOF (`Ctrl+Z` then Enter on Windows; `Ctrl+D` on macOS/Linux) to close input cleanly.
+
+## Supported commands
+
+Commands and their arguments are case-insensitive. Commands must use the canonical forms below; fuzzy or natural-language input is not supported.
+
+| Command            | Result                                                                           |
+| ------------------ | -------------------------------------------------------------------------------- |
+| `help`             | List supported commands.                                                         |
+| `look`             | Describe the current room, visible features, and named exits.                    |
+| `inspect <target>` | Inspect a visible feature or named exit, such as `inspect ruined archway`.       |
+| `move <location>`  | Walk through an open passage to a named adjacent room, such as `move guardroom`. |
+| `status`           | Show the fighter's current and maximum HP and session status.                    |
+| `inventory`        | Show the fixed longsword equipment separately from collected items.              |
+| `quit`             | Leave the game cleanly without victory or defeat.                                |
 
 ## Verification
 
@@ -46,10 +60,13 @@ Focused tests can be run with `npm.cmd test -- --test-name-pattern "pattern"`; t
 
 After `npm.cmd run build`:
 
-1. Run `npm.cmd start`. Expect the title, entrance description, and `help` hint.
-2. Enter a blank line and then `dance`. Expect useful feedback after each and another usable prompt.
-3. Enter `help`. Expect `help` and `quit` with explanations.
-4. Enter `quit`. Expect a clean exit with neither victory nor defeat.
-5. Pipe empty input to `node dist/cli.js`. Expect the starting scene and exit code 0, with neither victory nor defeat.
+1. Run `npm.cmd start`. Expect the title, entrance description, visible ruined archway, guardroom exit, and `help` hint.
+2. Enter `status` and `inventory`. Expect a fighter at 20/20 HP, an equipped longsword, and no collectibles.
+3. Enter `inspect ruined archway`, `move guardroom`, and `move reliquary`. Expect the inspected crest, then descriptions and named exits for both entered rooms.
+4. Enter `move guardroom` and `move entrance`. Expect backtracking through both open passages.
+5. Try `inspect`, `inspect pedestal`, `move`, `move cellar`, and `move reliquary` from the entrance. Expect actionable feedback after each and an unchanged location.
+6. Enter a blank line and then `dance`. Expect useful feedback after each and another usable prompt.
+7. Enter `quit`. Expect a clean exit with neither victory nor defeat.
+8. Pipe empty input to `node dist/cli.js`. Expect the starting scene and exit code 0, with neither victory nor defeat.
 
-Rooms beyond the starting scene, combat, AI integration, external adventure files, save/resume, deployment, and an installer are intentionally out of scope for issue #1.
+Combat, collectible items, victory and defeat, AI integration, an external adventure loader, save/resume, deployment, and an installer are intentionally out of scope for issue #2.

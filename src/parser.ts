@@ -7,13 +7,21 @@ export function parseCommand(input: string): Action {
     return { type: "empty" };
   }
 
-  if (command === "help") {
-    return { type: "help" };
-  }
+  const [verb = "", ...argumentParts] = command.split(/\s+/u);
+  const argument = argumentParts.join(" ");
 
-  if (command === "quit") {
-    return { type: "quit" };
+  switch (verb) {
+    case "help":
+    case "look":
+    case "status":
+    case "inventory":
+    case "quit":
+      return { type: verb };
+    case "inspect":
+      return { type: "inspect", target: argument };
+    case "move":
+      return { type: "move", destination: argument };
+    default:
+      return { type: "unknown", input: command };
   }
-
-  return { type: "unknown", input: command };
 }

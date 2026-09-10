@@ -1,7 +1,7 @@
 import { createInterface } from "node:readline";
 
 import { parseCommand } from "./parser.js";
-import { renderInitialScene, renderResponse } from "./presenter.js";
+import { renderIntroduction, renderResult } from "./presenter.js";
 import { createSession, handleAction } from "./session.js";
 
 const terminal = Boolean(process.stdin.isTTY && process.stdout.isTTY);
@@ -13,7 +13,10 @@ const lines = createInterface({
 });
 
 let state = createSession();
-process.stdout.write(`${renderInitialScene()}\n`);
+process.stdout.write(`${renderIntroduction()}\n`);
+const initialLook = handleAction(state, { type: "look" });
+state = initialLook.state;
+process.stdout.write(`${renderResult(initialLook)}\n`);
 
 if (terminal) {
   lines.prompt();
@@ -22,7 +25,7 @@ if (terminal) {
 for await (const line of lines) {
   const result = handleAction(state, parseCommand(line));
   state = result.state;
-  process.stdout.write(`${renderResponse(result.response)}\n`);
+  process.stdout.write(`${renderResult(result)}\n`);
 
   if (state.status === "quit") {
     lines.close();
