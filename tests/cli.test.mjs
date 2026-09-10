@@ -64,12 +64,13 @@ test("built game visits all rooms, inspects visible features, and backtracks", (
 
 test("built game recovers from malformed, invisible, and illegal commands", () => {
   const result = runCli(
-    "\ndance\ninspect\ninspect pedestal\nmove\nmove cellar\nmove reliquary\nlook\nquit\n",
+    "\ndance\nlook around\ninspect\ninspect pedestal\nmove\nmove cellar\nmove reliquary\nlook\nquit\n",
   );
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /enter a command/i);
   assert.match(result.stdout, /don't understand [\"']dance[\"']/i);
+  assert.match(result.stdout, /don't understand [\"']look around[\"']/i);
   assert.match(result.stdout, /inspect <target>/i);
   assert.match(result.stdout, /can't see [\"']pedestal[\"']/i);
   assert.match(result.stdout, /move <location>/i);

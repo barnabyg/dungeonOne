@@ -87,6 +87,10 @@ test("inspection is limited to visible features and named exits", () => {
     type: "inspect",
     target: "pedestal",
   });
+  const internalId = handleAction(initial, {
+    type: "inspect",
+    target: "ruined-archway",
+  });
 
   assert.deepEqual(feature.events, [
     {
@@ -104,6 +108,10 @@ test("inspection is limited to visible features and named exits", () => {
   assert.deepEqual(invisible.rejection, {
     reason: "invisible-target",
     target: "pedestal",
+  });
+  assert.deepEqual(internalId.rejection, {
+    reason: "invisible-target",
+    target: "ruined-archway",
   });
 });
 

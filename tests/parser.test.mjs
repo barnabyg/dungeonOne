@@ -24,6 +24,21 @@ test("argument commands stay structured when their argument is missing", () => {
   assert.deepEqual(parseCommand("move   "), { type: "move", destination: "" });
 });
 
+test("argument-free commands reject extra words instead of guessing intent", () => {
+  assert.deepEqual(parseCommand("look around"), {
+    type: "unknown",
+    input: "look around",
+  });
+  assert.deepEqual(parseCommand("status please"), {
+    type: "unknown",
+    input: "status please",
+  });
+  assert.deepEqual(parseCommand("quit now"), {
+    type: "unknown",
+    input: "quit now",
+  });
+});
+
 test("empty and unknown input become structured actions", () => {
   assert.deepEqual(parseCommand("   "), { type: "empty" });
   assert.deepEqual(parseCommand("dance wildly"), {

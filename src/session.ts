@@ -114,7 +114,7 @@ function normalizeTarget(value: string | undefined): string {
 function resolveRoom(value: string): RoomId | undefined {
   const normalized = normalizeTarget(value);
   return Object.values(ADVENTURE.rooms).find(
-    (room) => room.id === normalized || room.name.toLowerCase() === normalized,
+    (room) => room.name.toLowerCase() === normalized,
   )?.id;
 }
 
@@ -132,9 +132,7 @@ function inspect(
 
   const room = ADVENTURE.rooms[state.locationId];
   const feature = room.features.find(
-    (candidate) =>
-      candidate.id === normalized ||
-      candidate.name.toLowerCase() === normalized,
+    (candidate) => candidate.name.toLowerCase() === normalized,
   );
   if (feature !== undefined) {
     return {
@@ -150,9 +148,7 @@ function inspect(
 
   const exitRoomId = room.exitRoomIds.find((candidate) => {
     const exitRoom = ADVENTURE.rooms[candidate];
-    return (
-      exitRoom.id === normalized || exitRoom.name.toLowerCase() === normalized
-    );
+    return exitRoom.name.toLowerCase() === normalized;
   });
   if (exitRoomId !== undefined) {
     return {
