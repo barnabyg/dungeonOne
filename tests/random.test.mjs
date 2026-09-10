@@ -35,21 +35,17 @@ test("seeded die rolls are deterministic and bounded", () => {
 });
 
 test("startup seeds accept only decimal unsigned 32-bit values", () => {
-  assert.deepEqual(
+  assert.equal(
     resolveStartupSeed(["--seed", "0"], () => 99),
-    {
-      seed: 0,
-    },
+    0,
   );
-  assert.deepEqual(
+  assert.equal(
     resolveStartupSeed(["--seed=4294967295"], () => 99),
-    { seed: 4_294_967_295 },
+    4_294_967_295,
   );
-  assert.deepEqual(
+  assert.equal(
     resolveStartupSeed([], () => 3_000_000_000),
-    {
-      seed: 3_000_000_000,
-    },
+    3_000_000_000,
   );
 
   for (const args of [

@@ -25,7 +25,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const random = createSeededRandom(startup.seed);
+  const random = createSeededRandom(startup);
   const terminal = Boolean(process.stdin.isTTY && process.stdout.isTTY);
   const lines = createInterface({
     input: process.stdin,
@@ -35,7 +35,7 @@ async function main(): Promise<void> {
   });
 
   let state = createSession();
-  process.stdout.write(`Seed: ${startup.seed} (${RANDOM_ALGORITHM})\n`);
+  process.stdout.write(`Seed: ${startup} (${RANDOM_ALGORITHM})\n`);
   process.stdout.write(`${renderIntroduction()}\n`);
   const initialLook = handleAction(state, { type: "look" }, random);
   state = initialLook.state;

@@ -8,10 +8,6 @@ export type RandomSource = Readonly<{
   roll(sides: number): number;
 }>;
 
-export type StartupSeed = Readonly<{
-  seed: number;
-}>;
-
 function requireUint32(value: number, label: string): number {
   if (!Number.isInteger(value) || value < 0 || value > UINT32_MAX) {
     throw new Error(`${label} must be an unsigned 32-bit integer.`);
@@ -51,17 +47,17 @@ function parseSeed(value: string): number {
 export function resolveStartupSeed(
   args: readonly string[],
   chooseSeed: () => number,
-): StartupSeed {
+): number {
   if (args.length === 0) {
-    return { seed: requireUint32(chooseSeed(), "Generated seed") };
+    return requireUint32(chooseSeed(), "Generated seed");
   }
 
   if (args.length === 2 && args[0] === "--seed" && args[1] !== undefined) {
-    return { seed: parseSeed(args[1]) };
+    return parseSeed(args[1]);
   }
 
   if (args.length === 1 && args[0]?.startsWith("--seed=") === true) {
-    return { seed: parseSeed(args[0].slice("--seed=".length)) };
+    return parseSeed(args[0].slice("--seed=".length));
   }
 
   throw new Error("Usage: dungeon-one [--seed <0-4294967295>]");
