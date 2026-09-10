@@ -81,3 +81,17 @@ test("endpoint failures return 500 and report degradation", async (context) => {
   assert.equal(response.status, 500);
   assert.deepEqual(errors, ["clock failed"]);
 });
+
+test("dashboard confirms when a client observes the final result", async (context) => {
+  const dashboard = await startDashboard();
+  context.after(() => dashboard.close());
+
+  dashboard.finish("passed");
+  const observed = dashboard.waitForFinalObservation(1_000);
+  const state = await fetch(`${dashboard.url}/api/state`).then((response) =>
+    response.json(),
+  );
+
+  assert.equal(state.result, "passed");
+  assert.equal(await observed, true);
+});

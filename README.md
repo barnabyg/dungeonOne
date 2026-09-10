@@ -33,6 +33,8 @@ It runs these zero-warning gates in order: formatting; lint/style; compiler/type
 
 In an interactive terminal, full verification starts an observational dashboard on `127.0.0.1` using an operating-system-assigned free port, prints `TEST_DASHBOARD_URL`, and attempts to open it. Each concurrent run receives its own port and in-memory state. The dashboard shows the active gate, available test progress, elapsed time, recent output, failures, and final result.
 
+At completion, the verifier briefly waits for the open dashboard to fetch the final state. This observation wait is bounded, so a closed or failed browser cannot hang verification.
+
 - Set `VERIFY_DASHBOARD=0` to opt out.
 - Set `VERIFY_DASHBOARD=1` to force it in a non-interactive terminal.
 - CI disables the dashboard and runs the same ordered gates headlessly.

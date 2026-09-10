@@ -162,6 +162,24 @@ export async function runVerification(options = {}) {
     }
   };
 
+  const finishDashboard = async (result) => {
+    if (!dashboard || !reporterHealthy) {
+      return;
+    }
+    try {
+      dashboard.finish(result);
+      if (typeof dashboard.waitForFinalObservation === "function") {
+        await dashboard.waitForFinalObservation();
+      }
+    } catch (error) {
+      reporterHealthy = false;
+      write(
+        output,
+        `Dashboard reporter unavailable; continuing in terminal: ${error.message}`,
+      );
+    }
+  };
+
   for (const [index, gate] of gates.entries()) {
     write(output, `[${index + 1}/${gates.length}] ${gate.name}`);
     report("setStage", gate.name);
@@ -188,12 +206,12 @@ export async function runVerification(options = {}) {
       const message = `${gate.name} failed with exit code ${exitCode}`;
       write(output, message);
       report("fail", message);
-      report("finish", "failed");
+      await finishDashboard("failed");
       return exitCode;
     }
   }
 
-  report("finish", "passed");
+  await finishDashboard("passed");
   write(output, "Verification passed with zero warnings.");
   return 0;
 }

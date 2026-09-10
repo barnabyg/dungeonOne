@@ -4,4 +4,6 @@ Interactive full verification starts the observational dashboard automatically. 
 
 The dashboard must expose active stage, available test progress, elapsed time, recent output, failures, and final result. It is read-only and must never control verification.
 
+After the final result is recorded, verification waits briefly for the open dashboard to fetch it. The wait is bounded so a closed or failed browser cannot hold verification open.
+
 Use `VERIFY_DASHBOARD=0` to opt out and `VERIFY_DASHBOARD=1` to force startup without a TTY. CI disables it. Dashboard startup, state reporting, endpoint, and browser-launch errors must degrade to terminal output without changing verification order, result, or exit status.

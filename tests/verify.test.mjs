@@ -114,3 +114,28 @@ test("browser launcher rejects a started process that exits unsuccessfully", asy
     /exit code 9/i,
   );
 });
+
+test("verification waits for the dashboard to observe its final result", async () => {
+  const lifecycle = [];
+  await runVerification({
+    dashboardEnabled: true,
+    gates: [],
+    openBrowser: async () => {},
+    output: { write() {} },
+    startDashboard: async () => ({
+      url: "http://127.0.0.1:1234",
+      setStage() {},
+      appendOutput() {},
+      fail() {},
+      finish(result) {
+        lifecycle.push(`finish:${result}`);
+      },
+      async waitForFinalObservation() {
+        lifecycle.push("observed");
+        return true;
+      },
+    }),
+  });
+
+  assert.deepEqual(lifecycle, ["finish:passed", "observed"]);
+});

@@ -72,6 +72,11 @@ export async function startDashboard(options = {}) {
     result: "running",
     testProgress: null,
   };
+  let finalObserved = false;
+  let resolveFinalObservation;
+  const finalObservation = new Promise((resolve) => {
+    resolveFinalObservation = resolve;
+  });
 
   const server = (options.serverFactory ?? createServer)(
     (request, response) => {
@@ -91,6 +96,10 @@ export async function startDashboard(options = {}) {
               elapsedMs: Math.max(0, clock() - startedAt),
             }),
           );
+          if (state.result !== "running" && !finalObserved) {
+            finalObserved = true;
+            resolveFinalObservation();
+          }
           return;
         }
 
@@ -149,6 +158,19 @@ export async function startDashboard(options = {}) {
       state.result = result;
       state.activeStage = null;
       state.testProgress = null;
+    },
+    async waitForFinalObservation(timeoutMs = 1_500) {
+      if (finalObserved) {
+        return true;
+      }
+
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => resolve(false), timeoutMs);
+        finalObservation.then(() => {
+          clearTimeout(timeout);
+          resolve(true);
+        });
+      });
     },
     close() {
       return new Promise((resolve, reject) => {
