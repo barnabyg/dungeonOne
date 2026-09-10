@@ -1,6 +1,6 @@
 # Dungeon One
 
-Dungeon One is an offline, text-first TypeScript game. The current slice of **The Stolen Signet** lets you explore the entrance, guardroom, and reliquary through explicit terminal commands. Passages are open and the goblin encounter is not yet active.
+Dungeon One is an offline, text-first TypeScript game. The current slice of **The Stolen Signet** lets you open the watchtower entrance, explore the entrance, guardroom, and reliquary, and recover the stolen signet through explicit terminal commands. The goblin encounter is not yet active.
 
 ## Requirements
 
@@ -28,9 +28,11 @@ Commands and their arguments are case-insensitive. Commands must use the canonic
 | Command            | Result                                                                           |
 | ------------------ | -------------------------------------------------------------------------------- |
 | `help`             | List supported commands.                                                         |
-| `look`             | Describe the current room, visible features, and named exits.                    |
-| `inspect <target>` | Inspect a visible feature or named exit, such as `inspect ruined archway`.       |
+| `look`             | Describe the current room, visible features and items, and named exits.          |
+| `inspect <target>` | Inspect something visible or a carried item, such as `inspect signet`.           |
 | `move <location>`  | Walk through an open passage to a named adjacent room, such as `move guardroom`. |
+| `open <target>`    | Open an accessible door, such as `open wooden door`.                             |
+| `take <item>`      | Move a visible collectible into inventory, such as `take signet`.                |
 | `status`           | Show the fighter's current and maximum HP and session status.                    |
 | `inventory`        | Show the fixed longsword equipment separately from collected items.              |
 | `quit`             | Leave the game cleanly without victory or defeat.                                |
@@ -62,11 +64,13 @@ After `npm.cmd run build`:
 
 1. Run `npm.cmd start`. Expect the title, entrance description, visible ruined archway, guardroom exit, and `help` hint.
 2. Enter `status` and `inventory`. Expect a fighter at 20/20 HP, an equipped longsword, and no collectibles.
-3. Enter `inspect ruined archway`, `move guardroom`, and `move reliquary`. Expect the inspected crest, then descriptions and named exits for both entered rooms.
-4. Enter `move guardroom` and `move entrance`. Expect backtracking through both open passages.
-5. Try `inspect`, `inspect pedestal`, `move`, `move cellar`, and `move reliquary` from the entrance. Expect actionable feedback after each and an unchanged location.
-6. Enter a blank line and then `dance`. Expect useful feedback after each and another usable prompt.
-7. Enter `quit`. Expect a clean exit with neither victory nor defeat.
-8. Pipe empty input to `node dist/cli.js`. Expect the starting scene and exit code 0, with neither victory nor defeat.
+3. Enter `inspect ruined archway`, `open wooden door`, `move guardroom`, and `move reliquary`. Expect the inspected crest, the door to open, and descriptions and named exits for both entered rooms.
+4. In the reliquary, expect `look` to show the signet on the stone pedestal. Enter `inspect signet`, `take signet`, `look`, and `inventory`. Expect the signet description, one successful pickup, no signet among the room's visible items, and the signet under collectibles while the longsword remains equipped.
+5. Enter `move guardroom` and `inspect signet`. Expect backtracking through the open passage and the carried signet's description.
+6. Enter `take signet` again. Expect feedback that it is already carried and no duplicate inventory entry.
+7. Start a fresh game and try `take`, `take gem`, and `take signet` at the entrance. Expect actionable feedback for missing, unknown, and remote pickup attempts with unchanged inventory.
+8. Enter a blank line and then `dance`. Expect useful feedback after each and another usable prompt.
+9. Enter `quit`. Expect a clean exit with neither victory nor defeat.
+10. Pipe empty input to `node dist/cli.js`. Expect the starting scene and exit code 0, with neither victory nor defeat.
 
-Combat, collectible items, victory and defeat, AI integration, an external adventure loader, save/resume, deployment, and an installer are intentionally out of scope for issue #2.
+Combat, weight, consumables, equipment switching, victory and defeat, AI integration, an external adventure loader, save/resume, deployment, and an installer are intentionally out of scope for issue #4.

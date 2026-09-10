@@ -11,9 +11,10 @@ function renderHelp(commands: readonly string[]): string {
   const descriptions: Readonly<Record<string, string>> = {
     help: "Show this command list.",
     look: "Describe your current room, visible features, and exits.",
-    "inspect <target>": "Inspect a visible feature or named exit.",
+    "inspect <target>": "Inspect something visible or a carried item.",
     "move <location>": "Walk to a named adjacent location.",
     "open <target>": "Open an accessible door.",
+    "take <item>": "Take a visible collectible item.",
     status: "Show the fighter's hit points and session status.",
     inventory: "Show fixed equipment and collected items.",
     quit: "Leave the game without completing the adventure.",
@@ -49,11 +50,21 @@ function renderRoom(event: Extract<Event, { type: "room-described" }>): string {
     const doorName = ADVENTURE.doors[doorway.doorId].name;
     return `${roomName} (${doorway.open ? "open" : "closed"} ${doorName})`;
   });
+  const visibleItems = event.visibleItems.map(({ itemId, featureId }) => {
+    const feature = room.features.find(
+      (candidate) => candidate.id === featureId,
+    );
+    if (feature === undefined) {
+      throw new Error(`Unknown item placement feature: ${featureId}`);
+    }
+    return `${ADVENTURE.items[itemId].name} (on ${feature.name})`;
+  });
 
   return [
     room.name,
     room.description,
     `Visible features: ${featureNames.join(", ") || "none"}.`,
+    `Visible items: ${visibleItems.join(", ") || "none"}.`,
     `Exits: ${exitNames.join(", ") || "none"}.`,
   ].join("\n");
 }
@@ -61,6 +72,10 @@ function renderRoom(event: Extract<Event, { type: "room-described" }>): string {
 function renderInspection(
   event: Extract<Event, { type: "target-inspected" }>,
 ): string {
+  if (event.target.type === "item") {
+    return ADVENTURE.items[event.target.id].description;
+  }
+
   if (event.target.type === "door") {
     const door = ADVENTURE.doors[event.target.id];
     return `${door.description} It is ${event.target.open ? "open" : "closed"}.`;
@@ -101,15 +116,18 @@ function renderEvent(event: Event): string {
       return `You open the ${ADVENTURE.doors[event.doorId].name}.`;
     case "door-already-open":
       return `The ${ADVENTURE.doors[event.doorId].name} is already open.`;
+    case "item-taken":
+      return `You take the ${ADVENTURE.items[event.itemId].name}.`;
     case "status-described":
       return `Fighter HP: ${event.hp}/${event.maxHp}\nSession: ${event.status}.`;
     case "inventory-described": {
       const equipment = event.equipmentIds.map(
         (equipmentId) => ADVENTURE.equipment[equipmentId].name,
       );
+      const items = event.itemIds.map((itemId) => ADVENTURE.items[itemId].name);
       return [
         `Equipped: ${equipment.join(", ") || "nothing"}.`,
-        `Collectibles: ${event.itemIds.join(", ") || "empty"}.`,
+        `Collectibles: ${items.join(", ") || "empty"}.`,
       ].join("\n");
     }
     case "session-quit":
@@ -130,9 +148,12 @@ function renderRejection(rejection: Rejection): string {
       if (rejection.command === "inspect") {
         return 'What do you want to inspect? Use "inspect <target>".';
       }
-      return rejection.command === "move"
-        ? 'Where do you want to move? Use "move <location>".'
-        : 'What do you want to open? Use "open <target>".';
+      if (rejection.command === "move") {
+        return 'Where do you want to move? Use "move <location>".';
+      }
+      return rejection.command === "open"
+        ? 'What do you want to open? Use "open <target>".'
+        : 'What do you want to take? Use "take <item>".';
     case "invisible-target":
       return `You can't see "${rejection.target}" here. Use "look" to see visible features and exits.`;
     case "not-openable":
@@ -143,6 +164,8 @@ function renderRejection(rejection: Rejection): string {
       return `${ADVENTURE.rooms[rejection.destinationId].name} isn't adjacent. Use "look" to see named exits.`;
     case "closed-door":
       return `The ${ADVENTURE.doors[rejection.doorId].name} to ${ADVENTURE.rooms[rejection.destinationId].name} is closed. Open it before moving through.`;
+    case "already-carried":
+      return `You are already carrying the ${ADVENTURE.items[rejection.itemId].name}.`;
     default:
       rejection satisfies never;
       throw new Error("Unreachable rejection");

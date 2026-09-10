@@ -2,6 +2,7 @@ export type RoomId = "entrance" | "guardroom" | "reliquary";
 export type DoorId = "entrance-door";
 export type FeatureId = "ruined-archway" | "cold-hearth" | "stone-pedestal";
 export type EquipmentId = "longsword";
+export type ItemId = "signet";
 
 export type FeatureDefinition = Readonly<{
   id: FeatureId;
@@ -23,6 +24,12 @@ export type EquipmentDefinition = Readonly<{
   description: string;
 }>;
 
+export type ItemDefinition = Readonly<{
+  id: ItemId;
+  name: string;
+  description: string;
+}>;
+
 export type DoorDefinition = Readonly<{
   id: DoorId;
   name: string;
@@ -37,6 +44,7 @@ export type AdventureDefinition = Readonly<{
   rooms: Readonly<Record<RoomId, RoomDefinition>>;
   doors: Readonly<Record<DoorId, DoorDefinition>>;
   equipment: Readonly<Record<EquipmentId, EquipmentDefinition>>;
+  items: Readonly<Record<ItemId, ItemDefinition>>;
 }>;
 
 export const ADVENTURE: AdventureDefinition = {
@@ -84,7 +92,7 @@ export const ADVENTURE: AdventureDefinition = {
           id: "stone-pedestal",
           name: "stone pedestal",
           description:
-            "The bare stone pedestal is carved with curling ivy and heraldic shields.",
+            "The stone pedestal is carved with curling ivy and heraldic shields.",
         },
       ],
       exitRoomIds: ["guardroom"],
@@ -103,6 +111,14 @@ export const ADVENTURE: AdventureDefinition = {
       id: "longsword",
       name: "longsword",
       description: "A dependable steel longsword, kept ready at your side.",
+    },
+  },
+  items: {
+    signet: {
+      id: "signet",
+      name: "signet",
+      description:
+        "A silver signet engraved with the fighter's family crest, stolen but unharmed.",
     },
   },
 };

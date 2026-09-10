@@ -82,6 +82,45 @@ test("built game opens the entrance door, visits all rooms, and backtracks", () 
   assert.match(result.stdout, /Guardroom[\s\S]*Entrance/i);
 });
 
+test("built game collects the signet once and keeps it inspectable in inventory", () => {
+  const result = runCli(
+    [
+      "take signet",
+      "take",
+      "take gem",
+      "open wooden door",
+      "move guardroom",
+      "move reliquary",
+      "inspect signet",
+      "take signet",
+      "look",
+      "inventory",
+      "move guardroom",
+      "inspect signet",
+      "take signet",
+      "quit",
+      "",
+    ].join("\n"),
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /can't see ["']signet["'] here/i);
+  assert.match(result.stdout, /take <item>/i);
+  assert.match(result.stdout, /can't see ["']gem["'] here/i);
+  assert.match(
+    result.stdout,
+    /Reliquary[\s\S]*Visible items:[^\n]*signet \(on stone pedestal\)/i,
+  );
+  assert.match(result.stdout, /silver signet[\s\S]*family crest/i);
+  const afterPickup = result.stdout.split("You take the signet.")[1];
+  assert.ok(afterPickup);
+  assert.match(afterPickup, /Visible items:\s*none/i);
+  assert.match(afterPickup, /Equipped:\s*longsword/i);
+  assert.match(afterPickup, /Collectibles:\s*signet/i);
+  assert.match(afterPickup, /silver signet[\s\S]*family crest/i);
+  assert.match(afterPickup, /already carrying the signet/i);
+});
+
 test("built game recovers from malformed, invisible, and illegal commands", () => {
   const result = runCli(
     "\ndance\nlook around\ninspect\ninspect pedestal\nmove\nmove cellar\nmove reliquary\nlook\nquit\n",

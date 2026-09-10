@@ -3,6 +3,7 @@ import {
   type DoorId,
   type EquipmentId,
   type FeatureId,
+  type ItemId,
   type RoomId,
 } from "./adventure.js";
 
@@ -14,7 +15,13 @@ export type SessionState = Readonly<{
     maxHp: number;
     equipmentIds: readonly EquipmentId[];
   }>;
-  inventoryItemIds: readonly never[];
+  itemPlacements: Readonly<
+    Record<
+      ItemId,
+      | Readonly<{ type: "room"; roomId: RoomId; featureId: FeatureId }>
+      | Readonly<{ type: "inventory" }>
+    >
+  >;
   doorStates: Readonly<Record<DoorId, Readonly<{ open: boolean }>>>;
 }>;
 
@@ -24,6 +31,7 @@ export type Action = Readonly<
   | { type: "inspect"; target?: string }
   | { type: "move"; destination?: string }
   | { type: "open"; target?: string }
+  | { type: "take"; target?: string }
   | { type: "status" }
   | { type: "inventory" }
   | { type: "quit" }
@@ -37,6 +45,10 @@ export type Event = Readonly<
       type: "room-described";
       roomId: RoomId;
       featureIds: readonly FeatureId[];
+      visibleItems: readonly Readonly<{
+        itemId: ItemId;
+        featureId: FeatureId;
+      }>[];
       exitRoomIds: readonly RoomId[];
       doorways: readonly Readonly<{
         doorId: DoorId;
@@ -53,11 +65,13 @@ export type Event = Readonly<
             id: RoomId;
             doorway?: Readonly<{ doorId: DoorId; open: boolean }>;
           }>
-        | Readonly<{ type: "door"; id: DoorId; open: boolean }>;
+        | Readonly<{ type: "door"; id: DoorId; open: boolean }>
+        | Readonly<{ type: "item"; id: ItemId }>;
     }
   | { type: "room-entered"; fromRoomId: RoomId; roomId: RoomId }
   | { type: "door-opened"; doorId: DoorId }
   | { type: "door-already-open"; doorId: DoorId }
+  | { type: "item-taken"; itemId: ItemId }
   | {
       type: "status-described";
       hp: number;
@@ -67,7 +81,7 @@ export type Event = Readonly<
   | {
       type: "inventory-described";
       equipmentIds: readonly EquipmentId[];
-      itemIds: readonly never[];
+      itemIds: readonly ItemId[];
     }
   | { type: "session-quit" }
 >;
@@ -75,12 +89,16 @@ export type Event = Readonly<
 export type Rejection = Readonly<
   | { reason: "empty" }
   | { reason: "unknown-command"; input: string }
-  | { reason: "missing-argument"; command: "inspect" | "move" | "open" }
+  | {
+      reason: "missing-argument";
+      command: "inspect" | "move" | "open" | "take";
+    }
   | { reason: "invisible-target"; target: string }
   | { reason: "not-openable"; target: string }
   | { reason: "unknown-destination"; destination: string }
   | { reason: "nonadjacent-destination"; destinationId: RoomId }
   | { reason: "closed-door"; doorId: DoorId; destinationId: RoomId }
+  | { reason: "already-carried"; itemId: ItemId }
 >;
 
 export type ActionResult =
@@ -101,6 +119,7 @@ const COMMANDS = [
   "inspect <target>",
   "move <location>",
   "open <target>",
+  "take <item>",
   "status",
   "inventory",
   "quit",
@@ -111,8 +130,56 @@ export function createSession(): SessionState {
     locationId: ADVENTURE.startingRoomId,
     status: "playing",
     fighter: { hp: 20, maxHp: 20, equipmentIds: ["longsword"] },
-    inventoryItemIds: [],
+    itemPlacements: {
+      signet: {
+        type: "room",
+        roomId: "reliquary",
+        featureId: "stone-pedestal",
+      },
+    },
     doorStates: { "entrance-door": { open: false } },
+  };
+}
+
+function take(state: SessionState, target: string | undefined): ActionResult {
+  const normalized = normalizeTarget(target);
+  if (normalized.length === 0) {
+    return {
+      state,
+      rejection: { reason: "missing-argument", command: "take" },
+    };
+  }
+
+  const item = resolveItem(normalized);
+  const placement =
+    item === undefined ? undefined : state.itemPlacements[item.id];
+  if (item !== undefined && placement?.type === "inventory") {
+    return {
+      state,
+      rejection: { reason: "already-carried", itemId: item.id },
+    };
+  }
+  if (
+    item === undefined ||
+    placement === undefined ||
+    placement.type !== "room" ||
+    placement.roomId !== state.locationId
+  ) {
+    return {
+      state,
+      rejection: { reason: "invisible-target", target: normalized },
+    };
+  }
+
+  return {
+    state: {
+      ...state,
+      itemPlacements: {
+        ...state.itemPlacements,
+        [item.id]: { type: "inventory" },
+      },
+    },
+    events: [{ type: "item-taken", itemId: item.id }],
   };
 }
 
@@ -122,6 +189,17 @@ function describedRoom(state: SessionState): Event {
     type: "room-described",
     roomId: state.locationId,
     featureIds: room.features.map((feature) => feature.id),
+    visibleItems: Object.entries(state.itemPlacements)
+      .filter(
+        ([, placement]) =>
+          placement.type === "room" && placement.roomId === state.locationId,
+      )
+      .map(([itemId, placement]) => {
+        if (placement.type !== "room") {
+          throw new Error("Unreachable item placement");
+        }
+        return { itemId: itemId as ItemId, featureId: placement.featureId };
+      }),
     exitRoomIds: room.exitRoomIds,
     doorways: Object.values(ADVENTURE.doors)
       .filter((door) => door.roomIds.includes(state.locationId))
@@ -138,6 +216,13 @@ function describedRoom(state: SessionState): Event {
 
 function normalizeTarget(value: string | undefined): string {
   return value?.trim().toLowerCase() ?? "";
+}
+
+function resolveItem(value: string) {
+  const normalized = normalizeTarget(value);
+  return Object.values(ADVENTURE.items).find(
+    (item) => item.name.toLowerCase() === normalized,
+  );
 }
 
 function resolveRoom(value: string): RoomId | undefined {
@@ -251,6 +336,25 @@ function inspect(
     };
   }
 
+  const item = resolveItem(normalized);
+  if (item !== undefined) {
+    const placement = state.itemPlacements[item.id];
+    if (
+      placement.type === "inventory" ||
+      (placement.type === "room" && placement.roomId === state.locationId)
+    ) {
+      return {
+        state,
+        events: [
+          {
+            type: "target-inspected",
+            target: { type: "item", id: item.id },
+          },
+        ],
+      };
+    }
+  }
+
   const exitRoomId = room.exitRoomIds.find((candidate) => {
     const exitRoom = ADVENTURE.rooms[candidate];
     return exitRoom.name.toLowerCase() === normalized;
@@ -357,6 +461,8 @@ export function handleAction(
       return move(state, action.destination);
     case "open":
       return open(state, action.target);
+    case "take":
+      return take(state, action.target);
     case "status":
       return {
         state,
@@ -376,7 +482,9 @@ export function handleAction(
           {
             type: "inventory-described",
             equipmentIds: state.fighter.equipmentIds,
-            itemIds: state.inventoryItemIds,
+            itemIds: Object.entries(state.itemPlacements)
+              .filter(([, placement]) => placement.type === "inventory")
+              .map(([itemId]) => itemId as ItemId),
           },
         ],
       };

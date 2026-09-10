@@ -14,7 +14,13 @@ test("read commands expose the fighter and entrance without changing state", () 
       maxHp: 20,
       equipmentIds: ["longsword"],
     },
-    inventoryItemIds: [],
+    itemPlacements: {
+      signet: {
+        type: "room",
+        roomId: "reliquary",
+        featureId: "stone-pedestal",
+      },
+    },
     doorStates: { "entrance-door": { open: false } },
   });
 
@@ -30,6 +36,7 @@ test("read commands expose the fighter and entrance without changing state", () 
       type: "room-described",
       roomId: "entrance",
       featureIds: ["ruined-archway"],
+      visibleItems: [],
       exitRoomIds: ["guardroom"],
       doorways: [
         {
@@ -80,6 +87,7 @@ test("movement visits all three rooms and supports backtracking", () => {
       type: "room-described",
       roomId: "guardroom",
       featureIds: ["cold-hearth"],
+      visibleItems: [],
       exitRoomIds: ["entrance", "reliquary"],
       doorways: [
         {
@@ -90,6 +98,150 @@ test("movement visits all three rooms and supports backtracking", () => {
       ],
     },
   ]);
+});
+
+test("taking the signet transfers it from the reliquary pedestal to inventory", () => {
+  const initial = createSession();
+  const opened = handleAction(initial, {
+    type: "open",
+    target: "wooden door",
+  });
+  const guardroom = handleAction(opened.state, {
+    type: "move",
+    destination: "guardroom",
+  });
+  const reliquary = handleAction(guardroom.state, {
+    type: "move",
+    destination: "reliquary",
+  });
+  const taken = handleAction(reliquary.state, {
+    type: "take",
+    target: "signet",
+  });
+  const inventory = handleAction(taken.state, { type: "inventory" });
+
+  assert.deepEqual(reliquary.state.itemPlacements, {
+    signet: {
+      type: "room",
+      roomId: "reliquary",
+      featureId: "stone-pedestal",
+    },
+  });
+  assert.deepEqual(taken.events, [{ type: "item-taken", itemId: "signet" }]);
+  assert.deepEqual(taken.state.itemPlacements, {
+    signet: { type: "inventory" },
+  });
+  assert.deepEqual(inventory.events, [
+    {
+      type: "inventory-described",
+      equipmentIds: ["longsword"],
+      itemIds: ["signet"],
+    },
+  ]);
+});
+
+test("the signet is visible only in its room and remains inspectable when carried", () => {
+  const initial = createSession();
+  const entranceLook = handleAction(initial, { type: "look" });
+  const remoteInspect = handleAction(initial, {
+    type: "inspect",
+    target: "signet",
+  });
+  const opened = handleAction(initial, {
+    type: "open",
+    target: "wooden door",
+  });
+  const guardroom = handleAction(opened.state, {
+    type: "move",
+    destination: "guardroom",
+  });
+  const reliquary = handleAction(guardroom.state, {
+    type: "move",
+    destination: "reliquary",
+  });
+  const roomInspect = handleAction(reliquary.state, {
+    type: "inspect",
+    target: "signet",
+  });
+  const taken = handleAction(reliquary.state, {
+    type: "take",
+    target: "signet",
+  });
+  const afterTakeLook = handleAction(taken.state, { type: "look" });
+  const carriedInspect = handleAction(taken.state, {
+    type: "inspect",
+    target: "signet",
+  });
+
+  assert.deepEqual(entranceLook.events[0].visibleItems, []);
+  assert.deepEqual(remoteInspect.state, initial);
+  assert.deepEqual(remoteInspect.rejection, {
+    reason: "invisible-target",
+    target: "signet",
+  });
+  assert.deepEqual(reliquary.events[1].visibleItems, [
+    { itemId: "signet", featureId: "stone-pedestal" },
+  ]);
+  assert.deepEqual(roomInspect.events, [
+    { type: "target-inspected", target: { type: "item", id: "signet" } },
+  ]);
+  assert.deepEqual(afterTakeLook.events[0].visibleItems, []);
+  assert.deepEqual(carriedInspect.events, [
+    { type: "target-inspected", target: { type: "item", id: "signet" } },
+  ]);
+});
+
+test("take rejects missing, unknown, remote, and duplicate targets atomically", () => {
+  const initial = createSession();
+  const missing = handleAction(initial, { type: "take" });
+  const unknown = handleAction(initial, { type: "take", target: "gem" });
+  const remote = handleAction(initial, { type: "take", target: "signet" });
+  const opened = handleAction(initial, {
+    type: "open",
+    target: "wooden door",
+  });
+  const guardroom = handleAction(opened.state, {
+    type: "move",
+    destination: "guardroom",
+  });
+  const reliquary = handleAction(guardroom.state, {
+    type: "move",
+    destination: "reliquary",
+  });
+  const taken = handleAction(reliquary.state, {
+    type: "take",
+    target: "signet",
+  });
+  const duplicate = handleAction(taken.state, {
+    type: "take",
+    target: "signet",
+  });
+
+  assert.deepEqual(missing.rejection, {
+    reason: "missing-argument",
+    command: "take",
+  });
+  assert.deepEqual(unknown.rejection, {
+    reason: "invisible-target",
+    target: "gem",
+  });
+  assert.deepEqual(remote.rejection, {
+    reason: "invisible-target",
+    target: "signet",
+  });
+  assert.deepEqual(duplicate.rejection, {
+    reason: "already-carried",
+    itemId: "signet",
+  });
+  for (const [result, expectedState] of [
+    [missing, initial],
+    [unknown, initial],
+    [remote, initial],
+    [duplicate, taken.state],
+  ]) {
+    assert.deepEqual(result.state, expectedState);
+    assert.equal("events" in result, false);
+  }
 });
 
 test("the entrance door blocks movement until opened and stays open from both sides", () => {
