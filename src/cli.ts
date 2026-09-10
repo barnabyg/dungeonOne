@@ -22,6 +22,8 @@ function chooseStartupSeed(): number {
 }
 
 type StartupOptions = Readonly<{ seed: number; tracePath?: string }>;
+const USAGE =
+  "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]";
 
 function resolveStartupOptions(args: readonly string[]): StartupOptions {
   let seedArgument: readonly string[] | undefined;
@@ -32,9 +34,7 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
     if (argument === "--seed") {
       const value = args[index + 1];
       if (seedArgument !== undefined || value === undefined) {
-        throw new Error(
-          "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]",
-        );
+        throw new Error(USAGE);
       }
       seedArgument = [argument, value];
       index += 1;
@@ -42,9 +42,7 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
     }
     if (argument?.startsWith("--seed=") === true) {
       if (seedArgument !== undefined) {
-        throw new Error(
-          "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]",
-        );
+        throw new Error(USAGE);
       }
       seedArgument = [argument];
       continue;
@@ -57,9 +55,7 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
         value.length === 0 ||
         value.startsWith("--")
       ) {
-        throw new Error(
-          "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]",
-        );
+        throw new Error(USAGE);
       }
       tracePath = value;
       index += 1;
@@ -68,16 +64,12 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
     if (argument?.startsWith("--trace=") === true) {
       const value = argument.slice("--trace=".length);
       if (tracePath !== undefined || value.length === 0) {
-        throw new Error(
-          "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]",
-        );
+        throw new Error(USAGE);
       }
       tracePath = value;
       continue;
     }
-    throw new Error(
-      "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]",
-    );
+    throw new Error(USAGE);
   }
 
   return {
