@@ -44,13 +44,13 @@ const PAGE = `<!doctype html>
 </body>
 </html>`;
 
-function send(response, status, contentType, body) {
+function send(response, status, contentType, body, onComplete) {
   response.writeHead(status, {
     "cache-control": "no-store",
     "content-type": contentType,
     "x-content-type-options": "nosniff",
   });
-  response.end(body);
+  response.end(body, onComplete);
 }
 
 export async function startDashboard(options = {}) {
@@ -87,6 +87,8 @@ export async function startDashboard(options = {}) {
         }
 
         if (request.url === "/api/state") {
+          const marksFinalObservation =
+            state.result !== "running" && !finalObserved;
           send(
             response,
             200,
@@ -95,11 +97,13 @@ export async function startDashboard(options = {}) {
               ...state,
               elapsedMs: Math.max(0, clock() - startedAt),
             }),
+            marksFinalObservation
+              ? () => {
+                  finalObserved = true;
+                  resolveFinalObservation();
+                }
+              : undefined,
           );
-          if (state.result !== "running" && !finalObserved) {
-            finalObserved = true;
-            resolveFinalObservation();
-          }
           return;
         }
 
@@ -141,6 +145,22 @@ export async function startDashboard(options = {}) {
     throw new Error("Dashboard did not receive a TCP address");
   }
 
+  let closePromise;
+  const closeServer = () => {
+    if (!closePromise) {
+      closePromise = new Promise((resolve) => {
+        server.close((error) => {
+          if (error && error.code !== "ERR_SERVER_NOT_RUNNING") {
+            notifyError(error);
+          }
+          resolve();
+        });
+        server.closeAllConnections?.();
+      });
+    }
+    return closePromise;
+  };
+
   return {
     url: `http://${host}:${address.port}`,
     setStage(name, testProgress = null) {
@@ -161,21 +181,22 @@ export async function startDashboard(options = {}) {
     },
     async waitForFinalObservation(timeoutMs = 1_500) {
       if (finalObserved) {
+        await closeServer();
         return true;
       }
 
-      return new Promise((resolve) => {
+      const observed = await new Promise((resolve) => {
         const timeout = setTimeout(() => resolve(false), timeoutMs);
         finalObservation.then(() => {
           clearTimeout(timeout);
           resolve(true);
         });
       });
+      await closeServer();
+      return observed;
     },
     close() {
-      return new Promise((resolve, reject) => {
-        server.close((error) => (error ? reject(error) : resolve()));
-      });
+      return closeServer();
     },
   };
 }

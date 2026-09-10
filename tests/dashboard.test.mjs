@@ -94,4 +94,15 @@ test("dashboard confirms when a client observes the final result", async (contex
 
   assert.equal(state.result, "passed");
   assert.equal(await observed, true);
+  await assert.rejects(fetch(`${dashboard.url}/health`));
+});
+
+test("dashboard final-observation wait is bounded without a client", async () => {
+  const dashboard = await startDashboard();
+  dashboard.finish("failed");
+  const startedAt = Date.now();
+
+  assert.equal(await dashboard.waitForFinalObservation(30), false);
+  assert.equal(Date.now() - startedAt < 1_000, true);
+  await assert.rejects(fetch(`${dashboard.url}/health`));
 });
