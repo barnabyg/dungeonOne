@@ -25,6 +25,8 @@ export function parseCommand(input: string): Action {
       return { type: "inspect", target: argument };
     case "move":
       return { type: "move", destination: argument };
+    case "open":
+      return { type: "open", target: argument };
     default:
       return { type: "unknown", input: command };
   }

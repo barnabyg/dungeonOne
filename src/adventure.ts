@@ -1,4 +1,5 @@
 export type RoomId = "entrance" | "guardroom" | "reliquary";
+export type DoorId = "entrance-door";
 export type FeatureId = "ruined-archway" | "cold-hearth" | "stone-pedestal";
 export type EquipmentId = "longsword";
 
@@ -22,11 +23,19 @@ export type EquipmentDefinition = Readonly<{
   description: string;
 }>;
 
+export type DoorDefinition = Readonly<{
+  id: DoorId;
+  name: string;
+  description: string;
+  roomIds: readonly [RoomId, RoomId];
+}>;
+
 export type AdventureDefinition = Readonly<{
   id: "stolen-signet";
   title: string;
   startingRoomId: RoomId;
   rooms: Readonly<Record<RoomId, RoomDefinition>>;
+  doors: Readonly<Record<DoorId, DoorDefinition>>;
   equipment: Readonly<Record<EquipmentId, EquipmentDefinition>>;
 }>;
 
@@ -79,6 +88,14 @@ export const ADVENTURE: AdventureDefinition = {
         },
       ],
       exitRoomIds: ["guardroom"],
+    },
+  },
+  doors: {
+    "entrance-door": {
+      id: "entrance-door",
+      name: "wooden door",
+      description: "A sturdy wooden door bound with weathered iron straps.",
+      roomIds: ["entrance", "guardroom"],
     },
   },
   equipment: {

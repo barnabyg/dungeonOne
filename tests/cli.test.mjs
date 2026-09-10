@@ -25,7 +25,7 @@ test("built game starts at the entrance, offers help, and quits cleanly", () => 
   assert.match(result.stdout, /type [\"']help[\"']/i);
   assert.match(
     result.stdout,
-    /Available commands:[\s\S]*look[\s\S]*inspect <target>[\s\S]*move <location>[\s\S]*status[\s\S]*inventory[\s\S]*quit/i,
+    /Available commands:[\s\S]*look[\s\S]*inspect <target>[\s\S]*move <location>[\s\S]*open <target>[\s\S]*status[\s\S]*inventory[\s\S]*quit/i,
   );
   assert.match(result.stdout, /HP:\s*20\/20/i);
   assert.match(result.stdout, /Equipped:\s*longsword/i);
@@ -33,14 +33,24 @@ test("built game starts at the entrance, offers help, and quits cleanly", () => 
   assert.doesNotMatch(result.stdout, /victory|defeat/i);
 });
 
-test("built game visits all rooms, inspects visible features, and backtracks", () => {
+test("built game opens the entrance door, visits all rooms, and backtracks", () => {
   const result = runCli(
     [
       "look",
       "inspect ruined archway",
+      "inspect guardroom",
       "move guardroom",
+      "inspect wooden door",
+      "open",
+      "open ruined archway",
+      "open wooden door",
+      "open wooden door",
+      "move guardroom",
+      "inspect entrance",
+      "inspect wooden door",
       "inspect cold hearth",
       "move reliquary",
+      "open wooden door",
       "look",
       "move guardroom",
       "move entrance",
@@ -56,8 +66,18 @@ test("built game visits all rooms, inspects visible features, and backtracks", (
   );
   assert.match(result.stdout, /Exits:[^\n]*guardroom/i);
   assert.match(result.stdout, /crest of the old watch/i);
+  assert.match(result.stdout, /wooden door to Guardroom is closed/i);
+  assert.match(result.stdout, /closed wooden door leads to Guardroom/i);
+  assert.match(result.stdout, /weathered iron straps[^\n]*closed/i);
+  assert.match(result.stdout, /open <target>/i);
+  assert.match(result.stdout, /can't open the ruined archway/i);
+  assert.match(result.stdout, /You open the wooden door/i);
+  assert.match(result.stdout, /wooden door is already open/i);
   assert.match(result.stdout, /Guardroom[\s\S]*cold hearth/i);
+  assert.match(result.stdout, /open wooden door leads to Entrance/i);
+  assert.match(result.stdout, /weathered iron straps[^\n]*open/i);
   assert.match(result.stdout, /Reliquary[\s\S]*stone pedestal/i);
+  assert.match(result.stdout, /can't see ["']wooden door["'] here/i);
   assert.match(result.stdout, /Exits:[^\n]*entrance[^\n]*reliquary/i);
   assert.match(result.stdout, /Guardroom[\s\S]*Entrance/i);
 });

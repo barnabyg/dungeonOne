@@ -15,6 +15,7 @@ test("read commands expose the fighter and entrance without changing state", () 
       equipmentIds: ["longsword"],
     },
     inventoryItemIds: [],
+    doorStates: { "entrance-door": { open: false } },
   });
 
   const look = handleAction(initial, { type: "look" });
@@ -30,6 +31,13 @@ test("read commands expose the fighter and entrance without changing state", () 
       roomId: "entrance",
       featureIds: ["ruined-archway"],
       exitRoomIds: ["guardroom"],
+      doorways: [
+        {
+          doorId: "entrance-door",
+          destinationId: "guardroom",
+          open: false,
+        },
+      ],
     },
   ]);
   assert.deepEqual(status.events, [
@@ -46,7 +54,11 @@ test("read commands expose the fighter and entrance without changing state", () 
 
 test("movement visits all three rooms and supports backtracking", () => {
   const initial = createSession();
-  const guardroom = handleAction(initial, {
+  const opened = handleAction(initial, {
+    type: "open",
+    target: "wooden door",
+  });
+  const guardroom = handleAction(opened.state, {
     type: "move",
     destination: "guardroom",
   });
@@ -69,8 +81,51 @@ test("movement visits all three rooms and supports backtracking", () => {
       roomId: "guardroom",
       featureIds: ["cold-hearth"],
       exitRoomIds: ["entrance", "reliquary"],
+      doorways: [
+        {
+          doorId: "entrance-door",
+          destinationId: "entrance",
+          open: true,
+        },
+      ],
     },
   ]);
+});
+
+test("the entrance door blocks movement until opened and stays open from both sides", () => {
+  const initial = createSession();
+  const blocked = handleAction(initial, {
+    type: "move",
+    destination: "guardroom",
+  });
+  const opened = handleAction(blocked.state, {
+    type: "open",
+    target: "wooden door",
+  });
+  const guardroom = handleAction(opened.state, {
+    type: "move",
+    destination: "guardroom",
+  });
+  const backtracked = handleAction(guardroom.state, {
+    type: "move",
+    destination: "entrance",
+  });
+
+  assert.deepEqual(blocked.state, initial);
+  assert.deepEqual(blocked.rejection, {
+    reason: "closed-door",
+    doorId: "entrance-door",
+    destinationId: "guardroom",
+  });
+  assert.deepEqual(opened.state.doorStates, {
+    "entrance-door": { open: true },
+  });
+  assert.deepEqual(opened.events, [
+    { type: "door-opened", doorId: "entrance-door" },
+  ]);
+  assert.equal(guardroom.state.locationId, "guardroom");
+  assert.equal(backtracked.state.locationId, "entrance");
+  assert.equal(backtracked.state.doorStates["entrance-door"].open, true);
 });
 
 test("inspection is limited to visible features and named exits", () => {
@@ -101,7 +156,14 @@ test("inspection is limited to visible features and named exits", () => {
   assert.deepEqual(exit.events, [
     {
       type: "target-inspected",
-      target: { type: "exit", id: "guardroom" },
+      target: {
+        type: "exit",
+        id: "guardroom",
+        doorway: {
+          doorId: "entrance-door",
+          open: false,
+        },
+      },
     },
   ]);
   assert.deepEqual(invisible.state, initial);
@@ -112,6 +174,103 @@ test("inspection is limited to visible features and named exits", () => {
   assert.deepEqual(internalId.rejection, {
     reason: "invisible-target",
     target: "ruined-archway",
+  });
+});
+
+test("inspection reports the current state of an accessible door", () => {
+  const initial = createSession();
+  const closed = handleAction(initial, {
+    type: "inspect",
+    target: "wooden door",
+  });
+  const opened = handleAction(initial, {
+    type: "open",
+    target: "wooden door",
+  });
+  const open = handleAction(opened.state, {
+    type: "inspect",
+    target: "wooden door",
+  });
+
+  assert.deepEqual(closed.events, [
+    {
+      type: "target-inspected",
+      target: { type: "door", id: "entrance-door", open: false },
+    },
+  ]);
+  assert.deepEqual(open.events, [
+    {
+      type: "target-inspected",
+      target: { type: "door", id: "entrance-door", open: true },
+    },
+  ]);
+});
+
+test("inspection of a named exit reports its current doorway state", () => {
+  const initial = createSession();
+  const opened = handleAction(initial, {
+    type: "open",
+    target: "wooden door",
+  });
+  const closedExit = handleAction(initial, {
+    type: "inspect",
+    target: "guardroom",
+  });
+  const openExit = handleAction(opened.state, {
+    type: "inspect",
+    target: "guardroom",
+  });
+
+  assert.equal(closedExit.events[0].target.doorway.open, false);
+  assert.equal(openExit.events[0].target.doorway.open, true);
+});
+
+test("open is an informative no-op or rejects invalid targets without changes", () => {
+  const initial = createSession();
+  const opened = handleAction(initial, {
+    type: "open",
+    target: "wooden door",
+  });
+  const alreadyOpen = handleAction(opened.state, {
+    type: "open",
+    target: "wooden door",
+  });
+  const missing = handleAction(initial, { type: "open" });
+  const nonDoor = handleAction(initial, {
+    type: "open",
+    target: "ruined archway",
+  });
+  const guardroom = handleAction(opened.state, {
+    type: "move",
+    destination: "guardroom",
+  });
+  const reliquary = handleAction(guardroom.state, {
+    type: "move",
+    destination: "reliquary",
+  });
+  const remote = handleAction(reliquary.state, {
+    type: "open",
+    target: "wooden door",
+  });
+
+  assert.deepEqual(alreadyOpen.state, opened.state);
+  assert.deepEqual(alreadyOpen.events, [
+    { type: "door-already-open", doorId: "entrance-door" },
+  ]);
+  assert.deepEqual(missing.state, initial);
+  assert.deepEqual(missing.rejection, {
+    reason: "missing-argument",
+    command: "open",
+  });
+  assert.deepEqual(nonDoor.state, initial);
+  assert.deepEqual(nonDoor.rejection, {
+    reason: "not-openable",
+    target: "ruined archway",
+  });
+  assert.deepEqual(remote.state, reliquary.state);
+  assert.deepEqual(remote.rejection, {
+    reason: "invisible-target",
+    target: "wooden door",
   });
 });
 

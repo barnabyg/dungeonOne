@@ -1,5 +1,6 @@
 import {
   ADVENTURE,
+  type DoorId,
   type EquipmentId,
   type FeatureId,
   type RoomId,
@@ -14,6 +15,7 @@ export type SessionState = Readonly<{
     equipmentIds: readonly EquipmentId[];
   }>;
   inventoryItemIds: readonly never[];
+  doorStates: Readonly<Record<DoorId, Readonly<{ open: boolean }>>>;
 }>;
 
 export type Action = Readonly<
@@ -21,6 +23,7 @@ export type Action = Readonly<
   | { type: "look" }
   | { type: "inspect"; target?: string }
   | { type: "move"; destination?: string }
+  | { type: "open"; target?: string }
   | { type: "status" }
   | { type: "inventory" }
   | { type: "quit" }
@@ -35,14 +38,26 @@ export type Event = Readonly<
       roomId: RoomId;
       featureIds: readonly FeatureId[];
       exitRoomIds: readonly RoomId[];
+      doorways: readonly Readonly<{
+        doorId: DoorId;
+        destinationId: RoomId;
+        open: boolean;
+      }>[];
     }
   | {
       type: "target-inspected";
       target:
         | Readonly<{ type: "feature"; id: FeatureId }>
-        | Readonly<{ type: "exit"; id: RoomId }>;
+        | Readonly<{
+            type: "exit";
+            id: RoomId;
+            doorway?: Readonly<{ doorId: DoorId; open: boolean }>;
+          }>
+        | Readonly<{ type: "door"; id: DoorId; open: boolean }>;
     }
   | { type: "room-entered"; fromRoomId: RoomId; roomId: RoomId }
+  | { type: "door-opened"; doorId: DoorId }
+  | { type: "door-already-open"; doorId: DoorId }
   | {
       type: "status-described";
       hp: number;
@@ -60,10 +75,12 @@ export type Event = Readonly<
 export type Rejection = Readonly<
   | { reason: "empty" }
   | { reason: "unknown-command"; input: string }
-  | { reason: "missing-argument"; command: "inspect" | "move" }
+  | { reason: "missing-argument"; command: "inspect" | "move" | "open" }
   | { reason: "invisible-target"; target: string }
+  | { reason: "not-openable"; target: string }
   | { reason: "unknown-destination"; destination: string }
   | { reason: "nonadjacent-destination"; destinationId: RoomId }
+  | { reason: "closed-door"; doorId: DoorId; destinationId: RoomId }
 >;
 
 export type ActionResult =
@@ -83,6 +100,7 @@ const COMMANDS = [
   "look",
   "inspect <target>",
   "move <location>",
+  "open <target>",
   "status",
   "inventory",
   "quit",
@@ -94,16 +112,27 @@ export function createSession(): SessionState {
     status: "playing",
     fighter: { hp: 20, maxHp: 20, equipmentIds: ["longsword"] },
     inventoryItemIds: [],
+    doorStates: { "entrance-door": { open: false } },
   };
 }
 
-function describedRoom(roomId: RoomId): Event {
-  const room = ADVENTURE.rooms[roomId];
+function describedRoom(state: SessionState): Event {
+  const room = ADVENTURE.rooms[state.locationId];
   return {
     type: "room-described",
-    roomId,
+    roomId: state.locationId,
     featureIds: room.features.map((feature) => feature.id),
     exitRoomIds: room.exitRoomIds,
+    doorways: Object.values(ADVENTURE.doors)
+      .filter((door) => door.roomIds.includes(state.locationId))
+      .map((door) => ({
+        doorId: door.id,
+        destinationId:
+          door.roomIds[0] === state.locationId
+            ? door.roomIds[1]
+            : door.roomIds[0],
+        open: state.doorStates[door.id].open,
+      })),
   };
 }
 
@@ -116,6 +145,65 @@ function resolveRoom(value: string): RoomId | undefined {
   return Object.values(ADVENTURE.rooms).find(
     (room) => room.name.toLowerCase() === normalized,
   )?.id;
+}
+
+function doorBetween(firstRoomId: RoomId, secondRoomId: RoomId) {
+  return Object.values(ADVENTURE.doors).find(
+    (door) =>
+      door.roomIds.includes(firstRoomId) && door.roomIds.includes(secondRoomId),
+  );
+}
+
+function resolveAccessibleDoor(roomId: RoomId, normalizedName: string) {
+  return Object.values(ADVENTURE.doors).find(
+    (door) =>
+      door.name.toLowerCase() === normalizedName &&
+      door.roomIds.includes(roomId),
+  );
+}
+
+function open(state: SessionState, target: string | undefined): ActionResult {
+  const normalized = normalizeTarget(target);
+  if (normalized.length === 0) {
+    return {
+      state,
+      rejection: { reason: "missing-argument", command: "open" },
+    };
+  }
+
+  const door = resolveAccessibleDoor(state.locationId, normalized);
+  if (door === undefined) {
+    const room = ADVENTURE.rooms[state.locationId];
+    const visibleNonDoor =
+      room.features.some(
+        (feature) => feature.name.toLowerCase() === normalized,
+      ) ||
+      room.exitRoomIds.some(
+        (roomId) => ADVENTURE.rooms[roomId].name.toLowerCase() === normalized,
+      );
+    return {
+      state,
+      rejection: {
+        reason: visibleNonDoor ? "not-openable" : "invisible-target",
+        target: normalized,
+      },
+    };
+  }
+
+  if (state.doorStates[door.id].open) {
+    return {
+      state,
+      events: [{ type: "door-already-open", doorId: door.id }],
+    };
+  }
+
+  return {
+    state: {
+      ...state,
+      doorStates: { ...state.doorStates, [door.id]: { open: true } },
+    },
+    events: [{ type: "door-opened", doorId: door.id }],
+  };
 }
 
 function inspect(
@@ -131,6 +219,23 @@ function inspect(
   }
 
   const room = ADVENTURE.rooms[state.locationId];
+  const door = resolveAccessibleDoor(state.locationId, normalized);
+  if (door !== undefined) {
+    return {
+      state,
+      events: [
+        {
+          type: "target-inspected",
+          target: {
+            type: "door",
+            id: door.id,
+            open: state.doorStates[door.id].open,
+          },
+        },
+      ],
+    };
+  }
+
   const feature = room.features.find(
     (candidate) => candidate.name.toLowerCase() === normalized,
   );
@@ -151,12 +256,24 @@ function inspect(
     return exitRoom.name.toLowerCase() === normalized;
   });
   if (exitRoomId !== undefined) {
+    const doorway = doorBetween(state.locationId, exitRoomId);
     return {
       state,
       events: [
         {
           type: "target-inspected",
-          target: { type: "exit", id: exitRoomId },
+          target: {
+            type: "exit",
+            id: exitRoomId,
+            ...(doorway === undefined
+              ? {}
+              : {
+                  doorway: {
+                    doorId: doorway.id,
+                    open: state.doorStates[doorway.id].open,
+                  },
+                }),
+          },
         },
       ],
     };
@@ -196,6 +313,18 @@ function move(
     };
   }
 
+  const door = doorBetween(state.locationId, destinationId);
+  if (door !== undefined && !state.doorStates[door.id].open) {
+    return {
+      state,
+      rejection: {
+        reason: "closed-door",
+        doorId: door.id,
+        destinationId,
+      },
+    };
+  }
+
   const nextState: SessionState = { ...state, locationId: destinationId };
   return {
     state: nextState,
@@ -205,7 +334,7 @@ function move(
         fromRoomId: state.locationId,
         roomId: destinationId,
       },
-      describedRoom(destinationId),
+      describedRoom(nextState),
     ],
   };
 }
@@ -221,11 +350,13 @@ export function handleAction(
         events: [{ type: "help-requested", commands: COMMANDS }],
       };
     case "look":
-      return { state, events: [describedRoom(state.locationId)] };
+      return { state, events: [describedRoom(state)] };
     case "inspect":
       return inspect(state, action.target);
     case "move":
       return move(state, action.destination);
+    case "open":
+      return open(state, action.target);
     case "status":
       return {
         state,
