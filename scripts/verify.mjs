@@ -172,7 +172,6 @@ export async function runVerification(options = {}) {
         await dashboard.waitForFinalObservation();
       }
     } catch (error) {
-      reporterHealthy = false;
       write(
         output,
         `Dashboard reporter unavailable; continuing in terminal: ${error.message}`,
