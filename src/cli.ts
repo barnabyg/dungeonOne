@@ -8,7 +8,7 @@ import {
   createSeededRandom,
   resolveStartupSeed,
 } from "./random.js";
-import { createSession, handleAction } from "./session.js";
+import { createSession, handleAction, type ActionResult } from "./session.js";
 import {
   completeSessionTrace,
   createSessionTrace,
@@ -22,8 +22,7 @@ function chooseStartupSeed(): number {
 }
 
 type StartupOptions = Readonly<{ seed: number; tracePath?: string }>;
-const USAGE =
-  "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]";
+const USAGE = "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]";
 
 function resolveStartupOptions(args: readonly string[]): StartupOptions {
   let seedArgument: readonly string[] | undefined;
@@ -99,7 +98,10 @@ async function main(): Promise<void> {
   });
 
   let state = createSession();
-  const trace = createSessionTrace(startup.seed, state);
+  const trace =
+    startup.tracePath === undefined
+      ? undefined
+      : createSessionTrace(startup.seed, state);
   let terminationReason: "quit" | "eof" = "eof";
   process.stdout.write(`Seed: ${startup.seed} (${RANDOM_ALGORITHM})\n`);
   process.stdout.write(`${renderIntroduction()}\n`);
@@ -113,17 +115,22 @@ async function main(): Promise<void> {
 
   for await (const line of lines) {
     const action = parseCommand(line);
-    const rolls: RollRecord[] = [];
-    const recordingRandom = {
-      roll(sides: number): number {
-        const value = random.roll(sides);
-        rolls.push({ sides, value });
-        return value;
-      },
-    };
-    const result = handleAction(state, action, recordingRandom);
+    let result: ActionResult;
+    if (trace === undefined) {
+      result = handleAction(state, action, random);
+    } else {
+      const rolls: RollRecord[] = [];
+      const recordingRandom = {
+        roll(sides: number): number {
+          const value = random.roll(sides);
+          rolls.push({ sides, value });
+          return value;
+        },
+      };
+      result = handleAction(state, action, recordingRandom);
+      recordTraceAction(trace, line, action, rolls, result);
+    }
     state = result.state;
-    recordTraceAction(trace, line, action, rolls, result);
     process.stdout.write(`${renderResult(result)}\n`);
 
     if (
@@ -140,7 +147,7 @@ async function main(): Promise<void> {
     }
   }
 
-  if (startup.tracePath !== undefined) {
+  if (startup.tracePath !== undefined && trace !== undefined) {
     completeSessionTrace(trace, terminationReason, state);
     try {
       await writeSessionTrace(startup.tracePath, trace);
