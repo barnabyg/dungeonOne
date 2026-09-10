@@ -1,7 +1,14 @@
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist/**", "node_modules/**"] },
+  {
+    ignores: [
+      ".scratch/**",
+      ".verify-artifacts/**",
+      "dist/**",
+      "node_modules/**",
+    ],
+  },
   ...tseslint.configs.recommended,
   {
     files: ["**/*.{js,mjs,ts}"],
