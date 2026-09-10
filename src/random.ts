@@ -10,7 +10,6 @@ export type RandomSource = Readonly<{
 
 export type StartupSeed = Readonly<{
   seed: number;
-  generated: boolean;
 }>;
 
 function requireUint32(value: number, label: string): number {
@@ -54,21 +53,15 @@ export function resolveStartupSeed(
   chooseSeed: () => number,
 ): StartupSeed {
   if (args.length === 0) {
-    return {
-      seed: requireUint32(chooseSeed(), "Generated seed"),
-      generated: true,
-    };
+    return { seed: requireUint32(chooseSeed(), "Generated seed") };
   }
 
   if (args.length === 2 && args[0] === "--seed" && args[1] !== undefined) {
-    return { seed: parseSeed(args[1]), generated: false };
+    return { seed: parseSeed(args[1]) };
   }
 
   if (args.length === 1 && args[0]?.startsWith("--seed=") === true) {
-    return {
-      seed: parseSeed(args[0].slice("--seed=".length)),
-      generated: false,
-    };
+    return { seed: parseSeed(args[0].slice("--seed=".length)) };
   }
 
   throw new Error("Usage: dungeon-one [--seed <0-4294967295>]");

@@ -39,18 +39,16 @@ test("startup seeds accept only decimal unsigned 32-bit values", () => {
     resolveStartupSeed(["--seed", "0"], () => 99),
     {
       seed: 0,
-      generated: false,
     },
   );
   assert.deepEqual(
     resolveStartupSeed(["--seed=4294967295"], () => 99),
-    { seed: 4_294_967_295, generated: false },
+    { seed: 4_294_967_295 },
   );
   assert.deepEqual(
     resolveStartupSeed([], () => 3_000_000_000),
     {
       seed: 3_000_000_000,
-      generated: true,
     },
   );
 
