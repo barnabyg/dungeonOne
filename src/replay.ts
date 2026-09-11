@@ -13,6 +13,8 @@ import {
 } from "./session.js";
 import {
   ADVENTURE_VERSION,
+  LEGACY_ADVENTURE_VERSION,
+  LEGACY_RULES_VERSION,
   RULES_VERSION,
   TRACE_FORMAT_VERSION,
   type RollRecord,
@@ -30,7 +32,7 @@ type ReplayAction = Readonly<{
 }>;
 
 type ReplayTrace = Readonly<{
-  rulesVersion: "stolen-signet-rules-v1" | typeof RULES_VERSION;
+  rulesVersion: typeof LEGACY_RULES_VERSION | typeof RULES_VERSION;
   initialSeed: number;
   initialState: JsonObject;
   actions: readonly ReplayAction[];
@@ -568,7 +570,7 @@ function validateTrace(value: unknown): ReplayTrace {
   );
   const rulesVersionValue = requireString(trace.rulesVersion, "rulesVersion");
   if (
-    rulesVersionValue !== "stolen-signet-rules-v1" &&
+    rulesVersionValue !== LEGACY_RULES_VERSION &&
     rulesVersionValue !== RULES_VERSION
   ) {
     throw new Error(
@@ -581,7 +583,9 @@ function validateTrace(value: unknown): ReplayTrace {
   requireSupported(adventure.id, ADVENTURE.id, "adventure id");
   requireSupported(
     adventure.version,
-    rulesVersion === "stolen-signet-rules-v1" ? "1" : ADVENTURE_VERSION,
+    rulesVersion === LEGACY_RULES_VERSION
+      ? LEGACY_ADVENTURE_VERSION
+      : ADVENTURE_VERSION,
     "adventure version",
   );
 
@@ -657,7 +661,7 @@ function handleReplayAction(
   random: Parameters<typeof handleAction>[2],
 ): ActionResult {
   if (
-    rulesVersion === "stolen-signet-rules-v1" &&
+    rulesVersion === LEGACY_RULES_VERSION &&
     action.type === "inspect" &&
     action.target?.trim().toLowerCase() === ADVENTURE.opponents.goblin.name
   ) {

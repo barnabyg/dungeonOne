@@ -11,6 +11,8 @@ import type {
 } from "./session.js";
 
 export const TRACE_FORMAT_VERSION = 1;
+export const LEGACY_RULES_VERSION = "stolen-signet-rules-v1";
+export const LEGACY_ADVENTURE_VERSION = "1";
 export const RULES_VERSION = "stolen-signet-rules-v2";
 export const ADVENTURE_VERSION = "2";
 
