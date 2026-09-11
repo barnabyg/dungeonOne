@@ -1,22 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline";
 
-import { parseCommand } from "./parser.js";
-import { renderIntroduction, renderResult } from "./presenter.js";
+import { playGame } from "./play.js";
 import { verifyTraceFile } from "./replay.js";
-import {
-  RANDOM_ALGORITHM,
-  createSeededRandom,
-  resolveStartupSeed,
-} from "./random.js";
-import { createSession, handleAction, type ActionResult } from "./session.js";
-import {
-  completeSessionTrace,
-  createSessionTrace,
-  recordTraceAction,
-  writeSessionTrace,
-  type RollRecord,
-} from "./trace.js";
+import { resolveStartupSeed } from "./random.js";
 
 function chooseStartupSeed(): number {
   return randomBytes(4).readUInt32LE(0);
@@ -125,7 +112,6 @@ async function main(): Promise<void> {
     return;
   }
 
-  const random = createSeededRandom(startup.seed);
   const terminal = Boolean(process.stdin.isTTY && process.stdout.isTTY);
   const lines = createInterface({
     input: process.stdin,
@@ -134,69 +120,18 @@ async function main(): Promise<void> {
     prompt: "> ",
   });
 
-  let state = createSession();
-  const trace =
-    startup.tracePath === undefined
-      ? undefined
-      : createSessionTrace(startup.seed, state);
-  let terminationReason: "quit" | "eof" = "eof";
-  process.stdout.write(`Seed: ${startup.seed} (${RANDOM_ALGORITHM})\n`);
-  process.stdout.write(`${renderIntroduction()}\n`);
-  const initialStatus = handleAction(state, { type: "status" }, random);
-  state = initialStatus.state;
-  process.stdout.write(`${renderResult(initialStatus)}\n`);
-  const initialLook = handleAction(state, { type: "look" }, random);
-  state = initialLook.state;
-  process.stdout.write(`${renderResult(initialLook)}\n`);
-
-  if (terminal) {
-    lines.prompt();
-  }
-
-  for await (const line of lines) {
-    const action = parseCommand(line);
-    let result: ActionResult;
-    if (trace === undefined) {
-      result = handleAction(state, action, random);
-    } else {
-      const rolls: RollRecord[] = [];
-      const recordingRandom = {
-        roll(sides: number): number {
-          const value = random.roll(sides);
-          rolls.push({ sides, value });
-          return value;
-        },
-      };
-      result = handleAction(state, action, recordingRandom);
-      recordTraceAction(trace, line, action, rolls, result);
-    }
-    state = result.state;
-    process.stdout.write(`${renderResult(result)}\n`);
-
-    if (
-      state.status === "quit" ||
-      result.events?.some((event) => event.type === "session-quit") === true
-    ) {
-      terminationReason = "quit";
-      lines.close();
-      break;
-    }
-
-    if (terminal) {
-      lines.prompt();
-    }
-  }
-
-  if (startup.tracePath !== undefined && trace !== undefined) {
-    completeSessionTrace(trace, terminationReason, state);
-    try {
-      await writeSessionTrace(startup.tracePath, trace);
-      process.stdout.write(`Trace exported to ${startup.tracePath}\n`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`${message}\n`);
-      process.exitCode = 1;
-    }
+  try {
+    await playGame(startup, {
+      lines,
+      terminal,
+      write(text) {
+        process.stdout.write(text);
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`${message}\n`);
+    process.exitCode = 1;
   }
 }
 

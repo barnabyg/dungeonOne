@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import test from "node:test";
 
+import { playGame } from "../dist/play.js";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cli = path.join(root, "dist", "cli.js");
 const winningAttacks = ["attack goblin", "attack goblin"];
@@ -26,6 +28,31 @@ function withTemporaryDirectory(run) {
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+}
+
+function createTerminalLines(inputs, readOutput) {
+  let closed = false;
+  const prompts = [];
+
+  return {
+    lines: {
+      close() {
+        closed = true;
+      },
+      prompt() {
+        prompts.push(readOutput());
+      },
+      async *[Symbol.asyncIterator]() {
+        for (const input of inputs) {
+          if (closed) {
+            return;
+          }
+          yield input;
+        }
+      },
+    },
+    prompts,
+  };
 }
 
 test("built game prints one reproducible seed and rejects invalid startup seeds", () => {
@@ -195,6 +222,44 @@ test("missing arguments recover with commands the player can copy", () => {
   assert.match(result.stdout, /take signet/i);
   assert.match(result.stdout, /attack goblin/i);
   assert.match(result.stdout, /You leave the adventure/i);
+});
+
+test("terminal play prompts after recoverable, combat, and final-state actions", async () => {
+  let output = "";
+  const terminal = createTerminalLines(
+    [
+      "move guardroom",
+      "open wooden door",
+      "move guardroom",
+      ...winningAttacks,
+      "move reliquary",
+      "take signet",
+      "leave",
+      "status",
+      "quit",
+    ],
+    () => output,
+  );
+
+  await playGame(
+    { seed: 0 },
+    {
+      lines: terminal.lines,
+      terminal: true,
+      write(text) {
+        output += text;
+      },
+    },
+  );
+
+  assert.equal(terminal.prompts.length, 10);
+  assert.match(terminal.prompts[0], /Fighter HP:\s*20\/20[\s\S]*Entrance/i);
+  assert.match(terminal.prompts[1], /door to Guardroom is closed/i);
+  assert.match(terminal.prompts[3], /Turn: Fighter/i);
+  assert.match(terminal.prompts[5], /Combat victory/i);
+  assert.match(terminal.prompts[8], /Victory!/i);
+  assert.match(terminal.prompts[9], /Session:\s*victory/i);
+  assert.match(output, /You leave the adventure/i);
 });
 
 test("built game exits cleanly on EOF without an outcome", () => {
