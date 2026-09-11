@@ -6,8 +6,8 @@ yet declared complete.
 
 ## Clean-checkout verification
 
-Run date: 11 September 2026  
-Platform: Windows, PowerShell 7  
+Run date: 11 September 2026
+Platform: Windows, PowerShell 7
 Runtime: Node.js 24.21.0, npm 11.6.4
 
 The candidate was cloned to a new directory with no copied build output,
