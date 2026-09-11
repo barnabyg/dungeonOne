@@ -26,6 +26,20 @@ To export a diagnostic trace, add `--trace <path>` (or
 npm.cmd start -- --seed 0 --trace .\session-trace.json
 ```
 
+Replay and verify that exported trace headlessly with `--replay <path>` (or
+`--replay=<path>`):
+
+```powershell
+npm.cmd start -- --replay .\session-trace.json
+```
+
+A verified trace prints a success message and exits zero. Invalid files,
+unsupported compatibility versions, and deterministic mismatches print a clear
+error to standard error and exit nonzero. A mismatch identifies the first
+different action and comparison field, with expected and actual structured
+values. Replay does not start an interactive game or resume the recorded
+session.
+
 The file is written when the process reaches normal termination: `quit` or
 end-of-input. A run that has not reached victory or defeat is marked
 `incomplete`; it is a diagnostic record of a voluntarily ended session, not a
@@ -46,9 +60,20 @@ Traces deliberately exclude timestamps and rendered narration so deterministic
 comparisons can use `initialState`, each `stateAfter`, rolls, and mechanical
 results directly. Read-only commands and invalid input are recorded but consume
 no rolls and invent no world-change events. Export is diagnostic only: there is
-no loader, replay command, database, event-sourcing system, or mid-session
-resume in this increment. Format `1` remains readable support once released;
-removing it requires an explicit compatibility decision.
+no state loader, database, event-sourcing system, or mid-session resume in this
+increment. Format `1` remains readable support once released; removing it
+requires an explicit compatibility decision.
+
+Replay supports exactly trace format `1`, rules version
+`stolen-signet-rules-v1`, built-in adventure `stolen-signet` version `1`, and
+random algorithm `mulberry32-v1`. Every identifier is validated before replay;
+an unknown version fails explicitly and is never interpreted as a supported
+ruleset. Replay starts from the built-in initial state and the trace's initial
+seed, reparses each recorded raw input, and sends it through the same
+authoritative action boundary used by live play. Recorded actions, rolls,
+rejections, ordered mechanical events, per-action states, and completion are
+expectations only; replay never loads them as game state. Narration and
+timestamps are not compared.
 
 On macOS or Linux, use `npm` in place of `npm.cmd`. The optional seed must be a decimal integer from `0` through `4294967295`. If omitted, the game chooses one. Every run prints its seed once so it can be replayed. The game then displays the entrance scene and a help hint. Enter `help` to list commands, `quit` to leave cleanly, or send EOF (`Ctrl+Z` then Enter on Windows; `Ctrl+D` on macOS/Linux) to close input cleanly.
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -443,5 +443,284 @@ test("trace write failures are clear and do not alter the gameplay outcome", () 
     assert.match(result.stdout, /Victory!/i);
     assert.doesNotMatch(result.stdout, /Trace exported/i);
     assert.match(result.stderr, /Unable to write session trace/i);
+  });
+});
+
+test("built CLI verifies exported victory, defeat, and voluntary early-exit traces", () => {
+  withTemporaryDirectory((directory) => {
+    const runs = [
+      {
+        name: "victory",
+        seed: "0",
+        input: [
+          "open wooden door",
+          "move guardroom",
+          ...winningAttacks,
+          "move reliquary",
+          "take signet",
+          "leave",
+          "quit",
+          "",
+        ].join("\n"),
+      },
+      {
+        name: "defeat",
+        seed: "207",
+        input: [
+          "open wooden door",
+          "move guardroom",
+          "attack goblin",
+          "attack goblin",
+          "attack goblin",
+        ].join("\n"),
+      },
+      {
+        name: "early-exit",
+        seed: "123",
+        input: "look\ndance\nstatus\nquit\n",
+      },
+    ];
+
+    for (const run of runs) {
+      const tracePath = path.join(directory, `${run.name}.json`);
+      const exported = runCli(run.input, [
+        "--seed",
+        run.seed,
+        "--trace",
+        tracePath,
+      ]);
+      const replayed = runCli("", ["--replay", tracePath]);
+
+      assert.equal(exported.status, 0, exported.stderr);
+      assert.equal(replayed.status, 0, replayed.stderr);
+      assert.match(replayed.stdout, /Trace verified successfully/i);
+      assert.doesNotMatch(replayed.stdout, /The Stolen Signet|Seed:/i);
+    }
+  });
+});
+
+test("built CLI reports the first corrupted replay expectation", () => {
+  withTemporaryDirectory((directory) => {
+    const tracePath = path.join(directory, "corrupted.json");
+    const exported = runCli(
+      "open wooden door\nmove guardroom\nattack goblin\nquit\n",
+      ["--seed", "0", "--trace", tracePath],
+    );
+    assert.equal(exported.status, 0, exported.stderr);
+
+    const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+    trace.actions[1].rolls[0].value = 20;
+    writeFileSync(tracePath, `${JSON.stringify(trace, undefined, 2)}\n`);
+
+    const replayed = runCli("", [`--replay=${tracePath}`]);
+
+    assert.equal(replayed.status, 1);
+    assert.match(replayed.stderr, /action 2.*rolls/i);
+    assert.match(replayed.stderr, /expected[\s\S]*20/i);
+    assert.match(replayed.stderr, /actual[\s\S]*6/i);
+    assert.doesNotMatch(replayed.stdout, /verified successfully/i);
+  });
+});
+
+test("built CLI rejects malformed, unsupported, and structurally invalid traces", () => {
+  withTemporaryDirectory((directory) => {
+    const malformedPath = path.join(directory, "malformed.json");
+    writeFileSync(malformedPath, "{not json");
+    const malformed = runCli("", ["--replay", malformedPath]);
+    assert.equal(malformed.status, 1);
+    assert.match(malformed.stderr, /invalid JSON/i);
+
+    const supportedHeader = {
+      formatVersion: 1,
+      rulesVersion: "stolen-signet-rules-v1",
+      adventure: { id: "stolen-signet", version: "1" },
+      random: { algorithm: "mulberry32-v1", initialSeed: 0 },
+      initialState: {},
+      actions: [],
+      completion: { reason: "eof", outcome: "incomplete" },
+    };
+    const unsupportedCases = [
+      {
+        name: "format",
+        trace: { ...supportedHeader, formatVersion: 2 },
+        error: /unsupported trace format version 2/i,
+      },
+      {
+        name: "rules",
+        trace: { ...supportedHeader, rulesVersion: "future-rules" },
+        error: /unsupported rules version "future-rules"/i,
+      },
+      {
+        name: "adventure",
+        trace: {
+          ...supportedHeader,
+          adventure: { id: "stolen-signet", version: "2" },
+        },
+        error: /unsupported adventure version "2"/i,
+      },
+      {
+        name: "random",
+        trace: {
+          ...supportedHeader,
+          random: { algorithm: "future-rng", initialSeed: 0 },
+        },
+        error: /unsupported random algorithm "future-rng"/i,
+      },
+    ];
+    for (const unsupportedCase of unsupportedCases) {
+      const unsupportedPath = path.join(
+        directory,
+        `${unsupportedCase.name}.json`,
+      );
+      writeFileSync(unsupportedPath, JSON.stringify(unsupportedCase.trace));
+      const unsupported = runCli("", ["--replay", unsupportedPath]);
+      assert.equal(unsupported.status, 1);
+      assert.match(unsupported.stderr, unsupportedCase.error);
+    }
+
+    const invalidPath = path.join(directory, "invalid.json");
+    const exported = runCli("look\n", ["--seed", "0", "--trace", invalidPath]);
+    assert.equal(exported.status, 0, exported.stderr);
+    const invalidTrace = JSON.parse(readFileSync(invalidPath, "utf8"));
+    invalidTrace.actions[0].rawInput = 42;
+    writeFileSync(invalidPath, JSON.stringify(invalidTrace));
+    const invalid = runCli("", ["--replay", invalidPath]);
+    assert.equal(invalid.status, 1);
+    assert.match(invalid.stderr, /actions\[0\]\.rawInput must be a string/i);
+  });
+});
+
+test("built CLI detects corrupted read-only and invalid-input records", () => {
+  withTemporaryDirectory((directory) => {
+    const tracePath = path.join(directory, "non-mutating.json");
+    const exported = runCli("look\ndance\nstatus\nquit\n", [
+      "--seed",
+      "0",
+      "--trace",
+      tracePath,
+    ]);
+    assert.equal(exported.status, 0, exported.stderr);
+
+    const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+    trace.actions[1].result.rejection.input = "sing";
+    writeFileSync(tracePath, JSON.stringify(trace));
+    const replayed = runCli("", ["--replay", tracePath]);
+
+    assert.equal(replayed.status, 1);
+    assert.match(replayed.stderr, /action 2.*result/i);
+    assert.match(replayed.stderr, /dance/i);
+    assert.match(replayed.stderr, /sing/i);
+  });
+});
+
+test("built CLI validates nested trace records before replay", () => {
+  withTemporaryDirectory((directory) => {
+    const tracePath = path.join(directory, "nested-invalid.json");
+    const exported = runCli("open wooden door\nquit\n", [
+      "--seed",
+      "0",
+      "--trace",
+      tracePath,
+    ]);
+    assert.equal(exported.status, 0, exported.stderr);
+
+    const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+    trace.actions[0].result.events[0] = null;
+    writeFileSync(tracePath, JSON.stringify(trace));
+
+    const replayed = runCli("", ["--replay", tracePath]);
+    assert.equal(replayed.status, 1);
+    assert.match(
+      replayed.stderr,
+      /actions\[0\]\.result\.events\[0\] must be an object/i,
+    );
+    assert.doesNotMatch(replayed.stderr, /Replay divergence/i);
+  });
+});
+
+test("built CLI gives expected and actual details for records after quit", () => {
+  withTemporaryDirectory((directory) => {
+    const tracePath = path.join(directory, "after-quit.json");
+    const exported = runCli("look\nquit\n", [
+      "--seed",
+      "0",
+      "--trace",
+      tracePath,
+    ]);
+    assert.equal(exported.status, 0, exported.stderr);
+
+    const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+    trace.actions.push({ ...trace.actions[0], sequence: 3 });
+    writeFileSync(tracePath, JSON.stringify(trace));
+
+    const replayed = runCli("", ["--replay", tracePath]);
+    assert.equal(replayed.status, 1);
+    assert.match(replayed.stderr, /action 3/i);
+    assert.match(replayed.stderr, /Expected:[\s\S]*look/i);
+    assert.match(replayed.stderr, /Actual:[\s\S]*session ended/i);
+  });
+});
+
+test("built CLI validates format-1 literals and required state records", () => {
+  withTemporaryDirectory((directory) => {
+    const sourcePath = path.join(directory, "source.json");
+    const exported = runCli("look\nmove reliquary\nquit\n", [
+      "--seed",
+      "0",
+      "--trace",
+      sourcePath,
+    ]);
+    assert.equal(exported.status, 0, exported.stderr);
+    const source = JSON.parse(readFileSync(sourcePath, "utf8"));
+
+    const invalidCases = [
+      {
+        name: "status",
+        mutate(trace) {
+          trace.initialState.status = "bogus";
+        },
+        error: /initialState\.status must be one of.*playing/i,
+      },
+      {
+        name: "opponent",
+        mutate(trace) {
+          delete trace.initialState.opponents.goblin;
+        },
+        error: /initialState\.opponents\.goblin must be an object/i,
+      },
+      {
+        name: "unknown-opponent",
+        mutate(trace) {
+          trace.initialState.opponents.dragon = { hp: 1, maxHp: 1 };
+        },
+        error:
+          /initialState\.opponents contains unsupported identifier dragon/i,
+      },
+      {
+        name: "event-room",
+        mutate(trace) {
+          trace.actions[0].result.events[0].roomId = "moon";
+        },
+        error: /actions\[0\]\.result\.events\[0\]\.roomId must be one of/i,
+      },
+      {
+        name: "rejection-room",
+        mutate(trace) {
+          trace.actions[1].result.rejection.destinationId = "moon";
+        },
+        error: /actions\[1\]\.result\.rejection\.destinationId must be one of/i,
+      },
+    ];
+
+    for (const invalidCase of invalidCases) {
+      const trace = structuredClone(source);
+      invalidCase.mutate(trace);
+      const tracePath = path.join(directory, `${invalidCase.name}.json`);
+      writeFileSync(tracePath, JSON.stringify(trace));
+      const replayed = runCli("", ["--replay", tracePath]);
+      assert.equal(replayed.status, 1);
+      assert.match(replayed.stderr, invalidCase.error);
+      assert.doesNotMatch(replayed.stderr, /Replay divergence/i);
+    }
   });
 });

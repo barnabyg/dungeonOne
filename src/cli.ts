@@ -3,6 +3,7 @@ import { createInterface } from "node:readline";
 
 import { parseCommand } from "./parser.js";
 import { renderIntroduction, renderResult } from "./presenter.js";
+import { verifyTraceFile } from "./replay.js";
 import {
   RANDOM_ALGORITHM,
   createSeededRandom,
@@ -21,10 +22,31 @@ function chooseStartupSeed(): number {
   return randomBytes(4).readUInt32LE(0);
 }
 
-type StartupOptions = Readonly<{ seed: number; tracePath?: string }>;
-const USAGE = "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]";
+type StartupOptions = Readonly<
+  | { mode: "play"; seed: number; tracePath?: string }
+  | { mode: "replay"; replayPath: string }
+>;
+const USAGE =
+  "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>] | --replay <path>";
 
 function resolveStartupOptions(args: readonly string[]): StartupOptions {
+  if (
+    args.length === 2 &&
+    args[0] === "--replay" &&
+    args[1] !== undefined &&
+    args[1].length > 0 &&
+    !args[1].startsWith("--")
+  ) {
+    return { mode: "replay", replayPath: args[1] };
+  }
+  if (
+    args.length === 1 &&
+    args[0]?.startsWith("--replay=") === true &&
+    args[0].slice("--replay=".length).length > 0
+  ) {
+    return { mode: "replay", replayPath: args[0].slice("--replay=".length) };
+  }
+
   let seedArgument: readonly string[] | undefined;
   let tracePath: string | undefined;
 
@@ -72,6 +94,7 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
   }
 
   return {
+    mode: "play",
     seed: resolveStartupSeed(seedArgument ?? [], chooseStartupSeed),
     ...(tracePath === undefined ? {} : { tracePath }),
   };
@@ -85,6 +108,20 @@ async function main(): Promise<void> {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);
     process.exitCode = 2;
+    return;
+  }
+
+  if (startup.mode === "replay") {
+    try {
+      await verifyTraceFile(startup.replayPath);
+      process.stdout.write(
+        `Trace verified successfully: ${startup.replayPath}\n`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      process.stderr.write(`${message}\n`);
+      process.exitCode = 1;
+    }
     return;
   }
 
