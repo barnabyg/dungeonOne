@@ -1,0 +1,24 @@
+move guardroom
+inspect ruined archway
+open wooden door
+move guardroom
+look
+status
+dance
+attack
+attack goblin
+attack goblin
+move reliquary
+inspect signet
+leave
+take signet
+take signet
+look
+inventory
+move guardroom
+look
+move reliquary
+leave
+attack goblin
+status
+quit

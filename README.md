@@ -33,6 +33,20 @@ Replay and verify that exported trace headlessly with `--replay <path>` (or
 npm.cmd start -- --replay .\session-trace.json
 ```
 
+Reproducible end-to-end acceptance inputs are checked in for both outcomes:
+
+```powershell
+Get-Content .\docs\acceptance\inputs\victory.txt | npm.cmd start -- --seed 0 --trace .\winning-trace.json
+npm.cmd start -- --replay .\winning-trace.json
+
+Get-Content .\docs\acceptance\inputs\defeat.txt | npm.cmd start -- --seed 207 --trace .\defeat-trace.json
+npm.cmd start -- --replay .\defeat-trace.json
+```
+
+On macOS or Linux, redirect each input file into `npm start -- ...` instead,
+for example `npm start -- --seed 0 --trace ./winning-trace.json <
+docs/acceptance/inputs/victory.txt`.
+
 A verified trace prints a success message and exits zero. Invalid files,
 unsupported compatibility versions, and deterministic mismatches print a clear
 error to standard error and exit nonzero. A mismatch identifies the first
@@ -138,10 +152,10 @@ After `npm.cmd run build`:
 2. Enter `help` and `inventory`. Expect copyable command examples, the combat and entrance-exit restrictions, an equipped longsword, and no collectibles.
 3. Enter `inspect ruined archway`, `open wooden door`, and `move guardroom`. Expect the inspected crest, the door to open, the guardroom description, fighter initiative 7 against goblin initiative 3, and the fighter's turn. Initiative and attack output label the die roll, modifier, total, AC, damage, remaining HP, and turn separately from narration.
 4. During combat, enter `move reliquary`, `attack`, `status`, and `dance`. Expect each mutation or malformed command to be rejected, status to remain readable, and no attack to occur. Enter `attack goblin` twice. With seed `0`, expect both combatants to miss in the first round, followed by 8 damage that reduces the goblin from 7 HP to 0 without retaliation.
-5. Enter `move reliquary`. Expect the room description and the signet on the stone pedestal. Enter `inspect signet` and `leave`. Expect the signet description, an explanation that the signet is required, and a usable prompt. Then enter `take signet`, `look`, and `inventory`. Expect one successful pickup, no signet among the room's visible items, and the signet under collectibles while the longsword remains equipped.
-6. Enter `move guardroom`, then `move reliquary`. Expect the defeated goblin not to respawn and combat not to restart. Enter `leave`; expect one explicit adventure victory ending and instructions to inspect the final state, quit, and start a fresh run.
+5. Enter `move reliquary`. Expect the room description and the signet on the stone pedestal. Enter `inspect signet` and `leave`. Expect the signet description, an explanation that the signet is required, and a usable prompt. Then enter `take signet` twice, `look`, and `inventory`. Expect one successful pickup followed by an already-carried rejection, no signet among the room's visible items, and exactly one signet under collectibles while the longsword remains equipped.
+6. Enter `move guardroom`, `look`, then `move reliquary`. Expect `Defeated opponents: goblin`, with no restarted combat or new initiative. Enter `leave`; expect one explicit adventure victory ending and instructions to inspect the final state, quit, and start a fresh run.
 7. After victory, enter `move guardroom`, `look`, `status`, `inventory`, and `help`. Expect movement to be rejected without changing the final state, while read-only commands show the Reliquary, `victory`, and the carried signet. Enter `quit`; expect a clean exit that preserves the victory state.
-8. Run `npm.cmd start -- --seed 207` and enter the guardroom. Expect fighter initiative 4 against goblin initiative 21, then one automatic goblin opening attack before the fighter's turn. Enter `attack goblin` three times. Expect deterministic mechanical output and immediate defeat at 0/20 HP. Expect `look`, `status`, `inventory`, and `help` to remain available, gameplay mutations to be rejected, and instructions to quit and start fresh.
+8. Run the checked-in defeat input with trace export as shown above. Expect fighter initiative 4 against goblin initiative 21, then one automatic goblin opening attack before the fighter's turn. The third `attack goblin` produces immediate defeat at 0/20 HP. The fourth attack is rejected without another turn or random draw. Expect `look`, `status`, `inventory`, and `help` to remain available, gameplay mutations to be rejected, and instructions to quit and start fresh. Replay both exported outcome traces and expect `Trace verified successfully` with exit code 0.
 9. Run `node dist/cli.js --seed -1`. Expect an error and a nonzero exit. Pipe empty input to `node dist/cli.js`; expect exactly one generated seed, the objective and starting scene, exit code 0, and neither victory nor defeat.
 
 ### Usability pass observations
@@ -151,3 +165,7 @@ An unseeded interactive run on 11 September 2026 generated seed `863562226` and 
 The pass found four presentation problems and they were corrected in this slice: initial HP required guessing the `status` command; help placeholders were not directly copyable; help omitted the no-retreat and no-entrance-exit rules; and dense combat lines plus inconsistent ending guidance made mechanics and next steps harder to scan. Startup now includes authoritative status, help and missing-argument feedback provide concrete commands, combat facts use separate labeled lines, and both endings explain final-state inspection, `quit`, and `npm start` for a fresh run.
 
 Retreat from active combat, death saves, tactical movement, surprise, additional combatants, spells, healing, rests, weight, consumables, equipment switching, AI integration, an external adventure loader, save/resume, in-game restart, deployment, and an installer are intentionally out of scope for issue #10.
+
+The recorded issue #11 handoff evidence, including the explicitly pending human
+acceptance action, is in
+[`docs/acceptance/issue-11.md`](docs/acceptance/issue-11.md).

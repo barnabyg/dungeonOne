@@ -1,0 +1,10 @@
+open wooden door
+move guardroom
+look
+dance
+attack goblin
+attack goblin
+attack goblin
+attack goblin
+status
+quit

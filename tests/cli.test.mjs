@@ -10,6 +10,7 @@ import { playGame } from "../dist/play.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cli = path.join(root, "dist", "cli.js");
+const acceptanceInputs = path.join(root, "docs", "acceptance", "inputs");
 const winningAttacks = ["attack goblin", "attack goblin"];
 
 function runCli(input, args = []) {
@@ -338,6 +339,22 @@ test("seed 0 survives combat and rejected commands do not disturb its rolls", ()
   assert.match(result.stdout, /Combat victory![\s\S]*Fighter HP: 20\/20/i);
 });
 
+test("returning to the guardroom identifies the defeated goblin", () => {
+  const input = readFileSync(
+    path.join(acceptanceInputs, "victory.txt"),
+    "utf8",
+  );
+  const result = runCli(input, ["--seed", "0"]);
+
+  assert.equal(result.status, 0, result.stderr);
+  const afterReturn = result.stdout.split(
+    "You move from Reliquary to Guardroom.",
+  )[1];
+  assert.ok(afterReturn);
+  assert.match(afterReturn, /Defeated opponents:\s*goblin/i);
+  assert.doesNotMatch(afterReturn, /Combat begins/i);
+});
+
 test("seed 207 gives the goblin initiative and defeats the fighter", () => {
   const result = runCli(
     [
@@ -543,27 +560,12 @@ test("built CLI verifies exported victory, defeat, and voluntary early-exit trac
       {
         name: "victory",
         seed: "0",
-        input: [
-          "open wooden door",
-          "move guardroom",
-          ...winningAttacks,
-          "move reliquary",
-          "take signet",
-          "leave",
-          "quit",
-          "",
-        ].join("\n"),
+        input: readFileSync(path.join(acceptanceInputs, "victory.txt"), "utf8"),
       },
       {
         name: "defeat",
         seed: "207",
-        input: [
-          "open wooden door",
-          "move guardroom",
-          "attack goblin",
-          "attack goblin",
-          "attack goblin",
-        ].join("\n"),
+        input: readFileSync(path.join(acceptanceInputs, "defeat.txt"), "utf8"),
       },
       {
         name: "early-exit",

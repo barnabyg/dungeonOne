@@ -1,5 +1,10 @@
 import { ADVENTURE } from "./adventure.js";
-import type { ActionResult, Event, Rejection } from "./session.js";
+import type {
+  ActionResult,
+  Event,
+  Rejection,
+  SessionState,
+} from "./session.js";
 
 const ENDING_GUIDANCE =
   'The final state remains available through "look", "status", and "inventory". Enter "quit" to exit. Start a fresh run with "npm start".';
@@ -50,7 +55,10 @@ function renderHelp(commands: readonly string[]): string {
   ].join("\n");
 }
 
-function renderRoom(event: Extract<Event, { type: "room-described" }>): string {
+function renderRoom(
+  event: Extract<Event, { type: "room-described" }>,
+  state: SessionState,
+): string {
   const room = ADVENTURE.rooms[event.roomId];
   const featureNames = event.featureIds.map((featureId) => {
     const feature = room.features.find(
@@ -81,12 +89,22 @@ function renderRoom(event: Extract<Event, { type: "room-described" }>): string {
     }
     return `${ADVENTURE.items[itemId].name} (on ${feature.name})`;
   });
+  const defeatedOpponents = Object.values(ADVENTURE.opponents)
+    .filter(
+      (opponent) =>
+        opponent.roomId === event.roomId &&
+        state.opponents[opponent.id].hp === 0,
+    )
+    .map((opponent) => opponent.name);
 
   return [
     room.name,
     room.description,
     `Visible features: ${featureNames.join(", ") || "none"}.`,
     `Visible items: ${visibleItems.join(", ") || "none"}.`,
+    ...(defeatedOpponents.length === 0
+      ? []
+      : [`Defeated opponents: ${defeatedOpponents.join(", ")}.`]),
     `Exits: ${exitNames.join(", ") || "none"}.`,
   ].join("\n");
 }
@@ -124,12 +142,12 @@ function renderInspection(
   throw new Error(`Unknown inspected feature: ${event.target.id}`);
 }
 
-function renderEvent(event: Event): string {
+function renderEvent(event: Event, state: SessionState): string {
   switch (event.type) {
     case "help-requested":
       return renderHelp(event.commands);
     case "room-described":
-      return renderRoom(event);
+      return renderRoom(event, state);
     case "target-inspected":
       return renderInspection(event);
     case "room-entered":
@@ -263,5 +281,7 @@ export function renderResult(result: ActionResult): string {
     return renderRejection(result.rejection);
   }
 
-  return result.events.map(renderEvent).join("\n");
+  return result.events
+    .map((event) => renderEvent(event, result.state))
+    .join("\n");
 }
