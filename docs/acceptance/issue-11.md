@@ -40,11 +40,11 @@ The checked-in input files are executable acceptance scripts rather than save
 files. From a built checkout, run:
 
 ```powershell
-Get-Content .\docs\acceptance\inputs\victory.txt | npm.cmd start -- --seed 0 --trace .\winning-trace.json
-npm.cmd start -- --replay .\winning-trace.json
+Get-Content .\docs\acceptance\inputs\victory.txt | npx.cmd --yes --package=node@24.21.0 --package=npm@11.6.4 npm start -- --seed 0 --trace .\winning-trace.json
+npx.cmd --yes --package=node@24.21.0 --package=npm@11.6.4 npm start -- --replay .\winning-trace.json
 
-Get-Content .\docs\acceptance\inputs\defeat.txt | npm.cmd start -- --seed 207 --trace .\defeat-trace.json
-npm.cmd start -- --replay .\defeat-trace.json
+Get-Content .\docs\acceptance\inputs\defeat.txt | npx.cmd --yes --package=node@24.21.0 --package=npm@11.6.4 npm start -- --seed 207 --trace .\defeat-trace.json
+npx.cmd --yes --package=node@24.21.0 --package=npm@11.6.4 npm start -- --replay .\defeat-trace.json
 ```
 
 The victory run exited zero and demonstrated: rejection at the closed
