@@ -147,6 +147,39 @@ those names to stable identifiers and routes gameplay through
 `handleGameAction`. Help, status, inventory, quit, empty input, and unknown input
 remain terminal-only actions, so existing format-1 traces require no new fields.
 
+## Validated game tools
+
+Programmatic DM callers use `src/game-tools.ts`; this capability does not call a
+model or require credentials. `projectDmScene` returns the public title and
+objective plus only the current room's visible features, items, opponents,
+exits, door states, outcome, and active combat turn. `projectCharacterStatus`
+separately returns exact HP, equipment, collected items, outcome, and any active
+combat turn.
+
+`getGameToolDefinitions(state)` derives strict JSON-schema function definitions
+from that state. Every object property is required, extra properties are
+forbidden, reference enums contain only currently relevant stable IDs, and a
+parameterized tool is omitted when it has no valid target. The supported calls
+are `look`, `move`, `inspect`, `open`, `take`, `attack`, `leave`, and
+`get_character_status`.
+
+Pass an untrusted call to `dispatchGameTool` as a name and JSON argument string.
+The argument forms are `{}`, `{"destination_id":"..."}`,
+`{"target":{"type":"feature","feature_id":"..."}}`,
+`{"door_id":"..."}`, `{"item_id":"..."}`, and
+`{"opponent_id":"..."}` as appropriate. Inspect targets may instead use
+`door_id`, `item_id`, `opponent_id`, or `destination_id` with the corresponding
+`door`, `item`, `opponent`, or `named_exit` type. Unknown tools, malformed JSON,
+wrong shapes, extra fields, and unavailable references return typed validation
+failures without engine execution or random draws. Valid calls still pass
+through `handleGameAction`, so schema filtering is never authorization.
+
+The dispatch result keeps authoritative `state` and `engineResult` for the local
+application while `modelOutput` contains only the visibility-limited scene,
+status, inspection, observed events, or rejection intended for a later model
+adapter. Carried items stay absent from ordinary scene projection but can be
+inspected by stable reference and are listed by `get_character_status`.
+
 ## Verification
 
 The one canonical, non-source-mutating command is:
