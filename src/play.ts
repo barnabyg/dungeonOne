@@ -54,7 +54,7 @@ export async function playGame(
 
   if (options.dmModel !== undefined) {
     io.write(
-      "Read-only DM mode: ask about the scene or your character's status.\n",
+      "Scripted DM mode: describe one action or ask about the scene or your character's status.\n",
     );
   }
 
@@ -69,7 +69,8 @@ export async function playGame(
       if (localCommand === "help") {
         io.write(
           [
-            "Read-only DM mode accepts ordinary questions about the current scene and character status.",
+            "Scripted DM mode accepts ordinary language for one gameplay attempt or questions about the current scene and character status.",
+            "After victory or defeat, gameplay mutations are frozen but reflection and reads remain available.",
             "Local commands:",
             "  help  Show this guidance without calling the model.",
             "  quit  Leave the game without calling the model.",

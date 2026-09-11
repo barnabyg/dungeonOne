@@ -180,23 +180,34 @@ status, inspection, observed events, or rejection intended for a later model
 adapter. Carried items stay absent from ordinary scene projection but can be
 inspected by stable reference and are listed by `get_character_status`.
 
-## Scripted read-only Dungeon Master
+## Scripted Dungeon Master
 
 `src/dm-turn.ts` provides the provider-neutral `DmModel` port and the versioned
-`stolen-signet-dm-v1` prompt. A turn receives untrusted player text, current
+`stolen-signet-dm-v2` prompt. A turn receives untrusted player text, current
 authoritative scene and character projections, current strict tool definitions,
 and bounded local transcript history. It returns authoritative state, ordered
 tool results and mechanics, sanitized narration, bounded transcript, and
 normalized diagnostics. No provider SDK types enter the game or terminal
 interfaces.
 
-This intermediate mode offers only `look`, `inspect`, and
-`get_character_status`; it cannot execute gameplay mutations. One player
-submission permits at most three read calls and four model responses. A response
-may contain one call only, and call IDs cannot repeat. Scene, status, and tool
-definitions are projected again after every call. Empty, malformed, overlong, or
-failed model output produces deterministic recovery text and leaves the terminal
-usable.
+The mode offers all currently relevant validated game tools. One player
+submission permits at most one state-changing attempt, three read calls, and
+four model responses. A rejected or malformed mutation attempt consumes that
+turn's mutation budget; subsequent continuations receive only read tools. A
+response may contain one call only, call IDs cannot repeat, and a multi-call
+response executes no member. Scene, status, and tool definitions are projected
+again after every dispatched call.
+
+Every parsed call is recorded with attempted, validated, and executed
+dispositions. Dispatched results retain the exact random rolls they consumed.
+Accepted engine results and typed rejections are returned to the next model
+continuation, while the separate scene projection always reflects the latest
+authoritative state. Empty, malformed, overlong, failed, or over-budget output
+uses deterministic recovery text and leaves the terminal usable. Provider
+failure after an action preserves and renders that one committed result without
+repeating it. After victory or defeat, read tools and reflection remain
+available, but the engine rejects gameplay mutation; local `help` and `quit`
+remain model-free.
 
 Narration is limited to 1,200 characters after ANSI and control-character
 sanitization. Ordinary line breaks are preserved. Player input is limited to

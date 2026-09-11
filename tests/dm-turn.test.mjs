@@ -6,6 +6,8 @@ import {
   DM_TURN_LIMITS,
   runDmTurn,
 } from "../dist/dm-turn.js";
+import { dispatchGameTool } from "../dist/game-tools.js";
+import { createSeededRandom } from "../dist/random.js";
 import { createSession } from "../dist/session.js";
 
 function scriptedModel(responses, requests = []) {
@@ -77,11 +79,352 @@ test("a scripted DM can inspect authoritative context before narrating", async (
   assert.match(requests[0].systemPrompt, /clarif/i);
   assert.deepEqual(
     requests[0].tools.map(({ name }) => name),
-    ["look", "inspect", "get_character_status"],
+    ["look", "move", "inspect", "open", "leave", "get_character_status"],
   );
   assert.equal(requests[0].toolResults.length, 0);
   assert.equal(requests[1].toolResults.length, 1);
   assert.deepEqual(requests[1].scene, requests[0].scene);
+});
+
+test("one mutation executes once and removes mutations from later continuations", async () => {
+  const requests = [];
+  const result = await runDmTurn({
+    state: createSession(),
+    playerInput: "Open the wooden door, then tell me what changed",
+    transcript: [],
+    random: createSeededRandom(0),
+    model: scriptedModel(
+      [
+        {
+          toolCalls: [
+            {
+              id: "open-1",
+              name: "open",
+              argumentsJson: '{"door_id":"entrance-door"}',
+            },
+          ],
+        },
+        { toolCalls: [{ id: "look-1", name: "look", argumentsJson: "{}" }] },
+        { text: "The wooden door now stands open." },
+      ],
+      requests,
+    ),
+  });
+
+  assert.equal(result.state.doorStates["entrance-door"].open, true);
+  assert.deepEqual(
+    result.toolResults.map(({ call, disposition, rolls }) => ({
+      id: call.id,
+      disposition,
+      rolls,
+    })),
+    [
+      {
+        id: "open-1",
+        disposition: {
+          attempted: true,
+          validated: true,
+          executed: true,
+        },
+        rolls: [],
+      },
+      {
+        id: "look-1",
+        disposition: {
+          attempted: true,
+          validated: true,
+          executed: true,
+        },
+        rolls: [],
+      },
+    ],
+  );
+  assert.equal(result.mechanics.length, 2);
+  assert.match(result.mechanics[0], /open the wooden door/i);
+  assert.equal(requests[1].scene.room.exits[0].doorway.open, true);
+  assert.deepEqual(
+    requests[1].tools.map(({ name }) => name),
+    ["look", "inspect", "get_character_status"],
+  );
+});
+
+test("a rejected mutation attempt consumes the budget and records both dispositions", async () => {
+  const requests = [];
+  const state = createSession();
+  const result = await runDmTurn({
+    state,
+    playerInput: "Open it and then move",
+    transcript: [],
+    random: noRolls(),
+    model: scriptedModel(
+      [
+        {
+          toolCalls: [
+            {
+              id: "bad-open",
+              name: "open",
+              argumentsJson: '{"door_id":"entrance-door","extra":true}',
+            },
+          ],
+        },
+        {
+          toolCalls: [
+            {
+              id: "move-anyway",
+              name: "move",
+              argumentsJson: '{"destination_id":"guardroom"}',
+            },
+          ],
+        },
+      ],
+      requests,
+    ),
+  });
+
+  assert.deepEqual(result.state, state);
+  assert.equal(result.toolResults.length, 1);
+  assert.deepEqual(result.toolResults[0].disposition, {
+    attempted: true,
+    validated: false,
+    executed: false,
+  });
+  assert.equal(
+    result.toolResults[0].result.modelOutput.error.code,
+    "invalid-arguments",
+  );
+  assert.deepEqual(
+    result.toolAttempts.map(({ call, disposition }) => ({
+      id: call.id,
+      disposition,
+    })),
+    [
+      {
+        id: "bad-open",
+        disposition: {
+          attempted: true,
+          validated: false,
+          executed: false,
+        },
+      },
+      {
+        id: "move-anyway",
+        disposition: {
+          attempted: true,
+          validated: false,
+          executed: false,
+        },
+      },
+    ],
+  );
+  assert.equal(result.diagnostics.at(-1).code, "mutation-call-limit");
+  assert.match(result.mechanics[0], /invalid-arguments/i);
+  assert.deepEqual(requests[1].scene, requests[0].scene);
+  assert.deepEqual(requests[1].toolResults[0].output, {
+    ok: false,
+    error: { code: "invalid-arguments" },
+  });
+});
+
+test("an engine-rejected mutation is executed once and continued as structured authority", async () => {
+  const requests = [];
+  const state = createSession();
+  const result = await runDmTurn({
+    state,
+    playerInput: "Leave now",
+    transcript: [],
+    random: noRolls(),
+    model: scriptedModel(
+      [
+        { toolCalls: [{ id: "leave-1", name: "leave", argumentsJson: "{}" }] },
+        { text: "You cannot leave from the entrance." },
+      ],
+      requests,
+    ),
+  });
+
+  assert.deepEqual(result.state, state);
+  assert.deepEqual(result.toolResults[0].disposition, {
+    attempted: true,
+    validated: true,
+    executed: true,
+  });
+  assert.equal(
+    result.toolResults[0].result.modelOutput.error.code,
+    "action-rejected",
+  );
+  assert.deepEqual(requests[1].toolResults[0].output, {
+    ok: false,
+    error: {
+      code: "action-rejected",
+      rejection: { reason: "leave-requirement", requirement: "reliquary" },
+    },
+    scene: requests[1].scene,
+  });
+  assert.deepEqual(
+    requests[1].tools.map(({ name }) => name),
+    ["look", "inspect", "get_character_status"],
+  );
+});
+
+test("a multi-call response executes no member and records each valid attempt", async () => {
+  const state = createSession();
+  const result = await runDmTurn({
+    state,
+    playerInput: "Open the door and enter",
+    transcript: [],
+    random: noRolls(),
+    model: scriptedModel([
+      {
+        toolCalls: [
+          {
+            id: "open-1",
+            name: "open",
+            argumentsJson: '{"door_id":"entrance-door"}',
+          },
+          {
+            id: "move-1",
+            name: "move",
+            argumentsJson: '{"destination_id":"guardroom"}',
+          },
+        ],
+      },
+    ]),
+  });
+
+  assert.deepEqual(result.state, state);
+  assert.deepEqual(result.toolResults, []);
+  assert.deepEqual(
+    result.toolAttempts.map(({ call, disposition }) => ({
+      id: call.id,
+      disposition,
+    })),
+    [
+      {
+        id: "open-1",
+        disposition: {
+          attempted: true,
+          validated: false,
+          executed: false,
+        },
+      },
+      {
+        id: "move-1",
+        disposition: {
+          attempted: true,
+          validated: false,
+          executed: false,
+        },
+      },
+    ],
+  );
+  assert.equal(result.diagnostics[0].code, "multi-call-response");
+});
+
+test("provider failure after an attack preserves one result and its rolls", async () => {
+  const random = createSeededRandom(0);
+  let state = createSession();
+  state = dispatchGameTool(
+    state,
+    {
+      name: "open",
+      argumentsJson: '{"door_id":"entrance-door"}',
+    },
+    random,
+  ).state;
+  state = dispatchGameTool(
+    state,
+    {
+      name: "move",
+      argumentsJson: '{"destination_id":"guardroom"}',
+    },
+    random,
+  ).state;
+
+  const result = await runDmTurn({
+    state,
+    playerInput: "Attack the goblin",
+    transcript: [],
+    random,
+    model: scriptedModel([
+      {
+        toolCalls: [
+          {
+            id: "attack-1",
+            name: "attack",
+            argumentsJson: '{"opponent_id":"goblin"}',
+          },
+        ],
+      },
+      new Error("provider failed after the action"),
+    ]),
+  });
+
+  assert.equal(result.toolResults.length, 1);
+  assert.deepEqual(result.toolResults[0].rolls, [
+    { sides: 20, value: 5 },
+    { sides: 20, value: 3 },
+  ]);
+  assert.deepEqual(result.toolResults[0].disposition, {
+    attempted: true,
+    validated: true,
+    executed: true,
+  });
+  assert.equal(result.mechanics.length, 1);
+  assert.match(result.mechanics[0], /Attack roll: d20 5/i);
+  assert.match(result.narration, /authoritative result.*Mechanics/i);
+  assert.equal(result.diagnostics.at(-1).code, "model-failure");
+});
+
+test("provider failure before an action preserves state and random input", async () => {
+  const state = createSession();
+  let rolls = 0;
+  const result = await runDmTurn({
+    state,
+    playerInput: "Open the door",
+    transcript: [],
+    random: {
+      roll() {
+        rolls += 1;
+        return 1;
+      },
+    },
+    model: scriptedModel([new Error("provider unavailable")]),
+  });
+
+  assert.deepEqual(result.state, state);
+  assert.equal(rolls, 0);
+  assert.deepEqual(result.toolAttempts, []);
+  assert.deepEqual(result.toolResults, []);
+  assert.equal(result.diagnostics[0].code, "model-failure");
+});
+
+test("the fourth model response may commit one action before bounded fallback", async () => {
+  const result = await runDmTurn({
+    state: createSession(),
+    playerInput: "Check carefully, then open the door",
+    transcript: [],
+    random: createSeededRandom(0),
+    model: scriptedModel([
+      { toolCalls: [{ id: "look-1", name: "look", argumentsJson: "{}" }] },
+      { toolCalls: [{ id: "look-2", name: "look", argumentsJson: "{}" }] },
+      { toolCalls: [{ id: "look-3", name: "look", argumentsJson: "{}" }] },
+      {
+        toolCalls: [
+          {
+            id: "open-1",
+            name: "open",
+            argumentsJson: '{"door_id":"entrance-door"}',
+          },
+        ],
+      },
+    ]),
+  });
+
+  assert.equal(result.state.doorStates["entrance-door"].open, true);
+  assert.equal(result.toolResults.length, 4);
+  assert.equal(result.mechanics.length, 4);
+  assert.equal(result.diagnostics.at(-1).code, "model-response-limit");
+  assert.match(result.narration, /No further action was executed/i);
 });
 
 test("read and response budgets stop a looping model without mutation", async () => {
@@ -106,7 +449,7 @@ test("read and response budgets stop a looping model without mutation", async ()
   assert.match(result.narration, /ask one specific question/i);
 });
 
-test("duplicate IDs, batched calls, and mutation tools are rejected before dispatch", async (t) => {
+test("duplicate IDs and batched calls are rejected before dispatch", async (t) => {
   const cases = [
     {
       name: "duplicate call id",
@@ -128,22 +471,6 @@ test("duplicate IDs, batched calls, and mutation tools are rejected before dispa
         },
       ],
       code: "multi-call-response",
-      completedCalls: 0,
-    },
-    {
-      name: "state-changing tool",
-      responses: [
-        {
-          toolCalls: [
-            {
-              id: "mutate",
-              name: "open",
-              argumentsJson: '{"door_id":"entrance-door"}',
-            },
-          ],
-        },
-      ],
-      code: "unsupported-tool",
       completedCalls: 0,
     },
   ];
