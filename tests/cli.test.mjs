@@ -40,6 +40,10 @@ function runScriptedDm(input, responses, seed = "0") {
   });
 }
 
+function callThenNarrate(id, name, argumentsJson, text) {
+  return [{ toolCalls: [{ id, name, argumentsJson }] }, { text }];
+}
+
 function withTemporaryDirectory(run) {
   const directory = mkdtempSync(path.join(tmpdir(), "dungeon-one-trace-"));
   try {
@@ -749,10 +753,6 @@ test("scripted DM terminal exits cleanly on EOF", () => {
 });
 
 test("scripted DM completes a natural-language seed-0 victory with backtracking", () => {
-  const callThenNarrate = (id, name, argumentsJson, text) => [
-    { toolCalls: [{ id, name, argumentsJson }] },
-    { text },
-  ];
   const responses = [
     ...callThenNarrate(
       "open-1",
@@ -846,10 +846,6 @@ test("scripted DM completes a natural-language seed-0 victory with backtracking"
 });
 
 test("scripted DM seed-207 defeat freezes mutations but permits reflection", () => {
-  const callThenNarrate = (id, name, argumentsJson, text) => [
-    { toolCalls: [{ id, name, argumentsJson }] },
-    { text },
-  ];
   const responses = [
     ...callThenNarrate(
       "open-1",
@@ -919,10 +915,6 @@ test("scripted DM seed-207 defeat freezes mutations but permits reflection", () 
 });
 
 test("scripted DM rejects adversarial turns without changing later seed-0 combat", () => {
-  const callThenNarrate = (id, name, argumentsJson, text) => [
-    { toolCalls: [{ id, name, argumentsJson }] },
-    { text },
-  ];
   const responses = [
     { text: "What specific action would you like to attempt?" },
     ...callThenNarrate(
