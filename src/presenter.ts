@@ -112,6 +112,10 @@ function renderRoom(
 function renderInspection(
   event: Extract<Event, { type: "target-inspected" }>,
 ): string {
+  if (event.target.type === "opponent") {
+    return `${event.target.description} Condition: ${event.target.condition}.`;
+  }
+
   if (event.target.type === "item") {
     return ADVENTURE.items[event.target.id].description;
   }

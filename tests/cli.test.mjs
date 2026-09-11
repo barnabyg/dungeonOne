@@ -424,10 +424,10 @@ test("built CLI exports a complete winning trace without narration or timestamps
     const trace = JSON.parse(traceText);
 
     assert.equal(trace.formatVersion, 1);
-    assert.equal(trace.rulesVersion, "stolen-signet-rules-v1");
+    assert.equal(trace.rulesVersion, "stolen-signet-rules-v2");
     assert.deepEqual(trace.adventure, {
       id: "stolen-signet",
-      version: "1",
+      version: "2",
     });
     assert.deepEqual(trace.random, {
       algorithm: "mulberry32-v1",
@@ -601,6 +601,91 @@ test("built CLI replays the historical format-1 command rejection fixture", () =
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Trace verified successfully/i);
+});
+
+test("built CLI inspects a living and defeated goblin and replays the new trace", () => {
+  withTemporaryDirectory((directory) => {
+    const tracePath = path.join(directory, "goblin-inspection.json");
+    const inputs = [
+      "inspect goblin",
+      "open wooden door",
+      "move guardroom",
+      "inspect goblin",
+      ...winningAttacks,
+      "inspect goblin",
+      "quit",
+    ];
+    const exported = runCli(`${inputs.join("\n")}\n`, [
+      "--seed",
+      "0",
+      "--trace",
+      tracePath,
+    ]);
+
+    assert.equal(exported.status, 0, exported.stderr);
+    assert.match(exported.stdout, /can't see ["']goblin["'] here/i);
+    assert.match(
+      exported.stdout,
+      /wiry goblin in battered leather[^\n]*Condition: living/i,
+    );
+    assert.match(
+      exported.stdout,
+      /Combat victory![\s\S]*wiry goblin in battered leather[^\n]*Condition: defeated/i,
+    );
+
+    const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+    assert.equal(trace.formatVersion, 1);
+    assert.equal(trace.rulesVersion, "stolen-signet-rules-v2");
+    assert.deepEqual(trace.adventure, {
+      id: "stolen-signet",
+      version: "2",
+    });
+    for (const index of [0, 3, 6]) {
+      assert.deepEqual(trace.actions[index].rolls, []);
+      if (index > 0) {
+        assert.deepEqual(
+          trace.actions[index].stateAfter,
+          trace.actions[index - 1].stateAfter,
+        );
+      }
+    }
+    const attacks = trace.actions
+      .flatMap((entry) => entry.result.events ?? [])
+      .filter((event) => event.type === "attack-resolved");
+    assert.deepEqual(
+      attacks.map(({ attackerId, attackRoll, damage, targetHp }) => ({
+        attackerId,
+        attackRoll,
+        damage: damage ?? 0,
+        targetHp,
+      })),
+      [
+        { attackerId: "fighter", attackRoll: 5, damage: 0, targetHp: 7 },
+        { attackerId: "goblin", attackRoll: 3, damage: 0, targetHp: 20 },
+        { attackerId: "fighter", attackRoll: 10, damage: 8, targetHp: 0 },
+      ],
+    );
+
+    const replayed = runCli("", ["--replay", tracePath]);
+    assert.equal(replayed.status, 0, replayed.stderr);
+    assert.match(replayed.stdout, /Trace verified successfully/i);
+
+    const legacyPath = path.join(directory, "legacy-goblin-rejection.json");
+    const legacyTrace = structuredClone(trace);
+    legacyTrace.rulesVersion = "stolen-signet-rules-v1";
+    legacyTrace.adventure.version = "1";
+    for (const index of [3, 6]) {
+      legacyTrace.actions[index].result = {
+        type: "rejected",
+        rejection: { reason: "invisible-target", target: "goblin" },
+      };
+    }
+    writeFileSync(legacyPath, JSON.stringify(legacyTrace));
+
+    const legacyReplay = runCli("", ["--replay", legacyPath]);
+    assert.equal(legacyReplay.status, 0, legacyReplay.stderr);
+    assert.match(legacyReplay.stdout, /Trace verified successfully/i);
+  });
 });
 
 test("built CLI reports the first corrupted replay expectation", () => {

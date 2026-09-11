@@ -4,7 +4,13 @@ import { isDeepStrictEqual } from "node:util";
 import { ADVENTURE } from "./adventure.js";
 import { parseCommand } from "./parser.js";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
-import { createSession, handleAction, type ActionResult } from "./session.js";
+import {
+  createSession,
+  handleAction,
+  type Action,
+  type ActionResult,
+  type SessionState,
+} from "./session.js";
 import {
   ADVENTURE_VERSION,
   RULES_VERSION,
@@ -24,6 +30,7 @@ type ReplayAction = Readonly<{
 }>;
 
 type ReplayTrace = Readonly<{
+  rulesVersion: "stolen-signet-rules-v1" | typeof RULES_VERSION;
   initialSeed: number;
   initialState: JsonObject;
   actions: readonly ReplayAction[];
@@ -208,7 +215,7 @@ function validateEvent(value: unknown, path: string): void {
       const target = requireObject(event.target, `${path}.target`);
       const targetType = requireOneOf(
         target.type,
-        ["feature", "exit", "door", "item"],
+        ["feature", "exit", "door", "item", "opponent"],
         `${path}.target.type`,
       );
       requireOneOf(
@@ -219,7 +226,9 @@ function validateEvent(value: unknown, path: string): void {
             ? ["entrance", "guardroom", "reliquary"]
             : targetType === "door"
               ? ["entrance-door"]
-              : ["signet"],
+              : targetType === "item"
+                ? ["signet"]
+                : ["goblin"],
         `${path}.target.id`,
       );
       if (targetType === "door") {
@@ -233,6 +242,14 @@ function validateEvent(value: unknown, path: string): void {
           `${path}.target.doorway.doorId`,
         );
         requireBoolean(doorway.open, `${path}.target.doorway.open`);
+      }
+      if (targetType === "opponent") {
+        requireString(target.description, `${path}.target.description`);
+        requireOneOf(
+          target.condition,
+          ["living", "defeated"],
+          `${path}.target.condition`,
+        );
       }
       break;
     }
@@ -549,11 +566,24 @@ function validateTrace(value: unknown): ReplayTrace {
     TRACE_FORMAT_VERSION,
     "trace format version",
   );
-  requireSupported(trace.rulesVersion, RULES_VERSION, "rules version");
+  const rulesVersionValue = requireString(trace.rulesVersion, "rulesVersion");
+  if (
+    rulesVersionValue !== "stolen-signet-rules-v1" &&
+    rulesVersionValue !== RULES_VERSION
+  ) {
+    throw new Error(
+      `Unsupported rules version ${JSON.stringify(rulesVersionValue)}.`,
+    );
+  }
+  const rulesVersion = rulesVersionValue as ReplayTrace["rulesVersion"];
 
   const adventure = requireObject(trace.adventure, "adventure");
   requireSupported(adventure.id, ADVENTURE.id, "adventure id");
-  requireSupported(adventure.version, ADVENTURE_VERSION, "adventure version");
+  requireSupported(
+    adventure.version,
+    rulesVersion === "stolen-signet-rules-v1" ? "1" : ADVENTURE_VERSION,
+    "adventure version",
+  );
 
   const random = requireObject(trace.random, "random");
   requireSupported(random.algorithm, RANDOM_ALGORITHM, "random algorithm");
@@ -609,6 +639,7 @@ function validateTrace(value: unknown): ReplayTrace {
   }
 
   return {
+    rulesVersion,
     initialSeed: Number(random.initialSeed),
     initialState,
     actions,
@@ -617,6 +648,25 @@ function validateTrace(value: unknown): ReplayTrace {
       outcome: completion.outcome,
     },
   };
+}
+
+function handleReplayAction(
+  rulesVersion: ReplayTrace["rulesVersion"],
+  state: SessionState,
+  action: Action,
+  random: Parameters<typeof handleAction>[2],
+): ActionResult {
+  if (
+    rulesVersion === "stolen-signet-rules-v1" &&
+    action.type === "inspect" &&
+    action.target?.trim().toLowerCase() === ADVENTURE.opponents.goblin.name
+  ) {
+    return {
+      state,
+      rejection: { reason: "invisible-target", target: "goblin" },
+    };
+  }
+  return handleAction(state, action, random);
 }
 
 function traceResult(result: ActionResult): JsonObject {
@@ -678,7 +728,7 @@ export async function verifyTraceFile(path: string): Promise<void> {
     );
 
     const rolls: RollRecord[] = [];
-    const result = handleAction(state, action, {
+    const result = handleReplayAction(trace.rulesVersion, state, action, {
       roll(sides: number): number {
         const value = random.roll(sides);
         rolls.push({ sides, value });

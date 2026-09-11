@@ -82,6 +82,51 @@ test("canonical inspection resolves discriminated stable references authoritativ
   }
 });
 
+test("canonical opponent inspection reports living and defeated conditions without effects", () => {
+  const initial = createSession();
+  const livingState = {
+    ...initial,
+    locationId: "guardroom",
+  };
+  const defeatedState = {
+    ...livingState,
+    opponents: { goblin: { ...initial.opponents.goblin, hp: 0 } },
+  };
+  const random = {
+    roll() {
+      assert.fail("inspection must not consume randomness");
+    },
+  };
+
+  for (const [state, condition] of [
+    [livingState, "living"],
+    [defeatedState, "defeated"],
+  ]) {
+    const result = handleGameAction(
+      state,
+      {
+        type: "inspect",
+        target: { type: "opponent", opponentId: "goblin" },
+      },
+      random,
+    );
+
+    assert.equal(result.state, state);
+    assert.deepEqual(result.events, [
+      {
+        type: "target-inspected",
+        target: {
+          type: "opponent",
+          id: "goblin",
+          description:
+            "A wiry goblin in battered leather grips a nicked scimitar.",
+          condition,
+        },
+      },
+    ]);
+  }
+});
+
 test("canonical stable-ID actions complete the seeded victory path", () => {
   const random = createSeededRandom(0);
   let state = createSession();

@@ -78,16 +78,18 @@ no state loader, database, event-sourcing system, or mid-session resume in this
 increment. Format `1` remains readable support once released; removing it
 requires an explicit compatibility decision.
 
-Replay supports exactly trace format `1`, rules version
-`stolen-signet-rules-v1`, built-in adventure `stolen-signet` version `1`, and
-random algorithm `mulberry32-v1`. Every identifier is validated before replay;
-an unknown version fails explicitly and is never interpreted as a supported
-ruleset. Replay starts from the built-in initial state and the trace's initial
-seed, reparses each recorded raw input, and sends it through the same
-authoritative action boundary used by live play. Recorded actions, rolls,
-rejections, ordered mechanical events, per-action states, and completion are
-expectations only; replay never loads them as game state. Narration and
-timestamps are not compared.
+Replay supports trace format `1` with both released compatibility tuples:
+rules `stolen-signet-rules-v1` plus adventure version `1`, and rules
+`stolen-signet-rules-v2` plus adventure version `2`. New command traces use the
+v2 tuple. The v1 replay path retains the former `inspect goblin` rejection,
+while v2 makes a visible living or defeated goblin inspectable. Every identifier
+is validated before replay; an unknown or mixed version tuple fails explicitly
+and is never interpreted as a supported ruleset. Replay starts from the built-in
+initial state and the trace's initial seed, reparses each recorded raw input,
+and sends it through the version-appropriate authoritative action boundary.
+Recorded actions, rolls, rejections, ordered mechanical events, per-action
+states, and completion are expectations only; replay never loads them as game
+state. Narration and timestamps are not compared.
 
 On macOS or Linux, use `npm` in place of `npm.cmd`. The optional seed must be a decimal integer from `0` through `4294967295`. If omitted, the game chooses one. Every run prints its seed once so it can be replayed. The game then displays the objective, fighter HP, session state, entrance scene, and a help hint. Enter `help` to list commands, `quit` to leave cleanly, or send EOF (`Ctrl+Z` then Enter on Windows; `Ctrl+D` on macOS/Linux) to close input cleanly.
 
@@ -129,8 +131,9 @@ Programmatic callers use `handleGameAction` from `src/session.ts` with stable
 adventure identifiers instead of terminal display text. The supported
 `GameAction` operations are `look`, `inspect`, `move`, `open`, `take`, `attack`,
 and `leave`. Inspection targets are discriminated `feature`, `door`, `item`,
-`opponent`, or `named-exit` references; the opponent reference is reserved by
-the interface but opponent inspection is not enabled in this prefactor.
+`opponent`, or `named-exit` references. A visible goblin can be inspected during
+combat and after defeat; the structured result includes its adventure-defined
+description and authoritative `living` or `defeated` condition.
 
 The handler treats identifiers as requests, not authorization. It checks the
 current room, visibility, adjacency, inventory ownership, door and combat state,
@@ -172,7 +175,7 @@ After `npm.cmd run build`:
 1. Run `npm.cmd start -- --seed 0`. Expect the seed and algorithm, title, objective, fighter at 20/20 HP, playing session state, entrance description, and `help` hint.
 2. Enter `help` and `inventory`. Expect copyable command examples, the combat and entrance-exit restrictions, an equipped longsword, and no collectibles.
 3. Enter `inspect ruined archway`, `open wooden door`, and `move guardroom`. Expect the inspected crest, the door to open, the guardroom description, fighter initiative 7 against goblin initiative 3, and the fighter's turn. Initiative and attack output label the die roll, modifier, total, AC, damage, remaining HP, and turn separately from narration.
-4. During combat, enter `move reliquary`, `attack`, `status`, and `dance`. Expect each mutation or malformed command to be rejected, status to remain readable, and no attack to occur. Enter `attack goblin` twice. With seed `0`, expect both combatants to miss in the first round, followed by 8 damage that reduces the goblin from 7 HP to 0 without retaliation.
+4. During combat, enter `inspect goblin`, `move reliquary`, `attack`, `status`, and `dance`. Expect the goblin's description with `Condition: living`, each mutation or malformed command to be rejected, status to remain readable, and no attack to occur. Enter `attack goblin` twice. With seed `0`, expect both combatants to miss in the first round, followed by 8 damage that reduces the goblin from 7 HP to 0 without retaliation. Enter `inspect goblin` again and expect the same description with `Condition: defeated`; neither inspection changes state or combat rolls.
 5. Enter `move reliquary`. Expect the room description and the signet on the stone pedestal. Enter `inspect signet` and `leave`. Expect the signet description, an explanation that the signet is required, and a usable prompt. Then enter `take signet` twice, `look`, and `inventory`. Expect one successful pickup followed by an already-carried rejection, no signet among the room's visible items, and exactly one signet under collectibles while the longsword remains equipped.
 6. Enter `move guardroom`, `look`, then `move reliquary`. Expect `Defeated opponents: goblin`, with no restarted combat or new initiative. Enter `leave`; expect one explicit adventure victory ending and instructions to inspect the final state, quit, and start a fresh run.
 7. After victory, enter `move guardroom`, `look`, `status`, `inventory`, and `help`. Expect movement to be rejected without changing the final state, while read-only commands show the Reliquary, `victory`, and the carried signet. Enter `quit`; expect a clean exit that preserves the victory state.

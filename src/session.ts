@@ -104,7 +104,13 @@ export type Event = Readonly<
             doorway?: Readonly<{ doorId: DoorId; open: boolean }>;
           }>
         | Readonly<{ type: "door"; id: DoorId; open: boolean }>
-        | Readonly<{ type: "item"; id: ItemId }>;
+        | Readonly<{ type: "item"; id: ItemId }>
+        | Readonly<{
+            type: "opponent";
+            id: OpponentId;
+            description: string;
+            condition: "living" | "defeated";
+          }>;
     }
   | { type: "room-entered"; fromRoomId: RoomId; roomId: RoomId }
   | { type: "door-opened"; doorId: DoorId }
@@ -663,8 +669,27 @@ function inspectTarget(
           }
         : invisibleTarget(state, itemName(target.itemId));
     }
-    case "opponent":
-      return invisibleTarget(state, opponentName(target.opponentId));
+    case "opponent": {
+      const opponent = ADVENTURE.opponents[target.opponentId];
+      if (opponent === undefined || opponent.roomId !== state.locationId) {
+        return invisibleTarget(state, opponentName(target.opponentId));
+      }
+      return {
+        state,
+        events: [
+          {
+            type: "target-inspected",
+            target: {
+              type: "opponent",
+              id: opponent.id,
+              description: opponent.description,
+              condition:
+                state.opponents[opponent.id].hp > 0 ? "living" : "defeated",
+            },
+          },
+        ],
+      };
+    }
     case "named-exit": {
       if (!room.exitRoomIds.includes(target.destinationId)) {
         return invisibleTarget(state, roomName(target.destinationId));

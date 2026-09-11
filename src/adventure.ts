@@ -35,6 +35,7 @@ export type EquipmentDefinition = Readonly<{
 export type OpponentDefinition = Readonly<{
   id: OpponentId;
   name: string;
+  description: string;
   maxHp: number;
   armorClass: number;
   attackBonus: number;
@@ -167,6 +168,7 @@ export const ADVENTURE: AdventureDefinition = {
     goblin: {
       id: "goblin",
       name: "goblin",
+      description: "A wiry goblin in battered leather grips a nicked scimitar.",
       maxHp: 7,
       armorClass: 13,
       attackBonus: 4,

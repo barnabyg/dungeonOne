@@ -64,6 +64,7 @@ test("combat statistics live in the adventure definitions", () => {
   assert.deepEqual(ADVENTURE.opponents.goblin, {
     id: "goblin",
     name: "goblin",
+    description: "A wiry goblin in battered leather grips a nicked scimitar.",
     maxHp: 7,
     armorClass: 13,
     attackBonus: 4,
