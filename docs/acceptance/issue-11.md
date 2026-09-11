@@ -11,14 +11,16 @@ Platform: Windows, PowerShell 7
 Runtime: Node.js 24.21.0, npm 11.6.4
 
 The candidate was cloned to a new directory with no copied build output,
-dependencies, traces, or other ignored files. These commands used only tracked
-repository files after the clone:
+dependencies, traces, or other ignored files. The pinned tools were provided by
+npm's temporary package environment because the host had no Node version
+manager. These were the exact commands; the project inputs after cloning were
+all tracked files:
 
 ```powershell
-npm.cmd ci
-npm.cmd run verify
-npm.cmd run build
-'' | npm.cmd start -- --seed 0
+npx.cmd --yes --package=node@24.21.0 --package=npm@11.6.4 npm ci
+npx.cmd --yes --package=node@24.21.0 --package=npm@11.6.4 npm run verify
+npx.cmd --yes --package=node@24.21.0 --package=npm@11.6.4 npm run build
+'' | npx.cmd --yes --package=node@24.21.0 --package=npm@11.6.4 npm start -- --seed 0
 ```
 
 Outcomes:
