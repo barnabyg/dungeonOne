@@ -45,7 +45,7 @@ Get-Content .\docs\acceptance\inputs\defeat.txt | npm.cmd start -- --seed 207 --
 npm.cmd start -- --replay .\defeat-trace.json
 ```
 
-The victory run exited zero and demonstrated, in order: rejection at the closed
+The victory run exited zero and demonstrated: rejection at the closed
 door; read-only and invalid actions during combat without an extra attack;
 opening and traversing the door; fixed initiative; two-round combat; explicit
 missing-signet rejection; pickup and duplicate-pickup rejection; an empty
