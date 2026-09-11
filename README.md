@@ -123,6 +123,27 @@ Commands and their arguments are case-insensitive. Commands must use the canonic
 | `leave`            | Attempt to complete the objective through the reliquary's far exit.              |
 | `quit`             | Leave the game cleanly without victory or defeat.                                |
 
+## Authoritative game actions
+
+Programmatic callers use `handleGameAction` from `src/session.ts` with stable
+adventure identifiers instead of terminal display text. The supported
+`GameAction` operations are `look`, `inspect`, `move`, `open`, `take`, `attack`,
+and `leave`. Inspection targets are discriminated `feature`, `door`, `item`,
+`opponent`, or `named-exit` references; the opponent reference is reserved by
+the interface but opponent inspection is not enabled in this prefactor.
+
+The handler treats identifiers as requests, not authorization. It checks the
+current room, visibility, adjacency, inventory ownership, door and combat state,
+combatant life state, terminal outcomes, and escape requirements before making
+any change. Combat actions additionally require the caller to supply the seeded
+random source.
+
+The terminal parser continues to produce the format-1 `Action` shape with
+display-name arguments. `handleAction` is the compatibility adapter: it resolves
+those names to stable identifiers and routes gameplay through
+`handleGameAction`. Help, status, inventory, quit, empty input, and unknown input
+remain terminal-only actions, so existing format-1 traces require no new fields.
+
 ## Verification
 
 The one canonical, non-source-mutating command is:

@@ -59,6 +59,24 @@ export type Action = Readonly<
   | { type: "unknown"; input: string }
 >;
 
+export type InspectableRef = Readonly<
+  | { type: "feature"; featureId: FeatureId }
+  | { type: "door"; doorId: DoorId }
+  | { type: "item"; itemId: ItemId }
+  | { type: "opponent"; opponentId: OpponentId }
+  | { type: "named-exit"; destinationId: RoomId }
+>;
+
+export type GameAction = Readonly<
+  | { type: "look" }
+  | { type: "inspect"; target: InspectableRef }
+  | { type: "move"; destinationId: RoomId }
+  | { type: "open"; doorId: DoorId }
+  | { type: "take"; itemId: ItemId }
+  | { type: "attack"; opponentId: OpponentId }
+  | { type: "leave" }
+>;
+
 export type Event = Readonly<
   | { type: "help-requested"; commands: readonly string[] }
   | {
@@ -190,7 +208,10 @@ export function createSession(): SessionState {
   };
 }
 
-function take(state: SessionState, target: string | undefined): ActionResult {
+function takeCommand(
+  state: SessionState,
+  target: string | undefined,
+): ActionResult {
   const normalized = normalizeTarget(target);
   if (normalized.length === 0) {
     return {
@@ -200,24 +221,30 @@ function take(state: SessionState, target: string | undefined): ActionResult {
   }
 
   const item = resolveItem(normalized);
-  const placement =
-    item === undefined ? undefined : state.itemPlacements[item.id];
-  if (item !== undefined && placement?.type === "inventory") {
-    return {
-      state,
-      rejection: { reason: "already-carried", itemId: item.id },
-    };
-  }
-  if (
-    item === undefined ||
-    placement === undefined ||
-    placement.type !== "room" ||
-    placement.roomId !== state.locationId
-  ) {
+  if (item === undefined) {
     return {
       state,
       rejection: { reason: "invisible-target", target: normalized },
     };
+  }
+
+  return handleGameAction(state, { type: "take", itemId: item.id });
+}
+
+function takeItem(state: SessionState, itemId: ItemId): ActionResult {
+  const placement = state.itemPlacements[itemId];
+  if (placement?.type === "inventory") {
+    return {
+      state,
+      rejection: { reason: "already-carried", itemId },
+    };
+  }
+  if (
+    placement === undefined ||
+    placement.type !== "room" ||
+    placement.roomId !== state.locationId
+  ) {
+    return invisibleTarget(state, itemName(itemId));
   }
 
   return {
@@ -225,10 +252,10 @@ function take(state: SessionState, target: string | undefined): ActionResult {
       ...state,
       itemPlacements: {
         ...state.itemPlacements,
-        [item.id]: { type: "inventory" },
+        [itemId]: { type: "inventory" },
       },
     },
-    events: [{ type: "item-taken", itemId: item.id }],
+    events: [{ type: "item-taken", itemId }],
   };
 }
 
@@ -271,6 +298,20 @@ function resolveItem(value: string) {
   const normalized = normalizeTarget(value);
   return Object.values(ADVENTURE.items).find(
     (item) => item.name.toLowerCase() === normalized,
+  );
+}
+
+function resolveDoor(value: string) {
+  const normalized = normalizeTarget(value);
+  return Object.values(ADVENTURE.doors).find(
+    (door) => door.name.toLowerCase() === normalized,
+  );
+}
+
+function resolveOpponent(value: string) {
+  const normalized = normalizeTarget(value);
+  return Object.values(ADVENTURE.opponents).find(
+    (opponent) => opponent.name.toLowerCase() === normalized,
   );
 }
 
@@ -349,7 +390,7 @@ function resolveGoblinTurn(
   };
 }
 
-function attack(
+function attackCommand(
   state: SessionState,
   target: string | undefined,
   random: Pick<RandomSource, "roll"> | undefined,
@@ -362,23 +403,49 @@ function attack(
     };
   }
 
-  const goblin = ADVENTURE.opponents.goblin;
-  if (normalized !== goblin.name || state.locationId !== goblin.roomId) {
+  const opponent = resolveOpponent(normalized);
+  if (opponent === undefined) {
     return {
       state,
       rejection: { reason: "invalid-attack-target", target: normalized },
     };
   }
-  if (state.opponents[goblin.id].hp <= 0) {
+
+  return handleGameAction(
+    state,
+    { type: "attack", opponentId: opponent.id },
+    random,
+  );
+}
+
+function attackOpponent(
+  state: SessionState,
+  opponentId: OpponentId,
+  random: Pick<RandomSource, "roll"> | undefined,
+): ActionResult {
+  const goblin = ADVENTURE.opponents[opponentId];
+  if (goblin === undefined || state.locationId !== goblin.roomId) {
     return {
       state,
-      rejection: { reason: "dead-target", targetId: goblin.id },
+      rejection: {
+        reason: "invalid-attack-target",
+        target: opponentName(opponentId),
+      },
+    };
+  }
+  if (state.opponents[opponentId].hp <= 0) {
+    return {
+      state,
+      rejection: { reason: "dead-target", targetId: opponentId },
     };
   }
   if (!isActiveCombat(state)) {
     return {
       state,
-      rejection: { reason: "invalid-attack-target", target: normalized },
+      rejection: {
+        reason: "invalid-attack-target",
+        target: opponentName(opponentId),
+      },
     };
   }
   if (random === undefined) {
@@ -420,7 +487,10 @@ function attack(
   return { state: goblinTurn.state, events };
 }
 
-function open(state: SessionState, target: string | undefined): ActionResult {
+function openCommand(
+  state: SessionState,
+  target: string | undefined,
+): ActionResult {
   const normalized = normalizeTarget(target);
   if (normalized.length === 0) {
     return {
@@ -429,7 +499,7 @@ function open(state: SessionState, target: string | undefined): ActionResult {
     };
   }
 
-  const door = resolveAccessibleDoor(state.locationId, normalized);
+  const door = resolveDoor(normalized);
   if (door === undefined) {
     const room = ADVENTURE.rooms[state.locationId];
     const visibleNonDoor =
@@ -448,23 +518,32 @@ function open(state: SessionState, target: string | undefined): ActionResult {
     };
   }
 
-  if (state.doorStates[door.id].open) {
+  return handleGameAction(state, { type: "open", doorId: door.id });
+}
+
+function openDoor(state: SessionState, doorId: DoorId): ActionResult {
+  const door = ADVENTURE.doors[doorId];
+  if (door === undefined || !door.roomIds.includes(state.locationId)) {
+    return invisibleTarget(state, doorName(doorId));
+  }
+
+  if (state.doorStates[doorId].open) {
     return {
       state,
-      events: [{ type: "door-already-open", doorId: door.id }],
+      events: [{ type: "door-already-open", doorId }],
     };
   }
 
   return {
     state: {
       ...state,
-      doorStates: { ...state.doorStates, [door.id]: { open: true } },
+      doorStates: { ...state.doorStates, [doorId]: { open: true } },
     },
-    events: [{ type: "door-opened", doorId: door.id }],
+    events: [{ type: "door-opened", doorId }],
   };
 }
 
-function inspect(
+function inspectCommand(
   state: SessionState,
   target: string | undefined,
 ): ActionResult {
@@ -479,34 +558,20 @@ function inspect(
   const room = ADVENTURE.rooms[state.locationId];
   const door = resolveAccessibleDoor(state.locationId, normalized);
   if (door !== undefined) {
-    return {
-      state,
-      events: [
-        {
-          type: "target-inspected",
-          target: {
-            type: "door",
-            id: door.id,
-            open: state.doorStates[door.id].open,
-          },
-        },
-      ],
-    };
+    return handleGameAction(state, {
+      type: "inspect",
+      target: { type: "door", doorId: door.id },
+    });
   }
 
   const feature = room.features.find(
     (candidate) => candidate.name.toLowerCase() === normalized,
   );
   if (feature !== undefined) {
-    return {
-      state,
-      events: [
-        {
-          type: "target-inspected",
-          target: { type: "feature", id: feature.id },
-        },
-      ],
-    };
+    return handleGameAction(state, {
+      type: "inspect",
+      target: { type: "feature", featureId: feature.id },
+    });
   }
 
   const item = resolveItem(normalized);
@@ -516,15 +581,10 @@ function inspect(
       placement.type === "inventory" ||
       (placement.type === "room" && placement.roomId === state.locationId)
     ) {
-      return {
-        state,
-        events: [
-          {
-            type: "target-inspected",
-            target: { type: "item", id: item.id },
-          },
-        ],
-      };
+      return handleGameAction(state, {
+        type: "inspect",
+        target: { type: "item", itemId: item.id },
+      });
     }
   }
 
@@ -533,27 +593,13 @@ function inspect(
     return exitRoom.name.toLowerCase() === normalized;
   });
   if (exitRoomId !== undefined) {
-    const doorway = doorBetween(state.locationId, exitRoomId);
-    return {
-      state,
-      events: [
-        {
-          type: "target-inspected",
-          target: {
-            type: "exit",
-            id: exitRoomId,
-            ...(doorway === undefined
-              ? {}
-              : {
-                  doorway: {
-                    doorId: doorway.id,
-                    open: state.doorStates[doorway.id].open,
-                  },
-                }),
-          },
-        },
-      ],
-    };
+    return handleGameAction(state, {
+      type: "inspect",
+      target: {
+        type: "named-exit",
+        destinationId: exitRoomId,
+      },
+    });
   }
 
   return {
@@ -562,7 +608,129 @@ function inspect(
   };
 }
 
-function move(
+function inspectTarget(
+  state: SessionState,
+  target: InspectableRef,
+): ActionResult {
+  const room = ADVENTURE.rooms[state.locationId];
+
+  switch (target.type) {
+    case "feature": {
+      const feature = room.features.find(
+        (candidate) => candidate.id === target.featureId,
+      );
+      return feature === undefined
+        ? invisibleTarget(state, featureName(target.featureId))
+        : {
+            state,
+            events: [
+              {
+                type: "target-inspected",
+                target: { type: "feature", id: feature.id },
+              },
+            ],
+          };
+    }
+    case "door": {
+      const door = Object.values(ADVENTURE.doors).find(
+        (candidate) =>
+          candidate.id === target.doorId &&
+          candidate.roomIds.includes(state.locationId),
+      );
+      return door === undefined
+        ? invisibleTarget(state, doorName(target.doorId))
+        : {
+            state,
+            events: [
+              {
+                type: "target-inspected",
+                target: {
+                  type: "door",
+                  id: door.id,
+                  open: state.doorStates[door.id].open,
+                },
+              },
+            ],
+          };
+    }
+    case "item": {
+      const placement = state.itemPlacements[target.itemId];
+      return placement?.type === "inventory" ||
+        (placement?.type === "room" && placement.roomId === state.locationId)
+        ? {
+            state,
+            events: [
+              {
+                type: "target-inspected",
+                target: { type: "item", id: target.itemId },
+              },
+            ],
+          }
+        : invisibleTarget(state, itemName(target.itemId));
+    }
+    case "opponent":
+      return invisibleTarget(state, opponentName(target.opponentId));
+    case "named-exit": {
+      if (!room.exitRoomIds.includes(target.destinationId)) {
+        return invisibleTarget(state, roomName(target.destinationId));
+      }
+      const doorway = doorBetween(state.locationId, target.destinationId);
+      return {
+        state,
+        events: [
+          {
+            type: "target-inspected",
+            target: {
+              type: "exit",
+              id: target.destinationId,
+              ...(doorway === undefined
+                ? {}
+                : {
+                    doorway: {
+                      doorId: doorway.id,
+                      open: state.doorStates[doorway.id].open,
+                    },
+                  }),
+            },
+          },
+        ],
+      };
+    }
+    default:
+      target satisfies never;
+      throw new Error("Unreachable inspectable reference");
+  }
+}
+
+function invisibleTarget(state: SessionState, target: string): ActionResult {
+  return { state, rejection: { reason: "invisible-target", target } };
+}
+
+function featureName(featureId: FeatureId): string {
+  return (
+    Object.values(ADVENTURE.rooms)
+      .flatMap((room) => room.features)
+      .find((feature) => feature.id === featureId)?.name ?? featureId
+  );
+}
+
+function doorName(doorId: DoorId): string {
+  return ADVENTURE.doors[doorId]?.name ?? doorId;
+}
+
+function itemName(itemId: ItemId): string {
+  return ADVENTURE.items[itemId]?.name ?? itemId;
+}
+
+function opponentName(opponentId: OpponentId): string {
+  return ADVENTURE.opponents[opponentId]?.name ?? opponentId;
+}
+
+function roomName(roomId: RoomId): string {
+  return ADVENTURE.rooms[roomId]?.name.toLowerCase() ?? roomId;
+}
+
+function moveCommand(
   state: SessionState,
   destination: string | undefined,
   random: Pick<RandomSource, "roll"> | undefined,
@@ -580,6 +748,24 @@ function move(
     return {
       state,
       rejection: { reason: "unknown-destination", destination: normalized },
+    };
+  }
+
+  return handleGameAction(state, { type: "move", destinationId }, random);
+}
+
+function moveTo(
+  state: SessionState,
+  destinationId: RoomId,
+  random: Pick<RandomSource, "roll"> | undefined,
+): ActionResult {
+  if (ADVENTURE.rooms[destinationId] === undefined) {
+    return {
+      state,
+      rejection: {
+        reason: "unknown-destination",
+        destination: destinationId,
+      },
     };
   }
 
@@ -695,8 +881,61 @@ function leave(state: SessionState): ActionResult {
   };
 }
 
-function isGameplayMutation(action: Action): boolean {
-  return ["move", "open", "take", "attack", "leave"].includes(action.type);
+function isGameplayMutation(
+  type: Action["type"] | GameAction["type"],
+): boolean {
+  return ["move", "open", "take", "attack", "leave"].includes(type);
+}
+
+function gameplayRestriction(
+  state: SessionState,
+  actionType: Action["type"] | GameAction["type"],
+): Rejection | undefined {
+  if (
+    (state.status === "victory" || state.status === "defeat") &&
+    isGameplayMutation(actionType)
+  ) {
+    return { reason: "terminal-state", status: state.status };
+  }
+  if (
+    isActiveCombat(state) &&
+    isGameplayMutation(actionType) &&
+    actionType !== "attack"
+  ) {
+    return { reason: "combat-restriction" };
+  }
+  return undefined;
+}
+
+export function handleGameAction(
+  state: SessionState,
+  action: GameAction,
+  random?: Pick<RandomSource, "roll">,
+): ActionResult {
+  const restriction = gameplayRestriction(state, action.type);
+  if (restriction !== undefined) {
+    return { state, rejection: restriction };
+  }
+
+  switch (action.type) {
+    case "look":
+      return { state, events: [describedRoom(state)] };
+    case "inspect":
+      return inspectTarget(state, action.target);
+    case "move":
+      return moveTo(state, action.destinationId, random);
+    case "open":
+      return openDoor(state, action.doorId);
+    case "take":
+      return takeItem(state, action.itemId);
+    case "attack":
+      return attackOpponent(state, action.opponentId, random);
+    case "leave":
+      return leave(state);
+    default:
+      action satisfies never;
+      throw new Error("Unreachable game action");
+  }
 }
 
 export function handleAction(
@@ -704,21 +943,9 @@ export function handleAction(
   action: Action,
   random?: Pick<RandomSource, "roll">,
 ): ActionResult {
-  if (
-    (state.status === "victory" || state.status === "defeat") &&
-    isGameplayMutation(action)
-  ) {
-    return {
-      state,
-      rejection: { reason: "terminal-state", status: state.status },
-    };
-  }
-  if (
-    isActiveCombat(state) &&
-    isGameplayMutation(action) &&
-    action.type !== "attack"
-  ) {
-    return { state, rejection: { reason: "combat-restriction" } };
+  const restriction = gameplayRestriction(state, action.type);
+  if (restriction !== undefined) {
+    return { state, rejection: restriction };
   }
 
   switch (action.type) {
@@ -728,17 +955,17 @@ export function handleAction(
         events: [{ type: "help-requested", commands: COMMANDS }],
       };
     case "look":
-      return { state, events: [describedRoom(state)] };
+      return handleGameAction(state, action, random);
     case "inspect":
-      return inspect(state, action.target);
+      return inspectCommand(state, action.target);
     case "move":
-      return move(state, action.destination, random);
+      return moveCommand(state, action.destination, random);
     case "open":
-      return open(state, action.target);
+      return openCommand(state, action.target);
     case "take":
-      return take(state, action.target);
+      return takeCommand(state, action.target);
     case "attack":
-      return attack(state, action.target, random);
+      return attackCommand(state, action.target, random);
     case "status":
       return {
         state,
@@ -765,7 +992,7 @@ export function handleAction(
         ],
       };
     case "leave":
-      return leave(state);
+      return handleGameAction(state, action, random);
     case "empty":
       return { state, rejection: { reason: "empty" } };
     case "unknown":

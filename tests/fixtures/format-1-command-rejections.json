@@ -1,0 +1,271 @@
+{
+  "formatVersion": 1,
+  "rulesVersion": "stolen-signet-rules-v1",
+  "adventure": {
+    "id": "stolen-signet",
+    "version": "1"
+  },
+  "random": {
+    "algorithm": "mulberry32-v1",
+    "initialSeed": 0
+  },
+  "initialState": {
+    "locationId": "entrance",
+    "status": "playing",
+    "fighter": {
+      "hp": 20,
+      "maxHp": 20,
+      "equipmentIds": [
+        "longsword"
+      ]
+    },
+    "itemPlacements": {
+      "signet": {
+        "type": "room",
+        "roomId": "reliquary",
+        "featureId": "stone-pedestal"
+      }
+    },
+    "doorStates": {
+      "entrance-door": {
+        "open": false
+      }
+    },
+    "opponents": {
+      "goblin": {
+        "hp": 7,
+        "maxHp": 7
+      }
+    }
+  },
+  "actions": [
+    {
+      "sequence": 1,
+      "rawInput": "inspect goblin",
+      "action": {
+        "type": "inspect",
+        "target": "goblin"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "invisible-target",
+          "target": "goblin"
+        }
+      },
+      "stateAfter": {
+        "locationId": "entrance",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": false
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        }
+      }
+    },
+    {
+      "sequence": 2,
+      "rawInput": "",
+      "action": {
+        "type": "empty"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "empty"
+        }
+      },
+      "stateAfter": {
+        "locationId": "entrance",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": false
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        }
+      }
+    },
+    {
+      "sequence": 3,
+      "rawInput": "dance",
+      "action": {
+        "type": "unknown",
+        "input": "dance"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "unknown-command",
+          "input": "dance"
+        }
+      },
+      "stateAfter": {
+        "locationId": "entrance",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": false
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        }
+      }
+    },
+    {
+      "sequence": 4,
+      "rawInput": "move guardroom",
+      "action": {
+        "type": "move",
+        "destination": "guardroom"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "closed-door",
+          "doorId": "entrance-door",
+          "destinationId": "guardroom"
+        }
+      },
+      "stateAfter": {
+        "locationId": "entrance",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": false
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        }
+      }
+    },
+    {
+      "sequence": 5,
+      "rawInput": "quit",
+      "action": {
+        "type": "quit"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "session-quit"
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "entrance",
+        "status": "quit",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": false
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        }
+      }
+    }
+  ],
+  "completion": {
+    "reason": "quit",
+    "outcome": "incomplete"
+  }
+}

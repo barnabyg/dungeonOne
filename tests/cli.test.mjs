@@ -11,6 +11,7 @@ import { playGame } from "../dist/play.js";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const cli = path.join(root, "dist", "cli.js");
 const acceptanceInputs = path.join(root, "docs", "acceptance", "inputs");
+const traceFixtures = path.join(root, "tests", "fixtures");
 const winningAttacks = ["attack goblin", "attack goblin"];
 
 function runCli(input, args = []) {
@@ -590,6 +591,16 @@ test("built CLI verifies exported victory, defeat, and voluntary early-exit trac
       assert.doesNotMatch(replayed.stdout, /The Stolen Signet|Seed:/i);
     }
   });
+});
+
+test("built CLI replays the historical format-1 command rejection fixture", () => {
+  const result = runCli("", [
+    "--replay",
+    path.join(traceFixtures, "format-1-command-rejections.json"),
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Trace verified successfully/i);
 });
 
 test("built CLI reports the first corrupted replay expectation", () => {
