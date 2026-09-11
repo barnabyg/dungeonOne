@@ -478,13 +478,24 @@ type ParsedTool =
 function validateReference<T extends string>(
   value: unknown,
   available: readonly T[],
-): T | ReferenceValidationError {
+):
+  | Readonly<{ ok: true; value: T }>
+  | Readonly<{ ok: false; error: ReferenceValidationError }> {
   if (typeof value !== "string") {
-    return "invalid-arguments";
+    return { ok: false, error: "invalid-arguments" };
   }
   return available.includes(value as T)
-    ? (value as T)
-    : "unavailable-reference";
+    ? { ok: true, value: value as T }
+    : { ok: false, error: "unavailable-reference" };
+}
+
+function mapReference<T extends string, U>(
+  value: unknown,
+  available: readonly T[],
+  map: (reference: T) => U,
+): U | ReferenceValidationError {
+  const reference = validateReference(value, available);
+  return reference.ok ? map(reference.value) : reference.error;
 }
 
 function parseInspectTarget(
@@ -499,63 +510,50 @@ function parseInspectTarget(
       if (!hasExactlyKeys(value, ["type", "feature_id"])) {
         return "invalid-arguments";
       }
-      const featureId = validateReference(
+      return mapReference(
         value.feature_id,
         visibility.featureIds,
+        (featureId) => ({ type: "feature", featureId }),
       );
-      return featureId === "invalid-arguments" ||
-        featureId === "unavailable-reference"
-        ? featureId
-        : { type: "feature", featureId };
     }
     case "door": {
       if (!hasExactlyKeys(value, ["type", "door_id"])) {
         return "invalid-arguments";
       }
-      const doorId = validateReference(value.door_id, visibility.doorIds);
-      return doorId === "invalid-arguments" ||
-        doorId === "unavailable-reference"
-        ? doorId
-        : { type: "door", doorId };
+      return mapReference(value.door_id, visibility.doorIds, (doorId) => ({
+        type: "door",
+        doorId,
+      }));
     }
     case "item": {
       if (!hasExactlyKeys(value, ["type", "item_id"])) {
         return "invalid-arguments";
       }
-      const itemId = validateReference(value.item_id, [
-        ...visibility.itemIds,
-        ...visibility.carriedItemIds,
-      ]);
-      return itemId === "invalid-arguments" ||
-        itemId === "unavailable-reference"
-        ? itemId
-        : { type: "item", itemId };
+      return mapReference(
+        value.item_id,
+        [...visibility.itemIds, ...visibility.carriedItemIds],
+        (itemId) => ({ type: "item", itemId }),
+      );
     }
     case "opponent": {
       if (!hasExactlyKeys(value, ["type", "opponent_id"])) {
         return "invalid-arguments";
       }
-      const opponentId = validateReference(
+      return mapReference(
         value.opponent_id,
         visibility.opponentIds,
+        (opponentId) => ({ type: "opponent", opponentId }),
       );
-      return opponentId === "invalid-arguments" ||
-        opponentId === "unavailable-reference"
-        ? opponentId
-        : { type: "opponent", opponentId };
     }
     case "named_exit": {
       if (!hasExactlyKeys(value, ["type", "destination_id"])) {
         return "invalid-arguments";
       }
-      const destinationId = validateReference(
+      return mapReference(
         value.destination_id,
         visibility.destinationIds,
+        (destinationId) => ({ type: "named-exit", destinationId }),
       );
-      return destinationId === "invalid-arguments" ||
-        destinationId === "unavailable-reference"
-        ? destinationId
-        : { type: "named-exit", destinationId };
     }
     default:
       return "invalid-arguments";
@@ -581,47 +579,45 @@ function parseTool(
       if (!hasExactlyKeys(args, ["destination_id"])) {
         return "invalid-arguments";
       }
-      const destinationId = validateReference(
+      return mapReference(
         args.destination_id,
         visibility.destinationIds,
+        (destinationId) => ({
+          type: "action",
+          action: { type: "move", destinationId },
+        }),
       );
-      return destinationId === "invalid-arguments" ||
-        destinationId === "unavailable-reference"
-        ? destinationId
-        : { type: "action", action: { type: "move", destinationId } };
     }
     case "open": {
       if (!hasExactlyKeys(args, ["door_id"])) {
         return "invalid-arguments";
       }
-      const doorId = validateReference(args.door_id, visibility.doorIds);
-      return doorId === "invalid-arguments" ||
-        doorId === "unavailable-reference"
-        ? doorId
-        : { type: "action", action: { type: "open", doorId } };
+      return mapReference(args.door_id, visibility.doorIds, (doorId) => ({
+        type: "action",
+        action: { type: "open", doorId },
+      }));
     }
     case "take": {
       if (!hasExactlyKeys(args, ["item_id"])) {
         return "invalid-arguments";
       }
-      const itemId = validateReference(args.item_id, visibility.itemIds);
-      return itemId === "invalid-arguments" ||
-        itemId === "unavailable-reference"
-        ? itemId
-        : { type: "action", action: { type: "take", itemId } };
+      return mapReference(args.item_id, visibility.itemIds, (itemId) => ({
+        type: "action",
+        action: { type: "take", itemId },
+      }));
     }
     case "attack": {
       if (!hasExactlyKeys(args, ["opponent_id"])) {
         return "invalid-arguments";
       }
-      const opponentId = validateReference(
+      return mapReference(
         args.opponent_id,
         visibility.attackableOpponentIds,
+        (opponentId) => ({
+          type: "action",
+          action: { type: "attack", opponentId },
+        }),
       );
-      return opponentId === "invalid-arguments" ||
-        opponentId === "unavailable-reference"
-        ? opponentId
-        : { type: "action", action: { type: "attack", opponentId } };
     }
     case "inspect": {
       if (!hasExactlyKeys(args, ["target"])) {
