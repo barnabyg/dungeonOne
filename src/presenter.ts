@@ -3,6 +3,17 @@ import type { ActionResult, Event, Rejection } from "./session.js";
 
 const ENDING_GUIDANCE =
   'The final state remains available through "look", "status", and "inventory". Enter "quit" to exit. Start a fresh run with "npm start".';
+const COMMAND_EXAMPLES = {
+  inspect: "inspect ruined archway",
+  move: "move guardroom",
+  open: "open wooden door",
+  take: "take signet",
+  attack: "attack goblin",
+} as const;
+
+function example(command: keyof typeof COMMAND_EXAMPLES): string {
+  return `For example: "${COMMAND_EXAMPLES[command]}".`;
+}
 
 export function renderIntroduction(): string {
   return [
@@ -17,13 +28,11 @@ function renderHelp(commands: readonly string[]): string {
   const descriptions: Readonly<Record<string, string>> = {
     help: "Show this command list.",
     look: "Describe your current room, visible features, and exits.",
-    "inspect <target>":
-      'Inspect something visible or carried, for example "inspect ruined archway".',
-    "move <location>":
-      'Walk to a named adjacent location, for example "move guardroom".',
-    "open <target>": 'Open an accessible door, for example "open wooden door".',
-    "take <item>": 'Take a visible collectible, for example "take signet".',
-    "attack <target>": 'Attack a living opponent, for example "attack goblin".',
+    "inspect <target>": `Inspect something visible or carried. ${example("inspect")}`,
+    "move <location>": `Walk to a named adjacent location. ${example("move")}`,
+    "open <target>": `Open an accessible door. ${example("open")}`,
+    "take <item>": `Take a visible collectible. ${example("take")}`,
+    "attack <target>": `Attack a living opponent. ${example("attack")}`,
     status: "Show the fighter's hit points and session status.",
     inventory: "Show fixed equipment and collected items.",
     leave: "Use the reliquary's far exit to complete the objective.",
@@ -204,17 +213,17 @@ function renderRejection(rejection: Rejection): string {
       return `I don't understand "${rejection.input}". Type "help" to see the available commands.`;
     case "missing-argument":
       if (rejection.command === "inspect") {
-        return 'What do you want to inspect? For example: "inspect ruined archway".';
+        return `What do you want to inspect? ${example("inspect")}`;
       }
       if (rejection.command === "move") {
-        return 'Where do you want to move? For example: "move guardroom".';
+        return `Where do you want to move? ${example("move")}`;
       }
       if (rejection.command === "attack") {
-        return 'What do you want to attack? For example: "attack goblin".';
+        return `What do you want to attack? ${example("attack")}`;
       }
       return rejection.command === "open"
-        ? 'What do you want to open? For example: "open wooden door".'
-        : 'What do you want to take? For example: "take signet".';
+        ? `What do you want to open? ${example("open")}`
+        : `What do you want to take? ${example("take")}`;
     case "invisible-target":
       return `You can't see "${rejection.target}" here. Use "look" to see visible features and exits.`;
     case "not-openable":
