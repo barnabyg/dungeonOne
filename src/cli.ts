@@ -142,6 +142,9 @@ async function main(): Promise<void> {
   let terminationReason: "quit" | "eof" = "eof";
   process.stdout.write(`Seed: ${startup.seed} (${RANDOM_ALGORITHM})\n`);
   process.stdout.write(`${renderIntroduction()}\n`);
+  const initialStatus = handleAction(state, { type: "status" }, random);
+  state = initialStatus.state;
+  process.stdout.write(`${renderResult(initialStatus)}\n`);
   const initialLook = handleAction(state, { type: "look" }, random);
   state = initialLook.state;
   process.stdout.write(`${renderResult(initialLook)}\n`);

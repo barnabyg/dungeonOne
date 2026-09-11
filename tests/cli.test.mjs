@@ -48,17 +48,28 @@ test("built game prints one reproducible seed and rejects invalid startup seeds"
   assert.doesNotMatch(invalid.stdout, /The Stolen Signet/i);
 });
 
-test("built game starts at the entrance, offers help, and quits cleanly", () => {
+test("built game opens with the essential state and teaches canonical commands", () => {
   const result = runCli("help\nstatus\ninventory\nquit\n");
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /The Stolen Signet/i);
-  assert.match(result.stdout, /entrance/i);
+  assert.match(
+    result.stdout,
+    /Objective:[^\n]+[\s\S]*Fighter HP:\s*20\/20[\s\S]*Entrance/i,
+  );
   assert.match(result.stdout, /type [\"']help[\"']/i);
   assert.match(
     result.stdout,
     /Available commands:[\s\S]*look[\s\S]*inspect <target>[\s\S]*move <location>[\s\S]*open <target>[\s\S]*status[\s\S]*inventory[\s\S]*quit/i,
   );
+  assert.match(result.stdout, /inspect ruined archway/i);
+  assert.match(result.stdout, /move guardroom/i);
+  assert.match(result.stdout, /open wooden door/i);
+  assert.match(result.stdout, /take signet/i);
+  assert.match(result.stdout, /attack goblin/i);
+  assert.match(result.stdout, /commands are case-insensitive/i);
+  assert.match(result.stdout, /cannot retreat during combat/i);
+  assert.match(result.stdout, /entrance is not an escape/i);
   assert.match(result.stdout, /HP:\s*20\/20/i);
   assert.match(result.stdout, /Equipped:\s*longsword/i);
   assert.match(result.stdout, /Collectibles:\s*empty/i);
@@ -103,7 +114,7 @@ test("built game opens the entrance door, visits all rooms, and backtracks", () 
   assert.match(result.stdout, /wooden door to Guardroom is closed/i);
   assert.match(result.stdout, /closed wooden door leads to Guardroom/i);
   assert.match(result.stdout, /weathered iron straps[^\n]*closed/i);
-  assert.match(result.stdout, /open <target>/i);
+  assert.match(result.stdout, /open wooden door/i);
   assert.match(result.stdout, /can't open the ruined archway/i);
   assert.match(result.stdout, /You open the wooden door/i);
   assert.match(result.stdout, /wooden door is already open/i);
@@ -141,7 +152,7 @@ test("built game collects the signet once and keeps it inspectable in inventory"
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /can't see ["']signet["'] here/i);
-  assert.match(result.stdout, /take <item>/i);
+  assert.match(result.stdout, /take signet/i);
   assert.match(result.stdout, /can't see ["']gem["'] here/i);
   assert.match(
     result.stdout,
@@ -166,12 +177,24 @@ test("built game recovers from malformed, invisible, and illegal commands", () =
   assert.match(result.stdout, /enter a command/i);
   assert.match(result.stdout, /don't understand [\"']dance[\"']/i);
   assert.match(result.stdout, /don't understand [\"']look around[\"']/i);
-  assert.match(result.stdout, /inspect <target>/i);
+  assert.match(result.stdout, /inspect ruined archway/i);
   assert.match(result.stdout, /can't see [\"']pedestal[\"']/i);
-  assert.match(result.stdout, /move <location>/i);
+  assert.match(result.stdout, /move guardroom/i);
   assert.match(result.stdout, /don't know a location named [\"']cellar[\"']/i);
   assert.match(result.stdout, /reliquary isn't adjacent/i);
   assert.match(result.stdout, /Entrance/i);
+});
+
+test("missing arguments recover with commands the player can copy", () => {
+  const result = runCli("inspect\nmove\nopen\ntake\nattack\nquit\n");
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /inspect ruined archway/i);
+  assert.match(result.stdout, /move guardroom/i);
+  assert.match(result.stdout, /open wooden door/i);
+  assert.match(result.stdout, /take signet/i);
+  assert.match(result.stdout, /attack goblin/i);
+  assert.match(result.stdout, /You leave the adventure/i);
 });
 
 test("built game exits cleanly on EOF without an outcome", () => {
@@ -212,7 +235,8 @@ test("built game requires the signet at the reliquary exit and ends explicitly",
   assert.match(result.stdout, /must be in the reliquary/i);
   assert.match(result.stdout, /need the stolen signet/i);
   assert.match(result.stdout, /Victory![\s\S]*escaped through the far exit/i);
-  assert.match(result.stdout, /start a new run/i);
+  assert.match(result.stdout, /enter ["']quit["'] to exit/i);
+  assert.match(result.stdout, /start a fresh run with ["']npm start["']/i);
   assert.match(result.stdout, /adventure is over[\s\S]*can't change/i);
   assert.match(result.stdout, /Session:\s*victory/i);
   assert.match(result.stdout, /Collectibles:\s*signet/i);
@@ -243,9 +267,9 @@ test("seed 0 survives combat and rejected commands do not disturb its rolls", ()
   assert.match(result.stdout, /don't understand ["']dance["']/i);
   assert.match(
     result.stdout,
-    /Initiative: Fighter rolls d20 6 \+ 1 = 7[\s\S]*Initiative: goblin rolls d20 1 \+ 2 = 3[\s\S]*d20 5 \+ 5 = 10 vs AC 13 — miss[\s\S]*d20 3 \+ 4 = 7 vs AC 16 — miss[\s\S]*d20 10 \+ 5 = 15 vs AC 13 — hit/i,
+    /Initiative — Fighter: d20 roll 6 \+ modifier 1 = 7[\s\S]*Initiative — goblin: d20 roll 1 \+ modifier 2 = 3[\s\S]*Attack roll: d20 5 \+ modifier 5 = 10 vs AC 13 — miss[\s\S]*Attack roll: d20 3 \+ modifier 4 = 7 vs AC 16 — miss[\s\S]*Attack roll: d20 10 \+ modifier 5 = 15 vs AC 13 — hit/i,
   );
-  assert.match(result.stdout, /Damage: 8[\s\S]*goblin HP: 0\/7/i);
+  assert.match(result.stdout, /Damage: 8[\s\S]*Remaining HP: goblin 0\/7/i);
   assert.match(result.stdout, /Combat victory![\s\S]*Fighter HP: 20\/20/i);
 });
 
@@ -271,14 +295,16 @@ test("seed 207 gives the goblin initiative and defeats the fighter", () => {
   assert.match(result.stdout, /Seed: 207 \(mulberry32-v1\)/i);
   assert.match(
     result.stdout,
-    /Initiative: Fighter rolls d20 3 \+ 1 = 4[\s\S]*Initiative: goblin rolls d20 19 \+ 2 = 21[\s\S]*Turn: goblin[\s\S]*goblin attacks Fighter with scimitar: d20 17 \+ 4 = 21 vs AC 16 — hit[\s\S]*Damage: 7/i,
+    /Initiative — Fighter: d20 roll 3 \+ modifier 1 = 4[\s\S]*Initiative — goblin: d20 roll 19 \+ modifier 2 = 21[\s\S]*Turn: goblin[\s\S]*goblin attacks Fighter with scimitar[\s\S]*Attack roll: d20 17 \+ modifier 4 = 21 vs AC 16 — hit[\s\S]*Damage: 7[\s\S]*Remaining HP: Fighter 13\/20/i,
   );
   assert.match(
     result.stdout,
-    /d20 3 \+ 5 = 8 vs AC 13 — miss[\s\S]*d20 19 \+ 4 = 23 vs AC 16 — hit[\s\S]*Damage: 5[\s\S]*d20 6 \+ 5 = 11 vs AC 13 — miss[\s\S]*d20 10 \+ 4 = 14 vs AC 16 — miss[\s\S]*d20 19 \+ 5 = 24 vs AC 13 — hit[\s\S]*Damage: 5[\s\S]*d20 15 \+ 4 = 19 vs AC 16 — hit[\s\S]*Damage: 8/i,
+    /Attack roll: d20 3 \+ modifier 5 = 8 vs AC 13 — miss[\s\S]*Attack roll: d20 19 \+ modifier 4 = 23 vs AC 16 — hit[\s\S]*Damage: 5[\s\S]*Attack roll: d20 6 \+ modifier 5 = 11 vs AC 13 — miss[\s\S]*Attack roll: d20 10 \+ modifier 4 = 14 vs AC 16 — miss[\s\S]*Attack roll: d20 19 \+ modifier 5 = 24 vs AC 13 — hit[\s\S]*Damage: 5[\s\S]*Attack roll: d20 15 \+ modifier 4 = 19 vs AC 16 — hit[\s\S]*Damage: 8/i,
   );
   assert.match(result.stdout, /Fighter HP: 0\/20[\s\S]*Session: defeat/i);
   assert.match(result.stdout, /Defeat! The fighter has fallen/i);
+  assert.match(result.stdout, /enter ["']quit["'] to exit/i);
+  assert.match(result.stdout, /start a fresh run with ["']npm start["']/i);
   assert.match(result.stdout, /adventure is over[\s\S]*can't change/i);
   assert.match(result.stdout, /Guardroom[\s\S]*Available commands:/i);
 });

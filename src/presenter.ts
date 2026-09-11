@@ -1,6 +1,9 @@
 import { ADVENTURE } from "./adventure.js";
 import type { ActionResult, Event, Rejection } from "./session.js";
 
+const ENDING_GUIDANCE =
+  'The final state remains available through "look", "status", and "inventory". Enter "quit" to exit. Start a fresh run with "npm start".';
+
 export function renderIntroduction(): string {
   return [
     ADVENTURE.title,
@@ -14,11 +17,13 @@ function renderHelp(commands: readonly string[]): string {
   const descriptions: Readonly<Record<string, string>> = {
     help: "Show this command list.",
     look: "Describe your current room, visible features, and exits.",
-    "inspect <target>": "Inspect something visible or a carried item.",
-    "move <location>": "Walk to a named adjacent location.",
-    "open <target>": "Open an accessible door.",
-    "take <item>": "Take a visible collectible item.",
-    "attack <target>": "Attack a living opponent with your longsword.",
+    "inspect <target>":
+      'Inspect something visible or carried, for example "inspect ruined archway".',
+    "move <location>":
+      'Walk to a named adjacent location, for example "move guardroom".',
+    "open <target>": 'Open an accessible door, for example "open wooden door".',
+    "take <item>": 'Take a visible collectible, for example "take signet".',
+    "attack <target>": 'Attack a living opponent, for example "attack goblin".',
     status: "Show the fighter's hit points and session status.",
     inventory: "Show fixed equipment and collected items.",
     leave: "Use the reliquary's far exit to complete the objective.",
@@ -30,6 +35,9 @@ function renderHelp(commands: readonly string[]): string {
     ...commands.map((command) =>
       `  ${command}  ${descriptions[command] ?? ""}`.trimEnd(),
     ),
+    "",
+    'Commands are case-insensitive but must use these forms. Use "look" for visible targets and named exits.',
+    'You cannot retreat during combat; use "attack goblin". The Entrance is not an escape: recover the signet and use "leave" in the Reliquary.',
   ].join("\n");
 }
 
@@ -130,7 +138,7 @@ function renderEvent(event: Event): string {
         event.combatantId === "fighter"
           ? "Fighter"
           : ADVENTURE.opponents[event.combatantId].name;
-      return `Initiative: ${combatantName} rolls d20 ${event.roll} + ${event.bonus} = ${event.total}.`;
+      return `Initiative — ${combatantName}: d20 roll ${event.roll} + modifier ${event.bonus} = ${event.total}.`;
     }
     case "turn-started":
       return `Turn: ${event.combatantId === "fighter" ? "Fighter" : ADVENTURE.opponents[event.combatantId].name}.`;
@@ -155,14 +163,19 @@ function renderEvent(event: Event): string {
         event.damage === undefined
           ? "Damage: none (not rolled)."
           : `Damage: ${event.damage}.`;
-      return `${attacker.name} attacks ${targetName} with ${attacker.attackName}: d20 ${event.attackRoll} + ${event.attackBonus} = ${event.attackTotal} vs AC ${event.targetArmorClass} — ${outcome}. ${damage} ${targetName} HP: ${event.targetHp}/${event.targetMaxHp}.`;
+      return [
+        `${attacker.name} attacks ${targetName} with ${attacker.attackName}.`,
+        `Attack roll: d20 ${event.attackRoll} + modifier ${event.attackBonus} = ${event.attackTotal} vs AC ${event.targetArmorClass} — ${outcome}.`,
+        damage,
+        `Remaining HP: ${targetName} ${event.targetHp}/${event.targetMaxHp}.`,
+      ].join("\n");
     }
     case "combat-ended":
       return event.outcome === "goblin-defeated"
         ? "Combat victory! The goblin is defeated."
-        : "Defeat! The fighter has fallen. You may read the final state, ask for help, or quit.";
+        : `Defeat! The fighter has fallen. ${ENDING_GUIDANCE}`;
     case "victory":
-      return `Victory! You escaped through the ${ADVENTURE.objective.exitName} with the stolen signet. To start a new run, launch the game again.`;
+      return `Victory! You escaped through the ${ADVENTURE.objective.exitName} with the stolen signet. ${ENDING_GUIDANCE}`;
     case "status-described":
       return `Fighter HP: ${event.hp}/${event.maxHp}\nSession: ${event.status}.`;
     case "inventory-described": {
@@ -191,17 +204,17 @@ function renderRejection(rejection: Rejection): string {
       return `I don't understand "${rejection.input}". Type "help" to see the available commands.`;
     case "missing-argument":
       if (rejection.command === "inspect") {
-        return 'What do you want to inspect? Use "inspect <target>".';
+        return 'What do you want to inspect? For example: "inspect ruined archway".';
       }
       if (rejection.command === "move") {
-        return 'Where do you want to move? Use "move <location>".';
+        return 'Where do you want to move? For example: "move guardroom".';
       }
       if (rejection.command === "attack") {
-        return 'What do you want to attack? Use "attack <target>".';
+        return 'What do you want to attack? For example: "attack goblin".';
       }
       return rejection.command === "open"
-        ? 'What do you want to open? Use "open <target>".'
-        : 'What do you want to take? Use "take <item>".';
+        ? 'What do you want to open? For example: "open wooden door".'
+        : 'What do you want to take? For example: "take signet".';
     case "invisible-target":
       return `You can't see "${rejection.target}" here. Use "look" to see visible features and exits.`;
     case "not-openable":
