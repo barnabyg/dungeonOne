@@ -4,6 +4,7 @@ import { createInterface } from "node:readline";
 import { playGame } from "./play.js";
 import { verifyTraceFile } from "./replay.js";
 import { resolveStartupSeed } from "./random.js";
+import { loadScriptedDmModel } from "./scripted-dm-model.js";
 
 function chooseStartupSeed(): number {
   return randomBytes(4).readUInt32LE(0);
@@ -112,6 +113,20 @@ async function main(): Promise<void> {
     return;
   }
 
+  const scriptedDmPath = process.env.DUNGEON_ONE_TEST_DM_SCRIPT;
+  let dmModel;
+  try {
+    dmModel =
+      scriptedDmPath === undefined
+        ? undefined
+        : await loadScriptedDmModel(scriptedDmPath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`${message}\n`);
+    process.exitCode = 1;
+    return;
+  }
+
   const terminal = Boolean(process.stdin.isTTY && process.stdout.isTTY);
   const lines = createInterface({
     input: process.stdin,
@@ -121,13 +136,16 @@ async function main(): Promise<void> {
   });
 
   try {
-    await playGame(startup, {
-      lines,
-      terminal,
-      write(text) {
-        process.stdout.write(text);
+    await playGame(
+      { ...startup, ...(dmModel === undefined ? {} : { dmModel }) },
+      {
+        lines,
+        terminal,
+        write(text) {
+          process.stdout.write(text);
+        },
       },
-    });
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);

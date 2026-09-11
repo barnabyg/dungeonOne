@@ -1,3 +1,4 @@
+import { runDmTurn, type DmModel, type DmTranscriptEntry } from "./dm-turn.js";
 import { parseCommand } from "./parser.js";
 import { renderIntroduction, renderResult } from "./presenter.js";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
@@ -13,6 +14,7 @@ import {
 export type PlayOptions = Readonly<{
   seed: number;
   tracePath?: string;
+  dmModel?: DmModel;
 }>;
 
 export type PlayIo = Readonly<{
@@ -29,6 +31,9 @@ export async function playGame(
   options: PlayOptions,
   io: PlayIo,
 ): Promise<void> {
+  if (options.dmModel !== undefined && options.tracePath !== undefined) {
+    throw new Error("Trace export is not available in scripted DM test mode.");
+  }
   const random = createSeededRandom(options.seed);
   let state = createSession();
   const trace =
@@ -36,6 +41,7 @@ export async function playGame(
       ? undefined
       : createSessionTrace(options.seed, state);
   let terminationReason: "quit" | "eof" = "eof";
+  let transcript: readonly DmTranscriptEntry[] = [];
 
   io.write(`Seed: ${options.seed} (${RANDOM_ALGORITHM})\n`);
   io.write(`${renderIntroduction()}\n`);
@@ -46,34 +52,80 @@ export async function playGame(
   state = initialLook.state;
   io.write(`${renderResult(initialLook)}\n`);
 
+  if (options.dmModel !== undefined) {
+    io.write(
+      "Read-only DM mode: ask about the scene or your character's status.\n",
+    );
+  }
+
   if (io.terminal) {
     io.lines.prompt();
   }
 
   for await (const line of io.lines) {
-    const action = parseCommand(line);
-    let result: ActionResult;
-    if (trace === undefined) {
-      result = handleAction(state, action, random);
+    let requestedQuit = false;
+    if (options.dmModel !== undefined) {
+      const localCommand = line.trim().toLowerCase();
+      if (localCommand === "help") {
+        io.write(
+          [
+            "Read-only DM mode accepts ordinary questions about the current scene and character status.",
+            "Local commands:",
+            "  help  Show this guidance without calling the model.",
+            "  quit  Leave the game without calling the model.",
+          ].join("\n") + "\n",
+        );
+      } else if (localCommand === "quit") {
+        const quit = handleAction(state, { type: "quit" }, random);
+        state = quit.state;
+        io.write(`${renderResult(quit)}\n`);
+        requestedQuit = true;
+      } else {
+        const result = await runDmTurn({
+          state,
+          playerInput: line,
+          transcript,
+          random,
+          model: options.dmModel,
+        });
+        state = result.state;
+        transcript = result.transcript;
+        io.write(
+          [
+            "Mechanics:",
+            result.mechanics.length === 0
+              ? "No action or read tool was used."
+              : result.mechanics.join("\n"),
+            "",
+            "Dungeon Master:",
+            result.narration,
+          ].join("\n") + "\n",
+        );
+      }
     } else {
-      const rolls: RollRecord[] = [];
-      const recordingRandom = {
-        roll(sides: number): number {
-          const value = random.roll(sides);
-          rolls.push({ sides, value });
-          return value;
-        },
-      };
-      result = handleAction(state, action, recordingRandom);
-      recordTraceAction(trace, line, action, rolls, result);
+      const action = parseCommand(line);
+      let result: ActionResult;
+      if (trace === undefined) {
+        result = handleAction(state, action, random);
+      } else {
+        const rolls: RollRecord[] = [];
+        const recordingRandom = {
+          roll(sides: number): number {
+            const value = random.roll(sides);
+            rolls.push({ sides, value });
+            return value;
+          },
+        };
+        result = handleAction(state, action, recordingRandom);
+        recordTraceAction(trace, line, action, rolls, result);
+      }
+      state = result.state;
+      io.write(`${renderResult(result)}\n`);
+      requestedQuit =
+        result.events?.some((event) => event.type === "session-quit") === true;
     }
-    state = result.state;
-    io.write(`${renderResult(result)}\n`);
 
-    if (
-      state.status === "quit" ||
-      result.events?.some((event) => event.type === "session-quit") === true
-    ) {
+    if (state.status === "quit" || requestedQuit) {
       terminationReason = "quit";
       io.lines.close();
       break;

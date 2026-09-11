@@ -180,6 +180,49 @@ status, inspection, observed events, or rejection intended for a later model
 adapter. Carried items stay absent from ordinary scene projection but can be
 inspected by stable reference and are listed by `get_character_status`.
 
+## Scripted read-only Dungeon Master
+
+`src/dm-turn.ts` provides the provider-neutral `DmModel` port and the versioned
+`stolen-signet-dm-v1` prompt. A turn receives untrusted player text, current
+authoritative scene and character projections, current strict tool definitions,
+and bounded local transcript history. It returns authoritative state, ordered
+tool results and mechanics, sanitized narration, bounded transcript, and
+normalized diagnostics. No provider SDK types enter the game or terminal
+interfaces.
+
+This intermediate mode offers only `look`, `inspect`, and
+`get_character_status`; it cannot execute gameplay mutations. One player
+submission permits at most three read calls and four model responses. A response
+may contain one call only, and call IDs cannot repeat. Scene, status, and tool
+definitions are projected again after every call. Empty, malformed, overlong, or
+failed model output produces deterministic recovery text and leaves the terminal
+usable.
+
+Narration is limited to 1,200 characters after ANSI and control-character
+sanitization. Ordinary line breaks are preserved. Player input is limited to
+1,000 characters. Transcript history retains at most eight player/DM entries and
+4,000 characters; tool authority and provider payloads are never transcript
+history.
+
+Automated spawned-process tests use `DUNGEON_ONE_TEST_DM_SCRIPT` as a documented
+test-only injection seam. Its value is the path to a JSON array containing one
+normalized response per model invocation. A narration response is
+`{"text":"..."}`; a tool response is
+`{"toolCalls":[{"id":"call-1","name":"look","argumentsJson":"{}"}]}`.
+For example, after `npm.cmd run build`:
+
+```powershell
+$env:DUNGEON_ONE_TEST_DM_SCRIPT = ".\dm-script.json"
+"What can I see?`nquit" | node .\dist\cli.js --seed 0
+Remove-Item Env:DUNGEON_ONE_TEST_DM_SCRIPT
+```
+
+The terminal keeps exact local `help` and `quit` handling, and prints separate
+`Mechanics` and `Dungeon Master` sections. Command mode is unchanged when the
+test variable is absent. There is deliberately no production live-model startup
+or trace export for scripted DM mode; the OpenAI Responses adapter and AI-session
+trace format belong to follow-up issues.
+
 ## Verification
 
 The one canonical, non-source-mutating command is:

@@ -23,6 +23,23 @@ function runCli(input, args = []) {
   });
 }
 
+function runScriptedDm(input, responses) {
+  return withTemporaryDirectory((directory) => {
+    const scriptPath = path.join(directory, "dm-script.json");
+    writeFileSync(scriptPath, JSON.stringify(responses));
+    return spawnSync(process.execPath, [cli, "--seed", "0"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        DUNGEON_ONE_TEST_DM_SCRIPT: scriptPath,
+      },
+      input,
+      timeout: 5_000,
+    });
+  });
+}
+
 function withTemporaryDirectory(run) {
   const directory = mkdtempSync(path.join(tmpdir(), "dungeon-one-trace-"));
   try {
@@ -686,6 +703,49 @@ test("built CLI inspects a living and defeated goblin and replays the new trace"
     assert.equal(legacyReplay.status, 0, legacyReplay.stderr);
     assert.match(legacyReplay.stdout, /Trace verified successfully/i);
   });
+});
+
+test("scripted DM runs through the real terminal while help and quit stay local", () => {
+  const result = runScriptedDm("help\nHow am I?\nquit\n", [
+    {
+      toolCalls: [
+        { id: "status-1", name: "get_character_status", argumentsJson: "{}" },
+      ],
+    },
+    { text: "You are unhurt and ready." },
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /The Stolen Signet/i);
+  assert.match(result.stdout, /Read-only DM mode/i);
+  assert.match(result.stdout, /Local commands:[\s\S]*help[\s\S]*quit/i);
+  assert.match(
+    result.stdout,
+    /Mechanics:\s*Fighter HP: 20\/20[\s\S]*Dungeon Master:\s*You are unhurt and ready\./i,
+  );
+  assert.match(result.stdout, /You leave the adventure\. Goodbye\./i);
+});
+
+test("scripted DM terminal recovers from malformed output with another prompt", () => {
+  const result = runScriptedDm("First question\nSecond question\nquit\n", [
+    {},
+    { text: "You can still ask about the entrance." },
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /couldn't complete that request safely/i);
+  assert.match(result.stdout, /You can still ask about the entrance\./i);
+  assert.match(result.stdout, /You leave the adventure\. Goodbye\./i);
+});
+
+test("scripted DM terminal exits cleanly on EOF", () => {
+  const result = runScriptedDm("Where am I?", [
+    { text: "You are at the watchtower entrance." },
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /You are at the watchtower entrance\./i);
+  assert.doesNotMatch(result.stdout, /Goodbye/i);
 });
 
 test("built CLI reports the first corrupted replay expectation", () => {
