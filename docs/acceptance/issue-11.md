@@ -25,14 +25,16 @@ npx.cmd --yes --package=node@24.21.0 --package=npm@11.6.4 npm run build
 
 Outcomes:
 
-- `npm.cmd ci` installed 98 packages from the lockfile and reported 0
-  vulnerabilities.
-- `npm.cmd run verify` passed all seven ordered gates with zero warnings. The
-  automated test gate passed 71 tests with no failures, skips, or todos.
-- `npm.cmd run build` completed successfully.
-- The seeded launch exited successfully on end-of-input after printing seed
-  `0`, random algorithm `mulberry32-v1`, the objective, 20/20 HP, `playing`
-  status, and the Entrance scene. It reported neither victory nor defeat.
+- The pinned `npm ci` invocation installed 98 packages from the lockfile and
+  reported 0 vulnerabilities.
+- The pinned `npm run verify` invocation passed all seven ordered gates with
+  zero warnings. The automated test gate passed 71 tests with no failures,
+  skips, or todos.
+- The pinned `npm run build` invocation completed successfully.
+- The pinned seeded-launch invocation exited successfully on end-of-input after
+  printing seed `0`, random algorithm `mulberry32-v1`, the objective, 20/20 HP,
+  `playing` status, and the Entrance scene. It reported neither victory nor
+  defeat.
 
 ## Reproducible playthroughs and replay
 
