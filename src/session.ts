@@ -301,6 +301,13 @@ function resolveItem(value: string) {
   );
 }
 
+function resolveFeature(value: string) {
+  const normalized = normalizeTarget(value);
+  return Object.values(ADVENTURE.rooms)
+    .flatMap((room) => room.features)
+    .find((feature) => feature.name.toLowerCase() === normalized);
+}
+
 function resolveDoor(value: string) {
   const normalized = normalizeTarget(value);
   return Object.values(ADVENTURE.doors).find(
@@ -326,14 +333,6 @@ function doorBetween(firstRoomId: RoomId, secondRoomId: RoomId) {
   return Object.values(ADVENTURE.doors).find(
     (door) =>
       door.roomIds.includes(firstRoomId) && door.roomIds.includes(secondRoomId),
-  );
-}
-
-function resolveAccessibleDoor(roomId: RoomId, normalizedName: string) {
-  return Object.values(ADVENTURE.doors).find(
-    (door) =>
-      door.name.toLowerCase() === normalizedName &&
-      door.roomIds.includes(roomId),
   );
 }
 
@@ -555,8 +554,7 @@ function inspectCommand(
     };
   }
 
-  const room = ADVENTURE.rooms[state.locationId];
-  const door = resolveAccessibleDoor(state.locationId, normalized);
+  const door = resolveDoor(normalized);
   if (door !== undefined) {
     return handleGameAction(state, {
       type: "inspect",
@@ -564,9 +562,7 @@ function inspectCommand(
     });
   }
 
-  const feature = room.features.find(
-    (candidate) => candidate.name.toLowerCase() === normalized,
-  );
+  const feature = resolveFeature(normalized);
   if (feature !== undefined) {
     return handleGameAction(state, {
       type: "inspect",
@@ -576,28 +572,27 @@ function inspectCommand(
 
   const item = resolveItem(normalized);
   if (item !== undefined) {
-    const placement = state.itemPlacements[item.id];
-    if (
-      placement.type === "inventory" ||
-      (placement.type === "room" && placement.roomId === state.locationId)
-    ) {
-      return handleGameAction(state, {
-        type: "inspect",
-        target: { type: "item", itemId: item.id },
-      });
-    }
+    return handleGameAction(state, {
+      type: "inspect",
+      target: { type: "item", itemId: item.id },
+    });
   }
 
-  const exitRoomId = room.exitRoomIds.find((candidate) => {
-    const exitRoom = ADVENTURE.rooms[candidate];
-    return exitRoom.name.toLowerCase() === normalized;
-  });
-  if (exitRoomId !== undefined) {
+  const opponent = resolveOpponent(normalized);
+  if (opponent !== undefined) {
+    return handleGameAction(state, {
+      type: "inspect",
+      target: { type: "opponent", opponentId: opponent.id },
+    });
+  }
+
+  const destinationId = resolveRoom(normalized);
+  if (destinationId !== undefined) {
     return handleGameAction(state, {
       type: "inspect",
       target: {
         type: "named-exit",
-        destinationId: exitRoomId,
+        destinationId,
       },
     });
   }

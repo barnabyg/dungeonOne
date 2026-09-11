@@ -334,3 +334,56 @@ test("the command adapter matches canonical accepted and rejected results", () =
     );
   }
 });
+
+test("the command adapter delegates hidden and remote inspections by stable ID", () => {
+  const initial = createSession();
+  const cases = [
+    {
+      state: initial,
+      commandAction: { type: "inspect", target: "cold hearth" },
+      gameAction: {
+        type: "inspect",
+        target: { type: "feature", featureId: "cold-hearth" },
+      },
+    },
+    {
+      state: initial,
+      commandAction: { type: "inspect", target: "signet" },
+      gameAction: {
+        type: "inspect",
+        target: { type: "item", itemId: "signet" },
+      },
+    },
+    {
+      state: initial,
+      commandAction: { type: "inspect", target: "goblin" },
+      gameAction: {
+        type: "inspect",
+        target: { type: "opponent", opponentId: "goblin" },
+      },
+    },
+    {
+      state: initial,
+      commandAction: { type: "inspect", target: "reliquary" },
+      gameAction: {
+        type: "inspect",
+        target: { type: "named-exit", destinationId: "reliquary" },
+      },
+    },
+    {
+      state: { ...initial, locationId: "reliquary" },
+      commandAction: { type: "inspect", target: "wooden door" },
+      gameAction: {
+        type: "inspect",
+        target: { type: "door", doorId: "entrance-door" },
+      },
+    },
+  ];
+
+  for (const { state, commandAction, gameAction } of cases) {
+    assert.deepEqual(
+      handleAction(state, commandAction),
+      handleGameAction(state, gameAction),
+    );
+  }
+});
