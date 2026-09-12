@@ -56,3 +56,10 @@ defines each structured tool-result event as newly completed and requires
 narration to describe that event before consulting the resulting scene. It must
 rerun the full evaluator and both seeded live playthroughs as a separately
 authorized campaign before default selection can resume.
+
+## Subsequent operator selection
+
+On 12 September 2026, the operator explicitly selected `gpt-5.6-luna` as the
+application default. This is a configuration decision made after the bounded
+campaign above; it does not retroactively qualify that model or change the
+recorded evaluation outcome. The explicit `--model` override remains available.

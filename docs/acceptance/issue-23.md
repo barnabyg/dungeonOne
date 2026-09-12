@@ -3,9 +3,9 @@
 Run date: 12 September 2026
 
 This record covers the reproducible agent-executable acceptance work for GitHub
-issue #23. The issue is not ready to close: no default model is currently
-selected, and the required unfamiliar-human acceptance evidence remains
-pending.
+issue #23. The issue is not ready to close: `gpt-5.6-luna` was subsequently
+selected as the operator-requested default, but the required unfamiliar-human
+acceptance evidence remains pending.
 
 ## Clean-checkout installation and verification
 
@@ -163,13 +163,22 @@ payloads. Detailed reports and live traces remain ignored because they include
 player text and verbose provider diagnostics; the sanitized summary is the
 durable handoff evidence available from a normal clone.
 
-There is no qualifying default model. `npm.cmd start -- --ai` exits `2` and
-requires `--model <model-id>`. Issue #22's bounded evidence records that
-`gpt-5.5-2026-04-23` passed the case evaluator but failed completed-playthrough
-narration review because it contradicted committed mechanics. Consequently the
-project correctly did not pin it as the default. Re-running the already
-exhausted campaign would not repair that blocker; the recorded next experiment
-is a separately authorized prompt-v4 evaluation.
+The operator subsequently selected `gpt-5.6-luna` as the application default.
+`npm.cmd start -- --ai` now uses that model, while `--model <model-id>` remains
+an explicit override. This selection is not supported by the bounded issue #22
+campaign: that campaign evaluated older model IDs, and its strongest candidate
+failed completed-playthrough narration review. No evaluator or human-playtest
+quality claim is made for `gpt-5.6-luna` here.
+
+A live default-path smoke check used the configured credential without printing
+or recording it:
+
+```powershell
+"What can I see?`nquit" | node .\dist\cli.js --ai --seed 0
+```
+
+It exited zero, used the default without a `--model` argument, described the
+visible Entrance state without a mutation, and handled local quit cleanly.
 
 ## Human acceptance — pending
 
@@ -187,11 +196,11 @@ human criterion. A tester unfamiliar with the implementation must still:
 ## Resolution status
 
 Issue #23 must remain open. Its agent-executable mechanics, safety, trace,
-privacy, clean-checkout, and explicit-model smoke evidence pass, but two
-acceptance requirements are outstanding:
+privacy, clean-checkout, and explicit-model smoke evidence pass. The default is
+now configured, but two evidence requirements are outstanding:
 
-- select a default model only after a candidate passes the required live
-  completed-playthrough narration review; and
+- evaluate and manually review `gpt-5.6-luna` before making a quality or
+  release-readiness claim for it; and
 - obtain actual unfamiliar-human acceptance evidence.
 
 No content, rules, deployment, or unrelated refactor was added.

@@ -19,17 +19,17 @@ npm.cmd run build
 npm.cmd start -- --seed 0
 ```
 
-For opt-in live AI play, set `OPENAI_API_KEY` in the environment and explicitly
-choose a model. There is no default model because the bounded issue 22
-evaluation did not satisfy its live narration review:
+For opt-in live AI play, set `OPENAI_API_KEY` in the environment. `--ai` uses
+the configured default model `gpt-5.6-luna`:
 
 ```powershell
 $env:OPENAI_API_KEY = "<your-api-key>"
-npm.cmd start -- --ai --model <model-id> --seed 0
+npm.cmd start -- --ai --seed 0
 ```
 
-The bounded evaluation results and the remaining quality blocker are recorded in
-[`docs/acceptance/issue-22.md`](docs/acceptance/issue-22.md).
+Use `--model <model-id>` after `--ai` to override the default for evaluation or
+diagnosis. The bounded evaluation history and its quality limitations are
+recorded in [`docs/acceptance/issue-22.md`](docs/acceptance/issue-22.md).
 
 The key is never accepted as a command-line argument. Live requests use the
 Responses API with strict function tools, parallel calls disabled, response
@@ -40,7 +40,7 @@ reduced to safe local errors. The terminal preserves any already-committed
 engine action and remains usable at the next prompt.
 
 After a normal install, a deliberately opt-in one-turn live smoke check exercises
-the same explicit-model startup path. It is not part of canonical verification:
+the explicit-model override path. It is not part of canonical verification:
 
 ```powershell
 npm.cmd run smoke:ai -- --model <model-id>
@@ -292,8 +292,8 @@ The terminal keeps exact local `help` and `quit` handling, and prints separate
 `Mechanics` and `Dungeon Master` sections. Command mode is unchanged when the
 test variable is absent. Add `--trace <path>` to export a format-2 scripted-DM
 session, and replay it later with `--replay <path>` without the script or a model.
-Production live-model startup uses `--ai --model <model-id>` and
-`OPENAI_API_KEY`. The scripted seam remains available only for deterministic
+Production live-model startup uses `--ai` with an optional `--model <model-id>`
+override and `OPENAI_API_KEY`. The scripted seam remains available only for deterministic
 automated tests; canonical tests never make live API requests.
 
 ## DM interpretation case library
