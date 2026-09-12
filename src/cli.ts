@@ -2,10 +2,7 @@ import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline";
 
 import { playGame } from "./play.js";
-import {
-  createOpenAiDmModel,
-  OPENAI_DM_DEFAULT_MODEL,
-} from "./openai-dm-model.js";
+import { createOpenAiDmModel } from "./openai-dm-model.js";
 import { verifyTraceFile } from "./replay.js";
 import { resolveStartupSeed } from "./random.js";
 import { loadScriptedDmModel } from "./scripted-dm-model.js";
@@ -26,10 +23,9 @@ type StartupOptions = Readonly<
 >;
 const USAGE = [
   "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]",
-  "       dungeon-one --ai [--model <model-id>] [--seed <0-4294967295>] [--trace <path>]",
+  "       dungeon-one --ai --model <model-id> [--seed <0-4294967295>] [--trace <path>]",
   "       dungeon-one --replay <path>",
   "       dungeon-one --help",
-  `Default AI model: ${OPENAI_DM_DEFAULT_MODEL}`,
 ].join("\n");
 
 function resolveStartupOptions(args: readonly string[]): StartupOptions {
@@ -130,6 +126,9 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
     throw new Error(USAGE);
   }
 
+  if (ai && model === undefined) {
+    throw new Error(`AI mode requires --model <model-id>.\n${USAGE}`);
+  }
   if (!ai && model !== undefined) {
     throw new Error(`--model requires --ai.\n${USAGE}`);
   }
@@ -138,7 +137,7 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
     mode: "play",
     seed: resolveStartupSeed(seedArgument ?? [], chooseStartupSeed),
     ...(tracePath === undefined ? {} : { tracePath }),
-    ...(ai ? { ai: { model: model ?? OPENAI_DM_DEFAULT_MODEL } } : {}),
+    ...(ai && model !== undefined ? { ai: { model } } : {}),
   };
 }
 
