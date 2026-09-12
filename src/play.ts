@@ -65,8 +65,12 @@ export async function playGame(
   io.write(`${renderResult(initialLook)}\n`);
 
   if (options.dmModel !== undefined) {
+    const modeName =
+      options.dmModel.identity?.provider === "openai"
+        ? "Live AI DM mode"
+        : "Scripted DM mode";
     io.write(
-      "Scripted DM mode: describe one action or ask about the scene or your character's status.\n",
+      `${modeName}: describe one action or ask about the scene or your character's status.\n`,
     );
   }
 

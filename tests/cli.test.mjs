@@ -14,10 +14,11 @@ const acceptanceInputs = path.join(root, "docs", "acceptance", "inputs");
 const traceFixtures = path.join(root, "tests", "fixtures");
 const winningAttacks = ["attack goblin", "attack goblin"];
 
-function runCli(input, args = []) {
+function runCli(input, args = [], environment = {}) {
   return spawnSync(process.execPath, [cli, ...args], {
     cwd: root,
     encoding: "utf8",
+    env: { ...process.env, ...environment },
     input,
     timeout: 5_000,
   });
@@ -96,6 +97,68 @@ test("built game prints one reproducible seed and rejects invalid startup seeds"
   assert.notEqual(invalid.status, 0);
   assert.match(invalid.stderr, /unsigned 32-bit integer/i);
   assert.doesNotMatch(invalid.stdout, /The Stolen Signet/i);
+});
+
+test("AI startup is explicit, model-pinned, and keeps offline paths key-free", () => {
+  const offlineEnvironment = { OPENAI_API_KEY: "" };
+  const help = runCli("", ["--help"], offlineEnvironment);
+  const command = runCli("quit\n", ["--seed", "0"], offlineEnvironment);
+  const missingModel = runCli("", ["--ai"], offlineEnvironment);
+  const missingKey = runCli(
+    "",
+    ["--ai", "--model", "test-model"],
+    offlineEnvironment,
+  );
+  const modelWithoutAi = runCli(
+    "",
+    ["--model", "test-model"],
+    offlineEnvironment,
+  );
+  const duplicateAi = runCli(
+    "",
+    ["--ai", "--ai", "--model", "test-model"],
+    offlineEnvironment,
+  );
+  const incompatibleReplay = runCli(
+    "",
+    ["--replay", "missing.json", "--ai", "--model", "test-model"],
+    offlineEnvironment,
+  );
+
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /Usage: dungeon-one/);
+  assert.match(help.stdout, /--ai --model <model-id>/);
+  assert.doesNotMatch(help.stdout, /The Stolen Signet/);
+  assert.equal(command.status, 0, command.stderr);
+  assert.match(command.stdout, /The Stolen Signet/);
+  assert.equal(missingModel.status, 2);
+  assert.match(missingModel.stderr, /AI mode requires --model <model-id>/i);
+  assert.doesNotMatch(missingModel.stdout, /The Stolen Signet/);
+  assert.equal(missingKey.status, 2);
+  assert.match(missingKey.stderr, /OPENAI_API_KEY is required for AI mode/i);
+  assert.doesNotMatch(missingKey.stderr, /test-model.*key|key.*test-model/i);
+  assert.equal(modelWithoutAi.status, 2);
+  assert.match(modelWithoutAi.stderr, /--model requires --ai/i);
+  assert.equal(duplicateAi.status, 2);
+  assert.match(duplicateAi.stderr, /Usage: dungeon-one/);
+  assert.equal(incompatibleReplay.status, 2);
+  assert.match(incompatibleReplay.stderr, /Usage: dungeon-one/);
+  assert.doesNotMatch(incompatibleReplay.stderr, /OPENAI_API_KEY/);
+});
+
+test("explicit AI mode can use the scripted transport seam without credentials", () => {
+  const result = runScriptedDm(
+    "What can I see?\nquit\n",
+    [{ text: "You stand in the ruined entrance." }],
+    "0",
+    ["--ai", "--model", "test-model"],
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(
+    result.stdout,
+    /Dungeon Master:\s*You stand in the ruined entrance/i,
+  );
 });
 
 test("built game opens with the essential state and teaches canonical commands", () => {

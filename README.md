@@ -1,13 +1,13 @@
 # Dungeon One
 
-Dungeon One is an offline, text-first TypeScript game. The current slice of **The Stolen Signet** lets you open the watchtower entrance, fight the guardroom goblin, explore the entrance, guardroom, and reliquary, recover the stolen signet, and explicitly escape through the reliquary's far exit.
+Dungeon One is a text-first TypeScript game with an offline command mode and an opt-in live AI Dungeon Master mode. The current slice of **The Stolen Signet** lets you open the watchtower entrance, fight the guardroom goblin, explore the entrance, guardroom, and reliquary, recover the stolen signet, and explicitly escape through the reliquary's far exit.
 
 ## Requirements
 
 - Node.js 24.21.0 LTS (pinned in `.nvmrc`; supported runtime line: Node.js 24.x)
 - npm 11.6.4 (pinned by `packageManager`)
 
-All development tools are exact-version dependencies in `package.json` and `package-lock.json`. Installation and dependency auditing require registry access. Building and playing after installation do not require a network connection, AI credentials, or any external service.
+All development tools and the official OpenAI SDK are exact-version dependencies in `package.json` and `package-lock.json`. Installation and dependency auditing require registry access. Command play, help, invalid-argument handling, and trace replay do not require a network connection, AI credentials, or any external service. Live AI play requires network access and an OpenAI API key.
 
 ## Install, build, and play
 
@@ -17,6 +17,30 @@ From a clean checkout:
 npm.cmd ci
 npm.cmd run build
 npm.cmd start -- --seed 0
+```
+
+For opt-in live AI play, set `OPENAI_API_KEY` in the environment and explicitly
+choose a model. There is no default model until the separate model-evaluation
+work is complete:
+
+```powershell
+$env:OPENAI_API_KEY = "<your-api-key>"
+npm.cmd start -- --ai --model <model-id> --seed 0
+```
+
+The key is never accepted as a command-line argument. Live requests use the
+Responses API with strict function tools, parallel calls disabled, response
+storage disabled, no cross-turn hosted continuation, no automatic SDK retries,
+and a 30-second request timeout. Authentication, rate-limit, timeout,
+unavailable-service, malformed-response, and unknown provider failures are
+reduced to safe local errors. The terminal preserves any already-committed
+engine action and remains usable at the next prompt.
+
+After a normal install, a deliberately opt-in one-turn live smoke check exercises
+the same explicit-model startup path. It is not part of canonical verification:
+
+```powershell
+npm.cmd run smoke:ai -- --model <model-id>
 ```
 
 To export a diagnostic trace, add `--trace <path>` (or
@@ -265,8 +289,9 @@ The terminal keeps exact local `help` and `quit` handling, and prints separate
 `Mechanics` and `Dungeon Master` sections. Command mode is unchanged when the
 test variable is absent. Add `--trace <path>` to export a format-2 scripted-DM
 session, and replay it later with `--replay <path>` without the script or a model.
-There is deliberately no production live-model startup yet; the OpenAI Responses
-adapter belongs to a follow-up issue.
+Production live-model startup uses `--ai --model <model-id>` and
+`OPENAI_API_KEY`. The scripted seam remains available only for deterministic
+automated tests; canonical tests never make live API requests.
 
 ## Verification
 
@@ -276,7 +301,7 @@ The one canonical, non-source-mutating command is:
 npm.cmd run verify
 ```
 
-It runs these zero-warning gates in order: formatting; lint/style; compiler/type checking; static bug analysis; automated tests; dependency/vulnerability/secret/package checks; and clean build/packaging validation. The security gate validates lockfile installation, runs `npm audit`, and scans repository inputs for common credential formats. There are no runtime dependencies and no separate license-policy analyzer in this slice; adding one would duplicate package metadata checks without a policy to enforce.
+It runs these zero-warning gates in order: formatting; lint/style; compiler/type checking; static bug analysis; automated tests; dependency/vulnerability/secret/package checks; and clean build/packaging validation. The security gate validates lockfile installation, runs `npm audit`, and scans repository inputs for common credential formats. Package validation requires the official OpenAI SDK to remain an exact runtime dependency matching the lockfile. There is no separate license-policy analyzer in this slice; adding one would duplicate package metadata checks without a policy to enforce.
 
 In an interactive terminal, full verification starts an observational dashboard on `127.0.0.1` using an operating-system-assigned free port, prints `TEST_DASHBOARD_URL`, and attempts to open it. Each concurrent run receives its own port and in-memory state. The dashboard shows the active gate, available test progress, elapsed time, recent output, failures, and final result.
 

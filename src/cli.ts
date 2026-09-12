@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline";
 
 import { playGame } from "./play.js";
+import { createOpenAiDmModel } from "./openai-dm-model.js";
 import { verifyTraceFile } from "./replay.js";
 import { resolveStartupSeed } from "./random.js";
 import { loadScriptedDmModel } from "./scripted-dm-model.js";
@@ -11,13 +12,26 @@ function chooseStartupSeed(): number {
 }
 
 type StartupOptions = Readonly<
-  | { mode: "play"; seed: number; tracePath?: string }
+  | {
+      mode: "play";
+      seed: number;
+      tracePath?: string;
+      ai?: Readonly<{ model: string }>;
+    }
   | { mode: "replay"; replayPath: string }
+  | { mode: "help" }
 >;
-const USAGE =
-  "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>] | --replay <path>";
+const USAGE = [
+  "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]",
+  "       dungeon-one --ai --model <model-id> [--seed <0-4294967295>] [--trace <path>]",
+  "       dungeon-one --replay <path>",
+  "       dungeon-one --help",
+].join("\n");
 
 function resolveStartupOptions(args: readonly string[]): StartupOptions {
+  if (args.length === 1 && args[0] === "--help") {
+    return { mode: "help" };
+  }
   if (
     args.length === 2 &&
     args[0] === "--replay" &&
@@ -37,9 +51,40 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
 
   let seedArgument: readonly string[] | undefined;
   let tracePath: string | undefined;
+  let ai = false;
+  let model: string | undefined;
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
+    if (argument === "--ai") {
+      if (ai) {
+        throw new Error(USAGE);
+      }
+      ai = true;
+      continue;
+    }
+    if (argument === "--model") {
+      const value = args[index + 1];
+      if (
+        model !== undefined ||
+        value === undefined ||
+        value.length === 0 ||
+        value.startsWith("--")
+      ) {
+        throw new Error(USAGE);
+      }
+      model = value;
+      index += 1;
+      continue;
+    }
+    if (argument?.startsWith("--model=") === true) {
+      const value = argument.slice("--model=".length);
+      if (model !== undefined || value.length === 0) {
+        throw new Error(USAGE);
+      }
+      model = value;
+      continue;
+    }
     if (argument === "--seed") {
       const value = args[index + 1];
       if (seedArgument !== undefined || value === undefined) {
@@ -81,10 +126,18 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
     throw new Error(USAGE);
   }
 
+  if (ai && model === undefined) {
+    throw new Error(`AI mode requires --model <model-id>.\n${USAGE}`);
+  }
+  if (!ai && model !== undefined) {
+    throw new Error(`--model requires --ai.\n${USAGE}`);
+  }
+
   return {
     mode: "play",
     seed: resolveStartupSeed(seedArgument ?? [], chooseStartupSeed),
     ...(tracePath === undefined ? {} : { tracePath }),
+    ...(ai && model !== undefined ? { ai: { model } } : {}),
   };
 }
 
@@ -96,6 +149,11 @@ async function main(): Promise<void> {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);
     process.exitCode = 2;
+    return;
+  }
+
+  if (startup.mode === "help") {
+    process.stdout.write(`${USAGE}\n`);
     return;
   }
 
@@ -116,10 +174,17 @@ async function main(): Promise<void> {
   const scriptedDmPath = process.env.DUNGEON_ONE_TEST_DM_SCRIPT;
   let dmModel;
   try {
-    dmModel =
-      scriptedDmPath === undefined
-        ? undefined
-        : await loadScriptedDmModel(scriptedDmPath);
+    if (scriptedDmPath !== undefined) {
+      dmModel = await loadScriptedDmModel(scriptedDmPath);
+    } else if (startup.ai !== undefined) {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (apiKey === undefined || apiKey.trim().length === 0) {
+        process.stderr.write("OPENAI_API_KEY is required for AI mode.\n");
+        process.exitCode = 2;
+        return;
+      }
+      dmModel = createOpenAiDmModel({ apiKey, model: startup.ai.model });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);

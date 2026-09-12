@@ -32,8 +32,23 @@ export type DmTranscriptEntry = Readonly<{
 
 export type DmToolCall = Readonly<GameToolCall & { id: string }>;
 
+export type DmProviderResponse = Readonly<{
+  responseId: string;
+  model: string;
+  status: string;
+  usage?: Readonly<{
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  }>;
+}>;
+
 export type DmModelResponse =
-  Readonly<{ text: string }> | Readonly<{ toolCalls: readonly DmToolCall[] }>;
+  | Readonly<{ text: string; provider?: DmProviderResponse }>
+  | Readonly<{
+      toolCalls: readonly DmToolCall[];
+      provider?: DmProviderResponse;
+    }>;
 
 export type DmModelRequest = Readonly<{
   promptVersion: typeof DM_PROMPT_VERSION;

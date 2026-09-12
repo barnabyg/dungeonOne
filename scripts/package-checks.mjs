@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { rmSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 
 function run(args, capture = false) {
@@ -36,12 +36,27 @@ function run(args, capture = false) {
 rmSync("dist", { force: true, recursive: true });
 run(["run", "build"]);
 
+const packageManifest = JSON.parse(readFileSync("package.json", "utf8"));
+const lockfile = JSON.parse(readFileSync("package-lock.json", "utf8"));
+const openAiRange = packageManifest.dependencies?.openai;
+const lockedOpenAiVersion = lockfile.packages?.["node_modules/openai"]?.version;
+if (
+  typeof openAiRange !== "string" ||
+  !/^\d+\.\d+\.\d+$/u.test(openAiRange) ||
+  openAiRange !== lockedOpenAiVersion
+) {
+  throw new Error(
+    "Package validation failed: openai must be an exact dependency matching the lockfile.",
+  );
+}
+
 const packOutput = run(["pack", "--dry-run", "--json"], true);
 const [manifest] = JSON.parse(packOutput);
 const packagedFiles = new Set(manifest.files.map((entry) => entry.path));
 
 for (const required of [
   "dist/cli.js",
+  "dist/openai-dm-model.js",
   "dist/session.js",
   "package.json",
   "README.md",
