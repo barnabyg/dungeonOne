@@ -5,7 +5,10 @@ import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
 import { createSession, handleAction, type ActionResult } from "./session.js";
 import {
   completeSessionTrace,
+  createDmSessionTrace,
   createSessionTrace,
+  recordDmTraceTurn,
+  recordLocalTraceTurn,
   recordTraceAction,
   writeSessionTrace,
   type RollRecord,
@@ -31,15 +34,24 @@ export async function playGame(
   options: PlayOptions,
   io: PlayIo,
 ): Promise<void> {
-  if (options.dmModel !== undefined && options.tracePath !== undefined) {
-    throw new Error("Trace export is not available in scripted DM test mode.");
+  const dmIdentity = options.dmModel?.identity;
+  if (
+    options.dmModel !== undefined &&
+    options.tracePath !== undefined &&
+    dmIdentity === undefined
+  ) {
+    throw new Error("DM model identity is required for trace export.");
   }
   const random = createSeededRandom(options.seed);
   let state = createSession();
-  const trace =
-    options.tracePath === undefined
+  const commandTrace =
+    options.tracePath === undefined || options.dmModel !== undefined
       ? undefined
       : createSessionTrace(options.seed, state);
+  const dmTrace =
+    options.tracePath === undefined || dmIdentity === undefined
+      ? undefined
+      : createDmSessionTrace(options.seed, state, dmIdentity);
   let terminationReason: "quit" | "eof" = "eof";
   let transcript: readonly DmTranscriptEntry[] = [];
 
@@ -76,10 +88,16 @@ export async function playGame(
             "  quit  Leave the game without calling the model.",
           ].join("\n") + "\n",
         );
+        if (dmTrace !== undefined) {
+          recordLocalTraceTurn(dmTrace, "local-help", line, state);
+        }
       } else if (localCommand === "quit") {
         const quit = handleAction(state, { type: "quit" }, random);
         state = quit.state;
         io.write(`${renderResult(quit)}\n`);
+        if (dmTrace !== undefined) {
+          recordLocalTraceTurn(dmTrace, "local-quit", line, state);
+        }
         requestedQuit = true;
       } else {
         const result = await runDmTurn({
@@ -91,6 +109,9 @@ export async function playGame(
         });
         state = result.state;
         transcript = result.transcript;
+        if (dmTrace !== undefined) {
+          recordDmTraceTurn(dmTrace, line, result);
+        }
         io.write(
           [
             "Mechanics:",
@@ -106,7 +127,7 @@ export async function playGame(
     } else {
       const action = parseCommand(line);
       let result: ActionResult;
-      if (trace === undefined) {
+      if (commandTrace === undefined) {
         result = handleAction(state, action, random);
       } else {
         const rolls: RollRecord[] = [];
@@ -118,7 +139,7 @@ export async function playGame(
           },
         };
         result = handleAction(state, action, recordingRandom);
-        recordTraceAction(trace, line, action, rolls, result);
+        recordTraceAction(commandTrace, line, action, rolls, result);
       }
       state = result.state;
       io.write(`${renderResult(result)}\n`);
@@ -137,6 +158,7 @@ export async function playGame(
     }
   }
 
+  const trace = commandTrace ?? dmTrace;
   if (options.tracePath !== undefined && trace !== undefined) {
     completeSessionTrace(trace, terminationReason, state);
     await writeSessionTrace(options.tracePath, trace);

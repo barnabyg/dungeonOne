@@ -23,11 +23,11 @@ function runCli(input, args = []) {
   });
 }
 
-function runScriptedDm(input, responses, seed = "0") {
+function runScriptedDm(input, responses, seed = "0", args = []) {
   return withTemporaryDirectory((directory) => {
     const scriptPath = path.join(directory, "dm-script.json");
     writeFileSync(scriptPath, JSON.stringify(responses));
-    return spawnSync(process.execPath, [cli, "--seed", seed], {
+    return spawnSync(process.execPath, [cli, "--seed", seed, ...args], {
       cwd: root,
       encoding: "utf8",
       env: {
@@ -752,6 +752,323 @@ test("scripted DM terminal exits cleanly on EOF", () => {
   assert.doesNotMatch(result.stdout, /Goodbye/i);
 });
 
+test("scripted DM exports and replays a normalized format-2 clarification and local quit", () => {
+  withTemporaryDirectory((directory) => {
+    const tracePath = path.join(directory, "clarification.json");
+    const secret = "sk-test-secret-that-must-not-be-recorded";
+    const exported = runScriptedDm(
+      "Use it\nquit\n",
+      [
+        {
+          text: "What would you like to inspect?",
+          hiddenReasoning: secret,
+          headers: { authorization: secret },
+          sdkPayload: { apiKey: secret },
+        },
+      ],
+      "42",
+      ["--trace", tracePath],
+    );
+
+    assert.equal(exported.status, 0, exported.stderr);
+    const traceText = readFileSync(tracePath, "utf8");
+    const trace = JSON.parse(traceText);
+    assert.equal(trace.formatVersion, 2);
+    assert.equal(trace.rulesVersion, "stolen-signet-rules-v2");
+    assert.deepEqual(trace.adventure, {
+      id: "stolen-signet",
+      version: "2",
+    });
+    assert.deepEqual(trace.random, {
+      algorithm: "mulberry32-v1",
+      initialSeed: 42,
+    });
+    assert.deepEqual(trace.dm, {
+      promptVersion: "stolen-signet-dm-v2",
+      toolSchemaVersion: "stolen-signet-tools-v1",
+      provider: "scripted",
+      model: "scripted-dm-v1",
+    });
+    assert.equal(trace.turns[0].kind, "dm");
+    assert.equal(trace.turns[0].rawPlayerInput, "Use it");
+    assert.deepEqual(trace.turns[0].calls, []);
+    assert.deepEqual(trace.turns[0].diagnostics, []);
+    assert.equal(trace.turns[0].narration, "What would you like to inspect?");
+    assert.deepEqual(trace.turns[0].stateAfter, trace.initialState);
+    assert.equal(trace.turns[1].kind, "local-quit");
+    assert.equal(trace.turns[1].rawPlayerInput, "quit");
+    assert.deepEqual(trace.completion, {
+      reason: "quit",
+      outcome: "incomplete",
+    });
+    assert.doesNotMatch(traceText, new RegExp(secret));
+    assert.doesNotMatch(traceText, /hiddenReasoning|authorization|sdkPayload/i);
+
+    const replayed = runCli("", ["--replay", tracePath]);
+    assert.equal(replayed.status, 0, replayed.stderr);
+    assert.match(replayed.stdout, /Trace verified successfully/i);
+  });
+});
+
+test("scripted DM format-2 traces replay victory, defeat, and early EOF without a model", () => {
+  withTemporaryDirectory((directory) => {
+    const cases = [
+      {
+        name: "victory",
+        seed: "0",
+        input: [
+          "Open the door",
+          "Enter the guardroom",
+          "Attack",
+          "Attack again",
+          "Enter the reliquary",
+          "Take the signet",
+          "Leave",
+          "quit",
+          "",
+        ].join("\n"),
+        responses: [
+          ...callThenNarrate(
+            "open",
+            "open",
+            '{"door_id":"entrance-door"}',
+            "Opened.",
+          ),
+          ...callThenNarrate(
+            "move-guard",
+            "move",
+            '{"destination_id":"guardroom"}',
+            "Entered.",
+          ),
+          ...callThenNarrate(
+            "attack-1",
+            "attack",
+            '{"opponent_id":"goblin"}',
+            "Misses.",
+          ),
+          ...callThenNarrate(
+            "attack-2",
+            "attack",
+            '{"opponent_id":"goblin"}',
+            "Defeated.",
+          ),
+          ...callThenNarrate(
+            "move-relic",
+            "move",
+            '{"destination_id":"reliquary"}',
+            "Entered.",
+          ),
+          ...callThenNarrate("take", "take", '{"item_id":"signet"}', "Taken."),
+          ...callThenNarrate("leave", "leave", "{}", "Escaped."),
+        ],
+        outcome: "victory",
+        reason: "quit",
+      },
+      {
+        name: "defeat",
+        seed: "207",
+        input: [
+          "Open the door",
+          "Enter the guardroom",
+          "Attack",
+          "Attack again",
+          "Attack once more",
+          "",
+        ].join("\n"),
+        responses: [
+          ...callThenNarrate(
+            "open",
+            "open",
+            '{"door_id":"entrance-door"}',
+            "Opened.",
+          ),
+          ...callThenNarrate(
+            "move",
+            "move",
+            '{"destination_id":"guardroom"}',
+            "Entered.",
+          ),
+          ...callThenNarrate(
+            "attack-1",
+            "attack",
+            '{"opponent_id":"goblin"}',
+            "Fighting.",
+          ),
+          ...callThenNarrate(
+            "attack-2",
+            "attack",
+            '{"opponent_id":"goblin"}',
+            "Fighting.",
+          ),
+          ...callThenNarrate(
+            "attack-3",
+            "attack",
+            '{"opponent_id":"goblin"}',
+            "Fallen.",
+          ),
+        ],
+        outcome: "defeat",
+        reason: "eof",
+      },
+      {
+        name: "early-eof",
+        seed: "9",
+        input: "What can I see?",
+        responses: [{ text: "The ruined entrance stands before you." }],
+        outcome: "incomplete",
+        reason: "eof",
+      },
+    ];
+
+    for (const sample of cases) {
+      const tracePath = path.join(directory, `${sample.name}.json`);
+      const exported = runScriptedDm(
+        sample.input,
+        sample.responses,
+        sample.seed,
+        ["--trace", tracePath],
+      );
+      assert.equal(exported.status, 0, exported.stderr);
+      const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+      assert.equal(trace.formatVersion, 2);
+      assert.deepEqual(trace.completion, {
+        reason: sample.reason,
+        outcome: sample.outcome,
+      });
+      const replayed = runCli("", ["--replay", tracePath]);
+      assert.equal(replayed.status, 0, replayed.stderr);
+    }
+  });
+});
+
+test("format-2 records valid and invalid tool arguments losslessly", () => {
+  withTemporaryDirectory((directory) => {
+    const tracePath = path.join(directory, "arguments.json");
+    const exported = runScriptedDm(
+      "Try both\n",
+      [
+        {
+          toolCalls: [
+            { id: "valid", name: "look", argumentsJson: "{ }" },
+            { id: "invalid", name: "inspect", argumentsJson: "{broken" },
+          ],
+        },
+      ],
+      "0",
+      ["--trace", tracePath],
+    );
+    assert.equal(exported.status, 0, exported.stderr);
+    const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+    assert.deepEqual(trace.turns[0].calls[0].arguments, {
+      encoding: "json",
+      raw: "{ }",
+      value: {},
+    });
+    assert.deepEqual(trace.turns[0].calls[1].arguments, {
+      encoding: "invalid-json",
+      raw: "{broken",
+    });
+    assert.equal(trace.turns[0].calls[0].disposition.executed, false);
+    assert.equal(trace.turns[0].calls[0].failure.code, "multi-call-response");
+    assert.equal(runCli("", ["--replay", tracePath]).status, 0);
+  });
+});
+
+test("format-2 replay reports the first corrupted call expectation", () => {
+  withTemporaryDirectory((directory) => {
+    const sourcePath = path.join(directory, "source.json");
+    const exported = runScriptedDm(
+      "Open\nEnter\nAttack\nquit\n",
+      [
+        ...callThenNarrate(
+          "open",
+          "open",
+          '{"door_id":"entrance-door"}',
+          "Opened.",
+        ),
+        ...callThenNarrate(
+          "move",
+          "move",
+          '{"destination_id":"guardroom"}',
+          "Entered.",
+        ),
+        ...callThenNarrate(
+          "attack",
+          "attack",
+          '{"opponent_id":"goblin"}',
+          "Missed.",
+        ),
+      ],
+      "0",
+      ["--trace", sourcePath],
+    );
+    assert.equal(exported.status, 0, exported.stderr);
+    const source = JSON.parse(readFileSync(sourcePath, "utf8"));
+    const cases = [
+      {
+        name: "name",
+        mutate(trace) {
+          trace.turns[0].calls[0].name = "look";
+        },
+        error: /turn 1 call 1 disposition/i,
+      },
+      {
+        name: "arguments",
+        mutate(trace) {
+          const args = trace.turns[1].calls[0].arguments;
+          args.raw = '{"destination_id":"reliquary"}';
+          args.value.destination_id = "reliquary";
+        },
+        error: /turn 2 call 1 disposition/i,
+      },
+      {
+        name: "roll",
+        mutate(trace) {
+          trace.turns[1].calls[0].rolls[0].value = 20;
+        },
+        error: /turn 2 call 1 rolls/i,
+      },
+      {
+        name: "result",
+        mutate(trace) {
+          trace.turns[0].calls[0].result.modelOutput.ok = false;
+        },
+        error: /turn 1 call 1 result/i,
+      },
+      {
+        name: "state",
+        mutate(trace) {
+          trace.turns[0].calls[0].stateAfter.locationId = "guardroom";
+        },
+        error: /turn 1 call 1 state/i,
+      },
+    ];
+    for (const sample of cases) {
+      const trace = structuredClone(source);
+      sample.mutate(trace);
+      const tracePath = path.join(directory, `${sample.name}.json`);
+      writeFileSync(tracePath, JSON.stringify(trace));
+      const replayed = runCli("", ["--replay", tracePath]);
+      assert.equal(replayed.status, 1);
+      assert.match(replayed.stderr, sample.error);
+    }
+  });
+});
+
+test("scripted DM trace write failures preserve the gameplay result", () => {
+  withTemporaryDirectory((directory) => {
+    const result = runScriptedDm(
+      "Use it\n",
+      [{ text: "What do you mean?" }],
+      "0",
+      ["--trace", directory],
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /What do you mean/i);
+    assert.match(result.stderr, /Unable to write session trace/i);
+  });
+});
+
 test("scripted DM completes a natural-language seed-0 victory with backtracking", () => {
   const responses = [
     ...callThenNarrate(
@@ -1039,8 +1356,8 @@ test("built CLI rejects malformed, unsupported, and structurally invalid traces"
     const unsupportedCases = [
       {
         name: "format",
-        trace: { ...supportedHeader, formatVersion: 2 },
-        error: /unsupported trace format version 2/i,
+        trace: { ...supportedHeader, formatVersion: 3 },
+        error: /unsupported trace format version 3/i,
       },
       {
         name: "rules",

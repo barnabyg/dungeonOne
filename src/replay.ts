@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 import { isDeepStrictEqual } from "node:util";
 
 import { ADVENTURE } from "./adventure.js";
+import { DM_PROMPT_VERSION } from "./dm-turn.js";
+import { dispatchGameTool, GAME_TOOL_SCHEMA_VERSION } from "./game-tools.js";
 import { parseCommand } from "./parser.js";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
 import {
@@ -13,6 +15,7 @@ import {
 } from "./session.js";
 import {
   ADVENTURE_VERSION,
+  DM_TRACE_FORMAT_VERSION,
   LEGACY_ADVENTURE_VERSION,
   LEGACY_RULES_VERSION,
   RULES_VERSION,
@@ -36,6 +39,35 @@ type ReplayTrace = Readonly<{
   initialSeed: number;
   initialState: JsonObject;
   actions: readonly ReplayAction[];
+  completion: Readonly<{
+    reason: "quit" | "eof";
+    outcome: "victory" | "defeat" | "incomplete";
+  }>;
+}>;
+
+type ReplayDmCall = Readonly<{
+  sequence: number;
+  id: string;
+  name: string;
+  argumentsJson: string;
+  disposition: JsonObject;
+  rolls: readonly RollRecord[];
+  result?: JsonObject;
+  stateAfter: JsonObject;
+}>;
+
+type ReplayDmTurn = Readonly<{
+  sequence: number;
+  kind: "dm" | "local-help" | "local-quit";
+  rawPlayerInput: string;
+  calls: readonly ReplayDmCall[];
+  stateAfter: JsonObject;
+}>;
+
+type ReplayDmTrace = Readonly<{
+  initialSeed: number;
+  initialState: JsonObject;
+  turns: readonly ReplayDmTurn[];
   completion: Readonly<{
     reason: "quit" | "eof";
     outcome: "victory" | "defeat" | "incomplete";
@@ -561,7 +593,7 @@ function validateResult(value: unknown, path: string): JsonObject {
   return result;
 }
 
-function validateTrace(value: unknown): ReplayTrace {
+function validateFormat1Trace(value: unknown): ReplayTrace {
   const trace = requireObject(value, "Trace");
   requireSupported(
     trace.formatVersion,
@@ -654,6 +686,191 @@ function validateTrace(value: unknown): ReplayTrace {
   };
 }
 
+function validateCompletion(value: unknown): ReplayDmTrace["completion"] {
+  const completion = requireObject(value, "completion");
+  if (completion.reason !== "quit" && completion.reason !== "eof") {
+    throw new Error('completion.reason must be "quit" or "eof".');
+  }
+  if (
+    completion.outcome !== "victory" &&
+    completion.outcome !== "defeat" &&
+    completion.outcome !== "incomplete"
+  ) {
+    throw new Error(
+      'completion.outcome must be "victory", "defeat", or "incomplete".',
+    );
+  }
+  return {
+    reason: completion.reason,
+    outcome: completion.outcome,
+  };
+}
+
+function validateDmArguments(value: unknown, path: string): string {
+  const encoded = requireObject(value, path);
+  const raw = requireString(encoded.raw, `${path}.raw`);
+  if (encoded.encoding === "json") {
+    let decoded: unknown;
+    try {
+      decoded = JSON.parse(raw) as unknown;
+    } catch {
+      throw new Error(`${path}.raw must contain valid JSON.`);
+    }
+    requireMatch(`${path} decoded value`, encoded.value, decoded);
+  } else if (encoded.encoding === "invalid-json") {
+    try {
+      JSON.parse(raw);
+    } catch {
+      return raw;
+    }
+    throw new Error(`${path}.raw must contain invalid JSON.`);
+  } else {
+    throw new Error(`${path}.encoding must be "json" or "invalid-json".`);
+  }
+  return raw;
+}
+
+function validateDisposition(value: unknown, path: string): JsonObject {
+  const disposition = requireObject(value, path);
+  if (disposition.attempted !== true) {
+    throw new Error(`${path}.attempted must be true.`);
+  }
+  requireBoolean(disposition.validated, `${path}.validated`);
+  requireBoolean(disposition.executed, `${path}.executed`);
+  return disposition;
+}
+
+function validateDmTrace(value: unknown): ReplayDmTrace {
+  const trace = requireObject(value, "Trace");
+  requireSupported(
+    trace.formatVersion,
+    DM_TRACE_FORMAT_VERSION,
+    "trace format version",
+  );
+  requireSupported(trace.rulesVersion, RULES_VERSION, "rules version");
+  const adventure = requireObject(trace.adventure, "adventure");
+  requireSupported(adventure.id, ADVENTURE.id, "adventure id");
+  requireSupported(adventure.version, ADVENTURE_VERSION, "adventure version");
+  const random = requireObject(trace.random, "random");
+  requireSupported(random.algorithm, RANDOM_ALGORITHM, "random algorithm");
+  if (
+    !Number.isInteger(random.initialSeed) ||
+    Number(random.initialSeed) < 0 ||
+    Number(random.initialSeed) > 0xffff_ffff
+  ) {
+    throw new Error("random.initialSeed must be an unsigned 32-bit integer.");
+  }
+  const dm = requireObject(trace.dm, "dm");
+  requireSupported(dm.promptVersion, DM_PROMPT_VERSION, "DM prompt version");
+  requireSupported(
+    dm.toolSchemaVersion,
+    GAME_TOOL_SCHEMA_VERSION,
+    "tool schema version",
+  );
+  requireString(dm.provider, "dm.provider");
+  requireString(dm.model, "dm.model");
+  const initialState = validateState(trace.initialState, "initialState");
+  const turns = requireArray(trace.turns, "turns").map(
+    (value, turnIndex): ReplayDmTurn => {
+      const path = `turns[${turnIndex}]`;
+      const turn = requireObject(value, path);
+      if (turn.sequence !== turnIndex + 1) {
+        throw new Error(`${path}.sequence must be ${turnIndex + 1}.`);
+      }
+      const kind = requireOneOf(
+        turn.kind,
+        ["dm", "local-help", "local-quit"],
+        `${path}.kind`,
+      ) as ReplayDmTurn["kind"];
+      const rawPlayerInput = requireString(
+        turn.rawPlayerInput,
+        `${path}.rawPlayerInput`,
+      );
+      const calls = requireArray(turn.calls, `${path}.calls`).map(
+        (callValue, callIndex): ReplayDmCall => {
+          const callPath = `${path}.calls[${callIndex}]`;
+          const call = requireObject(callValue, callPath);
+          if (call.sequence !== callIndex + 1) {
+            throw new Error(`${callPath}.sequence must be ${callIndex + 1}.`);
+          }
+          const result =
+            call.result === undefined
+              ? undefined
+              : requireObject(call.result, `${callPath}.result`);
+          if (result !== undefined) {
+            requireObject(result.modelOutput, `${callPath}.result.modelOutput`);
+            if (result.engineResult !== undefined) {
+              requireObject(
+                result.engineResult,
+                `${callPath}.result.engineResult`,
+              );
+            }
+          }
+          if (call.failure !== undefined) {
+            const failure = requireObject(call.failure, `${callPath}.failure`);
+            requireString(failure.code, `${callPath}.failure.code`);
+          }
+          return {
+            sequence: call.sequence as number,
+            id: requireString(call.id, `${callPath}.id`),
+            name: requireString(call.name, `${callPath}.name`),
+            argumentsJson: validateDmArguments(
+              call.arguments,
+              `${callPath}.arguments`,
+            ),
+            disposition: validateDisposition(
+              call.disposition,
+              `${callPath}.disposition`,
+            ),
+            rolls: requireArray(call.rolls, `${callPath}.rolls`).map(
+              (roll, rollIndex) =>
+                validateRoll(roll, `${callPath}.rolls[${rollIndex}]`),
+            ),
+            ...(result === undefined ? {} : { result }),
+            stateAfter: validateState(
+              call.stateAfter,
+              `${callPath}.stateAfter`,
+            ),
+          };
+        },
+      );
+      if (kind !== "dm" && calls.length !== 0) {
+        throw new Error(`${path}.calls must be empty for ${kind}.`);
+      }
+      if (kind === "dm") {
+        requireString(turn.narration, `${path}.narration`);
+      } else if (turn.narration !== null) {
+        throw new Error(`${path}.narration must be null for ${kind}.`);
+      }
+      requireArray(turn.diagnostics, `${path}.diagnostics`).forEach(
+        (diagnostic, diagnosticIndex) => {
+          const record = requireObject(
+            diagnostic,
+            `${path}.diagnostics[${diagnosticIndex}]`,
+          );
+          requireString(
+            record.code,
+            `${path}.diagnostics[${diagnosticIndex}].code`,
+          );
+        },
+      );
+      return {
+        sequence: turn.sequence as number,
+        kind,
+        rawPlayerInput,
+        calls,
+        stateAfter: validateState(turn.stateAfter, `${path}.stateAfter`),
+      };
+    },
+  );
+  return {
+    initialSeed: Number(random.initialSeed),
+    initialState,
+    turns,
+    completion: validateCompletion(trace.completion),
+  };
+}
+
 function handleReplayAction(
   rulesVersion: ReplayTrace["rulesVersion"],
   state: SessionState,
@@ -715,7 +932,17 @@ export async function verifyTraceFile(path: string): Promise<void> {
       cause: error,
     });
   }
-  const trace = validateTrace(parsed);
+  const envelope = requireObject(parsed, "Trace");
+  if (envelope.formatVersion === DM_TRACE_FORMAT_VERSION) {
+    replayDmTrace(validateDmTrace(parsed));
+    return;
+  }
+  if (envelope.formatVersion !== TRACE_FORMAT_VERSION) {
+    throw new Error(
+      `Unsupported trace format version ${JSON.stringify(envelope.formatVersion)}.`,
+    );
+  }
+  const trace = validateFormat1Trace(parsed);
 
   let state = createSession();
   requireMatch("initial state", trace.initialState, state);
@@ -763,6 +990,77 @@ export async function verifyTraceFile(path: string): Promise<void> {
         );
       }
     }
+  }
+
+  const outcome =
+    state.status === "victory" || state.status === "defeat"
+      ? state.status
+      : "incomplete";
+  requireMatch("completion", trace.completion, { reason, outcome });
+}
+
+function replayDmTrace(trace: ReplayDmTrace): void {
+  let state = createSession();
+  requireMatch("initial state", trace.initialState, state);
+  const random = createSeededRandom(trace.initialSeed);
+  let reason: "quit" | "eof" = "eof";
+
+  for (const [turnIndex, turn] of trace.turns.entries()) {
+    const turnNumber = turnIndex + 1;
+    if (reason === "quit") {
+      requireMatch(`turn ${turnNumber} presence`, turn, "session ended");
+    }
+    if (turn.kind === "local-help") {
+      requireMatch(`turn ${turnNumber} state`, turn.stateAfter, state);
+      continue;
+    }
+    if (turn.kind === "local-quit") {
+      const quit = handleAction(state, { type: "quit" }, random);
+      state = quit.state;
+      reason = "quit";
+      requireMatch(`turn ${turnNumber} state`, turn.stateAfter, state);
+      continue;
+    }
+
+    for (const [callIndex, expected] of turn.calls.entries()) {
+      const location = `turn ${turnNumber} call ${callIndex + 1}`;
+      if (expected.result === undefined) {
+        requireMatch(`${location} state`, expected.stateAfter, state);
+        continue;
+      }
+      const rolls: RollRecord[] = [];
+      const result = dispatchGameTool(
+        state,
+        {
+          name: expected.name,
+          argumentsJson: expected.argumentsJson,
+        },
+        {
+          roll(sides: number): number {
+            const value = random.roll(sides);
+            rolls.push({ sides, value });
+            return value;
+          },
+        },
+      );
+      const validated =
+        result.engineResult !== undefined || result.modelOutput.ok;
+      requireMatch(`${location} disposition`, expected.disposition, {
+        attempted: true,
+        validated,
+        executed: validated,
+      });
+      requireMatch(`${location} rolls`, expected.rolls, rolls);
+      requireMatch(`${location} result`, expected.result, {
+        ...(result.engineResult === undefined
+          ? {}
+          : { engineResult: result.engineResult }),
+        modelOutput: result.modelOutput,
+      });
+      requireMatch(`${location} state`, expected.stateAfter, result.state);
+      state = result.state;
+    }
+    requireMatch(`turn ${turnNumber} state`, turn.stateAfter, state);
   }
 
   const outcome =

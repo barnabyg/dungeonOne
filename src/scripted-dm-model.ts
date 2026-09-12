@@ -16,6 +16,7 @@ export async function loadScriptedDmModel(path: string): Promise<DmModel> {
 
   let responseIndex = 0;
   return {
+    identity: { provider: "scripted", model: "scripted-dm-v1" },
     async respond(): Promise<DmModelResponse> {
       if (responseIndex >= decoded.length) {
         throw new Error("The scripted DM has no response remaining.");

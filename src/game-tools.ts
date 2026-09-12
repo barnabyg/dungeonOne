@@ -18,6 +18,8 @@ import {
   type SessionState,
 } from "./session.js";
 
+export const GAME_TOOL_SCHEMA_VERSION = "stolen-signet-tools-v1";
+
 export type DmScene = Readonly<{
   title: string;
   objective: string;

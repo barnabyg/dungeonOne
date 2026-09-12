@@ -60,9 +60,9 @@ end-of-input. A run that has not reached victory or defeat is marked
 save file and cannot be resumed. A write or serialization error is printed to
 standard error, exits nonzero, and does not change the game outcome.
 
-## Session trace format
+## Session trace formats
 
-Trace format version `1` is JSON and is a compatibility contract. It records
+Command mode exports trace format `1`. It is JSON and a compatibility contract. It records
 the rules and built-in adventure versions, random algorithm and initial seed,
 initial authoritative state, and every submitted CLI line in order. Each action
 entry contains the raw input, parsed structured action, random rolls consumed,
@@ -90,6 +90,30 @@ and sends it through the version-appropriate authoritative action boundary.
 Recorded actions, rolls, rejections, ordered mechanical events, per-action
 states, and completion are expectations only; replay never loads them as game
 state. Narration and timestamps are not compared.
+
+Scripted DM mode exports normalized trace format `2` when `--trace <path>` is
+supplied. Its header records the rules, adventure, random, DM prompt, and tool
+schema versions; the scripted provider/model identifiers; the seed; and the
+initial authoritative state. Each turn records the raw player text, ordered
+normalized tool calls, the original JSON argument text plus its decoded value
+(or a lossless `invalid-json` record), attempted/validated/executed disposition,
+tool result or normalized failure, rolls, per-call and per-turn authoritative
+states, sanitized narration, and diagnostics. Local `help` and `quit` are
+explicitly identified as local controls. Completion retains `quit` versus EOF
+and victory, defeat, or incomplete outcome.
+
+Format-2 replay never calls the DM model. It sends every dispatched call back
+through the validated game-tool dispatcher using the recorded seed, then
+compares dispositions, rolls, results, per-call state, per-turn state, and final
+completion. Narration and provider/model identifiers are diagnostic and are not
+part of deterministic equality. A clarification-only turn proves that no call,
+state change, or random draw occurred.
+
+Format 2 contains only allowlisted application data. It excludes credentials,
+request headers, hidden provider reasoning, and complete provider SDK payloads.
+Raw player text is intentionally included because it is necessary to diagnose
+interpretation; treat exported traces accordingly when players may enter
+sensitive text.
 
 On macOS or Linux, use `npm` in place of `npm.cmd`. The optional seed must be a decimal integer from `0` through `4294967295`. If omitted, the game chooses one. Every run prints its seed once so it can be replayed. The game then displays the objective, fighter HP, session state, entrance scene, and a help hint. Enter `help` to list commands, `quit` to leave cleanly, or send EOF (`Ctrl+Z` then Enter on Windows; `Ctrl+D` on macOS/Linux) to close input cleanly.
 
@@ -230,9 +254,10 @@ Remove-Item Env:DUNGEON_ONE_TEST_DM_SCRIPT
 
 The terminal keeps exact local `help` and `quit` handling, and prints separate
 `Mechanics` and `Dungeon Master` sections. Command mode is unchanged when the
-test variable is absent. There is deliberately no production live-model startup
-or trace export for scripted DM mode; the OpenAI Responses adapter and AI-session
-trace format belong to follow-up issues.
+test variable is absent. Add `--trace <path>` to export a format-2 scripted-DM
+session, and replay it later with `--replay <path>` without the script or a model.
+There is deliberately no production live-model startup yet; the OpenAI Responses
+adapter belongs to a follow-up issue.
 
 ## Verification
 

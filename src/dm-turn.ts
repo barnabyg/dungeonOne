@@ -50,6 +50,10 @@ export type DmModelRequest = Readonly<{
 }>;
 
 export type DmModel = Readonly<{
+  identity?: Readonly<{
+    provider: string;
+    model: string;
+  }>;
   respond(request: DmModelRequest): Promise<DmModelResponse>;
 }>;
 

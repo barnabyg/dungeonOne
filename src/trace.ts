@@ -1,6 +1,13 @@
 import { writeFile } from "node:fs/promises";
 
 import { ADVENTURE } from "./adventure.js";
+import {
+  DM_PROMPT_VERSION,
+  type DmDiagnostic,
+  type DmModel,
+  type DmTurnResult,
+} from "./dm-turn.js";
+import { GAME_TOOL_SCHEMA_VERSION } from "./game-tools.js";
 import { RANDOM_ALGORITHM } from "./random.js";
 import type {
   Action,
@@ -11,6 +18,7 @@ import type {
 } from "./session.js";
 
 export const TRACE_FORMAT_VERSION = 1;
+export const DM_TRACE_FORMAT_VERSION = 2;
 export const LEGACY_RULES_VERSION = "stolen-signet-rules-v1";
 export const LEGACY_ADVENTURE_VERSION = "1";
 export const RULES_VERSION = "stolen-signet-rules-v2";
@@ -37,6 +45,50 @@ type TraceCompletion = Readonly<{
   outcome: "victory" | "defeat" | "incomplete";
 }>;
 
+type EncodedToolArguments = Readonly<
+  | { encoding: "json"; raw: string; value: unknown }
+  | { encoding: "invalid-json"; raw: string }
+>;
+
+type DmTraceCall = Readonly<{
+  sequence: number;
+  id: string;
+  name: string;
+  arguments: EncodedToolArguments;
+  disposition: DmTurnResult["toolAttempts"][number]["disposition"];
+  rolls: readonly RollRecord[];
+  result?: Readonly<{
+    engineResult?: NonNullable<
+      DmTurnResult["toolAttempts"][number]["result"]
+    >["engineResult"];
+    modelOutput: NonNullable<
+      DmTurnResult["toolAttempts"][number]["result"]
+    >["modelOutput"];
+  }>;
+  failure?: DmDiagnostic;
+  stateAfter: SessionState;
+}>;
+
+type DmTraceTurn = Readonly<{
+  sequence: number;
+  kind: "dm";
+  rawPlayerInput: string;
+  calls: readonly DmTraceCall[];
+  narration: string;
+  diagnostics: readonly DmDiagnostic[];
+  stateAfter: SessionState;
+}>;
+
+type LocalTraceTurn = Readonly<{
+  sequence: number;
+  kind: "local-help" | "local-quit";
+  rawPlayerInput: string;
+  calls: readonly [];
+  narration: null;
+  diagnostics: readonly [];
+  stateAfter: SessionState;
+}>;
+
 export type SessionTrace = {
   readonly formatVersion: typeof TRACE_FORMAT_VERSION;
   readonly rulesVersion: typeof RULES_VERSION;
@@ -53,6 +105,30 @@ export type SessionTrace = {
   completion?: TraceCompletion;
 };
 
+export type DmSessionTrace = {
+  readonly formatVersion: typeof DM_TRACE_FORMAT_VERSION;
+  readonly rulesVersion: typeof RULES_VERSION;
+  readonly adventure: Readonly<{
+    id: typeof ADVENTURE.id;
+    version: typeof ADVENTURE_VERSION;
+  }>;
+  readonly random: Readonly<{
+    algorithm: typeof RANDOM_ALGORITHM;
+    initialSeed: number;
+  }>;
+  readonly dm: Readonly<{
+    promptVersion: typeof DM_PROMPT_VERSION;
+    toolSchemaVersion: typeof GAME_TOOL_SCHEMA_VERSION;
+    provider: string;
+    model: string;
+  }>;
+  readonly initialState: SessionState;
+  readonly turns: Array<DmTraceTurn | LocalTraceTurn>;
+  completion?: TraceCompletion;
+};
+
+export type AnySessionTrace = SessionTrace | DmSessionTrace;
+
 export function createSessionTrace(
   initialSeed: number,
   initialState: SessionState,
@@ -65,6 +141,100 @@ export function createSessionTrace(
     initialState,
     actions: [],
   };
+}
+
+export function createDmSessionTrace(
+  initialSeed: number,
+  initialState: SessionState,
+  identity: NonNullable<DmModel["identity"]>,
+): DmSessionTrace {
+  return {
+    formatVersion: DM_TRACE_FORMAT_VERSION,
+    rulesVersion: RULES_VERSION,
+    adventure: { id: ADVENTURE.id, version: ADVENTURE_VERSION },
+    random: { algorithm: RANDOM_ALGORITHM, initialSeed },
+    dm: {
+      promptVersion: DM_PROMPT_VERSION,
+      toolSchemaVersion: GAME_TOOL_SCHEMA_VERSION,
+      provider: identity.provider,
+      model: identity.model,
+    },
+    initialState,
+    turns: [],
+  };
+}
+
+function encodeToolArguments(argumentsJson: string): EncodedToolArguments {
+  try {
+    return {
+      encoding: "json",
+      raw: argumentsJson,
+      value: JSON.parse(argumentsJson) as unknown,
+    };
+  } catch {
+    return { encoding: "invalid-json", raw: argumentsJson };
+  }
+}
+
+export function recordDmTraceTurn(
+  trace: DmSessionTrace,
+  rawPlayerInput: string,
+  turn: DmTurnResult,
+): void {
+  let callState = trace.turns.at(-1)?.stateAfter ?? trace.initialState;
+  const terminalFailure = turn.diagnostics.at(-1);
+  const calls = turn.toolAttempts.map((attempt, index): DmTraceCall => {
+    if (attempt.result !== undefined) {
+      callState = attempt.result.state;
+    }
+    return {
+      sequence: index + 1,
+      id: attempt.call.id,
+      name: attempt.call.name,
+      arguments: encodeToolArguments(attempt.call.argumentsJson),
+      disposition: attempt.disposition,
+      rolls: attempt.rolls,
+      ...(attempt.result === undefined
+        ? terminalFailure === undefined
+          ? {}
+          : { failure: terminalFailure }
+        : {
+            result: {
+              ...(attempt.result.engineResult === undefined
+                ? {}
+                : { engineResult: attempt.result.engineResult }),
+              modelOutput: attempt.result.modelOutput,
+            },
+          }),
+      stateAfter: callState,
+    };
+  });
+  trace.turns.push({
+    sequence: trace.turns.length + 1,
+    kind: "dm",
+    rawPlayerInput,
+    calls,
+    narration: turn.narration,
+    diagnostics: turn.diagnostics,
+    stateAfter: turn.state,
+  });
+}
+
+export function recordLocalTraceTurn(
+  trace: DmSessionTrace,
+  kind: LocalTraceTurn["kind"],
+  rawPlayerInput: string,
+  stateAfter: SessionState,
+): void {
+  trace.turns.push({
+    sequence: trace.turns.length + 1,
+    kind,
+    rawPlayerInput,
+    calls: [],
+    narration: null,
+    diagnostics: [],
+    stateAfter,
+  });
 }
 
 export function recordTraceAction(
@@ -88,7 +258,7 @@ export function recordTraceAction(
 }
 
 export function completeSessionTrace(
-  trace: SessionTrace,
+  trace: AnySessionTrace,
   reason: TraceCompletion["reason"],
   finalState: SessionState,
 ): void {
@@ -101,7 +271,7 @@ export function completeSessionTrace(
   };
 }
 
-export function serializeSessionTrace(trace: SessionTrace): string {
+export function serializeSessionTrace(trace: AnySessionTrace): string {
   try {
     return `${JSON.stringify(trace, undefined, 2)}\n`;
   } catch (error) {
@@ -114,7 +284,7 @@ export function serializeSessionTrace(trace: SessionTrace): string {
 
 export async function writeSessionTrace(
   path: string,
-  trace: SessionTrace,
+  trace: AnySessionTrace,
 ): Promise<void> {
   const contents = serializeSessionTrace(trace);
   try {
