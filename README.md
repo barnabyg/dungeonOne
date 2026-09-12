@@ -338,8 +338,10 @@ npm.cmd run eval:dm -- --model <model-id>
 
 By default the JSON report is written to
 `.dm-evaluations/<model-id>-report.json`. That directory is ignored by Git.
-Use `--output <path>` to select another local destination and
-`--repetitions <count>` to increase the sample size. The report records the
+Use `--output .dm-evaluations/<name>.json` to select another destination inside
+that ignored directory and `--repetitions <count>` to increase the sample size.
+Paths outside `.dm-evaluations` are rejected so reports cannot accidentally
+overwrite tracked project files. The report records the
 requested and actual model identifiers, prompt and tool-schema versions,
 case/repetition/seed, sanitized narration, normalized calls and authoritative
 outcomes, per-response latency and token use, normalized provider-failure codes,

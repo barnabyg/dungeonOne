@@ -66,11 +66,32 @@ function defaultOutputPath(model) {
   return path.join(".dm-evaluations", `${safeModel}-report.json`);
 }
 
+function resolveOutputPath(model, requestedPath) {
+  const reportRoot = path.resolve(".dm-evaluations");
+  const outputPath = path.resolve(requestedPath ?? defaultOutputPath(model));
+  const relativePath = path.relative(reportRoot, outputPath);
+  if (
+    relativePath.length === 0 ||
+    relativePath === ".." ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath)
+  ) {
+    throw new Error("Report output must be inside .dm-evaluations.");
+  }
+  return outputPath;
+}
+
 let configuration;
 try {
   configuration = parseArguments(process.argv.slice(2));
-} catch {
-  process.stderr.write(`${USAGE}\n`);
+  configuration.outputPath = resolveOutputPath(
+    configuration.model,
+    configuration.outputPath,
+  );
+} catch (error) {
+  process.stderr.write(
+    `${error instanceof Error ? error.message : USAGE}\n${USAGE}\n`,
+  );
   process.exit(2);
 }
 
@@ -93,8 +114,7 @@ try {
   process.exit(2);
 }
 
-const outputPath =
-  configuration.outputPath ?? defaultOutputPath(configuration.model);
+const outputPath = configuration.outputPath;
 try {
   const report = await runDmEvaluation({
     requestedModel: configuration.model,
