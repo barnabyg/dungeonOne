@@ -3,9 +3,9 @@
 Run date: 12 September 2026
 
 This record covers the reproducible agent-executable acceptance work for GitHub
-issue #23. The issue is not ready to close: `gpt-5.6-luna` was subsequently
-selected as the operator-requested default, but the required unfamiliar-human
-acceptance evidence remains pending.
+issue #23. `gpt-5.6-luna` was subsequently selected as the operator-requested
+default, and the repository operator supplied the required live human
+acceptance evidence.
 
 ## Clean-checkout installation and verification
 
@@ -180,27 +180,29 @@ or recording it:
 It exited zero, used the default without a `--model` argument, described the
 visible Entrance state without a mutation, and handled local quit cleanly.
 
-## Human acceptance — pending
+## Human acceptance — passed
 
-No unfamiliar human tester participated in this implementation session. The
-scripted and agent-operated playthroughs above do not substitute for the issue's
-human criterion. A tester unfamiliar with the implementation must still:
+On 12 September 2026, the repository operator reported completing the prescribed
+tester flow in a live `--ai` session using the default `gpt-5.6-luna`. They
+explicitly confirmed that this was the live provider path, not the checked-in
+`DUNGEON_ONE_TEST_DM_SCRIPT` adapter.
 
-1. install and start the project from tracked files;
-2. complete a full live-AI victory using ordinary language, without canonical
-   gameplay syntax or developer intervention;
-3. observe and explain an understandable defeat and local quit; and
-4. record the date, platform/runtime, exact configured model, outcome, any
-   unclear instructions, and any intervention.
+The report covers the ordinary-language victory, understandable defeat, and
+local-quit flow requested by the issue. The tester reported that it “worked
+perfectly”; no developer intervention, unclear instruction, or narration defect
+was reported. The tester's platform and runtime were not separately supplied;
+the clean-checkout platform and runtime used for the agent-executable evidence
+remain recorded above.
 
 ## Resolution status
 
-Issue #23 must remain open. Its agent-executable mechanics, safety, trace,
-privacy, clean-checkout, and explicit-model smoke evidence pass. The default is
-now configured, but two evidence requirements are outstanding:
+Issue #23 is accepted for resolution. Its agent-executable mechanics, safety,
+trace, privacy, clean-checkout, and live default-model smoke evidence pass, and
+the repository operator has supplied the required human acceptance result.
 
-- evaluate and manually review `gpt-5.6-luna` before making a quality or
-  release-readiness claim for it; and
-- obtain actual unfamiliar-human acceptance evidence.
+The bounded issue #22 evaluation remains historical evidence for older model
+IDs; selecting `gpt-5.6-luna` was an explicit operator decision supported here
+by the successful live smoke and human tester report, not a claim that the old
+campaign evaluated Luna.
 
 No content, rules, deployment, or unrelated refactor was added.

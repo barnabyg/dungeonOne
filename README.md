@@ -426,6 +426,6 @@ The recorded issue #11 handoff evidence, including the explicitly pending human
 acceptance action, is in
 [`docs/acceptance/issue-11.md`](docs/acceptance/issue-11.md).
 
-The Increment 2 handoff commands, trace evidence, live-AI smoke result, and
-remaining default-model and unfamiliar-human blockers are recorded in
+The Increment 2 handoff commands, trace evidence, live-AI smoke result, default
+model decision, and human acceptance result are recorded in
 [`docs/acceptance/issue-23.md`](docs/acceptance/issue-23.md).
