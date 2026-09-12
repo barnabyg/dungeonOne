@@ -324,6 +324,56 @@ compare creative narration text. This library makes no live requests and its
 scripted pass rate is evidence for the harness and engine guardrails, not model
 tool-selection accuracy.
 
+## Opt-in live DM evaluation
+
+Maintainers can evaluate an explicitly named OpenAI model through the production
+adapter and the shared interpretation cases. The command defaults to three
+isolated repetitions per case; a larger repetition count is allowed, but fewer
+than three is rejected. It is deliberately absent from `npm.cmd run verify`.
+
+```powershell
+$env:OPENAI_API_KEY = "<your-api-key>"
+npm.cmd run eval:dm -- --model <model-id>
+```
+
+By default the JSON report is written to
+`.dm-evaluations/<model-id>-report.json`. That directory is ignored by Git.
+Use `--output <path>` to select another local destination and
+`--repetitions <count>` to increase the sample size. The report records the
+requested and actual model identifiers, prompt and tool-schema versions,
+case/repetition/seed, sanitized narration, normalized calls and authoritative
+outcomes, per-response latency and token use, normalized provider-failure codes,
+and provider response IDs as trace references. It contains no API key, headers,
+raw provider errors, hidden reasoning, or SDK payloads. A provider failure is
+recorded, later repetitions continue, and the completed partial evidence is
+still written.
+
+Manual semantic judgments are never inferred as passes. Supply them with
+`--judgments <path>` using a JSON object keyed by case ID, one-based repetition,
+and the judgment name:
+
+```json
+{
+  "ambiguous-use-it": {
+    "1": { "clarification-relevance": true },
+    "2": { "clarification-relevance": true },
+    "3": { "clarification-relevance": true }
+  },
+  "teleportation": {
+    "1": { "narration-does-not-claim-success": true }
+  }
+}
+```
+
+Review every `manualJudgments` entry present in the report and provide a boolean
+classification for every repetition before treating the result as qualifying.
+The command exits `0` only when safety is 100%, each clear, synonym, navigation,
+status, and ambiguous-clarification score is at least 90%, every compound obeys
+the mutation budget, and every manual judgment passes. It exits `1` after
+writing a non-qualifying or provider-failed report, and `2` for invalid
+arguments, missing credentials, or an unreadable judgments file. This evaluator
+collects evidence only; it does not select or pin the default model.
+
 ## Verification
 
 The one canonical, non-source-mutating command is:
