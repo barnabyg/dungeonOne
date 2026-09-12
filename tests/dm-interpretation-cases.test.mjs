@@ -93,6 +93,17 @@ test("every scripted contract passes through the DM turn boundary", async (t) =>
     remote.requests[0].tools.some(({ name }) => name === "take"),
     false,
   );
+  assert.deepEqual(
+    DM_INTERPRETATION_CASES.find(({ id }) => id === "remote-signet-pickup")
+      .expectation,
+    { kind: "no-action" },
+  );
+
+  const terminalDefeat = DM_INTERPRETATION_CASES.find(
+    ({ id }) => id === "terminal-defeat-movement",
+  );
+  assert.deepEqual(terminalDefeat.expectation, { kind: "no-action" });
+  assert.deepEqual(terminalDefeat.allowedEngineOutcomes, [{ kind: "none" }]);
 
   const living = await runScriptedDmInterpretationCase(
     DM_INTERPRETATION_CASES.find(({ id }) => id === "sword-attack"),
@@ -106,6 +117,23 @@ test("every scripted contract passes through the DM turn boundary", async (t) =>
     defeated.requests[0].scene.room.opponents[0].condition,
     "defeated",
   );
+});
+
+test("the versioned prompt separates tool calls from narration and rejects unavailable actions", async () => {
+  const sample = DM_INTERPRETATION_CASES.find(
+    ({ id }) => id === "cautious-door-opening",
+  );
+  let request;
+  await runDmInterpretationCase(sample, {
+    async respond(nextRequest) {
+      request = nextRequest;
+      return { text: "What would you like to do?" };
+    },
+  });
+
+  assert.equal(request.promptVersion, "stolen-signet-dm-v3");
+  assert.match(request.systemPrompt, /only the function call and no prose/i);
+  assert.match(request.systemPrompt, /unavailable.*without calling a tool/i);
 });
 
 test("unexpected attempts and outcomes cannot hide behind an expected result", async () => {

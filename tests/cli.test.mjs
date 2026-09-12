@@ -99,11 +99,11 @@ test("built game prints one reproducible seed and rejects invalid startup seeds"
   assert.doesNotMatch(invalid.stdout, /The Stolen Signet/i);
 });
 
-test("AI startup is explicit, model-pinned, and keeps offline paths key-free", () => {
+test("AI startup has a pinned default, supports overrides, and keeps offline paths key-free", () => {
   const offlineEnvironment = { OPENAI_API_KEY: "" };
   const help = runCli("", ["--help"], offlineEnvironment);
   const command = runCli("quit\n", ["--seed", "0"], offlineEnvironment);
-  const missingModel = runCli("", ["--ai"], offlineEnvironment);
+  const defaultMissingKey = runCli("", ["--ai"], offlineEnvironment);
   const missingKey = runCli(
     "",
     ["--ai", "--model", "test-model"],
@@ -127,13 +127,17 @@ test("AI startup is explicit, model-pinned, and keeps offline paths key-free", (
 
   assert.equal(help.status, 0, help.stderr);
   assert.match(help.stdout, /Usage: dungeon-one/);
-  assert.match(help.stdout, /--ai --model <model-id>/);
+  assert.match(help.stdout, /--ai \[--model <model-id>\]/);
+  assert.match(help.stdout, /Default AI model: gpt-5\.5-2026-04-23/);
   assert.doesNotMatch(help.stdout, /The Stolen Signet/);
   assert.equal(command.status, 0, command.stderr);
   assert.match(command.stdout, /The Stolen Signet/);
-  assert.equal(missingModel.status, 2);
-  assert.match(missingModel.stderr, /AI mode requires --model <model-id>/i);
-  assert.doesNotMatch(missingModel.stdout, /The Stolen Signet/);
+  assert.equal(defaultMissingKey.status, 2);
+  assert.match(
+    defaultMissingKey.stderr,
+    /OPENAI_API_KEY is required for AI mode/i,
+  );
+  assert.doesNotMatch(defaultMissingKey.stdout, /The Stolen Signet/);
   assert.equal(missingKey.status, 2);
   assert.match(missingKey.stderr, /OPENAI_API_KEY is required for AI mode/i);
   assert.doesNotMatch(missingKey.stderr, /test-model.*key|key.*test-model/i);
@@ -152,6 +156,21 @@ test("explicit AI mode can use the scripted transport seam without credentials",
     [{ text: "You stand in the ruined entrance." }],
     "0",
     ["--ai", "--model", "test-model"],
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(
+    result.stdout,
+    /Dungeon Master:\s*You stand in the ruined entrance/i,
+  );
+});
+
+test("default AI mode can use the scripted transport seam without a model flag", () => {
+  const result = runScriptedDm(
+    "What can I see?\nquit\n",
+    [{ text: "You stand in the ruined entrance." }],
+    "0",
+    ["--ai"],
   );
 
   assert.equal(result.status, 0, result.stderr);
@@ -847,7 +866,7 @@ test("scripted DM exports and replays a normalized format-2 clarification and lo
       initialSeed: 42,
     });
     assert.deepEqual(trace.dm, {
-      promptVersion: "stolen-signet-dm-v2",
+      promptVersion: "stolen-signet-dm-v3",
       toolSchemaVersion: "stolen-signet-tools-v1",
       provider: "scripted",
       model: "scripted-dm-v1",
@@ -870,6 +889,18 @@ test("scripted DM exports and replays a normalized format-2 clarification and lo
     const replayed = runCli("", ["--replay", tracePath]);
     assert.equal(replayed.status, 0, replayed.stderr);
     assert.match(replayed.stdout, /Trace verified successfully/i);
+
+    const releasedPromptTracePath = path.join(
+      directory,
+      "released-prompt.json",
+    );
+    trace.dm.promptVersion = "stolen-signet-dm-v2";
+    writeFileSync(releasedPromptTracePath, JSON.stringify(trace));
+    const releasedPromptReplay = runCli("", [
+      "--replay",
+      releasedPromptTracePath,
+    ]);
+    assert.equal(releasedPromptReplay.status, 0, releasedPromptReplay.stderr);
   });
 });
 

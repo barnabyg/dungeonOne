@@ -19,14 +19,17 @@ npm.cmd run build
 npm.cmd start -- --seed 0
 ```
 
-For opt-in live AI play, set `OPENAI_API_KEY` in the environment and explicitly
-choose a model. There is no default model until the separate model-evaluation
-work is complete:
+For opt-in live AI play, set `OPENAI_API_KEY` in the environment. `--ai` uses
+the evaluation-qualified, pinned default `gpt-5.5-2026-04-23`:
 
 ```powershell
 $env:OPENAI_API_KEY = "<your-api-key>"
-npm.cmd start -- --ai --model <model-id> --seed 0
+npm.cmd start -- --ai --seed 0
 ```
+
+Use `--model <model-id>` after `--ai` to override the default for evaluation or
+diagnosis. The evidence supporting the default is recorded in
+[`docs/acceptance/issue-22.md`](docs/acceptance/issue-22.md).
 
 The key is never accepted as a command-line argument. Live requests use the
 Responses API with strict function tools, parallel calls disabled, response
@@ -37,7 +40,7 @@ reduced to safe local errors. The terminal preserves any already-committed
 engine action and remains usable at the next prompt.
 
 After a normal install, a deliberately opt-in one-turn live smoke check exercises
-the same explicit-model startup path. It is not part of canonical verification:
+the explicit-model override path. It is not part of canonical verification:
 
 ```powershell
 npm.cmd run smoke:ai -- --model <model-id>
@@ -240,7 +243,7 @@ inspected by stable reference and are listed by `get_character_status`.
 ## Scripted Dungeon Master
 
 `src/dm-turn.ts` provides the provider-neutral `DmModel` port and the versioned
-`stolen-signet-dm-v2` prompt. A turn receives untrusted player text, current
+`stolen-signet-dm-v3` prompt. A turn receives untrusted player text, current
 authoritative scene and character projections, current strict tool definitions,
 and bounded local transcript history. It returns authoritative state, ordered
 tool results and mechanics, sanitized narration, bounded transcript, and
@@ -289,8 +292,8 @@ The terminal keeps exact local `help` and `quit` handling, and prints separate
 `Mechanics` and `Dungeon Master` sections. Command mode is unchanged when the
 test variable is absent. Add `--trace <path>` to export a format-2 scripted-DM
 session, and replay it later with `--replay <path>` without the script or a model.
-Production live-model startup uses `--ai --model <model-id>` and
-`OPENAI_API_KEY`. The scripted seam remains available only for deterministic
+Production live-model startup uses `--ai` with an optional `--model <model-id>`
+override and `OPENAI_API_KEY`. The scripted seam remains available only for deterministic
 automated tests; canonical tests never make live API requests.
 
 ## DM interpretation case library
@@ -374,7 +377,9 @@ status, and ambiguous-clarification score is at least 90%, every compound obeys
 the mutation budget, and every manual judgment passes. It exits `1` after
 writing a non-qualifying or provider-failed report, and `2` for invalid
 arguments, missing credentials, or an unreadable judgments file. This evaluator
-collects evidence only; it does not select or pin the default model.
+collects evidence only; it does not change the pinned default model. See the
+issue 22 acceptance record for the bounded evaluation that selected the current
+default.
 
 ## Verification
 

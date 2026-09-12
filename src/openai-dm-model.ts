@@ -9,6 +9,7 @@ import type {
 } from "./dm-turn.js";
 
 export const OPENAI_DM_DEFAULT_TIMEOUT_MS = 30_000;
+export const OPENAI_DM_DEFAULT_MODEL = "gpt-5.5-2026-04-23";
 
 export const OPENAI_DM_ERROR_CODES = [
   "authentication",

@@ -13,7 +13,7 @@ import { createSession } from "../dist/session.js";
 function request(overrides = {}) {
   const state = createSession();
   return {
-    promptVersion: "stolen-signet-dm-v2",
+    promptVersion: "stolen-signet-dm-v3",
     systemPrompt: "Dungeon master instructions",
     playerInput: "Open the door",
     transcript: [],

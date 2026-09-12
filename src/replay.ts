@@ -7,8 +7,8 @@ import {
   DM_DIAGNOSTIC_CODES,
   DM_INPUT_DIAGNOSTIC_CODES,
   DM_MUTATION_TOOL_NAMES,
-  DM_PROMPT_VERSION,
   DM_READ_TOOL_NAMES,
+  DM_SUPPORTED_PROMPT_VERSIONS,
   DM_TURN_LIMITS,
   normalizeDmText,
   type DmDiagnosticCode,
@@ -849,7 +849,15 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
     throw new Error("random.initialSeed must be an unsigned 32-bit integer.");
   }
   const dm = requireObject(trace.dm, "dm");
-  requireSupported(dm.promptVersion, DM_PROMPT_VERSION, "DM prompt version");
+  if (
+    !DM_SUPPORTED_PROMPT_VERSIONS.some(
+      (version) => version === dm.promptVersion,
+    )
+  ) {
+    throw new Error(
+      `Unsupported DM prompt version ${JSON.stringify(dm.promptVersion)}.`,
+    );
+  }
   requireSupported(
     dm.toolSchemaVersion,
     GAME_TOOL_SCHEMA_VERSION,
