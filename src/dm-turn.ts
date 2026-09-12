@@ -57,19 +57,31 @@ export type DmModel = Readonly<{
   respond(request: DmModelRequest): Promise<DmModelResponse>;
 }>;
 
-export type DmDiagnosticCode =
-  | "empty-player-input"
-  | "overlong-player-input"
-  | "model-failure"
-  | "model-response-limit"
-  | "malformed-response"
-  | "empty-narration"
-  | "overlong-narration"
-  | "multi-call-response"
-  | "duplicate-call-id"
-  | "unsupported-tool"
-  | "read-call-limit"
-  | "mutation-call-limit";
+export const DM_INPUT_DIAGNOSTIC_CODES = [
+  "empty-player-input",
+  "overlong-player-input",
+] as const;
+export const DM_RESPONSE_DIAGNOSTIC_CODES = [
+  "model-failure",
+  "model-response-limit",
+  "malformed-response",
+  "empty-narration",
+  "overlong-narration",
+  "multi-call-response",
+] as const;
+export const DM_CALL_DIAGNOSTIC_CODES = [
+  "duplicate-call-id",
+  "unsupported-tool",
+  "read-call-limit",
+  "mutation-call-limit",
+] as const;
+export const DM_DIAGNOSTIC_CODES = [
+  ...DM_INPUT_DIAGNOSTIC_CODES,
+  ...DM_RESPONSE_DIAGNOSTIC_CODES,
+  ...DM_CALL_DIAGNOSTIC_CODES,
+] as const;
+
+export type DmDiagnosticCode = (typeof DM_DIAGNOSTIC_CODES)[number];
 
 export type DmDiagnostic = Readonly<{
   code: DmDiagnosticCode;
@@ -123,18 +135,20 @@ Use only a currently offered tool when authoritative information is needed. Each
 
 After any tool result, respect both accepted results and rejections. After victory or defeat, allow reflection and read tools but no further gameplay mutation. Narrate concisely in the second person. Keep ordinary prose separate from mechanics; the terminal prints authoritative mechanics itself.`;
 
-const READ_TOOL_NAMES = new Set<GameToolName>([
+export const DM_READ_TOOL_NAMES = [
   "look",
   "inspect",
   "get_character_status",
-]);
-const MUTATION_TOOL_NAMES = new Set<GameToolName>([
+] as const satisfies readonly GameToolName[];
+export const DM_MUTATION_TOOL_NAMES = [
   "move",
   "open",
   "take",
   "attack",
   "leave",
-]);
+] as const satisfies readonly GameToolName[];
+const READ_TOOL_NAMES = new Set<GameToolName>(DM_READ_TOOL_NAMES);
+const MUTATION_TOOL_NAMES = new Set<GameToolName>(DM_MUTATION_TOOL_NAMES);
 const SUPPORTED_TOOL_NAMES = new Set<GameToolName>([
   ...READ_TOOL_NAMES,
   ...MUTATION_TOOL_NAMES,
@@ -146,7 +160,7 @@ const COMMITTED_ACTION_FALLBACK =
 const EMPTY_INPUT_FALLBACK =
   "Please enter a question about what you can see or your character's status.";
 
-function sanitizeText(text: string): string {
+export function normalizeDmText(text: string): string {
   return stripVTControlCharacters(text)
     .replace(/\r\n?/gu, "\n")
     .replace(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f]/gu, "")
@@ -158,7 +172,7 @@ function boundTranscript(
 ): readonly DmTranscriptEntry[] {
   const sanitized = entries.map((entry) => ({
     role: entry.role,
-    text: sanitizeText(entry.text),
+    text: normalizeDmText(entry.text),
   }));
   const bounded = sanitized.slice(-DM_TURN_LIMITS.maxTranscriptEntries);
   let characters = bounded.reduce(
@@ -256,7 +270,7 @@ export async function runDmTurn(
     model: DmModel;
   }>,
 ): Promise<DmTurnResult> {
-  const playerInput = sanitizeText(input.playerInput);
+  const playerInput = normalizeDmText(input.playerInput);
   const transcript = boundTranscript(input.transcript);
   const diagnostics: DmDiagnostic[] = [];
   const toolResults: Array<DmTurnResult["toolResults"][number]> = [];
@@ -346,7 +360,7 @@ export async function runDmTurn(
       if (typeof record.text !== "string") {
         return fail({ code: "malformed-response", responseNumber });
       }
-      const narration = sanitizeText(record.text);
+      const narration = normalizeDmText(record.text);
       if (narration.length === 0) {
         return fail({ code: "empty-narration", responseNumber });
       }

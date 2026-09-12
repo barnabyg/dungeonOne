@@ -974,6 +974,299 @@ test("format-2 records valid and invalid tool arguments losslessly", () => {
   });
 });
 
+test("format-2 round-trips rejected tools and every orchestration budget", () => {
+  withTemporaryDirectory((directory) => {
+    const cases = [
+      {
+        name: "unknown-tool",
+        input: "Change reality\n",
+        responses: [
+          {
+            toolCalls: [
+              { id: "unknown", name: "set_hp", argumentsJson: '{"hp":99}' },
+            ],
+          },
+        ],
+        expectedFailure: "unsupported-tool",
+      },
+      {
+        name: "malformed-json",
+        input: "Inspect it\n",
+        responses: [
+          {
+            toolCalls: [
+              { id: "malformed", name: "inspect", argumentsJson: "{broken" },
+            ],
+          },
+          { text: "That reference was malformed." },
+        ],
+        expectedToolError: "malformed-json",
+      },
+      {
+        name: "extra-property",
+        input: "Open the door\n",
+        responses: [
+          {
+            toolCalls: [
+              {
+                id: "extra",
+                name: "open",
+                argumentsJson:
+                  '{"door_id":"entrance-door","hidden":"reliquary"}',
+              },
+            ],
+          },
+          { text: "The arguments were rejected." },
+        ],
+        expectedToolError: "invalid-arguments",
+      },
+      {
+        name: "hidden-reference",
+        input: "Go to the reliquary\n",
+        responses: [
+          {
+            toolCalls: [
+              {
+                id: "hidden",
+                name: "move",
+                argumentsJson: '{"destination_id":"reliquary"}',
+              },
+            ],
+          },
+          { text: "That location is not currently reachable." },
+        ],
+        expectedToolError: "unavailable-reference",
+      },
+      {
+        name: "invalid-reference",
+        input: "Open the vault\n",
+        responses: [
+          {
+            toolCalls: [
+              {
+                id: "invalid",
+                name: "open",
+                argumentsJson: '{"door_id":"vault-door"}',
+              },
+            ],
+          },
+          { text: "There is no such visible door." },
+        ],
+        expectedToolError: "unavailable-reference",
+      },
+      {
+        name: "engine-rejection",
+        input: "Leave now\n",
+        responses: [
+          { toolCalls: [{ id: "leave", name: "leave", argumentsJson: "{}" }] },
+          { text: "You cannot leave from here." },
+        ],
+        expectedToolError: "action-rejected",
+      },
+      {
+        name: "duplicate-id",
+        input: "Look twice\n",
+        responses: [
+          { toolCalls: [{ id: "same", name: "look", argumentsJson: "{}" }] },
+          { toolCalls: [{ id: "same", name: "look", argumentsJson: "{}" }] },
+        ],
+        expectedFailure: "duplicate-call-id",
+      },
+      {
+        name: "multi-call",
+        input: "Open and enter\n",
+        responses: [
+          {
+            toolCalls: [
+              {
+                id: "open",
+                name: "open",
+                argumentsJson: '{"door_id":"entrance-door"}',
+              },
+              {
+                id: "move",
+                name: "move",
+                argumentsJson: '{"destination_id":"guardroom"}',
+              },
+            ],
+          },
+        ],
+        expectedFailure: "multi-call-response",
+      },
+      {
+        name: "malformed-multi-call",
+        input: "Try malformed calls\n",
+        responses: [{ toolCalls: [null, { unexpected: true }] }],
+        expectedFailure: "multi-call-response",
+        expectedRecordedCalls: 0,
+      },
+      {
+        name: "read-budget",
+        input: "Keep looking\n",
+        responses: Array.from({ length: 4 }, (_, index) => ({
+          toolCalls: [
+            { id: `look-${index}`, name: "look", argumentsJson: "{}" },
+          ],
+        })),
+        expectedFailure: "read-call-limit",
+      },
+      {
+        name: "mutation-budget",
+        input: "Open and enter\n",
+        responses: [
+          {
+            toolCalls: [
+              {
+                id: "bad-open",
+                name: "open",
+                argumentsJson: '{"door_id":"entrance-door","extra":true}',
+              },
+            ],
+          },
+          {
+            toolCalls: [
+              {
+                id: "move-anyway",
+                name: "move",
+                argumentsJson: '{"destination_id":"guardroom"}',
+              },
+            ],
+          },
+        ],
+        expectedFailure: "mutation-call-limit",
+      },
+      {
+        name: "response-budget",
+        input: "Inspect everything, then open the door\n",
+        responses: [
+          ...Array.from({ length: 3 }, (_, index) => ({
+            toolCalls: [
+              { id: `read-${index}`, name: "look", argumentsJson: "{}" },
+            ],
+          })),
+          {
+            toolCalls: [
+              {
+                id: "open-last",
+                name: "open",
+                argumentsJson: '{"door_id":"entrance-door"}',
+              },
+            ],
+          },
+        ],
+        expectedFailure: "model-response-limit",
+      },
+    ];
+
+    for (const sample of cases) {
+      const tracePath = path.join(directory, `${sample.name}.json`);
+      const exported = runScriptedDm(sample.input, sample.responses, "0", [
+        "--trace",
+        tracePath,
+      ]);
+      assert.equal(exported.status, 0, `${sample.name}: ${exported.stderr}`);
+      const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+      const turn = trace.turns[0];
+      if (sample.expectedFailure !== undefined) {
+        assert.equal(
+          turn.diagnostics.at(-1).code,
+          sample.expectedFailure,
+          sample.name,
+        );
+      }
+      if (sample.expectedRecordedCalls !== undefined) {
+        assert.equal(
+          turn.calls.length,
+          sample.expectedRecordedCalls,
+          sample.name,
+        );
+      }
+      if (sample.expectedToolError !== undefined) {
+        assert.equal(
+          turn.calls[0].result.modelOutput.error.code,
+          sample.expectedToolError,
+          sample.name,
+        );
+      }
+      const replayed = runCli("", ["--replay", tracePath]);
+      assert.equal(replayed.status, 0, `${sample.name}: ${replayed.stderr}`);
+    }
+  });
+});
+
+test("format-2 reproduces provider failure before and after one committed attack", () => {
+  withTemporaryDirectory((directory) => {
+    const beforePath = path.join(directory, "before-provider-failure.json");
+    const before = runScriptedDm("Open the door\n", [], "0", [
+      "--trace",
+      beforePath,
+    ]);
+    assert.equal(before.status, 0, before.stderr);
+    const beforeTrace = JSON.parse(readFileSync(beforePath, "utf8"));
+    assert.deepEqual(beforeTrace.turns[0].calls, []);
+    assert.equal(beforeTrace.turns[0].diagnostics[0].code, "model-failure");
+    assert.deepEqual(beforeTrace.turns[0].stateAfter, beforeTrace.initialState);
+    assert.equal(runCli("", ["--replay", beforePath]).status, 0);
+
+    const corruptedInputFailure = structuredClone(beforeTrace);
+    corruptedInputFailure.turns[0].diagnostics = [
+      { code: "empty-player-input" },
+    ];
+    const corruptedPath = path.join(directory, "corrupted-input-failure.json");
+    writeFileSync(corruptedPath, JSON.stringify(corruptedInputFailure));
+    const corrupted = runCli("", ["--replay", corruptedPath]);
+    assert.equal(corrupted.status, 1);
+    assert.match(corrupted.stderr, /turn 1 diagnostics/i);
+
+    const afterPath = path.join(directory, "after-provider-failure.json");
+    const secret = "sk-failure-path-secret";
+    const after = runScriptedDm(
+      "Open\nEnter\nAttack\n",
+      [
+        ...callThenNarrate(
+          "open",
+          "open",
+          '{"door_id":"entrance-door"}',
+          "Opened.",
+        ),
+        ...callThenNarrate(
+          "move",
+          "move",
+          '{"destination_id":"guardroom"}',
+          "Entered.",
+        ),
+        {
+          toolCalls: [
+            {
+              id: "attack",
+              name: "attack",
+              argumentsJson: '{"opponent_id":"goblin"}',
+            },
+          ],
+          hiddenReasoning: secret,
+          headers: { authorization: secret },
+        },
+      ],
+      "0",
+      ["--trace", afterPath],
+    );
+    assert.equal(after.status, 0, after.stderr);
+    const afterText = readFileSync(afterPath, "utf8");
+    const afterTrace = JSON.parse(afterText);
+    const attackTurn = afterTrace.turns[2];
+    assert.equal(attackTurn.calls.length, 1);
+    assert.equal(attackTurn.calls[0].disposition.executed, true);
+    assert.deepEqual(attackTurn.calls[0].rolls, [
+      { sides: 20, value: 5 },
+      { sides: 20, value: 3 },
+    ]);
+    assert.equal(attackTurn.diagnostics[0].code, "model-failure");
+    assert.doesNotMatch(afterText, new RegExp(secret));
+    assert.doesNotMatch(afterText, /hiddenReasoning|authorization/i);
+    assert.equal(runCli("", ["--replay", afterPath]).status, 0);
+  });
+});
+
 test("format-2 replay reports the first corrupted call expectation", () => {
   withTemporaryDirectory((directory) => {
     const sourcePath = path.join(directory, "source.json");
@@ -1059,6 +1352,174 @@ test("format-2 replay reports the first corrupted call expectation", () => {
       assert.equal(replayed.status, 1);
       assert.match(replayed.stderr, sample.error);
     }
+  });
+});
+
+test("format-2 replay rejects corrupted orchestration history before dispatch", () => {
+  withTemporaryDirectory((directory) => {
+    const sourcePath = path.join(directory, "orchestration-source.json");
+    const exported = runScriptedDm(
+      "Look twice\nOpen and enter\n",
+      [
+        { toolCalls: [{ id: "same", name: "look", argumentsJson: "{}" }] },
+        { toolCalls: [{ id: "same", name: "look", argumentsJson: "{}" }] },
+        {
+          toolCalls: [
+            {
+              id: "open",
+              name: "open",
+              argumentsJson: '{"door_id":"entrance-door"}',
+            },
+            {
+              id: "move",
+              name: "move",
+              argumentsJson: '{"destination_id":"guardroom"}',
+            },
+          ],
+        },
+      ],
+      "0",
+      ["--trace", sourcePath],
+    );
+    assert.equal(exported.status, 0, exported.stderr);
+    const source = JSON.parse(readFileSync(sourcePath, "utf8"));
+    const cases = [
+      {
+        name: "empty-input-with-calls",
+        mutate(trace) {
+          trace.turns[0].rawPlayerInput = "";
+        },
+        error: /turn 1 calls|turn 1 diagnostics/i,
+      },
+      {
+        name: "executed-disposition",
+        mutate(trace) {
+          trace.turns[0].calls[0].disposition.validated = false;
+          trace.turns[0].calls[0].disposition.executed = false;
+        },
+        error: /turn 1 call 1 disposition/i,
+      },
+      {
+        name: "blocked-execution",
+        mutate(trace) {
+          trace.turns[0].calls[1].disposition.executed = true;
+        },
+        error: /turns\[0\]\.calls\[1\].*disposition|executed/i,
+      },
+      {
+        name: "failure-code",
+        mutate(trace) {
+          trace.turns[0].calls[1].failure.code = "unsupported-tool";
+        },
+        error: /turn 1 call 2 failure/i,
+      },
+      {
+        name: "failure-call-id",
+        mutate(trace) {
+          trace.turns[0].calls[1].failure.callId = "different";
+        },
+        error: /turn 1 call 2 failure/i,
+      },
+      {
+        name: "failure-response-order",
+        mutate(trace) {
+          trace.turns[0].calls[1].failure.responseNumber = 1;
+        },
+        error: /turn 1 call 2 failure/i,
+      },
+      {
+        name: "call-order",
+        mutate(trace) {
+          trace.turns[1].calls[0].sequence = 2;
+        },
+        error: /turns\[1\]\.calls\[0\]\.sequence must be 1/i,
+      },
+      {
+        name: "turn-diagnostic",
+        mutate(trace) {
+          trace.turns[0].diagnostics[0].code = "read-call-limit";
+        },
+        error: /turn 1 diagnostics/i,
+      },
+      {
+        name: "completion",
+        mutate(trace) {
+          trace.completion.outcome = "victory";
+        },
+        error: /completion/i,
+      },
+    ];
+
+    for (const sample of cases) {
+      const trace = structuredClone(source);
+      sample.mutate(trace);
+      const tracePath = path.join(directory, `${sample.name}.json`);
+      writeFileSync(tracePath, JSON.stringify(trace));
+      const replayed = runCli("", ["--replay", tracePath]);
+      assert.equal(replayed.status, 1, sample.name);
+      assert.match(replayed.stderr, sample.error, sample.name);
+    }
+  });
+});
+
+test("format-2 replay validates terminal reads and ignores provider narration metadata", () => {
+  withTemporaryDirectory((directory) => {
+    const tracePath = path.join(directory, "terminal-read.json");
+    const responses = [
+      ...callThenNarrate(
+        "open",
+        "open",
+        '{"door_id":"entrance-door"}',
+        "Opened.",
+      ),
+      ...callThenNarrate(
+        "move",
+        "move",
+        '{"destination_id":"guardroom"}',
+        "Entered.",
+      ),
+      ...callThenNarrate(
+        "attack-1",
+        "attack",
+        '{"opponent_id":"goblin"}',
+        "Fighting.",
+      ),
+      ...callThenNarrate(
+        "attack-2",
+        "attack",
+        '{"opponent_id":"goblin"}',
+        "Fighting.",
+      ),
+      ...callThenNarrate(
+        "attack-3",
+        "attack",
+        '{"opponent_id":"goblin"}',
+        "Defeated.",
+      ),
+      ...callThenNarrate(
+        "status-after-defeat",
+        "get_character_status",
+        "{}",
+        "The adventure is over.",
+      ),
+    ];
+    const exported = runScriptedDm(
+      "Open\nEnter\nAttack\nAgain\nAgain\nHow am I?\n",
+      responses,
+      "207",
+      ["--trace", tracePath],
+    );
+    assert.equal(exported.status, 0, exported.stderr);
+    const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+    assert.equal(trace.completion.outcome, "defeat");
+    assert.equal(trace.completion.reason, "eof");
+    assert.equal(trace.turns.at(-1).calls[0].name, "get_character_status");
+    trace.dm.provider = "different-provider";
+    trace.dm.model = "different-model";
+    trace.turns.at(-1).narration = "Different diagnostic narration.";
+    writeFileSync(tracePath, JSON.stringify(trace));
+    const replayed = runCli("", ["--replay", tracePath]);
+    assert.equal(replayed.status, 0, replayed.stderr);
   });
 });
 

@@ -2,7 +2,17 @@ import { readFile } from "node:fs/promises";
 import { isDeepStrictEqual } from "node:util";
 
 import { ADVENTURE } from "./adventure.js";
-import { DM_PROMPT_VERSION } from "./dm-turn.js";
+import {
+  DM_CALL_DIAGNOSTIC_CODES,
+  DM_DIAGNOSTIC_CODES,
+  DM_INPUT_DIAGNOSTIC_CODES,
+  DM_MUTATION_TOOL_NAMES,
+  DM_PROMPT_VERSION,
+  DM_READ_TOOL_NAMES,
+  DM_TURN_LIMITS,
+  normalizeDmText,
+  type DmDiagnosticCode,
+} from "./dm-turn.js";
 import { dispatchGameTool, GAME_TOOL_SCHEMA_VERSION } from "./game-tools.js";
 import { parseCommand } from "./parser.js";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
@@ -53,7 +63,14 @@ type ReplayDmCall = Readonly<{
   disposition: JsonObject;
   rolls: readonly RollRecord[];
   result?: JsonObject;
+  failure?: ReplayDmDiagnostic;
   stateAfter: JsonObject;
+}>;
+
+type ReplayDmDiagnostic = Readonly<{
+  code: DmDiagnosticCode;
+  responseNumber?: number;
+  callId?: string;
 }>;
 
 type ReplayDmTurn = Readonly<{
@@ -61,6 +78,7 @@ type ReplayDmTurn = Readonly<{
   kind: "dm" | "local-help" | "local-quit";
   rawPlayerInput: string;
   calls: readonly ReplayDmCall[];
+  diagnostics: readonly ReplayDmDiagnostic[];
   stateAfter: JsonObject;
 }>;
 
@@ -137,6 +155,18 @@ function requireExactKeys(
   }
   for (const key of allowed) {
     requireObject(value[key], `${path}.${key}`);
+  }
+}
+
+function requireOnlyKeys(
+  value: JsonObject,
+  allowed: readonly string[],
+  path: string,
+): void {
+  for (const key of Object.keys(value)) {
+    if (!allowed.includes(key)) {
+      throw new Error(`${path} contains unsupported field ${key}.`);
+    }
   }
 }
 
@@ -740,6 +770,64 @@ function validateDisposition(value: unknown, path: string): JsonObject {
   return disposition;
 }
 
+const INPUT_DIAGNOSTIC_CODE_SET = new Set<DmDiagnosticCode>(
+  DM_INPUT_DIAGNOSTIC_CODES,
+);
+const CALL_DIAGNOSTIC_CODE_SET = new Set<DmDiagnosticCode>(
+  DM_CALL_DIAGNOSTIC_CODES,
+);
+
+function validateDmDiagnostic(
+  value: unknown,
+  path: string,
+): ReplayDmDiagnostic {
+  const diagnostic = requireObject(value, path);
+  requireOnlyKeys(diagnostic, ["code", "responseNumber", "callId"], path);
+  const code = requireOneOf(
+    diagnostic.code,
+    DM_DIAGNOSTIC_CODES,
+    `${path}.code`,
+  ) as DmDiagnosticCode;
+  const responseNumber =
+    diagnostic.responseNumber === undefined
+      ? undefined
+      : requireInteger(diagnostic.responseNumber, `${path}.responseNumber`);
+  const callId =
+    diagnostic.callId === undefined
+      ? undefined
+      : requireString(diagnostic.callId, `${path}.callId`);
+
+  if (INPUT_DIAGNOSTIC_CODE_SET.has(code)) {
+    if (responseNumber !== undefined || callId !== undefined) {
+      throw new Error(`${path} must not identify a response or call.`);
+    }
+  } else {
+    if (
+      responseNumber === undefined ||
+      responseNumber < 1 ||
+      responseNumber > DM_TURN_LIMITS.maxModelResponses
+    ) {
+      throw new Error(
+        `${path}.responseNumber must be from 1 through ${DM_TURN_LIMITS.maxModelResponses}.`,
+      );
+    }
+    const requiresCallId = CALL_DIAGNOSTIC_CODE_SET.has(code);
+    if (requiresCallId !== (callId !== undefined)) {
+      throw new Error(
+        requiresCallId
+          ? `${path}.callId is required for ${code}.`
+          : `${path}.callId is not allowed for ${code}.`,
+      );
+    }
+  }
+
+  return {
+    code,
+    ...(responseNumber === undefined ? {} : { responseNumber }),
+    ...(callId === undefined ? {} : { callId }),
+  };
+}
+
 function validateDmTrace(value: unknown): ReplayDmTrace {
   const trace = requireObject(value, "Trace");
   requireSupported(
@@ -817,10 +905,7 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
           const failure =
             call.failure === undefined
               ? undefined
-              : requireObject(call.failure, `${callPath}.failure`);
-          if (failure !== undefined) {
-            requireString(failure.code, `${callPath}.failure.code`);
-          }
+              : validateDmDiagnostic(call.failure, `${callPath}.failure`);
           if (result === undefined) {
             if (disposition.validated || disposition.executed) {
               throw new Error(
@@ -858,6 +943,7 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
             disposition,
             rolls,
             ...(result === undefined ? {} : { result }),
+            ...(failure === undefined ? {} : { failure }),
             stateAfter: validateState(
               call.stateAfter,
               `${callPath}.stateAfter`,
@@ -873,23 +959,29 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
       } else if (turn.narration !== null) {
         throw new Error(`${path}.narration must be null for ${kind}.`);
       }
-      requireArray(turn.diagnostics, `${path}.diagnostics`).forEach(
-        (diagnostic, diagnosticIndex) => {
-          const record = requireObject(
-            diagnostic,
-            `${path}.diagnostics[${diagnosticIndex}]`,
-          );
-          requireString(
-            record.code,
-            `${path}.diagnostics[${diagnosticIndex}].code`,
-          );
-        },
+      const diagnostics = requireArray(
+        turn.diagnostics,
+        `${path}.diagnostics`,
+      ).map((diagnostic, diagnosticIndex) =>
+        validateDmDiagnostic(
+          diagnostic,
+          `${path}.diagnostics[${diagnosticIndex}]`,
+        ),
       );
+      if (kind !== "dm" && diagnostics.length !== 0) {
+        throw new Error(`${path}.diagnostics must be empty for ${kind}.`);
+      }
+      if (kind === "dm" && diagnostics.length > 1) {
+        throw new Error(
+          `${path}.diagnostics must contain at most one failure.`,
+        );
+      }
       return {
         sequence: turn.sequence as number,
         kind,
         rawPlayerInput,
         calls,
+        diagnostics,
         stateAfter: validateState(turn.stateAfter, `${path}.stateAfter`),
       };
     },
@@ -1030,6 +1122,85 @@ export async function verifyTraceFile(path: string): Promise<void> {
   requireMatch("completion", trace.completion, { reason, outcome });
 }
 
+const REPLAY_READ_TOOL_NAMES = new Set<string>(DM_READ_TOOL_NAMES);
+const REPLAY_MUTATION_TOOL_NAMES = new Set<string>(DM_MUTATION_TOOL_NAMES);
+
+function expectedBlockedCallFailure(
+  call: ReplayDmCall,
+  callIds: ReadonlySet<string>,
+  readCalls: number,
+  mutationAttempts: number,
+  responseNumber: number,
+): ReplayDmDiagnostic | undefined {
+  if (callIds.has(call.id)) {
+    return { code: "duplicate-call-id", responseNumber, callId: call.id };
+  }
+  if (
+    !REPLAY_READ_TOOL_NAMES.has(call.name) &&
+    !REPLAY_MUTATION_TOOL_NAMES.has(call.name)
+  ) {
+    return { code: "unsupported-tool", responseNumber, callId: call.id };
+  }
+  if (REPLAY_MUTATION_TOOL_NAMES.has(call.name) && mutationAttempts > 0) {
+    return { code: "mutation-call-limit", responseNumber, callId: call.id };
+  }
+  if (
+    REPLAY_READ_TOOL_NAMES.has(call.name) &&
+    readCalls >= DM_TURN_LIMITS.maxReadCalls
+  ) {
+    return { code: "read-call-limit", responseNumber, callId: call.id };
+  }
+  return undefined;
+}
+
+function expectedPlayerInputFailure(
+  rawPlayerInput: string,
+): ReplayDmDiagnostic | undefined {
+  const playerInput = normalizeDmText(rawPlayerInput);
+  return playerInput.length === 0
+    ? { code: "empty-player-input" }
+    : playerInput.length > DM_TURN_LIMITS.maxPlayerInputCharacters
+      ? { code: "overlong-player-input" }
+      : undefined;
+}
+
+function expectedTerminalDiagnostic(
+  diagnostic: ReplayDmDiagnostic,
+  callCount: number,
+  responseNumber: number,
+): ReplayDmDiagnostic | undefined {
+  if (INPUT_DIAGNOSTIC_CODE_SET.has(diagnostic.code)) {
+    return undefined;
+  }
+  if (diagnostic.code === "model-response-limit") {
+    return responseNumber === DM_TURN_LIMITS.maxModelResponses + 1
+      ? {
+          code: "model-response-limit",
+          responseNumber: DM_TURN_LIMITS.maxModelResponses,
+        }
+      : undefined;
+  }
+  if (
+    diagnostic.code === "multi-call-response" &&
+    callCount === 0 &&
+    responseNumber <= DM_TURN_LIMITS.maxModelResponses
+  ) {
+    return { code: "multi-call-response", responseNumber };
+  }
+  if (
+    [
+      "model-failure",
+      "malformed-response",
+      "empty-narration",
+      "overlong-narration",
+    ].includes(diagnostic.code) &&
+    responseNumber <= DM_TURN_LIMITS.maxModelResponses
+  ) {
+    return { code: diagnostic.code, responseNumber };
+  }
+  return undefined;
+}
+
 function replayDmTrace(trace: ReplayDmTrace): void {
   let state = createSession();
   requireMatch("initial state", trace.initialState, state);
@@ -1053,11 +1224,101 @@ function replayDmTrace(trace: ReplayDmTrace): void {
       continue;
     }
 
+    const inputFailure = expectedPlayerInputFailure(turn.rawPlayerInput);
+    if (inputFailure !== undefined) {
+      requireMatch(`turn ${turnNumber} calls`, turn.calls, []);
+      requireMatch(`turn ${turnNumber} diagnostics`, turn.diagnostics, [
+        inputFailure,
+      ]);
+      requireMatch(`turn ${turnNumber} state`, turn.stateAfter, state);
+      continue;
+    }
+
+    const callIds = new Set<string>();
+    let readCalls = 0;
+    let mutationAttempts = 0;
+    let responseNumber = 1;
+    let orchestrationEnded = false;
+
     for (const [callIndex, expected] of turn.calls.entries()) {
       const location = `turn ${turnNumber} call ${callIndex + 1}`;
       if (expected.result === undefined) {
+        if (expected.failure?.code === "multi-call-response") {
+          const failure = {
+            code: "multi-call-response",
+            responseNumber,
+          };
+          for (const [remainingIndex, blocked] of turn.calls
+            .slice(callIndex)
+            .entries()) {
+            const blockedLocation = `turn ${turnNumber} call ${
+              callIndex + remainingIndex + 1
+            }`;
+            requireMatch(
+              `${blockedLocation} result presence`,
+              blocked.result,
+              undefined,
+            );
+            requireMatch(
+              `${blockedLocation} disposition`,
+              blocked.disposition,
+              { attempted: true, validated: false, executed: false },
+            );
+            requireMatch(
+              `${blockedLocation} failure`,
+              blocked.failure,
+              failure,
+            );
+            requireMatch(`${blockedLocation} state`, blocked.stateAfter, state);
+          }
+          requireMatch(`turn ${turnNumber} diagnostics`, turn.diagnostics, [
+            failure,
+          ]);
+          orchestrationEnded = true;
+          break;
+        }
+
+        const failure = expectedBlockedCallFailure(
+          expected,
+          callIds,
+          readCalls,
+          mutationAttempts,
+          responseNumber,
+        );
+        requireMatch(`${location} failure`, expected.failure, failure);
+        requireMatch(`${location} disposition`, expected.disposition, {
+          attempted: true,
+          validated: false,
+          executed: false,
+        });
         requireMatch(`${location} state`, expected.stateAfter, state);
-        continue;
+        if (callIndex !== turn.calls.length - 1) {
+          requireMatch(
+            `turn ${turnNumber} call ${callIndex + 2} presence`,
+            turn.calls[callIndex + 1],
+            "turn ended",
+          );
+        }
+        requireMatch(`turn ${turnNumber} diagnostics`, turn.diagnostics, [
+          failure,
+        ]);
+        orchestrationEnded = true;
+        break;
+      }
+
+      const blockedFailure = expectedBlockedCallFailure(
+        expected,
+        callIds,
+        readCalls,
+        mutationAttempts,
+        responseNumber,
+      );
+      requireMatch(`${location} failure`, undefined, blockedFailure);
+      callIds.add(expected.id);
+      if (REPLAY_MUTATION_TOOL_NAMES.has(expected.name)) {
+        mutationAttempts += 1;
+      } else {
+        readCalls += 1;
       }
       const rolls: RollRecord[] = [];
       const result = dispatchGameTool(
@@ -1090,6 +1351,33 @@ function replayDmTrace(trace: ReplayDmTrace): void {
       });
       requireMatch(`${location} state`, expected.stateAfter, result.state);
       state = result.state;
+      responseNumber += 1;
+    }
+
+    if (!orchestrationEnded) {
+      const diagnostic = turn.diagnostics[0];
+      if (diagnostic === undefined) {
+        requireMatch(
+          `turn ${turnNumber} diagnostics`,
+          turn.diagnostics,
+          responseNumber <= DM_TURN_LIMITS.maxModelResponses
+            ? []
+            : [
+                {
+                  code: "model-response-limit",
+                  responseNumber: DM_TURN_LIMITS.maxModelResponses,
+                },
+              ],
+        );
+      } else {
+        requireMatch(`turn ${turnNumber} diagnostics`, turn.diagnostics, [
+          expectedTerminalDiagnostic(
+            diagnostic,
+            turn.calls.length,
+            responseNumber,
+          ),
+        ]);
+      }
     }
     requireMatch(`turn ${turnNumber} state`, turn.stateAfter, state);
   }

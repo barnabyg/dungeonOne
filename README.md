@@ -109,6 +109,15 @@ completion. Narration and provider/model identifiers are diagnostic and are not
 part of deterministic equality. A clarification-only turn proves that no call,
 state change, or random draw occurred.
 
+Replay also reconstructs the format-2 orchestration rules: call IDs and response
+order, the one-mutation/three-read/four-response budgets, and the normalized
+reason each blocked call was not dispatched. Unknown, duplicate, batched, and
+over-budget calls are therefore verified as legitimate no-ops without executing
+them. Malformed JSON is retained losslessly and replayed only through argument
+validation, never as an authoritative game action. Provider failures are
+validated at their recorded response boundary while narration and provider
+identity remain non-authoritative.
+
 Format 2 contains only allowlisted application data. It excludes credentials,
 request headers, hidden provider reasoning, and complete provider SDK payloads.
 Raw player text is intentionally included because it is necessary to diagnose
