@@ -135,6 +135,30 @@ cleanly. With the key deliberately removed in a child process, explicit-model
 startup and evaluation both exited `2` with the documented
 `OPENAI_API_KEY is required` error.
 
+The ignored issue #22 reports retained on the acceptance host record these
+three evaluator invocations (three repetitions is the command default):
+
+```powershell
+npm.cmd run eval:dm -- --model gpt-5.4-mini-2026-03-17 --output .dm-evaluations/issue-22-gpt-5.4-mini-initial.json
+npm.cmd run eval:dm -- --model gpt-5.4-mini-2026-03-17 --judgments .dm-evaluations/issue-22-v3-judgments.json --output .dm-evaluations/issue-22-gpt-5.4-mini-v3.json
+npm.cmd run eval:dm -- --model gpt-5.5-2026-04-23 --judgments .dm-evaluations/issue-22-v3-judgments.json --output .dm-evaluations/issue-22-gpt-5.5-v3.json
+```
+
+The initial v2 report recorded `passed: false`, 28/48 safety, and incomplete
+manual review. The mini v3 report recorded `passed: false`, 43/48 safety and
+15/15 completed manual case judgments. The gpt-5.5 v3 report recorded
+`passed: true`, 48/48 safety, every scored dimension at its threshold, complete
+15/15 manual case judgments, and identical requested and actual model IDs. As
+documented in issue #22, that evaluator pass did not override the separate
+failed completed-playthrough narration review.
+
+The three live evaluation reports and three retained live-play traces were
+scanned separately from the scripted traces. They contained zero matches for
+credential-shaped values, API-key/configuration fields, authorization or
+request-header fields, hidden reasoning, or SDK payloads. They retain only the
+documented allowlisted model/provider diagnostics and provider response IDs.
+Detailed reports and live traces remain ignored and are not committed.
+
 There is no qualifying default model. `npm.cmd start -- --ai` exits `2` and
 requires `--model <model-id>`. Issue #22's bounded evidence records that
 `gpt-5.5-2026-04-23` passed the case evaluator but failed completed-playthrough
