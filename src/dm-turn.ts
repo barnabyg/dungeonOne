@@ -1,16 +1,14 @@
 import { stripVTControlCharacters } from "node:util";
 
 import {
-  dispatchGameTool,
-  getGameToolDefinitions,
-  projectCharacterStatus,
-  projectDmScene,
+  type projectCharacterStatus,
+  type projectDmScene,
   type GameToolCall,
   type GameToolDefinition,
   type GameToolDispatchResult,
   type GameToolName,
 } from "./game-tools.js";
-import { renderResult } from "./presenter.js";
+import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
 import type { RandomSource } from "./random.js";
 import type { SessionState } from "./session.js";
 
@@ -246,15 +244,18 @@ function parseSingleToolCall(value: unknown): DmToolCall | undefined {
   };
 }
 
-function renderMechanics(result: GameToolDispatchResult): string {
+function renderMechanics(
+  result: GameToolDispatchResult,
+  runtime: AdventureRuntime,
+): string {
   if (result.engineResult !== undefined && "events" in result.engineResult) {
-    return renderResult({
+    return runtime.renderResult({
       state: result.state,
       events: result.engineResult.events,
     });
   }
   if (result.engineResult !== undefined && "rejection" in result.engineResult) {
-    return renderResult({
+    return runtime.renderResult({
       state: result.state,
       rejection: result.engineResult.rejection,
     });
@@ -277,8 +278,9 @@ function renderMechanics(result: GameToolDispatchResult): string {
 function offeredTools(
   state: SessionState,
   mutationAttempted: boolean,
+  runtime: AdventureRuntime,
 ): readonly GameToolDefinition[] {
-  const tools = getGameToolDefinitions(state);
+  const tools = runtime.getGameToolDefinitions(state);
   return mutationAttempted
     ? tools.filter(({ name }) => READ_TOOL_NAMES.has(name))
     : tools;
@@ -291,8 +293,10 @@ export async function runDmTurn(
     transcript: readonly DmTranscriptEntry[];
     random: Pick<RandomSource, "roll">;
     model: DmModel;
+    runtime?: AdventureRuntime;
   }>,
 ): Promise<DmTurnResult> {
+  const runtime = input.runtime ?? resolveAdventure();
   const playerInput = normalizeDmText(input.playerInput);
   const transcript = boundTranscript(input.transcript);
   const diagnostics: DmDiagnostic[] = [];
@@ -353,9 +357,9 @@ export async function runDmTurn(
         systemPrompt: DM_SYSTEM_PROMPT,
         playerInput,
         transcript,
-        scene: projectDmScene(state),
-        characterStatus: projectCharacterStatus(state),
-        tools: offeredTools(state, budget.mutationAttempts > 0),
+        scene: runtime.projectDmScene(state),
+        characterStatus: runtime.projectCharacterStatus(state),
+        tools: offeredTools(state, budget.mutationAttempts > 0, runtime),
         toolResults: toolResults.map(({ call, result }) => ({
           call,
           output: result.modelOutput,
@@ -463,7 +467,7 @@ export async function runDmTurn(
         return value;
       },
     };
-    const result = dispatchGameTool(state, call, recordingRandom);
+    const result = runtime.dispatchGameTool(state, call, recordingRandom);
     const validated =
       result.engineResult !== undefined || result.modelOutput.ok;
     const disposition = {
@@ -475,7 +479,7 @@ export async function runDmTurn(
     const toolResult = { call, result, disposition, rolls };
     toolResults.push(toolResult);
     toolAttempts.push(toolResult);
-    mechanics.push(renderMechanics(result));
+    mechanics.push(renderMechanics(result, runtime));
   }
 
   return fail({

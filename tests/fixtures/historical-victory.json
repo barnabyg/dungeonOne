@@ -1,0 +1,1807 @@
+{
+  "formatVersion": 1,
+  "rulesVersion": "stolen-signet-rules-v2",
+  "adventure": {
+    "id": "stolen-signet",
+    "version": "2"
+  },
+  "random": {
+    "algorithm": "mulberry32-v1",
+    "initialSeed": 0
+  },
+  "initialState": {
+    "locationId": "entrance",
+    "status": "playing",
+    "fighter": {
+      "hp": 20,
+      "maxHp": 20,
+      "equipmentIds": [
+        "longsword"
+      ]
+    },
+    "itemPlacements": {
+      "signet": {
+        "type": "room",
+        "roomId": "reliquary",
+        "featureId": "stone-pedestal"
+      }
+    },
+    "doorStates": {
+      "entrance-door": {
+        "open": false
+      }
+    },
+    "opponents": {
+      "goblin": {
+        "hp": 7,
+        "maxHp": 7
+      }
+    }
+  },
+  "actions": [
+    {
+      "sequence": 1,
+      "rawInput": "move guardroom",
+      "action": {
+        "type": "move",
+        "destination": "guardroom"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "closed-door",
+          "doorId": "entrance-door",
+          "destinationId": "guardroom"
+        }
+      },
+      "stateAfter": {
+        "locationId": "entrance",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": false
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        }
+      }
+    },
+    {
+      "sequence": 2,
+      "rawInput": "inspect ruined archway",
+      "action": {
+        "type": "inspect",
+        "target": "ruined archway"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "target-inspected",
+            "target": {
+              "type": "feature",
+              "id": "ruined-archway"
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "entrance",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": false
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        }
+      }
+    },
+    {
+      "sequence": 3,
+      "rawInput": "open wooden door",
+      "action": {
+        "type": "open",
+        "target": "wooden door"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "door-opened",
+            "doorId": "entrance-door"
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "entrance",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        }
+      }
+    },
+    {
+      "sequence": 4,
+      "rawInput": "move guardroom",
+      "action": {
+        "type": "move",
+        "destination": "guardroom"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 6
+        },
+        {
+          "sides": 20,
+          "value": 1
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "room-entered",
+            "fromRoomId": "entrance",
+            "roomId": "guardroom"
+          },
+          {
+            "type": "room-described",
+            "roomId": "guardroom",
+            "featureIds": [
+              "cold-hearth"
+            ],
+            "visibleItems": [],
+            "exitRoomIds": [
+              "entrance",
+              "reliquary"
+            ],
+            "doorways": [
+              {
+                "doorId": "entrance-door",
+                "destinationId": "entrance",
+                "open": true
+              }
+            ]
+          },
+          {
+            "type": "combat-started",
+            "opponentId": "goblin"
+          },
+          {
+            "type": "initiative-rolled",
+            "combatantId": "fighter",
+            "bonus": 1,
+            "roll": 6,
+            "total": 7
+          },
+          {
+            "type": "initiative-rolled",
+            "combatantId": "goblin",
+            "bonus": 2,
+            "roll": 1,
+            "total": 3
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "guardroom",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 5,
+      "rawInput": "look",
+      "action": {
+        "type": "look"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "room-described",
+            "roomId": "guardroom",
+            "featureIds": [
+              "cold-hearth"
+            ],
+            "visibleItems": [],
+            "exitRoomIds": [
+              "entrance",
+              "reliquary"
+            ],
+            "doorways": [
+              {
+                "doorId": "entrance-door",
+                "destinationId": "entrance",
+                "open": true
+              }
+            ]
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "guardroom",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 6,
+      "rawInput": "status",
+      "action": {
+        "type": "status"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "status-described",
+            "hp": 20,
+            "maxHp": 20,
+            "status": "playing"
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "guardroom",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 7,
+      "rawInput": "dance",
+      "action": {
+        "type": "unknown",
+        "input": "dance"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "unknown-command",
+          "input": "dance"
+        }
+      },
+      "stateAfter": {
+        "locationId": "guardroom",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 8,
+      "rawInput": "attack",
+      "action": {
+        "type": "attack",
+        "target": ""
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "missing-argument",
+          "command": "attack"
+        }
+      },
+      "stateAfter": {
+        "locationId": "guardroom",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 9,
+      "rawInput": "attack goblin",
+      "action": {
+        "type": "attack",
+        "target": "goblin"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 5
+        },
+        {
+          "sides": 20,
+          "value": 3
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "goblin",
+            "attackRoll": 5,
+            "attackBonus": 5,
+            "attackTotal": 10,
+            "targetArmorClass": 13,
+            "outcome": "miss",
+            "targetHp": 7,
+            "targetMaxHp": 7
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "goblin"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "goblin",
+            "targetId": "fighter",
+            "attackRoll": 3,
+            "attackBonus": 4,
+            "attackTotal": 7,
+            "targetArmorClass": 16,
+            "outcome": "miss",
+            "targetHp": 20,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "guardroom",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 7,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 10,
+      "rawInput": "attack goblin",
+      "action": {
+        "type": "attack",
+        "target": "goblin"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 10
+        },
+        {
+          "sides": 8,
+          "value": 5
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "goblin",
+            "attackRoll": 10,
+            "attackBonus": 5,
+            "attackTotal": 15,
+            "targetArmorClass": 13,
+            "outcome": "hit",
+            "damage": 8,
+            "targetHp": 0,
+            "targetMaxHp": 7
+          },
+          {
+            "type": "combat-ended",
+            "outcome": "goblin-defeated"
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "guardroom",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 11,
+      "rawInput": "move reliquary",
+      "action": {
+        "type": "move",
+        "destination": "reliquary"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "room-entered",
+            "fromRoomId": "guardroom",
+            "roomId": "reliquary"
+          },
+          {
+            "type": "room-described",
+            "roomId": "reliquary",
+            "featureIds": [
+              "stone-pedestal"
+            ],
+            "visibleItems": [
+              {
+                "itemId": "signet",
+                "featureId": "stone-pedestal"
+              }
+            ],
+            "exitRoomIds": [
+              "guardroom"
+            ],
+            "doorways": []
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 12,
+      "rawInput": "inspect signet",
+      "action": {
+        "type": "inspect",
+        "target": "signet"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "target-inspected",
+            "target": {
+              "type": "item",
+              "id": "signet"
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 13,
+      "rawInput": "leave",
+      "action": {
+        "type": "leave"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "leave-requirement",
+          "requirement": "signet"
+        }
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "room",
+            "roomId": "reliquary",
+            "featureId": "stone-pedestal"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 14,
+      "rawInput": "take signet",
+      "action": {
+        "type": "take",
+        "target": "signet"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "item-taken",
+            "itemId": "signet"
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "inventory"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 15,
+      "rawInput": "take signet",
+      "action": {
+        "type": "take",
+        "target": "signet"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "already-carried",
+          "itemId": "signet"
+        }
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "inventory"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 16,
+      "rawInput": "look",
+      "action": {
+        "type": "look"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "room-described",
+            "roomId": "reliquary",
+            "featureIds": [
+              "stone-pedestal"
+            ],
+            "visibleItems": [],
+            "exitRoomIds": [
+              "guardroom"
+            ],
+            "doorways": []
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "inventory"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 17,
+      "rawInput": "inventory",
+      "action": {
+        "type": "inventory"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "inventory-described",
+            "equipmentIds": [
+              "longsword"
+            ],
+            "itemIds": [
+              "signet"
+            ]
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "inventory"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 18,
+      "rawInput": "move guardroom",
+      "action": {
+        "type": "move",
+        "destination": "guardroom"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "room-entered",
+            "fromRoomId": "reliquary",
+            "roomId": "guardroom"
+          },
+          {
+            "type": "room-described",
+            "roomId": "guardroom",
+            "featureIds": [
+              "cold-hearth"
+            ],
+            "visibleItems": [],
+            "exitRoomIds": [
+              "entrance",
+              "reliquary"
+            ],
+            "doorways": [
+              {
+                "doorId": "entrance-door",
+                "destinationId": "entrance",
+                "open": true
+              }
+            ]
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "guardroom",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "inventory"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 19,
+      "rawInput": "look",
+      "action": {
+        "type": "look"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "room-described",
+            "roomId": "guardroom",
+            "featureIds": [
+              "cold-hearth"
+            ],
+            "visibleItems": [],
+            "exitRoomIds": [
+              "entrance",
+              "reliquary"
+            ],
+            "doorways": [
+              {
+                "doorId": "entrance-door",
+                "destinationId": "entrance",
+                "open": true
+              }
+            ]
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "guardroom",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "inventory"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 20,
+      "rawInput": "move reliquary",
+      "action": {
+        "type": "move",
+        "destination": "reliquary"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "room-entered",
+            "fromRoomId": "guardroom",
+            "roomId": "reliquary"
+          },
+          {
+            "type": "room-described",
+            "roomId": "reliquary",
+            "featureIds": [
+              "stone-pedestal"
+            ],
+            "visibleItems": [],
+            "exitRoomIds": [
+              "guardroom"
+            ],
+            "doorways": []
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "inventory"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 21,
+      "rawInput": "leave",
+      "action": {
+        "type": "leave"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "victory"
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "victory",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "inventory"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 22,
+      "rawInput": "attack goblin",
+      "action": {
+        "type": "attack",
+        "target": "goblin"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "terminal-state",
+          "status": "victory"
+        }
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "victory",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "inventory"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 23,
+      "rawInput": "status",
+      "action": {
+        "type": "status"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "status-described",
+            "hp": 20,
+            "maxHp": 20,
+            "status": "victory"
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "victory",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "inventory"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 24,
+      "rawInput": "quit",
+      "action": {
+        "type": "quit"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "session-quit"
+          }
+        ]
+      },
+      "stateAfter": {
+        "locationId": "reliquary",
+        "status": "victory",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "itemPlacements": {
+          "signet": {
+            "type": "inventory"
+          }
+        },
+        "doorStates": {
+          "entrance-door": {
+            "open": true
+          }
+        },
+        "opponents": {
+          "goblin": {
+            "hp": 0,
+            "maxHp": 7
+          }
+        },
+        "combat": {
+          "opponentId": "goblin",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "goblin": {
+              "combatantId": "goblin",
+              "bonus": 2,
+              "roll": 1,
+              "total": 3
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "goblin"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    }
+  ],
+  "completion": {
+    "reason": "quit",
+    "outcome": "victory"
+  }
+}

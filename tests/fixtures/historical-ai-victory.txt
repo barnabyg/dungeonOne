@@ -1,0 +1,102 @@
+Seed: 0 (mulberry32-v1)
+The Stolen Signet
+
+Objective: Retrieve the stolen signet and leave through the reliquary's far exit.
+Type "help" for available commands.
+Fighter HP: 20/20
+Session: playing.
+Entrance
+You stand at the entrance to a ruined watchtower. Rain beads on the old stone.
+Visible features: ruined archway.
+Visible items: none.
+Exits: Guardroom (closed wooden door).
+Scripted DM mode: describe one action or ask about the scene or your character's status.
+Mechanics:
+You open the wooden door.
+
+Dungeon Master:
+The wooden door opens.
+Mechanics:
+You move from Entrance to Guardroom.
+Guardroom
+Dust blankets an abandoned guardroom where open passages lead onward and back.
+Visible features: cold hearth.
+Visible items: none.
+Exits: Entrance (open wooden door), Reliquary.
+Combat begins against the goblin.
+Initiative — Fighter: d20 roll 6 + modifier 1 = 7.
+Initiative — goblin: d20 roll 1 + modifier 2 = 3.
+Turn: Fighter.
+
+Dungeon Master:
+You enter the guardroom and face the goblin.
+Mechanics:
+Fighter attacks goblin with longsword.
+Attack roll: d20 5 + modifier 5 = 10 vs AC 13 — miss.
+Damage: none (not rolled).
+Remaining HP: goblin 7/7.
+Turn: goblin.
+goblin attacks Fighter with scimitar.
+Attack roll: d20 3 + modifier 4 = 7 vs AC 16 — miss.
+Damage: none (not rolled).
+Remaining HP: Fighter 20/20.
+Turn: Fighter.
+
+Dungeon Master:
+Both combatants miss in the first exchange.
+Mechanics:
+Fighter attacks goblin with longsword.
+Attack roll: d20 10 + modifier 5 = 15 vs AC 13 — hit.
+Damage: 8.
+Remaining HP: goblin 0/7.
+Combat victory! The goblin is defeated.
+
+Dungeon Master:
+Your second attack defeats the goblin.
+Mechanics:
+A wiry goblin in battered leather grips a nicked scimitar. Condition: defeated.
+
+Dungeon Master:
+The defeated goblin has nothing else of value.
+Mechanics:
+You move from Guardroom to Reliquary.
+Reliquary
+A vaulted reliquary waits in silence beyond the guardroom passage.
+Visible features: stone pedestal.
+Visible items: signet (on stone pedestal).
+Exits: Guardroom.
+
+Dungeon Master:
+You enter the reliquary.
+Mechanics:
+You take the signet.
+
+Dungeon Master:
+You take the stolen signet.
+Mechanics:
+You move from Reliquary to Guardroom.
+Guardroom
+Dust blankets an abandoned guardroom where open passages lead onward and back.
+Visible features: cold hearth.
+Visible items: none.
+Defeated opponents: goblin.
+Exits: Entrance (open wooden door), Reliquary.
+
+Dungeon Master:
+You return to the guardroom; the goblin remains defeated.
+Mechanics:
+You move from Guardroom to Reliquary.
+Reliquary
+A vaulted reliquary waits in silence beyond the guardroom passage.
+Visible features: stone pedestal.
+Visible items: none.
+Exits: Guardroom.
+
+Dungeon Master:
+You return to the reliquary.
+Mechanics:
+Victory! You escaped through the far exit with the stolen signet. The final state remains available through "look", "status", and "inventory". Enter "quit" to exit. Start a fresh run with "npm start".
+
+Dungeon Master:
+You escape with the stolen signet. Victory.
+You leave the adventure. Goodbye.

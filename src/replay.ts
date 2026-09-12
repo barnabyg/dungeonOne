@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { isDeepStrictEqual } from "node:util";
 
+import { resolveHistoricalAdventure, type ReplayRuntime } from "./runtime.js";
 import { ADVENTURE } from "./adventure.js";
 import {
   DM_CALL_DIAGNOSTIC_CODES,
@@ -13,16 +14,9 @@ import {
   normalizeDmText,
   type DmDiagnosticCode,
 } from "./dm-turn.js";
-import { dispatchGameTool, GAME_TOOL_SCHEMA_VERSION } from "./game-tools.js";
-import { parseCommand } from "./parser.js";
+import { GAME_TOOL_SCHEMA_VERSION } from "./game-tools.js";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
-import {
-  createSession,
-  handleAction,
-  type Action,
-  type ActionResult,
-  type SessionState,
-} from "./session.js";
+import type { ActionResult } from "./session.js";
 import {
   ADVENTURE_VERSION,
   DM_TRACE_FORMAT_VERSION,
@@ -45,6 +39,7 @@ type ReplayAction = Readonly<{
 }>;
 
 type ReplayTrace = Readonly<{
+  runtime: ReplayRuntime;
   rulesVersion: typeof LEGACY_RULES_VERSION | typeof RULES_VERSION;
   initialSeed: number;
   initialState: JsonObject;
@@ -83,6 +78,7 @@ type ReplayDmTurn = Readonly<{
 }>;
 
 type ReplayDmTrace = Readonly<{
+  runtime: ReplayRuntime;
   initialSeed: number;
   initialState: JsonObject;
   turns: readonly ReplayDmTurn[];
@@ -642,7 +638,9 @@ function validateFormat1Trace(value: unknown): ReplayTrace {
   const rulesVersion = rulesVersionValue as ReplayTrace["rulesVersion"];
 
   const adventure = requireObject(trace.adventure, "adventure");
-  requireSupported(adventure.id, ADVENTURE.id, "adventure id");
+  if (adventure.id !== undefined) {
+    requireSupported(adventure.id, ADVENTURE.id, "adventure id");
+  }
   requireSupported(
     adventure.version,
     rulesVersion === LEGACY_RULES_VERSION
@@ -706,6 +704,10 @@ function validateFormat1Trace(value: unknown): ReplayTrace {
 
   return {
     rulesVersion,
+    runtime: resolveHistoricalAdventure(
+      requireString(trace.rulesVersion, "rulesVersion"),
+      requireString(adventure.version, "adventure.version"),
+    ),
     initialSeed: Number(random.initialSeed),
     initialState,
     actions,
@@ -837,7 +839,9 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
   );
   requireSupported(trace.rulesVersion, RULES_VERSION, "rules version");
   const adventure = requireObject(trace.adventure, "adventure");
-  requireSupported(adventure.id, ADVENTURE.id, "adventure id");
+  if (adventure.id !== undefined) {
+    requireSupported(adventure.id, ADVENTURE.id, "adventure id");
+  }
   requireSupported(adventure.version, ADVENTURE_VERSION, "adventure version");
   const random = requireObject(trace.random, "random");
   requireSupported(random.algorithm, RANDOM_ALGORITHM, "random algorithm");
@@ -995,30 +999,15 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
     },
   );
   return {
+    runtime: resolveHistoricalAdventure(
+      requireString(trace.rulesVersion, "rulesVersion"),
+      requireString(adventure.version, "adventure.version"),
+    ),
     initialSeed: Number(random.initialSeed),
     initialState,
     turns,
     completion: validateCompletion(trace.completion),
   };
-}
-
-function handleReplayAction(
-  rulesVersion: ReplayTrace["rulesVersion"],
-  state: SessionState,
-  action: Action,
-  random: Parameters<typeof handleAction>[2],
-): ActionResult {
-  if (
-    rulesVersion === LEGACY_RULES_VERSION &&
-    action.type === "inspect" &&
-    action.target?.trim().toLowerCase() === ADVENTURE.opponents.goblin.name
-  ) {
-    return {
-      state,
-      rejection: { reason: "invisible-target", target: "goblin" },
-    };
-  }
-  return handleAction(state, action, random);
 }
 
 function traceResult(result: ActionResult): JsonObject {
@@ -1075,14 +1064,14 @@ export async function verifyTraceFile(path: string): Promise<void> {
   }
   const trace = validateFormat1Trace(parsed);
 
-  let state = createSession();
+  let state = trace.runtime.createSession();
   requireMatch("initial state", trace.initialState, state);
   const random = createSeededRandom(trace.initialSeed);
   let reason: "quit" | "eof" = "eof";
 
   for (const [index, expected] of trace.actions.entries()) {
     const actionNumber = index + 1;
-    const action = parseCommand(expected.rawInput);
+    const action = trace.runtime.parseCommand(expected.rawInput);
     requireMatch(
       `action ${actionNumber} parsed action`,
       expected.action,
@@ -1090,7 +1079,7 @@ export async function verifyTraceFile(path: string): Promise<void> {
     );
 
     const rolls: RollRecord[] = [];
-    const result = handleReplayAction(trace.rulesVersion, state, action, {
+    const result = trace.runtime.handleAction(state, action, {
       roll(sides: number): number {
         const value = random.roll(sides);
         rolls.push({ sides, value });
@@ -1210,7 +1199,7 @@ function expectedTerminalDiagnostic(
 }
 
 function replayDmTrace(trace: ReplayDmTrace): void {
-  let state = createSession();
+  let state = trace.runtime.createSession();
   requireMatch("initial state", trace.initialState, state);
   const random = createSeededRandom(trace.initialSeed);
   let reason: "quit" | "eof" = "eof";
@@ -1225,7 +1214,7 @@ function replayDmTrace(trace: ReplayDmTrace): void {
       continue;
     }
     if (turn.kind === "local-quit") {
-      const quit = handleAction(state, { type: "quit" }, random);
+      const quit = trace.runtime.handleAction(state, { type: "quit" }, random);
       state = quit.state;
       reason = "quit";
       requireMatch(`turn ${turnNumber} state`, turn.stateAfter, state);
@@ -1329,7 +1318,7 @@ function replayDmTrace(trace: ReplayDmTrace): void {
         readCalls += 1;
       }
       const rolls: RollRecord[] = [];
-      const result = dispatchGameTool(
+      const result = trace.runtime.dispatchGameTool(
         state,
         {
           name: expected.name,

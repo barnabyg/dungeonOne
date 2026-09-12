@@ -1,5 +1,17 @@
 import { writeFile } from "node:fs/promises";
 
+import {
+  resolveAdventure,
+  ADVENTURE_VERSION,
+  RULES_VERSION,
+  type AdventureRuntime,
+} from "./runtime.js";
+export {
+  ADVENTURE_VERSION,
+  RULES_VERSION,
+  LEGACY_ADVENTURE_VERSION,
+  LEGACY_RULES_VERSION,
+} from "./runtime.js";
 import { ADVENTURE } from "./adventure.js";
 import {
   DM_PROMPT_VERSION,
@@ -19,10 +31,6 @@ import type {
 
 export const TRACE_FORMAT_VERSION = 1;
 export const DM_TRACE_FORMAT_VERSION = 2;
-export const LEGACY_RULES_VERSION = "stolen-signet-rules-v1";
-export const LEGACY_ADVENTURE_VERSION = "1";
-export const RULES_VERSION = "stolen-signet-rules-v2";
-export const ADVENTURE_VERSION = "2";
 
 export type RollRecord = Readonly<{ sides: number; value: number }>;
 
@@ -132,11 +140,12 @@ export type AnySessionTrace = SessionTrace | DmSessionTrace;
 export function createSessionTrace(
   initialSeed: number,
   initialState: SessionState,
+  runtime: AdventureRuntime = resolveAdventure(),
 ): SessionTrace {
   return {
     formatVersion: TRACE_FORMAT_VERSION,
-    rulesVersion: RULES_VERSION,
-    adventure: { id: ADVENTURE.id, version: ADVENTURE_VERSION },
+    rulesVersion: runtime.rulesVersion,
+    adventure: { id: runtime.id, version: runtime.version },
     random: { algorithm: RANDOM_ALGORITHM, initialSeed },
     initialState,
     actions: [],
@@ -147,11 +156,12 @@ export function createDmSessionTrace(
   initialSeed: number,
   initialState: SessionState,
   identity: NonNullable<DmModel["identity"]>,
+  runtime: AdventureRuntime = resolveAdventure(),
 ): DmSessionTrace {
   return {
     formatVersion: DM_TRACE_FORMAT_VERSION,
-    rulesVersion: RULES_VERSION,
-    adventure: { id: ADVENTURE.id, version: ADVENTURE_VERSION },
+    rulesVersion: runtime.rulesVersion,
+    adventure: { id: runtime.id, version: runtime.version },
     random: { algorithm: RANDOM_ALGORITHM, initialSeed },
     dm: {
       promptVersion: DM_PROMPT_VERSION,

@@ -1,8 +1,7 @@
 import { runDmTurn, type DmModel, type DmTranscriptEntry } from "./dm-turn.js";
-import { parseCommand } from "./parser.js";
-import { renderIntroduction, renderResult } from "./presenter.js";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
-import { createSession, handleAction, type ActionResult } from "./session.js";
+import type { ActionResult } from "./session.js";
+import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
 import {
   completeSessionTrace,
   createDmSessionTrace,
@@ -16,6 +15,7 @@ import {
 
 export type PlayOptions = Readonly<{
   seed: number;
+  runtime?: AdventureRuntime;
   tracePath?: string;
   dmModel?: DmModel;
 }>;
@@ -34,6 +34,14 @@ export async function playGame(
   options: PlayOptions,
   io: PlayIo,
 ): Promise<void> {
+  const runtime = options.runtime ?? resolveAdventure();
+  const {
+    createSession,
+    handleAction,
+    parseCommand,
+    renderIntroduction,
+    renderResult,
+  } = runtime;
   const dmIdentity = options.dmModel?.identity;
   if (
     options.dmModel !== undefined &&
@@ -47,11 +55,11 @@ export async function playGame(
   const commandTrace =
     options.tracePath === undefined || options.dmModel !== undefined
       ? undefined
-      : createSessionTrace(options.seed, state);
+      : createSessionTrace(options.seed, state, runtime);
   const dmTrace =
     options.tracePath === undefined || dmIdentity === undefined
       ? undefined
-      : createDmSessionTrace(options.seed, state, dmIdentity);
+      : createDmSessionTrace(options.seed, state, dmIdentity, runtime);
   let terminationReason: "quit" | "eof" = "eof";
   let transcript: readonly DmTranscriptEntry[] = [];
 
@@ -110,6 +118,7 @@ export async function playGame(
           transcript,
           random,
           model: options.dmModel,
+          runtime,
         });
         state = result.state;
         transcript = result.transcript;

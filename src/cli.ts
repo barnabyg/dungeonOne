@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline";
 
+import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
 import { playGame } from "./play.js";
 import {
   createOpenAiDmModel,
@@ -17,6 +18,7 @@ function chooseStartupSeed(): number {
 type StartupOptions = Readonly<
   | {
       mode: "play";
+      runtime: AdventureRuntime;
       seed: number;
       tracePath?: string;
       ai?: Readonly<{ model: string }>;
@@ -25,8 +27,8 @@ type StartupOptions = Readonly<
   | { mode: "help" }
 >;
 const USAGE = [
-  "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>]",
-  "       dungeon-one --ai [--model <model-id>] [--seed <0-4294967295>] [--trace <path>]",
+  "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet]",
+  "       dungeon-one --ai [--model <model-id>] [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet]",
   "       dungeon-one --replay <path>",
   "       dungeon-one --help",
   `Default AI model: ${OPENAI_DM_DEFAULT_MODEL}`,
@@ -53,6 +55,15 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
     return { mode: "replay", replayPath: args[0].slice("--replay=".length) };
   }
 
+  if (
+    args.some(
+      (argument) => argument === "--replay" || argument.startsWith("--replay="),
+    )
+  ) {
+    throw new Error(`--replay cannot be combined with play options.\n${USAGE}`);
+  }
+
+  let adventureId: string | undefined;
   let seedArgument: readonly string[] | undefined;
   let tracePath: string | undefined;
   let ai = false;
@@ -60,6 +71,27 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
+    if (
+      argument === "--adventure" ||
+      argument?.startsWith("--adventure=") === true
+    ) {
+      const value =
+        argument === "--adventure"
+          ? args[++index]
+          : argument.slice("--adventure=".length);
+      if (
+        adventureId !== undefined ||
+        value === undefined ||
+        value.length === 0 ||
+        value.startsWith("--")
+      ) {
+        throw new Error(
+          `--adventure requires one built-in selector.\n${USAGE}`,
+        );
+      }
+      adventureId = value;
+      continue;
+    }
     if (argument === "--ai") {
       if (ai) {
         throw new Error(USAGE);
@@ -136,6 +168,7 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
 
   return {
     mode: "play",
+    runtime: resolveAdventure(adventureId),
     seed: resolveStartupSeed(seedArgument ?? [], chooseStartupSeed),
     ...(tracePath === undefined ? {} : { tracePath }),
     ...(ai ? { ai: { model: model ?? OPENAI_DM_DEFAULT_MODEL } } : {}),

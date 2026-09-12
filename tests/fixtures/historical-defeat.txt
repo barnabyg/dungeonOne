@@ -1,0 +1,68 @@
+Seed: 207 (mulberry32-v1)
+The Stolen Signet
+
+Objective: Retrieve the stolen signet and leave through the reliquary's far exit.
+Type "help" for available commands.
+Fighter HP: 20/20
+Session: playing.
+Entrance
+You stand at the entrance to a ruined watchtower. Rain beads on the old stone.
+Visible features: ruined archway.
+Visible items: none.
+Exits: Guardroom (closed wooden door).
+You open the wooden door.
+You move from Entrance to Guardroom.
+Guardroom
+Dust blankets an abandoned guardroom where open passages lead onward and back.
+Visible features: cold hearth.
+Visible items: none.
+Exits: Entrance (open wooden door), Reliquary.
+Combat begins against the goblin.
+Initiative — Fighter: d20 roll 3 + modifier 1 = 4.
+Initiative — goblin: d20 roll 19 + modifier 2 = 21.
+Turn: goblin.
+goblin attacks Fighter with scimitar.
+Attack roll: d20 17 + modifier 4 = 21 vs AC 16 — hit.
+Damage: 7.
+Remaining HP: Fighter 13/20.
+Turn: Fighter.
+Guardroom
+Dust blankets an abandoned guardroom where open passages lead onward and back.
+Visible features: cold hearth.
+Visible items: none.
+Exits: Entrance (open wooden door), Reliquary.
+I don't understand "dance". Type "help" to see the available commands.
+Fighter attacks goblin with longsword.
+Attack roll: d20 3 + modifier 5 = 8 vs AC 13 — miss.
+Damage: none (not rolled).
+Remaining HP: goblin 7/7.
+Turn: goblin.
+goblin attacks Fighter with scimitar.
+Attack roll: d20 19 + modifier 4 = 23 vs AC 16 — hit.
+Damage: 5.
+Remaining HP: Fighter 8/20.
+Turn: Fighter.
+Fighter attacks goblin with longsword.
+Attack roll: d20 6 + modifier 5 = 11 vs AC 13 — miss.
+Damage: none (not rolled).
+Remaining HP: goblin 7/7.
+Turn: goblin.
+goblin attacks Fighter with scimitar.
+Attack roll: d20 10 + modifier 4 = 14 vs AC 16 — miss.
+Damage: none (not rolled).
+Remaining HP: Fighter 8/20.
+Turn: Fighter.
+Fighter attacks goblin with longsword.
+Attack roll: d20 19 + modifier 5 = 24 vs AC 13 — hit.
+Damage: 5.
+Remaining HP: goblin 2/7.
+Turn: goblin.
+goblin attacks Fighter with scimitar.
+Attack roll: d20 15 + modifier 4 = 19 vs AC 16 — hit.
+Damage: 8.
+Remaining HP: Fighter 0/20.
+Defeat! The fighter has fallen. The final state remains available through "look", "status", and "inventory". Enter "quit" to exit. Start a fresh run with "npm start".
+The adventure is over; you can't change the final state. You may look, inspect, check status or inventory, ask for help, or quit.
+Fighter HP: 0/20
+Session: defeat.
+You leave the adventure. Goodbye.

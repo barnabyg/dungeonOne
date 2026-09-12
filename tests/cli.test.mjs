@@ -2100,3 +2100,153 @@ test("built CLI validates format-1 literals and required state records", () => {
     }
   });
 });
+
+for (const name of [
+  "victory",
+  "defeat",
+  "ai-victory",
+  "ai-defeat",
+  "ai-failure-after",
+]) {
+  test(`explicit signet selection preserves historical ${name} output and trace`, () => {
+    withTemporaryDirectory((directory) => {
+      const tracePath = path.join(directory, "trace.json");
+      const environment = { OPENAI_API_KEY: "" };
+      if (name.startsWith("ai-")) {
+        environment.DUNGEON_ONE_TEST_DM_SCRIPT = path.join(
+          acceptanceInputs,
+          `${name}.script.json`,
+        );
+      }
+      const result = runCli(
+        readFileSync(path.join(acceptanceInputs, `${name}.txt`), "utf8"),
+        [
+          "--adventure",
+          "stolen-signet",
+          "--seed",
+          name.includes("defeat") ? "207" : "0",
+          "--trace",
+          tracePath,
+          ...(name.startsWith("ai-") ? ["--ai", "--model", "test-model"] : []),
+        ],
+        environment,
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        result.stdout.replace(/Trace exported to .*\r?\n/, ""),
+        readFileSync(
+          path.join(traceFixtures, `historical-${name}.txt`),
+          "utf8",
+        ),
+      );
+      assert.deepEqual(
+        JSON.parse(readFileSync(tracePath, "utf8")),
+        JSON.parse(
+          readFileSync(
+            path.join(traceFixtures, `historical-${name}.json`),
+            "utf8",
+          ),
+        ),
+      );
+      const replay = runCli("", ["--replay", tracePath], {
+        OPENAI_API_KEY: "",
+      });
+      assert.equal(replay.status, 0, replay.stderr);
+    });
+  });
+}
+
+test("adventure selection rejects unknown, duplicate, missing and replay-conflicting options before provider use", () => {
+  for (const args of [
+    ["--adventure", "unknown", "--ai"],
+    ["--adventure=unknown", "--ai"],
+    ["--adventure"],
+    ["--adventure="],
+    ["--adventure=stolen-signet", "--adventure", "stolen-signet"],
+    ["--adventure", "stolen-signet", "--replay", "missing.json", "--ai"],
+    ["--replay=missing.json", "--adventure=stolen-signet"],
+  ]) {
+    const result = runCli("", args, { OPENAI_API_KEY: "" });
+    assert.equal(result.status, 2, result.stderr);
+    assert.match(result.stderr, /adventure|replay/i);
+    assert.doesNotMatch(result.stderr, /OPENAI_API_KEY|ENOENT/);
+    assert.equal(result.stdout, "");
+  }
+  const result = runCli("quit\n", ["--adventure=stolen-signet", "--seed=0"]);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("historical command and DM tuples replay without adventure IDs and reject unknown tuples", () => {
+  withTemporaryDirectory((directory) => {
+    const tracePath = path.join(directory, "historical.json");
+    for (const name of [
+      "format-1-command-rejections",
+      "historical-victory",
+      "historical-defeat",
+      "historical-ai-victory",
+      "historical-ai-defeat",
+      "historical-ai-failure-after",
+    ]) {
+      const original = JSON.parse(
+        readFileSync(path.join(traceFixtures, `${name}.json`), "utf8"),
+      );
+      const variants = [original];
+      if (original.formatVersion === 1 && original.adventure.version === "2") {
+        const previousRules = structuredClone(original);
+        previousRules.rulesVersion = "stolen-signet-rules-v1";
+        previousRules.adventure.version = "1";
+        variants.push(previousRules);
+      }
+      if (original.formatVersion === 2) {
+        const previousPrompt = structuredClone(original);
+        previousPrompt.dm.promptVersion = "stolen-signet-dm-v2";
+        variants.push(previousPrompt);
+      }
+      for (const variant of variants) {
+        delete variant.adventure.id;
+        writeFileSync(tracePath, JSON.stringify(variant));
+        const replay = runCli("", ["--replay", tracePath], {
+          OPENAI_API_KEY: "",
+        });
+        assert.equal(replay.status, 0, replay.stderr);
+        for (const mutate of [
+          (trace) => {
+            trace.adventure.id = "unknown";
+          },
+          (trace) => {
+            trace.adventure.version = "999";
+          },
+          (trace) => {
+            trace.rulesVersion = "unknown";
+          },
+          (trace) => {
+            trace.formatVersion = 999;
+          },
+          (trace) => {
+            trace.adventure.version =
+              trace.adventure.version === "1" ? "2" : "1";
+          },
+          ...(variant.formatVersion === 2
+            ? [
+                (trace) => {
+                  trace.dm.promptVersion = "unknown";
+                },
+                (trace) => {
+                  trace.dm.toolSchemaVersion = "unknown";
+                },
+              ]
+            : []),
+        ]) {
+          const invalid = structuredClone(variant);
+          mutate(invalid);
+          writeFileSync(tracePath, JSON.stringify(invalid));
+          const rejected = runCli("", ["--replay", tracePath], {
+            OPENAI_API_KEY: "",
+          });
+          assert.equal(rejected.status, 1, rejected.stderr);
+          assert.match(rejected.stderr, /Unsupported/);
+        }
+      }
+    }
+  });
+});

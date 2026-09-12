@@ -19,6 +19,14 @@ npm.cmd run build
 npm.cmd start -- --seed 0
 ```
 
+Select the built-in adventure explicitly with `--adventure stolen-signet` (or
+`--adventure=stolen-signet`) in command or AI mode. Omitting the selector keeps
+The Stolen Signet as the default. Unknown or duplicate selectors fail at startup,
+and `--replay` cannot be combined with adventure, seed, trace, or AI options.
+Replay selects the original runtime from the export's supported version tuple,
+including historical exports whose adventure object lacks an ID. Unknown version
+combinations fail instead of falling back to the current default.
+
 For opt-in live AI play, set `OPENAI_API_KEY` in the environment. `--ai` uses
 the configured default model `gpt-5.6-luna`:
 

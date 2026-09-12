@@ -1,0 +1,90 @@
+Seed: 0 (mulberry32-v1)
+The Stolen Signet
+
+Objective: Retrieve the stolen signet and leave through the reliquary's far exit.
+Type "help" for available commands.
+Fighter HP: 20/20
+Session: playing.
+Entrance
+You stand at the entrance to a ruined watchtower. Rain beads on the old stone.
+Visible features: ruined archway.
+Visible items: none.
+Exits: Guardroom (closed wooden door).
+The wooden door to Guardroom is closed. Open it before moving through.
+The cracked archway still bears the worn crest of the old watch.
+You open the wooden door.
+You move from Entrance to Guardroom.
+Guardroom
+Dust blankets an abandoned guardroom where open passages lead onward and back.
+Visible features: cold hearth.
+Visible items: none.
+Exits: Entrance (open wooden door), Reliquary.
+Combat begins against the goblin.
+Initiative — Fighter: d20 roll 6 + modifier 1 = 7.
+Initiative — goblin: d20 roll 1 + modifier 2 = 3.
+Turn: Fighter.
+Guardroom
+Dust blankets an abandoned guardroom where open passages lead onward and back.
+Visible features: cold hearth.
+Visible items: none.
+Exits: Entrance (open wooden door), Reliquary.
+Fighter HP: 20/20
+Session: playing.
+I don't understand "dance". Type "help" to see the available commands.
+What do you want to attack? For example: "attack goblin".
+Fighter attacks goblin with longsword.
+Attack roll: d20 5 + modifier 5 = 10 vs AC 13 — miss.
+Damage: none (not rolled).
+Remaining HP: goblin 7/7.
+Turn: goblin.
+goblin attacks Fighter with scimitar.
+Attack roll: d20 3 + modifier 4 = 7 vs AC 16 — miss.
+Damage: none (not rolled).
+Remaining HP: Fighter 20/20.
+Turn: Fighter.
+Fighter attacks goblin with longsword.
+Attack roll: d20 10 + modifier 5 = 15 vs AC 13 — hit.
+Damage: 8.
+Remaining HP: goblin 0/7.
+Combat victory! The goblin is defeated.
+You move from Guardroom to Reliquary.
+Reliquary
+A vaulted reliquary waits in silence beyond the guardroom passage.
+Visible features: stone pedestal.
+Visible items: signet (on stone pedestal).
+Exits: Guardroom.
+A silver signet engraved with the fighter's family crest, stolen but unharmed.
+You need the stolen signet before leaving through the far exit.
+You take the signet.
+You are already carrying the signet.
+Reliquary
+A vaulted reliquary waits in silence beyond the guardroom passage.
+Visible features: stone pedestal.
+Visible items: none.
+Exits: Guardroom.
+Equipped: longsword.
+Collectibles: signet.
+You move from Reliquary to Guardroom.
+Guardroom
+Dust blankets an abandoned guardroom where open passages lead onward and back.
+Visible features: cold hearth.
+Visible items: none.
+Defeated opponents: goblin.
+Exits: Entrance (open wooden door), Reliquary.
+Guardroom
+Dust blankets an abandoned guardroom where open passages lead onward and back.
+Visible features: cold hearth.
+Visible items: none.
+Defeated opponents: goblin.
+Exits: Entrance (open wooden door), Reliquary.
+You move from Guardroom to Reliquary.
+Reliquary
+A vaulted reliquary waits in silence beyond the guardroom passage.
+Visible features: stone pedestal.
+Visible items: none.
+Exits: Guardroom.
+Victory! You escaped through the far exit with the stolen signet. The final state remains available through "look", "status", and "inventory". Enter "quit" to exit. Start a fresh run with "npm start".
+The adventure is over; you can't change the final state. You may look, inspect, check status or inventory, ask for help, or quit.
+Fighter HP: 20/20
+Session: victory.
+You leave the adventure. Goodbye.
