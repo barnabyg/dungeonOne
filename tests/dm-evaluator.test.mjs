@@ -5,6 +5,7 @@ import test from "node:test";
 
 import { DM_INTERPRETATION_CASES } from "../dist/dm-interpretation-cases.js";
 import { dmEvaluationExitCode, runDmEvaluation } from "../dist/dm-evaluator.js";
+import { OpenAiDmError } from "../dist/openai-dm-model.js";
 
 function interpretationCase(id) {
   const sample = DM_INTERPRETATION_CASES.find(
@@ -117,6 +118,38 @@ test("provider failures preserve sanitized partial evidence and fail the evaluat
   assert.equal(dmEvaluationExitCode(report), 1);
   const serialized = JSON.stringify(report);
   assert.doesNotMatch(serialized, /Bearer|provider body|must-not-escape/u);
+});
+
+test("failed responses retain safe latency and provider trace metadata", async () => {
+  let tick = 20;
+  const report = await runDmEvaluation({
+    requestedModel: "requested-model",
+    repetitions: 3,
+    cases: [interpretationCase("cautious-door-opening")],
+    clock: () => (tick += 5),
+    createModel: ({ repetition }) => ({
+      async respond() {
+        throw new OpenAiDmError("unavailable", {
+          responseId: `failed-response-${repetition}`,
+          model: "actual-model-2026-09-01",
+          status: "failed",
+        });
+      },
+    }),
+  });
+
+  assert.deepEqual(report.actualModelIds, ["actual-model-2026-09-01"]);
+  assert.deepEqual(report.runs[0].failures, [
+    {
+      responseNumber: 1,
+      code: "unavailable",
+      latencyMs: 5,
+      traceReference: "failed-response-1",
+      actualModelId: "actual-model-2026-09-01",
+      status: "failed",
+    },
+  ]);
+  assert.deepEqual(report.runs[0].traceReferences, ["failed-response-1"]);
 });
 
 test("missing manual classifications are explicit failures", async () => {

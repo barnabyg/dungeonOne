@@ -21,6 +21,12 @@ export const OPENAI_DM_ERROR_CODES = [
 
 export type OpenAiDmErrorCode = (typeof OPENAI_DM_ERROR_CODES)[number];
 
+export type OpenAiDmErrorEvidence = Readonly<{
+  responseId?: string;
+  model?: string;
+  status?: string;
+}>;
+
 const ERROR_MESSAGES: Readonly<Record<OpenAiDmErrorCode, string>> = {
   authentication: "OpenAI authentication failed.",
   "rate-limit": "OpenAI rate limit exceeded.",
@@ -32,11 +38,15 @@ const ERROR_MESSAGES: Readonly<Record<OpenAiDmErrorCode, string>> = {
 
 export class OpenAiDmError extends Error {
   readonly code: OpenAiDmErrorCode;
+  readonly evidence?: OpenAiDmErrorEvidence;
 
-  constructor(code: OpenAiDmErrorCode) {
+  constructor(code: OpenAiDmErrorCode, evidence?: OpenAiDmErrorEvidence) {
     super(ERROR_MESSAGES[code]);
     this.name = "OpenAiDmError";
     this.code = code;
+    if (evidence !== undefined) {
+      this.evidence = evidence;
+    }
   }
 }
 
@@ -64,23 +74,54 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function providerErrorEvidence(
+  value: unknown,
+): OpenAiDmErrorEvidence | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  const responseId =
+    typeof value.id === "string" && value.id.length > 0
+      ? value.id
+      : typeof value.request_id === "string" && value.request_id.length > 0
+        ? value.request_id
+        : undefined;
+  const model =
+    typeof value.model === "string" && value.model.length > 0
+      ? value.model
+      : undefined;
+  const status =
+    typeof value.status === "string" && value.status.length > 0
+      ? value.status
+      : undefined;
+  if (responseId === undefined && model === undefined && status === undefined) {
+    return undefined;
+  }
+  return {
+    ...(responseId === undefined ? {} : { responseId }),
+    ...(model === undefined ? {} : { model }),
+    ...(status === undefined ? {} : { status }),
+  };
+}
+
 function classifyProviderError(error: unknown): OpenAiDmError {
+  const evidence = providerErrorEvidence(error);
   if (error === TIMEOUT) {
     return new OpenAiDmError("timeout");
   }
   if (isRecord(error)) {
     if (error.status === 401 || error.status === 403) {
-      return new OpenAiDmError("authentication");
+      return new OpenAiDmError("authentication", evidence);
     }
     if (error.status === 429) {
-      return new OpenAiDmError("rate-limit");
+      return new OpenAiDmError("rate-limit", evidence);
     }
     if (
       error.name === "APIConnectionTimeoutError" ||
       error.name === "AbortError" ||
       error.code === "ETIMEDOUT"
     ) {
-      return new OpenAiDmError("timeout");
+      return new OpenAiDmError("timeout", evidence);
     }
     if (
       error.name === "APIConnectionError" ||
@@ -88,10 +129,10 @@ function classifyProviderError(error: unknown): OpenAiDmError {
         error.status >= 500 &&
         error.status <= 599)
     ) {
-      return new OpenAiDmError("unavailable");
+      return new OpenAiDmError("unavailable", evidence);
     }
   }
-  return new OpenAiDmError("unknown");
+  return new OpenAiDmError("unknown", evidence);
 }
 
 function providerMetadata(
@@ -332,7 +373,18 @@ export function createOpenAiDmModel(config: OpenAiDmModelConfig): DmModel {
           clearTimeout(timer);
         }
       }
-      const normalized = normalizeResponse(rawResponse);
+      let normalized: ReturnType<typeof normalizeResponse>;
+      try {
+        normalized = normalizeResponse(rawResponse);
+      } catch (error) {
+        if (error instanceof OpenAiDmError) {
+          throw new OpenAiDmError(
+            error.code,
+            providerErrorEvidence(rawResponse) ?? error.evidence,
+          );
+        }
+        throw error;
+      }
       continuation.push(...normalized.output);
       return normalized.result;
     },

@@ -46,6 +46,10 @@ type DmEvaluationResponseEvidence = Readonly<{
 type DmEvaluationFailure = Readonly<{
   responseNumber?: number;
   code: OpenAiDmErrorCode | "evaluator-failure";
+  latencyMs?: number;
+  traceReference?: string;
+  actualModelId?: string;
+  status?: string;
 }>;
 
 type DmEvaluationManualJudgment = Readonly<{
@@ -146,6 +150,24 @@ function failureCode(error: unknown): OpenAiDmErrorCode {
   return "unknown";
 }
 
+function failureEvidence(
+  error: unknown,
+  responseNumber: number,
+  latencyMs: number,
+): DmEvaluationFailure {
+  const evidence = error instanceof OpenAiDmError ? error.evidence : undefined;
+  return {
+    responseNumber,
+    code: failureCode(error),
+    latencyMs,
+    ...(evidence?.responseId === undefined
+      ? {}
+      : { traceReference: evidence.responseId }),
+    ...(evidence?.model === undefined ? {} : { actualModelId: evidence.model }),
+    ...(evidence?.status === undefined ? {} : { status: evidence.status }),
+  };
+}
+
 function responseEvidence(
   responseNumber: number,
   latencyMs: number,
@@ -240,8 +262,9 @@ function completedRun(
     checks: report.checks,
     manualJudgments,
     failures,
-    traceReferences: responses.flatMap(({ traceReference }) =>
-      traceReference === undefined ? [] : [traceReference],
+    traceReferences: [...responses, ...failures].flatMap(
+      ({ traceReference }) =>
+        traceReference === undefined ? [] : [traceReference],
     ),
   };
 }
@@ -366,7 +389,13 @@ export async function runDmEvaluation(
               );
               return response;
             } catch (error) {
-              failures.push({ responseNumber, code: failureCode(error) });
+              failures.push(
+                failureEvidence(
+                  error,
+                  responseNumber,
+                  Math.max(0, clock() - started),
+                ),
+              );
               throw error;
             }
           },
@@ -397,8 +426,8 @@ export async function runDmEvaluation(
   ) as Record<DmInterpretationScoreDimension, DmEvaluationDimensionSummary>;
   const actualModelIds = [
     ...new Set(
-      runs.flatMap(({ responses }) =>
-        responses.flatMap(({ actualModelId }) =>
+      runs.flatMap(({ responses, failures }) =>
+        [...responses, ...failures].flatMap(({ actualModelId }) =>
           actualModelId === undefined ? [] : [actualModelId],
         ),
       ),

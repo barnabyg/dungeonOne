@@ -207,6 +207,36 @@ test("Responses adapter rejects malformed responses without exposing raw data", 
   });
 });
 
+test("Responses adapter preserves allowlisted diagnostics from malformed responses", async () => {
+  const model = createOpenAiDmModel({
+    apiKey: "secret-key",
+    model: "requested-model",
+    client: {
+      responses: {
+        async create() {
+          return completedResponse([], {
+            id: "resp_failed",
+            model: "actual-model",
+            status: "incomplete",
+            secret: "provider-secret",
+          });
+        },
+      },
+    },
+  });
+
+  await assert.rejects(model.respond(request()), (error) => {
+    assert.ok(error instanceof OpenAiDmError);
+    assert.deepEqual(error.evidence, {
+      responseId: "resp_failed",
+      model: "actual-model",
+      status: "incomplete",
+    });
+    assert.doesNotMatch(JSON.stringify(error), /provider-secret/u);
+    return true;
+  });
+});
+
 test("Responses adapter classifies provider failures and bounds request time", async () => {
   const cases = [
     [{ status: 401, message: "secret auth header" }, "authentication"],
