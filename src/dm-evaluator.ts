@@ -57,6 +57,8 @@ type DmEvaluationManualJudgment = Readonly<{
   classification: "pass" | "fail" | "missing";
 }>;
 
+type DmEvaluationClassification = DmEvaluationManualJudgment["classification"];
+
 export type DmEvaluationRun = Readonly<{
   caseId: string;
   repetition: number;
@@ -132,6 +134,22 @@ const THRESHOLDS: Readonly<Record<DmInterpretationScoreDimension, number>> = {
   "ambiguous-clarification": 0.9,
   "compound-mutation-budget": 1,
 };
+
+function countClassifications(
+  classifications: readonly DmEvaluationClassification[],
+): Readonly<{ passed: number; failed: number; missing: number }> {
+  const counts = { passed: 0, failed: 0, missing: 0 };
+  for (const classification of classifications) {
+    counts[
+      classification === "pass"
+        ? "passed"
+        : classification === "fail"
+          ? "failed"
+          : "missing"
+    ] += 1;
+  }
+  return counts;
+}
 
 function failureCode(error: unknown): OpenAiDmErrorCode {
   if (error instanceof OpenAiDmError) {
@@ -301,7 +319,7 @@ function summarizeDimension(
   casesById: ReadonlyMap<string, DmInterpretationCase>,
   runs: readonly DmEvaluationRun[],
 ): DmEvaluationDimensionSummary {
-  const classifications: Array<"pass" | "fail" | "missing"> = [];
+  const classifications: DmEvaluationClassification[] = [];
   for (const run of runs) {
     const sample = casesById.get(run.caseId);
     if (
@@ -328,9 +346,7 @@ function summarizeDimension(
       automatedDimensionPassed(dimension, run) ? "pass" : "fail",
     );
   }
-  const passed = classifications.filter((value) => value === "pass").length;
-  const failed = classifications.filter((value) => value === "fail").length;
-  const missing = classifications.filter((value) => value === "missing").length;
+  const { passed, failed, missing } = countClassifications(classifications);
   const total = classifications.length;
   const rate = total === 0 ? 1 : passed / total;
   const threshold = THRESHOLDS[dimension];
@@ -436,11 +452,9 @@ export async function runDmEvaluation(
   const manualClassifications = runs.flatMap(({ manualJudgments }) =>
     manualJudgments.map(({ classification }) => classification),
   );
+  const manualCounts = countClassifications(manualClassifications);
   const manualReview = {
-    passed: manualClassifications.filter((value) => value === "pass").length,
-    failed: manualClassifications.filter((value) => value === "fail").length,
-    missing: manualClassifications.filter((value) => value === "missing")
-      .length,
+    ...manualCounts,
     total: manualClassifications.length,
     complete: manualClassifications.every((value) => value !== "missing"),
   };
