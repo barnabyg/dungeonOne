@@ -293,6 +293,37 @@ Production live-model startup uses `--ai --model <model-id>` and
 `OPENAI_API_KEY`. The scripted seam remains available only for deterministic
 automated tests; canonical tests never make live API requests.
 
+## DM interpretation case library
+
+`src/dm-interpretation-cases.ts` exports the shared, data-driven interpretation
+contracts used by deterministic tests and intended for the separate opt-in live
+evaluator. Each case names a seeded authoritative setup, player input, expected
+tool and normalized arguments or clarification/no-action class, permitted engine
+outcomes, read/mutation/response budgets, expected turn-local random draws,
+safety tags, score dimensions, state invariant, and any semantic judgment that
+must remain manual. Scripted responses and their exact expected attempt
+dispositions are part of the same definition. Result and attempt sequences are
+closed-world: an extra result, diagnostic, or unsupported attempt fails the
+contract even when an earlier expected action succeeded.
+
+`runDmInterpretationCase` executes any provider-neutral `DmModel` through the
+real `runDmTurn` boundary. `runScriptedDmInterpretationCase` supplies the
+checked-in deterministic responses and additionally verifies their exact calls,
+arguments, validation/execution dispositions, engine results, budgets, state,
+and draws. Run the focused offline contract suite after building:
+
+```powershell
+npm.cmd run build
+node --test .\tests\dm-interpretation-cases.test.mjs
+```
+
+The exported scoring contract defines a denominator as every requested run in
+each classified dimension; missing runs fail, and ambiguous clarification runs
+also fail until a reviewer records the required semantic judgment. Tests do not
+compare creative narration text. This library makes no live requests and its
+scripted pass rate is evidence for the harness and engine guardrails, not model
+tool-selection accuracy.
+
 ## Verification
 
 The one canonical, non-source-mutating command is:

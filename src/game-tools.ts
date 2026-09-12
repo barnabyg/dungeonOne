@@ -136,7 +136,7 @@ export type DmInspection = Readonly<
     }
 >;
 
-type ToolValidationErrorCode =
+export type ToolValidationErrorCode =
   | "unknown-tool"
   | "malformed-json"
   | "invalid-arguments"
