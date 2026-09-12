@@ -797,6 +797,14 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
             call.result === undefined
               ? undefined
               : requireObject(call.result, `${callPath}.result`);
+          const disposition = validateDisposition(
+            call.disposition,
+            `${callPath}.disposition`,
+          );
+          const rolls = requireArray(call.rolls, `${callPath}.rolls`).map(
+            (roll, rollIndex) =>
+              validateRoll(roll, `${callPath}.rolls[${rollIndex}]`),
+          );
           if (result !== undefined) {
             requireObject(result.modelOutput, `${callPath}.result.modelOutput`);
             if (result.engineResult !== undefined) {
@@ -806,9 +814,38 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
               );
             }
           }
-          if (call.failure !== undefined) {
-            const failure = requireObject(call.failure, `${callPath}.failure`);
+          const failure =
+            call.failure === undefined
+              ? undefined
+              : requireObject(call.failure, `${callPath}.failure`);
+          if (failure !== undefined) {
             requireString(failure.code, `${callPath}.failure.code`);
+          }
+          if (result === undefined) {
+            if (disposition.validated || disposition.executed) {
+              throw new Error(
+                `${callPath}.result is required for a validated or executed call.`,
+              );
+            }
+            if (failure === undefined) {
+              throw new Error(
+                `${callPath}.failure is required for an unexecuted call.`,
+              );
+            }
+            if (rolls.length !== 0) {
+              throw new Error(
+                `${callPath}.rolls must be empty for an unexecuted call.`,
+              );
+            }
+          } else if (failure !== undefined) {
+            throw new Error(
+              `${callPath}.failure is not allowed when a result is recorded.`,
+            );
+          }
+          if (disposition.validated !== disposition.executed) {
+            throw new Error(
+              `${callPath}.validated and executed must be equal for this tool schema version.`,
+            );
           }
           return {
             sequence: call.sequence as number,
@@ -818,14 +855,8 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
               call.arguments,
               `${callPath}.arguments`,
             ),
-            disposition: validateDisposition(
-              call.disposition,
-              `${callPath}.disposition`,
-            ),
-            rolls: requireArray(call.rolls, `${callPath}.rolls`).map(
-              (roll, rollIndex) =>
-                validateRoll(roll, `${callPath}.rolls[${rollIndex}]`),
-            ),
+            disposition,
+            rolls,
             ...(result === undefined ? {} : { result }),
             stateAfter: validateState(
               call.stateAfter,

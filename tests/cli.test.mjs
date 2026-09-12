@@ -1036,6 +1036,13 @@ test("format-2 replay reports the first corrupted call expectation", () => {
         error: /turn 1 call 1 result/i,
       },
       {
+        name: "missing-result",
+        mutate(trace) {
+          delete trace.turns[0].calls[0].result;
+        },
+        error: /turns\[0\]\.calls\[0\]\.result is required/i,
+      },
+      {
         name: "state",
         mutate(trace) {
           trace.turns[0].calls[0].stateAfter.locationId = "guardroom";
