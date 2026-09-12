@@ -135,8 +135,11 @@ cleanly. With the key deliberately removed in a child process, explicit-model
 startup and evaluation both exited `2` with the documented
 `OPENAI_API_KEY is required` error.
 
-The ignored issue #22 reports retained on the acceptance host record these
-three evaluator invocations (three repetitions is the command default):
+The checked-in allowlisted evidence summary in
+[`issue-23-evaluator-evidence.json`](issue-23-evaluator-evidence.json) records
+the relevant fields and SHA-256 identities from the ignored issue #22 source
+reports and live traces. The three evaluator invocations were (three
+repetitions is the command default):
 
 ```powershell
 npm.cmd run eval:dm -- --model gpt-5.4-mini-2026-03-17 --output .dm-evaluations/issue-22-gpt-5.4-mini-initial.json
@@ -153,11 +156,12 @@ documented in issue #22, that evaluator pass did not override the separate
 failed completed-playthrough narration review.
 
 The three live evaluation reports and three retained live-play traces were
-scanned separately from the scripted traces. They contained zero matches for
-credential-shaped values, API-key/configuration fields, authorization or
-request-header fields, hidden reasoning, or SDK payloads. They retain only the
-documented allowlisted model/provider diagnostics and provider response IDs.
-Detailed reports and live traces remain ignored and are not committed.
+scanned separately from the scripted traces. The tracked evidence summary
+records zero matches for credential-shaped values, API-key/configuration
+fields, authorization or request-header fields, hidden reasoning, or SDK
+payloads. Detailed reports and live traces remain ignored because they include
+player text and verbose provider diagnostics; the sanitized summary is the
+durable handoff evidence available from a normal clone.
 
 There is no qualifying default model. `npm.cmd start -- --ai` exits `2` and
 requires `--model <model-id>`. Issue #22's bounded evidence records that

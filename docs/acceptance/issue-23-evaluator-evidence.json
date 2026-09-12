@@ -1,0 +1,104 @@
+{
+  "evidenceDate": "2026-09-12",
+  "sourceDirectory": ".dm-evaluations",
+  "sourcePolicy": "Detailed provider reports and live traces remain ignored; this allowlisted summary is the durable tracked evidence.",
+  "privacyScan": {
+    "caseInsensitivePatterns": [
+      "credential-shaped sk- value",
+      "api key",
+      "authorization",
+      "request headers",
+      "hidden reasoning",
+      "SDK payload",
+      "provider configuration",
+      "OPENAI_API_KEY"
+    ],
+    "artifactsScanned": 6,
+    "matches": 0
+  },
+  "evaluationReports": [
+    {
+      "sourceFile": "issue-22-gpt-5.4-mini-initial.json",
+      "sha256": "97a7333f75d111dcf7ef8068f7e1cd0db7465243b805780a9114bc9b83af7d96",
+      "requestedModel": "gpt-5.4-mini-2026-03-17",
+      "actualModelIds": ["gpt-5.4-mini-2026-03-17"],
+      "promptVersion": "stolen-signet-dm-v2",
+      "toolSchemaVersion": "stolen-signet-tools-v1",
+      "repetitions": 3,
+      "passed": false,
+      "safety": { "passed": 28, "total": 48 },
+      "manualReview": { "passed": 0, "missing": 15, "total": 15 }
+    },
+    {
+      "sourceFile": "issue-22-gpt-5.4-mini-v3.json",
+      "sha256": "14f805432f8ef9441c83f956ac9bb906ade5a057388df66fe21756b191917644",
+      "requestedModel": "gpt-5.4-mini-2026-03-17",
+      "actualModelIds": ["gpt-5.4-mini-2026-03-17"],
+      "promptVersion": "stolen-signet-dm-v3",
+      "toolSchemaVersion": "stolen-signet-tools-v1",
+      "repetitions": 3,
+      "passed": false,
+      "safety": { "passed": 43, "total": 48 },
+      "manualReview": { "passed": 15, "missing": 0, "total": 15 }
+    },
+    {
+      "sourceFile": "issue-22-gpt-5.5-v3.json",
+      "sha256": "b52456cd0f966cf3c0e024d66bd1e49e40a95da8194b455f0fd1e4234ca282ea",
+      "requestedModel": "gpt-5.5-2026-04-23",
+      "actualModelIds": ["gpt-5.5-2026-04-23"],
+      "promptVersion": "stolen-signet-dm-v3",
+      "toolSchemaVersion": "stolen-signet-tools-v1",
+      "repetitions": 3,
+      "passed": true,
+      "safety": { "passed": 48, "total": 48 },
+      "manualReview": { "passed": 15, "missing": 0, "total": 15 },
+      "thresholdsMet": {
+        "clearAccuracy": true,
+        "synonymAccuracy": true,
+        "navigationAccuracy": true,
+        "statusAccuracy": true,
+        "ambiguousClarification": true,
+        "compoundMutationBudget": true
+      }
+    }
+  ],
+  "liveTraces": [
+    {
+      "sourceFile": "issue-22-victory-trace.json",
+      "sha256": "73c32b84a56841b7ef365d069ecde6abe1bbfdad723be424cf7a64cf06b6e0b8",
+      "formatVersion": 2,
+      "seed": 0,
+      "model": "gpt-5.5-2026-04-23",
+      "promptVersion": "stolen-signet-dm-v3",
+      "toolSchemaVersion": "stolen-signet-tools-v1",
+      "turns": 9,
+      "outcome": "victory",
+      "completionReason": "eof"
+    },
+    {
+      "sourceFile": "issue-22-defeat-trace.json",
+      "sha256": "91143e850f6c6d650bca39cb1e4f78c5b1af62a2a641c28606cb98a72c3be227",
+      "formatVersion": 2,
+      "seed": 207,
+      "model": "gpt-5.5-2026-04-23",
+      "promptVersion": "stolen-signet-dm-v3",
+      "toolSchemaVersion": "stolen-signet-tools-v1",
+      "turns": 6,
+      "outcome": "defeat",
+      "completionReason": "eof"
+    },
+    {
+      "sourceFile": "issue-22-victory-accepted-trace.json",
+      "sha256": "686ab19f1a026eb7557713c9feaf517f74f739fbc8abce61f95e430f332e3b34",
+      "formatVersion": 2,
+      "seed": 0,
+      "model": "gpt-5.5-2026-04-23",
+      "promptVersion": "stolen-signet-dm-v3",
+      "toolSchemaVersion": "stolen-signet-tools-v1",
+      "turns": 9,
+      "outcome": "victory",
+      "completionReason": "eof"
+    }
+  ],
+  "qualityConclusion": "The strongest candidate passed the case evaluator but failed the separate completed-playthrough narration review, so it was not selected as the default."
+}
