@@ -1,0 +1,16 @@
+[
+  {"toolCalls":[{"id":"open","name":"open","argumentsJson":"{\"door_id\":\"entrance-door\"}"}]},
+  {"text":"The wooden door opens."},
+  {"toolCalls":[{"id":"move","name":"move","argumentsJson":"{\"destination_id\":\"guardroom\"}"}]},
+  {"text":"You enter the guardroom, where the goblin attacks first."},
+  {"toolCalls":[{"id":"attack-1","name":"attack","argumentsJson":"{\"opponent_id\":\"goblin\"}"}]},
+  {"text":"The fight continues."},
+  {"toolCalls":[{"id":"attack-2","name":"attack","argumentsJson":"{\"opponent_id\":\"goblin\"}"}]},
+  {"text":"The fight continues."},
+  {"toolCalls":[{"id":"attack-3","name":"attack","argumentsJson":"{\"opponent_id\":\"goblin\"}"}]},
+  {"text":"The goblin defeats you."},
+  {"toolCalls":[{"id":"status","name":"get_character_status","argumentsJson":"{}"}]},
+  {"text":"You have 0 of 20 hit points and the adventure has ended in defeat."},
+  {"toolCalls":[{"id":"post-defeat-move","name":"move","argumentsJson":"{\"destination_id\":\"reliquary\"}"}]},
+  {"text":"You cannot move after defeat; the final state remains readable."}
+]

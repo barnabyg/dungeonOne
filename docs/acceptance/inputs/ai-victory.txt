@@ -1,0 +1,11 @@
+Open the wooden door
+Go into the guardroom
+Attack the goblin
+Attack it again
+Search the corpse
+Go into the reliquary
+Take the family signet
+Go back to the guardroom
+Return to the reliquary
+Leave through the far exit
+quit

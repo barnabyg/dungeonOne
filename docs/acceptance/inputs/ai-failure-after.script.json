@@ -1,0 +1,7 @@
+[
+  {"toolCalls":[{"id":"open","name":"open","argumentsJson":"{\"door_id\":\"entrance-door\"}"}]},
+  {"text":"The wooden door opens."},
+  {"toolCalls":[{"id":"move","name":"move","argumentsJson":"{\"destination_id\":\"guardroom\"}"}]},
+  {"text":"You enter the guardroom."},
+  {"toolCalls":[{"id":"attack","name":"attack","argumentsJson":"{\"opponent_id\":\"goblin\"}"}]}
+]

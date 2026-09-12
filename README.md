@@ -425,3 +425,7 @@ Retreat from active combat, death saves, tactical movement, surprise, additional
 The recorded issue #11 handoff evidence, including the explicitly pending human
 acceptance action, is in
 [`docs/acceptance/issue-11.md`](docs/acceptance/issue-11.md).
+
+The Increment 2 handoff commands, trace evidence, live-AI smoke result, and
+remaining default-model and unfamiliar-human blockers are recorded in
+[`docs/acceptance/issue-23.md`](docs/acceptance/issue-23.md).

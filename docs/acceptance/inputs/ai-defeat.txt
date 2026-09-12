@@ -1,0 +1,8 @@
+Open the door
+Enter the guardroom
+Attack the goblin
+Attack again
+Attack once more
+How badly am I hurt?
+Try to walk into the reliquary
+quit

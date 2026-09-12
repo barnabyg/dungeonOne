@@ -1,0 +1,22 @@
+[
+  {"toolCalls":[{"id":"open","name":"open","argumentsJson":"{\"door_id\":\"entrance-door\"}"}]},
+  {"text":"The wooden door opens."},
+  {"toolCalls":[{"id":"move-guardroom","name":"move","argumentsJson":"{\"destination_id\":\"guardroom\"}"}]},
+  {"text":"You enter the guardroom and face the goblin."},
+  {"toolCalls":[{"id":"attack-1","name":"attack","argumentsJson":"{\"opponent_id\":\"goblin\"}"}]},
+  {"text":"Both combatants miss in the first exchange."},
+  {"toolCalls":[{"id":"attack-2","name":"attack","argumentsJson":"{\"opponent_id\":\"goblin\"}"}]},
+  {"text":"Your second attack defeats the goblin."},
+  {"toolCalls":[{"id":"inspect-corpse","name":"inspect","argumentsJson":"{\"target\":{\"type\":\"opponent\",\"opponent_id\":\"goblin\"}}"}]},
+  {"text":"The defeated goblin has nothing else of value."},
+  {"toolCalls":[{"id":"move-reliquary","name":"move","argumentsJson":"{\"destination_id\":\"reliquary\"}"}]},
+  {"text":"You enter the reliquary."},
+  {"toolCalls":[{"id":"take-signet","name":"take","argumentsJson":"{\"item_id\":\"signet\"}"}]},
+  {"text":"You take the stolen signet."},
+  {"toolCalls":[{"id":"backtrack-guardroom","name":"move","argumentsJson":"{\"destination_id\":\"guardroom\"}"}]},
+  {"text":"You return to the guardroom; the goblin remains defeated."},
+  {"toolCalls":[{"id":"return-reliquary","name":"move","argumentsJson":"{\"destination_id\":\"reliquary\"}"}]},
+  {"text":"You return to the reliquary."},
+  {"toolCalls":[{"id":"leave","name":"leave","argumentsJson":"{}"}]},
+  {"text":"You escape with the stolen signet. Victory."}
+]

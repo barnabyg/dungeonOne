@@ -1,0 +1,4 @@
+Open the door
+Enter the guardroom
+Attack the goblin
+quit
