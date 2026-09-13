@@ -157,9 +157,7 @@ test("AI dialogue uses a fresh speaker-scoped reply request", async () => {
                 },
               ],
             }
-          : {
-              text: "Mara: Tavi is missing. I thought they went to the ferry.",
-            };
+          : { text: "urgent" };
       },
     },
   });
@@ -233,6 +231,47 @@ test("reply failure keeps the committed authored answer and blocks a second muta
   assert.match(result.mechanics[0], /^Mara:/m);
 });
 
+test("untrusted NPC prose cannot introduce a private or invented fact", async () => {
+  const runtime = resolveAdventure("chapel");
+  let response = 0;
+  const result = await runDmTurn({
+    state: runtime.createSession(),
+    runtime,
+    playerInput: "Ask Mara about Tavi.",
+    transcript: [],
+    random: {
+      roll() {
+        assert.fail("Mara's public account must not roll");
+      },
+    },
+    model: {
+      async respond() {
+        response += 1;
+        return response === 1
+          ? {
+              toolCalls: [
+                {
+                  id: "talk-mara",
+                  name: "talk",
+                  argumentsJson:
+                    '{"speakerId":"mara","topicId":"tavi","approach":"ask"}',
+                },
+              ],
+            }
+          : {
+              text: "Mara: Oren diverted repair money and Tavi is trapped in the crypt.",
+            };
+      },
+    },
+  });
+
+  assert.equal(result.diagnostics[0].code, "unsafe-npc-reply");
+  assert.match(result.narration, /^Mara:/);
+  assert.match(result.narration, /only my guess/i);
+  assert.doesNotMatch(result.narration, /diverted|money|trapped|crypt/i);
+  assert.equal(result.state.discoveries.length, 2);
+});
+
 test("authorized Mara history survives general transcript eviction without cross-speaker text", async () => {
   const runtime = resolveAdventure("chapel");
   const talked = runtime.handleAction(
@@ -267,7 +306,7 @@ test("authorized Mara history survives general transcript eviction without cross
                 },
               ],
             }
-          : { text: "Mara: Tavi is missing; the ferry was only my guess." };
+          : { text: "steady" };
       },
     },
   });
@@ -379,7 +418,7 @@ test("offline and scripted-AI conversations are attributed, traced, and replayab
             },
           ],
         },
-        { text: "Tavi is missing. I only guessed they went to the ferry." },
+        { text: "concerned" },
       ]),
     );
     const played = spawnSync(
@@ -400,7 +439,7 @@ test("offline and scripted-AI conversations are attributed, traced, and replayab
       },
     );
     assert.equal(played.status, 0, played.stderr);
-    assert.match(played.stdout, /^Mara:.*ferry/im);
+    assert.match(played.stdout, /^Mara(?: \([^)]+\))?:.*ferry/im);
     const trace = JSON.parse(readFileSync(tracePath, "utf8"));
     assert.equal(trace.adventure.version, "chapel-dialogue-v3");
     assert.equal(trace.turns[0].calls[0].name, "talk");

@@ -1374,6 +1374,7 @@ function expectedTerminalDiagnostic(
       "malformed-response",
       "empty-narration",
       "overlong-narration",
+      "unsafe-npc-reply",
     ].includes(diagnostic.code) &&
     responseNumber <= DM_TURN_LIMITS.maxModelResponses
   ) {

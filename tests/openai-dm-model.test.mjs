@@ -255,7 +255,6 @@ test("NPC reply requests start a fresh provider context with only speaker-scoped
           statement: "Mara reports that Tavi is missing.",
         },
       ],
-      authoredFallback: "Mara: Tavi is missing.",
     },
   });
 
