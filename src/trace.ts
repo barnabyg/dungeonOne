@@ -83,7 +83,7 @@ type DmTraceTurn = Readonly<{
 
 type LocalTraceTurn = Readonly<{
   sequence: number;
-  kind: "local-help" | "local-quit";
+  kind: "local-help" | "local-journal" | "local-quit";
   rawPlayerInput: string;
   calls: readonly [];
   narration: null;

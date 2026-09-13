@@ -15,12 +15,17 @@ import {
   CHAPEL_RULES_VERSION,
   CHAPEL_TOOL_VERSION,
   CHAPEL_PROMPT_VERSION,
+  LEGACY_CHAPEL_VERSION,
+  LEGACY_CHAPEL_RULES_VERSION,
   createChapelSession,
   handleChapelAction,
   renderChapelIntroduction,
   renderChapelResult,
   type ChapelState,
   type ChapelResult,
+  type ChapelEvent,
+  type LegacyChapelEvent,
+  type LegacyChapelState,
 } from "./chapel.js";
 import {
   dispatchChapelTool,
@@ -29,7 +34,14 @@ import {
   projectChapelStatus,
 } from "./chapel-tools.js";
 import { GAME_TOOL_SCHEMA_VERSION } from "./game-tools.js";
-import type { AdventureRuntime, RuntimeState } from "./runtime-contract.js";
+import type {
+  AdventureRuntime,
+  RuntimeResult,
+  RuntimeState,
+  RuntimeToolResult,
+} from "./runtime-contract.js";
+import type { Action } from "./session.js";
+import type { DmScene } from "./game-tools.js";
 export type { AdventureRuntime } from "./runtime-contract.js";
 
 export const LEGACY_RULES_VERSION = "stolen-signet-rules-v1";
@@ -47,11 +59,202 @@ function signetState(state: RuntimeState): SessionState {
 }
 
 function chapelState(state: RuntimeState): ChapelState {
-  if (!("adventureId" in state) || state.adventureId !== CHAPEL_ID) {
+  if (
+    !("adventureId" in state) ||
+    state.adventureId !== CHAPEL_ID ||
+    !("discoveries" in state)
+  ) {
     throw new Error("State does not belong to chapel.");
   }
   return state;
 }
+
+function legacyChapelState(state: RuntimeState): LegacyChapelState {
+  if (
+    !("adventureId" in state) ||
+    state.adventureId !== CHAPEL_ID ||
+    "discoveries" in state
+  ) {
+    throw new Error("State does not belong to chapel exploration v1.");
+  }
+  return state;
+}
+
+function createLegacyChapelSession(): LegacyChapelState {
+  return {
+    adventureId: CHAPEL_ID,
+    locationId: "inn",
+    status: "playing",
+    fighter: { hp: 20, maxHp: 20, equipmentIds: ["longsword"] },
+    quest: { id: "find-tavi", status: "active" },
+  };
+}
+
+function upgradeLegacyChapelState(state: LegacyChapelState): ChapelState {
+  return {
+    ...state,
+    quest: { ...state.quest, milestones: [] },
+    discoveries: [],
+  };
+}
+
+function downgradeChapelState(state: ChapelState): LegacyChapelState {
+  return {
+    adventureId: CHAPEL_ID,
+    locationId: state.locationId,
+    status: state.status,
+    fighter: state.fighter,
+    quest: { id: state.quest.id, status: state.quest.status },
+  };
+}
+
+function downgradeChapelEvents(
+  events: readonly ChapelEvent[],
+): readonly LegacyChapelEvent[] {
+  const downgraded: LegacyChapelEvent[] = [];
+  for (const event of events) {
+    if (event.type === "chapel-discovered" || event.type === "chapel-journal") {
+      continue;
+    }
+    if (event.type === "chapel-status") {
+      downgraded.push({
+        ...event,
+        quest: { id: event.quest.id, status: event.quest.status },
+      });
+      continue;
+    }
+    downgraded.push(event);
+  }
+  return downgraded;
+}
+
+function handleLegacyChapelAction(
+  state: LegacyChapelState,
+  action: Action,
+): RuntimeResult {
+  if (action.type === "search" || action.type === "journal") {
+    return { state, rejection: { reason: "chapel-unavailable" } };
+  }
+  const result = handleChapelAction(upgradeLegacyChapelState(state), action);
+  return result.rejection === undefined
+    ? {
+        state: downgradeChapelState(result.state),
+        events: downgradeChapelEvents(result.events),
+      }
+    : {
+        state: downgradeChapelState(result.state),
+        rejection: result.rejection,
+      };
+}
+
+function parseLegacyChapelCommand(input: string): Action {
+  const action = parseCommand(input);
+  return action.type === "search" || action.type === "journal"
+    ? { type: "unknown", input: input.trim().toLowerCase() }
+    : action;
+}
+
+function downgradeChapelScene(scene: DmScene | undefined): DmScene | undefined {
+  if (scene === undefined) {
+    return undefined;
+  }
+  const withoutJournal = { ...scene };
+  delete withoutJournal.journal;
+  return {
+    ...withoutJournal,
+    room: {
+      ...withoutJournal.room,
+      features: withoutJournal.room.features.filter(
+        ({ id }) => id !== "damaged-repair-record",
+      ),
+    },
+  };
+}
+
+function dispatchLegacyChapelTool(
+  state: LegacyChapelState,
+  call: Parameters<AdventureRuntime["dispatchGameTool"]>[1],
+): RuntimeToolResult {
+  if (call.name === "search" || call.name === "get_journal") {
+    return {
+      state,
+      modelOutput: { ok: false, error: { code: "unknown-tool" } },
+    };
+  }
+  const result = dispatchChapelTool(upgradeLegacyChapelState(state), call);
+  if (
+    result.modelOutput.ok &&
+    result.modelOutput.inspection?.type === "feature" &&
+    result.modelOutput.inspection.id === "damaged-repair-record"
+  ) {
+    return {
+      state,
+      modelOutput: { ok: false, error: { code: "unavailable-reference" } },
+    };
+  }
+  const engineResult =
+    result.engineResult === undefined
+      ? undefined
+      : "events" in result.engineResult
+        ? {
+            events: downgradeChapelEvents(
+              result.engineResult.events as readonly ChapelEvent[],
+            ),
+          }
+        : result.engineResult;
+  const modelOutput = result.modelOutput.ok
+    ? {
+        ...result.modelOutput,
+        ...(result.modelOutput.events === undefined
+          ? {}
+          : {
+              events: downgradeChapelEvents(
+                result.modelOutput.events as readonly ChapelEvent[],
+              ),
+            }),
+        ...(result.modelOutput.scene === undefined
+          ? {}
+          : { scene: downgradeChapelScene(result.modelOutput.scene) }),
+      }
+    : {
+        ...result.modelOutput,
+        ...(result.modelOutput.scene === undefined
+          ? {}
+          : { scene: downgradeChapelScene(result.modelOutput.scene) }),
+      };
+  return {
+    state: downgradeChapelState(chapelState(result.state)),
+    ...(engineResult === undefined ? {} : { engineResult }),
+    modelOutput,
+  } as RuntimeToolResult;
+}
+
+const LEGACY_CHAPEL_RUNTIME: AdventureRuntime = Object.freeze({
+  id: CHAPEL_ID,
+  version: LEGACY_CHAPEL_VERSION,
+  rulesVersion: LEGACY_CHAPEL_RULES_VERSION,
+  promptVersion: "chapel-exploration-dm-v1",
+  toolSchemaVersion: "chapel-exploration-tools-v1",
+  readToolNames: ["look", "inspect", "get_character_status"],
+  mutationToolNames: ["move"],
+  commandTraceFormatVersion: 3,
+  dmTraceFormatVersion: 3,
+  createSession: createLegacyChapelSession,
+  handleAction: (state, action) =>
+    handleLegacyChapelAction(legacyChapelState(state), action),
+  parseCommand: parseLegacyChapelCommand,
+  renderIntroduction: renderChapelIntroduction,
+  renderResult: () => "",
+  dispatchGameTool: (state, call) =>
+    dispatchLegacyChapelTool(legacyChapelState(state), call),
+  getGameToolDefinitions: () => [],
+  projectCharacterStatus: (state) =>
+    projectChapelStatus(upgradeLegacyChapelState(legacyChapelState(state))),
+  projectDmScene: (state) =>
+    downgradeChapelScene(
+      projectChapelScene(upgradeLegacyChapelState(legacyChapelState(state))),
+    ) as DmScene,
+});
 
 const STOLEN_SIGNET_RUNTIME: AdventureRuntime = Object.freeze({
   id: ADVENTURE.id,
@@ -59,6 +262,8 @@ const STOLEN_SIGNET_RUNTIME: AdventureRuntime = Object.freeze({
   rulesVersion: RULES_VERSION,
   promptVersion: "stolen-signet-dm-v3",
   toolSchemaVersion: GAME_TOOL_SCHEMA_VERSION,
+  readToolNames: ["look", "inspect", "get_character_status"],
+  mutationToolNames: ["move", "open", "take", "attack", "leave"],
   commandTraceFormatVersion: 1,
   dmTraceFormatVersion: 2,
   createSession,
@@ -84,11 +289,13 @@ const CHAPEL_RUNTIME: AdventureRuntime = Object.freeze({
   rulesVersion: CHAPEL_RULES_VERSION,
   promptVersion: CHAPEL_PROMPT_VERSION,
   toolSchemaVersion: CHAPEL_TOOL_VERSION,
+  readToolNames: ["look", "inspect", "get_character_status", "get_journal"],
+  mutationToolNames: ["move", "search"],
   commandTraceFormatVersion: 3,
   dmTraceFormatVersion: 3,
   systemPrompt: `You are the Dungeon Master for The Bell Beneath the Chapel.
 
-The game engine is authoritative. Use only offered tools and public structured context. Never invent or reveal hidden facts, outcomes, items, people, or locations. Never claim a state change unless the current tool result confirms it. This build supports public inspection and travel only; explain unavailable actions honestly. Narrate concisely in the second person.`,
+The game engine is authoritative. Use only offered tools and public structured context. Never invent or reveal hidden facts, outcomes, items, people, or locations. Never claim a state change unless the current tool result confirms it. Use search for visible authored evidence when the player tries to discover facts; search is a state-changing attempt even though it never rolls. Use get_journal for ordinary-language questions about discoveries, sources, quest progress, or known leads. This build supports public inspection, evidence search, journal reads and travel only; explain unavailable actions honestly. Narrate concisely in the second person.`,
   createSession: createChapelSession,
   handleAction: (state, action) =>
     handleChapelAction(chapelState(state), action),
@@ -119,7 +326,12 @@ export function resolveAdventure(id = "stolen-signet"): AdventureRuntime {
 
 export type ReplayRuntime = Pick<
   AdventureRuntime,
-  "createSession" | "parseCommand" | "handleAction" | "dispatchGameTool"
+  | "createSession"
+  | "parseCommand"
+  | "handleAction"
+  | "dispatchGameTool"
+  | "readToolNames"
+  | "mutationToolNames"
 >;
 
 // Explicit historical mapping: never consult the startup default for an export.
@@ -135,6 +347,13 @@ export function resolveHistoricalAdventure(
     adventureVersion === CHAPEL_VERSION
   ) {
     return CHAPEL_RUNTIME;
+  }
+  if (
+    adventureId === CHAPEL_ID &&
+    rulesVersion === LEGACY_CHAPEL_RULES_VERSION &&
+    adventureVersion === LEGACY_CHAPEL_VERSION
+  ) {
+    return LEGACY_CHAPEL_RUNTIME;
   }
   if (adventureId !== ADVENTURE.id) {
     throw new Error(
@@ -152,6 +371,8 @@ export function resolveHistoricalAdventure(
     adventureVersion === LEGACY_ADVENTURE_VERSION
   ) {
     return Object.freeze({
+      readToolNames: STOLEN_SIGNET_RUNTIME.readToolNames,
+      mutationToolNames: STOLEN_SIGNET_RUNTIME.mutationToolNames,
       createSession,
       parseCommand,
       dispatchGameTool: STOLEN_SIGNET_RUNTIME.dispatchGameTool,

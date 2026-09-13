@@ -78,7 +78,7 @@ export async function playGame(
         ? "Live AI DM mode"
         : "Scripted DM mode";
     io.write(
-      `${modeName}: describe one action or ask about the scene or your character's status.\n`,
+      `${modeName}: describe one action or ask about the scene, your character's status, or your journal.\n`,
     );
   }
 
@@ -97,11 +97,19 @@ export async function playGame(
             "After victory or defeat, gameplay mutations are frozen but reflection and reads remain available.",
             "Local commands:",
             "  help  Show this guidance without calling the model.",
+            "  journal  Read discovered facts and known leads without calling the model.",
             "  quit  Leave the game without calling the model.",
           ].join("\n") + "\n",
         );
         if (dmTrace !== undefined) {
           recordLocalTraceTurn(dmTrace, "local-help", line, state);
+        }
+      } else if (localCommand === "journal") {
+        const journal = handleAction(state, { type: "journal" }, random);
+        state = journal.state;
+        io.write(`${renderResult(journal)}\n`);
+        if (dmTrace !== undefined) {
+          recordLocalTraceTurn(dmTrace, "local-journal", line, state);
         }
       } else if (localCommand === "quit") {
         const quit = handleAction(state, { type: "quit" }, random);

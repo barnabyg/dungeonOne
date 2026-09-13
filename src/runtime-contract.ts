@@ -1,5 +1,12 @@
 import type { Action, SessionState, Event, Rejection } from "./session.js";
-import type { ChapelState, ChapelEvent, ChapelRejection } from "./chapel.js";
+import type {
+  ChapelState,
+  ChapelEvent,
+  ChapelJournal,
+  LegacyChapelState,
+  LegacyChapelEvent,
+  ChapelRejection,
+} from "./chapel.js";
 import type {
   CharacterStatus,
   DmScene,
@@ -10,8 +17,8 @@ import type {
 } from "./game-tools.js";
 import type { RandomSource } from "./random.js";
 
-export type RuntimeState = SessionState | ChapelState;
-export type RuntimeEvent = Event | ChapelEvent;
+export type RuntimeState = SessionState | ChapelState | LegacyChapelState;
+export type RuntimeEvent = Event | ChapelEvent | LegacyChapelEvent;
 export type RuntimeRejection = Rejection | ChapelRejection;
 export type RuntimeResult =
   | Readonly<{
@@ -34,6 +41,7 @@ export type RuntimeToolResult = Readonly<{
         ok: true;
         scene?: DmScene;
         status?: CharacterStatus;
+        journal?: ChapelJournal;
         events?: readonly RuntimeEvent[];
         inspection?: DmInspection;
       }>
@@ -53,6 +61,8 @@ export type AdventureRuntime = Readonly<{
   promptVersion: string;
   systemPrompt?: string;
   toolSchemaVersion: string;
+  readToolNames: readonly string[];
+  mutationToolNames: readonly string[];
   commandTraceFormatVersion: 1 | 3;
   dmTraceFormatVersion: 2 | 3;
   createSession(): RuntimeState;

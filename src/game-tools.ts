@@ -8,7 +8,7 @@ import {
   type RoomId,
 } from "./adventure.js";
 import type { CombatantId } from "./combat.js";
-import type { ChapelFeatureId, ChapelRoomId } from "./chapel.js";
+import type { ChapelFeatureId, ChapelJournal, ChapelRoomId } from "./chapel.js";
 import type { RandomSource } from "./random.js";
 import {
   handleGameAction,
@@ -62,6 +62,7 @@ export type DmScene = Readonly<{
     opponentId: OpponentId;
     currentTurn: CombatantId;
   }>;
+  journal?: ChapelJournal;
 }>;
 
 export type CharacterStatus = Readonly<{
@@ -87,10 +88,12 @@ export type GameToolName =
   | "look"
   | "move"
   | "inspect"
+  | "search"
   | "open"
   | "take"
   | "attack"
   | "leave"
+  | "get_journal"
   | "get_character_status";
 
 export type GameToolCall = Readonly<{
@@ -444,7 +447,9 @@ export function projectCharacterStatus(state: SessionState): CharacterStatus {
   };
 }
 
-const TOOL_NAMES: readonly GameToolName[] = [
+type SignetToolName = Exclude<GameToolName, "search" | "get_journal">;
+
+const TOOL_NAMES: readonly SignetToolName[] = [
   "look",
   "move",
   "inspect",
@@ -564,7 +569,7 @@ function parseInspectTarget(
 }
 
 function parseTool(
-  name: GameToolName,
+  name: SignetToolName,
   args: Record<string, unknown>,
   visibility: Visibility,
 ): ParsedTool | ToolValidationErrorCode {
@@ -642,7 +647,7 @@ export function dispatchGameTool(
   call: GameToolCall,
   random?: Pick<RandomSource, "roll">,
 ): GameToolDispatchResult {
-  if (!TOOL_NAMES.includes(call.name as GameToolName)) {
+  if (!TOOL_NAMES.includes(call.name as SignetToolName)) {
     return validationFailure(state, "unknown-tool");
   }
 
@@ -657,7 +662,7 @@ export function dispatchGameTool(
   }
 
   const parsed = parseTool(
-    call.name as GameToolName,
+    call.name as SignetToolName,
     decoded,
     deriveVisibility(state),
   );

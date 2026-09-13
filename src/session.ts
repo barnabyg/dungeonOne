@@ -47,12 +47,14 @@ export type Action = Readonly<
   | { type: "help" }
   | { type: "look" }
   | { type: "inspect"; target?: string }
+  | { type: "search"; target?: string }
   | { type: "move"; destination?: string }
   | { type: "open"; target?: string }
   | { type: "take"; target?: string }
   | { type: "attack"; target?: string }
   | { type: "status" }
   | { type: "inventory" }
+  | { type: "journal" }
   | { type: "leave" }
   | { type: "quit" }
   | { type: "empty" }
@@ -978,6 +980,14 @@ export function handleAction(
       return handleGameAction(state, action, random);
     case "inspect":
       return inspectCommand(state, action.target);
+    case "search":
+      return {
+        state,
+        rejection: {
+          reason: "unknown-command",
+          input: `search${action.target ? ` ${action.target}` : ""}`,
+        },
+      };
     case "move":
       return moveCommand(state, action.destination, random);
     case "open":
@@ -1010,6 +1020,11 @@ export function handleAction(
               .map(([itemId]) => itemId as ItemId),
           },
         ],
+      };
+    case "journal":
+      return {
+        state,
+        rejection: { reason: "unknown-command", input: "journal" },
       };
     case "leave":
       return handleGameAction(state, action, random);

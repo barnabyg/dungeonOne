@@ -7,8 +7,6 @@ import {
   DM_CALL_DIAGNOSTIC_CODES,
   DM_DIAGNOSTIC_CODES,
   DM_INPUT_DIAGNOSTIC_CODES,
-  DM_MUTATION_TOOL_NAMES,
-  DM_READ_TOOL_NAMES,
   DM_SUPPORTED_PROMPT_VERSIONS,
   DM_TURN_LIMITS,
   normalizeDmText,
@@ -22,6 +20,10 @@ import {
   CHAPEL_RULES_VERSION,
   CHAPEL_PROMPT_VERSION,
   CHAPEL_TOOL_VERSION,
+  LEGACY_CHAPEL_VERSION,
+  LEGACY_CHAPEL_RULES_VERSION,
+  LEGACY_CHAPEL_PROMPT_VERSION,
+  LEGACY_CHAPEL_TOOL_VERSION,
 } from "./chapel.js";
 import type { RuntimeResult as ActionResult } from "./runtime-contract.js";
 import {
@@ -78,7 +80,7 @@ type ReplayDmDiagnostic = Readonly<{
 
 type ReplayDmTurn = Readonly<{
   sequence: number;
-  kind: "dm" | "local-help" | "local-quit";
+  kind: "dm" | "local-help" | "local-journal" | "local-quit";
   rawPlayerInput: string;
   calls: readonly ReplayDmCall[];
   diagnostics: readonly ReplayDmDiagnostic[];
@@ -848,6 +850,7 @@ function validateDmTrace(
     promptVersions?: readonly string[];
     toolSchemaVersion?: string;
     validateRuntimeState?: (value: unknown, path: string) => JsonObject;
+    localKinds?: readonly ReplayDmTurn["kind"][];
   }> = {},
 ): ReplayDmTrace {
   const trace = requireObject(value, "Trace");
@@ -911,7 +914,7 @@ function validateDmTrace(
       }
       const kind = requireOneOf(
         turn.kind,
-        ["dm", "local-help", "local-quit"],
+        options.localKinds ?? ["dm", "local-help", "local-quit"],
         `${path}.kind`,
       ) as ReplayDmTurn["kind"];
       const rawPlayerInput = requireString(
@@ -1048,6 +1051,55 @@ function traceResult(result: ActionResult): JsonObject {
     : { type: "rejected", rejection: result.rejection };
 }
 
+function chapelTraceConfig(trace: JsonObject): Readonly<{
+  runtime: ReplayRuntime;
+  version: string;
+  rulesVersion: string;
+  promptVersion: string;
+  toolVersion: string;
+  localKinds: readonly ReplayDmTurn["kind"][];
+}> {
+  const adventure = requireObject(trace.adventure, "adventure");
+  requireSupported(adventure.id, CHAPEL_ID, "adventure id");
+  const version = requireString(adventure.version, "adventure.version");
+  const rulesVersion = requireString(trace.rulesVersion, "rulesVersion");
+  const current =
+    version === CHAPEL_VERSION && rulesVersion === CHAPEL_RULES_VERSION;
+  const legacy =
+    version === LEGACY_CHAPEL_VERSION &&
+    rulesVersion === LEGACY_CHAPEL_RULES_VERSION;
+  if (!current && !legacy) {
+    if (
+      rulesVersion !== CHAPEL_RULES_VERSION &&
+      rulesVersion !== LEGACY_CHAPEL_RULES_VERSION
+    ) {
+      throw new Error(
+        `Unsupported rules version ${JSON.stringify(rulesVersion)}.`,
+      );
+    }
+    if (version !== CHAPEL_VERSION && version !== LEGACY_CHAPEL_VERSION) {
+      throw new Error(
+        `Unsupported adventure version ${JSON.stringify(version)}.`,
+      );
+    }
+    throw new Error(
+      `Unsupported chapel version combination ${JSON.stringify(rulesVersion)}/${JSON.stringify(version)}.`,
+    );
+  }
+  return {
+    runtime: resolveHistoricalAdventure(rulesVersion, version, CHAPEL_ID),
+    version,
+    rulesVersion,
+    promptVersion: current
+      ? CHAPEL_PROMPT_VERSION
+      : LEGACY_CHAPEL_PROMPT_VERSION,
+    toolVersion: current ? CHAPEL_TOOL_VERSION : LEGACY_CHAPEL_TOOL_VERSION,
+    localKinds: current
+      ? ["dm", "local-help", "local-journal", "local-quit"]
+      : ["dm", "local-help", "local-quit"],
+  };
+}
+
 function validateFormat3CommandTrace(value: unknown): ReplayTrace {
   const trace = requireObject(value, "Trace");
   requireSupported(
@@ -1055,10 +1107,7 @@ function validateFormat3CommandTrace(value: unknown): ReplayTrace {
     CHAPEL_TRACE_FORMAT_VERSION,
     "trace format version",
   );
-  requireSupported(trace.rulesVersion, CHAPEL_RULES_VERSION, "rules version");
-  const adventure = requireObject(trace.adventure, "adventure");
-  requireSupported(adventure.id, CHAPEL_ID, "adventure id");
-  requireSupported(adventure.version, CHAPEL_VERSION, "adventure version");
+  const config = chapelTraceConfig(trace);
   const random = requireObject(trace.random, "random");
   requireSupported(random.algorithm, RANDOM_ALGORITHM, "random algorithm");
   if (
@@ -1089,12 +1138,8 @@ function validateFormat3CommandTrace(value: unknown): ReplayTrace {
     },
   );
   return {
-    runtime: resolveHistoricalAdventure(
-      CHAPEL_RULES_VERSION,
-      CHAPEL_VERSION,
-      CHAPEL_ID,
-    ),
-    rulesVersion: CHAPEL_RULES_VERSION,
+    runtime: config.runtime,
+    rulesVersion: config.rulesVersion,
     initialSeed: Number(random.initialSeed),
     initialState: requireObject(trace.initialState, "initialState"),
     actions,
@@ -1203,14 +1248,16 @@ export async function verifyTraceFile(path: string): Promise<void> {
       return;
     }
     if (envelope.turns !== undefined && envelope.actions === undefined) {
+      const config = chapelTraceConfig(envelope);
       replayDmTrace(
         validateDmTrace(parsed, {
           formatVersion: CHAPEL_TRACE_FORMAT_VERSION,
           adventureId: CHAPEL_ID,
-          adventureVersion: CHAPEL_VERSION,
-          rulesVersion: CHAPEL_RULES_VERSION,
-          promptVersions: [CHAPEL_PROMPT_VERSION],
-          toolSchemaVersion: CHAPEL_TOOL_VERSION,
+          adventureVersion: config.version,
+          rulesVersion: config.rulesVersion,
+          promptVersions: [config.promptVersion],
+          toolSchemaVersion: config.toolVersion,
+          localKinds: config.localKinds,
           validateRuntimeState: requireObject,
         }),
       );
@@ -1228,11 +1275,10 @@ export async function verifyTraceFile(path: string): Promise<void> {
   replayCommandTrace(validateFormat1Trace(parsed));
 }
 
-const REPLAY_READ_TOOL_NAMES = new Set<string>(DM_READ_TOOL_NAMES);
-const REPLAY_MUTATION_TOOL_NAMES = new Set<string>(DM_MUTATION_TOOL_NAMES);
-
 function expectedBlockedCallFailure(
   call: ReplayDmCall,
+  readToolNames: ReadonlySet<string>,
+  mutationToolNames: ReadonlySet<string>,
   callIds: ReadonlySet<string>,
   readCalls: number,
   mutationAttempts: number,
@@ -1241,17 +1287,14 @@ function expectedBlockedCallFailure(
   if (callIds.has(call.id)) {
     return { code: "duplicate-call-id", responseNumber, callId: call.id };
   }
-  if (
-    !REPLAY_READ_TOOL_NAMES.has(call.name) &&
-    !REPLAY_MUTATION_TOOL_NAMES.has(call.name)
-  ) {
+  if (!readToolNames.has(call.name) && !mutationToolNames.has(call.name)) {
     return { code: "unsupported-tool", responseNumber, callId: call.id };
   }
-  if (REPLAY_MUTATION_TOOL_NAMES.has(call.name) && mutationAttempts > 0) {
+  if (mutationToolNames.has(call.name) && mutationAttempts > 0) {
     return { code: "mutation-call-limit", responseNumber, callId: call.id };
   }
   if (
-    REPLAY_READ_TOOL_NAMES.has(call.name) &&
+    readToolNames.has(call.name) &&
     readCalls >= DM_TURN_LIMITS.maxReadCalls
   ) {
     return { code: "read-call-limit", responseNumber, callId: call.id };
@@ -1312,6 +1355,8 @@ function replayDmTrace(trace: ReplayDmTrace): void {
   requireMatch("initial state", trace.initialState, state);
   const random = createSeededRandom(trace.initialSeed);
   let reason: "quit" | "eof" = "eof";
+  const readToolNames = new Set(trace.runtime.readToolNames);
+  const mutationToolNames = new Set(trace.runtime.mutationToolNames);
 
   for (const [turnIndex, turn] of trace.turns.entries()) {
     const turnNumber = turnIndex + 1;
@@ -1320,6 +1365,22 @@ function replayDmTrace(trace: ReplayDmTrace): void {
     }
     if (turn.kind === "local-help") {
       requireMatch(`turn ${turnNumber} state`, turn.stateAfter, state);
+      continue;
+    }
+    if (turn.kind === "local-journal") {
+      requireMatch(
+        `turn ${turnNumber} local-journal input`,
+        turn.rawPlayerInput.trim().toLowerCase(),
+        "journal",
+      );
+      const journal = trace.runtime.handleAction(state, { type: "journal" });
+      if (journal.rejection !== undefined) {
+        throw new Error(
+          `Replay divergence at turn ${turnNumber} local-journal action.`,
+        );
+      }
+      requireMatch(`turn ${turnNumber} state`, turn.stateAfter, journal.state);
+      state = journal.state;
       continue;
     }
     if (turn.kind === "local-quit") {
@@ -1386,6 +1447,8 @@ function replayDmTrace(trace: ReplayDmTrace): void {
 
         const failure = expectedBlockedCallFailure(
           expected,
+          readToolNames,
+          mutationToolNames,
           callIds,
           readCalls,
           mutationAttempts,
@@ -1414,6 +1477,8 @@ function replayDmTrace(trace: ReplayDmTrace): void {
 
       const blockedFailure = expectedBlockedCallFailure(
         expected,
+        readToolNames,
+        mutationToolNames,
         callIds,
         readCalls,
         mutationAttempts,
@@ -1421,7 +1486,7 @@ function replayDmTrace(trace: ReplayDmTrace): void {
       );
       requireMatch(`${location} failure`, undefined, blockedFailure);
       callIds.add(expected.id);
-      if (REPLAY_MUTATION_TOOL_NAMES.has(expected.name)) {
+      if (mutationToolNames.has(expected.name)) {
         mutationAttempts += 1;
       } else {
         readCalls += 1;

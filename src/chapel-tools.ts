@@ -3,7 +3,9 @@ import {
   CHAPEL_OBJECTIVE,
   chapelRoom,
   chapelInspection,
+  chapelSearchTargets,
   handleChapelAction,
+  projectChapelJournal,
   type ChapelState,
 } from "./chapel.js";
 import type {
@@ -31,6 +33,7 @@ export function projectChapelScene(state: ChapelState): DmScene {
       opponents: [],
       exits: room.exits.map((id) => ({ destinationId: id, name: id })),
     },
+    journal: projectChapelJournal(state),
   };
 }
 
@@ -48,6 +51,8 @@ export function getChapelTools(
   state: ChapelState,
 ): readonly GameToolDefinition[] {
   const room = chapelRoom(state.locationId);
+  const searchTargets =
+    state.status === "playing" ? chapelSearchTargets(state) : [];
   const definition = (
     name: GameToolDefinition["name"],
     description: string,
@@ -70,12 +75,30 @@ export function getChapelTools(
       "get_character_status",
       "Read health, equipment and session status.",
     ),
+    definition(
+      "get_journal",
+      "Read discovered facts, their sources, quest progress and known leads.",
+    ),
     definition("inspect", "Inspect a public feature or adjacent route.", {
       target: {
         type: "string",
         enum: [...room.features.map(({ id }) => id), ...room.exits],
       },
     }),
+    ...(searchTargets.length === 0
+      ? []
+      : [
+          definition(
+            "search",
+            "Search visible authored evidence and record any discovery.",
+            {
+              target: {
+                type: "string",
+                enum: searchTargets,
+              },
+            },
+          ),
+        ]),
     ...(state.status === "playing"
       ? [
           definition("move", "Travel to an adjacent public location.", {
@@ -111,7 +134,7 @@ export function dispatchChapelTool(
   const field =
     call.name === "move"
       ? "destinationId"
-      : call.name === "inspect"
+      : call.name === "inspect" || call.name === "search"
         ? "target"
         : undefined;
   if (
@@ -124,6 +147,12 @@ export function dispatchChapelTool(
     return {
       state,
       modelOutput: { ok: true, status: projectChapelStatus(state) },
+    };
+  }
+  if (call.name === "get_journal") {
+    return {
+      state,
+      modelOutput: { ok: true, journal: projectChapelJournal(state) },
     };
   }
   let action: Action = { type: "look" };
@@ -147,6 +176,12 @@ export function dispatchChapelTool(
       return reject("unavailable-reference");
     }
     action = { type: "inspect", target: reference };
+  } else if (call.name === "search") {
+    const target = String(args.target);
+    if (!chapelSearchTargets(state).some((id) => id === target)) {
+      return reject("unavailable-reference");
+    }
+    action = { type: "search", target };
   }
   const result = handleChapelAction(state, action);
   if (result.rejection !== undefined) {

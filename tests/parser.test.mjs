@@ -10,6 +10,10 @@ test("canonical commands are parsed case-insensitively", () => {
     type: "inspect",
     target: "ruined archway",
   });
+  assert.deepEqual(parseCommand("SeArCh Missing-Person Notice"), {
+    type: "search",
+    target: "missing-person notice",
+  });
   assert.deepEqual(parseCommand("MoVe GuardRoom"), {
     type: "move",
     destination: "guardroom",
@@ -28,12 +32,14 @@ test("canonical commands are parsed case-insensitively", () => {
   });
   assert.deepEqual(parseCommand("STATUS"), { type: "status" });
   assert.deepEqual(parseCommand("Inventory"), { type: "inventory" });
+  assert.deepEqual(parseCommand("Journal"), { type: "journal" });
   assert.deepEqual(parseCommand("LEAVE"), { type: "leave" });
   assert.deepEqual(parseCommand("QUIT"), { type: "quit" });
 });
 
 test("argument commands stay structured when their argument is missing", () => {
   assert.deepEqual(parseCommand("inspect"), { type: "inspect", target: "" });
+  assert.deepEqual(parseCommand("search"), { type: "search", target: "" });
   assert.deepEqual(parseCommand("move   "), { type: "move", destination: "" });
   assert.deepEqual(parseCommand("open   "), { type: "open", target: "" });
   assert.deepEqual(parseCommand("take   "), { type: "take", target: "" });
@@ -48,6 +54,10 @@ test("argument-free commands reject extra words instead of guessing intent", () 
   assert.deepEqual(parseCommand("status please"), {
     type: "unknown",
     input: "status please",
+  });
+  assert.deepEqual(parseCommand("journal please"), {
+    type: "unknown",
+    input: "journal please",
   });
   assert.deepEqual(parseCommand("quit now"), {
     type: "unknown",

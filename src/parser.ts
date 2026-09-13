@@ -15,6 +15,7 @@ export function parseCommand(input: string): Action {
     case "look":
     case "status":
     case "inventory":
+    case "journal":
     case "leave":
     case "quit": {
       if (argument.length > 0) {
@@ -24,6 +25,8 @@ export function parseCommand(input: string): Action {
     }
     case "inspect":
       return { type: "inspect", target: argument };
+    case "search":
+      return { type: "search", target: argument };
     case "move":
       return { type: "move", destination: argument };
     case "open":

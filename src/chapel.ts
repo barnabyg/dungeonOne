@@ -1,10 +1,14 @@
 import type { Action } from "./session.js";
 
 export const CHAPEL_ID = "chapel";
-export const CHAPEL_VERSION = "chapel-exploration-v1";
-export const CHAPEL_RULES_VERSION = "chapel-exploration-rules-v1";
-export const CHAPEL_TOOL_VERSION = "chapel-exploration-tools-v1";
-export const CHAPEL_PROMPT_VERSION = "chapel-exploration-dm-v1";
+export const LEGACY_CHAPEL_VERSION = "chapel-exploration-v1";
+export const LEGACY_CHAPEL_RULES_VERSION = "chapel-exploration-rules-v1";
+export const LEGACY_CHAPEL_TOOL_VERSION = "chapel-exploration-tools-v1";
+export const LEGACY_CHAPEL_PROMPT_VERSION = "chapel-exploration-dm-v1";
+export const CHAPEL_VERSION = "chapel-discovery-v2";
+export const CHAPEL_RULES_VERSION = "chapel-discovery-rules-v2";
+export const CHAPEL_TOOL_VERSION = "chapel-discovery-tools-v2";
+export const CHAPEL_PROMPT_VERSION = "chapel-discovery-dm-v2";
 export const CHAPEL_TITLE = "The Bell Beneath the Chapel";
 export const CHAPEL_OBJECTIVE =
   "Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.";
@@ -18,7 +22,79 @@ export type ChapelFeatureId =
   | "mooring"
   | "waymarker"
   | "broken-roof"
+  | "damaged-repair-record"
   | "crypt-steps";
+export type ChapelDiscoveryId = "chapel-route" | "unsafe-repairs";
+export type ChapelMilestoneId =
+  "chapel-route-known" | "unsafe-repairs-linked-to-oren";
+export type ChapelDiscovery = Readonly<{
+  id: ChapelDiscoveryId;
+  title: string;
+  source: Readonly<{
+    type: "feature";
+    id: ChapelFeatureId;
+    name: string;
+    locationId: ChapelRoomId;
+  }>;
+  classification: "observation" | "testimony" | "belief";
+  summary: string;
+  actionableLead?: string;
+}>;
+export type ChapelJournal = Readonly<{
+  quest: Readonly<{
+    id: "find-tavi";
+    title: "Find Tavi";
+    status: "active";
+    milestones: readonly ChapelMilestoneId[];
+  }>;
+  discoveries: readonly ChapelDiscovery[];
+  actionableLeads: readonly string[];
+}>;
+
+type ChapelEvidence = Readonly<{
+  targetId: ChapelFeatureId;
+  discovery: ChapelDiscovery;
+  milestoneId: ChapelMilestoneId;
+}>;
+
+const CHAPEL_EVIDENCE = [
+  {
+    targetId: "missing-person-notice",
+    discovery: {
+      id: "chapel-route",
+      title: "The chapel route",
+      source: {
+        type: "feature",
+        id: "missing-person-notice",
+        name: "missing-person notice",
+        locationId: "inn",
+      },
+      classification: "observation",
+      summary:
+        "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+      actionableLead: "Follow the chapel path to the ruined chapel.",
+    },
+    milestoneId: "chapel-route-known",
+  },
+  {
+    targetId: "damaged-repair-record",
+    discovery: {
+      id: "unsafe-repairs",
+      title: "Unsafe chapel repairs",
+      source: {
+        type: "feature",
+        id: "damaged-repair-record",
+        name: "damaged repair record",
+        locationId: "ruined-chapel",
+      },
+      classification: "observation",
+      summary:
+        "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+      actionableLead: "Ask Oren about the unfinished chapel repairs.",
+    },
+    milestoneId: "unsafe-repairs-linked-to-oren",
+  },
+] as const satisfies readonly ChapelEvidence[];
 
 type PublicFeature = Readonly<{
   id: ChapelFeatureId;
@@ -101,6 +177,12 @@ export const CHAPEL_ROOMS = [
         description:
           "Gaps in the roof let the rain through. Stay clear of the fallen stones.",
       },
+      {
+        id: "damaged-repair-record",
+        name: "damaged repair record",
+        description:
+          "A water-spotted repair record is pinned beneath a fallen beam. Its cramped entries need a careful search to interpret.",
+      },
     ],
     exits: ["chapel-path", "crypt"],
   },
@@ -130,12 +212,47 @@ export type ChapelState = Readonly<{
     maxHp: number;
     equipmentIds: readonly ["longsword"];
   }>;
+  quest: Readonly<{
+    id: "find-tavi";
+    status: "active";
+    milestones: readonly ChapelMilestoneId[];
+  }>;
+  discoveries: readonly ChapelDiscovery[];
+}>;
+export type LegacyChapelState = Readonly<{
+  adventureId: typeof CHAPEL_ID;
+  locationId: ChapelRoomId;
+  status: "playing" | "quit";
+  fighter: Readonly<{
+    hp: number;
+    maxHp: number;
+    equipmentIds: readonly ["longsword"];
+  }>;
   quest: Readonly<{ id: "find-tavi"; status: "active" }>;
 }>;
+export type LegacyChapelEvent = Readonly<
+  | Exclude<
+      ChapelEvent,
+      { type: "chapel-status" | "chapel-discovered" | "chapel-journal" }
+    >
+  | {
+      type: "chapel-status";
+      hp: number;
+      maxHp: number;
+      status: LegacyChapelState["status"];
+      quest: LegacyChapelState["quest"];
+    }
+>;
 export type ChapelEvent = Readonly<
   | { type: "chapel-scene"; roomId: ChapelRoomId }
   | { type: "chapel-moved"; fromRoomId: ChapelRoomId; roomId: ChapelRoomId }
   | { type: "chapel-inspected"; name: string; description: string }
+  | {
+      type: "chapel-discovered";
+      discoveryId: ChapelDiscoveryId;
+      milestoneId: ChapelMilestoneId;
+    }
+  | { type: "chapel-journal"; journal: ChapelJournal }
   | {
       type: "chapel-status";
       hp: number;
@@ -169,7 +286,8 @@ export function createChapelSession(): ChapelState {
     locationId: "inn",
     status: "playing",
     fighter: { hp: 20, maxHp: 20, equipmentIds: ["longsword"] },
-    quest: { id: "find-tavi", status: "active" },
+    quest: { id: "find-tavi", status: "active", milestones: [] },
+    discoveries: [],
   };
 }
 
@@ -213,6 +331,32 @@ export function chapelInspection(
       };
 }
 
+export function projectChapelJournal(state: ChapelState): ChapelJournal {
+  return {
+    quest: {
+      id: state.quest.id,
+      title: "Find Tavi",
+      status: state.quest.status,
+      milestones: state.quest.milestones,
+    },
+    discoveries: state.discoveries,
+    actionableLeads: state.discoveries.flatMap((discovery) =>
+      discovery.actionableLead === undefined ? [] : [discovery.actionableLead],
+    ),
+  };
+}
+
+export function chapelSearchTargets(
+  state: ChapelState,
+): readonly ChapelFeatureId[] {
+  const visibleFeatures = new Set(
+    chapelRoom(state.locationId).features.map(({ id }) => id),
+  );
+  return CHAPEL_EVIDENCE.map(({ targetId }) => targetId).filter((targetId) =>
+    visibleFeatures.has(targetId),
+  );
+}
+
 export function handleChapelAction(
   state: ChapelState,
   action: Action,
@@ -242,6 +386,11 @@ export function handleChapelAction(
       });
     case "inventory":
       return accept({ type: "chapel-inventory" });
+    case "journal":
+      return accept({
+        type: "chapel-journal",
+        journal: projectChapelJournal(state),
+      });
     case "inspect": {
       if (!action.target) {
         return { state, rejection: { reason: "chapel-missing-argument" } };
@@ -254,6 +403,45 @@ export function handleChapelAction(
             name: target.name,
             description: target.description,
           });
+    }
+    case "search": {
+      if (state.status === "quit") {
+        return { state, rejection: { reason: "chapel-session-ended" } };
+      }
+      if (!action.target) {
+        return { state, rejection: { reason: "chapel-missing-argument" } };
+      }
+      const target = chapelInspection(state, action.target);
+      const evidence = CHAPEL_EVIDENCE.find(
+        (entry) => entry.targetId === target?.id,
+      );
+      if (evidence === undefined) {
+        return { state, rejection: { reason: "chapel-unavailable" } };
+      }
+      if (
+        state.discoveries.some(
+          (discovery) => discovery.id === evidence.discovery.id,
+        )
+      ) {
+        return accept();
+      }
+      return {
+        state: {
+          ...state,
+          quest: {
+            ...state.quest,
+            milestones: [...state.quest.milestones, evidence.milestoneId],
+          },
+          discoveries: [...state.discoveries, evidence.discovery],
+        },
+        events: [
+          {
+            type: "chapel-discovered",
+            discoveryId: evidence.discovery.id,
+            milestoneId: evidence.milestoneId,
+          },
+        ],
+      };
     }
     case "move": {
       if (state.status === "quit") {
@@ -292,7 +480,7 @@ export function handleChapelAction(
 }
 
 export function renderChapelIntroduction(): string {
-  return `${CHAPEL_TITLE}\n\nObjective: ${CHAPEL_OBJECTIVE}\nActive quest: Find Tavi.\nExploration preview: conversations, discoveries, combat and resolutions are not yet playable.\nType "help" for available commands.`;
+  return `${CHAPEL_TITLE}\n\nObjective: ${CHAPEL_OBJECTIVE}\nActive quest: Find Tavi.\nInvestigation preview: conversations, combat and resolutions are not yet playable.\nType "help" for available commands.`;
 }
 
 export function renderChapelResult(result: ChapelResult): string {
@@ -302,6 +490,9 @@ export function renderChapelResult(result: ChapelResult): string {
       : result.rejection.reason === "chapel-session-ended"
         ? "This session has ended."
         : 'That action or target is unavailable here. Use "look" for public features and adjacent routes. This exploration build cannot complete the quest.';
+  }
+  if (result.events.length === 0) {
+    return "You find nothing new; this evidence is already recorded in your journal.";
   }
   return result.events
     .map((event) => {
@@ -314,12 +505,33 @@ export function renderChapelResult(result: ChapelResult): string {
           return `You travel to ${chapelRoom(event.roomId).name}.`;
         case "chapel-inspected":
           return `${event.name}: ${event.description}`;
+        case "chapel-discovered": {
+          const discovery = CHAPEL_EVIDENCE.find(
+            (entry) => entry.discovery.id === event.discoveryId,
+          )?.discovery;
+          return discovery === undefined
+            ? "A discovery was recorded."
+            : `Discovery recorded — ${discovery.title}: ${discovery.summary}`;
+        }
+        case "chapel-journal": {
+          const discoveries = event.journal.discoveries.map((discovery) => {
+            const sourceLocation = chapelRoom(discovery.source.locationId).name;
+            return `- ${discovery.title} [${discovery.classification}] — ${discovery.summary}\n  Source: ${discovery.source.name}, ${sourceLocation}.`;
+          });
+          const milestones = event.journal.quest.milestones;
+          return [
+            `Journal\nActive quest: ${event.journal.quest.title} (${event.journal.quest.status}).`,
+            `Milestones: ${milestones.length === 0 ? "none" : milestones.join(", ")}.`,
+            `Discoveries: ${discoveries.length === 0 ? "none" : `\n${discoveries.join("\n")}`}`,
+            `Known leads: ${event.journal.actionableLeads.length === 0 ? "none" : `\n- ${event.journal.actionableLeads.join("\n- ")}`}`,
+          ].join("\n");
+        }
         case "chapel-status":
           return `Fighter HP: ${event.hp}/${event.maxHp}\nSession: ${event.status}.\nActive quest: Find Tavi. ${CHAPEL_OBJECTIVE}`;
         case "chapel-inventory":
           return "Equipped: longsword.\nCollectibles: empty.";
         case "chapel-help":
-          return "Available commands: help, look, inspect <target>, move <location>, status, inventory, quit.\nExamples: inspect missing-person notice; move ferry-landing; move inn; move chapel-path; move ruined-chapel; move crypt.\nEnter each command on its own line. Explore the crypt entrance, then return or quit. The quest cannot yet be completed.";
+          return "Available commands: help, look, inspect <target>, search <evidence>, move <location>, status, inventory, journal, quit.\nExamples: search missing-person notice; journal; move ferry-landing; move inn; move chapel-path; move ruined-chapel; move crypt.\nEnter each command on its own line. Explore the crypt entrance, then return or quit. The quest cannot yet be completed.";
         case "session-quit":
           return "You leave the game.";
       }

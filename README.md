@@ -27,14 +27,17 @@ Replay selects the original runtime from the export's supported version tuple,
 including historical exports whose adventure object lacks an ID. Unknown version
 combinations fail instead of falling back to the current default.
 
-The chapel exploration slice starts the active **Find Tavi** quest and lets you
-inspect the public notice and travel through the inn, ferry landing, chapel path,
-ruined chapel, and crypt entrance. The crypt clearly marks the current boundary:
-conversation, discoveries, the guardian fight, rescue, and resolution arrive in
+The chapel investigation slice starts the active **Find Tavi** quest and lets you
+search the public missing-person notice, follow its chapel route, and discover a
+damaged repair record that identifies Oren's unfinished unsafe work. These
+authored searches need no roll or NPC cooperation and may be completed in either
+order. `journal` shows only discovered facts with their source and classification,
+quest milestones, and currently known leads. The crypt clearly marks the current
+boundary: conversation, the guardian fight, rescue, and resolution arrive in
 later increment-3 tickets. A copyable offline journey is:
 
 ```powershell
-@("inspect missing-person notice", "move chapel-path", "move ruined-chapel", "move crypt", "quit") |
+@("search missing-person notice", "journal", "move chapel-path", "move ruined-chapel", "search damaged repair record", "journal", "move crypt", "quit") |
   npm.cmd start -- --adventure chapel --seed 4 --trace .\chapel-trace.json
 npm.cmd start -- --replay .\chapel-trace.json
 ```
@@ -115,7 +118,10 @@ state evidence as formats 1 and 2, with explicit chapel content/rules versions.
 AI traces also record the chapel prompt/tool versions and normalized provider
 identity. Format-3 replay selects the chapel runtime from that exact version tuple,
 runs without a model, compares every result and state, and rejects unknown versions
-or tampering. Trace state is diagnostic and may contain spoilers; it is not a save.
+or tampering. The exploration-v1 tuple remains replayable after the discovery-v2
+state and tools were added. AI traces identify exact local `journal` reads as
+`local-journal`, and replay validates their input and unchanged state. Trace state
+is diagnostic and may contain spoilers; it is not a save.
 
 Command mode exports trace format `1`. It is JSON and a compatibility contract. It records
 the rules and built-in adventure versions, random algorithm and initial seed,
@@ -203,13 +209,15 @@ Commands and their arguments are case-insensitive. Commands must use the canonic
 | ------------------ | -------------------------------------------------------------------------------- |
 | `help`             | List supported commands.                                                         |
 | `look`             | Describe the current room, visible features and items, and named exits.          |
-| `inspect <target>` | Inspect something visible or a carried item, such as `inspect signet`.           |
+| `inspect <target>` | Inspect something visible or a carried item without changing state.              |
+| `search <target>`  | Search visible authored chapel evidence and record a roll-free discovery.        |
 | `move <location>`  | Walk through an open passage to a named adjacent room, such as `move guardroom`. |
 | `open <target>`    | Open an accessible door, such as `open wooden door`.                             |
 | `take <item>`      | Move a visible collectible into inventory, such as `take signet`.                |
 | `attack <target>`  | Attack the living guardroom goblin with the fighter's longsword.                 |
 | `status`           | Show the fighter's current and maximum HP and session status.                    |
 | `inventory`        | Show the fixed longsword equipment separately from collected items.              |
+| `journal`          | Show discovered facts, sources, quest milestones, and known leads.               |
 | `leave`            | Attempt to complete the objective through the reliquary's far exit.              |
 | `quit`             | Leave the game cleanly without victory or defeat.                                |
 
@@ -316,7 +324,7 @@ $env:DUNGEON_ONE_TEST_DM_SCRIPT = ".\dm-script.json"
 Remove-Item Env:DUNGEON_ONE_TEST_DM_SCRIPT
 ```
 
-The terminal keeps exact local `help` and `quit` handling, and prints separate
+The terminal keeps exact local `help`, chapel `journal`, and `quit` handling, and prints separate
 `Mechanics` and `Dungeon Master` sections. Command mode is unchanged when the
 test variable is absent. Add `--trace <path>` to export a format-2 scripted-DM
 session, and replay it later with `--replay <path>` without the script or a model.
@@ -441,6 +449,9 @@ After `npm.cmd run build`:
 7. After victory, enter `move guardroom`, `look`, `status`, `inventory`, and `help`. Expect movement to be rejected without changing the final state, while read-only commands show the Reliquary, `victory`, and the carried signet. Enter `quit`; expect a clean exit that preserves the victory state.
 8. Run the checked-in defeat input with trace export as shown above. Expect fighter initiative 4 against goblin initiative 21, then one automatic goblin opening attack before the fighter's turn. The third `attack goblin` produces immediate defeat at 0/20 HP. The fourth attack is rejected without another turn or random draw. Expect `look`, `status`, `inventory`, and `help` to remain available, gameplay mutations to be rejected, and instructions to quit and start fresh. Replay both exported outcome traces and expect `Trace verified successfully` with exit code 0.
 9. Run `node dist/cli.js --seed -1`. Expect an error and a nonzero exit. Pipe empty input to `node dist/cli.js`; expect exactly one generated seed, the objective and starting scene, exit code 0, and neither victory nor defeat.
+10. Run `npm.cmd start -- --adventure chapel --seed 4`. Enter `journal`, `inspect missing-person notice`, `search missing-person notice`, `search missing-person notice`, then `journal`. Expect the first journal to contain no discoveries or leads, inspection to leave it unchanged, the first search to record the chapel route without a roll, the repeat to report nothing new, and the final journal to attribute an observed fact to the inn notice and recommend the chapel path.
+11. Continue with `move chapel-path`, `move ruined-chapel`, `search damaged repair record`, and `journal`. Expect an observed unsafe-repairs discovery attributed to the record at the Ruined Chapel, a named milestone linking the repairs to Oren, and a lead to ask Oren. No ledger, medicine motive, Tavi fate, or resolution should appear.
+12. Repeat the chapel path with `--trace .\chapel-discovery.json`, then replay it with `npm.cmd start -- --replay .\chapel-discovery.json`. Expect zero random draws for both searches and successful replay. In AI mode, exact `journal` should render locally even immediately after a provider failure; an ordinary-language journal question should use `get_journal`.
 
 ### Usability pass observations
 

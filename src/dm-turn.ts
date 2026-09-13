@@ -162,6 +162,7 @@ export const DM_READ_TOOL_NAMES = [
   "look",
   "inspect",
   "get_character_status",
+  "get_journal",
 ] as const satisfies readonly GameToolName[];
 export const DM_MUTATION_TOOL_NAMES = [
   "move",
@@ -169,13 +170,8 @@ export const DM_MUTATION_TOOL_NAMES = [
   "take",
   "attack",
   "leave",
+  "search",
 ] as const satisfies readonly GameToolName[];
-const READ_TOOL_NAMES = new Set<GameToolName>(DM_READ_TOOL_NAMES);
-const MUTATION_TOOL_NAMES = new Set<GameToolName>(DM_MUTATION_TOOL_NAMES);
-const SUPPORTED_TOOL_NAMES = new Set<GameToolName>([
-  ...READ_TOOL_NAMES,
-  ...MUTATION_TOOL_NAMES,
-]);
 const SAFE_FALLBACK =
   "I couldn't complete that request safely. Please try one specific action, or ask one specific question about what you can see or your character's status.";
 const COMMITTED_ACTION_FALLBACK =
@@ -283,8 +279,9 @@ function offeredTools(
   runtime: AdventureRuntime,
 ): readonly GameToolDefinition[] {
   const tools = runtime.getGameToolDefinitions(state);
+  const readToolNames = new Set(runtime.readToolNames);
   return mutationAttempted
-    ? tools.filter(({ name }) => READ_TOOL_NAMES.has(name))
+    ? tools.filter(({ name }) => readToolNames.has(name))
     : tools;
 }
 
@@ -307,6 +304,9 @@ export async function runDmTurn(
   const mechanics: string[] = [];
   let state = input.state;
   const budget = { readCalls: 0, mutationAttempts: 0 };
+  const readToolNames = new Set(runtime.readToolNames);
+  const mutationToolNames = new Set(runtime.mutationToolNames);
+  const supportedToolNames = new Set([...readToolNames, ...mutationToolNames]);
 
   const complete = (
     narration: string,
@@ -429,7 +429,7 @@ export async function runDmTurn(
         callId: call.id,
       });
     }
-    if (!SUPPORTED_TOOL_NAMES.has(call.name as GameToolName)) {
+    if (!supportedToolNames.has(call.name)) {
       toolAttempts.push(unexecutedAttempt(call));
       return fail({
         code: "unsupported-tool",
@@ -437,7 +437,7 @@ export async function runDmTurn(
         callId: call.id,
       });
     }
-    const isMutation = MUTATION_TOOL_NAMES.has(call.name as GameToolName);
+    const isMutation = mutationToolNames.has(call.name);
     if (isMutation && budget.mutationAttempts > 0) {
       toolAttempts.push(unexecutedAttempt(call));
       return fail({
