@@ -651,6 +651,12 @@ test("the dialogue-v3 runtime remains replayable without Oren social state", () 
   );
   const initial = runtime.createSession();
   assert.equal("socialChallenges" in initial, false);
+  assert.deepEqual(runtime.parseCommand("talk mara tavi ask extra"), {
+    type: "talk",
+    target: "mara",
+    topic: "tavi",
+    approach: "ask",
+  });
   const arrived = runtime.handleAction(
     initial,
     runtime.parseCommand("move ferry-landing"),

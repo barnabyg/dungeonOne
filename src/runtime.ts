@@ -63,6 +63,17 @@ export const LEGACY_ADVENTURE_VERSION = "1";
 export const RULES_VERSION = "stolen-signet-rules-v2";
 export const ADVENTURE_VERSION = "2";
 
+function parseCurrentChapelCommand(input: string): Action {
+  const action = parseCommand(input);
+  if (
+    action.type === "talk" &&
+    input.trim().toLowerCase().split(/\s+/u).length !== 4
+  ) {
+    return { type: "unknown", input: input.trim().toLowerCase() };
+  }
+  return action;
+}
+
 // These modules are the original signet implementation. Keep its persisted state
 // and event shapes intact; selection belongs to the session's runtime, not state.
 function signetState(state: RuntimeState): SessionState {
@@ -598,7 +609,7 @@ The game engine is authoritative. Use only offered tools and public structured c
   createSession: createChapelSession,
   handleAction: (state, action, random) =>
     handleChapelAction(chapelState(state), action, random),
-  parseCommand,
+  parseCommand: parseCurrentChapelCommand,
   renderIntroduction: renderChapelIntroduction,
   renderResult: (result) => {
     chapelState(result.state);
