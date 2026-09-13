@@ -251,6 +251,20 @@ test("chapel tools expose the visible skeleton combatant and validated attacks",
     opponentCombatantId: "skeleton-guardian",
     currentTurn: "fighter",
   });
+  const inspected = runtime.dispatchGameTool(state, {
+    name: "inspect",
+    argumentsJson: '{"target":"skeleton-guardian"}',
+  });
+  assert.equal(inspected.modelOutput.ok, true);
+  assert.deepEqual(inspected.modelOutput.inspection, {
+    type: "opponent",
+    id: "skeleton-guardian",
+    name: "skeleton guardian",
+    description:
+      "A bleached skeleton rises beside the sealed arch, gripping a rusted shortsword.",
+    condition: "living",
+  });
+  assert.equal(inspected.state, state);
   const attackTool = runtime
     .getGameToolDefinitions(state)
     .find(({ name }) => name === "attack");

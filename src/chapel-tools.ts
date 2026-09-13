@@ -300,6 +300,9 @@ export function dispatchChapelTool(
     const room = chapelRoom(state.locationId);
     const reference = [
       ...room.features.map(({ id }) => id),
+      ...(guardianEnabled && state.locationId === "crypt"
+        ? ["skeleton-guardian"]
+        : []),
       ...room.exits,
     ].find((id) => id === target);
     if (reference === undefined) {
