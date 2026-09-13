@@ -122,6 +122,7 @@ export const CHAPEL_ROOMS = [
 ] as const satisfies readonly ChapelRoom[];
 
 export type ChapelState = Readonly<{
+  adventureId: typeof CHAPEL_ID;
   locationId: ChapelRoomId;
   status: "playing" | "quit";
   fighter: Readonly<{
@@ -164,6 +165,7 @@ export type ChapelResult =
 
 export function createChapelSession(): ChapelState {
   return {
+    adventureId: CHAPEL_ID,
     locationId: "inn",
     status: "playing",
     fighter: { hp: 20, maxHp: 20, equipmentIds: ["longsword"] },

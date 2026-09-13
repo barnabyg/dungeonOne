@@ -40,14 +40,14 @@ export const ADVENTURE_VERSION = "2";
 // These modules are the original signet implementation. Keep its persisted state
 // and event shapes intact; selection belongs to the session's runtime, not state.
 function signetState(state: RuntimeState): SessionState {
-  if ("quest" in state) {
+  if ("adventureId" in state) {
     throw new Error("State does not belong to stolen-signet.");
   }
   return state;
 }
 
 function chapelState(state: RuntimeState): ChapelState {
-  if (!("quest" in state)) {
+  if (!("adventureId" in state) || state.adventureId !== CHAPEL_ID) {
     throw new Error("State does not belong to chapel.");
   }
   return state;

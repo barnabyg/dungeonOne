@@ -1093,7 +1093,7 @@ export async function runDmInterpretationCase(
       modelResponses <= sample.budget.maxModelResponses,
     random: isDeepStrictEqual(randomDraws, sample.random.expectedTurnDraws),
     state:
-      !("quest" in result.state) &&
+      !("adventureId" in result.state) &&
       stateMatches(sample.stateExpectation, initialState, result.state),
   };
   return {
