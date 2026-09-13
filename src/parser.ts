@@ -28,6 +28,9 @@ export function parseCommand(input: string): Action {
     case "search":
       return { type: "search", target: argument };
     case "talk": {
+      if (argumentParts.length !== 3) {
+        return { type: "unknown", input: command };
+      }
       const [target = "", topic = "", approach = ""] = argumentParts;
       return { type: "talk", target, topic, approach };
     }

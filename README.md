@@ -32,13 +32,17 @@ search the public missing-person notice, follow its chapel route, and discover a
 damaged repair record that identifies Oren's unfinished unsafe work. These
 authored searches need no roll or NPC cooperation and may be completed in either
 order. `journal` shows only discovered facts with their source and classification,
-quest milestones, and currently known leads. The crypt clearly marks the current
-boundary: conversation, the guardian fight, rescue, and resolution arrive in
-later increment-3 tickets. A copyable offline journey is:
+quest milestones, and currently known leads. You can also speak with Mara and
+question Oren about the unfinished repairs. Persuasion, deception using the
+records-checked pretext, or intimidation through public scrutiny resolves one
+seeded `d20 + 1` check against DC 11; changing approach or returning later never
+rerolls it. Failure leaves the notice and physical chapel evidence available. The
+crypt clearly marks the current boundary: the guardian fight, rescue, and
+resolution arrive in later increment-3 tickets. A copyable offline journey is:
 
 ```powershell
-@("search missing-person notice", "journal", "move chapel-path", "move ruined-chapel", "search damaged repair record", "journal", "move crypt", "quit") |
-  npm.cmd start -- --adventure chapel --seed 4 --trace .\chapel-trace.json
+@("talk mara tavi ask", "move ferry-landing", "talk oren repairs persuade", "move inn", "search missing-person notice", "move chapel-path", "move ruined-chapel", "search damaged repair record", "journal", "move crypt", "quit") |
+  npm.cmd start -- --adventure chapel --seed 58 --trace .\chapel-trace.json
 npm.cmd start -- --replay .\chapel-trace.json
 ```
 
@@ -118,8 +122,8 @@ state evidence as formats 1 and 2, with explicit chapel content/rules versions.
 AI traces also record the chapel prompt/tool versions and normalized provider
 identity. Format-3 replay selects the chapel runtime from that exact version tuple,
 runs without a model, compares every result and state, and rejects unknown versions
-or tampering. The exploration-v1 tuple remains replayable after the discovery-v2
-state and tools were added. AI traces identify exact local `journal` reads as
+or tampering. The exploration-v1, discovery-v2, and dialogue-v3 tuples remain
+replayable after the social-v4 state and tools were added. AI traces identify exact local `journal` reads as
 `local-journal`, and replay validates their input and unchanged state. Trace state
 is diagnostic and may contain spoilers; it is not a save.
 
@@ -452,6 +456,9 @@ After `npm.cmd run build`:
 10. Run `npm.cmd start -- --adventure chapel --seed 4`. Enter `journal`, `inspect missing-person notice`, `search missing-person notice`, `search missing-person notice`, then `journal`. Expect the first journal to contain no discoveries or leads, inspection to leave it unchanged, the first search to record the chapel route without a roll, the repeat to report nothing new, and the final journal to attribute an observed fact to the inn notice and recommend the chapel path.
 11. Continue with `move chapel-path`, `move ruined-chapel`, `search damaged repair record`, and `journal`. Expect an observed unsafe-repairs discovery attributed to the record at the Ruined Chapel, a named milestone linking the repairs to Oren, and a lead to ask Oren. No ledger, medicine motive, Tavi fate, or resolution should appear.
 12. Repeat the chapel path with `--trace .\chapel-discovery.json`, then replay it with `npm.cmd start -- --replay .\chapel-discovery.json`. Expect zero random draws for both searches and successful replay. In AI mode, exact `journal` should render locally even immediately after a provider failure; an ordinary-language journal question should use `get_journal`.
+13. Run `npm.cmd start -- --adventure chapel --seed 58 --trace .\chapel-social.json`. Enter `move ferry-landing` and `talk oren repairs persuade`. Expect separate lines for approach `persuade`, d20 `10`, modifier `+1`, total `11`, DC `11`, and `success`, followed by Oren's admission that he diverted repair funds to buy medicine and left repairs unfinished. Enter `move inn`, return to the ferry landing, and try `talk oren repairs intimidate`; expect the authorized admission again with no second roll. Replay the exported trace and expect success.
+14. Repeat with seed `7` and `talk oren repairs intimidate`. Expect d20 `1`, total `2`, and `failure`, with no admission. Switch to `persuade`; expect the remembered refusal without another roll and explicit guidance that the notice and chapel evidence remain usable. `talk oren tavi ask` and `talk oren repairs ask` are no-roll public answers. A compound command such as `talk oren repairs persuade then move inn` is rejected without a draw.
+15. In AI mode, ask Oren using each supported intent: an appeal to finding Tavi, the claim that records were checked, and a threat of public scrutiny. Expect the corresponding validated approach and engine-owned mechanics. If reply generation fails after the check, expect the committed authored response and mechanics to remain, with no reroll. Treat scripted-AI success as orchestration evidence only; live model quality and human enjoyment remain untested for this slice.
 
 ### Usability pass observations
 

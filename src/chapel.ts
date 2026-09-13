@@ -1,4 +1,5 @@
 import type { Action } from "./session.js";
+import type { RandomSource } from "./random.js";
 
 export const CHAPEL_ID = "chapel";
 export const LEGACY_CHAPEL_VERSION = "chapel-exploration-v1";
@@ -9,10 +10,14 @@ export const DISCOVERY_CHAPEL_VERSION = "chapel-discovery-v2";
 export const DISCOVERY_CHAPEL_RULES_VERSION = "chapel-discovery-rules-v2";
 export const DISCOVERY_CHAPEL_TOOL_VERSION = "chapel-discovery-tools-v2";
 export const DISCOVERY_CHAPEL_PROMPT_VERSION = "chapel-discovery-dm-v2";
-export const CHAPEL_VERSION = "chapel-dialogue-v3";
-export const CHAPEL_RULES_VERSION = "chapel-dialogue-rules-v3";
-export const CHAPEL_TOOL_VERSION = "chapel-dialogue-tools-v3";
-export const CHAPEL_PROMPT_VERSION = "chapel-dialogue-dm-v3";
+export const DIALOGUE_CHAPEL_VERSION = "chapel-dialogue-v3";
+export const DIALOGUE_CHAPEL_RULES_VERSION = "chapel-dialogue-rules-v3";
+export const DIALOGUE_CHAPEL_TOOL_VERSION = "chapel-dialogue-tools-v3";
+export const DIALOGUE_CHAPEL_PROMPT_VERSION = "chapel-dialogue-dm-v3";
+export const CHAPEL_VERSION = "chapel-social-v4";
+export const CHAPEL_RULES_VERSION = "chapel-social-rules-v4";
+export const CHAPEL_TOOL_VERSION = "chapel-social-tools-v4";
+export const CHAPEL_PROMPT_VERSION = "chapel-social-dm-v4";
 export const CHAPEL_TITLE = "The Bell Beneath the Chapel";
 export const CHAPEL_OBJECTIVE =
   "Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.";
@@ -29,7 +34,7 @@ export type ChapelFeatureId =
   | "damaged-repair-record"
   | "crypt-steps";
 export type ChapelNpcId = "mara" | "oren" | "tavi";
-export type ChapelTalkTopicId = "tavi";
+export type ChapelTalkTopicId = "tavi" | "repairs";
 export const CHAPEL_TALK_APPROACHES = [
   "ask",
   "persuade",
@@ -45,7 +50,8 @@ export type ChapelDiscoveryId =
 export type ChapelMilestoneId =
   | "chapel-route-known"
   | "unsafe-repairs-linked-to-oren"
-  | "mara-account-recorded";
+  | "mara-account-recorded"
+  | "oren-account-released";
 export type ChapelDiscovery = Readonly<{
   id: ChapelDiscoveryId;
   title: string;
@@ -74,7 +80,7 @@ export type ChapelConversation = Readonly<{
   topicId: ChapelTalkTopicId;
   topicName: string;
   approach: ChapelTalkApproach;
-  attitude: "concerned";
+  attitude: "concerned" | "guarded" | "remorseful" | "defiant";
   voice: string;
   approvedFacts: readonly Readonly<{ id: string; statement: string }>[];
   authoredReply: string;
@@ -87,6 +93,7 @@ type ChapelNpcDefinition = Readonly<{
   locationId: ChapelRoomId;
   publiclyVisible: boolean;
   knows: readonly string[];
+  doesNotKnow: readonly string[];
   believes: readonly string[];
   wants: readonly string[];
   reveals: readonly Readonly<{
@@ -105,6 +112,7 @@ export const CHAPEL_NPCS = [
     locationId: "inn",
     publiclyVisible: true,
     knows: ["Tavi has disappeared."],
+    doesNotKnow: ["Oren's private motive and Tavi's current condition."],
     believes: ["Tavi may have gone toward the ferry."],
     wants: ["Find Tavi."],
     reveals: [
@@ -124,9 +132,21 @@ export const CHAPEL_NPCS = [
       "The chapel route is passable.",
       "PRIVATE_MOTIVE: Oren diverted chapel repair money to buy medicine.",
     ],
+    doesNotKnow: ["Tavi's current condition."],
     believes: [],
     wants: ["Protect the medicine recipients and avoid exposure."],
-    reveals: [],
+    reveals: [
+      {
+        topicId: "tavi",
+        topicName: "Tavi's disappearance",
+        factIds: ["oren-tavi-uncertainty", "chapel-route-passable"],
+      },
+      {
+        topicId: "repairs",
+        topicName: "Unfinished chapel repairs",
+        factIds: [],
+      },
+    ],
   },
   {
     id: "tavi",
@@ -134,6 +154,7 @@ export const CHAPEL_NPCS = [
     locationId: "crypt",
     publiclyVisible: false,
     knows: ["PRIVATE_CONDITION: Tavi is trapped beyond the guardian."],
+    doesNotKnow: ["Unrelated village conversations after entering the crypt."],
     believes: [],
     wants: ["Escape the crypt and report what happened."],
     reveals: [],
@@ -350,7 +371,20 @@ export type ChapelState = Readonly<{
     speakerId: ChapelNpcId;
     statements: readonly string[];
   }>[];
+  socialChallenges: Readonly<{
+    guardedAccount?: ChapelSocialCheck;
+  }>;
 }>;
+
+export type ChapelSocialCheck = Readonly<{
+  approach: Exclude<ChapelTalkApproach, "ask">;
+  die: number;
+  modifier: 1;
+  total: number;
+  dc: 11;
+  result: "success" | "failure";
+}>;
+export type DialogueChapelState = Omit<ChapelState, "socialChallenges">;
 export type LegacyChapelState = Readonly<{
   adventureId: typeof CHAPEL_ID;
   locationId: ChapelRoomId;
@@ -404,6 +438,7 @@ export type ChapelEvent = Readonly<
       milestoneId: ChapelMilestoneId;
     }
   | { type: "chapel-conversation"; conversation: ChapelConversation }
+  | (Readonly<{ type: "chapel-social-check" }> & ChapelSocialCheck)
   | { type: "chapel-journal"; journal: ChapelJournal }
   | {
       type: "chapel-status";
@@ -442,6 +477,7 @@ export function createChapelSession(): ChapelState {
     discoveries: [],
     npcStates: INITIAL_CHAPEL_NPC_STATES,
     conversationHistory: [],
+    socialChallenges: {},
   };
 }
 
@@ -458,10 +494,12 @@ export function visibleChapelNpcs(state: ChapelState): readonly Readonly<{
   ).map((npc) => ({
     id: npc.id,
     name: npc.name,
-    subjects: npc.reveals.map(({ topicId, topicName }) => ({
-      id: topicId,
-      name: topicName,
-    })),
+    subjects: npc.reveals
+      .filter(() => npc.id !== "oren" || "socialChallenges" in state)
+      .map(({ topicId, topicName }) => ({
+        id: topicId,
+        name: topicName,
+      })),
   }));
 }
 
@@ -470,6 +508,7 @@ function talkToNpc(
   target: string | undefined,
   topic: string | undefined,
   approach: string | undefined,
+  random?: Pick<RandomSource, "roll">,
 ): ChapelResult {
   const speakerId = normalized(target ?? "") as ChapelNpcId;
   const topicId = normalized(topic ?? "") as ChapelTalkTopicId;
@@ -485,9 +524,14 @@ function talkToNpc(
     visible === undefined ||
     npc === undefined ||
     reveal === undefined ||
+    !visible.subjects.some((subject) => subject.id === topicId) ||
     !CHAPEL_TALK_APPROACHES.includes(normalizedApproach)
   ) {
     return { state, rejection: { reason: "chapel-unavailable" } };
+  }
+
+  if (speakerId === "oren") {
+    return talkToOren(state, topicId, normalizedApproach, npc.name, random);
   }
 
   const discoveries = MARA_DISCOVERIES.filter((discovery) =>
@@ -548,6 +592,196 @@ function talkToNpc(
     },
     events: [{ type: "chapel-conversation", conversation }],
   };
+}
+
+function talkToOren(
+  state: ChapelState,
+  topicId: ChapelTalkTopicId,
+  approach: ChapelTalkApproach,
+  speakerName: string,
+  random?: Pick<RandomSource, "roll">,
+): ChapelResult {
+  const priorStatements = state.conversationHistory
+    .filter((entry) => entry.speakerId === "oren")
+    .flatMap(({ statements }) => statements)
+    .slice(-6);
+  const finish = (
+    approvedFacts: readonly Readonly<{ id: string; statement: string }>[],
+    authoredReply: string,
+    attitude: ChapelConversation["attitude"],
+    events: readonly ChapelEvent[] = [],
+    nextState: ChapelState = state,
+    responseApproach: ChapelTalkApproach = approach,
+  ): ChapelResult => {
+    const conversation: ChapelConversation = {
+      speakerId: "oren",
+      speakerName,
+      topicId,
+      topicName:
+        topicId === "repairs"
+          ? "Unfinished chapel repairs"
+          : "Tavi's disappearance",
+      approach: responseApproach,
+      attitude,
+      voice:
+        "Terse and weathered; speaks like a ferryman used to hard choices.",
+      approvedFacts,
+      authoredReply,
+      speakerHistory: priorStatements,
+    };
+    return {
+      state: {
+        ...nextState,
+        conversationHistory: [
+          ...nextState.conversationHistory,
+          {
+            speakerId: "oren" as const,
+            statements: approvedFacts.map(({ statement }) => statement),
+          },
+        ].slice(-8),
+      },
+      events: [...events, { type: "chapel-conversation", conversation }],
+    };
+  };
+
+  if (topicId === "tavi") {
+    return finish(
+      [
+        {
+          id: "oren-tavi-uncertainty",
+          statement: "I do not know what has happened to Tavi.",
+        },
+        {
+          id: "chapel-route-passable",
+          statement: "The chapel route is passable from the inn.",
+        },
+      ],
+      "Oren: I do not know what has happened to Tavi. The chapel route is passable from the inn.",
+      "guarded",
+    );
+  }
+
+  const remembered = state.socialChallenges.guardedAccount;
+  if (remembered !== undefined) {
+    return remembered.result === "success"
+      ? finish(
+          [
+            {
+              id: "oren-guarded-admission",
+              statement:
+                "I diverted the chapel repair funds to buy medicine, leaving the repairs unfinished.",
+            },
+          ],
+          orenSuccessReply(remembered.approach),
+          "remorseful",
+          [],
+          state,
+          remembered.approach,
+        )
+      : finish(
+          [
+            {
+              id: "oren-guarded-refusal",
+              statement: "I will not give you an account of the repairs.",
+            },
+          ],
+          "Oren: I have already answered. I will not give you an account of the repairs. The public notice and chapel evidence remain yours to examine.",
+          "defiant",
+          [],
+          state,
+          remembered.approach,
+        );
+  }
+
+  if (approach === "ask") {
+    return finish(
+      [
+        {
+          id: "oren-guarded-refusal",
+          statement: "I will not give you an account of the repairs.",
+        },
+      ],
+      "Oren: I will not give you an account of the repairs. If you are searching for Tavi, follow what you can establish for yourself.",
+      "guarded",
+    );
+  }
+  if (random === undefined) {
+    throw new Error("A random source is required for a social check.");
+  }
+  const die = random.roll(20);
+  const check: ChapelSocialCheck = {
+    approach,
+    die,
+    modifier: 1,
+    total: die + 1,
+    dc: 11,
+    result: die + 1 >= 11 ? "success" : "failure",
+  };
+  const released = check.result === "success";
+  const hasMilestone = state.quest.milestones.includes("oren-account-released");
+  const nextState: ChapelState = {
+    ...state,
+    quest: released
+      ? {
+          ...state.quest,
+          milestones: hasMilestone
+            ? state.quest.milestones
+            : [...state.quest.milestones, "oren-account-released"],
+        }
+      : state.quest,
+    socialChallenges: { ...state.socialChallenges, guardedAccount: check },
+  };
+  return released
+    ? finish(
+        [
+          {
+            id: "oren-guarded-admission",
+            statement:
+              "I diverted the chapel repair funds to buy medicine, leaving the repairs unfinished.",
+          },
+        ],
+        orenSuccessReply(approach),
+        "remorseful",
+        [{ type: "chapel-social-check", ...check }],
+        nextState,
+      )
+    : finish(
+        [
+          {
+            id: "oren-guarded-refusal",
+            statement: "I will not give you an account of the repairs.",
+          },
+        ],
+        `Oren: ${orenApproachLead(approach)} I will not give you an account of the repairs. The public notice and chapel evidence remain yours to examine.`,
+        "defiant",
+        [{ type: "chapel-social-check", ...check }],
+        nextState,
+      );
+}
+
+function orenApproachLead(
+  approach: Exclude<ChapelTalkApproach, "ask">,
+): string {
+  switch (approach) {
+    case "persuade":
+      return "Your appeal to help find Tavi does not move me.";
+    case "deceive":
+      return "You claim the records were checked, but I do not accept the pretext.";
+    case "intimidate":
+      return "Your threat of public scrutiny does not make me yield.";
+  }
+}
+
+function orenSuccessReply(
+  approach: Exclude<ChapelTalkApproach, "ask">,
+): string {
+  const lead =
+    approach === "persuade"
+      ? "Your appeal to help find Tavi breaks through my reserve."
+      : approach === "deceive"
+        ? "Your claim that the records were checked makes me reconsider; the claim itself remains only your pretext."
+        : "Faced with your threat of public scrutiny, I relent.";
+  return `Oren: ${lead} I diverted the chapel repair funds to buy medicine, leaving the repairs unfinished. I do not know what has happened to Tavi.`;
 }
 
 export function chapelRoom(id: ChapelRoomId): ChapelRoom {
@@ -619,6 +853,7 @@ export function chapelSearchTargets(
 export function handleChapelAction(
   state: ChapelState,
   action: Action,
+  random?: Pick<RandomSource, "roll">,
 ): ChapelResult {
   const accept = (...events: ChapelEvent[]): ChapelResult => ({
     state,
@@ -657,7 +892,13 @@ export function handleChapelAction(
       if (!action.target || !action.topic || !action.approach) {
         return { state, rejection: { reason: "chapel-missing-argument" } };
       }
-      return talkToNpc(state, action.target, action.topic, action.approach);
+      return talkToNpc(
+        state,
+        action.target,
+        action.topic,
+        action.approach,
+        random,
+      );
     }
     case "inspect": {
       if (!action.target) {
@@ -794,6 +1035,8 @@ export function renderChapelResult(result: ChapelResult): string {
         }
         case "chapel-conversation":
           return event.conversation.authoredReply;
+        case "chapel-social-check":
+          return `Social check\nApproach: ${event.approach}\nDie: d20 = ${event.die}\nModifier: +${event.modifier}\nTotal: ${event.total}\nDC: ${event.dc}\nResult: ${event.result}.`;
         case "chapel-journal": {
           const discoveries = event.journal.discoveries.map((discovery) => {
             const sourceLocation = chapelRoom(discovery.source.locationId).name;
@@ -812,7 +1055,7 @@ export function renderChapelResult(result: ChapelResult): string {
         case "chapel-inventory":
           return "Equipped: longsword.\nCollectibles: empty.";
         case "chapel-help":
-          return "Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nExamples: talk mara tavi ask; search missing-person notice; journal; move ferry-landing; move inn; move chapel-path; move ruined-chapel; move crypt.\nEnter each command on its own line. Explore the crypt entrance, then return or quit. The quest cannot yet be completed.";
+          return "Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nExamples: talk mara tavi ask; move ferry-landing; talk oren tavi ask; talk oren repairs persuade; talk oren repairs deceive; talk oren repairs intimidate; search missing-person notice; journal; move inn; move chapel-path; move ruined-chapel; move crypt.\nEnter each command on its own line. Explore the crypt entrance, then return or quit. The quest cannot yet be completed.";
         case "session-quit":
           return "You leave the game.";
       }

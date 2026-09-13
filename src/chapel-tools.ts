@@ -144,6 +144,7 @@ export function getChapelTools(
 export function dispatchChapelTool(
   state: ChapelState,
   call: GameToolCall,
+  random?: Parameters<typeof handleChapelAction>[2],
 ): RuntimeToolResult {
   const reject = (code: ToolValidationErrorCode): RuntimeToolResult => ({
     state,
@@ -245,7 +246,7 @@ export function dispatchChapelTool(
       approach: String(args.approach),
     };
   }
-  const result = handleChapelAction(state, action);
+  const result = handleChapelAction(state, action, random);
   if (result.rejection !== undefined) {
     return {
       state: result.state,
