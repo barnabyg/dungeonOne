@@ -1,6 +1,7 @@
 import {
   CHAPEL_TITLE,
   CHAPEL_OBJECTIVE,
+  CHAPEL_TALK_APPROACHES,
   chapelRoom,
   chapelInspection,
   chapelSearchTargets,
@@ -125,7 +126,7 @@ export function getChapelTools(
               },
               approach: {
                 type: "string",
-                enum: ["ask", "persuade", "deceive", "intimidate"],
+                enum: CHAPEL_TALK_APPROACHES,
               },
             },
           ),
@@ -174,16 +175,10 @@ export function dispatchChapelTool(
     const speaker = visibleChapelNpcs(state).find(
       ({ id }) => id === args.speakerId,
     );
-    const supportedApproaches: readonly ChapelTalkApproach[] = [
-      "ask",
-      "persuade",
-      "deceive",
-      "intimidate",
-    ];
     if (
       speaker === undefined ||
       !speaker.subjects.some(({ id }) => id === args.topicId) ||
-      !supportedApproaches.includes(args.approach as ChapelTalkApproach)
+      !CHAPEL_TALK_APPROACHES.includes(args.approach as ChapelTalkApproach)
     ) {
       return reject("unavailable-reference");
     }

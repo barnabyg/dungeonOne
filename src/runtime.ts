@@ -19,6 +19,7 @@ import {
   DISCOVERY_CHAPEL_RULES_VERSION,
   DISCOVERY_CHAPEL_PROMPT_VERSION,
   DISCOVERY_CHAPEL_TOOL_VERSION,
+  INITIAL_CHAPEL_NPC_STATES,
   LEGACY_CHAPEL_VERSION,
   LEGACY_CHAPEL_RULES_VERSION,
   LEGACY_CHAPEL_PROMPT_VERSION,
@@ -116,11 +117,7 @@ function upgradeLegacyChapelState(state: LegacyChapelState): ChapelState {
     ...state,
     quest: { ...state.quest, milestones: [] },
     discoveries: [],
-    npcStates: {
-      mara: { condition: "living" },
-      oren: { condition: "living" },
-      tavi: { condition: "living" },
-    },
+    npcStates: INITIAL_CHAPEL_NPC_STATES,
     conversationHistory: [],
   };
 }
@@ -128,11 +125,7 @@ function upgradeLegacyChapelState(state: LegacyChapelState): ChapelState {
 function upgradeDiscoveryChapelState(state: DiscoveryChapelState): ChapelState {
   return {
     ...state,
-    npcStates: {
-      mara: { condition: "living" },
-      oren: { condition: "living" },
-      tavi: { condition: "living" },
-    },
+    npcStates: INITIAL_CHAPEL_NPC_STATES,
     conversationHistory: [],
   };
 }

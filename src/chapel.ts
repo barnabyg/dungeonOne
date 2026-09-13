@@ -30,7 +30,13 @@ export type ChapelFeatureId =
   | "crypt-steps";
 export type ChapelNpcId = "mara" | "oren" | "tavi";
 export type ChapelTalkTopicId = "tavi";
-export type ChapelTalkApproach = "ask" | "persuade" | "deceive" | "intimidate";
+export const CHAPEL_TALK_APPROACHES = [
+  "ask",
+  "persuade",
+  "deceive",
+  "intimidate",
+] as const;
+export type ChapelTalkApproach = (typeof CHAPEL_TALK_APPROACHES)[number];
 export type ChapelDiscoveryId =
   | "chapel-route"
   | "unsafe-repairs"
@@ -153,6 +159,12 @@ const MARA_DISCOVERIES = [
       "Check the ferry landing, while treating Mara's lead as uncertain.",
   },
 ] as const satisfies readonly ChapelDiscovery[];
+
+export const INITIAL_CHAPEL_NPC_STATES = Object.freeze({
+  mara: Object.freeze({ condition: "living" as const }),
+  oren: Object.freeze({ condition: "living" as const }),
+  tavi: Object.freeze({ condition: "living" as const }),
+});
 export type ChapelJournal = Readonly<{
   quest: Readonly<{
     id: "find-tavi";
@@ -428,11 +440,7 @@ export function createChapelSession(): ChapelState {
     fighter: { hp: 20, maxHp: 20, equipmentIds: ["longsword"] },
     quest: { id: "find-tavi", status: "active", milestones: [] },
     discoveries: [],
-    npcStates: {
-      mara: { condition: "living" },
-      oren: { condition: "living" },
-      tavi: { condition: "living" },
-    },
+    npcStates: INITIAL_CHAPEL_NPC_STATES,
     conversationHistory: [],
   };
 }
@@ -466,12 +474,6 @@ function talkToNpc(
   const speakerId = normalized(target ?? "") as ChapelNpcId;
   const topicId = normalized(topic ?? "") as ChapelTalkTopicId;
   const normalizedApproach = normalized(approach ?? "") as ChapelTalkApproach;
-  const supportedApproaches: readonly ChapelTalkApproach[] = [
-    "ask",
-    "persuade",
-    "deceive",
-    "intimidate",
-  ];
   const visible = visibleChapelNpcs(state).find(
     (candidate) => candidate.id === speakerId,
   );
@@ -483,7 +485,7 @@ function talkToNpc(
     visible === undefined ||
     npc === undefined ||
     reveal === undefined ||
-    !supportedApproaches.includes(normalizedApproach)
+    !CHAPEL_TALK_APPROACHES.includes(normalizedApproach)
   ) {
     return { state, rejection: { reason: "chapel-unavailable" } };
   }
