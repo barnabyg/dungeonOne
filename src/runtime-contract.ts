@@ -3,8 +3,11 @@ import type {
   ChapelState,
   ChapelEvent,
   ChapelJournal,
+  ChapelConversation,
   LegacyChapelState,
   LegacyChapelEvent,
+  DiscoveryChapelState,
+  DiscoveryChapelEvent,
   ChapelRejection,
 } from "./chapel.js";
 import type {
@@ -17,8 +20,10 @@ import type {
 } from "./game-tools.js";
 import type { RandomSource } from "./random.js";
 
-export type RuntimeState = SessionState | ChapelState | LegacyChapelState;
-export type RuntimeEvent = Event | ChapelEvent | LegacyChapelEvent;
+export type RuntimeState =
+  SessionState | ChapelState | DiscoveryChapelState | LegacyChapelState;
+export type RuntimeEvent =
+  Event | ChapelEvent | DiscoveryChapelEvent | LegacyChapelEvent;
 export type RuntimeRejection = Rejection | ChapelRejection;
 export type RuntimeResult =
   | Readonly<{
@@ -42,6 +47,7 @@ export type RuntimeToolResult = Readonly<{
         scene?: DmScene;
         status?: CharacterStatus;
         journal?: ChapelJournal;
+        conversation?: ChapelConversation;
         events?: readonly RuntimeEvent[];
         inspection?: DmInspection;
       }>

@@ -182,6 +182,98 @@ test("Responses adapter sends stateless strict calls and normalizes provider out
   );
 });
 
+test("NPC reply requests start a fresh provider context with only speaker-scoped authority", async () => {
+  const requests = [];
+  const responses = [
+    completedResponse([
+      {
+        id: "router-reasoning",
+        type: "reasoning",
+        encrypted_content: "ROUTER_PRIVATE_CONTEXT",
+        summary: [],
+      },
+      {
+        id: "router-call",
+        type: "function_call",
+        call_id: "talk-mara",
+        name: "talk",
+        arguments: '{"speakerId":"mara","topicId":"tavi","approach":"ask"}',
+        status: "completed",
+      },
+    ]),
+    completedResponse([
+      {
+        id: "reply-message",
+        type: "message",
+        role: "assistant",
+        status: "completed",
+        content: [
+          {
+            type: "output_text",
+            text: "Mara: Tavi is missing.",
+            annotations: [],
+          },
+        ],
+      },
+    ]),
+  ];
+  const model = createOpenAiDmModel({
+    apiKey: "unused",
+    model: "test-model",
+    client: {
+      responses: {
+        async create(body) {
+          requests.push(structuredClone(body));
+          return responses.shift();
+        },
+      },
+    },
+  });
+
+  await model.respond(
+    request({
+      transcript: [{ role: "dungeon-master", text: "CROSS_SPEAKER_HISTORY" }],
+    }),
+  );
+  await model.respond({
+    promptVersion: "chapel-dialogue-dm-v3",
+    systemPrompt: "Use only approved speaker facts.",
+    playerInput: "Mara, is PLAYER_ASSERTION true?",
+    transcript: [
+      { role: "dungeon-master", text: "Mara previously said Tavi is missing." },
+    ],
+    tools: [],
+    toolResults: [],
+    reply: {
+      speakerId: "mara",
+      speakerName: "Mara",
+      voice: "Warm and worried.",
+      attitude: "concerned",
+      approvedFacts: [
+        {
+          id: "tavi-disappearance-testimony",
+          statement: "Mara reports that Tavi is missing.",
+        },
+      ],
+      authoredFallback: "Mara: Tavi is missing.",
+    },
+  });
+
+  const replyBody = requests[1];
+  assert.deepEqual(replyBody.tools, []);
+  assert.equal(
+    replyBody.input.some(
+      (item) => item.type === "function_call" || item.type === "reasoning",
+    ),
+    false,
+  );
+  assert.doesNotMatch(JSON.stringify(replyBody), /ROUTER_PRIVATE_CONTEXT/);
+  assert.doesNotMatch(JSON.stringify(replyBody), /CROSS_SPEAKER_HISTORY/);
+  assert.match(JSON.stringify(replyBody), /PLAYER_ASSERTION/);
+  assert.match(replyBody.instructions, /tavi-disappearance-testimony/);
+  assert.doesNotMatch(replyBody.instructions, /scene|characterStatus/);
+});
+
 test("Responses adapter rejects malformed responses without exposing raw data", async () => {
   const client = {
     responses: {

@@ -276,6 +276,16 @@ function baseInput(
 }
 
 function instructions(request: DmModelRequest): string {
+  if ("reply" in request) {
+    return [
+      request.systemPrompt,
+      "Authoritative speaker-scoped reply context (JSON):",
+      JSON.stringify({
+        promptVersion: request.promptVersion,
+        reply: request.reply,
+      }),
+    ].join("\n\n");
+  }
   return [
     request.systemPrompt,
     "Current authoritative context (JSON):",
@@ -290,6 +300,9 @@ function instructions(request: DmModelRequest): string {
 function functionOutput(
   request: DmModelRequest,
 ): Record<string, unknown> | undefined {
+  if ("reply" in request) {
+    return undefined;
+  }
   const latest = request.toolResults.at(-1);
   if (latest === undefined) {
     return undefined;

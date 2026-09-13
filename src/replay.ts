@@ -20,6 +20,10 @@ import {
   CHAPEL_RULES_VERSION,
   CHAPEL_PROMPT_VERSION,
   CHAPEL_TOOL_VERSION,
+  DISCOVERY_CHAPEL_VERSION,
+  DISCOVERY_CHAPEL_RULES_VERSION,
+  DISCOVERY_CHAPEL_PROMPT_VERSION,
+  DISCOVERY_CHAPEL_TOOL_VERSION,
   LEGACY_CHAPEL_VERSION,
   LEGACY_CHAPEL_RULES_VERSION,
   LEGACY_CHAPEL_PROMPT_VERSION,
@@ -1078,19 +1082,27 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
   const rulesVersion = requireString(trace.rulesVersion, "rulesVersion");
   const current =
     version === CHAPEL_VERSION && rulesVersion === CHAPEL_RULES_VERSION;
+  const discovery =
+    version === DISCOVERY_CHAPEL_VERSION &&
+    rulesVersion === DISCOVERY_CHAPEL_RULES_VERSION;
   const legacy =
     version === LEGACY_CHAPEL_VERSION &&
     rulesVersion === LEGACY_CHAPEL_RULES_VERSION;
-  if (!current && !legacy) {
+  if (!current && !discovery && !legacy) {
     if (
       rulesVersion !== CHAPEL_RULES_VERSION &&
+      rulesVersion !== DISCOVERY_CHAPEL_RULES_VERSION &&
       rulesVersion !== LEGACY_CHAPEL_RULES_VERSION
     ) {
       throw new Error(
         `Unsupported rules version ${JSON.stringify(rulesVersion)}.`,
       );
     }
-    if (version !== CHAPEL_VERSION && version !== LEGACY_CHAPEL_VERSION) {
+    if (
+      version !== CHAPEL_VERSION &&
+      version !== DISCOVERY_CHAPEL_VERSION &&
+      version !== LEGACY_CHAPEL_VERSION
+    ) {
       throw new Error(
         `Unsupported adventure version ${JSON.stringify(version)}.`,
       );
@@ -1105,11 +1117,18 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     rulesVersion,
     promptVersion: current
       ? CHAPEL_PROMPT_VERSION
-      : LEGACY_CHAPEL_PROMPT_VERSION,
-    toolVersion: current ? CHAPEL_TOOL_VERSION : LEGACY_CHAPEL_TOOL_VERSION,
-    localKinds: current
-      ? ["dm", "local-help", "local-journal", "local-quit"]
-      : ["dm", "local-help", "local-quit"],
+      : discovery
+        ? DISCOVERY_CHAPEL_PROMPT_VERSION
+        : LEGACY_CHAPEL_PROMPT_VERSION,
+    toolVersion: current
+      ? CHAPEL_TOOL_VERSION
+      : discovery
+        ? DISCOVERY_CHAPEL_TOOL_VERSION
+        : LEGACY_CHAPEL_TOOL_VERSION,
+    localKinds:
+      current || discovery
+        ? ["dm", "local-help", "local-journal", "local-quit"]
+        : ["dm", "local-help", "local-quit"],
   };
 }
 

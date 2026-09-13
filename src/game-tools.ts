@@ -48,6 +48,11 @@ export type DmScene = Readonly<{
       name: string;
       condition: "living" | "defeated";
     }>[];
+    npcs?: readonly Readonly<{
+      id: string;
+      name: string;
+      subjects: readonly Readonly<{ id: string; name: string }>[];
+    }>[];
     exits: readonly Readonly<{
       destinationId: RoomId | ChapelRoomId;
       name: string;
@@ -89,6 +94,7 @@ export type GameToolName =
   | "move"
   | "inspect"
   | "search"
+  | "talk"
   | "open"
   | "take"
   | "attack"
@@ -447,7 +453,7 @@ export function projectCharacterStatus(state: SessionState): CharacterStatus {
   };
 }
 
-type SignetToolName = Exclude<GameToolName, "search" | "get_journal">;
+type SignetToolName = Exclude<GameToolName, "search" | "talk" | "get_journal">;
 
 const TOOL_NAMES: readonly SignetToolName[] = [
   "look",

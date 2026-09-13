@@ -6,6 +6,8 @@ import {
   chapelSearchTargets,
   handleChapelAction,
   projectChapelJournal,
+  visibleChapelNpcs,
+  type ChapelTalkApproach,
   type ChapelState,
 } from "./chapel.js";
 import type {
@@ -31,6 +33,7 @@ export function projectChapelScene(state: ChapelState): DmScene {
       features: room.features,
       items: [],
       opponents: [],
+      npcs: visibleChapelNpcs(state),
       exits: room.exits.map((id) => ({ destinationId: id, name: id })),
     },
     journal: projectChapelJournal(state),
@@ -53,6 +56,10 @@ export function getChapelTools(
   const room = chapelRoom(state.locationId);
   const searchTargets =
     state.status === "playing" ? chapelSearchTargets(state) : [];
+  const visibleNpcs =
+    state.status === "playing"
+      ? visibleChapelNpcs(state).filter(({ subjects }) => subjects.length > 0)
+      : [];
   const definition = (
     name: GameToolDefinition["name"],
     description: string,
@@ -99,6 +106,30 @@ export function getChapelTools(
             },
           ),
         ]),
+    ...(visibleNpcs.length === 0
+      ? []
+      : [
+          definition(
+            "talk",
+            `Speak with a visible living NPC about a public subject. Visible speakers: ${visibleNpcs.map(({ name }) => name).join(", ")}.`,
+            {
+              speakerId: {
+                type: "string",
+                enum: visibleNpcs.map(({ id }) => id),
+              },
+              topicId: {
+                type: "string",
+                enum: visibleNpcs.flatMap(({ subjects }) =>
+                  subjects.map(({ id }) => id),
+                ),
+              },
+              approach: {
+                type: "string",
+                enum: ["ask", "persuade", "deceive", "intimidate"],
+              },
+            },
+          ),
+        ]),
     ...(state.status === "playing"
       ? [
           definition("move", "Travel to an adjacent public location.", {
@@ -131,15 +162,44 @@ export function dispatchChapelTool(
     return reject("invalid-arguments");
   }
   const args = parsed as Record<string, unknown>;
+  if (call.name === "talk") {
+    if (
+      Object.keys(args).length !== 3 ||
+      typeof args.speakerId !== "string" ||
+      typeof args.topicId !== "string" ||
+      typeof args.approach !== "string"
+    ) {
+      return reject("invalid-arguments");
+    }
+    const speaker = visibleChapelNpcs(state).find(
+      ({ id }) => id === args.speakerId,
+    );
+    const supportedApproaches: readonly ChapelTalkApproach[] = [
+      "ask",
+      "persuade",
+      "deceive",
+      "intimidate",
+    ];
+    if (
+      speaker === undefined ||
+      !speaker.subjects.some(({ id }) => id === args.topicId) ||
+      !supportedApproaches.includes(args.approach as ChapelTalkApproach)
+    ) {
+      return reject("unavailable-reference");
+    }
+  }
   const field =
     call.name === "move"
       ? "destinationId"
       : call.name === "inspect" || call.name === "search"
         ? "target"
-        : undefined;
+        : call.name === "talk"
+          ? "talk"
+          : undefined;
   if (
-    Object.keys(args).length !== (field === undefined ? 0 : 1) ||
-    (field !== undefined && typeof args[field] !== "string")
+    call.name !== "talk" &&
+    (Object.keys(args).length !== (field === undefined ? 0 : 1) ||
+      (field !== undefined && typeof args[field] !== "string"))
   ) {
     return reject("invalid-arguments");
   }
@@ -182,6 +242,13 @@ export function dispatchChapelTool(
       return reject("unavailable-reference");
     }
     action = { type: "search", target };
+  } else if (call.name === "talk") {
+    action = {
+      type: "talk",
+      target: String(args.speakerId),
+      topic: String(args.topicId),
+      approach: String(args.approach),
+    };
   }
   const result = handleChapelAction(state, action);
   if (result.rejection !== undefined) {
@@ -198,6 +265,14 @@ export function dispatchChapelTool(
     action.type === "inspect"
       ? chapelInspection(state, action.target ?? "")
       : undefined;
+  const conversation =
+    action.type === "talk"
+      ? result.events.find((event) => event.type === "chapel-conversation")
+          ?.conversation
+      : undefined;
+  if (action.type === "talk" && conversation === undefined) {
+    throw new Error("Accepted talk action did not return a conversation.");
+  }
   return {
     state: result.state,
     engineResult: { events: result.events },
@@ -205,6 +280,7 @@ export function dispatchChapelTool(
       ok: true,
       events: result.events,
       scene: projectChapelScene(result.state),
+      ...(conversation === undefined ? {} : { conversation }),
       ...(inspection === undefined
         ? {}
         : {

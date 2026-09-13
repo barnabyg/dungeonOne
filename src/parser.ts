@@ -27,6 +27,10 @@ export function parseCommand(input: string): Action {
       return { type: "inspect", target: argument };
     case "search":
       return { type: "search", target: argument };
+    case "talk": {
+      const [target = "", topic = "", approach = ""] = argumentParts;
+      return { type: "talk", target, topic, approach };
+    }
     case "move":
       return { type: "move", destination: argument };
     case "open":

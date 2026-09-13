@@ -48,6 +48,12 @@ export type Action = Readonly<
   | { type: "look" }
   | { type: "inspect"; target?: string }
   | { type: "search"; target?: string }
+  | {
+      type: "talk";
+      target?: string;
+      topic?: string;
+      approach?: string;
+    }
   | { type: "move"; destination?: string }
   | { type: "open"; target?: string }
   | { type: "take"; target?: string }
@@ -1025,6 +1031,11 @@ export function handleAction(
       return {
         state,
         rejection: { reason: "unknown-command", input: "journal" },
+      };
+    case "talk":
+      return {
+        state,
+        rejection: { reason: "unknown-command", input: "talk" },
       };
     case "leave":
       return handleGameAction(state, action, random);
