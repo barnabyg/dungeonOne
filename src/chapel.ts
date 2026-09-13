@@ -1192,7 +1192,7 @@ export function handleChapelAction(
   });
   if (action.type === "quit") {
     return {
-      state: { ...state, status: "quit" },
+      state: state.status === "defeat" ? state : { ...state, status: "quit" },
       events: [{ type: "session-quit" }],
     };
   }

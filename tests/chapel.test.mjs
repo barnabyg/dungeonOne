@@ -219,6 +219,9 @@ test("lethal skeleton damage ends the adventure and terminal mutations draw noth
   );
   assert.deepEqual(rejected.rejection, { reason: "chapel-terminal-state" });
   assert.equal(rejected.state, defeated.state);
+  const quit = runtime.handleAction(defeated.state, { type: "quit" });
+  assert.equal(quit.state.status, "defeat");
+  assert.deepEqual(quit.events, [{ type: "session-quit" }]);
 });
 
 test("chapel tools expose the visible skeleton combatant and validated attacks", () => {
