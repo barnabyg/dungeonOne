@@ -497,10 +497,17 @@ function talkToNpc(
     (discovery) =>
       !state.discoveries.some((existing) => existing.id === discovery.id),
   );
-  const approvedFacts = discoveries.map((discovery) => ({
-    id: discovery.id,
-    statement: discovery.summary,
-  }));
+  const approvedFacts = [
+    {
+      id: "tavi-disappearance-testimony",
+      statement: "Tavi is missing.",
+    },
+    {
+      id: "mara-ferry-belief",
+      statement:
+        "I think Tavi may have gone toward the ferry, but that is only my belief, not an observed fact.",
+    },
+  ].filter(({ id }) => reveal.factIds.some((factId) => factId === id));
   const priorStatements = state.conversationHistory
     .filter((entry) => entry.speakerId === speakerId)
     .flatMap(({ statements }) => statements)

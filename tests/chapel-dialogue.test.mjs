@@ -157,7 +157,14 @@ test("AI dialogue uses a fresh speaker-scoped reply request", async () => {
                 },
               ],
             }
-          : { text: "urgent" };
+          : {
+              text: JSON.stringify({
+                delivery: "urgent",
+                opening: "please-listen",
+                factIds: ["tavi-disappearance-testimony", "mara-ferry-belief"],
+                closing: "help-me-find-them",
+              }),
+            };
       },
     },
   });
@@ -187,6 +194,8 @@ test("AI dialogue uses a fresh speaker-scoped reply request", async () => {
   );
   assert.match(JSON.stringify(requests[1]), /missing|ferry/i);
   assert.match(result.mechanics[0], /^Mara:/m);
+  assert.match(result.narration, /^Mara \(urgent\): Please, listen\./);
+  assert.match(result.narration, /Please help me find them\.$/);
 });
 
 test("reply failure keeps the committed authored answer and blocks a second mutation", async () => {
@@ -306,12 +315,19 @@ test("authorized Mara history survives general transcript eviction without cross
                 },
               ],
             }
-          : { text: "steady" };
+          : {
+              text: JSON.stringify({
+                delivery: "steady",
+                opening: "thank-you",
+                factIds: ["mara-ferry-belief", "tavi-disappearance-testimony"],
+                closing: "check-carefully",
+              }),
+            };
       },
     },
   });
 
-  assert.match(JSON.stringify(requests[1].transcript), /Mara reports/);
+  assert.match(JSON.stringify(requests[1].transcript), /Tavi is missing/);
   assert.doesNotMatch(JSON.stringify(requests[1].transcript), /OTHER_SPEAKER/);
   assert.equal(talked.state.discoveries.length, 2);
 });
@@ -418,7 +434,14 @@ test("offline and scripted-AI conversations are attributed, traced, and replayab
             },
           ],
         },
-        { text: "concerned" },
+        {
+          text: JSON.stringify({
+            delivery: "concerned",
+            opening: "none",
+            factIds: ["tavi-disappearance-testimony", "mara-ferry-belief"],
+            closing: "help-me-find-them",
+          }),
+        },
       ]),
     );
     const played = spawnSync(
