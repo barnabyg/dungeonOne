@@ -3,35 +3,36 @@ import type { RandomSource } from "./random.js";
 
 export type CombatantId = "fighter" | OpponentId;
 
-export type InitiativeDefinition = Readonly<{
-  combatantId: CombatantId;
+export type InitiativeDefinition<Id extends string = CombatantId> = Readonly<{
+  combatantId: Id;
   bonus: number;
 }>;
 
-export type InitiativeRoll = InitiativeDefinition &
-  Readonly<{
-    roll: number;
-    total: number;
-  }>;
+export type InitiativeRoll<Id extends string = CombatantId> =
+  InitiativeDefinition<Id> &
+    Readonly<{
+      roll: number;
+      total: number;
+    }>;
 
-export type InitiativeResolution = Readonly<{
-  rolls: readonly [InitiativeRoll, InitiativeRoll];
-  turnOrder: readonly [CombatantId, CombatantId];
+export type InitiativeResolution<Id extends string = CombatantId> = Readonly<{
+  rolls: readonly [InitiativeRoll<Id>, InitiativeRoll<Id>];
+  turnOrder: readonly [Id, Id];
 }>;
 
-export type AttackDefinition = Readonly<{
-  attackerId: CombatantId;
-  targetId: CombatantId;
+export type AttackDefinition<Id extends string = CombatantId> = Readonly<{
+  attackerId: Id;
+  targetId: Id;
   attackBonus: number;
   targetArmorClass: number;
   targetMaxHp: number;
   damage: DamageDefinition;
 }>;
 
-export type AttackResolvedEvent = Readonly<{
+export type AttackResolvedEvent<Id extends string = CombatantId> = Readonly<{
   type: "attack-resolved";
-  attackerId: CombatantId;
-  targetId: CombatantId;
+  attackerId: Id;
+  targetId: Id;
   attackRoll: number;
   attackBonus: number;
   attackTotal: number;
@@ -42,9 +43,9 @@ export type AttackResolvedEvent = Readonly<{
   targetMaxHp: number;
 }>;
 
-export type AttackResolution = Readonly<{
+export type AttackResolution<Id extends string = CombatantId> = Readonly<{
   targetHp: number;
-  event: AttackResolvedEvent;
+  event: AttackResolvedEvent<Id>;
 }>;
 
 function rollChecked(
@@ -70,11 +71,11 @@ function rollDamage(
   return total;
 }
 
-export function resolveInitiative(
-  first: InitiativeDefinition,
-  second: InitiativeDefinition,
+export function resolveInitiative<Id extends string>(
+  first: InitiativeDefinition<Id>,
+  second: InitiativeDefinition<Id>,
   random: Pick<RandomSource, "roll">,
-): InitiativeResolution {
+): InitiativeResolution<Id> {
   const firstRoll = rollChecked(random, 20);
   const secondRoll = rollChecked(random, 20);
   const rolls = [
@@ -91,11 +92,11 @@ export function resolveInitiative(
   };
 }
 
-export function resolveAttack(
-  definition: AttackDefinition,
+export function resolveAttack<Id extends string>(
+  definition: AttackDefinition<Id>,
   targetHp: number,
   random: Pick<RandomSource, "roll">,
-): AttackResolution {
+): AttackResolution<Id> {
   const attackRoll = rollChecked(random, 20);
   const attackTotal = attackRoll + definition.attackBonus;
   const critical = attackRoll === 20;

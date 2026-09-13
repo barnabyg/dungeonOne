@@ -36,12 +36,14 @@ quest milestones, and currently known leads. You can also speak with Mara and
 question Oren about the unfinished repairs. Persuasion, deception using the
 records-checked pretext, or intimidation through public scrutiny resolves one
 seeded `d20 + 1` check against DC 11; changing approach or returning later never
-rerolls it. Failure leaves the notice and physical chapel evidence available. The
-crypt clearly marks the current boundary: the guardian fight, rescue, and
-resolution arrive in later increment-3 tickets. A copyable offline journey is:
+rerolls it. Failure leaves the notice and physical chapel evidence available.
+Entering the crypt starts deterministic combat with one skeleton guardian. Clearing
+it records `guardian-cleared` and opens the way for later crypt investigation without
+prematurely completing **Find Tavi**; rescue and resolution remain later tickets. A
+copyable offline journey is:
 
 ```powershell
-@("talk mara tavi ask", "move ferry-landing", "talk oren repairs persuade", "move inn", "search missing-person notice", "move chapel-path", "move ruined-chapel", "search damaged repair record", "journal", "move crypt", "quit") |
+@("talk mara tavi ask", "move ferry-landing", "talk oren repairs persuade", "move inn", "search missing-person notice", "move chapel-path", "move ruined-chapel", "search damaged repair record", "journal", "move crypt", "attack skeleton", "attack skeleton", "attack skeleton", "move ruined-chapel", "move crypt", "look", "quit") |
   npm.cmd start -- --adventure chapel --seed 58 --trace .\chapel-trace.json
 npm.cmd start -- --replay .\chapel-trace.json
 ```
@@ -122,8 +124,8 @@ state evidence as formats 1 and 2, with explicit chapel content/rules versions.
 AI traces also record the chapel prompt/tool versions and normalized provider
 identity. Format-3 replay selects the chapel runtime from that exact version tuple,
 runs without a model, compares every result and state, and rejects unknown versions
-or tampering. The exploration-v1, discovery-v2, and dialogue-v3 tuples remain
-replayable after the social-v4 state and tools were added. AI traces identify exact local `journal` reads as
+or tampering. The exploration-v1, discovery-v2, dialogue-v3, and social-v4 tuples
+remain replayable after the guardian-v5 combat state and tools were added. AI traces identify exact local `journal` reads as
 `local-journal`, and replay validates their input and unchanged state. Trace state
 is diagnostic and may contain spoilers; it is not a save.
 
@@ -197,13 +199,18 @@ Gameplay uses the versioned `mulberry32-v1` generator. Its unsigned 32-bit state
 
 The combat draw order is fighter initiative (`d20+1`), goblin initiative (`d20+2`), then each attack's d20. Damage dice are drawn only after a hit, and a critical hit draws two damage dice. Initiative is rolled once when the encounter begins and retained across its rounds.
 
+The chapel guardian uses the same combat rules with fighter initiative (`d20+1`)
+and skeleton initiative (`d20+2`). The skeleton has 13 HP, AC 13, a `+4`
+shortsword attack, and `1d6+2` damage. Seed `0` clears it in three fighter attacks;
+seed `74` ends in terminal defeat after two fighter attacks.
+
 Seed `0` is a short reproducible victory over the goblin in two attacks. Seed `207` gives the goblin the opening turn and reproducibly defeats the fighter in three fighter attacks.
 
 ### Simplified combat rules
 
-Entering the Guardroom while the goblin lives starts combat. Higher initiative acts first, with ties favouring the fighter. On an attack, a natural 1 misses, a natural 20 hits critically, and any other roll hits when its total equals or exceeds the target's AC. A critical hit rolls twice the weapon's damage dice but adds its modifier once. HP stops at zero, death is immediate, and a defeated combatant cannot act.
+Entering the Guardroom while the goblin lives or the Crypt while its skeleton guardian lives starts combat. Higher initiative acts first, with ties favouring the fighter. On an attack, a natural 1 misses, a natural 20 hits critically, and any other roll hits when its total equals or exceeds the target's AC. A critical hit rolls twice the weapon's damage dice but adds its modifier once. HP stops at zero, death is immediate, and a defeated combatant cannot act.
 
-During combat, `attack goblin` is the only command that advances a turn. Read commands and rejected input do not spend a turn or consume a random roll. Retreat, healing, death saves, and tactical movement are not part of this game.
+During combat, `attack goblin` or `attack skeleton` is the only command that advances a turn for its adventure. Read commands and rejected input do not spend a turn or consume a random roll. Retreat, healing, death saves, and tactical movement are not part of this slice; the chapel potion is tracked separately in issue #30.
 
 ## Supported commands
 
@@ -218,7 +225,7 @@ Commands and their arguments are case-insensitive. Commands must use the canonic
 | `move <location>`  | Walk through an open passage to a named adjacent room, such as `move guardroom`. |
 | `open <target>`    | Open an accessible door, such as `open wooden door`.                             |
 | `take <item>`      | Move a visible collectible into inventory, such as `take signet`.                |
-| `attack <target>`  | Attack the living guardroom goblin with the fighter's longsword.                 |
+| `attack <target>`  | Attack the active living goblin or skeleton with the fighter's longsword.        |
 | `status`           | Show the fighter's current and maximum HP and session status.                    |
 | `inventory`        | Show the fixed longsword equipment separately from collected items.              |
 | `journal`          | Show discovered facts, sources, quest milestones, and known leads.               |
@@ -459,6 +466,8 @@ After `npm.cmd run build`:
 13. Run `npm.cmd start -- --adventure chapel --seed 58 --trace .\chapel-social.json`. Enter `move ferry-landing` and `talk oren repairs persuade`. Expect separate lines for approach `persuade`, d20 `10`, modifier `+1`, total `11`, DC `11`, and `success`, followed by Oren's admission that he diverted repair funds to buy medicine and left repairs unfinished. Enter `move inn`, return to the ferry landing, and try `talk oren repairs intimidate`; expect the authorized admission again with no second roll. Replay the exported trace and expect success.
 14. Repeat with seed `7` and `talk oren repairs intimidate`. Expect d20 `1`, total `2`, and `failure`, with no admission. Switch to `persuade`; expect the remembered refusal without another roll and explicit guidance that the notice and chapel evidence remain usable. `talk oren tavi ask` and `talk oren repairs ask` are no-roll public answers. A compound command such as `talk oren repairs persuade then move inn` is rejected without a draw.
 15. In AI mode, ask Oren using each supported intent: an appeal to finding Tavi, the claim that records were checked, and a threat of public scrutiny. Expect the corresponding validated approach and engine-owned mechanics. If reply generation fails after the check, expect the committed authored response and mechanics to remain, with no reroll. Treat scripted-AI success as orchestration evidence only; live model quality and human enjoyment remain untested for this slice.
+16. Run `npm.cmd start -- --adventure chapel --seed 0 --trace .\chapel-guardian.json`, move through `chapel-path` and `ruined-chapel` to `crypt`, then enter `attack skeleton` three times. Expect fighter and skeleton initiative, labeled attack rolls, damage, remaining HP and turns, followed by `guardian-cleared` with **Find Tavi** still active. Move back to `ruined-chapel`, return to `crypt`, and expect the defeated guardian with no new initiative. Replay the trace successfully.
+17. Repeat with seed `74`, entering `attack skeleton` twice. Expect terminal defeat at 0/20 HP. A third attack must be rejected without a draw, while `look`, `inspect skeleton`, `status`, `inventory`, `journal`, `help`, and `quit` remain usable. Replay the trace successfully.
 
 ### Usability pass observations
 

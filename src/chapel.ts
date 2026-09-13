@@ -1,5 +1,11 @@
 import type { Action } from "./session.js";
 import type { RandomSource } from "./random.js";
+import {
+  resolveAttack,
+  resolveInitiative,
+  type AttackResolvedEvent,
+  type InitiativeRoll,
+} from "./combat.js";
 
 export const CHAPEL_ID = "chapel";
 export const LEGACY_CHAPEL_VERSION = "chapel-exploration-v1";
@@ -14,15 +20,19 @@ export const DIALOGUE_CHAPEL_VERSION = "chapel-dialogue-v3";
 export const DIALOGUE_CHAPEL_RULES_VERSION = "chapel-dialogue-rules-v3";
 export const DIALOGUE_CHAPEL_TOOL_VERSION = "chapel-dialogue-tools-v3";
 export const DIALOGUE_CHAPEL_PROMPT_VERSION = "chapel-dialogue-dm-v3";
-export const CHAPEL_VERSION = "chapel-social-v4";
-export const CHAPEL_RULES_VERSION = "chapel-social-rules-v4";
-export const CHAPEL_TOOL_VERSION = "chapel-social-tools-v4";
-export const CHAPEL_PROMPT_VERSION = "chapel-social-dm-v4";
+export const SOCIAL_CHAPEL_VERSION = "chapel-social-v4";
+export const SOCIAL_CHAPEL_RULES_VERSION = "chapel-social-rules-v4";
+export const SOCIAL_CHAPEL_TOOL_VERSION = "chapel-social-tools-v4";
+export const SOCIAL_CHAPEL_PROMPT_VERSION = "chapel-social-dm-v4";
+export const CHAPEL_VERSION = "chapel-guardian-v5";
+export const CHAPEL_RULES_VERSION = "chapel-guardian-rules-v5";
+export const CHAPEL_TOOL_VERSION = "chapel-guardian-tools-v5";
+export const CHAPEL_PROMPT_VERSION = "chapel-guardian-dm-v5";
 export const CHAPEL_TITLE = "The Bell Beneath the Chapel";
 export const CHAPEL_OBJECTIVE =
   "Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.";
 export const CRYPT_BOUNDARY =
-  "The crypt entrance is accessible, but the guardian encounter and the area beyond it are not yet playable. This exploration build cannot resolve the search. You can return to the chapel or quit.";
+  "A sealed arch divides the crypt. A skeleton guardian waits between the entrance and the evidence beyond.";
 
 export type ChapelRoomId =
   "inn" | "ferry-landing" | "chapel-path" | "ruined-chapel" | "crypt";
@@ -34,6 +44,40 @@ export type ChapelFeatureId =
   | "damaged-repair-record"
   | "crypt-steps";
 export type ChapelNpcId = "mara" | "oren" | "tavi";
+export type ChapelOpponentDefinitionId = "skeleton";
+export type ChapelOpponentCombatantId = "skeleton-guardian";
+export type ChapelCombatantId = "fighter" | ChapelOpponentCombatantId;
+
+export const CHAPEL_OPPONENT_DEFINITIONS = Object.freeze({
+  skeleton: {
+    id: "skeleton",
+    name: "skeleton guardian",
+    description:
+      "A bleached skeleton rises beside the sealed arch, gripping a rusted shortsword.",
+    maxHp: 13,
+    armorClass: 13,
+    attackBonus: 4,
+    initiativeBonus: 2,
+    attackName: "rusted shortsword",
+    damage: { dice: 1, sides: 6, modifier: 2 },
+  },
+} as const);
+
+export const CHAPEL_OPPONENT_COMBATANTS = Object.freeze({
+  "skeleton-guardian": {
+    combatantId: "skeleton-guardian",
+    definitionId: "skeleton",
+    roomId: "crypt",
+  },
+} as const);
+
+const CHAPEL_FIGHTER_DEFINITION = Object.freeze({
+  maxHp: 20,
+  armorClass: 16,
+  attackBonus: 5,
+  initiativeBonus: 1,
+  damage: { dice: 1, sides: 8, modifier: 3 },
+});
 export type ChapelTalkTopicId = "tavi" | "repairs";
 export const CHAPEL_TALK_APPROACHES = [
   "ask",
@@ -51,7 +95,8 @@ export type ChapelMilestoneId =
   | "chapel-route-known"
   | "unsafe-repairs-linked-to-oren"
   | "mara-account-recorded"
-  | "oren-account-released";
+  | "oren-account-released"
+  | "guardian-cleared";
 export type ChapelDiscovery = Readonly<{
   id: ChapelDiscoveryId;
   title: string;
@@ -250,6 +295,13 @@ type PublicFeature = Readonly<{
 export type ChapelInspection =
   | Readonly<PublicFeature & { type: "feature" }>
   | Readonly<{
+      type: "opponent";
+      id: ChapelOpponentCombatantId;
+      name: string;
+      description: string;
+      condition: "living" | "defeated";
+    }>
+  | Readonly<{
       type: "named_exit";
       id: ChapelRoomId;
       name: string;
@@ -352,7 +404,7 @@ export const CHAPEL_ROOMS = [
 export type ChapelState = Readonly<{
   adventureId: typeof CHAPEL_ID;
   locationId: ChapelRoomId;
-  status: "playing" | "quit";
+  status: "playing" | "defeat" | "quit";
   fighter: Readonly<{
     hp: number;
     maxHp: number;
@@ -374,6 +426,25 @@ export type ChapelState = Readonly<{
   socialChallenges: Readonly<{
     guardedAccount?: ChapelSocialCheck;
   }>;
+  opponents: Readonly<
+    Record<
+      ChapelOpponentCombatantId,
+      Readonly<{
+        combatantId: ChapelOpponentCombatantId;
+        definitionId: ChapelOpponentDefinitionId;
+        hp: number;
+        maxHp: number;
+      }>
+    >
+  >;
+  combat?: Readonly<{
+    opponentCombatantId: ChapelOpponentCombatantId;
+    initiative: Readonly<
+      Record<ChapelCombatantId, InitiativeRoll<ChapelCombatantId>>
+    >;
+    turnOrder: readonly [ChapelCombatantId, ChapelCombatantId];
+    currentTurn: ChapelCombatantId;
+  }>;
 }>;
 
 export type ChapelSocialCheck = Readonly<{
@@ -384,7 +455,15 @@ export type ChapelSocialCheck = Readonly<{
   dc: 11;
   result: "success" | "failure";
 }>;
-export type DialogueChapelState = Omit<ChapelState, "socialChallenges">;
+export type DialogueChapelState = Omit<
+  ChapelState,
+  "socialChallenges" | "opponents" | "combat"
+>;
+export type SocialChapelState = Omit<
+  ChapelState,
+  "opponents" | "combat" | "status"
+> &
+  Readonly<{ status: "playing" | "quit" }>;
 export type LegacyChapelState = Readonly<{
   adventureId: typeof CHAPEL_ID;
   locationId: ChapelRoomId;
@@ -431,7 +510,12 @@ export type LegacyChapelEvent = Readonly<
 export type ChapelEvent = Readonly<
   | { type: "chapel-scene"; roomId: ChapelRoomId }
   | { type: "chapel-moved"; fromRoomId: ChapelRoomId; roomId: ChapelRoomId }
-  | { type: "chapel-inspected"; name: string; description: string }
+  | {
+      type: "chapel-inspected";
+      name: string;
+      description: string;
+      condition?: "living" | "defeated";
+    }
   | {
       type: "chapel-discovered";
       discoveryId: ChapelDiscoveryId;
@@ -439,6 +523,25 @@ export type ChapelEvent = Readonly<
     }
   | { type: "chapel-conversation"; conversation: ChapelConversation }
   | (Readonly<{ type: "chapel-social-check" }> & ChapelSocialCheck)
+  | {
+      type: "combat-started";
+      combatantId: ChapelOpponentCombatantId;
+      definitionId: ChapelOpponentDefinitionId;
+    }
+  | {
+      type: "initiative-rolled";
+      combatantId: ChapelCombatantId;
+      bonus: number;
+      roll: number;
+      total: number;
+    }
+  | { type: "turn-started"; combatantId: ChapelCombatantId }
+  | AttackResolvedEvent<ChapelCombatantId>
+  | {
+      type: "combat-ended";
+      combatantId: ChapelCombatantId;
+      outcome: "defeated";
+    }
   | { type: "chapel-journal"; journal: ChapelJournal }
   | {
       type: "chapel-status";
@@ -453,7 +556,13 @@ export type ChapelEvent = Readonly<
 >;
 export type ChapelRejection = Readonly<{
   reason:
-    "chapel-unavailable" | "chapel-missing-argument" | "chapel-session-ended";
+    | "chapel-unavailable"
+    | "chapel-missing-argument"
+    | "chapel-session-ended"
+    | "chapel-combat-restriction"
+    | "chapel-invalid-attack-target"
+    | "chapel-dead-target"
+    | "chapel-terminal-state";
 }>;
 export type ChapelResult =
   | Readonly<{
@@ -478,6 +587,14 @@ export function createChapelSession(): ChapelState {
     npcStates: INITIAL_CHAPEL_NPC_STATES,
     conversationHistory: [],
     socialChallenges: {},
+    opponents: {
+      "skeleton-guardian": {
+        combatantId: "skeleton-guardian",
+        definitionId: "skeleton",
+        hp: CHAPEL_OPPONENT_DEFINITIONS.skeleton.maxHp,
+        maxHp: CHAPEL_OPPONENT_DEFINITIONS.skeleton.maxHp,
+      },
+    },
   };
 }
 
@@ -799,6 +916,7 @@ function normalized(value: string): string {
 export function chapelInspection(
   state: ChapelState,
   target: string,
+  guardianEnabled = true,
 ): ChapelInspection | undefined {
   const room = chapelRoom(state.locationId);
   const match = normalized(target);
@@ -808,6 +926,24 @@ export function chapelInspection(
   );
   if (feature !== undefined) {
     return { type: "feature", ...feature };
+  }
+  const skeleton = CHAPEL_OPPONENT_COMBATANTS["skeleton-guardian"];
+  const skeletonDefinition = CHAPEL_OPPONENT_DEFINITIONS[skeleton.definitionId];
+  if (
+    guardianEnabled &&
+    state.locationId === skeleton.roomId &&
+    (match === normalized(skeleton.combatantId) ||
+      match === normalized(skeletonDefinition.id) ||
+      match === normalized(skeletonDefinition.name))
+  ) {
+    return {
+      type: "opponent",
+      id: skeleton.combatantId,
+      name: skeletonDefinition.name,
+      description: skeletonDefinition.description,
+      condition:
+        state.opponents[skeleton.combatantId].hp > 0 ? "living" : "defeated",
+    };
   }
   const exit = CHAPEL_ROOMS.find(
     (entry) =>
@@ -850,10 +986,205 @@ export function chapelSearchTargets(
   );
 }
 
+function startSkeletonCombat(
+  state: ChapelState,
+  random: Pick<RandomSource, "roll">,
+): ChapelResult {
+  const combatant = CHAPEL_OPPONENT_COMBATANTS["skeleton-guardian"];
+  const definition = CHAPEL_OPPONENT_DEFINITIONS[combatant.definitionId];
+  const initiative = resolveInitiative<ChapelCombatantId>(
+    {
+      combatantId: "fighter",
+      bonus: CHAPEL_FIGHTER_DEFINITION.initiativeBonus,
+    },
+    {
+      combatantId: combatant.combatantId,
+      bonus: definition.initiativeBonus,
+    },
+    random,
+  );
+  const initiativeByCombatant = Object.fromEntries(
+    initiative.rolls.map((roll) => [roll.combatantId, roll]),
+  ) as Record<ChapelCombatantId, InitiativeRoll<ChapelCombatantId>>;
+  const nextState: ChapelState = {
+    ...state,
+    combat: {
+      opponentCombatantId: combatant.combatantId,
+      initiative: initiativeByCombatant,
+      turnOrder: initiative.turnOrder,
+      currentTurn: initiative.turnOrder[0],
+    },
+  };
+  const events: ChapelEvent[] = [
+    {
+      type: "combat-started",
+      combatantId: combatant.combatantId,
+      definitionId: combatant.definitionId,
+    },
+    ...initiative.rolls.map((roll) => ({
+      type: "initiative-rolled" as const,
+      ...roll,
+    })),
+    { type: "turn-started", combatantId: initiative.turnOrder[0] },
+  ];
+  if (initiative.turnOrder[0] === combatant.combatantId) {
+    const openingTurn = resolveSkeletonTurn(nextState, random, false);
+    return {
+      state: openingTurn.state,
+      events: [...events, ...openingTurn.events],
+    };
+  }
+  return {
+    state: nextState,
+    events,
+  };
+}
+
+function resolveSkeletonTurn(
+  state: ChapelState,
+  random: Pick<RandomSource, "roll">,
+  announceTurn = true,
+): Readonly<{ state: ChapelState; events: readonly ChapelEvent[] }> {
+  const combatant = CHAPEL_OPPONENT_COMBATANTS["skeleton-guardian"];
+  const definition = CHAPEL_OPPONENT_DEFINITIONS[combatant.definitionId];
+  const attack = resolveAttack<ChapelCombatantId>(
+    {
+      attackerId: combatant.combatantId,
+      targetId: "fighter",
+      attackBonus: definition.attackBonus,
+      targetArmorClass: CHAPEL_FIGHTER_DEFINITION.armorClass,
+      targetMaxHp: CHAPEL_FIGHTER_DEFINITION.maxHp,
+      damage: definition.damage,
+    },
+    state.fighter.hp,
+    random,
+  );
+  const fighterDefeated = attack.targetHp === 0;
+  return {
+    state: {
+      ...state,
+      status: fighterDefeated ? "defeat" : "playing",
+      fighter: { ...state.fighter, hp: attack.targetHp },
+      ...(state.combat === undefined
+        ? {}
+        : {
+            combat: {
+              ...state.combat,
+              currentTurn: fighterDefeated ? combatant.combatantId : "fighter",
+            },
+          }),
+    },
+    events: [
+      ...(announceTurn
+        ? ([
+            {
+              type: "turn-started",
+              combatantId: combatant.combatantId,
+            },
+          ] as const)
+        : []),
+      attack.event,
+      fighterDefeated
+        ? {
+            type: "combat-ended",
+            combatantId: "fighter",
+            outcome: "defeated",
+          }
+        : { type: "turn-started", combatantId: "fighter" },
+    ],
+  };
+}
+
+function isActiveSkeletonCombat(state: ChapelState): boolean {
+  return (
+    state.status === "playing" &&
+    state.locationId === "crypt" &&
+    state.combat?.opponentCombatantId === "skeleton-guardian" &&
+    state.fighter.hp > 0 &&
+    state.opponents["skeleton-guardian"].hp > 0
+  );
+}
+
+function attackSkeleton(
+  state: ChapelState,
+  target: string | undefined,
+  random: Pick<RandomSource, "roll"> | undefined,
+): ChapelResult {
+  const targetName = normalized(target ?? "");
+  if (targetName.length === 0) {
+    return { state, rejection: { reason: "chapel-missing-argument" } };
+  }
+  if (targetName !== "skeleton" && targetName !== "skeleton guardian") {
+    return { state, rejection: { reason: "chapel-invalid-attack-target" } };
+  }
+  const combatant = CHAPEL_OPPONENT_COMBATANTS["skeleton-guardian"];
+  const definition = CHAPEL_OPPONENT_DEFINITIONS[combatant.definitionId];
+  if (state.opponents[combatant.combatantId].hp === 0) {
+    return { state, rejection: { reason: "chapel-dead-target" } };
+  }
+  if (!isActiveSkeletonCombat(state)) {
+    return { state, rejection: { reason: "chapel-invalid-attack-target" } };
+  }
+  if (random === undefined) {
+    throw new Error("A random source is required for combat.");
+  }
+  const attack = resolveAttack<ChapelCombatantId>(
+    {
+      attackerId: "fighter",
+      targetId: combatant.combatantId,
+      attackBonus: CHAPEL_FIGHTER_DEFINITION.attackBonus,
+      targetArmorClass: definition.armorClass,
+      targetMaxHp: definition.maxHp,
+      damage: CHAPEL_FIGHTER_DEFINITION.damage,
+    },
+    state.opponents[combatant.combatantId].hp,
+    random,
+  );
+  const opponentDefeated = attack.targetHp === 0;
+  const milestoneRecorded = state.quest.milestones.includes("guardian-cleared");
+  const nextState: ChapelState = {
+    ...state,
+    opponents: {
+      ...state.opponents,
+      [combatant.combatantId]: {
+        ...state.opponents[combatant.combatantId],
+        hp: attack.targetHp,
+      },
+    },
+    ...(opponentDefeated && !milestoneRecorded
+      ? {
+          quest: {
+            ...state.quest,
+            milestones: [...state.quest.milestones, "guardian-cleared"],
+          },
+        }
+      : {}),
+  };
+  if (opponentDefeated) {
+    return {
+      state: nextState,
+      events: [
+        attack.event,
+        {
+          type: "combat-ended",
+          combatantId: combatant.combatantId,
+          outcome: "defeated",
+        },
+      ],
+    };
+  }
+  const opponentTurn = resolveSkeletonTurn(nextState, random);
+  return {
+    state: opponentTurn.state,
+    events: [attack.event, ...opponentTurn.events],
+  };
+}
+
 export function handleChapelAction(
   state: ChapelState,
   action: Action,
   random?: Pick<RandomSource, "roll">,
+  guardianEnabled = true,
 ): ChapelResult {
   const accept = (...events: ChapelEvent[]): ChapelResult => ({
     state,
@@ -864,6 +1195,19 @@ export function handleChapelAction(
       state: { ...state, status: "quit" },
       events: [{ type: "session-quit" }],
     };
+  }
+  const gameplayMutation = ["move", "search", "talk", "attack"].includes(
+    action.type,
+  );
+  if (state.status === "defeat" && gameplayMutation) {
+    return { state, rejection: { reason: "chapel-terminal-state" } };
+  }
+  if (
+    isActiveSkeletonCombat(state) &&
+    gameplayMutation &&
+    action.type !== "attack"
+  ) {
+    return { state, rejection: { reason: "chapel-combat-restriction" } };
   }
   switch (action.type) {
     case "help":
@@ -885,6 +1229,8 @@ export function handleChapelAction(
         type: "chapel-journal",
         journal: projectChapelJournal(state),
       });
+    case "attack":
+      return attackSkeleton(state, action.target, random);
     case "talk": {
       if (state.status === "quit") {
         return { state, rejection: { reason: "chapel-session-ended" } };
@@ -904,13 +1250,16 @@ export function handleChapelAction(
       if (!action.target) {
         return { state, rejection: { reason: "chapel-missing-argument" } };
       }
-      const target = chapelInspection(state, action.target);
+      const target = chapelInspection(state, action.target, guardianEnabled);
       return target === undefined
         ? { state, rejection: { reason: "chapel-unavailable" } }
         : accept({
             type: "chapel-inspected",
             name: target.name,
             description: target.description,
+            ...(target.type === "opponent"
+              ? { condition: target.condition }
+              : {}),
           });
     }
     case "search": {
@@ -920,7 +1269,7 @@ export function handleChapelAction(
       if (!action.target) {
         return { state, rejection: { reason: "chapel-missing-argument" } };
       }
-      const target = chapelInspection(state, action.target);
+      const target = chapelInspection(state, action.target, guardianEnabled);
       const evidence = CHAPEL_EVIDENCE.find(
         (entry) => entry.targetId === target?.id,
       );
@@ -971,17 +1320,30 @@ export function handleChapelAction(
       ) {
         return { state, rejection: { reason: "chapel-unavailable" } };
       }
-      return {
-        state: { ...state, locationId: room.id },
-        events: [
-          {
-            type: "chapel-moved",
-            fromRoomId: state.locationId,
-            roomId: room.id,
-          },
-          { type: "chapel-scene", roomId: room.id },
-        ],
-      };
+      const movedState = { ...state, locationId: room.id };
+      const movementEvents: ChapelEvent[] = [
+        {
+          type: "chapel-moved",
+          fromRoomId: state.locationId,
+          roomId: room.id,
+        },
+        { type: "chapel-scene", roomId: room.id },
+      ];
+      if (
+        guardianEnabled &&
+        room.id === "crypt" &&
+        movedState.opponents["skeleton-guardian"].hp > 0
+      ) {
+        if (random === undefined) {
+          throw new Error("A random source is required for combat.");
+        }
+        const combat = startSkeletonCombat(movedState, random);
+        return {
+          state: combat.state,
+          events: [...movementEvents, ...(combat.events ?? [])],
+        };
+      }
+      return { state: movedState, events: movementEvents };
     }
     default:
       return { state, rejection: { reason: "chapel-unavailable" } };
@@ -994,11 +1356,22 @@ export function renderChapelIntroduction(): string {
 
 export function renderChapelResult(result: ChapelResult): string {
   if (result.rejection !== undefined) {
-    return result.rejection.reason === "chapel-missing-argument"
-      ? 'Name a visible target or adjacent location. Use "look" for choices.'
-      : result.rejection.reason === "chapel-session-ended"
-        ? "This session has ended."
-        : 'That action or target is unavailable here. Use "look" for public features and adjacent routes. This exploration build cannot complete the quest.';
+    switch (result.rejection.reason) {
+      case "chapel-terminal-state":
+        return "The adventure is over; you can't change the final state. You may look, inspect, check status or inventory, read the journal, ask for help, or quit.";
+      case "chapel-combat-restriction":
+        return 'You cannot do that during combat. Attack the skeleton guardian with "attack skeleton".';
+      case "chapel-invalid-attack-target":
+        return "You cannot attack that target here.";
+      case "chapel-dead-target":
+        return "The skeleton guardian is already defeated.";
+      case "chapel-missing-argument":
+        return 'Name a visible target or adjacent location. Use "look" for choices.';
+      case "chapel-session-ended":
+        return "This session has ended.";
+      case "chapel-unavailable":
+        return 'That action or target is unavailable here. Use "look" for public features and adjacent routes.';
+    }
   }
   if (result.events.length === 0) {
     return "You find nothing new; this evidence is already recorded in your journal.";
@@ -1019,12 +1392,19 @@ export function renderChapelResult(result: ChapelResult): string {
                 npc.subjects.map(({ name }) => name).join(", ") || "none"
               })`,
           );
-          return `${room.name}\n${room.description}\nVisible: ${room.features.map((feature) => feature.name).join(", ")}.\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.`;
+          const skeleton = result.state.opponents["skeleton-guardian"];
+          const opponentLine =
+            event.roomId !== "crypt"
+              ? "Opponents: none."
+              : skeleton.hp > 0
+                ? "Opponent: skeleton guardian (living)."
+                : "Defeated opponents: skeleton guardian. The way beyond the guardian is clear for later crypt evidence.";
+          return `${room.name}\n${room.description}\nVisible: ${room.features.map((feature) => feature.name).join(", ")}.\n${opponentLine}\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.`;
         }
         case "chapel-moved":
           return `You travel to ${chapelRoom(event.roomId).name}.`;
         case "chapel-inspected":
-          return `${event.name}: ${event.description}`;
+          return `${event.name}: ${event.description}${event.condition === undefined ? "" : `\nCondition: ${event.condition}.`}`;
         case "chapel-discovered": {
           const discovery = CHAPEL_EVIDENCE.find(
             (entry) => entry.discovery.id === event.discoveryId,
@@ -1037,6 +1417,35 @@ export function renderChapelResult(result: ChapelResult): string {
           return event.conversation.authoredReply;
         case "chapel-social-check":
           return `Social check\nApproach: ${event.approach}\nDie: d20 = ${event.die}\nModifier: +${event.modifier}\nTotal: ${event.total}\nDC: ${event.dc}\nResult: ${event.result}.`;
+        case "combat-started":
+          return "Combat begins against the skeleton guardian.";
+        case "initiative-rolled":
+          return `Initiative — ${event.combatantId === "fighter" ? "Fighter" : "skeleton guardian"}: d20 roll ${event.roll} + modifier ${event.bonus} = ${event.total}.`;
+        case "turn-started":
+          return `Turn: ${event.combatantId === "fighter" ? "Fighter" : "skeleton guardian"}.`;
+        case "attack-resolved": {
+          const attackerIsFighter = event.attackerId === "fighter";
+          const attackerName = attackerIsFighter
+            ? "Fighter"
+            : "skeleton guardian";
+          const attackName = attackerIsFighter
+            ? "longsword"
+            : CHAPEL_OPPONENT_DEFINITIONS.skeleton.attackName;
+          const targetName =
+            event.targetId === "fighter" ? "Fighter" : "skeleton guardian";
+          const outcome =
+            event.outcome === "critical-hit" ? "critical hit" : event.outcome;
+          return [
+            `${attackerName} attacks ${targetName} with ${attackName}.`,
+            `Attack roll: d20 ${event.attackRoll} + modifier ${event.attackBonus} = ${event.attackTotal} vs AC ${event.targetArmorClass} — ${outcome}.`,
+            ...(event.damage === undefined ? [] : [`Damage: ${event.damage}.`]),
+            `Remaining HP: ${targetName} ${event.targetHp}/${event.targetMaxHp}.`,
+          ].join("\n");
+        }
+        case "combat-ended":
+          return event.combatantId === "fighter"
+            ? `The skeleton guardian defeats you.\nYou have ${result.state.fighter.hp}/${result.state.fighter.maxHp} HP and the adventure has ended in defeat. The final state remains readable; quit or start a fresh run.`
+            : "The skeleton guardian is defeated. Guardian cleared; the crypt evidence beyond is now accessible. Find Tavi remains active.";
         case "chapel-journal": {
           const discoveries = event.journal.discoveries.map((discovery) => {
             const sourceLocation = chapelRoom(discovery.source.locationId).name;
@@ -1055,7 +1464,7 @@ export function renderChapelResult(result: ChapelResult): string {
         case "chapel-inventory":
           return "Equipped: longsword.\nCollectibles: empty.";
         case "chapel-help":
-          return "Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nExamples: talk mara tavi ask; move ferry-landing; talk oren tavi ask; talk oren repairs persuade; talk oren repairs deceive; talk oren repairs intimidate; search missing-person notice; journal; move inn; move chapel-path; move ruined-chapel; move crypt.\nEnter each command on its own line. Explore the crypt entrance, then return or quit. The quest cannot yet be completed.";
+          return "Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, attack <target>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nExamples: talk mara tavi ask; move ferry-landing; talk oren repairs persuade; search missing-person notice; journal; move chapel-path; move ruined-chapel; move crypt; inspect skeleton; attack skeleton.\nEnter each command on its own line. During guardian combat, only attack advances the turn; reads and quit remain available. Defeating the guardian clears access for later crypt investigation without completing Find Tavi.";
         case "session-quit":
           return "You leave the game.";
       }

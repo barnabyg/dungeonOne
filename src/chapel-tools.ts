@@ -2,6 +2,8 @@ import {
   CHAPEL_TITLE,
   CHAPEL_OBJECTIVE,
   CHAPEL_TALK_APPROACHES,
+  CHAPEL_OPPONENT_COMBATANTS,
+  CHAPEL_OPPONENT_DEFINITIONS,
   chapelRoom,
   chapelInspection,
   chapelSearchTargets,
@@ -21,8 +23,15 @@ import type {
 import type { RuntimeToolResult } from "./runtime-contract.js";
 import type { Action } from "./session.js";
 
-export function projectChapelScene(state: ChapelState): DmScene {
+export function projectChapelScene(
+  state: ChapelState,
+  guardianEnabled = true,
+): DmScene {
   const room = chapelRoom(state.locationId);
+  const skeleton = CHAPEL_OPPONENT_COMBATANTS["skeleton-guardian"];
+  const skeletonDefinition = CHAPEL_OPPONENT_DEFINITIONS[skeleton.definitionId];
+  const skeletonVisible =
+    guardianEnabled && state.locationId === skeleton.roomId;
   return {
     title: CHAPEL_TITLE,
     objective: CHAPEL_OBJECTIVE,
@@ -33,11 +42,31 @@ export function projectChapelScene(state: ChapelState): DmScene {
       description: room.description,
       features: room.features,
       items: [],
-      opponents: [],
+      opponents: skeletonVisible
+        ? [
+            {
+              id: skeleton.combatantId,
+              name: skeletonDefinition.name,
+              condition:
+                state.opponents[skeleton.combatantId].hp > 0
+                  ? "living"
+                  : "defeated",
+            },
+          ]
+        : [],
       npcs: visibleChapelNpcs(state),
       exits: room.exits.map((id) => ({ destinationId: id, name: id })),
     },
     journal: projectChapelJournal(state),
+    ...(state.combat === undefined ||
+    state.opponents[state.combat.opponentCombatantId].hp === 0
+      ? {}
+      : {
+          combat: {
+            opponentCombatantId: state.combat.opponentCombatantId,
+            currentTurn: state.combat.currentTurn,
+          },
+        }),
   };
 }
 
@@ -48,17 +77,27 @@ export function projectChapelStatus(state: ChapelState): CharacterStatus {
     equipment: [{ id: "longsword", name: "longsword" }],
     collectedItems: [],
     outcome: state.status,
+    ...(state.combat === undefined ||
+    state.opponents[state.combat.opponentCombatantId].hp === 0
+      ? {}
+      : { combatTurn: state.combat.currentTurn }),
   };
 }
 
 export function getChapelTools(
   state: ChapelState,
+  guardianEnabled = true,
 ): readonly GameToolDefinition[] {
   const room = chapelRoom(state.locationId);
+  const activeCombat =
+    guardianEnabled &&
+    state.status === "playing" &&
+    state.combat !== undefined &&
+    state.opponents[state.combat.opponentCombatantId].hp > 0;
   const searchTargets =
     state.status === "playing" ? chapelSearchTargets(state) : [];
   const visibleNpcs =
-    state.status === "playing"
+    state.status === "playing" && !activeCombat
       ? visibleChapelNpcs(state).filter(({ subjects }) => subjects.length > 0)
       : [];
   const definition = (
@@ -87,12 +126,22 @@ export function getChapelTools(
       "get_journal",
       "Read discovered facts, their sources, quest progress and known leads.",
     ),
-    definition("inspect", "Inspect a public feature or adjacent route.", {
-      target: {
-        type: "string",
-        enum: [...room.features.map(({ id }) => id), ...room.exits],
+    definition(
+      "inspect",
+      "Inspect a public feature, opponent, or adjacent route.",
+      {
+        target: {
+          type: "string",
+          enum: [
+            ...room.features.map(({ id }) => id),
+            ...(guardianEnabled && state.locationId === "crypt"
+              ? ["skeleton-guardian"]
+              : []),
+            ...room.exits,
+          ],
+        },
       },
-    }),
+    ),
     ...(searchTargets.length === 0
       ? []
       : [
@@ -131,7 +180,17 @@ export function getChapelTools(
             },
           ),
         ]),
-    ...(state.status === "playing"
+    ...(activeCombat
+      ? [
+          definition("attack", "Attack the active opponent combatant.", {
+            combatantId: {
+              type: "string",
+              enum: [state.combat?.opponentCombatantId],
+            },
+          }),
+        ]
+      : []),
+    ...(state.status === "playing" && !activeCombat
       ? [
           definition("move", "Travel to an adjacent public location.", {
             destinationId: { type: "string", enum: room.exits },
@@ -145,12 +204,15 @@ export function dispatchChapelTool(
   state: ChapelState,
   call: GameToolCall,
   random?: Parameters<typeof handleChapelAction>[2],
+  guardianEnabled = true,
 ): RuntimeToolResult {
   const reject = (code: ToolValidationErrorCode): RuntimeToolResult => ({
     state,
     modelOutput: { ok: false, error: { code } },
   });
-  const tool = getChapelTools(state).find(({ name }) => name === call.name);
+  const tool = getChapelTools(state, guardianEnabled).find(
+    ({ name }) => name === call.name,
+  );
   if (tool === undefined) {
     return reject("unknown-tool");
   }
@@ -184,6 +246,17 @@ export function dispatchChapelTool(
       return reject("unavailable-reference");
     }
   }
+  if (call.name === "attack") {
+    if (
+      Object.keys(args).length !== 1 ||
+      typeof args.combatantId !== "string"
+    ) {
+      return reject("invalid-arguments");
+    }
+    if (args.combatantId !== state.combat?.opponentCombatantId) {
+      return reject("unavailable-reference");
+    }
+  }
   const field =
     call.name === "move"
       ? "destinationId"
@@ -194,6 +267,7 @@ export function dispatchChapelTool(
           : undefined;
   if (
     call.name !== "talk" &&
+    call.name !== "attack" &&
     (Object.keys(args).length !== (field === undefined ? 0 : 1) ||
       (field !== undefined && typeof args[field] !== "string"))
   ) {
@@ -245,8 +319,10 @@ export function dispatchChapelTool(
       topic: String(args.topicId),
       approach: String(args.approach),
     };
+  } else if (call.name === "attack") {
+    action = { type: "attack", target: String(args.combatantId) };
   }
-  const result = handleChapelAction(state, action, random);
+  const result = handleChapelAction(state, action, random, guardianEnabled);
   if (result.rejection !== undefined) {
     return {
       state: result.state,
@@ -259,7 +335,7 @@ export function dispatchChapelTool(
   }
   const inspection =
     action.type === "inspect"
-      ? chapelInspection(state, action.target ?? "")
+      ? chapelInspection(state, action.target ?? "", guardianEnabled)
       : undefined;
   const conversation =
     action.type === "talk"
@@ -275,13 +351,13 @@ export function dispatchChapelTool(
     modelOutput: {
       ok: true,
       events: result.events,
-      scene: projectChapelScene(result.state),
+      scene: projectChapelScene(result.state, guardianEnabled),
       ...(conversation === undefined ? {} : { conversation }),
       ...(inspection === undefined
         ? {}
         : {
             inspection:
-              inspection.type === "feature"
+              inspection.type === "feature" || inspection.type === "opponent"
                 ? inspection
                 : {
                     type: "named_exit" as const,

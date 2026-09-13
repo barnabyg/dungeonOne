@@ -20,6 +20,10 @@ import {
   CHAPEL_RULES_VERSION,
   CHAPEL_PROMPT_VERSION,
   CHAPEL_TOOL_VERSION,
+  SOCIAL_CHAPEL_VERSION,
+  SOCIAL_CHAPEL_RULES_VERSION,
+  SOCIAL_CHAPEL_PROMPT_VERSION,
+  SOCIAL_CHAPEL_TOOL_VERSION,
   DIALOGUE_CHAPEL_VERSION,
   DIALOGUE_CHAPEL_RULES_VERSION,
   DIALOGUE_CHAPEL_PROMPT_VERSION,
@@ -1086,6 +1090,9 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
   const rulesVersion = requireString(trace.rulesVersion, "rulesVersion");
   const current =
     version === CHAPEL_VERSION && rulesVersion === CHAPEL_RULES_VERSION;
+  const social =
+    version === SOCIAL_CHAPEL_VERSION &&
+    rulesVersion === SOCIAL_CHAPEL_RULES_VERSION;
   const dialogue =
     version === DIALOGUE_CHAPEL_VERSION &&
     rulesVersion === DIALOGUE_CHAPEL_RULES_VERSION;
@@ -1095,9 +1102,10 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
   const legacy =
     version === LEGACY_CHAPEL_VERSION &&
     rulesVersion === LEGACY_CHAPEL_RULES_VERSION;
-  if (!current && !dialogue && !discovery && !legacy) {
+  if (!current && !social && !dialogue && !discovery && !legacy) {
     if (
       rulesVersion !== CHAPEL_RULES_VERSION &&
+      rulesVersion !== SOCIAL_CHAPEL_RULES_VERSION &&
       rulesVersion !== DIALOGUE_CHAPEL_RULES_VERSION &&
       rulesVersion !== DISCOVERY_CHAPEL_RULES_VERSION &&
       rulesVersion !== LEGACY_CHAPEL_RULES_VERSION
@@ -1108,6 +1116,7 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     }
     if (
       version !== CHAPEL_VERSION &&
+      version !== SOCIAL_CHAPEL_VERSION &&
       version !== DIALOGUE_CHAPEL_VERSION &&
       version !== DISCOVERY_CHAPEL_VERSION &&
       version !== LEGACY_CHAPEL_VERSION
@@ -1126,20 +1135,24 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     rulesVersion,
     promptVersion: current
       ? CHAPEL_PROMPT_VERSION
-      : dialogue
-        ? DIALOGUE_CHAPEL_PROMPT_VERSION
-        : discovery
-          ? DISCOVERY_CHAPEL_PROMPT_VERSION
-          : LEGACY_CHAPEL_PROMPT_VERSION,
+      : social
+        ? SOCIAL_CHAPEL_PROMPT_VERSION
+        : dialogue
+          ? DIALOGUE_CHAPEL_PROMPT_VERSION
+          : discovery
+            ? DISCOVERY_CHAPEL_PROMPT_VERSION
+            : LEGACY_CHAPEL_PROMPT_VERSION,
     toolVersion: current
       ? CHAPEL_TOOL_VERSION
-      : dialogue
-        ? DIALOGUE_CHAPEL_TOOL_VERSION
-        : discovery
-          ? DISCOVERY_CHAPEL_TOOL_VERSION
-          : LEGACY_CHAPEL_TOOL_VERSION,
+      : social
+        ? SOCIAL_CHAPEL_TOOL_VERSION
+        : dialogue
+          ? DIALOGUE_CHAPEL_TOOL_VERSION
+          : discovery
+            ? DISCOVERY_CHAPEL_TOOL_VERSION
+            : LEGACY_CHAPEL_TOOL_VERSION,
     localKinds:
-      current || dialogue || discovery
+      current || social || dialogue || discovery
         ? ["dm", "local-help", "local-journal", "local-quit"]
         : ["dm", "local-help", "local-quit"],
   };

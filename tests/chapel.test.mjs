@@ -4,8 +4,338 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { resolveAdventure } from "../dist/runtime.js";
+import {
+  resolveAdventure,
+  resolveHistoricalAdventure,
+} from "../dist/runtime.js";
 import { DM_TURN_LIMITS, runDmTurn } from "../dist/dm-turn.js";
+import { CHAPEL_OPPONENT_DEFINITIONS } from "../dist/chapel.js";
+
+test("entering the crypt starts initiative against a skeleton combatant instance", () => {
+  assert.deepEqual(CHAPEL_OPPONENT_DEFINITIONS.skeleton, {
+    id: "skeleton",
+    name: "skeleton guardian",
+    description:
+      "A bleached skeleton rises beside the sealed arch, gripping a rusted shortsword.",
+    maxHp: 13,
+    armorClass: 13,
+    attackBonus: 4,
+    initiativeBonus: 2,
+    attackName: "rusted shortsword",
+    damage: { dice: 1, sides: 6, modifier: 2 },
+  });
+
+  const runtime = resolveAdventure("chapel");
+  let state = runtime.createSession();
+  for (const destination of ["chapel path", "ruined chapel"]) {
+    state = runtime.handleAction(state, {
+      type: "move",
+      destination,
+    }).state;
+  }
+  const rolls = [10, 5];
+  const entered = runtime.handleAction(
+    state,
+    { type: "move", destination: "crypt" },
+    {
+      roll(sides) {
+        assert.equal(sides, 20);
+        return rolls.shift();
+      },
+    },
+  );
+
+  assert.equal(entered.rejection, undefined);
+  assert.deepEqual(entered.state.opponents, {
+    "skeleton-guardian": {
+      combatantId: "skeleton-guardian",
+      definitionId: "skeleton",
+      hp: 13,
+      maxHp: 13,
+    },
+  });
+  assert.deepEqual(entered.state.combat, {
+    opponentCombatantId: "skeleton-guardian",
+    initiative: {
+      fighter: { combatantId: "fighter", bonus: 1, roll: 10, total: 11 },
+      "skeleton-guardian": {
+        combatantId: "skeleton-guardian",
+        bonus: 2,
+        roll: 5,
+        total: 7,
+      },
+    },
+    turnOrder: ["fighter", "skeleton-guardian"],
+    currentTurn: "fighter",
+  });
+  assert.deepEqual(entered.events.slice(-4), [
+    {
+      type: "combat-started",
+      combatantId: "skeleton-guardian",
+      definitionId: "skeleton",
+    },
+    {
+      type: "initiative-rolled",
+      combatantId: "fighter",
+      bonus: 1,
+      roll: 10,
+      total: 11,
+    },
+    {
+      type: "initiative-rolled",
+      combatantId: "skeleton-guardian",
+      bonus: 2,
+      roll: 5,
+      total: 7,
+    },
+    { type: "turn-started", combatantId: "fighter" },
+  ]);
+});
+
+test("a skeleton initiative win resolves one opening attack before the fighter turn", () => {
+  const runtime = resolveAdventure("chapel");
+  let state = runtime.createSession();
+  for (const destination of ["chapel path", "ruined chapel"]) {
+    state = runtime.handleAction(state, { type: "move", destination }).state;
+  }
+  const rolls = [1, 20, 15, 3];
+  const entered = runtime.handleAction(
+    state,
+    { type: "move", destination: "crypt" },
+    { roll: () => rolls.shift() },
+  );
+
+  assert.equal(entered.state.fighter.hp, 15);
+  assert.equal(entered.state.combat.currentTurn, "fighter");
+  assert.deepEqual(entered.events.slice(-3), [
+    { type: "turn-started", combatantId: "skeleton-guardian" },
+    {
+      type: "attack-resolved",
+      attackerId: "skeleton-guardian",
+      targetId: "fighter",
+      attackRoll: 15,
+      attackBonus: 4,
+      attackTotal: 19,
+      targetArmorClass: 16,
+      outcome: "hit",
+      damage: 5,
+      targetHp: 15,
+      targetMaxHp: 20,
+    },
+    { type: "turn-started", combatantId: "fighter" },
+  ]);
+});
+
+test("defeating the skeleton clears the guardian without completing the quest or restarting combat", () => {
+  const runtime = resolveAdventure("chapel");
+  let state = runtime.createSession();
+  for (const destination of ["chapel path", "ruined chapel"]) {
+    state = runtime.handleAction(state, { type: "move", destination }).state;
+  }
+  state = runtime.handleAction(
+    state,
+    { type: "move", destination: "crypt" },
+    { roll: () => [10, 5].shift() },
+  ).state;
+
+  const firstRolls = [15, 5, 1];
+  const first = runtime.handleAction(
+    state,
+    runtime.parseCommand("attack skeleton guardian"),
+    { roll: () => firstRolls.shift() },
+  );
+  assert.equal(first.rejection, undefined);
+  assert.equal(first.state.opponents["skeleton-guardian"].hp, 5);
+  assert.equal(first.state.fighter.hp, 20);
+
+  const finalRolls = [15, 5];
+  const final = runtime.handleAction(
+    first.state,
+    runtime.parseCommand("attack skeleton"),
+    { roll: () => finalRolls.shift() },
+  );
+  assert.equal(final.rejection, undefined);
+  assert.equal(final.state.opponents["skeleton-guardian"].hp, 0);
+  assert.equal(final.state.status, "playing");
+  assert.equal(final.state.quest.status, "active");
+  assert.ok(final.state.quest.milestones.includes("guardian-cleared"));
+  assert.deepEqual(final.events.at(-1), {
+    type: "combat-ended",
+    combatantId: "skeleton-guardian",
+    outcome: "defeated",
+  });
+
+  let revisited = runtime.handleAction(final.state, {
+    type: "move",
+    destination: "ruined chapel",
+  });
+  assert.equal(revisited.rejection, undefined);
+  revisited = runtime.handleAction(
+    revisited.state,
+    { type: "move", destination: "crypt" },
+    {
+      roll() {
+        assert.fail("Revisiting a cleared guardian must not draw randomness");
+      },
+    },
+  );
+  assert.equal(revisited.rejection, undefined);
+  assert.equal(revisited.state.opponents["skeleton-guardian"].hp, 0);
+  assert.ok(!revisited.events.some(({ type }) => type === "combat-started"));
+});
+
+test("lethal skeleton damage ends the adventure and terminal mutations draw nothing", () => {
+  const runtime = resolveAdventure("chapel");
+  let state = runtime.createSession();
+  state = { ...state, fighter: { ...state.fighter, hp: 3 } };
+  for (const destination of ["chapel path", "ruined chapel"]) {
+    state = runtime.handleAction(state, { type: "move", destination }).state;
+  }
+  const rolls = [1, 20, 15, 6];
+  const defeated = runtime.handleAction(
+    state,
+    { type: "move", destination: "crypt" },
+    { roll: () => rolls.shift() },
+  );
+
+  assert.equal(defeated.state.status, "defeat");
+  assert.equal(defeated.state.fighter.hp, 0);
+  assert.deepEqual(defeated.events.at(-1), {
+    type: "combat-ended",
+    combatantId: "fighter",
+    outcome: "defeated",
+  });
+  const status = runtime.handleAction(defeated.state, { type: "status" });
+  assert.equal(status.rejection, undefined);
+  assert.match(runtime.renderResult(status), /0\/20/);
+  const rejected = runtime.handleAction(
+    defeated.state,
+    runtime.parseCommand("attack skeleton"),
+    {
+      roll() {
+        assert.fail("Terminal mutations must not draw randomness");
+      },
+    },
+  );
+  assert.deepEqual(rejected.rejection, { reason: "chapel-terminal-state" });
+  assert.equal(rejected.state, defeated.state);
+});
+
+test("chapel tools expose the visible skeleton combatant and validated attacks", () => {
+  const runtime = resolveAdventure("chapel");
+  let state = runtime.createSession();
+  for (const destination of ["chapel-path", "ruined-chapel"]) {
+    state = runtime.dispatchGameTool(state, {
+      name: "move",
+      argumentsJson: JSON.stringify({ destinationId: destination }),
+    }).state;
+  }
+  const rolls = [10, 5];
+  state = runtime.dispatchGameTool(
+    state,
+    { name: "move", argumentsJson: '{"destinationId":"crypt"}' },
+    { roll: () => rolls.shift() },
+  ).state;
+
+  assert.deepEqual(runtime.projectDmScene(state).room.opponents, [
+    {
+      id: "skeleton-guardian",
+      name: "skeleton guardian",
+      condition: "living",
+    },
+  ]);
+  assert.deepEqual(runtime.projectDmScene(state).combat, {
+    opponentCombatantId: "skeleton-guardian",
+    currentTurn: "fighter",
+  });
+  const attackTool = runtime
+    .getGameToolDefinitions(state)
+    .find(({ name }) => name === "attack");
+  assert.deepEqual(attackTool.parameters, {
+    type: "object",
+    properties: {
+      combatantId: { type: "string", enum: ["skeleton-guardian"] },
+    },
+    required: ["combatantId"],
+    additionalProperties: false,
+  });
+  const forged = runtime.dispatchGameTool(state, {
+    name: "attack",
+    argumentsJson: '{"combatantId":"skeleton"}',
+  });
+  assert.equal(forged.modelOutput.ok, false);
+  assert.equal(forged.modelOutput.error.code, "unavailable-reference");
+  assert.equal(forged.state, state);
+
+  const attackRolls = [15, 5, 1];
+  const attacked = runtime.dispatchGameTool(
+    state,
+    {
+      name: "attack",
+      argumentsJson: '{"combatantId":"skeleton-guardian"}',
+    },
+    { roll: () => attackRolls.shift() },
+  );
+  assert.equal(attacked.modelOutput.ok, true);
+  assert.equal(attacked.state.opponents["skeleton-guardian"].hp, 5);
+});
+
+test("chapel presentation names combatants, mechanics, turns, and terminal defeat", () => {
+  const runtime = resolveAdventure("chapel");
+  let state = runtime.createSession();
+  for (const destination of ["chapel path", "ruined chapel"]) {
+    state = runtime.handleAction(state, { type: "move", destination }).state;
+  }
+  const initiativeRolls = [10, 5];
+  const entered = runtime.handleAction(
+    state,
+    { type: "move", destination: "crypt" },
+    { roll: () => initiativeRolls.shift() },
+  );
+  const entranceText = runtime.renderResult(entered);
+  assert.match(entranceText, /Combat begins against the skeleton guardian/);
+  assert.match(entranceText, /Fighter.*d20 roll 10.*modifier 1.*11/);
+  assert.match(entranceText, /skeleton guardian.*d20 roll 5.*modifier 2.*7/i);
+  assert.match(entranceText, /Turn: Fighter/);
+  const inspected = runtime.renderResult(
+    runtime.handleAction(entered.state, {
+      type: "inspect",
+      target: "skeleton guardian",
+    }),
+  );
+  assert.match(inspected, /skeleton guardian/i);
+  assert.match(inspected, /Condition: living/i);
+
+  const attackRolls = [15, 5, 1];
+  const attacked = runtime.handleAction(
+    entered.state,
+    { type: "attack", target: "skeleton" },
+    { roll: () => attackRolls.shift() },
+  );
+  const attackText = runtime.renderResult(attacked);
+  assert.match(attackText, /Fighter attacks skeleton guardian with longsword/i);
+  assert.match(attackText, /d20 15.*modifier 5.*20 vs AC 13.*hit/i);
+  assert.match(attackText, /Damage: 8/);
+  assert.match(attackText, /Remaining HP: skeleton guardian 5\/13/i);
+  assert.match(attackText, /Turn: skeleton guardian/i);
+  assert.match(attackText, /skeleton guardian attacks Fighter/i);
+  assert.match(attackText, /Turn: Fighter/);
+
+  const vulnerable = {
+    ...entered.state,
+    fighter: { ...entered.state.fighter, hp: 3 },
+  };
+  const lethalRolls = [1, 15, 6];
+  const defeated = runtime.handleAction(
+    vulnerable,
+    { type: "attack", target: "skeleton" },
+    { roll: () => lethalRolls.shift() },
+  );
+  const defeatText = runtime.renderResult(defeated);
+  assert.match(defeatText, /skeleton guardian defeats you/i);
+  assert.match(defeatText, /0\/20/);
+  assert.match(defeatText, /final state/i);
+});
 
 test("searching authored evidence records one attributed discovery and milestone", () => {
   const runtime = resolveAdventure("chapel");
@@ -616,7 +946,7 @@ test("pre-discovery chapel format-3 traces remain replayable", () => {
   }
 });
 
-test("chapel command exploration keeps the missing-person quest active at the crypt boundary", () => {
+test("chapel command exploration keeps the missing-person quest active in guardian combat", () => {
   const runtime = resolveAdventure("chapel");
   let state = runtime.createSession();
   assert.equal(state.locationId, "inn");
@@ -633,24 +963,19 @@ test("chapel command exploration keeps the missing-person quest active at the cr
     "ruined chapel",
     "crypt",
   ]) {
+    const initiativeRolls = [10, 5];
     const result = runtime.handleAction(
       state,
       runtime.parseCommand(`move ${destination}`),
+      { roll: () => initiativeRolls.shift() },
     );
     assert.equal(result.rejection, undefined);
     state = result.state;
   }
   assert.equal(state.locationId, "crypt");
-  assert.match(
-    runtime.renderResult(runtime.handleAction(state, { type: "look" })),
-    /not yet playable/i,
-  );
-  for (const command of [
-    "take ledger",
-    "rescue Tavi",
-    "leave",
-    "attack skeleton",
-  ]) {
+  assert.equal(state.combat.opponentCombatantId, "skeleton-guardian");
+  assert.equal(state.quest.status, "active");
+  for (const command of ["take ledger", "rescue Tavi", "leave"]) {
     const result = runtime.handleAction(state, runtime.parseCommand(command));
     assert.ok(result.rejection);
     assert.deepEqual(result.state, state);
@@ -664,6 +989,7 @@ test("chapel AI receives only public content and its own versioned prompt", asyn
   const runtime = resolveAdventure("chapel");
   let state = runtime.createSession();
   const requests = [];
+  const combatRolls = [10, 5];
   for (const destinationId of [
     "ferry-landing",
     "inn",
@@ -677,9 +1003,7 @@ test("chapel AI receives only public content and its own versioned prompt", asyn
       playerInput: `Go to ${destinationId}`,
       transcript: [],
       random: {
-        roll() {
-          assert.fail("Navigation must not roll");
-        },
+        roll: () => combatRolls.shift(),
       },
       model: {
         async respond(request) {
@@ -714,12 +1038,13 @@ test("chapel AI receives only public content and its own versioned prompt", asyn
     }
   }
   assert.equal(state.locationId, "crypt");
-  assert.equal(requests[0].promptVersion, "chapel-social-dm-v4");
+  assert.equal(requests[0].promptVersion, "chapel-guardian-dm-v5");
   assert.match(requests[0].systemPrompt, /Bell Beneath the Chapel/);
   assert.doesNotMatch(
     JSON.stringify(requests),
     /signet|ledger|medicine|diverted|trapped|restitution/i,
   );
+  assert.match(JSON.stringify(requests.at(-1).scene), /skeleton-guardian/);
   const publicRead = runtime.dispatchGameTool(runtime.createSession(), {
     name: "inspect",
     argumentsJson: '{"target":"missing-person-notice"}',
@@ -758,9 +1083,9 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     assert.equal(exported.formatVersion, 3);
     assert.deepEqual(exported.adventure, {
       id: "chapel",
-      version: "chapel-social-v4",
+      version: "chapel-guardian-v5",
     });
-    assert.equal(exported.rulesVersion, "chapel-social-rules-v4");
+    assert.equal(exported.rulesVersion, "chapel-guardian-rules-v5");
     assert.equal(exported.random.algorithm, "mulberry32-v1");
     assert.ok(
       exported.actions.every(
@@ -854,8 +1179,8 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     const dmExport = JSON.parse(readFileSync(dmTrace, "utf8"));
     assert.equal(dmExport.formatVersion, 3);
     assert.deepEqual(dmExport.dm, {
-      promptVersion: "chapel-social-dm-v4",
-      toolSchemaVersion: "chapel-social-tools-v4",
+      promptVersion: "chapel-guardian-dm-v5",
+      toolSchemaVersion: "chapel-guardian-tools-v5",
       provider: "scripted",
       model: "scripted-dm-v1",
     });
@@ -868,6 +1193,154 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
       },
     );
     assert.equal(dmReplay.status, 0, dmReplay.stderr);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("seeded chapel CLI guardian clear, defeat, revisit, replay, and tampering paths are deterministic", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "chapel-combat-trace-"));
+  try {
+    const victoryTrace = path.join(directory, "guardian-clear.json");
+    const victory = spawnSync(
+      process.execPath,
+      [
+        "dist/cli.js",
+        "--adventure",
+        "chapel",
+        "--seed",
+        "0",
+        "--trace",
+        victoryTrace,
+      ],
+      {
+        encoding: "utf8",
+        input:
+          "move chapel-path\nmove ruined-chapel\nmove crypt\nattack skeleton\nattack skeleton\nattack skeleton\nmove ruined-chapel\nmove crypt\nlook\nquit\n",
+      },
+    );
+    assert.equal(victory.status, 0, victory.stderr);
+    assert.match(victory.stdout, /skeleton guardian is defeated/i);
+    assert.match(victory.stdout, /guardian cleared/i);
+    assert.match(victory.stdout, /Defeated opponents: skeleton guardian/i);
+    assert.equal(
+      victory.stdout.match(/Combat begins against the skeleton guardian/g)
+        ?.length,
+      1,
+    );
+
+    const victoryReplay = spawnSync(
+      process.execPath,
+      ["dist/cli.js", "--replay", victoryTrace],
+      { encoding: "utf8" },
+    );
+    assert.equal(victoryReplay.status, 0, victoryReplay.stderr);
+
+    const exported = JSON.parse(readFileSync(victoryTrace, "utf8"));
+    const combatAction = exported.actions.find(
+      ({ action }) => action.type === "attack",
+    );
+    combatAction.stateAfter.opponents["skeleton-guardian"].hp = 99;
+    const tamperedPath = path.join(directory, "tampered-combat.json");
+    writeFileSync(tamperedPath, JSON.stringify(exported));
+    const tampered = spawnSync(
+      process.execPath,
+      ["dist/cli.js", "--replay", tamperedPath],
+      { encoding: "utf8" },
+    );
+    assert.notEqual(tampered.status, 0);
+    assert.match(tampered.stderr, /replay divergence/i);
+
+    const defeatTrace = path.join(directory, "defeat.json");
+    const defeat = spawnSync(
+      process.execPath,
+      [
+        "dist/cli.js",
+        "--adventure",
+        "chapel",
+        "--seed",
+        "74",
+        "--trace",
+        defeatTrace,
+      ],
+      {
+        encoding: "utf8",
+        input:
+          "move chapel-path\nmove ruined-chapel\nmove crypt\nattack skeleton\nattack skeleton\nattack skeleton\nstatus\nquit\n",
+      },
+    );
+    assert.equal(defeat.status, 0, defeat.stderr);
+    assert.match(defeat.stdout, /skeleton guardian defeats you/i);
+    assert.match(defeat.stdout, /Session: defeat/i);
+    assert.match(defeat.stdout, /can't change the final state/i);
+    const defeatReplay = spawnSync(
+      process.execPath,
+      ["dist/cli.js", "--replay", defeatTrace],
+      { encoding: "utf8" },
+    );
+    assert.equal(defeatReplay.status, 0, defeatReplay.stderr);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("chapel social-v4 traces retain their pre-guardian crypt semantics", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "chapel-social-v4-"));
+  try {
+    const tracePath = path.join(directory, "social-v4.json");
+    const runtime = resolveHistoricalAdventure(
+      "chapel-social-rules-v4",
+      "chapel-social-v4",
+      "chapel",
+    );
+    let state = runtime.createSession();
+    const initialState = state;
+    const actions = [];
+    for (const rawInput of [
+      "move chapel-path",
+      "move ruined-chapel",
+      "move crypt",
+      "quit",
+    ]) {
+      const action = runtime.parseCommand(rawInput);
+      const result = runtime.handleAction(state, action, {
+        roll() {
+          assert.fail("The historical social-v4 crypt did not roll");
+        },
+      });
+      state = result.state;
+      actions.push({
+        sequence: actions.length + 1,
+        rawInput,
+        action,
+        rolls: [],
+        result:
+          result.rejection === undefined
+            ? { type: "accepted", events: result.events }
+            : { type: "rejected", rejection: result.rejection },
+        stateAfter: state,
+      });
+    }
+    assert.ok(!("opponents" in initialState));
+    assert.ok(!("combat" in actions[2].stateAfter));
+    writeFileSync(
+      tracePath,
+      JSON.stringify({
+        formatVersion: 3,
+        rulesVersion: "chapel-social-rules-v4",
+        adventure: { id: "chapel", version: "chapel-social-v4" },
+        random: { algorithm: "mulberry32-v1", initialSeed: 0 },
+        initialState,
+        actions,
+        completion: { reason: "quit", outcome: "incomplete" },
+      }),
+    );
+    const replay = spawnSync(
+      process.execPath,
+      ["dist/cli.js", "--replay", tracePath],
+      { encoding: "utf8" },
+    );
+    assert.equal(replay.status, 0, replay.stderr);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
