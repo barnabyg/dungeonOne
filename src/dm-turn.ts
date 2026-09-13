@@ -5,12 +5,14 @@ import {
   type projectDmScene,
   type GameToolCall,
   type GameToolDefinition,
-  type GameToolDispatchResult,
   type GameToolName,
 } from "./game-tools.js";
 import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
 import type { RandomSource } from "./random.js";
-import type { SessionState } from "./session.js";
+import type {
+  RuntimeState as SessionState,
+  RuntimeToolResult as GameToolDispatchResult,
+} from "./runtime-contract.js";
 
 export const DM_PROMPT_VERSION = "stolen-signet-dm-v3";
 export const DM_SUPPORTED_PROMPT_VERSIONS = Object.freeze([
@@ -53,7 +55,7 @@ export type DmModelResponse =
     }>;
 
 export type DmModelRequest = Readonly<{
-  promptVersion: typeof DM_PROMPT_VERSION;
+  promptVersion: string;
   systemPrompt: string;
   playerInput: string;
   transcript: readonly DmTranscriptEntry[];
@@ -353,8 +355,8 @@ export async function runDmTurn(
     let response: unknown;
     try {
       response = await input.model.respond({
-        promptVersion: DM_PROMPT_VERSION,
-        systemPrompt: DM_SYSTEM_PROMPT,
+        promptVersion: runtime.promptVersion,
+        systemPrompt: runtime.systemPrompt ?? DM_SYSTEM_PROMPT,
         playerInput,
         transcript,
         scene: runtime.projectDmScene(state),

@@ -8,6 +8,7 @@ import {
   type RoomId,
 } from "./adventure.js";
 import type { CombatantId } from "./combat.js";
+import type { ChapelFeatureId, ChapelRoomId } from "./chapel.js";
 import type { RandomSource } from "./random.js";
 import {
   handleGameAction,
@@ -25,11 +26,11 @@ export type DmScene = Readonly<{
   objective: string;
   outcome: SessionState["status"];
   room: Readonly<{
-    id: RoomId;
+    id: RoomId | ChapelRoomId;
     name: string;
     description: string;
     features: readonly Readonly<{
-      id: FeatureId;
+      id: FeatureId | ChapelFeatureId;
       name: string;
       description: string;
     }>[];
@@ -38,7 +39,7 @@ export type DmScene = Readonly<{
       name: string;
       description: string;
       placement: Readonly<{
-        featureId: FeatureId;
+        featureId: FeatureId | ChapelFeatureId;
         description: string;
       }>;
     }>[];
@@ -48,7 +49,7 @@ export type DmScene = Readonly<{
       condition: "living" | "defeated";
     }>[];
     exits: readonly Readonly<{
-      destinationId: RoomId;
+      destinationId: RoomId | ChapelRoomId;
       name: string;
       doorway?: Readonly<{
         doorId: DoorId;
@@ -100,7 +101,7 @@ export type GameToolCall = Readonly<{
 export type DmInspection = Readonly<
   | {
       type: "feature";
-      id: FeatureId;
+      id: FeatureId | ChapelFeatureId;
       name: string;
       description: string;
     }
@@ -126,7 +127,7 @@ export type DmInspection = Readonly<
     }
   | {
       type: "named_exit";
-      destinationId: RoomId;
+      destinationId: RoomId | ChapelRoomId;
       name: string;
       doorway?: Readonly<{
         doorId: DoorId;

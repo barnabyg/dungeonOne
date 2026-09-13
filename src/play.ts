@@ -1,6 +1,6 @@
 import { runDmTurn, type DmModel, type DmTranscriptEntry } from "./dm-turn.js";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
-import type { ActionResult } from "./session.js";
+import type { RuntimeResult as ActionResult } from "./runtime-contract.js";
 import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
 import {
   completeSessionTrace,

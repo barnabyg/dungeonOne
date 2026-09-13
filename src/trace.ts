@@ -1,36 +1,30 @@
 import { writeFile } from "node:fs/promises";
 
-import {
-  resolveAdventure,
-  ADVENTURE_VERSION,
-  RULES_VERSION,
-  type AdventureRuntime,
-} from "./runtime.js";
+import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
 export {
   ADVENTURE_VERSION,
   RULES_VERSION,
   LEGACY_ADVENTURE_VERSION,
   LEGACY_RULES_VERSION,
 } from "./runtime.js";
-import { ADVENTURE } from "./adventure.js";
+
 import {
-  DM_PROMPT_VERSION,
   type DmDiagnostic,
   type DmModel,
   type DmTurnResult,
 } from "./dm-turn.js";
-import { GAME_TOOL_SCHEMA_VERSION } from "./game-tools.js";
 import { RANDOM_ALGORITHM } from "./random.js";
-import type {
-  Action,
-  ActionResult,
-  Event,
-  Rejection,
-  SessionState,
-} from "./session.js";
+import type { Action } from "./session.js";
 
+import type {
+  RuntimeState as SessionState,
+  RuntimeResult as ActionResult,
+  RuntimeEvent as Event,
+  RuntimeRejection as Rejection,
+} from "./runtime-contract.js";
 export const TRACE_FORMAT_VERSION = 1;
 export const DM_TRACE_FORMAT_VERSION = 2;
+export const CHAPEL_TRACE_FORMAT_VERSION = 3;
 
 export type RollRecord = Readonly<{ sides: number; value: number }>;
 
@@ -98,11 +92,12 @@ type LocalTraceTurn = Readonly<{
 }>;
 
 export type SessionTrace = {
-  readonly formatVersion: typeof TRACE_FORMAT_VERSION;
-  readonly rulesVersion: typeof RULES_VERSION;
+  readonly formatVersion:
+    typeof TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION;
+  readonly rulesVersion: string;
   readonly adventure: Readonly<{
-    id: typeof ADVENTURE.id;
-    version: typeof ADVENTURE_VERSION;
+    id: string;
+    version: string;
   }>;
   readonly random: Readonly<{
     algorithm: typeof RANDOM_ALGORITHM;
@@ -114,19 +109,20 @@ export type SessionTrace = {
 };
 
 export type DmSessionTrace = {
-  readonly formatVersion: typeof DM_TRACE_FORMAT_VERSION;
-  readonly rulesVersion: typeof RULES_VERSION;
+  readonly formatVersion:
+    typeof DM_TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION;
+  readonly rulesVersion: string;
   readonly adventure: Readonly<{
-    id: typeof ADVENTURE.id;
-    version: typeof ADVENTURE_VERSION;
+    id: string;
+    version: string;
   }>;
   readonly random: Readonly<{
     algorithm: typeof RANDOM_ALGORITHM;
     initialSeed: number;
   }>;
   readonly dm: Readonly<{
-    promptVersion: typeof DM_PROMPT_VERSION;
-    toolSchemaVersion: typeof GAME_TOOL_SCHEMA_VERSION;
+    promptVersion: string;
+    toolSchemaVersion: string;
     provider: string;
     model: string;
   }>;
@@ -143,7 +139,7 @@ export function createSessionTrace(
   runtime: AdventureRuntime = resolveAdventure(),
 ): SessionTrace {
   return {
-    formatVersion: TRACE_FORMAT_VERSION,
+    formatVersion: runtime.commandTraceFormatVersion,
     rulesVersion: runtime.rulesVersion,
     adventure: { id: runtime.id, version: runtime.version },
     random: { algorithm: RANDOM_ALGORITHM, initialSeed },
@@ -159,13 +155,13 @@ export function createDmSessionTrace(
   runtime: AdventureRuntime = resolveAdventure(),
 ): DmSessionTrace {
   return {
-    formatVersion: DM_TRACE_FORMAT_VERSION,
+    formatVersion: runtime.dmTraceFormatVersion,
     rulesVersion: runtime.rulesVersion,
     adventure: { id: runtime.id, version: runtime.version },
     random: { algorithm: RANDOM_ALGORITHM, initialSeed },
     dm: {
-      promptVersion: DM_PROMPT_VERSION,
-      toolSchemaVersion: GAME_TOOL_SCHEMA_VERSION,
+      promptVersion: runtime.promptVersion,
+      toolSchemaVersion: runtime.toolSchemaVersion,
       provider: identity.provider,
       model: identity.model,
     },

@@ -1918,8 +1918,8 @@ test("built CLI rejects malformed, unsupported, and structurally invalid traces"
     const unsupportedCases = [
       {
         name: "format",
-        trace: { ...supportedHeader, formatVersion: 3 },
-        error: /unsupported trace format version 3/i,
+        trace: { ...supportedHeader, formatVersion: 4 },
+        error: /unsupported trace format version 4/i,
       },
       {
         name: "rules",

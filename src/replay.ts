@@ -16,9 +16,17 @@ import {
 } from "./dm-turn.js";
 import { GAME_TOOL_SCHEMA_VERSION } from "./game-tools.js";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
-import type { ActionResult } from "./session.js";
+import {
+  CHAPEL_ID,
+  CHAPEL_VERSION,
+  CHAPEL_RULES_VERSION,
+  CHAPEL_PROMPT_VERSION,
+  CHAPEL_TOOL_VERSION,
+} from "./chapel.js";
+import type { RuntimeResult as ActionResult } from "./runtime-contract.js";
 import {
   ADVENTURE_VERSION,
+  CHAPEL_TRACE_FORMAT_VERSION,
   DM_TRACE_FORMAT_VERSION,
   LEGACY_ADVENTURE_VERSION,
   LEGACY_RULES_VERSION,
@@ -40,7 +48,7 @@ type ReplayAction = Readonly<{
 
 type ReplayTrace = Readonly<{
   runtime: ReplayRuntime;
-  rulesVersion: typeof LEGACY_RULES_VERSION | typeof RULES_VERSION;
+  rulesVersion: string;
   initialSeed: number;
   initialState: JsonObject;
   actions: readonly ReplayAction[];
@@ -830,19 +838,42 @@ function validateDmDiagnostic(
   };
 }
 
-function validateDmTrace(value: unknown): ReplayDmTrace {
+function validateDmTrace(
+  value: unknown,
+  options: Readonly<{
+    formatVersion?: number;
+    adventureId?: string;
+    adventureVersion?: string;
+    rulesVersion?: string;
+    promptVersions?: readonly string[];
+    toolSchemaVersion?: string;
+    validateRuntimeState?: (value: unknown, path: string) => JsonObject;
+  }> = {},
+): ReplayDmTrace {
   const trace = requireObject(value, "Trace");
   requireSupported(
     trace.formatVersion,
-    DM_TRACE_FORMAT_VERSION,
+    options.formatVersion ?? DM_TRACE_FORMAT_VERSION,
     "trace format version",
   );
-  requireSupported(trace.rulesVersion, RULES_VERSION, "rules version");
+  requireSupported(
+    trace.rulesVersion,
+    options.rulesVersion ?? RULES_VERSION,
+    "rules version",
+  );
   const adventure = requireObject(trace.adventure, "adventure");
   if (adventure.id !== undefined) {
-    requireSupported(adventure.id, ADVENTURE.id, "adventure id");
+    requireSupported(
+      adventure.id,
+      options.adventureId ?? ADVENTURE.id,
+      "adventure id",
+    );
   }
-  requireSupported(adventure.version, ADVENTURE_VERSION, "adventure version");
+  requireSupported(
+    adventure.version,
+    options.adventureVersion ?? ADVENTURE_VERSION,
+    "adventure version",
+  );
   const random = requireObject(trace.random, "random");
   requireSupported(random.algorithm, RANDOM_ALGORITHM, "random algorithm");
   if (
@@ -854,7 +885,7 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
   }
   const dm = requireObject(trace.dm, "dm");
   if (
-    !DM_SUPPORTED_PROMPT_VERSIONS.some(
+    !(options.promptVersions ?? DM_SUPPORTED_PROMPT_VERSIONS).some(
       (version) => version === dm.promptVersion,
     )
   ) {
@@ -864,12 +895,13 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
   }
   requireSupported(
     dm.toolSchemaVersion,
-    GAME_TOOL_SCHEMA_VERSION,
+    options.toolSchemaVersion ?? GAME_TOOL_SCHEMA_VERSION,
     "tool schema version",
   );
   requireString(dm.provider, "dm.provider");
   requireString(dm.model, "dm.model");
-  const initialState = validateState(trace.initialState, "initialState");
+  const runtimeState = options.validateRuntimeState ?? validateState;
+  const initialState = runtimeState(trace.initialState, "initialState");
   const turns = requireArray(trace.turns, "turns").map(
     (value, turnIndex): ReplayDmTurn => {
       const path = `turns[${turnIndex}]`;
@@ -956,10 +988,7 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
             rolls,
             ...(result === undefined ? {} : { result }),
             ...(failure === undefined ? {} : { failure }),
-            stateAfter: validateState(
-              call.stateAfter,
-              `${callPath}.stateAfter`,
-            ),
+            stateAfter: runtimeState(call.stateAfter, `${callPath}.stateAfter`),
           };
         },
       );
@@ -994,7 +1023,7 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
         rawPlayerInput,
         calls,
         diagnostics,
-        stateAfter: validateState(turn.stateAfter, `${path}.stateAfter`),
+        stateAfter: runtimeState(turn.stateAfter, `${path}.stateAfter`),
       };
     },
   );
@@ -1002,6 +1031,9 @@ function validateDmTrace(value: unknown): ReplayDmTrace {
     runtime: resolveHistoricalAdventure(
       requireString(trace.rulesVersion, "rulesVersion"),
       requireString(adventure.version, "adventure.version"),
+      adventure.id === undefined
+        ? ADVENTURE.id
+        : requireString(adventure.id, "adventure.id"),
     ),
     initialSeed: Number(random.initialSeed),
     initialState,
@@ -1014,6 +1046,60 @@ function traceResult(result: ActionResult): JsonObject {
   return result.rejection === undefined
     ? { type: "accepted", events: result.events }
     : { type: "rejected", rejection: result.rejection };
+}
+
+function validateFormat3CommandTrace(value: unknown): ReplayTrace {
+  const trace = requireObject(value, "Trace");
+  requireSupported(
+    trace.formatVersion,
+    CHAPEL_TRACE_FORMAT_VERSION,
+    "trace format version",
+  );
+  requireSupported(trace.rulesVersion, CHAPEL_RULES_VERSION, "rules version");
+  const adventure = requireObject(trace.adventure, "adventure");
+  requireSupported(adventure.id, CHAPEL_ID, "adventure id");
+  requireSupported(adventure.version, CHAPEL_VERSION, "adventure version");
+  const random = requireObject(trace.random, "random");
+  requireSupported(random.algorithm, RANDOM_ALGORITHM, "random algorithm");
+  if (
+    !Number.isInteger(random.initialSeed) ||
+    Number(random.initialSeed) < 0 ||
+    Number(random.initialSeed) > 0xffff_ffff
+  ) {
+    throw new Error("random.initialSeed must be an unsigned 32-bit integer.");
+  }
+  const actions = requireArray(trace.actions, "actions").map(
+    (value, index): ReplayAction => {
+      const path = `actions[${index}]`;
+      const entry = requireObject(value, path);
+      if (entry.sequence !== index + 1) {
+        throw new Error(`${path}.sequence must be ${index + 1}.`);
+      }
+      return {
+        sequence: index + 1,
+        rawInput: requireString(entry.rawInput, `${path}.rawInput`),
+        action: requireObject(entry.action, `${path}.action`),
+        rolls: requireArray(entry.rolls, `${path}.rolls`).map(
+          (roll, rollIndex) =>
+            validateRoll(roll, `${path}.rolls[${rollIndex}]`),
+        ),
+        result: requireObject(entry.result, `${path}.result`),
+        stateAfter: requireObject(entry.stateAfter, `${path}.stateAfter`),
+      };
+    },
+  );
+  return {
+    runtime: resolveHistoricalAdventure(
+      CHAPEL_RULES_VERSION,
+      CHAPEL_VERSION,
+      CHAPEL_ID,
+    ),
+    rulesVersion: CHAPEL_RULES_VERSION,
+    initialSeed: Number(random.initialSeed),
+    initialState: requireObject(trace.initialState, "initialState"),
+    actions,
+    completion: validateCompletion(trace.completion),
+  };
 }
 
 function formatDiagnosticJson(value: unknown): string {
@@ -1032,38 +1118,7 @@ function requireMatch(
   }
 }
 
-export async function verifyTraceFile(path: string): Promise<void> {
-  let contents: string;
-  try {
-    contents = await readFile(path, "utf8");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Unable to read trace "${path}": ${message}`, {
-      cause: error,
-    });
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(contents) as unknown;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Trace contains invalid JSON: ${message}`, {
-      cause: error,
-    });
-  }
-  const envelope = requireObject(parsed, "Trace");
-  if (envelope.formatVersion === DM_TRACE_FORMAT_VERSION) {
-    replayDmTrace(validateDmTrace(parsed));
-    return;
-  }
-  if (envelope.formatVersion !== TRACE_FORMAT_VERSION) {
-    throw new Error(
-      `Unsupported trace format version ${JSON.stringify(envelope.formatVersion)}.`,
-    );
-  }
-  const trace = validateFormat1Trace(parsed);
-
+function replayCommandTrace(trace: ReplayTrace): void {
   let state = trace.runtime.createSession();
   requireMatch("initial state", trace.initialState, state);
   const random = createSeededRandom(trace.initialSeed);
@@ -1077,7 +1132,6 @@ export async function verifyTraceFile(path: string): Promise<void> {
       expected.action,
       action,
     );
-
     const rolls: RollRecord[] = [];
     const result = trace.runtime.handleAction(state, action, {
       roll(sides: number): number {
@@ -1111,12 +1165,67 @@ export async function verifyTraceFile(path: string): Promise<void> {
       }
     }
   }
-
   const outcome =
     state.status === "victory" || state.status === "defeat"
       ? state.status
       : "incomplete";
   requireMatch("completion", trace.completion, { reason, outcome });
+}
+
+export async function verifyTraceFile(path: string): Promise<void> {
+  let contents: string;
+  try {
+    contents = await readFile(path, "utf8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Unable to read trace "${path}": ${message}`, {
+      cause: error,
+    });
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(contents) as unknown;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Trace contains invalid JSON: ${message}`, {
+      cause: error,
+    });
+  }
+  const envelope = requireObject(parsed, "Trace");
+  if (envelope.formatVersion === DM_TRACE_FORMAT_VERSION) {
+    replayDmTrace(validateDmTrace(parsed));
+    return;
+  }
+  if (envelope.formatVersion === CHAPEL_TRACE_FORMAT_VERSION) {
+    if (envelope.actions !== undefined && envelope.turns === undefined) {
+      replayCommandTrace(validateFormat3CommandTrace(parsed));
+      return;
+    }
+    if (envelope.turns !== undefined && envelope.actions === undefined) {
+      replayDmTrace(
+        validateDmTrace(parsed, {
+          formatVersion: CHAPEL_TRACE_FORMAT_VERSION,
+          adventureId: CHAPEL_ID,
+          adventureVersion: CHAPEL_VERSION,
+          rulesVersion: CHAPEL_RULES_VERSION,
+          promptVersions: [CHAPEL_PROMPT_VERSION],
+          toolSchemaVersion: CHAPEL_TOOL_VERSION,
+          validateRuntimeState: requireObject,
+        }),
+      );
+      return;
+    }
+    throw new Error(
+      "Trace format 3 must contain exactly one of actions or turns.",
+    );
+  }
+  if (envelope.formatVersion !== TRACE_FORMAT_VERSION) {
+    throw new Error(
+      `Unsupported trace format version ${JSON.stringify(envelope.formatVersion)}.`,
+    );
+  }
+  replayCommandTrace(validateFormat1Trace(parsed));
 }
 
 const REPLAY_READ_TOOL_NAMES = new Set<string>(DM_READ_TOOL_NAMES);

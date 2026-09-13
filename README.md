@@ -19,13 +19,25 @@ npm.cmd run build
 npm.cmd start -- --seed 0
 ```
 
-Select the built-in adventure explicitly with `--adventure stolen-signet` (or
-`--adventure=stolen-signet`) in command or AI mode. Omitting the selector keeps
+Select a built-in adventure with `--adventure stolen-signet` or `--adventure chapel`
+(the `--adventure=<id>` form also works) in command or AI mode. Omitting the selector keeps
 The Stolen Signet as the default. Unknown or duplicate selectors fail at startup,
 and `--replay` cannot be combined with adventure, seed, trace, or AI options.
 Replay selects the original runtime from the export's supported version tuple,
 including historical exports whose adventure object lacks an ID. Unknown version
 combinations fail instead of falling back to the current default.
+
+The chapel exploration slice starts the active **Find Tavi** quest and lets you
+inspect the public notice and travel through the inn, ferry landing, chapel path,
+ruined chapel, and crypt entrance. The crypt clearly marks the current boundary:
+conversation, discoveries, the guardian fight, rescue, and resolution arrive in
+later increment-3 tickets. A copyable offline journey is:
+
+```powershell
+@("inspect missing-person notice", "move chapel-path", "move ruined-chapel", "move crypt", "quit") |
+  npm.cmd start -- --adventure chapel --seed 4 --trace .\chapel-trace.json
+npm.cmd start -- --replay .\chapel-trace.json
+```
 
 For opt-in live AI play, set `OPENAI_API_KEY` in the environment. `--ai` uses
 the configured default model `gpt-5.6-luna`:
@@ -96,6 +108,14 @@ save file and cannot be resumed. A write or serialization error is printed to
 standard error, exits nonzero, and does not change the game outcome.
 
 ## Session trace formats
+
+Chapel command and scripted-AI sessions export trace format `3`. It carries the
+same authoritative action/call, event or rejection, draw, result, and resulting
+state evidence as formats 1 and 2, with explicit chapel content/rules versions.
+AI traces also record the chapel prompt/tool versions and normalized provider
+identity. Format-3 replay selects the chapel runtime from that exact version tuple,
+runs without a model, compares every result and state, and rejects unknown versions
+or tampering. Trace state is diagnostic and may contain spoilers; it is not a save.
 
 Command mode exports trace format `1`. It is JSON and a compatibility contract. It records
 the rules and built-in adventure versions, random algorithm and initial seed,

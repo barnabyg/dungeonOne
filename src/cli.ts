@@ -27,8 +27,8 @@ type StartupOptions = Readonly<
   | { mode: "help" }
 >;
 const USAGE = [
-  "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet]",
-  "       dungeon-one --ai [--model <model-id>] [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet]",
+  "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
+  "       dungeon-one --ai [--model <model-id>] [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
   "       dungeon-one --replay <path>",
   "       dungeon-one --help",
   `Default AI model: ${OPENAI_DM_DEFAULT_MODEL}`,
