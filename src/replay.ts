@@ -85,6 +85,7 @@ type ReplayDmTurn = Readonly<{
   calls: readonly ReplayDmCall[];
   diagnostics: readonly ReplayDmDiagnostic[];
   stateAfter: JsonObject;
+  result?: JsonObject;
 }>;
 
 type ReplayDmTrace = Readonly<{
@@ -921,6 +922,17 @@ function validateDmTrace(
         turn.rawPlayerInput,
         `${path}.rawPlayerInput`,
       );
+      const localResult =
+        turn.result === undefined
+          ? undefined
+          : requireObject(turn.result, `${path}.result`);
+      if ((kind === "local-journal") !== (localResult !== undefined)) {
+        throw new Error(
+          kind === "local-journal"
+            ? `${path}.result is required for local-journal.`
+            : `${path}.result is not allowed for ${kind}.`,
+        );
+      }
       const calls = requireArray(turn.calls, `${path}.calls`).map(
         (callValue, callIndex): ReplayDmCall => {
           const callPath = `${path}.calls[${callIndex}]`;
@@ -1027,6 +1039,7 @@ function validateDmTrace(
         calls,
         diagnostics,
         stateAfter: runtimeState(turn.stateAfter, `${path}.stateAfter`),
+        ...(localResult === undefined ? {} : { result: localResult }),
       };
     },
   );
@@ -1379,6 +1392,11 @@ function replayDmTrace(trace: ReplayDmTrace): void {
           `Replay divergence at turn ${turnNumber} local-journal action.`,
         );
       }
+      requireMatch(
+        `turn ${turnNumber} local-journal result`,
+        turn.result,
+        traceResult(journal),
+      );
       requireMatch(`turn ${turnNumber} state`, turn.stateAfter, journal.state);
       state = journal.state;
       continue;

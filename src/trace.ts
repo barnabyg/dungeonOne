@@ -81,15 +81,19 @@ type DmTraceTurn = Readonly<{
   stateAfter: SessionState;
 }>;
 
-type LocalTraceTurn = Readonly<{
-  sequence: number;
-  kind: "local-help" | "local-journal" | "local-quit";
-  rawPlayerInput: string;
-  calls: readonly [];
-  narration: null;
-  diagnostics: readonly [];
-  stateAfter: SessionState;
-}>;
+type LocalTraceTurn = Readonly<
+  {
+    sequence: number;
+    rawPlayerInput: string;
+    calls: readonly [];
+    narration: null;
+    diagnostics: readonly [];
+    stateAfter: SessionState;
+  } & (
+    | { kind: "local-help" | "local-quit"; result?: never }
+    | { kind: "local-journal"; result: TraceResult }
+  )
+>;
 
 export type SessionTrace = {
   readonly formatVersion:
@@ -231,8 +235,12 @@ export function recordLocalTraceTurn(
   kind: LocalTraceTurn["kind"],
   rawPlayerInput: string,
   stateAfter: SessionState,
+  result?: ActionResult,
 ): void {
-  trace.turns.push({
+  if ((kind === "local-journal") !== (result !== undefined)) {
+    throw new Error("A local journal trace requires exactly one read result.");
+  }
+  const turn = {
     sequence: trace.turns.length + 1,
     kind,
     rawPlayerInput,
@@ -240,7 +248,15 @@ export function recordLocalTraceTurn(
     narration: null,
     diagnostics: [],
     stateAfter,
-  });
+    ...(result === undefined ? {} : { result: encodeActionResult(result) }),
+  } as LocalTraceTurn;
+  trace.turns.push(turn);
+}
+
+function encodeActionResult(result: ActionResult): TraceResult {
+  return result.rejection === undefined
+    ? { type: "accepted", events: result.events }
+    : { type: "rejected", rejection: result.rejection };
 }
 
 export function recordTraceAction(
@@ -255,10 +271,7 @@ export function recordTraceAction(
     rawInput,
     action,
     rolls: [...rolls],
-    result:
-      result.rejection === undefined
-        ? { type: "accepted", events: result.events }
-        : { type: "rejected", rejection: result.rejection },
+    result: encodeActionResult(result),
     stateAfter: result.state,
   });
 }

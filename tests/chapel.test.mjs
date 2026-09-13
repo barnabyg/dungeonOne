@@ -420,6 +420,11 @@ test("exact AI-mode journal is provider-free, traced, and replay-validated", () 
     );
     assert.deepEqual(exported.turns[1].calls[0].result.engineResult.events, []);
     assert.equal(exported.turns[1].stateAfter.discoveries.length, 1);
+    assert.equal(exported.turns[2].result.type, "accepted");
+    assert.equal(
+      exported.turns[2].result.events[0].journal.discoveries[0].id,
+      "chapel-route",
+    );
 
     const replayed = spawnSync(
       process.execPath,
@@ -430,6 +435,18 @@ test("exact AI-mode journal is provider-free, traced, and replay-validated", () 
       },
     );
     assert.equal(replayed.status, 0, replayed.stderr);
+
+    const resultTampered = structuredClone(exported);
+    resultTampered.turns[2].result.events[0].journal.discoveries = [];
+    const resultTamperedPath = path.join(directory, "tampered-result.json");
+    writeFileSync(resultTamperedPath, JSON.stringify(resultTampered));
+    const rejectedResult = spawnSync(
+      process.execPath,
+      ["dist/cli.js", "--replay", resultTamperedPath],
+      { encoding: "utf8" },
+    );
+    assert.notEqual(rejectedResult.status, 0);
+    assert.match(rejectedResult.stderr, /local-journal result/i);
 
     exported.turns[2].rawPlayerInput = "journals";
     const tamperedPath = path.join(directory, "tampered.json");

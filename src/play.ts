@@ -109,7 +109,7 @@ export async function playGame(
         state = journal.state;
         io.write(`${renderResult(journal)}\n`);
         if (dmTrace !== undefined) {
-          recordLocalTraceTurn(dmTrace, "local-journal", line, state);
+          recordLocalTraceTurn(dmTrace, "local-journal", line, state, journal);
         }
       } else if (localCommand === "quit") {
         const quit = handleAction(state, { type: "quit" }, random);
