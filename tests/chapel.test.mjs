@@ -514,6 +514,8 @@ test("pre-discovery chapel format-3 traces remain replayable", () => {
       fighter: { hp: 20, maxHp: 20, equipmentIds: ["longsword"] },
       quest: { id: "find-tavi", status: "active" },
     };
+    const pathState = { ...initialState, locationId: "chapel-path" };
+    const chapelState = { ...initialState, locationId: "ruined-chapel" };
     writeFileSync(
       tracePath,
       JSON.stringify({
@@ -525,6 +527,53 @@ test("pre-discovery chapel format-3 traces remain replayable", () => {
         actions: [
           {
             sequence: 1,
+            rawInput: "move chapel-path",
+            action: { type: "move", destination: "chapel-path" },
+            rolls: [],
+            result: {
+              type: "accepted",
+              events: [
+                {
+                  type: "chapel-moved",
+                  fromRoomId: "inn",
+                  roomId: "chapel-path",
+                },
+                { type: "chapel-scene", roomId: "chapel-path" },
+              ],
+            },
+            stateAfter: pathState,
+          },
+          {
+            sequence: 2,
+            rawInput: "move ruined-chapel",
+            action: { type: "move", destination: "ruined-chapel" },
+            rolls: [],
+            result: {
+              type: "accepted",
+              events: [
+                {
+                  type: "chapel-moved",
+                  fromRoomId: "chapel-path",
+                  roomId: "ruined-chapel",
+                },
+                { type: "chapel-scene", roomId: "ruined-chapel" },
+              ],
+            },
+            stateAfter: chapelState,
+          },
+          {
+            sequence: 3,
+            rawInput: "inspect damaged repair record",
+            action: { type: "inspect", target: "damaged repair record" },
+            rolls: [],
+            result: {
+              type: "rejected",
+              rejection: { reason: "chapel-unavailable" },
+            },
+            stateAfter: chapelState,
+          },
+          {
+            sequence: 4,
             rawInput: "quit",
             action: { type: "quit" },
             rolls: [],
@@ -532,7 +581,7 @@ test("pre-discovery chapel format-3 traces remain replayable", () => {
               type: "accepted",
               events: [{ type: "session-quit" }],
             },
-            stateAfter: { ...initialState, status: "quit" },
+            stateAfter: { ...chapelState, status: "quit" },
           },
         ],
         completion: { reason: "quit", outcome: "incomplete" },

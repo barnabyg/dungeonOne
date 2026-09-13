@@ -137,6 +137,13 @@ function handleLegacyChapelAction(
   if (action.type === "search" || action.type === "journal") {
     return { state, rejection: { reason: "chapel-unavailable" } };
   }
+  if (
+    action.type === "inspect" &&
+    action.target?.trim().toLowerCase().replace(/-/gu, " ") ===
+      "damaged repair record"
+  ) {
+    return { state, rejection: { reason: "chapel-unavailable" } };
+  }
   const result = handleChapelAction(upgradeLegacyChapelState(state), action);
   return result.rejection === undefined
     ? {
