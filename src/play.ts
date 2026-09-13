@@ -77,8 +77,11 @@ export async function playGame(
       options.dmModel.identity?.provider === "openai"
         ? "Live AI DM mode"
         : "Scripted DM mode";
+    const questionGuidance = runtime.readToolNames.includes("get_journal")
+      ? "the scene, your character's status, or your journal"
+      : "the scene or your character's status";
     io.write(
-      `${modeName}: describe one action or ask about the scene, your character's status, or your journal.\n`,
+      `${modeName}: describe one action or ask about ${questionGuidance}.\n`,
     );
   }
 
