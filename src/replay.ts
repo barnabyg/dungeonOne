@@ -20,6 +20,10 @@ import {
   CHAPEL_RULES_VERSION,
   CHAPEL_PROMPT_VERSION,
   CHAPEL_TOOL_VERSION,
+  GUARDIAN_CHAPEL_VERSION,
+  GUARDIAN_CHAPEL_RULES_VERSION,
+  GUARDIAN_CHAPEL_PROMPT_VERSION,
+  GUARDIAN_CHAPEL_TOOL_VERSION,
   SOCIAL_CHAPEL_VERSION,
   SOCIAL_CHAPEL_RULES_VERSION,
   SOCIAL_CHAPEL_PROMPT_VERSION,
@@ -38,6 +42,7 @@ import {
   LEGACY_CHAPEL_TOOL_VERSION,
 } from "./chapel.js";
 import type { RuntimeResult as ActionResult } from "./runtime-contract.js";
+import type { Action } from "./session.js";
 import {
   ADVENTURE_VERSION,
   CHAPEL_TRACE_FORMAT_VERSION,
@@ -92,7 +97,13 @@ type ReplayDmDiagnostic = Readonly<{
 
 type ReplayDmTurn = Readonly<{
   sequence: number;
-  kind: "dm" | "local-help" | "local-journal" | "local-quit";
+  kind:
+    | "dm"
+    | "local-help"
+    | "local-journal"
+    | "local-status"
+    | "local-inventory"
+    | "local-quit";
   rawPlayerInput: string;
   calls: readonly ReplayDmCall[];
   diagnostics: readonly ReplayDmDiagnostic[];
@@ -938,10 +949,15 @@ function validateDmTrace(
         turn.result === undefined
           ? undefined
           : requireObject(turn.result, `${path}.result`);
-      if ((kind === "local-journal") !== (localResult !== undefined)) {
+      const localRead = [
+        "local-journal",
+        "local-status",
+        "local-inventory",
+      ].includes(kind);
+      if (localRead !== (localResult !== undefined)) {
         throw new Error(
-          kind === "local-journal"
-            ? `${path}.result is required for local-journal.`
+          localRead
+            ? `${path}.result is required for ${kind}.`
             : `${path}.result is not allowed for ${kind}.`,
         );
       }
@@ -1090,6 +1106,9 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
   const rulesVersion = requireString(trace.rulesVersion, "rulesVersion");
   const current =
     version === CHAPEL_VERSION && rulesVersion === CHAPEL_RULES_VERSION;
+  const guardian =
+    version === GUARDIAN_CHAPEL_VERSION &&
+    rulesVersion === GUARDIAN_CHAPEL_RULES_VERSION;
   const social =
     version === SOCIAL_CHAPEL_VERSION &&
     rulesVersion === SOCIAL_CHAPEL_RULES_VERSION;
@@ -1102,9 +1121,10 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
   const legacy =
     version === LEGACY_CHAPEL_VERSION &&
     rulesVersion === LEGACY_CHAPEL_RULES_VERSION;
-  if (!current && !social && !dialogue && !discovery && !legacy) {
+  if (!current && !guardian && !social && !dialogue && !discovery && !legacy) {
     if (
       rulesVersion !== CHAPEL_RULES_VERSION &&
+      rulesVersion !== GUARDIAN_CHAPEL_RULES_VERSION &&
       rulesVersion !== SOCIAL_CHAPEL_RULES_VERSION &&
       rulesVersion !== DIALOGUE_CHAPEL_RULES_VERSION &&
       rulesVersion !== DISCOVERY_CHAPEL_RULES_VERSION &&
@@ -1116,6 +1136,7 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     }
     if (
       version !== CHAPEL_VERSION &&
+      version !== GUARDIAN_CHAPEL_VERSION &&
       version !== SOCIAL_CHAPEL_VERSION &&
       version !== DIALOGUE_CHAPEL_VERSION &&
       version !== DISCOVERY_CHAPEL_VERSION &&
@@ -1135,24 +1156,36 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     rulesVersion,
     promptVersion: current
       ? CHAPEL_PROMPT_VERSION
-      : social
-        ? SOCIAL_CHAPEL_PROMPT_VERSION
-        : dialogue
-          ? DIALOGUE_CHAPEL_PROMPT_VERSION
-          : discovery
-            ? DISCOVERY_CHAPEL_PROMPT_VERSION
-            : LEGACY_CHAPEL_PROMPT_VERSION,
+      : guardian
+        ? GUARDIAN_CHAPEL_PROMPT_VERSION
+        : social
+          ? SOCIAL_CHAPEL_PROMPT_VERSION
+          : dialogue
+            ? DIALOGUE_CHAPEL_PROMPT_VERSION
+            : discovery
+              ? DISCOVERY_CHAPEL_PROMPT_VERSION
+              : LEGACY_CHAPEL_PROMPT_VERSION,
     toolVersion: current
       ? CHAPEL_TOOL_VERSION
-      : social
-        ? SOCIAL_CHAPEL_TOOL_VERSION
-        : dialogue
-          ? DIALOGUE_CHAPEL_TOOL_VERSION
-          : discovery
-            ? DISCOVERY_CHAPEL_TOOL_VERSION
-            : LEGACY_CHAPEL_TOOL_VERSION,
-    localKinds:
-      current || social || dialogue || discovery
+      : guardian
+        ? GUARDIAN_CHAPEL_TOOL_VERSION
+        : social
+          ? SOCIAL_CHAPEL_TOOL_VERSION
+          : dialogue
+            ? DIALOGUE_CHAPEL_TOOL_VERSION
+            : discovery
+              ? DISCOVERY_CHAPEL_TOOL_VERSION
+              : LEGACY_CHAPEL_TOOL_VERSION,
+    localKinds: current
+      ? [
+          "dm",
+          "local-help",
+          "local-journal",
+          "local-status",
+          "local-inventory",
+          "local-quit",
+        ]
+      : guardian || social || dialogue || discovery
         ? ["dm", "local-help", "local-journal", "local-quit"]
         : ["dm", "local-help", "local-quit"],
   };
@@ -1426,25 +1459,32 @@ function replayDmTrace(trace: ReplayDmTrace): void {
       requireMatch(`turn ${turnNumber} state`, turn.stateAfter, state);
       continue;
     }
-    if (turn.kind === "local-journal") {
+    if (
+      turn.kind === "local-journal" ||
+      turn.kind === "local-status" ||
+      turn.kind === "local-inventory"
+    ) {
+      const command = turn.kind.slice("local-".length);
       requireMatch(
-        `turn ${turnNumber} local-journal input`,
+        `turn ${turnNumber} ${turn.kind} input`,
         turn.rawPlayerInput.trim().toLowerCase(),
-        "journal",
+        command,
       );
-      const journal = trace.runtime.handleAction(state, { type: "journal" });
-      if (journal.rejection !== undefined) {
+      const read = trace.runtime.handleAction(state, {
+        type: command,
+      } as Action);
+      if (read.rejection !== undefined) {
         throw new Error(
-          `Replay divergence at turn ${turnNumber} local-journal action.`,
+          `Replay divergence at turn ${turnNumber} ${turn.kind} action.`,
         );
       }
       requireMatch(
-        `turn ${turnNumber} local-journal result`,
+        `turn ${turnNumber} ${turn.kind} result`,
         turn.result,
-        traceResult(journal),
+        traceResult(read),
       );
-      requireMatch(`turn ${turnNumber} state`, turn.stateAfter, journal.state);
-      state = journal.state;
+      requireMatch(`turn ${turnNumber} state`, turn.stateAfter, read.state);
+      state = read.state;
       continue;
     }
     if (turn.kind === "local-quit") {

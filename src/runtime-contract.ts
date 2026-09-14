@@ -5,6 +5,7 @@ import type {
   ChapelJournal,
   ChapelConversation,
   SocialChapelState,
+  GuardianChapelState,
   DialogueChapelState,
   LegacyChapelState,
   LegacyChapelEvent,
@@ -25,6 +26,7 @@ import type { RandomSource } from "./random.js";
 export type RuntimeState =
   | SessionState
   | ChapelState
+  | GuardianChapelState
   | SocialChapelState
   | DialogueChapelState
   | DiscoveryChapelState

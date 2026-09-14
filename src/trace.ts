@@ -91,7 +91,10 @@ type LocalTraceTurn = Readonly<
     stateAfter: SessionState;
   } & (
     | { kind: "local-help" | "local-quit"; result?: never }
-    | { kind: "local-journal"; result: TraceResult }
+    | {
+        kind: "local-journal" | "local-status" | "local-inventory";
+        result: TraceResult;
+      }
   )
 >;
 
@@ -237,8 +240,13 @@ export function recordLocalTraceTurn(
   stateAfter: SessionState,
   result?: ActionResult,
 ): void {
-  if ((kind === "local-journal") !== (result !== undefined)) {
-    throw new Error("A local journal trace requires exactly one read result.");
+  const readKind = [
+    "local-journal",
+    "local-status",
+    "local-inventory",
+  ].includes(kind);
+  if (readKind !== (result !== undefined)) {
+    throw new Error("A local read trace requires exactly one read result.");
   }
   const turn = {
     sequence: trace.turns.length + 1,

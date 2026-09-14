@@ -37,6 +37,9 @@ export function parseCommand(input: string): Action {
       return { type: "open", target: argument };
     case "take":
       return { type: "take", target: argument };
+    case "use":
+    case "drink":
+      return { type: "use", target: argument };
     case "attack":
       return { type: "attack", target: argument };
     default:

@@ -1,6 +1,7 @@
 import { runDmTurn, type DmModel, type DmTranscriptEntry } from "./dm-turn.js";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
 import type { RuntimeResult as ActionResult } from "./runtime-contract.js";
+import type { Action } from "./session.js";
 import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
 import {
   completeSessionTrace,
@@ -43,6 +44,7 @@ export async function playGame(
     renderResult,
   } = runtime;
   const dmIdentity = options.dmModel?.identity;
+  const hasLocalPotionReads = runtime.mutationToolNames.includes("use_item");
   if (
     options.dmModel !== undefined &&
     options.tracePath !== undefined &&
@@ -101,18 +103,42 @@ export async function playGame(
             "Local commands:",
             "  help  Show this guidance without calling the model.",
             "  journal  Read discovered facts and known leads without calling the model.",
+            ...(hasLocalPotionReads
+              ? [
+                  "  status  Read HP, potion availability, and combat turn without calling the model.",
+                  "  inventory  Read equipment and potion availability without calling the model.",
+                ]
+              : []),
             "  quit  Leave the game without calling the model.",
           ].join("\n") + "\n",
         );
         if (dmTrace !== undefined) {
           recordLocalTraceTurn(dmTrace, "local-help", line, state);
         }
-      } else if (localCommand === "journal") {
-        const journal = handleAction(state, { type: "journal" }, random);
-        state = journal.state;
-        io.write(`${renderResult(journal)}\n`);
+      } else if (
+        ["journal", "status", "inventory"].includes(localCommand) &&
+        (localCommand === "journal"
+          ? runtime.readToolNames.includes("get_journal")
+          : hasLocalPotionReads &&
+            runtime.readToolNames.includes("get_character_status"))
+      ) {
+        const action: Action =
+          localCommand === "journal"
+            ? { type: "journal" }
+            : localCommand === "status"
+              ? { type: "status" }
+              : { type: "inventory" };
+        const read = handleAction(state, action, random);
+        state = read.state;
+        io.write(`${renderResult(read)}\n`);
         if (dmTrace !== undefined) {
-          recordLocalTraceTurn(dmTrace, "local-journal", line, state, journal);
+          const traceKind =
+            localCommand === "journal"
+              ? "local-journal"
+              : localCommand === "status"
+                ? "local-status"
+                : "local-inventory";
+          recordLocalTraceTurn(dmTrace, traceKind, line, state, read);
         }
       } else if (localCommand === "quit") {
         const quit = handleAction(state, { type: "quit" }, random);

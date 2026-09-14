@@ -4,6 +4,7 @@ import {
   CHAPEL_TALK_APPROACHES,
   CHAPEL_OPPONENT_COMBATANTS,
   CHAPEL_OPPONENT_DEFINITIONS,
+  CHAPEL_ITEMS,
   chapelRoom,
   chapelInspection,
   chapelSearchTargets,
@@ -26,12 +27,15 @@ import type { Action } from "./session.js";
 export function projectChapelScene(
   state: ChapelState,
   guardianEnabled = true,
+  itemsEnabled = true,
 ): DmScene {
   const room = chapelRoom(state.locationId);
   const skeleton = CHAPEL_OPPONENT_COMBATANTS["skeleton-guardian"];
   const skeletonDefinition = CHAPEL_OPPONENT_DEFINITIONS[skeleton.definitionId];
   const skeletonVisible =
     guardianEnabled && state.locationId === skeleton.roomId;
+  const potion = CHAPEL_ITEMS["healing-potion"];
+  const potionPlacement = state.itemPlacements[potion.id];
   return {
     title: CHAPEL_TITLE,
     objective: CHAPEL_OBJECTIVE,
@@ -41,7 +45,22 @@ export function projectChapelScene(
       name: room.name,
       description: room.description,
       features: room.features,
-      items: [],
+      items:
+        itemsEnabled &&
+        potionPlacement.type === "room" &&
+        potionPlacement.roomId === state.locationId
+          ? [
+              {
+                id: potion.id,
+                name: potion.name,
+                description: potion.description,
+                placement: {
+                  featureId: potionPlacement.featureId,
+                  description: potion.initialPlacement.description,
+                },
+              },
+            ]
+          : [],
       opponents: skeletonVisible
         ? [
             {
@@ -75,7 +94,10 @@ export function projectChapelStatus(state: ChapelState): CharacterStatus {
     hp: state.fighter.hp,
     maxHp: state.fighter.maxHp,
     equipment: [{ id: "longsword", name: "longsword" }],
-    collectedItems: [],
+    collectedItems:
+      state.itemPlacements["healing-potion"].type === "inventory"
+        ? [{ id: "healing-potion", name: "healing potion" }]
+        : [],
     outcome: state.status,
     ...(state.combat === undefined ||
     state.opponents[state.combat.opponentCombatantId].hp === 0
@@ -87,6 +109,7 @@ export function projectChapelStatus(state: ChapelState): CharacterStatus {
 export function getChapelTools(
   state: ChapelState,
   guardianEnabled = true,
+  itemsEnabled = true,
 ): readonly GameToolDefinition[] {
   const room = chapelRoom(state.locationId);
   const activeCombat =
@@ -96,6 +119,17 @@ export function getChapelTools(
     state.opponents[state.combat.opponentCombatantId].hp > 0;
   const searchTargets =
     state.status === "playing" ? chapelSearchTargets(state) : [];
+  const potionPlacement = state.itemPlacements["healing-potion"];
+  const visiblePotion =
+    itemsEnabled &&
+    state.status === "playing" &&
+    !activeCombat &&
+    potionPlacement.type === "room" &&
+    potionPlacement.roomId === state.locationId;
+  const ownedPotion =
+    itemsEnabled &&
+    state.status === "playing" &&
+    potionPlacement.type === "inventory";
   const visibleNpcs =
     state.status === "playing" && !activeCombat
       ? visibleChapelNpcs(state).filter(({ subjects }) => subjects.length > 0)
@@ -180,6 +214,24 @@ export function getChapelTools(
             },
           ),
         ]),
+    ...(visiblePotion
+      ? [
+          definition("take", "Take the visible healing potion.", {
+            itemId: { type: "string", enum: ["healing-potion"] },
+          }),
+        ]
+      : []),
+    ...(ownedPotion
+      ? [
+          definition(
+            "use_item",
+            "Use the owned healing potion. The engine owns healing and combat response.",
+            {
+              itemId: { type: "string", enum: ["healing-potion"] },
+            },
+          ),
+        ]
+      : []),
     ...(activeCombat
       ? [
           definition("attack", "Attack the active opponent combatant.", {
@@ -205,12 +257,13 @@ export function dispatchChapelTool(
   call: GameToolCall,
   random?: Parameters<typeof handleChapelAction>[2],
   guardianEnabled = true,
+  itemsEnabled = true,
 ): RuntimeToolResult {
   const reject = (code: ToolValidationErrorCode): RuntimeToolResult => ({
     state,
     modelOutput: { ok: false, error: { code } },
   });
-  const tool = getChapelTools(state, guardianEnabled).find(
+  const tool = getChapelTools(state, guardianEnabled, itemsEnabled).find(
     ({ name }) => name === call.name,
   );
   if (tool === undefined) {
@@ -257,6 +310,15 @@ export function dispatchChapelTool(
       return reject("unavailable-reference");
     }
   }
+  if (call.name === "take" || call.name === "use_item") {
+    if (Object.keys(args).length !== 1 || args.itemId !== "healing-potion") {
+      return reject(
+        typeof args.itemId === "string" && Object.keys(args).length === 1
+          ? "unavailable-reference"
+          : "invalid-arguments",
+      );
+    }
+  }
   const field =
     call.name === "move"
       ? "destinationId"
@@ -268,6 +330,8 @@ export function dispatchChapelTool(
   if (
     call.name !== "talk" &&
     call.name !== "attack" &&
+    call.name !== "take" &&
+    call.name !== "use_item" &&
     (Object.keys(args).length !== (field === undefined ? 0 : 1) ||
       (field !== undefined && typeof args[field] !== "string"))
   ) {
@@ -324,8 +388,18 @@ export function dispatchChapelTool(
     };
   } else if (call.name === "attack") {
     action = { type: "attack", target: String(args.combatantId) };
+  } else if (call.name === "take") {
+    action = { type: "take", target: String(args.itemId) };
+  } else if (call.name === "use_item") {
+    action = { type: "use", target: String(args.itemId) };
   }
-  const result = handleChapelAction(state, action, random, guardianEnabled);
+  const result = handleChapelAction(
+    state,
+    action,
+    random,
+    guardianEnabled,
+    itemsEnabled,
+  );
   if (result.rejection !== undefined) {
     return {
       state: result.state,
@@ -354,7 +428,7 @@ export function dispatchChapelTool(
     modelOutput: {
       ok: true,
       events: result.events,
-      scene: projectChapelScene(result.state, guardianEnabled),
+      scene: projectChapelScene(result.state, guardianEnabled, itemsEnabled),
       ...(conversation === undefined ? {} : { conversation }),
       ...(inspection === undefined
         ? {}

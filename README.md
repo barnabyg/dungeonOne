@@ -39,7 +39,11 @@ seeded `d20 + 1` check against DC 11; changing approach or returning later never
 rerolls it. Failure leaves the notice and physical chapel evidence available.
 Entering the crypt starts deterministic combat with one skeleton guardian. Clearing
 it records `guardian-cleared` and opens the way for later crypt investigation without
-prematurely completing **Find Tavi**; rescue and resolution remain later tickets. A
+prematurely completing **Find Tavi**; rescue and resolution remain later tickets.
+A single healing potion is visible on the chapel path and can be taken before the
+crypt. `use potion` restores `2d4 + 2` HP up to the Fighter's maximum and consumes
+it once. Full-HP use leaves it available; combat use spends the Fighter's turn and
+allows the skeleton's normal response. A
 copyable offline journey is:
 
 ```powershell
@@ -124,9 +128,10 @@ state evidence as formats 1 and 2, with explicit chapel content/rules versions.
 AI traces also record the chapel prompt/tool versions and normalized provider
 identity. Format-3 replay selects the chapel runtime from that exact version tuple,
 runs without a model, compares every result and state, and rejects unknown versions
-or tampering. The exploration-v1, discovery-v2, dialogue-v3, and social-v4 tuples
-remain replayable after the guardian-v5 combat state and tools were added. AI traces identify exact local `journal` reads as
-`local-journal`, and replay validates their input and unchanged state. Trace state
+or tampering. The exploration-v1, discovery-v2, dialogue-v3, social-v4, and
+guardian-v5 tuples remain replayable after potion-v6 was added. AI traces identify
+exact local `journal`, `status`, and `inventory` reads and replay validates their
+input, result, and unchanged state. Trace state
 is diagnostic and may contain spoilers; it is not a save.
 
 Command mode exports trace format `1`. It is JSON and a compatibility contract. It records
@@ -210,7 +215,10 @@ Seed `0` is a short reproducible victory over the goblin in two attacks. Seed `2
 
 Entering the Guardroom while the goblin lives or the Crypt while its skeleton guardian lives starts combat. Higher initiative acts first, with ties favouring the fighter. On an attack, a natural 1 misses, a natural 20 hits critically, and any other roll hits when its total equals or exceeds the target's AC. A critical hit rolls twice the weapon's damage dice but adds its modifier once. HP stops at zero, death is immediate, and a defeated combatant cannot act.
 
-During combat, `attack goblin` or `attack skeleton` is the only command that advances a turn for its adventure. Read commands and rejected input do not spend a turn or consume a random roll. Retreat, healing, death saves, and tactical movement are not part of this slice; the chapel potion is tracked separately in issue #30.
+During combat, `attack goblin` or `attack skeleton` advances a turn for its
+adventure; an owned chapel potion can also be used for the Fighter's turn. Read
+commands and rejected input do not spend a turn or consume a random roll. Retreat,
+resurrection, death saves, and tactical movement are not part of this slice.
 
 ## Supported commands
 
@@ -224,7 +232,8 @@ Commands and their arguments are case-insensitive. Commands must use the canonic
 | `search <target>`  | Search visible authored chapel evidence and record a roll-free discovery.        |
 | `move <location>`  | Walk through an open passage to a named adjacent room, such as `move guardroom`. |
 | `open <target>`    | Open an accessible door, such as `open wooden door`.                             |
-| `take <item>`      | Move a visible collectible into inventory, such as `take signet`.                |
+| `take <item>`      | Move a visible collectible into inventory, such as `take potion`.                |
+| `use <item>`       | Use an owned chapel healing potion, such as `use potion`.                        |
 | `attack <target>`  | Attack the active living goblin or skeleton with the fighter's longsword.        |
 | `status`           | Show the fighter's current and maximum HP and session status.                    |
 | `inventory`        | Show the fixed longsword equipment separately from collected items.              |
@@ -335,7 +344,7 @@ $env:DUNGEON_ONE_TEST_DM_SCRIPT = ".\dm-script.json"
 Remove-Item Env:DUNGEON_ONE_TEST_DM_SCRIPT
 ```
 
-The terminal keeps exact local `help`, chapel `journal`, and `quit` handling, and prints separate
+The terminal keeps exact local `help`, chapel `journal`, `status`, `inventory`, and `quit` handling, and prints separate
 `Mechanics` and `Dungeon Master` sections. Command mode is unchanged when the
 test variable is absent. Add `--trace <path>` to export a format-2 scripted-DM
 session, and replay it later with `--replay <path>` without the script or a model.
@@ -468,6 +477,7 @@ After `npm.cmd run build`:
 15. In AI mode, ask Oren using each supported intent: an appeal to finding Tavi, the claim that records were checked, and a threat of public scrutiny. Expect the corresponding validated approach and engine-owned mechanics. If reply generation fails after the check, expect the committed authored response and mechanics to remain, with no reroll. Treat scripted-AI success as orchestration evidence only; live model quality and human enjoyment remain untested for this slice.
 16. Run `npm.cmd start -- --adventure chapel --seed 0 --trace .\chapel-guardian.json`, move through `chapel-path` and `ruined-chapel` to `crypt`, then enter `attack skeleton` three times. Expect fighter and skeleton initiative, labeled attack rolls, damage, remaining HP and turns, followed by `guardian-cleared` with **Find Tavi** still active. Move back to `ruined-chapel`, return to `crypt`, and expect the defeated guardian with no new initiative. Replay the trace successfully.
 17. Repeat with seed `74`, entering `attack skeleton` twice. Expect terminal defeat at 0/20 HP. A third attack must be rejected without a draw, while `look`, `inspect skeleton`, `status`, `inventory`, `journal`, `help`, and `quit` remain usable. Replay the trace successfully.
+18. Run `npm.cmd start -- --adventure chapel --seed 7 --trace .\chapel-potion.json`. Enter `move chapel-path`, `take potion`, `move ruined-chapel`, `move crypt`, and `use potion`. Expect the skeleton's opening critical hit to leave 9/20 HP, potion rolls `2, 2`, 6 actual healing, a missed skeleton response, 15/20 HP, and the potion marked consumed. A second use must be rejected without a draw. Enter `status` and `inventory`, then replay the trace successfully.
 
 ### Usability pass observations
 

@@ -24,10 +24,14 @@ export const SOCIAL_CHAPEL_VERSION = "chapel-social-v4";
 export const SOCIAL_CHAPEL_RULES_VERSION = "chapel-social-rules-v4";
 export const SOCIAL_CHAPEL_TOOL_VERSION = "chapel-social-tools-v4";
 export const SOCIAL_CHAPEL_PROMPT_VERSION = "chapel-social-dm-v4";
-export const CHAPEL_VERSION = "chapel-guardian-v5";
-export const CHAPEL_RULES_VERSION = "chapel-guardian-rules-v5";
-export const CHAPEL_TOOL_VERSION = "chapel-guardian-tools-v5";
-export const CHAPEL_PROMPT_VERSION = "chapel-guardian-dm-v5";
+export const GUARDIAN_CHAPEL_VERSION = "chapel-guardian-v5";
+export const GUARDIAN_CHAPEL_RULES_VERSION = "chapel-guardian-rules-v5";
+export const GUARDIAN_CHAPEL_TOOL_VERSION = "chapel-guardian-tools-v5";
+export const GUARDIAN_CHAPEL_PROMPT_VERSION = "chapel-guardian-dm-v5";
+export const CHAPEL_VERSION = "chapel-potion-v6";
+export const CHAPEL_RULES_VERSION = "chapel-potion-rules-v6";
+export const CHAPEL_TOOL_VERSION = "chapel-potion-tools-v6";
+export const CHAPEL_PROMPT_VERSION = "chapel-potion-dm-v6";
 export const CHAPEL_TITLE = "The Bell Beneath the Chapel";
 export const CHAPEL_OBJECTIVE =
   "Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.";
@@ -43,6 +47,7 @@ export type ChapelFeatureId =
   | "broken-roof"
   | "damaged-repair-record"
   | "crypt-steps";
+export type ChapelItemId = "healing-potion";
 export type ChapelNpcId = "mara" | "oren" | "tavi";
 export type ChapelOpponentDefinitionId = "skeleton";
 export type ChapelOpponentCombatantId = "skeleton-guardian";
@@ -68,6 +73,20 @@ export const CHAPEL_OPPONENT_COMBATANTS = Object.freeze({
     combatantId: "skeleton-guardian",
     definitionId: "skeleton",
     roomId: "crypt",
+  },
+} as const);
+
+export const CHAPEL_ITEMS = Object.freeze({
+  "healing-potion": {
+    id: "healing-potion",
+    name: "healing potion",
+    description: "A stoppered red potion that restores 2d4 + 2 HP.",
+    initialPlacement: {
+      type: "room" as const,
+      roomId: "chapel-path" as const,
+      featureId: "waymarker" as const,
+      description: "tucked into a dry niche beneath the waymarker",
+    },
   },
 } as const);
 
@@ -426,6 +445,18 @@ export type ChapelState = Readonly<{
   socialChallenges: Readonly<{
     guardedAccount?: ChapelSocialCheck;
   }>;
+  itemPlacements: Readonly<
+    Record<
+      ChapelItemId,
+      | Readonly<{
+          type: "room";
+          roomId: ChapelRoomId;
+          featureId: ChapelFeatureId;
+        }>
+      | Readonly<{ type: "inventory" }>
+      | Readonly<{ type: "consumed" }>
+    >
+  >;
   opponents: Readonly<
     Record<
       ChapelOpponentCombatantId,
@@ -457,13 +488,14 @@ export type ChapelSocialCheck = Readonly<{
 }>;
 export type DialogueChapelState = Omit<
   ChapelState,
-  "socialChallenges" | "opponents" | "combat"
+  "socialChallenges" | "itemPlacements" | "opponents" | "combat"
 >;
 export type SocialChapelState = Omit<
   ChapelState,
-  "opponents" | "combat" | "status"
+  "itemPlacements" | "opponents" | "combat" | "status"
 > &
   Readonly<{ status: "playing" | "quit" }>;
+export type GuardianChapelState = Omit<ChapelState, "itemPlacements">;
 export type LegacyChapelState = Readonly<{
   adventureId: typeof CHAPEL_ID;
   locationId: ChapelRoomId;
@@ -522,6 +554,17 @@ export type ChapelEvent = Readonly<
       milestoneId: ChapelMilestoneId;
     }
   | { type: "chapel-conversation"; conversation: ChapelConversation }
+  | { type: "chapel-item-taken"; itemId: ChapelItemId }
+  | {
+      type: "chapel-item-used";
+      itemId: ChapelItemId;
+      healingRolls: readonly [number, number];
+      modifier: 2;
+      rolledHealing: number;
+      actualHealing: number;
+      hp: number;
+      maxHp: number;
+    }
   | (Readonly<{ type: "chapel-social-check" }> & ChapelSocialCheck)
   | {
       type: "combat-started";
@@ -562,6 +605,8 @@ export type ChapelRejection = Readonly<{
     | "chapel-combat-restriction"
     | "chapel-invalid-attack-target"
     | "chapel-dead-target"
+    | "chapel-item-unavailable"
+    | "chapel-full-hp"
     | "chapel-terminal-state";
 }>;
 export type ChapelResult =
@@ -587,6 +632,13 @@ export function createChapelSession(): ChapelState {
     npcStates: INITIAL_CHAPEL_NPC_STATES,
     conversationHistory: [],
     socialChallenges: {},
+    itemPlacements: {
+      "healing-potion": {
+        type: "room",
+        roomId: "chapel-path",
+        featureId: "waymarker",
+      },
+    },
     opponents: {
       "skeleton-guardian": {
         combatantId: "skeleton-guardian",
@@ -1180,11 +1232,101 @@ function attackSkeleton(
   };
 }
 
+function takeChapelItem(
+  state: ChapelState,
+  target: string | undefined,
+): ChapelResult {
+  const targetName = normalized(target ?? "");
+  if (targetName.length === 0) {
+    return { state, rejection: { reason: "chapel-missing-argument" } };
+  }
+  const item = CHAPEL_ITEMS["healing-potion"];
+  const placement = state.itemPlacements[item.id];
+  if (
+    ![normalized(item.id), normalized(item.name), "potion"].includes(
+      targetName,
+    ) ||
+    placement.type !== "room" ||
+    placement.roomId !== state.locationId
+  ) {
+    return { state, rejection: { reason: "chapel-item-unavailable" } };
+  }
+  return {
+    state: {
+      ...state,
+      itemPlacements: {
+        ...state.itemPlacements,
+        [item.id]: { type: "inventory" },
+      },
+    },
+    events: [{ type: "chapel-item-taken", itemId: item.id }],
+  };
+}
+
+function useHealingPotion(
+  state: ChapelState,
+  target: string | undefined,
+  random: Pick<RandomSource, "roll"> | undefined,
+): ChapelResult {
+  if (state.fighter.hp === 0) {
+    return { state, rejection: { reason: "chapel-terminal-state" } };
+  }
+  const targetName = normalized(target ?? "");
+  if (targetName.length === 0) {
+    return { state, rejection: { reason: "chapel-missing-argument" } };
+  }
+  const item = CHAPEL_ITEMS["healing-potion"];
+  if (
+    ![normalized(item.id), normalized(item.name), "potion"].includes(
+      targetName,
+    ) ||
+    state.itemPlacements[item.id].type !== "inventory"
+  ) {
+    return { state, rejection: { reason: "chapel-item-unavailable" } };
+  }
+  if (state.fighter.hp === state.fighter.maxHp) {
+    return { state, rejection: { reason: "chapel-full-hp" } };
+  }
+  if (random === undefined) {
+    throw new Error("A random source is required for healing.");
+  }
+  const healingRolls = [random.roll(4), random.roll(4)] as const;
+  const rolledHealing = healingRolls[0] + healingRolls[1] + 2;
+  const hp = Math.min(state.fighter.maxHp, state.fighter.hp + rolledHealing);
+  const healedState: ChapelState = {
+    ...state,
+    fighter: { ...state.fighter, hp },
+    itemPlacements: {
+      ...state.itemPlacements,
+      [item.id]: { type: "consumed" },
+    },
+  };
+  const usedEvent: ChapelEvent = {
+    type: "chapel-item-used",
+    itemId: item.id,
+    healingRolls,
+    modifier: 2,
+    rolledHealing,
+    actualHealing: hp - state.fighter.hp,
+    hp,
+    maxHp: state.fighter.maxHp,
+  };
+  if (!isActiveSkeletonCombat(healedState)) {
+    return { state: healedState, events: [usedEvent] };
+  }
+  const opponentTurn = resolveSkeletonTurn(healedState, random);
+  return {
+    state: opponentTurn.state,
+    events: [usedEvent, ...opponentTurn.events],
+  };
+}
+
 export function handleChapelAction(
   state: ChapelState,
   action: Action,
   random?: Pick<RandomSource, "roll">,
   guardianEnabled = true,
+  itemsEnabled = true,
 ): ChapelResult {
   const accept = (...events: ChapelEvent[]): ChapelResult => ({
     state,
@@ -1196,16 +1338,28 @@ export function handleChapelAction(
       events: [{ type: "session-quit" }],
     };
   }
-  const gameplayMutation = ["move", "search", "talk", "attack"].includes(
-    action.type,
-  );
+  const gameplayMutation = [
+    "move",
+    "search",
+    "talk",
+    "take",
+    "use",
+    "attack",
+  ].includes(action.type);
+  if (state.status === "quit" && gameplayMutation) {
+    return { state, rejection: { reason: "chapel-session-ended" } };
+  }
+  if (!itemsEnabled && (action.type === "take" || action.type === "use")) {
+    return { state, rejection: { reason: "chapel-unavailable" } };
+  }
   if (state.status === "defeat" && gameplayMutation) {
     return { state, rejection: { reason: "chapel-terminal-state" } };
   }
   if (
     isActiveSkeletonCombat(state) &&
     gameplayMutation &&
-    action.type !== "attack"
+    action.type !== "attack" &&
+    action.type !== "use"
   ) {
     return { state, rejection: { reason: "chapel-combat-restriction" } };
   }
@@ -1231,6 +1385,10 @@ export function handleChapelAction(
       });
     case "attack":
       return attackSkeleton(state, action.target, random);
+    case "take":
+      return takeChapelItem(state, action.target);
+    case "use":
+      return useHealingPotion(state, action.target, random);
     case "talk": {
       if (state.status === "quit") {
         return { state, rejection: { reason: "chapel-session-ended" } };
@@ -1365,6 +1523,10 @@ export function renderChapelResult(result: ChapelResult): string {
         return "You cannot attack that target here.";
       case "chapel-dead-target":
         return "The skeleton guardian is already defeated.";
+      case "chapel-item-unavailable":
+        return "You do not have that usable item available.";
+      case "chapel-full-hp":
+        return "You are already at full HP; the healing potion remains available.";
       case "chapel-missing-argument":
         return 'Name a visible target or adjacent location. Use "look" for choices.';
       case "chapel-session-ended":
@@ -1399,7 +1561,13 @@ export function renderChapelResult(result: ChapelResult): string {
               : skeleton.hp > 0
                 ? "Opponent: skeleton guardian (living)."
                 : "Defeated opponents: skeleton guardian. The way beyond the guardian is clear for later crypt evidence.";
-          return `${room.name}\n${room.description}\nVisible: ${room.features.map((feature) => feature.name).join(", ")}.\n${opponentLine}\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.`;
+          const potion = CHAPEL_ITEMS["healing-potion"];
+          const placement = result.state.itemPlacements[potion.id];
+          const visibleItems =
+            placement.type === "room" && placement.roomId === event.roomId
+              ? `${potion.name} (${potion.initialPlacement.description})`
+              : "none";
+          return `${room.name}\n${room.description}\nVisible: ${room.features.map((feature) => feature.name).join(", ")}.\nVisible items: ${visibleItems}.\n${opponentLine}\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.`;
         }
         case "chapel-moved":
           return `You travel to ${chapelRoom(event.roomId).name}.`;
@@ -1415,6 +1583,10 @@ export function renderChapelResult(result: ChapelResult): string {
         }
         case "chapel-conversation":
           return event.conversation.authoredReply;
+        case "chapel-item-taken":
+          return "You take the healing potion. It is now available in your inventory.";
+        case "chapel-item-used":
+          return `You drink the healing potion.\nHealing: d4 rolls: ${event.healingRolls.join(", ")} + ${event.modifier} = ${event.rolledHealing}.\nActual healing: ${event.actualHealing}.\nFighter HP: ${event.hp}/${event.maxHp}.\nThe potion is consumed.`;
         case "chapel-social-check":
           return `Social check\nApproach: ${event.approach}\nDie: d20 = ${event.die}\nModifier: +${event.modifier}\nTotal: ${event.total}\nDC: ${event.dc}\nResult: ${event.result}.`;
         case "combat-started":
@@ -1460,11 +1632,11 @@ export function renderChapelResult(result: ChapelResult): string {
           ].join("\n");
         }
         case "chapel-status":
-          return `Fighter HP: ${event.hp}/${event.maxHp}\nSession: ${event.status}.\nActive quest: Find Tavi. ${CHAPEL_OBJECTIVE}`;
+          return `Fighter HP: ${event.hp}/${event.maxHp}\nHealing potion: ${result.state.itemPlacements["healing-potion"].type === "inventory" ? "available" : result.state.itemPlacements["healing-potion"].type === "consumed" ? "consumed" : "not collected"}.\nSession: ${event.status}.\nActive quest: Find Tavi. ${CHAPEL_OBJECTIVE}`;
         case "chapel-inventory":
-          return "Equipped: longsword.\nCollectibles: empty.";
+          return `Equipped: longsword.\nHealing potion: ${result.state.itemPlacements["healing-potion"].type === "inventory" ? "available" : result.state.itemPlacements["healing-potion"].type === "consumed" ? "consumed" : "not collected"}.`;
         case "chapel-help":
-          return "Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, attack <target>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nExamples: talk mara tavi ask; move ferry-landing; talk oren repairs persuade; search missing-person notice; journal; move chapel-path; move ruined-chapel; move crypt; inspect skeleton; attack skeleton.\nEnter each command on its own line. During guardian combat, only attack advances the turn; reads and quit remain available. Defeating the guardian clears access for later crypt investigation without completing Find Tavi.";
+          return "Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, take <item>, use <item>, attack <target>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nExamples: talk mara tavi ask; move chapel-path; take healing potion; use potion; move ruined-chapel; move crypt; attack skeleton.\nEnter each command on its own line. During guardian combat, attack or potion use advances the turn; reads and quit remain available. Defeating the guardian clears access for later crypt investigation without completing Find Tavi.";
         case "session-quit":
           return "You leave the game.";
       }

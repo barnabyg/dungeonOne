@@ -11,6 +11,7 @@ import type { CombatantId } from "./combat.js";
 import type {
   ChapelCombatantId,
   ChapelFeatureId,
+  ChapelItemId,
   ChapelJournal,
   ChapelOpponentCombatantId,
   ChapelRoomId,
@@ -41,7 +42,7 @@ export type DmScene = Readonly<{
       description: string;
     }>[];
     items: readonly Readonly<{
-      id: ItemId;
+      id: ItemId | ChapelItemId;
       name: string;
       description: string;
       placement: Readonly<{
@@ -83,7 +84,10 @@ export type CharacterStatus = Readonly<{
   hp: number;
   maxHp: number;
   equipment: readonly Readonly<{ id: EquipmentId; name: string }>[];
-  collectedItems: readonly Readonly<{ id: ItemId; name: string }>[];
+  collectedItems: readonly Readonly<{
+    id: ItemId | ChapelItemId;
+    name: string;
+  }>[];
   outcome: SessionState["status"];
   combatTurn?: CombatantId | ChapelCombatantId;
 }>;
@@ -106,6 +110,7 @@ export type GameToolName =
   | "talk"
   | "open"
   | "take"
+  | "use_item"
   | "attack"
   | "leave"
   | "get_journal"
@@ -462,7 +467,10 @@ export function projectCharacterStatus(state: SessionState): CharacterStatus {
   };
 }
 
-type SignetToolName = Exclude<GameToolName, "search" | "talk" | "get_journal">;
+type SignetToolName = Exclude<
+  GameToolName,
+  "search" | "talk" | "use_item" | "get_journal"
+>;
 
 const TOOL_NAMES: readonly SignetToolName[] = [
   "look",
