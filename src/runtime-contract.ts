@@ -6,6 +6,7 @@ import type {
   ChapelConversation,
   SocialChapelState,
   GuardianChapelState,
+  PotionChapelState,
   DialogueChapelState,
   LegacyChapelState,
   LegacyChapelEvent,
@@ -27,6 +28,7 @@ export type RuntimeState =
   | SessionState
   | ChapelState
   | GuardianChapelState
+  | PotionChapelState
   | SocialChapelState
   | DialogueChapelState
   | DiscoveryChapelState

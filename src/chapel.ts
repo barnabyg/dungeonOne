@@ -28,10 +28,14 @@ export const GUARDIAN_CHAPEL_VERSION = "chapel-guardian-v5";
 export const GUARDIAN_CHAPEL_RULES_VERSION = "chapel-guardian-rules-v5";
 export const GUARDIAN_CHAPEL_TOOL_VERSION = "chapel-guardian-tools-v5";
 export const GUARDIAN_CHAPEL_PROMPT_VERSION = "chapel-guardian-dm-v5";
-export const CHAPEL_VERSION = "chapel-potion-v6";
-export const CHAPEL_RULES_VERSION = "chapel-potion-rules-v6";
-export const CHAPEL_TOOL_VERSION = "chapel-potion-tools-v6";
-export const CHAPEL_PROMPT_VERSION = "chapel-potion-dm-v6";
+export const POTION_CHAPEL_VERSION = "chapel-potion-v6";
+export const POTION_CHAPEL_RULES_VERSION = "chapel-potion-rules-v6";
+export const POTION_CHAPEL_TOOL_VERSION = "chapel-potion-tools-v6";
+export const POTION_CHAPEL_PROMPT_VERSION = "chapel-potion-dm-v6";
+export const CHAPEL_VERSION = "chapel-rescue-v7";
+export const CHAPEL_RULES_VERSION = "chapel-rescue-rules-v7";
+export const CHAPEL_TOOL_VERSION = "chapel-rescue-tools-v7";
+export const CHAPEL_PROMPT_VERSION = "chapel-rescue-dm-v7";
 export const CHAPEL_TITLE = "The Bell Beneath the Chapel";
 export const CHAPEL_OBJECTIVE =
   "Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.";
@@ -46,7 +50,8 @@ export type ChapelFeatureId =
   | "waymarker"
   | "broken-roof"
   | "damaged-repair-record"
-  | "crypt-steps";
+  | "crypt-steps"
+  | "diversion-ledger";
 export type ChapelItemId = "healing-potion";
 export type ChapelNpcId = "mara" | "oren" | "tavi";
 export type ChapelOpponentDefinitionId = "skeleton";
@@ -97,7 +102,7 @@ const CHAPEL_FIGHTER_DEFINITION = Object.freeze({
   initiativeBonus: 1,
   damage: { dice: 1, sides: 8, modifier: 3 },
 });
-export type ChapelTalkTopicId = "tavi" | "repairs";
+export type ChapelTalkTopicId = "tavi" | "repairs" | "crypt" | "rescue";
 export const CHAPEL_TALK_APPROACHES = [
   "ask",
   "persuade",
@@ -109,13 +114,18 @@ export type ChapelDiscoveryId =
   | "chapel-route"
   | "unsafe-repairs"
   | "tavi-disappearance-testimony"
-  | "mara-ferry-belief";
+  | "mara-ferry-belief"
+  | "diversion-ledger"
+  | "tavi-crypt-testimony";
 export type ChapelMilestoneId =
   | "chapel-route-known"
   | "unsafe-repairs-linked-to-oren"
   | "mara-account-recorded"
   | "oren-account-released"
-  | "guardian-cleared";
+  | "guardian-cleared"
+  | "ledger-recovered"
+  | "tavi-fate-established"
+  | "tavi-rescued";
 export type ChapelDiscovery = Readonly<{
   id: ChapelDiscoveryId;
   title: string;
@@ -221,7 +231,18 @@ export const CHAPEL_NPCS = [
     doesNotKnow: ["Unrelated village conversations after entering the crypt."],
     believes: [],
     wants: ["Escape the crypt and report what happened."],
-    reveals: [],
+    reveals: [
+      {
+        topicId: "crypt",
+        topicName: "What happened in the crypt",
+        factIds: ["tavi-crypt-testimony"],
+      },
+      {
+        topicId: "rescue",
+        topicName: "Return safely to the inn",
+        factIds: [],
+      },
+    ],
   },
 ] as const satisfies readonly ChapelNpcDefinition[];
 
@@ -244,6 +265,16 @@ const MARA_DISCOVERIES = [
       "Check the ferry landing, while treating Mara's lead as uncertain.",
   },
 ] as const satisfies readonly ChapelDiscovery[];
+
+const TAVI_DISCOVERY = {
+  id: "tavi-crypt-testimony",
+  title: "Tavi's crypt account",
+  source: { type: "npc", id: "tavi", name: "Tavi", locationId: "crypt" },
+  classification: "testimony",
+  summary:
+    "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+  actionableLead: "Return Tavi safely to the village inn.",
+} as const satisfies ChapelDiscovery;
 
 export const INITIAL_CHAPEL_NPC_STATES = Object.freeze({
   mara: Object.freeze({ condition: "living" as const }),
@@ -304,6 +335,24 @@ const CHAPEL_EVIDENCE = [
     },
     milestoneId: "unsafe-repairs-linked-to-oren",
   },
+  {
+    targetId: "diversion-ledger",
+    discovery: {
+      id: "diversion-ledger",
+      title: "Oren's diversion ledger",
+      source: {
+        type: "feature",
+        id: "diversion-ledger",
+        name: "diversion ledger",
+        locationId: "crypt",
+      },
+      classification: "observation",
+      summary:
+        "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+      actionableLead: "Return to Oren with the conclusive ledger evidence.",
+    },
+    milestoneId: "ledger-recovered",
+  },
 ] as const satisfies readonly ChapelEvidence[];
 
 type PublicFeature = Readonly<{
@@ -311,6 +360,12 @@ type PublicFeature = Readonly<{
   name: string;
   description: string;
 }>;
+const DIVERSION_LEDGER_FEATURE = Object.freeze({
+  id: "diversion-ledger" as const,
+  name: "diversion ledger",
+  description:
+    "A water-stained ledger lies beyond the defeated guardian. Its entries can be searched carefully.",
+});
 export type ChapelInspection =
   | Readonly<PublicFeature & { type: "feature" }>
   | Readonly<{
@@ -438,6 +493,7 @@ export type ChapelState = Readonly<{
   npcStates: Readonly<
     Record<ChapelNpcId, Readonly<{ condition: "living" | "dead" }>>
   >;
+  npcLocations: Readonly<Record<ChapelNpcId, ChapelRoomId>>;
   conversationHistory: readonly Readonly<{
     speakerId: ChapelNpcId;
     statements: readonly string[];
@@ -488,14 +544,22 @@ export type ChapelSocialCheck = Readonly<{
 }>;
 export type DialogueChapelState = Omit<
   ChapelState,
-  "socialChallenges" | "itemPlacements" | "opponents" | "combat"
+  | "socialChallenges"
+  | "itemPlacements"
+  | "opponents"
+  | "combat"
+  | "npcLocations"
 >;
 export type SocialChapelState = Omit<
   ChapelState,
-  "itemPlacements" | "opponents" | "combat" | "status"
+  "itemPlacements" | "opponents" | "combat" | "status" | "npcLocations"
 > &
   Readonly<{ status: "playing" | "quit" }>;
-export type GuardianChapelState = Omit<ChapelState, "itemPlacements">;
+export type GuardianChapelState = Omit<
+  ChapelState,
+  "itemPlacements" | "npcLocations"
+>;
+export type PotionChapelState = Omit<ChapelState, "npcLocations">;
 export type LegacyChapelState = Readonly<{
   adventureId: typeof CHAPEL_ID;
   locationId: ChapelRoomId;
@@ -554,6 +618,7 @@ export type ChapelEvent = Readonly<
       milestoneId: ChapelMilestoneId;
     }
   | { type: "chapel-conversation"; conversation: ChapelConversation }
+  | { type: "chapel-tavi-rescued"; fromRoomId: "crypt"; roomId: "inn" }
   | { type: "chapel-item-taken"; itemId: ChapelItemId }
   | {
       type: "chapel-item-used";
@@ -630,6 +695,7 @@ export function createChapelSession(): ChapelState {
     quest: { id: "find-tavi", status: "active", milestones: [] },
     discoveries: [],
     npcStates: INITIAL_CHAPEL_NPC_STATES,
+    npcLocations: { mara: "inn", oren: "ferry-landing", tavi: "crypt" },
     conversationHistory: [],
     socialChallenges: {},
     itemPlacements: {
@@ -650,21 +716,35 @@ export function createChapelSession(): ChapelState {
   };
 }
 
-export function visibleChapelNpcs(state: ChapelState): readonly Readonly<{
+type VisibleChapelNpc = Readonly<{
   id: ChapelNpcId;
   name: string;
+  condition: "living";
   subjects: readonly Readonly<{ id: ChapelTalkTopicId; name: string }>[];
-}>[] {
+}>;
+
+export function visibleChapelNpcs(
+  state: ChapelState,
+  rescueEnabled = true,
+): readonly VisibleChapelNpc[] {
+  const guardianCleared = state.quest.milestones.includes("guardian-cleared");
   return CHAPEL_NPCS.filter(
     (npc) =>
-      npc.locationId === state.locationId &&
-      npc.publiclyVisible &&
+      state.npcLocations[npc.id] === state.locationId &&
+      (npc.publiclyVisible ||
+        (rescueEnabled && npc.id === "tavi" && guardianCleared)) &&
       state.npcStates[npc.id].condition === "living",
   ).map((npc) => ({
     id: npc.id,
     name: npc.name,
+    condition: "living",
     subjects: npc.reveals
       .filter(() => npc.id !== "oren" || "socialChallenges" in state)
+      .filter(({ topicId }) =>
+        npc.id !== "tavi" || topicId !== "rescue"
+          ? true
+          : state.npcLocations.tavi === "crypt",
+      )
       .map(({ topicId, topicName }) => ({
         id: topicId,
         name: topicName,
@@ -678,11 +758,12 @@ function talkToNpc(
   topic: string | undefined,
   approach: string | undefined,
   random?: Pick<RandomSource, "roll">,
+  rescueEnabled = true,
 ): ChapelResult {
   const speakerId = normalized(target ?? "") as ChapelNpcId;
   const topicId = normalized(topic ?? "") as ChapelTalkTopicId;
   const normalizedApproach = normalized(approach ?? "") as ChapelTalkApproach;
-  const visible = visibleChapelNpcs(state).find(
+  const visible = visibleChapelNpcs(state, rescueEnabled).find(
     (candidate) => candidate.id === speakerId,
   );
   const npc = CHAPEL_NPCS.find((candidate) => candidate.id === speakerId);
@@ -701,6 +782,10 @@ function talkToNpc(
 
   if (speakerId === "oren") {
     return talkToOren(state, topicId, normalizedApproach, npc.name, random);
+  }
+
+  if (speakerId === "tavi") {
+    return talkToTavi(state, topicId, normalizedApproach, npc.name);
   }
 
   const discoveries = MARA_DISCOVERIES.filter((discovery) =>
@@ -760,6 +845,89 @@ function talkToNpc(
       ].slice(-8),
     },
     events: [{ type: "chapel-conversation", conversation }],
+  };
+}
+
+function talkToTavi(
+  state: ChapelState,
+  topicId: ChapelTalkTopicId,
+  approach: ChapelTalkApproach,
+  speakerName: string,
+): ChapelResult {
+  const priorStatements = state.conversationHistory
+    .filter((entry) => entry.speakerId === "tavi")
+    .flatMap(({ statements }) => statements)
+    .slice(-6);
+  const rescued = topicId === "rescue";
+  const approvedFacts = rescued
+    ? [
+        {
+          id: "tavi-rescue-consent",
+          statement: "I am ready to return safely to the village inn.",
+        },
+      ]
+    : [
+        {
+          id: "tavi-crypt-testimony",
+          statement:
+            "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose.",
+        },
+      ];
+  const hasFate = state.quest.milestones.includes("tavi-fate-established");
+  const hasRescue = state.quest.milestones.includes("tavi-rescued");
+  const nextState: ChapelState = {
+    ...state,
+    quest: {
+      ...state.quest,
+      milestones: [
+        ...state.quest.milestones,
+        ...(!rescued && !hasFate ? (["tavi-fate-established"] as const) : []),
+        ...(rescued && !hasRescue ? (["tavi-rescued"] as const) : []),
+      ],
+    },
+    discoveries:
+      !rescued && !state.discoveries.some(({ id }) => id === TAVI_DISCOVERY.id)
+        ? [...state.discoveries, TAVI_DISCOVERY]
+        : state.discoveries,
+    npcLocations: rescued
+      ? { ...state.npcLocations, tavi: "inn" }
+      : state.npcLocations,
+    conversationHistory: [
+      ...state.conversationHistory,
+      {
+        speakerId: "tavi" as const,
+        statements: approvedFacts.map(({ statement }) => statement),
+      },
+    ].slice(-8),
+  };
+  const conversation: ChapelConversation = {
+    speakerId: "tavi",
+    speakerName,
+    topicId,
+    topicName:
+      topicId === "rescue"
+        ? "Return safely to the inn"
+        : "What happened in the crypt",
+    approach,
+    attitude: "concerned",
+    voice:
+      "Observant and shaken but precise; speaks only about events personally witnessed in the crypt.",
+    approvedFacts,
+    authoredReply: rescued
+      ? "Tavi: Yes. I am ready to leave the crypt. I can follow the marked safe route to the village inn."
+      : "Tavi: I followed the chapel ledger into the crypt. The skeleton rose behind me and trapped me here.",
+    speakerHistory: priorStatements,
+  };
+  return {
+    state: nextState,
+    events: [
+      ...(rescued
+        ? ([
+            { type: "chapel-tavi-rescued", fromRoomId: "crypt", roomId: "inn" },
+          ] as const)
+        : []),
+      { type: "chapel-conversation", conversation },
+    ],
   };
 }
 
@@ -831,6 +999,22 @@ function talkToOren(
   }
 
   const remembered = state.socialChallenges.guardedAccount;
+  const hasLedger = state.discoveries.some(
+    ({ id }) => id === "diversion-ledger",
+  );
+  if (topicId === "repairs" && hasLedger) {
+    return finish(
+      [
+        {
+          id: "oren-ledger-response",
+          statement:
+            "The ledger proves I diverted the chapel repair funds to buy medicine and left the work unfinished.",
+        },
+      ],
+      "Oren: The ledger is conclusive. I diverted the chapel repair funds to buy medicine, and the unfinished work was left unsafe.",
+      "remorseful",
+    );
+  }
   if (remembered !== undefined) {
     return remembered.result === "success"
       ? finish(
@@ -961,6 +1145,20 @@ export function chapelRoom(id: ChapelRoomId): ChapelRoom {
   return room;
 }
 
+export function visibleChapelFeatures(
+  state: ChapelState,
+  rescueEnabled = true,
+): readonly PublicFeature[] {
+  return [
+    ...chapelRoom(state.locationId).features,
+    ...(rescueEnabled &&
+    state.locationId === "crypt" &&
+    state.quest.milestones.includes("guardian-cleared")
+      ? [DIVERSION_LEDGER_FEATURE]
+      : []),
+  ];
+}
+
 function normalized(value: string): string {
   return value.trim().toLowerCase().replace(/-/gu, " ");
 }
@@ -969,10 +1167,11 @@ export function chapelInspection(
   state: ChapelState,
   target: string,
   guardianEnabled = true,
+  rescueEnabled = true,
 ): ChapelInspection | undefined {
   const room = chapelRoom(state.locationId);
   const match = normalized(target);
-  const feature = room.features.find(
+  const feature = visibleChapelFeatures(state, rescueEnabled).find(
     (entry) =>
       normalized(entry.id) === match || normalized(entry.name) === match,
   );
@@ -1022,16 +1221,21 @@ export function projectChapelJournal(state: ChapelState): ChapelJournal {
     },
     discoveries: state.discoveries,
     actionableLeads: state.discoveries.flatMap((discovery) =>
-      discovery.actionableLead === undefined ? [] : [discovery.actionableLead],
+      discovery.actionableLead === undefined ||
+      (discovery.id === "tavi-crypt-testimony" &&
+        state.quest.milestones.includes("tavi-rescued"))
+        ? []
+        : [discovery.actionableLead],
     ),
   };
 }
 
 export function chapelSearchTargets(
   state: ChapelState,
+  rescueEnabled = true,
 ): readonly ChapelFeatureId[] {
   const visibleFeatures = new Set(
-    chapelRoom(state.locationId).features.map(({ id }) => id),
+    visibleChapelFeatures(state, rescueEnabled).map(({ id }) => id),
   );
   return CHAPEL_EVIDENCE.map(({ targetId }) => targetId).filter((targetId) =>
     visibleFeatures.has(targetId),
@@ -1327,6 +1531,7 @@ export function handleChapelAction(
   random?: Pick<RandomSource, "roll">,
   guardianEnabled = true,
   itemsEnabled = true,
+  rescueEnabled = true,
 ): ChapelResult {
   const accept = (...events: ChapelEvent[]): ChapelResult => ({
     state,
@@ -1402,13 +1607,19 @@ export function handleChapelAction(
         action.topic,
         action.approach,
         random,
+        rescueEnabled,
       );
     }
     case "inspect": {
       if (!action.target) {
         return { state, rejection: { reason: "chapel-missing-argument" } };
       }
-      const target = chapelInspection(state, action.target, guardianEnabled);
+      const target = chapelInspection(
+        state,
+        action.target,
+        guardianEnabled,
+        rescueEnabled,
+      );
       return target === undefined
         ? { state, rejection: { reason: "chapel-unavailable" } }
         : accept({
@@ -1427,7 +1638,12 @@ export function handleChapelAction(
       if (!action.target) {
         return { state, rejection: { reason: "chapel-missing-argument" } };
       }
-      const target = chapelInspection(state, action.target, guardianEnabled);
+      const target = chapelInspection(
+        state,
+        action.target,
+        guardianEnabled,
+        rescueEnabled,
+      );
       const evidence = CHAPEL_EVIDENCE.find(
         (entry) => entry.targetId === target?.id,
       );
@@ -1512,7 +1728,10 @@ export function renderChapelIntroduction(): string {
   return `${CHAPEL_TITLE}\n\nObjective: ${CHAPEL_OBJECTIVE}\nActive quest: Find Tavi.\nMara is here. Public subject: Tavi's disappearance.\nType "help" for available commands.`;
 }
 
-export function renderChapelResult(result: ChapelResult): string {
+export function renderChapelResult(
+  result: ChapelResult,
+  rescueEnabled = true,
+): string {
   if (result.rejection !== undefined) {
     switch (result.rejection.reason) {
       case "chapel-terminal-state":
@@ -1543,14 +1762,10 @@ export function renderChapelResult(result: ChapelResult): string {
       switch (event.type) {
         case "chapel-scene": {
           const room = chapelRoom(event.roomId);
-          const npcs = visibleChapelNpcs(result.state).filter(
-            (npc) =>
-              CHAPEL_NPCS.find(({ id }) => id === npc.id)?.locationId ===
-              event.roomId,
-          );
+          const npcs = visibleChapelNpcs(result.state, rescueEnabled);
           const speakers = npcs.map(
             (npc) =>
-              `${npc.name} (public subjects: ${
+              `${npc.name} (${npc.condition}; public subjects: ${
                 npc.subjects.map(({ name }) => name).join(", ") || "none"
               })`,
           );
@@ -1560,14 +1775,23 @@ export function renderChapelResult(result: ChapelResult): string {
               ? "Opponents: none."
               : skeleton.hp > 0
                 ? "Opponent: skeleton guardian (living)."
-                : "Defeated opponents: skeleton guardian. The way beyond the guardian is clear for later crypt evidence.";
+                : !rescueEnabled
+                  ? "Defeated opponents: skeleton guardian. The way beyond the guardian is clear for later crypt evidence."
+                  : result.state.npcLocations.tavi === "crypt" &&
+                      result.state.npcStates.tavi.condition === "living"
+                    ? "Defeated opponents: skeleton guardian. Tavi and the diversion ledger are now accessible beyond the arch."
+                    : "Defeated opponents: skeleton guardian. The diversion ledger remains accessible beyond the arch.";
           const potion = CHAPEL_ITEMS["healing-potion"];
           const placement = result.state.itemPlacements[potion.id];
           const visibleItems =
             placement.type === "room" && placement.roomId === event.roomId
               ? `${potion.name} (${potion.initialPlacement.description})`
               : "none";
-          return `${room.name}\n${room.description}\nVisible: ${room.features.map((feature) => feature.name).join(", ")}.\nVisible items: ${visibleItems}.\n${opponentLine}\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.`;
+          const featureNames = visibleChapelFeatures(
+            result.state,
+            rescueEnabled,
+          ).map(({ name }) => name);
+          return `${room.name}\n${room.description}\nVisible: ${featureNames.join(", ")}.\nVisible items: ${visibleItems}.\n${opponentLine}\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.`;
         }
         case "chapel-moved":
           return `You travel to ${chapelRoom(event.roomId).name}.`;
@@ -1583,6 +1807,8 @@ export function renderChapelResult(result: ChapelResult): string {
         }
         case "chapel-conversation":
           return event.conversation.authoredReply;
+        case "chapel-tavi-rescued":
+          return "Tavi takes the marked safe route from the crypt to the village inn.";
         case "chapel-item-taken":
           return "You take the healing potion. It is now available in your inventory.";
         case "chapel-item-used":
@@ -1617,7 +1843,9 @@ export function renderChapelResult(result: ChapelResult): string {
         case "combat-ended":
           return event.combatantId === "fighter"
             ? `The skeleton guardian defeats you.\nYou have ${result.state.fighter.hp}/${result.state.fighter.maxHp} HP and the adventure has ended in defeat. The final state remains readable; quit or start a fresh run.`
-            : "The skeleton guardian is defeated. Guardian cleared; the crypt evidence beyond is now accessible. Find Tavi remains active.";
+            : rescueEnabled
+              ? "The skeleton guardian is defeated. Guardian cleared; Tavi and the diversion ledger beyond are now accessible. Find Tavi remains active."
+              : "The skeleton guardian is defeated. Guardian cleared; the crypt evidence beyond is now accessible. Find Tavi remains active.";
         case "chapel-journal": {
           const discoveries = event.journal.discoveries.map((discovery) => {
             const sourceLocation = chapelRoom(discovery.source.locationId).name;
@@ -1636,7 +1864,7 @@ export function renderChapelResult(result: ChapelResult): string {
         case "chapel-inventory":
           return `Equipped: longsword.\nHealing potion: ${result.state.itemPlacements["healing-potion"].type === "inventory" ? "available" : result.state.itemPlacements["healing-potion"].type === "consumed" ? "consumed" : "not collected"}.`;
         case "chapel-help":
-          return "Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, take <item>, use <item>, attack <target>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nExamples: talk mara tavi ask; move chapel-path; take healing potion; use potion; move ruined-chapel; move crypt; attack skeleton.\nEnter each command on its own line. During guardian combat, attack or potion use advances the turn; reads and quit remain available. Defeating the guardian clears access for later crypt investigation without completing Find Tavi.";
+          return "Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, take <item>, use <item>, attack <target>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nExamples: talk mara tavi ask; move chapel-path; take healing potion; use potion; move ruined-chapel; move crypt; attack skeleton; search diversion ledger; talk tavi crypt ask; talk tavi rescue ask.\nEnter each command on its own line. During guardian combat, attack or potion use advances the turn; reads and quit remain available. Defeating the guardian makes Tavi and the diversion ledger accessible.";
         case "session-quit":
           return "You leave the game.";
       }

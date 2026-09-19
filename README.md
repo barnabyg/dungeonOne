@@ -38,8 +38,13 @@ records-checked pretext, or intimidation through public scrutiny resolves one
 seeded `d20 + 1` check against DC 11; changing approach or returning later never
 rerolls it. Failure leaves the notice and physical chapel evidence available.
 Entering the crypt starts deterministic combat with one skeleton guardian. Clearing
-it records `guardian-cleared` and opens the way for later crypt investigation without
-prematurely completing **Find Tavi**; rescue and resolution remain later tickets.
+it records `guardian-cleared`, reveals Tavi and the diversion ledger, and leaves
+**Find Tavi** active. Searching the ledger records conclusive, sourced evidence of
+Oren's diversion and medicine motive without a roll or NPC cooperation. Tavi can
+describe only their crypt experience; `talk tavi rescue ask` records one authored
+rescue and moves a living Tavi to the inn. The ledger unlocks Oren's authored no-roll
+response even after a failed social attempt, without clearing that attempt's lock.
+The two final resolutions and NPC casualty actions remain later tickets.
 A single healing potion is visible on the chapel path and can be taken before the
 crypt. `use potion` restores `2d4 + 2` HP up to the Fighter's maximum and consumes
 it once. Full-HP use leaves it available; combat use spends the Fighter's turn and
@@ -47,8 +52,8 @@ allows the skeleton's normal response. A
 copyable offline journey is:
 
 ```powershell
-@("talk mara tavi ask", "move ferry-landing", "talk oren repairs persuade", "move inn", "search missing-person notice", "move chapel-path", "move ruined-chapel", "search damaged repair record", "journal", "move crypt", "attack skeleton", "attack skeleton", "attack skeleton", "move ruined-chapel", "move crypt", "look", "quit") |
-  npm.cmd start -- --adventure chapel --seed 58 --trace .\chapel-trace.json
+@("talk mara tavi ask", "move chapel-path", "move ruined-chapel", "move crypt", "attack skeleton", "attack skeleton", "attack skeleton", "search diversion ledger", "talk tavi crypt ask", "talk tavi rescue ask", "move ruined-chapel", "move chapel-path", "move inn", "move ferry-landing", "talk oren repairs ask", "journal", "quit") |
+  npm.cmd start -- --adventure chapel --seed 0 --trace .\chapel-trace.json
 npm.cmd start -- --replay .\chapel-trace.json
 ```
 
@@ -478,6 +483,9 @@ After `npm.cmd run build`:
 16. Run `npm.cmd start -- --adventure chapel --seed 0 --trace .\chapel-guardian.json`, move through `chapel-path` and `ruined-chapel` to `crypt`, then enter `attack skeleton` three times. Expect fighter and skeleton initiative, labeled attack rolls, damage, remaining HP and turns, followed by `guardian-cleared` with **Find Tavi** still active. Move back to `ruined-chapel`, return to `crypt`, and expect the defeated guardian with no new initiative. Replay the trace successfully.
 17. Repeat with seed `74`, entering `attack skeleton` twice. Expect terminal defeat at 0/20 HP. A third attack must be rejected without a draw, while `look`, `inspect skeleton`, `status`, `inventory`, `journal`, `help`, and `quit` remain usable. Replay the trace successfully.
 18. Run `npm.cmd start -- --adventure chapel --seed 7 --trace .\chapel-potion.json`. Enter `move chapel-path`, `take potion`, `move ruined-chapel`, `move crypt`, and `use potion`. Expect the skeleton's opening critical hit to leave 9/20 HP, potion rolls `2, 2`, 6 actual healing, a missed skeleton response, 15/20 HP, and the potion marked consumed. A second use must be rejected without a draw. Enter `status` and `inventory`, then replay the trace successfully.
+19. Run `npm.cmd start -- --adventure chapel --seed 0 --trace .\chapel-rescue.json`. Before entering the crypt, try `search diversion ledger` and `talk tavi rescue ask`; expect both to be rejected without state change or a roll. Clear the guardian with the three attacks from check 16. `look` should now show the diversion ledger and living Tavi, with public `crypt` and `rescue` subjects.
+20. Enter `search diversion ledger`, `talk tavi crypt ask`, and `journal`. Expect conclusive observed evidence attributed to the ledger in the Crypt, including both the repair-fund diversion and medicine motive, plus Tavi's attributed testimony about following the ledger and becoming trapped by the skeleton. No unrelated Mara or Oren conversation should appear in Tavi's reply.
+21. Enter `talk tavi rescue ask` twice. Expect one rescue event and Tavi's move to the inn; the repeated request is unavailable and cannot duplicate the transition. Return through the chapel path and inn to the ferry landing, then enter `talk oren repairs ask`. Expect Oren's conclusive-evidence response without a roll, including after the failed seed-7 route in check 14, while the original failed challenge remains recorded. Replay `chapel-rescue.json` successfully.
 
 ### Usability pass observations
 

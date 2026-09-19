@@ -1055,7 +1055,7 @@ test("chapel AI receives only public content and its own versioned prompt", asyn
     }
   }
   assert.equal(state.locationId, "crypt");
-  assert.equal(requests[0].promptVersion, "chapel-potion-dm-v6");
+  assert.equal(requests[0].promptVersion, "chapel-rescue-dm-v7");
   assert.match(requests[0].systemPrompt, /Bell Beneath the Chapel/);
   assert.doesNotMatch(
     JSON.stringify(requests),
@@ -1100,9 +1100,9 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     assert.equal(exported.formatVersion, 3);
     assert.deepEqual(exported.adventure, {
       id: "chapel",
-      version: "chapel-potion-v6",
+      version: "chapel-rescue-v7",
     });
-    assert.equal(exported.rulesVersion, "chapel-potion-rules-v6");
+    assert.equal(exported.rulesVersion, "chapel-rescue-rules-v7");
     assert.equal(exported.random.algorithm, "mulberry32-v1");
     assert.ok(
       exported.actions.every(
@@ -1196,8 +1196,8 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     const dmExport = JSON.parse(readFileSync(dmTrace, "utf8"));
     assert.equal(dmExport.formatVersion, 3);
     assert.deepEqual(dmExport.dm, {
-      promptVersion: "chapel-potion-dm-v6",
-      toolSchemaVersion: "chapel-potion-tools-v6",
+      promptVersion: "chapel-rescue-dm-v7",
+      toolSchemaVersion: "chapel-rescue-tools-v7",
       provider: "scripted",
       model: "scripted-dm-v1",
     });

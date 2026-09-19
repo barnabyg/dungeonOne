@@ -58,6 +58,7 @@ export type DmScene = Readonly<{
     npcs?: readonly Readonly<{
       id: string;
       name: string;
+      condition: "living" | "dead";
       subjects: readonly Readonly<{ id: string; name: string }>[];
     }>[];
     exits: readonly Readonly<{

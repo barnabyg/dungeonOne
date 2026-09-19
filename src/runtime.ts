@@ -15,6 +15,10 @@ import {
   CHAPEL_RULES_VERSION,
   CHAPEL_TOOL_VERSION,
   CHAPEL_PROMPT_VERSION,
+  POTION_CHAPEL_VERSION,
+  POTION_CHAPEL_RULES_VERSION,
+  POTION_CHAPEL_TOOL_VERSION,
+  POTION_CHAPEL_PROMPT_VERSION,
   GUARDIAN_CHAPEL_VERSION,
   GUARDIAN_CHAPEL_RULES_VERSION,
   GUARDIAN_CHAPEL_TOOL_VERSION,
@@ -42,6 +46,7 @@ import {
   renderChapelResult,
   type ChapelState,
   type GuardianChapelState,
+  type PotionChapelState,
   type SocialChapelState,
   type ChapelResult,
   type ChapelEvent,
@@ -101,9 +106,26 @@ function chapelState(state: RuntimeState): ChapelState {
     !("npcStates" in state) ||
     !("socialChallenges" in state) ||
     !("opponents" in state) ||
-    !("itemPlacements" in state)
+    !("itemPlacements" in state) ||
+    !("npcLocations" in state)
   ) {
     throw new Error("State does not belong to chapel.");
+  }
+  return state;
+}
+
+function potionChapelState(state: RuntimeState): PotionChapelState {
+  if (
+    !("adventureId" in state) ||
+    state.adventureId !== CHAPEL_ID ||
+    !("discoveries" in state) ||
+    !("npcStates" in state) ||
+    !("socialChallenges" in state) ||
+    !("opponents" in state) ||
+    !("itemPlacements" in state) ||
+    "npcLocations" in state
+  ) {
+    throw new Error("State does not belong to chapel potion v6.");
   }
   return state;
 }
@@ -191,8 +213,37 @@ function initialChapelItems(): ChapelState["itemPlacements"] {
   return createChapelSession().itemPlacements;
 }
 
+function initialChapelNpcLocations(): ChapelState["npcLocations"] {
+  return createChapelSession().npcLocations;
+}
+
+function upgradePotionChapelState(state: PotionChapelState): ChapelState {
+  return { ...state, npcLocations: initialChapelNpcLocations() };
+}
+
+function downgradePotionChapelState(state: ChapelState): PotionChapelState {
+  return {
+    adventureId: state.adventureId,
+    locationId: state.locationId,
+    status: state.status,
+    fighter: state.fighter,
+    quest: state.quest,
+    discoveries: state.discoveries,
+    npcStates: state.npcStates,
+    conversationHistory: state.conversationHistory,
+    socialChallenges: state.socialChallenges,
+    itemPlacements: state.itemPlacements,
+    opponents: state.opponents,
+    ...(state.combat === undefined ? {} : { combat: state.combat }),
+  };
+}
+
 function upgradeGuardianChapelState(state: GuardianChapelState): ChapelState {
-  return { ...state, itemPlacements: initialChapelItems() };
+  return {
+    ...state,
+    npcLocations: initialChapelNpcLocations(),
+    itemPlacements: initialChapelItems(),
+  };
 }
 
 function downgradeGuardianChapelState(state: ChapelState): GuardianChapelState {
@@ -218,6 +269,7 @@ function upgradeLegacyChapelState(state: LegacyChapelState): ChapelState {
     discoveries: [],
     npcStates: INITIAL_CHAPEL_NPC_STATES,
     conversationHistory: [],
+    npcLocations: initialChapelNpcLocations(),
     itemPlacements: initialChapelItems(),
     opponents: initialChapelOpponents(),
   } as unknown as ChapelState;
@@ -228,6 +280,7 @@ function upgradeDiscoveryChapelState(state: DiscoveryChapelState): ChapelState {
     ...state,
     npcStates: INITIAL_CHAPEL_NPC_STATES,
     conversationHistory: [],
+    npcLocations: initialChapelNpcLocations(),
     itemPlacements: initialChapelItems(),
     opponents: initialChapelOpponents(),
   } as unknown as ChapelState;
@@ -240,6 +293,7 @@ function createDialogueChapelSession(): DialogueChapelState {
 function upgradeDialogueChapelState(state: DialogueChapelState): ChapelState {
   return {
     ...state,
+    npcLocations: initialChapelNpcLocations(),
     itemPlacements: initialChapelItems(),
     opponents: initialChapelOpponents(),
   } as ChapelState;
@@ -265,6 +319,7 @@ function createSocialChapelSession(): SocialChapelState {
 function upgradeSocialChapelState(state: SocialChapelState): ChapelState {
   return {
     ...state,
+    npcLocations: initialChapelNpcLocations(),
     itemPlacements: initialChapelItems(),
     opponents: initialChapelOpponents(),
   };
@@ -850,10 +905,13 @@ const GUARDIAN_CHAPEL_RUNTIME: AdventureRuntime = Object.freeze({
   },
   renderIntroduction: renderChapelIntroduction,
   renderResult: (result) =>
-    renderChapelResult({
-      ...result,
-      state: upgradeGuardianChapelState(guardianChapelState(result.state)),
-    } as ChapelResult),
+    renderChapelResult(
+      {
+        ...result,
+        state: upgradeGuardianChapelState(guardianChapelState(result.state)),
+      } as ChapelResult,
+      false,
+    ),
   dispatchGameTool: (state, call, random) => {
     const guardianState = guardianChapelState(state);
     if (call.name === "take" || call.name === "use_item") {
@@ -921,6 +979,80 @@ The game engine is authoritative. Use only offered tools and public structured c
   projectDmScene: (state) => projectChapelScene(chapelState(state)),
 });
 
+const POTION_CHAPEL_RUNTIME: AdventureRuntime = Object.freeze({
+  id: CHAPEL_ID,
+  version: POTION_CHAPEL_VERSION,
+  rulesVersion: POTION_CHAPEL_RULES_VERSION,
+  promptVersion: POTION_CHAPEL_PROMPT_VERSION,
+  toolSchemaVersion: POTION_CHAPEL_TOOL_VERSION,
+  readToolNames: ["look", "inspect", "get_character_status", "get_journal"],
+  mutationToolNames: ["move", "search", "talk", "take", "use_item", "attack"],
+  commandTraceFormatVersion: 3,
+  dmTraceFormatVersion: 3,
+  createSession: () => downgradePotionChapelState(createChapelSession()),
+  handleAction: (state, action, random) => {
+    const historicalState = potionChapelState(state);
+    const result = handleChapelAction(
+      upgradePotionChapelState(historicalState),
+      action,
+      random,
+      true,
+      true,
+      false,
+    );
+    return result.rejection === undefined
+      ? {
+          state: downgradePotionChapelState(result.state),
+          events: result.events,
+        }
+      : {
+          state: downgradePotionChapelState(result.state),
+          rejection: result.rejection,
+        };
+  },
+  parseCommand: parseCurrentChapelCommand,
+  renderIntroduction: renderChapelIntroduction,
+  renderResult: (result) =>
+    renderChapelResult(
+      {
+        ...result,
+        state: upgradePotionChapelState(potionChapelState(result.state)),
+      } as ChapelResult,
+      false,
+    ),
+  dispatchGameTool: (state, call, random) => {
+    const historicalState = potionChapelState(state);
+    const result = dispatchChapelTool(
+      upgradePotionChapelState(historicalState),
+      call,
+      random,
+      true,
+      true,
+      false,
+    );
+    return {
+      ...result,
+      state: downgradePotionChapelState(result.state as ChapelState),
+    };
+  },
+  getGameToolDefinitions: (state) =>
+    getChapelTools(
+      upgradePotionChapelState(potionChapelState(state)),
+      true,
+      true,
+      false,
+    ),
+  projectCharacterStatus: (state) =>
+    projectChapelStatus(upgradePotionChapelState(potionChapelState(state))),
+  projectDmScene: (state) =>
+    projectChapelScene(
+      upgradePotionChapelState(potionChapelState(state)),
+      true,
+      true,
+      false,
+    ),
+});
+
 export function resolveAdventure(id = "stolen-signet"): AdventureRuntime {
   if (id === "chapel") {
     return CHAPEL_RUNTIME;
@@ -956,6 +1088,13 @@ export function resolveHistoricalAdventure(
     adventureVersion === CHAPEL_VERSION
   ) {
     return CHAPEL_RUNTIME;
+  }
+  if (
+    adventureId === CHAPEL_ID &&
+    rulesVersion === POTION_CHAPEL_RULES_VERSION &&
+    adventureVersion === POTION_CHAPEL_VERSION
+  ) {
+    return POTION_CHAPEL_RUNTIME;
   }
   if (
     adventureId === CHAPEL_ID &&

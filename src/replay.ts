@@ -20,6 +20,10 @@ import {
   CHAPEL_RULES_VERSION,
   CHAPEL_PROMPT_VERSION,
   CHAPEL_TOOL_VERSION,
+  POTION_CHAPEL_VERSION,
+  POTION_CHAPEL_RULES_VERSION,
+  POTION_CHAPEL_PROMPT_VERSION,
+  POTION_CHAPEL_TOOL_VERSION,
   GUARDIAN_CHAPEL_VERSION,
   GUARDIAN_CHAPEL_RULES_VERSION,
   GUARDIAN_CHAPEL_PROMPT_VERSION,
@@ -1106,6 +1110,9 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
   const rulesVersion = requireString(trace.rulesVersion, "rulesVersion");
   const current =
     version === CHAPEL_VERSION && rulesVersion === CHAPEL_RULES_VERSION;
+  const potion =
+    version === POTION_CHAPEL_VERSION &&
+    rulesVersion === POTION_CHAPEL_RULES_VERSION;
   const guardian =
     version === GUARDIAN_CHAPEL_VERSION &&
     rulesVersion === GUARDIAN_CHAPEL_RULES_VERSION;
@@ -1121,9 +1128,18 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
   const legacy =
     version === LEGACY_CHAPEL_VERSION &&
     rulesVersion === LEGACY_CHAPEL_RULES_VERSION;
-  if (!current && !guardian && !social && !dialogue && !discovery && !legacy) {
+  if (
+    !current &&
+    !potion &&
+    !guardian &&
+    !social &&
+    !dialogue &&
+    !discovery &&
+    !legacy
+  ) {
     if (
       rulesVersion !== CHAPEL_RULES_VERSION &&
+      rulesVersion !== POTION_CHAPEL_RULES_VERSION &&
       rulesVersion !== GUARDIAN_CHAPEL_RULES_VERSION &&
       rulesVersion !== SOCIAL_CHAPEL_RULES_VERSION &&
       rulesVersion !== DIALOGUE_CHAPEL_RULES_VERSION &&
@@ -1136,6 +1152,7 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     }
     if (
       version !== CHAPEL_VERSION &&
+      version !== POTION_CHAPEL_VERSION &&
       version !== GUARDIAN_CHAPEL_VERSION &&
       version !== SOCIAL_CHAPEL_VERSION &&
       version !== DIALOGUE_CHAPEL_VERSION &&
@@ -1156,38 +1173,43 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     rulesVersion,
     promptVersion: current
       ? CHAPEL_PROMPT_VERSION
-      : guardian
-        ? GUARDIAN_CHAPEL_PROMPT_VERSION
-        : social
-          ? SOCIAL_CHAPEL_PROMPT_VERSION
-          : dialogue
-            ? DIALOGUE_CHAPEL_PROMPT_VERSION
-            : discovery
-              ? DISCOVERY_CHAPEL_PROMPT_VERSION
-              : LEGACY_CHAPEL_PROMPT_VERSION,
+      : potion
+        ? POTION_CHAPEL_PROMPT_VERSION
+        : guardian
+          ? GUARDIAN_CHAPEL_PROMPT_VERSION
+          : social
+            ? SOCIAL_CHAPEL_PROMPT_VERSION
+            : dialogue
+              ? DIALOGUE_CHAPEL_PROMPT_VERSION
+              : discovery
+                ? DISCOVERY_CHAPEL_PROMPT_VERSION
+                : LEGACY_CHAPEL_PROMPT_VERSION,
     toolVersion: current
       ? CHAPEL_TOOL_VERSION
-      : guardian
-        ? GUARDIAN_CHAPEL_TOOL_VERSION
-        : social
-          ? SOCIAL_CHAPEL_TOOL_VERSION
-          : dialogue
-            ? DIALOGUE_CHAPEL_TOOL_VERSION
-            : discovery
-              ? DISCOVERY_CHAPEL_TOOL_VERSION
-              : LEGACY_CHAPEL_TOOL_VERSION,
-    localKinds: current
-      ? [
-          "dm",
-          "local-help",
-          "local-journal",
-          "local-status",
-          "local-inventory",
-          "local-quit",
-        ]
-      : guardian || social || dialogue || discovery
-        ? ["dm", "local-help", "local-journal", "local-quit"]
-        : ["dm", "local-help", "local-quit"],
+      : potion
+        ? POTION_CHAPEL_TOOL_VERSION
+        : guardian
+          ? GUARDIAN_CHAPEL_TOOL_VERSION
+          : social
+            ? SOCIAL_CHAPEL_TOOL_VERSION
+            : dialogue
+              ? DIALOGUE_CHAPEL_TOOL_VERSION
+              : discovery
+                ? DISCOVERY_CHAPEL_TOOL_VERSION
+                : LEGACY_CHAPEL_TOOL_VERSION,
+    localKinds:
+      current || potion
+        ? [
+            "dm",
+            "local-help",
+            "local-journal",
+            "local-status",
+            "local-inventory",
+            "local-quit",
+          ]
+        : guardian || social || dialogue || discovery
+          ? ["dm", "local-help", "local-journal", "local-quit"]
+          : ["dm", "local-help", "local-quit"],
   };
 }
 

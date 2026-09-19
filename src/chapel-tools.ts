@@ -10,6 +10,7 @@ import {
   chapelSearchTargets,
   handleChapelAction,
   projectChapelJournal,
+  visibleChapelFeatures,
   visibleChapelNpcs,
   type ChapelTalkApproach,
   type ChapelState,
@@ -28,6 +29,7 @@ export function projectChapelScene(
   state: ChapelState,
   guardianEnabled = true,
   itemsEnabled = true,
+  rescueEnabled = true,
 ): DmScene {
   const room = chapelRoom(state.locationId);
   const skeleton = CHAPEL_OPPONENT_COMBATANTS["skeleton-guardian"];
@@ -44,7 +46,7 @@ export function projectChapelScene(
       id: room.id,
       name: room.name,
       description: room.description,
-      features: room.features,
+      features: visibleChapelFeatures(state, rescueEnabled),
       items:
         itemsEnabled &&
         potionPlacement.type === "room" &&
@@ -73,7 +75,7 @@ export function projectChapelScene(
             },
           ]
         : [],
-      npcs: visibleChapelNpcs(state),
+      npcs: visibleChapelNpcs(state, rescueEnabled),
       exits: room.exits.map((id) => ({ destinationId: id, name: id })),
     },
     journal: projectChapelJournal(state),
@@ -110,6 +112,7 @@ export function getChapelTools(
   state: ChapelState,
   guardianEnabled = true,
   itemsEnabled = true,
+  rescueEnabled = true,
 ): readonly GameToolDefinition[] {
   const room = chapelRoom(state.locationId);
   const activeCombat =
@@ -118,7 +121,7 @@ export function getChapelTools(
     state.combat !== undefined &&
     state.opponents[state.combat.opponentCombatantId].hp > 0;
   const searchTargets =
-    state.status === "playing" ? chapelSearchTargets(state) : [];
+    state.status === "playing" ? chapelSearchTargets(state, rescueEnabled) : [];
   const potionPlacement = state.itemPlacements["healing-potion"];
   const visiblePotion =
     itemsEnabled &&
@@ -132,7 +135,9 @@ export function getChapelTools(
     potionPlacement.type === "inventory";
   const visibleNpcs =
     state.status === "playing" && !activeCombat
-      ? visibleChapelNpcs(state).filter(({ subjects }) => subjects.length > 0)
+      ? visibleChapelNpcs(state, rescueEnabled).filter(
+          ({ subjects }) => subjects.length > 0,
+        )
       : [];
   const definition = (
     name: GameToolDefinition["name"],
@@ -167,7 +172,7 @@ export function getChapelTools(
         target: {
           type: "string",
           enum: [
-            ...room.features.map(({ id }) => id),
+            ...visibleChapelFeatures(state, rescueEnabled).map(({ id }) => id),
             ...(guardianEnabled && state.locationId === "crypt"
               ? ["skeleton-guardian"]
               : []),
@@ -258,14 +263,18 @@ export function dispatchChapelTool(
   random?: Parameters<typeof handleChapelAction>[2],
   guardianEnabled = true,
   itemsEnabled = true,
+  rescueEnabled = true,
 ): RuntimeToolResult {
   const reject = (code: ToolValidationErrorCode): RuntimeToolResult => ({
     state,
     modelOutput: { ok: false, error: { code } },
   });
-  const tool = getChapelTools(state, guardianEnabled, itemsEnabled).find(
-    ({ name }) => name === call.name,
-  );
+  const tool = getChapelTools(
+    state,
+    guardianEnabled,
+    itemsEnabled,
+    rescueEnabled,
+  ).find(({ name }) => name === call.name);
   if (tool === undefined) {
     return reject("unknown-tool");
   }
@@ -288,7 +297,7 @@ export function dispatchChapelTool(
     ) {
       return reject("invalid-arguments");
     }
-    const speaker = visibleChapelNpcs(state).find(
+    const speaker = visibleChapelNpcs(state, rescueEnabled).find(
       ({ id }) => id === args.speakerId,
     );
     if (
@@ -363,7 +372,7 @@ export function dispatchChapelTool(
     const target = String(args.target);
     const room = chapelRoom(state.locationId);
     const reference = [
-      ...room.features.map(({ id }) => id),
+      ...visibleChapelFeatures(state, rescueEnabled).map(({ id }) => id),
       ...(guardianEnabled && state.locationId === "crypt"
         ? ["skeleton-guardian"]
         : []),
@@ -375,7 +384,9 @@ export function dispatchChapelTool(
     action = { type: "inspect", target: reference };
   } else if (call.name === "search") {
     const target = String(args.target);
-    if (!chapelSearchTargets(state).some((id) => id === target)) {
+    if (
+      !chapelSearchTargets(state, rescueEnabled).some((id) => id === target)
+    ) {
       return reject("unavailable-reference");
     }
     action = { type: "search", target };
@@ -399,6 +410,7 @@ export function dispatchChapelTool(
     random,
     guardianEnabled,
     itemsEnabled,
+    rescueEnabled,
   );
   if (result.rejection !== undefined) {
     return {
@@ -412,7 +424,12 @@ export function dispatchChapelTool(
   }
   const inspection =
     action.type === "inspect"
-      ? chapelInspection(state, action.target ?? "", guardianEnabled)
+      ? chapelInspection(
+          state,
+          action.target ?? "",
+          guardianEnabled,
+          rescueEnabled,
+        )
       : undefined;
   const conversation =
     action.type === "talk"
@@ -428,7 +445,12 @@ export function dispatchChapelTool(
     modelOutput: {
       ok: true,
       events: result.events,
-      scene: projectChapelScene(result.state, guardianEnabled, itemsEnabled),
+      scene: projectChapelScene(
+        result.state,
+        guardianEnabled,
+        itemsEnabled,
+        rescueEnabled,
+      ),
       ...(conversation === undefined ? {} : { conversation }),
       ...(inspection === undefined
         ? {}
