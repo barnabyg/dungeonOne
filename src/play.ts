@@ -67,9 +67,13 @@ export async function playGame(
 
   io.write(`Seed: ${options.seed} (${RANDOM_ALGORITHM})\n`);
   io.write(`${renderIntroduction()}\n`);
-  const initialStatus = handleAction(state, { type: "status" }, random);
-  state = initialStatus.state;
-  io.write(`${renderResult(initialStatus)}\n`);
+  if (runtime.renderStateSummary === undefined) {
+    const initialStatus = handleAction(state, { type: "status" }, random);
+    state = initialStatus.state;
+    io.write(`${renderResult(initialStatus)}\n`);
+  } else {
+    io.write(`${runtime.renderStateSummary(state)}\n`);
+  }
   const initialLook = handleAction(state, { type: "look" }, random);
   state = initialLook.state;
   io.write(`${renderResult(initialLook)}\n`);
@@ -168,6 +172,15 @@ export async function playGame(
             result.mechanics.length === 0
               ? "No action or read tool was used."
               : result.mechanics.join("\n"),
+            ...(runtime.renderStateSummary !== undefined &&
+            result.toolResults.some(
+              ({ call, result: toolResult }) =>
+                runtime.mutationToolNames.includes(call.name) &&
+                toolResult.engineResult !== undefined &&
+                "events" in toolResult.engineResult,
+            )
+              ? ["", runtime.renderStateSummary(result.state)]
+              : []),
             "",
             "Dungeon Master:",
             result.narration,
@@ -193,6 +206,15 @@ export async function playGame(
       }
       state = result.state;
       io.write(`${renderResult(result)}\n`);
+      if (
+        runtime.renderStateSummary !== undefined &&
+        result.rejection === undefined &&
+        ["move", "search", "talk", "take", "use", "attack", "resolve"].includes(
+          action.type,
+        )
+      ) {
+        io.write(`${runtime.renderStateSummary(state)}\n`);
+      }
       requestedQuit =
         result.events?.some((event) => event.type === "session-quit") === true;
     }

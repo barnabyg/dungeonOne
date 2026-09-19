@@ -72,6 +72,27 @@ copyable offline journey is:
 npm.cmd start -- --replay .\chapel-trace.json
 ```
 
+Chapel play prints one compact authoritative state line at startup and after
+each accepted gameplay action: HP, potion availability, the active combat turn,
+and quest progress. Scene and help output offer copyable commands only for
+publicly available targets; later evidence, rescue, and ending commands appear
+when the player can actually discover or choose them. Speaker-prefixed dialogue,
+labeled mechanics, `Journal update` discoveries, and AI-mode `Dungeon Master`
+output remain visually distinct.
+
+Exact `journal`, `status`, `inventory`, `help`, and `quit` remain local in AI
+mode, including after a provider failure. This checked-in scripted failure stops
+immediately after committing the notice search so the local recovery path is
+repeatable without credentials:
+
+```powershell
+$env:DUNGEON_ONE_TEST_DM_SCRIPT = ".\docs\acceptance\inputs\chapel-ai-failure-after.script.json"
+Get-Content .\docs\acceptance\inputs\chapel-ai-failure-after.txt |
+  npm.cmd start -- --adventure chapel --seed 0 --trace .\chapel-recovery.json
+Remove-Item Env:\DUNGEON_ONE_TEST_DM_SCRIPT
+npm.cmd start -- --replay .\chapel-recovery.json
+```
+
 For opt-in live AI play, set `OPENAI_API_KEY` in the environment. `--ai` uses
 the configured default model `gpt-5.6-luna`:
 
@@ -151,7 +172,8 @@ runs without a model, compares every result and state, and rejects unknown versi
 or tampering. The exploration-v1, discovery-v2, dialogue-v3, social-v4, and
 guardian-v5 tuples remain replayable after potion-v6 was added. AI traces identify
 exact local `journal`, `status`, and `inventory` reads and replay validates their
-input, result, and unchanged state. Trace state
+input, result, and unchanged state. Local `help` and `quit` inputs are also
+validated during replay. Trace state
 is diagnostic and may contain spoilers; it is not a save.
 
 Command mode exports trace format `1`. It is JSON and a compatibility contract. It records

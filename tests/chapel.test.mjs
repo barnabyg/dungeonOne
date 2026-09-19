@@ -591,7 +591,7 @@ test("search consumes the mutation budget and provider recovery preserves its fi
   assert.equal(result.state.discoveries.length, 1);
   assert.equal(result.toolResults.length, 1);
   assert.deepEqual(result.toolResults[0].rolls, []);
-  assert.match(result.mechanics[0], /Discovery recorded.*chapel route/i);
+  assert.match(result.mechanics[0], /Journal update.*chapel route/i);
   assert.equal(result.diagnostics.at(-1).code, "model-failure");
   assert.match(result.narration, /authoritative result.*Mechanics/i);
   assert.ok(!requests[1].tools.some(({ name }) => name === "search"));

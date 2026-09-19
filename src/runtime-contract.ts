@@ -93,6 +93,7 @@ export type AdventureRuntime = Readonly<{
   parseCommand(input: string): Action;
   renderIntroduction(): string;
   renderResult(result: RuntimeResult): string;
+  renderStateSummary?(state: RuntimeState): string;
   dispatchGameTool(
     state: RuntimeState,
     call: GameToolCall,

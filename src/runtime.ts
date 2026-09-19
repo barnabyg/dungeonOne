@@ -52,6 +52,7 @@ import {
   handleChapelAction,
   renderChapelIntroduction,
   renderChapelResult,
+  renderChapelStateSummary,
   type ChapelState,
   type GuardianChapelState,
   type PotionChapelState,
@@ -1178,6 +1179,7 @@ The game engine is authoritative. Use only offered tools and public structured c
     chapelState(result.state);
     return renderChapelResult(result as ChapelResult);
   },
+  renderStateSummary: (state) => renderChapelStateSummary(chapelState(state)),
   dispatchGameTool: (state, call, random, playerInput) =>
     resolutionCallMatchesPlayerIntent(call, playerInput)
       ? dispatchChapelTool(chapelState(state), call, random)

@@ -2239,6 +2239,24 @@ export function renderChapelIntroduction(): string {
   return `${CHAPEL_TITLE}\n\nObjective: ${CHAPEL_OBJECTIVE}\nActive quest: Find Tavi.\nMara is here. Public subject: Tavi's disappearance.\nType "help" for available commands.`;
 }
 
+export function renderChapelStateSummary(state: ChapelState): string {
+  const potion = state.itemPlacements["healing-potion"].type;
+  const potionStatus =
+    potion === "inventory"
+      ? "available"
+      : potion === "consumed"
+        ? "consumed"
+        : "not collected";
+  const activeCombat =
+    state.combat !== undefined &&
+    chapelHostileHitPoints(state, state.combat.opponentCombatantId) > 0;
+  const combatStatus = activeCombat
+    ? `${chapelCombatantName(state.combat?.currentTurn ?? "fighter")}'s turn`
+    : "none";
+  const discoveryCount = state.discoveries.length;
+  return `State — HP ${state.fighter.hp}/${state.fighter.maxHp} | Potion: ${potionStatus} | Combat: ${combatStatus} | Quest: Find Tavi (${state.quest.status}; ${discoveryCount} ${discoveryCount === 1 ? "discovery" : "discoveries"}).`;
+}
+
 function chapelCombatantName(combatantId: ChapelCombatantId): string {
   if (combatantId === "fighter") {
     return "Fighter";
@@ -2256,6 +2274,72 @@ function chapelAttackName(
     ? CHAPEL_OPPONENT_DEFINITIONS.skeleton.attackName
     : (CHAPEL_NPCS.find(({ id }) => id === combatantId)?.attackName ??
         "improvised weapon");
+}
+
+function chapelPublicCommandSuggestions(
+  state: ChapelState,
+  rescueEnabled: boolean,
+  resolutionEnabled: boolean,
+): readonly string[] {
+  if (state.status !== "playing") {
+    return ["status", "inventory", "journal", "help", "quit"];
+  }
+  const activeCombat =
+    state.combat !== undefined &&
+    chapelHostileHitPoints(state, state.combat.opponentCombatantId) > 0;
+  const features = visibleChapelFeatures(
+    state,
+    rescueEnabled,
+    resolutionEnabled,
+  );
+  const searchCommands = activeCombat
+    ? []
+    : chapelSearchTargets(state, rescueEnabled, resolutionEnabled).map(
+        (targetId) => {
+          const target = features.find(({ id }) => id === targetId);
+          return `search ${target?.name ?? targetId}`;
+        },
+      );
+  const talkCommands = activeCombat
+    ? []
+    : visibleChapelNpcs(state, rescueEnabled).flatMap((npc) =>
+        npc.subjects.flatMap(({ id: topicId }) =>
+          (npc.id === "oren" && topicId === "repairs"
+            ? CHAPEL_TALK_APPROACHES
+            : (["ask"] as const)
+          ).map((approach) => `talk ${npc.id} ${topicId} ${approach}`),
+        ),
+      );
+  const potionPlacement = state.itemPlacements["healing-potion"];
+  const itemCommands =
+    !activeCombat &&
+    potionPlacement.type === "room" &&
+    potionPlacement.roomId === state.locationId
+      ? ["take healing potion", "use potion"]
+      : potionPlacement.type === "inventory"
+        ? ["use potion"]
+        : [];
+  const combatCommands =
+    activeCombat && state.combat !== undefined
+      ? [
+          `attack ${state.combat.opponentCombatantId === "skeleton-guardian" ? "skeleton" : state.combat.opponentCombatantId}`,
+        ]
+      : [];
+  const resolutionCommands =
+    resolutionEnabled && !activeCombat
+      ? chapelResolutionChoices(state).map((choice) =>
+          choice === "public-disclosure"
+            ? "resolve public disclosure"
+            : "resolve confidential referral",
+        )
+      : [];
+  return [
+    ...searchCommands,
+    ...talkCommands,
+    ...itemCommands,
+    ...combatCommands,
+    ...resolutionCommands,
+  ];
 }
 
 export function renderChapelResult(
@@ -2334,7 +2418,12 @@ export function renderChapelResult(
               : resolutionEnabled && result.state.resolution !== undefined
                 ? `\nNoticeboard record: ${resolutionNoticeboardFeature(result.state).description}`
                 : "";
-          return `${room.name}\n${chapelRoomDescription(result.state)}\nVisible: ${featureNames.join(", ")}.${resolutionLine}\nVisible items: ${visibleItems}.\n${opponentLine}\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.`;
+          const suggestions = chapelPublicCommandSuggestions(
+            result.state,
+            rescueEnabled,
+            resolutionEnabled,
+          );
+          return `${room.name}\n${chapelRoomDescription(result.state)}\nVisible: ${featureNames.join(", ")}.${resolutionLine}\nVisible items: ${visibleItems}.\n${opponentLine}\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.\nTry: ${suggestions.join("; ") || "look"}.`;
         }
         case "chapel-moved":
           return `You travel to ${chapelRoom(event.roomId).name}.`;
@@ -2350,7 +2439,7 @@ export function renderChapelResult(
             )?.discovery;
           return discovery === undefined
             ? "A discovery was recorded."
-            : `Discovery recorded — ${discovery.title}: ${discovery.summary}`;
+            : `Journal update — ${discovery.title}: ${discovery.summary}`;
         }
         case "chapel-conversation":
           return event.conversation.authoredReply;
@@ -2437,7 +2526,7 @@ export function renderChapelResult(
         case "chapel-inventory":
           return `Equipped: longsword.\nHealing potion: ${result.state.itemPlacements["healing-potion"].type === "inventory" ? "available" : result.state.itemPlacements["healing-potion"].type === "consumed" ? "consumed" : "not collected"}.`;
         case "chapel-help":
-          return "Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, take <item>, use <item>, attack <target>, resolve <choice>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nExamples: talk mara tavi ask; move chapel-path; take healing potion; use potion; move ruined-chapel; move crypt; attack skeleton; search diversion ledger; talk tavi crypt ask; talk tavi rescue ask; resolve public disclosure; resolve confidential referral.\nEnter each command on its own line. During guardian combat, attack or potion use advances the turn; reads and quit remain available. Defeating the guardian makes Tavi and the diversion ledger accessible.";
+          return `Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, take <item>, use <item>, attack <target>, resolve <choice>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nPublic examples here: ${chapelPublicCommandSuggestions(result.state, rescueEnabled, resolutionEnabled).join("; ") || "look"}.\nEnter each command on its own line. During combat, attack or potion use advances the turn; reads and quit remain available. Commands are suggested only when their public target is currently available.`;
         case "session-quit":
           return "You leave the game.";
       }
