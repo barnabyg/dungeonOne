@@ -5,6 +5,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
+import { playGame } from "../dist/play.js";
+import { resolveAdventure } from "../dist/runtime.js";
+
 function runChapel(input, extraArgs = []) {
   const environment = { ...process.env };
   delete environment.DUNGEON_ONE_TEST_DM_SCRIPT;
@@ -202,4 +205,49 @@ test("provider failure leaves every exact local control usable and replay-valida
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test("live AI help names the live mode without calling the provider", async () => {
+  let output = "";
+  let closed = false;
+  let providerCalls = 0;
+  const lines = {
+    close() {
+      closed = true;
+    },
+    prompt() {},
+    async *[Symbol.asyncIterator]() {
+      for (const line of ["help", "quit"]) {
+        if (closed) {
+          return;
+        }
+        yield line;
+      }
+    },
+  };
+
+  await playGame(
+    {
+      seed: 0,
+      runtime: resolveAdventure("chapel"),
+      dmModel: {
+        identity: { provider: "openai", model: "test-model" },
+        async respond() {
+          providerCalls += 1;
+          throw new Error("Local controls must not call the provider.");
+        },
+      },
+    },
+    {
+      terminal: false,
+      lines,
+      write(text) {
+        output += text;
+      },
+    },
+  );
+
+  assert.equal(providerCalls, 0);
+  assert.match(output, /Live AI DM mode accepts ordinary language/u);
+  assert.doesNotMatch(output, /Scripted DM mode accepts ordinary language/u);
 });

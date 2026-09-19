@@ -58,6 +58,12 @@ export async function playGame(
     renderResult,
   } = runtime;
   const dmIdentity = options.dmModel?.identity;
+  const dmModeName =
+    options.dmModel === undefined
+      ? undefined
+      : options.dmModel.identity?.provider === "openai"
+        ? "Live AI DM mode"
+        : "Scripted DM mode";
   const hasLocalPotionReads = runtime.mutationToolNames.includes("use_item");
   if (
     options.dmModel !== undefined &&
@@ -92,16 +98,12 @@ export async function playGame(
   state = initialLook.state;
   io.write(`${renderResult(initialLook)}\n`);
 
-  if (options.dmModel !== undefined) {
-    const modeName =
-      options.dmModel.identity?.provider === "openai"
-        ? "Live AI DM mode"
-        : "Scripted DM mode";
+  if (dmModeName !== undefined) {
     const questionGuidance = runtime.readToolNames.includes("get_journal")
       ? "the scene, your character's status, or your journal"
       : "the scene or your character's status";
     io.write(
-      `${modeName}: describe one action or ask about ${questionGuidance}.\n`,
+      `${dmModeName}: describe one action or ask about ${questionGuidance}.\n`,
     );
   }
 
@@ -116,7 +118,7 @@ export async function playGame(
       if (localCommand === "help") {
         io.write(
           [
-            "Scripted DM mode accepts ordinary language for one gameplay attempt or questions about the current scene and character status.",
+            `${dmModeName} accepts ordinary language for one gameplay attempt or questions about the current scene and character status.`,
             "After victory or defeat, gameplay mutations are frozen but reflection and reads remain available.",
             "Local commands:",
             "  help  Show this guidance without calling the model.",
