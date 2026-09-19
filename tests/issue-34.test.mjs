@@ -22,6 +22,36 @@ function runChapel(input, extraArgs = []) {
   );
 }
 
+async function playChapelWithModel(inputLines, dmModel) {
+  let output = "";
+  let closed = false;
+  const lines = {
+    close() {
+      closed = true;
+    },
+    prompt() {},
+    async *[Symbol.asyncIterator]() {
+      for (const line of inputLines) {
+        if (closed) {
+          return;
+        }
+        yield line;
+      }
+    },
+  };
+  await playGame(
+    { seed: 0, runtime: resolveAdventure("chapel"), dmModel },
+    {
+      terminal: false,
+      lines,
+      write(text) {
+        output += text;
+      },
+    },
+  );
+  return output;
+}
+
 test("chapel prints a compact authoritative state line at startup and after accepted actions", () => {
   const played = runChapel(
     [
@@ -208,44 +238,14 @@ test("provider failure leaves every exact local control usable and replay-valida
 });
 
 test("live AI help names the live mode without calling the provider", async () => {
-  let output = "";
-  let closed = false;
   let providerCalls = 0;
-  const lines = {
-    close() {
-      closed = true;
+  const output = await playChapelWithModel(["help", "quit"], {
+    identity: { provider: "openai", model: "test-model" },
+    async respond() {
+      providerCalls += 1;
+      throw new Error("Local controls must not call the provider.");
     },
-    prompt() {},
-    async *[Symbol.asyncIterator]() {
-      for (const line of ["help", "quit"]) {
-        if (closed) {
-          return;
-        }
-        yield line;
-      }
-    },
-  };
-
-  await playGame(
-    {
-      seed: 0,
-      runtime: resolveAdventure("chapel"),
-      dmModel: {
-        identity: { provider: "openai", model: "test-model" },
-        async respond() {
-          providerCalls += 1;
-          throw new Error("Local controls must not call the provider.");
-        },
-      },
-    },
-    {
-      terminal: false,
-      lines,
-      write(text) {
-        output += text;
-      },
-    },
-  );
+  });
 
   assert.equal(providerCalls, 0);
   assert.match(output, /Live AI DM mode accepts ordinary language/u);
@@ -253,8 +253,6 @@ test("live AI help names the live mode without calling the provider", async () =
 });
 
 test("exact local status reports the combat turn after a provider failure", async () => {
-  let output = "";
-  let closed = false;
   const responses = [
     {
       toolCalls: [
@@ -287,50 +285,23 @@ test("exact local status reports the combat turn after a provider failure", asyn
     },
   ];
   let responseIndex = 0;
-  const lines = {
-    close() {
-      closed = true;
-    },
-    prompt() {},
-    async *[Symbol.asyncIterator]() {
-      for (const line of [
-        "Follow the chapel path.",
-        "Enter the ruined chapel.",
-        "Enter the crypt.",
-        "status",
-        "quit",
-      ]) {
-        if (closed) {
-          return;
+  const output = await playChapelWithModel(
+    [
+      "Follow the chapel path.",
+      "Enter the ruined chapel.",
+      "Enter the crypt.",
+      "status",
+      "quit",
+    ],
+    {
+      identity: { provider: "scripted", model: "test-model" },
+      async respond() {
+        const response = responses[responseIndex];
+        responseIndex += 1;
+        if (response === undefined) {
+          throw new Error("Simulated provider failure after entering combat.");
         }
-        yield line;
-      }
-    },
-  };
-
-  await playGame(
-    {
-      seed: 0,
-      runtime: resolveAdventure("chapel"),
-      dmModel: {
-        identity: { provider: "scripted", model: "test-model" },
-        async respond() {
-          const response = responses[responseIndex];
-          responseIndex += 1;
-          if (response === undefined) {
-            throw new Error(
-              "Simulated provider failure after entering combat.",
-            );
-          }
-          return response;
-        },
-      },
-    },
-    {
-      terminal: false,
-      lines,
-      write(text) {
-        output += text;
+        return response;
       },
     },
   );
