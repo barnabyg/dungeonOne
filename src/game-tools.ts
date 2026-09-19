@@ -13,6 +13,7 @@ import type {
   ChapelFeatureId,
   ChapelItemId,
   ChapelJournal,
+  ChapelHostileCombatantId,
   ChapelOpponentCombatantId,
   ChapelRoomId,
 } from "./chapel.js";
@@ -74,7 +75,7 @@ export type DmScene = Readonly<{
   combat?: Readonly<
     | { opponentId: OpponentId; currentTurn: CombatantId }
     | {
-        opponentCombatantId: ChapelOpponentCombatantId;
+        opponentCombatantId: ChapelHostileCombatantId;
         currentTurn: ChapelCombatantId;
       }
   >;

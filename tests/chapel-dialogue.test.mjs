@@ -742,7 +742,7 @@ test("offline and scripted-AI conversations are attributed, traced, and replayab
     assert.equal(played.status, 0, played.stderr);
     assert.match(played.stdout, /^Mara(?: \([^)]+\))?:.*ferry/im);
     const trace = JSON.parse(readFileSync(tracePath, "utf8"));
-    assert.equal(trace.adventure.version, "chapel-resolution-v8");
+    assert.equal(trace.adventure.version, "chapel-casualties-v9");
     assert.equal(trace.turns[0].calls[0].name, "talk");
     assert.equal(trace.turns[0].stateAfter.discoveries.length, 2);
     const replayed = spawnSync(

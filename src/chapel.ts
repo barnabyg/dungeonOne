@@ -1,5 +1,6 @@
 import type { Action } from "./session.js";
 import type { RandomSource } from "./random.js";
+import type { DamageDefinition } from "./adventure.js";
 import {
   resolveAttack,
   resolveInitiative,
@@ -36,10 +37,14 @@ export const RESCUE_CHAPEL_VERSION = "chapel-rescue-v7";
 export const RESCUE_CHAPEL_RULES_VERSION = "chapel-rescue-rules-v7";
 export const RESCUE_CHAPEL_TOOL_VERSION = "chapel-rescue-tools-v7";
 export const RESCUE_CHAPEL_PROMPT_VERSION = "chapel-rescue-dm-v7";
-export const CHAPEL_VERSION = "chapel-resolution-v8";
-export const CHAPEL_RULES_VERSION = "chapel-resolution-rules-v8";
-export const CHAPEL_TOOL_VERSION = "chapel-resolution-tools-v8";
-export const CHAPEL_PROMPT_VERSION = "chapel-resolution-dm-v8";
+export const RESOLUTION_CHAPEL_VERSION = "chapel-resolution-v8";
+export const RESOLUTION_CHAPEL_RULES_VERSION = "chapel-resolution-rules-v8";
+export const RESOLUTION_CHAPEL_TOOL_VERSION = "chapel-resolution-tools-v8";
+export const RESOLUTION_CHAPEL_PROMPT_VERSION = "chapel-resolution-dm-v8";
+export const CHAPEL_VERSION = "chapel-casualties-v9";
+export const CHAPEL_RULES_VERSION = "chapel-casualties-rules-v9";
+export const CHAPEL_TOOL_VERSION = "chapel-casualties-tools-v9";
+export const CHAPEL_PROMPT_VERSION = "chapel-casualties-dm-v9";
 export const CHAPEL_TITLE = "The Bell Beneath the Chapel";
 export const CHAPEL_OBJECTIVE =
   "Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.";
@@ -56,12 +61,14 @@ export type ChapelFeatureId =
   | "damaged-repair-record"
   | "crypt-steps"
   | "diversion-ledger"
+  | "tavi-remains"
   | "resolution-noticeboard";
 export type ChapelItemId = "healing-potion";
 export type ChapelNpcId = "mara" | "oren" | "tavi";
 export type ChapelOpponentDefinitionId = "skeleton";
 export type ChapelOpponentCombatantId = "skeleton-guardian";
-export type ChapelCombatantId = "fighter" | ChapelOpponentCombatantId;
+export type ChapelHostileCombatantId = ChapelOpponentCombatantId | ChapelNpcId;
+export type ChapelCombatantId = "fighter" | ChapelHostileCombatantId;
 
 export const CHAPEL_OPPONENT_DEFINITIONS = Object.freeze({
   skeleton: {
@@ -121,7 +128,8 @@ export type ChapelDiscoveryId =
   | "tavi-disappearance-testimony"
   | "mara-ferry-belief"
   | "diversion-ledger"
-  | "tavi-crypt-testimony";
+  | "tavi-crypt-testimony"
+  | "tavi-remains";
 export type ChapelMilestoneId =
   | "chapel-route-known"
   | "unsafe-repairs-linked-to-oren"
@@ -130,11 +138,14 @@ export type ChapelMilestoneId =
   | "guardian-cleared"
   | "ledger-recovered"
   | "tavi-fate-established"
-  | "tavi-rescued";
+  | "tavi-rescued"
+  | "tavi-death-confirmed";
 export type ChapelResolutionId = "public-disclosure" | "confidential-referral";
 export type ChapelResolution = Readonly<{
   id: ChapelResolutionId;
-  taviFate: "alive-in-crypt" | "rescued-to-inn";
+  taviFate:
+    "alive-in-crypt" | "rescued-to-inn" | "dead-in-crypt" | "dead-at-inn";
+  casualties?: readonly ChapelNpcId[];
   consequences: readonly (
     | "evidence-published"
     | "village-inquiry-initiated"
@@ -183,6 +194,12 @@ type ChapelNpcDefinition = Readonly<{
   name: string;
   locationId: ChapelRoomId;
   publiclyVisible: boolean;
+  maxHp: number;
+  armorClass: number;
+  attackBonus: number;
+  initiativeBonus: number;
+  attackName: string;
+  damage: DamageDefinition;
   knows: readonly string[];
   doesNotKnow: readonly string[];
   believes: readonly string[];
@@ -202,6 +219,12 @@ export const CHAPEL_NPCS = [
     name: "Mara",
     locationId: "inn",
     publiclyVisible: true,
+    maxHp: 8,
+    armorClass: 10,
+    attackBonus: 1,
+    initiativeBonus: 0,
+    attackName: "iron poker",
+    damage: { dice: 1, sides: 4, modifier: 0 },
     knows: ["Tavi has disappeared."],
     doesNotKnow: ["Oren's private motive and Tavi's current condition."],
     believes: ["Tavi may have gone toward the ferry."],
@@ -219,6 +242,12 @@ export const CHAPEL_NPCS = [
     name: "Oren",
     locationId: "ferry-landing",
     publiclyVisible: true,
+    maxHp: 9,
+    armorClass: 11,
+    attackBonus: 2,
+    initiativeBonus: 1,
+    attackName: "ferryman's pole",
+    damage: { dice: 1, sides: 4, modifier: 1 },
     knows: [
       "The chapel route is passable.",
       "PRIVATE_MOTIVE: Oren diverted chapel repair money to buy medicine.",
@@ -244,6 +273,12 @@ export const CHAPEL_NPCS = [
     name: "Tavi",
     locationId: "crypt",
     publiclyVisible: false,
+    maxHp: 6,
+    armorClass: 10,
+    attackBonus: 1,
+    initiativeBonus: 2,
+    attackName: "stone shard",
+    damage: { dice: 1, sides: 4, modifier: 0 },
     knows: ["PRIVATE_CONDITION: Tavi is trapped beyond the guardian."],
     doesNotKnow: ["Unrelated village conversations after entering the crypt."],
     believes: [],
@@ -294,9 +329,9 @@ const TAVI_DISCOVERY = {
 } as const satisfies ChapelDiscovery;
 
 export const INITIAL_CHAPEL_NPC_STATES = Object.freeze({
-  mara: Object.freeze({ condition: "living" as const }),
-  oren: Object.freeze({ condition: "living" as const }),
-  tavi: Object.freeze({ condition: "living" as const }),
+  mara: Object.freeze({ hp: 8, maxHp: 8 }),
+  oren: Object.freeze({ hp: 9, maxHp: 9 }),
+  tavi: Object.freeze({ hp: 6, maxHp: 6 }),
 });
 export type ChapelJournal = Readonly<{
   quest: Readonly<{
@@ -371,6 +406,25 @@ const CHAPEL_EVIDENCE = [
     },
     milestoneId: "ledger-recovered",
   },
+  {
+    targetId: "tavi-remains",
+    discovery: {
+      id: "tavi-remains",
+      title: "Tavi's fate",
+      source: {
+        type: "feature",
+        id: "tavi-remains",
+        name: "Tavi's remains",
+        locationId: "crypt",
+      },
+      classification: "observation",
+      summary:
+        "Tavi died in the crypt after being trapped beyond the guardian.",
+      actionableLead:
+        "Return to the inn noticeboard and resolve the investigation truthfully.",
+    },
+    milestoneId: "tavi-death-confirmed",
+  },
 ] as const satisfies readonly ChapelEvidence[];
 
 type PublicFeature = Readonly<{
@@ -384,13 +438,32 @@ const DIVERSION_LEDGER_FEATURE = Object.freeze({
   description:
     "A water-stained ledger lies beyond the defeated guardian. Its entries can be searched carefully.",
 });
+const TAVI_REMAINS_FEATURE = Object.freeze({
+  id: "tavi-remains" as const,
+  name: "Tavi's remains",
+  description:
+    "Tavi lies motionless here. A careful search can establish and record what happened.",
+});
+
+function npcHitPoints(state: ChapelState, npcId: ChapelNpcId): number {
+  const npcState = state.npcStates[npcId];
+  return "hp" in npcState
+    ? npcState.hp
+    : npcState.condition === "living"
+      ? (CHAPEL_NPCS.find(({ id }) => id === npcId)?.maxHp ?? 1)
+      : 0;
+}
+
+function npcIsLiving(state: ChapelState, npcId: ChapelNpcId): boolean {
+  return npcHitPoints(state, npcId) > 0;
+}
 function resolutionNoticeboardFeature(state: ChapelState): PublicFeature {
   const description =
     state.resolution === undefined
       ? "The inn noticeboard presents two deliberate choices. Public disclosure publishes the ledger evidence and initiates a village inquiry. Confidential referral delivers the evidence privately to the trustees with a request for restitution and chapel repair."
       : state.resolution.id === "public-disclosure"
         ? `The noticeboard records public disclosure: the ledger evidence was published and a village inquiry was initiated. Tavi's recorded fate is ${state.resolution.taviFate}.`
-        : `The noticeboard records confidential referral: the ledger was delivered privately to the trustees with a restitution and chapel-repair request. Oren committed to future restitution. Tavi's recorded fate is ${state.resolution.taviFate}. No completed payment or repair is claimed.`;
+        : `The noticeboard records confidential referral: the ledger was delivered privately to the trustees with a restitution and chapel-repair request. ${(state.resolution.casualties ?? []).includes("oren") ? "Oren was dead, so no personal promise of restitution was recorded." : "Oren committed to future restitution."} Tavi's recorded fate is ${state.resolution.taviFate}. No completed payment or repair is claimed.`;
   return {
     id: "resolution-noticeboard",
     name: "resolution noticeboard",
@@ -522,9 +595,14 @@ export type ChapelState = Readonly<{
   }>;
   discoveries: readonly ChapelDiscovery[];
   npcStates: Readonly<
-    Record<ChapelNpcId, Readonly<{ condition: "living" | "dead" }>>
+    Record<
+      ChapelNpcId,
+      | Readonly<{ hp: number; maxHp: number }>
+      | Readonly<{ condition: "living" | "dead" }>
+    >
   >;
   npcLocations: Readonly<Record<ChapelNpcId, ChapelRoomId>>;
+  npcDeathLocations?: Readonly<Partial<Record<ChapelNpcId, ChapelRoomId>>>;
   conversationHistory: readonly Readonly<{
     speakerId: ChapelNpcId;
     statements: readonly string[];
@@ -556,7 +634,7 @@ export type ChapelState = Readonly<{
     >
   >;
   combat?: Readonly<{
-    opponentCombatantId: ChapelOpponentCombatantId;
+    opponentCombatantId: ChapelHostileCombatantId;
     initiative: Readonly<
       Record<ChapelCombatantId, InitiativeRoll<ChapelCombatantId>>
     >;
@@ -674,8 +752,8 @@ export type ChapelEvent = Readonly<
   | (Readonly<{ type: "chapel-social-check" }> & ChapelSocialCheck)
   | {
       type: "combat-started";
-      combatantId: ChapelOpponentCombatantId;
-      definitionId: ChapelOpponentDefinitionId;
+      combatantId: ChapelHostileCombatantId;
+      definitionId: ChapelOpponentDefinitionId | ChapelNpcId;
     }
   | {
       type: "initiative-rolled";
@@ -739,6 +817,7 @@ export function createChapelSession(): ChapelState {
     discoveries: [],
     npcStates: INITIAL_CHAPEL_NPC_STATES,
     npcLocations: { mara: "inn", oren: "ferry-landing", tavi: "crypt" },
+    npcDeathLocations: {},
     conversationHistory: [],
     socialChallenges: {},
     itemPlacements: {
@@ -776,7 +855,7 @@ export function visibleChapelNpcs(
       state.npcLocations[npc.id] === state.locationId &&
       (npc.publiclyVisible ||
         (rescueEnabled && npc.id === "tavi" && guardianCleared)) &&
-      state.npcStates[npc.id].condition === "living",
+      npcIsLiving(state, npc.id),
   ).map((npc) => ({
     id: npc.id,
     name: npc.name,
@@ -1188,6 +1267,17 @@ export function chapelRoom(id: ChapelRoomId): ChapelRoom {
   return room;
 }
 
+export function chapelRoomDescription(state: ChapelState): string {
+  const room = chapelRoom(state.locationId);
+  if (state.locationId === "inn" && !npcIsLiving(state, "mara")) {
+    return "Rain taps the inn windows. The counter stands unattended beside a public noticeboard.";
+  }
+  if (state.locationId === "ferry-landing" && !npcIsLiving(state, "oren")) {
+    return "A wooden ferry rests beside the empty landing, its mooring secured.";
+  }
+  return room.description;
+}
+
 export function visibleChapelFeatures(
   state: ChapelState,
   rescueEnabled = true,
@@ -1199,6 +1289,13 @@ export function visibleChapelFeatures(
     state.locationId === "crypt" &&
     state.quest.milestones.includes("guardian-cleared")
       ? [DIVERSION_LEDGER_FEATURE]
+      : []),
+    ...(rescueEnabled &&
+    state.locationId ===
+      (state.npcDeathLocations?.tavi ?? state.npcLocations.tavi) &&
+    state.quest.milestones.includes("guardian-cleared") &&
+    !npcIsLiving(state, "tavi")
+      ? [TAVI_REMAINS_FEATURE]
       : []),
     ...(resolutionEnabled &&
     (chapelResolutionChoices(state).length > 0 ||
@@ -1276,13 +1373,27 @@ export function projectChapelJournal(state: ChapelState): ChapelJournal {
     discoveries: state.discoveries,
     actionableLeads:
       state.resolution === undefined
-        ? state.discoveries.flatMap((discovery) =>
-            discovery.actionableLead === undefined ||
-            (discovery.id === "tavi-crypt-testimony" &&
-              state.quest.milestones.includes("tavi-rescued"))
-              ? []
-              : [discovery.actionableLead],
-          )
+        ? state.discoveries.flatMap((discovery) => {
+            if (discovery.actionableLead === undefined) {
+              return [];
+            }
+            if (
+              discovery.id === "tavi-crypt-testimony" &&
+              (state.quest.milestones.includes("tavi-rescued") ||
+                !npcIsLiving(state, "tavi"))
+            ) {
+              return [];
+            }
+            if (
+              discovery.id === "diversion-ledger" &&
+              !npcIsLiving(state, "oren")
+            ) {
+              return [
+                "Return to the inn noticeboard and resolve the investigation with the ledger evidence.",
+              ];
+            }
+            return [discovery.actionableLead];
+          })
         : [],
     ...(state.resolution === undefined ? {} : { resolution: state.resolution }),
   };
@@ -1420,6 +1531,203 @@ function isActiveSkeletonCombat(state: ChapelState): boolean {
     state.fighter.hp > 0 &&
     state.opponents["skeleton-guardian"].hp > 0
   );
+}
+
+export function chapelHostileHitPoints(
+  state: ChapelState,
+  combatantId: ChapelHostileCombatantId,
+): number {
+  return combatantId === "skeleton-guardian"
+    ? state.opponents[combatantId].hp
+    : npcHitPoints(state, combatantId);
+}
+
+function isActiveChapelCombat(state: ChapelState): boolean {
+  return (
+    state.status === "playing" &&
+    state.combat !== undefined &&
+    state.fighter.hp > 0 &&
+    chapelHostileHitPoints(state, state.combat.opponentCombatantId) > 0
+  );
+}
+
+function resolveNpcTurn(
+  state: ChapelState,
+  npc: (typeof CHAPEL_NPCS)[number],
+  random: Pick<RandomSource, "roll">,
+  includeTurnStart = true,
+): ChapelResult {
+  const attack = resolveAttack<ChapelCombatantId>(
+    {
+      attackerId: npc.id,
+      targetId: "fighter",
+      attackBonus: npc.attackBonus,
+      targetArmorClass: CHAPEL_FIGHTER_DEFINITION.armorClass,
+      targetMaxHp: CHAPEL_FIGHTER_DEFINITION.maxHp,
+      damage: npc.damage,
+    },
+    state.fighter.hp,
+    random,
+  );
+  const fighterDefeated = attack.targetHp === 0;
+  return {
+    state: {
+      ...state,
+      status: fighterDefeated ? "defeat" : "playing",
+      fighter: { ...state.fighter, hp: attack.targetHp },
+      ...(state.combat === undefined
+        ? {}
+        : {
+            combat: {
+              ...state.combat,
+              currentTurn: fighterDefeated ? npc.id : "fighter",
+            },
+          }),
+    },
+    events: [
+      ...(includeTurnStart
+        ? ([{ type: "turn-started", combatantId: npc.id }] as const)
+        : []),
+      attack.event,
+      ...(fighterDefeated
+        ? ([
+            {
+              type: "combat-ended",
+              combatantId: "fighter",
+              outcome: "defeated",
+            },
+          ] as const)
+        : ([{ type: "turn-started", combatantId: "fighter" }] as const)),
+    ],
+  };
+}
+
+function attackNpcRound(
+  state: ChapelState,
+  npc: (typeof CHAPEL_NPCS)[number],
+  random: Pick<RandomSource, "roll">,
+): ChapelResult {
+  const attack = resolveAttack<ChapelCombatantId>(
+    {
+      attackerId: "fighter",
+      targetId: npc.id,
+      attackBonus: CHAPEL_FIGHTER_DEFINITION.attackBonus,
+      targetArmorClass: npc.armorClass,
+      targetMaxHp: npc.maxHp,
+      damage: CHAPEL_FIGHTER_DEFINITION.damage,
+    },
+    npcHitPoints(state, npc.id),
+    random,
+  );
+  const npcDefeated = attack.targetHp === 0;
+  const nextState: ChapelState = {
+    ...state,
+    npcStates: {
+      ...state.npcStates,
+      [npc.id]: { hp: attack.targetHp, maxHp: npc.maxHp },
+    },
+    ...(npcDefeated
+      ? {
+          npcDeathLocations: {
+            ...state.npcDeathLocations,
+            [npc.id]: state.locationId,
+          },
+        }
+      : {}),
+  };
+  if (npcDefeated) {
+    return {
+      state: nextState,
+      events: [
+        attack.event,
+        { type: "combat-ended", combatantId: npc.id, outcome: "defeated" },
+      ],
+    };
+  }
+  const retaliation = resolveNpcTurn(nextState, npc, random);
+  return {
+    state: retaliation.state,
+    events: [attack.event, ...(retaliation.events ?? [])],
+  };
+}
+
+function attackNpc(
+  state: ChapelState,
+  npc: (typeof CHAPEL_NPCS)[number],
+  random: Pick<RandomSource, "roll"> | undefined,
+  rescueEnabled: boolean,
+): ChapelResult {
+  if (state.npcLocations[npc.id] !== state.locationId) {
+    return { state, rejection: { reason: "chapel-invalid-attack-target" } };
+  }
+  if (!npcIsLiving(state, npc.id)) {
+    return { state, rejection: { reason: "chapel-dead-target" } };
+  }
+  const targetVisible = visibleChapelNpcs(state, rescueEnabled).some(
+    ({ id }) => id === npc.id,
+  );
+  if (!targetVisible) {
+    return { state, rejection: { reason: "chapel-invalid-attack-target" } };
+  }
+  if (random === undefined) {
+    throw new Error("A random source is required for combat.");
+  }
+  if (isActiveChapelCombat(state)) {
+    return state.combat?.opponentCombatantId === npc.id
+      ? attackNpcRound(state, npc, random)
+      : { state, rejection: { reason: "chapel-invalid-attack-target" } };
+  }
+  const initiative = resolveInitiative<ChapelCombatantId>(
+    {
+      combatantId: "fighter",
+      bonus: CHAPEL_FIGHTER_DEFINITION.initiativeBonus,
+    },
+    { combatantId: npc.id, bonus: npc.initiativeBonus },
+    random,
+  );
+  const startedState: ChapelState = {
+    ...state,
+    combat: {
+      opponentCombatantId: npc.id,
+      initiative: Object.fromEntries(
+        initiative.rolls.map((roll) => [roll.combatantId, roll]),
+      ) as Record<ChapelCombatantId, InitiativeRoll<ChapelCombatantId>>,
+      turnOrder: initiative.turnOrder,
+      currentTurn: initiative.turnOrder[0],
+    },
+  };
+  const openingEvents: ChapelEvent[] = [
+    { type: "combat-started", combatantId: npc.id, definitionId: npc.id },
+    ...initiative.rolls.map((roll) => ({
+      type: "initiative-rolled" as const,
+      ...roll,
+    })),
+    { type: "turn-started", combatantId: initiative.turnOrder[0] },
+  ];
+  const round =
+    initiative.turnOrder[0] === "fighter"
+      ? attackNpcRound(startedState, npc, random)
+      : resolveNpcTurn(startedState, npc, random, false);
+  return {
+    state: round.state,
+    events: [...openingEvents, ...(round.events ?? [])],
+  };
+}
+
+function attackChapelTarget(
+  state: ChapelState,
+  target: string | undefined,
+  random: Pick<RandomSource, "roll"> | undefined,
+  rescueEnabled: boolean,
+): ChapelResult {
+  const targetName = normalized(target ?? "");
+  const npc = CHAPEL_NPCS.find(
+    ({ id, name }) =>
+      normalized(id) === targetName || normalized(name) === targetName,
+  );
+  return npc === undefined
+    ? attackSkeleton(state, target, random)
+    : attackNpc(state, npc, random, rescueEnabled);
 }
 
 function attackSkeleton(
@@ -1577,7 +1885,16 @@ function useHealingPotion(
     maxHp: state.fighter.maxHp,
   };
   if (!isActiveSkeletonCombat(healedState)) {
-    return { state: healedState, events: [usedEvent] };
+    const npcId = healedState.combat?.opponentCombatantId;
+    const npc = CHAPEL_NPCS.find(({ id }) => id === npcId);
+    if (npc === undefined || !isActiveChapelCombat(healedState)) {
+      return { state: healedState, events: [usedEvent] };
+    }
+    const opponentTurn = resolveNpcTurn(healedState, npc, random);
+    return {
+      state: opponentTurn.state,
+      events: [usedEvent, ...(opponentTurn.events ?? [])],
+    };
   }
   const opponentTurn = resolveSkeletonTurn(healedState, random);
   return {
@@ -1593,7 +1910,8 @@ export function chapelResolutionChoices(
     state.status === "playing" &&
     state.locationId === "inn" &&
     state.discoveries.some(({ id }) => id === "diversion-ledger") &&
-    state.quest.milestones.includes("tavi-fate-established");
+    (state.quest.milestones.includes("tavi-fate-established") ||
+      state.quest.milestones.includes("tavi-death-confirmed"));
   return eligible
     ? (["public-disclosure", "confidential-referral"] as const)
     : [];
@@ -1630,6 +1948,7 @@ export function chapelResolutionIntent(
 function resolveChapelQuest(
   state: ChapelState,
   target: string | undefined,
+  casualtiesEnabled = true,
 ): ChapelResult {
   const normalizedTarget = normalized(target ?? "");
   if (normalizedTarget.length === 0) {
@@ -1655,23 +1974,34 @@ function resolveChapelQuest(
   if (!chapelResolutionChoices(state).includes(resolutionId)) {
     return { state, rejection: { reason: "chapel-resolution-unavailable" } };
   }
-  const taviFate = state.quest.milestones.includes("tavi-rescued")
-    ? "rescued-to-inn"
-    : "alive-in-crypt";
+  const taviFate = !npcIsLiving(state, "tavi")
+    ? state.npcDeathLocations?.tavi === "inn"
+      ? "dead-at-inn"
+      : "dead-in-crypt"
+    : state.quest.milestones.includes("tavi-rescued")
+      ? "rescued-to-inn"
+      : "alive-in-crypt";
+  const casualties = CHAPEL_NPCS.filter(
+    ({ id }) => !npcIsLiving(state, id),
+  ).map(({ id }) => id);
   const resolution: ChapelResolution =
     resolutionId === "public-disclosure"
       ? {
           id: resolutionId,
           taviFate,
+          ...(casualtiesEnabled ? { casualties } : {}),
           consequences: ["evidence-published", "village-inquiry-initiated"],
         }
       : {
           id: resolutionId,
           taviFate,
+          ...(casualtiesEnabled ? { casualties } : {}),
           consequences: [
             "evidence-delivered-confidentially",
             "restitution-repair-requested",
-            "oren-committed-future-restitution",
+            ...(npcIsLiving(state, "oren")
+              ? (["oren-committed-future-restitution"] as const)
+              : []),
           ],
         };
   return {
@@ -1693,6 +2023,7 @@ export function handleChapelAction(
   itemsEnabled = true,
   rescueEnabled = true,
   resolutionEnabled = true,
+  casualtiesEnabled = true,
 ): ChapelResult {
   const accept = (...events: ChapelEvent[]): ChapelResult => ({
     state,
@@ -1726,7 +2057,7 @@ export function handleChapelAction(
     return { state, rejection: { reason: "chapel-terminal-state" } };
   }
   if (
-    isActiveSkeletonCombat(state) &&
+    isActiveChapelCombat(state) &&
     gameplayMutation &&
     action.type !== "attack" &&
     action.type !== "use"
@@ -1754,14 +2085,16 @@ export function handleChapelAction(
         journal: projectChapelJournal(state),
       });
     case "attack":
-      return attackSkeleton(state, action.target, random);
+      return casualtiesEnabled
+        ? attackChapelTarget(state, action.target, random, rescueEnabled)
+        : attackSkeleton(state, action.target, random);
     case "take":
       return takeChapelItem(state, action.target);
     case "use":
       return useHealingPotion(state, action.target, random);
     case "resolve":
       return resolutionEnabled
-        ? resolveChapelQuest(state, action.target)
+        ? resolveChapelQuest(state, action.target, casualtiesEnabled)
         : { state, rejection: { reason: "chapel-unavailable" } };
     case "talk": {
       if (state.status === "quit") {
@@ -1820,11 +2153,19 @@ export function handleChapelAction(
       if (evidence === undefined) {
         return { state, rejection: { reason: "chapel-unavailable" } };
       }
-      if (
-        state.discoveries.some(
-          (discovery) => discovery.id === evidence.discovery.id,
-        )
-      ) {
+      const discovery: ChapelDiscovery =
+        evidence.discovery.id === "tavi-remains"
+          ? {
+              ...evidence.discovery,
+              summary: `Tavi died at the ${chapelRoom(state.npcDeathLocations?.tavi ?? state.npcLocations.tavi).name} after being trapped beyond the guardian.`,
+              source: {
+                ...evidence.discovery.source,
+                locationId:
+                  state.npcDeathLocations?.tavi ?? state.npcLocations.tavi,
+              },
+            }
+          : evidence.discovery;
+      if (state.discoveries.some((existing) => existing.id === discovery.id)) {
         return accept();
       }
       return {
@@ -1834,12 +2175,12 @@ export function handleChapelAction(
             ...state.quest,
             milestones: [...state.quest.milestones, evidence.milestoneId],
           },
-          discoveries: [...state.discoveries, evidence.discovery],
+          discoveries: [...state.discoveries, discovery],
         },
         events: [
           {
             type: "chapel-discovered",
-            discoveryId: evidence.discovery.id,
+            discoveryId: discovery.id,
             milestoneId: evidence.milestoneId,
           },
         ],
@@ -1898,6 +2239,25 @@ export function renderChapelIntroduction(): string {
   return `${CHAPEL_TITLE}\n\nObjective: ${CHAPEL_OBJECTIVE}\nActive quest: Find Tavi.\nMara is here. Public subject: Tavi's disappearance.\nType "help" for available commands.`;
 }
 
+function chapelCombatantName(combatantId: ChapelCombatantId): string {
+  if (combatantId === "fighter") {
+    return "Fighter";
+  }
+  if (combatantId === "skeleton-guardian") {
+    return "skeleton guardian";
+  }
+  return CHAPEL_NPCS.find(({ id }) => id === combatantId)?.name ?? combatantId;
+}
+
+function chapelAttackName(
+  combatantId: Exclude<ChapelCombatantId, "fighter">,
+): string {
+  return combatantId === "skeleton-guardian"
+    ? CHAPEL_OPPONENT_DEFINITIONS.skeleton.attackName
+    : (CHAPEL_NPCS.find(({ id }) => id === combatantId)?.attackName ??
+        "improvised weapon");
+}
+
 export function renderChapelResult(
   result: ChapelResult,
   rescueEnabled = true,
@@ -1908,11 +2268,11 @@ export function renderChapelResult(
       case "chapel-terminal-state":
         return "The adventure is over; you can't change the final state. You may look, inspect, check status or inventory, read the journal, ask for help, or quit.";
       case "chapel-combat-restriction":
-        return 'You cannot do that during combat. Attack the skeleton guardian with "attack skeleton".';
+        return "You cannot do that during combat. Attack the active opponent or use an available potion.";
       case "chapel-invalid-attack-target":
         return "You cannot attack that target here.";
       case "chapel-dead-target":
-        return "The skeleton guardian is already defeated.";
+        return "That target is already dead or defeated.";
       case "chapel-item-unavailable":
         return "You do not have that usable item available.";
       case "chapel-full-hp":
@@ -1953,7 +2313,7 @@ export function renderChapelResult(
                 : !rescueEnabled
                   ? "Defeated opponents: skeleton guardian. The way beyond the guardian is clear for later crypt evidence."
                   : result.state.npcLocations.tavi === "crypt" &&
-                      result.state.npcStates.tavi.condition === "living"
+                      npcIsLiving(result.state, "tavi")
                     ? "Defeated opponents: skeleton guardian. Tavi and the diversion ledger are now accessible beyond the arch."
                     : "Defeated opponents: skeleton guardian. The diversion ledger remains accessible beyond the arch.";
           const potion = CHAPEL_ITEMS["healing-potion"];
@@ -1974,16 +2334,20 @@ export function renderChapelResult(
               : resolutionEnabled && result.state.resolution !== undefined
                 ? `\nNoticeboard record: ${resolutionNoticeboardFeature(result.state).description}`
                 : "";
-          return `${room.name}\n${room.description}\nVisible: ${featureNames.join(", ")}.${resolutionLine}\nVisible items: ${visibleItems}.\n${opponentLine}\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.`;
+          return `${room.name}\n${chapelRoomDescription(result.state)}\nVisible: ${featureNames.join(", ")}.${resolutionLine}\nVisible items: ${visibleItems}.\n${opponentLine}\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.`;
         }
         case "chapel-moved":
           return `You travel to ${chapelRoom(event.roomId).name}.`;
         case "chapel-inspected":
           return `${event.name}: ${event.description}${event.condition === undefined ? "" : `\nCondition: ${event.condition}.`}`;
         case "chapel-discovered": {
-          const discovery = CHAPEL_EVIDENCE.find(
-            (entry) => entry.discovery.id === event.discoveryId,
-          )?.discovery;
+          const discovery =
+            result.state.discoveries.find(
+              (entry) => entry.id === event.discoveryId,
+            ) ??
+            CHAPEL_EVIDENCE.find(
+              (entry) => entry.discovery.id === event.discoveryId,
+            )?.discovery;
           return discovery === undefined
             ? "A discovery was recorded."
             : `Discovery recorded — ${discovery.title}: ${discovery.summary}`;
@@ -1996,10 +2360,19 @@ export function renderChapelResult(
           const taviOutcome =
             event.resolution.taviFate === "rescued-to-inn"
               ? "Tavi is alive and safe at the village inn."
-              : "Tavi is alive in the crypt; that established fate is included in the record.";
+              : event.resolution.taviFate === "dead-in-crypt"
+                ? "Tavi's death in the crypt is included truthfully in the record."
+                : event.resolution.taviFate === "dead-at-inn"
+                  ? "Tavi's death at the village inn is included truthfully in the record."
+                  : "Tavi is alive in the crypt; that established fate is included in the record.";
+          const orenOutcome = (event.resolution.casualties ?? []).includes(
+            "oren",
+          )
+            ? "Oren is dead, so no personal promise of restitution is recorded."
+            : "Oren commits to future restitution; no payment or completed repair is claimed.";
           return event.resolution.id === "public-disclosure"
             ? `Public disclosure recorded. The ledger evidence is published and a village inquiry is initiated. ${taviOutcome}`
-            : `Confidential referral recorded. The ledger is delivered privately to the village trustees with a request for restitution and chapel repair. Oren commits to future restitution; no payment or completed repair is claimed. ${taviOutcome}`;
+            : `Confidential referral recorded. The ledger is delivered privately to the village trustees with a request for restitution and chapel repair. ${orenOutcome} ${taviOutcome}`;
         }
         case "chapel-item-taken":
           return "You take the healing potion. It is now available in your inventory.";
@@ -2008,21 +2381,18 @@ export function renderChapelResult(
         case "chapel-social-check":
           return `Social check\nApproach: ${event.approach}\nDie: d20 = ${event.die}\nModifier: +${event.modifier}\nTotal: ${event.total}\nDC: ${event.dc}\nResult: ${event.result}.`;
         case "combat-started":
-          return "Combat begins against the skeleton guardian.";
+          return `Combat begins against ${event.combatantId === "skeleton-guardian" ? "the " : ""}${chapelCombatantName(event.combatantId)}.`;
         case "initiative-rolled":
-          return `Initiative — ${event.combatantId === "fighter" ? "Fighter" : "skeleton guardian"}: d20 roll ${event.roll} + modifier ${event.bonus} = ${event.total}.`;
+          return `Initiative — ${chapelCombatantName(event.combatantId)}: d20 roll ${event.roll} + modifier ${event.bonus} = ${event.total}.`;
         case "turn-started":
-          return `Turn: ${event.combatantId === "fighter" ? "Fighter" : "skeleton guardian"}.`;
+          return `Turn: ${chapelCombatantName(event.combatantId)}.`;
         case "attack-resolved": {
           const attackerIsFighter = event.attackerId === "fighter";
-          const attackerName = attackerIsFighter
-            ? "Fighter"
-            : "skeleton guardian";
+          const attackerName = chapelCombatantName(event.attackerId);
           const attackName = attackerIsFighter
             ? "longsword"
-            : CHAPEL_OPPONENT_DEFINITIONS.skeleton.attackName;
-          const targetName =
-            event.targetId === "fighter" ? "Fighter" : "skeleton guardian";
+            : chapelAttackName(event.attackerId);
+          const targetName = chapelCombatantName(event.targetId);
           const outcome =
             event.outcome === "critical-hit" ? "critical hit" : event.outcome;
           return [
@@ -2033,11 +2403,15 @@ export function renderChapelResult(
           ].join("\n");
         }
         case "combat-ended":
-          return event.combatantId === "fighter"
-            ? `The skeleton guardian defeats you.\nYou have ${result.state.fighter.hp}/${result.state.fighter.maxHp} HP and the adventure has ended in defeat. The final state remains readable; quit or start a fresh run.`
-            : rescueEnabled
-              ? "The skeleton guardian is defeated. Guardian cleared; Tavi and the diversion ledger beyond are now accessible. Find Tavi remains active."
-              : "The skeleton guardian is defeated. Guardian cleared; the crypt evidence beyond is now accessible. Find Tavi remains active.";
+          if (event.combatantId === "fighter") {
+            return `${chapelCombatantName(result.state.combat?.opponentCombatantId ?? "skeleton-guardian")} defeats you.\nYou have ${result.state.fighter.hp}/${result.state.fighter.maxHp} HP and the adventure has ended in defeat. The final state remains readable; quit or start a fresh run.`;
+          }
+          if (event.combatantId !== "skeleton-guardian") {
+            return `${chapelCombatantName(event.combatantId)} is dead. Their conversation and any rescue involving them are no longer available; discoveries already recorded remain in your journal.`;
+          }
+          return rescueEnabled
+            ? "The skeleton guardian is defeated. Guardian cleared; Tavi and the diversion ledger beyond are now accessible. Find Tavi remains active."
+            : "The skeleton guardian is defeated. Guardian cleared; the crypt evidence beyond is now accessible. Find Tavi remains active.";
         case "chapel-journal": {
           const discoveries = event.journal.discoveries.map((discovery) => {
             const sourceLocation = chapelRoom(discovery.source.locationId).name;

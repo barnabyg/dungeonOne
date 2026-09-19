@@ -6,7 +6,9 @@ import {
   CHAPEL_OPPONENT_DEFINITIONS,
   CHAPEL_ITEMS,
   chapelRoom,
+  chapelRoomDescription,
   chapelInspection,
+  chapelHostileHitPoints,
   chapelResolutionChoices,
   chapelSearchTargets,
   handleChapelAction,
@@ -47,7 +49,7 @@ export function projectChapelScene(
     room: {
       id: room.id,
       name: room.name,
-      description: room.description,
+      description: chapelRoomDescription(state),
       features: visibleChapelFeatures(state, rescueEnabled, resolutionEnabled),
       items:
         itemsEnabled &&
@@ -82,7 +84,7 @@ export function projectChapelScene(
     },
     journal: projectChapelJournal(state),
     ...(state.combat === undefined ||
-    state.opponents[state.combat.opponentCombatantId].hp === 0
+    chapelHostileHitPoints(state, state.combat.opponentCombatantId) === 0
       ? {}
       : {
           combat: {
@@ -104,10 +106,28 @@ export function projectChapelStatus(state: ChapelState): CharacterStatus {
         : [],
     outcome: state.status,
     ...(state.combat === undefined ||
-    state.opponents[state.combat.opponentCombatantId].hp === 0
+    chapelHostileHitPoints(state, state.combat.opponentCombatantId) === 0
       ? {}
       : { combatTurn: state.combat.currentTurn }),
   };
+}
+
+function activeAttackTargets(
+  state: ChapelState,
+  guardianEnabled: boolean,
+  rescueEnabled: boolean,
+  casualtiesEnabled: boolean,
+): readonly string[] {
+  const activeCombat =
+    state.status === "playing" &&
+    state.combat !== undefined &&
+    (!guardianEnabled ||
+      chapelHostileHitPoints(state, state.combat.opponentCombatantId) > 0);
+  return activeCombat
+    ? [state.combat.opponentCombatantId]
+    : casualtiesEnabled && state.status === "playing"
+      ? visibleChapelNpcs(state, rescueEnabled).map(({ id }) => id)
+      : [];
 }
 
 export function getChapelTools(
@@ -116,13 +136,14 @@ export function getChapelTools(
   itemsEnabled = true,
   rescueEnabled = true,
   resolutionEnabled = true,
+  casualtiesEnabled = true,
 ): readonly GameToolDefinition[] {
   const room = chapelRoom(state.locationId);
   const activeCombat =
     guardianEnabled &&
     state.status === "playing" &&
     state.combat !== undefined &&
-    state.opponents[state.combat.opponentCombatantId].hp > 0;
+    chapelHostileHitPoints(state, state.combat.opponentCombatantId) > 0;
   const searchTargets =
     state.status === "playing"
       ? chapelSearchTargets(state, rescueEnabled, resolutionEnabled)
@@ -147,6 +168,12 @@ export function getChapelTools(
           ({ subjects }) => subjects.length > 0,
         )
       : [];
+  const attackTargets = activeAttackTargets(
+    state,
+    guardianEnabled,
+    rescueEnabled,
+    casualtiesEnabled,
+  );
   const definition = (
     name: GameToolDefinition["name"],
     description: string,
@@ -249,14 +276,20 @@ export function getChapelTools(
           ),
         ]
       : []),
-    ...(activeCombat
+    ...(attackTargets.length > 0
       ? [
-          definition("attack", "Attack the active opponent combatant.", {
-            combatantId: {
-              type: "string",
-              enum: [state.combat?.opponentCombatantId],
+          definition(
+            "attack",
+            activeCombat
+              ? "Attack the active opponent combatant."
+              : "Deliberately attack a visible living character, beginning single-opponent combat.",
+            {
+              combatantId: {
+                type: "string",
+                enum: attackTargets,
+              },
             },
-          }),
+          ),
         ]
       : []),
     ...(state.status === "playing" && !activeCombat
@@ -291,6 +324,7 @@ export function dispatchChapelTool(
   itemsEnabled = true,
   rescueEnabled = true,
   resolutionEnabled = true,
+  casualtiesEnabled = true,
 ): RuntimeToolResult {
   const reject = (code: ToolValidationErrorCode): RuntimeToolResult => ({
     state,
@@ -302,6 +336,7 @@ export function dispatchChapelTool(
     itemsEnabled,
     rescueEnabled,
     resolutionEnabled,
+    casualtiesEnabled,
   ).find(({ name }) => name === call.name);
   if (tool === undefined) {
     return reject("unknown-tool");
@@ -343,7 +378,13 @@ export function dispatchChapelTool(
     ) {
       return reject("invalid-arguments");
     }
-    if (args.combatantId !== state.combat?.opponentCombatantId) {
+    const availableTargets = activeAttackTargets(
+      state,
+      guardianEnabled,
+      rescueEnabled,
+      casualtiesEnabled,
+    );
+    if (!availableTargets.includes(args.combatantId)) {
       return reject("unavailable-reference");
     }
   }
@@ -462,6 +503,7 @@ export function dispatchChapelTool(
     itemsEnabled,
     rescueEnabled,
     resolutionEnabled,
+    casualtiesEnabled,
   );
   if (result.rejection !== undefined) {
     return {

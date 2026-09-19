@@ -116,7 +116,7 @@ test("Tavi describes only the crypt and rescue moves them atomically to the inn"
     noRolls("The authored rescue transition must not roll"),
   );
   assert.equal(rescued.rejection, undefined);
-  assert.equal(rescued.state.npcStates.tavi.condition, "living");
+  assert.ok(rescued.state.npcStates.tavi.hp > 0);
   assert.equal(rescued.state.npcLocations.tavi, "inn");
   assert.ok(rescued.state.quest.milestones.includes("tavi-rescued"));
   assert.equal(
@@ -326,7 +326,7 @@ test("offline rescue, evidence-backed return, export, and replay are determinist
     assert.match(played.stdout, /Tavi \(living; public subjects:/i);
     assert.match(played.stdout, /tavi-rescued/i);
     const trace = JSON.parse(readFileSync(tracePath, "utf8"));
-    assert.equal(trace.adventure.version, "chapel-resolution-v8");
+    assert.equal(trace.adventure.version, "chapel-casualties-v9");
     const rescue = trace.actions.find(
       ({ action }) =>
         action.type === "talk" &&

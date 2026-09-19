@@ -80,6 +80,7 @@ test("public disclosure records an authoritative ending with Tavi's actual fate"
   assert.deepEqual(result.state.resolution, {
     id: "public-disclosure",
     taviFate: "alive-in-crypt",
+    casualties: [],
     consequences: ["evidence-published", "village-inquiry-initiated"],
   });
   assert.deepEqual(result.events, [
@@ -109,6 +110,7 @@ test("confidential referral records trustees' request and only future restitutio
   assert.deepEqual(result.state.resolution, {
     id: "confidential-referral",
     taviFate: "rescued-to-inn",
+    casualties: [],
     consequences: [
       "evidence-delivered-confidentially",
       "restitution-repair-requested",
@@ -502,7 +504,7 @@ test("both offline endings, failed-social fallback, tampering, and replay are de
       }
 
       const trace = JSON.parse(readFileSync(tracePath, "utf8"));
-      assert.equal(trace.adventure.version, "chapel-resolution-v8");
+      assert.equal(trace.adventure.version, "chapel-casualties-v9");
       assert.equal(trace.completion.outcome, "victory");
       assert.equal(trace.completion.reason, "quit");
       assert.equal(

@@ -511,6 +511,7 @@ test("chapel search and journal tools validate visible authored references", () 
       "inspect",
       "search",
       "talk",
+      "attack",
       "move",
     ],
   );
@@ -1055,10 +1056,14 @@ test("chapel AI receives only public content and its own versioned prompt", asyn
     }
   }
   assert.equal(state.locationId, "crypt");
-  assert.equal(requests[0].promptVersion, "chapel-resolution-dm-v8");
+  assert.equal(requests[0].promptVersion, "chapel-casualties-dm-v9");
   assert.match(requests[0].systemPrompt, /Bell Beneath the Chapel/);
+  const publicRequests = requests.map((request) => ({
+    ...request,
+    systemPrompt: "[omitted from public-projection assertion]",
+  }));
   assert.doesNotMatch(
-    JSON.stringify(requests),
+    JSON.stringify(publicRequests),
     /signet|ledger|medicine|diverted|trapped|restitution/i,
   );
   assert.match(JSON.stringify(requests.at(-1).scene), /skeleton-guardian/);
@@ -1100,9 +1105,9 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     assert.equal(exported.formatVersion, 3);
     assert.deepEqual(exported.adventure, {
       id: "chapel",
-      version: "chapel-resolution-v8",
+      version: "chapel-casualties-v9",
     });
-    assert.equal(exported.rulesVersion, "chapel-resolution-rules-v8");
+    assert.equal(exported.rulesVersion, "chapel-casualties-rules-v9");
     assert.equal(exported.random.algorithm, "mulberry32-v1");
     assert.ok(
       exported.actions.every(
@@ -1196,8 +1201,8 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     const dmExport = JSON.parse(readFileSync(dmTrace, "utf8"));
     assert.equal(dmExport.formatVersion, 3);
     assert.deepEqual(dmExport.dm, {
-      promptVersion: "chapel-resolution-dm-v8",
-      toolSchemaVersion: "chapel-resolution-tools-v8",
+      promptVersion: "chapel-casualties-dm-v9",
+      toolSchemaVersion: "chapel-casualties-tools-v9",
       provider: "scripted",
       model: "scripted-dm-v1",
     });

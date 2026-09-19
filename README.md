@@ -51,7 +51,15 @@ the inn, the noticeboard presents two explicit endings and their stakes. Use
 restitution and repair request. The authoritative final state records the chosen
 resolution, its immediate consequences, and Tavi's actual fate. Gameplay
 mutations then freeze while status, journal, inventory, help, reflection in AI
-mode, and quit remain available. NPC casualty actions remain a later ticket.
+mode, and quit remain available. Deliberate attacks on Mara, Oren, or an
+accessible Tavi enter the same single-opponent initiative, attack, retaliation,
+and HP rules as the guardian. HP is their authoritative life state: death
+immediately removes dialogue and rescue tools without erasing discoveries.
+Mara's notice remains a durable chapel lead, while the physical ledger preserves
+Oren's diversion and medicine motive. If Tavi dies, inspecting the body is
+read-only; `search tavi remains` records the death-confirmed fate needed by the
+noticeboard. Both endings report casualties truthfully, and a dead Oren never
+promises restitution.
 A single healing potion is visible on the chapel path and can be taken before the
 crypt. `use potion` restores `2d4 + 2` HP up to the Fighter's maximum and consumes
 it once. Full-HP use leaves it available; combat use spends the Fighter's turn and
@@ -495,6 +503,10 @@ After `npm.cmd run build`:
 21. Enter `talk tavi rescue ask` twice. Expect one rescue event and Tavi's move to the inn; the repeated request is unavailable and cannot duplicate the transition. Return through the chapel path and inn to the ferry landing, then enter `talk oren repairs ask`. Expect Oren's conclusive-evidence response without a roll, including after the failed seed-7 route in check 14, while the original failed challenge remains recorded. Replay `chapel-rescue.json` successfully.
 22. Continue either seed-0 or failed-social seed-7 route by returning to the inn after finding the ledger and establishing Tavi's fate. Before those prerequisites, `resolve public disclosure` must be rejected. Once eligible, `look` must show both noticeboard choices and their stakes. Enter `resolve public disclosure`; expect published evidence, an initiated village inquiry, Tavi's actual fate, and a `victory` final state. Movement and a second ending must be rejected, while `status`, `journal`, `inventory`, `help`, reflection in AI mode, and `quit` remain usable. Export and replay the trace successfully.
 23. Repeat the complete route with `resolve confidential referral`. Expect confidential delivery to the trustees, a restitution and chapel-repair request, and Oren's commitment to future restitution. The ending must not claim that money was paid or repairs completed. In AI mode, “deal with Oren” must ask whether the player means public disclosure or confidential referral without using a tool; an explicit choice may commit directly. Scripted-AI success proves deterministic orchestration and replay only, not live model quality or human enjoyment.
+24. Run the chapel with seed `0`, enter `attack mara` twice, then `look`, `search missing-person-notice`, and continue the normal guardian, ledger, Tavi, and noticeboard route. Expect Mara's HP to reach zero only through visible combat, no Mara dialogue afterward, an unattended inn description, and the public chapel lead and ending to remain usable. A further attack must report an already-dead target without a draw.
+25. In a fresh seed-0 run, move to the ferry landing and kill Oren before speaking. Continue through the guardian and `search diversion-ledger`. Expect the discovery to retain both diversion and medicine motive. Resolve confidentially and expect the trustees' restitution request but no promise spoken by Oren. Export and replay the trace.
+26. In a fresh run, clear the guardian, search the ledger, and deliberately attack Tavi. Expect Tavi dialogue and rescue to disappear at zero HP. `inspect tavi remains` must not change the journal; `search tavi remains` must record `tavi-death-confirmed`. Return to the inn and resolve either ending; expect Tavi's death, never a rescue, in the final record.
+27. Run the combined seed-0 route: kill Mara and Oren, collect the potion, clear the guardian, use the potion if wounded, kill Tavi, search both ledger and remains, and return to the inn. Expect a surviving Fighter to receive both noticeboard endings with all three casualties recorded. After resolution, attacks and every other mutation remain frozen while reads and quit work. Replay the exported trace successfully.
 
 ### Usability pass observations
 
