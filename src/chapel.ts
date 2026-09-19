@@ -2545,8 +2545,14 @@ export function renderChapelResult(
             `Known leads: ${event.journal.actionableLeads.length === 0 ? "none" : `\n- ${event.journal.actionableLeads.join("\n- ")}`}`,
           ].join("\n");
         }
-        case "chapel-status":
-          return `Fighter HP: ${event.hp}/${event.maxHp}\nHealing potion: ${result.state.itemPlacements["healing-potion"].type === "inventory" ? "available" : result.state.itemPlacements["healing-potion"].type === "consumed" ? "consumed" : "not collected"}.\nSession: ${event.status}.\nQuest: Find Tavi (${event.quest.status}). ${event.quest.status === "resolved" ? `Resolution: ${result.state.resolution?.id ?? "recorded"}.` : CHAPEL_OBJECTIVE}`;
+        case "chapel-status": {
+          const combatTurn =
+            chapelHasActiveCombat(result.state) &&
+            result.state.combat !== undefined
+              ? chapelCombatantName(result.state.combat.currentTurn)
+              : "none";
+          return `Fighter HP: ${event.hp}/${event.maxHp}\nHealing potion: ${result.state.itemPlacements["healing-potion"].type === "inventory" ? "available" : result.state.itemPlacements["healing-potion"].type === "consumed" ? "consumed" : "not collected"}.\nCombat turn: ${combatTurn}.\nSession: ${event.status}.\nQuest: Find Tavi (${event.quest.status}). ${event.quest.status === "resolved" ? `Resolution: ${result.state.resolution?.id ?? "recorded"}.` : CHAPEL_OBJECTIVE}`;
+        }
         case "chapel-inventory":
           return `Equipped: longsword.\nHealing potion: ${result.state.itemPlacements["healing-potion"].type === "inventory" ? "available" : result.state.itemPlacements["healing-potion"].type === "consumed" ? "consumed" : "not collected"}.`;
         case "chapel-help":

@@ -251,3 +251,92 @@ test("live AI help names the live mode without calling the provider", async () =
   assert.match(output, /Live AI DM mode accepts ordinary language/u);
   assert.doesNotMatch(output, /Scripted DM mode accepts ordinary language/u);
 });
+
+test("exact local status reports the combat turn after a provider failure", async () => {
+  let output = "";
+  let closed = false;
+  const responses = [
+    {
+      toolCalls: [
+        {
+          id: "move-path",
+          name: "move",
+          argumentsJson: '{"destinationId":"chapel-path"}',
+        },
+      ],
+    },
+    { text: "You follow the chapel path." },
+    {
+      toolCalls: [
+        {
+          id: "move-chapel",
+          name: "move",
+          argumentsJson: '{"destinationId":"ruined-chapel"}',
+        },
+      ],
+    },
+    { text: "You enter the ruined chapel." },
+    {
+      toolCalls: [
+        {
+          id: "move-crypt",
+          name: "move",
+          argumentsJson: '{"destinationId":"crypt"}',
+        },
+      ],
+    },
+  ];
+  let responseIndex = 0;
+  const lines = {
+    close() {
+      closed = true;
+    },
+    prompt() {},
+    async *[Symbol.asyncIterator]() {
+      for (const line of [
+        "Follow the chapel path.",
+        "Enter the ruined chapel.",
+        "Enter the crypt.",
+        "status",
+        "quit",
+      ]) {
+        if (closed) {
+          return;
+        }
+        yield line;
+      }
+    },
+  };
+
+  await playGame(
+    {
+      seed: 0,
+      runtime: resolveAdventure("chapel"),
+      dmModel: {
+        identity: { provider: "scripted", model: "test-model" },
+        async respond() {
+          const response = responses[responseIndex];
+          responseIndex += 1;
+          if (response === undefined) {
+            throw new Error(
+              "Simulated provider failure after entering combat.",
+            );
+          }
+          return response;
+        },
+      },
+    },
+    {
+      terminal: false,
+      lines,
+      write(text) {
+        output += text;
+      },
+    },
+  );
+
+  assert.match(
+    output,
+    /Fighter HP: \d+\/20\nHealing potion: not collected\.\nCombat turn: Fighter\.\nSession: playing\./u,
+  );
+});
