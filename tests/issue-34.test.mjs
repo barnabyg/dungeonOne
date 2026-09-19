@@ -133,6 +133,9 @@ test("provider failure leaves every exact local control usable and replay-valida
     assert.match(played.stdout, /Fighter HP: 20\/20/u);
     assert.match(played.stdout, /Equipped: longsword/u);
     assert.match(played.stdout, /Local commands:/u);
+    const summaries = played.stdout.match(/^State — .*$/gmu) ?? [];
+    assert.equal(summaries.length, 2);
+    assert.match(summaries[1], /Quest: Find Tavi \(active; 1 discovery\)/u);
     const trace = JSON.parse(readFileSync(tracePath, "utf8"));
     assert.deepEqual(
       trace.turns.map(({ kind }) => kind),
