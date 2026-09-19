@@ -20,6 +20,10 @@ import {
   CHAPEL_RULES_VERSION,
   CHAPEL_PROMPT_VERSION,
   CHAPEL_TOOL_VERSION,
+  RESCUE_CHAPEL_VERSION,
+  RESCUE_CHAPEL_RULES_VERSION,
+  RESCUE_CHAPEL_PROMPT_VERSION,
+  RESCUE_CHAPEL_TOOL_VERSION,
   POTION_CHAPEL_VERSION,
   POTION_CHAPEL_RULES_VERSION,
   POTION_CHAPEL_PROMPT_VERSION,
@@ -1110,6 +1114,9 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
   const rulesVersion = requireString(trace.rulesVersion, "rulesVersion");
   const current =
     version === CHAPEL_VERSION && rulesVersion === CHAPEL_RULES_VERSION;
+  const rescue =
+    version === RESCUE_CHAPEL_VERSION &&
+    rulesVersion === RESCUE_CHAPEL_RULES_VERSION;
   const potion =
     version === POTION_CHAPEL_VERSION &&
     rulesVersion === POTION_CHAPEL_RULES_VERSION;
@@ -1130,6 +1137,7 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     rulesVersion === LEGACY_CHAPEL_RULES_VERSION;
   if (
     !current &&
+    !rescue &&
     !potion &&
     !guardian &&
     !social &&
@@ -1139,6 +1147,7 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
   ) {
     if (
       rulesVersion !== CHAPEL_RULES_VERSION &&
+      rulesVersion !== RESCUE_CHAPEL_RULES_VERSION &&
       rulesVersion !== POTION_CHAPEL_RULES_VERSION &&
       rulesVersion !== GUARDIAN_CHAPEL_RULES_VERSION &&
       rulesVersion !== SOCIAL_CHAPEL_RULES_VERSION &&
@@ -1152,6 +1161,7 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     }
     if (
       version !== CHAPEL_VERSION &&
+      version !== RESCUE_CHAPEL_VERSION &&
       version !== POTION_CHAPEL_VERSION &&
       version !== GUARDIAN_CHAPEL_VERSION &&
       version !== SOCIAL_CHAPEL_VERSION &&
@@ -1173,32 +1183,36 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     rulesVersion,
     promptVersion: current
       ? CHAPEL_PROMPT_VERSION
-      : potion
-        ? POTION_CHAPEL_PROMPT_VERSION
-        : guardian
-          ? GUARDIAN_CHAPEL_PROMPT_VERSION
-          : social
-            ? SOCIAL_CHAPEL_PROMPT_VERSION
-            : dialogue
-              ? DIALOGUE_CHAPEL_PROMPT_VERSION
-              : discovery
-                ? DISCOVERY_CHAPEL_PROMPT_VERSION
-                : LEGACY_CHAPEL_PROMPT_VERSION,
+      : rescue
+        ? RESCUE_CHAPEL_PROMPT_VERSION
+        : potion
+          ? POTION_CHAPEL_PROMPT_VERSION
+          : guardian
+            ? GUARDIAN_CHAPEL_PROMPT_VERSION
+            : social
+              ? SOCIAL_CHAPEL_PROMPT_VERSION
+              : dialogue
+                ? DIALOGUE_CHAPEL_PROMPT_VERSION
+                : discovery
+                  ? DISCOVERY_CHAPEL_PROMPT_VERSION
+                  : LEGACY_CHAPEL_PROMPT_VERSION,
     toolVersion: current
       ? CHAPEL_TOOL_VERSION
-      : potion
-        ? POTION_CHAPEL_TOOL_VERSION
-        : guardian
-          ? GUARDIAN_CHAPEL_TOOL_VERSION
-          : social
-            ? SOCIAL_CHAPEL_TOOL_VERSION
-            : dialogue
-              ? DIALOGUE_CHAPEL_TOOL_VERSION
-              : discovery
-                ? DISCOVERY_CHAPEL_TOOL_VERSION
-                : LEGACY_CHAPEL_TOOL_VERSION,
+      : rescue
+        ? RESCUE_CHAPEL_TOOL_VERSION
+        : potion
+          ? POTION_CHAPEL_TOOL_VERSION
+          : guardian
+            ? GUARDIAN_CHAPEL_TOOL_VERSION
+            : social
+              ? SOCIAL_CHAPEL_TOOL_VERSION
+              : dialogue
+                ? DIALOGUE_CHAPEL_TOOL_VERSION
+                : discovery
+                  ? DISCOVERY_CHAPEL_TOOL_VERSION
+                  : LEGACY_CHAPEL_TOOL_VERSION,
     localKinds:
-      current || potion
+      current || rescue || potion
         ? [
             "dm",
             "local-help",
@@ -1631,6 +1645,7 @@ function replayDmTrace(trace: ReplayDmTrace): void {
             return value;
           },
         },
+        turn.rawPlayerInput,
       );
       const validated =
         result.engineResult !== undefined || result.modelOutput.ok;

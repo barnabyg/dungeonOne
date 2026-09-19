@@ -7,6 +7,7 @@ import type {
   SocialChapelState,
   GuardianChapelState,
   PotionChapelState,
+  RescueChapelState,
   DialogueChapelState,
   LegacyChapelState,
   LegacyChapelEvent,
@@ -29,6 +30,7 @@ export type RuntimeState =
   | ChapelState
   | GuardianChapelState
   | PotionChapelState
+  | RescueChapelState
   | SocialChapelState
   | DialogueChapelState
   | DiscoveryChapelState
@@ -95,6 +97,7 @@ export type AdventureRuntime = Readonly<{
     state: RuntimeState,
     call: GameToolCall,
     random?: Pick<RandomSource, "roll">,
+    playerInput?: string,
   ): RuntimeToolResult;
   getGameToolDefinitions(state: RuntimeState): readonly GameToolDefinition[];
   projectCharacterStatus(state: RuntimeState): CharacterStatus;

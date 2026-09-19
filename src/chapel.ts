@@ -32,10 +32,14 @@ export const POTION_CHAPEL_VERSION = "chapel-potion-v6";
 export const POTION_CHAPEL_RULES_VERSION = "chapel-potion-rules-v6";
 export const POTION_CHAPEL_TOOL_VERSION = "chapel-potion-tools-v6";
 export const POTION_CHAPEL_PROMPT_VERSION = "chapel-potion-dm-v6";
-export const CHAPEL_VERSION = "chapel-rescue-v7";
-export const CHAPEL_RULES_VERSION = "chapel-rescue-rules-v7";
-export const CHAPEL_TOOL_VERSION = "chapel-rescue-tools-v7";
-export const CHAPEL_PROMPT_VERSION = "chapel-rescue-dm-v7";
+export const RESCUE_CHAPEL_VERSION = "chapel-rescue-v7";
+export const RESCUE_CHAPEL_RULES_VERSION = "chapel-rescue-rules-v7";
+export const RESCUE_CHAPEL_TOOL_VERSION = "chapel-rescue-tools-v7";
+export const RESCUE_CHAPEL_PROMPT_VERSION = "chapel-rescue-dm-v7";
+export const CHAPEL_VERSION = "chapel-resolution-v8";
+export const CHAPEL_RULES_VERSION = "chapel-resolution-rules-v8";
+export const CHAPEL_TOOL_VERSION = "chapel-resolution-tools-v8";
+export const CHAPEL_PROMPT_VERSION = "chapel-resolution-dm-v8";
 export const CHAPEL_TITLE = "The Bell Beneath the Chapel";
 export const CHAPEL_OBJECTIVE =
   "Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.";
@@ -51,7 +55,8 @@ export type ChapelFeatureId =
   | "broken-roof"
   | "damaged-repair-record"
   | "crypt-steps"
-  | "diversion-ledger";
+  | "diversion-ledger"
+  | "resolution-noticeboard";
 export type ChapelItemId = "healing-potion";
 export type ChapelNpcId = "mara" | "oren" | "tavi";
 export type ChapelOpponentDefinitionId = "skeleton";
@@ -126,6 +131,18 @@ export type ChapelMilestoneId =
   | "ledger-recovered"
   | "tavi-fate-established"
   | "tavi-rescued";
+export type ChapelResolutionId = "public-disclosure" | "confidential-referral";
+export type ChapelResolution = Readonly<{
+  id: ChapelResolutionId;
+  taviFate: "alive-in-crypt" | "rescued-to-inn";
+  consequences: readonly (
+    | "evidence-published"
+    | "village-inquiry-initiated"
+    | "evidence-delivered-confidentially"
+    | "restitution-repair-requested"
+    | "oren-committed-future-restitution"
+  )[];
+}>;
 export type ChapelDiscovery = Readonly<{
   id: ChapelDiscoveryId;
   title: string;
@@ -285,11 +302,12 @@ export type ChapelJournal = Readonly<{
   quest: Readonly<{
     id: "find-tavi";
     title: "Find Tavi";
-    status: "active";
+    status: "active" | "resolved";
     milestones: readonly ChapelMilestoneId[];
   }>;
   discoveries: readonly ChapelDiscovery[];
   actionableLeads: readonly string[];
+  resolution?: ChapelResolution;
 }>;
 
 type ChapelEvidence = Readonly<{
@@ -366,6 +384,19 @@ const DIVERSION_LEDGER_FEATURE = Object.freeze({
   description:
     "A water-stained ledger lies beyond the defeated guardian. Its entries can be searched carefully.",
 });
+function resolutionNoticeboardFeature(state: ChapelState): PublicFeature {
+  const description =
+    state.resolution === undefined
+      ? "The inn noticeboard presents two deliberate choices. Public disclosure publishes the ledger evidence and initiates a village inquiry. Confidential referral delivers the evidence privately to the trustees with a request for restitution and chapel repair."
+      : state.resolution.id === "public-disclosure"
+        ? `The noticeboard records public disclosure: the ledger evidence was published and a village inquiry was initiated. Tavi's recorded fate is ${state.resolution.taviFate}.`
+        : `The noticeboard records confidential referral: the ledger was delivered privately to the trustees with a restitution and chapel-repair request. Oren committed to future restitution. Tavi's recorded fate is ${state.resolution.taviFate}. No completed payment or repair is claimed.`;
+  return {
+    id: "resolution-noticeboard",
+    name: "resolution noticeboard",
+    description,
+  };
+}
 export type ChapelInspection =
   | Readonly<PublicFeature & { type: "feature" }>
   | Readonly<{
@@ -478,7 +509,7 @@ export const CHAPEL_ROOMS = [
 export type ChapelState = Readonly<{
   adventureId: typeof CHAPEL_ID;
   locationId: ChapelRoomId;
-  status: "playing" | "defeat" | "quit";
+  status: "playing" | "victory" | "defeat" | "quit";
   fighter: Readonly<{
     hp: number;
     maxHp: number;
@@ -486,7 +517,7 @@ export type ChapelState = Readonly<{
   }>;
   quest: Readonly<{
     id: "find-tavi";
-    status: "active";
+    status: "active" | "resolved";
     milestones: readonly ChapelMilestoneId[];
   }>;
   discoveries: readonly ChapelDiscovery[];
@@ -532,6 +563,7 @@ export type ChapelState = Readonly<{
     turnOrder: readonly [ChapelCombatantId, ChapelCombatantId];
     currentTurn: ChapelCombatantId;
   }>;
+  resolution?: ChapelResolution;
 }>;
 
 export type ChapelSocialCheck = Readonly<{
@@ -560,6 +592,14 @@ export type GuardianChapelState = Omit<
   "itemPlacements" | "npcLocations"
 >;
 export type PotionChapelState = Omit<ChapelState, "npcLocations">;
+export type RescueChapelState = Omit<ChapelState, "resolution" | "quest"> &
+  Readonly<{
+    quest: Readonly<{
+      id: "find-tavi";
+      status: "active";
+      milestones: readonly ChapelMilestoneId[];
+    }>;
+  }>;
 export type LegacyChapelState = Readonly<{
   adventureId: typeof CHAPEL_ID;
   locationId: ChapelRoomId;
@@ -619,6 +659,7 @@ export type ChapelEvent = Readonly<
     }
   | { type: "chapel-conversation"; conversation: ChapelConversation }
   | { type: "chapel-tavi-rescued"; fromRoomId: "crypt"; roomId: "inn" }
+  | { type: "chapel-resolved"; resolution: ChapelResolution }
   | { type: "chapel-item-taken"; itemId: ChapelItemId }
   | {
       type: "chapel-item-used";
@@ -672,6 +713,8 @@ export type ChapelRejection = Readonly<{
     | "chapel-dead-target"
     | "chapel-item-unavailable"
     | "chapel-full-hp"
+    | "chapel-invalid-resolution"
+    | "chapel-resolution-unavailable"
     | "chapel-terminal-state";
 }>;
 export type ChapelResult =
@@ -1148,6 +1191,7 @@ export function chapelRoom(id: ChapelRoomId): ChapelRoom {
 export function visibleChapelFeatures(
   state: ChapelState,
   rescueEnabled = true,
+  resolutionEnabled = true,
 ): readonly PublicFeature[] {
   return [
     ...chapelRoom(state.locationId).features,
@@ -1155,6 +1199,11 @@ export function visibleChapelFeatures(
     state.locationId === "crypt" &&
     state.quest.milestones.includes("guardian-cleared")
       ? [DIVERSION_LEDGER_FEATURE]
+      : []),
+    ...(resolutionEnabled &&
+    (chapelResolutionChoices(state).length > 0 ||
+      state.resolution !== undefined)
+      ? [resolutionNoticeboardFeature(state)]
       : []),
   ];
 }
@@ -1168,10 +1217,15 @@ export function chapelInspection(
   target: string,
   guardianEnabled = true,
   rescueEnabled = true,
+  resolutionEnabled = true,
 ): ChapelInspection | undefined {
   const room = chapelRoom(state.locationId);
   const match = normalized(target);
-  const feature = visibleChapelFeatures(state, rescueEnabled).find(
+  const feature = visibleChapelFeatures(
+    state,
+    rescueEnabled,
+    resolutionEnabled,
+  ).find(
     (entry) =>
       normalized(entry.id) === match || normalized(entry.name) === match,
   );
@@ -1220,22 +1274,29 @@ export function projectChapelJournal(state: ChapelState): ChapelJournal {
       milestones: state.quest.milestones,
     },
     discoveries: state.discoveries,
-    actionableLeads: state.discoveries.flatMap((discovery) =>
-      discovery.actionableLead === undefined ||
-      (discovery.id === "tavi-crypt-testimony" &&
-        state.quest.milestones.includes("tavi-rescued"))
-        ? []
-        : [discovery.actionableLead],
-    ),
+    actionableLeads:
+      state.resolution === undefined
+        ? state.discoveries.flatMap((discovery) =>
+            discovery.actionableLead === undefined ||
+            (discovery.id === "tavi-crypt-testimony" &&
+              state.quest.milestones.includes("tavi-rescued"))
+              ? []
+              : [discovery.actionableLead],
+          )
+        : [],
+    ...(state.resolution === undefined ? {} : { resolution: state.resolution }),
   };
 }
 
 export function chapelSearchTargets(
   state: ChapelState,
   rescueEnabled = true,
+  resolutionEnabled = true,
 ): readonly ChapelFeatureId[] {
   const visibleFeatures = new Set(
-    visibleChapelFeatures(state, rescueEnabled).map(({ id }) => id),
+    visibleChapelFeatures(state, rescueEnabled, resolutionEnabled).map(
+      ({ id }) => id,
+    ),
   );
   return CHAPEL_EVIDENCE.map(({ targetId }) => targetId).filter((targetId) =>
     visibleFeatures.has(targetId),
@@ -1525,6 +1586,105 @@ function useHealingPotion(
   };
 }
 
+export function chapelResolutionChoices(
+  state: ChapelState,
+): readonly ChapelResolutionId[] {
+  const eligible =
+    state.status === "playing" &&
+    state.locationId === "inn" &&
+    state.discoveries.some(({ id }) => id === "diversion-ledger") &&
+    state.quest.milestones.includes("tavi-fate-established");
+  return eligible
+    ? (["public-disclosure", "confidential-referral"] as const)
+    : [];
+}
+
+export function chapelResolutionIntent(
+  input: string,
+): ChapelResolutionId | undefined {
+  const normalizedInput = normalized(input);
+  if (/\b(?:do not|don't|never|not|avoid|without)\b/u.test(normalizedInput)) {
+    return undefined;
+  }
+  const evidence = "(?:it|this|(?:the )?(?:ledger|evidence|diversion|truth))";
+  const publicIntent =
+    new RegExp(
+      `\\bpublic disclosure\\b|\\b(?:publish|expose) ${evidence}\\b|\\b${evidence} (?:public|published)\\b|\\btell everyone\\b.*\\b${evidence}\\b`,
+      "u",
+    ).test(normalizedInput) ||
+    /\bmake (?:it|this|the ledger|the evidence) public\b/u.test(
+      normalizedInput,
+    );
+  const confidentialIntent =
+    new RegExp(
+      `\\b(?:confidential|private) referral\\b|\\brefer ${evidence}\\b.*\\b(?:confidentially|trustee|trustees)\\b|\\bdeliver ${evidence}\\b.*\\b(?:privately|confidentially|trustee|trustees)\\b`,
+      "u",
+    ).test(normalizedInput) ||
+    /\bseek private restitution\b/u.test(normalizedInput);
+  if (publicIntent === confidentialIntent) {
+    return undefined;
+  }
+  return publicIntent ? "public-disclosure" : "confidential-referral";
+}
+
+function resolveChapelQuest(
+  state: ChapelState,
+  target: string | undefined,
+): ChapelResult {
+  const normalizedTarget = normalized(target ?? "");
+  if (normalizedTarget.length === 0) {
+    return { state, rejection: { reason: "chapel-missing-argument" } };
+  }
+  const resolutionId = (
+    ["public", "public disclosure", "expose", "expose the diversion"].includes(
+      normalizedTarget,
+    )
+      ? "public-disclosure"
+      : [
+            "private",
+            "private referral",
+            "confidential referral",
+            "restitution",
+          ].includes(normalizedTarget)
+        ? "confidential-referral"
+        : undefined
+  ) satisfies ChapelResolutionId | undefined;
+  if (resolutionId === undefined) {
+    return { state, rejection: { reason: "chapel-invalid-resolution" } };
+  }
+  if (!chapelResolutionChoices(state).includes(resolutionId)) {
+    return { state, rejection: { reason: "chapel-resolution-unavailable" } };
+  }
+  const taviFate = state.quest.milestones.includes("tavi-rescued")
+    ? "rescued-to-inn"
+    : "alive-in-crypt";
+  const resolution: ChapelResolution =
+    resolutionId === "public-disclosure"
+      ? {
+          id: resolutionId,
+          taviFate,
+          consequences: ["evidence-published", "village-inquiry-initiated"],
+        }
+      : {
+          id: resolutionId,
+          taviFate,
+          consequences: [
+            "evidence-delivered-confidentially",
+            "restitution-repair-requested",
+            "oren-committed-future-restitution",
+          ],
+        };
+  return {
+    state: {
+      ...state,
+      status: "victory",
+      quest: { ...state.quest, status: "resolved" },
+      resolution,
+    },
+    events: [{ type: "chapel-resolved", resolution }],
+  };
+}
+
 export function handleChapelAction(
   state: ChapelState,
   action: Action,
@@ -1532,6 +1692,7 @@ export function handleChapelAction(
   guardianEnabled = true,
   itemsEnabled = true,
   rescueEnabled = true,
+  resolutionEnabled = true,
 ): ChapelResult {
   const accept = (...events: ChapelEvent[]): ChapelResult => ({
     state,
@@ -1539,7 +1700,7 @@ export function handleChapelAction(
   });
   if (action.type === "quit") {
     return {
-      state: state.status === "defeat" ? state : { ...state, status: "quit" },
+      state: state.status === "playing" ? { ...state, status: "quit" } : state,
       events: [{ type: "session-quit" }],
     };
   }
@@ -1550,6 +1711,7 @@ export function handleChapelAction(
     "take",
     "use",
     "attack",
+    "resolve",
   ].includes(action.type);
   if (state.status === "quit" && gameplayMutation) {
     return { state, rejection: { reason: "chapel-session-ended" } };
@@ -1557,7 +1719,10 @@ export function handleChapelAction(
   if (!itemsEnabled && (action.type === "take" || action.type === "use")) {
     return { state, rejection: { reason: "chapel-unavailable" } };
   }
-  if (state.status === "defeat" && gameplayMutation) {
+  if (
+    (state.status === "victory" || state.status === "defeat") &&
+    gameplayMutation
+  ) {
     return { state, rejection: { reason: "chapel-terminal-state" } };
   }
   if (
@@ -1594,6 +1759,10 @@ export function handleChapelAction(
       return takeChapelItem(state, action.target);
     case "use":
       return useHealingPotion(state, action.target, random);
+    case "resolve":
+      return resolutionEnabled
+        ? resolveChapelQuest(state, action.target)
+        : { state, rejection: { reason: "chapel-unavailable" } };
     case "talk": {
       if (state.status === "quit") {
         return { state, rejection: { reason: "chapel-session-ended" } };
@@ -1619,6 +1788,7 @@ export function handleChapelAction(
         action.target,
         guardianEnabled,
         rescueEnabled,
+        resolutionEnabled,
       );
       return target === undefined
         ? { state, rejection: { reason: "chapel-unavailable" } }
@@ -1731,6 +1901,7 @@ export function renderChapelIntroduction(): string {
 export function renderChapelResult(
   result: ChapelResult,
   rescueEnabled = true,
+  resolutionEnabled = rescueEnabled,
 ): string {
   if (result.rejection !== undefined) {
     switch (result.rejection.reason) {
@@ -1746,6 +1917,10 @@ export function renderChapelResult(
         return "You do not have that usable item available.";
       case "chapel-full-hp":
         return "You are already at full HP; the healing potion remains available.";
+      case "chapel-invalid-resolution":
+        return 'Choose "resolve public disclosure" or "resolve confidential referral" after the noticeboard presents those choices.';
+      case "chapel-resolution-unavailable":
+        return "The noticeboard cannot resolve the investigation yet. Recover the ledger, establish Tavi's fate, and return to the inn.";
       case "chapel-missing-argument":
         return 'Name a visible target or adjacent location. Use "look" for choices.';
       case "chapel-session-ended":
@@ -1790,8 +1965,16 @@ export function renderChapelResult(
           const featureNames = visibleChapelFeatures(
             result.state,
             rescueEnabled,
+            resolutionEnabled,
           ).map(({ name }) => name);
-          return `${room.name}\n${room.description}\nVisible: ${featureNames.join(", ")}.\nVisible items: ${visibleItems}.\n${opponentLine}\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.`;
+          const resolutionLine =
+            resolutionEnabled &&
+            chapelResolutionChoices(result.state).length > 0
+              ? "\nNoticeboard choices: public disclosure publishes the ledger evidence and initiates a village inquiry; confidential referral delivers it privately to the trustees with a restitution and repair request."
+              : resolutionEnabled && result.state.resolution !== undefined
+                ? `\nNoticeboard record: ${resolutionNoticeboardFeature(result.state).description}`
+                : "";
+          return `${room.name}\n${room.description}\nVisible: ${featureNames.join(", ")}.${resolutionLine}\nVisible items: ${visibleItems}.\n${opponentLine}\nNPCs: ${speakers.join("; ") || "none"}.\nExits: ${room.exits.join(", ")}.`;
         }
         case "chapel-moved":
           return `You travel to ${chapelRoom(event.roomId).name}.`;
@@ -1809,6 +1992,15 @@ export function renderChapelResult(
           return event.conversation.authoredReply;
         case "chapel-tavi-rescued":
           return "Tavi takes the marked safe route from the crypt to the village inn.";
+        case "chapel-resolved": {
+          const taviOutcome =
+            event.resolution.taviFate === "rescued-to-inn"
+              ? "Tavi is alive and safe at the village inn."
+              : "Tavi is alive in the crypt; that established fate is included in the record.";
+          return event.resolution.id === "public-disclosure"
+            ? `Public disclosure recorded. The ledger evidence is published and a village inquiry is initiated. ${taviOutcome}`
+            : `Confidential referral recorded. The ledger is delivered privately to the village trustees with a request for restitution and chapel repair. Oren commits to future restitution; no payment or completed repair is claimed. ${taviOutcome}`;
+        }
         case "chapel-item-taken":
           return "You take the healing potion. It is now available in your inventory.";
         case "chapel-item-used":
@@ -1855,16 +2047,23 @@ export function renderChapelResult(
           return [
             `Journal\nActive quest: ${event.journal.quest.title} (${event.journal.quest.status}).`,
             `Milestones: ${milestones.length === 0 ? "none" : milestones.join(", ")}.`,
+            ...(event.journal.resolution === undefined
+              ? []
+              : [
+                  `Resolution: ${event.journal.resolution.id}.`,
+                  `Consequences: ${event.journal.resolution.consequences.join(", ")}.`,
+                  `Tavi fate: ${event.journal.resolution.taviFate}.`,
+                ]),
             `Discoveries: ${discoveries.length === 0 ? "none" : `\n${discoveries.join("\n")}`}`,
             `Known leads: ${event.journal.actionableLeads.length === 0 ? "none" : `\n- ${event.journal.actionableLeads.join("\n- ")}`}`,
           ].join("\n");
         }
         case "chapel-status":
-          return `Fighter HP: ${event.hp}/${event.maxHp}\nHealing potion: ${result.state.itemPlacements["healing-potion"].type === "inventory" ? "available" : result.state.itemPlacements["healing-potion"].type === "consumed" ? "consumed" : "not collected"}.\nSession: ${event.status}.\nActive quest: Find Tavi. ${CHAPEL_OBJECTIVE}`;
+          return `Fighter HP: ${event.hp}/${event.maxHp}\nHealing potion: ${result.state.itemPlacements["healing-potion"].type === "inventory" ? "available" : result.state.itemPlacements["healing-potion"].type === "consumed" ? "consumed" : "not collected"}.\nSession: ${event.status}.\nQuest: Find Tavi (${event.quest.status}). ${event.quest.status === "resolved" ? `Resolution: ${result.state.resolution?.id ?? "recorded"}.` : CHAPEL_OBJECTIVE}`;
         case "chapel-inventory":
           return `Equipped: longsword.\nHealing potion: ${result.state.itemPlacements["healing-potion"].type === "inventory" ? "available" : result.state.itemPlacements["healing-potion"].type === "consumed" ? "consumed" : "not collected"}.`;
         case "chapel-help":
-          return "Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, take <item>, use <item>, attack <target>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nExamples: talk mara tavi ask; move chapel-path; take healing potion; use potion; move ruined-chapel; move crypt; attack skeleton; search diversion ledger; talk tavi crypt ask; talk tavi rescue ask.\nEnter each command on its own line. During guardian combat, attack or potion use advances the turn; reads and quit remain available. Defeating the guardian makes Tavi and the diversion ledger accessible.";
+          return "Available commands: help, look, inspect <target>, search <evidence>, talk <npc> <topic> <approach>, move <location>, take <item>, use <item>, attack <target>, resolve <choice>, status, inventory, journal, quit.\nConversation approaches: ask, persuade, deceive, intimidate.\nExamples: talk mara tavi ask; move chapel-path; take healing potion; use potion; move ruined-chapel; move crypt; attack skeleton; search diversion ledger; talk tavi crypt ask; talk tavi rescue ask; resolve public disclosure; resolve confidential referral.\nEnter each command on its own line. During guardian combat, attack or potion use advances the turn; reads and quit remain available. Defeating the guardian makes Tavi and the diversion ledger accessible.";
         case "session-quit":
           return "You leave the game.";
       }

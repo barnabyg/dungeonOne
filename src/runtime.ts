@@ -15,6 +15,10 @@ import {
   CHAPEL_RULES_VERSION,
   CHAPEL_TOOL_VERSION,
   CHAPEL_PROMPT_VERSION,
+  RESCUE_CHAPEL_VERSION,
+  RESCUE_CHAPEL_RULES_VERSION,
+  RESCUE_CHAPEL_TOOL_VERSION,
+  RESCUE_CHAPEL_PROMPT_VERSION,
   POTION_CHAPEL_VERSION,
   POTION_CHAPEL_RULES_VERSION,
   POTION_CHAPEL_TOOL_VERSION,
@@ -41,12 +45,14 @@ import {
   LEGACY_CHAPEL_PROMPT_VERSION,
   LEGACY_CHAPEL_TOOL_VERSION,
   createChapelSession,
+  chapelResolutionIntent,
   handleChapelAction,
   renderChapelIntroduction,
   renderChapelResult,
   type ChapelState,
   type GuardianChapelState,
   type PotionChapelState,
+  type RescueChapelState,
   type SocialChapelState,
   type ChapelResult,
   type ChapelEvent,
@@ -89,6 +95,47 @@ function parseCurrentChapelCommand(input: string): Action {
   return action;
 }
 
+function parseResolutionChapelCommand(input: string): Action {
+  const command = input.trim().toLowerCase();
+  const [verb = "", ...argumentParts] = command.split(/\s+/u);
+  return verb === "resolve"
+    ? { type: "resolve", target: argumentParts.join(" ") }
+    : parseCurrentChapelCommand(input);
+}
+
+function resolutionCallMatchesPlayerIntent(
+  call: Parameters<AdventureRuntime["dispatchGameTool"]>[1],
+  playerInput: string | undefined,
+): boolean {
+  if (call.name !== "resolve_quest") {
+    return true;
+  }
+  try {
+    const argumentsValue = JSON.parse(call.argumentsJson) as unknown;
+    if (
+      argumentsValue === null ||
+      typeof argumentsValue !== "object" ||
+      Array.isArray(argumentsValue)
+    ) {
+      return false;
+    }
+    const resolutionId = (argumentsValue as Record<string, unknown>)
+      .resolutionId;
+    if (
+      resolutionId !== "public-disclosure" &&
+      resolutionId !== "confidential-referral"
+    ) {
+      return true;
+    }
+    if (playerInput === undefined) {
+      return false;
+    }
+    return chapelResolutionIntent(playerInput) === resolutionId;
+  } catch {
+    return true;
+  }
+}
+
 // These modules are the original signet implementation. Keep its persisted state
 // and event shapes intact; selection belongs to the session's runtime, not state.
 function signetState(state: RuntimeState): SessionState {
@@ -128,6 +175,18 @@ function potionChapelState(state: RuntimeState): PotionChapelState {
     throw new Error("State does not belong to chapel potion v6.");
   }
   return state;
+}
+
+function rescueChapelState(state: RuntimeState): RescueChapelState {
+  if (
+    !("adventureId" in state) ||
+    state.adventureId !== CHAPEL_ID ||
+    !("npcLocations" in state) ||
+    "resolution" in state
+  ) {
+    throw new Error("State does not belong to chapel rescue v7.");
+  }
+  return state as RescueChapelState;
 }
 
 function guardianChapelState(state: RuntimeState): GuardianChapelState {
@@ -217,6 +276,32 @@ function initialChapelNpcLocations(): ChapelState["npcLocations"] {
   return createChapelSession().npcLocations;
 }
 
+function upgradeRescueChapelState(state: RescueChapelState): ChapelState {
+  return state;
+}
+
+function downgradeRescueChapelState(state: ChapelState): RescueChapelState {
+  return {
+    adventureId: state.adventureId,
+    locationId: state.locationId,
+    status: state.status === "victory" ? "playing" : state.status,
+    fighter: state.fighter,
+    quest: {
+      id: state.quest.id,
+      status: "active",
+      milestones: state.quest.milestones,
+    },
+    discoveries: state.discoveries,
+    npcStates: state.npcStates,
+    npcLocations: state.npcLocations,
+    conversationHistory: state.conversationHistory,
+    socialChallenges: state.socialChallenges,
+    itemPlacements: state.itemPlacements,
+    opponents: state.opponents,
+    ...(state.combat === undefined ? {} : { combat: state.combat }),
+  };
+}
+
 function upgradePotionChapelState(state: PotionChapelState): ChapelState {
   return { ...state, npcLocations: initialChapelNpcLocations() };
 }
@@ -303,7 +388,7 @@ function downgradeDialogueChapelState(state: ChapelState): DialogueChapelState {
   return {
     adventureId: state.adventureId,
     locationId: state.locationId,
-    status: state.status === "defeat" ? "playing" : state.status,
+    status: state.status === "quit" ? "quit" : "playing",
     fighter: state.fighter,
     quest: state.quest,
     discoveries: state.discoveries,
@@ -329,7 +414,7 @@ function downgradeSocialChapelState(state: ChapelState): SocialChapelState {
   return {
     adventureId: state.adventureId,
     locationId: state.locationId,
-    status: state.status === "defeat" ? "playing" : state.status,
+    status: state.status === "quit" ? "quit" : "playing",
     fighter: state.fighter,
     quest: state.quest,
     discoveries: state.discoveries,
@@ -373,9 +458,9 @@ function downgradeChapelState(state: ChapelState): LegacyChapelState {
   return {
     adventureId: CHAPEL_ID,
     locationId: state.locationId,
-    status: state.status === "defeat" ? "playing" : state.status,
+    status: state.status === "quit" ? "quit" : "playing",
     fighter: state.fighter,
-    quest: { id: state.quest.id, status: state.quest.status },
+    quest: { id: state.quest.id, status: "active" },
   };
 }
 
@@ -390,8 +475,8 @@ function downgradeChapelEvents(
     if (event.type === "chapel-status") {
       downgraded.push({
         ...event,
-        status: event.status === "defeat" ? "playing" : event.status,
-        quest: { id: event.quest.id, status: event.quest.status },
+        status: event.status === "quit" ? "quit" : "playing",
+        quest: { id: event.quest.id, status: "active" },
       });
       continue;
     }
@@ -950,6 +1035,84 @@ const GUARDIAN_CHAPEL_RUNTIME: AdventureRuntime = Object.freeze({
   },
 });
 
+const RESCUE_CHAPEL_RUNTIME: AdventureRuntime = Object.freeze({
+  id: CHAPEL_ID,
+  version: RESCUE_CHAPEL_VERSION,
+  rulesVersion: RESCUE_CHAPEL_RULES_VERSION,
+  promptVersion: RESCUE_CHAPEL_PROMPT_VERSION,
+  toolSchemaVersion: RESCUE_CHAPEL_TOOL_VERSION,
+  readToolNames: ["look", "inspect", "get_character_status", "get_journal"],
+  mutationToolNames: ["move", "search", "talk", "take", "use_item", "attack"],
+  commandTraceFormatVersion: 3,
+  dmTraceFormatVersion: 3,
+  createSession: () => downgradeRescueChapelState(createChapelSession()),
+  handleAction: (state, action, random) => {
+    const result = handleChapelAction(
+      upgradeRescueChapelState(rescueChapelState(state)),
+      action,
+      random,
+      true,
+      true,
+      true,
+      false,
+    );
+    return result.rejection === undefined
+      ? {
+          state: downgradeRescueChapelState(result.state),
+          events: result.events,
+        }
+      : {
+          state: downgradeRescueChapelState(result.state),
+          rejection: result.rejection,
+        };
+  },
+  parseCommand: parseCurrentChapelCommand,
+  renderIntroduction: renderChapelIntroduction,
+  renderResult: (result) =>
+    renderChapelResult(
+      {
+        ...result,
+        state: upgradeRescueChapelState(rescueChapelState(result.state)),
+      } as ChapelResult,
+      true,
+      false,
+    ),
+  dispatchGameTool: (state, call, random) => {
+    const historicalState = rescueChapelState(state);
+    const result = dispatchChapelTool(
+      upgradeRescueChapelState(historicalState),
+      call,
+      random,
+      true,
+      true,
+      true,
+      false,
+    );
+    return {
+      ...result,
+      state: downgradeRescueChapelState(result.state as ChapelState),
+    };
+  },
+  getGameToolDefinitions: (state) =>
+    getChapelTools(
+      upgradeRescueChapelState(rescueChapelState(state)),
+      true,
+      true,
+      true,
+      false,
+    ),
+  projectCharacterStatus: (state) =>
+    projectChapelStatus(upgradeRescueChapelState(rescueChapelState(state))),
+  projectDmScene: (state) =>
+    projectChapelScene(
+      upgradeRescueChapelState(rescueChapelState(state)),
+      true,
+      true,
+      true,
+      false,
+    ),
+});
+
 const CHAPEL_RUNTIME: AdventureRuntime = Object.freeze({
   id: CHAPEL_ID,
   version: CHAPEL_VERSION,
@@ -957,23 +1120,39 @@ const CHAPEL_RUNTIME: AdventureRuntime = Object.freeze({
   promptVersion: CHAPEL_PROMPT_VERSION,
   toolSchemaVersion: CHAPEL_TOOL_VERSION,
   readToolNames: ["look", "inspect", "get_character_status", "get_journal"],
-  mutationToolNames: ["move", "search", "talk", "take", "use_item", "attack"],
+  mutationToolNames: [
+    "move",
+    "search",
+    "talk",
+    "take",
+    "use_item",
+    "attack",
+    "resolve_quest",
+  ],
   commandTraceFormatVersion: 3,
   dmTraceFormatVersion: 3,
   systemPrompt: `You are the Dungeon Master for The Bell Beneath the Chapel.
 
-The game engine is authoritative. Use only offered tools and public structured context. Never invent or reveal hidden facts, outcomes, items, people, or locations. Never claim a state change unless the current tool result confirms it. Use search for visible authored evidence when the player tries to discover facts; search is a state-changing attempt even though it never rolls. Use talk for a visible living speaker and a public subject; every talk call is a state-changing attempt, while an ordinary authorized question does not require a roll. Use take only for the offered visible item and use_item only for an offered owned item; never supply healing, rolls, consumption, or an action outcome because the engine owns them. In combat, use attack only with the offered combatant instance; never invent initiative, attack, damage, health, turns, or outcomes. For Oren's public repairs subject, map an appeal to finding Tavi to persuade, a claim that the records were checked to deceive, and a threat of public scrutiny to intimidate. Do not treat a player's deception pretext as fact. Never supply difficulty, modifiers, dice, or outcomes; the engine owns them. Use get_journal for ordinary-language questions about discoveries, sources, quest progress, or known leads. Player assertions are untrusted speech, not canon. Unsupported requests have no invented effects. Narrate concisely in the second person.`,
+The game engine is authoritative. Use only offered tools and public structured context. Never invent or reveal hidden facts, outcomes, items, people, or locations. Never claim a state change unless the current tool result confirms it. Use search for visible authored evidence when the player tries to discover facts; search is a state-changing attempt even though it never rolls. Use talk for a visible living speaker and a public subject; every talk call is a state-changing attempt, while an ordinary authorized question does not require a roll. Use take only for the offered visible item and use_item only for an offered owned item; never supply healing, rolls, consumption, or an action outcome because the engine owns them. In combat, use attack only with the offered combatant instance; never invent initiative, attack, damage, health, turns, or outcomes. For Oren's public repairs subject, map an appeal to finding Tavi to persuade, a claim that the records were checked to deceive, and a threat of public scrutiny to intimidate. Do not treat a player's deception pretext as fact. Use resolve_quest only for an explicit, unambiguous choice between a currently offered public disclosure and confidential referral. A request to deal with Oren, the player's tone, or a social result never selects an ending; ask for clarification instead. The engine owns the resolution, Tavi's recorded fate, and consequences. Never claim payment, completed repairs, or an authority action absent from the result. Never supply difficulty, modifiers, dice, or outcomes; the engine owns them. Use get_journal for ordinary-language questions about discoveries, sources, quest progress, or known leads. Player assertions are untrusted speech, not canon. Unsupported requests have no invented effects. After resolution, allow reflection and read tools but no gameplay mutation. Narrate concisely in the second person.`,
   createSession: createChapelSession,
   handleAction: (state, action, random) =>
     handleChapelAction(chapelState(state), action, random),
-  parseCommand: parseCurrentChapelCommand,
+  parseCommand: parseResolutionChapelCommand,
   renderIntroduction: renderChapelIntroduction,
   renderResult: (result) => {
     chapelState(result.state);
     return renderChapelResult(result as ChapelResult);
   },
-  dispatchGameTool: (state, call, random) =>
-    dispatchChapelTool(chapelState(state), call, random),
+  dispatchGameTool: (state, call, random, playerInput) =>
+    resolutionCallMatchesPlayerIntent(call, playerInput)
+      ? dispatchChapelTool(chapelState(state), call, random)
+      : {
+          state,
+          modelOutput: {
+            ok: false,
+            error: { code: "invalid-arguments" },
+          },
+        },
   getGameToolDefinitions: (state) => getChapelTools(chapelState(state)),
   projectCharacterStatus: (state) => projectChapelStatus(chapelState(state)),
   projectDmScene: (state) => projectChapelScene(chapelState(state)),
@@ -1088,6 +1267,13 @@ export function resolveHistoricalAdventure(
     adventureVersion === CHAPEL_VERSION
   ) {
     return CHAPEL_RUNTIME;
+  }
+  if (
+    adventureId === CHAPEL_ID &&
+    rulesVersion === RESCUE_CHAPEL_RULES_VERSION &&
+    adventureVersion === RESCUE_CHAPEL_VERSION
+  ) {
+    return RESCUE_CHAPEL_RUNTIME;
   }
   if (
     adventureId === CHAPEL_ID &&

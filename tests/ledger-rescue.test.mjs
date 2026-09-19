@@ -326,7 +326,7 @@ test("offline rescue, evidence-backed return, export, and replay are determinist
     assert.match(played.stdout, /Tavi \(living; public subjects:/i);
     assert.match(played.stdout, /tavi-rescued/i);
     const trace = JSON.parse(readFileSync(tracePath, "utf8"));
-    assert.equal(trace.adventure.version, "chapel-rescue-v7");
+    assert.equal(trace.adventure.version, "chapel-resolution-v8");
     const rescue = trace.actions.find(
       ({ action }) =>
         action.type === "talk" &&

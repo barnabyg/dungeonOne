@@ -113,6 +113,7 @@ export type GameToolName =
   | "take"
   | "use_item"
   | "attack"
+  | "resolve_quest"
   | "leave"
   | "get_journal"
   | "get_character_status";
@@ -470,7 +471,7 @@ export function projectCharacterStatus(state: SessionState): CharacterStatus {
 
 type SignetToolName = Exclude<
   GameToolName,
-  "search" | "talk" | "use_item" | "get_journal"
+  "search" | "talk" | "use_item" | "resolve_quest" | "get_journal"
 >;
 
 const TOOL_NAMES: readonly SignetToolName[] = [

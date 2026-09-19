@@ -44,7 +44,14 @@ Oren's diversion and medicine motive without a roll or NPC cooperation. Tavi can
 describe only their crypt experience; `talk tavi rescue ask` records one authored
 rescue and moves a living Tavi to the inn. The ledger unlocks Oren's authored no-roll
 response even after a failed social attempt, without clearing that attempt's lock.
-The two final resolutions and NPC casualty actions remain later tickets.
+After the ledger is found, Tavi's fate is established, and the player returns to
+the inn, the noticeboard presents two explicit endings and their stakes. Use
+`resolve public disclosure` to publish the evidence and initiate an inquiry, or
+`resolve confidential referral` to deliver it privately to the trustees with a
+restitution and repair request. The authoritative final state records the chosen
+resolution, its immediate consequences, and Tavi's actual fate. Gameplay
+mutations then freeze while status, journal, inventory, help, reflection in AI
+mode, and quit remain available. NPC casualty actions remain a later ticket.
 A single healing potion is visible on the chapel path and can be taken before the
 crypt. `use potion` restores `2d4 + 2` HP up to the Fighter's maximum and consumes
 it once. Full-HP use leaves it available; combat use spends the Fighter's turn and
@@ -52,7 +59,7 @@ allows the skeleton's normal response. A
 copyable offline journey is:
 
 ```powershell
-@("talk mara tavi ask", "move chapel-path", "move ruined-chapel", "move crypt", "attack skeleton", "attack skeleton", "attack skeleton", "search diversion ledger", "talk tavi crypt ask", "talk tavi rescue ask", "move ruined-chapel", "move chapel-path", "move inn", "move ferry-landing", "talk oren repairs ask", "journal", "quit") |
+@("talk mara tavi ask", "move chapel-path", "move ruined-chapel", "move crypt", "attack skeleton", "attack skeleton", "attack skeleton", "search diversion ledger", "talk tavi crypt ask", "talk tavi rescue ask", "move ruined-chapel", "move chapel-path", "move inn", "look", "resolve public disclosure", "status", "journal", "quit") |
   npm.cmd start -- --adventure chapel --seed 0 --trace .\chapel-trace.json
 npm.cmd start -- --replay .\chapel-trace.json
 ```
@@ -486,6 +493,8 @@ After `npm.cmd run build`:
 19. Run `npm.cmd start -- --adventure chapel --seed 0 --trace .\chapel-rescue.json`. Before entering the crypt, try `search diversion ledger` and `talk tavi rescue ask`; expect both to be rejected without state change or a roll. Clear the guardian with the three attacks from check 16. `look` should now show the diversion ledger and living Tavi, with public `crypt` and `rescue` subjects.
 20. Enter `search diversion ledger`, `talk tavi crypt ask`, and `journal`. Expect conclusive observed evidence attributed to the ledger in the Crypt, including both the repair-fund diversion and medicine motive, plus Tavi's attributed testimony about following the ledger and becoming trapped by the skeleton. No unrelated Mara or Oren conversation should appear in Tavi's reply.
 21. Enter `talk tavi rescue ask` twice. Expect one rescue event and Tavi's move to the inn; the repeated request is unavailable and cannot duplicate the transition. Return through the chapel path and inn to the ferry landing, then enter `talk oren repairs ask`. Expect Oren's conclusive-evidence response without a roll, including after the failed seed-7 route in check 14, while the original failed challenge remains recorded. Replay `chapel-rescue.json` successfully.
+22. Continue either seed-0 or failed-social seed-7 route by returning to the inn after finding the ledger and establishing Tavi's fate. Before those prerequisites, `resolve public disclosure` must be rejected. Once eligible, `look` must show both noticeboard choices and their stakes. Enter `resolve public disclosure`; expect published evidence, an initiated village inquiry, Tavi's actual fate, and a `victory` final state. Movement and a second ending must be rejected, while `status`, `journal`, `inventory`, `help`, reflection in AI mode, and `quit` remain usable. Export and replay the trace successfully.
+23. Repeat the complete route with `resolve confidential referral`. Expect confidential delivery to the trustees, a restitution and chapel-repair request, and Oren's commitment to future restitution. The ending must not claim that money was paid or repairs completed. In AI mode, “deal with Oren” must ask whether the player means public disclosure or confidential referral without using a tool; an explicit choice may commit directly. Scripted-AI success proves deterministic orchestration and replay only, not live model quality or human enjoyment.
 
 ### Usability pass observations
 

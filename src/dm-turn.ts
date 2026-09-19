@@ -580,7 +580,12 @@ export async function runDmTurn(
         return value;
       },
     };
-    const result = runtime.dispatchGameTool(state, call, recordingRandom);
+    const result = runtime.dispatchGameTool(
+      state,
+      call,
+      recordingRandom,
+      input.playerInput,
+    );
     const validated =
       result.engineResult !== undefined || result.modelOutput.ok;
     const disposition = {

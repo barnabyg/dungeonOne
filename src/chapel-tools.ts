@@ -7,6 +7,7 @@ import {
   CHAPEL_ITEMS,
   chapelRoom,
   chapelInspection,
+  chapelResolutionChoices,
   chapelSearchTargets,
   handleChapelAction,
   projectChapelJournal,
@@ -30,6 +31,7 @@ export function projectChapelScene(
   guardianEnabled = true,
   itemsEnabled = true,
   rescueEnabled = true,
+  resolutionEnabled = true,
 ): DmScene {
   const room = chapelRoom(state.locationId);
   const skeleton = CHAPEL_OPPONENT_COMBATANTS["skeleton-guardian"];
@@ -46,7 +48,7 @@ export function projectChapelScene(
       id: room.id,
       name: room.name,
       description: room.description,
-      features: visibleChapelFeatures(state, rescueEnabled),
+      features: visibleChapelFeatures(state, rescueEnabled, resolutionEnabled),
       items:
         itemsEnabled &&
         potionPlacement.type === "room" &&
@@ -113,6 +115,7 @@ export function getChapelTools(
   guardianEnabled = true,
   itemsEnabled = true,
   rescueEnabled = true,
+  resolutionEnabled = true,
 ): readonly GameToolDefinition[] {
   const room = chapelRoom(state.locationId);
   const activeCombat =
@@ -121,7 +124,12 @@ export function getChapelTools(
     state.combat !== undefined &&
     state.opponents[state.combat.opponentCombatantId].hp > 0;
   const searchTargets =
-    state.status === "playing" ? chapelSearchTargets(state, rescueEnabled) : [];
+    state.status === "playing"
+      ? chapelSearchTargets(state, rescueEnabled, resolutionEnabled)
+      : [];
+  const resolutionChoices = resolutionEnabled
+    ? chapelResolutionChoices(state)
+    : [];
   const potionPlacement = state.itemPlacements["healing-potion"];
   const visiblePotion =
     itemsEnabled &&
@@ -172,7 +180,11 @@ export function getChapelTools(
         target: {
           type: "string",
           enum: [
-            ...visibleChapelFeatures(state, rescueEnabled).map(({ id }) => id),
+            ...visibleChapelFeatures(
+              state,
+              rescueEnabled,
+              resolutionEnabled,
+            ).map(({ id }) => id),
             ...(guardianEnabled && state.locationId === "crypt"
               ? ["skeleton-guardian"]
               : []),
@@ -254,6 +266,20 @@ export function getChapelTools(
           }),
         ]
       : []),
+    ...(resolutionChoices.length === 0
+      ? []
+      : [
+          definition(
+            "resolve_quest",
+            "Commit one noticeboard ending. Public disclosure publishes the ledger and initiates an inquiry; confidential referral delivers it privately to trustees with a restitution and repair request.",
+            {
+              resolutionId: {
+                type: "string",
+                enum: resolutionChoices,
+              },
+            },
+          ),
+        ]),
   ];
 }
 
@@ -264,6 +290,7 @@ export function dispatchChapelTool(
   guardianEnabled = true,
   itemsEnabled = true,
   rescueEnabled = true,
+  resolutionEnabled = true,
 ): RuntimeToolResult {
   const reject = (code: ToolValidationErrorCode): RuntimeToolResult => ({
     state,
@@ -274,6 +301,7 @@ export function dispatchChapelTool(
     guardianEnabled,
     itemsEnabled,
     rescueEnabled,
+    resolutionEnabled,
   ).find(({ name }) => name === call.name);
   if (tool === undefined) {
     return reject("unknown-tool");
@@ -328,6 +356,21 @@ export function dispatchChapelTool(
       );
     }
   }
+  if (call.name === "resolve_quest") {
+    if (
+      Object.keys(args).length !== 1 ||
+      typeof args.resolutionId !== "string"
+    ) {
+      return reject("invalid-arguments");
+    }
+    if (
+      !chapelResolutionChoices(state).some(
+        (resolutionId) => resolutionId === args.resolutionId,
+      )
+    ) {
+      return reject("unavailable-reference");
+    }
+  }
   const field =
     call.name === "move"
       ? "destinationId"
@@ -335,12 +378,15 @@ export function dispatchChapelTool(
         ? "target"
         : call.name === "talk"
           ? "talk"
-          : undefined;
+          : call.name === "resolve_quest"
+            ? "resolutionId"
+            : undefined;
   if (
     call.name !== "talk" &&
     call.name !== "attack" &&
     call.name !== "take" &&
     call.name !== "use_item" &&
+    call.name !== "resolve_quest" &&
     (Object.keys(args).length !== (field === undefined ? 0 : 1) ||
       (field !== undefined && typeof args[field] !== "string"))
   ) {
@@ -372,7 +418,9 @@ export function dispatchChapelTool(
     const target = String(args.target);
     const room = chapelRoom(state.locationId);
     const reference = [
-      ...visibleChapelFeatures(state, rescueEnabled).map(({ id }) => id),
+      ...visibleChapelFeatures(state, rescueEnabled, resolutionEnabled).map(
+        ({ id }) => id,
+      ),
       ...(guardianEnabled && state.locationId === "crypt"
         ? ["skeleton-guardian"]
         : []),
@@ -403,6 +451,8 @@ export function dispatchChapelTool(
     action = { type: "take", target: String(args.itemId) };
   } else if (call.name === "use_item") {
     action = { type: "use", target: String(args.itemId) };
+  } else if (call.name === "resolve_quest") {
+    action = { type: "resolve", target: String(args.resolutionId) };
   }
   const result = handleChapelAction(
     state,
@@ -411,6 +461,7 @@ export function dispatchChapelTool(
     guardianEnabled,
     itemsEnabled,
     rescueEnabled,
+    resolutionEnabled,
   );
   if (result.rejection !== undefined) {
     return {
@@ -429,6 +480,7 @@ export function dispatchChapelTool(
           action.target ?? "",
           guardianEnabled,
           rescueEnabled,
+          resolutionEnabled,
         )
       : undefined;
   const conversation =
@@ -450,6 +502,7 @@ export function dispatchChapelTool(
         guardianEnabled,
         itemsEnabled,
         rescueEnabled,
+        resolutionEnabled,
       ),
       ...(conversation === undefined ? {} : { conversation }),
       ...(inspection === undefined
