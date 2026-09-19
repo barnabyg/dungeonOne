@@ -2346,6 +2346,10 @@ function chapelPublicCommandSuggestions(
   ];
 }
 
+function renderChapelJournalUpdate(discovery: ChapelDiscovery): string {
+  return `Journal update — ${discovery.title}: ${discovery.summary}`;
+}
+
 export function renderChapelResult(
   result: ChapelResult,
   rescueEnabled = true,
@@ -2443,10 +2447,26 @@ export function renderChapelResult(
             )?.discovery;
           return discovery === undefined
             ? "A discovery was recorded."
-            : `Journal update — ${discovery.title}: ${discovery.summary}`;
+            : renderChapelJournalUpdate(discovery);
         }
         case "chapel-conversation":
-          return event.conversation.authoredReply;
+          return [
+            event.conversation.authoredReply,
+            ...result.state.discoveries
+              .filter(
+                (discovery) =>
+                  discovery.source.type === "npc" &&
+                  discovery.source.id === event.conversation.speakerId &&
+                  event.conversation.approvedFacts.some(
+                    (fact) =>
+                      fact.id === discovery.id &&
+                      !event.conversation.speakerHistory.includes(
+                        fact.statement,
+                      ),
+                  ),
+              )
+              .map(renderChapelJournalUpdate),
+          ].join("\n");
         case "chapel-tavi-rescued":
           return "Tavi takes the marked safe route from the crypt to the village inn.";
         case "chapel-resolved": {

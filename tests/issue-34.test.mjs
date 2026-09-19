@@ -84,12 +84,21 @@ test("chapel offers copyable public commands without leaking later discoveries",
 
 test("chapel labels discoveries as journal updates while preserving attributed dialogue", () => {
   const played = runChapel(
-    "talk mara tavi ask\nsearch missing-person notice\nquit\n",
+    "talk mara tavi ask\ntalk mara tavi ask\nsearch missing-person notice\nquit\n",
   );
 
   assert.equal(played.status, 0, played.stderr);
   assert.match(played.stdout, /^Mara:/mu);
+  assert.match(
+    played.stdout,
+    /Journal update — Mara's account of Tavi's disappearance:/u,
+  );
+  assert.match(played.stdout, /Journal update — Mara's ferry lead:/u);
   assert.match(played.stdout, /Journal update — The chapel route:/u);
+  assert.equal(
+    (played.stdout.match(/Journal update — Mara'/gu) ?? []).length,
+    2,
+  );
 });
 
 test("chapel clears the active combat turn when lethal retaliation ends the session", () => {
