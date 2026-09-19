@@ -56,6 +56,8 @@ test("chapel offers copyable public commands without leaking later discoveries",
       "move inn",
       "move chapel-path",
       "help",
+      "take potion",
+      "help",
       "quit",
       "",
     ].join("\n"),
@@ -70,6 +72,10 @@ test("chapel offers copyable public commands without leaking later discoveries",
   assert.match(played.stdout, /talk oren repairs intimidate/u);
   assert.match(played.stdout, /take healing potion/u);
   assert.match(played.stdout, /use potion/u);
+  assert.match(
+    played.stdout,
+    /Chapel Path[\s\S]*?Try: take healing potion\.\nState —/u,
+  );
   assert.doesNotMatch(
     played.stdout,
     /search diversion ledger|talk tavi rescue|resolve public disclosure|resolve confidential referral/iu,

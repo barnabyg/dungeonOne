@@ -2319,7 +2319,7 @@ function chapelPublicCommandSuggestions(
     !activeCombat &&
     potionPlacement.type === "room" &&
     potionPlacement.roomId === state.locationId
-      ? ["take healing potion", "use potion"]
+      ? ["take healing potion"]
       : potionPlacement.type === "inventory"
         ? ["use potion"]
         : [];
