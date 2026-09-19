@@ -86,6 +86,24 @@ test("chapel labels discoveries as journal updates while preserving attributed d
   assert.match(played.stdout, /Journal update — The chapel route:/u);
 });
 
+test("chapel clears the active combat turn when lethal retaliation ends the session", () => {
+  const played = spawnSync(
+    process.execPath,
+    ["dist/cli.js", "--adventure", "chapel", "--seed", "74"],
+    {
+      encoding: "utf8",
+      input:
+        "move chapel-path\nmove ruined-chapel\nmove crypt\nattack skeleton\nattack skeleton\nquit\n",
+    },
+  );
+
+  assert.equal(played.status, 0, played.stderr);
+  assert.match(
+    played.stdout,
+    /State — HP 0\/20 \| Potion: not collected \| Combat: none \| Quest: Find Tavi \(active; 0 discoveries\)/u,
+  );
+});
+
 test("provider failure leaves every exact local control usable and replay-validated", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "issue-34-recovery-"));
   try {

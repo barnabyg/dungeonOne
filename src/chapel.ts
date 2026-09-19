@@ -2239,6 +2239,14 @@ export function renderChapelIntroduction(): string {
   return `${CHAPEL_TITLE}\n\nObjective: ${CHAPEL_OBJECTIVE}\nActive quest: Find Tavi.\nMara is here. Public subject: Tavi's disappearance.\nType "help" for available commands.`;
 }
 
+function chapelHasActiveCombat(state: ChapelState): boolean {
+  return (
+    state.status === "playing" &&
+    state.combat !== undefined &&
+    chapelHostileHitPoints(state, state.combat.opponentCombatantId) > 0
+  );
+}
+
 export function renderChapelStateSummary(state: ChapelState): string {
   const potion = state.itemPlacements["healing-potion"].type;
   const potionStatus =
@@ -2247,9 +2255,7 @@ export function renderChapelStateSummary(state: ChapelState): string {
       : potion === "consumed"
         ? "consumed"
         : "not collected";
-  const activeCombat =
-    state.combat !== undefined &&
-    chapelHostileHitPoints(state, state.combat.opponentCombatantId) > 0;
+  const activeCombat = chapelHasActiveCombat(state);
   const combatStatus = activeCombat
     ? `${chapelCombatantName(state.combat?.currentTurn ?? "fighter")}'s turn`
     : "none";
@@ -2284,9 +2290,7 @@ function chapelPublicCommandSuggestions(
   if (state.status !== "playing") {
     return ["status", "inventory", "journal", "help", "quit"];
   }
-  const activeCombat =
-    state.combat !== undefined &&
-    chapelHostileHitPoints(state, state.combat.opponentCombatantId) > 0;
+  const activeCombat = chapelHasActiveCombat(state);
   const features = visibleChapelFeatures(
     state,
     rescueEnabled,
