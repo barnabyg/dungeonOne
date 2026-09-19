@@ -31,6 +31,20 @@ export type PlayIo = Readonly<{
   write(text: string): void;
 }>;
 
+const GAMEPLAY_ACTION_TYPES: ReadonlySet<Action["type"]> = new Set([
+  "move",
+  "search",
+  "talk",
+  "take",
+  "use",
+  "attack",
+  "resolve",
+]);
+
+function isGameplayAction(action: Action): boolean {
+  return GAMEPLAY_ACTION_TYPES.has(action.type);
+}
+
 export async function playGame(
   options: PlayOptions,
   io: PlayIo,
@@ -209,9 +223,7 @@ export async function playGame(
       if (
         runtime.renderStateSummary !== undefined &&
         result.rejection === undefined &&
-        ["move", "search", "talk", "take", "use", "attack", "resolve"].includes(
-          action.type,
-        )
+        isGameplayAction(action)
       ) {
         io.write(`${runtime.renderStateSummary(state)}\n`);
       }
