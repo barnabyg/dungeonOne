@@ -17,3 +17,19 @@ CLI tests compare new explicit-selector runs to these frozen JSON and terminal
 outputs, then replay them. They also exercise supported prior DM prompt metadata,
 missing adventure IDs, and mismatched/unknown versions without a provider.
 Do not regenerate these expected outputs to accommodate a runtime change.
+
+## Chapel baseline (issue 39)
+
+Captured on 20 September 2026 from `94ce38807c7a9647e33a496d146ca2b18b82ad80`,
+before extracting runtime selection. The five `historical-chapel-*` pairs use
+the identically named inputs under `docs/acceptance/inputs/` and the built CLI.
+Seeds: public-social-fallback 7, confidential 0, potion-defeat 15,
+oren-casualty 0, ai-failure-after 0. The AI case uses its matching `.script.json`
+through `DUNGEON_ONE_TEST_DM_SCRIPT`; it makes no provider calls. These freeze
+both endings, a failed social check and physical fallback, lethal potion
+retaliation, a casualty ending, and failure after a committed AI mutation with
+local controls. JSON is unmodified; terminal output omits only the path-dependent
+`Trace exported to ...` line. All input and narration are synthetic.
+
+Do not recapture these files after a refactor. Historical tuples and the future
+semantic parity contract are listed in `docs/migration-contract.md`.

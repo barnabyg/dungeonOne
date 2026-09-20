@@ -1,0 +1,127 @@
+Seed: 15 (mulberry32-v1)
+The Bell Beneath the Chapel
+
+Objective: Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.
+Active quest: Find Tavi.
+Mara is here. Public subject: Tavi's disappearance.
+Type "help" for available commands.
+State — HP 20/20 | Potion: not collected | Combat: none | Quest: Find Tavi (active; 0 discoveries).
+Options — Exits: ferry landing, chapel path | Try: search missing-person notice; talk mara tavi ask.
+Village Inn
+Rain taps the inn windows. Mara, the innkeeper, tends the counter beside a public noticeboard.
+Visible: missing-person notice.
+Visible items: none.
+Opponents: none.
+NPCs: Mara (living; public subjects: Tavi's disappearance).
+Exits: ferry-landing, chapel-path.
+Try: search missing-person notice; talk mara tavi ask.
+You travel to Chapel Path.
+Chapel Path
+An uphill path runs from the village toward the ruined chapel.
+Visible: waymarker.
+Visible items: healing potion (tucked into a dry niche beneath the waymarker).
+Opponents: none.
+NPCs: none.
+Exits: inn, ruined-chapel.
+Try: take healing potion.
+State — HP 20/20 | Potion: not collected | Combat: none | Quest: Find Tavi (active; 0 discoveries).
+Options — Exits: village inn, ruined chapel | Try: take healing potion.
+You take the healing potion. It is now available in your inventory.
+State — HP 20/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 0 discoveries).
+Options — Exits: village inn, ruined chapel | Try: use potion.
+You travel to Ruined Chapel.
+Ruined Chapel
+Daylight falls through the broken chapel roof. Stone steps descend to the crypt entrance.
+Visible: broken roof, damaged repair record.
+Visible items: none.
+Opponents: none.
+NPCs: none.
+Exits: chapel-path, crypt.
+Try: search damaged repair record; use potion.
+State — HP 20/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 0 discoveries).
+Options — Exits: chapel path, crypt | Try: search damaged repair record; use potion.
+You travel to Crypt.
+Crypt
+A sealed arch divides the crypt. A skeleton guardian waits between the entrance and the evidence beyond.
+Visible: crypt steps.
+Visible items: none.
+Opponent: skeleton guardian (living).
+NPCs: none.
+Exits: ruined-chapel.
+Try: use potion; attack skeleton.
+Combat begins against the skeleton guardian.
+Initiative — Fighter: d20 roll 5 + modifier 1 = 6.
+Initiative — skeleton guardian: d20 roll 9 + modifier 2 = 11.
+Turn: skeleton guardian.
+skeleton guardian attacks Fighter with rusted shortsword.
+Attack roll: d20 9 + modifier 4 = 13 vs AC 16 — miss.
+Remaining HP: Fighter 20/20.
+Turn: Fighter.
+State — HP 20/20 | Potion: available | Combat: Fighter's turn | Quest: Find Tavi (active; 0 discoveries).
+Options — Exits: ruined chapel | Try: use potion; attack skeleton.
+Fighter attacks skeleton guardian with longsword.
+Attack roll: d20 9 + modifier 5 = 14 vs AC 13 — hit.
+Damage: 5.
+Remaining HP: skeleton guardian 8/13.
+Turn: skeleton guardian.
+skeleton guardian attacks Fighter with rusted shortsword.
+Attack roll: d20 14 + modifier 4 = 18 vs AC 16 — hit.
+Damage: 8.
+Remaining HP: Fighter 12/20.
+Turn: Fighter.
+State — HP 12/20 | Potion: available | Combat: Fighter's turn | Quest: Find Tavi (active; 0 discoveries).
+Options — Exits: ruined chapel | Try: use potion; attack skeleton.
+Fighter attacks skeleton guardian with longsword.
+Attack roll: d20 7 + modifier 5 = 12 vs AC 13 — miss.
+Remaining HP: skeleton guardian 8/13.
+Turn: skeleton guardian.
+skeleton guardian attacks Fighter with rusted shortsword.
+Attack roll: d20 2 + modifier 4 = 6 vs AC 16 — miss.
+Remaining HP: Fighter 12/20.
+Turn: Fighter.
+State — HP 12/20 | Potion: available | Combat: Fighter's turn | Quest: Find Tavi (active; 0 discoveries).
+Options — Exits: ruined chapel | Try: use potion; attack skeleton.
+Fighter attacks skeleton guardian with longsword.
+Attack roll: d20 8 + modifier 5 = 13 vs AC 13 — hit.
+Damage: 6.
+Remaining HP: skeleton guardian 2/13.
+Turn: skeleton guardian.
+skeleton guardian attacks Fighter with rusted shortsword.
+Attack roll: d20 7 + modifier 4 = 11 vs AC 16 — miss.
+Remaining HP: Fighter 12/20.
+Turn: Fighter.
+State — HP 12/20 | Potion: available | Combat: Fighter's turn | Quest: Find Tavi (active; 0 discoveries).
+Options — Exits: ruined chapel | Try: use potion; attack skeleton.
+Fighter attacks skeleton guardian with longsword.
+Attack roll: d20 1 + modifier 5 = 6 vs AC 13 — miss.
+Remaining HP: skeleton guardian 2/13.
+Turn: skeleton guardian.
+skeleton guardian attacks Fighter with rusted shortsword.
+Attack roll: d20 15 + modifier 4 = 19 vs AC 16 — hit.
+Damage: 4.
+Remaining HP: Fighter 8/20.
+Turn: Fighter.
+State — HP 8/20 | Potion: available | Combat: Fighter's turn | Quest: Find Tavi (active; 0 discoveries).
+Options — Exits: ruined chapel | Try: use potion; attack skeleton.
+You drink the healing potion.
+Healing: d4 rolls: 2, 1 + 2 = 5.
+Actual healing: 5.
+Fighter HP: 13/20.
+The potion is consumed.
+Turn: skeleton guardian.
+skeleton guardian attacks Fighter with rusted shortsword.
+Attack roll: d20 20 + modifier 4 = 24 vs AC 16 — critical hit.
+Damage: 14.
+Remaining HP: Fighter 0/20.
+skeleton guardian defeats you.
+You have 0/20 HP and the adventure has ended in defeat. The final state remains readable; quit or start a fresh run.
+State — HP 0/20 | Potion: consumed | Combat: none | Quest: Find Tavi (active; 0 discoveries).
+Options — Try: status; inventory; journal; help.
+Fighter HP: 0/20
+Healing potion: consumed.
+Combat turn: none.
+Session: defeat.
+Quest: Find Tavi (active). Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.
+Equipped: longsword.
+Healing potion: consumed.
+You leave the game.

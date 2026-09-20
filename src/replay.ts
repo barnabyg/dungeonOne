@@ -1,7 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { isDeepStrictEqual } from "node:util";
 
-import { resolveHistoricalAdventure, type ReplayRuntime } from "./runtime.js";
+import {
+  resolveHistoricalAdventure,
+  type ReplayRuntime,
+} from "./historical-runtime.js";
 import { ADVENTURE } from "./adventure.js";
 import {
   DM_CALL_DIAGNOSTIC_CODES,

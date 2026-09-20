@@ -1,0 +1,801 @@
+{
+  "formatVersion": 3,
+  "rulesVersion": "chapel-casualties-rules-v9",
+  "adventure": {
+    "id": "chapel",
+    "version": "chapel-casualties-v9"
+  },
+  "random": {
+    "algorithm": "mulberry32-v1",
+    "initialSeed": 0
+  },
+  "dm": {
+    "promptVersion": "chapel-human-dm-v12",
+    "toolSchemaVersion": "chapel-casualties-tools-v9",
+    "provider": "scripted",
+    "model": "scripted-dm-v1"
+  },
+  "initialState": {
+    "adventureId": "chapel",
+    "locationId": "inn",
+    "status": "playing",
+    "fighter": {
+      "hp": 20,
+      "maxHp": 20,
+      "equipmentIds": [
+        "longsword"
+      ]
+    },
+    "quest": {
+      "id": "find-tavi",
+      "status": "active",
+      "milestones": []
+    },
+    "discoveries": [],
+    "npcStates": {
+      "mara": {
+        "hp": 8,
+        "maxHp": 8
+      },
+      "oren": {
+        "hp": 9,
+        "maxHp": 9
+      },
+      "tavi": {
+        "hp": 6,
+        "maxHp": 6
+      }
+    },
+    "npcLocations": {
+      "mara": "inn",
+      "oren": "ferry-landing",
+      "tavi": "crypt"
+    },
+    "npcDeathLocations": {},
+    "conversationHistory": [],
+    "socialChallenges": {},
+    "itemPlacements": {
+      "healing-potion": {
+        "type": "room",
+        "roomId": "chapel-path",
+        "featureId": "waymarker"
+      }
+    },
+    "opponents": {
+      "skeleton-guardian": {
+        "combatantId": "skeleton-guardian",
+        "definitionId": "skeleton",
+        "hp": 13,
+        "maxHp": 13
+      }
+    }
+  },
+  "turns": [
+    {
+      "sequence": 1,
+      "kind": "dm",
+      "rawPlayerInput": "Search the missing-person notice.",
+      "calls": [
+        {
+          "sequence": 1,
+          "id": "search-notice",
+          "name": "search",
+          "arguments": {
+            "encoding": "json",
+            "raw": "{\"target\":\"missing-person-notice\"}",
+            "value": {
+              "target": "missing-person-notice"
+            }
+          },
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          },
+          "rolls": [],
+          "result": {
+            "engineResult": {
+              "events": [
+                {
+                  "type": "chapel-discovered",
+                  "discoveryId": "chapel-route",
+                  "milestoneId": "chapel-route-known"
+                }
+              ]
+            },
+            "modelOutput": {
+              "ok": true,
+              "events": [
+                {
+                  "type": "chapel-discovered",
+                  "discoveryId": "chapel-route",
+                  "milestoneId": "chapel-route-known"
+                }
+              ],
+              "scene": {
+                "title": "The Bell Beneath the Chapel",
+                "objective": "Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.",
+                "outcome": "playing",
+                "room": {
+                  "id": "inn",
+                  "name": "Village Inn",
+                  "description": "Rain taps the inn windows. Mara, the innkeeper, tends the counter beside a public noticeboard.",
+                  "features": [
+                    {
+                      "id": "missing-person-notice",
+                      "name": "missing-person notice",
+                      "description": "Tavi, the village apprentice, is missing. The public notice asks searchers to check the ruined chapel, reached by the chapel path."
+                    }
+                  ],
+                  "items": [],
+                  "opponents": [],
+                  "npcs": [
+                    {
+                      "id": "mara",
+                      "name": "Mara",
+                      "condition": "living",
+                      "subjects": [
+                        {
+                          "id": "tavi",
+                          "name": "Tavi's disappearance"
+                        }
+                      ]
+                    }
+                  ],
+                  "exits": [
+                    {
+                      "destinationId": "ferry-landing",
+                      "name": "ferry-landing"
+                    },
+                    {
+                      "destinationId": "chapel-path",
+                      "name": "chapel-path"
+                    }
+                  ]
+                },
+                "journal": {
+                  "quest": {
+                    "id": "find-tavi",
+                    "title": "Find Tavi",
+                    "status": "active",
+                    "milestones": [
+                      "chapel-route-known"
+                    ]
+                  },
+                  "discoveries": [
+                    {
+                      "id": "chapel-route",
+                      "title": "The chapel route",
+                      "source": {
+                        "type": "feature",
+                        "id": "missing-person-notice",
+                        "name": "missing-person notice",
+                        "locationId": "inn"
+                      },
+                      "classification": "observation",
+                      "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+                      "actionableLead": "Follow the chapel path to the ruined chapel."
+                    }
+                  ],
+                  "actionableLeads": [
+                    "Follow the chapel path to the ruined chapel."
+                  ]
+                }
+              }
+            }
+          },
+          "stateAfter": {
+            "adventureId": "chapel",
+            "locationId": "inn",
+            "status": "playing",
+            "fighter": {
+              "hp": 20,
+              "maxHp": 20,
+              "equipmentIds": [
+                "longsword"
+              ]
+            },
+            "quest": {
+              "id": "find-tavi",
+              "status": "active",
+              "milestones": [
+                "chapel-route-known"
+              ]
+            },
+            "discoveries": [
+              {
+                "id": "chapel-route",
+                "title": "The chapel route",
+                "source": {
+                  "type": "feature",
+                  "id": "missing-person-notice",
+                  "name": "missing-person notice",
+                  "locationId": "inn"
+                },
+                "classification": "observation",
+                "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+                "actionableLead": "Follow the chapel path to the ruined chapel."
+              }
+            ],
+            "npcStates": {
+              "mara": {
+                "hp": 8,
+                "maxHp": 8
+              },
+              "oren": {
+                "hp": 9,
+                "maxHp": 9
+              },
+              "tavi": {
+                "hp": 6,
+                "maxHp": 6
+              }
+            },
+            "npcLocations": {
+              "mara": "inn",
+              "oren": "ferry-landing",
+              "tavi": "crypt"
+            },
+            "npcDeathLocations": {},
+            "conversationHistory": [],
+            "socialChallenges": {},
+            "itemPlacements": {
+              "healing-potion": {
+                "type": "room",
+                "roomId": "chapel-path",
+                "featureId": "waymarker"
+              }
+            },
+            "opponents": {
+              "skeleton-guardian": {
+                "combatantId": "skeleton-guardian",
+                "definitionId": "skeleton",
+                "hp": 13,
+                "maxHp": 13
+              }
+            }
+          }
+        }
+      ],
+      "narration": "The attempted action's authoritative result is shown in Mechanics. No further action was executed.",
+      "diagnostics": [
+        {
+          "code": "model-failure",
+          "responseNumber": 2
+        }
+      ],
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 2,
+      "kind": "local-journal",
+      "rawPlayerInput": "journal",
+      "calls": [],
+      "narration": null,
+      "diagnostics": [],
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      },
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-journal",
+            "journal": {
+              "quest": {
+                "id": "find-tavi",
+                "title": "Find Tavi",
+                "status": "active",
+                "milestones": [
+                  "chapel-route-known"
+                ]
+              },
+              "discoveries": [
+                {
+                  "id": "chapel-route",
+                  "title": "The chapel route",
+                  "source": {
+                    "type": "feature",
+                    "id": "missing-person-notice",
+                    "name": "missing-person notice",
+                    "locationId": "inn"
+                  },
+                  "classification": "observation",
+                  "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+                  "actionableLead": "Follow the chapel path to the ruined chapel."
+                }
+              ],
+              "actionableLeads": [
+                "Follow the chapel path to the ruined chapel."
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "sequence": 3,
+      "kind": "local-status",
+      "rawPlayerInput": "status",
+      "calls": [],
+      "narration": null,
+      "diagnostics": [],
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      },
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-status",
+            "hp": 20,
+            "maxHp": 20,
+            "status": "playing",
+            "quest": {
+              "id": "find-tavi",
+              "status": "active",
+              "milestones": [
+                "chapel-route-known"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "sequence": 4,
+      "kind": "local-inventory",
+      "rawPlayerInput": "inventory",
+      "calls": [],
+      "narration": null,
+      "diagnostics": [],
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      },
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-inventory"
+          }
+        ]
+      }
+    },
+    {
+      "sequence": 5,
+      "kind": "local-help",
+      "rawPlayerInput": "help",
+      "calls": [],
+      "narration": null,
+      "diagnostics": [],
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 6,
+      "kind": "local-quit",
+      "rawPlayerInput": "quit",
+      "calls": [],
+      "narration": null,
+      "diagnostics": [],
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "quit",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    }
+  ],
+  "completion": {
+    "reason": "quit",
+    "outcome": "incomplete"
+  }
+}

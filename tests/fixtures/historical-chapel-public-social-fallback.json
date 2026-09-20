@@ -1,0 +1,3493 @@
+{
+  "formatVersion": 3,
+  "rulesVersion": "chapel-casualties-rules-v9",
+  "adventure": {
+    "id": "chapel",
+    "version": "chapel-casualties-v9"
+  },
+  "random": {
+    "algorithm": "mulberry32-v1",
+    "initialSeed": 7
+  },
+  "initialState": {
+    "adventureId": "chapel",
+    "locationId": "inn",
+    "status": "playing",
+    "fighter": {
+      "hp": 20,
+      "maxHp": 20,
+      "equipmentIds": [
+        "longsword"
+      ]
+    },
+    "quest": {
+      "id": "find-tavi",
+      "status": "active",
+      "milestones": []
+    },
+    "discoveries": [],
+    "npcStates": {
+      "mara": {
+        "hp": 8,
+        "maxHp": 8
+      },
+      "oren": {
+        "hp": 9,
+        "maxHp": 9
+      },
+      "tavi": {
+        "hp": 6,
+        "maxHp": 6
+      }
+    },
+    "npcLocations": {
+      "mara": "inn",
+      "oren": "ferry-landing",
+      "tavi": "crypt"
+    },
+    "npcDeathLocations": {},
+    "conversationHistory": [],
+    "socialChallenges": {},
+    "itemPlacements": {
+      "healing-potion": {
+        "type": "room",
+        "roomId": "chapel-path",
+        "featureId": "waymarker"
+      }
+    },
+    "opponents": {
+      "skeleton-guardian": {
+        "combatantId": "skeleton-guardian",
+        "definitionId": "skeleton",
+        "hp": 13,
+        "maxHp": 13
+      }
+    }
+  },
+  "actions": [
+    {
+      "sequence": 1,
+      "rawInput": "resolve public disclosure",
+      "action": {
+        "type": "resolve",
+        "target": "public disclosure"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "chapel-resolution-unavailable"
+        }
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 2,
+      "rawInput": "move ferry landing",
+      "action": {
+        "type": "move",
+        "destination": "ferry landing"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "inn",
+            "roomId": "ferry-landing"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "ferry-landing"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ferry-landing",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 3,
+      "rawInput": "talk oren repairs intimidate",
+      "action": {
+        "type": "talk",
+        "target": "oren",
+        "topic": "repairs",
+        "approach": "intimidate"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 1
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-social-check",
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          },
+          {
+            "type": "chapel-conversation",
+            "conversation": {
+              "speakerId": "oren",
+              "speakerName": "Oren",
+              "topicId": "repairs",
+              "topicName": "Unfinished chapel repairs",
+              "approach": "intimidate",
+              "attitude": "defiant",
+              "voice": "Terse and weathered; speaks like a ferryman used to hard choices.",
+              "approvedFacts": [
+                {
+                  "id": "oren-guarded-refusal",
+                  "statement": "I will not give you an account of the repairs."
+                }
+              ],
+              "authoredReply": "Oren: Your threat of public scrutiny does not make me yield. I will not give you an account of the repairs. The public notice and chapel evidence remain yours to examine.",
+              "speakerHistory": []
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ferry-landing",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 4,
+      "rawInput": "move inn",
+      "action": {
+        "type": "move",
+        "destination": "inn"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "ferry-landing",
+            "roomId": "inn"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "inn"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 5,
+      "rawInput": "search missing person notice",
+      "action": {
+        "type": "search",
+        "target": "missing person notice"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-discovered",
+            "discoveryId": "chapel-route",
+            "milestoneId": "chapel-route-known"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 6,
+      "rawInput": "move chapel path",
+      "action": {
+        "type": "move",
+        "destination": "chapel path"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "inn",
+            "roomId": "chapel-path"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "chapel-path"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "chapel-path",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 7,
+      "rawInput": "take healing potion",
+      "action": {
+        "type": "take",
+        "target": "healing potion"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-item-taken",
+            "itemId": "healing-potion"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "chapel-path",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 8,
+      "rawInput": "move ruined chapel",
+      "action": {
+        "type": "move",
+        "destination": "ruined chapel"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "chapel-path",
+            "roomId": "ruined-chapel"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "ruined-chapel"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ruined-chapel",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 9,
+      "rawInput": "search damaged repair record",
+      "action": {
+        "type": "search",
+        "target": "damaged repair record"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-discovered",
+            "discoveryId": "unsafe-repairs",
+            "milestoneId": "unsafe-repairs-linked-to-oren"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ruined-chapel",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 10,
+      "rawInput": "move crypt",
+      "action": {
+        "type": "move",
+        "destination": "crypt"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 2
+        },
+        {
+          "sides": 20,
+          "value": 20
+        },
+        {
+          "sides": 20,
+          "value": 14
+        },
+        {
+          "sides": 6,
+          "value": 4
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "ruined-chapel",
+            "roomId": "crypt"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "crypt"
+          },
+          {
+            "type": "combat-started",
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton"
+          },
+          {
+            "type": "initiative-rolled",
+            "combatantId": "fighter",
+            "bonus": 1,
+            "roll": 2,
+            "total": 3
+          },
+          {
+            "type": "initiative-rolled",
+            "combatantId": "skeleton-guardian",
+            "bonus": 2,
+            "roll": 20,
+            "total": 22
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "skeleton-guardian"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "skeleton-guardian",
+            "targetId": "fighter",
+            "attackRoll": 14,
+            "attackBonus": 4,
+            "attackTotal": 18,
+            "targetArmorClass": 16,
+            "outcome": "hit",
+            "damage": 6,
+            "targetHp": 14,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 11,
+      "rawInput": "attack skeleton",
+      "action": {
+        "type": "attack",
+        "target": "skeleton"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 9
+        },
+        {
+          "sides": 8,
+          "value": 4
+        },
+        {
+          "sides": 20,
+          "value": 5
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "skeleton-guardian",
+            "attackRoll": 9,
+            "attackBonus": 5,
+            "attackTotal": 14,
+            "targetArmorClass": 13,
+            "outcome": "hit",
+            "damage": 7,
+            "targetHp": 6,
+            "targetMaxHp": 13
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "skeleton-guardian"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "skeleton-guardian",
+            "targetId": "fighter",
+            "attackRoll": 5,
+            "attackBonus": 4,
+            "attackTotal": 9,
+            "targetArmorClass": 16,
+            "outcome": "miss",
+            "targetHp": 14,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 6,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 12,
+      "rawInput": "attack skeleton",
+      "action": {
+        "type": "attack",
+        "target": "skeleton"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 12
+        },
+        {
+          "sides": 8,
+          "value": 6
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "skeleton-guardian",
+            "attackRoll": 12,
+            "attackBonus": 5,
+            "attackTotal": 17,
+            "targetArmorClass": 13,
+            "outcome": "hit",
+            "damage": 9,
+            "targetHp": 0,
+            "targetMaxHp": 13
+          },
+          {
+            "type": "combat-ended",
+            "combatantId": "skeleton-guardian",
+            "outcome": "defeated"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren",
+            "guardian-cleared"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 13,
+      "rawInput": "search diversion ledger",
+      "action": {
+        "type": "search",
+        "target": "diversion ledger"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-discovered",
+            "discoveryId": "diversion-ledger",
+            "milestoneId": "ledger-recovered"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren",
+            "guardian-cleared",
+            "ledger-recovered"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          },
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 14,
+      "rawInput": "talk tavi crypt ask",
+      "action": {
+        "type": "talk",
+        "target": "tavi",
+        "topic": "crypt",
+        "approach": "ask"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-conversation",
+            "conversation": {
+              "speakerId": "tavi",
+              "speakerName": "Tavi",
+              "topicId": "crypt",
+              "topicName": "What happened in the crypt",
+              "approach": "ask",
+              "attitude": "concerned",
+              "voice": "Observant and shaken but precise; speaks only about events personally witnessed in the crypt.",
+              "approvedFacts": [
+                {
+                  "id": "tavi-crypt-testimony",
+                  "statement": "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+                }
+              ],
+              "authoredReply": "Tavi: I followed the chapel ledger into the crypt. The skeleton rose behind me and trapped me here.",
+              "speakerHistory": []
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren",
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          },
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 15,
+      "rawInput": "talk tavi rescue ask",
+      "action": {
+        "type": "talk",
+        "target": "tavi",
+        "topic": "rescue",
+        "approach": "ask"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-tavi-rescued",
+            "fromRoomId": "crypt",
+            "roomId": "inn"
+          },
+          {
+            "type": "chapel-conversation",
+            "conversation": {
+              "speakerId": "tavi",
+              "speakerName": "Tavi",
+              "topicId": "rescue",
+              "topicName": "Return safely to the inn",
+              "approach": "ask",
+              "attitude": "concerned",
+              "voice": "Observant and shaken but precise; speaks only about events personally witnessed in the crypt.",
+              "approvedFacts": [
+                {
+                  "id": "tavi-rescue-consent",
+                  "statement": "I am ready to return safely to the village inn."
+                }
+              ],
+              "authoredReply": "Tavi: Yes. I am ready to leave the crypt. I can follow the marked safe route to the village inn.",
+              "speakerHistory": [
+                "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+              ]
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren",
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          },
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 16,
+      "rawInput": "move ruined chapel",
+      "action": {
+        "type": "move",
+        "destination": "ruined chapel"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "crypt",
+            "roomId": "ruined-chapel"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "ruined-chapel"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ruined-chapel",
+        "status": "playing",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren",
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          },
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 17,
+      "rawInput": "move chapel path",
+      "action": {
+        "type": "move",
+        "destination": "chapel path"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "ruined-chapel",
+            "roomId": "chapel-path"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "chapel-path"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "chapel-path",
+        "status": "playing",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren",
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          },
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 18,
+      "rawInput": "move inn",
+      "action": {
+        "type": "move",
+        "destination": "inn"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "chapel-path",
+            "roomId": "inn"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "inn"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "playing",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren",
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          },
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 19,
+      "rawInput": "resolve public disclosure",
+      "action": {
+        "type": "resolve",
+        "target": "public disclosure"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-resolved",
+            "resolution": {
+              "id": "public-disclosure",
+              "taviFate": "rescued-to-inn",
+              "casualties": [],
+              "consequences": [
+                "evidence-published",
+                "village-inquiry-initiated"
+              ]
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "victory",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "resolved",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren",
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          },
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        },
+        "resolution": {
+          "id": "public-disclosure",
+          "taviFate": "rescued-to-inn",
+          "casualties": [],
+          "consequences": [
+            "evidence-published",
+            "village-inquiry-initiated"
+          ]
+        }
+      }
+    },
+    {
+      "sequence": 20,
+      "rawInput": "status",
+      "action": {
+        "type": "status"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-status",
+            "hp": 14,
+            "maxHp": 20,
+            "status": "victory",
+            "quest": {
+              "id": "find-tavi",
+              "status": "resolved",
+              "milestones": [
+                "chapel-route-known",
+                "unsafe-repairs-linked-to-oren",
+                "guardian-cleared",
+                "ledger-recovered",
+                "tavi-fate-established",
+                "tavi-rescued"
+              ]
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "victory",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "resolved",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren",
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          },
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        },
+        "resolution": {
+          "id": "public-disclosure",
+          "taviFate": "rescued-to-inn",
+          "casualties": [],
+          "consequences": [
+            "evidence-published",
+            "village-inquiry-initiated"
+          ]
+        }
+      }
+    },
+    {
+      "sequence": 21,
+      "rawInput": "journal",
+      "action": {
+        "type": "journal"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-journal",
+            "journal": {
+              "quest": {
+                "id": "find-tavi",
+                "title": "Find Tavi",
+                "status": "resolved",
+                "milestones": [
+                  "chapel-route-known",
+                  "unsafe-repairs-linked-to-oren",
+                  "guardian-cleared",
+                  "ledger-recovered",
+                  "tavi-fate-established",
+                  "tavi-rescued"
+                ]
+              },
+              "discoveries": [
+                {
+                  "id": "chapel-route",
+                  "title": "The chapel route",
+                  "source": {
+                    "type": "feature",
+                    "id": "missing-person-notice",
+                    "name": "missing-person notice",
+                    "locationId": "inn"
+                  },
+                  "classification": "observation",
+                  "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+                  "actionableLead": "Follow the chapel path to the ruined chapel."
+                },
+                {
+                  "id": "unsafe-repairs",
+                  "title": "Unsafe chapel repairs",
+                  "source": {
+                    "type": "feature",
+                    "id": "damaged-repair-record",
+                    "name": "damaged repair record",
+                    "locationId": "ruined-chapel"
+                  },
+                  "classification": "observation",
+                  "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+                  "actionableLead": "Ask Oren about the unfinished chapel repairs."
+                },
+                {
+                  "id": "diversion-ledger",
+                  "title": "Oren's diversion ledger",
+                  "source": {
+                    "type": "feature",
+                    "id": "diversion-ledger",
+                    "name": "diversion ledger",
+                    "locationId": "crypt"
+                  },
+                  "classification": "observation",
+                  "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+                  "actionableLead": "Return to Oren with the conclusive ledger evidence."
+                },
+                {
+                  "id": "tavi-crypt-testimony",
+                  "title": "Tavi's crypt account",
+                  "source": {
+                    "type": "npc",
+                    "id": "tavi",
+                    "name": "Tavi",
+                    "locationId": "crypt"
+                  },
+                  "classification": "testimony",
+                  "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+                  "actionableLead": "Return Tavi safely to the village inn."
+                }
+              ],
+              "actionableLeads": [],
+              "resolution": {
+                "id": "public-disclosure",
+                "taviFate": "rescued-to-inn",
+                "casualties": [],
+                "consequences": [
+                  "evidence-published",
+                  "village-inquiry-initiated"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "victory",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "resolved",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren",
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          },
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        },
+        "resolution": {
+          "id": "public-disclosure",
+          "taviFate": "rescued-to-inn",
+          "casualties": [],
+          "consequences": [
+            "evidence-published",
+            "village-inquiry-initiated"
+          ]
+        }
+      }
+    },
+    {
+      "sequence": 22,
+      "rawInput": "quit",
+      "action": {
+        "type": "quit"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "session-quit"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "victory",
+        "fighter": {
+          "hp": 14,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "resolved",
+          "milestones": [
+            "chapel-route-known",
+            "unsafe-repairs-linked-to-oren",
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "chapel-route",
+            "title": "The chapel route",
+            "source": {
+              "type": "feature",
+              "id": "missing-person-notice",
+              "name": "missing-person notice",
+              "locationId": "inn"
+            },
+            "classification": "observation",
+            "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
+            "actionableLead": "Follow the chapel path to the ruined chapel."
+          },
+          {
+            "id": "unsafe-repairs",
+            "title": "Unsafe chapel repairs",
+            "source": {
+              "type": "feature",
+              "id": "damaged-repair-record",
+              "name": "damaged repair record",
+              "locationId": "ruined-chapel"
+            },
+            "classification": "observation",
+            "summary": "The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.",
+            "actionableLead": "Ask Oren about the unfinished chapel repairs."
+          },
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [
+          {
+            "speakerId": "oren",
+            "statements": [
+              "I will not give you an account of the repairs."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {
+          "guardedAccount": {
+            "approach": "intimidate",
+            "die": 1,
+            "modifier": 1,
+            "total": 2,
+            "dc": 11,
+            "result": "failure"
+          }
+        },
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 2,
+              "total": 3
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 20,
+              "total": 22
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        },
+        "resolution": {
+          "id": "public-disclosure",
+          "taviFate": "rescued-to-inn",
+          "casualties": [],
+          "consequences": [
+            "evidence-published",
+            "village-inquiry-initiated"
+          ]
+        }
+      }
+    }
+  ],
+  "completion": {
+    "reason": "quit",
+    "outcome": "victory"
+  }
+}

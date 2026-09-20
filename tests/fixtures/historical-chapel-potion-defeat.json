@@ -1,0 +1,1414 @@
+{
+  "formatVersion": 3,
+  "rulesVersion": "chapel-casualties-rules-v9",
+  "adventure": {
+    "id": "chapel",
+    "version": "chapel-casualties-v9"
+  },
+  "random": {
+    "algorithm": "mulberry32-v1",
+    "initialSeed": 15
+  },
+  "initialState": {
+    "adventureId": "chapel",
+    "locationId": "inn",
+    "status": "playing",
+    "fighter": {
+      "hp": 20,
+      "maxHp": 20,
+      "equipmentIds": [
+        "longsword"
+      ]
+    },
+    "quest": {
+      "id": "find-tavi",
+      "status": "active",
+      "milestones": []
+    },
+    "discoveries": [],
+    "npcStates": {
+      "mara": {
+        "hp": 8,
+        "maxHp": 8
+      },
+      "oren": {
+        "hp": 9,
+        "maxHp": 9
+      },
+      "tavi": {
+        "hp": 6,
+        "maxHp": 6
+      }
+    },
+    "npcLocations": {
+      "mara": "inn",
+      "oren": "ferry-landing",
+      "tavi": "crypt"
+    },
+    "npcDeathLocations": {},
+    "conversationHistory": [],
+    "socialChallenges": {},
+    "itemPlacements": {
+      "healing-potion": {
+        "type": "room",
+        "roomId": "chapel-path",
+        "featureId": "waymarker"
+      }
+    },
+    "opponents": {
+      "skeleton-guardian": {
+        "combatantId": "skeleton-guardian",
+        "definitionId": "skeleton",
+        "hp": 13,
+        "maxHp": 13
+      }
+    }
+  },
+  "actions": [
+    {
+      "sequence": 1,
+      "rawInput": "move chapel path",
+      "action": {
+        "type": "move",
+        "destination": "chapel path"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "inn",
+            "roomId": "chapel-path"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "chapel-path"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "chapel-path",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 2,
+      "rawInput": "take healing potion",
+      "action": {
+        "type": "take",
+        "target": "healing potion"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-item-taken",
+            "itemId": "healing-potion"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "chapel-path",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 3,
+      "rawInput": "move ruined chapel",
+      "action": {
+        "type": "move",
+        "destination": "ruined chapel"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "chapel-path",
+            "roomId": "ruined-chapel"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "ruined-chapel"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ruined-chapel",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 4,
+      "rawInput": "move crypt",
+      "action": {
+        "type": "move",
+        "destination": "crypt"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 5
+        },
+        {
+          "sides": 20,
+          "value": 9
+        },
+        {
+          "sides": 20,
+          "value": 9
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "ruined-chapel",
+            "roomId": "crypt"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "crypt"
+          },
+          {
+            "type": "combat-started",
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton"
+          },
+          {
+            "type": "initiative-rolled",
+            "combatantId": "fighter",
+            "bonus": 1,
+            "roll": 5,
+            "total": 6
+          },
+          {
+            "type": "initiative-rolled",
+            "combatantId": "skeleton-guardian",
+            "bonus": 2,
+            "roll": 9,
+            "total": 11
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "skeleton-guardian"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "skeleton-guardian",
+            "targetId": "fighter",
+            "attackRoll": 9,
+            "attackBonus": 4,
+            "attackTotal": 13,
+            "targetArmorClass": 16,
+            "outcome": "miss",
+            "targetHp": 20,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 5,
+              "total": 6
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 9,
+              "total": 11
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 5,
+      "rawInput": "attack skeleton",
+      "action": {
+        "type": "attack",
+        "target": "skeleton"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 9
+        },
+        {
+          "sides": 8,
+          "value": 2
+        },
+        {
+          "sides": 20,
+          "value": 14
+        },
+        {
+          "sides": 6,
+          "value": 6
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "skeleton-guardian",
+            "attackRoll": 9,
+            "attackBonus": 5,
+            "attackTotal": 14,
+            "targetArmorClass": 13,
+            "outcome": "hit",
+            "damage": 5,
+            "targetHp": 8,
+            "targetMaxHp": 13
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "skeleton-guardian"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "skeleton-guardian",
+            "targetId": "fighter",
+            "attackRoll": 14,
+            "attackBonus": 4,
+            "attackTotal": 18,
+            "targetArmorClass": 16,
+            "outcome": "hit",
+            "damage": 8,
+            "targetHp": 12,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 12,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 8,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 5,
+              "total": 6
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 9,
+              "total": 11
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 6,
+      "rawInput": "attack skeleton",
+      "action": {
+        "type": "attack",
+        "target": "skeleton"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 7
+        },
+        {
+          "sides": 20,
+          "value": 2
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "skeleton-guardian",
+            "attackRoll": 7,
+            "attackBonus": 5,
+            "attackTotal": 12,
+            "targetArmorClass": 13,
+            "outcome": "miss",
+            "targetHp": 8,
+            "targetMaxHp": 13
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "skeleton-guardian"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "skeleton-guardian",
+            "targetId": "fighter",
+            "attackRoll": 2,
+            "attackBonus": 4,
+            "attackTotal": 6,
+            "targetArmorClass": 16,
+            "outcome": "miss",
+            "targetHp": 12,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 12,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 8,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 5,
+              "total": 6
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 9,
+              "total": 11
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 7,
+      "rawInput": "attack skeleton",
+      "action": {
+        "type": "attack",
+        "target": "skeleton"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 8
+        },
+        {
+          "sides": 8,
+          "value": 3
+        },
+        {
+          "sides": 20,
+          "value": 7
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "skeleton-guardian",
+            "attackRoll": 8,
+            "attackBonus": 5,
+            "attackTotal": 13,
+            "targetArmorClass": 13,
+            "outcome": "hit",
+            "damage": 6,
+            "targetHp": 2,
+            "targetMaxHp": 13
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "skeleton-guardian"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "skeleton-guardian",
+            "targetId": "fighter",
+            "attackRoll": 7,
+            "attackBonus": 4,
+            "attackTotal": 11,
+            "targetArmorClass": 16,
+            "outcome": "miss",
+            "targetHp": 12,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 12,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 2,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 5,
+              "total": 6
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 9,
+              "total": 11
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 8,
+      "rawInput": "attack skeleton",
+      "action": {
+        "type": "attack",
+        "target": "skeleton"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 1
+        },
+        {
+          "sides": 20,
+          "value": 15
+        },
+        {
+          "sides": 6,
+          "value": 2
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "skeleton-guardian",
+            "attackRoll": 1,
+            "attackBonus": 5,
+            "attackTotal": 6,
+            "targetArmorClass": 13,
+            "outcome": "miss",
+            "targetHp": 2,
+            "targetMaxHp": 13
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "skeleton-guardian"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "skeleton-guardian",
+            "targetId": "fighter",
+            "attackRoll": 15,
+            "attackBonus": 4,
+            "attackTotal": 19,
+            "targetArmorClass": 16,
+            "outcome": "hit",
+            "damage": 4,
+            "targetHp": 8,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 8,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 2,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 5,
+              "total": 6
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 9,
+              "total": 11
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 9,
+      "rawInput": "use healing potion",
+      "action": {
+        "type": "use",
+        "target": "healing potion"
+      },
+      "rolls": [
+        {
+          "sides": 4,
+          "value": 2
+        },
+        {
+          "sides": 4,
+          "value": 1
+        },
+        {
+          "sides": 20,
+          "value": 20
+        },
+        {
+          "sides": 6,
+          "value": 6
+        },
+        {
+          "sides": 6,
+          "value": 6
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-item-used",
+            "itemId": "healing-potion",
+            "healingRolls": [
+              2,
+              1
+            ],
+            "modifier": 2,
+            "rolledHealing": 5,
+            "actualHealing": 5,
+            "hp": 13,
+            "maxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "skeleton-guardian"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "skeleton-guardian",
+            "targetId": "fighter",
+            "attackRoll": 20,
+            "attackBonus": 4,
+            "attackTotal": 24,
+            "targetArmorClass": 16,
+            "outcome": "critical-hit",
+            "damage": 14,
+            "targetHp": 0,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "combat-ended",
+            "combatantId": "fighter",
+            "outcome": "defeated"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "defeat",
+        "fighter": {
+          "hp": 0,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "consumed"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 2,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 5,
+              "total": 6
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 9,
+              "total": 11
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "skeleton-guardian"
+        }
+      }
+    },
+    {
+      "sequence": 10,
+      "rawInput": "status",
+      "action": {
+        "type": "status"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-status",
+            "hp": 0,
+            "maxHp": 20,
+            "status": "defeat",
+            "quest": {
+              "id": "find-tavi",
+              "status": "active",
+              "milestones": []
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "defeat",
+        "fighter": {
+          "hp": 0,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "consumed"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 2,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 5,
+              "total": 6
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 9,
+              "total": 11
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "skeleton-guardian"
+        }
+      }
+    },
+    {
+      "sequence": 11,
+      "rawInput": "inventory",
+      "action": {
+        "type": "inventory"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-inventory"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "defeat",
+        "fighter": {
+          "hp": 0,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "consumed"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 2,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 5,
+              "total": 6
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 9,
+              "total": 11
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "skeleton-guardian"
+        }
+      }
+    },
+    {
+      "sequence": 12,
+      "rawInput": "quit",
+      "action": {
+        "type": "quit"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "session-quit"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "defeat",
+        "fighter": {
+          "hp": 0,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "consumed"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 2,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 5,
+              "total": 6
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 9,
+              "total": 11
+            }
+          },
+          "turnOrder": [
+            "skeleton-guardian",
+            "fighter"
+          ],
+          "currentTurn": "skeleton-guardian"
+        }
+      }
+    }
+  ],
+  "completion": {
+    "reason": "quit",
+    "outcome": "defeat"
+  }
+}

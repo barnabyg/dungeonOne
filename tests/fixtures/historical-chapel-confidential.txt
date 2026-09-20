@@ -1,0 +1,180 @@
+Seed: 0 (mulberry32-v1)
+The Bell Beneath the Chapel
+
+Objective: Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.
+Active quest: Find Tavi.
+Mara is here. Public subject: Tavi's disappearance.
+Type "help" for available commands.
+State — HP 20/20 | Potion: not collected | Combat: none | Quest: Find Tavi (active; 0 discoveries).
+Options — Exits: ferry landing, chapel path | Try: search missing-person notice; talk mara tavi ask.
+Village Inn
+Rain taps the inn windows. Mara, the innkeeper, tends the counter beside a public noticeboard.
+Visible: missing-person notice.
+Visible items: none.
+Opponents: none.
+NPCs: Mara (living; public subjects: Tavi's disappearance).
+Exits: ferry-landing, chapel-path.
+Try: search missing-person notice; talk mara tavi ask.
+Journal update — The chapel route: The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.
+Next: Follow the chapel path to the ruined chapel.
+State — HP 20/20 | Potion: not collected | Combat: none | Quest: Find Tavi (active; 1 discovery).
+Options — Exits: ferry landing, chapel path | Try: talk mara tavi ask.
+Mara: Tavi is missing. I thought they might have gone toward the ferry, but that is only my guess. Please help me find them.
+Journal update — Mara's account of Tavi's disappearance: Mara reports that Tavi has disappeared.
+Journal update — Mara's ferry lead: Mara believes Tavi may have gone toward the ferry; this is her belief, not an observed fact.
+Next: Check the ferry landing, while treating Mara's lead as uncertain.
+State — HP 20/20 | Potion: not collected | Combat: none | Quest: Find Tavi (active; 3 discoveries).
+Options — Exits: ferry landing, chapel path | Try: talk mara tavi ask.
+You travel to Chapel Path.
+Chapel Path
+An uphill path runs from the village toward the ruined chapel.
+Visible: waymarker.
+Visible items: healing potion (tucked into a dry niche beneath the waymarker).
+Opponents: none.
+NPCs: none.
+Exits: inn, ruined-chapel.
+Try: take healing potion.
+State — HP 20/20 | Potion: not collected | Combat: none | Quest: Find Tavi (active; 3 discoveries).
+Options — Exits: village inn, ruined chapel | Try: take healing potion.
+You take the healing potion. It is now available in your inventory.
+State — HP 20/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 3 discoveries).
+Options — Exits: village inn, ruined chapel | Try: use potion.
+You travel to Ruined Chapel.
+Ruined Chapel
+Daylight falls through the broken chapel roof. Stone steps descend to the crypt entrance.
+Visible: broken roof, damaged repair record.
+Visible items: none.
+Opponents: none.
+NPCs: none.
+Exits: chapel-path, crypt.
+Try: search damaged repair record; use potion.
+State — HP 20/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 3 discoveries).
+Options — Exits: chapel path, crypt | Try: search damaged repair record; use potion.
+Journal update — Unsafe chapel repairs: The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.
+Next: Ask Oren about the unfinished chapel repairs.
+State — HP 20/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 4 discoveries).
+Options — Exits: chapel path, crypt | Try: use potion.
+You travel to Crypt.
+Crypt
+A sealed arch divides the crypt. A skeleton guardian waits between the entrance and the evidence beyond.
+Visible: crypt steps.
+Visible items: none.
+Opponent: skeleton guardian (living).
+NPCs: none.
+Exits: ruined-chapel.
+Try: use potion; attack skeleton.
+Combat begins against the skeleton guardian.
+Initiative — Fighter: d20 roll 6 + modifier 1 = 7.
+Initiative — skeleton guardian: d20 roll 1 + modifier 2 = 3.
+Turn: Fighter.
+State — HP 20/20 | Potion: available | Combat: Fighter's turn | Quest: Find Tavi (active; 4 discoveries).
+Options — Exits: ruined chapel | Try: use potion; attack skeleton.
+Fighter attacks skeleton guardian with longsword.
+Attack roll: d20 5 + modifier 5 = 10 vs AC 13 — miss.
+Remaining HP: skeleton guardian 13/13.
+Turn: skeleton guardian.
+skeleton guardian attacks Fighter with rusted shortsword.
+Attack roll: d20 3 + modifier 4 = 7 vs AC 16 — miss.
+Remaining HP: Fighter 20/20.
+Turn: Fighter.
+State — HP 20/20 | Potion: available | Combat: Fighter's turn | Quest: Find Tavi (active; 4 discoveries).
+Options — Exits: ruined chapel | Try: use potion; attack skeleton.
+Fighter attacks skeleton guardian with longsword.
+Attack roll: d20 10 + modifier 5 = 15 vs AC 13 — hit.
+Damage: 8.
+Remaining HP: skeleton guardian 5/13.
+Turn: skeleton guardian.
+skeleton guardian attacks Fighter with rusted shortsword.
+Attack roll: d20 13 + modifier 4 = 17 vs AC 16 — hit.
+Damage: 6.
+Remaining HP: Fighter 14/20.
+Turn: Fighter.
+State — HP 14/20 | Potion: available | Combat: Fighter's turn | Quest: Find Tavi (active; 4 discoveries).
+Options — Exits: ruined chapel | Try: use potion; attack skeleton.
+Fighter attacks skeleton guardian with longsword.
+Attack roll: d20 10 + modifier 5 = 15 vs AC 13 — hit.
+Damage: 8.
+Remaining HP: skeleton guardian 0/13.
+The skeleton guardian is defeated. Guardian cleared; Tavi and the diversion ledger beyond are now accessible. Find Tavi remains active.
+State — HP 14/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 4 discoveries).
+Options — Exits: ruined chapel | Try: search diversion ledger; talk tavi crypt ask; talk tavi rescue ask; use potion.
+Journal update — Oren's diversion ledger: The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.
+Next: Establish Tavi's fate here in the crypt before following up on the ledger.
+State — HP 14/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 5 discoveries).
+Options — Exits: ruined chapel | Try: talk tavi crypt ask; talk tavi rescue ask; use potion.
+Tavi: I followed the chapel ledger into the crypt. The skeleton rose behind me and trapped me here.
+Journal update — Tavi's crypt account: Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.
+Next: Return Tavi safely to the village inn.
+State — HP 14/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 6 discoveries).
+Options — Exits: ruined chapel | Try: talk tavi crypt ask; talk tavi rescue ask; use potion.
+Tavi takes the marked safe route from the crypt to the village inn.
+Tavi: Yes. I am ready to leave the crypt. I can follow the marked safe route to the village inn.
+State — HP 14/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 6 discoveries).
+Options — Exits: ruined chapel | Try: use potion.
+You travel to Ruined Chapel.
+Ruined Chapel
+Daylight falls through the broken chapel roof. Stone steps descend to the crypt entrance.
+Visible: broken roof, damaged repair record.
+Visible items: none.
+Opponents: none.
+NPCs: none.
+Exits: chapel-path, crypt.
+Try: use potion.
+State — HP 14/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 6 discoveries).
+Options — Exits: chapel path, crypt | Try: use potion.
+You travel to Chapel Path.
+Chapel Path
+An uphill path runs from the village toward the ruined chapel.
+Visible: waymarker.
+Visible items: none.
+Opponents: none.
+NPCs: none.
+Exits: inn, ruined-chapel.
+Try: use potion.
+State — HP 14/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 6 discoveries).
+Options — Exits: village inn, ruined chapel | Try: use potion.
+You travel to Village Inn.
+Village Inn
+Rain taps the inn windows. Mara, the innkeeper, tends the counter beside a public noticeboard.
+Visible: missing-person notice, resolution noticeboard.
+Noticeboard choices: public disclosure publishes the ledger evidence and initiates a village inquiry; confidential referral delivers it privately to the trustees with a restitution and repair request.
+Visible items: none.
+Opponents: none.
+NPCs: Mara (living; public subjects: Tavi's disappearance); Tavi (living; public subjects: What happened in the crypt).
+Exits: ferry-landing, chapel-path.
+Try: resolve public disclosure; resolve confidential referral; talk mara tavi ask; talk tavi crypt ask; use potion.
+State — HP 14/20 | Potion: available | Combat: none | Quest: Find Tavi (active; 6 discoveries).
+Options — Exits: ferry landing, chapel path | Try: resolve public disclosure; resolve confidential referral; talk mara tavi ask; talk tavi crypt ask.
+Confidential referral recorded. The ledger is delivered privately to the village trustees with a request for restitution and chapel repair. Oren commits to future restitution; no payment or completed repair is claimed. Tavi is alive and safe at the village inn.
+State — HP 14/20 | Potion: available | Combat: none | Quest: Find Tavi (resolved; 6 discoveries).
+Options — Try: status; inventory; journal; help.
+Fighter HP: 14/20
+Healing potion: available.
+Combat turn: none.
+Session: victory.
+Quest: Find Tavi (resolved). Resolution: confidential-referral.
+Journal
+Active quest: Find Tavi (resolved).
+Milestones: chapel-route-known, mara-account-recorded, unsafe-repairs-linked-to-oren, guardian-cleared, ledger-recovered, tavi-fate-established, tavi-rescued.
+Resolution: confidential-referral.
+Consequences: evidence-delivered-confidentially, restitution-repair-requested, oren-committed-future-restitution.
+Tavi fate: rescued-to-inn.
+Discoveries: 
+- The chapel route [observation] — The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.
+  Source: missing-person notice, Village Inn.
+- Mara's account of Tavi's disappearance [testimony] — Mara reports that Tavi has disappeared.
+  Source: Mara, Village Inn.
+- Mara's ferry lead [belief] — Mara believes Tavi may have gone toward the ferry; this is her belief, not an observed fact.
+  Source: Mara, Village Inn.
+- Unsafe chapel repairs [observation] — The damaged record assigns the chapel repairs to Oren and shows that the roof supports were left unfinished and unsafe.
+  Source: damaged repair record, Ruined Chapel.
+- Oren's diversion ledger [observation] — The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.
+  Source: diversion ledger, Crypt.
+- Tavi's crypt account [testimony] — Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.
+  Source: Tavi, Crypt.
+Known leads: 
+- Follow the chapel path to the ruined chapel.
+- Check the ferry landing, while treating Mara's lead as uncertain.
+- Ask Oren about the unfinished chapel repairs.
+- Return to the inn noticeboard and resolve the investigation with the ledger evidence.
+You leave the game.

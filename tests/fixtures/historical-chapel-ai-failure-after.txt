@@ -1,0 +1,51 @@
+Seed: 0 (mulberry32-v1)
+The Bell Beneath the Chapel
+
+Objective: Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.
+Active quest: Find Tavi.
+Mara is here. Public subject: Tavi's disappearance.
+Type "help" for available commands.
+State — HP 20/20 | Potion: not collected | Combat: none | Quest: Find Tavi (active; 0 discoveries).
+Options — Exits: ferry landing, chapel path | Try: search missing-person notice; talk mara tavi ask.
+Village Inn
+Rain taps the inn windows. Mara, the innkeeper, tends the counter beside a public noticeboard.
+Visible: missing-person notice.
+Visible items: none.
+Opponents: none.
+NPCs: Mara (living; public subjects: Tavi's disappearance).
+Exits: ferry-landing, chapel-path.
+Try: search missing-person notice; talk mara tavi ask.
+Scripted DM mode: describe one action or ask about the scene, your character's status, or your journal.
+Mechanics:
+Journal update — The chapel route: The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.
+Next: Follow the chapel path to the ruined chapel.
+
+State — HP 20/20 | Potion: not collected | Combat: none | Quest: Find Tavi (active; 1 discovery).
+Options — Exits: ferry landing, chapel path | Try: talk mara tavi ask.
+
+Dungeon Master:
+The attempted action's authoritative result is shown in Mechanics. No further action was executed.
+Journal
+Active quest: Find Tavi (active).
+Milestones: chapel-route-known.
+Discoveries: 
+- The chapel route [observation] — The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.
+  Source: missing-person notice, Village Inn.
+Known leads: 
+- Follow the chapel path to the ruined chapel.
+Fighter HP: 20/20
+Healing potion: not collected.
+Combat turn: none.
+Session: playing.
+Quest: Find Tavi (active). Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.
+Equipped: longsword.
+Healing potion: not collected.
+Scripted DM mode accepts ordinary language for one gameplay attempt or questions about the current scene and character status.
+After victory or defeat, gameplay mutations are frozen but reflection and reads remain available.
+Local commands:
+  help  Show this guidance without calling the model.
+  journal  Read discovered facts and known leads without calling the model.
+  status  Read HP, potion availability, and combat turn without calling the model.
+  inventory  Read equipment and potion availability without calling the model.
+  quit  Leave the game without calling the model.
+You leave the game.

@@ -1,0 +1,3227 @@
+{
+  "formatVersion": 3,
+  "rulesVersion": "chapel-casualties-rules-v9",
+  "adventure": {
+    "id": "chapel",
+    "version": "chapel-casualties-v9"
+  },
+  "random": {
+    "algorithm": "mulberry32-v1",
+    "initialSeed": 0
+  },
+  "initialState": {
+    "adventureId": "chapel",
+    "locationId": "inn",
+    "status": "playing",
+    "fighter": {
+      "hp": 20,
+      "maxHp": 20,
+      "equipmentIds": [
+        "longsword"
+      ]
+    },
+    "quest": {
+      "id": "find-tavi",
+      "status": "active",
+      "milestones": []
+    },
+    "discoveries": [],
+    "npcStates": {
+      "mara": {
+        "hp": 8,
+        "maxHp": 8
+      },
+      "oren": {
+        "hp": 9,
+        "maxHp": 9
+      },
+      "tavi": {
+        "hp": 6,
+        "maxHp": 6
+      }
+    },
+    "npcLocations": {
+      "mara": "inn",
+      "oren": "ferry-landing",
+      "tavi": "crypt"
+    },
+    "npcDeathLocations": {},
+    "conversationHistory": [],
+    "socialChallenges": {},
+    "itemPlacements": {
+      "healing-potion": {
+        "type": "room",
+        "roomId": "chapel-path",
+        "featureId": "waymarker"
+      }
+    },
+    "opponents": {
+      "skeleton-guardian": {
+        "combatantId": "skeleton-guardian",
+        "definitionId": "skeleton",
+        "hp": 13,
+        "maxHp": 13
+      }
+    }
+  },
+  "actions": [
+    {
+      "sequence": 1,
+      "rawInput": "move ferry landing",
+      "action": {
+        "type": "move",
+        "destination": "ferry landing"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "inn",
+            "roomId": "ferry-landing"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "ferry-landing"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ferry-landing",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        }
+      }
+    },
+    {
+      "sequence": 2,
+      "rawInput": "attack oren",
+      "action": {
+        "type": "attack",
+        "target": "oren"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 6
+        },
+        {
+          "sides": 20,
+          "value": 1
+        },
+        {
+          "sides": 20,
+          "value": 5
+        },
+        {
+          "sides": 20,
+          "value": 3
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "combat-started",
+            "combatantId": "oren",
+            "definitionId": "oren"
+          },
+          {
+            "type": "initiative-rolled",
+            "combatantId": "fighter",
+            "bonus": 1,
+            "roll": 6,
+            "total": 7
+          },
+          {
+            "type": "initiative-rolled",
+            "combatantId": "oren",
+            "bonus": 1,
+            "roll": 1,
+            "total": 2
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "oren",
+            "attackRoll": 5,
+            "attackBonus": 5,
+            "attackTotal": 10,
+            "targetArmorClass": 11,
+            "outcome": "miss",
+            "targetHp": 9,
+            "targetMaxHp": 9
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "oren"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "oren",
+            "targetId": "fighter",
+            "attackRoll": 3,
+            "attackBonus": 2,
+            "attackTotal": 5,
+            "targetArmorClass": 16,
+            "outcome": "miss",
+            "targetHp": 20,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ferry-landing",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 9,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "oren",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "oren": {
+              "combatantId": "oren",
+              "bonus": 1,
+              "roll": 1,
+              "total": 2
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "oren"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 3,
+      "rawInput": "attack oren",
+      "action": {
+        "type": "attack",
+        "target": "oren"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 10
+        },
+        {
+          "sides": 8,
+          "value": 5
+        },
+        {
+          "sides": 20,
+          "value": 13
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "oren",
+            "attackRoll": 10,
+            "attackBonus": 5,
+            "attackTotal": 15,
+            "targetArmorClass": 11,
+            "outcome": "hit",
+            "damage": 8,
+            "targetHp": 1,
+            "targetMaxHp": 9
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "oren"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "oren",
+            "targetId": "fighter",
+            "attackRoll": 13,
+            "attackBonus": 2,
+            "attackTotal": 15,
+            "targetArmorClass": 16,
+            "outcome": "miss",
+            "targetHp": 20,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ferry-landing",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 1,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {},
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "oren",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "oren": {
+              "combatantId": "oren",
+              "bonus": 1,
+              "roll": 1,
+              "total": 2
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "oren"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 4,
+      "rawInput": "attack oren",
+      "action": {
+        "type": "attack",
+        "target": "oren"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 13
+        },
+        {
+          "sides": 8,
+          "value": 4
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "oren",
+            "attackRoll": 13,
+            "attackBonus": 5,
+            "attackTotal": 18,
+            "targetArmorClass": 11,
+            "outcome": "hit",
+            "damage": 7,
+            "targetHp": 0,
+            "targetMaxHp": 9
+          },
+          {
+            "type": "combat-ended",
+            "combatantId": "oren",
+            "outcome": "defeated"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ferry-landing",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "oren",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "oren": {
+              "combatantId": "oren",
+              "bonus": 1,
+              "roll": 1,
+              "total": 2
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "oren"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 5,
+      "rawInput": "attack oren",
+      "action": {
+        "type": "attack",
+        "target": "oren"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "chapel-dead-target"
+        }
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ferry-landing",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "oren",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "oren": {
+              "combatantId": "oren",
+              "bonus": 1,
+              "roll": 1,
+              "total": 2
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "oren"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 6,
+      "rawInput": "move inn",
+      "action": {
+        "type": "move",
+        "destination": "inn"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "ferry-landing",
+            "roomId": "inn"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "inn"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "oren",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "oren": {
+              "combatantId": "oren",
+              "bonus": 1,
+              "roll": 1,
+              "total": 2
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "oren"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 7,
+      "rawInput": "move chapel path",
+      "action": {
+        "type": "move",
+        "destination": "chapel path"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "inn",
+            "roomId": "chapel-path"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "chapel-path"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "chapel-path",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "room",
+            "roomId": "chapel-path",
+            "featureId": "waymarker"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "oren",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "oren": {
+              "combatantId": "oren",
+              "bonus": 1,
+              "roll": 1,
+              "total": 2
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "oren"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 8,
+      "rawInput": "take healing potion",
+      "action": {
+        "type": "take",
+        "target": "healing potion"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-item-taken",
+            "itemId": "healing-potion"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "chapel-path",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "oren",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "oren": {
+              "combatantId": "oren",
+              "bonus": 1,
+              "roll": 1,
+              "total": 2
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "oren"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 9,
+      "rawInput": "move ruined chapel",
+      "action": {
+        "type": "move",
+        "destination": "ruined chapel"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "chapel-path",
+            "roomId": "ruined-chapel"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "ruined-chapel"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ruined-chapel",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "oren",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 6,
+              "total": 7
+            },
+            "oren": {
+              "combatantId": "oren",
+              "bonus": 1,
+              "roll": 1,
+              "total": 2
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "oren"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 10,
+      "rawInput": "move crypt",
+      "action": {
+        "type": "move",
+        "destination": "crypt"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 12
+        },
+        {
+          "sides": 20,
+          "value": 5
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "ruined-chapel",
+            "roomId": "crypt"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "crypt"
+          },
+          {
+            "type": "combat-started",
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton"
+          },
+          {
+            "type": "initiative-rolled",
+            "combatantId": "fighter",
+            "bonus": 1,
+            "roll": 12,
+            "total": 13
+          },
+          {
+            "type": "initiative-rolled",
+            "combatantId": "skeleton-guardian",
+            "bonus": 2,
+            "roll": 5,
+            "total": 7
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 20,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 11,
+      "rawInput": "attack skeleton",
+      "action": {
+        "type": "attack",
+        "target": "skeleton"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 2
+        },
+        {
+          "sides": 20,
+          "value": 19
+        },
+        {
+          "sides": 6,
+          "value": 3
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "skeleton-guardian",
+            "attackRoll": 2,
+            "attackBonus": 5,
+            "attackTotal": 7,
+            "targetArmorClass": 13,
+            "outcome": "miss",
+            "targetHp": 13,
+            "targetMaxHp": 13
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "skeleton-guardian"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "skeleton-guardian",
+            "targetId": "fighter",
+            "attackRoll": 19,
+            "attackBonus": 4,
+            "attackTotal": 23,
+            "targetArmorClass": 16,
+            "outcome": "hit",
+            "damage": 5,
+            "targetHp": 15,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 15,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 13,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 12,
+      "rawInput": "attack skeleton",
+      "action": {
+        "type": "attack",
+        "target": "skeleton"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 15
+        },
+        {
+          "sides": 8,
+          "value": 6
+        },
+        {
+          "sides": 20,
+          "value": 17
+        },
+        {
+          "sides": 6,
+          "value": 4
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "skeleton-guardian",
+            "attackRoll": 15,
+            "attackBonus": 5,
+            "attackTotal": 20,
+            "targetArmorClass": 13,
+            "outcome": "hit",
+            "damage": 9,
+            "targetHp": 4,
+            "targetMaxHp": 13
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "skeleton-guardian"
+          },
+          {
+            "type": "attack-resolved",
+            "attackerId": "skeleton-guardian",
+            "targetId": "fighter",
+            "attackRoll": 17,
+            "attackBonus": 4,
+            "attackTotal": 21,
+            "targetArmorClass": 16,
+            "outcome": "hit",
+            "damage": 6,
+            "targetHp": 9,
+            "targetMaxHp": 20
+          },
+          {
+            "type": "turn-started",
+            "combatantId": "fighter"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": []
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 4,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 13,
+      "rawInput": "attack skeleton",
+      "action": {
+        "type": "attack",
+        "target": "skeleton"
+      },
+      "rolls": [
+        {
+          "sides": 20,
+          "value": 12
+        },
+        {
+          "sides": 8,
+          "value": 1
+        }
+      ],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "attack-resolved",
+            "attackerId": "fighter",
+            "targetId": "skeleton-guardian",
+            "attackRoll": 12,
+            "attackBonus": 5,
+            "attackTotal": 17,
+            "targetArmorClass": 13,
+            "outcome": "hit",
+            "damage": 4,
+            "targetHp": 0,
+            "targetMaxHp": 13
+          },
+          {
+            "type": "combat-ended",
+            "combatantId": "skeleton-guardian",
+            "outcome": "defeated"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "guardian-cleared"
+          ]
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 14,
+      "rawInput": "attack skeleton",
+      "action": {
+        "type": "attack",
+        "target": "skeleton"
+      },
+      "rolls": [],
+      "result": {
+        "type": "rejected",
+        "rejection": {
+          "reason": "chapel-dead-target"
+        }
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "guardian-cleared"
+          ]
+        },
+        "discoveries": [],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 15,
+      "rawInput": "search diversion ledger",
+      "action": {
+        "type": "search",
+        "target": "diversion ledger"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-discovered",
+            "discoveryId": "diversion-ledger",
+            "milestoneId": "ledger-recovered"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "guardian-cleared",
+            "ledger-recovered"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 16,
+      "rawInput": "talk tavi crypt ask",
+      "action": {
+        "type": "talk",
+        "target": "tavi",
+        "topic": "crypt",
+        "approach": "ask"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-conversation",
+            "conversation": {
+              "speakerId": "tavi",
+              "speakerName": "Tavi",
+              "topicId": "crypt",
+              "topicName": "What happened in the crypt",
+              "approach": "ask",
+              "attitude": "concerned",
+              "voice": "Observant and shaken but precise; speaks only about events personally witnessed in the crypt.",
+              "approvedFacts": [
+                {
+                  "id": "tavi-crypt-testimony",
+                  "statement": "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+                }
+              ],
+              "authoredReply": "Tavi: I followed the chapel ledger into the crypt. The skeleton rose behind me and trapped me here.",
+              "speakerHistory": []
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "crypt"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          }
+        ],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 17,
+      "rawInput": "talk tavi rescue ask",
+      "action": {
+        "type": "talk",
+        "target": "tavi",
+        "topic": "rescue",
+        "approach": "ask"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-tavi-rescued",
+            "fromRoomId": "crypt",
+            "roomId": "inn"
+          },
+          {
+            "type": "chapel-conversation",
+            "conversation": {
+              "speakerId": "tavi",
+              "speakerName": "Tavi",
+              "topicId": "rescue",
+              "topicName": "Return safely to the inn",
+              "approach": "ask",
+              "attitude": "concerned",
+              "voice": "Observant and shaken but precise; speaks only about events personally witnessed in the crypt.",
+              "approvedFacts": [
+                {
+                  "id": "tavi-rescue-consent",
+                  "statement": "I am ready to return safely to the village inn."
+                }
+              ],
+              "authoredReply": "Tavi: Yes. I am ready to leave the crypt. I can follow the marked safe route to the village inn.",
+              "speakerHistory": [
+                "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+              ]
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "crypt",
+        "status": "playing",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 18,
+      "rawInput": "move ruined chapel",
+      "action": {
+        "type": "move",
+        "destination": "ruined chapel"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "crypt",
+            "roomId": "ruined-chapel"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "ruined-chapel"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "ruined-chapel",
+        "status": "playing",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 19,
+      "rawInput": "move chapel path",
+      "action": {
+        "type": "move",
+        "destination": "chapel path"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "ruined-chapel",
+            "roomId": "chapel-path"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "chapel-path"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "chapel-path",
+        "status": "playing",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 20,
+      "rawInput": "move inn",
+      "action": {
+        "type": "move",
+        "destination": "inn"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-moved",
+            "fromRoomId": "chapel-path",
+            "roomId": "inn"
+          },
+          {
+            "type": "chapel-scene",
+            "roomId": "inn"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "playing",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "active",
+          "milestones": [
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        }
+      }
+    },
+    {
+      "sequence": 21,
+      "rawInput": "resolve confidential referral",
+      "action": {
+        "type": "resolve",
+        "target": "confidential referral"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-resolved",
+            "resolution": {
+              "id": "confidential-referral",
+              "taviFate": "rescued-to-inn",
+              "casualties": [
+                "oren"
+              ],
+              "consequences": [
+                "evidence-delivered-confidentially",
+                "restitution-repair-requested"
+              ]
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "victory",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "resolved",
+          "milestones": [
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        },
+        "resolution": {
+          "id": "confidential-referral",
+          "taviFate": "rescued-to-inn",
+          "casualties": [
+            "oren"
+          ],
+          "consequences": [
+            "evidence-delivered-confidentially",
+            "restitution-repair-requested"
+          ]
+        }
+      }
+    },
+    {
+      "sequence": 22,
+      "rawInput": "status",
+      "action": {
+        "type": "status"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-status",
+            "hp": 9,
+            "maxHp": 20,
+            "status": "victory",
+            "quest": {
+              "id": "find-tavi",
+              "status": "resolved",
+              "milestones": [
+                "guardian-cleared",
+                "ledger-recovered",
+                "tavi-fate-established",
+                "tavi-rescued"
+              ]
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "victory",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "resolved",
+          "milestones": [
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        },
+        "resolution": {
+          "id": "confidential-referral",
+          "taviFate": "rescued-to-inn",
+          "casualties": [
+            "oren"
+          ],
+          "consequences": [
+            "evidence-delivered-confidentially",
+            "restitution-repair-requested"
+          ]
+        }
+      }
+    },
+    {
+      "sequence": 23,
+      "rawInput": "journal",
+      "action": {
+        "type": "journal"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "chapel-journal",
+            "journal": {
+              "quest": {
+                "id": "find-tavi",
+                "title": "Find Tavi",
+                "status": "resolved",
+                "milestones": [
+                  "guardian-cleared",
+                  "ledger-recovered",
+                  "tavi-fate-established",
+                  "tavi-rescued"
+                ]
+              },
+              "discoveries": [
+                {
+                  "id": "diversion-ledger",
+                  "title": "Oren's diversion ledger",
+                  "source": {
+                    "type": "feature",
+                    "id": "diversion-ledger",
+                    "name": "diversion ledger",
+                    "locationId": "crypt"
+                  },
+                  "classification": "observation",
+                  "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+                  "actionableLead": "Return to Oren with the conclusive ledger evidence."
+                },
+                {
+                  "id": "tavi-crypt-testimony",
+                  "title": "Tavi's crypt account",
+                  "source": {
+                    "type": "npc",
+                    "id": "tavi",
+                    "name": "Tavi",
+                    "locationId": "crypt"
+                  },
+                  "classification": "testimony",
+                  "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+                  "actionableLead": "Return Tavi safely to the village inn."
+                }
+              ],
+              "actionableLeads": [],
+              "resolution": {
+                "id": "confidential-referral",
+                "taviFate": "rescued-to-inn",
+                "casualties": [
+                  "oren"
+                ],
+                "consequences": [
+                  "evidence-delivered-confidentially",
+                  "restitution-repair-requested"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "victory",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "resolved",
+          "milestones": [
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        },
+        "resolution": {
+          "id": "confidential-referral",
+          "taviFate": "rescued-to-inn",
+          "casualties": [
+            "oren"
+          ],
+          "consequences": [
+            "evidence-delivered-confidentially",
+            "restitution-repair-requested"
+          ]
+        }
+      }
+    },
+    {
+      "sequence": 24,
+      "rawInput": "quit",
+      "action": {
+        "type": "quit"
+      },
+      "rolls": [],
+      "result": {
+        "type": "accepted",
+        "events": [
+          {
+            "type": "session-quit"
+          }
+        ]
+      },
+      "stateAfter": {
+        "adventureId": "chapel",
+        "locationId": "inn",
+        "status": "victory",
+        "fighter": {
+          "hp": 9,
+          "maxHp": 20,
+          "equipmentIds": [
+            "longsword"
+          ]
+        },
+        "quest": {
+          "id": "find-tavi",
+          "status": "resolved",
+          "milestones": [
+            "guardian-cleared",
+            "ledger-recovered",
+            "tavi-fate-established",
+            "tavi-rescued"
+          ]
+        },
+        "discoveries": [
+          {
+            "id": "diversion-ledger",
+            "title": "Oren's diversion ledger",
+            "source": {
+              "type": "feature",
+              "id": "diversion-ledger",
+              "name": "diversion ledger",
+              "locationId": "crypt"
+            },
+            "classification": "observation",
+            "summary": "The ledger proves Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished.",
+            "actionableLead": "Return to Oren with the conclusive ledger evidence."
+          },
+          {
+            "id": "tavi-crypt-testimony",
+            "title": "Tavi's crypt account",
+            "source": {
+              "type": "npc",
+              "id": "tavi",
+              "name": "Tavi",
+              "locationId": "crypt"
+            },
+            "classification": "testimony",
+            "summary": "Tavi reports following the chapel ledger into the crypt and becoming trapped when the skeleton guardian rose.",
+            "actionableLead": "Return Tavi safely to the village inn."
+          }
+        ],
+        "npcStates": {
+          "mara": {
+            "hp": 8,
+            "maxHp": 8
+          },
+          "oren": {
+            "hp": 0,
+            "maxHp": 9
+          },
+          "tavi": {
+            "hp": 6,
+            "maxHp": 6
+          }
+        },
+        "npcLocations": {
+          "mara": "inn",
+          "oren": "ferry-landing",
+          "tavi": "inn"
+        },
+        "npcDeathLocations": {
+          "oren": "ferry-landing"
+        },
+        "conversationHistory": [
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I followed the chapel ledger into the crypt and was trapped when the skeleton guardian rose."
+            ]
+          },
+          {
+            "speakerId": "tavi",
+            "statements": [
+              "I am ready to return safely to the village inn."
+            ]
+          }
+        ],
+        "socialChallenges": {},
+        "itemPlacements": {
+          "healing-potion": {
+            "type": "inventory"
+          }
+        },
+        "opponents": {
+          "skeleton-guardian": {
+            "combatantId": "skeleton-guardian",
+            "definitionId": "skeleton",
+            "hp": 0,
+            "maxHp": 13
+          }
+        },
+        "combat": {
+          "opponentCombatantId": "skeleton-guardian",
+          "initiative": {
+            "fighter": {
+              "combatantId": "fighter",
+              "bonus": 1,
+              "roll": 12,
+              "total": 13
+            },
+            "skeleton-guardian": {
+              "combatantId": "skeleton-guardian",
+              "bonus": 2,
+              "roll": 5,
+              "total": 7
+            }
+          },
+          "turnOrder": [
+            "fighter",
+            "skeleton-guardian"
+          ],
+          "currentTurn": "fighter"
+        },
+        "resolution": {
+          "id": "confidential-referral",
+          "taviFate": "rescued-to-inn",
+          "casualties": [
+            "oren"
+          ],
+          "consequences": [
+            "evidence-delivered-confidentially",
+            "restitution-repair-requested"
+          ]
+        }
+      }
+    }
+  ],
+  "completion": {
+    "reason": "quit",
+    "outcome": "victory"
+  }
+}
