@@ -25,7 +25,7 @@ function runDefaultCli(input, args = [], environment = {}) {
 }
 
 function runCli(input, args = [], environment = {}) {
-  const selectsRuntime = args.some(
+  const bypassesLegacyAdventureDefault = args.some(
     (argument) =>
       argument === "--adventure" ||
       argument.startsWith("--adventure=") ||
@@ -35,7 +35,9 @@ function runCli(input, args = [], environment = {}) {
   );
   return runDefaultCli(
     input,
-    selectsRuntime ? args : ["--adventure", "stolen-signet", ...args],
+    bypassesLegacyAdventureDefault
+      ? args
+      : ["--adventure", "stolen-signet", ...args],
     environment,
   );
 }
