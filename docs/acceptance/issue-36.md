@@ -96,6 +96,23 @@ Run the normal public session by changing the final resolution command to
 npm.cmd start -- --replay .dm-evaluations\issue-36-public.json
 ```
 
+Run the Mara-casualty public route:
+
+```powershell
+@("attack mara", "attack mara", "search missing-person notice", "move chapel-path", "move ruined-chapel", "move crypt", "attack skeleton", "attack skeleton", "attack skeleton", "search diversion ledger", "talk tavi crypt ask", "talk tavi rescue ask", "move ruined-chapel", "move chapel-path", "move inn", "resolve public disclosure", "status", "journal", "quit") |
+  npm.cmd start -- --adventure chapel --seed 0 --ai --trace .dm-evaluations\issue-36-public-casualty.json
+npm.cmd start -- --replay .dm-evaluations\issue-36-public-casualty.json
+```
+
+Run the Oren-casualty confidential route that reproduces the remaining
+post-ledger contradiction:
+
+```powershell
+@("move ferry-landing", "attack oren", "attack oren", "attack oren", "attack oren", "move inn", "move chapel-path", "move ruined-chapel", "move crypt", "attack skeleton", "attack skeleton", "attack skeleton", "search diversion ledger", "talk tavi crypt ask", "talk tavi rescue ask", "move ruined-chapel", "move chapel-path", "move inn", "resolve confidential referral", "status", "journal", "quit") |
+  npm.cmd start -- --adventure chapel --seed 0 --ai --trace .dm-evaluations\issue-36-confidential-casualty.json
+npm.cmd start -- --replay .dm-evaluations\issue-36-confidential-casualty.json
+```
+
 Run the deterministic defeat route:
 
 ```powershell
