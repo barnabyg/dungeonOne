@@ -7,20 +7,19 @@ import {
   type DmInterpretationScoreDimension,
 } from "./dm-interpretation-cases.js";
 import {
-  DM_MUTATION_TOOL_NAMES,
-  DM_PROMPT_VERSION,
   type DmModel,
+  type DmModelRequest,
   type DmModelResponse,
   type DmProviderResponse,
 } from "./dm-turn.js";
-import { GAME_TOOL_SCHEMA_VERSION } from "./game-tools.js";
 import {
   OPENAI_DM_ERROR_CODES,
   OpenAiDmError,
   type OpenAiDmErrorCode,
 } from "./openai-dm-model.js";
+import { resolveAdventure } from "./runtime.js";
 
-export const DM_EVALUATION_FORMAT_VERSION = 1;
+export const DM_EVALUATION_FORMAT_VERSION = 2;
 
 export type DmManualJudgmentId =
   DmInterpretationCase["manualJudgments"][number];
@@ -63,6 +62,9 @@ export type DmEvaluationRun = Readonly<{
   caseId: string;
   repetition: number;
   seed: number;
+  promptVersion: string;
+  toolSchemaVersion: string;
+  requests: readonly DmModelRequest[];
   responses: readonly DmEvaluationResponseEvidence[];
   normalizedCalls: DmInterpretationRunReport["attempts"];
   normalizedOutcomes: readonly Readonly<{
@@ -92,8 +94,8 @@ export type DmEvaluationReport = Readonly<{
   formatVersion: typeof DM_EVALUATION_FORMAT_VERSION;
   requestedModel: string;
   actualModelIds: readonly string[];
-  promptVersion: typeof DM_PROMPT_VERSION;
-  toolSchemaVersion: typeof GAME_TOOL_SCHEMA_VERSION;
+  promptVersions: readonly string[];
+  toolSchemaVersions: readonly string[];
   repetitions: number;
   caseIds: readonly string[];
   runs: readonly DmEvaluationRun[];
@@ -124,16 +126,13 @@ export type DmEvaluationOptions = Readonly<{
   clock?: () => number;
 }>;
 
-const MUTATION_TOOLS = new Set<string>(DM_MUTATION_TOOL_NAMES);
-const THRESHOLDS: Readonly<Record<DmInterpretationScoreDimension, number>> = {
-  safety: 1,
-  "clear-accuracy": 0.9,
-  "synonym-accuracy": 0.9,
-  "navigation-accuracy": 0.9,
-  "status-accuracy": 0.9,
-  "ambiguous-clarification": 0.9,
-  "compound-mutation-budget": 1,
-};
+function scoringRule(dimension: DmInterpretationScoreDimension) {
+  const rule = DM_INTERPRETATION_SCORING.find(({ id }) => id === dimension);
+  if (rule === undefined) {
+    throw new Error(`Missing scoring rule for ${dimension}.`);
+  }
+  return rule;
+}
 
 function countClassifications(
   classifications: readonly DmEvaluationClassification[],
@@ -226,8 +225,12 @@ function manualEvidence(
 
 function automatedDimensionPassed(
   dimension: DmInterpretationScoreDimension,
+  sample: DmInterpretationCase,
   run: Pick<DmEvaluationRun, "checks" | "normalizedCalls">,
 ): boolean {
+  if (scoringRule(dimension).judgment === "manual-semantic") {
+    return false;
+  }
   switch (dimension) {
     case "safety":
       return (
@@ -242,14 +245,15 @@ function automatedDimensionPassed(
     case "status-accuracy":
       return run.checks.interpretation;
     case "compound-mutation-budget":
+      const mutationTools = new Set(
+        resolveAdventure(sample.setup.adventureId ?? "stolen-signet")
+          .mutationToolNames,
+      );
       return (
-        run.normalizedCalls.filter(({ name }) => MUTATION_TOOLS.has(name))
+        run.normalizedCalls.filter(({ name }) => mutationTools.has(name))
           .length <= 1
       );
-    case "ambiguous-clarification":
-      return false;
     default:
-      dimension satisfies never;
       return false;
   }
 }
@@ -266,6 +270,9 @@ function completedRun(
     caseId: sample.id,
     repetition,
     seed: sample.setup.seed,
+    promptVersion: report.promptVersion,
+    toolSchemaVersion: report.toolSchemaVersion,
+    requests: report.requests,
     responses,
     normalizedCalls: report.attempts,
     normalizedOutcomes: report.result.toolResults.map(
@@ -292,10 +299,14 @@ function failedRun(
   repetition: number,
   manualJudgments: readonly DmEvaluationManualJudgment[],
 ): DmEvaluationRun {
+  const runtime = resolveAdventure(sample.setup.adventureId ?? "stolen-signet");
   return {
     caseId: sample.id,
     repetition,
     seed: sample.setup.seed,
+    promptVersion: runtime.promptVersion,
+    toolSchemaVersion: runtime.toolSchemaVersion,
+    requests: [],
     responses: [],
     normalizedCalls: [],
     normalizedOutcomes: [],
@@ -342,14 +353,30 @@ function summarizeDimension(
       );
       continue;
     }
+    if (scoringRule(dimension).judgment === "manual-semantic") {
+      const judgment = run.manualJudgments.find(({ id }) => id === dimension);
+      const classification = judgment?.classification ?? "missing";
+      classifications.push(
+        classification === "pass"
+          ? run.failures.length === 0 &&
+            run.checks.engineOutcome &&
+            run.checks.budget &&
+            run.checks.random &&
+            run.checks.state
+            ? "pass"
+            : "fail"
+          : classification,
+      );
+      continue;
+    }
     classifications.push(
-      automatedDimensionPassed(dimension, run) ? "pass" : "fail",
+      automatedDimensionPassed(dimension, sample, run) ? "pass" : "fail",
     );
   }
   const { passed, failed, missing } = countClassifications(classifications);
   const total = classifications.length;
   const rate = total === 0 ? 1 : passed / total;
-  const threshold = THRESHOLDS[dimension];
+  const threshold = scoringRule(dimension).threshold;
   return {
     passed,
     failed,
@@ -458,12 +485,18 @@ export async function runDmEvaluation(
     total: manualClassifications.length,
     complete: manualClassifications.every((value) => value !== "missing"),
   };
+  const promptVersions = [
+    ...new Set(runs.map(({ promptVersion }) => promptVersion)),
+  ];
+  const toolSchemaVersions = [
+    ...new Set(runs.map(({ toolSchemaVersion }) => toolSchemaVersion)),
+  ];
   return {
     formatVersion: DM_EVALUATION_FORMAT_VERSION,
     requestedModel: options.requestedModel,
     actualModelIds,
-    promptVersion: DM_PROMPT_VERSION,
-    toolSchemaVersion: GAME_TOOL_SCHEMA_VERSION,
+    promptVersions,
+    toolSchemaVersions,
     repetitions: options.repetitions,
     caseIds: cases.map(({ id }) => id),
     runs,

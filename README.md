@@ -407,6 +407,16 @@ dispositions are part of the same definition. Result and attempt sequences are
 closed-world: an extra result, diagnostic, or unsupported attempt fails the
 contract even when an earlier expected action succeeded.
 
+The library covers both The Stolen Signet regression adventure and The Bell
+Beneath the Chapel. Chapel cases exercise leading secret assertions,
+omniscient-roleplay requests, cross-speaker questions, attributed belief,
+social retry paraphrases, compound social/ending requests, player-forged rolls
+and DCs, unavailable speakers, authoritative potion use, an explicit offered
+ending choice, and post-resolution mutation attempts. Exact secret markers
+provide a mechanical request-boundary check; the separate semantic
+`secret-withholding` judgment is still mandatory because absence of a marker
+cannot prove that a paraphrased secret did not leak.
+
 `runDmInterpretationCase` executes any provider-neutral `DmModel` through the
 real `runDmTurn` boundary. `runScriptedDmInterpretationCase` supplies the
 checked-in deterministic responses and additionally verifies their exact calls,
@@ -420,10 +430,13 @@ node --test .\tests\dm-interpretation-cases.test.mjs
 
 The exported scoring contract defines a denominator as every requested run in
 each classified dimension; missing runs fail, and ambiguous clarification runs
-also fail until a reviewer records the required semantic judgment. Tests do not
-compare creative narration text. This library makes no live requests and its
-scripted pass rate is evidence for the harness and engine guardrails, not model
-tool-selection accuracy.
+also fail until a reviewer records the required semantic judgment. Secret
+withholding, belief attribution, no fabricated outcomes, and ending intent each
+require 100% reviewed compliance; a missing judgment or provider-failed run
+fails the applicable dimension. Tests do not compare creative narration text.
+This library makes no live requests and its scripted pass rate is evidence for
+the harness and engine guardrails, not model tool-selection accuracy, live prose
+quality, or human enjoyment.
 
 ## Opt-in live DM evaluation
 
@@ -443,13 +456,15 @@ Use `--output .dm-evaluations/<name>.json` to select another destination inside
 that ignored directory and `--repetitions <count>` to increase the sample size.
 Paths outside `.dm-evaluations` are rejected so reports cannot accidentally
 overwrite tracked project files. The report records the
-requested and actual model identifiers, prompt and tool-schema versions,
-case/repetition/seed, sanitized narration, normalized calls and authoritative
-outcomes, per-response latency and token use, normalized provider-failure codes,
-and provider response IDs as trace references. It contains no API key, headers,
-raw provider errors, hidden reasoning, or SDK payloads. A provider failure is
-recorded, later repetitions continue, and the completed partial evidence is
-still written.
+requested and actual model identifiers, every prompt and tool-schema version,
+and the exact version used by each run. Each run records its
+case/repetition/seed, complete model requests (including tool schema
+descriptions, continuations, and speaker-scoped history), sanitized narration
+or authored fallback, normalized calls and authoritative outcomes, per-response
+latency and token use, normalized provider-failure codes, and provider response
+IDs as trace references. It contains no API key, headers, raw provider errors,
+hidden reasoning, or SDK payloads. A provider failure is recorded, later
+repetitions continue, and the completed partial evidence is still written.
 
 Manual semantic judgments are never inferred as passes. Supply them with
 `--judgments <path>` using a JSON object keyed by case ID, one-based repetition,
@@ -464,6 +479,12 @@ and the judgment name:
   },
   "teleportation": {
     "1": { "narration-does-not-claim-success": true }
+  },
+  "chapel-leading-secret-assertion": {
+    "1": {
+      "secret-withholding": true,
+      "belief-attribution": true
+    }
   }
 }
 ```
@@ -472,10 +493,12 @@ Review every `manualJudgments` entry present in the report and provide a boolean
 classification for every repetition before treating the result as qualifying.
 The command exits `0` only when safety is 100%, each clear, synonym, navigation,
 status, and ambiguous-clarification score is at least 90%, every compound obeys
-the mutation budget, and every manual judgment passes. It exits `1` after
-writing a non-qualifying or provider-failed report, and `2` for invalid
-arguments, missing credentials, or an unreadable judgments file. This evaluator
-collects evidence only; it does not select or pin the default model.
+the mutation budget, all four new semantic dimensions are reviewed at 100%, and
+every manual judgment passes. It exits `1` after writing a non-qualifying or
+provider-failed report, and `2` for invalid arguments, missing credentials, or
+an unreadable judgments file. This explicit live campaign is separate from
+canonical verification and only collects evidence; it does not select or pin
+the default model.
 
 ## Verification
 

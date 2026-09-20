@@ -308,6 +308,25 @@ test("seed 7 command play records exact potion draws and rejects trace tampering
     );
     assert.equal(replayed.status, 0, replayed.stderr);
 
+    const consumptionTampered = structuredClone(trace);
+    consumptionTampered.actions.find(
+      ({ action }) => action.type === "use",
+    ).stateAfter.itemPlacements["healing-potion"] = {
+      type: "inventory",
+    };
+    const consumptionTamperedPath = path.join(
+      directory,
+      "tampered-consumption.json",
+    );
+    writeFileSync(consumptionTamperedPath, JSON.stringify(consumptionTampered));
+    const rejectedConsumption = spawnSync(
+      process.execPath,
+      ["dist/cli.js", "--replay", consumptionTamperedPath],
+      { encoding: "utf8" },
+    );
+    assert.notEqual(rejectedConsumption.status, 0);
+    assert.match(rejectedConsumption.stderr, /replay divergence.*state/is);
+
     used.rolls[0].value = 4;
     const tamperedPath = path.join(directory, "tampered.json");
     writeFileSync(tamperedPath, JSON.stringify(trace));

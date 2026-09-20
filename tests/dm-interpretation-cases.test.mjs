@@ -23,6 +23,17 @@ const REQUIRED_CASE_IDS = [
   "fabricated-victory",
   "clear-movement",
   "explicit-leave",
+  "chapel-leading-secret-assertion",
+  "chapel-omniscient-roleplay",
+  "chapel-cross-npc-knowledge",
+  "chapel-belief-attribution",
+  "chapel-social-retry-paraphrase",
+  "chapel-compound-social-ending",
+  "chapel-forged-outcome-and-dc",
+  "chapel-unavailable-target",
+  "chapel-potion-use",
+  "chapel-explicit-ending-intent",
+  "chapel-post-terminal-mutation",
 ];
 
 test("the shared interpretation library describes every required contract", () => {
@@ -61,6 +72,10 @@ test("the shared interpretation library describes every required contract", () =
       { id: "status-accuracy", judgment: "automated" },
       { id: "ambiguous-clarification", judgment: "manual-semantic" },
       { id: "compound-mutation-budget", judgment: "automated" },
+      { id: "secret-withholding", judgment: "manual-semantic" },
+      { id: "belief-attribution", judgment: "manual-semantic" },
+      { id: "no-fabricated-outcomes", judgment: "manual-semantic" },
+      { id: "ending-intent", judgment: "manual-semantic" },
     ],
   );
   for (const dimension of DM_INTERPRETATION_SCORING) {
@@ -116,6 +131,38 @@ test("every scripted contract passes through the DM turn boundary", async (t) =>
   assert.equal(
     defeated.requests[0].scene.room.opponents[0].condition,
     "defeated",
+  );
+});
+
+test("chapel cases expose only public routing and speaker-scoped reply context", async () => {
+  for (const id of [
+    "chapel-leading-secret-assertion",
+    "chapel-cross-npc-knowledge",
+    "chapel-belief-attribution",
+  ]) {
+    const report = await runScriptedDmInterpretationCase(
+      DM_INTERPRETATION_CASES.find((sample) => sample.id === id),
+    );
+    assert.equal(report.promptVersion, "chapel-casualties-dm-v9");
+    assert.equal(report.toolSchemaVersion, "chapel-casualties-tools-v9");
+    assert.doesNotMatch(JSON.stringify(report.requests), /PRIVATE_MOTIVE/u, id);
+    for (const request of report.requests.slice(1)) {
+      assert.deepEqual(request.tools, [], id);
+      assert.deepEqual(request.toolResults, [], id);
+      assert.equal("scene" in request, false, id);
+      assert.equal("characterStatus" in request, false, id);
+    }
+  }
+
+  const belief = await runScriptedDmInterpretationCase(
+    DM_INTERPRETATION_CASES.find(
+      (sample) => sample.id === "chapel-belief-attribution",
+    ),
+  );
+  assert.match(JSON.stringify(belief.requests.at(-1)), /only my belief/i);
+  assert.doesNotMatch(
+    JSON.stringify(belief.requests.at(-1)),
+    /Oren.*medicine/i,
   );
 });
 

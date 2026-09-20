@@ -377,6 +377,55 @@ test("provider failure after resolution preserves exactly one ending", async () 
   assert.match(result.narration, /authoritative result is shown/i);
 });
 
+test("provider failure after rescue preserves exactly one rescue", async () => {
+  const runtime = resolveAdventure("chapel");
+  let state = resolutionReadyState(runtime);
+  for (const destination of ["chapel-path", "ruined-chapel", "crypt"]) {
+    state = runtime.handleAction(
+      state,
+      { type: "move", destination },
+      noRolls(),
+    ).state;
+  }
+  let calls = 0;
+  const result = await runDmTurn({
+    state,
+    runtime,
+    playerInput: "Tavi, come back to the inn with me.",
+    transcript: [],
+    random: noRolls("Rescue must not draw randomness"),
+    model: {
+      async respond() {
+        calls += 1;
+        if (calls === 1) {
+          return {
+            toolCalls: [
+              {
+                id: "rescue-tavi",
+                name: "talk",
+                argumentsJson:
+                  '{"speakerId":"tavi","topicId":"rescue","approach":"ask"}',
+              },
+            ],
+          };
+        }
+        throw new Error("provider failed after rescue");
+      },
+    },
+  });
+
+  assert.equal(result.state.npcLocations.tavi, "inn");
+  assert.equal(
+    result.toolResults[0].result.engineResult.events.filter(
+      ({ type }) => type === "chapel-tavi-rescued",
+    ).length,
+    1,
+  );
+  assert.equal(result.toolAttempts.length, 1);
+  assert.equal(result.diagnostics.at(-1).code, "model-failure");
+  assert.match(result.narration, /^Tavi:/u);
+});
+
 test("rescue-v7 remains replayable without resolution state or references", () => {
   const runtime = resolveHistoricalAdventure(
     "chapel-rescue-rules-v7",
@@ -523,6 +572,20 @@ test("both offline endings, failed-social fallback, tampering, and replay are de
         { encoding: "utf8" },
       );
       assert.equal(replayed.status, 0, replayed.stderr);
+      if (scenario.name === "public") {
+        const endingTampered = structuredClone(trace);
+        endingTampered.actions.at(-1).stateAfter.resolution.id =
+          "confidential-referral";
+        const endingTamperedPath = path.join(directory, "tampered-ending.json");
+        writeFileSync(endingTamperedPath, JSON.stringify(endingTampered));
+        const rejectedEnding = spawnSync(
+          process.execPath,
+          ["dist/cli.js", "--replay", endingTamperedPath],
+          { encoding: "utf8" },
+        );
+        assert.notEqual(rejectedEnding.status, 0);
+        assert.match(rejectedEnding.stderr, /replay divergence.*state/is);
+      }
     }
   } finally {
     rmSync(directory, { recursive: true, force: true });
@@ -680,15 +743,31 @@ test("both scripted-AI endings clarify ambiguity, permit reflection, and replay"
           "You return to the noticeboard.",
         ),
         { text: "Do you mean public disclosure or confidential referral?" },
-        ...actionTurn(
-          "resolve-ending",
-          "resolve_quest",
-          JSON.stringify({ resolutionId: scenario.resolutionId }),
-          "The chosen ending is recorded.",
-        ),
-        {
-          text: "You reflect on the cost of the choice and what remains ahead.",
-        },
+        ...(scenario.name === "public"
+          ? [
+              {
+                toolCalls: [
+                  {
+                    id: "resolve-ending",
+                    name: "resolve_quest",
+                    argumentsJson: JSON.stringify({
+                      resolutionId: scenario.resolutionId,
+                    }),
+                  },
+                ],
+              },
+            ]
+          : [
+              ...actionTurn(
+                "resolve-ending",
+                "resolve_quest",
+                JSON.stringify({ resolutionId: scenario.resolutionId }),
+                "The chosen ending is recorded.",
+              ),
+              {
+                text: "You reflect on the cost of the choice and what remains ahead.",
+              },
+            ]),
       ];
       writeFileSync(scriptPath, JSON.stringify(responses));
       const inputs = [
@@ -710,7 +789,7 @@ test("both scripted-AI endings clarify ambiguity, permit reflection, and replay"
         scenario.resolutionId === "public-disclosure"
           ? "Publish the ledger evidence for everyone to see."
           : "Refer the ledger confidentially to the trustees.",
-        "Was that the right choice?",
+        ...(scenario.name === "public" ? [] : ["Was that the right choice?"]),
         "status",
         "journal",
         "quit",
@@ -741,7 +820,9 @@ test("both scripted-AI endings clarify ambiguity, permit reflection, and replay"
         played.stdout,
         /public disclosure or confidential referral/i,
       );
-      assert.match(played.stdout, /reflect on the cost/i);
+      if (scenario.name === "private") {
+        assert.match(played.stdout, /reflect on the cost/i);
+      }
       assert.match(
         played.stdout,
         new RegExp(`Resolution: ${scenario.resolutionId}`, "i"),
@@ -756,6 +837,14 @@ test("both scripted-AI endings clarify ambiguity, permit reflection, and replay"
       );
       assert.deepEqual(ambiguous.calls, []);
       assert.equal(ambiguous.stateAfter.resolution, undefined);
+      if (scenario.name === "public") {
+        assert.equal(
+          trace.turns.find(({ calls }) =>
+            calls.some(({ name }) => name === "resolve_quest"),
+          ).diagnostics[0].code,
+          "model-failure",
+        );
+      }
       assert.equal(
         trace.turns.at(-2).stateAfter.resolution.id,
         scenario.resolutionId,

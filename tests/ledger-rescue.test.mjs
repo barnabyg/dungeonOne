@@ -364,7 +364,7 @@ test("potion-v6 remains replayable without rescue state or references", () => {
   );
 });
 
-test("scripted-AI CLI keeps Tavi's account scoped and commits one rescue", () => {
+test("scripted-AI CLI provider failure keeps Tavi's scoped rescue committed", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "ledger-rescue-ai-"));
   try {
     const scriptPath = path.join(directory, "script.json");
@@ -446,14 +446,6 @@ test("scripted-AI CLI keeps Tavi's account scoped and commits one rescue", () =>
             },
           ],
         },
-        {
-          text: JSON.stringify({
-            delivery: "steady",
-            opening: "none",
-            factIds: ["tavi-rescue-consent"],
-            closing: "check-carefully",
-          }),
-        },
       ]),
     );
     const played = spawnSync(
@@ -488,6 +480,8 @@ test("scripted-AI CLI keeps Tavi's account scoped and commits one rescue", () =>
     assert.equal(played.status, 0, played.stderr);
     const trace = JSON.parse(readFileSync(tracePath, "utf8"));
     assert.equal(trace.turns.at(-1).stateAfter.npcLocations.tavi, "inn");
+    assert.equal(trace.turns.at(-2).diagnostics[0].code, "model-failure");
+    assert.match(played.stdout, /marked safe route.*village inn/i);
     assert.equal(
       trace.turns
         .flatMap(({ calls }) => calls)

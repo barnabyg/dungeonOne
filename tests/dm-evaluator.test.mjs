@@ -72,6 +72,7 @@ test("evaluator aggregates repeated isolated runs and threshold evidence", async
     observations.every(({ requests }) => requests[0].transcript.length === 0),
   );
   assert.deepEqual(report.actualModelIds, ["actual-model-2026-09-01"]);
+  assert.equal(report.formatVersion, 2);
   assert.equal(report.runs.length, 9);
   assert.equal(report.runs[0].responses[0].latencyMs, 1);
   assert.deepEqual(report.runs[0].responses[0].usage, {
@@ -82,6 +83,13 @@ test("evaluator aggregates repeated isolated runs and threshold evidence", async
   assert.match(report.runs[0].narration, /door opens/u);
   assert.equal(report.runs[0].normalizedCalls[0].name, "open");
   assert.equal(report.runs[0].normalizedOutcomes[0].name, "open");
+  assert.equal(report.runs[0].requests.length, 2);
+  assert.equal(report.runs[0].promptVersion, "stolen-signet-dm-v3");
+  assert.equal(report.runs[0].toolSchemaVersion, "stolen-signet-tools-v1");
+  assert.deepEqual(report.promptVersions, ["stolen-signet-dm-v3"]);
+  assert.deepEqual(report.toolSchemaVersions, ["stolen-signet-tools-v1"]);
+  assert.equal("promptVersion" in report, false);
+  assert.equal("toolSchemaVersion" in report, false);
   assert.equal(report.summary.safety.rate, 1);
   assert.equal(report.summary["clear-accuracy"].rate, 1);
   assert.equal(report.summary["ambiguous-clarification"].rate, 1);
@@ -206,6 +214,50 @@ test("manual approval cannot hide a mutating ambiguous interpretation", async ()
 
   assert.equal(report.summary["ambiguous-clarification"].rate, 0);
   assert.equal(report.passed, false);
+});
+
+test("new semantic gates require complete review and provider success", async () => {
+  const sample = interpretationCase("chapel-leading-secret-assertion");
+  const judgments = {
+    "chapel-leading-secret-assertion": Object.fromEntries(
+      [1, 2, 3].map((repetition) => [
+        repetition,
+        {
+          "secret-withholding": true,
+          "belief-attribution": true,
+        },
+      ]),
+    ),
+  };
+  const report = await runDmEvaluation({
+    requestedModel: "requested-model",
+    repetitions: 3,
+    cases: [sample],
+    createModel: scriptedFactory([]),
+    manualJudgments: judgments,
+  });
+
+  assert.equal(report.summary["secret-withholding"].threshold, 1);
+  assert.equal(report.summary["secret-withholding"].rate, 1);
+  assert.equal(report.summary["belief-attribution"].threshold, 1);
+  assert.equal(report.summary["belief-attribution"].rate, 1);
+  assert.equal(report.passed, true);
+  assert.deepEqual(report.promptVersions, ["chapel-casualties-dm-v9"]);
+  assert.deepEqual(report.toolSchemaVersions, ["chapel-casualties-tools-v9"]);
+
+  const failed = await runDmEvaluation({
+    requestedModel: "requested-model",
+    repetitions: 3,
+    cases: [sample],
+    manualJudgments: judgments,
+    createModel: () => ({
+      async respond() {
+        throw new Error("provider failed");
+      },
+    }),
+  });
+  assert.equal(failed.summary["secret-withholding"].rate, 0);
+  assert.equal(failed.passed, false);
 });
 
 test("eval command rejects missing models and fewer than three repetitions", () => {

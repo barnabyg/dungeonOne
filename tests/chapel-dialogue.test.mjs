@@ -576,6 +576,140 @@ test("authorized Mara history survives general transcript eviction without cross
   assert.equal(talked.state.discoveries.length, 2);
 });
 
+test("CLI revisit restores only the addressed speaker history after transcript eviction", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "chapel-history-"));
+  try {
+    const scriptPath = path.join(directory, "script.json");
+    const tracePath = path.join(directory, "trace.json");
+    const actionTurn = (id, name, argumentsJson, narration) => [
+      { toolCalls: [{ id, name, argumentsJson }] },
+      { text: narration },
+    ];
+    const maraPlan = {
+      text: JSON.stringify({
+        delivery: "concerned",
+        opening: "none",
+        factIds: ["tavi-disappearance-testimony", "mara-ferry-belief"],
+        closing: "help-me-find-them",
+      }),
+    };
+    writeFileSync(
+      scriptPath,
+      JSON.stringify([
+        {
+          toolCalls: [
+            {
+              id: "mara-first",
+              name: "talk",
+              argumentsJson:
+                '{"speakerId":"mara","topicId":"tavi","approach":"ask"}',
+            },
+          ],
+        },
+        maraPlan,
+        ...actionTurn(
+          "to-ferry",
+          "move",
+          '{"destinationId":"ferry-landing"}',
+          "You reach the ferry landing.",
+        ),
+        {
+          toolCalls: [
+            {
+              id: "oren-tavi",
+              name: "talk",
+              argumentsJson:
+                '{"speakerId":"oren","topicId":"tavi","approach":"ask"}',
+            },
+          ],
+        },
+        {
+          text: JSON.stringify({
+            delivery: "steady",
+            opening: "none",
+            factIds: ["oren-tavi-uncertainty", "chapel-route-passable"],
+            closing: "none",
+          }),
+        },
+        ...actionTurn(
+          "to-inn",
+          "move",
+          '{"destinationId":"inn"}',
+          "You return to the inn.",
+        ),
+        ...actionTurn(
+          "to-path",
+          "move",
+          '{"destinationId":"chapel-path"}',
+          "You walk to the chapel path.",
+        ),
+        ...actionTurn(
+          "back-to-inn",
+          "move",
+          '{"destinationId":"inn"}',
+          "You return to the inn again.",
+        ),
+        {
+          toolCalls: [
+            {
+              id: "mara-repeat",
+              name: "talk",
+              argumentsJson:
+                '{"speakerId":"mara","topicId":"tavi","approach":"ask"}',
+            },
+          ],
+        },
+        maraPlan,
+      ]),
+    );
+    const played = spawnSync(
+      process.execPath,
+      [
+        "dist/cli.js",
+        "--adventure",
+        "chapel",
+        "--seed",
+        "0",
+        "--trace",
+        tracePath,
+      ],
+      {
+        encoding: "utf8",
+        input: [
+          "Ask Mara what happened to Tavi.",
+          "Go to the ferry landing.",
+          "Ask Oren what happened to Tavi.",
+          "Return to the inn.",
+          "Walk to the chapel path.",
+          "Return to the inn again.",
+          "Ask Mara to remind me what she said.",
+          "quit",
+          "",
+        ].join("\n"),
+        env: { ...process.env, DUNGEON_ONE_TEST_DM_SCRIPT: scriptPath },
+      },
+    );
+
+    assert.equal(played.status, 0, played.stderr);
+    const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+    const repeated = trace.turns.find(({ calls }) =>
+      calls.some(({ id }) => id === "mara-repeat"),
+    );
+    const history =
+      repeated.calls[0].result.modelOutput.conversation.speakerHistory;
+    assert.match(JSON.stringify(history), /Tavi is missing/u);
+    assert.doesNotMatch(JSON.stringify(history), /chapel route is passable/iu);
+    assert.equal(
+      spawnSync(process.execPath, ["dist/cli.js", "--replay", tracePath], {
+        encoding: "utf8",
+      }).status,
+      0,
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("an invalid talk attempt still spends the one-mutation budget", async () => {
   const runtime = resolveAdventure("chapel");
   let response = 0;
@@ -862,6 +996,36 @@ test("offline Oren approaches, retry lock, compound rejection, and replay are de
         );
         assert.equal(replayed.status, 0, replayed.stderr);
         if (approach === "persuade") {
+          const revelationTampered = structuredClone(trace);
+          const conversation = revelationTampered.actions
+            .find(
+              ({ action }) =>
+                action.type === "talk" && action.topic === "repairs",
+            )
+            .result.events.find(
+              ({ type }) => type === "chapel-conversation",
+            ).conversation;
+          conversation.approvedFacts[0].statement =
+            "A forged revelation not produced by the engine.";
+          const revelationTamperedPath = path.join(
+            directory,
+            "tampered-revelation.json",
+          );
+          writeFileSync(
+            revelationTamperedPath,
+            JSON.stringify(revelationTampered),
+          );
+          const rejectedRevelation = spawnSync(
+            process.execPath,
+            ["dist/cli.js", "--replay", revelationTamperedPath],
+            { encoding: "utf8" },
+          );
+          assert.notEqual(rejectedRevelation.status, 0);
+          assert.match(
+            rejectedRevelation.stderr,
+            /replay divergence.*result/is,
+          );
+
           const tampered = structuredClone(trace);
           tampered.actions.find(
             ({ action }) =>
