@@ -143,7 +143,7 @@ test("chapel cases expose only public routing and speaker-scoped reply context",
     const report = await runScriptedDmInterpretationCase(
       DM_INTERPRETATION_CASES.find((sample) => sample.id === id),
     );
-    assert.equal(report.promptVersion, "chapel-casualties-dm-v9");
+    assert.equal(report.promptVersion, "chapel-qualified-dm-v11");
     assert.equal(report.toolSchemaVersion, "chapel-casualties-tools-v9");
     assert.doesNotMatch(JSON.stringify(report.requests), /PRIVATE_MOTIVE/u, id);
     for (const request of report.requests.slice(1)) {
@@ -178,7 +178,7 @@ test("the versioned prompt separates tool calls from narration and rejects unava
     },
   });
 
-  assert.equal(request.promptVersion, "stolen-signet-dm-v3");
+  assert.equal(request.promptVersion, "stolen-signet-dm-v4");
   assert.match(request.systemPrompt, /only the function call and no prose/i);
   assert.match(request.systemPrompt, /unavailable.*without calling a tool/i);
 });

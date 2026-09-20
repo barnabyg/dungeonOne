@@ -94,6 +94,10 @@ export type AdventureRuntime = Readonly<{
   renderIntroduction(): string;
   renderResult(result: RuntimeResult): string;
   renderStateSummary?(state: RuntimeState): string;
+  renderDmNarration?(
+    call: GameToolCall,
+    result: RuntimeToolResult,
+  ): string | undefined;
   dispatchGameTool(
     state: RuntimeState,
     call: GameToolCall,

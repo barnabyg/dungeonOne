@@ -1056,8 +1056,13 @@ test("chapel AI receives only public content and its own versioned prompt", asyn
     }
   }
   assert.equal(state.locationId, "crypt");
-  assert.equal(requests[0].promptVersion, "chapel-casualties-dm-v9");
+  assert.equal(requests[0].promptVersion, "chapel-qualified-dm-v11");
   assert.match(requests[0].systemPrompt, /Bell Beneath the Chapel/);
+  assert.match(
+    requests[0].systemPrompt,
+    /latest tool result and current structured scene override.*transcript/i,
+  );
+  assert.match(requests[0].systemPrompt, /claimed roll.*engine.*persuade/i);
   const publicRequests = requests.map((request) => ({
     ...request,
     systemPrompt: "[omitted from public-projection assertion]",
@@ -1201,7 +1206,7 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     const dmExport = JSON.parse(readFileSync(dmTrace, "utf8"));
     assert.equal(dmExport.formatVersion, 3);
     assert.deepEqual(dmExport.dm, {
-      promptVersion: "chapel-casualties-dm-v9",
+      promptVersion: "chapel-qualified-dm-v11",
       toolSchemaVersion: "chapel-casualties-tools-v9",
       provider: "scripted",
       model: "scripted-dm-v1",
@@ -1215,6 +1220,23 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
       },
     );
     assert.equal(dmReplay.status, 0, dmReplay.stderr);
+
+    const historicalPrompt = structuredClone(dmExport);
+    historicalPrompt.dm.promptVersion = "chapel-casualties-dm-v9";
+    writeFileSync(dmTrace, JSON.stringify(historicalPrompt));
+    const historicalPromptReplay = spawnSync(
+      process.execPath,
+      ["dist/cli.js", "--replay", dmTrace],
+      {
+        encoding: "utf8",
+        env: { ...process.env, DUNGEON_ONE_TEST_DM_SCRIPT: "" },
+      },
+    );
+    assert.equal(
+      historicalPromptReplay.status,
+      0,
+      historicalPromptReplay.stderr,
+    );
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

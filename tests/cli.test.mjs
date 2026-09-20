@@ -866,7 +866,7 @@ test("scripted DM exports and replays a normalized format-2 clarification and lo
       initialSeed: 42,
     });
     assert.deepEqual(trace.dm, {
-      promptVersion: "stolen-signet-dm-v3",
+      promptVersion: "stolen-signet-dm-v4",
       toolSchemaVersion: "stolen-signet-tools-v1",
       provider: "scripted",
       model: "scripted-dm-v1",
@@ -2139,15 +2139,18 @@ for (const name of [
           "utf8",
         ),
       );
-      assert.deepEqual(
-        JSON.parse(readFileSync(tracePath, "utf8")),
-        JSON.parse(
-          readFileSync(
-            path.join(traceFixtures, `historical-${name}.json`),
-            "utf8",
-          ),
+      const currentTrace = JSON.parse(readFileSync(tracePath, "utf8"));
+      const historicalTrace = JSON.parse(
+        readFileSync(
+          path.join(traceFixtures, `historical-${name}.json`),
+          "utf8",
         ),
       );
+      if (name.startsWith("ai-")) {
+        assert.equal(currentTrace.dm.promptVersion, "stolen-signet-dm-v4");
+        currentTrace.dm.promptVersion = historicalTrace.dm.promptVersion;
+      }
+      assert.deepEqual(currentTrace, historicalTrace);
       const replay = runCli("", ["--replay", tracePath], {
         OPENAI_API_KEY: "",
       });

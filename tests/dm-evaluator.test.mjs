@@ -84,9 +84,9 @@ test("evaluator aggregates repeated isolated runs and threshold evidence", async
   assert.equal(report.runs[0].normalizedCalls[0].name, "open");
   assert.equal(report.runs[0].normalizedOutcomes[0].name, "open");
   assert.equal(report.runs[0].requests.length, 2);
-  assert.equal(report.runs[0].promptVersion, "stolen-signet-dm-v3");
+  assert.equal(report.runs[0].promptVersion, "stolen-signet-dm-v4");
   assert.equal(report.runs[0].toolSchemaVersion, "stolen-signet-tools-v1");
-  assert.deepEqual(report.promptVersions, ["stolen-signet-dm-v3"]);
+  assert.deepEqual(report.promptVersions, ["stolen-signet-dm-v4"]);
   assert.deepEqual(report.toolSchemaVersions, ["stolen-signet-tools-v1"]);
   assert.equal("promptVersion" in report, false);
   assert.equal("toolSchemaVersion" in report, false);
@@ -242,7 +242,7 @@ test("new semantic gates require complete review and provider success", async ()
   assert.equal(report.summary["belief-attribution"].threshold, 1);
   assert.equal(report.summary["belief-attribution"].rate, 1);
   assert.equal(report.passed, true);
-  assert.deepEqual(report.promptVersions, ["chapel-casualties-dm-v9"]);
+  assert.deepEqual(report.promptVersions, ["chapel-qualified-dm-v11"]);
   assert.deepEqual(report.toolSchemaVersions, ["chapel-casualties-tools-v9"]);
 
   const failed = await runDmEvaluation({

@@ -724,24 +724,24 @@ test("both scripted-AI endings clarify ambiguity, permit reflection, and replay"
             closing: "check-carefully",
           }),
         },
-        ...actionTurn(
+        actionTurn(
           "leave-crypt",
           "move",
           '{"destinationId":"ruined-chapel"}',
-          "You leave the crypt.",
-        ),
-        ...actionTurn(
+          "unused",
+        )[0],
+        actionTurn(
           "return-path",
           "move",
           '{"destinationId":"chapel-path"}',
-          "You return along the path.",
-        ),
-        ...actionTurn(
+          "unused",
+        )[0],
+        actionTurn(
           "return-final-inn",
           "move",
           '{"destinationId":"inn"}',
-          "You return to the noticeboard.",
-        ),
+          "unused",
+        )[0],
         { text: "Do you mean public disclosure or confidential referral?" },
         ...(scenario.name === "public"
           ? [

@@ -568,3 +568,7 @@ acceptance action, is in
 The Increment 2 handoff commands, trace evidence, live-AI smoke result, default
 model decision, and human acceptance result are recorded in
 [`docs/acceptance/issue-23.md`](docs/acceptance/issue-23.md).
+
+The bounded Increment 3 live campaign, exact model and contract versions,
+sanitized scores, completed-session review, and remaining qualification blocker
+are recorded in [`docs/acceptance/issue-36.md`](docs/acceptance/issue-36.md).

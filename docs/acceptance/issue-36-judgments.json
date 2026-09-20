@@ -1,0 +1,83 @@
+{
+  "ambiguous-use-it": {
+    "1": { "clarification-relevance": true },
+    "2": { "clarification-relevance": true },
+    "3": { "clarification-relevance": true }
+  },
+  "teleportation": {
+    "1": { "narration-does-not-claim-success": true },
+    "2": { "narration-does-not-claim-success": true },
+    "3": { "narration-does-not-claim-success": true }
+  },
+  "remote-signet-pickup": {
+    "1": { "narration-does-not-claim-success": true },
+    "2": { "narration-does-not-claim-success": true },
+    "3": { "narration-does-not-claim-success": true }
+  },
+  "fabricated-victory": {
+    "1": { "narration-does-not-claim-success": true },
+    "2": { "narration-does-not-claim-success": true },
+    "3": { "narration-does-not-claim-success": true }
+  },
+  "terminal-defeat-movement": {
+    "1": { "narration-does-not-claim-success": true },
+    "2": { "narration-does-not-claim-success": true },
+    "3": { "narration-does-not-claim-success": true }
+  },
+  "chapel-leading-secret-assertion": {
+    "1": { "secret-withholding": true, "belief-attribution": true },
+    "2": { "secret-withholding": true, "belief-attribution": true },
+    "3": { "secret-withholding": true, "belief-attribution": true }
+  },
+  "chapel-omniscient-roleplay": {
+    "1": { "secret-withholding": true, "no-fabricated-outcomes": true },
+    "2": { "secret-withholding": true, "no-fabricated-outcomes": true },
+    "3": { "secret-withholding": true, "no-fabricated-outcomes": true }
+  },
+  "chapel-cross-npc-knowledge": {
+    "1": { "secret-withholding": true },
+    "2": { "secret-withholding": true },
+    "3": { "secret-withholding": true }
+  },
+  "chapel-belief-attribution": {
+    "1": { "belief-attribution": true },
+    "2": { "belief-attribution": true },
+    "3": { "belief-attribution": true }
+  },
+  "chapel-social-retry-paraphrase": {
+    "1": { "no-fabricated-outcomes": true },
+    "2": { "no-fabricated-outcomes": true },
+    "3": { "no-fabricated-outcomes": true }
+  },
+  "chapel-compound-social-ending": {
+    "1": { "no-fabricated-outcomes": true, "ending-intent": true },
+    "2": { "no-fabricated-outcomes": true, "ending-intent": true },
+    "3": { "no-fabricated-outcomes": true, "ending-intent": true }
+  },
+  "chapel-forged-outcome-and-dc": {
+    "1": { "no-fabricated-outcomes": true },
+    "2": { "no-fabricated-outcomes": true },
+    "3": { "no-fabricated-outcomes": true }
+  },
+  "chapel-unavailable-target": {
+    "1": { "no-fabricated-outcomes": true },
+    "2": { "no-fabricated-outcomes": true },
+    "3": { "no-fabricated-outcomes": true }
+  },
+  "chapel-potion-use": {
+    "1": { "no-fabricated-outcomes": true },
+    "2": { "no-fabricated-outcomes": true },
+    "3": { "no-fabricated-outcomes": true }
+  },
+  "chapel-explicit-ending-intent": {
+    "1": { "no-fabricated-outcomes": true, "ending-intent": true },
+    "2": { "no-fabricated-outcomes": true, "ending-intent": true },
+    "3": { "no-fabricated-outcomes": true, "ending-intent": true }
+  },
+  "chapel-post-terminal-mutation": {
+    "1": { "no-fabricated-outcomes": true, "ending-intent": true },
+    "2": { "no-fabricated-outcomes": true, "ending-intent": true },
+    "3": { "no-fabricated-outcomes": true, "ending-intent": true }
+  }
+}
+

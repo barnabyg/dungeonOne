@@ -258,8 +258,9 @@ test("provider failure after potion use preserves exactly one committed result",
     { sides: 4, value: 2 },
     { sides: 4, value: 4 },
   ]);
-  assert.equal(result.diagnostics.at(-1).code, "model-failure");
-  assert.match(result.narration, /authoritative result.*Mechanics/i);
+  assert.equal(response, 1);
+  assert.deepEqual(result.diagnostics, []);
+  assert.match(result.narration, /restores 8 HP.*20\/20/i);
 });
 
 test("seed 7 command play records exact potion draws and rejects trace tampering", () => {
@@ -493,12 +494,12 @@ test("scripted AI recovery keeps potion use committed and local status reads rep
       },
     );
     assert.equal(played.status, 0, played.stderr);
-    assert.match(played.stdout, /authoritative result.*Mechanics/is);
+    assert.match(played.stdout, /restores 6 HP.*15\/20/is);
     assert.match(played.stdout, /Fighter HP: 15\/20/i);
     assert.match(played.stdout, /Healing potion: consumed/i);
 
     const trace = JSON.parse(readFileSync(tracePath, "utf8"));
-    assert.equal(trace.turns[4].diagnostics[0].code, "model-failure");
+    assert.deepEqual(trace.turns[4].diagnostics, []);
     assert.equal(trace.turns[4].calls.length, 1);
     assert.deepEqual(trace.turns[4].calls[0].rolls, [
       { sides: 4, value: 2 },

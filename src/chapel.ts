@@ -44,7 +44,9 @@ export const RESOLUTION_CHAPEL_PROMPT_VERSION = "chapel-resolution-dm-v8";
 export const CHAPEL_VERSION = "chapel-casualties-v9";
 export const CHAPEL_RULES_VERSION = "chapel-casualties-rules-v9";
 export const CHAPEL_TOOL_VERSION = "chapel-casualties-tools-v9";
-export const CHAPEL_PROMPT_VERSION = "chapel-casualties-dm-v9";
+export const CASUALTIES_CHAPEL_PROMPT_VERSION = "chapel-casualties-dm-v9";
+export const FIRST_QUALIFIED_CHAPEL_PROMPT_VERSION = "chapel-qualified-dm-v10";
+export const CHAPEL_PROMPT_VERSION = "chapel-qualified-dm-v11";
 export const CHAPEL_TITLE = "The Bell Beneath the Chapel";
 export const CHAPEL_OBJECTIVE =
   "Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.";

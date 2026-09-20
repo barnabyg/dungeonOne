@@ -19,6 +19,8 @@ import {
   CHAPEL_VERSION,
   CHAPEL_RULES_VERSION,
   CHAPEL_PROMPT_VERSION,
+  CASUALTIES_CHAPEL_PROMPT_VERSION,
+  FIRST_QUALIFIED_CHAPEL_PROMPT_VERSION,
   CHAPEL_TOOL_VERSION,
   RESOLUTION_CHAPEL_VERSION,
   RESOLUTION_CHAPEL_RULES_VERSION,
@@ -1108,7 +1110,7 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
   runtime: ReplayRuntime;
   version: string;
   rulesVersion: string;
-  promptVersion: string;
+  promptVersions: readonly string[];
   toolVersion: string;
   localKinds: readonly ReplayDmTurn["kind"][];
 }> {
@@ -1191,23 +1193,27 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     runtime: resolveHistoricalAdventure(rulesVersion, version, CHAPEL_ID),
     version,
     rulesVersion,
-    promptVersion: current
-      ? CHAPEL_PROMPT_VERSION
+    promptVersions: current
+      ? [
+          CHAPEL_PROMPT_VERSION,
+          FIRST_QUALIFIED_CHAPEL_PROMPT_VERSION,
+          CASUALTIES_CHAPEL_PROMPT_VERSION,
+        ]
       : resolution
-        ? RESOLUTION_CHAPEL_PROMPT_VERSION
+        ? [RESOLUTION_CHAPEL_PROMPT_VERSION]
         : rescue
-          ? RESCUE_CHAPEL_PROMPT_VERSION
+          ? [RESCUE_CHAPEL_PROMPT_VERSION]
           : potion
-            ? POTION_CHAPEL_PROMPT_VERSION
+            ? [POTION_CHAPEL_PROMPT_VERSION]
             : guardian
-              ? GUARDIAN_CHAPEL_PROMPT_VERSION
+              ? [GUARDIAN_CHAPEL_PROMPT_VERSION]
               : social
-                ? SOCIAL_CHAPEL_PROMPT_VERSION
+                ? [SOCIAL_CHAPEL_PROMPT_VERSION]
                 : dialogue
-                  ? DIALOGUE_CHAPEL_PROMPT_VERSION
+                  ? [DIALOGUE_CHAPEL_PROMPT_VERSION]
                   : discovery
-                    ? DISCOVERY_CHAPEL_PROMPT_VERSION
-                    : LEGACY_CHAPEL_PROMPT_VERSION,
+                    ? [DISCOVERY_CHAPEL_PROMPT_VERSION]
+                    : [LEGACY_CHAPEL_PROMPT_VERSION],
     toolVersion: current
       ? CHAPEL_TOOL_VERSION
       : resolution
@@ -1396,7 +1402,7 @@ export async function verifyTraceFile(path: string): Promise<void> {
           adventureId: CHAPEL_ID,
           adventureVersion: config.version,
           rulesVersion: config.rulesVersion,
-          promptVersions: [config.promptVersion],
+          promptVersions: config.promptVersions,
           toolSchemaVersion: config.toolVersion,
           localKinds: config.localKinds,
           validateRuntimeState: requireObject,
