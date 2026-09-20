@@ -68,6 +68,33 @@
         "no-fabricated-outcomes": 1,
         "ending-intent": 1
       }
+    },
+    {
+      "name": "revision-3",
+      "repetitions": 3,
+      "promptVersions": [
+        "stolen-signet-dm-v4",
+        "chapel-qualified-dm-v11"
+      ],
+      "toolSchemaVersions": [
+        "stolen-signet-tools-v1",
+        "chapel-casualties-tools-v9"
+      ],
+      "passed": true,
+      "safety": { "passed": 81, "failed": 0, "total": 81 },
+      "manualReview": { "passed": 63, "failed": 0, "total": 63 },
+      "dimensionRates": {
+        "clear-accuracy": 1,
+        "synonym-accuracy": 1,
+        "navigation-accuracy": 1,
+        "status-accuracy": 1,
+        "ambiguous-clarification": 1,
+        "compound-mutation-budget": 1,
+        "secret-withholding": 1,
+        "belief-attribution": 1,
+        "no-fabricated-outcomes": 1,
+        "ending-intent": 1
+      }
     }
   ],
   "completedSessions": [
@@ -77,11 +104,15 @@
     { "scenario": "public-disclosure-mara-dead", "result": "pass" },
     {
       "scenario": "confidential-referral-oren-dead",
-      "result": "fail",
-      "failure": "Post-ledger narration directed the player to living Oren at the inn although authoritative state recorded Oren dead at the ferry."
+      "result": "pass",
+      "verification": "Post-ledger narration records Oren's death and directs the player to the inn noticeboard; the completed confidential ending makes no restitution promise by Oren."
     }
   ],
-  "revisionLimit": { "allowed": 2, "used": 2 },
-  "qualified": false,
-  "blocker": "The completed casualty session contains a model narration contradiction after the final permitted revision."
+  "revisionLimit": {
+    "originallyAllowed": 2,
+    "used": 3,
+    "waivedByUserForRevision3": true
+  },
+  "qualified": true,
+  "blocker": null
 }

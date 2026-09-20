@@ -1,9 +1,8 @@
 # Issue 36 — Bounded live dialogue campaign
 
-Issue #36 is not yet qualified. The isolated live campaign passes on the final
-build, and the normal public, normal confidential, and defeat sessions complete
-cleanly, but one casualty-aware completed session still contains a contradiction
-after the ticket's two permitted revisions.
+Issue #36 is qualified. The isolated live campaign passes on the final build,
+and the normal public, normal confidential, defeat, Mara-casualty, and
+Oren-casualty sessions complete cleanly with replayable traces.
 
 ## Model and version identity
 
@@ -19,7 +18,8 @@ The final isolated campaign used:
 
 The sanitized aggregate is in
 [`issue-36-evaluator-evidence.json`](issue-36-evaluator-evidence.json), and the
-sanitized calls, outcomes, narration, and per-run semantic decisions are in
+sanitized revision-2 calls, outcomes, narration, and per-run semantic decisions
+are in
 [`issue-36-reviewed-runs.json`](issue-36-reviewed-runs.json). The reusable
 classification rules are in
 [`issue-36-judgments.json`](issue-36-judgments.json). Raw live reports, response
@@ -49,7 +49,15 @@ and post-rescue movement/look results. Historical chapel v9 and revision-1 v10
 prompt traces remain replayable. Focused tests verify that contradictory model
 text is not requested for those authored classes.
 
-The final isolated campaign passed every threshold: safety 81/81; all clear,
+After the original campaign, an Oren-casualty completed session exposed a stale
+post-ledger lead that directed the player to Oren after authoritative combat had
+recorded his death. The user waived the two-revision cap for revision 3. The
+runtime now uses state-derived narration for that result: it records Oren's
+death and directs the player to the inn noticeboard. A deterministic regression
+test exercises the complete attack, guardian, and ledger-search path with an
+empty transcript, so the failure cannot be masked as transcript contamination.
+
+The revision-3 isolated campaign passed every threshold: safety 81/81; all clear,
 synonym, navigation, status, ambiguous-clarification, and compound dimensions
 at 100%; all 63 requested manual judgments completed and passed; and secret
 withholding, belief attribution, no fabricated outcomes, and ending intent each
@@ -66,18 +74,15 @@ all three traces replayed successfully. Post-rescue narration now consistently
 places Tavi safely at the inn.
 
 Two further seed `0` sessions exercised casualty prose. The Mara-dead public
-ending correctly named Mara as a casualty while keeping Tavi rescued. The
-Oren-dead confidential ending correctly omitted Oren's restitution promise and
-claimed no completed payment or repair. Earlier in that same session, however,
-the post-ledger model narration told the player to return to Oren “at the inn
-noticeboard,” while authoritative state had Oren dead at the ferry. That is a
-speaker/location and available-target contradiction in a completed live
-session.
+ending correctly named Mara as a casualty while keeping Tavi rescued. After the
+revision-3 fix, the Oren-dead confidential route described the ledger evidence,
+stated that Oren was dead, and directed the player to the inn noticeboard. Its
+ending omitted Oren's restitution promise and claimed no completed payment or
+repair. The trace replayed successfully.
 
-The ticket permits at most two evidence-driven revisions; both were used. No
-third tuning pass was made and no threshold was lowered. This remaining failure
-is therefore an explicit blocker, and the intended shipped behavior must not be
-described as qualified yet.
+The original ticket permitted at most two evidence-driven revisions. The user
+explicitly waived that limit for revision 3; no evaluation threshold was
+lowered.
 
 ## Reproducible commands
 
@@ -104,8 +109,7 @@ Run the Mara-casualty public route:
 npm.cmd start -- --replay .dm-evaluations\issue-36-public-casualty.json
 ```
 
-Run the Oren-casualty confidential route that reproduces the remaining
-post-ledger contradiction:
+Run the Oren-casualty confidential regression route:
 
 ```powershell
 @("move ferry-landing", "attack oren", "attack oren", "attack oren", "attack oren", "move inn", "move chapel-path", "move ruined-chapel", "move crypt", "attack skeleton", "attack skeleton", "attack skeleton", "search diversion ledger", "talk tavi crypt ask", "talk tavi rescue ask", "move ruined-chapel", "move chapel-path", "move inn", "resolve confidential referral", "status", "journal", "quit") |
@@ -131,6 +135,6 @@ npm.cmd run verify
 
 Live output remains nondeterministic. The isolated campaign demonstrates the
 specified sampled thresholds, not general improvisation or human enjoyment.
-Authored potion and post-rescue movement/look narration deliberately favors
-authority over expressiveness. External adventure loading, save/resume, group
-combat, and additional rule systems remain out of scope.
+Authored potion, dead-Oren ledger, and post-rescue movement/look narration
+deliberately favors authority over expressiveness. External adventure loading,
+save/resume, group combat, and additional rule systems remain out of scope.

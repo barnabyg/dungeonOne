@@ -171,7 +171,7 @@ function chapelState(state: RuntimeState): ChapelState {
   return state;
 }
 
-function qualifiedChapelNarration(
+function renderAuthoritativeChapelNarration(
   call: GameToolCall,
   result: RuntimeToolResult,
 ): string | undefined {
@@ -186,6 +186,20 @@ function qualifiedChapelNarration(
   }
 
   const state = chapelState(result.state);
+  const recoveredLedger = result.modelOutput.events?.some(
+    (event) =>
+      event.type === "chapel-discovered" &&
+      event.discoveryId === "diversion-ledger",
+  );
+  if (
+    call.name === "search" &&
+    recoveredLedger === true &&
+    ("hp" in state.npcStates.oren
+      ? state.npcStates.oren.hp === 0
+      : state.npcStates.oren.condition === "dead")
+  ) {
+    return "You search the diversion ledger and recover conclusive evidence that Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished. Oren is dead, so return to the inn noticeboard and resolve the investigation with the ledger evidence.";
+  }
   if (
     (call.name === "move" || call.name === "look") &&
     state.quest.milestones.includes("tavi-rescued") &&
@@ -1209,7 +1223,7 @@ The game engine is authoritative. Use only offered tools and public structured c
     return renderChapelResult(result as ChapelResult);
   },
   renderStateSummary: (state) => renderChapelStateSummary(chapelState(state)),
-  renderDmNarration: qualifiedChapelNarration,
+  renderDmNarration: renderAuthoritativeChapelNarration,
   dispatchGameTool: (state, call, random, playerInput) =>
     resolutionCallMatchesPlayerIntent(call, playerInput)
       ? dispatchChapelTool(chapelState(state), call, random)

@@ -38,6 +38,28 @@ function rescuedTaviState(runtime) {
   return { state, random };
 }
 
+function deadOrenLedgerState(runtime) {
+  const random = createSeededRandom(0);
+  let state = runtime.createSession();
+  for (const [name, argumentsValue] of [
+    ["move", { destinationId: "ferry-landing" }],
+    ["attack", { combatantId: "oren" }],
+    ["attack", { combatantId: "oren" }],
+    ["attack", { combatantId: "oren" }],
+    ["move", { destinationId: "inn" }],
+    ["move", { destinationId: "chapel-path" }],
+    ["move", { destinationId: "ruined-chapel" }],
+    ["move", { destinationId: "crypt" }],
+    ["attack", { combatantId: "skeleton-guardian" }],
+    ["attack", { combatantId: "skeleton-guardian" }],
+    ["attack", { combatantId: "skeleton-guardian" }],
+  ]) {
+    state = dispatch(runtime, state, random, name, argumentsValue);
+  }
+  assert.equal(state.npcStates.oren.hp, 0);
+  return { state, random };
+}
+
 test("post-rescue movement uses authored narration grounded in Tavi's location", async () => {
   const runtime = resolveAdventure("chapel");
   const setup = rescuedTaviState(runtime);
@@ -115,4 +137,39 @@ test("potion use uses authored narration without contradicting healing", async (
   assert.equal(responses, 1);
   assert.match(result.narration, /restores 6 HP.*15\/20/i);
   assert.doesNotMatch(result.narration, /remains at 15/i);
+});
+
+test("ledger recovery with dead Oren uses a casualty-aware authored lead", async () => {
+  const runtime = resolveAdventure("chapel");
+  const setup = deadOrenLedgerState(runtime);
+  let responses = 0;
+  const result = await runDmTurn({
+    state: setup.state,
+    runtime,
+    playerInput: "Search the diversion ledger.",
+    transcript: [],
+    random: setup.random,
+    model: {
+      async respond() {
+        responses += 1;
+        return responses === 1
+          ? {
+              toolCalls: [
+                {
+                  id: "search-ledger",
+                  name: "search",
+                  argumentsJson: '{"target":"diversion-ledger"}',
+                },
+              ],
+            }
+          : {
+              text: "Return to Oren at the inn noticeboard with the ledger.",
+            };
+      },
+    },
+  });
+
+  assert.equal(responses, 1);
+  assert.match(result.narration, /return to the inn noticeboard/i);
+  assert.doesNotMatch(result.narration, /return to Oren/i);
 });
