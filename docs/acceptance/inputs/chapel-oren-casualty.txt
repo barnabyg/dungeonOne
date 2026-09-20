@@ -1,0 +1,24 @@
+move ferry landing
+attack oren
+attack oren
+attack oren
+attack oren
+move inn
+move chapel path
+take healing potion
+move ruined chapel
+move crypt
+attack skeleton
+attack skeleton
+attack skeleton
+attack skeleton
+search diversion ledger
+talk tavi crypt ask
+talk tavi rescue ask
+move ruined chapel
+move chapel path
+move inn
+resolve confidential referral
+status
+journal
+quit

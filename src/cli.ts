@@ -32,6 +32,7 @@ const USAGE = [
   "       dungeon-one --replay <path>",
   "       dungeon-one --help",
   `Default AI model: ${OPENAI_DM_DEFAULT_MODEL}`,
+  "Default adventure: chapel",
 ].join("\n");
 
 function resolveStartupOptions(args: readonly string[]): StartupOptions {
@@ -168,7 +169,7 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
 
   return {
     mode: "play",
-    runtime: resolveAdventure(adventureId),
+    runtime: resolveAdventure(adventureId ?? "chapel"),
     seed: resolveStartupSeed(seedArgument ?? [], chooseStartupSeed),
     ...(tracePath === undefined ? {} : { tracePath }),
     ...(ai ? { ai: { model: model ?? OPENAI_DM_DEFAULT_MODEL } } : {}),

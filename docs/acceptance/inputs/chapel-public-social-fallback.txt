@@ -1,0 +1,22 @@
+resolve public disclosure
+move ferry landing
+talk oren repairs intimidate
+move inn
+search missing person notice
+move chapel path
+take healing potion
+move ruined chapel
+search damaged repair record
+move crypt
+attack skeleton
+attack skeleton
+search diversion ledger
+talk tavi crypt ask
+talk tavi rescue ask
+move ruined chapel
+move chapel path
+move inn
+resolve public disclosure
+status
+journal
+quit

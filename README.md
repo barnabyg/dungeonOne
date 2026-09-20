@@ -1,6 +1,6 @@
 # Dungeon One
 
-Dungeon One is a text-first TypeScript game with an offline command mode and an opt-in live AI Dungeon Master mode. The current slice of **The Stolen Signet** lets you open the watchtower entrance, fight the guardroom goblin, explore the entrance, guardroom, and reliquary, recover the stolen signet, and explicitly escape through the reliquary's far exit.
+Dungeon One is a text-first TypeScript game with an offline command mode and an opt-in live AI Dungeon Master mode. **The Bell Beneath the Chapel** is the normal startup adventure: investigate Tavi's disappearance, survive the crypt guardian, recover the evidence, and choose public disclosure or confidential referral. **The Stolen Signet** remains available as the compatibility and regression adventure.
 
 ## Requirements
 
@@ -20,8 +20,8 @@ npm.cmd start -- --seed 0
 ```
 
 Select a built-in adventure with `--adventure stolen-signet` or `--adventure chapel`
-(the `--adventure=<id>` form also works) in command or AI mode. Omitting the selector keeps
-The Stolen Signet as the default. Unknown or duplicate selectors fail at startup,
+(the `--adventure=<id>` form also works) in command or AI mode. Omitting the selector starts
+the chapel. Use `--adventure stolen-signet` for the regression adventure. Unknown or duplicate selectors fail at startup,
 and `--replay` cannot be combined with adventure, seed, trace, or AI options.
 Replay selects the original runtime from the export's supported version tuple,
 including historical exports whose adventure object lacks an ID. Unknown version
@@ -134,18 +134,34 @@ Replay and verify that exported trace headlessly with `--replay <path>` (or
 npm.cmd start -- --replay .\session-trace.json
 ```
 
-Reproducible end-to-end acceptance inputs are checked in for both outcomes:
+Reproducible chapel handoff inputs are checked in for both resolutions, failed-social evidence fallback, potion use followed by defeat, and a casualty-aware ending. Each command exports a model-free replayable trace:
 
 ```powershell
-Get-Content .\docs\acceptance\inputs\victory.txt | npm.cmd start -- --seed 0 --trace .\winning-trace.json
+Get-Content .\docs\acceptance\inputs\chapel-public-social-fallback.txt | npm.cmd start -- --seed 7 --trace .\chapel-public.json
+npm.cmd start -- --replay .\chapel-public.json
+
+Get-Content .\docs\acceptance\inputs\chapel-confidential.txt | npm.cmd start -- --seed 0 --trace .\chapel-confidential.json
+npm.cmd start -- --replay .\chapel-confidential.json
+
+Get-Content .\docs\acceptance\inputs\chapel-potion-defeat.txt | npm.cmd start -- --seed 15 --trace .\chapel-potion-defeat.json
+npm.cmd start -- --replay .\chapel-potion-defeat.json
+
+Get-Content .\docs\acceptance\inputs\chapel-oren-casualty.txt | npm.cmd start -- --seed 0 --trace .\chapel-oren-casualty.json
+npm.cmd start -- --replay .\chapel-oren-casualty.json
+```
+
+The provider-recovery input and script are shown above. Historical Signet regression inputs remain checked in and require the explicit selector:
+
+```powershell
+Get-Content .\docs\acceptance\inputs\victory.txt | npm.cmd start -- --adventure stolen-signet --seed 0 --trace .\winning-trace.json
 npm.cmd start -- --replay .\winning-trace.json
 
-Get-Content .\docs\acceptance\inputs\defeat.txt | npm.cmd start -- --seed 207 --trace .\defeat-trace.json
+Get-Content .\docs\acceptance\inputs\defeat.txt | npm.cmd start -- --adventure stolen-signet --seed 207 --trace .\defeat-trace.json
 npm.cmd start -- --replay .\defeat-trace.json
 ```
 
 On macOS or Linux, redirect each input file into `npm start -- ...` instead,
-for example `npm start -- --seed 0 --trace ./winning-trace.json <
+for example `npm start -- --adventure stolen-signet --seed 0 --trace ./winning-trace.json <
 docs/acceptance/inputs/victory.txt`.
 
 A verified trace prints a success message and exits zero. Invalid files,
@@ -525,15 +541,15 @@ Focused tests can be run with `npm.cmd test -- --test-name-pattern "pattern"`; t
 
 After `npm.cmd run build`:
 
-1. Run `npm.cmd start -- --seed 0`. Expect the seed and algorithm, title, objective, fighter at 20/20 HP, playing session state, entrance description, and `help` hint.
-2. Enter `help` and `inventory`. Expect copyable command examples, the combat and entrance-exit restrictions, an equipped longsword, and no collectibles.
+1. Run `npm.cmd start -- --seed 0`. Expect **The Bell Beneath the Chapel**, the Find Tavi objective, fighter at 20/20 HP, the Village Inn, current exits/actions, and a `help` hint. Run `npm.cmd start -- --ai --seed 0` with a valid `OPENAI_API_KEY` and expect the same adventure in live mode.
+2. For the Signet regression checks below, start a fresh session with `npm.cmd start -- --adventure stolen-signet --seed 0`. Enter `help` and `inventory`. Expect copyable command examples, the combat and entrance-exit restrictions, an equipped longsword, and no collectibles.
 3. Enter `inspect ruined archway`, `open wooden door`, and `move guardroom`. Expect the inspected crest, the door to open, the guardroom description, fighter initiative 7 against goblin initiative 3, and the fighter's turn. Initiative and attack output label the die roll, modifier, total, AC, damage, remaining HP, and turn separately from narration.
 4. During combat, enter `inspect goblin`, `move reliquary`, `attack`, `status`, and `dance`. Expect the goblin's description with `Condition: living`, each mutation or malformed command to be rejected, status to remain readable, and no attack to occur. Enter `attack goblin` twice. With seed `0`, expect both combatants to miss in the first round, followed by 8 damage that reduces the goblin from 7 HP to 0 without retaliation. Enter `inspect goblin` again and expect the same description with `Condition: defeated`; neither inspection changes state or combat rolls.
 5. Enter `move reliquary`. Expect the room description and the signet on the stone pedestal. Enter `inspect signet` and `leave`. Expect the signet description, an explanation that the signet is required, and a usable prompt. Then enter `take signet` twice, `look`, and `inventory`. Expect one successful pickup followed by an already-carried rejection, no signet among the room's visible items, and exactly one signet under collectibles while the longsword remains equipped.
 6. Enter `move guardroom`, `look`, then `move reliquary`. Expect `Defeated opponents: goblin`, with no restarted combat or new initiative. Enter `leave`; expect one explicit adventure victory ending and instructions to inspect the final state, quit, and start a fresh run.
 7. After victory, enter `move guardroom`, `look`, `status`, `inventory`, and `help`. Expect movement to be rejected without changing the final state, while read-only commands show the Reliquary, `victory`, and the carried signet. Enter `quit`; expect a clean exit that preserves the victory state.
 8. Run the checked-in defeat input with trace export as shown above. Expect fighter initiative 4 against goblin initiative 21, then one automatic goblin opening attack before the fighter's turn. The third `attack goblin` produces immediate defeat at 0/20 HP. The fourth attack is rejected without another turn or random draw. Expect `look`, `status`, `inventory`, and `help` to remain available, gameplay mutations to be rejected, and instructions to quit and start fresh. Replay both exported outcome traces and expect `Trace verified successfully` with exit code 0.
-9. Run `node dist/cli.js --seed -1`. Expect an error and a nonzero exit. Pipe empty input to `node dist/cli.js`; expect exactly one generated seed, the objective and starting scene, exit code 0, and neither victory nor defeat.
+9. Run `node dist/cli.js --seed -1`. Expect an error and a nonzero exit. Pipe empty input to `node dist/cli.js`; expect exactly one generated seed, the chapel objective and Village Inn starting scene, exit code 0, and neither victory nor defeat. `node dist/cli.js --help` must name `chapel` as the default adventure.
 10. Run `npm.cmd start -- --adventure chapel --seed 4`. Enter `journal`, `inspect missing-person notice`, `search missing-person notice`, `search missing-person notice`, then `journal`. Expect the first journal to contain no discoveries or leads, inspection to leave it unchanged, the first search to record the chapel route without a roll, the repeat to report nothing new, and the final journal to attribute an observed fact to the inn notice and recommend the chapel path.
 11. Continue with `move chapel-path`, `move ruined-chapel`, `search damaged repair record`, and `journal`. Expect an observed unsafe-repairs discovery attributed to the record at the Ruined Chapel, a named milestone linking the repairs to Oren, and a lead to ask Oren. No ledger, medicine motive, Tavi fate, or resolution should appear.
 12. Repeat the chapel path with `--trace .\chapel-discovery.json`, then replay it with `npm.cmd start -- --replay .\chapel-discovery.json`. Expect zero random draws for both searches and successful replay. In AI mode, exact `journal` should render locally even immediately after a provider failure; an ordinary-language journal question should use `get_journal`.
@@ -572,3 +588,7 @@ model decision, and human acceptance result are recorded in
 The bounded Increment 3 live campaign, exact model and contract versions,
 sanitized scores, completed-session review, and remaining qualification blocker
 are recorded in [`docs/acceptance/issue-36.md`](docs/acceptance/issue-36.md).
+
+The default-startup, clean-checkout, reproducible-journey, compatibility, and
+handoff evidence for issue #38 is recorded in
+[`docs/acceptance/issue-38.md`](docs/acceptance/issue-38.md).

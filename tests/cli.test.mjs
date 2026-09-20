@@ -14,7 +14,7 @@ const acceptanceInputs = path.join(root, "docs", "acceptance", "inputs");
 const traceFixtures = path.join(root, "tests", "fixtures");
 const winningAttacks = ["attack goblin", "attack goblin"];
 
-function runCli(input, args = [], environment = {}) {
+function runDefaultCli(input, args = [], environment = {}) {
   return spawnSync(process.execPath, [cli, ...args], {
     cwd: root,
     encoding: "utf8",
@@ -24,20 +24,50 @@ function runCli(input, args = [], environment = {}) {
   });
 }
 
+function runCli(input, args = [], environment = {}) {
+  const selectsRuntime = args.some(
+    (argument) =>
+      argument === "--adventure" ||
+      argument.startsWith("--adventure=") ||
+      argument === "--replay" ||
+      argument.startsWith("--replay=") ||
+      argument === "--help",
+  );
+  return runDefaultCli(
+    input,
+    selectsRuntime ? args : ["--adventure", "stolen-signet", ...args],
+    environment,
+  );
+}
+
 function runScriptedDm(input, responses, seed = "0", args = []) {
   return withTemporaryDirectory((directory) => {
     const scriptPath = path.join(directory, "dm-script.json");
     writeFileSync(scriptPath, JSON.stringify(responses));
-    return spawnSync(process.execPath, [cli, "--seed", seed, ...args], {
-      cwd: root,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        DUNGEON_ONE_TEST_DM_SCRIPT: scriptPath,
+    const hasAdventure = args.some(
+      (argument) =>
+        argument === "--adventure" || argument.startsWith("--adventure="),
+    );
+    return spawnSync(
+      process.execPath,
+      [
+        cli,
+        ...(hasAdventure ? [] : ["--adventure", "stolen-signet"]),
+        "--seed",
+        seed,
+        ...args,
+      ],
+      {
+        cwd: root,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          DUNGEON_ONE_TEST_DM_SCRIPT: scriptPath,
+        },
+        input,
+        timeout: 5_000,
       },
-      input,
-      timeout: 5_000,
-    });
+    );
   });
 }
 
@@ -99,6 +129,34 @@ test("built game prints one reproducible seed and rejects invalid startup seeds"
   assert.doesNotMatch(invalid.stdout, /The Stolen Signet/i);
 });
 
+test("no-selector startup defaults command and AI play to the chapel", () => {
+  const command = runDefaultCli("quit\n", ["--seed", "0"], {
+    OPENAI_API_KEY: "",
+  });
+  const ai = withTemporaryDirectory((directory) => {
+    const scriptPath = path.join(directory, "dm-script.json");
+    writeFileSync(scriptPath, "[]");
+    return runDefaultCli("quit\n", ["--seed", "0", "--ai"], {
+      DUNGEON_ONE_TEST_DM_SCRIPT: scriptPath,
+    });
+  });
+  const signet = runCli("quit\n", [
+    "--adventure",
+    "stolen-signet",
+    "--seed",
+    "0",
+  ]);
+
+  assert.equal(command.status, 0, command.stderr);
+  assert.match(command.stdout, /The Bell Beneath the Chapel/i);
+  assert.doesNotMatch(command.stdout, /The Stolen Signet/i);
+  assert.equal(ai.status, 0, ai.stderr);
+  assert.match(ai.stdout, /The Bell Beneath the Chapel/i);
+  assert.doesNotMatch(ai.stdout, /The Stolen Signet/i);
+  assert.equal(signet.status, 0, signet.stderr);
+  assert.match(signet.stdout, /The Stolen Signet/i);
+});
+
 test("AI startup has a pinned default, supports overrides, and keeps offline paths key-free", () => {
   const offlineEnvironment = { OPENAI_API_KEY: "" };
   const help = runCli("", ["--help"], offlineEnvironment);
@@ -129,6 +187,7 @@ test("AI startup has a pinned default, supports overrides, and keeps offline pat
   assert.match(help.stdout, /Usage: dungeon-one/);
   assert.match(help.stdout, /--ai \[--model <model-id>\]/);
   assert.match(help.stdout, /Default AI model: gpt-5\.6-luna/);
+  assert.match(help.stdout, /Default adventure: chapel/);
   assert.doesNotMatch(help.stdout, /The Stolen Signet/);
   assert.equal(command.status, 0, command.stderr);
   assert.match(command.stdout, /The Stolen Signet/);

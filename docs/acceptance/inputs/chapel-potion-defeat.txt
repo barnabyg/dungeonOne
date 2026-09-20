@@ -1,0 +1,12 @@
+move chapel path
+take healing potion
+move ruined chapel
+move crypt
+attack skeleton
+attack skeleton
+attack skeleton
+attack skeleton
+use healing potion
+status
+inventory
+quit
