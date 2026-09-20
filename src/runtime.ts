@@ -1413,6 +1413,8 @@ const POTION_CHAPEL_RUNTIME: AdventureRuntime = Object.freeze({
     ),
 });
 
+export const DEFAULT_ADVENTURE_ID = CHAPEL_ID;
+
 export function resolveAdventure(id = "stolen-signet"): AdventureRuntime {
   if (id === "chapel") {
     return CHAPEL_RUNTIME;

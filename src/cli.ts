@@ -1,7 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline";
 
-import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
+import {
+  DEFAULT_ADVENTURE_ID,
+  resolveAdventure,
+  type AdventureRuntime,
+} from "./runtime.js";
 import { playGame } from "./play.js";
 import {
   createOpenAiDmModel,
@@ -32,7 +36,7 @@ const USAGE = [
   "       dungeon-one --replay <path>",
   "       dungeon-one --help",
   `Default AI model: ${OPENAI_DM_DEFAULT_MODEL}`,
-  "Default adventure: chapel",
+  `Default adventure: ${DEFAULT_ADVENTURE_ID}`,
 ].join("\n");
 
 function resolveStartupOptions(args: readonly string[]): StartupOptions {
@@ -169,7 +173,7 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
 
   return {
     mode: "play",
-    runtime: resolveAdventure(adventureId ?? "chapel"),
+    runtime: resolveAdventure(adventureId ?? DEFAULT_ADVENTURE_ID),
     seed: resolveStartupSeed(seedArgument ?? [], chooseStartupSeed),
     ...(tracePath === undefined ? {} : { tracePath }),
     ...(ai ? { ai: { model: model ?? OPENAI_DM_DEFAULT_MODEL } } : {}),
