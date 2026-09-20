@@ -50,7 +50,7 @@ On 20 September 2026, `npm.cmd run verify` passed all seven canonical gates in
 order with zero warnings. The automated suite reported 280 passing tests, zero
 failures, and zero skipped tests. Dependency installation/audit reported zero
 vulnerabilities, and clean build/package validation reported 62 packaged files
-and 154471 bytes.
+and 154538 bytes.
 
 The committed revision was then checked from a separate clean Git worktree.
 `npm.cmd ci`, `npm.cmd run verify`, `npm.cmd run build`, default chapel startup,
