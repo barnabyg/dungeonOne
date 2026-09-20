@@ -412,12 +412,15 @@ test("scripted-AI CLI provider failure keeps Tavi's scoped rescue committed", ()
           '{"combatantId":"skeleton-guardian"}',
           "The guardian falls.",
         ),
-        ...actionTurn(
-          "search-ledger",
-          "search",
-          '{"target":"diversion-ledger"}',
-          "You record the ledger evidence.",
-        ),
+        {
+          toolCalls: [
+            {
+              id: "search-ledger",
+              name: "search",
+              argumentsJson: '{"target":"diversion-ledger"}',
+            },
+          ],
+        },
         {
           toolCalls: [
             {

@@ -19,8 +19,10 @@ import {
   CHAPEL_VERSION,
   CHAPEL_RULES_VERSION,
   CHAPEL_PROMPT_VERSION,
+  isExplicitPotionCollectionIntent,
   CASUALTIES_CHAPEL_PROMPT_VERSION,
   FIRST_QUALIFIED_CHAPEL_PROMPT_VERSION,
+  SECOND_QUALIFIED_CHAPEL_PROMPT_VERSION,
   CHAPEL_TOOL_VERSION,
   RESOLUTION_CHAPEL_VERSION,
   RESOLUTION_CHAPEL_RULES_VERSION,
@@ -127,6 +129,7 @@ type ReplayDmTurn = Readonly<{
 
 type ReplayDmTrace = Readonly<{
   runtime: ReplayRuntime;
+  promptVersion: string;
   initialSeed: number;
   initialState: JsonObject;
   turns: readonly ReplayDmTurn[];
@@ -1093,6 +1096,7 @@ function validateDmTrace(
         ? ADVENTURE.id
         : requireString(adventure.id, "adventure.id"),
     ),
+    promptVersion: requireString(dm.promptVersion, "dm.promptVersion"),
     initialSeed: Number(random.initialSeed),
     initialState,
     turns,
@@ -1196,6 +1200,7 @@ function chapelTraceConfig(trace: JsonObject): Readonly<{
     promptVersions: current
       ? [
           CHAPEL_PROMPT_VERSION,
+          SECOND_QUALIFIED_CHAPEL_PROMPT_VERSION,
           FIRST_QUALIFIED_CHAPEL_PROMPT_VERSION,
           CASUALTIES_CHAPEL_PROMPT_VERSION,
         ]
@@ -1665,7 +1670,11 @@ function replayDmTrace(trace: ReplayDmTrace): void {
             return value;
           },
         },
-        turn.rawPlayerInput,
+        trace.promptVersion !== CHAPEL_PROMPT_VERSION &&
+          expected.name === "look" &&
+          isExplicitPotionCollectionIntent(turn.rawPlayerInput)
+          ? undefined
+          : turn.rawPlayerInput,
       );
       const validated =
         result.engineResult !== undefined || result.modelOutput.ok;

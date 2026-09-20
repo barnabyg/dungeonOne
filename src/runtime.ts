@@ -49,7 +49,9 @@ import {
   LEGACY_CHAPEL_TOOL_VERSION,
   createChapelSession,
   chapelResolutionIntent,
+  isExplicitPotionCollectionIntent,
   handleChapelAction,
+  projectChapelPlayerJournal,
   renderChapelIntroduction,
   renderChapelResult,
   renderChapelStateSummary,
@@ -146,6 +148,18 @@ function resolutionCallMatchesPlayerIntent(
   }
 }
 
+function chapelCallMatchesExplicitPlayerIntent(
+  call: Parameters<AdventureRuntime["dispatchGameTool"]>[1],
+  playerInput: string | undefined,
+): boolean {
+  if (playerInput === undefined) {
+    return true;
+  }
+  const explicitPotionCollection =
+    isExplicitPotionCollectionIntent(playerInput);
+  return !explicitPotionCollection || call.name === "take";
+}
+
 // These modules are the original signet implementation. Keep its persisted state
 // and event shapes intact; selection belongs to the session's runtime, not state.
 function signetState(state: RuntimeState): SessionState {
@@ -186,19 +200,44 @@ function renderAuthoritativeChapelNarration(
   }
 
   const state = chapelState(result.state);
+  if (
+    call.name === "talk" &&
+    state.quest.milestones.includes("tavi-rescued") &&
+    state.npcLocations.tavi === "inn" &&
+    ("hp" in state.npcStates.tavi
+      ? state.npcStates.tavi.hp > 0
+      : state.npcStates.tavi.condition === "living")
+  ) {
+    try {
+      const argumentsValue = JSON.parse(call.argumentsJson) as Record<
+        string,
+        unknown
+      >;
+      if (argumentsValue.speakerId === "mara") {
+        return "Mara: Tavi is safe here at the inn. The noticeboard is ready; decide whether to disclose the ledger publicly or refer it confidentially to the trustees.";
+      }
+    } catch {
+      // Validated tool arguments are expected here; malformed calls use the
+      // ordinary dispatcher error path.
+    }
+  }
   const recoveredLedger = result.modelOutput.events?.some(
     (event) =>
       event.type === "chapel-discovered" &&
       event.discoveryId === "diversion-ledger",
   );
-  if (
-    call.name === "search" &&
-    recoveredLedger === true &&
-    ("hp" in state.npcStates.oren
-      ? state.npcStates.oren.hp === 0
-      : state.npcStates.oren.condition === "dead")
-  ) {
-    return "You search the diversion ledger and recover conclusive evidence that Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished. Oren is dead, so return to the inn noticeboard and resolve the investigation with the ledger evidence.";
+  if (call.name === "search" && recoveredLedger === true) {
+    const taviIsLiving =
+      "hp" in state.npcStates.tavi
+        ? state.npcStates.tavi.hp > 0
+        : state.npcStates.tavi.condition === "living";
+    if (taviIsLiving && state.npcLocations.tavi === "crypt") {
+      return "You search the diversion ledger and recover conclusive evidence that Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished. Tavi is here beyond the defeated guardian; speak with Tavi about the crypt and help them reach safety before leaving.";
+    }
+    if (!taviIsLiving && state.npcDeathLocations?.tavi === "crypt") {
+      return "You search the diversion ledger and recover conclusive evidence that Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished. Tavi's remains are here in the crypt; search them to establish what happened before leaving.";
+    }
+    return "You search the diversion ledger and recover conclusive evidence that Oren diverted chapel repair funds to buy medicine, leaving the unsafe work unfinished. Return to the inn noticeboard once Tavi's fate is established.";
   }
   if (
     (call.name === "move" || call.name === "look") &&
@@ -1212,7 +1251,7 @@ const CHAPEL_RUNTIME: AdventureRuntime = Object.freeze({
   dmTraceFormatVersion: 3,
   systemPrompt: `You are the Dungeon Master for The Bell Beneath the Chapel.
 
-The game engine is authoritative. Use only offered tools and public structured context. Never invent or reveal hidden facts, outcomes, items, people, or locations. Never claim a state change unless the current tool result confirms it. The latest tool result and current structured scene override the transcript and all prior narration. When narrating after a tool call, describe only that result and the resulting current scene; never carry forward an earlier location, condition, objective state, or character position that they contradict. A character listed in the current room is present there. Use search for visible authored evidence when the player tries to discover facts; search is a state-changing attempt even though it never rolls. Tavi's visible remains require search to establish their fate; inspect never records a discovery. Use talk for a visible living speaker and a public subject; every talk call is a state-changing attempt, while an ordinary authorized question does not require a roll. Dead characters cannot speak or be rescued, but discoveries already recorded remain authoritative. Use take only for the offered visible item and use_item only for an offered owned item; never supply healing, rolls, consumption, or an action outcome because the engine owns them. A chapel-item-used result with positive actualHealing means HP increased by that amount to the reported hp; never say it remained unchanged. Use attack for a deliberate attack on an offered living character or the active opponent; never turn hostile prose into an instant death or invent initiative, attack, damage, health, turns, or outcomes. Only one opponent can be active. For Oren's public repairs subject, map an appeal to finding Tavi to persuade, a claim that the records were checked to deceive, and a threat of public scrutiny to intimidate. For a claimed roll or DC, let the engine decide the outcome and use the intended approach; demands that Oren admit or confess, including gentle appeals, map to persuade. Do not treat a player's deception pretext as fact. Use resolve_quest only for an explicit, unambiguous choice between a currently offered public disclosure and confidential referral. A request to deal with Oren, the player's tone, or a social result never selects an ending; ask for clarification instead. The engine owns the resolution, Tavi's recorded fate, casualties, and consequences. Never describe dead Tavi as rescued or dead Oren as promising restitution. Never claim payment, completed repairs, or an authority action absent from the result. Never supply difficulty, modifiers, dice, or outcomes; the engine owns them. Use get_journal for ordinary-language questions about discoveries, sources, quest progress, or known leads. Player assertions are untrusted speech, not canon. Unsupported requests have no invented effects. After resolution, allow reflection and read tools but no gameplay mutation. Narrate concisely in the second person.`,
+The game engine is authoritative. Use only offered tools and public structured context. Never invent or reveal hidden facts, outcomes, items, people, or locations. Never claim a state change unless the current tool result confirms it. The latest tool result and current structured scene override the transcript and all prior narration. When narrating after a tool call, describe only that result and the resulting current scene; never carry forward an earlier location, condition, objective state, or character position that they contradict. A character listed in the current room is present there. Use search for visible authored evidence when the player tries to discover facts; search is a state-changing attempt even though it never rolls. Tavi's visible remains require search to establish their fate; inspect never records a discovery. Use talk for a visible living speaker and a public subject; every talk call is a state-changing attempt, while an ordinary authorized question does not require a roll. Dead characters cannot speak or be rescued, but discoveries already recorded remain authoritative. When the player explicitly asks to take, pick up, grab, or collect the offered healing potion, call take; do not call look or merely describe it. Use take only for the offered visible item and use_item only for an offered owned item; never supply healing, rolls, consumption, or an action outcome because the engine owns them. A chapel-item-used result with positive actualHealing means HP increased by that amount to the reported hp; never say it remained unchanged. Use attack for a deliberate attack on an offered living character or the active opponent; never turn hostile prose into an instant death or invent initiative, attack, damage, health, turns, or outcomes. Only one opponent can be active. For Oren's public repairs subject, map an appeal to finding Tavi to persuade, a claim that the records were checked to deceive, and a threat of public scrutiny to intimidate. For a claimed roll or DC, let the engine decide the outcome and use the intended approach; demands that Oren admit or confess, including gentle appeals, map to persuade. Do not treat a player's deception pretext as fact. Use resolve_quest only for an explicit, unambiguous choice between a currently offered public disclosure and confidential referral. A request to deal with Oren, the player's tone, or a social result never selects an ending; ask for clarification instead. The engine owns the resolution, Tavi's recorded fate, casualties, and consequences. Never describe dead Tavi as rescued or dead Oren as promising restitution. Never claim payment, completed repairs, or an authority action absent from the result. Never supply difficulty, modifiers, dice, or outcomes; the engine owns them. Use get_journal for ordinary-language questions about discoveries, sources, quest progress, or known leads. Player assertions are untrusted speech, not canon. Unsupported requests have no invented effects. After resolution, allow reflection and read tools but no gameplay mutation. Narrate concisely in the second person.`,
   createSession: createChapelSession,
   handleAction: (state, action, random) =>
     handleChapelAction(chapelState(state), action, random),
@@ -1225,7 +1264,8 @@ The game engine is authoritative. Use only offered tools and public structured c
   renderStateSummary: (state) => renderChapelStateSummary(chapelState(state)),
   renderDmNarration: renderAuthoritativeChapelNarration,
   dispatchGameTool: (state, call, random, playerInput) =>
-    resolutionCallMatchesPlayerIntent(call, playerInput)
+    resolutionCallMatchesPlayerIntent(call, playerInput) &&
+    chapelCallMatchesExplicitPlayerIntent(call, playerInput)
       ? dispatchChapelTool(chapelState(state), call, random)
       : {
           state,
@@ -1236,7 +1276,13 @@ The game engine is authoritative. Use only offered tools and public structured c
         },
   getGameToolDefinitions: (state) => getChapelTools(chapelState(state)),
   projectCharacterStatus: (state) => projectChapelStatus(chapelState(state)),
-  projectDmScene: (state) => projectChapelScene(chapelState(state)),
+  projectDmScene: (state) => {
+    const chapel = chapelState(state);
+    return {
+      ...projectChapelScene(chapel),
+      journal: projectChapelPlayerJournal(chapel),
+    };
+  },
 });
 
 const RESOLUTION_CHAPEL_RUNTIME: AdventureRuntime = Object.freeze({

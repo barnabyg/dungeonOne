@@ -46,7 +46,8 @@ export const CHAPEL_RULES_VERSION = "chapel-casualties-rules-v9";
 export const CHAPEL_TOOL_VERSION = "chapel-casualties-tools-v9";
 export const CASUALTIES_CHAPEL_PROMPT_VERSION = "chapel-casualties-dm-v9";
 export const FIRST_QUALIFIED_CHAPEL_PROMPT_VERSION = "chapel-qualified-dm-v10";
-export const CHAPEL_PROMPT_VERSION = "chapel-qualified-dm-v11";
+export const SECOND_QUALIFIED_CHAPEL_PROMPT_VERSION = "chapel-qualified-dm-v11";
+export const CHAPEL_PROMPT_VERSION = "chapel-human-dm-v12";
 export const CHAPEL_TITLE = "The Bell Beneath the Chapel";
 export const CHAPEL_OBJECTIVE =
   "Tavi, a village apprentice, is missing. Explore the route to the ruined chapel and find out what happened to them.";
@@ -1947,6 +1948,12 @@ export function chapelResolutionIntent(
   return publicIntent ? "public-disclosure" : "confidential-referral";
 }
 
+export function isExplicitPotionCollectionIntent(input: string): boolean {
+  return /\b(?:take|grab|collect|pick\s+up)\b[^.!?\n]{0,40}\b(?:healing\s+)?potion\b/iu.test(
+    input,
+  );
+}
+
 function resolveChapelQuest(
   state: ChapelState,
   target: string | undefined,
@@ -2262,7 +2269,17 @@ export function renderChapelStateSummary(state: ChapelState): string {
     ? `${chapelCombatantName(state.combat?.currentTurn ?? "fighter")}'s turn`
     : "none";
   const discoveryCount = state.discoveries.length;
-  return `State — HP ${state.fighter.hp}/${state.fighter.maxHp} | Potion: ${potionStatus} | Combat: ${combatStatus} | Quest: Find Tavi (${state.quest.status}; ${discoveryCount} ${discoveryCount === 1 ? "discovery" : "discoveries"}).`;
+  const suggestions = chapelPublicCommandSuggestions(state, true, true).slice(
+    0,
+    4,
+  );
+  const options =
+    state.status === "playing"
+      ? `Options — Exits: ${chapelRoom(state.locationId)
+          .exits.map((id) => chapelRoom(id).name.toLowerCase())
+          .join(", ")} | Try: ${suggestions.join("; ") || "look"}.`
+      : `Options — Try: ${suggestions.join("; ")}.`;
+  return `State — HP ${state.fighter.hp}/${state.fighter.maxHp} | Potion: ${potionStatus} | Combat: ${combatStatus} | Quest: Find Tavi (${state.quest.status}; ${discoveryCount} ${discoveryCount === 1 ? "discovery" : "discoveries"}).\n${options}`;
 }
 
 function chapelCombatantName(combatantId: ChapelCombatantId): string {
@@ -2300,12 +2317,17 @@ function chapelPublicCommandSuggestions(
   );
   const searchCommands = activeCombat
     ? []
-    : chapelSearchTargets(state, rescueEnabled, resolutionEnabled).map(
-        (targetId) => {
+    : chapelSearchTargets(state, rescueEnabled, resolutionEnabled)
+        .filter((targetId) => {
+          const discoveryId = CHAPEL_EVIDENCE.find(
+            (entry) => entry.targetId === targetId,
+          )?.discovery.id;
+          return !state.discoveries.some(({ id }) => id === discoveryId);
+        })
+        .map((targetId) => {
           const target = features.find(({ id }) => id === targetId);
           return `search ${target?.name ?? targetId}`;
-        },
-      );
+        });
   const talkCommands = activeCombat
     ? []
     : visibleChapelNpcs(state, rescueEnabled).flatMap((npc) =>
@@ -2340,16 +2362,58 @@ function chapelPublicCommandSuggestions(
         )
       : [];
   return [
+    ...resolutionCommands,
     ...searchCommands,
     ...talkCommands,
     ...itemCommands,
     ...combatCommands,
-    ...resolutionCommands,
   ];
 }
 
-function renderChapelJournalUpdate(discovery: ChapelDiscovery): string {
-  return `Journal update — ${discovery.title}: ${discovery.summary}`;
+function displayActionableLeads(state: ChapelState): readonly string[] {
+  return state.discoveries.flatMap((discovery) => {
+    if (discovery.actionableLead === undefined) {
+      return [];
+    }
+    if (
+      discovery.id === "tavi-crypt-testimony" &&
+      (state.quest.milestones.includes("tavi-rescued") ||
+        !npcIsLiving(state, "tavi"))
+    ) {
+      return [];
+    }
+    if (discovery.id === "diversion-ledger") {
+      return state.quest.milestones.includes("tavi-fate-established")
+        ? [
+            "Return to the inn noticeboard and resolve the investigation with the ledger evidence.",
+          ]
+        : [
+            "Establish Tavi's fate here in the crypt before following up on the ledger.",
+          ];
+    }
+    return [discovery.actionableLead];
+  });
+}
+
+export function projectChapelPlayerJournal(state: ChapelState): ChapelJournal {
+  return {
+    ...projectChapelJournal(state),
+    actionableLeads:
+      state.resolution === undefined ? displayActionableLeads(state) : [],
+  };
+}
+
+function renderChapelJournalUpdate(
+  discovery: ChapelDiscovery,
+  state: ChapelState,
+): string {
+  const actionableLead =
+    discovery.id === "diversion-ledger"
+      ? displayActionableLeads(state).find((lead) =>
+          /Tavi's fate|ledger evidence/iu.test(lead),
+        )
+      : discovery.actionableLead;
+  return `Journal update — ${discovery.title}: ${discovery.summary}${actionableLead === undefined ? "" : `\nNext: ${actionableLead}`}`;
 }
 
 export function renderChapelResult(
@@ -2449,7 +2513,7 @@ export function renderChapelResult(
             )?.discovery;
           return discovery === undefined
             ? "A discovery was recorded."
-            : renderChapelJournalUpdate(discovery);
+            : renderChapelJournalUpdate(discovery, result.state);
         }
         case "chapel-conversation":
           return [
@@ -2467,7 +2531,9 @@ export function renderChapelResult(
                       ),
                   ),
               )
-              .map(renderChapelJournalUpdate),
+              .map((discovery) =>
+                renderChapelJournalUpdate(discovery, result.state),
+              ),
           ].join("\n");
         case "chapel-tavi-rescued":
           return "Tavi takes the marked safe route from the crypt to the village inn.";
@@ -2533,6 +2599,7 @@ export function renderChapelResult(
             return `- ${discovery.title} [${discovery.classification}] — ${discovery.summary}\n  Source: ${discovery.source.name}, ${sourceLocation}.`;
           });
           const milestones = event.journal.quest.milestones;
+          const actionableLeads = displayActionableLeads(result.state);
           return [
             `Journal\nActive quest: ${event.journal.quest.title} (${event.journal.quest.status}).`,
             `Milestones: ${milestones.length === 0 ? "none" : milestones.join(", ")}.`,
@@ -2544,7 +2611,7 @@ export function renderChapelResult(
                   `Tavi fate: ${event.journal.resolution.taviFate}.`,
                 ]),
             `Discoveries: ${discoveries.length === 0 ? "none" : `\n${discoveries.join("\n")}`}`,
-            `Known leads: ${event.journal.actionableLeads.length === 0 ? "none" : `\n- ${event.journal.actionableLeads.join("\n- ")}`}`,
+            `Known leads: ${actionableLeads.length === 0 ? "none" : `\n- ${actionableLeads.join("\n- ")}`}`,
           ].join("\n");
         }
         case "chapel-status": {

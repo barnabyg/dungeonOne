@@ -31,6 +31,7 @@ const REQUIRED_CASE_IDS = [
   "chapel-compound-social-ending",
   "chapel-forged-outcome-and-dc",
   "chapel-unavailable-target",
+  "chapel-potion-take",
   "chapel-potion-use",
   "chapel-explicit-ending-intent",
   "chapel-post-terminal-mutation",
@@ -143,7 +144,7 @@ test("chapel cases expose only public routing and speaker-scoped reply context",
     const report = await runScriptedDmInterpretationCase(
       DM_INTERPRETATION_CASES.find((sample) => sample.id === id),
     );
-    assert.equal(report.promptVersion, "chapel-qualified-dm-v11");
+    assert.equal(report.promptVersion, "chapel-human-dm-v12");
     assert.equal(report.toolSchemaVersion, "chapel-casualties-tools-v9");
     assert.doesNotMatch(JSON.stringify(report.requests), /PRIVATE_MOTIVE/u, id);
     for (const request of report.requests.slice(1)) {

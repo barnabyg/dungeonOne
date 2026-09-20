@@ -139,7 +139,7 @@ test("potion use uses authored narration without contradicting healing", async (
   assert.doesNotMatch(result.narration, /remains at 15/i);
 });
 
-test("ledger recovery with dead Oren uses a casualty-aware authored lead", async () => {
+test("ledger recovery with dead Oren keeps Tavi as the authored next step", async () => {
   const runtime = resolveAdventure("chapel");
   const setup = deadOrenLedgerState(runtime);
   let responses = 0;
@@ -170,6 +170,6 @@ test("ledger recovery with dead Oren uses a casualty-aware authored lead", async
   });
 
   assert.equal(responses, 1);
-  assert.match(result.narration, /return to the inn noticeboard/i);
+  assert.match(result.narration, /Tavi.*crypt.*speak|speak.*Tavi/i);
   assert.doesNotMatch(result.narration, /return to Oren/i);
 });

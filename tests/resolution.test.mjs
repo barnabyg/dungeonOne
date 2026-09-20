@@ -682,12 +682,15 @@ test("both scripted-AI endings clarify ambiguity, permit reflection, and replay"
             "The authoritative combat result stands.",
           ),
         ).flat(),
-        ...actionTurn(
-          "search-ledger",
-          "search",
-          '{"target":"diversion-ledger"}',
-          "You record the ledger evidence.",
-        ),
+        {
+          toolCalls: [
+            {
+              id: "search-ledger",
+              name: "search",
+              argumentsJson: '{"target":"diversion-ledger"}',
+            },
+          ],
+        },
         {
           toolCalls: [
             {

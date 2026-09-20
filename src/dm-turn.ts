@@ -601,6 +601,11 @@ export async function runDmTurn(
     toolAttempts.push(toolResult);
     mechanics.push(renderMechanics(result, runtime));
 
+    const authoredNarration = runtime.renderDmNarration?.(call, result);
+    if (authoredNarration !== undefined) {
+      return complete(authoredNarration);
+    }
+
     const conversation =
       result.modelOutput.ok && result.modelOutput.conversation !== undefined
         ? result.modelOutput.conversation
@@ -685,11 +690,6 @@ export async function runDmTurn(
         );
       }
       return complete(narration);
-    }
-
-    const authoredNarration = runtime.renderDmNarration?.(call, result);
-    if (authoredNarration !== undefined) {
-      return complete(authoredNarration);
     }
   }
 

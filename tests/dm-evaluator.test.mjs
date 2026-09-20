@@ -242,7 +242,7 @@ test("new semantic gates require complete review and provider success", async ()
   assert.equal(report.summary["belief-attribution"].threshold, 1);
   assert.equal(report.summary["belief-attribution"].rate, 1);
   assert.equal(report.passed, true);
-  assert.deepEqual(report.promptVersions, ["chapel-qualified-dm-v11"]);
+  assert.deepEqual(report.promptVersions, ["chapel-human-dm-v12"]);
   assert.deepEqual(report.toolSchemaVersions, ["chapel-casualties-tools-v9"]);
 
   const failed = await runDmEvaluation({
