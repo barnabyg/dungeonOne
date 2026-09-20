@@ -19,7 +19,9 @@ The final isolated campaign used:
 
 The sanitized aggregate is in
 [`issue-36-evaluator-evidence.json`](issue-36-evaluator-evidence.json), and the
-reviewed classifications are in
+sanitized calls, outcomes, narration, and per-run semantic decisions are in
+[`issue-36-reviewed-runs.json`](issue-36-reviewed-runs.json). The reusable
+classification rules are in
 [`issue-36-judgments.json`](issue-36-judgments.json). Raw live reports, response
 IDs, request payloads, and session traces remain under ignored
 `.dm-evaluations`; no credential or personal transcript is tracked.
