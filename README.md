@@ -74,8 +74,9 @@ SHA-256 digest, exact runtime identities, and authoritative command or AI eviden
 Replay creates fresh state from the embedded content; the source may be removed,
 and no provider or API key is needed. Format 4 input is bounded to 16 MiB and
 allows 10000 turns and 48 envelope nesting levels, while its embedded adventure
-retains the stricter document limits. The historical file reader still reads the
-whole trace before format-specific validation. A digest detects stale content; it is not
+retains the stricter document limits. A streaming format probe selects bounded
+format-4 reading before allocation; historical readers retain their original
+limits. A digest detects stale content; it is not
 authentication against coherent rewrites. Formats 1–3 retain their historical
 runtime and evidence semantics. These exports are diagnostics, not save games.
 

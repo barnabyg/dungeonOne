@@ -616,3 +616,36 @@ test("rejected noninteger and malformed-Unicode tool arguments remain replayable
     const replay = run("", ["--replay", tracePath]);
     assert.equal(replay.status, 0, replay.stderr);
   }));
+
+test("format 4 bounds apply before decoding with late, escaped and long numeric version fields; legacy sizes stay readable", () =>
+  temporary((directory) => {
+    const path = join(directory, "bounded.json");
+    const padding = " ".repeat(17 * 1024 * 1024);
+    for (const version of [
+      '"formatVersion":4',
+      '"format\\u0056ersion":4',
+      `"formatVersion":4${"0".repeat(200)}e-200`,
+    ]) {
+      writeFileSync(path, `{${padding}${version}}`);
+      const replay = run("", ["--replay", path]);
+      assert.equal(replay.status, 1, replay.stderr);
+      assert.match(replay.stderr, /byte-limit/);
+    }
+    writeFileSync(
+      path,
+      `${padding}${readFileSync("tests/fixtures/historical-victory.json", "utf8")}`,
+    );
+    const legacy = run("", ["--replay", path]);
+    assert.equal(legacy.status, 0, legacy.stderr);
+    writeFileSync(
+      path,
+      '{"formatVersion":4,"nested":' +
+        "[".repeat(49) +
+        "0" +
+        "]".repeat(49) +
+        "}",
+    );
+    const deep = run("", ["--replay", path]);
+    assert.equal(deep.status, 1);
+    assert.match(deep.stderr, /nesting/);
+  }));

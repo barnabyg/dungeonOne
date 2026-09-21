@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import { readFile } from "node:fs/promises";
+import { readTraceFile } from "./trace-file.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { loadAdventure } from "./adventure-loader.js";
 import {
@@ -1526,38 +1526,10 @@ function replayCommandTrace(trace: ReplayTrace): void {
 }
 
 export async function verifyTraceFile(path: string): Promise<void> {
-  let contents: string;
-  let bytes: Uint8Array;
-  try {
-    // Retain the historical reader for formats 1–3, which had no file-size cap.
-    // Format 4 applies its envelope and embedded-content bounds below.
-    const buffer = await readFile(path);
-    bytes = buffer;
-    contents = buffer.toString("utf8");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Unable to read trace "${path}": ${message}`, {
-      cause: error,
-    });
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(contents) as unknown;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Trace contains invalid JSON: ${message}`, {
-      cause: error,
-    });
-  }
+  const parsed = await readTraceFile(path);
   const envelope = requireObject(parsed, "Trace");
   if (envelope.formatVersion === 4) {
-    replayFormat4(
-      requireObject(
-        parseBoundedJson(bytes, 16 * 1024 * 1024, 48, false),
-        "Trace",
-      ),
-    );
+    replayFormat4(envelope);
     return;
   }
   if (envelope.formatVersion === DM_TRACE_FORMAT_VERSION) {
