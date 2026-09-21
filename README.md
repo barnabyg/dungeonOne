@@ -27,6 +27,58 @@ Replay selects the original runtime from the export's supported version tuple,
 including historical exports whose adventure object lacks an ID. Unknown version
 combinations fail instead of falling back to the current default.
 
+### External exploration adventures
+
+Use `--adventure-file <path>` to explore UTF-8 JSON content in command or AI mode.
+It is mutually exclusive with `--adventure`. Both selectors support `=`, and
+duplicates fail. `--validate-adventure <path>` (also `=<path>`) validates without
+starting a session, choosing a seed, or contacting a provider. Validation cannot
+be combined with play or replay options. It prints JSON diagnostics and exits 2
+for invalid input; unreadable files report a startup error on stderr.
+
+```powershell
+npm.cmd run build
+node dist/cli.js --validate-adventure adventures/signet-exploration.json
+@("help", "inspect carving", "move guard-room", "look", "inspect benches", "status", "inventory", "quit") |
+  node dist/cli.js --adventure-file adventures/signet-exploration.json --seed 0 --trace signet-exploration-trace.json
+node dist/cli.js --replay signet-exploration-trace.json
+```
+
+The checked-in [Signet exploration slice](adventures/signet-exploration.json)
+supports startup, directed movement, look, inspection, help, status, inventory,
+and quit. The same runtime supplies public model views and validates tool calls.
+In AI mode help/status/inventory/quit stay local. Combat, doors, collection,
+dialogue, discoveries, quest completion, and other unfinished interactions are
+unavailable. The built-in chapel remains the default.
+
+Author against [the schema](schema/adventure-v1.schema.json), then run validation:
+the schema describes shape; the loader additionally checks duplicate JSON keys,
+IDs, typed references, initial placement, reachability, Unicode, and visible alias
+collisions. The supported tuple is schema 1 / `exploration-rules-v1` /
+`data-engine-v1`, with `exploration-dm-v1` and `exploration-tools-v1` for AI.
+The author owns `contentVersion`; change it when content changes. Version strings
+do not substitute for a content digest.
+
+Documents are limited to 1 MiB UTF-8, 32 nesting levels, 256 entries per collection,
+4096 UTF-16 code units per prose field, and safe integer HP between 0 and 10000
+(initial HP must be positive and no greater than max HP). IDs and explicit aliases
+follow the [migration contract](docs/migration-contract.md); IDs are also implicit
+aliases. Matching collapses whitespace, lowercases, and treats hyphens as spaces.
+Prose is literal: braces/placeholders, terminal control characters, arbitrary
+scripts, and unsupported fields are rejected. Diagnostics contain stable
+severity/code/JSON-Pointer path/entity/message fields, ordered by validation phase,
+path, then code. Invalid structure stops reference analysis.
+
+External traces use format 4 and include a complete validated snapshot, canonical
+SHA-256 digest, exact runtime identities, and authoritative command or AI evidence.
+Replay creates fresh state from the embedded content; the source may be removed,
+and no provider or API key is needed. Format 4 input is bounded to 16 MiB and
+allows 10000 turns and 48 envelope nesting levels, while its embedded adventure
+retains the stricter document limits. The historical file reader still reads the
+whole trace before format-specific validation. A digest detects stale content; it is not
+authentication against coherent rewrites. Formats 1–3 retain their historical
+runtime and evidence semantics. These exports are diagnostics, not save games.
+
 The chapel investigation slice starts the active **Find Tavi** quest and lets you
 search the public missing-person notice, follow its chapel route, and discover a
 damaged repair record that identifies Oren's unfinished unsafe work. These

@@ -1,4 +1,6 @@
 import { writeFile } from "node:fs/promises";
+import type { AdventureDefinition } from "./adventure-loader.js";
+import { parseBoundedJson } from "./bounded-json.js";
 
 import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
 export {
@@ -50,6 +52,7 @@ type TraceCompletion = Readonly<{
 type EncodedToolArguments = Readonly<
   | { encoding: "json"; raw: string; value: unknown }
   | { encoding: "invalid-json"; raw: string }
+  | { encoding: "raw"; raw: string }
 >;
 
 type DmTraceCall = Readonly<{
@@ -98,9 +101,45 @@ type LocalTraceTurn = Readonly<
   )
 >;
 
-export type SessionTrace = {
+type ContentTraceHeader = Readonly<{
+  mode?: "command" | "ai";
+  engineVersion?: string;
+  content?: Readonly<{
+    schemaVersion: 1;
+    id: string;
+    contentVersion: string;
+    digest: string;
+  }>;
+  adventureSnapshot?: AdventureDefinition;
+}>;
+
+function contentHeader(
+  runtime: AdventureRuntime,
+  mode: "command" | "ai",
+): ContentTraceHeader {
+  if (runtime.content === undefined) {
+    return {};
+  }
+  const { snapshot, digest } = runtime.content;
+  if (runtime.engineVersion === undefined) {
+    throw new Error("Data runtime requires engine identity.");
+  }
+  return {
+    mode,
+    engineVersion: runtime.engineVersion,
+    content: {
+      schemaVersion: snapshot.schemaVersion,
+      id: snapshot.id,
+      contentVersion: snapshot.contentVersion,
+      digest,
+    },
+    adventureSnapshot: snapshot,
+  };
+}
+
+export type SessionTrace = ContentTraceHeader & {
   readonly formatVersion:
-    typeof TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION;
+    typeof TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION | 4;
   readonly rulesVersion: string;
   readonly adventure: Readonly<{
     id: string;
@@ -115,9 +154,9 @@ export type SessionTrace = {
   completion?: TraceCompletion;
 };
 
-export type DmSessionTrace = {
+export type DmSessionTrace = ContentTraceHeader & {
   readonly formatVersion:
-    typeof DM_TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION;
+    typeof DM_TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION | 4;
   readonly rulesVersion: string;
   readonly adventure: Readonly<{
     id: string;
@@ -147,6 +186,7 @@ export function createSessionTrace(
 ): SessionTrace {
   return {
     formatVersion: runtime.commandTraceFormatVersion,
+    ...contentHeader(runtime, "command"),
     rulesVersion: runtime.rulesVersion,
     adventure: { id: runtime.id, version: runtime.version },
     random: { algorithm: RANDOM_ALGORITHM, initialSeed },
@@ -163,6 +203,7 @@ export function createDmSessionTrace(
 ): DmSessionTrace {
   return {
     formatVersion: runtime.dmTraceFormatVersion,
+    ...contentHeader(runtime, "ai"),
     rulesVersion: runtime.rulesVersion,
     adventure: { id: runtime.id, version: runtime.version },
     random: { algorithm: RANDOM_ALGORITHM, initialSeed },
@@ -177,7 +218,21 @@ export function createDmSessionTrace(
   };
 }
 
-function encodeToolArguments(argumentsJson: string): EncodedToolArguments {
+function encodeToolArguments(
+  argumentsJson: string,
+  bounded = false,
+): EncodedToolArguments {
+  if (bounded) {
+    try {
+      return {
+        encoding: "json",
+        raw: argumentsJson,
+        value: parseBoundedJson(argumentsJson, 16384),
+      };
+    } catch {
+      return { encoding: "raw", raw: argumentsJson };
+    }
+  }
   try {
     return {
       encoding: "json",
@@ -204,7 +259,10 @@ export function recordDmTraceTurn(
       sequence: index + 1,
       id: attempt.call.id,
       name: attempt.call.name,
-      arguments: encodeToolArguments(attempt.call.argumentsJson),
+      arguments: encodeToolArguments(
+        attempt.call.argumentsJson,
+        trace.formatVersion === 4,
+      ),
       disposition: attempt.disposition,
       rolls: attempt.rolls,
       ...(attempt.result === undefined

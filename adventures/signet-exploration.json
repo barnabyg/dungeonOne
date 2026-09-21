@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "signet-exploration",
+  "contentVersion": "1",
+  "rulesVersion": "exploration-rules-v1",
+  "title": "The Stolen Signet: Exploration",
+  "introduction": "You arrive at a ruined watchtower. Survey the entrance and its abandoned guardroom.",
+  "objective": "Explore the watchtower. The signet quest is not available in this slice.",
+  "player": { "locationId": "entrance", "hp": 20, "maxHp": 20 },
+  "locations": [
+    {
+      "id": "entrance",
+      "name": "Tower Entrance",
+      "description": "Daylight falls through a ruined arch. A passage leads into the guardroom.",
+      "aliases": ["entrance", "tower entrance"]
+    },
+    {
+      "id": "guardroom",
+      "name": "Guardroom",
+      "description": "Dust coats the benches of this deserted room. The entrance is behind you.",
+      "aliases": ["guardroom", "guard room"]
+    }
+  ],
+  "connections": [
+    { "id": "enter-guardroom", "from": "entrance", "to": "guardroom" },
+    { "id": "return-entrance", "from": "guardroom", "to": "entrance" }
+  ],
+  "features": [
+    {
+      "id": "carving",
+      "locationId": "entrance",
+      "name": "Weathered Carving",
+      "description": "A signet is carved into the stone. Its worn emblem is still recognizable.",
+      "aliases": ["carving", "weathered carving"]
+    },
+    {
+      "id": "benches",
+      "locationId": "guardroom",
+      "name": "Dusty Benches",
+      "description": "The old wooden benches are empty. Nothing here can be collected.",
+      "aliases": ["benches", "dusty benches"]
+    }
+  ]
+}

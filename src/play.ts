@@ -64,7 +64,9 @@ export async function playGame(
       : options.dmModel.identity?.provider === "openai"
         ? "Live AI DM mode"
         : "Scripted DM mode";
-  const hasLocalPotionReads = runtime.mutationToolNames.includes("use_item");
+  const hasLocalPotionReads =
+    runtime.localStatusReads === true ||
+    runtime.mutationToolNames.includes("use_item");
   if (
     options.dmModel !== undefined &&
     options.tracePath !== undefined &&
@@ -119,14 +121,26 @@ export async function playGame(
         io.write(
           [
             `${dmModeName} accepts ordinary language for one gameplay attempt or questions about the current scene and character status.`,
-            "After victory or defeat, gameplay mutations are frozen but reflection and reads remain available.",
+            ...(runtime.content === undefined
+              ? [
+                  "After victory or defeat, gameplay mutations are frozen but reflection and reads remain available.",
+                ]
+              : []),
             "Local commands:",
             "  help  Show this guidance without calling the model.",
-            "  journal  Read discovered facts and known leads without calling the model.",
+            ...(runtime.content === undefined
+              ? [
+                  "  journal  Read discovered facts and known leads without calling the model.",
+                ]
+              : []),
             ...(hasLocalPotionReads
               ? [
-                  "  status  Read HP, potion availability, and combat turn without calling the model.",
-                  "  inventory  Read equipment and potion availability without calling the model.",
+                  runtime.content === undefined
+                    ? "  status  Read HP, potion availability, and combat turn without calling the model."
+                    : "  status  Read current HP without calling the model.",
+                  runtime.content === undefined
+                    ? "  inventory  Read equipment and potion availability without calling the model."
+                    : "  inventory  Read inventory without calling the model.",
                 ]
               : []),
             "  quit  Leave the game without calling the model.",

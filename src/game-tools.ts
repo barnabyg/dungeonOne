@@ -15,7 +15,6 @@ import type {
   ChapelJournal,
   ChapelHostileCombatantId,
   ChapelOpponentCombatantId,
-  ChapelRoomId,
 } from "./chapel.js";
 import type { RandomSource } from "./random.js";
 import {
@@ -34,11 +33,11 @@ export type DmScene = Readonly<{
   objective: string;
   outcome: SessionState["status"];
   room: Readonly<{
-    id: RoomId | ChapelRoomId;
+    id: string;
     name: string;
     description: string;
     features: readonly Readonly<{
-      id: FeatureId | ChapelFeatureId;
+      id: string;
       name: string;
       description: string;
     }>[];
@@ -63,7 +62,7 @@ export type DmScene = Readonly<{
       subjects: readonly Readonly<{ id: string; name: string }>[];
     }>[];
     exits: readonly Readonly<{
-      destinationId: RoomId | ChapelRoomId;
+      destinationId: string;
       name: string;
       doorway?: Readonly<{
         doorId: DoorId;
@@ -127,7 +126,7 @@ export type GameToolCall = Readonly<{
 export type DmInspection = Readonly<
   | {
       type: "feature";
-      id: FeatureId | ChapelFeatureId;
+      id: string;
       name: string;
       description: string;
     }
@@ -153,7 +152,7 @@ export type DmInspection = Readonly<
     }
   | {
       type: "named_exit";
-      destinationId: RoomId | ChapelRoomId;
+      destinationId: string;
       name: string;
       doorway?: Readonly<{
         doorId: DoorId;

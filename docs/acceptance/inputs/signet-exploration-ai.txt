@@ -1,0 +1,7 @@
+help
+status
+inventory
+look around
+inspect the carving
+enter the guardroom
+quit

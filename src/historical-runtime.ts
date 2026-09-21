@@ -337,6 +337,7 @@ function discoveryChapelState(state: RuntimeState): DiscoveryChapelState {
 
 function legacyChapelState(state: RuntimeState): LegacyChapelState {
   if (
+    "runtimeKind" in state ||
     !("adventureId" in state) ||
     state.adventureId !== CHAPEL_ID ||
     "discoveries" in state

@@ -1,5 +1,11 @@
-import { readFile } from "node:fs/promises";
 import { isDeepStrictEqual } from "node:util";
+import { readFile } from "node:fs/promises";
+import { parseBoundedJson } from "./bounded-json.js";
+import { loadAdventure } from "./adventure-loader.js";
+import {
+  createExplorationRuntime,
+  DATA_ENGINE_VERSION,
+} from "./exploration-runtime.js";
 
 import {
   resolveHistoricalAdventure,
@@ -792,9 +798,22 @@ function validateCompletion(value: unknown): ReplayDmTrace["completion"] {
   };
 }
 
-function validateDmArguments(value: unknown, path: string): string {
+function validateDmArguments(
+  value: unknown,
+  path: string,
+  bounded = false,
+): string {
   const encoded = requireObject(value, path);
   const raw = requireString(encoded.raw, `${path}.raw`);
+  if (bounded && encoded.encoding === "raw") {
+    requireFields(encoded, ["encoding", "raw"], path);
+    try {
+      parseBoundedJson(raw, 16384);
+    } catch {
+      return raw;
+    }
+    throw new Error(`${path}.raw encoding requires invalid bounded JSON.`);
+  }
   if (encoded.encoding === "json") {
     let decoded: unknown;
     try {
@@ -895,6 +914,7 @@ function validateDmTrace(
     toolSchemaVersion?: string;
     validateRuntimeState?: (value: unknown, path: string) => JsonObject;
     localKinds?: readonly ReplayDmTurn["kind"][];
+    runtime?: ReplayRuntime;
   }> = {},
 ): ReplayDmTrace {
   const trace = requireObject(value, "Trace");
@@ -1046,6 +1066,7 @@ function validateDmTrace(
             argumentsJson: validateDmArguments(
               call.arguments,
               `${callPath}.arguments`,
+              options.formatVersion === 4,
             ),
             disposition,
             rolls,
@@ -1092,13 +1113,15 @@ function validateDmTrace(
     },
   );
   return {
-    runtime: resolveHistoricalAdventure(
-      requireString(trace.rulesVersion, "rulesVersion"),
-      requireString(adventure.version, "adventure.version"),
-      adventure.id === undefined
-        ? ADVENTURE.id
-        : requireString(adventure.id, "adventure.id"),
-    ),
+    runtime:
+      options.runtime ??
+      resolveHistoricalAdventure(
+        requireString(trace.rulesVersion, "rulesVersion"),
+        requireString(adventure.version, "adventure.version"),
+        adventure.id === undefined
+          ? ADVENTURE.id
+          : requireString(adventure.id, "adventure.id"),
+      ),
     promptVersion: requireString(dm.promptVersion, "dm.promptVersion"),
     initialSeed: Number(random.initialSeed),
     initialState,
@@ -1302,6 +1325,136 @@ function validateFormat3CommandTrace(value: unknown): ReplayTrace {
   };
 }
 
+function requireFields(
+  value: JsonObject,
+  keys: readonly string[],
+  path: string,
+): void {
+  requireOnlyKeys(value, keys, path);
+  for (const key of keys) {
+    if (!Object.hasOwn(value, key)) {
+      throw new Error(`${path}.${key} is required.`);
+    }
+  }
+}
+
+function replayFormat4(trace: JsonObject): void {
+  requireSupported(trace.engineVersion, DATA_ENGINE_VERSION, "engine version");
+  const mode = requireOneOf(trace.mode, ["command", "ai"], "mode");
+  requireFields(
+    trace,
+    [
+      "formatVersion",
+      "mode",
+      "engineVersion",
+      "rulesVersion",
+      "adventure",
+      "content",
+      "adventureSnapshot",
+      "random",
+      "initialState",
+      "completion",
+      ...(mode === "command" ? ["actions"] : ["dm", "turns"]),
+    ],
+    "Trace",
+  );
+  const loaded = loadAdventure(JSON.stringify(trace.adventureSnapshot));
+  if (!loaded.ok) {
+    throw new Error(
+      `Invalid embedded content: ${JSON.stringify(loaded.diagnostics)}`,
+    );
+  }
+  const content = loaded.adventure;
+  requireMatch("content identity/digest", trace.content, {
+    schemaVersion: content.snapshot.schemaVersion,
+    id: content.snapshot.id,
+    contentVersion: content.snapshot.contentVersion,
+    digest: content.digest,
+  });
+  requireMatch("adventure identity", trace.adventure, {
+    id: content.snapshot.id,
+    version: content.snapshot.contentVersion,
+  });
+  requireSupported(
+    trace.rulesVersion,
+    content.snapshot.rulesVersion,
+    "rules version",
+  );
+  const random = requireObject(trace.random, "random");
+  requireFields(random, ["algorithm", "initialSeed"], "random");
+  requireSupported(random.algorithm, RANDOM_ALGORITHM, "random algorithm");
+  const seed = requireInteger(random.initialSeed, "random.initialSeed");
+  if (seed < 0 || seed > 0xffffffff) {
+    throw new Error("random.initialSeed must be an unsigned 32-bit integer.");
+  }
+  const runtime = createExplorationRuntime(content);
+  const entries = requireArray(
+    mode === "command" ? trace.actions : trace.turns,
+    mode,
+  );
+  if (entries.length > 10000) {
+    throw new Error("Trace turn-limit: at most 10000 entries are supported.");
+  }
+  if (mode === "ai") {
+    const decoded = validateDmTrace(trace, {
+      formatVersion: 4,
+      adventureId: runtime.id,
+      adventureVersion: runtime.version,
+      rulesVersion: runtime.rulesVersion,
+      promptVersions: [runtime.promptVersion],
+      toolSchemaVersion: runtime.toolSchemaVersion,
+      validateRuntimeState: requireObject,
+      runtime,
+      localKinds: [
+        "dm",
+        "local-help",
+        "local-status",
+        "local-inventory",
+        "local-quit",
+      ],
+    });
+    for (const [index, turn] of decoded.turns.entries()) {
+      if (turn.kind !== "dm") {
+        requireMatch(
+          `turn ${index + 1} local input`,
+          turn.rawPlayerInput.trim().toLowerCase(),
+          turn.kind.slice("local-".length),
+        );
+      }
+    }
+    replayDmTrace(decoded);
+    return;
+  }
+  const actions = entries.map((value, index): ReplayAction => {
+    const path = `actions[${index}]`;
+    const entry = requireObject(value, path);
+    requireFields(
+      entry,
+      ["sequence", "rawInput", "action", "rolls", "result", "stateAfter"],
+      path,
+    );
+    requireMatch(`${path}.sequence`, entry.sequence, index + 1);
+    return {
+      sequence: index + 1,
+      rawInput: requireString(entry.rawInput, `${path}.rawInput`),
+      action: requireObject(entry.action, `${path}.action`),
+      rolls: requireArray(entry.rolls, `${path}.rolls`).map((roll, number) =>
+        validateRoll(roll, `${path}.rolls[${number}]`),
+      ),
+      result: requireObject(entry.result, `${path}.result`),
+      stateAfter: requireObject(entry.stateAfter, `${path}.stateAfter`),
+    };
+  });
+  replayCommandTrace({
+    runtime,
+    rulesVersion: runtime.rulesVersion,
+    initialSeed: seed,
+    initialState: requireObject(trace.initialState, "initialState"),
+    actions,
+    completion: validateCompletion(trace.completion),
+  });
+}
+
 function formatDiagnosticJson(value: unknown): string {
   return JSON.stringify(value, undefined, 2);
 }
@@ -1374,8 +1527,13 @@ function replayCommandTrace(trace: ReplayTrace): void {
 
 export async function verifyTraceFile(path: string): Promise<void> {
   let contents: string;
+  let bytes: Uint8Array;
   try {
-    contents = await readFile(path, "utf8");
+    // Retain the historical reader for formats 1–3, which had no file-size cap.
+    // Format 4 applies its envelope and embedded-content bounds below.
+    const buffer = await readFile(path);
+    bytes = buffer;
+    contents = buffer.toString("utf8");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Unable to read trace "${path}": ${message}`, {
@@ -1393,6 +1551,15 @@ export async function verifyTraceFile(path: string): Promise<void> {
     });
   }
   const envelope = requireObject(parsed, "Trace");
+  if (envelope.formatVersion === 4) {
+    replayFormat4(
+      requireObject(
+        parseBoundedJson(bytes, 16 * 1024 * 1024, 48, false),
+        "Trace",
+      ),
+    );
+    return;
+  }
   if (envelope.formatVersion === DM_TRACE_FORMAT_VERSION) {
     replayDmTrace(validateDmTrace(parsed));
     return;

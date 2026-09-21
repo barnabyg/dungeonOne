@@ -1,0 +1,24 @@
+[
+  { "toolCalls": [{ "id": "look-1", "name": "look", "argumentsJson": "{}" }] },
+  { "text": "Daylight falls through the ruined entrance arch." },
+  {
+    "toolCalls": [
+      {
+        "id": "inspect-1",
+        "name": "inspect",
+        "argumentsJson": "{\"target\":\"carving\"}"
+      }
+    ]
+  },
+  { "text": "A weathered signet is carved into the stone." },
+  {
+    "toolCalls": [
+      {
+        "id": "move-1",
+        "name": "move",
+        "argumentsJson": "{\"destinationId\":\"guardroom\"}"
+      }
+    ]
+  },
+  { "text": "You enter the deserted guardroom, where dust coats the benches." }
+]

@@ -24,8 +24,14 @@ import type {
   ToolValidationErrorCode,
 } from "./game-tools.js";
 import type { RandomSource } from "./random.js";
+import type {
+  ExplorationState,
+  ExplorationEvent,
+} from "./exploration-runtime.js";
+import type { ValidatedAdventure } from "./adventure-loader.js";
 
 export type RuntimeState =
+  | ExplorationState
   | SessionState
   | ChapelState
   | GuardianChapelState
@@ -36,7 +42,11 @@ export type RuntimeState =
   | DiscoveryChapelState
   | LegacyChapelState;
 export type RuntimeEvent =
-  Event | ChapelEvent | DiscoveryChapelEvent | LegacyChapelEvent;
+  | Event
+  | ChapelEvent
+  | DiscoveryChapelEvent
+  | LegacyChapelEvent
+  | ExplorationEvent;
 export type RuntimeRejection = Rejection | ChapelRejection;
 export type RuntimeResult =
   | Readonly<{
@@ -82,8 +92,11 @@ export type AdventureRuntime = Readonly<{
   toolSchemaVersion: string;
   readToolNames: readonly string[];
   mutationToolNames: readonly string[];
-  commandTraceFormatVersion: 1 | 3;
-  dmTraceFormatVersion: 2 | 3;
+  commandTraceFormatVersion: 1 | 3 | 4;
+  dmTraceFormatVersion: 2 | 3 | 4;
+  content?: ValidatedAdventure;
+  engineVersion?: string;
+  localStatusReads?: boolean;
   createSession(): RuntimeState;
   handleAction(
     state: RuntimeState,

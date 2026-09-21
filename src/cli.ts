@@ -14,6 +14,8 @@ import {
 import { verifyTraceFile } from "./replay.js";
 import { resolveStartupSeed } from "./random.js";
 import { loadScriptedDmModel } from "./scripted-dm-model.js";
+import { loadAdventureFile } from "./adventure-file.js";
+import { createExplorationRuntime } from "./exploration-runtime.js";
 
 function chooseStartupSeed(): number {
   return randomBytes(4).readUInt32LE(0);
@@ -29,19 +31,45 @@ type StartupOptions = Readonly<
     }
   | { mode: "replay"; replayPath: string }
   | { mode: "help" }
+  | { mode: "validate"; result: Awaited<ReturnType<typeof loadAdventureFile>> }
 >;
 const USAGE = [
   "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
   "       dungeon-one --ai [--model <model-id>] [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
   "       dungeon-one --replay <path>",
+  "       dungeon-one --adventure-file <path> [--ai] [--seed <seed>] [--trace <path>]",
+  "       dungeon-one --validate-adventure <path>",
   "       dungeon-one --help",
   `Default AI model: ${OPENAI_DM_DEFAULT_MODEL}`,
   `Default adventure: ${DEFAULT_ADVENTURE_ID}`,
 ].join("\n");
 
-function resolveStartupOptions(args: readonly string[]): StartupOptions {
+async function resolveStartupOptions(
+  args: readonly string[],
+): Promise<StartupOptions> {
   if (args.length === 1 && args[0] === "--help") {
     return { mode: "help" };
+  }
+  if (
+    args.some(
+      (argument) =>
+        argument === "--validate-adventure" ||
+        argument.startsWith("--validate-adventure="),
+    )
+  ) {
+    const path =
+      args.length === 2 && args[0] === "--validate-adventure"
+        ? args[1]
+        : args.length === 1 &&
+            args[0]?.startsWith("--validate-adventure=") === true
+          ? args[0].slice("--validate-adventure=".length)
+          : undefined;
+    if (path === undefined || path.length === 0 || path.startsWith("--")) {
+      throw new Error(
+        `--validate-adventure requires one path and cannot be combined with other options.\n${USAGE}`,
+      );
+    }
+    return { mode: "validate", result: await loadAdventureFile(path) };
   }
   if (
     args.length === 2 &&
@@ -69,6 +97,7 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
   }
 
   let adventureId: string | undefined;
+  let adventureFile: string | undefined;
   let seedArgument: readonly string[] | undefined;
   let tracePath: string | undefined;
   let ai = false;
@@ -76,6 +105,28 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
+    if (
+      argument === "--adventure-file" ||
+      argument?.startsWith("--adventure-file=") === true
+    ) {
+      const value =
+        argument === "--adventure-file"
+          ? args[++index]
+          : argument.slice("--adventure-file=".length);
+      if (
+        adventureFile !== undefined ||
+        adventureId !== undefined ||
+        value === undefined ||
+        value.length === 0 ||
+        value.startsWith("--")
+      ) {
+        throw new Error(
+          `Adventure selectors are mutually exclusive and cannot be duplicated.\n${USAGE}`,
+        );
+      }
+      adventureFile = value;
+      continue;
+    }
     if (
       argument === "--adventure" ||
       argument?.startsWith("--adventure=") === true
@@ -86,6 +137,7 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
           : argument.slice("--adventure=".length);
       if (
         adventureId !== undefined ||
+        adventureFile !== undefined ||
         value === undefined ||
         value.length === 0 ||
         value.startsWith("--")
@@ -171,9 +223,22 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
     throw new Error(`--model requires --ai.\n${USAGE}`);
   }
 
+  let runtime: AdventureRuntime;
+  if (adventureFile === undefined) {
+    runtime = resolveAdventure(adventureId ?? DEFAULT_ADVENTURE_ID);
+  } else {
+    const result = await loadAdventureFile(adventureFile);
+    if (!result.ok) {
+      throw new Error(
+        JSON.stringify({ ok: false, diagnostics: result.diagnostics }),
+      );
+    }
+    runtime = createExplorationRuntime(result.adventure);
+  }
+
   return {
     mode: "play",
-    runtime: resolveAdventure(adventureId ?? DEFAULT_ADVENTURE_ID),
+    runtime,
     seed: resolveStartupSeed(seedArgument ?? [], chooseStartupSeed),
     ...(tracePath === undefined ? {} : { tracePath }),
     ...(ai ? { ai: { model: model ?? OPENAI_DM_DEFAULT_MODEL } } : {}),
@@ -183,7 +248,7 @@ function resolveStartupOptions(args: readonly string[]): StartupOptions {
 async function main(): Promise<void> {
   let startup;
   try {
-    startup = resolveStartupOptions(process.argv.slice(2));
+    startup = await resolveStartupOptions(process.argv.slice(2));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);
@@ -193,6 +258,16 @@ async function main(): Promise<void> {
 
   if (startup.mode === "help") {
     process.stdout.write(`${USAGE}\n`);
+    return;
+  }
+  if (startup.mode === "validate") {
+    const result = startup.result;
+    process.stdout.write(
+      `${JSON.stringify({ ok: result.ok, diagnostics: result.diagnostics, ...(result.ok ? { content: { id: result.adventure.snapshot.id, digest: result.adventure.digest } } : {}) })}\n`,
+    );
+    if (!result.ok) {
+      process.exitCode = 2;
+    }
     return;
   }
 
