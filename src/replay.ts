@@ -1414,13 +1414,13 @@ function replayFormat4(trace: JsonObject): void {
       ],
     });
     for (const [index, turn] of decoded.turns.entries()) {
-      if (turn.kind !== "dm") {
-        requireMatch(
-          `turn ${index + 1} local input`,
-          turn.rawPlayerInput.trim().toLowerCase(),
-          turn.kind.slice("local-".length),
-        );
-      }
+      const input = turn.rawPlayerInput.trim().toLowerCase();
+      const local = ["help", "status", "inventory", "quit"].includes(input);
+      requireMatch(
+        `turn ${index + 1} input routing`,
+        turn.kind,
+        local ? `local-${input}` : "dm",
+      );
     }
     replayDmTrace(decoded);
     return;

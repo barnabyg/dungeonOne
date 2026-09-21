@@ -365,6 +365,18 @@ test("scripted AI shares exploration dispatch, keeps local controls local and ex
         t.dm.promptVersion = "future";
       },
       (t) => {
+        t.turns[5].rawPlayerInput = "quit";
+      },
+      (t) => {
+        t.turns[5].rawPlayerInput = " STATUS ";
+      },
+      (t) => {
+        t.turns[5].rawPlayerInput = "help";
+      },
+      (t) => {
+        t.turns[5].rawPlayerInput = "inventory";
+      },
+      (t) => {
         t.dm.toolSchemaVersion = "future";
       },
       (t) => {
