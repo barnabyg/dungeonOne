@@ -80,6 +80,33 @@ limits. A digest detects stale content; it is not
 authentication against coherent rewrites. Formats 1–3 retain their historical
 runtime and evidence semantics. These exports are diagnostics, not save games.
 
+### External Stolen Signet adventure
+
+The complete [Stolen Signet document](adventures/stolen-signet.json) uses
+[schema 2](schema/adventure-v2.schema.json) and `signet-rules-v1`. It defines
+directed connections, one door, the fighter and weapon, a monster definition and
+placed instance, a collectible, and the authored exit. The runtime resolves
+those entities by validated IDs and aliases. A location may contain at most one
+living monster. Entering its location rolls initiative; combat attacks and
+automatic retaliation use the same seeded attack and damage rules as the
+historical built-in. Movement, opening, taking, and leaving are blocked during
+combat. `leave` succeeds only at the authored exit with its required item.
+
+```powershell
+npm.cmd run build
+node dist/cli.js --validate-adventure adventures/stolen-signet.json
+@("open wooden door", "move guardroom", "attack goblin", "attack goblin", "move reliquary", "take signet", "leave", "status", "quit") |
+  node dist/cli.js --adventure-file adventures/stolen-signet.json --seed 0 --trace signet-trace.json
+node dist/cli.js --replay signet-trace.json
+```
+
+Use `--adventure-file adventures/stolen-signet.json --ai` for model play; the
+scripted model test hook supports the same tools. The command and AI routes both
+export self-contained format-4 traces. `--adventure stolen-signet` and the
+default chapel selector still use their historical runtimes. Schema 2 supports
+this combat and escape profile only; save/resume, generation, arbitrary scripts,
+clocks, and new rule systems are outside this profile.
+
 The chapel investigation slice starts the active **Find Tavi** quest and lets you
 search the public missing-person notice, follow its chapel route, and discover a
 damaged repair record that identifies Oren's unfinished unsafe work. These

@@ -6,6 +6,10 @@ import {
   createExplorationRuntime,
   DATA_ENGINE_VERSION,
 } from "./exploration-runtime.js";
+import {
+  createSignetRuntime,
+  SIGNET_ENGINE_VERSION,
+} from "./signet-runtime.js";
 
 import {
   resolveHistoricalAdventure,
@@ -1339,7 +1343,16 @@ function requireFields(
 }
 
 function replayFormat4(trace: JsonObject): void {
-  requireSupported(trace.engineVersion, DATA_ENGINE_VERSION, "engine version");
+  if (
+    trace.engineVersion !== DATA_ENGINE_VERSION &&
+    trace.engineVersion !== SIGNET_ENGINE_VERSION
+  ) {
+    requireSupported(
+      trace.engineVersion,
+      DATA_ENGINE_VERSION,
+      "engine version",
+    );
+  }
   const mode = requireOneOf(trace.mode, ["command", "ai"], "mode");
   requireFields(
     trace,
@@ -1387,7 +1400,15 @@ function replayFormat4(trace: JsonObject): void {
   if (seed < 0 || seed > 0xffffffff) {
     throw new Error("random.initialSeed must be an unsigned 32-bit integer.");
   }
-  const runtime = createExplorationRuntime(content);
+  const runtime =
+    content.snapshot.schemaVersion === 2
+      ? createSignetRuntime(content)
+      : createExplorationRuntime(content);
+  requireSupported(
+    trace.engineVersion,
+    runtime.engineVersion as string,
+    "engine version",
+  );
   const entries = requireArray(
     mode === "command" ? trace.actions : trace.turns,
     mode,

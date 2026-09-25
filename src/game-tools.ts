@@ -1,17 +1,13 @@
 import {
   ADVENTURE,
   type DoorId,
-  type EquipmentId,
   type FeatureId,
   type ItemId,
   type OpponentId,
   type RoomId,
 } from "./adventure.js";
-import type { CombatantId } from "./combat.js";
 import type {
   ChapelCombatantId,
-  ChapelFeatureId,
-  ChapelItemId,
   ChapelJournal,
   ChapelHostileCombatantId,
   ChapelOpponentCombatantId,
@@ -42,16 +38,16 @@ export type DmScene = Readonly<{
       description: string;
     }>[];
     items: readonly Readonly<{
-      id: ItemId | ChapelItemId;
+      id: string;
       name: string;
       description: string;
       placement: Readonly<{
-        featureId: FeatureId | ChapelFeatureId;
+        featureId: string;
         description: string;
       }>;
     }>[];
     opponents: readonly Readonly<{
-      id: OpponentId | ChapelOpponentCombatantId;
+      id: string;
       name: string;
       condition: "living" | "defeated";
     }>[];
@@ -65,14 +61,14 @@ export type DmScene = Readonly<{
       destinationId: string;
       name: string;
       doorway?: Readonly<{
-        doorId: DoorId;
+        doorId: string;
         name: string;
         open: boolean;
       }>;
     }>[];
   }>;
   combat?: Readonly<
-    | { opponentId: OpponentId; currentTurn: CombatantId }
+    | { opponentId: string; currentTurn: string }
     | {
         opponentCombatantId: ChapelHostileCombatantId;
         currentTurn: ChapelCombatantId;
@@ -84,13 +80,13 @@ export type DmScene = Readonly<{
 export type CharacterStatus = Readonly<{
   hp: number;
   maxHp: number;
-  equipment: readonly Readonly<{ id: EquipmentId; name: string }>[];
+  equipment: readonly Readonly<{ id: string; name: string }>[];
   collectedItems: readonly Readonly<{
-    id: ItemId | ChapelItemId;
+    id: string;
     name: string;
   }>[];
   outcome: SessionState["status"];
-  combatTurn?: CombatantId | ChapelCombatantId;
+  combatTurn?: string;
 }>;
 
 type JsonSchema = Readonly<Record<string, unknown>>;

@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 2,
+  "id": "stolen-signet",
+  "contentVersion": "signet-data-v1",
+  "rulesVersion": "signet-rules-v1",
+  "title": "The Stolen Signet",
+  "introduction": "You arrive at a ruined watchtower to recover a stolen family signet.",
+  "objective": "Retrieve the stolen signet and leave through the reliquary's far exit.",
+  "player": {
+    "locationId": "entrance",
+    "hp": 20,
+    "maxHp": 20,
+    "armorClass": 16,
+    "attackBonus": 5,
+    "initiativeBonus": 1,
+    "weaponId": "longsword"
+  },
+  "locations": [
+    {
+      "id": "entrance",
+      "name": "Entrance",
+      "description": "You stand at the entrance to a ruined watchtower. Rain beads on the old stone.",
+      "aliases": ["entrance"]
+    },
+    {
+      "id": "guardroom",
+      "name": "Guardroom",
+      "description": "Dust blankets an abandoned guardroom where open passages lead onward and back.",
+      "aliases": ["guardroom"]
+    },
+    {
+      "id": "reliquary",
+      "name": "Reliquary",
+      "description": "A vaulted reliquary waits in silence beyond the guardroom passage.",
+      "aliases": ["reliquary"]
+    }
+  ],
+  "connections": [
+    { "id": "entrance-to-guardroom", "from": "entrance", "to": "guardroom" },
+    { "id": "guardroom-to-entrance", "from": "guardroom", "to": "entrance" },
+    { "id": "guardroom-to-reliquary", "from": "guardroom", "to": "reliquary" },
+    { "id": "reliquary-to-guardroom", "from": "reliquary", "to": "guardroom" }
+  ],
+  "features": [
+    {
+      "id": "ruined-archway",
+      "name": "ruined archway",
+      "description": "The cracked archway still bears the worn crest of the old watch.",
+      "aliases": ["ruined archway"],
+      "locationId": "entrance"
+    },
+    {
+      "id": "cold-hearth",
+      "name": "cold hearth",
+      "description": "Only grey ash remains in the hearth; no fire has burned here for years.",
+      "aliases": ["cold hearth"],
+      "locationId": "guardroom"
+    },
+    {
+      "id": "stone-pedestal",
+      "name": "stone pedestal",
+      "description": "The stone pedestal is carved with curling ivy and heraldic shields.",
+      "aliases": ["stone pedestal"],
+      "locationId": "reliquary"
+    }
+  ],
+  "doors": [
+    {
+      "id": "entrance-door",
+      "name": "wooden door",
+      "description": "A sturdy wooden door bound with weathered iron straps.",
+      "aliases": ["wooden door"],
+      "from": "entrance",
+      "to": "guardroom",
+      "open": 0
+    }
+  ],
+  "equipment": [
+    {
+      "id": "longsword",
+      "name": "longsword",
+      "description": "A dependable steel longsword, kept ready at your side.",
+      "aliases": ["longsword"],
+      "damage": { "dice": 1, "sides": 8, "modifier": 3 }
+    }
+  ],
+  "monsterDefinitions": [
+    {
+      "id": "goblin-definition",
+      "name": "goblin",
+      "description": "A wiry goblin in battered leather grips a nicked scimitar.",
+      "aliases": ["goblin"],
+      "maxHp": 7,
+      "armorClass": 13,
+      "attackBonus": 4,
+      "initiativeBonus": 2,
+      "attackName": "scimitar",
+      "damage": { "dice": 1, "sides": 6, "modifier": 2 }
+    }
+  ],
+  "monsters": [
+    {
+      "id": "goblin",
+      "definitionId": "goblin-definition",
+      "locationId": "guardroom",
+      "hp": 7
+    }
+  ],
+  "items": [
+    {
+      "id": "signet",
+      "name": "signet",
+      "description": "A silver signet engraved with the fighter's family crest, stolen but unharmed.",
+      "aliases": ["signet"],
+      "locationId": "reliquary",
+      "featureId": "stone-pedestal"
+    }
+  ],
+  "exit": {
+    "locationId": "reliquary",
+    "requiredItemId": "signet",
+    "name": "far exit",
+    "aliases": ["far exit"]
+  }
+}

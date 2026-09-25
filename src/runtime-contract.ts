@@ -29,8 +29,10 @@ import type {
   ExplorationEvent,
 } from "./exploration-runtime.js";
 import type { ValidatedAdventure } from "./adventure-loader.js";
+import type { SignetState, SignetEvent } from "./signet-runtime.js";
 
 export type RuntimeState =
+  | SignetState
   | ExplorationState
   | SessionState
   | ChapelState
@@ -42,6 +44,7 @@ export type RuntimeState =
   | DiscoveryChapelState
   | LegacyChapelState;
 export type RuntimeEvent =
+  | SignetEvent
   | Event
   | ChapelEvent
   | DiscoveryChapelEvent

@@ -2,3 +2,7 @@
 !dist/**
 !README.md
 !package.json
+!adventures/
+!adventures/stolen-signet.json
+!schema/
+!schema/adventure-v2.schema.json

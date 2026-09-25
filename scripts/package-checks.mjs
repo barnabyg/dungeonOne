@@ -58,6 +58,9 @@ for (const required of [
   "dist/cli.js",
   "dist/openai-dm-model.js",
   "dist/session.js",
+  "dist/signet-runtime.js",
+  "adventures/stolen-signet.json",
+  "schema/adventure-v2.schema.json",
   "package.json",
   "README.md",
 ]) {

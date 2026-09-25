@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { JsonInputError, parseBoundedJson, pointer } from "./bounded-json.js";
 import { ADVENTURE_SCHEMA, type Schema } from "./adventure-schema.js";
+import { SIGNET_SCHEMA } from "./signet-schema.js";
 
 export const EXPLORATION_RULES_VERSION = "exploration-rules-v1";
 export const ADVENTURE_BYTE_LIMIT = 1024 * 1024;
@@ -18,7 +19,57 @@ export type ConnectionDefinition = Readonly<{
   from: string;
   to: string;
 }>;
-export type AdventureDefinition = Readonly<{
+export type SignetDefinition = Readonly<{
+  schemaVersion: 2;
+  id: string;
+  contentVersion: string;
+  rulesVersion: "signet-rules-v1";
+  title: string;
+  introduction: string;
+  objective: string;
+  player: Readonly<{
+    locationId: string;
+    hp: number;
+    maxHp: number;
+    armorClass: number;
+    attackBonus: number;
+    initiativeBonus: number;
+    weaponId: string;
+  }>;
+  locations: readonly LocationDefinition[];
+  connections: readonly ConnectionDefinition[];
+  features: readonly FeatureDefinition[];
+  doors: readonly (LocationDefinition &
+    Readonly<{ from: string; to: string; open: 0 | 1 }>)[];
+  equipment: readonly (LocationDefinition &
+    Readonly<{
+      damage: Readonly<{ dice: number; sides: number; modifier: number }>;
+    }>)[];
+  monsterDefinitions: readonly (LocationDefinition &
+    Readonly<{
+      maxHp: number;
+      armorClass: number;
+      attackBonus: number;
+      initiativeBonus: number;
+      attackName: string;
+      damage: Readonly<{ dice: number; sides: number; modifier: number }>;
+    }>)[];
+  monsters: readonly Readonly<{
+    id: string;
+    definitionId: string;
+    locationId: string;
+    hp: number;
+  }>[];
+  items: readonly (LocationDefinition &
+    Readonly<{ locationId: string; featureId: string }>)[];
+  exit: Readonly<{
+    locationId: string;
+    requiredItemId: string;
+    name: string;
+    aliases: readonly string[];
+  }>;
+}>;
+export type ExplorationDefinition = Readonly<{
   schemaVersion: 1;
   id: string;
   contentVersion: string;
@@ -31,6 +82,7 @@ export type AdventureDefinition = Readonly<{
   connections: readonly ConnectionDefinition[];
   features: readonly FeatureDefinition[];
 }>;
+export type AdventureDefinition = ExplorationDefinition | SignetDefinition;
 export type AdventureDiagnostic = Readonly<{
   severity: "error" | "warning";
   code: string;
@@ -46,6 +98,13 @@ export type ValidatedAdventure = Readonly<{
     locations: Readonly<Record<string, LocationDefinition>>;
     features: Readonly<Record<string, FeatureDefinition>>;
     connections: Readonly<Record<string, ConnectionDefinition>>;
+    doors?: Readonly<Record<string, SignetDefinition["doors"][number]>>;
+    equipment?: Readonly<Record<string, SignetDefinition["equipment"][number]>>;
+    monsterDefinitions?: Readonly<
+      Record<string, SignetDefinition["monsterDefinitions"][number]>
+    >;
+    monsters?: Readonly<Record<string, SignetDefinition["monsters"][number]>>;
+    items?: Readonly<Record<string, SignetDefinition["items"][number]>>;
   }>;
 }>;
 
@@ -165,7 +224,7 @@ function validateStructure(
 }
 
 function validateReferences(
-  snapshot: AdventureDefinition,
+  snapshot: ExplorationDefinition,
   diagnostics: AdventureDiagnostic[],
 ): void {
   const error = (code: string, path: string, entity: string, message: string) =>
@@ -274,6 +333,233 @@ function validateReferences(
   });
 }
 
+function validateSignetReferences(
+  snapshot: SignetDefinition,
+  diagnostics: AdventureDiagnostic[],
+): void {
+  const error = (code: string, path: string, entity: string, message: string) =>
+    diagnostics.push({ severity: "error", code, path, entity, message });
+  const namespaces = [
+    "locations",
+    "connections",
+    "features",
+    "doors",
+    "equipment",
+    "monsterDefinitions",
+    "monsters",
+    "items",
+  ] as const;
+  for (const namespace of namespaces) {
+    const seen = new Set<string>();
+    snapshot[namespace].forEach((entry, index) => {
+      if (seen.has(entry.id)) {
+        error(
+          "duplicate-id",
+          `/${namespace}/${index}/id`,
+          entry.id,
+          "Duplicate entity ID.",
+        );
+      }
+      seen.add(entry.id);
+    });
+  }
+  const ids = (namespace: (typeof namespaces)[number]) =>
+    new Set(snapshot[namespace].map(({ id }) => id));
+  const locations = ids("locations"),
+    features = ids("features"),
+    equipment = ids("equipment"),
+    definitions = ids("monsterDefinitions"),
+    items = ids("items");
+  const ref = (
+    set: Set<string>,
+    value: string,
+    path: string,
+    entity: string,
+  ) => {
+    if (!set.has(value)) {
+      error("unknown-reference", path, entity, `Unknown reference: ${value}.`);
+    }
+  };
+  ref(locations, snapshot.player.locationId, "/player/locationId", "player");
+  ref(equipment, snapshot.player.weaponId, "/player/weaponId", "player");
+  if (snapshot.player.hp > snapshot.player.maxHp) {
+    error(
+      "invalid-placement",
+      "/player/hp",
+      "player",
+      "HP exceeds maximum HP.",
+    );
+  }
+  snapshot.features.forEach((entry, i) =>
+    ref(locations, entry.locationId, `/features/${i}/locationId`, entry.id),
+  );
+  const routes = new Set<string>();
+  snapshot.connections.forEach((entry, i) => {
+    ref(locations, entry.from, `/connections/${i}/from`, entry.id);
+    ref(locations, entry.to, `/connections/${i}/to`, entry.id);
+    const key = `${entry.from}/${entry.to}`;
+    if (entry.from === entry.to || routes.has(key)) {
+      error(
+        "invalid-connection",
+        `/connections/${i}`,
+        entry.id,
+        "Duplicate or self connection.",
+      );
+    }
+    routes.add(key);
+  });
+  snapshot.doors.forEach((entry, i) => {
+    ref(locations, entry.from, `/doors/${i}/from`, entry.id);
+    ref(locations, entry.to, `/doors/${i}/to`, entry.id);
+    if (
+      !routes.has(`${entry.from}/${entry.to}`) ||
+      !routes.has(`${entry.to}/${entry.from}`)
+    ) {
+      error(
+        "invalid-door",
+        `/doors/${i}`,
+        entry.id,
+        "A door requires connections in both directions.",
+      );
+    }
+    if (
+      snapshot.doors.findIndex(
+        (other) =>
+          other !== entry &&
+          ((other.from === entry.from && other.to === entry.to) ||
+            (other.from === entry.to && other.to === entry.from)),
+      ) >= 0
+    ) {
+      error(
+        "invalid-door",
+        `/doors/${i}`,
+        entry.id,
+        "Only one door may control a location pair.",
+      );
+    }
+  });
+  snapshot.monsters.forEach((entry, i) => {
+    ref(
+      definitions,
+      entry.definitionId,
+      `/monsters/${i}/definitionId`,
+      entry.id,
+    );
+    ref(locations, entry.locationId, `/monsters/${i}/locationId`, entry.id);
+    const maximum = snapshot.monsterDefinitions.find(
+      (definition) => definition.id === entry.definitionId,
+    )?.maxHp;
+    if (maximum !== undefined && entry.hp > maximum) {
+      error(
+        "invalid-placement",
+        `/monsters/${i}/hp`,
+        entry.id,
+        "HP exceeds maximum HP.",
+      );
+    }
+    if (
+      entry.hp > 0 &&
+      snapshot.monsters.some(
+        (other) =>
+          other !== entry &&
+          other.locationId === entry.locationId &&
+          other.hp > 0,
+      )
+    ) {
+      error(
+        "unsupported-encounter",
+        `/monsters/${i}`,
+        entry.id,
+        "Only one living monster may occupy a location.",
+      );
+    }
+  });
+  snapshot.items.forEach((entry, i) => {
+    ref(locations, entry.locationId, `/items/${i}/locationId`, entry.id);
+    ref(features, entry.featureId, `/items/${i}/featureId`, entry.id);
+    if (
+      snapshot.features.find((feature) => feature.id === entry.featureId)
+        ?.locationId !== entry.locationId
+    ) {
+      error(
+        "invalid-placement",
+        `/items/${i}/featureId`,
+        entry.id,
+        "The feature must be in the item's location.",
+      );
+    }
+  });
+  ref(locations, snapshot.exit.locationId, "/exit/locationId", "exit");
+  ref(items, snapshot.exit.requiredItemId, "/exit/requiredItemId", "exit");
+  const reachable = new Set([snapshot.player.locationId]);
+  for (let pass = 0; pass < snapshot.locations.length; pass++) {
+    for (const route of snapshot.connections) {
+      if (reachable.has(route.from)) {
+        reachable.add(route.to);
+      }
+    }
+  }
+  snapshot.locations.forEach((entry, i) => {
+    if (!reachable.has(entry.id)) {
+      error(
+        "unreachable-location",
+        `/locations/${i}`,
+        entry.id,
+        "Location is unreachable.",
+      );
+    }
+  });
+  const visible = (locationId: string) => [
+    ...snapshot.features
+      .filter((entry) => entry.locationId === locationId)
+      .map((entry) => ({ entry, identity: `feature/${entry.id}` })),
+    ...snapshot.items
+      .filter((entry) => entry.locationId === locationId)
+      .map((entry) => ({ entry, identity: `item/${entry.id}` })),
+    ...snapshot.doors
+      .filter((entry) => entry.from === locationId || entry.to === locationId)
+      .map((entry) => ({ entry, identity: `door/${entry.id}` })),
+    ...snapshot.monsters
+      .filter((entry) => entry.locationId === locationId)
+      .flatMap((instance) => {
+        const entry = snapshot.monsterDefinitions.find(
+          (definition) => definition.id === instance.definitionId,
+        );
+        return entry === undefined
+          ? []
+          : [
+              {
+                entry: {
+                  id: instance.id,
+                  aliases: [entry.id, ...entry.aliases],
+                },
+                identity: `monster/${instance.id}`,
+              },
+            ];
+      }),
+    ...snapshot.locations
+      .filter((entry) => routes.has(`${locationId}/${entry.id}`))
+      .map((entry) => ({ entry, identity: `location/${entry.id}` })),
+  ];
+  for (const location of snapshot.locations) {
+    const aliases = new Map<string, string>();
+    for (const { entry, identity } of visible(location.id)) {
+      for (const alias of [entry.id, ...entry.aliases]) {
+        const key = normalizeAlias(alias);
+        if (aliases.has(key) && aliases.get(key) !== identity) {
+          error(
+            "ambiguous-alias",
+            `/locations/${snapshot.locations.indexOf(location)}`,
+            location.id,
+            `Ambiguous visible alias: ${alias}.`,
+          );
+        }
+        aliases.set(key, identity);
+      }
+    }
+  }
+}
+
 export function freezeDefinition<T>(value: T): T {
   if (value !== null && typeof value === "object") {
     for (const child of Object.values(value)) {
@@ -329,7 +615,17 @@ export function loadAdventure(input: string | Uint8Array):
       ],
     });
   }
-  validateStructure(parsed, ADVENTURE_SCHEMA, "", diagnostics);
+  validateStructure(
+    parsed,
+    (parsed as { schemaVersion?: number; rulesVersion?: string } | null)
+      ?.schemaVersion === 2 &&
+      (parsed as { rulesVersion?: string } | null)?.rulesVersion ===
+        "signet-rules-v1"
+      ? SIGNET_SCHEMA
+      : ADVENTURE_SCHEMA,
+    "",
+    diagnostics,
+  );
   if (diagnostics.length > 0) {
     return freezeDefinition({
       ok: false,
@@ -339,7 +635,11 @@ export function loadAdventure(input: string | Uint8Array):
     });
   }
   const snapshot = parsed as AdventureDefinition;
-  validateReferences(snapshot, diagnostics);
+  if (snapshot.schemaVersion === 2) {
+    validateSignetReferences(snapshot, diagnostics);
+  } else {
+    validateReferences(snapshot, diagnostics);
+  }
   if (diagnostics.length > 0) {
     return freezeDefinition({
       ok: false,
@@ -365,6 +665,28 @@ export function loadAdventure(input: string | Uint8Array):
         connections: Object.fromEntries(
           snapshot.connections.map((entity) => [entity.id, entity]),
         ),
+        ...(snapshot.schemaVersion === 2
+          ? {
+              doors: Object.fromEntries(
+                snapshot.doors.map((entity) => [entity.id, entity]),
+              ),
+              equipment: Object.fromEntries(
+                snapshot.equipment.map((entity) => [entity.id, entity]),
+              ),
+              monsterDefinitions: Object.fromEntries(
+                snapshot.monsterDefinitions.map((entity) => [
+                  entity.id,
+                  entity,
+                ]),
+              ),
+              monsters: Object.fromEntries(
+                snapshot.monsters.map((entity) => [entity.id, entity]),
+              ),
+              items: Object.fromEntries(
+                snapshot.items.map((entity) => [entity.id, entity]),
+              ),
+            }
+          : {}),
       },
     },
     diagnostics: [],
