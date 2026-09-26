@@ -325,6 +325,7 @@ function dialogueChapelState(state: RuntimeState): DialogueChapelState {
 
 function discoveryChapelState(state: RuntimeState): DiscoveryChapelState {
   if (
+    "runtimeKind" in state ||
     !("adventureId" in state) ||
     state.adventureId !== CHAPEL_ID ||
     !("discoveries" in state) ||

@@ -1,6 +1,7 @@
 export type Schema = Readonly<{
   type: "object" | "array" | "string" | "integer";
   const?: string | number;
+  enum?: readonly string[];
   properties?: Readonly<Record<string, Schema>>;
   required?: readonly string[];
   additionalProperties?: false;

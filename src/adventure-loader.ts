@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { JsonInputError, parseBoundedJson, pointer } from "./bounded-json.js";
 import { ADVENTURE_SCHEMA, type Schema } from "./adventure-schema.js";
 import { SIGNET_SCHEMA } from "./signet-schema.js";
+import { CHAPEL_CLUES_SCHEMA } from "./chapel-clues-schema.js";
 
 export const EXPLORATION_RULES_VERSION = "exploration-rules-v1";
 export const ADVENTURE_BYTE_LIMIT = 1024 * 1024;
@@ -82,7 +83,47 @@ export type ExplorationDefinition = Readonly<{
   connections: readonly ConnectionDefinition[];
   features: readonly FeatureDefinition[];
 }>;
-export type AdventureDefinition = ExplorationDefinition | SignetDefinition;
+export type ClueCondition = Readonly<{
+  type: "discovery-known" | "milestone-recorded";
+  id: string;
+}>;
+export type ClueEffect = Readonly<{
+  type: "grant-discovery" | "record-milestone";
+  id: string;
+}>;
+export type ChapelCluesDefinition = Readonly<{
+  schemaVersion: 3;
+  id: string;
+  contentVersion: string;
+  rulesVersion: "chapel-clues-rules-v1";
+  title: string;
+  introduction: string;
+  objective: string;
+  player: Readonly<{ locationId: string; hp: number; maxHp: number }>;
+  locations: readonly LocationDefinition[];
+  connections: readonly (ConnectionDefinition &
+    Readonly<{ when: readonly ClueCondition[] }>)[];
+  features: readonly (FeatureDefinition &
+    Readonly<{ when: readonly ClueCondition[] }>)[];
+  quest: Readonly<{ id: string; title: string; milestones: readonly string[] }>;
+  discoveries: readonly Readonly<{
+    id: string;
+    title: string;
+    classification: "observation" | "testimony" | "belief";
+    sourceFeatureId: string;
+    summary: string;
+    lead: string;
+  }>[];
+  searches: readonly Readonly<{
+    id: string;
+    targetId: string;
+    when: readonly ClueCondition[];
+    effects: readonly ClueEffect[];
+    text: string;
+  }>[];
+}>;
+export type AdventureDefinition =
+  ExplorationDefinition | SignetDefinition | ChapelCluesDefinition;
 export type AdventureDiagnostic = Readonly<{
   severity: "error" | "warning";
   code: string;
@@ -210,6 +251,9 @@ function validateStructure(
         path.includes("/aliases/") ? "invalid-alias" : "invalid-id",
         "String does not match the supported grammar.",
       );
+    }
+    if (schema.enum !== undefined && !schema.enum.includes(value)) {
+      error("unsupported-value", "Value is outside the supported vocabulary.");
     }
     if (/[{}]/.test(value)) {
       error(
@@ -604,6 +648,232 @@ function validateSignetReferences(
   });
 }
 
+function validateClueReferences(
+  snapshot: ChapelCluesDefinition,
+  diagnostics: AdventureDiagnostic[],
+): void {
+  const error: DiagnosticError = (code, path, entity, message) =>
+    diagnostics.push({ severity: "error", code, path, entity, message });
+  validateUniqueIds(
+    [
+      { namespace: "locations", entries: snapshot.locations },
+      { namespace: "connections", entries: snapshot.connections },
+      { namespace: "features", entries: snapshot.features },
+      { namespace: "discoveries", entries: snapshot.discoveries },
+      { namespace: "searches", entries: snapshot.searches },
+    ],
+    error,
+    "Duplicate entity ID.",
+  );
+  const features = new Set(snapshot.features.map(({ id }) => id));
+  const discoveries = new Set(snapshot.discoveries.map(({ id }) => id));
+  const milestones = new Set(snapshot.quest.milestones);
+  snapshot.quest.milestones.forEach((id, i) => {
+    if (snapshot.quest.milestones.indexOf(id) !== i) {
+      error(
+        "duplicate-id",
+        `/quest/milestones/${i}`,
+        id,
+        "Duplicate quest milestone.",
+      );
+    }
+  });
+  if (snapshot.player.hp === 0 || snapshot.player.hp > snapshot.player.maxHp) {
+    error(
+      "invalid-placement",
+      "/player/hp",
+      "player",
+      "Initial HP must be positive and at most maxHp.",
+    );
+  }
+  validateLocationGraph(snapshot, error, {
+    reference: (id) => `Unknown location: ${id}.`,
+    connection: "Duplicate or self connection.",
+    unreachable: "Location is unreachable.",
+  });
+  const ref = (set: Set<string>, id: string, path: string, entity: string) => {
+    if (!set.has(id)) {
+      error("unknown-reference", path, entity, `Unknown reference: ${id}.`);
+    }
+  };
+  const conditions = (
+    list: readonly ClueCondition[],
+    path: string,
+    entity: string,
+  ) =>
+    list.forEach((entry, i) =>
+      ref(
+        entry.type === "discovery-known" ? discoveries : milestones,
+        entry.id,
+        `${path}/${i}/id`,
+        entity,
+      ),
+    );
+  snapshot.connections.forEach((entry, i) =>
+    conditions(entry.when, `/connections/${i}/when`, entry.id),
+  );
+  snapshot.features.forEach((entry, i) =>
+    conditions(entry.when, `/features/${i}/when`, entry.id),
+  );
+  snapshot.discoveries.forEach((entry, i) =>
+    ref(
+      features,
+      entry.sourceFeatureId,
+      `/discoveries/${i}/sourceFeatureId`,
+      entry.id,
+    ),
+  );
+  const producers = new Set(
+    snapshot.searches.flatMap((search) =>
+      search.effects
+        .filter((effect) => effect.type === "record-milestone")
+        .map((effect) => effect.id),
+    ),
+  );
+  snapshot.quest.milestones.forEach((id, i) => {
+    if (!producers.has(id)) {
+      error(
+        "unproducible-milestone",
+        `/quest/milestones/${i}`,
+        id,
+        "No search records this milestone.",
+      );
+    }
+  });
+  snapshot.searches.forEach((entry, i) => {
+    ref(features, entry.targetId, `/searches/${i}/targetId`, entry.id);
+    conditions(entry.when, `/searches/${i}/when`, entry.id);
+    const seen = new Set<string>();
+    entry.effects.forEach((effect, j) => {
+      ref(
+        effect.type === "grant-discovery" ? discoveries : milestones,
+        effect.id,
+        `/searches/${i}/effects/${j}/id`,
+        entry.id,
+      );
+      const key = `${effect.type}/${effect.id}`;
+      if (seen.has(key)) {
+        error(
+          "conflicting-effects",
+          `/searches/${i}/effects/${j}`,
+          entry.id,
+          "Duplicate effect in one atomic action.",
+        );
+      }
+      seen.add(key);
+      if (effect.type === "grant-discovery") {
+        const source = snapshot.discoveries.find(
+          (discovery) => discovery.id === effect.id,
+        );
+        if (source !== undefined && source.sourceFeatureId !== entry.targetId) {
+          error(
+            "invalid-source",
+            `/searches/${i}/effects/${j}`,
+            entry.id,
+            "A physical search may only grant a discovery sourced to its target.",
+          );
+        }
+      }
+    });
+    if (entry.effects.length === 0) {
+      error(
+        "invalid-search",
+        `/searches/${i}/effects`,
+        entry.id,
+        "A search must have an effect.",
+      );
+    }
+  });
+  for (const location of snapshot.locations) {
+    validateVisibleAliases(
+      [
+        ...snapshot.features
+          .filter((entry) => entry.locationId === location.id)
+          .map((entry) => ({
+            entry,
+            identity: entry.id,
+            path: `/features/${snapshot.features.indexOf(entry)}`,
+          })),
+        ...snapshot.connections
+          .filter((entry) => entry.from === location.id)
+          .flatMap((entry) => {
+            const target = snapshot.locations.find(
+              (room) => room.id === entry.to,
+            );
+            return target === undefined
+              ? []
+              : [
+                  {
+                    entry: target,
+                    identity: `location/${target.id}`,
+                    path: `/locations/${snapshot.locations.indexOf(target)}`,
+                  },
+                ];
+          }),
+      ],
+      error,
+      (alias) => `Ambiguous visible alias: ${alias}.`,
+      true,
+    );
+  }
+  // A finite fixed point catches closed prerequisite cycles without guessing combat outcomes.
+  const known = new Set<string>();
+  const reached = new Set([snapshot.player.locationId]);
+  const reachableSearches = new Set<string>();
+  for (
+    let pass = 0;
+    pass < snapshot.searches.length + snapshot.connections.length + 1;
+    pass++
+  ) {
+    for (const route of snapshot.connections) {
+      if (
+        reached.has(route.from) &&
+        route.when.every((c) => known.has(`${c.type}/${c.id}`))
+      ) {
+        reached.add(route.to);
+      }
+    }
+    for (const search of snapshot.searches) {
+      const feature = snapshot.features.find(
+        (entry) => entry.id === search.targetId,
+      );
+      if (
+        feature !== undefined &&
+        reached.has(feature.locationId) &&
+        feature.when.every((c) => known.has(`${c.type}/${c.id}`)) &&
+        search.when.every((c) => known.has(`${c.type}/${c.id}`))
+      ) {
+        reachableSearches.add(search.id);
+        search.effects.forEach((effect) =>
+          known.add(
+            `${effect.type === "grant-discovery" ? "discovery-known" : "milestone-recorded"}/${effect.id}`,
+          ),
+        );
+      }
+    }
+  }
+  snapshot.searches.forEach((entry, i) => {
+    if (!reachableSearches.has(entry.id)) {
+      error(
+        "unreachable-search",
+        `/searches/${i}`,
+        entry.id,
+        "Search prerequisites form an unreachable dependency.",
+      );
+    }
+  });
+  snapshot.locations.forEach((entry, i) => {
+    if (!reached.has(entry.id)) {
+      error(
+        "unreachable-location",
+        `/locations/${i}`,
+        entry.id,
+        "Conditional routes never make this location reachable.",
+      );
+    }
+  });
+}
+
 export function freezeDefinition<T>(value: T): T {
   if (value !== null && typeof value === "object") {
     for (const child of Object.values(value)) {
@@ -666,7 +936,9 @@ export function loadAdventure(input: string | Uint8Array):
       (parsed as { rulesVersion?: string } | null)?.rulesVersion ===
         "signet-rules-v1"
       ? SIGNET_SCHEMA
-      : ADVENTURE_SCHEMA,
+      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 3
+        ? CHAPEL_CLUES_SCHEMA
+        : ADVENTURE_SCHEMA,
     "",
     diagnostics,
   );
@@ -681,6 +953,8 @@ export function loadAdventure(input: string | Uint8Array):
   const snapshot = parsed as AdventureDefinition;
   if (snapshot.schemaVersion === 2) {
     validateSignetReferences(snapshot, diagnostics);
+  } else if (snapshot.schemaVersion === 3) {
+    validateClueReferences(snapshot, diagnostics);
   } else {
     validateReferences(snapshot, diagnostics);
   }

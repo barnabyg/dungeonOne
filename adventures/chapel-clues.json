@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 3,
+  "id": "chapel-clues",
+  "contentVersion": "1",
+  "rulesVersion": "chapel-clues-rules-v1",
+  "title": "The Bell Beneath the Chapel: First Leads",
+  "introduction": "Tavi is missing. Begin at the village inn and follow the public chapel route.",
+  "objective": "Find the public notice and the damaged chapel repair record. The crypt remains inaccessible in this chapter.",
+  "player": { "locationId": "inn", "hp": 20, "maxHp": 20 },
+  "locations": [
+    { "id": "inn", "name": "Village Inn", "description": "Rain taps the inn windows. Mara tends the counter beside a public noticeboard.", "aliases": ["inn", "village inn"] },
+    { "id": "ferry-landing", "name": "Ferry Landing", "description": "A wooden ferry rests beside the landing. Oren checks its mooring.", "aliases": ["ferry landing", "landing"] },
+    { "id": "chapel-path", "name": "Chapel Path", "description": "An uphill path runs from the village toward the ruined chapel.", "aliases": ["chapel path", "path"] },
+    { "id": "ruined-chapel", "name": "Ruined Chapel", "description": "Daylight falls through the broken roof. Stone steps descend toward a crypt blocked beyond this chapter.", "aliases": ["ruined chapel", "chapel"] }
+  ],
+  "connections": [
+    { "id": "inn-to-ferry", "from": "inn", "to": "ferry-landing", "when": [] },
+    { "id": "ferry-to-inn", "from": "ferry-landing", "to": "inn", "when": [] },
+    { "id": "inn-to-path", "from": "inn", "to": "chapel-path", "when": [] },
+    { "id": "path-to-inn", "from": "chapel-path", "to": "inn", "when": [] },
+    { "id": "path-to-chapel", "from": "chapel-path", "to": "ruined-chapel", "when": [] },
+    { "id": "chapel-to-path", "from": "ruined-chapel", "to": "chapel-path", "when": [] }
+  ],
+  "features": [
+    { "id": "missing-person-notice", "locationId": "inn", "name": "missing-person notice", "description": "Tavi, the village apprentice, is missing. The notice asks searchers to check the ruined chapel along the chapel path.", "aliases": ["notice", "missing person notice"], "when": [] },
+    { "id": "mooring", "locationId": "ferry-landing", "name": "mooring", "description": "A thick rope holds the ferry against the landing.", "aliases": ["rope"], "when": [] },
+    { "id": "waymarker", "locationId": "chapel-path", "name": "waymarker", "description": "A weathered arrow confirms the route named by the public notice.", "aliases": ["marker"], "when": [{ "type": "discovery-known", "id": "chapel-route" }] },
+    { "id": "broken-roof", "locationId": "ruined-chapel", "name": "broken roof", "description": "Gaps in the roof let the rain through. Stay clear of fallen stones.", "aliases": ["roof"], "when": [] },
+    { "id": "damaged-repair-record", "locationId": "ruined-chapel", "name": "damaged repair record", "description": "A water-spotted repair record is pinned beneath a fallen beam. Its cramped entries need careful searching.", "aliases": ["repair record", "record"], "when": [] }
+  ],
+  "quest": { "id": "find-tavi", "title": "Find Tavi", "milestones": ["chapel-route-known", "unsafe-repairs-linked-to-oren"] },
+  "discoveries": [
+    { "id": "chapel-route", "title": "The chapel route", "classification": "observation", "sourceFeatureId": "missing-person-notice", "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.", "lead": "Follow the chapel path to the ruined chapel." },
+    { "id": "unsafe-repairs", "title": "Unsafe chapel repairs", "classification": "observation", "sourceFeatureId": "damaged-repair-record", "summary": "The damaged record assigns chapel repairs to Oren and shows that roof supports were left unfinished and unsafe.", "lead": "Ask Oren about the unfinished chapel repairs." }
+  ],
+  "searches": [
+    { "id": "notice-search", "targetId": "missing-person-notice", "when": [], "effects": [{ "type": "grant-discovery", "id": "chapel-route" }, { "type": "record-milestone", "id": "chapel-route-known" }], "text": "You search the notice and record the chapel route in your journal." },
+    { "id": "record-search", "targetId": "damaged-repair-record", "when": [], "effects": [{ "type": "grant-discovery", "id": "unsafe-repairs" }, { "type": "record-milestone", "id": "unsafe-repairs-linked-to-oren" }], "text": "You decipher the damaged record and note the unsafe repairs linked to Oren." }
+  ]
+}

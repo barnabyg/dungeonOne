@@ -128,7 +128,7 @@ export async function playGame(
               : []),
             "Local commands:",
             "  help  Show this guidance without calling the model.",
-            ...(runtime.content === undefined
+            ...(runtime.readToolNames.includes("get_journal")
               ? [
                   "  journal  Read discovered facts and known leads without calling the model.",
                 ]

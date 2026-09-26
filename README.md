@@ -109,6 +109,35 @@ default chapel selector still use their historical runtimes. Schema 2 supports
 this combat and escape profile only; save/resume, generation, arbitrary scripts,
 clocks, and new rule systems are outside this profile.
 
+### External chapel clues
+
+[The chapel clues document](adventures/chapel-clues.json) uses
+[schema 3](schema/adventure-v3.schema.json) and `chapel-clues-rules-v1`.
+It provides the inn, ferry landing, chapel path, and ruined chapel as directed
+connections. Searching the public notice or damaged repair record grants a
+sourced observation and quest milestone once, with no roll or NPC interaction.
+The two searches work in either order. `look` and `inspect` only read public
+content; `journal` lists discoveries, sources, classifications, and known leads.
+The crypt, guardian, dialogue, and quest resolution are not available in this
+external slice. The built-in chapel selector retains its existing behavior.
+
+```powershell
+npm.cmd run build
+node dist/cli.js --validate-adventure adventures/chapel-clues.json
+@("move chapel path", "move ruined chapel", "search repair record", "move chapel path", "move inn", "search notice", "journal", "quit") |
+  node dist/cli.js --adventure-file adventures/chapel-clues.json --seed 0 --trace chapel-clues-trace.json
+node dist/cli.js --replay chapel-clues-trace.json
+```
+
+Schema 3 uses stable IDs and bounded aliases. Each `when` list is a conjunction
+of typed `discovery-known` or `milestone-recorded` predicates evaluated before
+the action. Searches are considered in document order and apply their finite
+`grant-discovery` and `record-milestone` effects together; duplicate effects,
+unknown references, and unreachable prerequisite cycles fail validation. A
+repeated search makes no new discovery. Hidden features and routes stay out of
+scenes and strict tool arguments, and dispatch independently rejects forged
+references. Both command and AI play export self-contained format-4 traces.
+
 The chapel investigation slice starts the active **Find Tavi** quest and lets you
 search the public missing-person notice, follow its chapel route, and discover a
 damaged repair record that identifies Oren's unfinished unsafe work. These

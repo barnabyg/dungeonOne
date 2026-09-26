@@ -17,6 +17,7 @@ import { loadScriptedDmModel } from "./scripted-dm-model.js";
 import { loadAdventureFile } from "./adventure-file.js";
 import { createExplorationRuntime } from "./exploration-runtime.js";
 import { createSignetRuntime } from "./signet-runtime.js";
+import { createChapelCluesRuntime } from "./chapel-clues-runtime.js";
 
 function chooseStartupSeed(): number {
   return randomBytes(4).readUInt32LE(0);
@@ -237,7 +238,9 @@ async function resolveStartupOptions(
     runtime =
       result.adventure.snapshot.schemaVersion === 2
         ? createSignetRuntime(result.adventure)
-        : createExplorationRuntime(result.adventure);
+        : result.adventure.snapshot.schemaVersion === 3
+          ? createChapelCluesRuntime(result.adventure)
+          : createExplorationRuntime(result.adventure);
   }
 
   return {

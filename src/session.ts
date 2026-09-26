@@ -154,7 +154,7 @@ export type Rejection = Readonly<
   | { reason: "unknown-command"; input: string }
   | {
       reason: "missing-argument";
-      command: "inspect" | "move" | "open" | "take" | "attack";
+      command: "inspect" | "search" | "move" | "open" | "take" | "attack";
     }
   | { reason: "invisible-target"; target: string }
   | { reason: "not-openable"; target: string }

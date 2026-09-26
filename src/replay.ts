@@ -2,6 +2,8 @@ import { isDeepStrictEqual } from "node:util";
 import { readTraceFile } from "./trace-file.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { loadAdventure } from "./adventure-loader.js";
+import { createChapelCluesRuntime } from "./chapel-clues-runtime.js";
+import { CLUES_ENGINE_VERSION } from "./chapel-clues-runtime.js";
 import {
   createExplorationRuntime,
   DATA_ENGINE_VERSION,
@@ -1345,7 +1347,8 @@ function requireFields(
 function replayFormat4(trace: JsonObject): void {
   if (
     trace.engineVersion !== DATA_ENGINE_VERSION &&
-    trace.engineVersion !== SIGNET_ENGINE_VERSION
+    trace.engineVersion !== SIGNET_ENGINE_VERSION &&
+    trace.engineVersion !== CLUES_ENGINE_VERSION
   ) {
     requireSupported(
       trace.engineVersion,
@@ -1403,7 +1406,9 @@ function replayFormat4(trace: JsonObject): void {
   const runtime =
     content.snapshot.schemaVersion === 2
       ? createSignetRuntime(content)
-      : createExplorationRuntime(content);
+      : content.snapshot.schemaVersion === 3
+        ? createChapelCluesRuntime(content)
+        : createExplorationRuntime(content);
   requireSupported(
     trace.engineVersion,
     runtime.engineVersion as string,
@@ -1429,6 +1434,9 @@ function replayFormat4(trace: JsonObject): void {
       localKinds: [
         "dm",
         "local-help",
+        ...(content.snapshot.schemaVersion === 3
+          ? ["local-journal" as const]
+          : []),
         "local-status",
         "local-inventory",
         "local-quit",
@@ -1436,7 +1444,13 @@ function replayFormat4(trace: JsonObject): void {
     });
     for (const [index, turn] of decoded.turns.entries()) {
       const input = turn.rawPlayerInput.trim().toLowerCase();
-      const local = ["help", "status", "inventory", "quit"].includes(input);
+      const local = [
+        "help",
+        "status",
+        "inventory",
+        "quit",
+        ...(content.snapshot.schemaVersion === 3 ? ["journal"] : []),
+      ].includes(input);
       requireMatch(
         `turn ${index + 1} input routing`,
         turn.kind,

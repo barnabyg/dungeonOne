@@ -30,8 +30,14 @@ import type {
 } from "./exploration-runtime.js";
 import type { ValidatedAdventure } from "./adventure-loader.js";
 import type { SignetState, SignetEvent } from "./signet-runtime.js";
+import type {
+  ClueState,
+  ClueEvent,
+  ClueJournal,
+} from "./chapel-clues-runtime.js";
 
 export type RuntimeState =
+  | ClueState
   | SignetState
   | ExplorationState
   | SessionState
@@ -44,6 +50,7 @@ export type RuntimeState =
   | DiscoveryChapelState
   | LegacyChapelState;
 export type RuntimeEvent =
+  | ClueEvent
   | SignetEvent
   | Event
   | ChapelEvent
@@ -72,7 +79,7 @@ export type RuntimeToolResult = Readonly<{
         ok: true;
         scene?: DmScene;
         status?: CharacterStatus;
-        journal?: ChapelJournal;
+        journal?: ChapelJournal | ClueJournal;
         conversation?: ChapelConversation;
         events?: readonly RuntimeEvent[];
         inspection?: DmInspection;

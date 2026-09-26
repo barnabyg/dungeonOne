@@ -13,6 +13,7 @@ import type {
   ChapelOpponentCombatantId,
 } from "./chapel.js";
 import type { RandomSource } from "./random.js";
+import type { ClueJournal } from "./chapel-clues-runtime.js";
 import {
   handleGameAction,
   type Event,
@@ -74,7 +75,8 @@ export type DmScene = Readonly<{
         currentTurn: ChapelCombatantId;
       }
   >;
-  journal?: ChapelJournal;
+  journal?: ChapelJournal | ClueJournal;
+  suggestions?: readonly string[];
 }>;
 
 export type CharacterStatus = Readonly<{
