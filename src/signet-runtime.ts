@@ -293,6 +293,31 @@ export function createSignetRuntime(
           },
         }),
   });
+  const inspectionTargets = (state: SignetState) => [
+    ...definition.features
+      .filter((entry) => entry.locationId === state.locationId)
+      .map((entry) => ({ entry, text: entry.description })),
+    ...visibleItems(state).map((entry) => ({
+      entry,
+      text: entry.description,
+    })),
+    ...carriedItems(state).map((entry) => ({
+      entry,
+      text: entry.description,
+    })),
+    ...nearbyDoors(state).map((entry) => ({
+      entry,
+      text: `${entry.description} It is ${doorOpen(state, entry.id) ? "open" : "closed"}.`,
+    })),
+    ...visibleMonsters(state).map((monster) => ({
+      entry: monsterTarget(monster.id),
+      text: `${monsterDefinition(monster.id).description} Condition: ${monsterHp(state, monster.id).hp > 0 ? "living" : "defeated"}.`,
+    })),
+    ...routes(state).map((route) => ({
+      entry: location(route.to),
+      text: `The passage leads to ${location(route.to).name}.`,
+    })),
+  ];
   function monsterTurn(
     state: SignetState,
     monsterId: string,
@@ -410,32 +435,7 @@ export function createSignetRuntime(
       if (!action.target) {
         return rejected(state, "missing-argument", "inspect");
       }
-      const candidates = [
-        ...definition.features
-          .filter((entry) => entry.locationId === state.locationId)
-          .map((entry) => ({ entry, text: entry.description })),
-        ...visibleItems(state).map((entry) => ({
-          entry,
-          text: entry.description,
-        })),
-        ...carriedItems(state).map((entry) => ({
-          entry,
-          text: entry.description,
-        })),
-        ...nearbyDoors(state).map((entry) => ({
-          entry,
-          text: `${entry.description} It is ${doorOpen(state, entry.id) ? "open" : "closed"}.`,
-        })),
-        ...visibleMonsters(state).map((monster) => ({
-          entry: monsterTarget(monster.id),
-          text: `${monsterDefinition(monster.id).description} Condition: ${monsterHp(state, monster.id).hp > 0 ? "living" : "defeated"}.`,
-        })),
-        ...routes(state).map((route) => ({
-          entry: location(route.to),
-          text: `The passage leads to ${location(route.to).name}.`,
-        })),
-      ];
-      const found = candidates.find(({ entry }) =>
+      const found = inspectionTargets(state).find(({ entry }) =>
         matches(entry, action.target as string),
       );
       return found === undefined
@@ -668,16 +668,7 @@ export function createSignetRuntime(
   function tools(state: SignetState): readonly GameToolDefinition[] {
     const mutable = state.status === "playing";
     const fighting = combatMonster(state) !== undefined;
-    const inspectIds = [
-      ...definition.features.filter(
-        (entry) => entry.locationId === state.locationId,
-      ),
-      ...visibleItems(state),
-      ...carriedItems(state),
-      ...nearbyDoors(state),
-      ...visibleMonsters(state).map((entry) => monsterTarget(entry.id)),
-      ...routes(state).map((entry) => location(entry.to)),
-    ].map(({ id }) => id);
+    const inspectIds = inspectionTargets(state).map(({ entry }) => entry.id);
     return [
       tool("look", "Read the current public scene."),
       tool("get_character_status", "Read character status."),
