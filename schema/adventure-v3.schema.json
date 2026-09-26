@@ -38,7 +38,10 @@
     },
     "rulesVersion": {
       "type": "string",
-      "const": "chapel-clues-rules-v1"
+      "enum": [
+        "chapel-clues-rules-v1",
+        "chapel-clues-rules-v2"
+      ]
     },
     "title": {
       "type": "string",
@@ -58,7 +61,11 @@
     "player": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["locationId", "hp", "maxHp"],
+      "required": [
+        "locationId",
+        "hp",
+        "maxHp"
+      ],
       "properties": {
         "locationId": {
           "type": "string",
@@ -85,7 +92,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "description", "aliases"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "aliases"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -113,6 +125,52 @@
               "maxLength": 128,
               "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?: [a-z][a-z0-9]*(?:-[a-z0-9]+)*){0,7}$"
             }
+          },
+          "descriptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "when",
+                "text"
+              ],
+              "properties": {
+                "when": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "id"
+                    ],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "discovery-known",
+                          "milestone-recorded"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                      }
+                    }
+                  },
+                  "maxItems": 256
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                }
+              }
+            },
+            "maxItems": 256
           }
         }
       }
@@ -122,7 +180,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "from", "to", "when"],
+        "required": [
+          "id",
+          "from",
+          "to",
+          "when"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -147,11 +210,17 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["discovery-known", "milestone-recorded"]
+                  "enum": [
+                    "discovery-known",
+                    "milestone-recorded"
+                  ]
                 },
                 "id": {
                   "type": "string",
@@ -169,6 +238,8 @@
     },
     "features": {
       "type": "array",
+      "minItems": 0,
+      "maxItems": 256,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -219,11 +290,17 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["discovery-known", "milestone-recorded"]
+                  "enum": [
+                    "discovery-known",
+                    "milestone-recorded"
+                  ]
                 },
                 "id": {
                   "type": "string",
@@ -234,15 +311,64 @@
               }
             },
             "maxItems": 256
+          },
+          "descriptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "when",
+                "text"
+              ],
+              "properties": {
+                "when": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "id"
+                    ],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "discovery-known",
+                          "milestone-recorded"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                      }
+                    }
+                  },
+                  "maxItems": 256
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                }
+              }
+            },
+            "maxItems": 256
           }
         }
-      },
-      "maxItems": 256
+      }
     },
     "quest": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "title", "milestones"],
+      "required": [
+        "id",
+        "title",
+        "milestones"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -272,7 +398,13 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "title", "classification", "summary", "lead"],
+        "required": [
+          "id",
+          "title",
+          "classification",
+          "summary",
+          "lead"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -287,7 +419,11 @@
           },
           "classification": {
             "type": "string",
-            "enum": ["observation", "testimony", "belief"]
+            "enum": [
+              "observation",
+              "testimony",
+              "belief"
+            ]
           },
           "sourceFeatureId": {
             "type": "string",
@@ -310,6 +446,52 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 4096
+          },
+          "leads": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "when",
+                "text"
+              ],
+              "properties": {
+                "when": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "type",
+                      "id"
+                    ],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "discovery-known",
+                          "milestone-recorded"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                      }
+                    }
+                  },
+                  "maxItems": 256
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                }
+              }
+            },
+            "maxItems": 256
           }
         }
       },
@@ -320,7 +502,13 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "targetId", "when", "effects", "text"],
+        "required": [
+          "id",
+          "targetId",
+          "when",
+          "effects",
+          "text"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -339,11 +527,17 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["discovery-known", "milestone-recorded"]
+                  "enum": [
+                    "discovery-known",
+                    "milestone-recorded"
+                  ]
                 },
                 "id": {
                   "type": "string",
@@ -360,13 +554,26 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["grant-discovery", "record-milestone"]
+                  "enum": [
+                    "grant-discovery",
+                    "record-milestone",
+                    "relocate-npc"
+                  ]
                 },
                 "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                },
+                "toLocationId": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 64,
@@ -390,7 +597,10 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "statement"],
+        "required": [
+          "id",
+          "statement"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -458,11 +668,17 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["discovery-known", "milestone-recorded"]
+                  "enum": [
+                    "discovery-known",
+                    "milestone-recorded"
+                  ]
                 },
                 "id": {
                   "type": "string",
@@ -558,11 +774,17 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["type", "id"],
+                    "required": [
+                      "type",
+                      "id"
+                    ],
                     "properties": {
                       "type": {
                         "type": "string",
-                        "enum": ["discovery-known", "milestone-recorded"]
+                        "enum": [
+                          "discovery-known",
+                          "milestone-recorded"
+                        ]
                       },
                       "id": {
                         "type": "string",
@@ -600,11 +822,17 @@
                         "items": {
                           "type": "object",
                           "additionalProperties": false,
-                          "required": ["type", "id"],
+                          "required": [
+                            "type",
+                            "id"
+                          ],
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": ["discovery-known", "milestone-recorded"]
+                              "enum": [
+                                "discovery-known",
+                                "milestone-recorded"
+                              ]
                             },
                             "id": {
                               "type": "string",
@@ -618,7 +846,12 @@
                       },
                       "outcome": {
                         "type": "string",
-                        "enum": ["any", "unattempted", "success", "failure"]
+                        "enum": [
+                          "any",
+                          "unattempted",
+                          "success",
+                          "failure"
+                        ]
                       },
                       "approach": {
                         "type": "string",
@@ -655,13 +888,26 @@
                         "items": {
                           "type": "object",
                           "additionalProperties": false,
-                          "required": ["type", "id"],
+                          "required": [
+                            "type",
+                            "id"
+                          ],
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": ["grant-discovery", "record-milestone"]
+                              "enum": [
+                                "grant-discovery",
+                                "record-milestone",
+                                "relocate-npc"
+                              ]
                             },
                             "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                            },
+                            "toLocationId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 64,
@@ -749,11 +995,17 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["discovery-known", "milestone-recorded"]
+                  "enum": [
+                    "discovery-known",
+                    "milestone-recorded"
+                  ]
                 },
                 "id": {
                   "type": "string",
@@ -764,6 +1016,37 @@
               }
             },
             "maxItems": 256
+          },
+          "evidenceAlternatives": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "id"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "discovery-known",
+                      "milestone-recorded"
+                    ]
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                  }
+                }
+              },
+              "maxItems": 256
+            },
+            "maxItems": 256
           }
         }
       },
@@ -772,7 +1055,12 @@
     "combatProfile": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["armorClass", "attackBonus", "initiativeBonus", "damage"],
+      "required": [
+        "armorClass",
+        "attackBonus",
+        "initiativeBonus",
+        "damage"
+      ],
       "properties": {
         "armorClass": {
           "type": "integer",
@@ -792,7 +1080,11 @@
         "damage": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["dice", "sides", "modifier"],
+          "required": [
+            "dice",
+            "sides",
+            "modifier"
+          ],
           "properties": {
             "dice": {
               "type": "integer",
@@ -818,7 +1110,14 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "description", "aliases", "maxHp", "stats"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "aliases",
+          "maxHp",
+          "stats"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -880,7 +1179,11 @@
               "damage": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["dice", "sides", "modifier"],
+                "required": [
+                  "dice",
+                  "sides",
+                  "modifier"
+                ],
                 "properties": {
                   "dice": {
                     "type": "integer",
@@ -910,7 +1213,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "definitionId", "locationId", "hp"],
+        "required": [
+          "id",
+          "definitionId",
+          "locationId",
+          "hp"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -944,7 +1252,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "monsterId", "when", "effects"],
+        "required": [
+          "id",
+          "monsterId",
+          "when",
+          "effects"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -963,11 +1276,17 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["discovery-known", "milestone-recorded"]
+                  "enum": [
+                    "discovery-known",
+                    "milestone-recorded"
+                  ]
                 },
                 "id": {
                   "type": "string",
@@ -984,13 +1303,26 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["grant-discovery", "record-milestone"]
+                  "enum": [
+                    "grant-discovery",
+                    "record-milestone",
+                    "relocate-npc"
+                  ]
                 },
                 "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                },
+                "toLocationId": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 64,
@@ -1061,7 +1393,12 @@
           "healing": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["dice", "sides", "modifier", "target"],
+            "required": [
+              "dice",
+              "sides",
+              "modifier",
+              "target"
+            ],
             "properties": {
               "dice": {
                 "type": "integer",
@@ -1080,7 +1417,9 @@
               },
               "target": {
                 "type": "string",
-                "enum": ["fighter"]
+                "enum": [
+                  "fighter"
+                ]
               }
             }
           }

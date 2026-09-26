@@ -1,8 +1,8 @@
 {
   "schemaVersion": 3,
   "id": "chapel-clues",
-  "contentVersion": "2",
-  "rulesVersion": "chapel-clues-rules-v1",
+  "contentVersion": "3",
+  "rulesVersion": "chapel-clues-rules-v2",
   "title": "The Bell Beneath the Chapel: First Leads",
   "introduction": "Tavi is missing. Begin at the village inn and follow the public chapel route.",
   "objective": "Follow the chapel clues, defeat the crypt guardian, and investigate what lies beyond it.",
@@ -12,6 +12,9 @@
       "id": "inn",
       "name": "Village Inn",
       "description": "Rain taps the inn windows. Mara tends the counter beside a public noticeboard.",
+      "descriptions": [
+        { "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }], "text": "Rain taps the inn windows. Mara tends the counter while Tavi rests safely nearby." }
+      ],
       "aliases": ["inn", "village inn"]
     },
     {
@@ -75,6 +78,9 @@
       "locationId": "inn",
       "name": "missing-person notice",
       "description": "Tavi, the village apprentice, is missing. The notice asks searchers to check the ruined chapel along the chapel path.",
+      "descriptions": [
+        { "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }], "text": "The notice once asked searchers to find Tavi. Tavi has since returned safely to the inn." }
+      ],
       "aliases": ["notice", "missing person notice"],
       "when": []
     },
@@ -137,7 +143,8 @@
       "oren-account-released",
       "guardian-cleared",
       "ledger-recovered",
-      "tavi-account-recorded"
+      "tavi-account-recorded",
+      "tavi-rescued"
     ]
   },
   "discoveries": [
@@ -146,8 +153,11 @@
       "title": "The chapel route",
       "classification": "observation",
       "sourceFeatureId": "missing-person-notice",
-      "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.",
-      "lead": "Follow the chapel path to the ruined chapel."
+      "summary": "The public notice initially reported Tavi missing and directed searchers along the chapel path to the ruined chapel.",
+      "lead": "Follow the chapel path to the ruined chapel.",
+      "leads": [
+        { "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }], "text": "Tavi has returned safely to the village inn." }
+      ]
     },
     {
       "id": "unsafe-repairs",
@@ -155,15 +165,22 @@
       "classification": "observation",
       "sourceFeatureId": "damaged-repair-record",
       "summary": "The damaged record assigns chapel repairs to Oren and shows that roof supports were left unfinished and unsafe.",
-      "lead": "Ask Oren about the unfinished chapel repairs."
+      "lead": "Ask Oren about the unfinished chapel repairs.",
+      "leads": [
+        { "when": [{ "type": "milestone-recorded", "id": "oren-account-released" }], "text": "Oren has given his account of the unfinished repairs." },
+        { "when": [{ "type": "discovery-known", "id": "ledger-evidence" }], "text": "The ledger now supplies conclusive evidence; ask Oren for his account." }
+      ]
     },
     {
       "id": "mara-account",
       "title": "Mara's account",
       "classification": "testimony",
       "sourceNpcId": "mara",
-      "summary": "Mara says Tavi is missing; her ferry lead is a guess, not an observation.",
-      "lead": "Check the public notice and chapel path."
+      "summary": "Mara initially reported Tavi missing; her ferry lead was a guess, not an observation.",
+      "lead": "Check the public notice and chapel path.",
+      "leads": [
+        { "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }], "text": "Tavi is safe at the inn; speak with them or Mara here." }
+      ]
     },
     {
       "id": "oren-admission",
@@ -171,7 +188,10 @@
       "classification": "testimony",
       "sourceNpcId": "oren",
       "summary": "Oren admits diverting chapel repair funds to buy medicine, leaving the repairs unfinished.",
-      "lead": "Compare the admission with the chapel repair record."
+      "lead": "Compare the admission with the chapel repair record.",
+      "leads": [
+        { "when": [{ "type": "discovery-known", "id": "ledger-evidence" }], "text": "Oren's account is corroborated by the ledger." }
+      ]
     },
     {
       "id": "ledger-evidence",
@@ -179,7 +199,10 @@
       "classification": "observation",
       "sourceFeatureId": "diversion-ledger",
       "summary": "The ledger records chapel repair funds diverted to medicine, leaving the roof unsafe.",
-      "lead": "Compare the ledger with Oren's account."
+      "lead": "Compare the ledger with Oren's account.",
+      "leads": [
+        { "when": [{ "type": "milestone-recorded", "id": "oren-account-released" }], "text": "The ledger and Oren's account now agree on the diverted funds." }
+      ]
     },
     {
       "id": "tavi-crypt-testimony",
@@ -187,7 +210,10 @@
       "classification": "testimony",
       "sourceNpcId": "tavi",
       "summary": "Tavi followed the ledger into the crypt and was trapped when the guardian rose.",
-      "lead": "Tavi remains in the crypt until a rescue is arranged."
+      "lead": "Tavi remains in the crypt until a rescue is arranged.",
+      "leads": [
+        { "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }], "text": "Tavi is safe at the village inn." }
+      ]
     }
   ],
   "searches": [
@@ -224,6 +250,8 @@
   ],
   "facts": [
     { "id": "tavi-missing", "statement": "Tavi is missing." },
+    { "id": "tavi-rescued-fact", "statement": "Tavi has returned safely to the village inn." },
+    { "id": "tavi-rescue-consent", "statement": "Tavi agrees to follow the safe route to the village inn." },
     {
       "id": "mara-ferry-guess",
       "statement": "Mara thinks Tavi may have gone toward the ferry, but has not seen Tavi there."
@@ -253,7 +281,8 @@
       "guardedFactIds": ["oren-admission-fact"],
       "guardedDiscoveryIds": ["oren-admission"],
       "guardedMilestoneIds": ["oren-account-released"],
-      "evidenceWhen": [{ "type": "discovery-known", "id": "unsafe-repairs" }]
+      "evidenceWhen": [{ "type": "discovery-known", "id": "unsafe-repairs" }],
+      "evidenceAlternatives": [[{ "type": "discovery-known", "id": "ledger-evidence" }]]
     }
   ],
   "npcs": [
@@ -263,7 +292,7 @@
       "aliases": ["innkeeper"],
       "locationId": "inn",
       "voice": "Direct, warm, and worried; speaks as a practical village innkeeper.",
-      "knows": ["tavi-missing"],
+      "knows": ["tavi-missing", "tavi-rescued-fact"],
       "believes": ["mara-ferry-guess"],
       "wants": ["Find Tavi safely."],
       "knowledgeLimits": ["Has not seen Tavi at the ferry or crypt."],
@@ -275,6 +304,15 @@
           "when": [],
           "challengeId": "none",
           "replies": [
+            {
+              "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Mara: Tavi is safe here at the inn. Thank you for bringing them back.",
+              "attitude": "relieved",
+              "approvedFactIds": ["tavi-rescued-fact"],
+              "effects": []
+            },
             {
               "when": [],
               "outcome": "any",
@@ -327,6 +365,18 @@
           "when": [],
           "challengeId": "guarded-account",
           "replies": [
+            {
+              "when": [{ "type": "discovery-known", "id": "ledger-evidence" }],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Oren: The ledger is conclusive. I diverted the chapel repair funds to buy medicine, and left the work unsafe.",
+              "attitude": "remorseful",
+              "approvedFactIds": ["oren-admission-fact"],
+              "effects": [
+                { "type": "grant-discovery", "id": "oren-admission" },
+                { "type": "record-milestone", "id": "oren-account-released" }
+              ]
+            },
             {
               "when": [{ "type": "discovery-known", "id": "unsafe-repairs" }],
               "outcome": "any",
@@ -389,7 +439,7 @@
       "locationId": "crypt",
       "when": [{ "type": "milestone-recorded", "id": "guardian-cleared" }],
       "voice": "Observant and shaken but precise; speaks only about events personally witnessed in the crypt.",
-      "knows": ["tavi-crypt-account"],
+      "knows": ["tavi-crypt-account", "tavi-rescue-consent"],
       "believes": [],
       "wants": ["Leave the crypt safely."],
       "knowledgeLimits": ["Does not know where Oren spent the repair funds."],
@@ -402,6 +452,18 @@
           "challengeId": "none",
           "replies": [
             {
+              "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Tavi: I followed the ledger into the crypt. The guardian trapped me there, but I am safe at the inn now.",
+              "attitude": "relieved",
+              "approvedFactIds": ["tavi-crypt-account"],
+              "effects": [
+                { "type": "grant-discovery", "id": "tavi-crypt-testimony" },
+                { "type": "record-milestone", "id": "tavi-account-recorded" }
+              ]
+            },
+            {
               "when": [],
               "outcome": "any",
               "approach": "any",
@@ -411,6 +473,36 @@
               "effects": [
                 { "type": "grant-discovery", "id": "tavi-crypt-testimony" },
                 { "type": "record-milestone", "id": "tavi-account-recorded" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "rescue",
+          "name": "Return safely to the inn",
+          "aliases": ["leave crypt", "return to inn"],
+          "when": [{ "type": "milestone-recorded", "id": "guardian-cleared" }],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Tavi: I am already safe at the inn.",
+              "attitude": "grateful",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Tavi: Yes. I can follow the marked safe route to the village inn.",
+              "attitude": "hopeful",
+              "approvedFactIds": ["tavi-rescue-consent"],
+              "effects": [
+                { "type": "relocate-npc", "id": "tavi", "toLocationId": "inn" },
+                { "type": "record-milestone", "id": "tavi-rescued" }
               ]
             }
           ]

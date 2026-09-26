@@ -225,6 +225,7 @@ type NpcReplyPlan = Readonly<{
 function parseNpcReplyPlan(
   text: string,
   approvedFactIds: readonly string[],
+  allowedClosings: readonly string[] = NPC_REPLY_CLOSINGS,
 ): NpcReplyPlan | undefined {
   let decoded: unknown;
   try {
@@ -250,6 +251,7 @@ function parseNpcReplyPlan(
     !NPC_REPLY_DELIVERIES.some((value) => value === plan.delivery) ||
     !NPC_REPLY_OPENINGS.some((value) => value === plan.opening) ||
     !NPC_REPLY_CLOSINGS.some((value) => value === plan.closing) ||
+    !allowedClosings.includes(String(plan.closing)) ||
     factIds === undefined ||
     !factIds.every((value) => typeof value === "string") ||
     new Set(factIds).size !== factIds.length ||
@@ -611,6 +613,10 @@ export async function runDmTurn(
         ? result.modelOutput.conversation
         : undefined;
     if (conversation !== undefined) {
+      const allowedClosings =
+        "allowedClosings" in conversation
+          ? conversation.allowedClosings
+          : NPC_REPLY_CLOSINGS;
       const replyResponseNumber = responseNumber + 1;
       if (replyResponseNumber > DM_TURN_LIMITS.maxModelResponses) {
         return fail(
@@ -625,7 +631,10 @@ export async function runDmTurn(
       try {
         replyResponse = await input.model.respond({
           promptVersion: runtime.promptVersion,
-          systemPrompt: NPC_REPLY_SYSTEM_PROMPT,
+          systemPrompt:
+            allowedClosings === NPC_REPLY_CLOSINGS
+              ? NPC_REPLY_SYSTEM_PROMPT
+              : `${NPC_REPLY_SYSTEM_PROMPT}\nFor this reply, closing must be one of: ${allowedClosings.join(", ")}.`,
           playerInput,
           transcript: conversation.speakerHistory.map((text) => ({
             role: "dungeon-master" as const,
@@ -671,6 +680,7 @@ export async function runDmTurn(
       const plan = parseNpcReplyPlan(
         generatedReply,
         conversation.approvedFacts.map(({ id }) => id),
+        allowedClosings,
       );
       if (plan === undefined) {
         return fail(

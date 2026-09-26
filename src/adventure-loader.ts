@@ -88,8 +88,13 @@ export type ClueCondition = Readonly<{
   id: string;
 }>;
 export type ClueEffect = Readonly<{
-  type: "grant-discovery" | "record-milestone";
+  type: "grant-discovery" | "record-milestone" | "relocate-npc";
   id: string;
+  toLocationId?: string;
+}>;
+export type ConditionalClueText = Readonly<{
+  when: readonly ClueCondition[];
+  text: string;
 }>;
 export type DialogueFact = Readonly<{
   id: string;
@@ -129,16 +134,20 @@ export type ChapelCluesDefinition = Readonly<{
   schemaVersion: 3;
   id: string;
   contentVersion: string;
-  rulesVersion: "chapel-clues-rules-v1";
+  rulesVersion: "chapel-clues-rules-v1" | "chapel-clues-rules-v2";
   title: string;
   introduction: string;
   objective: string;
   player: Readonly<{ locationId: string; hp: number; maxHp: number }>;
-  locations: readonly LocationDefinition[];
+  locations: readonly (LocationDefinition &
+    Readonly<{ descriptions?: readonly ConditionalClueText[] }>)[];
   connections: readonly (ConnectionDefinition &
     Readonly<{ when: readonly ClueCondition[] }>)[];
   features: readonly (FeatureDefinition &
-    Readonly<{ when: readonly ClueCondition[] }>)[];
+    Readonly<{
+      when: readonly ClueCondition[];
+      descriptions?: readonly ConditionalClueText[];
+    }>)[];
   quest: Readonly<{ id: string; title: string; milestones: readonly string[] }>;
   discoveries: readonly Readonly<{
     id: string;
@@ -148,6 +157,7 @@ export type ChapelCluesDefinition = Readonly<{
     sourceNpcId?: string;
     summary: string;
     lead: string;
+    leads?: readonly ConditionalClueText[];
   }>[];
   searches: readonly Readonly<{
     id: string;
@@ -166,6 +176,7 @@ export type ChapelCluesDefinition = Readonly<{
     guardedDiscoveryIds: readonly string[];
     guardedMilestoneIds: readonly string[];
     evidenceWhen: readonly ClueCondition[];
+    evidenceAlternatives?: readonly (readonly ClueCondition[])[];
   }>[];
   combatProfile?: CombatStats;
   monsterDefinitions?: readonly (LocationDefinition &
@@ -735,6 +746,29 @@ function validateClueReferences(
 ): void {
   const error: DiagnosticError = (code, path, entity, message) =>
     diagnostics.push({ severity: "error", code, path, entity, message });
+  if (
+    snapshot.rulesVersion === "chapel-clues-rules-v1" &&
+    (snapshot.locations.some((entry) => entry.descriptions !== undefined) ||
+      snapshot.features.some((entry) => entry.descriptions !== undefined) ||
+      snapshot.discoveries.some((entry) => entry.leads !== undefined) ||
+      (snapshot.socialChallenges ?? []).some(
+        (entry) => entry.evidenceAlternatives !== undefined,
+      ) ||
+      (snapshot.npcs ?? []).some((npc) =>
+        npc.topics.some((topic) =>
+          topic.replies.some((reply) =>
+            reply.effects.some((effect) => effect.type === "relocate-npc"),
+          ),
+        ),
+      ))
+  ) {
+    error(
+      "unsupported-rules",
+      "/rulesVersion",
+      snapshot.id,
+      "State-conditioned guidance and relocation require chapel-clues-rules-v2.",
+    );
+  }
   validateUniqueIds(
     [
       { namespace: "locations", entries: snapshot.locations },
@@ -801,6 +835,42 @@ function validateClueReferences(
         entity,
       ),
     );
+  const effectReference = (
+    effect: ClueEffect,
+    path: string,
+    entity: string,
+    allowRelocation: boolean,
+  ) => {
+    ref(
+      effect.type === "grant-discovery"
+        ? discoveries
+        : effect.type === "record-milestone"
+          ? milestones
+          : npcs,
+      effect.id,
+      `${path}/id`,
+      entity,
+    );
+    if (effect.type === "relocate-npc") {
+      if (!allowRelocation || effect.toLocationId === undefined) {
+        error(
+          "unsupported-effect",
+          path,
+          entity,
+          "NPC relocation requires a dialogue destination.",
+        );
+      } else {
+        ref(locations, effect.toLocationId, `${path}/toLocationId`, entity);
+      }
+    } else if (effect.toLocationId !== undefined) {
+      error(
+        "unsupported-effect",
+        path,
+        entity,
+        "Only NPC relocation accepts a destination.",
+      );
+    }
+  };
   const monsterDefinitions = new Map(
     (snapshot.monsterDefinitions ?? []).map((entry) => [entry.id, entry]),
   );
@@ -887,11 +957,11 @@ function validateClueReferences(
     conditions(encounter.when, `/encounters/${i}/when`, encounter.id);
     const seen = new Set<string>();
     encounter.effects.forEach((effect, j) => {
-      ref(
-        effect.type === "grant-discovery" ? discoveries : milestones,
-        effect.id,
-        `/encounters/${i}/effects/${j}/id`,
+      effectReference(
+        effect,
+        `/encounters/${i}/effects/${j}`,
         encounter.id,
+        false,
       );
       const key = `${effect.type}/${effect.id}`;
       if (seen.has(key)) {
@@ -966,14 +1036,48 @@ function validateClueReferences(
       `/socialChallenges/${i}/evidenceWhen`,
       challenge.id,
     );
+    challenge.evidenceAlternatives?.forEach((route, j) => {
+      if (route.length === 0) {
+        error(
+          "invalid-evidence",
+          `/socialChallenges/${i}/evidenceAlternatives/${j}`,
+          challenge.id,
+          "Evidence alternative must have a prerequisite.",
+        );
+      }
+      conditions(
+        route,
+        `/socialChallenges/${i}/evidenceAlternatives/${j}`,
+        challenge.id,
+      );
+    });
   });
   snapshot.connections.forEach((entry, i) =>
     conditions(entry.when, `/connections/${i}/when`, entry.id),
   );
-  snapshot.features.forEach((entry, i) =>
-    conditions(entry.when, `/features/${i}/when`, entry.id),
+  snapshot.locations.forEach((entry, i) =>
+    entry.descriptions?.forEach((variant, j) =>
+      conditions(
+        variant.when,
+        `/locations/${i}/descriptions/${j}/when`,
+        entry.id,
+      ),
+    ),
   );
+  snapshot.features.forEach((entry, i) => {
+    conditions(entry.when, `/features/${i}/when`, entry.id);
+    entry.descriptions?.forEach((variant, j) =>
+      conditions(
+        variant.when,
+        `/features/${i}/descriptions/${j}/when`,
+        entry.id,
+      ),
+    );
+  });
   snapshot.discoveries.forEach((entry, i) => {
+    entry.leads?.forEach((variant, j) =>
+      conditions(variant.when, `/discoveries/${i}/leads/${j}/when`, entry.id),
+    );
     if (
       (entry.sourceFeatureId === undefined) ===
       (entry.sourceNpcId === undefined)
@@ -1033,12 +1137,7 @@ function validateClueReferences(
     conditions(entry.when, `/searches/${i}/when`, entry.id);
     const seen = new Set<string>();
     entry.effects.forEach((effect, j) => {
-      ref(
-        effect.type === "grant-discovery" ? discoveries : milestones,
-        effect.id,
-        `/searches/${i}/effects/${j}/id`,
-        entry.id,
-      );
+      effectReference(effect, `/searches/${i}/effects/${j}`, entry.id, false);
       const key = `${effect.type}/${effect.id}`;
       if (seen.has(key)) {
         error(
@@ -1135,14 +1234,19 @@ function validateClueReferences(
           (challenge) =>
             npc.topics.some((subject) => subject.challengeId === challenge.id),
         )) {
-          const evidenceAuthorized =
-            guarded.evidenceWhen.length > 0 &&
-            guarded.evidenceWhen.every((needed) =>
-              reply.when.some(
-                (actual) =>
-                  actual.type === needed.type && actual.id === needed.id,
+          const evidenceAuthorized = [
+            guarded.evidenceWhen,
+            ...(guarded.evidenceAlternatives ?? []),
+          ].some(
+            (route) =>
+              route.length > 0 &&
+              route.every((needed) =>
+                reply.when.some(
+                  (actual) =>
+                    actual.type === needed.type && actual.id === needed.id,
+                ),
               ),
-            );
+          );
           const authorized =
             (reply.outcome === "success" && topic.challengeId === guarded.id) ||
             evidenceAuthorized;
@@ -1153,7 +1257,8 @@ function validateClueReferences(
             reply.effects.some((effect) =>
               effect.type === "grant-discovery"
                 ? guarded.guardedDiscoveryIds.includes(effect.id)
-                : guarded.guardedMilestoneIds.includes(effect.id),
+                : effect.type === "record-milestone" &&
+                  guarded.guardedMilestoneIds.includes(effect.id),
             );
           if (revealsGuarded && !authorized) {
             error(
@@ -1187,12 +1292,20 @@ function validateClueReferences(
         });
         const seen = new Set<string>();
         reply.effects.forEach((effect, n) => {
-          ref(
-            effect.type === "grant-discovery" ? discoveries : milestones,
-            effect.id,
-            `/npcs/${i}/topics/${j}/replies/${k}/effects/${n}/id`,
+          effectReference(
+            effect,
+            `/npcs/${i}/topics/${j}/replies/${k}/effects/${n}`,
             topic.id,
+            true,
           );
+          if (effect.type === "relocate-npc" && effect.id !== npc.id) {
+            error(
+              "invalid-relocation",
+              `/npcs/${i}/topics/${j}/replies/${k}/effects/${n}`,
+              topic.id,
+              "A speaker may relocate only themselves.",
+            );
+          }
           const key = `${effect.type}/${effect.id}`;
           if (seen.has(key)) {
             error(

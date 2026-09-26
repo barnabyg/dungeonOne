@@ -18,8 +18,12 @@ const effect: Schema = {
   additionalProperties: false,
   required: ["type", "id"],
   properties: {
-    type: { type: "string", enum: ["grant-discovery", "record-milestone"] },
+    type: {
+      type: "string",
+      enum: ["grant-discovery", "record-milestone", "relocate-npc"],
+    },
     id,
+    toLocationId: id,
   },
 };
 const list = (items: Schema): Schema => ({
@@ -33,6 +37,7 @@ const object = (properties: Record<string, Schema>): Schema => ({
   required: Object.keys(properties),
   properties,
 });
+const conditionalText = object({ when: list(condition), text: prose });
 const reply = object({
   when: list(condition),
   outcome: {
@@ -59,6 +64,7 @@ const discovery = object({
   sourceNpcId: id,
   summary: prose,
   lead: prose,
+  leads: list(conditionalText),
 });
 const optionalSourceDiscovery: Schema = {
   ...discovery,
@@ -80,11 +86,32 @@ export const CHAPEL_CLUES_SCHEMA = {
   ...object({
     ...base,
     schemaVersion: { type: "integer", const: 3 },
-    rulesVersion: { type: "string", const: "chapel-clues-rules-v1" },
+    rulesVersion: {
+      type: "string",
+      enum: ["chapel-clues-rules-v1", "chapel-clues-rules-v2"],
+    },
     connections: list(object({ id, from: id, to: id, when: list(condition) })),
-    features: list(
-      object({ ...base.features!.items!.properties!, when: list(condition) }),
-    ),
+    features: {
+      ...base.features!,
+      items: {
+        ...object({
+          ...base.features!.items!.properties!,
+          when: list(condition),
+          descriptions: list(conditionalText),
+        }),
+        required: [...Object.keys(base.features!.items!.properties!), "when"],
+      },
+    },
+    locations: {
+      ...base.locations!,
+      items: {
+        ...object({
+          ...base.locations!.items!.properties!,
+          descriptions: list(conditionalText),
+        }),
+        required: Object.keys(base.locations!.items!.properties!),
+      },
+    },
     quest: object({ id, title: prose, milestones: list(id) }),
     discoveries: list(optionalSourceDiscovery),
     searches: list(
@@ -133,8 +160,8 @@ export const CHAPEL_CLUES_SCHEMA = {
         "topics",
       ],
     }),
-    socialChallenges: list(
-      object({
+    socialChallenges: list({
+      ...object({
         id,
         modifier: { type: "integer", minimum: -20, maximum: 20 },
         dc: { type: "integer", minimum: 1, maximum: 40 },
@@ -142,8 +169,18 @@ export const CHAPEL_CLUES_SCHEMA = {
         guardedDiscoveryIds: list(id),
         guardedMilestoneIds: list(id),
         evidenceWhen: list(condition),
+        evidenceAlternatives: list(list(condition)),
       }),
-    ),
+      required: [
+        "id",
+        "modifier",
+        "dc",
+        "guardedFactIds",
+        "guardedDiscoveryIds",
+        "guardedMilestoneIds",
+        "evidenceWhen",
+      ],
+    }),
     combatProfile: combatStats,
     monsterDefinitions: list(
       object({

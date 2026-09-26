@@ -25,11 +25,12 @@ import type {
 import type { Action } from "./session.js";
 import type { RandomSource } from "./random.js";
 
-export const CLUES_ENGINE_VERSION = "chapel-clues-engine-v4";
+export const CLUES_ENGINE_VERSION = "chapel-clues-engine-v5";
+export const POTION_CLUES_ENGINE_VERSION = "chapel-clues-engine-v4";
 export const COMBAT_CLUES_ENGINE_VERSION = "chapel-clues-engine-v3";
 export const LEGACY_CLUES_ENGINE_VERSION = "chapel-clues-engine-v2";
-export const CLUES_PROMPT_VERSION = "chapel-clues-dm-v4";
-export const CLUES_TOOL_VERSION = "chapel-clues-tools-v4";
+export const CLUES_PROMPT_VERSION = "chapel-clues-dm-v5";
+export const CLUES_TOOL_VERSION = "chapel-clues-tools-v5";
 export type ClueState = Readonly<{
   runtimeKind: "chapel-clues";
   adventureId: string;
@@ -38,6 +39,7 @@ export type ClueState = Readonly<{
   status: "playing" | "defeat" | "quit";
   fighter: Readonly<{ hp: number; maxHp: number }>;
   discoveries: readonly string[];
+  discoveryLocations?: Readonly<Record<string, string>>;
   milestones: readonly string[];
   socialChallenges: Readonly<
     Record<
@@ -56,6 +58,7 @@ export type ClueState = Readonly<{
     speakerId: string;
     statements: readonly string[];
   }>[];
+  npcLocations?: Readonly<Record<string, string>>;
   items?: Readonly<Record<string, "room" | "inventory" | "consumed">>;
   monsters?: Readonly<Record<string, Readonly<{ hp: number; maxHp: number }>>>;
   combat?:
@@ -111,6 +114,7 @@ export type ClueConversation = Readonly<{
   approvedFacts: readonly Readonly<{ id: string; statement: string }>[];
   authoredReply: string;
   speakerHistory: readonly string[];
+  allowedClosings?: readonly ("none" | "check-carefully")[];
 }>;
 export type ClueJournal = Readonly<{
   quest: Readonly<{
@@ -253,6 +257,11 @@ export function createChapelCluesRuntime(
   };
   const room = (id: string) =>
     definition.locations.find((entry) => entry.id === id)!;
+  const currentText = (
+    state: ClueState,
+    fallback: string,
+    variants?: readonly { when: readonly ClueCondition[]; text: string }[],
+  ) => variants?.find((entry) => eligible(state, entry.when))?.text ?? fallback;
   const visible = (state: ClueState) => ({
     room: room(state.locationId),
     features: definition.features.filter(
@@ -261,8 +270,8 @@ export function createChapelCluesRuntime(
     ),
     npcs: (definition.npcs ?? []).filter(
       (entry) =>
-        entry.locationId === state.locationId &&
-        eligible(state, entry.when ?? []),
+        (state.npcLocations?.[entry.id] ?? entry.locationId) ===
+          state.locationId && eligible(state, entry.when ?? []),
     ),
     exits: definition.connections
       .filter(
@@ -314,10 +323,10 @@ export function createChapelCluesRuntime(
           type: (feature ? "feature" : "npc") as "feature" | "npc",
           id: source.id,
           name: source.name,
-          locationId: source.locationId,
+          locationId: state.discoveryLocations?.[id] ?? source.locationId,
         },
         summary: entry.summary,
-        actionableLead: entry.lead,
+        actionableLead: currentText(state, entry.lead, entry.leads),
       };
     });
     return {
@@ -340,7 +349,7 @@ export function createChapelCluesRuntime(
           (state.monsters?.[entry.id]?.hp ?? 0) > 0,
       )
       .map((entry) => monsterDefinition(entry.id)?.name ?? entry.id);
-    return `${here.name}\n${here.description}\nFeatures: ${features.map((entry) => entry.name).join(", ") || "none"}.\nPeople: ${npcs.map((entry) => entry.name).join(", ") || "none"}.${
+    return `${here.name}\n${currentText(state, here.description, here.descriptions)}\nFeatures: ${features.map((entry) => entry.name).join(", ") || "none"}.\nPeople: ${npcs.map((entry) => entry.name).join(", ") || "none"}.${
       definition.items === undefined
         ? ""
         : `\nItems: ${
@@ -359,11 +368,16 @@ export function createChapelCluesRuntime(
       room: {
         id: here.id,
         name: here.name,
-        description: here.description,
+        description: currentText(state, here.description, here.descriptions),
         features: features.map(({ id, name, description }) => ({
           id,
           name,
-          description,
+          description: currentText(
+            state,
+            description,
+            definition.features.find((feature) => feature.id === id)
+              ?.descriptions,
+          ),
         })),
         exits: exits.map(({ id, name }) => ({ destinationId: id, name })),
         items: visibleItems(state).map(
@@ -761,7 +775,7 @@ export function createChapelCluesRuntime(
           item
             ? `${item.name}: ${item.description}`
             : feature
-              ? `${feature.name}: ${feature.description}`
+              ? `${feature.name}: ${currentText(state, feature.description, feature.descriptions)}`
               : exit
                 ? `${exit.name}: An available exit.`
                 : `${monsterDefinition(opponent!.id)!.name}: ${monsterDefinition(opponent!.id)!.description} Condition: ${(state.monsters?.[opponent!.id]?.hp ?? 0) > 0 ? "living" : "defeated"}.`,
@@ -905,16 +919,25 @@ export function createChapelCluesRuntime(
         );
       }
       const discoveries = [...state.discoveries],
-        milestones = [...state.milestones];
+        milestones = [...state.milestones],
+        discoveryLocations = { ...state.discoveryLocations };
       for (const effect of branch.effects) {
         const list =
           effect.type === "grant-discovery" ? discoveries : milestones;
         if (!list.includes(effect.id)) {
           list.push(effect.id);
+          if (effect.type === "grant-discovery") {
+            discoveryLocations[effect.id] = state.locationId;
+          }
         }
       }
       return startEncounter(
-        { ...state, discoveries, milestones },
+        {
+          ...state,
+          discoveries,
+          milestones,
+          ...(hasRelocation ? { discoveryLocations } : {}),
+        },
         [event("search", branch.text, feature.id)],
         random,
       );
@@ -950,13 +973,19 @@ export function createChapelCluesRuntime(
       const evidenceReply = topic.replies.find(
         (reply) =>
           challenge !== undefined &&
-          challenge.evidenceWhen.length > 0 &&
-          eligible(state, challenge.evidenceWhen) &&
-          challenge.evidenceWhen.every((needed) =>
-            reply.when.some(
-              (actual) =>
-                actual.type === needed.type && actual.id === needed.id,
-            ),
+          [
+            challenge.evidenceWhen,
+            ...(challenge.evidenceAlternatives ?? []),
+          ].some(
+            (route) =>
+              route.length > 0 &&
+              eligible(state, route) &&
+              route.every((needed) =>
+                reply.when.some(
+                  (actual) =>
+                    actual.type === needed.type && actual.id === needed.id,
+                ),
+              ),
           ) &&
           eligible(state, reply.when) &&
           reply.outcome === "any" &&
@@ -1007,20 +1036,37 @@ export function createChapelCluesRuntime(
         approvedFacts: facts,
         authoredReply: reply.text,
         speakerHistory,
+        ...(hasRelocation
+          ? { allowedClosings: ["none", "check-carefully"] as const }
+          : {}),
       };
       const discoveries = [...state.discoveries],
-        milestones = [...state.milestones];
+        milestones = [...state.milestones],
+        discoveryLocations = { ...state.discoveryLocations };
       for (const effect of reply.effects) {
-        const list =
-          effect.type === "grant-discovery" ? discoveries : milestones;
-        if (!list.includes(effect.id)) {
-          list.push(effect.id);
+        if (effect.type !== "relocate-npc") {
+          const list =
+            effect.type === "grant-discovery" ? discoveries : milestones;
+          if (!list.includes(effect.id)) {
+            list.push(effect.id);
+            if (effect.type === "grant-discovery") {
+              discoveryLocations[effect.id] = state.locationId;
+            }
+          }
+        }
+      }
+      const npcLocations = { ...state.npcLocations };
+      for (const effect of reply.effects) {
+        if (effect.type === "relocate-npc") {
+          npcLocations[effect.id] = effect.toLocationId!;
         }
       }
       const next: ClueState = {
         ...state,
         discoveries,
         milestones,
+        ...(hasRelocation ? { discoveryLocations } : {}),
+        ...(hasRelocation ? { npcLocations } : {}),
         socialChallenges:
           check === undefined || challenge === undefined
             ? state.socialChallenges
@@ -1194,12 +1240,18 @@ export function createChapelCluesRuntime(
         : []),
     ];
   }
-  const version =
-    definition.items !== undefined
+  const hasRelocation = definition.rulesVersion === "chapel-clues-rules-v2";
+  const version = hasRelocation
+    ? {
+        engineVersion: CLUES_ENGINE_VERSION,
+        promptVersion: CLUES_PROMPT_VERSION,
+        toolSchemaVersion: CLUES_TOOL_VERSION,
+      }
+    : definition.items !== undefined
       ? {
-          engineVersion: CLUES_ENGINE_VERSION,
-          promptVersion: CLUES_PROMPT_VERSION,
-          toolSchemaVersion: CLUES_TOOL_VERSION,
+          engineVersion: POTION_CLUES_ENGINE_VERSION,
+          promptVersion: "chapel-clues-dm-v4",
+          toolSchemaVersion: "chapel-clues-tools-v4",
         }
       : combatEnabled
         ? {
@@ -1235,9 +1287,17 @@ export function createChapelCluesRuntime(
       status: "playing",
       fighter: { hp: definition.player.hp, maxHp: definition.player.maxHp },
       discoveries: [],
+      ...(hasRelocation ? { discoveryLocations: {} } : {}),
       milestones: [],
       socialChallenges: {},
       conversationHistory: [],
+      ...(hasRelocation
+        ? {
+            npcLocations: Object.fromEntries(
+              (definition.npcs ?? []).map((npc) => [npc.id, npc.locationId]),
+            ),
+          }
+        : {}),
       ...(definition.items === undefined
         ? {}
         : {

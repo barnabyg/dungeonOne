@@ -181,15 +181,16 @@ test("content rejects undisclosed knowledge, wrong sources and missing fallback"
   };
   assert.ok(
     mutate((value) =>
-      value.npcs[0].topics[0].replies[0].approvedFactIds.push(
-        "oren-admission-fact",
-      ),
+      value.npcs[0].topics[0].replies
+        .at(-1)
+        .approvedFactIds.push("oren-admission-fact"),
     ).diagnostics.some(({ code }) => code === "unapproved-knowledge"),
   );
   assert.ok(
     mutate(
       (value) =>
-        (value.npcs[0].topics[0].replies[0].effects[0].id = "oren-admission"),
+        (value.npcs[0].topics[0].replies.at(-1).effects[0].id =
+          "oren-admission"),
     ).diagnostics.some(({ code }) => code === "invalid-source"),
   );
   assert.ok(
@@ -206,17 +207,19 @@ test("content rejects undisclosed knowledge, wrong sources and missing fallback"
   );
   assert.ok(
     mutate((value) =>
-      value.npcs[1].topics[1].replies[2].approvedFactIds.push(
-        "oren-admission-fact",
-      ),
+      value.npcs[1].topics[1].replies
+        .find(({ outcome }) => outcome === "failure")
+        .approvedFactIds.push("oren-admission-fact"),
     ).diagnostics.some(({ code }) => code === "guarded-disclosure"),
   );
   assert.ok(
     mutate((value) =>
-      value.npcs[1].topics[1].replies[2].effects.push({
-        type: "grant-discovery",
-        id: "oren-admission",
-      }),
+      value.npcs[1].topics[1].replies
+        .find(({ outcome }) => outcome === "failure")
+        .effects.push({
+          type: "grant-discovery",
+          id: "oren-admission",
+        }),
     ).diagnostics.some(({ code }) => code === "guarded-disclosure"),
   );
 });
