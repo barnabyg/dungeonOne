@@ -34,6 +34,7 @@ import type {
   ClueState,
   ClueEvent,
   ClueJournal,
+  ClueConversation,
 } from "./chapel-clues-runtime.js";
 
 export type RuntimeState =
@@ -80,7 +81,7 @@ export type RuntimeToolResult = Readonly<{
         scene?: DmScene;
         status?: CharacterStatus;
         journal?: ChapelJournal | ClueJournal;
-        conversation?: ChapelConversation;
+        conversation?: ChapelConversation | ClueConversation;
         events?: readonly RuntimeEvent[];
         inspection?: DmInspection;
       }>

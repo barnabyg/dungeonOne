@@ -91,6 +91,39 @@ export type ClueEffect = Readonly<{
   type: "grant-discovery" | "record-milestone";
   id: string;
 }>;
+export type DialogueFact = Readonly<{
+  id: string;
+  statement: string;
+}>;
+export type DialogueReply = Readonly<{
+  when: readonly ClueCondition[];
+  outcome: "any" | "unattempted" | "success" | "failure";
+  approach: "any" | "ask" | "persuade" | "deceive" | "intimidate";
+  text: string;
+  attitude: string;
+  approvedFactIds: readonly string[];
+  effects: readonly ClueEffect[];
+}>;
+export type DialogueTopic = Readonly<{
+  id: string;
+  name: string;
+  aliases: readonly string[];
+  when: readonly ClueCondition[];
+  challengeId: string;
+  replies: readonly DialogueReply[];
+}>;
+export type DialogueNpc = Readonly<{
+  id: string;
+  name: string;
+  aliases: readonly string[];
+  locationId: string;
+  voice: string;
+  knows: readonly string[];
+  believes: readonly string[];
+  wants: readonly string[];
+  knowledgeLimits: readonly string[];
+  topics: readonly DialogueTopic[];
+}>;
 export type ChapelCluesDefinition = Readonly<{
   schemaVersion: 3;
   id: string;
@@ -110,7 +143,8 @@ export type ChapelCluesDefinition = Readonly<{
     id: string;
     title: string;
     classification: "observation" | "testimony" | "belief";
-    sourceFeatureId: string;
+    sourceFeatureId?: string;
+    sourceNpcId?: string;
     summary: string;
     lead: string;
   }>[];
@@ -120,6 +154,17 @@ export type ChapelCluesDefinition = Readonly<{
     when: readonly ClueCondition[];
     effects: readonly ClueEffect[];
     text: string;
+  }>[];
+  facts?: readonly DialogueFact[];
+  npcs?: readonly DialogueNpc[];
+  socialChallenges?: readonly Readonly<{
+    id: string;
+    modifier: number;
+    dc: number;
+    guardedFactIds: readonly string[];
+    guardedDiscoveryIds: readonly string[];
+    guardedMilestoneIds: readonly string[];
+    evidenceWhen: readonly ClueCondition[];
   }>[];
 }>;
 export type AdventureDefinition =
@@ -185,6 +230,9 @@ function validateStructure(
     }
     for (const [key, child] of Object.entries(schema.properties ?? {})) {
       if (!Object.hasOwn(record, key)) {
+        if (!schema.required?.includes(key)) {
+          continue;
+        }
         error(
           "missing-field",
           "Required field is missing.",
@@ -661,6 +709,12 @@ function validateClueReferences(
       { namespace: "features", entries: snapshot.features },
       { namespace: "discoveries", entries: snapshot.discoveries },
       { namespace: "searches", entries: snapshot.searches },
+      { namespace: "facts", entries: snapshot.facts ?? [] },
+      { namespace: "npcs", entries: snapshot.npcs ?? [] },
+      {
+        namespace: "socialChallenges",
+        entries: snapshot.socialChallenges ?? [],
+      },
     ],
     error,
     "Duplicate entity ID.",
@@ -668,6 +722,11 @@ function validateClueReferences(
   const features = new Set(snapshot.features.map(({ id }) => id));
   const discoveries = new Set(snapshot.discoveries.map(({ id }) => id));
   const milestones = new Set(snapshot.quest.milestones);
+  const facts = new Set((snapshot.facts ?? []).map(({ id }) => id));
+  const npcs = new Set((snapshot.npcs ?? []).map(({ id }) => id));
+  const challenges = new Set(
+    (snapshot.socialChallenges ?? []).map(({ id }) => id),
+  );
   snapshot.quest.milestones.forEach((id, i) => {
     if (snapshot.quest.milestones.indexOf(id) !== i) {
       error(
@@ -709,27 +768,83 @@ function validateClueReferences(
         entity,
       ),
     );
+  (snapshot.socialChallenges ?? []).forEach((challenge, i) => {
+    challenge.guardedFactIds.forEach((id, j) =>
+      ref(
+        facts,
+        id,
+        `/socialChallenges/${i}/guardedFactIds/${j}`,
+        challenge.id,
+      ),
+    );
+    challenge.guardedDiscoveryIds.forEach((id, j) =>
+      ref(
+        discoveries,
+        id,
+        `/socialChallenges/${i}/guardedDiscoveryIds/${j}`,
+        challenge.id,
+      ),
+    );
+    challenge.guardedMilestoneIds.forEach((id, j) =>
+      ref(
+        milestones,
+        id,
+        `/socialChallenges/${i}/guardedMilestoneIds/${j}`,
+        challenge.id,
+      ),
+    );
+    conditions(
+      challenge.evidenceWhen,
+      `/socialChallenges/${i}/evidenceWhen`,
+      challenge.id,
+    );
+  });
   snapshot.connections.forEach((entry, i) =>
     conditions(entry.when, `/connections/${i}/when`, entry.id),
   );
   snapshot.features.forEach((entry, i) =>
     conditions(entry.when, `/features/${i}/when`, entry.id),
   );
-  snapshot.discoveries.forEach((entry, i) =>
-    ref(
-      features,
-      entry.sourceFeatureId,
-      `/discoveries/${i}/sourceFeatureId`,
-      entry.id,
-    ),
-  );
-  const producers = new Set(
-    snapshot.searches.flatMap((search) =>
+  snapshot.discoveries.forEach((entry, i) => {
+    if (
+      (entry.sourceFeatureId === undefined) ===
+      (entry.sourceNpcId === undefined)
+    ) {
+      error(
+        "invalid-source",
+        `/discoveries/${i}`,
+        entry.id,
+        "Specify exactly one source.",
+      );
+    }
+    if (entry.sourceFeatureId !== undefined) {
+      ref(
+        features,
+        entry.sourceFeatureId,
+        `/discoveries/${i}/sourceFeatureId`,
+        entry.id,
+      );
+    }
+    if (entry.sourceNpcId !== undefined) {
+      ref(npcs, entry.sourceNpcId, `/discoveries/${i}/sourceNpcId`, entry.id);
+    }
+  });
+  const producers = new Set([
+    ...snapshot.searches.flatMap((search) =>
       search.effects
         .filter((effect) => effect.type === "record-milestone")
         .map((effect) => effect.id),
     ),
-  );
+    ...(snapshot.npcs ?? []).flatMap((npc) =>
+      npc.topics.flatMap((topic) =>
+        topic.replies.flatMap((reply) =>
+          reply.effects
+            .filter((effect) => effect.type === "record-milestone")
+            .map((effect) => effect.id),
+        ),
+      ),
+    ),
+  ]);
   snapshot.quest.milestones.forEach((id, i) => {
     if (!producers.has(id)) {
       error(
@@ -784,7 +899,175 @@ function validateClueReferences(
       );
     }
   });
+  (snapshot.npcs ?? []).forEach((npc, i) => {
+    ref(
+      new Set(snapshot.locations.map(({ id }) => id)),
+      npc.locationId,
+      `/npcs/${i}/locationId`,
+      npc.id,
+    );
+    for (const [field, ids] of [
+      ["knows", npc.knows],
+      ["believes", npc.believes],
+    ] as const) {
+      ids.forEach((id, j) =>
+        ref(facts, id, `/npcs/${i}/${field}/${j}`, npc.id),
+      );
+    }
+    const topicIds = new Set<string>();
+    npc.topics.forEach((topic, j) => {
+      if (topicIds.has(topic.id)) {
+        error(
+          "duplicate-id",
+          `/npcs/${i}/topics/${j}/id`,
+          topic.id,
+          "Duplicate topic ID for speaker.",
+        );
+      }
+      topicIds.add(topic.id);
+      conditions(topic.when, `/npcs/${i}/topics/${j}/when`, topic.id);
+      if (topic.challengeId !== "none") {
+        ref(
+          challenges,
+          topic.challengeId,
+          `/npcs/${i}/topics/${j}/challengeId`,
+          topic.id,
+        );
+      }
+      const fallback = topic.replies.at(-1);
+      if (
+        fallback === undefined ||
+        fallback.when.length !== 0 ||
+        fallback.outcome !== "any" ||
+        fallback.approach !== "any" ||
+        topic.replies
+          .slice(0, -1)
+          .some(
+            (reply) =>
+              reply.when.length === 0 &&
+              reply.outcome === "any" &&
+              reply.approach === "any",
+          )
+      ) {
+        error(
+          "missing-fallback",
+          `/npcs/${i}/topics/${j}/replies`,
+          topic.id,
+          "A topic needs an unconditional final fallback.",
+        );
+      }
+      topic.replies.forEach((reply, k) => {
+        for (const guarded of (snapshot.socialChallenges ?? []).filter(
+          (challenge) =>
+            npc.topics.some((subject) => subject.challengeId === challenge.id),
+        )) {
+          const evidenceAuthorized =
+            guarded.evidenceWhen.length > 0 &&
+            guarded.evidenceWhen.every((needed) =>
+              reply.when.some(
+                (actual) =>
+                  actual.type === needed.type && actual.id === needed.id,
+              ),
+            );
+          const authorized =
+            (reply.outcome === "success" && topic.challengeId === guarded.id) ||
+            evidenceAuthorized;
+          const revealsGuarded =
+            reply.approvedFactIds.some((id) =>
+              guarded.guardedFactIds.includes(id),
+            ) ||
+            reply.effects.some((effect) =>
+              effect.type === "grant-discovery"
+                ? guarded.guardedDiscoveryIds.includes(effect.id)
+                : guarded.guardedMilestoneIds.includes(effect.id),
+            );
+          if (revealsGuarded && !authorized) {
+            error(
+              "guarded-disclosure",
+              `/npcs/${i}/topics/${j}/replies/${k}`,
+              topic.id,
+              "Guarded content requires success or explicit evidence conditions.",
+            );
+          }
+        }
+        conditions(
+          reply.when,
+          `/npcs/${i}/topics/${j}/replies/${k}/when`,
+          topic.id,
+        );
+        reply.approvedFactIds.forEach((id, n) => {
+          ref(
+            facts,
+            id,
+            `/npcs/${i}/topics/${j}/replies/${k}/approvedFactIds/${n}`,
+            topic.id,
+          );
+          if (!npc.knows.includes(id) && !npc.believes.includes(id)) {
+            error(
+              "unapproved-knowledge",
+              `/npcs/${i}/topics/${j}/replies/${k}/approvedFactIds/${n}`,
+              topic.id,
+              "Speaker does not know this fact.",
+            );
+          }
+        });
+        const seen = new Set<string>();
+        reply.effects.forEach((effect, n) => {
+          ref(
+            effect.type === "grant-discovery" ? discoveries : milestones,
+            effect.id,
+            `/npcs/${i}/topics/${j}/replies/${k}/effects/${n}/id`,
+            topic.id,
+          );
+          const key = `${effect.type}/${effect.id}`;
+          if (seen.has(key)) {
+            error(
+              "conflicting-effects",
+              `/npcs/${i}/topics/${j}/replies/${k}/effects/${n}`,
+              topic.id,
+              "Duplicate effect.",
+            );
+          }
+          seen.add(key);
+          if (
+            effect.type === "grant-discovery" &&
+            snapshot.discoveries.find((entry) => entry.id === effect.id)
+              ?.sourceNpcId !== npc.id
+          ) {
+            error(
+              "invalid-source",
+              `/npcs/${i}/topics/${j}/replies/${k}/effects/${n}`,
+              topic.id,
+              "Conversation discovery must be sourced to this speaker.",
+            );
+          }
+        });
+      });
+    });
+    validateVisibleAliases(
+      npc.topics.map((entry, index) => ({
+        entry,
+        identity: entry.id,
+        path: `/npcs/${i}/topics/${index}`,
+      })),
+      error,
+      (alias) => `Ambiguous topic alias: ${alias}.`,
+      true,
+    );
+  });
   for (const location of snapshot.locations) {
+    validateVisibleAliases(
+      (snapshot.npcs ?? [])
+        .filter((entry) => entry.locationId === location.id)
+        .map((entry) => ({
+          entry,
+          identity: entry.id,
+          path: `/npcs/${(snapshot.npcs ?? []).indexOf(entry)}`,
+        })),
+      error,
+      (alias) => `Ambiguous speaker alias: ${alias}.`,
+      true,
+    );
     validateVisibleAliases(
       [
         ...snapshot.features

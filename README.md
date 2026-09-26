@@ -118,7 +118,18 @@ connections. Searching the public notice or damaged repair record grants a
 sourced observation and quest milestone once, with no roll or NPC interaction.
 The two searches work in either order. `look` and `inspect` only read public
 content; `journal` lists discoveries, sources, classifications, and known leads.
-The crypt, guardian, dialogue, and quest resolution are not available in this
+Mara and Oren are visible at the inn and ferry landing. The
+`talk <speaker> <topic> <approach>` command accepts `ask`, `persuade`,
+`deceive`, or `intimidate`; for example,
+`talk mara tavi ask` and `talk oren repairs persuade`. Oren's guarded repairs
+account permits one d20 check (DC 11, +1) for the lifetime of the session,
+regardless of later approach or topic alias. A failed check leaves the public
+notice and physical repair record available. Finding that record unlocks a
+no-roll, evidence-backed reply without clearing the earlier check. Only the
+selected reply's approved facts enter the model conversation and speaker-scoped
+history. Challenge definitions name guarded facts, discoveries, milestones,
+and evidence conditions; validation rejects guarded release in ordinary
+failure or fallback replies. The crypt, guardian, and quest resolution are not available in this
 external slice. The built-in chapel selector retains its existing behavior.
 
 ```powershell
@@ -128,6 +139,13 @@ node dist/cli.js --validate-adventure adventures/chapel-clues.json
   node dist/cli.js --adventure-file adventures/chapel-clues.json --seed 0 --trace chapel-clues-trace.json
 node dist/cli.js --replay chapel-clues-trace.json
 ```
+
+For dialogue, try `talk mara tavi ask`, `move ferry landing`,
+`talk oren repairs persuade`, and `talk oren repairs intimidate` in the same
+session. The second repairs attempt uses the first result without another roll.
+Search the repair record at the ruined chapel, return to Oren, and use
+`talk oren repairs ask` for the evidence reply. These actions also work through
+the offered `talk` model tool and export to a self-contained format-4 trace.
 
 Schema 3 uses stable IDs and bounded aliases. Each `when` list is a conjunction
 of typed `discovery-known` or `milestone-recorded` predicates evaluated before

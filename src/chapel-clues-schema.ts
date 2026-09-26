@@ -3,6 +3,7 @@ import { ADVENTURE_SCHEMA, type Schema } from "./adventure-schema.js";
 const base = ADVENTURE_SCHEMA.properties!;
 const id = base.locations!.items!.properties!.id as Schema;
 const prose = base.title as Schema;
+const aliases = base.locations!.items!.properties!.aliases as Schema;
 const condition: Schema = {
   type: "object",
   additionalProperties: false,
@@ -32,6 +33,37 @@ const object = (properties: Record<string, Schema>): Schema => ({
   required: Object.keys(properties),
   properties,
 });
+const reply = object({
+  when: list(condition),
+  outcome: {
+    type: "string",
+    enum: ["any", "unattempted", "success", "failure"],
+  },
+  approach: {
+    type: "string",
+    enum: ["any", "ask", "persuade", "deceive", "intimidate"],
+  },
+  text: prose,
+  attitude: prose,
+  approvedFactIds: list(id),
+  effects: list(effect),
+});
+const discovery = object({
+  id,
+  title: prose,
+  classification: {
+    type: "string",
+    enum: ["observation", "testimony", "belief"],
+  },
+  sourceFeatureId: id,
+  sourceNpcId: id,
+  summary: prose,
+  lead: prose,
+});
+const optionalSourceDiscovery: Schema = {
+  ...discovery,
+  required: ["id", "title", "classification", "summary", "lead"],
+};
 export const CHAPEL_CLUES_SCHEMA = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   title: "Dungeon One chapel clues adventure v3",
@@ -44,19 +76,7 @@ export const CHAPEL_CLUES_SCHEMA = {
       object({ ...base.features!.items!.properties!, when: list(condition) }),
     ),
     quest: object({ id, title: prose, milestones: list(id) }),
-    discoveries: list(
-      object({
-        id,
-        title: prose,
-        classification: {
-          type: "string",
-          enum: ["observation", "testimony", "belief"],
-        },
-        sourceFeatureId: id,
-        summary: prose,
-        lead: prose,
-      }),
-    ),
+    discoveries: list(optionalSourceDiscovery),
     searches: list(
       object({
         id,
@@ -66,5 +86,41 @@ export const CHAPEL_CLUES_SCHEMA = {
         text: prose,
       }),
     ),
+    facts: list(object({ id, statement: prose })),
+    npcs: list(
+      object({
+        id,
+        name: prose,
+        aliases,
+        locationId: id,
+        voice: prose,
+        knows: list(id),
+        believes: list(id),
+        wants: list(prose),
+        knowledgeLimits: list(prose),
+        topics: list(
+          object({
+            id,
+            name: prose,
+            aliases,
+            when: list(condition),
+            challengeId: id,
+            replies: list(reply),
+          }),
+        ),
+      }),
+    ),
+    socialChallenges: list(
+      object({
+        id,
+        modifier: { type: "integer", minimum: -20, maximum: 20 },
+        dc: { type: "integer", minimum: 1, maximum: 40 },
+        guardedFactIds: list(id),
+        guardedDiscoveryIds: list(id),
+        guardedMilestoneIds: list(id),
+        evidenceWhen: list(condition),
+      }),
+    ),
   }),
+  required: Object.keys(base).concat(["quest", "discoveries", "searches"]),
 } as const;

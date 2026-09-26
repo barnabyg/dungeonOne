@@ -28,13 +28,52 @@
     { "id": "broken-roof", "locationId": "ruined-chapel", "name": "broken roof", "description": "Gaps in the roof let the rain through. Stay clear of fallen stones.", "aliases": ["roof"], "when": [] },
     { "id": "damaged-repair-record", "locationId": "ruined-chapel", "name": "damaged repair record", "description": "A water-spotted repair record is pinned beneath a fallen beam. Its cramped entries need careful searching.", "aliases": ["repair record", "record"], "when": [] }
   ],
-  "quest": { "id": "find-tavi", "title": "Find Tavi", "milestones": ["chapel-route-known", "unsafe-repairs-linked-to-oren"] },
+  "quest": { "id": "find-tavi", "title": "Find Tavi", "milestones": ["chapel-route-known", "unsafe-repairs-linked-to-oren", "mara-account-recorded", "oren-account-released"] },
   "discoveries": [
     { "id": "chapel-route", "title": "The chapel route", "classification": "observation", "sourceFeatureId": "missing-person-notice", "summary": "The public notice says Tavi is missing and directs searchers along the chapel path to the ruined chapel.", "lead": "Follow the chapel path to the ruined chapel." },
-    { "id": "unsafe-repairs", "title": "Unsafe chapel repairs", "classification": "observation", "sourceFeatureId": "damaged-repair-record", "summary": "The damaged record assigns chapel repairs to Oren and shows that roof supports were left unfinished and unsafe.", "lead": "Ask Oren about the unfinished chapel repairs." }
+    { "id": "unsafe-repairs", "title": "Unsafe chapel repairs", "classification": "observation", "sourceFeatureId": "damaged-repair-record", "summary": "The damaged record assigns chapel repairs to Oren and shows that roof supports were left unfinished and unsafe.", "lead": "Ask Oren about the unfinished chapel repairs." },
+    { "id": "mara-account", "title": "Mara's account", "classification": "testimony", "sourceNpcId": "mara", "summary": "Mara says Tavi is missing; her ferry lead is a guess, not an observation.", "lead": "Check the public notice and chapel path." },
+    { "id": "oren-admission", "title": "Oren's admission", "classification": "testimony", "sourceNpcId": "oren", "summary": "Oren admits diverting chapel repair funds to buy medicine, leaving the repairs unfinished.", "lead": "Compare the admission with the chapel repair record." }
   ],
   "searches": [
     { "id": "notice-search", "targetId": "missing-person-notice", "when": [], "effects": [{ "type": "grant-discovery", "id": "chapel-route" }, { "type": "record-milestone", "id": "chapel-route-known" }], "text": "You search the notice and record the chapel route in your journal." },
     { "id": "record-search", "targetId": "damaged-repair-record", "when": [], "effects": [{ "type": "grant-discovery", "id": "unsafe-repairs" }, { "type": "record-milestone", "id": "unsafe-repairs-linked-to-oren" }], "text": "You decipher the damaged record and note the unsafe repairs linked to Oren." }
+  ],
+  "facts": [
+    { "id": "tavi-missing", "statement": "Tavi is missing." },
+    { "id": "mara-ferry-guess", "statement": "Mara thinks Tavi may have gone toward the ferry, but has not seen Tavi there." },
+    { "id": "oren-uncertain", "statement": "Oren does not know what happened to Tavi." },
+    { "id": "oren-refusal", "statement": "Oren will not give an account of the repairs without further cause." },
+    { "id": "oren-admission-fact", "statement": "Oren diverted chapel repair funds to buy medicine, leaving the repairs unfinished." }
+  ],
+  "socialChallenges": [{ "id": "guarded-account", "modifier": 1, "dc": 11, "guardedFactIds": ["oren-admission-fact"], "guardedDiscoveryIds": ["oren-admission"], "guardedMilestoneIds": ["oren-account-released"], "evidenceWhen": [{ "type": "discovery-known", "id": "unsafe-repairs" }] }],
+  "npcs": [
+    {
+      "id": "mara", "name": "Mara", "aliases": ["innkeeper"], "locationId": "inn",
+      "voice": "Direct, warm, and worried; speaks as a practical village innkeeper.",
+      "knows": ["tavi-missing"], "believes": ["mara-ferry-guess"],
+      "wants": ["Find Tavi safely."], "knowledgeLimits": ["Has not seen Tavi at the ferry or crypt."],
+      "topics": [{ "id": "tavi", "name": "Tavi's disappearance", "aliases": ["missing apprentice"], "when": [], "challengeId": "none", "replies": [
+        { "when": [], "outcome": "any", "approach": "any", "text": "Mara: Tavi is missing. I thought they might have gone toward the ferry, but that is only my guess. Please help me find them.", "attitude": "concerned", "approvedFactIds": ["tavi-missing", "mara-ferry-guess"], "effects": [{ "type": "grant-discovery", "id": "mara-account" }, { "type": "record-milestone", "id": "mara-account-recorded" }] }
+      ] }]
+    },
+    {
+      "id": "oren", "name": "Oren", "aliases": ["ferryman"], "locationId": "ferry-landing",
+      "voice": "Terse and weathered; speaks like a ferryman used to hard choices.",
+      "knows": ["oren-uncertain", "oren-refusal", "oren-admission-fact"], "believes": [],
+      "wants": ["Keep the medicine purchase private while Tavi is missing."], "knowledgeLimits": ["Does not know Tavi's location."],
+      "topics": [
+        { "id": "tavi", "name": "Tavi's disappearance", "aliases": ["missing apprentice"], "when": [], "challengeId": "none", "replies": [
+          { "when": [], "outcome": "any", "approach": "any", "text": "Oren: I do not know what has happened to Tavi. The chapel route is passable from the inn.", "attitude": "guarded", "approvedFactIds": ["oren-uncertain"], "effects": [] }
+        ] },
+        { "id": "repairs", "name": "Unfinished chapel repairs", "aliases": ["chapel repairs"], "when": [], "challengeId": "guarded-account", "replies": [
+          { "when": [{ "type": "discovery-known", "id": "unsafe-repairs" }], "outcome": "any", "approach": "any", "text": "Oren: You found the damaged record. I diverted the repair funds to buy medicine, leaving the chapel unsafe.", "attitude": "remorseful", "approvedFactIds": ["oren-admission-fact"], "effects": [{ "type": "grant-discovery", "id": "oren-admission" }, { "type": "record-milestone", "id": "oren-account-released" }] },
+          { "when": [], "outcome": "success", "approach": "any", "text": "Oren: I diverted the chapel repair funds to buy medicine, leaving the repairs unfinished. I do not know what happened to Tavi.", "attitude": "remorseful", "approvedFactIds": ["oren-admission-fact", "oren-uncertain"], "effects": [{ "type": "grant-discovery", "id": "oren-admission" }, { "type": "record-milestone", "id": "oren-account-released" }] },
+          { "when": [], "outcome": "failure", "approach": "any", "text": "Oren: I have already answered. I will not give you an account of the repairs. The public notice and chapel evidence remain yours to examine.", "attitude": "defiant", "approvedFactIds": ["oren-refusal"], "effects": [] },
+          { "when": [], "outcome": "unattempted", "approach": "ask", "text": "Oren: I will not give you an account of the repairs. Follow what you can establish for yourself.", "attitude": "guarded", "approvedFactIds": ["oren-refusal"], "effects": [] },
+          { "when": [], "outcome": "any", "approach": "any", "text": "Oren: The public notice and chapel evidence remain yours to examine.", "attitude": "guarded", "approvedFactIds": [], "effects": [] }
+        ] }
+      ]
+    }
   ]
 }
