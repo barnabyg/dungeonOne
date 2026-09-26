@@ -223,46 +223,55 @@ function validateStructure(
   }
 }
 
-function validateReferences(
-  snapshot: ExplorationDefinition,
-  diagnostics: AdventureDiagnostic[],
+type DiagnosticError = (
+  code: string,
+  path: string,
+  entity: string,
+  message: string,
+) => void;
+
+function validateUniqueIds(
+  groups: readonly Readonly<{
+    namespace: string;
+    entries: readonly Readonly<{ id: string }>[];
+  }>[],
+  error: DiagnosticError,
+  message: string,
 ): void {
-  const error = (code: string, path: string, entity: string, message: string) =>
-    diagnostics.push({ severity: "error", code, path, entity, message });
-  for (const namespace of ["locations", "connections", "features"] as const) {
-    const ids = new Set<string>();
-    snapshot[namespace].forEach((entry, index) => {
-      if (ids.has(entry.id)) {
-        error(
-          "duplicate-id",
-          `/${namespace}/${index}/id`,
-          entry.id,
-          "Duplicate entity ID in namespace.",
-        );
+  for (const { namespace, entries } of groups) {
+    const seen = new Set<string>();
+    entries.forEach(({ id }, index) => {
+      if (seen.has(id)) {
+        error("duplicate-id", `/${namespace}/${index}/id`, id, message);
       }
-      ids.add(entry.id);
+      seen.add(id);
     });
   }
-  const locations = new Set(snapshot.locations.map((entry) => entry.id));
+}
+
+type GraphDefinition = Readonly<{
+  locations: readonly LocationDefinition[];
+  connections: readonly ConnectionDefinition[];
+  features: readonly FeatureDefinition[];
+  player: Readonly<{ locationId: string }>;
+}>;
+
+function validateLocationGraph(
+  snapshot: GraphDefinition,
+  error: DiagnosticError,
+  messages: Readonly<{
+    reference: (id: string) => string;
+    connection: string;
+    unreachable: string;
+  }>,
+): Set<string> {
+  const locations = new Set(snapshot.locations.map(({ id }) => id));
   const reference = (id: string, path: string, entity: string) => {
     if (!locations.has(id)) {
-      error(
-        "unknown-reference",
-        path,
-        entity,
-        "Expected a location reference.",
-      );
+      error("unknown-reference", path, entity, messages.reference(id));
     }
   };
   reference(snapshot.player.locationId, "/player/locationId", "player");
-  if (snapshot.player.hp === 0 || snapshot.player.hp > snapshot.player.maxHp) {
-    error(
-      "invalid-placement",
-      "/player/hp",
-      "player",
-      "The initial player must be alive and HP cannot exceed maxHp.",
-    );
-  }
   snapshot.features.forEach((feature, index) =>
     reference(feature.locationId, `/features/${index}/locationId`, feature.id),
   );
@@ -276,43 +285,11 @@ function validateReferences(
         "invalid-connection",
         `/connections/${index}`,
         connection.id,
-        "Connections must be distinct directed routes to another location.",
+        messages.connection,
       );
     }
     routes.add(route);
   });
-  // Inspection sees local features and outgoing destinations in the same namespace.
-  // IDs are implicit aliases, too; two aliases of one entity are harmless.
-  for (const location of snapshot.locations) {
-    const visible = [
-      ...snapshot.locations.flatMap((entry, index) =>
-        routes.has(`${location.id}/${entry.id}`)
-          ? [{ entry, path: `/locations/${index}`, namespace: "location" }]
-          : [],
-      ),
-      ...snapshot.features.flatMap((entry, index) =>
-        entry.locationId === location.id
-          ? [{ entry, path: `/features/${index}`, namespace: "feature" }]
-          : [],
-      ),
-    ];
-    const aliases = new Map<string, string>();
-    for (const { entry, path, namespace } of visible) {
-      [entry.id, ...entry.aliases].forEach((alias, index) => {
-        const normalized = normalizeAlias(alias);
-        const identity = `${namespace}/${entry.id}`;
-        if (aliases.has(normalized) && aliases.get(normalized) !== identity) {
-          error(
-            "ambiguous-alias",
-            index === 0 ? `${path}/id` : `${path}/aliases/${index - 1}`,
-            entry.id,
-            "Alias overlaps another visible reference.",
-          );
-        }
-        aliases.set(normalized, identity);
-      });
-    }
-  }
   const reachable = new Set([snapshot.player.locationId]);
   for (let pass = 0; pass < snapshot.locations.length; pass++) {
     for (const connection of snapshot.connections) {
@@ -327,10 +304,107 @@ function validateReferences(
         "unreachable-location",
         `/locations/${index}`,
         location.id,
-        "Location is not reachable from the initial placement.",
+        messages.unreachable,
       );
     }
   });
+  return routes;
+}
+
+function validateVisibleAliases(
+  visible: readonly Readonly<{
+    entry: Readonly<{ id: string; aliases: readonly string[] }>;
+    identity: string;
+    path: string;
+  }>[],
+  error: DiagnosticError,
+  message: (alias: string) => string,
+  precisePath: boolean,
+): void {
+  const aliases = new Map<string, string>();
+  for (const { entry, identity, path } of visible) {
+    [entry.id, ...entry.aliases].forEach((alias, index) => {
+      const normalized = normalizeAlias(alias);
+      if (aliases.has(normalized) && aliases.get(normalized) !== identity) {
+        error(
+          "ambiguous-alias",
+          precisePath
+            ? index === 0
+              ? `${path}/id`
+              : `${path}/aliases/${index - 1}`
+            : path,
+          entry.id,
+          message(alias),
+        );
+      }
+      aliases.set(normalized, identity);
+    });
+  }
+}
+
+function validateReferences(
+  snapshot: ExplorationDefinition,
+  diagnostics: AdventureDiagnostic[],
+): void {
+  const error = (code: string, path: string, entity: string, message: string) =>
+    diagnostics.push({ severity: "error", code, path, entity, message });
+  validateUniqueIds(
+    [
+      { namespace: "locations", entries: snapshot.locations },
+      { namespace: "connections", entries: snapshot.connections },
+      { namespace: "features", entries: snapshot.features },
+    ],
+    error,
+    "Duplicate entity ID in namespace.",
+  );
+  if (snapshot.player.hp === 0 || snapshot.player.hp > snapshot.player.maxHp) {
+    error(
+      "invalid-placement",
+      "/player/hp",
+      "player",
+      "The initial player must be alive and HP cannot exceed maxHp.",
+    );
+  }
+  const routes = validateLocationGraph(snapshot, error, {
+    reference: () => "Expected a location reference.",
+    connection:
+      "Connections must be distinct directed routes to another location.",
+    unreachable: "Location is not reachable from the initial placement.",
+  });
+  // Inspection sees local features and outgoing destinations in the same namespace.
+  // IDs are implicit aliases, too; two aliases of one entity are harmless.
+  for (const location of snapshot.locations) {
+    const visible = [
+      ...snapshot.locations.flatMap((entry, index) =>
+        routes.has(`${location.id}/${entry.id}`)
+          ? [
+              {
+                entry,
+                path: `/locations/${index}`,
+                identity: `location/${entry.id}`,
+              },
+            ]
+          : [],
+      ),
+      ...snapshot.features.flatMap((entry, index) =>
+        entry.locationId === location.id
+          ? [
+              {
+                entry,
+                path: `/features/${index}`,
+                identity: `feature/${entry.id}`,
+              },
+            ]
+          : [],
+      ),
+    ];
+    validateVisibleAliases(
+      visible,
+      error,
+      () => "Alias overlaps another visible reference.",
+      true,
+    );
+  }
 }
 
 function validateSignetReferences(
@@ -349,24 +423,17 @@ function validateSignetReferences(
     "monsters",
     "items",
   ] as const;
-  for (const namespace of namespaces) {
-    const seen = new Set<string>();
-    snapshot[namespace].forEach((entry, index) => {
-      if (seen.has(entry.id)) {
-        error(
-          "duplicate-id",
-          `/${namespace}/${index}/id`,
-          entry.id,
-          "Duplicate entity ID.",
-        );
-      }
-      seen.add(entry.id);
-    });
-  }
+  validateUniqueIds(
+    namespaces.map((namespace) => ({
+      namespace,
+      entries: snapshot[namespace],
+    })),
+    error,
+    "Duplicate entity ID.",
+  );
   const ids = (namespace: (typeof namespaces)[number]) =>
     new Set(snapshot[namespace].map(({ id }) => id));
-  const locations = ids("locations"),
-    features = ids("features"),
+  const features = ids("features"),
     equipment = ids("equipment"),
     definitions = ids("monsterDefinitions"),
     items = ids("items");
@@ -380,7 +447,6 @@ function validateSignetReferences(
       error("unknown-reference", path, entity, `Unknown reference: ${value}.`);
     }
   };
-  ref(locations, snapshot.player.locationId, "/player/locationId", "player");
   ref(equipment, snapshot.player.weaponId, "/player/weaponId", "player");
   if (snapshot.player.hp > snapshot.player.maxHp) {
     error(
@@ -390,24 +456,12 @@ function validateSignetReferences(
       "HP exceeds maximum HP.",
     );
   }
-  snapshot.features.forEach((entry, i) =>
-    ref(locations, entry.locationId, `/features/${i}/locationId`, entry.id),
-  );
-  const routes = new Set<string>();
-  snapshot.connections.forEach((entry, i) => {
-    ref(locations, entry.from, `/connections/${i}/from`, entry.id);
-    ref(locations, entry.to, `/connections/${i}/to`, entry.id);
-    const key = `${entry.from}/${entry.to}`;
-    if (entry.from === entry.to || routes.has(key)) {
-      error(
-        "invalid-connection",
-        `/connections/${i}`,
-        entry.id,
-        "Duplicate or self connection.",
-      );
-    }
-    routes.add(key);
+  const routes = validateLocationGraph(snapshot, error, {
+    reference: (id) => `Unknown reference: ${id}.`,
+    connection: "Duplicate or self connection.",
+    unreachable: "Location is unreachable.",
   });
+  const locations = ids("locations");
   snapshot.doors.forEach((entry, i) => {
     ref(locations, entry.from, `/doors/${i}/from`, entry.id);
     ref(locations, entry.to, `/doors/${i}/to`, entry.id);
@@ -491,34 +545,28 @@ function validateSignetReferences(
   });
   ref(locations, snapshot.exit.locationId, "/exit/locationId", "exit");
   ref(items, snapshot.exit.requiredItemId, "/exit/requiredItemId", "exit");
-  const reachable = new Set([snapshot.player.locationId]);
-  for (let pass = 0; pass < snapshot.locations.length; pass++) {
-    for (const route of snapshot.connections) {
-      if (reachable.has(route.from)) {
-        reachable.add(route.to);
-      }
-    }
-  }
-  snapshot.locations.forEach((entry, i) => {
-    if (!reachable.has(entry.id)) {
-      error(
-        "unreachable-location",
-        `/locations/${i}`,
-        entry.id,
-        "Location is unreachable.",
-      );
-    }
-  });
-  const visible = (locationId: string) => [
+  const visible = (locationId: string, path: string) => [
     ...snapshot.features
       .filter((entry) => entry.locationId === locationId)
-      .map((entry) => ({ entry, identity: `feature/${entry.id}` })),
+      .map((entry) => ({
+        entry,
+        identity: `feature/${entry.id}`,
+        path,
+      })),
     ...snapshot.items
       .filter((entry) => entry.locationId === locationId)
-      .map((entry) => ({ entry, identity: `item/${entry.id}` })),
+      .map((entry) => ({
+        entry,
+        identity: `item/${entry.id}`,
+        path,
+      })),
     ...snapshot.doors
       .filter((entry) => entry.from === locationId || entry.to === locationId)
-      .map((entry) => ({ entry, identity: `door/${entry.id}` })),
+      .map((entry) => ({
+        entry,
+        identity: `door/${entry.id}`,
+        path,
+      })),
     ...snapshot.monsters
       .filter((entry) => entry.locationId === locationId)
       .flatMap((instance) => {
@@ -534,30 +582,26 @@ function validateSignetReferences(
                   aliases: [entry.id, ...entry.aliases],
                 },
                 identity: `monster/${instance.id}`,
+                path,
               },
             ];
       }),
     ...snapshot.locations
       .filter((entry) => routes.has(`${locationId}/${entry.id}`))
-      .map((entry) => ({ entry, identity: `location/${entry.id}` })),
+      .map((entry) => ({
+        entry,
+        identity: `location/${entry.id}`,
+        path,
+      })),
   ];
-  for (const location of snapshot.locations) {
-    const aliases = new Map<string, string>();
-    for (const { entry, identity } of visible(location.id)) {
-      for (const alias of [entry.id, ...entry.aliases]) {
-        const key = normalizeAlias(alias);
-        if (aliases.has(key) && aliases.get(key) !== identity) {
-          error(
-            "ambiguous-alias",
-            `/locations/${snapshot.locations.indexOf(location)}`,
-            location.id,
-            `Ambiguous visible alias: ${alias}.`,
-          );
-        }
-        aliases.set(key, identity);
-      }
-    }
-  }
+  snapshot.locations.forEach((location, index) => {
+    validateVisibleAliases(
+      visible(location.id, `/locations/${index}`),
+      error,
+      (alias) => `Ambiguous visible alias: ${alias}.`,
+      false,
+    );
+  });
 }
 
 export function freezeDefinition<T>(value: T): T {
