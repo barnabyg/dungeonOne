@@ -187,10 +187,11 @@ test("renamed content IDs and aliases complete the same combat and escape journe
     content.doors[0].aliases = ["oak door"];
     content.monsterDefinitions[0].aliases = ["raider"];
     content.items[0].aliases = ["token"];
+    content.exit.aliases = ["hidden way"];
     const path = join(directory, "renamed.json");
     writeFileSync(path, JSON.stringify(content));
     const played = run(
-      "open oak door\nmove hall\nattack raider\nattack raider\nmove vault\ntake token\nleave\nquit\n",
+      "open oak door\nmove hall\nattack raider\nattack raider\nmove vault\ntake token\nleave wrong way\nleave hidden way\nquit\n",
       ["--adventure-file", path, "--seed", "0"],
     );
     assert.equal(played.status, 0, played.stderr);

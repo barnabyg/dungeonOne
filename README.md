@@ -91,6 +91,8 @@ living monster. Entering its location rolls initiative; combat attacks and
 automatic retaliation use the same seeded attack and damage rules as the
 historical built-in. Movement, opening, taking, and leaving are blocked during
 combat. `leave` succeeds only at the authored exit with its required item.
+Authors can also provide exit aliases for `leave <alias>`; movement to the exit
+location alone does not complete the adventure.
 
 ```powershell
 npm.cmd run build

@@ -801,6 +801,14 @@ export function createSignetRuntime(
       ) {
         return { type: verb } as Action;
       }
+      if (
+        verb === "leave" &&
+        definition.exit.aliases.some(
+          (alias) => normalizeAlias(alias) === argument,
+        )
+      ) {
+        return { type: "leave" };
+      }
       if (verb === "move") {
         return { type: "move", destination: argument };
       }
