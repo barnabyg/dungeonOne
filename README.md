@@ -165,6 +165,9 @@ unknown references, and unreachable prerequisite cycles fail validation. A
 repeated search makes no new discovery. Hidden features and routes stay out of
 scenes and strict tool arguments, and dispatch independently rejects forged
 references. Both command and AI play export self-contained format-4 traces.
+Encounter conditions activate when they become true on entry, search, or talk.
+Embedded pre-guardian chapel content continues to replay with its version-2
+engine, prompt, and tool identities.
 
 The chapel investigation slice starts the active **Find Tavi** quest and lets you
 search the public missing-person notice, follow its chapel route, and discover a

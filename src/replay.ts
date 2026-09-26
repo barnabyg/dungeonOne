@@ -3,7 +3,10 @@ import { readTraceFile } from "./trace-file.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { loadAdventure } from "./adventure-loader.js";
 import { createChapelCluesRuntime } from "./chapel-clues-runtime.js";
-import { CLUES_ENGINE_VERSION } from "./chapel-clues-runtime.js";
+import {
+  CLUES_ENGINE_VERSION,
+  LEGACY_CLUES_ENGINE_VERSION,
+} from "./chapel-clues-runtime.js";
 import {
   createExplorationRuntime,
   DATA_ENGINE_VERSION,
@@ -1348,7 +1351,8 @@ function replayFormat4(trace: JsonObject): void {
   if (
     trace.engineVersion !== DATA_ENGINE_VERSION &&
     trace.engineVersion !== SIGNET_ENGINE_VERSION &&
-    trace.engineVersion !== CLUES_ENGINE_VERSION
+    trace.engineVersion !== CLUES_ENGINE_VERSION &&
+    trace.engineVersion !== LEGACY_CLUES_ENGINE_VERSION
   ) {
     requireSupported(
       trace.engineVersion,

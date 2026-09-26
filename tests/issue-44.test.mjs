@@ -17,9 +17,17 @@ const run = (input, args, env = {}) =>
 const temporary = (work) => {
   const directory = mkdtempSync(join(tmpdir(), "issue-44-"));
   try {
-    return work(directory);
-  } finally {
+    const result = work(directory);
+    if (result instanceof Promise) {
+      return result.finally(() =>
+        rmSync(directory, { recursive: true, force: true }),
+      );
+    }
     rmSync(directory, { recursive: true, force: true });
+    return result;
+  } catch (error) {
+    rmSync(directory, { recursive: true, force: true });
+    throw error;
   }
 };
 
@@ -143,6 +151,41 @@ test("validation rejects missing monsters and overlapping encounter locations", 
     mutate((value) => {
       value.monsters[0].definitionId = "missing";
     }).some(({ code }) => code === "unknown-reference"),
+  );
+});
+
+test("an authored condition can activate an encounter after a local discovery", async () => {
+  const { loadAdventure } = await import("../dist/adventure-loader.js");
+  const { createChapelCluesRuntime } =
+    await import("../dist/chapel-clues-runtime.js");
+  const { createSeededRandom } = await import("../dist/random.js");
+  const variant = structuredClone(document);
+  variant.monsters[0].locationId = "inn";
+  variant.encounters[0].when = [
+    { type: "milestone-recorded", id: "chapel-route-known" },
+  ];
+  const loaded = loadAdventure(JSON.stringify(variant));
+  assert.equal(loaded.ok, true, JSON.stringify(loaded.diagnostics));
+  const runtime = createChapelCluesRuntime(loaded.adventure);
+  const state = runtime.createSession();
+  assert.deepEqual(runtime.projectDmScene(state).room.opponents, []);
+  assert.ok(
+    !runtime
+      .getGameToolDefinitions(state)
+      .find(({ name }) => name === "attack"),
+  );
+  const result = runtime.handleAction(
+    state,
+    { type: "search", target: "notice" },
+    createSeededRandom(0),
+  );
+  assert.equal(result.rejection, undefined);
+  assert.equal(result.events[0].operation, "search");
+  assert.equal(result.events[1].operation, "combat-started");
+  assert.equal(result.state.combat.opponentId, "skeleton-guardian");
+  assert.deepEqual(
+    runtime.projectDmScene(result.state).room.opponents.map(({ id }) => id),
+    ["skeleton-guardian"],
   );
 });
 
@@ -283,4 +326,86 @@ test("scripted AI defeat is terminal and replays without a provider", () =>
       !trace.turns.at(-1).stateAfter.milestones.includes("guardian-cleared"),
     );
     assert.equal(run("", ["--replay", tracePath]).status, 0);
+  }));
+
+test("pre-guardian external chapel format-4 traces retain their v2 runtime", () =>
+  temporary(async (directory) => {
+    const { loadAdventure } = await import("../dist/adventure-loader.js");
+    const { createChapelCluesRuntime } =
+      await import("../dist/chapel-clues-runtime.js");
+    const {
+      createSessionTrace,
+      recordTraceAction,
+      completeSessionTrace,
+      serializeSessionTrace,
+    } = await import("../dist/trace.js");
+    const previous = readFileSync(
+      "tests/fixtures/external-chapel-v2.json",
+      "utf8",
+    );
+    const runtime = createChapelCluesRuntime(loadAdventure(previous).adventure);
+    assert.equal(runtime.engineVersion, "chapel-clues-engine-v2");
+    assert.equal(runtime.promptVersion, "chapel-clues-dm-v2");
+    assert.equal(runtime.toolSchemaVersion, "chapel-clues-tools-v2");
+    let state = runtime.createSession();
+    assert.ok(!Object.hasOwn(state, "monsters"));
+    assert.ok(
+      !runtime
+        .renderResult(runtime.handleAction(state, { type: "look" }))
+        .includes("Opponents:"),
+    );
+    const trace = createSessionTrace(0, state, runtime);
+    for (const rawInput of [
+      "search notice",
+      "move chapel path",
+      "move ruined chapel",
+      "search record",
+      "quit",
+    ]) {
+      const action = runtime.parseCommand(rawInput);
+      const result = runtime.handleAction(state, action);
+      recordTraceAction(trace, rawInput, action, [], result);
+      state = result.state;
+    }
+    completeSessionTrace(trace, "quit", state);
+    const tracePath = join(directory, "legacy-v2.json");
+    writeFileSync(tracePath, serializeSessionTrace(trace));
+    assert.equal(run("", ["--replay", tracePath]).status, 0);
+    const scriptPath = join(directory, "legacy-ai-script.json");
+    const aiTracePath = join(directory, "legacy-v2-ai.json");
+    writeFileSync(
+      scriptPath,
+      JSON.stringify([
+        {
+          toolCalls: [
+            {
+              id: "talk-mara",
+              name: "talk",
+              argumentsJson:
+                '{"speakerId":"mara","topicId":"tavi","approach":"ask"}',
+            },
+          ],
+        },
+        { text: "Continue." },
+      ]),
+    );
+    const played = run(
+      "Ask Mara about Tavi\nquit\n",
+      [
+        "--adventure-file",
+        "tests/fixtures/external-chapel-v2.json",
+        "--ai",
+        "--seed",
+        "0",
+        "--trace",
+        aiTracePath,
+      ],
+      { DUNGEON_ONE_TEST_DM_SCRIPT: scriptPath },
+    );
+    assert.equal(played.status, 0, played.stderr);
+    assert.equal(
+      JSON.parse(readFileSync(aiTracePath, "utf8")).engineVersion,
+      "chapel-clues-engine-v2",
+    );
+    assert.equal(run("", ["--replay", aiTracePath]).status, 0);
   }));
