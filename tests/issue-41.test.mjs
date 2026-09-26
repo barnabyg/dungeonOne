@@ -33,7 +33,9 @@ const commandInputs = {
     "move reliquary",
     "leave",
     "take signet",
+    "inspect signet",
     "leave",
+    "inspect signet",
     "move guardroom",
     "status",
     "inventory",
@@ -71,6 +73,7 @@ test("validated combat content has exact references and rejects impossible place
   const { createSignetRuntime } = await import("../dist/signet-runtime.js");
   const { createSeededRandom } = await import("../dist/random.js");
   const runtime = createSignetRuntime(loaded.adventure);
+  const random = createSeededRandom(0);
   let state = runtime.createSession();
   state = runtime.handleAction(state, {
     type: "open",
@@ -79,7 +82,7 @@ test("validated combat content has exact references and rejects impossible place
   state = runtime.handleAction(
     state,
     { type: "move", destination: "guardroom" },
-    createSeededRandom(0),
+    random,
   ).state;
   const inspect = runtime
     .getGameToolDefinitions(state)
@@ -89,6 +92,39 @@ test("validated combat content has exact references and rejects impossible place
     runtime.dispatchGameTool(state, {
       name: "inspect",
       argumentsJson: '{"target":"goblin"}',
+    }).modelOutput.ok,
+    true,
+  );
+  state = runtime.handleAction(
+    state,
+    { type: "attack", target: "goblin" },
+    random,
+  ).state;
+  state = runtime.handleAction(
+    state,
+    { type: "attack", target: "goblin" },
+    random,
+  ).state;
+  state = runtime.handleAction(
+    state,
+    { type: "move", destination: "reliquary" },
+    random,
+  ).state;
+  state = runtime.handleAction(
+    state,
+    { type: "take", target: "signet" },
+    random,
+  ).state;
+  assert.ok(
+    runtime
+      .getGameToolDefinitions(state)
+      .find(({ name }) => name === "inspect")
+      .parameters.properties.target.enum.includes("signet"),
+  );
+  assert.equal(
+    runtime.dispatchGameTool(state, {
+      name: "inspect",
+      argumentsJson: '{"target":"signet"}',
     }).modelOutput.ok,
     true,
   );
@@ -188,6 +224,16 @@ test("external command victory and defeat preserve seeded historical combat and 
       const trace = JSON.parse(readFileSync(tracePath, "utf8"));
       assert.equal(trace.formatVersion, 4);
       assert.equal(trace.completion.outcome, name);
+      if (name === "victory") {
+        const inspections = trace.actions.filter(
+          (entry) =>
+            entry.action.type === "inspect" && entry.action.target === "signet",
+        );
+        assert.equal(inspections.length, 2);
+        assert.ok(
+          inspections.every((entry) => entry.result.type === "accepted"),
+        );
+      }
       assert.deepEqual(
         trace.actions.flatMap((entry) => entry.rolls),
         (() => {

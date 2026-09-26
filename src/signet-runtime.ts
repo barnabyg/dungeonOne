@@ -130,6 +130,10 @@ export function createSignetRuntime(
         (state.itemPlacements[item.id] as Extract<Placement, { type: "room" }>)
           .locationId === state.locationId,
     );
+  const carriedItems = (state: SignetState) =>
+    definition.items.filter(
+      (item) => state.itemPlacements[item.id]?.type === "inventory",
+    );
   const visibleMonsters = (state: SignetState) =>
     definition.monsters.filter(
       (monster) => monster.locationId === state.locationId,
@@ -414,6 +418,10 @@ export function createSignetRuntime(
           entry,
           text: entry.description,
         })),
+        ...carriedItems(state).map((entry) => ({
+          entry,
+          text: entry.description,
+        })),
         ...nearbyDoors(state).map((entry) => ({
           entry,
           text: `${entry.description} It is ${doorOpen(state, entry.id) ? "open" : "closed"}.`,
@@ -665,6 +673,7 @@ export function createSignetRuntime(
         (entry) => entry.locationId === state.locationId,
       ),
       ...visibleItems(state),
+      ...carriedItems(state),
       ...nearbyDoors(state),
       ...visibleMonsters(state).map((entry) => monsterTarget(entry.id)),
       ...routes(state).map((entry) => location(entry.to)),
