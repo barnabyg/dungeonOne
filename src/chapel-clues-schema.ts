@@ -64,6 +64,16 @@ const optionalSourceDiscovery: Schema = {
   ...discovery,
   required: ["id", "title", "classification", "summary", "lead"],
 };
+const combatStats = object({
+  armorClass: { type: "integer", minimum: 1, maximum: 40 },
+  attackBonus: { type: "integer", minimum: -20, maximum: 20 },
+  initiativeBonus: { type: "integer", minimum: -20, maximum: 20 },
+  damage: object({
+    dice: { type: "integer", minimum: 1, maximum: 20 },
+    sides: { type: "integer", minimum: 2, maximum: 100 },
+    modifier: { type: "integer", minimum: -20, maximum: 20 },
+  }),
+});
 export const CHAPEL_CLUES_SCHEMA = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   title: "Dungeon One chapel clues adventure v3",
@@ -87,12 +97,13 @@ export const CHAPEL_CLUES_SCHEMA = {
       }),
     ),
     facts: list(object({ id, statement: prose })),
-    npcs: list(
-      object({
+    npcs: list({
+      ...object({
         id,
         name: prose,
         aliases,
         locationId: id,
+        when: list(condition),
         voice: prose,
         knows: list(id),
         believes: list(id),
@@ -109,7 +120,19 @@ export const CHAPEL_CLUES_SCHEMA = {
           }),
         ),
       }),
-    ),
+      required: [
+        "id",
+        "name",
+        "aliases",
+        "locationId",
+        "voice",
+        "knows",
+        "believes",
+        "wants",
+        "knowledgeLimits",
+        "topics",
+      ],
+    }),
     socialChallenges: list(
       object({
         id,
@@ -119,6 +142,30 @@ export const CHAPEL_CLUES_SCHEMA = {
         guardedDiscoveryIds: list(id),
         guardedMilestoneIds: list(id),
         evidenceWhen: list(condition),
+      }),
+    ),
+    combatProfile: combatStats,
+    monsterDefinitions: list(
+      object({
+        ...base.locations!.items!.properties!,
+        maxHp: { type: "integer", minimum: 1, maximum: 10000 },
+        stats: combatStats,
+      }),
+    ),
+    monsters: list(
+      object({
+        id,
+        definitionId: id,
+        locationId: id,
+        hp: { type: "integer", minimum: 1, maximum: 10000 },
+      }),
+    ),
+    encounters: list(
+      object({
+        id,
+        monsterId: id,
+        when: list(condition),
+        effects: list(effect),
       }),
     ),
   }),

@@ -113,7 +113,7 @@ clocks, and new rule systems are outside this profile.
 
 [The chapel clues document](adventures/chapel-clues.json) uses
 [schema 3](schema/adventure-v3.schema.json) and `chapel-clues-rules-v1`.
-It provides the inn, ferry landing, chapel path, and ruined chapel as directed
+It provides the inn, ferry landing, chapel path, ruined chapel, and crypt as directed
 connections. Searching the public notice or damaged repair record grants a
 sourced observation and quest milestone once, with no roll or NPC interaction.
 The two searches work in either order. `look` and `inspect` only read public
@@ -129,8 +129,13 @@ no-roll, evidence-backed reply without clearing the earlier check. Only the
 selected reply's approved facts enter the model conversation and speaker-scoped
 history. Challenge definitions name guarded facts, discoveries, milestones,
 and evidence conditions; validation rejects guarded release in ordinary
-failure or fallback replies. The crypt, guardian, and quest resolution are not available in this
-external slice. The built-in chapel selector retains its existing behavior.
+failure or fallback replies. Entering the crypt starts the authored skeleton
+encounter. `attack skeleton` uses seeded initiative, attack, and damage rolls.
+While the guardian lives, combat blocks movement, searching, and conversation.
+Defeating it records `guardian-cleared` once, reveals the ledger and Tavi, and
+leaves both discoveries to their separate search and conversation actions.
+Player defeat ends the session. The external chapel does not yet rescue Tavi or
+resolve the quest. The built-in chapel selector retains its existing behavior.
 
 ```powershell
 npm.cmd run build
@@ -146,6 +151,11 @@ session. The second repairs attempt uses the first result without another roll.
 Search the repair record at the ruined chapel, return to Oren, and use
 `talk oren repairs ask` for the evidence reply. These actions also work through
 the offered `talk` model tool and export to a self-contained format-4 trace.
+
+For combat, use seed `0` and enter `move chapel path`, `move ruined chapel`,
+`move crypt`, then `attack skeleton` three times. Search the ledger and ask Tavi
+about the crypt after the victory. Seed `74` produces a fighter defeat if you
+keep attacking. The offered AI `attack` tool takes `opponent_id`.
 
 Schema 3 uses stable IDs and bounded aliases. Each `when` list is a conjunction
 of typed `discovery-known` or `milestone-recorded` predicates evaluated before

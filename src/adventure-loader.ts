@@ -117,6 +117,7 @@ export type DialogueNpc = Readonly<{
   name: string;
   aliases: readonly string[];
   locationId: string;
+  when?: readonly ClueCondition[];
   voice: string;
   knows: readonly string[];
   believes: readonly string[];
@@ -166,6 +167,27 @@ export type ChapelCluesDefinition = Readonly<{
     guardedMilestoneIds: readonly string[];
     evidenceWhen: readonly ClueCondition[];
   }>[];
+  combatProfile?: CombatStats;
+  monsterDefinitions?: readonly (LocationDefinition &
+    Readonly<{ maxHp: number; stats: CombatStats }>)[];
+  monsters?: readonly Readonly<{
+    id: string;
+    definitionId: string;
+    locationId: string;
+    hp: number;
+  }>[];
+  encounters?: readonly Readonly<{
+    id: string;
+    monsterId: string;
+    when: readonly ClueCondition[];
+    effects: readonly ClueEffect[];
+  }>[];
+}>;
+export type CombatStats = Readonly<{
+  armorClass: number;
+  attackBonus: number;
+  initiativeBonus: number;
+  damage: Readonly<{ dice: number; sides: number; modifier: number }>;
 }>;
 export type AdventureDefinition =
   ExplorationDefinition | SignetDefinition | ChapelCluesDefinition;
@@ -715,6 +737,12 @@ function validateClueReferences(
         namespace: "socialChallenges",
         entries: snapshot.socialChallenges ?? [],
       },
+      {
+        namespace: "monsterDefinitions",
+        entries: snapshot.monsterDefinitions ?? [],
+      },
+      { namespace: "monsters", entries: snapshot.monsters ?? [] },
+      { namespace: "encounters", entries: snapshot.encounters ?? [] },
     ],
     error,
     "Duplicate entity ID.",
@@ -727,6 +755,136 @@ function validateClueReferences(
   const challenges = new Set(
     (snapshot.socialChallenges ?? []).map(({ id }) => id),
   );
+  const ref = (set: Set<string>, id: string, path: string, entity: string) => {
+    if (!set.has(id)) {
+      error("unknown-reference", path, entity, `Unknown reference: ${id}.`);
+    }
+  };
+  const conditions = (
+    list: readonly ClueCondition[],
+    path: string,
+    entity: string,
+  ) =>
+    list.forEach((entry, i) =>
+      ref(
+        entry.type === "discovery-known" ? discoveries : milestones,
+        entry.id,
+        `${path}/${i}/id`,
+        entity,
+      ),
+    );
+  const monsterDefinitions = new Map(
+    (snapshot.monsterDefinitions ?? []).map((entry) => [entry.id, entry]),
+  );
+  const monsters = new Map(
+    (snapshot.monsters ?? []).map((entry) => [entry.id, entry]),
+  );
+  const encounterLocations = new Set<string>();
+  if (
+    (snapshot.monsters?.length ?? 0) > 0 &&
+    snapshot.combatProfile === undefined
+  ) {
+    error(
+      "missing-combat-profile",
+      "/combatProfile",
+      snapshot.id,
+      "Combat encounters require a player combat profile.",
+    );
+  }
+  (snapshot.monsters ?? []).forEach((monster, i) => {
+    ref(
+      new Set(snapshot.locations.map(({ id }) => id)),
+      monster.locationId,
+      `/monsters/${i}/locationId`,
+      monster.id,
+    );
+    ref(
+      new Set(monsterDefinitions.keys()),
+      monster.definitionId,
+      `/monsters/${i}/definitionId`,
+      monster.id,
+    );
+    const definition = monsterDefinitions.get(monster.definitionId);
+    if (definition !== undefined && monster.hp > definition.maxHp) {
+      error(
+        "invalid-placement",
+        `/monsters/${i}/hp`,
+        monster.id,
+        "Monster HP exceeds its maximum.",
+      );
+    }
+    if (
+      !(snapshot.encounters ?? []).some(
+        (entry) => entry.monsterId === monster.id,
+      )
+    ) {
+      error(
+        "missing-encounter",
+        `/monsters/${i}`,
+        monster.id,
+        "Placed monster needs an encounter definition.",
+      );
+    }
+  });
+  (snapshot.encounters ?? []).forEach((encounter, i) => {
+    ref(
+      new Set(monsters.keys()),
+      encounter.monsterId,
+      `/encounters/${i}/monsterId`,
+      encounter.id,
+    );
+    const monster = monsters.get(encounter.monsterId);
+    if (monster !== undefined) {
+      if (encounterLocations.has(monster.locationId)) {
+        error(
+          "overlapping-encounters",
+          `/encounters/${i}`,
+          encounter.id,
+          "Only one encounter may occupy a location.",
+        );
+      }
+      encounterLocations.add(monster.locationId);
+      if (
+        monster.locationId === snapshot.player.locationId &&
+        encounter.when.length === 0
+      ) {
+        error(
+          "invalid-placement",
+          `/encounters/${i}`,
+          encounter.id,
+          "An encounter cannot start at the initial player location.",
+        );
+      }
+    }
+    conditions(encounter.when, `/encounters/${i}/when`, encounter.id);
+    const seen = new Set<string>();
+    encounter.effects.forEach((effect, j) => {
+      ref(
+        effect.type === "grant-discovery" ? discoveries : milestones,
+        effect.id,
+        `/encounters/${i}/effects/${j}/id`,
+        encounter.id,
+      );
+      const key = `${effect.type}/${effect.id}`;
+      if (seen.has(key)) {
+        error(
+          "conflicting-effects",
+          `/encounters/${i}/effects/${j}`,
+          encounter.id,
+          "Duplicate encounter effect.",
+        );
+      }
+      seen.add(key);
+      if (effect.type === "grant-discovery") {
+        error(
+          "unsupported-effect",
+          `/encounters/${i}/effects/${j}`,
+          encounter.id,
+          "Encounter clearance cannot grant a discovery.",
+        );
+      }
+    });
+  });
   snapshot.quest.milestones.forEach((id, i) => {
     if (snapshot.quest.milestones.indexOf(id) !== i) {
       error(
@@ -750,24 +908,6 @@ function validateClueReferences(
     connection: "Duplicate or self connection.",
     unreachable: "Location is unreachable.",
   });
-  const ref = (set: Set<string>, id: string, path: string, entity: string) => {
-    if (!set.has(id)) {
-      error("unknown-reference", path, entity, `Unknown reference: ${id}.`);
-    }
-  };
-  const conditions = (
-    list: readonly ClueCondition[],
-    path: string,
-    entity: string,
-  ) =>
-    list.forEach((entry, i) =>
-      ref(
-        entry.type === "discovery-known" ? discoveries : milestones,
-        entry.id,
-        `${path}/${i}/id`,
-        entity,
-      ),
-    );
   (snapshot.socialChallenges ?? []).forEach((challenge, i) => {
     challenge.guardedFactIds.forEach((id, j) =>
       ref(
@@ -830,6 +970,11 @@ function validateClueReferences(
     }
   });
   const producers = new Set([
+    ...(snapshot.encounters ?? []).flatMap((encounter) =>
+      encounter.effects
+        .filter((effect) => effect.type === "record-milestone")
+        .map((effect) => effect.id),
+    ),
     ...snapshot.searches.flatMap((search) =>
       search.effects
         .filter((effect) => effect.type === "record-milestone")
@@ -900,6 +1045,7 @@ function validateClueReferences(
     }
   });
   (snapshot.npcs ?? []).forEach((npc, i) => {
+    conditions(npc.when ?? [], `/npcs/${i}/when`, npc.id);
     ref(
       new Set(snapshot.locations.map(({ id }) => id)),
       npc.locationId,
@@ -1093,6 +1239,23 @@ function validateClueReferences(
                   },
                 ];
           }),
+        ...(snapshot.monsters ?? [])
+          .filter((entry) => entry.locationId === location.id)
+          .flatMap((entry) => {
+            const definition = monsterDefinitions.get(entry.definitionId);
+            return definition === undefined
+              ? []
+              : [
+                  {
+                    entry: {
+                      id: entry.id,
+                      aliases: [definition.id, ...definition.aliases],
+                    },
+                    identity: `monster/${entry.id}`,
+                    path: `/monsters/${(snapshot.monsters ?? []).indexOf(entry)}`,
+                  },
+                ];
+          }),
       ],
       error,
       (alias) => `Ambiguous visible alias: ${alias}.`,
@@ -1105,7 +1268,11 @@ function validateClueReferences(
   const reachableSearches = new Set<string>();
   for (
     let pass = 0;
-    pass < snapshot.searches.length + snapshot.connections.length + 1;
+    pass <
+    snapshot.searches.length +
+      snapshot.connections.length +
+      (snapshot.encounters?.length ?? 0) +
+      1;
     pass++
   ) {
     for (const route of snapshot.connections) {
@@ -1114,6 +1281,20 @@ function validateClueReferences(
         route.when.every((c) => known.has(`${c.type}/${c.id}`))
       ) {
         reached.add(route.to);
+      }
+    }
+    for (const encounter of snapshot.encounters ?? []) {
+      const placed = monsters.get(encounter.monsterId);
+      if (
+        placed !== undefined &&
+        reached.has(placed.locationId) &&
+        encounter.when.every((c) => known.has(`${c.type}/${c.id}`))
+      ) {
+        encounter.effects.forEach((effect) =>
+          known.add(
+            `${effect.type === "grant-discovery" ? "discovery-known" : "milestone-recorded"}/${effect.id}`,
+          ),
+        );
       }
     }
     for (const search of snapshot.searches) {

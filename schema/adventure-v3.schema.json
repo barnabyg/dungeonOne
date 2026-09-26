@@ -58,11 +58,7 @@
     "player": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "locationId",
-        "hp",
-        "maxHp"
-      ],
+      "required": ["locationId", "hp", "maxHp"],
       "properties": {
         "locationId": {
           "type": "string",
@@ -89,12 +85,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "name",
-          "description",
-          "aliases"
-        ],
+        "required": ["id", "name", "description", "aliases"],
         "properties": {
           "id": {
             "type": "string",
@@ -131,12 +122,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "from",
-          "to",
-          "when"
-        ],
+        "required": ["id", "from", "to", "when"],
         "properties": {
           "id": {
             "type": "string",
@@ -161,17 +147,11 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": [
-                    "discovery-known",
-                    "milestone-recorded"
-                  ]
+                  "enum": ["discovery-known", "milestone-recorded"]
                 },
                 "id": {
                   "type": "string",
@@ -239,17 +219,11 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": [
-                    "discovery-known",
-                    "milestone-recorded"
-                  ]
+                  "enum": ["discovery-known", "milestone-recorded"]
                 },
                 "id": {
                   "type": "string",
@@ -268,11 +242,7 @@
     "quest": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "title",
-        "milestones"
-      ],
+      "required": ["id", "title", "milestones"],
       "properties": {
         "id": {
           "type": "string",
@@ -302,13 +272,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "title",
-          "classification",
-          "summary",
-          "lead"
-        ],
+        "required": ["id", "title", "classification", "summary", "lead"],
         "properties": {
           "id": {
             "type": "string",
@@ -323,11 +287,7 @@
           },
           "classification": {
             "type": "string",
-            "enum": [
-              "observation",
-              "testimony",
-              "belief"
-            ]
+            "enum": ["observation", "testimony", "belief"]
           },
           "sourceFeatureId": {
             "type": "string",
@@ -360,13 +320,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "targetId",
-          "when",
-          "effects",
-          "text"
-        ],
+        "required": ["id", "targetId", "when", "effects", "text"],
         "properties": {
           "id": {
             "type": "string",
@@ -385,17 +339,11 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": [
-                    "discovery-known",
-                    "milestone-recorded"
-                  ]
+                  "enum": ["discovery-known", "milestone-recorded"]
                 },
                 "id": {
                   "type": "string",
@@ -412,17 +360,11 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": [
-                    "grant-discovery",
-                    "record-milestone"
-                  ]
+                  "enum": ["grant-discovery", "record-milestone"]
                 },
                 "id": {
                   "type": "string",
@@ -448,10 +390,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "statement"
-        ],
+        "required": ["id", "statement"],
         "properties": {
           "id": {
             "type": "string",
@@ -513,6 +452,27 @@
             "minLength": 1,
             "maxLength": 64,
             "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "when": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "id"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["discovery-known", "milestone-recorded"]
+                },
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                }
+              }
+            },
+            "maxItems": 256
           },
           "voice": {
             "type": "string",
@@ -598,17 +558,11 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": [
-                      "type",
-                      "id"
-                    ],
+                    "required": ["type", "id"],
                     "properties": {
                       "type": {
                         "type": "string",
-                        "enum": [
-                          "discovery-known",
-                          "milestone-recorded"
-                        ]
+                        "enum": ["discovery-known", "milestone-recorded"]
                       },
                       "id": {
                         "type": "string",
@@ -646,17 +600,11 @@
                         "items": {
                           "type": "object",
                           "additionalProperties": false,
-                          "required": [
-                            "type",
-                            "id"
-                          ],
+                          "required": ["type", "id"],
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": [
-                                "discovery-known",
-                                "milestone-recorded"
-                              ]
+                              "enum": ["discovery-known", "milestone-recorded"]
                             },
                             "id": {
                               "type": "string",
@@ -670,12 +618,7 @@
                       },
                       "outcome": {
                         "type": "string",
-                        "enum": [
-                          "any",
-                          "unattempted",
-                          "success",
-                          "failure"
-                        ]
+                        "enum": ["any", "unattempted", "success", "failure"]
                       },
                       "approach": {
                         "type": "string",
@@ -712,17 +655,11 @@
                         "items": {
                           "type": "object",
                           "additionalProperties": false,
-                          "required": [
-                            "type",
-                            "id"
-                          ],
+                          "required": ["type", "id"],
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": [
-                                "grant-discovery",
-                                "record-milestone"
-                              ]
+                              "enum": ["grant-discovery", "record-milestone"]
                             },
                             "id": {
                               "type": "string",
@@ -812,17 +749,246 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": [
-                    "discovery-known",
-                    "milestone-recorded"
-                  ]
+                  "enum": ["discovery-known", "milestone-recorded"]
+                },
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                }
+              }
+            },
+            "maxItems": 256
+          }
+        }
+      },
+      "maxItems": 256
+    },
+    "combatProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["armorClass", "attackBonus", "initiativeBonus", "damage"],
+      "properties": {
+        "armorClass": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 40
+        },
+        "attackBonus": {
+          "type": "integer",
+          "minimum": -20,
+          "maximum": 20
+        },
+        "initiativeBonus": {
+          "type": "integer",
+          "minimum": -20,
+          "maximum": 20
+        },
+        "damage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["dice", "sides", "modifier"],
+          "properties": {
+            "dice": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            },
+            "sides": {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 100
+            },
+            "modifier": {
+              "type": "integer",
+              "minimum": -20,
+              "maximum": 20
+            }
+          }
+        }
+      }
+    },
+    "monsterDefinitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "description", "aliases", "maxHp", "stats"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "aliases": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 256,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?: [a-z][a-z0-9]*(?:-[a-z0-9]+)*){0,7}$"
+            }
+          },
+          "maxHp": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "stats": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "armorClass",
+              "attackBonus",
+              "initiativeBonus",
+              "damage"
+            ],
+            "properties": {
+              "armorClass": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 40
+              },
+              "attackBonus": {
+                "type": "integer",
+                "minimum": -20,
+                "maximum": 20
+              },
+              "initiativeBonus": {
+                "type": "integer",
+                "minimum": -20,
+                "maximum": 20
+              },
+              "damage": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["dice", "sides", "modifier"],
+                "properties": {
+                  "dice": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20
+                  },
+                  "sides": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 100
+                  },
+                  "modifier": {
+                    "type": "integer",
+                    "minimum": -20,
+                    "maximum": 20
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "maxItems": 256
+    },
+    "monsters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "definitionId", "locationId", "hp"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "definitionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "locationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "hp": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        }
+      },
+      "maxItems": 256
+    },
+    "encounters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "monsterId", "when", "effects"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "monsterId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "when": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "id"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["discovery-known", "milestone-recorded"]
+                },
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                }
+              }
+            },
+            "maxItems": 256
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "id"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["grant-discovery", "record-milestone"]
                 },
                 "id": {
                   "type": "string",

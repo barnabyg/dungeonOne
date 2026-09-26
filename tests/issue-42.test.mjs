@@ -41,11 +41,11 @@ test("chapel leads are independent, sourced, and granted once through command pl
       /Unsafe chapel repairs \[observation; damaged repair record, Ruined Chapel\]/,
     );
     assert.match(played.stdout, /find nothing new/);
-    assert.match(played.stdout, /Action unavailable: invisible-target/);
+    assert.match(played.stdout, /Combat begins against the skeleton guardian/);
     const trace = JSON.parse(readFileSync(tracePath, "utf8"));
     assert.equal(trace.formatVersion, 4);
-    assert.deepEqual(trace.actions.at(-2).rolls, []);
-    assert.equal(trace.actions.at(-2).result.type, "rejected");
+    assert.ok(trace.actions.at(-2).rolls.length >= 2);
+    assert.equal(trace.actions.at(-2).result.type, "accepted");
     assert.deepEqual(trace.actions.at(-3).stateAfter.discoveries, [
       "chapel-route",
       "unsafe-repairs",
