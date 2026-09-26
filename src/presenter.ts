@@ -260,6 +260,8 @@ function renderRejection(rejection: Rejection): string {
       return `You are already carrying the ${ADVENTURE.items[rejection.itemId].name}.`;
     case "combat-restriction":
       return 'You cannot do that during combat. Attack the goblin with "attack goblin".';
+    case "full-hp":
+      return "You are already at full HP; the healing item remains available.";
     case "invalid-attack-target":
       return `You cannot attack "${rejection.target}" here.`;
     case "dead-target":

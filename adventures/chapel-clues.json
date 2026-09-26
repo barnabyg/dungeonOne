@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "id": "chapel-clues",
-  "contentVersion": "1",
+  "contentVersion": "2",
   "rulesVersion": "chapel-clues-rules-v1",
   "title": "The Bell Beneath the Chapel: First Leads",
   "introduction": "Tavi is missing. Begin at the village inn and follow the public chapel route.",
@@ -93,6 +93,14 @@
       "description": "A weathered arrow confirms the route named by the public notice.",
       "aliases": ["marker"],
       "when": [{ "type": "discovery-known", "id": "chapel-route" }]
+    },
+    {
+      "id": "dry-niche",
+      "locationId": "chapel-path",
+      "name": "dry niche",
+      "description": "A sheltered recess in the path wall holds a stoppered bottle.",
+      "aliases": ["niche"],
+      "when": []
     },
     {
       "id": "broken-roof",
@@ -437,6 +445,17 @@
       "definitionId": "skeleton",
       "locationId": "crypt",
       "hp": 13
+    }
+  ],
+  "items": [
+    {
+      "id": "healing-potion",
+      "name": "healing potion",
+      "description": "A stoppered red potion that restores 2d4 + 2 HP, tucked into the dry niche.",
+      "aliases": ["potion", "healing potion"],
+      "locationId": "chapel-path",
+      "featureId": "dry-niche",
+      "healing": { "dice": 2, "sides": 4, "modifier": 2, "target": "fighter" }
     }
   ],
   "encounters": [

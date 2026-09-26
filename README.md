@@ -137,6 +137,13 @@ leaves both discoveries to their separate search and conversation actions.
 Player defeat ends the session. The external chapel does not yet rescue Tavi or
 resolve the quest. The built-in chapel selector retains its existing behavior.
 
+Content version 2 places a healing potion on the chapel path. `take potion`
+collects it once; `use potion` rolls the authored 2d4+2 healing, caps HP at the
+fighter's maximum, and consumes it. Using it at full HP keeps the potion.
+In combat, use spends the fighter's turn and the guardian retaliates. The
+`take` and `use_item` model tools accept an offered `item_id`; explicit requests
+to collect an item's authored alias cannot be changed into inspection.
+
 ```powershell
 npm.cmd run build
 node dist/cli.js --validate-adventure adventures/chapel-clues.json
@@ -162,6 +169,9 @@ of typed `discovery-known` or `milestone-recorded` predicates evaluated before
 the action. Searches are considered in document order and apply their finite
 `grant-discovery` and `record-milestone` effects together; duplicate effects,
 unknown references, and unreachable prerequisite cycles fail validation. A
+healing item declares its room, feature, aliases, and bounded dice with the
+fighter as its only supported target. Placement, target, and alias conflicts
+fail validation. A
 repeated search makes no new discovery. Hidden features and routes stay out of
 scenes and strict tool arguments, and dispatch independently rejects forged
 references. Both command and AI play export self-contained format-4 traces.

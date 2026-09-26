@@ -182,6 +182,17 @@ export type ChapelCluesDefinition = Readonly<{
     when: readonly ClueCondition[];
     effects: readonly ClueEffect[];
   }>[];
+  items?: readonly (LocationDefinition &
+    Readonly<{
+      locationId: string;
+      featureId: string;
+      healing: Readonly<{
+        dice: number;
+        sides: number;
+        modifier: number;
+        target: "fighter";
+      }>;
+    }>)[];
 }>;
 export type CombatStats = Readonly<{
   armorClass: number;
@@ -743,11 +754,13 @@ function validateClueReferences(
       },
       { namespace: "monsters", entries: snapshot.monsters ?? [] },
       { namespace: "encounters", entries: snapshot.encounters ?? [] },
+      { namespace: "items", entries: snapshot.items ?? [] },
     ],
     error,
     "Duplicate entity ID.",
   );
   const features = new Set(snapshot.features.map(({ id }) => id));
+  const locations = new Set(snapshot.locations.map(({ id }) => id));
   const discoveries = new Set(snapshot.discoveries.map(({ id }) => id));
   const milestones = new Set(snapshot.quest.milestones);
   const facts = new Set((snapshot.facts ?? []).map(({ id }) => id));
@@ -760,6 +773,21 @@ function validateClueReferences(
       error("unknown-reference", path, entity, `Unknown reference: ${id}.`);
     }
   };
+  (snapshot.items ?? []).forEach((item, i) => {
+    ref(locations, item.locationId, `/items/${i}/locationId`, item.id);
+    ref(features, item.featureId, `/items/${i}/featureId`, item.id);
+    const feature = snapshot.features.find(
+      (entry) => entry.id === item.featureId,
+    );
+    if (feature !== undefined && feature.locationId !== item.locationId) {
+      error(
+        "invalid-placement",
+        `/items/${i}/featureId`,
+        item.id,
+        "Item and feature must share a location.",
+      );
+    }
+  });
   const conditions = (
     list: readonly ClueCondition[],
     path: string,
@@ -1256,6 +1284,13 @@ function validateClueReferences(
                   },
                 ];
           }),
+        ...(snapshot.items ?? [])
+          .filter((entry) => entry.locationId === location.id)
+          .map((entry) => ({
+            entry,
+            identity: `item/${entry.id}`,
+            path: `/items/${(snapshot.items ?? []).indexOf(entry)}`,
+          })),
       ],
       error,
       (alias) => `Ambiguous visible alias: ${alias}.`,

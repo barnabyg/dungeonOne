@@ -168,6 +168,19 @@ export const CHAPEL_CLUES_SCHEMA = {
         effects: list(effect),
       }),
     ),
+    items: list(
+      object({
+        ...base.locations!.items!.properties!,
+        locationId: id,
+        featureId: id,
+        healing: object({
+          dice: { type: "integer", minimum: 1, maximum: 20 },
+          sides: { type: "integer", minimum: 2, maximum: 100 },
+          modifier: { type: "integer", minimum: 0, maximum: 20 },
+          target: { type: "string", enum: ["fighter"] },
+        }),
+      }),
+    ),
   }),
   required: Object.keys(base).concat(["quest", "discoveries", "searches"]),
 } as const;

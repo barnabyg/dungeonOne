@@ -154,7 +154,8 @@ export type Rejection = Readonly<
   | { reason: "unknown-command"; input: string }
   | {
       reason: "missing-argument";
-      command: "inspect" | "search" | "move" | "open" | "take" | "attack";
+      command:
+        "inspect" | "search" | "move" | "open" | "take" | "use" | "attack";
     }
   | { reason: "invisible-target"; target: string }
   | { reason: "not-openable"; target: string }
@@ -167,6 +168,7 @@ export type Rejection = Readonly<
       requirement: "reliquary" | "signet" | "living-fighter";
     }
   | { reason: "combat-restriction" }
+  | { reason: "full-hp" }
   | { reason: "invalid-attack-target"; target: string }
   | { reason: "dead-target"; targetId: OpponentId }
   | { reason: "terminal-state"; status: "victory" | "defeat" }

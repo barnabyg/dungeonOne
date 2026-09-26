@@ -1003,6 +1003,90 @@
         }
       },
       "maxItems": 256
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "description",
+          "aliases",
+          "locationId",
+          "featureId",
+          "healing"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "aliases": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 256,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?: [a-z][a-z0-9]*(?:-[a-z0-9]+)*){0,7}$"
+            }
+          },
+          "locationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "featureId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "healing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["dice", "sides", "modifier", "target"],
+            "properties": {
+              "dice": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20
+              },
+              "sides": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 100
+              },
+              "modifier": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 20
+              },
+              "target": {
+                "type": "string",
+                "enum": ["fighter"]
+              }
+            }
+          }
+        }
+      },
+      "maxItems": 256
     }
   }
 }

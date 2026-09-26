@@ -5,6 +5,7 @@ import { loadAdventure } from "./adventure-loader.js";
 import { createChapelCluesRuntime } from "./chapel-clues-runtime.js";
 import {
   CLUES_ENGINE_VERSION,
+  COMBAT_CLUES_ENGINE_VERSION,
   LEGACY_CLUES_ENGINE_VERSION,
 } from "./chapel-clues-runtime.js";
 import {
@@ -1352,6 +1353,7 @@ function replayFormat4(trace: JsonObject): void {
     trace.engineVersion !== DATA_ENGINE_VERSION &&
     trace.engineVersion !== SIGNET_ENGINE_VERSION &&
     trace.engineVersion !== CLUES_ENGINE_VERSION &&
+    trace.engineVersion !== COMBAT_CLUES_ENGINE_VERSION &&
     trace.engineVersion !== LEGACY_CLUES_ENGINE_VERSION
   ) {
     requireSupported(
