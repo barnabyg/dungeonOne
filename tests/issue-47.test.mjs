@@ -88,6 +88,8 @@ test("each casualty remains visible and the physical investigation survives in c
         tracePath,
       ]);
       assert.equal(played.status, 0, played.stderr);
+      assert.match(played.stdout, /search <feature or remains>/);
+      assert.match(played.stdout, /attack <monster or person>/);
       assert.match(played.stdout, new RegExp(`${actor} dies at`, "i"));
       assert.match(played.stdout, new RegExp(`${actor}'s remains`, "i"));
       const trace = JSON.parse(readFileSync(tracePath, "utf8"));

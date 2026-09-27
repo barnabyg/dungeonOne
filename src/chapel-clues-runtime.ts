@@ -678,7 +678,7 @@ export function createChapelCluesRuntime(
         state,
         event(
           "help",
-          `Commands: look, inspect <feature or exit>, search <feature>, talk <person> <topic> <ask|persuade|deceive|intimidate>, move <exit>, ${definition.items === undefined ? "" : "take <item>, use <item>, "}${combatEnabled ? "attack <monster>, " : ""}journal, status, inventory, help, quit.`,
+          `Commands: look, inspect <feature or exit>, search <${casualtiesEnabled ? "feature or remains" : "feature"}>, talk <person> <topic> <ask|persuade|deceive|intimidate>, move <exit>, ${definition.items === undefined ? "" : "take <item>, use <item>, "}${combatEnabled ? `attack <${casualtiesEnabled ? "monster or person" : "monster"}>, ` : ""}journal, status, inventory, help, quit.`,
         ),
       );
     }
@@ -1582,7 +1582,7 @@ export function createChapelCluesRuntime(
     },
     handleAction,
     renderIntroduction: () =>
-      `${definition.title}\n${definition.introduction}\nObjective: ${definition.objective}\nCommands: look, inspect <target>, search <feature>, talk <person> <topic> <approach>, move <exit>, ${definition.items === undefined ? "" : "take <item>, use <item>, "}${combatEnabled ? "attack <monster>, " : ""}journal, status, inventory, help, quit.`,
+      `${definition.title}\n${definition.introduction}\nObjective: ${definition.objective}\nCommands: look, inspect <target>, search <${casualtiesEnabled ? "feature or remains" : "feature"}>, talk <person> <topic> <approach>, move <exit>, ${definition.items === undefined ? "" : "take <item>, use <item>, "}${combatEnabled ? `attack <${casualtiesEnabled ? "monster or person" : "monster"}>, ` : ""}journal, status, inventory, help, quit.`,
     renderStateSummary: (input) =>
       `HP: ${stateOf(input).fighter.hp}/${stateOf(input).fighter.maxHp}.`,
     renderResult(result): string {
