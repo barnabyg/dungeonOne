@@ -201,7 +201,8 @@ analysis. `initialDiscoveries` and `initialMilestones` may seed authored IDs;
 they appear in the initial journal and format-4 state. The analysis follows
 directed connections and explicit search, dialogue, remains, and encounter
 branches in document order. It treats conditions within a branch as `all` and
-ending `any` branches as alternatives. It stops at a fixed point, 512 additions,
+ending `any` branches as alternatives. Later search and dialogue branches
+shadowed by a preceding matching branch cannot produce facts. It stops at a fixed point, 512 additions,
 or 65536 condition evaluations. A closed required positive cycle, missing
 required producer, or unreachable required location is an error. Unreachable
 optional facts are warnings. `analysis-incomplete` warns when combat, social
@@ -213,22 +214,6 @@ or mutually exclusive choices. Record a played route for any warning you accept;
 the built-in chapel warnings and their route evidence are in
 [issue #49 acceptance evidence](docs/acceptance/issue-49.md).
 
-Validation and `--adventure-file` startup also run bounded positive progression
-analysis. `initialDiscoveries` and `initialMilestones` may seed authored IDs;
-they appear in the initial journal and format-4 state. The analysis follows
-directed connections and explicit search, dialogue, remains, and encounter
-branches in document order. It treats conditions within a branch as `all` and
-ending `any` branches as alternatives. It stops at a fixed point, 512 additions,
-or 65536 condition evaluations. A closed required positive cycle, missing
-required producer, or unreachable required location is an error. Unreachable
-optional facts are warnings. `analysis-incomplete` warns when combat, social
-checks, actor state, relocation, or other unsupported behavior is needed;
-`analysis-limit` warns when a bound is reached and suppresses impossibility
-conclusions. This is a possibility analysis, not a proof that a player can win:
-it does not model competing resources, combat survival, one-attempt outcomes,
-or mutually exclusive choices. Record a played route for any warning you accept;
-the built-in chapel warnings and their route evidence are in
-[issue #49 acceptance evidence](docs/acceptance/issue-49.md).
 Encounter conditions activate when they become true on entry, search, or talk.
 Embedded pre-guardian chapel content continues to replay with its version-2
 engine, prompt, and tool identities.
