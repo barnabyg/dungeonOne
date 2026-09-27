@@ -11,9 +11,16 @@ const condition: Schema = {
   properties: {
     type: {
       type: "string",
-      enum: ["discovery-known", "milestone-recorded", "actor-dead"],
+      enum: [
+        "discovery-known",
+        "milestone-recorded",
+        "actor-dead",
+        "actor-alive",
+        "actor-dead-at",
+      ],
     },
     id,
+    locationId: id,
   },
 };
 const effect: Schema = {
@@ -95,6 +102,7 @@ export const CHAPEL_CLUES_SCHEMA = {
         "chapel-clues-rules-v1",
         "chapel-clues-rules-v2",
         "chapel-clues-rules-v3",
+        "chapel-clues-rules-v4",
       ],
     },
     connections: list(object({ id, from: id, to: id, when: list(condition) })),
@@ -120,6 +128,24 @@ export const CHAPEL_CLUES_SCHEMA = {
       },
     },
     quest: object({ id, title: prose, milestones: list(id) }),
+    endings: object({
+      locationId: id,
+      when: list(condition),
+      any: list(list(condition)),
+      fates: list(object({ id, when: list(condition), text: prose })),
+      choices: list(
+        object({
+          id,
+          label: prose,
+          aliases,
+          when: list(condition),
+          consequences: list(
+            object({ id, when: list(condition), text: prose }),
+          ),
+          narration: list(conditionalText),
+        }),
+      ),
+    }),
     discoveries: list(optionalSourceDiscovery),
     searches: list(
       object({

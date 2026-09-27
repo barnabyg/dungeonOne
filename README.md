@@ -112,7 +112,7 @@ clocks, and new rule systems are outside this profile.
 ### External chapel clues
 
 [The chapel clues document](adventures/chapel-clues.json) uses
-[schema 3](schema/adventure-v3.schema.json) and `chapel-clues-rules-v3`.
+[schema 3](schema/adventure-v3.schema.json) and `chapel-clues-rules-v4`.
 It provides the inn, ferry landing, chapel path, ruined chapel, and crypt as directed
 connections. Searching the public notice or damaged repair record grants a
 sourced observation and quest milestone once, with no roll or NPC interaction.
@@ -141,8 +141,21 @@ combat, with HP and death location recorded in the state. Dead speakers cannot
 talk or be rescued. Their remains stay visible, and searching Tavi's remains
 confirms their fate in the sourced journal; inspection is read-only. The public
 notice, repair record and ledger remain usable after casualties. The external
-chapel does not yet resolve the quest. The built-in chapel selector retains its
-existing behavior.
+chapel offers two data-authored endings at the inn once the ledger and Tavi's
+fate are established. Use `resolve public disclosure` or
+`resolve confidential referral`; `look` shows the available labels. Ending
+data defines prerequisites, aliases, ordered fate and narration variants, and
+conditional consequences. The final state records casualties and the actual
+fate, and remains readable through status, journal, inventory, help, and look.
+Further gameplay mutations are rejected. Confidential referral records a
+request for future repairs; Oren can promise restitution only while alive.
+Rules v4 requires an `endings` section with a location, `when` conditions,
+nonempty alternative `any` routes, ordered `fates`, and at least two `choices`.
+Each choice has unique labels and aliases, conditional consequences and ordered
+`narration` variants. Conditions support `discovery-known`,
+`milestone-recorded`, `actor-alive`, `actor-dead`, and `actor-dead-at` with a
+location ID. Existing rules v1–v3 documents retain their original behavior.
+The built-in chapel selector retains its existing behavior.
 
 Content version 2 places a healing potion on the chapel path. `take potion`
 collects it once; `use potion` rolls the authored 2d4+2 healing, caps HP at the

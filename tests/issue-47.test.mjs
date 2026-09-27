@@ -106,7 +106,7 @@ test("each casualty remains visible and the physical investigation survives in c
       );
       assert.ok(death, `${actor} should die at ${location}`);
       assert.equal(death.stateAfter.npcDeathLocations[actor], location);
-      assert.equal(trace.engineVersion, "chapel-clues-engine-v6");
+      assert.equal(trace.engineVersion, "chapel-clues-engine-v7");
       assert.equal(run("", ["--replay", tracePath]).status, 0);
       if (actor === "tavi") {
         assert.match(played.stdout, /confirm their death/);
@@ -377,6 +377,7 @@ test("pre-casualty chapel format-4 traces keep their v5 engine", () =>
     const previous = JSON.parse(readFileSync(source, "utf8"));
     previous.contentVersion = "3";
     previous.rulesVersion = "chapel-clues-rules-v2";
+    delete previous.endings;
     previous.quest.milestones = previous.quest.milestones.filter(
       (id) => id !== "tavi-death-confirmed",
     );

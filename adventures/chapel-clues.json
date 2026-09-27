@@ -1,8 +1,8 @@
 {
   "schemaVersion": 3,
   "id": "chapel-clues",
-  "contentVersion": "4",
-  "rulesVersion": "chapel-clues-rules-v3",
+  "contentVersion": "5",
+  "rulesVersion": "chapel-clues-rules-v4",
   "title": "The Bell Beneath the Chapel: First Leads",
   "introduction": "Tavi is missing. Begin at the village inn and follow the public chapel route.",
   "objective": "Follow the chapel clues, defeat the crypt guardian, and investigate what lies beyond it.",
@@ -13,9 +13,18 @@
       "name": "Village Inn",
       "description": "Rain taps the inn windows. Mara tends the counter beside a public noticeboard.",
       "descriptions": [
-        { "when": [{ "type": "actor-dead", "id": "mara" }], "text": "Rain taps the inn windows. Mara's body lies beside the public noticeboard." },
-        { "when": [{ "type": "actor-dead", "id": "tavi" }], "text": "Rain taps the inn windows. The public noticeboard remains available despite Tavi's death." },
-        { "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }], "text": "Rain taps the inn windows. Mara tends the counter while Tavi rests safely nearby." }
+        {
+          "when": [{ "type": "actor-dead", "id": "mara" }],
+          "text": "Rain taps the inn windows. Mara's body lies beside the public noticeboard."
+        },
+        {
+          "when": [{ "type": "actor-dead", "id": "tavi" }],
+          "text": "Rain taps the inn windows. The public noticeboard remains available despite Tavi's death."
+        },
+        {
+          "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }],
+          "text": "Rain taps the inn windows. Mara tends the counter while Tavi rests safely nearby."
+        }
       ],
       "aliases": ["inn", "village inn"]
     },
@@ -23,7 +32,12 @@
       "id": "ferry-landing",
       "name": "Ferry Landing",
       "description": "A wooden ferry rests beside the landing. Oren checks its mooring.",
-      "descriptions": [{ "when": [{ "type": "actor-dead", "id": "oren" }], "text": "A wooden ferry rests beside the landing. Oren's body lies by its mooring." }],
+      "descriptions": [
+        {
+          "when": [{ "type": "actor-dead", "id": "oren" }],
+          "text": "A wooden ferry rests beside the landing. Oren's body lies by its mooring."
+        }
+      ],
       "aliases": ["ferry landing", "landing"]
     },
     {
@@ -42,7 +56,12 @@
       "id": "crypt",
       "name": "Crypt",
       "description": "A sealed arch divides the crypt. A skeleton guardian waits between the entrance and the evidence beyond.",
-      "descriptions": [{ "when": [{ "type": "actor-dead", "id": "tavi" }], "text": "A sealed arch divides the crypt. The ledger remains beyond the guardian's post despite Tavi's death." }],
+      "descriptions": [
+        {
+          "when": [{ "type": "actor-dead", "id": "tavi" }],
+          "text": "A sealed arch divides the crypt. The ledger remains beyond the guardian's post despite Tavi's death."
+        }
+      ],
       "aliases": ["crypt"]
     }
   ],
@@ -83,9 +102,20 @@
       "name": "missing-person notice",
       "description": "Tavi, the village apprentice, is missing. The notice asks searchers to check the ruined chapel along the chapel path.",
       "descriptions": [
-        { "when": [{ "type": "milestone-recorded", "id": "tavi-death-confirmed" }], "text": "The notice first reported Tavi missing. Their death is now confirmed, and the marked chapel route remains useful." },
-        { "when": [{ "type": "actor-dead", "id": "tavi" }], "text": "The notice first reported Tavi missing. It still marks the chapel route, but Tavi's remains must be searched to confirm their fate." },
-        { "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }], "text": "The notice once asked searchers to find Tavi. Tavi has since returned safely to the inn." }
+        {
+          "when": [
+            { "type": "milestone-recorded", "id": "tavi-death-confirmed" }
+          ],
+          "text": "The notice first reported Tavi missing. Their death is now confirmed, and the marked chapel route remains useful."
+        },
+        {
+          "when": [{ "type": "actor-dead", "id": "tavi" }],
+          "text": "The notice first reported Tavi missing. It still marks the chapel route, but Tavi's remains must be searched to confirm their fate."
+        },
+        {
+          "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }],
+          "text": "The notice once asked searchers to find Tavi. Tavi has since returned safely to the inn."
+        }
       ],
       "aliases": ["notice", "missing person notice"],
       "when": []
@@ -163,9 +193,20 @@
       "summary": "The public notice initially reported Tavi missing and directed searchers along the chapel path to the ruined chapel.",
       "lead": "Follow the chapel path to the ruined chapel.",
       "leads": [
-        { "when": [{ "type": "milestone-recorded", "id": "tavi-death-confirmed" }], "text": "Tavi's death is confirmed. The chapel route and physical evidence remain available." },
-        { "when": [{ "type": "actor-dead", "id": "tavi" }], "text": "Search Tavi's remains to confirm their fate; the chapel route remains open." },
-        { "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }], "text": "Tavi has returned safely to the village inn." }
+        {
+          "when": [
+            { "type": "milestone-recorded", "id": "tavi-death-confirmed" }
+          ],
+          "text": "Tavi's death is confirmed. The chapel route and physical evidence remain available."
+        },
+        {
+          "when": [{ "type": "actor-dead", "id": "tavi" }],
+          "text": "Search Tavi's remains to confirm their fate; the chapel route remains open."
+        },
+        {
+          "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }],
+          "text": "Tavi has returned safely to the village inn."
+        }
       ]
     },
     {
@@ -176,9 +217,20 @@
       "summary": "The damaged record assigns chapel repairs to Oren and shows that roof supports were left unfinished and unsafe.",
       "lead": "Ask Oren about the unfinished chapel repairs.",
       "leads": [
-        { "when": [{ "type": "actor-dead", "id": "oren" }], "text": "Oren has died; the physical repair record and crypt ledger remain available." },
-        { "when": [{ "type": "milestone-recorded", "id": "oren-account-released" }], "text": "Oren has given his account of the unfinished repairs." },
-        { "when": [{ "type": "discovery-known", "id": "ledger-evidence" }], "text": "The ledger now supplies conclusive evidence; ask Oren for his account." }
+        {
+          "when": [{ "type": "actor-dead", "id": "oren" }],
+          "text": "Oren has died; the physical repair record and crypt ledger remain available."
+        },
+        {
+          "when": [
+            { "type": "milestone-recorded", "id": "oren-account-released" }
+          ],
+          "text": "Oren has given his account of the unfinished repairs."
+        },
+        {
+          "when": [{ "type": "discovery-known", "id": "ledger-evidence" }],
+          "text": "The ledger now supplies conclusive evidence; ask Oren for his account."
+        }
       ]
     },
     {
@@ -189,9 +241,20 @@
       "summary": "Mara initially reported Tavi missing; her ferry lead was a guess, not an observation.",
       "lead": "Check the public notice and chapel path.",
       "leads": [
-        { "when": [{ "type": "milestone-recorded", "id": "tavi-death-confirmed" }], "text": "Tavi's death is confirmed; the notice and chapel evidence remain available." },
-        { "when": [{ "type": "actor-dead", "id": "tavi" }], "text": "Tavi has died; search their remains to confirm their fate." },
-        { "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }], "text": "Tavi is safe at the inn; speak with them or Mara here." }
+        {
+          "when": [
+            { "type": "milestone-recorded", "id": "tavi-death-confirmed" }
+          ],
+          "text": "Tavi's death is confirmed; the notice and chapel evidence remain available."
+        },
+        {
+          "when": [{ "type": "actor-dead", "id": "tavi" }],
+          "text": "Tavi has died; search their remains to confirm their fate."
+        },
+        {
+          "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }],
+          "text": "Tavi is safe at the inn; speak with them or Mara here."
+        }
       ]
     },
     {
@@ -202,7 +265,10 @@
       "summary": "Oren admits diverting chapel repair funds to buy medicine, leaving the repairs unfinished.",
       "lead": "Compare the admission with the chapel repair record.",
       "leads": [
-        { "when": [{ "type": "discovery-known", "id": "ledger-evidence" }], "text": "Oren's account is corroborated by the ledger." }
+        {
+          "when": [{ "type": "discovery-known", "id": "ledger-evidence" }],
+          "text": "Oren's account is corroborated by the ledger."
+        }
       ]
     },
     {
@@ -213,8 +279,16 @@
       "summary": "The ledger records chapel repair funds diverted to medicine, leaving the roof unsafe.",
       "lead": "Compare the ledger with Oren's account.",
       "leads": [
-        { "when": [{ "type": "actor-dead", "id": "oren" }], "text": "Oren has died; the ledger itself preserves the diversion evidence." },
-        { "when": [{ "type": "milestone-recorded", "id": "oren-account-released" }], "text": "The ledger and Oren's account now agree on the diverted funds." }
+        {
+          "when": [{ "type": "actor-dead", "id": "oren" }],
+          "text": "Oren has died; the ledger itself preserves the diversion evidence."
+        },
+        {
+          "when": [
+            { "type": "milestone-recorded", "id": "oren-account-released" }
+          ],
+          "text": "The ledger and Oren's account now agree on the diverted funds."
+        }
       ]
     },
     {
@@ -225,9 +299,20 @@
       "summary": "Tavi followed the ledger into the crypt and was trapped when the guardian rose.",
       "lead": "Tavi remains in the crypt until a rescue is arranged.",
       "leads": [
-        { "when": [{ "type": "milestone-recorded", "id": "tavi-death-confirmed" }], "text": "Tavi's death is confirmed by the search of their remains." },
-        { "when": [{ "type": "actor-dead", "id": "tavi" }], "text": "Tavi has died; search their remains to confirm their fate." },
-        { "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }], "text": "Tavi is safe at the village inn." }
+        {
+          "when": [
+            { "type": "milestone-recorded", "id": "tavi-death-confirmed" }
+          ],
+          "text": "Tavi's death is confirmed by the search of their remains."
+        },
+        {
+          "when": [{ "type": "actor-dead", "id": "tavi" }],
+          "text": "Tavi has died; search their remains to confirm their fate."
+        },
+        {
+          "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }],
+          "text": "Tavi is safe at the village inn."
+        }
       ]
     },
     {
@@ -273,8 +358,14 @@
   ],
   "facts": [
     { "id": "tavi-missing", "statement": "Tavi is missing." },
-    { "id": "tavi-rescued-fact", "statement": "Tavi has returned safely to the village inn." },
-    { "id": "tavi-rescue-consent", "statement": "Tavi agrees to follow the safe route to the village inn." },
+    {
+      "id": "tavi-rescued-fact",
+      "statement": "Tavi has returned safely to the village inn."
+    },
+    {
+      "id": "tavi-rescue-consent",
+      "statement": "Tavi agrees to follow the safe route to the village inn."
+    },
     {
       "id": "mara-ferry-guess",
       "statement": "Mara thinks Tavi may have gone toward the ferry, but has not seen Tavi there."
@@ -305,7 +396,9 @@
       "guardedDiscoveryIds": ["oren-admission"],
       "guardedMilestoneIds": ["oren-account-released"],
       "evidenceWhen": [{ "type": "discovery-known", "id": "unsafe-repairs" }],
-      "evidenceAlternatives": [[{ "type": "discovery-known", "id": "ledger-evidence" }]]
+      "evidenceAlternatives": [
+        [{ "type": "discovery-known", "id": "ledger-evidence" }]
+      ]
     }
   ],
   "npcs": [
@@ -315,8 +408,19 @@
       "aliases": ["innkeeper"],
       "locationId": "inn",
       "voice": "Direct, warm, and worried; speaks as a practical village innkeeper.",
-      "combat": { "hp": 8, "maxHp": 8, "stats": { "armorClass": 10, "attackBonus": 1, "initiativeBonus": 0, "damage": { "dice": 1, "sides": 4, "modifier": 0 } } },
-      "remains": { "description": "Mara lies where she fell. The noticeboard remains within reach." },
+      "combat": {
+        "hp": 8,
+        "maxHp": 8,
+        "stats": {
+          "armorClass": 10,
+          "attackBonus": 1,
+          "initiativeBonus": 0,
+          "damage": { "dice": 1, "sides": 4, "modifier": 0 }
+        }
+      },
+      "remains": {
+        "description": "Mara lies where she fell. The noticeboard remains within reach."
+      },
       "knows": ["tavi-missing", "tavi-rescued-fact"],
       "believes": ["mara-ferry-guess"],
       "wants": ["Find Tavi safely."],
@@ -369,8 +473,19 @@
       "aliases": ["ferryman"],
       "locationId": "ferry-landing",
       "voice": "Terse and weathered; speaks like a ferryman used to hard choices.",
-      "combat": { "hp": 9, "maxHp": 9, "stats": { "armorClass": 11, "attackBonus": 2, "initiativeBonus": 1, "damage": { "dice": 1, "sides": 4, "modifier": 1 } } },
-      "remains": { "description": "Oren lies where he fell. His death does not erase the physical repair record or ledger." },
+      "combat": {
+        "hp": 9,
+        "maxHp": 9,
+        "stats": {
+          "armorClass": 11,
+          "attackBonus": 2,
+          "initiativeBonus": 1,
+          "damage": { "dice": 1, "sides": 4, "modifier": 1 }
+        }
+      },
+      "remains": {
+        "description": "Oren lies where he fell. His death does not erase the physical repair record or ledger."
+      },
       "knows": ["oren-uncertain", "oren-refusal", "oren-admission-fact"],
       "believes": [],
       "wants": ["Keep the medicine purchase private while Tavi is missing."],
@@ -475,7 +590,16 @@
       "locationId": "crypt",
       "when": [{ "type": "milestone-recorded", "id": "guardian-cleared" }],
       "voice": "Observant and shaken but precise; speaks only about events personally witnessed in the crypt.",
-      "combat": { "hp": 6, "maxHp": 6, "stats": { "armorClass": 10, "attackBonus": 1, "initiativeBonus": 2, "damage": { "dice": 1, "sides": 4, "modifier": 0 } } },
+      "combat": {
+        "hp": 6,
+        "maxHp": 6,
+        "stats": {
+          "armorClass": 10,
+          "attackBonus": 1,
+          "initiativeBonus": 2,
+          "damage": { "dice": 1, "sides": 4, "modifier": 0 }
+        }
+      },
       "remains": {
         "description": "Tavi lies where they fell. Searching their remains can confirm their fate.",
         "search": {
@@ -597,6 +721,108 @@
       "healing": { "dice": 2, "sides": 4, "modifier": 2, "target": "fighter" }
     }
   ],
+  "endings": {
+    "locationId": "inn",
+    "when": [{ "type": "discovery-known", "id": "ledger-evidence" }],
+    "any": [
+      [{ "type": "milestone-recorded", "id": "tavi-account-recorded" }],
+      [{ "type": "milestone-recorded", "id": "tavi-rescued" }],
+      [{ "type": "milestone-recorded", "id": "tavi-death-confirmed" }]
+    ],
+    "fates": [
+      {
+        "id": "dead-in-crypt",
+        "when": [
+          { "type": "actor-dead-at", "id": "tavi", "locationId": "crypt" }
+        ],
+        "text": "Tavi's death in the crypt is included truthfully in the record."
+      },
+      {
+        "id": "dead-at-inn",
+        "when": [
+          { "type": "actor-dead-at", "id": "tavi", "locationId": "inn" }
+        ],
+        "text": "Tavi's death at the village inn is included truthfully in the record."
+      },
+      {
+        "id": "rescued-to-inn",
+        "when": [
+          { "type": "actor-alive", "id": "tavi" },
+          { "type": "milestone-recorded", "id": "tavi-rescued" }
+        ],
+        "text": "Tavi is alive and safe at the village inn."
+      },
+      {
+        "id": "alive-in-crypt",
+        "when": [{ "type": "actor-alive", "id": "tavi" }],
+        "text": "Tavi is alive in the crypt; that established fate is included in the record."
+      }
+    ],
+    "choices": [
+      {
+        "id": "public-disclosure",
+        "label": "Publish the evidence",
+        "aliases": [
+          "public disclosure",
+          "publish the ledger",
+          "expose the diversion"
+        ],
+        "when": [],
+        "consequences": [
+          {
+            "id": "evidence-published",
+            "when": [],
+            "text": "The ledger evidence is published."
+          },
+          {
+            "id": "village-inquiry-initiated",
+            "when": [],
+            "text": "A village inquiry is initiated."
+          }
+        ],
+        "narration": [{ "when": [], "text": "Public disclosure recorded." }]
+      },
+      {
+        "id": "confidential-referral",
+        "label": "Refer the evidence privately",
+        "aliases": [
+          "confidential referral",
+          "private referral",
+          "refer the ledger privately"
+        ],
+        "when": [],
+        "consequences": [
+          {
+            "id": "evidence-delivered-confidentially",
+            "when": [],
+            "text": "The ledger is delivered privately to the village trustees."
+          },
+          {
+            "id": "restitution-repair-requested",
+            "when": [],
+            "text": "Restitution and chapel repair are requested; no payment or completed repair is claimed."
+          },
+          {
+            "id": "oren-committed-future-restitution",
+            "when": [{ "type": "actor-alive", "id": "oren" }],
+            "text": "Oren commits to future restitution."
+          },
+          {
+            "id": "oren-dead-no-promise",
+            "when": [{ "type": "actor-dead", "id": "oren" }],
+            "text": "Oren is dead, so no personal promise of restitution is recorded."
+          }
+        ],
+        "narration": [
+          {
+            "when": [{ "type": "actor-dead", "id": "oren" }],
+            "text": "Confidential referral recorded with Oren's death acknowledged."
+          },
+          { "when": [], "text": "Confidential referral recorded." }
+        ]
+      }
+    ]
+  },
   "encounters": [
     {
       "id": "crypt-guardian",

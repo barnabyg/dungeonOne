@@ -391,6 +391,7 @@ test("previous chapel format-4 engine traces remain replayable", () =>
     const previous = structuredClone(document);
     previous.contentVersion = "2";
     previous.rulesVersion = "chapel-clues-rules-v1";
+    delete previous.endings;
     previous.quest.milestones = previous.quest.milestones.filter(
       (id) => id !== "tavi-death-confirmed",
     );

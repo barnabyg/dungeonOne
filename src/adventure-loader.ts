@@ -84,8 +84,14 @@ export type ExplorationDefinition = Readonly<{
   features: readonly FeatureDefinition[];
 }>;
 export type ClueCondition = Readonly<{
-  type: "discovery-known" | "milestone-recorded" | "actor-dead";
+  type:
+    | "discovery-known"
+    | "milestone-recorded"
+    | "actor-dead"
+    | "actor-alive"
+    | "actor-dead-at";
   id: string;
+  locationId?: string;
 }>;
 export type ClueEffect = Readonly<{
   type: "grant-discovery" | "record-milestone" | "relocate-npc";
@@ -140,7 +146,10 @@ export type ChapelCluesDefinition = Readonly<{
   id: string;
   contentVersion: string;
   rulesVersion:
-    "chapel-clues-rules-v1" | "chapel-clues-rules-v2" | "chapel-clues-rules-v3";
+    | "chapel-clues-rules-v1"
+    | "chapel-clues-rules-v2"
+    | "chapel-clues-rules-v3"
+    | "chapel-clues-rules-v4";
   title: string;
   introduction: string;
   objective: string;
@@ -155,6 +164,28 @@ export type ChapelCluesDefinition = Readonly<{
       descriptions?: readonly ConditionalClueText[];
     }>)[];
   quest: Readonly<{ id: string; title: string; milestones: readonly string[] }>;
+  endings?: Readonly<{
+    locationId: string;
+    when: readonly ClueCondition[];
+    any: readonly (readonly ClueCondition[])[];
+    fates: readonly Readonly<{
+      id: string;
+      when: readonly ClueCondition[];
+      text: string;
+    }>[];
+    choices: readonly Readonly<{
+      id: string;
+      label: string;
+      aliases: readonly string[];
+      when: readonly ClueCondition[];
+      consequences: readonly Readonly<{
+        id: string;
+        when: readonly ClueCondition[];
+        text: string;
+      }>[];
+      narration: readonly ConditionalClueText[];
+    }>[];
+  }>;
   discoveries: readonly Readonly<{
     id: string;
     title: string;
@@ -753,7 +784,9 @@ function validateClueReferences(
   const error: DiagnosticError = (code, path, entity, message) =>
     diagnostics.push({ severity: "error", code, path, entity, message });
   if (
-    snapshot.rulesVersion !== "chapel-clues-rules-v3" &&
+    !["chapel-clues-rules-v3", "chapel-clues-rules-v4"].includes(
+      snapshot.rulesVersion,
+    ) &&
     (snapshot.npcs ?? []).some(
       (npc) => npc.combat !== undefined || npc.remains !== undefined,
     )
@@ -763,6 +796,28 @@ function validateClueReferences(
       "/rulesVersion",
       snapshot.id,
       "Actor casualties require chapel-clues-rules-v3.",
+    );
+  }
+  if (
+    snapshot.endings !== undefined &&
+    snapshot.rulesVersion !== "chapel-clues-rules-v4"
+  ) {
+    error(
+      "unsupported-rules",
+      "/endings",
+      snapshot.id,
+      "Data-authored endings require chapel-clues-rules-v4.",
+    );
+  }
+  if (
+    snapshot.rulesVersion === "chapel-clues-rules-v4" &&
+    snapshot.endings === undefined
+  ) {
+    error(
+      "missing-endings",
+      "/endings",
+      snapshot.id,
+      "Rules v4 require endings.",
     );
   }
   if (
@@ -818,7 +873,10 @@ function validateClueReferences(
   const milestones = new Set(snapshot.quest.milestones);
   const facts = new Set((snapshot.facts ?? []).map(({ id }) => id));
   const npcs = new Set((snapshot.npcs ?? []).map(({ id }) => id));
-  if (snapshot.rulesVersion === "chapel-clues-rules-v3") {
+  if (
+    snapshot.rulesVersion === "chapel-clues-rules-v3" ||
+    snapshot.rulesVersion === "chapel-clues-rules-v4"
+  ) {
     (snapshot.monsters ?? []).forEach((monster, i) => {
       if (npcs.has(monster.id)) {
         error(
@@ -862,21 +920,49 @@ function validateClueReferences(
       ref(
         entry.type === "discovery-known"
           ? discoveries
-          : entry.type === "actor-dead"
+          : entry.type.startsWith("actor-")
             ? npcs
             : milestones,
         entry.id,
         `${path}/${i}/id`,
         entity,
       );
-      if (entry.type === "actor-dead") {
-        if (snapshot.rulesVersion !== "chapel-clues-rules-v3") {
+      if (entry.type.startsWith("actor-")) {
+        if (
+          snapshot.rulesVersion !== "chapel-clues-rules-v3" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v4"
+        ) {
           error(
             "unsupported-rules",
             `${path}/${i}/type`,
             entity,
             "Actor death conditions require chapel-clues-rules-v3.",
           );
+        }
+        if (
+          entry.type !== "actor-dead" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v4"
+        ) {
+          error(
+            "unsupported-rules",
+            `${path}/${i}/type`,
+            entity,
+            "Actor alive/location conditions require rules v4.",
+          );
+        }
+        if (
+          (entry.type === "actor-dead-at") !==
+          (entry.locationId !== undefined)
+        ) {
+          error(
+            "invalid-condition",
+            `${path}/${i}/locationId`,
+            entity,
+            "Only actor-dead-at requires a location.",
+          );
+        }
+        if (entry.locationId !== undefined) {
+          ref(locations, entry.locationId, `${path}/${i}/locationId`, entity);
         }
         if (
           npcs.has(entry.id) &&
@@ -892,6 +978,108 @@ function validateClueReferences(
       }
     });
   };
+  if (snapshot.endings !== undefined) {
+    const endings = snapshot.endings;
+    ref(locations, endings.locationId, "/endings/locationId", snapshot.id);
+    conditions(endings.when, "/endings/when", snapshot.id);
+    if (
+      endings.any.length === 0 ||
+      endings.any.some((route) => route.length === 0)
+    ) {
+      error(
+        "invalid-ending",
+        "/endings/any",
+        snapshot.id,
+        "At least one nonempty fate prerequisite is required.",
+      );
+    }
+    endings.any.forEach((route, i) =>
+      conditions(route, `/endings/any/${i}`, snapshot.id),
+    );
+    if (endings.fates.length === 0 || endings.choices.length < 2) {
+      error(
+        "invalid-ending",
+        "/endings",
+        snapshot.id,
+        "Endings require a fate and at least two choices.",
+      );
+    }
+    const unique = (values: readonly string[], path: string) => {
+      const seen = new Set<string>();
+      values.forEach((value, i) => {
+        const normalized = normalizeAlias(value);
+        if (seen.has(normalized)) {
+          error(
+            "ambiguous-alias",
+            `${path}/${i}`,
+            value,
+            "Ending labels and aliases must be unique.",
+          );
+        }
+        seen.add(normalized);
+      });
+    };
+    const choiceNames = new Map<string, number>();
+    endings.choices.forEach((choice, i) => {
+      for (const name of [choice.id, choice.label, ...choice.aliases]) {
+        const normalized = normalizeAlias(name);
+        const owner = choiceNames.get(normalized);
+        if (owner !== undefined && owner !== i) {
+          error(
+            "ambiguous-alias",
+            `/endings/choices/${i}`,
+            choice.id,
+            "Ending choice IDs, labels and aliases must distinguish choices.",
+          );
+        }
+        choiceNames.set(normalized, i);
+      }
+      if (endings.choices.findIndex((entry) => entry.id === choice.id) !== i) {
+        error(
+          "duplicate-id",
+          `/endings/choices/${i}/id`,
+          choice.id,
+          "Duplicate ending choice ID.",
+        );
+      }
+    });
+    unique(
+      endings.fates.map((fate) => fate.id),
+      "/endings/fates",
+    );
+    endings.fates.forEach((fate, i) =>
+      conditions(fate.when, `/endings/fates/${i}/when`, fate.id),
+    );
+    endings.choices.forEach((choice, i) => {
+      conditions(choice.when, `/endings/choices/${i}/when`, choice.id);
+      unique(
+        choice.consequences.map((entry) => entry.id),
+        `/endings/choices/${i}/consequences`,
+      );
+      choice.consequences.forEach((entry, j) =>
+        conditions(
+          entry.when,
+          `/endings/choices/${i}/consequences/${j}/when`,
+          choice.id,
+        ),
+      );
+      if (choice.narration.length === 0) {
+        error(
+          "invalid-ending",
+          `/endings/choices/${i}/narration`,
+          choice.id,
+          "A choice needs narration.",
+        );
+      }
+      choice.narration.forEach((entry, j) =>
+        conditions(
+          entry.when,
+          `/endings/choices/${i}/narration/${j}/when`,
+          choice.id,
+        ),
+      );
+    });
+  }
   const effectReference = (
     effect: ClueEffect,
     path: string,
