@@ -33,11 +33,11 @@ const diagnostic = (result, code, entity) =>
   JSON.parse(result.stdout).diagnostics.find(
     (entry) => entry.code === code && entry.entity === entity,
   );
-const addMilestone = (adventure, id, when) => {
+const addMilestone = (adventure, id, when, targetId) => {
   adventure.quest.milestones.push(id);
   adventure.searches.push({
     id: `search-${id}`,
-    targetId: "missing-person-notice",
+    targetId,
     when: when.map((needed) => ({ type: "milestone-recorded", id: needed })),
     effects: [{ type: "record-milestone", id }],
     text: `Record ${id}.`,
@@ -47,8 +47,8 @@ const addMilestone = (adventure, id, when) => {
 test("CLI rejects a closed required cycle and accepts an initially seeded entry", () => {
   withAdventure(
     (adventure) => {
-      addMilestone(adventure, "cycle-a", ["cycle-b"]);
-      addMilestone(adventure, "cycle-b", ["cycle-a"]);
+      addMilestone(adventure, "cycle-a", ["cycle-b"], "mooring");
+      addMilestone(adventure, "cycle-b", ["cycle-a"], "dry-niche");
       adventure.endings.when.push({
         type: "milestone-recorded",
         id: "cycle-a",
@@ -81,12 +81,12 @@ test("CLI rejects a closed required cycle and accepts an initially seeded entry"
 test("CLI preserves an alternate obtainable route into a prerequisite cycle", () => {
   withAdventure(
     (adventure) => {
-      addMilestone(adventure, "route-a", ["route-b"]);
-      addMilestone(adventure, "route-b", ["route-a"]);
-      addMilestone(adventure, "route-c", []);
+      addMilestone(adventure, "route-a", ["route-b"], "mooring");
+      addMilestone(adventure, "route-b", ["route-a"], "dry-niche");
+      addMilestone(adventure, "route-c", [], "broken-roof");
       adventure.searches.push({
         id: "route-a-alternative",
-        targetId: "missing-person-notice",
+        targetId: "waymarker",
         when: [{ type: "milestone-recorded", id: "route-c" }],
         effects: [{ type: "record-milestone", id: "route-a" }],
         text: "Record the alternate route.",
@@ -136,11 +136,89 @@ test("CLI reports a missing required producer in validation and startup", () => 
   );
 });
 
+test("CLI rejects a required producer shadowed by an earlier search branch", () => {
+  withAdventure(
+    (adventure) => {
+      addMilestone(adventure, "shadowed", [], "missing-person-notice");
+      adventure.endings.when.push({
+        type: "milestone-recorded",
+        id: "shadowed",
+      });
+    },
+    (file) => {
+      const result = run(file);
+      assert.equal(result.status, 2);
+      assert.equal(
+        diagnostic(result, "unreachable-required-progress", "shadowed")
+          ?.severity,
+        "error",
+      );
+    },
+  );
+});
+
+test("CLI rejects a required producer shadowed by a no-check dialogue reply", () => {
+  withAdventure(
+    (adventure) => {
+      const replies = adventure.npcs[0].topics[0].replies;
+      replies.splice(-1, 0, {
+        ...structuredClone(replies.at(-1)),
+        outcome: "unattempted",
+        effects: [],
+      });
+      adventure.endings.when.push({
+        type: "milestone-recorded",
+        id: "mara-account-recorded",
+      });
+    },
+    (file) => {
+      const result = run(file);
+      assert.equal(result.status, 2);
+      assert.equal(
+        diagnostic(
+          result,
+          "unreachable-required-progress",
+          "mara-account-recorded",
+        )?.severity,
+        "error",
+      );
+    },
+  );
+});
+
+test("CLI does not prove a required fact behind combat solvable", () => {
+  withAdventure(
+    (adventure) => {
+      adventure.features.push({
+        id: "combat-cache",
+        name: "Combat cache",
+        description: "A cache in the crypt.",
+        aliases: ["combat cache"],
+        locationId: "crypt",
+        when: [],
+      });
+      addMilestone(adventure, "after-combat", [], "combat-cache");
+      adventure.endings.when.push({
+        type: "milestone-recorded",
+        id: "after-combat",
+      });
+    },
+    (file) => {
+      const result = run(file);
+      assert.equal(result.status, 0, result.stdout);
+      assert.equal(
+        diagnostic(result, "analysis-incomplete", "after-combat")?.severity,
+        "warning",
+      );
+    },
+  );
+});
+
 test("CLI reports a bounded analysis limit without an impossibility claim", () => {
   withAdventure(
     (adventure) => {
       const feature = adventure.features.find(
-        (entry) => entry.id === "missing-person-notice",
+        (entry) => entry.id === "dry-niche",
       );
       const milestoneEffects = [];
       const discoveryEffects = [];
@@ -161,7 +239,7 @@ test("CLI reports a bounded analysis limit without an impossibility claim", () =
       adventure.searches.push(
         {
           id: "many-milestones",
-          targetId: feature.id,
+          targetId: "mooring",
           when: [],
           effects: milestoneEffects,
           text: "Many milestones.",

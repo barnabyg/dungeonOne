@@ -36,18 +36,48 @@ export function analyzeProgression(
     message: string,
   ) => diagnostics.push({ severity, code, path, entity, message });
   const producers: Producer[] = [];
+  const shadows = (
+    earlier: readonly ClueCondition[],
+    later: readonly ClueCondition[],
+  ) =>
+    earlier.every((condition) =>
+      later.some(
+        (candidate) =>
+          candidate.type === condition.type &&
+          candidate.id === condition.id &&
+          candidate.locationId === condition.locationId,
+      ),
+    );
+  const shadowedOutputs = new Set<string>();
+  const combatLocations = new Set(
+    (snapshot.monsters ?? []).map((monster) => monster.locationId),
+  );
   snapshot.searches.forEach((search, i) => {
     const feature = snapshot.features.find(
       (entry) => entry.id === search.targetId,
     );
     if (feature !== undefined) {
+      if (
+        snapshot.searches
+          .slice(0, i)
+          .some(
+            (earlier) =>
+              earlier.targetId === search.targetId &&
+              shadows(earlier.when, search.when),
+          )
+      ) {
+        search.effects
+          .filter((effect) => effect.type !== "relocate-npc")
+          .forEach((effect) => shadowedOutputs.add(output(effect)));
+        return;
+      }
       producers.push({
         path: `/searches/${i}`,
         entity: search.id,
         locationId: feature.locationId,
         when: [...feature.when, ...search.when],
         effects: search.effects,
-        unsupported: false,
+        unsupported: combatLocations.has(feature.locationId),
       });
     }
   });
@@ -55,6 +85,25 @@ export function analyzeProgression(
     npc.topics.forEach((topic, j) => {
       topic.replies.forEach((reply, k) => {
         if (reply.effects.length > 0) {
+          if (
+            topic.replies
+              .slice(0, k)
+              .some(
+                (earlier) =>
+                  shadows(earlier.when, reply.when) &&
+                  (earlier.outcome === "any" ||
+                    (topic.challengeId === "none" &&
+                      earlier.outcome === "unattempted") ||
+                    earlier.outcome === reply.outcome) &&
+                  (earlier.approach === "any" ||
+                    earlier.approach === reply.approach),
+              )
+          ) {
+            reply.effects
+              .filter((effect) => effect.type !== "relocate-npc")
+              .forEach((effect) => shadowedOutputs.add(output(effect)));
+            return;
+          }
           producers.push({
             path: `/npcs/${i}/topics/${j}/replies/${k}`,
             entity: topic.id,
@@ -62,6 +111,7 @@ export function analyzeProgression(
             when: [...(npc.when ?? []), ...topic.when, ...reply.when],
             effects: reply.effects,
             unsupported:
+              combatLocations.has(npc.locationId) ||
               reply.outcome === "success" ||
               reply.outcome === "failure" ||
               reply.effects.some((effect) => effect.type === "relocate-npc"),
@@ -130,6 +180,7 @@ export function analyzeProgression(
         if (
           reached.has(route.from) &&
           !reached.has(route.to) &&
+          (optimistic || !combatLocations.has(route.from)) &&
           eligible(route.when)
         ) {
           reached.add(route.to);
@@ -250,7 +301,11 @@ export function analyzeProgression(
         ? "error"
         : "warning",
       !hasProducer
-        ? "missing-producer"
+        ? shadowedOutputs.has(entry.value)
+          ? isRequired
+            ? "unreachable-required-progress"
+            : "unreachable-optional-progress"
+          : "missing-producer"
         : possible.known.has(entry.value)
           ? "analysis-incomplete"
           : isRequired
@@ -259,7 +314,9 @@ export function analyzeProgression(
       entry.path,
       entry.id,
       !hasProducer
-        ? "No authored interaction or initial state produces this fact."
+        ? shadowedOutputs.has(entry.value)
+          ? "Every authored producer branch is shadowed by an earlier eligible branch."
+          : "No authored interaction or initial state produces this fact."
         : possible.known.has(entry.value)
           ? "Only unsupported behavior can establish this fact; provide route evidence."
           : "Positive prerequisites have no entry route.",

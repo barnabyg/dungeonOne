@@ -261,7 +261,15 @@ export type AdventureDiagnostic = Readonly<{
   message: string;
 }>;
 const compareDiagnostics = (a: AdventureDiagnostic, b: AdventureDiagnostic) =>
-  a.path.localeCompare(b.path) || a.code.localeCompare(b.code);
+  a.path < b.path
+    ? -1
+    : a.path > b.path
+      ? 1
+      : a.code < b.code
+        ? -1
+        : a.code > b.code
+          ? 1
+          : 0;
 export type ValidatedAdventure = Readonly<{
   snapshot: AdventureDefinition;
   canonicalJson: string;
