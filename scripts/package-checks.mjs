@@ -65,6 +65,7 @@ const packagedFiles = new Set(manifest.files.map((entry) => entry.path));
 
 const authoredAssets = [
   "adventures/chapel-clues.json",
+  "adventures/generation-example.json",
   "adventures/stolen-signet.json",
   "adventures/signet-exploration.json",
   "adventures/tide-observatory.json",

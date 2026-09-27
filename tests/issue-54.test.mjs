@@ -14,15 +14,15 @@ import test from "node:test";
 import { generateAdventure } from "../dist/generation.js";
 
 const example = readFileSync(
-  resolve("adventures/tide-observatory.json"),
+  resolve("adventures/generation-example.json"),
   "utf8",
 );
 const fixture = example
-  .replace('"id": "tide-observatory"', '"id": "fog-observatory"')
-  .replace("The Tide Observatory", "The Fog Observatory")
+  .replace('"id": "lantern-archive"', '"id": "fog-cartographer"')
+  .replace("The Lantern Archive", "The Fog Cartographer")
   .replace(
-    "The harbor signal has gone dark.",
-    "A fog-bound harbor signal has gone dark.",
+    "A signal from the old archive has gone dark.",
+    "A lost cartographer follows a bell into the fog.",
   );
 const cli = resolve("dist/cli.js");
 
@@ -51,7 +51,7 @@ test("one valid model document is written and plays through a seeded ending", as
     const outputPath = join(directory, "generated adventure.json");
     let request;
     const generated = await generateAdventure({
-      premise: "A fog-bound observatory with missing tide readings",
+      premise: "A lost cartographer follows a bell into the fog",
       outputPath,
       model: "fixture-model",
       apiKey: "test-key",
@@ -59,12 +59,18 @@ test("one valid model document is written and plays through a seeded ending", as
         request = body;
       }),
     });
-    assert.equal(generated.id, "fog-observatory");
+    assert.equal(generated.id, "fog-cartographer");
     assert.match(generated.digest, /^sha256:[a-f0-9]{64}$/u);
     assert.equal(readFileSync(outputPath, "utf8"), fixture);
     assert.equal(request.model, "fixture-model");
     assert.equal(request.store, false);
     assert.ok(request.max_output_tokens > 0);
+    assert.equal(request.text.format.strict, true);
+    assert.deepEqual(
+      request.text.format.schema.properties.discoveries.items.properties
+        .classification.enum,
+      ["observation"],
+    );
     const validated = spawnSync(
       process.execPath,
       [cli, "--validate-adventure", outputPath],
@@ -76,7 +82,7 @@ test("one valid model document is written and plays through a seeded ending", as
       [cli, "--adventure-file", outputPath, "--seed", "0"],
       {
         input:
-          "move pier\nsearch chart\nmove vault\nattack sentinel\nattack sentinel\nsearch log\nmove tower\nresolve private report\nstatus\nquit\n",
+          "search notice\nmove archive\nsearch record\nmove square\nresolve private report\nstatus\nquit\n",
         encoding: "utf8",
         env: { ...process.env, OPENAI_API_KEY: "" },
       },

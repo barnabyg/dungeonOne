@@ -31,8 +31,12 @@ node dist/cli.js --adventure-file .\my-adventure.json --seed 0
 ```
 
 The generator reports the content ID, SHA-256 digest, model, and commands to
-validate and play the file. Generation uses a bundled valid example to guide
-the model and rejects a response with the example's ID. A model may still return content that fails validation. No
+validate and play the file. Generation asks the model for a small two-location,
+two-search adventure with two endings. A strict response schema limits fields
+and values, while the loader checks references and play rules. Generation uses
+a bundled valid example to guide the model and rejects a response with the
+example's ID. A model may still return content that fails validation; the
+error reports only diagnostic codes and paths. No
 generation provider is needed to play a successfully written file.
 
 ## Install, build, and play

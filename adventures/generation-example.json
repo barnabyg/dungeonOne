@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 3,
+  "id": "lantern-archive",
+  "contentVersion": "1",
+  "rulesVersion": "chapel-clues-rules-v4",
+  "title": "The Lantern Archive",
+  "introduction": "A signal from the old archive has gone dark. Begin in the square.",
+  "objective": "Find the missing record and decide how to share it.",
+  "player": { "locationId": "square", "hp": 20, "maxHp": 20 },
+  "locations": [
+    {
+      "id": "square",
+      "name": "Square",
+      "description": "A notice hangs beside the unlit lantern.",
+      "aliases": ["square"]
+    },
+    {
+      "id": "archive",
+      "name": "Archive",
+      "description": "A dusty shelf holds the missing record.",
+      "aliases": ["archive"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "square-to-archive",
+      "from": "square",
+      "to": "archive",
+      "when": []
+    },
+    { "id": "archive-to-square", "from": "archive", "to": "square", "when": [] }
+  ],
+  "features": [
+    {
+      "id": "notice",
+      "name": "notice",
+      "description": "The notice asks for the missing record.",
+      "aliases": ["notice"],
+      "locationId": "square",
+      "when": []
+    },
+    {
+      "id": "record",
+      "name": "record",
+      "description": "The record contains a list of lantern signals.",
+      "aliases": ["record"],
+      "locationId": "archive",
+      "when": []
+    }
+  ],
+  "quest": {
+    "id": "find-record",
+    "title": "Find the record",
+    "milestones": ["record-found"]
+  },
+  "discoveries": [
+    {
+      "id": "notice-clue",
+      "title": "Archive notice",
+      "classification": "observation",
+      "sourceFeatureId": "notice",
+      "summary": "The notice points toward the archive.",
+      "lead": "Search the archive."
+    },
+    {
+      "id": "record-clue",
+      "title": "Signal record",
+      "classification": "observation",
+      "sourceFeatureId": "record",
+      "summary": "The record describes the missing signal.",
+      "lead": "Return to the square and choose how to report it."
+    }
+  ],
+  "searches": [
+    {
+      "id": "search-notice",
+      "targetId": "notice",
+      "when": [],
+      "effects": [{ "type": "grant-discovery", "id": "notice-clue" }],
+      "text": "The notice directs you to the archive."
+    },
+    {
+      "id": "search-record",
+      "targetId": "record",
+      "when": [],
+      "effects": [
+        { "type": "grant-discovery", "id": "record-clue" },
+        { "type": "record-milestone", "id": "record-found" }
+      ],
+      "text": "You find the missing record."
+    }
+  ],
+  "endings": {
+    "locationId": "square",
+    "when": [{ "type": "milestone-recorded", "id": "record-found" }],
+    "any": [[{ "type": "discovery-known", "id": "record-clue" }]],
+    "fates": [
+      {
+        "id": "signal-restored",
+        "when": [],
+        "text": "The signal can be restored."
+      }
+    ],
+    "choices": [
+      {
+        "id": "public-notice",
+        "label": "Post a public notice",
+        "aliases": ["public notice"],
+        "when": [],
+        "consequences": [
+          {
+            "id": "notice-posted",
+            "when": [],
+            "text": "The record is shared with the square."
+          }
+        ],
+        "narration": [{ "when": [], "text": "The public notice is posted." }]
+      },
+      {
+        "id": "private-report",
+        "label": "Send a private report",
+        "aliases": ["private report"],
+        "when": [],
+        "consequences": [
+          {
+            "id": "report-sent",
+            "when": [],
+            "text": "The record is sent to the lantern keeper."
+          }
+        ],
+        "narration": [{ "when": [], "text": "The private report is sent." }]
+      }
+    ]
+  }
+}
