@@ -86,7 +86,12 @@ test("validation rejects unknown references, duplicate effects, and unreachable 
       value.searches[0].when = [
         { type: "discovery-known", id: "chapel-route" },
       ];
-    }).diagnostics.some(({ code }) => code === "unreachable-search"),
+    }).diagnostics.some(
+      ({ code, entity, severity }) =>
+        code === "unreachable-optional-progress" &&
+        entity === "chapel-route" &&
+        severity === "warning",
+    ),
   );
   const { CHAPEL_CLUES_SCHEMA } =
     await import("../dist/chapel-clues-schema.js");

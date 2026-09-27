@@ -3,6 +3,7 @@ import { JsonInputError, parseBoundedJson, pointer } from "./bounded-json.js";
 import { ADVENTURE_SCHEMA, type Schema } from "./adventure-schema.js";
 import { SIGNET_SCHEMA } from "./signet-schema.js";
 import { CHAPEL_CLUES_SCHEMA } from "./chapel-clues-schema.js";
+import { analyzeProgression } from "./progression-analysis.js";
 
 export const EXPLORATION_RULES_VERSION = "exploration-rules-v1";
 export const ADVENTURE_BYTE_LIMIT = 1024 * 1024;
@@ -154,6 +155,8 @@ export type ChapelCluesDefinition = Readonly<{
   introduction: string;
   objective: string;
   player: Readonly<{ locationId: string; hp: number; maxHp: number }>;
+  initialDiscoveries?: readonly string[];
+  initialMilestones?: readonly string[];
   locations: readonly (LocationDefinition &
     Readonly<{ descriptions?: readonly ConditionalClueText[] }>)[];
   connections: readonly (ConnectionDefinition &
@@ -257,6 +260,8 @@ export type AdventureDiagnostic = Readonly<{
   entity: string | null;
   message: string;
 }>;
+const compareDiagnostics = (a: AdventureDiagnostic, b: AdventureDiagnostic) =>
+  a.path.localeCompare(b.path) || a.code.localeCompare(b.code);
 export type ValidatedAdventure = Readonly<{
   snapshot: AdventureDefinition;
   canonicalJson: string;
@@ -1346,43 +1351,17 @@ function validateClueReferences(
       ref(npcs, entry.sourceNpcId, `/discoveries/${i}/sourceNpcId`, entry.id);
     }
   });
-  const producers = new Set([
-    ...(snapshot.encounters ?? []).flatMap((encounter) =>
-      encounter.effects
-        .filter((effect) => effect.type === "record-milestone")
-        .map((effect) => effect.id),
-    ),
-    ...snapshot.searches.flatMap((search) =>
-      search.effects
-        .filter((effect) => effect.type === "record-milestone")
-        .map((effect) => effect.id),
-    ),
-    ...(snapshot.npcs ?? []).flatMap((npc) =>
-      npc.topics.flatMap((topic) =>
-        topic.replies.flatMap((reply) =>
-          reply.effects
-            .filter((effect) => effect.type === "record-milestone")
-            .map((effect) => effect.id),
-        ),
-      ),
-    ),
-    ...(snapshot.npcs ?? []).flatMap(
-      (npc) =>
-        npc.remains?.search?.effects
-          .filter((effect) => effect.type === "record-milestone")
-          .map((effect) => effect.id) ?? [],
-    ),
-  ]);
-  snapshot.quest.milestones.forEach((id, i) => {
-    if (!producers.has(id)) {
-      error(
-        "unproducible-milestone",
-        `/quest/milestones/${i}`,
-        id,
-        "No search records this milestone.",
-      );
-    }
-  });
+  for (const [field, ids, allowed] of [
+    ["initialDiscoveries", snapshot.initialDiscoveries ?? [], discoveries],
+    ["initialMilestones", snapshot.initialMilestones ?? [], milestones],
+  ] as const) {
+    ids.forEach((id, i) => {
+      ref(allowed, id, `/${field}/${i}`, id);
+      if (ids.indexOf(id) !== i) {
+        error("duplicate-id", `/${field}/${i}`, id, "Duplicate initial fact.");
+      }
+    });
+  }
   snapshot.searches.forEach((entry, i) => {
     ref(features, entry.targetId, `/searches/${i}/targetId`, entry.id);
     conditions(entry.when, `/searches/${i}/when`, entry.id);
@@ -1705,80 +1684,6 @@ function validateClueReferences(
       true,
     );
   }
-  // A finite fixed point catches closed prerequisite cycles without guessing combat outcomes.
-  const known = new Set<string>();
-  const reached = new Set([snapshot.player.locationId]);
-  const reachableSearches = new Set<string>();
-  for (
-    let pass = 0;
-    pass <
-    snapshot.searches.length +
-      snapshot.connections.length +
-      (snapshot.encounters?.length ?? 0) +
-      1;
-    pass++
-  ) {
-    for (const route of snapshot.connections) {
-      if (
-        reached.has(route.from) &&
-        route.when.every((c) => known.has(`${c.type}/${c.id}`))
-      ) {
-        reached.add(route.to);
-      }
-    }
-    for (const encounter of snapshot.encounters ?? []) {
-      const placed = monsters.get(encounter.monsterId);
-      if (
-        placed !== undefined &&
-        reached.has(placed.locationId) &&
-        encounter.when.every((c) => known.has(`${c.type}/${c.id}`))
-      ) {
-        encounter.effects.forEach((effect) =>
-          known.add(
-            `${effect.type === "grant-discovery" ? "discovery-known" : "milestone-recorded"}/${effect.id}`,
-          ),
-        );
-      }
-    }
-    for (const search of snapshot.searches) {
-      const feature = snapshot.features.find(
-        (entry) => entry.id === search.targetId,
-      );
-      if (
-        feature !== undefined &&
-        reached.has(feature.locationId) &&
-        feature.when.every((c) => known.has(`${c.type}/${c.id}`)) &&
-        search.when.every((c) => known.has(`${c.type}/${c.id}`))
-      ) {
-        reachableSearches.add(search.id);
-        search.effects.forEach((effect) =>
-          known.add(
-            `${effect.type === "grant-discovery" ? "discovery-known" : "milestone-recorded"}/${effect.id}`,
-          ),
-        );
-      }
-    }
-  }
-  snapshot.searches.forEach((entry, i) => {
-    if (!reachableSearches.has(entry.id)) {
-      error(
-        "unreachable-search",
-        `/searches/${i}`,
-        entry.id,
-        "Search prerequisites form an unreachable dependency.",
-      );
-    }
-  });
-  snapshot.locations.forEach((entry, i) => {
-    if (!reached.has(entry.id)) {
-      error(
-        "unreachable-location",
-        `/locations/${i}`,
-        entry.id,
-        "Conditional routes never make this location reachable.",
-      );
-    }
-  });
 }
 
 export function freezeDefinition<T>(value: T): T {
@@ -1873,6 +1778,15 @@ export function loadAdventure(input: string | Uint8Array):
       ),
     });
   }
+  if (snapshot.schemaVersion === 3) {
+    diagnostics.push(...analyzeProgression(snapshot));
+  }
+  if (diagnostics.some((entry) => entry.severity === "error")) {
+    return freezeDefinition({
+      ok: false,
+      diagnostics: diagnostics.sort(compareDiagnostics),
+    });
+  }
   const canonical = canonicalJson(snapshot);
   return freezeDefinition({
     ok: true,
@@ -1914,6 +1828,6 @@ export function loadAdventure(input: string | Uint8Array):
           : {}),
       },
     },
-    diagnostics: [],
+    diagnostics: diagnostics.sort(compareDiagnostics),
   });
 }

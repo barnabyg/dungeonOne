@@ -865,7 +865,7 @@ export function createChapelCluesRuntime(
         state,
         event(
           "journal",
-          `Journal — ${definition.quest.title}.\n${entries.length ? entries.map((entry) => `${entry.title} [${entry.classification}; ${entry.source.name}, ${room(entry.source.locationId).name}]: ${entry.summary}\nLead: ${entry.actionableLead}`).join("\n") : "No discoveries yet."}${state.ending === undefined ? "" : `\nResolution: ${state.ending.id}. Consequences: ${state.ending.consequences.join(", ")}. Tavi fate: ${state.ending.fate}. Casualties: ${state.ending.casualties.join(", ") || "none"}.`}`,
+          `Journal — ${definition.quest.title}.\n${entries.length ? entries.map((entry) => `${entry.title} [${entry.classification}; ${entry.source.name}, ${room(entry.source.locationId).name}]: ${entry.summary}\nLead: ${entry.actionableLead}`).join("\n") : "No discoveries yet."}\nMilestones: ${state.milestones.join(", ") || "none"}.${state.ending === undefined ? "" : `\nResolution: ${state.ending.id}. Consequences: ${state.ending.consequences.join(", ")}. Tavi fate: ${state.ending.fate}. Casualties: ${state.ending.casualties.join(", ") || "none"}.`}`,
         ),
       );
     }
@@ -1621,9 +1621,9 @@ export function createChapelCluesRuntime(
       locationId: definition.player.locationId,
       status: "playing",
       fighter: { hp: definition.player.hp, maxHp: definition.player.maxHp },
-      discoveries: [],
+      discoveries: [...(definition.initialDiscoveries ?? [])],
       ...(hasRelocation ? { discoveryLocations: {} } : {}),
-      milestones: [],
+      milestones: [...(definition.initialMilestones ?? [])],
       socialChallenges: {},
       conversationHistory: [],
       ...(hasRelocation

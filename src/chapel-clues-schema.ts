@@ -128,6 +128,8 @@ export const CHAPEL_CLUES_SCHEMA = {
       },
     },
     quest: object({ id, title: prose, milestones: list(id) }),
+    initialDiscoveries: list(id),
+    initialMilestones: list(id),
     endings: object({
       locationId: id,
       when: list(condition),
