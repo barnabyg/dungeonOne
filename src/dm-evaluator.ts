@@ -18,8 +18,17 @@ import {
   type OpenAiDmErrorCode,
 } from "./openai-dm-model.js";
 import { resolveHistoricalBuiltIn as resolveAdventure } from "./historical-runtime.js";
+import { resolveAdventure as resolveDataAdventure } from "./runtime.js";
+import { DATA_DM_CASES } from "./data-dm-cases.js";
 
-export const DM_EVALUATION_FORMAT_VERSION = 2;
+export const DM_EVALUATION_FORMAT_VERSION = 3;
+export type DmEvaluationCampaign = "data-chapel" | "historical";
+
+function caseRuntime(sample: DmInterpretationCase) {
+  return sample.setup.runtime === "data"
+    ? resolveDataAdventure(sample.setup.adventureId ?? "chapel")
+    : resolveAdventure(sample.setup.adventureId ?? "stolen-signet");
+}
 
 export type DmManualJudgmentId =
   DmInterpretationCase["manualJudgments"][number];
@@ -62,6 +71,10 @@ export type DmEvaluationRun = Readonly<{
   caseId: string;
   repetition: number;
   seed: number;
+  adventureId: string;
+  contentVersion: string;
+  rulesVersion: string;
+  engineVersion?: string;
   promptVersion: string;
   toolSchemaVersion: string;
   requests: readonly DmModelRequest[];
@@ -92,8 +105,12 @@ export type DmEvaluationDimensionSummary = Readonly<{
 
 export type DmEvaluationReport = Readonly<{
   formatVersion: typeof DM_EVALUATION_FORMAT_VERSION;
+  campaign: DmEvaluationCampaign;
   requestedModel: string;
   actualModelIds: readonly string[];
+  contentVersions: readonly string[];
+  rulesVersions: readonly string[];
+  engineVersions: readonly string[];
   promptVersions: readonly string[];
   toolSchemaVersions: readonly string[];
   repetitions: number;
@@ -113,6 +130,7 @@ export type DmEvaluationReport = Readonly<{
 }>;
 
 export type DmEvaluationOptions = Readonly<{
+  campaign?: DmEvaluationCampaign;
   requestedModel: string;
   repetitions: number;
   cases?: readonly DmInterpretationCase[];
@@ -245,10 +263,7 @@ function automatedDimensionPassed(
     case "status-accuracy":
       return run.checks.interpretation;
     case "compound-mutation-budget":
-      const mutationTools = new Set(
-        resolveAdventure(sample.setup.adventureId ?? "stolen-signet")
-          .mutationToolNames,
-      );
+      const mutationTools = new Set(caseRuntime(sample).mutationToolNames);
       return (
         run.normalizedCalls.filter(({ name }) => mutationTools.has(name))
           .length <= 1
@@ -270,6 +285,12 @@ function completedRun(
     caseId: sample.id,
     repetition,
     seed: sample.setup.seed,
+    adventureId: report.adventureId,
+    contentVersion: report.contentVersion,
+    rulesVersion: report.rulesVersion,
+    ...(report.engineVersion === undefined
+      ? {}
+      : { engineVersion: report.engineVersion }),
     promptVersion: report.promptVersion,
     toolSchemaVersion: report.toolSchemaVersion,
     requests: report.requests,
@@ -299,11 +320,17 @@ function failedRun(
   repetition: number,
   manualJudgments: readonly DmEvaluationManualJudgment[],
 ): DmEvaluationRun {
-  const runtime = resolveAdventure(sample.setup.adventureId ?? "stolen-signet");
+  const runtime = caseRuntime(sample);
   return {
     caseId: sample.id,
     repetition,
     seed: sample.setup.seed,
+    adventureId: runtime.id,
+    contentVersion: runtime.version,
+    rulesVersion: runtime.rulesVersion,
+    ...(runtime.engineVersion === undefined
+      ? {}
+      : { engineVersion: runtime.engineVersion }),
     promptVersion: runtime.promptVersion,
     toolSchemaVersion: runtime.toolSchemaVersion,
     requests: [],
@@ -397,7 +424,10 @@ export async function runDmEvaluation(
   if (!Number.isInteger(options.repetitions) || options.repetitions < 3) {
     throw new Error("DM evaluation requires at least three repetitions.");
   }
-  const cases = options.cases ?? DM_INTERPRETATION_CASES;
+  const campaign = options.campaign ?? "data-chapel";
+  const cases =
+    options.cases ??
+    (campaign === "data-chapel" ? DATA_DM_CASES : DM_INTERPRETATION_CASES);
   const clock = options.clock ?? Date.now;
   const runs: DmEvaluationRun[] = [];
   for (const sample of cases) {
@@ -493,8 +523,20 @@ export async function runDmEvaluation(
   ];
   return {
     formatVersion: DM_EVALUATION_FORMAT_VERSION,
+    campaign,
     requestedModel: options.requestedModel,
     actualModelIds,
+    contentVersions: [
+      ...new Set(runs.map(({ contentVersion }) => contentVersion)),
+    ],
+    rulesVersions: [...new Set(runs.map(({ rulesVersion }) => rulesVersion))],
+    engineVersions: [
+      ...new Set(
+        runs.flatMap(({ engineVersion }) =>
+          engineVersion === undefined ? [] : [engineVersion],
+        ),
+      ),
+    ],
     promptVersions,
     toolSchemaVersions,
     repetitions: options.repetitions,

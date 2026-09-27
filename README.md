@@ -647,7 +647,10 @@ quality, or human enjoyment.
 ## Opt-in live DM evaluation
 
 Maintainers can evaluate an explicitly named OpenAI model through the production
-adapter and the shared interpretation cases. The command defaults to three
+adapter. The default `data-chapel` campaign exercises the shipped chapel data
+runtime and its projected tools. Use `--campaign historical` to run the earlier
+Signet and chapel contracts against their isolated historical runtimes. Neither
+campaign qualifies arbitrary external adventure definitions. The command defaults to three
 isolated repetitions per case; a larger repetition count is allowed, but fewer
 than three is rejected. It is deliberately absent from `npm.cmd run verify`.
 
@@ -662,7 +665,8 @@ Use `--output .dm-evaluations/<name>.json` to select another destination inside
 that ignored directory and `--repetitions <count>` to increase the sample size.
 Paths outside `.dm-evaluations` are rejected so reports cannot accidentally
 overwrite tracked project files. The report records the
-requested and actual model identifiers, every prompt and tool-schema version,
+requested and actual model identifiers, campaign, content/rules/engine versions,
+every prompt and tool-schema version,
 and the exact version used by each run. Each run records its
 case/repetition/seed, complete model requests (including tool schema
 descriptions, continuations, and speaker-scoped history), sanitized narration

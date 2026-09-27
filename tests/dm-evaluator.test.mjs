@@ -72,7 +72,7 @@ test("evaluator aggregates repeated isolated runs and threshold evidence", async
     observations.every(({ requests }) => requests[0].transcript.length === 0),
   );
   assert.deepEqual(report.actualModelIds, ["actual-model-2026-09-01"]);
-  assert.equal(report.formatVersion, 2);
+  assert.equal(report.formatVersion, 3);
   assert.equal(report.runs.length, 9);
   assert.equal(report.runs[0].responses[0].latencyMs, 1);
   assert.deepEqual(report.runs[0].responses[0].usage, {

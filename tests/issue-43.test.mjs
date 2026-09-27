@@ -130,8 +130,8 @@ test("social check locks by challenge ID, while evidence later overrides without
     "failure",
   );
   assert.deepEqual(evidence.events[0].conversation.speakerHistory, [
-    "Oren will not give an account of the repairs without further cause.",
-    "Oren will not give an account of the repairs without further cause.",
+    "Oren will not give an account of the repairs without further cause. The public notice and chapel evidence remain available to investigate.",
+    "Oren will not give an account of the repairs without further cause. The public notice and chapel evidence remain available to investigate.",
   ]);
 });
 

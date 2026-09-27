@@ -5,8 +5,8 @@ import { dmEvaluationExitCode, runDmEvaluation } from "../dist/dm-evaluator.js";
 import { createOpenAiDmModel } from "../dist/openai-dm-model.js";
 
 const USAGE = [
-  "Usage: npm run eval:dm -- --model <model-id> [--repetitions <count>]",
-  "       [--judgments <path>] [--output <path>]",
+  "Usage: npm run eval:dm -- --model <model-id> [--campaign data-chapel|historical]",
+  "       [--repetitions <count>] [--judgments <path>] [--output <path>]",
 ].join(" ");
 
 function argumentValue(args, index) {
@@ -18,7 +18,7 @@ function argumentValue(args, index) {
 }
 
 function parseArguments(args) {
-  const parsed = { repetitions: 3 };
+  const parsed = { repetitions: 3, campaign: "data-chapel" };
   const seen = new Set();
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
@@ -42,6 +42,8 @@ function parseArguments(args) {
       parsed.model = value;
     } else if (name === "--repetitions") {
       parsed.repetitions = Number(value);
+    } else if (name === "--campaign") {
+      parsed.campaign = value;
     } else if (name === "--judgments") {
       parsed.judgmentsPath = value;
     } else if (name === "--output") {
@@ -53,6 +55,7 @@ function parseArguments(args) {
   if (
     parsed.model === undefined ||
     parsed.model.startsWith("--") ||
+    !["data-chapel", "historical"].includes(parsed.campaign) ||
     !Number.isInteger(parsed.repetitions) ||
     parsed.repetitions < 3
   ) {
@@ -118,6 +121,7 @@ const outputPath = configuration.outputPath;
 try {
   const report = await runDmEvaluation({
     requestedModel: configuration.model,
+    campaign: configuration.campaign,
     repetitions: configuration.repetitions,
     ...(manualJudgments === undefined ? {} : { manualJudgments }),
     createModel() {

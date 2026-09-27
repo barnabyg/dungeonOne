@@ -17,6 +17,7 @@ import {
 } from "./game-tools.js";
 import { createSeededRandom } from "./random.js";
 import { resolveHistoricalBuiltIn as resolveAdventure } from "./historical-runtime.js";
+import { resolveAdventure as resolveDataAdventure } from "./runtime.js";
 import type {
   RuntimeEvent,
   RuntimeRejection,
@@ -65,6 +66,7 @@ export type DmInterpretationSetupAction = Readonly<{
 export type DmInterpretationSetup = Readonly<{
   id: string;
   adventureId?: "stolen-signet" | "chapel";
+  runtime?: "historical" | "data";
   seed: number;
   actions: readonly DmInterpretationSetupAction[];
 }>;
@@ -80,6 +82,7 @@ export type DmInterpretationExpectation =
 
 export type DmInterpretationEngineOutcome =
   | Readonly<{ kind: "none" }>
+  | Readonly<{ kind: "accepted-tool" }>
   | Readonly<{ kind: "events"; events: readonly RuntimeEvent[] }>
   | Readonly<{
       kind: "inspection";
@@ -1447,6 +1450,10 @@ export const DM_INTERPRETATION_CASES = Object.freeze([
 
 export type DmInterpretationRunReport = Readonly<{
   caseId: string;
+  adventureId: string;
+  contentVersion: string;
+  rulesVersion: string;
+  engineVersion?: string;
   promptVersion: string;
   toolSchemaVersion: string;
   initialState: RuntimeState;
@@ -1484,11 +1491,14 @@ function decodeArguments(
 }
 
 function prepareCase(sample: DmInterpretationCase): Readonly<{
-  runtime: ReturnType<typeof resolveAdventure>;
+  runtime: ReturnType<typeof resolveDataAdventure>;
   state: RuntimeState;
   random: ReturnType<typeof createSeededRandom>;
 }> {
-  const runtime = resolveAdventure(sample.setup.adventureId ?? "stolen-signet");
+  const runtime =
+    sample.setup.runtime === "data"
+      ? resolveDataAdventure(sample.setup.adventureId ?? "chapel")
+      : resolveAdventure(sample.setup.adventureId ?? "stolen-signet");
   const random = createSeededRandom(sample.setup.seed);
   let state = runtime.createSession();
   for (const setupAction of sample.setup.actions) {
@@ -1520,6 +1530,11 @@ function outcomeMatches(
   switch (expectation.kind) {
     case "none":
       return result.toolResults.length === 0 && result.diagnostics.length === 0;
+    case "accepted-tool":
+      return (
+        result.toolResults[resultIndex]?.result.modelOutput.ok === true &&
+        result.toolResults[resultIndex]?.result.engineResult !== undefined
+      );
     case "events": {
       const engineResult = result.toolResults[resultIndex]?.result.engineResult;
       return (
@@ -1807,6 +1822,12 @@ export async function runDmInterpretationCase(
   };
   return {
     caseId: sample.id,
+    adventureId: prepared.runtime.id,
+    contentVersion: prepared.runtime.version,
+    rulesVersion: prepared.runtime.rulesVersion,
+    ...(prepared.runtime.engineVersion === undefined
+      ? {}
+      : { engineVersion: prepared.runtime.engineVersion }),
     promptVersion: prepared.runtime.promptVersion,
     toolSchemaVersion: prepared.runtime.toolSchemaVersion,
     initialState,

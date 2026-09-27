@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "id": "chapel-clues",
-  "contentVersion": "5",
+  "contentVersion": "7",
   "rulesVersion": "chapel-clues-rules-v4",
   "title": "The Bell Beneath the Chapel: First Leads",
   "introduction": "Tavi is missing. Begin at the village inn and follow the public chapel route.",
@@ -140,7 +140,7 @@
       "id": "dry-niche",
       "locationId": "chapel-path",
       "name": "dry niche",
-      "description": "A sheltered recess in the path wall holds a stoppered bottle.",
+      "description": "A sheltered recess in the path wall.",
       "aliases": ["niche"],
       "when": []
     },
@@ -376,7 +376,7 @@
     },
     {
       "id": "oren-refusal",
-      "statement": "Oren will not give an account of the repairs without further cause."
+      "statement": "Oren will not give an account of the repairs without further cause. The public notice and chapel evidence remain available to investigate."
     },
     {
       "id": "oren-admission-fact",
