@@ -834,7 +834,7 @@ export function createChapelCluesRuntime(
         state,
         event(
           "status",
-          `HP: ${state.fighter.hp}/${state.fighter.maxHp}. Quest: ${definition.quest.title} (${state.ending === undefined ? "active" : "resolved"}). Session: ${state.status}.${state.ending === undefined ? "" : ` Resolution: ${state.ending.id}. Tavi fate: ${state.ending.fate}.`}${
+          `HP: ${state.fighter.hp}/${state.fighter.maxHp}. Quest: ${definition.quest.title} (${state.ending === undefined ? "active" : "resolved"}). Session: ${state.status}.${state.ending === undefined ? "" : ` Resolution: ${state.ending.id}. Fate: ${state.ending.fate}.`}${
             definition.items === undefined
               ? ""
               : ` Items: ${
@@ -865,7 +865,7 @@ export function createChapelCluesRuntime(
         state,
         event(
           "journal",
-          `Journal — ${definition.quest.title}.\n${entries.length ? entries.map((entry) => `${entry.title} [${entry.classification}; ${entry.source.name}, ${room(entry.source.locationId).name}]: ${entry.summary}\nLead: ${entry.actionableLead}`).join("\n") : "No discoveries yet."}\nMilestones: ${state.milestones.join(", ") || "none"}.${state.ending === undefined ? "" : `\nResolution: ${state.ending.id}. Consequences: ${state.ending.consequences.join(", ")}. Tavi fate: ${state.ending.fate}. Casualties: ${state.ending.casualties.join(", ") || "none"}.`}`,
+          `Journal — ${definition.quest.title}.\n${entries.length ? entries.map((entry) => `${entry.title} [${entry.classification}; ${entry.source.name}, ${room(entry.source.locationId).name}]: ${entry.summary}\nLead: ${entry.actionableLead}`).join("\n") : "No discoveries yet."}\nMilestones: ${state.milestones.join(", ") || "none"}.${state.ending === undefined ? "" : `\nResolution: ${state.ending.id}. Consequences: ${state.ending.consequences.join(", ")}. Fate: ${state.ending.fate}. Casualties: ${state.ending.casualties.join(", ") || "none"}.`}`,
         ),
       );
     }
@@ -1750,6 +1750,13 @@ export function createChapelCluesRuntime(
           ? undefined
           : requestedCollection(state, playerInput);
       if (collectionId !== undefined && call.name !== "take") {
+        return fail("unavailable-reference");
+      }
+      if (
+        playerInput !== undefined &&
+        call.name === "take" &&
+        collectionId === undefined
+      ) {
         return fail("unavailable-reference");
       }
       const offered = tools(state).find((entry) => entry.name === call.name);
