@@ -2,6 +2,7 @@ import {
   normalizeAlias,
   type ChapelCluesDefinition,
   type ClueCondition,
+  type ClueEffect,
   type DialogueReply,
   type ValidatedAdventure,
 } from "./adventure-loader.js";
@@ -310,20 +311,23 @@ export function createChapelCluesRuntime(
     definition.searches.find(
       (search) => search.targetId === featureId && eligible(state, search.when),
     );
-  const hasNewEffect = (
-    state: ClueState,
-    search: ChapelCluesDefinition["searches"][number],
-  ) =>
-    search.effects.some((effect) =>
+  const hasNewEffects = (state: ClueState, effects: readonly ClueEffect[]) =>
+    effects.some((effect) =>
       effect.type === "grant-discovery"
         ? !state.discoveries.includes(effect.id)
         : !state.milestones.includes(effect.id),
     );
   const searchableFeatures = (state: ClueState) =>
     visible(state).features.filter((feature) => {
-      const branch = nextSearch(state, feature!.id);
-      return branch !== undefined && hasNewEffect(state, branch);
+      const branch = nextSearch(state, feature.id);
+      return branch !== undefined && hasNewEffects(state, branch.effects);
     });
+  const searchableRemains = (state: ClueState) =>
+    visible(state).remains.filter(
+      (npc) =>
+        npc.remains?.search !== undefined &&
+        hasNewEffects(state, npc.remains.search.effects),
+    );
   const journal = (state: ClueState): ClueJournal => {
     const discoveries = state.discoveries.map((id) => {
       const entry = definition.discoveries.find((item) => item.id === id)!;
@@ -455,15 +459,7 @@ export function createChapelCluesRuntime(
                   .filter((topic) => eligible(state, topic.when))
                   .map((topic) => `talk ${npc.id} ${topic.id} ask`),
               ),
-              ...remains
-                .filter((npc) =>
-                  npc.remains?.search?.effects.some((effect) =>
-                    effect.type === "grant-discovery"
-                      ? !state.discoveries.includes(effect.id)
-                      : !state.milestones.includes(effect.id),
-                  ),
-                )
-                .map((npc) => `search ${npc.id}`),
+              ...searchableRemains(state).map((npc) => `search ${npc.id}`),
               ...exits.map((exit) => `move ${exit.id}`),
               ...(casualtiesEnabled
                 ? npcs
@@ -1076,7 +1072,7 @@ export function createChapelCluesRuntime(
         );
       }
       const branch = nextSearch(state, feature!.id);
-      if (branch === undefined || !hasNewEffect(state, branch)) {
+      if (branch === undefined || !hasNewEffects(state, branch.effects)) {
         return accepted(
           state,
           event(
@@ -1294,13 +1290,7 @@ export function createChapelCluesRuntime(
   function tools(state: ClueState): readonly GameToolDefinition[] {
     const { features, exits, npcs, remains } = visible(state);
     const searchable = searchableFeatures(state);
-    const searchableRemains = remains.filter((npc) =>
-      npc.remains?.search?.effects.some((effect) =>
-        effect.type === "grant-discovery"
-          ? !state.discoveries.includes(effect.id)
-          : !state.milestones.includes(effect.id),
-      ),
-    );
+    const searchableBodies = searchableRemains(state);
     const inCombat = activeOpponent(state) !== undefined;
     const nearbyMonsters = visibleMonsters(state);
     const nearbyItems = visibleItems(state);
@@ -1331,13 +1321,15 @@ export function createChapelCluesRuntime(
         : []),
       ...(state.status === "playing" &&
       !inCombat &&
-      searchable.length + searchableRemains.length
+      searchable.length + searchableBodies.length
         ? [
             tool(
               "search",
-              "Search a visible physical feature for evidence.",
+              casualtiesEnabled
+                ? "Search a visible physical feature or remains for evidence."
+                : "Search a visible physical feature for evidence.",
               "target",
-              [...searchable, ...searchableRemains].map(({ id }) => id),
+              [...searchable, ...searchableBodies].map(({ id }) => id),
             ),
           ]
         : []),
