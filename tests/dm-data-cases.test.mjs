@@ -20,8 +20,10 @@ test("data campaign scenarios execute through the shipped runtime and projected 
     ],
   );
 
+  const byId = new Map();
   for (const sample of DATA_DM_CASES) {
     const report = await runScriptedDmInterpretationCase(sample);
+    byId.set(sample.id, report);
     assert.equal(
       report.automatedPassed,
       true,
@@ -45,14 +47,6 @@ test("data campaign scenarios execute through the shipped runtime and projected 
     }
   }
 
-  const byId = new Map(
-    await Promise.all(
-      DATA_DM_CASES.map(async (sample) => [
-        sample.id,
-        await runScriptedDmInterpretationCase(sample),
-      ]),
-    ),
-  );
   assert.match(
     byId.get("data-failed-social-fallback").result.narration,
     /notice and chapel evidence/u,
