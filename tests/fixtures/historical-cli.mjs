@@ -1,38 +1,22 @@
 import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline";
-
-import {
-  DEFAULT_ADVENTURE_ID,
-  resolveAdventure,
-  type AdventureRuntime,
-} from "./runtime.js";
-import { playGame } from "./play.js";
+import { resolveHistoricalBuiltIn as resolveAdventure } from "../../dist/historical-runtime.js";
+const DEFAULT_ADVENTURE_ID = "chapel";
+import { playGame } from "../../dist/play.js";
 import {
   createOpenAiDmModel,
   OPENAI_DM_DEFAULT_MODEL,
-} from "./openai-dm-model.js";
-import { verifyTraceFile } from "./replay.js";
-import { resolveStartupSeed } from "./random.js";
-import { loadScriptedDmModel } from "./scripted-dm-model.js";
-import { loadAdventureFile } from "./adventure-file.js";
-import { createDataRuntime } from "./data-runtime.js";
-
-function chooseStartupSeed(): number {
+} from "../../dist/openai-dm-model.js";
+import { verifyTraceFile } from "../../dist/replay.js";
+import { resolveStartupSeed } from "../../dist/random.js";
+import { loadScriptedDmModel } from "../../dist/scripted-dm-model.js";
+import { loadAdventureFile } from "../../dist/adventure-file.js";
+import { createExplorationRuntime } from "../../dist/exploration-runtime.js";
+import { createSignetRuntime } from "../../dist/signet-runtime.js";
+import { createChapelCluesRuntime } from "../../dist/chapel-clues-runtime.js";
+function chooseStartupSeed() {
   return randomBytes(4).readUInt32LE(0);
 }
-
-type StartupOptions = Readonly<
-  | {
-      mode: "play";
-      runtime: AdventureRuntime;
-      seed: number;
-      tracePath?: string;
-      ai?: Readonly<{ model: string }>;
-    }
-  | { mode: "replay"; replayPath: string }
-  | { mode: "help" }
-  | { mode: "validate"; result: Awaited<ReturnType<typeof loadAdventureFile>> }
->;
 const USAGE = [
   "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
   "       dungeon-one --ai [--model <model-id>] [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
@@ -43,10 +27,7 @@ const USAGE = [
   `Default AI model: ${OPENAI_DM_DEFAULT_MODEL}`,
   `Default adventure: ${DEFAULT_ADVENTURE_ID}`,
 ].join("\n");
-
-async function resolveStartupOptions(
-  args: readonly string[],
-): Promise<StartupOptions> {
+async function resolveStartupOptions(args) {
   if (args.length === 1 && args[0] === "--help") {
     return { mode: "help" };
   }
@@ -87,7 +68,6 @@ async function resolveStartupOptions(
   ) {
     return { mode: "replay", replayPath: args[0].slice("--replay=".length) };
   }
-
   if (
     args.some(
       (argument) => argument === "--replay" || argument.startsWith("--replay="),
@@ -95,14 +75,12 @@ async function resolveStartupOptions(
   ) {
     throw new Error(`--replay cannot be combined with play options.\n${USAGE}`);
   }
-
-  let adventureId: string | undefined;
-  let adventureFile: string | undefined;
-  let seedArgument: readonly string[] | undefined;
-  let tracePath: string | undefined;
+  let adventureId;
+  let adventureFile;
+  let seedArgument;
+  let tracePath;
   let ai = false;
-  let model: string | undefined;
-
+  let model;
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (
@@ -218,12 +196,10 @@ async function resolveStartupOptions(
     }
     throw new Error(USAGE);
   }
-
   if (!ai && model !== undefined) {
     throw new Error(`--model requires --ai.\n${USAGE}`);
   }
-
-  let runtime: AdventureRuntime;
+  let runtime;
   if (adventureFile === undefined) {
     runtime = resolveAdventure(adventureId ?? DEFAULT_ADVENTURE_ID);
   } else {
@@ -233,9 +209,13 @@ async function resolveStartupOptions(
         JSON.stringify({ ok: false, diagnostics: result.diagnostics }),
       );
     }
-    runtime = createDataRuntime(result.adventure);
+    runtime =
+      result.adventure.snapshot.schemaVersion === 2
+        ? createSignetRuntime(result.adventure)
+        : result.adventure.snapshot.schemaVersion === 3
+          ? createChapelCluesRuntime(result.adventure)
+          : createExplorationRuntime(result.adventure);
   }
-
   return {
     mode: "play",
     runtime,
@@ -244,8 +224,7 @@ async function resolveStartupOptions(
     ...(ai ? { ai: { model: model ?? OPENAI_DM_DEFAULT_MODEL } } : {}),
   };
 }
-
-async function main(): Promise<void> {
+async function main() {
   let startup;
   try {
     startup = await resolveStartupOptions(process.argv.slice(2));
@@ -255,7 +234,6 @@ async function main(): Promise<void> {
     process.exitCode = 2;
     return;
   }
-
   if (startup.mode === "help") {
     process.stdout.write(`${USAGE}\n`);
     return;
@@ -270,7 +248,6 @@ async function main(): Promise<void> {
     }
     return;
   }
-
   if (startup.mode === "replay") {
     try {
       await verifyTraceFile(startup.replayPath);
@@ -284,7 +261,6 @@ async function main(): Promise<void> {
     }
     return;
   }
-
   const scriptedDmPath = process.env.DUNGEON_ONE_TEST_DM_SCRIPT;
   let dmModel;
   try {
@@ -305,7 +281,6 @@ async function main(): Promise<void> {
     process.exitCode = 1;
     return;
   }
-
   const terminal = Boolean(process.stdin.isTTY && process.stdout.isTTY);
   const lines = createInterface({
     input: process.stdin,
@@ -313,7 +288,6 @@ async function main(): Promise<void> {
     terminal,
     prompt: "> ",
   });
-
   try {
     await playGame(
       { ...startup, ...(dmModel === undefined ? {} : { dmModel }) },
@@ -331,5 +305,4 @@ async function main(): Promise<void> {
     process.exitCode = 1;
   }
 }
-
 await main();

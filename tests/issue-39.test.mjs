@@ -13,7 +13,7 @@ const inputs = path.join(root, "docs", "acceptance", "inputs");
 function runCli(input, args, environment = {}) {
   return spawnSync(
     process.execPath,
-    [path.join(root, "dist", "cli.js"), ...args],
+    [path.join(root, "tests", "fixtures", "historical-cli.mjs"), ...args],
     {
       cwd: root,
       encoding: "utf8",

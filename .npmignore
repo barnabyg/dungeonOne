@@ -3,6 +3,6 @@
 !README.md
 !package.json
 !adventures/
-!adventures/stolen-signet.json
+!adventures/*.json
 !schema/
-!schema/adventure-v2.schema.json
+!schema/*.json

@@ -21,7 +21,7 @@ npm.cmd start -- --seed 0
 
 Select a built-in adventure with `--adventure stolen-signet` or `--adventure chapel`
 (the `--adventure=<id>` form also works) in command or AI mode. Omitting the selector starts
-the chapel. Use `--adventure stolen-signet` for the regression adventure. Unknown or duplicate selectors fail at startup,
+the chapel. Both selectors load their bundled JSON through the shared data runtime and export format-4 traces. Bundled assets resolve beside the installed module; explicit file paths resolve from the caller's working directory. Use `--adventure stolen-signet` for the regression adventure. Unknown or duplicate selectors fail at startup,
 and `--replay` cannot be combined with adventure, seed, trace, or AI options.
 Replay selects the original runtime from the export's supported version tuple,
 including historical exports whose adventure object lacks an ID. Unknown version
@@ -104,8 +104,7 @@ node dist/cli.js --replay signet-trace.json
 
 Use `--adventure-file adventures/stolen-signet.json --ai` for model play; the
 scripted model test hook supports the same tools. The command and AI routes both
-export self-contained format-4 traces. `--adventure stolen-signet` and the
-default chapel selector still use their historical runtimes. Schema 2 supports
+export self-contained format-4 traces. Built-in selection uses the same validated content and runtime. Schema 2 supports
 this combat and escape profile only; save/resume, generation, arbitrary scripts,
 clocks, and new rule systems are outside this profile.
 
@@ -155,7 +154,7 @@ Each choice has unique labels and aliases, conditional consequences and ordered
 `narration` variants. Conditions support `discovery-known`,
 `milestone-recorded`, `actor-alive`, `actor-dead`, and `actor-dead-at` with a
 location ID. Existing rules v1–v3 documents retain their original behavior.
-The built-in chapel selector retains its existing behavior.
+The built-in chapel selector uses this authored document.
 
 Content version 2 places a healing potion on the chapel path. `take potion`
 collects it once; `use potion` rolls the authored 2d4+2 healing, caps HP at the
@@ -370,7 +369,7 @@ standard error, exits nonzero, and does not change the game outcome.
 
 ## Session trace formats
 
-Chapel command and scripted-AI sessions export trace format `3`. It carries the
+Current built-in and explicit-file command and scripted-AI sessions export self-contained format `4` with the validated adventure snapshot and digest. Historical chapel command and scripted-AI sessions used trace format `3`. It carries the
 same authoritative action/call, event or rejection, draw, result, and resulting
 state evidence as formats 1 and 2, with explicit chapel content/rules versions.
 AI traces also record the chapel prompt/tool versions and normalized provider
@@ -383,7 +382,7 @@ input, result, and unchanged state. Local `help` and `quit` inputs are also
 validated during replay. Trace state
 is diagnostic and may contain spoilers; it is not a save.
 
-Command mode exports trace format `1`. It is JSON and a compatibility contract. It records
+Historical Stolen Signet command mode exported trace format `1`. It is JSON and a compatibility contract. It records
 the rules and built-in adventure versions, random algorithm and initial seed,
 initial authoritative state, and every submitted CLI line in order. Each action
 entry contains the raw input, parsed structured action, random rolls consumed,
@@ -401,8 +400,7 @@ requires an explicit compatibility decision.
 
 Replay supports trace format `1` with both released compatibility tuples:
 rules `stolen-signet-rules-v1` plus adventure version `1`, and rules
-`stolen-signet-rules-v2` plus adventure version `2`. New command traces use the
-v2 tuple. The v1 replay path retains the former `inspect goblin` rejection,
+`stolen-signet-rules-v2` plus adventure version `2`. These tuples are for historical exports only. The v1 replay path retains the former `inspect goblin` rejection,
 while v2 makes a visible living or defeated goblin inspectable. Every identifier
 is validated before replay; an unknown or mixed version tuple fails explicitly
 and is never interpreted as a supported ruleset. Replay starts from the built-in
@@ -412,7 +410,7 @@ Recorded actions, rolls, rejections, ordered mechanical events, per-action
 states, and completion are expectations only; replay never loads them as game
 state. Narration and timestamps are not compared.
 
-Scripted DM mode exports normalized trace format `2` when `--trace <path>` is
+Historical Stolen Signet scripted DM mode exported normalized trace format `2` when `--trace <path>` was
 supplied. Its header records the rules, adventure, random, DM prompt, and tool
 schema versions; the scripted provider/model identifiers; the seed; and the
 initial authoritative state. Each turn records the raw player text, ordered
@@ -595,17 +593,18 @@ Remove-Item Env:DUNGEON_ONE_TEST_DM_SCRIPT
 
 The terminal keeps exact local `help`, chapel `journal`, `status`, `inventory`, and `quit` handling, and prints separate
 `Mechanics` and `Dungeon Master` sections. Command mode is unchanged when the
-test variable is absent. Add `--trace <path>` to export a format-2 scripted-DM
+test variable is absent. Add `--trace <path>` to export a format-4 scripted-DM
 session, and replay it later with `--replay <path>` without the script or a model.
 Production live-model startup uses `--ai` with an optional `--model <model-id>`
 override and `OPENAI_API_KEY`. The scripted seam remains available only for deterministic
 automated tests; canonical tests never make live API requests.
 
-## DM interpretation case library
+## Historical DM interpretation case library
 
-`src/dm-interpretation-cases.ts` exports the shared, data-driven interpretation
-contracts used by deterministic tests and intended for the separate opt-in live
-evaluator. Each case names a seeded authoritative setup, player input, expected
+`src/dm-interpretation-cases.ts` preserves the pre-cutover interpretation
+contracts used by deterministic historical tests and the opt-in legacy live
+evaluator. These examples use the frozen historical runtimes; current built-in
+play uses the authored data and its runtime prompt. Each case names a seeded authoritative setup, player input, expected
 tool and normalized arguments or clarification/no-action class, permitted engine
 outcomes, read/mutation/response budgets, expected turn-local random draws,
 safety tags, score dimensions, state invariant, and any semantic judgment that

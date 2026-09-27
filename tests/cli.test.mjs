@@ -7,14 +7,26 @@ import path from "node:path";
 import test from "node:test";
 
 import { playGame } from "../dist/play.js";
+import { STOLEN_SIGNET_RUNTIME } from "../dist/historical-runtime.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const cli = path.join(root, "dist", "cli.js");
+const cli = path.join(root, "tests", "fixtures", "historical-cli.mjs");
+const currentCli = path.join(root, "dist", "cli.js");
 const acceptanceInputs = path.join(root, "docs", "acceptance", "inputs");
 const traceFixtures = path.join(root, "tests", "fixtures");
 const winningAttacks = ["attack goblin", "attack goblin"];
 
 function runDefaultCli(input, args = [], environment = {}) {
+  return spawnSync(process.execPath, [currentCli, ...args], {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, ...environment },
+    input,
+    timeout: 5_000,
+  });
+}
+
+function runHistoricalCli(input, args = [], environment = {}) {
   return spawnSync(process.execPath, [cli, ...args], {
     cwd: root,
     encoding: "utf8",
@@ -33,7 +45,7 @@ function runCli(input, args = [], environment = {}) {
       argument.startsWith("--replay=") ||
       argument === "--help",
   );
-  return runDefaultCli(
+  return runHistoricalCli(
     input,
     bypassesLegacyAdventureDefault
       ? args
@@ -408,7 +420,7 @@ test("terminal play prompts after recoverable, combat, and final-state actions",
   );
 
   await playGame(
-    { seed: 0 },
+    { seed: 0, runtime: STOLEN_SIGNET_RUNTIME },
     {
       lines: terminal.lines,
       terminal: true,

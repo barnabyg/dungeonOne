@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { runDmTurn } from "../dist/dm-turn.js";
 import { createSeededRandom } from "../dist/random.js";
-import { resolveAdventure } from "../dist/runtime.js";
+import { resolveHistoricalBuiltIn } from "../dist/historical-runtime.js";
 
 function dispatch(runtime, state, random, name, argumentsValue) {
   const result = runtime.dispatchGameTool(
@@ -61,7 +61,7 @@ function deadOrenLedgerState(runtime) {
 }
 
 test("post-rescue movement uses authored narration grounded in Tavi's location", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const setup = rescuedTaviState(runtime);
   let responses = 0;
   const result = await runDmTurn({
@@ -96,7 +96,7 @@ test("post-rescue movement uses authored narration grounded in Tavi's location",
 });
 
 test("potion use uses authored narration without contradicting healing", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const random = createSeededRandom(7);
   let state = runtime.createSession();
   for (const [name, argumentsValue] of [
@@ -140,7 +140,7 @@ test("potion use uses authored narration without contradicting healing", async (
 });
 
 test("ledger recovery with dead Oren keeps Tavi as the authored next step", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const setup = deadOrenLedgerState(runtime);
   let responses = 0;
   const result = await runDmTurn({

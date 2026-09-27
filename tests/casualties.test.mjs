@@ -17,9 +17,9 @@ import {
 import { dispatchChapelTool } from "../dist/chapel-tools.js";
 import { runDmTurn } from "../dist/dm-turn.js";
 import {
-  resolveAdventure,
+  resolveHistoricalBuiltIn,
   resolveHistoricalAdventure,
-} from "../dist/runtime.js";
+} from "../dist/historical-runtime.js";
 
 function sequenceRandom(values) {
   let index = 0;
@@ -337,7 +337,7 @@ test("stale dialogue and simultaneous encounter tool calls cannot mutate state",
 });
 
 test("provider failure after a fatal NPC attack preserves the authoritative death", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let response = 0;
   const result = await runDmTurn({
     runtime,
@@ -509,7 +509,7 @@ test("CLI casualty routes and the all-casualty fallback reach an ending and repl
       const played = spawnSync(
         process.execPath,
         [
-          "dist/cli.js",
+          "tests/fixtures/historical-cli.mjs",
           "--adventure",
           "chapel",
           "--seed",
@@ -547,7 +547,7 @@ test("CLI casualty routes and the all-casualty fallback reach an ending and repl
       );
       const replayed = spawnSync(
         process.execPath,
-        ["dist/cli.js", "--replay", tracePath],
+        ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
         { encoding: "utf8" },
       );
       assert.equal(replayed.status, 0, replayed.stderr);

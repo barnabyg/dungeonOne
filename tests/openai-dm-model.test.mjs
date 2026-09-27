@@ -8,6 +8,7 @@ import {
   createOpenAiDmModel,
 } from "../dist/openai-dm-model.js";
 import { playGame } from "../dist/play.js";
+import { STOLEN_SIGNET_RUNTIME } from "../dist/historical-runtime.js";
 import { createSession } from "../dist/session.js";
 
 function request(overrides = {}) {
@@ -445,7 +446,7 @@ test("terminal recovers after adapter failures before and after one committed ac
   };
 
   await playGame(
-    { seed: 0, dmModel: model },
+    { seed: 0, dmModel: model, runtime: STOLEN_SIGNET_RUNTIME },
     {
       lines,
       terminal: true,

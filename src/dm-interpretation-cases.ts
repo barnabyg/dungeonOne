@@ -16,7 +16,7 @@ import {
   type ToolValidationErrorCode,
 } from "./game-tools.js";
 import { createSeededRandom } from "./random.js";
-import { resolveAdventure } from "./runtime.js";
+import { resolveHistoricalBuiltIn as resolveAdventure } from "./historical-runtime.js";
 import type {
   RuntimeEvent,
   RuntimeRejection,

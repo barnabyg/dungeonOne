@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { runDmTurn } from "../dist/dm-turn.js";
-import { resolveAdventure } from "../dist/runtime.js";
+import { resolveHistoricalBuiltIn } from "../dist/historical-runtime.js";
 
 function noRolls() {
   return {
@@ -55,7 +55,7 @@ function returnWithRescuedTavi(runtime) {
 }
 
 test("ledger recovery keeps Tavi and the available crypt actions in view", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const found = runtime.handleAction(
     clearGuardian(runtime),
     runtime.parseCommand("search diversion ledger"),
@@ -82,7 +82,7 @@ test("ledger recovery keeps Tavi and the available crypt actions in view", () =>
 });
 
 test("clear potion collection intent cannot be satisfied by looking", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const path = runtime.handleAction(runtime.createSession(), {
     type: "move",
     destination: "chapel-path",
@@ -137,11 +137,14 @@ test("clear potion collection intent cannot be satisfied by looking", async () =
 });
 
 test("the issue 37 prompt revision is a distinct replay contract", () => {
-  assert.equal(resolveAdventure("chapel").promptVersion, "chapel-human-dm-v12");
+  assert.equal(
+    resolveHistoricalBuiltIn("chapel").promptVersion,
+    "chapel-human-dm-v12",
+  );
 });
 
 test("Mara acknowledges Tavi after the rescue instead of repeating the search request", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let responses = 0;
   const result = await runDmTurn({
     state: returnWithRescuedTavi(runtime),
@@ -172,7 +175,7 @@ test("Mara acknowledges Tavi after the rescue instead of repeating the search re
 });
 
 test("the inn prioritizes both resolutions once Tavi is safe", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const summary = runtime.renderStateSummary(returnWithRescuedTavi(runtime));
 
   assert.match(

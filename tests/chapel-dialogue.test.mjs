@@ -7,12 +7,12 @@ import test from "node:test";
 
 import { runDmTurn } from "../dist/dm-turn.js";
 import {
-  resolveAdventure,
+  resolveHistoricalBuiltIn,
   resolveHistoricalAdventure,
-} from "../dist/runtime.js";
+} from "../dist/historical-runtime.js";
 
 test("Mara's public account records attributed testimony and belief once", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const initial = runtime.createSession();
   const action = runtime.parseCommand("talk mara tavi ask");
   const first = runtime.handleAction(initial, action, {
@@ -65,7 +65,7 @@ test("Mara's public account records attributed testimony and belief once", () =>
 });
 
 test("Oren's guarded account resolves an engine-owned equality success once", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const arrived = runtime.handleAction(
     runtime.createSession(),
     runtime.parseCommand("move ferry-landing"),
@@ -129,7 +129,7 @@ test("Oren's guarded account resolves an engine-owned equality success once", ()
 });
 
 test("Oren's authored approaches share one success-or-failure lock", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const initial = runtime.handleAction(
     runtime.createSession(),
     runtime.parseCommand("move ferry-landing"),
@@ -189,7 +189,7 @@ test("Oren's authored approaches share one success-or-failure lock", () => {
 });
 
 test("Oren's public answers and invalid attempts do not roll or expose guarded canon", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const initial = runtime.createSession();
   assert.doesNotMatch(
     JSON.stringify({
@@ -252,7 +252,7 @@ test("Oren's public answers and invalid attempts do not roll or expose guarded c
 });
 
 test("failed Oren checks scope AI replies to refusal facts and preserve the committed roll", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const arrived = runtime.handleAction(
     runtime.createSession(),
     runtime.parseCommand("move ferry-landing"),
@@ -308,7 +308,7 @@ test("failed Oren checks scope AI replies to refusal facts and preserve the comm
 });
 
 test("talk validates a visible living speaker, public topic, approach, and exact shape", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const initial = runtime.createSession();
   const scene = runtime.projectDmScene(initial);
   assert.deepEqual(scene.room.npcs, [
@@ -371,7 +371,7 @@ test("talk validates a visible living speaker, public topic, approach, and exact
 });
 
 test("AI dialogue uses a fresh speaker-scoped reply request", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const requests = [];
   const result = await runDmTurn({
     state: runtime.createSession(),
@@ -443,7 +443,7 @@ test("AI dialogue uses a fresh speaker-scoped reply request", async () => {
 });
 
 test("reply failure keeps the committed authored answer and blocks a second mutation", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let calls = 0;
   const result = await runDmTurn({
     state: runtime.createSession(),
@@ -485,7 +485,7 @@ test("reply failure keeps the committed authored answer and blocks a second muta
 });
 
 test("untrusted NPC prose cannot introduce a private or invented fact", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let response = 0;
   const result = await runDmTurn({
     state: runtime.createSession(),
@@ -526,7 +526,7 @@ test("untrusted NPC prose cannot introduce a private or invented fact", async ()
 });
 
 test("authorized Mara history survives general transcript eviction without cross-speaker text", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const talked = runtime.handleAction(
     runtime.createSession(),
     runtime.parseCommand("talk mara tavi ask"),
@@ -665,7 +665,7 @@ test("CLI revisit restores only the addressed speaker history after transcript e
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -700,9 +700,13 @@ test("CLI revisit restores only the addressed speaker history after transcript e
     assert.match(JSON.stringify(history), /Tavi is missing/u);
     assert.doesNotMatch(JSON.stringify(history), /chapel route is passable/iu);
     assert.equal(
-      spawnSync(process.execPath, ["dist/cli.js", "--replay", tracePath], {
-        encoding: "utf8",
-      }).status,
+      spawnSync(
+        process.execPath,
+        ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
+        {
+          encoding: "utf8",
+        },
+      ).status,
       0,
     );
   } finally {
@@ -711,7 +715,7 @@ test("CLI revisit restores only the addressed speaker history after transcript e
 });
 
 test("an invalid talk attempt still spends the one-mutation budget", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let response = 0;
   const result = await runDmTurn({
     state: runtime.createSession(),
@@ -815,7 +819,13 @@ test("the dialogue-v3 runtime remains replayable without Oren social state", () 
 test("offline and scripted-AI conversations are attributed, traced, and replayable", () => {
   const offline = spawnSync(
     process.execPath,
-    ["dist/cli.js", "--adventure", "chapel", "--seed", "2"],
+    [
+      "tests/fixtures/historical-cli.mjs",
+      "--adventure",
+      "chapel",
+      "--seed",
+      "2",
+    ],
     {
       encoding: "utf8",
       input: "look\ntalk mara tavi ask\njournal\nquit\n",
@@ -859,7 +869,7 @@ test("offline and scripted-AI conversations are attributed, traced, and replayab
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -881,7 +891,7 @@ test("offline and scripted-AI conversations are attributed, traced, and replayab
     assert.equal(trace.turns[0].stateAfter.discoveries.length, 2);
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       {
         encoding: "utf8",
         env: { ...process.env, DUNGEON_ONE_TEST_DM_SCRIPT: "" },
@@ -914,7 +924,7 @@ test("offline and scripted-AI conversations are attributed, traced, and replayab
     const compound = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -942,7 +952,7 @@ test("offline and scripted-AI conversations are attributed, traced, and replayab
     assert.equal(
       spawnSync(
         process.execPath,
-        ["dist/cli.js", "--replay", compoundTracePath],
+        ["tests/fixtures/historical-cli.mjs", "--replay", compoundTracePath],
         { encoding: "utf8" },
       ).status,
       0,
@@ -961,7 +971,7 @@ test("offline Oren approaches, retry lock, compound rejection, and replay are de
         const played = spawnSync(
           process.execPath,
           [
-            "dist/cli.js",
+            "tests/fixtures/historical-cli.mjs",
             "--adventure",
             "chapel",
             "--seed",
@@ -991,7 +1001,7 @@ test("offline Oren approaches, retry lock, compound rejection, and replay are de
         assert.equal(trace.completion.outcome, "incomplete");
         const replayed = spawnSync(
           process.execPath,
-          ["dist/cli.js", "--replay", tracePath],
+          ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
           { encoding: "utf8" },
         );
         assert.equal(replayed.status, 0, replayed.stderr);
@@ -1017,7 +1027,11 @@ test("offline Oren approaches, retry lock, compound rejection, and replay are de
           );
           const rejectedRevelation = spawnSync(
             process.execPath,
-            ["dist/cli.js", "--replay", revelationTamperedPath],
+            [
+              "tests/fixtures/historical-cli.mjs",
+              "--replay",
+              revelationTamperedPath,
+            ],
             { encoding: "utf8" },
           );
           assert.notEqual(rejectedRevelation.status, 0);
@@ -1035,7 +1049,7 @@ test("offline Oren approaches, retry lock, compound rejection, and replay are de
           writeFileSync(tamperedPath, JSON.stringify(tampered));
           const rejected = spawnSync(
             process.execPath,
-            ["dist/cli.js", "--replay", tamperedPath],
+            ["tests/fixtures/historical-cli.mjs", "--replay", tamperedPath],
             { encoding: "utf8" },
           );
           assert.notEqual(rejected.status, 0);
@@ -1053,7 +1067,7 @@ test("offline Oren approaches, retry lock, compound rejection, and replay are de
     const failed = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -1077,9 +1091,13 @@ test("offline Oren approaches, retry lock, compound rejection, and replay are de
     );
     assert.equal(trace.actions.at(-2).result.type, "rejected");
     assert.equal(
-      spawnSync(process.execPath, ["dist/cli.js", "--replay", tracePath], {
-        encoding: "utf8",
-      }).status,
+      spawnSync(
+        process.execPath,
+        ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
+        {
+          encoding: "utf8",
+        },
+      ).status,
       0,
     );
   } finally {
@@ -1120,7 +1138,7 @@ test("scripted AI records one committed Oren check when reply generation fails",
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -1147,7 +1165,7 @@ test("scripted AI records one committed Oren check when reply generation fails",
     assert.equal(trace.turns[1].diagnostics[0].code, "model-failure");
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       {
         encoding: "utf8",
         env: { ...process.env, DUNGEON_ONE_TEST_DM_SCRIPT: "" },

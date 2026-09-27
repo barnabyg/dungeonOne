@@ -7,9 +7,9 @@ import test from "node:test";
 
 import { runDmTurn } from "../dist/dm-turn.js";
 import {
-  resolveAdventure,
+  resolveHistoricalBuiltIn,
   resolveHistoricalAdventure,
-} from "../dist/runtime.js";
+} from "../dist/historical-runtime.js";
 
 function noRolls(message = "This action must not draw randomness") {
   return {
@@ -35,7 +35,7 @@ function takePotion(runtime, state = reachChapelPath(runtime)) {
 }
 
 test("the chapel path potion can be collected, shown, healed with, and consumed once", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const pathState = reachChapelPath(runtime);
   assert.deepEqual(runtime.projectDmScene(pathState).room.items, [
     {
@@ -135,7 +135,7 @@ test("the chapel path potion can be collected, shown, healed with, and consumed 
 });
 
 test("using the potion in combat commits healing, retaliation, and defeat atomically", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = takePotion(runtime).state;
   state = { ...state, fighter: { ...state.fighter, hp: 3 } };
   state = runtime.handleAction(state, {
@@ -170,7 +170,7 @@ test("using the potion in combat commits healing, retaliation, and defeat atomic
 });
 
 test("strict potion tools expose only visible pickup and owned use references", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const pathState = reachChapelPath(runtime);
   const takeTool = runtime
     .getGameToolDefinitions(pathState)
@@ -216,7 +216,7 @@ test("strict potion tools expose only visible pickup and owned use references", 
 });
 
 test("provider failure after potion use preserves exactly one committed result", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const taken = takePotion(runtime).state;
   const state = {
     ...taken,
@@ -270,7 +270,7 @@ test("seed 7 command play records exact potion draws and rejects trace tampering
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -304,7 +304,7 @@ test("seed 7 command play records exact potion draws and rejects trace tampering
     );
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       { encoding: "utf8" },
     );
     assert.equal(replayed.status, 0, replayed.stderr);
@@ -322,7 +322,11 @@ test("seed 7 command play records exact potion draws and rejects trace tampering
     writeFileSync(consumptionTamperedPath, JSON.stringify(consumptionTampered));
     const rejectedConsumption = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", consumptionTamperedPath],
+      [
+        "tests/fixtures/historical-cli.mjs",
+        "--replay",
+        consumptionTamperedPath,
+      ],
       { encoding: "utf8" },
     );
     assert.notEqual(rejectedConsumption.status, 0);
@@ -333,7 +337,7 @@ test("seed 7 command play records exact potion draws and rejects trace tampering
     writeFileSync(tamperedPath, JSON.stringify(trace));
     const tampered = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tamperedPath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tamperedPath],
       { encoding: "utf8" },
     );
     assert.notEqual(tampered.status, 0);
@@ -350,7 +354,7 @@ test("seed 3 CLI rejects invalid uses and caps out-of-combat healing", () => {
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -395,7 +399,7 @@ test("seed 3 CLI rejects invalid uses and caps out-of-combat healing", () => {
     });
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       { encoding: "utf8" },
     );
     assert.equal(replayed.status, 0, replayed.stderr);
@@ -411,7 +415,7 @@ test("seed 15 CLI makes combat potion use atomic through lethal retaliation", ()
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -444,7 +448,7 @@ test("seed 15 CLI makes combat potion use atomic through lethal retaliation", ()
     );
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       { encoding: "utf8" },
     );
     assert.equal(replayed.status, 0, replayed.stderr);
@@ -478,7 +482,7 @@ test("scripted AI recovery keeps potion use committed and local status reads rep
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -512,7 +516,7 @@ test("scripted AI recovery keeps potion use committed and local status reads rep
     );
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       {
         encoding: "utf8",
         env: { ...process.env, DUNGEON_ONE_TEST_DM_SCRIPT: "" },
@@ -586,7 +590,7 @@ test("guardian-v5 remains item-free through its historical runtime", () => {
     );
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       { encoding: "utf8" },
     );
     assert.equal(replayed.status, 0, replayed.stderr);

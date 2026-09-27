@@ -7,9 +7,9 @@ import test from "node:test";
 
 import { runDmTurn } from "../dist/dm-turn.js";
 import {
-  resolveAdventure,
+  resolveHistoricalBuiltIn,
   resolveHistoricalAdventure,
-} from "../dist/runtime.js";
+} from "../dist/historical-runtime.js";
 
 function noRolls(message = "This action must not draw randomness") {
   return {
@@ -41,7 +41,7 @@ function clearGuardian(runtime) {
 }
 
 test("ledger evidence and Tavi remain hidden until the guardian is defeated", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = runtime.createSession();
   state = runtime.handleAction(state, {
     type: "move",
@@ -73,7 +73,7 @@ test("ledger evidence and Tavi remain hidden until the guardian is defeated", ()
 });
 
 test("searching the ledger records conclusive sourced evidence without a roll", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const cleared = clearGuardian(runtime);
   const found = runtime.handleAction(
     cleared,
@@ -96,7 +96,7 @@ test("searching the ledger records conclusive sourced evidence without a roll", 
 });
 
 test("Tavi describes only the crypt and rescue moves them atomically to the inn", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const cleared = clearGuardian(runtime);
   const account = runtime.handleAction(
     cleared,
@@ -139,7 +139,7 @@ test("Tavi describes only the crypt and rescue moves them atomically to the inn"
 });
 
 test("ledger evidence bypasses a failed Oren check without resetting its lock", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = runtime.createSession();
   state = runtime.handleAction(state, {
     type: "move",
@@ -192,7 +192,7 @@ test("ledger evidence bypasses a failed Oren check without resetting its lock", 
 });
 
 test("stale and ambiguous rescue requests cannot mutate state", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const cleared = clearGuardian(runtime);
   const offered = runtime.getGameToolDefinitions(cleared);
   assert.match(JSON.stringify(offered), /rescue/);
@@ -237,7 +237,7 @@ function runtimeFromState(runtime, initialState) {
 }
 
 test("provider failure after rescue preserves exactly one scoped transition", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const requests = [];
   const result = await runDmTurn({
     state: clearGuardian(runtime),
@@ -289,7 +289,7 @@ test("offline rescue, evidence-backed return, export, and replay are determinist
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -341,7 +341,7 @@ test("offline rescue, evidence-backed return, export, and replay are determinist
     );
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       { encoding: "utf8" },
     );
     assert.equal(replayed.status, 0, replayed.stderr);
@@ -454,7 +454,7 @@ test("scripted-AI CLI provider failure keeps Tavi's scoped rescue committed", ()
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -497,9 +497,13 @@ test("scripted-AI CLI provider failure keeps Tavi's scoped rescue committed", ()
       /Mara.*ferry|Oren.*medicine/i,
     );
     assert.equal(
-      spawnSync(process.execPath, ["dist/cli.js", "--replay", tracePath], {
-        encoding: "utf8",
-      }).status,
+      spawnSync(
+        process.execPath,
+        ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
+        {
+          encoding: "utf8",
+        },
+      ).status,
       0,
     );
   } finally {

@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from "node:util";
 import { readTraceFile } from "./trace-file.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { loadAdventure } from "./adventure-loader.js";
-import { createChapelCluesRuntime } from "./chapel-clues-runtime.js";
+import { createDataRuntime } from "./data-runtime.js";
 import {
   CLUES_ENGINE_VERSION,
   CASUALTY_CLUES_ENGINE_VERSION,
@@ -11,14 +11,8 @@ import {
   POTION_CLUES_ENGINE_VERSION,
   RESCUE_CLUES_ENGINE_VERSION,
 } from "./chapel-clues-runtime.js";
-import {
-  createExplorationRuntime,
-  DATA_ENGINE_VERSION,
-} from "./exploration-runtime.js";
-import {
-  createSignetRuntime,
-  SIGNET_ENGINE_VERSION,
-} from "./signet-runtime.js";
+import { DATA_ENGINE_VERSION } from "./exploration-runtime.js";
+import { SIGNET_ENGINE_VERSION } from "./signet-runtime.js";
 
 import {
   resolveHistoricalAdventure,
@@ -1415,12 +1409,7 @@ function replayFormat4(trace: JsonObject): void {
   if (seed < 0 || seed > 0xffffffff) {
     throw new Error("random.initialSeed must be an unsigned 32-bit integer.");
   }
-  const runtime =
-    content.snapshot.schemaVersion === 2
-      ? createSignetRuntime(content)
-      : content.snapshot.schemaVersion === 3
-        ? createChapelCluesRuntime(content)
-        : createExplorationRuntime(content);
+  const runtime = createDataRuntime(content);
   requireSupported(
     trace.engineVersion,
     runtime.engineVersion as string,

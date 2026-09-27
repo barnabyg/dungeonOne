@@ -4,11 +4,15 @@ import test from "node:test";
 import {
   DM_PROMPT_VERSION,
   DM_TURN_LIMITS,
-  runDmTurn,
+  runDmTurn as runGenericDmTurn,
 } from "../dist/dm-turn.js";
+import { STOLEN_SIGNET_RUNTIME } from "../dist/historical-runtime.js";
 import { dispatchGameTool } from "../dist/game-tools.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createSession } from "../dist/session.js";
+
+const runDmTurn = (input) =>
+  runGenericDmTurn({ runtime: STOLEN_SIGNET_RUNTIME, ...input });
 
 function scriptedModel(responses, requests = []) {
   let index = 0;

@@ -6,14 +6,21 @@ import path from "node:path";
 import test from "node:test";
 
 import { playGame } from "../dist/play.js";
-import { resolveAdventure } from "../dist/runtime.js";
+import { resolveHistoricalBuiltIn } from "../dist/historical-runtime.js";
 
 function runChapel(input, extraArgs = []) {
   const environment = { ...process.env };
   delete environment.DUNGEON_ONE_TEST_DM_SCRIPT;
   return spawnSync(
     process.execPath,
-    ["dist/cli.js", "--adventure", "chapel", "--seed", "0", ...extraArgs],
+    [
+      "tests/fixtures/historical-cli.mjs",
+      "--adventure",
+      "chapel",
+      "--seed",
+      "0",
+      ...extraArgs,
+    ],
     {
       encoding: "utf8",
       input,
@@ -40,7 +47,7 @@ async function playChapelWithModel(inputLines, dmModel) {
     },
   };
   await playGame(
-    { seed: 0, runtime: resolveAdventure("chapel"), dmModel },
+    { seed: 0, runtime: resolveHistoricalBuiltIn("chapel"), dmModel },
     {
       terminal: false,
       lines,
@@ -137,7 +144,13 @@ test("chapel labels discoveries as journal updates while preserving attributed d
 test("chapel clears the active combat turn when lethal retaliation ends the session", () => {
   const played = spawnSync(
     process.execPath,
-    ["dist/cli.js", "--adventure", "chapel", "--seed", "74"],
+    [
+      "tests/fixtures/historical-cli.mjs",
+      "--adventure",
+      "chapel",
+      "--seed",
+      "74",
+    ],
     {
       encoding: "utf8",
       input:
@@ -178,7 +191,7 @@ test("provider failure leaves every exact local control usable and replay-valida
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -217,7 +230,7 @@ test("provider failure leaves every exact local control usable and replay-valida
 
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       { encoding: "utf8" },
     );
     assert.equal(replayed.status, 0, replayed.stderr);
@@ -227,7 +240,7 @@ test("provider failure leaves every exact local control usable and replay-valida
     writeFileSync(invalidPath, JSON.stringify(trace));
     const invalid = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", invalidPath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", invalidPath],
       { encoding: "utf8" },
     );
     assert.notEqual(invalid.status, 0);

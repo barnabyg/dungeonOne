@@ -7,7 +7,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const cli = path.join(root, "dist", "cli.js");
+const cli = path.join(root, "tests", "fixtures", "historical-cli.mjs");
 const inputs = path.join(root, "docs", "acceptance", "inputs");
 
 function runCli(input, args, environment = {}) {

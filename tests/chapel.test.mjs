@@ -5,9 +5,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import {
-  resolveAdventure,
+  resolveHistoricalBuiltIn,
   resolveHistoricalAdventure,
-} from "../dist/runtime.js";
+} from "../dist/historical-runtime.js";
 import { DM_TURN_LIMITS, runDmTurn } from "../dist/dm-turn.js";
 import { CHAPEL_OPPONENT_DEFINITIONS } from "../dist/chapel.js";
 
@@ -25,7 +25,7 @@ test("entering the crypt starts initiative against a skeleton combatant instance
     damage: { dice: 1, sides: 6, modifier: 2 },
   });
 
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = runtime.createSession();
   for (const destination of ["chapel path", "ruined chapel"]) {
     state = runtime.handleAction(state, {
@@ -93,7 +93,7 @@ test("entering the crypt starts initiative against a skeleton combatant instance
 });
 
 test("a skeleton initiative win resolves one opening attack before the fighter turn", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = runtime.createSession();
   for (const destination of ["chapel path", "ruined chapel"]) {
     state = runtime.handleAction(state, { type: "move", destination }).state;
@@ -127,7 +127,7 @@ test("a skeleton initiative win resolves one opening attack before the fighter t
 });
 
 test("defeating the skeleton clears the guardian without completing the quest or restarting combat", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = runtime.createSession();
   for (const destination of ["chapel path", "ruined chapel"]) {
     state = runtime.handleAction(state, { type: "move", destination }).state;
@@ -185,7 +185,7 @@ test("defeating the skeleton clears the guardian without completing the quest or
 });
 
 test("lethal skeleton damage ends the adventure and terminal mutations draw nothing", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = runtime.createSession();
   state = { ...state, fighter: { ...state.fighter, hp: 3 } };
   for (const destination of ["chapel path", "ruined chapel"]) {
@@ -225,7 +225,7 @@ test("lethal skeleton damage ends the adventure and terminal mutations draw noth
 });
 
 test("chapel tools expose the visible skeleton combatant and validated attacks", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = runtime.createSession();
   for (const destination of ["chapel-path", "ruined-chapel"]) {
     state = runtime.dispatchGameTool(state, {
@@ -298,7 +298,7 @@ test("chapel tools expose the visible skeleton combatant and validated attacks",
 });
 
 test("chapel presentation names combatants, mechanics, turns, and terminal defeat", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = runtime.createSession();
   for (const destination of ["chapel path", "ruined chapel"]) {
     state = runtime.handleAction(state, { type: "move", destination }).state;
@@ -355,7 +355,7 @@ test("chapel presentation names combatants, mechanics, turns, and terminal defea
 });
 
 test("searching authored evidence records one attributed discovery and milestone", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const initial = runtime.createSession();
   const first = runtime.handleAction(
     initial,
@@ -403,7 +403,7 @@ test("searching authored evidence records one attributed discovery and milestone
 });
 
 test("chapel repair evidence is local, order-independent, and links unsafe work to Oren", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const initial = runtime.createSession();
   const remote = runtime.handleAction(initial, {
     type: "search",
@@ -462,7 +462,7 @@ test("chapel repair evidence is local, order-independent, and links unsafe work 
 });
 
 test("journal projects only discovered facts, attribution, progress, and known leads", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const initial = runtime.createSession();
   const emptyJournal = runtime.renderResult(
     runtime.handleAction(initial, runtime.parseCommand("journal")),
@@ -499,7 +499,7 @@ test("journal projects only discovered facts, attribution, progress, and known l
 });
 
 test("chapel search and journal tools validate visible authored references", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const initial = runtime.createSession();
   const tools = runtime.getGameToolDefinitions(initial);
   assert.deepEqual(
@@ -555,7 +555,7 @@ test("chapel search and journal tools validate visible authored references", () 
 });
 
 test("search consumes the mutation budget and provider recovery preserves its first commit", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const requests = [];
   let response = 0;
   const result = await runDmTurn({
@@ -601,7 +601,7 @@ test("search consumes the mutation budget and provider recovery preserves its fi
 });
 
 test("a forged search target consumes the one mutation-attempt budget", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let response = 0;
   const initial = runtime.createSession();
   const result = await runDmTurn({
@@ -654,7 +654,7 @@ test("a forged search target consumes the one mutation-attempt budget", async ()
 });
 
 test("structured discoveries survive bounded transcript eviction", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const state = runtime.dispatchGameTool(runtime.createSession(), {
     name: "search",
     argumentsJson: '{"target":"missing-person-notice"}',
@@ -744,7 +744,7 @@ test("exact AI-mode journal is provider-free, traced, and replay-validated", () 
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -777,7 +777,7 @@ test("exact AI-mode journal is provider-free, traced, and replay-validated", () 
 
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       {
         encoding: "utf8",
         env: { ...process.env, DUNGEON_ONE_TEST_DM_SCRIPT: "" },
@@ -791,7 +791,7 @@ test("exact AI-mode journal is provider-free, traced, and replay-validated", () 
     writeFileSync(resultTamperedPath, JSON.stringify(resultTampered));
     const rejectedResult = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", resultTamperedPath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", resultTamperedPath],
       { encoding: "utf8" },
     );
     assert.notEqual(rejectedResult.status, 0);
@@ -802,7 +802,7 @@ test("exact AI-mode journal is provider-free, traced, and replay-validated", () 
     writeFileSync(tamperedPath, JSON.stringify(exported));
     const tampered = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tamperedPath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tamperedPath],
       { encoding: "utf8" },
     );
     assert.notEqual(tampered.status, 0);
@@ -834,7 +834,7 @@ test("CLI provider failure after discovery keeps the journal usable without repe
     const played = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -857,7 +857,7 @@ test("CLI provider failure after discovery keeps the journal usable without repe
     assert.equal(exported.turns[1].kind, "local-journal");
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       {
         encoding: "utf8",
         env: { ...process.env, DUNGEON_ONE_TEST_DM_SCRIPT: "" },
@@ -955,7 +955,7 @@ test("pre-discovery chapel format-3 traces remain replayable", () => {
     );
     const replayed = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       { encoding: "utf8" },
     );
     assert.equal(replayed.status, 0, replayed.stderr);
@@ -965,7 +965,7 @@ test("pre-discovery chapel format-3 traces remain replayable", () => {
 });
 
 test("chapel command exploration keeps the missing-person quest active in guardian combat", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = runtime.createSession();
   assert.equal(state.locationId, "inn");
   assert.deepEqual(state.quest, {
@@ -1004,7 +1004,7 @@ test("chapel command exploration keeps the missing-person quest active in guardi
 });
 
 test("chapel AI receives only public content and its own versioned prompt", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = runtime.createSession();
   const requests = [];
   const combatRolls = [10, 5];
@@ -1088,7 +1088,7 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     const command = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -1138,7 +1138,7 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     );
     const replay = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", commandTrace],
+      ["tests/fixtures/historical-cli.mjs", "--replay", commandTrace],
       { encoding: "utf8" },
     );
     assert.equal(replay.status, 0, replay.stderr);
@@ -1149,7 +1149,7 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     writeFileSync(unknownPath, JSON.stringify(unknownVersion));
     const unknown = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", unknownPath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", unknownPath],
       { encoding: "utf8" },
     );
     assert.notEqual(unknown.status, 0);
@@ -1162,7 +1162,7 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     writeFileSync(tamperedPath, JSON.stringify(exported));
     const tampered = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tamperedPath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tamperedPath],
       { encoding: "utf8" },
     );
     assert.notEqual(tampered.status, 0);
@@ -1188,7 +1188,7 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     const scripted = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -1213,7 +1213,7 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     });
     const dmReplay = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", dmTrace],
+      ["tests/fixtures/historical-cli.mjs", "--replay", dmTrace],
       {
         encoding: "utf8",
         env: { ...process.env, DUNGEON_ONE_TEST_DM_SCRIPT: "" },
@@ -1226,7 +1226,7 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     writeFileSync(dmTrace, JSON.stringify(qualifiedPrompt));
     const qualifiedPromptReplay = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", dmTrace],
+      ["tests/fixtures/historical-cli.mjs", "--replay", dmTrace],
       {
         encoding: "utf8",
         env: { ...process.env, DUNGEON_ONE_TEST_DM_SCRIPT: "" },
@@ -1239,7 +1239,7 @@ test("chapel command and scripted-AI journeys export format 3 and replay without
     writeFileSync(dmTrace, JSON.stringify(historicalPrompt));
     const historicalPromptReplay = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", dmTrace],
+      ["tests/fixtures/historical-cli.mjs", "--replay", dmTrace],
       {
         encoding: "utf8",
         env: { ...process.env, DUNGEON_ONE_TEST_DM_SCRIPT: "" },
@@ -1262,7 +1262,7 @@ test("seeded chapel CLI guardian clear, defeat, revisit, replay, and tampering p
     const victory = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -1288,7 +1288,7 @@ test("seeded chapel CLI guardian clear, defeat, revisit, replay, and tampering p
 
     const victoryReplay = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", victoryTrace],
+      ["tests/fixtures/historical-cli.mjs", "--replay", victoryTrace],
       { encoding: "utf8" },
     );
     assert.equal(victoryReplay.status, 0, victoryReplay.stderr);
@@ -1302,7 +1302,7 @@ test("seeded chapel CLI guardian clear, defeat, revisit, replay, and tampering p
     writeFileSync(tamperedPath, JSON.stringify(exported));
     const tampered = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tamperedPath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tamperedPath],
       { encoding: "utf8" },
     );
     assert.notEqual(tampered.status, 0);
@@ -1312,7 +1312,7 @@ test("seeded chapel CLI guardian clear, defeat, revisit, replay, and tampering p
     const defeat = spawnSync(
       process.execPath,
       [
-        "dist/cli.js",
+        "tests/fixtures/historical-cli.mjs",
         "--adventure",
         "chapel",
         "--seed",
@@ -1332,7 +1332,7 @@ test("seeded chapel CLI guardian clear, defeat, revisit, replay, and tampering p
     assert.match(defeat.stdout, /can't change the final state/i);
     const defeatReplay = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", defeatTrace],
+      ["tests/fixtures/historical-cli.mjs", "--replay", defeatTrace],
       { encoding: "utf8" },
     );
     assert.equal(defeatReplay.status, 0, defeatReplay.stderr);
@@ -1394,7 +1394,7 @@ test("chapel social-v4 traces retain their pre-guardian crypt semantics", () => 
     );
     const replay = spawnSync(
       process.execPath,
-      ["dist/cli.js", "--replay", tracePath],
+      ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
       { encoding: "utf8" },
     );
     assert.equal(replay.status, 0, replay.stderr);

@@ -17,7 +17,7 @@ import {
   OpenAiDmError,
   type OpenAiDmErrorCode,
 } from "./openai-dm-model.js";
-import { resolveAdventure } from "./runtime.js";
+import { resolveHistoricalBuiltIn as resolveAdventure } from "./historical-runtime.js";
 
 export const DM_EVALUATION_FORMAT_VERSION = 2;
 

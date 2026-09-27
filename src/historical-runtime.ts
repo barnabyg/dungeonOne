@@ -1427,6 +1427,18 @@ export type ReplayRuntime = Pick<
 
 // Explicit historical mapping: never consult the startup default for an export.
 // Format, RNG, prompt and tool versions are validated by the replay decoder.
+export function resolveHistoricalBuiltIn(id: string) {
+  if (id === "chapel") {
+    return CHAPEL_RUNTIME;
+  }
+  if (id === "stolen-signet") {
+    return STOLEN_SIGNET_RUNTIME;
+  }
+  throw new Error(
+    `Unknown adventure ${JSON.stringify(id)}. Available adventures: stolen-signet, chapel.`,
+  );
+}
+
 export function resolveHistoricalAdventure(
   rulesVersion: string,
   adventureVersion: string,

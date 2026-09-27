@@ -7,9 +7,9 @@ import test from "node:test";
 
 import { runDmTurn } from "../dist/dm-turn.js";
 import {
-  resolveAdventure,
+  resolveHistoricalBuiltIn,
   resolveHistoricalAdventure,
-} from "../dist/runtime.js";
+} from "../dist/historical-runtime.js";
 
 function noRolls(message = "Resolution actions must not draw randomness") {
   return {
@@ -66,7 +66,7 @@ function resolutionReadyState(runtime, { rescueTavi = false } = {}) {
 }
 
 test("public disclosure records an authoritative ending with Tavi's actual fate", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const ready = resolutionReadyState(runtime);
   const result = runtime.handleAction(
     ready,
@@ -98,7 +98,7 @@ test("public disclosure records an authoritative ending with Tavi's actual fate"
 });
 
 test("confidential referral records trustees' request and only future restitution", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const ready = resolutionReadyState(runtime, { rescueTavi: true });
   const result = runtime.handleAction(
     ready,
@@ -126,7 +126,7 @@ test("confidential referral records trustees' request and only future restitutio
 });
 
 test("noticeboard exposes both known stakes only when resolution is eligible", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const initial = runtime.createSession();
   assert.doesNotMatch(
     JSON.stringify(runtime.getGameToolDefinitions(initial)),
@@ -186,7 +186,7 @@ test("noticeboard exposes both known stakes only when resolution is eligible", (
 });
 
 test("validated model intent rejects ambiguous, tonal, and mismatched ending calls", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   for (const sample of [
     {
       input: "Deal with Oren.",
@@ -276,7 +276,7 @@ test("validated model intent rejects ambiguous, tonal, and mismatched ending cal
 });
 
 test("resolution freezes gameplay mutations while final-state reads and quit remain available", () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   const resolved = runtime.handleAction(
     resolutionReadyState(runtime),
     runtime.parseCommand("resolve public disclosure"),
@@ -337,7 +337,7 @@ test("resolution freezes gameplay mutations while final-state reads and quit rem
 });
 
 test("provider failure after resolution preserves exactly one ending", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let calls = 0;
   const result = await runDmTurn({
     state: resolutionReadyState(runtime, { rescueTavi: true }),
@@ -378,7 +378,7 @@ test("provider failure after resolution preserves exactly one ending", async () 
 });
 
 test("provider failure after rescue preserves exactly one rescue", async () => {
-  const runtime = resolveAdventure("chapel");
+  const runtime = resolveHistoricalBuiltIn("chapel");
   let state = resolutionReadyState(runtime);
   for (const destination of ["chapel-path", "ruined-chapel", "crypt"]) {
     state = runtime.handleAction(
@@ -467,7 +467,9 @@ test("every pre-v8 runtime preserves resolve text as an unknown command", () => 
     });
   }
   assert.deepEqual(
-    resolveAdventure("stolen-signet").parseCommand("resolve public disclosure"),
+    resolveHistoricalBuiltIn("stolen-signet").parseCommand(
+      "resolve public disclosure",
+    ),
     { type: "unknown", input: "resolve public disclosure" },
   );
 });
@@ -503,7 +505,7 @@ test("both offline endings, failed-social fallback, tampering, and replay are de
       const played = spawnSync(
         process.execPath,
         [
-          "dist/cli.js",
+          "tests/fixtures/historical-cli.mjs",
           "--adventure",
           "chapel",
           "--seed",
@@ -568,7 +570,7 @@ test("both offline endings, failed-social fallback, tampering, and replay are de
       );
       const replayed = spawnSync(
         process.execPath,
-        ["dist/cli.js", "--replay", tracePath],
+        ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
         { encoding: "utf8" },
       );
       assert.equal(replayed.status, 0, replayed.stderr);
@@ -580,7 +582,7 @@ test("both offline endings, failed-social fallback, tampering, and replay are de
         writeFileSync(endingTamperedPath, JSON.stringify(endingTampered));
         const rejectedEnding = spawnSync(
           process.execPath,
-          ["dist/cli.js", "--replay", endingTamperedPath],
+          ["tests/fixtures/historical-cli.mjs", "--replay", endingTamperedPath],
           { encoding: "utf8" },
         );
         assert.notEqual(rejectedEnding.status, 0);
@@ -801,7 +803,7 @@ test("both scripted-AI endings clarify ambiguity, permit reflection, and replay"
       const played = spawnSync(
         process.execPath,
         [
-          "dist/cli.js",
+          "tests/fixtures/historical-cli.mjs",
           "--adventure",
           "chapel",
           "--ai",
@@ -861,7 +863,7 @@ test("both scripted-AI endings clarify ambiguity, permit reflection, and replay"
       );
       const replayed = spawnSync(
         process.execPath,
-        ["dist/cli.js", "--replay", tracePath],
+        ["tests/fixtures/historical-cli.mjs", "--replay", tracePath],
         { encoding: "utf8" },
       );
       assert.equal(replayed.status, 0, replayed.stderr);

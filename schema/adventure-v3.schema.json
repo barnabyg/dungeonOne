@@ -63,11 +63,7 @@
     "player": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "locationId",
-        "hp",
-        "maxHp"
-      ],
+      "required": ["locationId", "hp", "maxHp"],
       "properties": {
         "locationId": {
           "type": "string",
@@ -94,12 +90,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "name",
-          "description",
-          "aliases"
-        ],
+        "required": ["id", "name", "description", "aliases"],
         "properties": {
           "id": {
             "type": "string",
@@ -133,20 +124,14 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "when",
-                "text"
-              ],
+              "required": ["when", "text"],
               "properties": {
                 "when": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": [
-                      "type",
-                      "id"
-                    ],
+                    "required": ["type", "id"],
                     "properties": {
                       "type": {
                         "type": "string",
@@ -191,12 +176,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "from",
-          "to",
-          "when"
-        ],
+        "required": ["id", "from", "to", "when"],
         "properties": {
           "id": {
             "type": "string",
@@ -221,10 +201,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
@@ -310,10 +287,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
@@ -346,20 +320,14 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "when",
-                "text"
-              ],
+              "required": ["when", "text"],
               "properties": {
                 "when": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": [
-                      "type",
-                      "id"
-                    ],
+                    "required": ["type", "id"],
                     "properties": {
                       "type": {
                         "type": "string",
@@ -402,11 +370,7 @@
     "quest": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "title",
-        "milestones"
-      ],
+      "required": ["id", "title", "milestones"],
       "properties": {
         "id": {
           "type": "string",
@@ -454,13 +418,7 @@
     "endings": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "locationId",
-        "when",
-        "any",
-        "fates",
-        "choices"
-      ],
+      "required": ["locationId", "when", "any", "fates", "choices"],
       "properties": {
         "locationId": {
           "type": "string",
@@ -473,10 +431,7 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "type",
-              "id"
-            ],
+            "required": ["type", "id"],
             "properties": {
               "type": {
                 "type": "string",
@@ -511,10 +466,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
@@ -549,11 +501,7 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "id",
-              "when",
-              "text"
-            ],
+            "required": ["id", "when", "text"],
             "properties": {
               "id": {
                 "type": "string",
@@ -566,10 +514,7 @@
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": [
-                    "type",
-                    "id"
-                  ],
+                  "required": ["type", "id"],
                   "properties": {
                     "type": {
                       "type": "string",
@@ -647,10 +592,7 @@
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": [
-                    "type",
-                    "id"
-                  ],
+                  "required": ["type", "id"],
                   "properties": {
                     "type": {
                       "type": "string",
@@ -683,11 +625,7 @@
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": [
-                    "id",
-                    "when",
-                    "text"
-                  ],
+                  "required": ["id", "when", "text"],
                   "properties": {
                     "id": {
                       "type": "string",
@@ -700,10 +638,7 @@
                       "items": {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": [
-                          "type",
-                          "id"
-                        ],
+                        "required": ["type", "id"],
                         "properties": {
                           "type": {
                             "type": "string",
@@ -745,20 +680,14 @@
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": [
-                    "when",
-                    "text"
-                  ],
+                  "required": ["when", "text"],
                   "properties": {
                     "when": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": [
-                          "type",
-                          "id"
-                        ],
+                        "required": ["type", "id"],
                         "properties": {
                           "type": {
                             "type": "string",
@@ -806,13 +735,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "title",
-          "classification",
-          "summary",
-          "lead"
-        ],
+        "required": ["id", "title", "classification", "summary", "lead"],
         "properties": {
           "id": {
             "type": "string",
@@ -827,11 +750,7 @@
           },
           "classification": {
             "type": "string",
-            "enum": [
-              "observation",
-              "testimony",
-              "belief"
-            ]
+            "enum": ["observation", "testimony", "belief"]
           },
           "sourceFeatureId": {
             "type": "string",
@@ -860,20 +779,14 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "when",
-                "text"
-              ],
+              "required": ["when", "text"],
               "properties": {
                 "when": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": [
-                      "type",
-                      "id"
-                    ],
+                    "required": ["type", "id"],
                     "properties": {
                       "type": {
                         "type": "string",
@@ -919,13 +832,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "targetId",
-          "when",
-          "effects",
-          "text"
-        ],
+        "required": ["id", "targetId", "when", "effects", "text"],
         "properties": {
           "id": {
             "type": "string",
@@ -944,10 +851,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
@@ -980,10 +884,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
@@ -1023,10 +924,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "statement"
-        ],
+        "required": ["id", "statement"],
         "properties": {
           "id": {
             "type": "string",
@@ -1094,10 +992,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
@@ -1171,11 +1066,7 @@
           "combat": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "hp",
-              "maxHp",
-              "stats"
-            ],
+            "required": ["hp", "maxHp", "stats"],
             "properties": {
               "hp": {
                 "type": "integer",
@@ -1215,11 +1106,7 @@
                   "damage": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": [
-                      "dice",
-                      "sides",
-                      "modifier"
-                    ],
+                    "required": ["dice", "sides", "modifier"],
                     "properties": {
                       "dice": {
                         "type": "integer",
@@ -1245,9 +1132,7 @@
           "remains": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "description"
-            ],
+            "required": ["description"],
             "properties": {
               "description": {
                 "type": "string",
@@ -1257,10 +1142,7 @@
               "search": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "text",
-                  "effects"
-                ],
+                "required": ["text", "effects"],
                 "properties": {
                   "text": {
                     "type": "string",
@@ -1272,10 +1154,7 @@
                     "items": {
                       "type": "object",
                       "additionalProperties": false,
-                      "required": [
-                        "type",
-                        "id"
-                      ],
+                      "required": ["type", "id"],
                       "properties": {
                         "type": {
                           "type": "string",
@@ -1346,10 +1225,7 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": [
-                      "type",
-                      "id"
-                    ],
+                    "required": ["type", "id"],
                     "properties": {
                       "type": {
                         "type": "string",
@@ -1403,10 +1279,7 @@
                         "items": {
                           "type": "object",
                           "additionalProperties": false,
-                          "required": [
-                            "type",
-                            "id"
-                          ],
+                          "required": ["type", "id"],
                           "properties": {
                             "type": {
                               "type": "string",
@@ -1436,12 +1309,7 @@
                       },
                       "outcome": {
                         "type": "string",
-                        "enum": [
-                          "any",
-                          "unattempted",
-                          "success",
-                          "failure"
-                        ]
+                        "enum": ["any", "unattempted", "success", "failure"]
                       },
                       "approach": {
                         "type": "string",
@@ -1478,10 +1346,7 @@
                         "items": {
                           "type": "object",
                           "additionalProperties": false,
-                          "required": [
-                            "type",
-                            "id"
-                          ],
+                          "required": ["type", "id"],
                           "properties": {
                             "type": {
                               "type": "string",
@@ -1585,10 +1450,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
@@ -1623,10 +1485,7 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "type",
-                  "id"
-                ],
+                "required": ["type", "id"],
                 "properties": {
                   "type": {
                     "type": "string",
@@ -1663,12 +1522,7 @@
     "combatProfile": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "armorClass",
-        "attackBonus",
-        "initiativeBonus",
-        "damage"
-      ],
+      "required": ["armorClass", "attackBonus", "initiativeBonus", "damage"],
       "properties": {
         "armorClass": {
           "type": "integer",
@@ -1688,11 +1542,7 @@
         "damage": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "dice",
-            "sides",
-            "modifier"
-          ],
+          "required": ["dice", "sides", "modifier"],
           "properties": {
             "dice": {
               "type": "integer",
@@ -1718,14 +1568,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "name",
-          "description",
-          "aliases",
-          "maxHp",
-          "stats"
-        ],
+        "required": ["id", "name", "description", "aliases", "maxHp", "stats"],
         "properties": {
           "id": {
             "type": "string",
@@ -1787,11 +1630,7 @@
               "damage": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "dice",
-                  "sides",
-                  "modifier"
-                ],
+                "required": ["dice", "sides", "modifier"],
                 "properties": {
                   "dice": {
                     "type": "integer",
@@ -1821,12 +1660,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "definitionId",
-          "locationId",
-          "hp"
-        ],
+        "required": ["id", "definitionId", "locationId", "hp"],
         "properties": {
           "id": {
             "type": "string",
@@ -1860,12 +1694,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "monsterId",
-          "when",
-          "effects"
-        ],
+        "required": ["id", "monsterId", "when", "effects"],
         "properties": {
           "id": {
             "type": "string",
@@ -1884,10 +1713,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
@@ -1920,10 +1746,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "type",
-                "id"
-              ],
+              "required": ["type", "id"],
               "properties": {
                 "type": {
                   "type": "string",
@@ -2010,12 +1833,7 @@
           "healing": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "dice",
-              "sides",
-              "modifier",
-              "target"
-            ],
+            "required": ["dice", "sides", "modifier", "target"],
             "properties": {
               "dice": {
                 "type": "integer",
@@ -2034,9 +1852,7 @@
               },
               "target": {
                 "type": "string",
-                "enum": [
-                  "fighter"
-                ]
+                "enum": ["fighter"]
               }
             }
           }
