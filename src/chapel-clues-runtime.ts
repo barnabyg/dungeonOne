@@ -328,6 +328,36 @@ export function createChapelCluesRuntime(
         npc.remains?.search !== undefined &&
         hasNewEffects(state, npc.remains.search.effects),
     );
+  const applySearchEffects = (
+    state: ClueState,
+    effects: readonly ClueEffect[],
+  ): { state: ClueState; changed: boolean } => {
+    const discoveries = [...state.discoveries];
+    const milestones = [...state.milestones];
+    const discoveryLocations = { ...state.discoveryLocations };
+    let changed = false;
+    for (const effect of effects) {
+      const list = effect.type === "grant-discovery" ? discoveries : milestones;
+      if (!list.includes(effect.id)) {
+        list.push(effect.id);
+        changed = true;
+        if (effect.type === "grant-discovery") {
+          discoveryLocations[effect.id] = state.locationId;
+        }
+      }
+    }
+    return {
+      changed,
+      state: changed
+        ? {
+            ...state,
+            discoveries,
+            milestones,
+            ...(hasRelocation ? { discoveryLocations } : {}),
+          }
+        : state,
+    };
+  };
   const journal = (state: ClueState): ClueJournal => {
     const discoveries = state.discoveries.map((id) => {
       const entry = definition.discoveries.find((item) => item.id === id)!;
@@ -1043,28 +1073,12 @@ export function createChapelCluesRuntime(
       }
       if (deceased !== undefined) {
         const search = deceased.remains!.search!;
-        const discoveries = [...state.discoveries];
-        const milestones = [...state.milestones];
-        const discoveryLocations = { ...state.discoveryLocations };
-        let changed = false;
-        for (const effect of search.effects) {
-          const list =
-            effect.type === "grant-discovery" ? discoveries : milestones;
-          if (!list.includes(effect.id)) {
-            list.push(effect.id);
-            changed = true;
-            if (effect.type === "grant-discovery") {
-              discoveryLocations[effect.id] = state.locationId;
-            }
-          }
-        }
+        const applied = applySearchEffects(state, search.effects);
         return accepted(
-          changed
-            ? { ...state, discoveries, milestones, discoveryLocations }
-            : state,
+          applied.state,
           event(
             "search",
-            changed
+            applied.changed
               ? search.text
               : `You search ${deceased.name}'s remains, but find nothing new.`,
             deceased.id,
@@ -1082,26 +1096,9 @@ export function createChapelCluesRuntime(
           ),
         );
       }
-      const discoveries = [...state.discoveries],
-        milestones = [...state.milestones],
-        discoveryLocations = { ...state.discoveryLocations };
-      for (const effect of branch.effects) {
-        const list =
-          effect.type === "grant-discovery" ? discoveries : milestones;
-        if (!list.includes(effect.id)) {
-          list.push(effect.id);
-          if (effect.type === "grant-discovery") {
-            discoveryLocations[effect.id] = state.locationId;
-          }
-        }
-      }
+      const applied = applySearchEffects(state, branch.effects);
       return startEncounter(
-        {
-          ...state,
-          discoveries,
-          milestones,
-          ...(hasRelocation ? { discoveryLocations } : {}),
-        },
+        applied.state,
         [event("search", branch.text, feature!.id)],
         random,
       );
