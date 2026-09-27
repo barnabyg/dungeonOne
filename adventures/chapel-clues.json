@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "id": "chapel-clues",
-  "contentVersion": "7",
+  "contentVersion": "8",
   "rulesVersion": "chapel-clues-rules-v4",
   "title": "The Bell Beneath the Chapel: First Leads",
   "introduction": "Tavi is missing. Begin at the village inn and follow the public chapel route.",
@@ -296,7 +296,7 @@
       "title": "Tavi's crypt account",
       "classification": "testimony",
       "sourceNpcId": "tavi",
-      "summary": "Tavi followed the ledger into the crypt and was trapped when the guardian rose.",
+      "summary": "Tavi entered the crypt to find the chapel repair ledger and was trapped when the guardian rose.",
       "lead": "Tavi remains in the crypt until a rescue is arranged.",
       "leads": [
         {
@@ -384,7 +384,7 @@
     },
     {
       "id": "tavi-crypt-account",
-      "statement": "Tavi followed the ledger into the crypt and was trapped when the skeleton guardian rose."
+      "statement": "I entered the crypt to find the chapel repair ledger and was trapped when the skeleton guardian rose."
     }
   ],
   "socialChallenges": [
@@ -626,7 +626,7 @@
               "when": [{ "type": "milestone-recorded", "id": "tavi-rescued" }],
               "outcome": "any",
               "approach": "any",
-              "text": "Tavi: I followed the ledger into the crypt. The guardian trapped me there, but I am safe at the inn now.",
+              "text": "Tavi: I went into the crypt to find the chapel repair ledger. The guardian trapped me there, but I am safe at the inn now.",
               "attitude": "relieved",
               "approvedFactIds": ["tavi-crypt-account"],
               "effects": [
@@ -638,7 +638,7 @@
               "when": [],
               "outcome": "any",
               "approach": "any",
-              "text": "Tavi: I followed the chapel ledger into the crypt. The skeleton rose behind me and trapped me here.",
+              "text": "Tavi: I went into the crypt to find the chapel repair ledger. The skeleton rose behind me and trapped me here.",
               "attitude": "shaken",
               "approvedFactIds": ["tavi-crypt-account"],
               "effects": [

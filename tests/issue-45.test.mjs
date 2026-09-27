@@ -362,7 +362,7 @@ test("seed 7 defeats the fighter after a combat potion use in command and script
               },
             ],
           },
-          { text: "Continue." },
+          ...(name === "use_item" ? [] : [{ text: "Continue." }]),
         ]),
       ),
     );
@@ -391,7 +391,7 @@ test("seed 7 defeats the fighter after a combat potion use in command and script
     assert.equal(run("", ["--replay", aiTrace]).status, 0);
   }));
 
-test("scripted AI respects renamed collection intent and committed use after provider failure", () =>
+test("scripted AI respects renamed collection intent and authors committed use", () =>
   temporary((directory) => {
     const variant = structuredClone(document);
     variant.items[0].id = "amber-tonic";
@@ -483,6 +483,7 @@ test("scripted AI respects renamed collection intent and committed use after pro
     assert.equal(trace.turns[1].stateAfter.items["amber-tonic"], "room");
     assert.equal(trace.turns[2].stateAfter.items["amber-tonic"], "inventory");
     assert.equal(trace.turns[5].stateAfter.items["amber-tonic"], "consumed");
-    assert.equal(trace.turns[5].diagnostics[0].code, "model-failure");
+    assert.deepEqual(trace.turns[5].diagnostics, []);
+    assert.match(trace.turns[5].narration, /amber tonic.*consumed/i);
     assert.equal(run("", ["--replay", tracePath]).status, 0);
   }));

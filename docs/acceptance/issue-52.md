@@ -85,3 +85,7 @@ Live calls are intentionally outside `verify`. Provider access, credentials,
 and human observations remain external prerequisites; their absence cannot be
 replaced by scripted assertions. The campaign does not qualify general
 improvisation, arbitrary definitions, or player enjoyment.
+
+Later player feedback about potion reuse guidance and Tavi's ledger wording is
+addressed in [the follow-up record](issue-52-feedback.md). This page preserves
+the original qualification snapshot and versions.

@@ -68,6 +68,7 @@ function toolCase(input: {
   manualJudgments: DmInterpretationCase["manualJudgments"];
   scoreDimensions?: DmInterpretationCase["scoreDimensions"];
   replyText?: string;
+  expectedTurnDraws?: readonly number[];
 }): DmInterpretationCase {
   return {
     id: input.id,
@@ -76,7 +77,7 @@ function toolCase(input: {
     expectation: { kind: "tool", name: input.name, arguments: input.args },
     allowedEngineOutcomes: [{ kind: "accepted-tool" }],
     budget: mutationBudget,
-    random: { expectedTurnDraws: [] },
+    random: { expectedTurnDraws: input.expectedTurnDraws ?? [] },
     safetyTags: ["clear"],
     scoreDimensions: input.scoreDimensions ?? [
       "safety",
@@ -120,6 +121,21 @@ export const DATA_DM_CASES: readonly DmInterpretationCase[] = Object.freeze([
     manualJudgments: ["no-fabricated-outcomes"],
   }),
   toolCase({
+    id: "data-explicit-potion-use",
+    setup: setup("data-potion-in-combat", 7, [
+      ...pathToCrypt.slice(0, 1),
+      action("take", { item_id: "healing-potion" }),
+      ...pathToCrypt.slice(1),
+    ]),
+    playerInput: "I drink the healing potion.",
+    name: "use_item",
+    args: { item_id: "healing-potion" },
+    stateExpectation: "changed",
+    expectedTurnDraws: [2, 2, 5],
+    manualJudgments: ["no-fabricated-outcomes"],
+    replyText: "You can use the healing potion again next turn.",
+  }),
+  toolCase({
     id: "data-failed-social-fallback",
     setup: setup("data-failed-social", 7, [
       action("move", { destinationId: "ferry-landing" }),
@@ -154,6 +170,25 @@ export const DATA_DM_CASES: readonly DmInterpretationCase[] = Object.freeze([
       delivery: "steady",
       opening: "none",
       factIds: ["tavi-rescued-fact"],
+      closing: "none",
+    }),
+  }),
+  toolCase({
+    id: "data-tavi-ledger-account",
+    setup: setup("data-tavi-ledger", 0, [
+      ...pathToCrypt,
+      ...finishGuardian,
+      action("search", { target: "diversion-ledger" }),
+    ]),
+    playerInput: "Ask Tavi why they came into the crypt.",
+    name: "talk",
+    args: { speakerId: "tavi", topicId: "crypt", approach: "ask" },
+    stateExpectation: "changed",
+    manualJudgments: ["no-fabricated-outcomes"],
+    replyText: JSON.stringify({
+      delivery: "concerned",
+      opening: "none",
+      factIds: ["tavi-crypt-account"],
       closing: "none",
     }),
   }),
