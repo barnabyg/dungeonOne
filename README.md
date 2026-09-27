@@ -10,7 +10,30 @@ clean-checkout results, and replay limits, see [increment 4 acceptance](docs/acc
 - Node.js 24.21.0 LTS (pinned in `.nvmrc`; supported runtime line: Node.js 24.x)
 - npm 11.6.4 (pinned by `packageManager`)
 
-All development tools and the official OpenAI SDK are exact-version dependencies in `package.json` and `package-lock.json`. Installation and dependency auditing require registry access. Command play, help, invalid-argument handling, and trace replay do not require a network connection, AI credentials, or any external service. Live AI play requires network access and an OpenAI API key.
+All development tools and the official OpenAI SDK are exact-version dependencies in `package.json` and `package-lock.json`. Installation and dependency auditing require registry access. Command play, help, invalid-argument handling, and trace replay do not require a network connection, AI credentials, or any external service. Live AI play and adventure generation require network access and an OpenAI API key.
+
+### Generate a tiny adventure
+
+Generation is opt-in and requires an explicit model, a printable premise of at
+most 500 characters, an existing output directory, and a new output filename.
+It makes one bounded OpenAI response request, accepts at most 16 KiB of
+response text, checks the returned schema 3 / rules v4 document with the
+ordinary adventure loader, and creates the file only
+after validation succeeds. Generation cannot be combined with play, replay,
+validation, seed, or trace options. Failed attempts leave the requested output
+untouched. Provider details and rejected content are not printed.
+
+```powershell
+$env:OPENAI_API_KEY = "your-key"
+node dist/cli.js --generate-adventure .\my-adventure.json --premise "A lost cartographer follows a bell into the fog" --model <model-id>
+node dist/cli.js --validate-adventure .\my-adventure.json
+node dist/cli.js --adventure-file .\my-adventure.json --seed 0
+```
+
+The generator reports the content ID, SHA-256 digest, model, and commands to
+validate and play the file. Generation uses a bundled valid example to guide
+the model and rejects a response with the example's ID. A model may still return content that fails validation. No
+generation provider is needed to play a successfully written file.
 
 ## Install, build, and play
 
@@ -108,7 +131,7 @@ node dist/cli.js --replay signet-trace.json
 Use `--adventure-file adventures/stolen-signet.json --ai` for model play; the
 scripted model test hook supports the same tools. The command and AI routes both
 export self-contained format-4 traces. Built-in selection uses the same validated content and runtime. Schema 2 supports
-this combat and escape profile only; save/resume, generation, arbitrary scripts,
+this combat and escape profile only; save/resume, arbitrary scripts,
 clocks, and new rule systems are outside this profile.
 
 ### External chapel clues

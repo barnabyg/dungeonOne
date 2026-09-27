@@ -16,6 +16,7 @@ import { resolveStartupSeed } from "./random.js";
 import { loadScriptedDmModel } from "./scripted-dm-model.js";
 import { loadAdventureFile } from "./adventure-file.js";
 import { createDataRuntime } from "./data-runtime.js";
+import { generateAdventure } from "./generation.js";
 
 function chooseStartupSeed(): number {
   return randomBytes(4).readUInt32LE(0);
@@ -32,6 +33,7 @@ type StartupOptions = Readonly<
   | { mode: "replay"; replayPath: string }
   | { mode: "help" }
   | { mode: "validate"; result: Awaited<ReturnType<typeof loadAdventureFile>> }
+  | { mode: "generate"; premise: string; outputPath: string; model: string }
 >;
 const USAGE = [
   "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
@@ -39,6 +41,7 @@ const USAGE = [
   "       dungeon-one --replay <path>",
   "       dungeon-one --adventure-file <path> [--ai] [--seed <seed>] [--trace <path>]",
   "       dungeon-one --validate-adventure <path>",
+  "       dungeon-one --generate-adventure <output.json> --premise <text> --model <model-id>",
   "       dungeon-one --help",
   `Default AI model: ${OPENAI_DM_DEFAULT_MODEL}`,
   `Default adventure: ${DEFAULT_ADVENTURE_ID}`,
@@ -49,6 +52,54 @@ async function resolveStartupOptions(
 ): Promise<StartupOptions> {
   if (args.length === 1 && args[0] === "--help") {
     return { mode: "help" };
+  }
+  if (
+    args.some(
+      (argument) =>
+        argument === "--generate-adventure" ||
+        argument.startsWith("--generate-adventure="),
+    )
+  ) {
+    const values = new Map<string, string>();
+    for (let index = 0; index < args.length; index += 1) {
+      const argument = args[index];
+      const equals = argument?.indexOf("=") ?? -1;
+      const name = equals < 0 ? argument : argument?.slice(0, equals);
+      if (
+        name !== "--generate-adventure" &&
+        name !== "--premise" &&
+        name !== "--model"
+      ) {
+        throw new Error(
+          `Generation cannot be combined with other options.\n${USAGE}`,
+        );
+      }
+      const value = equals < 0 ? args[++index] : argument?.slice(equals + 1);
+      if (
+        value === undefined ||
+        value.length === 0 ||
+        value.startsWith("--") ||
+        values.has(name)
+      ) {
+        throw new Error(
+          `Generation requires one output, premise, and model.\n${USAGE}`,
+        );
+      }
+      values.set(name, value);
+    }
+    const outputPath = values.get("--generate-adventure");
+    const premise = values.get("--premise");
+    const model = values.get("--model");
+    if (
+      outputPath === undefined ||
+      premise === undefined ||
+      model === undefined
+    ) {
+      throw new Error(
+        `Generation requires one output, premise, and model.\n${USAGE}`,
+      );
+    }
+    return { mode: "generate", outputPath, premise, model };
   }
   if (
     args.some(
@@ -266,6 +317,25 @@ async function main(): Promise<void> {
       `${JSON.stringify({ ok: result.ok, diagnostics: result.diagnostics, ...(result.ok ? { content: { id: result.adventure.snapshot.id, digest: result.adventure.digest } } : {}) })}\n`,
     );
     if (!result.ok) {
+      process.exitCode = 2;
+    }
+    return;
+  }
+
+  if (startup.mode === "generate") {
+    try {
+      const result = await generateAdventure({
+        ...startup,
+        apiKey: process.env.OPENAI_API_KEY ?? "",
+      });
+      const quotedPath = `'${result.outputPath.replaceAll("'", "''")}'`;
+      process.stdout.write(
+        `Generated ${result.id}\nDigest: ${result.digest}\nModel: ${result.model}\nValidate: node dist/cli.js --validate-adventure ${quotedPath}\nPlay: node dist/cli.js --adventure-file ${quotedPath} --seed 0\n`,
+      );
+    } catch (error) {
+      process.stderr.write(
+        `${error instanceof Error ? error.message : "Adventure generation failed."}\n`,
+      );
       process.exitCode = 2;
     }
     return;
