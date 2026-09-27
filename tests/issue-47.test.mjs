@@ -57,6 +57,8 @@ test("each casualty remains visible and the physical investigation survives in c
         ...(actor === "tavi"
           ? ["search tavi", "journal", "talk tavi rescue ask"]
           : []),
+        ...(actor === "mara" ? ["talk mara tavi ask"] : []),
+        ...(actor === "oren" ? ["talk oren tavi ask"] : []),
         ...(actor === "tavi" && location === "inn"
           ? ["talk mara tavi ask"]
           : []),
@@ -92,6 +94,12 @@ test("each casualty remains visible and the physical investigation survives in c
       assert.match(played.stdout, /attack <monster or person>/);
       assert.match(played.stdout, new RegExp(`${actor} dies at`, "i"));
       assert.match(played.stdout, new RegExp(`${actor}'s remains`, "i"));
+      assert.doesNotMatch(
+        played.stdout.slice(
+          played.stdout.search(new RegExp(`${actor} dies at`, "i")),
+        ),
+        new RegExp(`${actor}:`, "i"),
+      );
       const trace = JSON.parse(readFileSync(tracePath, "utf8"));
       const death = trace.actions.find(
         ({ stateAfter }) => stateAfter?.npcHealth?.[actor]?.hp === 0,
@@ -205,42 +213,123 @@ test("inspection cannot confirm Tavi's fate; dead dialogue and forged rescue con
   );
 });
 
-test("scripted AI can attack Mara, observes death, and replays", () =>
+test("scripted AI records every NPC casualty and both Tavi death locations", () =>
   temporary((directory) => {
-    const calls = Array.from({ length: 3 }, (_, index) => [
+    const movesToCrypt = ["chapel-path", "ruined-chapel", "crypt"].map(
+      (destinationId) => ["move", { destinationId }],
+    );
+    const guardian = Array.from({ length: 3 }, () => [
       "attack",
-      { opponent_id: "mara" },
-      index,
+      { opponent_id: "skeleton-guardian" },
     ]);
-    const script = join(directory, "script.json");
-    writeFileSync(
-      script,
-      JSON.stringify(
-        calls.flatMap(([name, args, index]) => [
+    const crypt = [...movesToCrypt, ...guardian];
+    const cases = [
+      [
+        "mara",
+        "inn",
+        Array.from({ length: 2 }, () => ["attack", { opponent_id: "mara" }]),
+      ],
+      [
+        "oren",
+        "ferry-landing",
+        [
+          ["move", { destinationId: "ferry-landing" }],
+          ...Array.from({ length: 3 }, () => [
+            "attack",
+            { opponent_id: "oren" },
+          ]),
+        ],
+      ],
+      [
+        "tavi",
+        "crypt",
+        [
+          ...crypt,
+          ["attack", { opponent_id: "tavi" }],
+          ["search", { target: "tavi" }],
+        ],
+      ],
+      [
+        "tavi",
+        "inn",
+        [
+          ...crypt,
+          ["talk", { speakerId: "tavi", topicId: "rescue", approach: "ask" }],
+          ...["ruined-chapel", "chapel-path", "inn"].map((destinationId) => [
+            "move",
+            { destinationId },
+          ]),
+          ["attack", { opponent_id: "tavi" }],
+          ["search", { target: "tavi" }],
+        ],
+      ],
+    ];
+    for (const [actor, location, calls] of cases) {
+      const attemptedCalls = [
+        ...calls,
+        [
+          "talk",
           {
-            toolCalls: [
-              {
-                id: `call-${index}`,
-                name,
-                argumentsJson: JSON.stringify(args),
-              },
-            ],
+            speakerId: actor,
+            topicId: actor === "tavi" ? "rescue" : "tavi",
+            approach: "ask",
           },
-          { text: "Continue." },
-        ]),
-      ),
-    );
-    const tracePath = join(directory, "ai.json");
-    const played = run(
-      "Attack Mara\nContinue\nContinue\nquit\n",
-      ["--adventure-file", source, "--ai", "--seed", "0", "--trace", tracePath],
-      { DUNGEON_ONE_TEST_DM_SCRIPT: script },
-    );
-    assert.equal(played.status, 0, played.stderr);
-    assert.match(played.stdout, /Mara dies at Village Inn/);
-    const trace = JSON.parse(readFileSync(tracePath, "utf8"));
-    assert.equal(trace.turns.at(-1).stateAfter.npcHealth.mara.hp, 0);
-    assert.equal(run("", ["--replay", tracePath]).status, 0);
+        ],
+      ];
+      const script = join(directory, `${actor}-${location}-script.json`);
+      writeFileSync(
+        script,
+        JSON.stringify(
+          attemptedCalls.flatMap(([name, args], index) => [
+            {
+              toolCalls: [
+                {
+                  id: `call-${index}`,
+                  name,
+                  argumentsJson: JSON.stringify(args),
+                },
+              ],
+            },
+            { text: "Continue." },
+          ]),
+        ),
+      );
+      const tracePath = join(directory, `${actor}-${location}-ai.json`);
+      const played = run(
+        `${attemptedCalls.map(() => "Continue").join("\n")}\nquit\n`,
+        [
+          "--adventure-file",
+          source,
+          "--ai",
+          "--seed",
+          "0",
+          "--trace",
+          tracePath,
+        ],
+        { DUNGEON_ONE_TEST_DM_SCRIPT: script },
+      );
+      assert.equal(played.status, 0, played.stderr);
+      assert.match(played.stdout, new RegExp(`${actor} dies at`, "i"));
+      assert.doesNotMatch(
+        played.stdout.slice(
+          played.stdout.search(new RegExp(`${actor} dies at`, "i")),
+        ),
+        new RegExp(`${actor}:`, "i"),
+      );
+      const trace = JSON.parse(readFileSync(tracePath, "utf8"));
+      const death = trace.turns.find(
+        ({ stateAfter }) => stateAfter?.npcHealth?.[actor]?.hp === 0,
+      );
+      assert.ok(death, `${actor} should die at ${location}`);
+      assert.equal(death.stateAfter.npcDeathLocations[actor], location);
+      if (actor === "tavi") {
+        assert.equal(
+          trace.turns.at(-1).stateAfter.discoveryLocations["tavi-remains"],
+          location,
+        );
+      }
+      assert.equal(run("", ["--replay", tracePath]).status, 0);
+    }
   }));
 
 test("casualty data rejects impossible HP, unsourced remains and old rules", async () => {
