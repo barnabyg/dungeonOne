@@ -2,6 +2,9 @@
 
 Dungeon One is a text-first TypeScript game with an offline command mode and an opt-in live AI Dungeon Master mode. **The Bell Beneath the Chapel** is the normal startup adventure: investigate Tavi's disappearance, survive the crypt guardian, recover the evidence, and choose public disclosure or confidential referral. **The Stolen Signet** remains available as the compatibility and regression adventure.
 
+For a reproducible author/player handoff, including checked-in journeys,
+clean-checkout results, and replay limits, see [increment 4 acceptance](docs/acceptance/issue-53.md).
+
 ## Requirements
 
 - Node.js 24.21.0 LTS (pinned in `.nvmrc`; supported runtime line: Node.js 24.x)
