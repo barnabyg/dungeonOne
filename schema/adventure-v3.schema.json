@@ -40,7 +40,8 @@
       "type": "string",
       "enum": [
         "chapel-clues-rules-v1",
-        "chapel-clues-rules-v2"
+        "chapel-clues-rules-v2",
+        "chapel-clues-rules-v3"
       ]
     },
     "title": {
@@ -150,7 +151,8 @@
                         "type": "string",
                         "enum": [
                           "discovery-known",
-                          "milestone-recorded"
+                          "milestone-recorded",
+                          "actor-dead"
                         ]
                       },
                       "id": {
@@ -219,7 +221,8 @@
                   "type": "string",
                   "enum": [
                     "discovery-known",
-                    "milestone-recorded"
+                    "milestone-recorded",
+                    "actor-dead"
                   ]
                 },
                 "id": {
@@ -299,7 +302,8 @@
                   "type": "string",
                   "enum": [
                     "discovery-known",
-                    "milestone-recorded"
+                    "milestone-recorded",
+                    "actor-dead"
                   ]
                 },
                 "id": {
@@ -336,7 +340,8 @@
                         "type": "string",
                         "enum": [
                           "discovery-known",
-                          "milestone-recorded"
+                          "milestone-recorded",
+                          "actor-dead"
                         ]
                       },
                       "id": {
@@ -471,7 +476,8 @@
                         "type": "string",
                         "enum": [
                           "discovery-known",
-                          "milestone-recorded"
+                          "milestone-recorded",
+                          "actor-dead"
                         ]
                       },
                       "id": {
@@ -536,7 +542,8 @@
                   "type": "string",
                   "enum": [
                     "discovery-known",
-                    "milestone-recorded"
+                    "milestone-recorded",
+                    "actor-dead"
                   ]
                 },
                 "id": {
@@ -677,7 +684,8 @@
                   "type": "string",
                   "enum": [
                     "discovery-known",
-                    "milestone-recorded"
+                    "milestone-recorded",
+                    "actor-dead"
                   ]
                 },
                 "id": {
@@ -733,6 +741,143 @@
             },
             "maxItems": 256
           },
+          "combat": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "hp",
+              "maxHp",
+              "stats"
+            ],
+            "properties": {
+              "hp": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              },
+              "maxHp": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              },
+              "stats": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "armorClass",
+                  "attackBonus",
+                  "initiativeBonus",
+                  "damage"
+                ],
+                "properties": {
+                  "armorClass": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 40
+                  },
+                  "attackBonus": {
+                    "type": "integer",
+                    "minimum": -20,
+                    "maximum": 20
+                  },
+                  "initiativeBonus": {
+                    "type": "integer",
+                    "minimum": -20,
+                    "maximum": 20
+                  },
+                  "damage": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "dice",
+                      "sides",
+                      "modifier"
+                    ],
+                    "properties": {
+                      "dice": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20
+                      },
+                      "sides": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 100
+                      },
+                      "modifier": {
+                        "type": "integer",
+                        "minimum": -20,
+                        "maximum": 20
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "remains": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "description"
+            ],
+            "properties": {
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "search": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "text",
+                  "effects"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "id"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "grant-discovery",
+                            "record-milestone",
+                            "relocate-npc"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                        },
+                        "toLocationId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                        }
+                      }
+                    },
+                    "maxItems": 256
+                  }
+                }
+              }
+            }
+          },
           "topics": {
             "type": "array",
             "items": {
@@ -783,7 +928,8 @@
                         "type": "string",
                         "enum": [
                           "discovery-known",
-                          "milestone-recorded"
+                          "milestone-recorded",
+                          "actor-dead"
                         ]
                       },
                       "id": {
@@ -831,7 +977,8 @@
                               "type": "string",
                               "enum": [
                                 "discovery-known",
-                                "milestone-recorded"
+                                "milestone-recorded",
+                                "actor-dead"
                               ]
                             },
                             "id": {
@@ -1004,7 +1151,8 @@
                   "type": "string",
                   "enum": [
                     "discovery-known",
-                    "milestone-recorded"
+                    "milestone-recorded",
+                    "actor-dead"
                   ]
                 },
                 "id": {
@@ -1033,7 +1181,8 @@
                     "type": "string",
                     "enum": [
                       "discovery-known",
-                      "milestone-recorded"
+                      "milestone-recorded",
+                      "actor-dead"
                     ]
                   },
                   "id": {
@@ -1285,7 +1434,8 @@
                   "type": "string",
                   "enum": [
                     "discovery-known",
-                    "milestone-recorded"
+                    "milestone-recorded",
+                    "actor-dead"
                   ]
                 },
                 "id": {

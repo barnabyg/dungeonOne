@@ -172,7 +172,8 @@ test("an authored condition can activate an encounter after a local discovery", 
   assert.ok(
     !runtime
       .getGameToolDefinitions(state)
-      .find(({ name }) => name === "attack"),
+      .find(({ name }) => name === "attack")
+      ?.parameters.properties.opponent_id.enum.includes("skeleton-guardian"),
   );
   const result = runtime.handleAction(
     state,

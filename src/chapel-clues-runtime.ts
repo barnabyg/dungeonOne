@@ -25,12 +25,13 @@ import type {
 import type { Action } from "./session.js";
 import type { RandomSource } from "./random.js";
 
-export const CLUES_ENGINE_VERSION = "chapel-clues-engine-v5";
+export const CLUES_ENGINE_VERSION = "chapel-clues-engine-v6";
+export const RESCUE_CLUES_ENGINE_VERSION = "chapel-clues-engine-v5";
 export const POTION_CLUES_ENGINE_VERSION = "chapel-clues-engine-v4";
 export const COMBAT_CLUES_ENGINE_VERSION = "chapel-clues-engine-v3";
 export const LEGACY_CLUES_ENGINE_VERSION = "chapel-clues-engine-v2";
-export const CLUES_PROMPT_VERSION = "chapel-clues-dm-v5";
-export const CLUES_TOOL_VERSION = "chapel-clues-tools-v5";
+export const CLUES_PROMPT_VERSION = "chapel-clues-dm-v6";
+export const CLUES_TOOL_VERSION = "chapel-clues-tools-v6";
 export type ClueState = Readonly<{
   runtimeKind: "chapel-clues";
   adventureId: string;
@@ -59,6 +60,8 @@ export type ClueState = Readonly<{
     statements: readonly string[];
   }>[];
   npcLocations?: Readonly<Record<string, string>>;
+  npcHealth?: Readonly<Record<string, Readonly<{ hp: number; maxHp: number }>>>;
+  npcDeathLocations?: Readonly<Record<string, string>>;
   items?: Readonly<Record<string, "room" | "inventory" | "consumed">>;
   monsters?: Readonly<Record<string, Readonly<{ hp: number; maxHp: number }>>>;
   combat?:
@@ -147,6 +150,7 @@ export function createChapelCluesRuntime(
   }
   const definition: ChapelCluesDefinition = content.snapshot;
   const combatEnabled = definition.combatProfile !== undefined;
+  const casualtiesEnabled = definition.rulesVersion === "chapel-clues-rules-v3";
   const stateOf = (input: RuntimeState): ClueState => {
     if (
       !("runtimeKind" in input) ||
@@ -161,8 +165,14 @@ export function createChapelCluesRuntime(
     conditions.every(({ type, id }) =>
       type === "discovery-known"
         ? state.discoveries.includes(id)
-        : state.milestones.includes(id),
+        : type === "actor-dead"
+          ? state.npcHealth?.[id]?.hp === 0
+          : state.milestones.includes(id),
     );
+  const npcById = (id: string) =>
+    (definition.npcs ?? []).find((entry) => entry.id === id);
+  const npcAlive = (state: ClueState, id: string) =>
+    (state.npcHealth?.[id]?.hp ?? 1) > 0;
   const monster = (id: string) =>
     definition.monsters?.find((entry) => entry.id === id);
   const monsterDefinition = (id: string) =>
@@ -181,7 +191,8 @@ export function createChapelCluesRuntime(
   const activeOpponent = (state: ClueState) =>
     state.status === "playing" &&
     state.combat !== undefined &&
-    (state.monsters?.[state.combat.opponentId]?.hp ?? 0) > 0
+    ((state.monsters?.[state.combat.opponentId]?.hp ?? 0) > 0 ||
+      (state.npcHealth?.[state.combat.opponentId]?.hp ?? 0) > 0)
       ? state.combat.opponentId
       : undefined;
   const visibleMonsters = (state: ClueState) =>
@@ -271,7 +282,15 @@ export function createChapelCluesRuntime(
     npcs: (definition.npcs ?? []).filter(
       (entry) =>
         (state.npcLocations?.[entry.id] ?? entry.locationId) ===
-          state.locationId && eligible(state, entry.when ?? []),
+          state.locationId &&
+        npcAlive(state, entry.id) &&
+        eligible(state, entry.when ?? []),
+    ),
+    remains: (definition.npcs ?? []).filter(
+      (entry) =>
+        entry.remains !== undefined &&
+        !npcAlive(state, entry.id) &&
+        state.npcDeathLocations?.[entry.id] === state.locationId,
     ),
     exits: definition.connections
       .filter(
@@ -302,7 +321,7 @@ export function createChapelCluesRuntime(
     );
   const searchableFeatures = (state: ClueState) =>
     visible(state).features.filter((feature) => {
-      const branch = nextSearch(state, feature.id);
+      const branch = nextSearch(state, feature!.id);
       return branch !== undefined && hasNewEffect(state, branch);
     });
   const journal = (state: ClueState): ClueJournal => {
@@ -341,7 +360,7 @@ export function createChapelCluesRuntime(
     };
   };
   const describe = (state: ClueState) => {
-    const { room: here, features, exits, npcs } = visible(state);
+    const { room: here, features, exits, npcs, remains } = visible(state);
     const opponents = visibleMonsters(state)
       .filter(
         (entry) =>
@@ -349,7 +368,7 @@ export function createChapelCluesRuntime(
           (state.monsters?.[entry.id]?.hp ?? 0) > 0,
       )
       .map((entry) => monsterDefinition(entry.id)?.name ?? entry.id);
-    return `${here.name}\n${currentText(state, here.description, here.descriptions)}\nFeatures: ${features.map((entry) => entry.name).join(", ") || "none"}.\nPeople: ${npcs.map((entry) => entry.name).join(", ") || "none"}.${
+    return `${here.name}\n${currentText(state, here.description, here.descriptions)}\nFeatures: ${features.map((entry) => entry.name).join(", ") || "none"}.\nPeople: ${[...npcs.map((entry) => entry.name), ...remains.map((entry) => `${entry.name}'s remains`)].join(", ") || "none"}.${
       definition.items === undefined
         ? ""
         : `\nItems: ${
@@ -360,7 +379,7 @@ export function createChapelCluesRuntime(
     }${combatEnabled ? `\nOpponents: ${opponents.join(", ") || "none"}.` : ""}\nExits: ${exits.map((entry) => entry.name).join(", ") || "none"}.`;
   };
   const scene = (state: ClueState) => {
-    const { room: here, features, exits, npcs } = visible(state);
+    const { room: here, features, exits, npcs, remains } = visible(state);
     return {
       title: definition.title,
       objective: definition.objective,
@@ -399,14 +418,22 @@ export function createChapelCluesRuntime(
               ? ("living" as const)
               : ("defeated" as const),
         })),
-        npcs: npcs.map((npc) => ({
-          id: npc.id,
-          name: npc.name,
-          condition: "living" as const,
-          subjects: npc.topics
-            .filter((topic) => eligible(state, topic.when))
-            .map(({ id, name }) => ({ id, name })),
-        })),
+        npcs: [
+          ...npcs.map((npc) => ({
+            id: npc.id,
+            name: npc.name,
+            condition: "living" as const,
+            subjects: npc.topics
+              .filter((topic) => eligible(state, topic.when))
+              .map(({ id, name }) => ({ id, name })),
+          })),
+          ...remains.map((npc) => ({
+            id: npc.id,
+            name: npc.name,
+            condition: "dead" as const,
+            subjects: [],
+          })),
+        ],
       },
       journal: journal(state),
       ...(activeOpponent(state) === undefined
@@ -428,7 +455,21 @@ export function createChapelCluesRuntime(
                   .filter((topic) => eligible(state, topic.when))
                   .map((topic) => `talk ${npc.id} ${topic.id} ask`),
               ),
+              ...remains
+                .filter((npc) =>
+                  npc.remains?.search?.effects.some((effect) =>
+                    effect.type === "grant-discovery"
+                      ? !state.discoveries.includes(effect.id)
+                      : !state.milestones.includes(effect.id),
+                  ),
+                )
+                .map((npc) => `search ${npc.id}`),
               ...exits.map((exit) => `move ${exit.id}`),
+              ...(casualtiesEnabled
+                ? npcs
+                    .filter((npc) => npc.combat !== undefined)
+                    .map((npc) => `attack ${npc.id}`)
+                : []),
               ...visibleItems(state).map((item) => `take ${item.id}`),
               ...carriedItems(state).map((item) => `use ${item.id}`),
             ]
@@ -473,21 +514,23 @@ export function createChapelCluesRuntime(
     target?: string,
   ): ClueEvent => event(operation, text, target);
   const renderAttack = (attack: AttackResolvedEvent<string>) =>
-    `${attack.attackerId === "fighter" ? "Fighter" : (monsterDefinition(attack.attackerId)?.name ?? attack.attackerId)} attacks ${attack.targetId === "fighter" ? "Fighter" : (monsterDefinition(attack.targetId)?.name ?? attack.targetId)}. Attack roll: d20 ${attack.attackRoll} + modifier ${attack.attackBonus} = ${attack.attackTotal} vs AC ${attack.targetArmorClass} — ${attack.outcome}. Damage: ${attack.damage === undefined ? "none (not rolled)" : attack.damage}. Remaining HP: ${attack.targetHp}/${attack.targetMaxHp}.`;
-  const monsterTurn = (
+    `${attack.attackerId === "fighter" ? "Fighter" : (npcById(attack.attackerId)?.name ?? monsterDefinition(attack.attackerId)?.name ?? attack.attackerId)} attacks ${attack.targetId === "fighter" ? "Fighter" : (npcById(attack.targetId)?.name ?? monsterDefinition(attack.targetId)?.name ?? attack.targetId)}. Attack roll: d20 ${attack.attackRoll} + modifier ${attack.attackBonus} = ${attack.attackTotal} vs AC ${attack.targetArmorClass} — ${attack.outcome}. Damage: ${attack.damage === undefined ? "none (not rolled)" : attack.damage}. Remaining HP: ${attack.targetHp}/${attack.targetMaxHp}.`;
+  const opponentTurn = (
     state: ClueState,
     opponentId: string,
     random: Pick<RandomSource, "roll">,
   ): { state: ClueState; events: ClueEvent[] } => {
-    const stats = monsterDefinition(opponentId)!;
+    const actor = npcById(opponentId);
+    const stats = actor?.combat?.stats ?? monsterDefinition(opponentId)!.stats;
+    const name = actor?.name ?? monsterDefinition(opponentId)!.name;
     const attack = resolveAttack(
       {
         attackerId: opponentId,
         targetId: "fighter",
-        attackBonus: stats.stats.attackBonus,
+        attackBonus: stats.attackBonus,
         targetArmorClass: definition.combatProfile!.armorClass,
         targetMaxHp: state.fighter.maxHp,
-        damage: stats.stats.damage,
+        damage: stats.damage,
       },
       state.fighter.hp,
       random,
@@ -504,7 +547,7 @@ export function createChapelCluesRuntime(
         },
       },
       events: [
-        combatEvent("turn-started", `Turn: ${stats.name}.`, opponentId),
+        combatEvent("turn-started", `Turn: ${name}.`, opponentId),
         attack.event,
         combatEvent(
           defeat ? "combat-ended" : "turn-started",
@@ -514,34 +557,30 @@ export function createChapelCluesRuntime(
       ],
     };
   };
-  const startEncounter = (
+  const startCombat = (
     state: ClueState,
+    opponentId: string,
     events: ClueEvent[],
     random?: Pick<RandomSource, "roll">,
   ): RuntimeResult => {
-    const encounter =
-      state.status === "playing" && state.combat === undefined
-        ? encounterAt(state)
-        : undefined;
-    if (encounter === undefined) {
-      return { state, events };
-    }
     if (random === undefined) {
       throw new Error("Combat requires a random source.");
     }
-    const stats = monsterDefinition(encounter.monsterId)!;
+    const actor = npcById(opponentId);
+    const stats = actor?.combat?.stats ?? monsterDefinition(opponentId)!.stats;
+    const name = actor?.name ?? monsterDefinition(opponentId)!.name;
     const initiative = resolveInitiative(
       {
         combatantId: "fighter",
         bonus: definition.combatProfile!.initiativeBonus,
       },
-      { combatantId: encounter.monsterId, bonus: stats.stats.initiativeBonus },
+      { combatantId: opponentId, bonus: stats.initiativeBonus },
       random,
     );
     let next: ClueState = {
       ...state,
       combat: {
-        opponentId: encounter.monsterId,
+        opponentId,
         initiative: Object.fromEntries(
           initiative.rolls.map((roll) => [roll.combatantId, roll]),
         ),
@@ -552,27 +591,51 @@ export function createChapelCluesRuntime(
     events.push(
       combatEvent(
         "combat-started",
-        `Combat begins against the ${stats.name}.`,
-        encounter.monsterId,
+        `Combat begins against ${actor === undefined ? `the ${name}` : name}.`,
+        opponentId,
       ),
     );
     for (const roll of initiative.rolls) {
       events.push(
         combatEvent(
           "initiative-rolled",
-          `Initiative — ${roll.combatantId === "fighter" ? "Fighter" : stats.name}: d20 roll ${roll.roll} + modifier ${roll.bonus} = ${roll.total}.`,
+          `Initiative — ${roll.combatantId === "fighter" ? "Fighter" : name}: d20 roll ${roll.roll} + modifier ${roll.bonus} = ${roll.total}.`,
           roll.combatantId,
         ),
       );
     }
-    if (initiative.turnOrder[0] === encounter.monsterId) {
-      const turn = monsterTurn(next, encounter.monsterId, random);
+    if (initiative.turnOrder[0] === opponentId) {
+      const turn = opponentTurn(next, opponentId, random);
       next = turn.state;
       events.push(...turn.events);
     } else {
       events.push(combatEvent("turn-started", "Turn: Fighter.", "fighter"));
+      if (actor !== undefined) {
+        const opening = handleAction(
+          next,
+          { type: "attack", target: opponentId },
+          random,
+        );
+        return {
+          state: stateOf(opening.state),
+          events: [...events, ...(opening.events ?? [])],
+        };
+      }
     }
     return { state: next, events };
+  };
+  const startEncounter = (
+    state: ClueState,
+    events: ClueEvent[],
+    random?: Pick<RandomSource, "roll">,
+  ): RuntimeResult => {
+    const encounter =
+      state.status === "playing" && state.combat === undefined
+        ? encounterAt(state)
+        : undefined;
+    return encounter === undefined
+      ? { state, events }
+      : startCombat(state, encounter.monsterId, events, random);
   };
   function handleAction(
     input: RuntimeState,
@@ -580,7 +643,7 @@ export function createChapelCluesRuntime(
     random?: Pick<RandomSource, "roll">,
   ): RuntimeResult {
     const state = stateOf(input);
-    const { features, exits, npcs } = visible(state);
+    const { features, exits, npcs, remains } = visible(state);
     if (
       ["move", "search", "talk", "take", "use", "attack"].includes(
         action.type,
@@ -726,7 +789,7 @@ export function createChapelCluesRuntime(
       ];
       const opponentId = activeOpponent(next);
       if (opponentId !== undefined) {
-        const turn = monsterTurn(next, opponentId, random);
+        const turn = opponentTurn(next, opponentId, random);
         return { state: turn.state, events: [...events, ...turn.events] };
       }
       return { state: next, events };
@@ -757,11 +820,18 @@ export function createChapelCluesRuntime(
             action.target!,
           ),
       );
+      const deceased = remains.find(
+        (entry) =>
+          matches(entry, action.target!) ||
+          normalizeAlias(action.target!) ===
+            `${normalizeAlias(entry.name)} remains`,
+      );
       if (
         feature === undefined &&
         item === undefined &&
         exit === undefined &&
-        opponent === undefined
+        opponent === undefined &&
+        deceased === undefined
       ) {
         return {
           state,
@@ -774,12 +844,14 @@ export function createChapelCluesRuntime(
           "inspect",
           item
             ? `${item.name}: ${item.description}`
-            : feature
-              ? `${feature.name}: ${currentText(state, feature.description, feature.descriptions)}`
-              : exit
-                ? `${exit.name}: An available exit.`
-                : `${monsterDefinition(opponent!.id)!.name}: ${monsterDefinition(opponent!.id)!.description} Condition: ${(state.monsters?.[opponent!.id]?.hp ?? 0) > 0 ? "living" : "defeated"}.`,
-          (item ?? feature ?? exit ?? opponent)!.id,
+            : deceased
+              ? `${deceased.name}'s remains: ${deceased.remains!.description}`
+              : feature
+                ? `${feature.name}: ${currentText(state, feature.description, feature.descriptions)}`
+                : exit
+                  ? `${exit.name}: An available exit.`
+                  : `${monsterDefinition(opponent!.id)!.name}: ${monsterDefinition(opponent!.id)!.description} Condition: ${(state.monsters?.[opponent!.id]?.hp ?? 0) > 0 ? "living" : "defeated"}.`,
+          (item ?? deceased ?? feature ?? exit ?? opponent)!.id,
         ),
       );
     }
@@ -813,15 +885,41 @@ export function createChapelCluesRuntime(
           rejection: { reason: "missing-argument", command: "attack" },
         };
       }
+      const targetActor =
+        casualtiesEnabled && activeOpponent(state) === undefined
+          ? npcs.find(
+              (entry) =>
+                entry.combat !== undefined && matches(entry, action.target!),
+            )
+          : undefined;
+      if (targetActor !== undefined) {
+        return startCombat(state, targetActor.id, [], random);
+      }
       const opponentId = activeOpponent(state);
       const placed = opponentId === undefined ? undefined : monster(opponentId);
+      const actor = opponentId === undefined ? undefined : npcById(opponentId);
       const stats =
-        opponentId === undefined ? undefined : monsterDefinition(opponentId);
+        actor?.combat?.stats ??
+        (opponentId === undefined
+          ? undefined
+          : monsterDefinition(opponentId)?.stats);
+      const maxHp =
+        actor?.combat?.maxHp ??
+        (opponentId === undefined
+          ? undefined
+          : monsterDefinition(opponentId)?.maxHp);
       if (
-        placed === undefined ||
         stats === undefined ||
+        maxHp === undefined ||
+        (placed === undefined && actor === undefined) ||
         !matches(
-          { id: placed.id, aliases: [...stats.aliases, stats.id] },
+          actor ?? {
+            id: placed!.id,
+            aliases: [
+              ...monsterDefinition(opponentId!)!.aliases,
+              monsterDefinition(opponentId!)!.id,
+            ],
+          },
           action.target,
         )
       ) {
@@ -838,22 +936,52 @@ export function createChapelCluesRuntime(
           attackerId: "fighter",
           targetId: opponentId!,
           attackBonus: definition.combatProfile!.attackBonus,
-          targetArmorClass: stats.stats.armorClass,
-          targetMaxHp: stats.maxHp,
+          targetArmorClass: stats.armorClass,
+          targetMaxHp: maxHp,
           damage: definition.combatProfile!.damage,
         },
-        state.monsters![opponentId!]!.hp,
+        actor === undefined
+          ? state.monsters![opponentId!]!.hp
+          : state.npcHealth![opponentId!]!.hp,
         random,
       );
       let next: ClueState = {
         ...state,
-        monsters: {
-          ...state.monsters,
-          [opponentId!]: { hp: attack.targetHp, maxHp: stats.maxHp },
-        },
+        ...(actor === undefined
+          ? {
+              monsters: {
+                ...state.monsters,
+                [opponentId!]: { hp: attack.targetHp, maxHp },
+              },
+            }
+          : {
+              npcHealth: {
+                ...state.npcHealth,
+                [opponentId!]: { hp: attack.targetHp, maxHp },
+              },
+            }),
       };
       const events: ClueEvent[] = [attack.event];
       if (attack.targetHp === 0) {
+        if (actor !== undefined) {
+          const cleared = { ...next };
+          delete cleared.combat;
+          next = {
+            ...cleared,
+            npcDeathLocations: {
+              ...state.npcDeathLocations,
+              [actor.id]: state.locationId,
+            },
+          };
+          events.push(
+            combatEvent(
+              "combat-ended",
+              `${actor.name} dies at ${room(state.locationId).name}.`,
+              actor.id,
+            ),
+          );
+          return { state: next, events };
+        }
         const encounter = definition.encounters?.find(
           (entry) => entry.monsterId === opponentId,
         );
@@ -882,12 +1010,12 @@ export function createChapelCluesRuntime(
         events.push(
           combatEvent(
             "combat-ended",
-            `Combat victory! The ${stats.name} is defeated.`,
+            `Combat victory! The ${monsterDefinition(opponentId!)!.name} is defeated.`,
             opponentId,
           ),
         );
       } else {
-        const turn = monsterTurn(next, opponentId!, random);
+        const turn = opponentTurn(next, opponentId!, random);
         next = turn.state;
         events.push(...turn.events);
       }
@@ -901,20 +1029,60 @@ export function createChapelCluesRuntime(
         };
       }
       const feature = features.find((entry) => matches(entry, action.target!));
-      if (state.status !== "playing" || feature === undefined) {
+      const deceased = remains.find(
+        (entry) =>
+          entry.remains?.search !== undefined &&
+          (matches(entry, action.target!) ||
+            normalizeAlias(action.target!) ===
+              `${normalizeAlias(entry.name)} remains`),
+      );
+      if (
+        state.status !== "playing" ||
+        (feature === undefined && deceased === undefined)
+      ) {
         return {
           state,
           rejection: { reason: "invisible-target", target: action.target },
         };
       }
-      const branch = nextSearch(state, feature.id);
+      if (deceased !== undefined) {
+        const search = deceased.remains!.search!;
+        const discoveries = [...state.discoveries];
+        const milestones = [...state.milestones];
+        const discoveryLocations = { ...state.discoveryLocations };
+        let changed = false;
+        for (const effect of search.effects) {
+          const list =
+            effect.type === "grant-discovery" ? discoveries : milestones;
+          if (!list.includes(effect.id)) {
+            list.push(effect.id);
+            changed = true;
+            if (effect.type === "grant-discovery") {
+              discoveryLocations[effect.id] = state.locationId;
+            }
+          }
+        }
+        return accepted(
+          changed
+            ? { ...state, discoveries, milestones, discoveryLocations }
+            : state,
+          event(
+            "search",
+            changed
+              ? search.text
+              : `You search ${deceased.name}'s remains, but find nothing new.`,
+            deceased.id,
+          ),
+        );
+      }
+      const branch = nextSearch(state, feature!.id);
       if (branch === undefined || !hasNewEffect(state, branch)) {
         return accepted(
           state,
           event(
             "search",
-            `You search the ${feature.name}, but find nothing new.`,
-            feature.id,
+            `You search the ${feature!.name}, but find nothing new.`,
+            feature!.id,
           ),
         );
       }
@@ -938,7 +1106,7 @@ export function createChapelCluesRuntime(
           milestones,
           ...(hasRelocation ? { discoveryLocations } : {}),
         },
-        [event("search", branch.text, feature.id)],
+        [event("search", branch.text, feature!.id)],
         random,
       );
     }
@@ -1124,8 +1292,15 @@ export function createChapelCluesRuntime(
     },
   });
   function tools(state: ClueState): readonly GameToolDefinition[] {
-    const { features, exits, npcs } = visible(state);
+    const { features, exits, npcs, remains } = visible(state);
     const searchable = searchableFeatures(state);
+    const searchableRemains = remains.filter((npc) =>
+      npc.remains?.search?.effects.some((effect) =>
+        effect.type === "grant-discovery"
+          ? !state.discoveries.includes(effect.id)
+          : !state.milestones.includes(effect.id),
+      ),
+    );
     const inCombat = activeOpponent(state) !== undefined;
     const nearbyMonsters = visibleMonsters(state);
     const nearbyItems = visibleItems(state);
@@ -1137,25 +1312,32 @@ export function createChapelCluesRuntime(
       ...(features.length +
       exits.length +
       nearbyMonsters.length +
-      nearbyItems.length
+      nearbyItems.length +
+      remains.length
         ? [
             tool(
               "inspect",
               "Inspect a visible target.",
               "target",
-              [...features, ...exits, ...nearbyMonsters, ...nearbyItems].map(
-                ({ id }) => id,
-              ),
+              [
+                ...features,
+                ...exits,
+                ...nearbyMonsters,
+                ...nearbyItems,
+                ...remains,
+              ].map(({ id }) => id),
             ),
           ]
         : []),
-      ...(state.status === "playing" && !inCombat && searchable.length
+      ...(state.status === "playing" &&
+      !inCombat &&
+      searchable.length + searchableRemains.length
         ? [
             tool(
               "search",
               "Search a visible physical feature for evidence.",
               "target",
-              searchable.map(({ id }) => id),
+              [...searchable, ...searchableRemains].map(({ id }) => id),
             ),
           ]
         : []),
@@ -1237,33 +1419,52 @@ export function createChapelCluesRuntime(
               activeOpponent(state)!,
             ]),
           ]
-        : []),
+        : casualtiesEnabled &&
+            state.status === "playing" &&
+            npcs.some((npc) => npc.combat !== undefined)
+          ? [
+              tool(
+                "attack",
+                "Attack a visible living character.",
+                "opponent_id",
+                npcs
+                  .filter((npc) => npc.combat !== undefined)
+                  .map(({ id }) => id),
+              ),
+            ]
+          : []),
     ];
   }
-  const hasRelocation = definition.rulesVersion === "chapel-clues-rules-v2";
-  const version = hasRelocation
+  const hasRelocation = definition.rulesVersion !== "chapel-clues-rules-v1";
+  const version = casualtiesEnabled
     ? {
         engineVersion: CLUES_ENGINE_VERSION,
         promptVersion: CLUES_PROMPT_VERSION,
         toolSchemaVersion: CLUES_TOOL_VERSION,
       }
-    : definition.items !== undefined
+    : hasRelocation
       ? {
-          engineVersion: POTION_CLUES_ENGINE_VERSION,
-          promptVersion: "chapel-clues-dm-v4",
-          toolSchemaVersion: "chapel-clues-tools-v4",
+          engineVersion: RESCUE_CLUES_ENGINE_VERSION,
+          promptVersion: "chapel-clues-dm-v5",
+          toolSchemaVersion: "chapel-clues-tools-v5",
         }
-      : combatEnabled
+      : definition.items !== undefined
         ? {
-            engineVersion: COMBAT_CLUES_ENGINE_VERSION,
-            promptVersion: "chapel-clues-dm-v3",
-            toolSchemaVersion: "chapel-clues-tools-v3",
+            engineVersion: POTION_CLUES_ENGINE_VERSION,
+            promptVersion: "chapel-clues-dm-v4",
+            toolSchemaVersion: "chapel-clues-tools-v4",
           }
-        : {
-            engineVersion: LEGACY_CLUES_ENGINE_VERSION,
-            promptVersion: "chapel-clues-dm-v2",
-            toolSchemaVersion: "chapel-clues-tools-v2",
-          };
+        : combatEnabled
+          ? {
+              engineVersion: COMBAT_CLUES_ENGINE_VERSION,
+              promptVersion: "chapel-clues-dm-v3",
+              toolSchemaVersion: "chapel-clues-tools-v3",
+            }
+          : {
+              engineVersion: LEGACY_CLUES_ENGINE_VERSION,
+              promptVersion: "chapel-clues-dm-v2",
+              toolSchemaVersion: "chapel-clues-tools-v2",
+            };
   return Object.freeze({
     id: definition.id,
     version: definition.contentVersion,
@@ -1296,6 +1497,19 @@ export function createChapelCluesRuntime(
             npcLocations: Object.fromEntries(
               (definition.npcs ?? []).map((npc) => [npc.id, npc.locationId]),
             ),
+          }
+        : {}),
+      ...(casualtiesEnabled
+        ? {
+            npcHealth: Object.fromEntries(
+              (definition.npcs ?? [])
+                .filter((npc) => npc.combat !== undefined)
+                .map((npc) => [
+                  npc.id,
+                  { hp: npc.combat!.hp, maxHp: npc.combat!.maxHp },
+                ]),
+            ),
+            npcDeathLocations: {},
           }
         : {}),
       ...(definition.items === undefined

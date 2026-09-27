@@ -391,6 +391,22 @@ test("previous chapel format-4 engine traces remain replayable", () =>
     const previous = structuredClone(document);
     previous.contentVersion = "2";
     previous.rulesVersion = "chapel-clues-rules-v1";
+    previous.quest.milestones = previous.quest.milestones.filter(
+      (id) => id !== "tavi-death-confirmed",
+    );
+    previous.discoveries = previous.discoveries.filter(
+      (entry) => entry.id !== "tavi-remains",
+    );
+    for (const npc of previous.npcs) {
+      delete npc.combat;
+      delete npc.remains;
+      for (const topic of npc.topics) {
+        topic.replies = topic.replies.filter(
+          (reply) =>
+            !reply.when.some((condition) => condition.type === "actor-dead"),
+        );
+      }
+    }
     for (const location of previous.locations) {
       delete location.descriptions;
     }

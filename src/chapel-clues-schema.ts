@@ -9,7 +9,10 @@ const condition: Schema = {
   additionalProperties: false,
   required: ["type", "id"],
   properties: {
-    type: { type: "string", enum: ["discovery-known", "milestone-recorded"] },
+    type: {
+      type: "string",
+      enum: ["discovery-known", "milestone-recorded", "actor-dead"],
+    },
     id,
   },
 };
@@ -88,7 +91,11 @@ export const CHAPEL_CLUES_SCHEMA = {
     schemaVersion: { type: "integer", const: 3 },
     rulesVersion: {
       type: "string",
-      enum: ["chapel-clues-rules-v1", "chapel-clues-rules-v2"],
+      enum: [
+        "chapel-clues-rules-v1",
+        "chapel-clues-rules-v2",
+        "chapel-clues-rules-v3",
+      ],
     },
     connections: list(object({ id, from: id, to: id, when: list(condition) })),
     features: {
@@ -136,6 +143,18 @@ export const CHAPEL_CLUES_SCHEMA = {
         believes: list(id),
         wants: list(prose),
         knowledgeLimits: list(prose),
+        combat: object({
+          hp: { type: "integer", minimum: 1, maximum: 10000 },
+          maxHp: { type: "integer", minimum: 1, maximum: 10000 },
+          stats: combatStats,
+        }),
+        remains: {
+          ...object({
+            description: prose,
+            search: object({ text: prose, effects: list(effect) }),
+          }),
+          required: ["description"],
+        },
         topics: list(
           object({
             id,

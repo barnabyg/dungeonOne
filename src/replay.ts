@@ -8,6 +8,7 @@ import {
   COMBAT_CLUES_ENGINE_VERSION,
   LEGACY_CLUES_ENGINE_VERSION,
   POTION_CLUES_ENGINE_VERSION,
+  RESCUE_CLUES_ENGINE_VERSION,
 } from "./chapel-clues-runtime.js";
 import {
   createExplorationRuntime,
@@ -1354,6 +1355,7 @@ function replayFormat4(trace: JsonObject): void {
     trace.engineVersion !== DATA_ENGINE_VERSION &&
     trace.engineVersion !== SIGNET_ENGINE_VERSION &&
     trace.engineVersion !== CLUES_ENGINE_VERSION &&
+    trace.engineVersion !== RESCUE_CLUES_ENGINE_VERSION &&
     trace.engineVersion !== COMBAT_CLUES_ENGINE_VERSION &&
     trace.engineVersion !== POTION_CLUES_ENGINE_VERSION &&
     trace.engineVersion !== LEGACY_CLUES_ENGINE_VERSION

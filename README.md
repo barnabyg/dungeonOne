@@ -112,7 +112,7 @@ clocks, and new rule systems are outside this profile.
 ### External chapel clues
 
 [The chapel clues document](adventures/chapel-clues.json) uses
-[schema 3](schema/adventure-v3.schema.json) and `chapel-clues-rules-v1`.
+[schema 3](schema/adventure-v3.schema.json) and `chapel-clues-rules-v3`.
 It provides the inn, ferry landing, chapel path, ruined chapel, and crypt as directed
 connections. Searching the public notice or damaged repair record grants a
 sourced observation and quest milestone once, with no roll or NPC interaction.
@@ -134,8 +134,15 @@ encounter. `attack skeleton` uses seeded initiative, attack, and damage rolls.
 While the guardian lives, combat blocks movement, searching, and conversation.
 Defeating it records `guardian-cleared` once, reveals the ledger and Tavi, and
 leaves both discoveries to their separate search and conversation actions.
-Player defeat ends the session. The external chapel does not yet rescue Tavi or
-resolve the quest. The built-in chapel selector retains its existing behavior.
+Player defeat ends the session. Searching the ledger records durable evidence;
+`talk tavi rescue ask` moves a living Tavi to the inn. Mara, Oren and visible
+Tavi have authored combat profiles. `attack <person>` starts deterministic
+combat, with HP and death location recorded in the state. Dead speakers cannot
+talk or be rescued. Their remains stay visible, and searching Tavi's remains
+confirms their fate in the sourced journal; inspection is read-only. The public
+notice, repair record and ledger remain usable after casualties. The external
+chapel does not yet resolve the quest. The built-in chapel selector retains its
+existing behavior.
 
 Content version 2 places a healing potion on the chapel path. `take potion`
 collects it once; `use potion` rolls the authored 2d4+2 healing, caps HP at the
@@ -165,7 +172,7 @@ about the crypt after the victory. Seed `74` produces a fighter defeat if you
 keep attacking. The offered AI `attack` tool takes `opponent_id`.
 
 Schema 3 uses stable IDs and bounded aliases. Each `when` list is a conjunction
-of typed `discovery-known` or `milestone-recorded` predicates evaluated before
+of typed `discovery-known`, `milestone-recorded` or `actor-dead` predicates evaluated before
 the action. Searches are considered in document order and apply their finite
 `grant-discovery` and `record-milestone` effects together; duplicate effects,
 unknown references, and unreachable prerequisite cycles fail validation. A

@@ -84,7 +84,7 @@ export type ExplorationDefinition = Readonly<{
   features: readonly FeatureDefinition[];
 }>;
 export type ClueCondition = Readonly<{
-  type: "discovery-known" | "milestone-recorded";
+  type: "discovery-known" | "milestone-recorded" | "actor-dead";
   id: string;
 }>;
 export type ClueEffect = Readonly<{
@@ -129,12 +129,18 @@ export type DialogueNpc = Readonly<{
   wants: readonly string[];
   knowledgeLimits: readonly string[];
   topics: readonly DialogueTopic[];
+  combat?: Readonly<{ hp: number; maxHp: number; stats: CombatStats }>;
+  remains?: Readonly<{
+    description: string;
+    search?: Readonly<{ text: string; effects: readonly ClueEffect[] }>;
+  }>;
 }>;
 export type ChapelCluesDefinition = Readonly<{
   schemaVersion: 3;
   id: string;
   contentVersion: string;
-  rulesVersion: "chapel-clues-rules-v1" | "chapel-clues-rules-v2";
+  rulesVersion:
+    "chapel-clues-rules-v1" | "chapel-clues-rules-v2" | "chapel-clues-rules-v3";
   title: string;
   introduction: string;
   objective: string;
@@ -747,6 +753,19 @@ function validateClueReferences(
   const error: DiagnosticError = (code, path, entity, message) =>
     diagnostics.push({ severity: "error", code, path, entity, message });
   if (
+    snapshot.rulesVersion !== "chapel-clues-rules-v3" &&
+    (snapshot.npcs ?? []).some(
+      (npc) => npc.combat !== undefined || npc.remains !== undefined,
+    )
+  ) {
+    error(
+      "unsupported-rules",
+      "/rulesVersion",
+      snapshot.id,
+      "Actor casualties require chapel-clues-rules-v3.",
+    );
+  }
+  if (
     snapshot.rulesVersion === "chapel-clues-rules-v1" &&
     (snapshot.locations.some((entry) => entry.descriptions !== undefined) ||
       snapshot.features.some((entry) => entry.descriptions !== undefined) ||
@@ -799,6 +818,18 @@ function validateClueReferences(
   const milestones = new Set(snapshot.quest.milestones);
   const facts = new Set((snapshot.facts ?? []).map(({ id }) => id));
   const npcs = new Set((snapshot.npcs ?? []).map(({ id }) => id));
+  if (snapshot.rulesVersion === "chapel-clues-rules-v3") {
+    (snapshot.monsters ?? []).forEach((monster, i) => {
+      if (npcs.has(monster.id)) {
+        error(
+          "duplicate-id",
+          `/monsters/${i}/id`,
+          monster.id,
+          "NPC and monster combatant IDs must differ.",
+        );
+      }
+    });
+  }
   const challenges = new Set(
     (snapshot.socialChallenges ?? []).map(({ id }) => id),
   );
@@ -826,15 +857,41 @@ function validateClueReferences(
     list: readonly ClueCondition[],
     path: string,
     entity: string,
-  ) =>
-    list.forEach((entry, i) =>
+  ) => {
+    list.forEach((entry, i) => {
       ref(
-        entry.type === "discovery-known" ? discoveries : milestones,
+        entry.type === "discovery-known"
+          ? discoveries
+          : entry.type === "actor-dead"
+            ? npcs
+            : milestones,
         entry.id,
         `${path}/${i}/id`,
         entity,
-      ),
-    );
+      );
+      if (entry.type === "actor-dead") {
+        if (snapshot.rulesVersion !== "chapel-clues-rules-v3") {
+          error(
+            "unsupported-rules",
+            `${path}/${i}/type`,
+            entity,
+            "Actor death conditions require chapel-clues-rules-v3.",
+          );
+        }
+        if (
+          npcs.has(entry.id) &&
+          !snapshot.npcs?.find((npc) => npc.id === entry.id)?.combat
+        ) {
+          error(
+            "invalid-condition",
+            `${path}/${i}/id`,
+            entity,
+            "Actor death condition requires a combat profile.",
+          );
+        }
+      }
+    });
+  };
   const effectReference = (
     effect: ClueEffect,
     path: string,
@@ -1121,6 +1178,12 @@ function validateClueReferences(
         ),
       ),
     ),
+    ...(snapshot.npcs ?? []).flatMap(
+      (npc) =>
+        npc.remains?.search?.effects
+          .filter((effect) => effect.type === "record-milestone")
+          .map((effect) => effect.id) ?? [],
+    ),
   ]);
   snapshot.quest.milestones.forEach((id, i) => {
     if (!producers.has(id)) {
@@ -1172,6 +1235,50 @@ function validateClueReferences(
     }
   });
   (snapshot.npcs ?? []).forEach((npc, i) => {
+    if (npc.combat !== undefined && snapshot.combatProfile === undefined) {
+      error(
+        "missing-combat-profile",
+        `/npcs/${i}/combat`,
+        npc.id,
+        "Actor combat requires a player combat profile.",
+      );
+    }
+    if (npc.combat !== undefined && npc.combat.hp > npc.combat.maxHp) {
+      error(
+        "invalid-placement",
+        `/npcs/${i}/combat/hp`,
+        npc.id,
+        "Actor HP exceeds its maximum.",
+      );
+    }
+    if (npc.remains !== undefined && npc.combat === undefined) {
+      error(
+        "invalid-placement",
+        `/npcs/${i}/remains`,
+        npc.id,
+        "Remains require an actor combat profile.",
+      );
+    }
+    npc.remains?.search?.effects.forEach((effect, n) => {
+      effectReference(
+        effect,
+        `/npcs/${i}/remains/search/effects/${n}`,
+        npc.id,
+        false,
+      );
+      if (
+        effect.type === "grant-discovery" &&
+        snapshot.discoveries.find((entry) => entry.id === effect.id)
+          ?.sourceNpcId !== npc.id
+      ) {
+        error(
+          "invalid-source",
+          `/npcs/${i}/remains/search/effects/${n}`,
+          npc.id,
+          "Remains discovery must be sourced to this actor.",
+        );
+      }
+    });
     conditions(npc.when ?? [], `/npcs/${i}/when`, npc.id);
     ref(
       new Set(snapshot.locations.map(({ id }) => id)),
