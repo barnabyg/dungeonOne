@@ -1802,12 +1802,12 @@ export function createChapelCluesRuntime(
             matches(npc, rejection.target),
           );
           if (speaker !== undefined) {
-            const topics = speaker.topics.filter((topic) =>
-              eligible(state, topic.when),
-            );
-            return topics.length === 0
+            const commands = speaker.topics
+              .filter((topic) => eligible(state, topic.when))
+              .map((topic) => `talk ${speaker.id} ${topic.id} ask`);
+            return commands.length === 0
               ? `${speaker.name} has no available conversation topics. ${commandHints(state)}`
-              : `To talk to ${speaker.name}, try: ${topics.map((topic) => `talk ${speaker.id} ${topic.id} ask`).join("; ")}.`;
+              : `No action was taken with ${speaker.name}. Available conversation commands: ${commands.join("; ")}.`;
           }
         }
         return `Action unavailable: ${result.rejection.reason}.${state.status === "playing" ? ` ${commandHints(state)}` : ""}`;

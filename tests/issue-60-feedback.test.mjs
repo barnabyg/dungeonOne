@@ -51,8 +51,11 @@ test("talking to a person without a topic explains that person's options", () =>
   const mira = play("rescue", "talk Mira\nquit\n");
   assert.match(
     mira,
-    /To talk to Mira Vale, try: talk mira-vale missing-courier ask/iu,
+    /No action was taken with Mira Vale\. Available conversation commands: talk mira-vale missing-courier ask/iu,
   );
+
+  const search = play("rescue", "search Mira\nquit\n");
+  assert.match(search, /No action was taken with Mira Vale/iu);
 
   const orin = play(
     "negotiation",
