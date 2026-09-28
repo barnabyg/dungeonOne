@@ -70,7 +70,26 @@
       "knowledgeLimits": [
         "He has not gone near the wheelhouse since the flood."
       ],
-      "topics": []
+      "topics": [
+        {
+          "id": "mill-road",
+          "name": "The mill road",
+          "aliases": ["mill", "tracks"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Erren: I have kept away from the wheelhouse since the flood. The tracks in this yard are fresh enough to follow.",
+              "attitude": "concerned",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "tovin-reed",
@@ -82,7 +101,35 @@
       "locationId": "mill-loft",
       "aliases": ["tovin", "courier"],
       "knowledgeLimits": ["He cannot see what lies outside the loft."],
-      "topics": []
+      "topics": [
+        {
+          "id": "dispatch",
+          "name": "The dispatch",
+          "aliases": ["courier", "help"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [{ "type": "milestone-recorded", "id": "courier-freed" }],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Tovin: I can walk now. The sealed dispatch still needs a decision.",
+              "attitude": "relieved",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Tovin: I am behind the jammed hatch. Please get me out before the water rises.",
+              "attitude": "urgent",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "sister-alda",
@@ -94,7 +141,26 @@
       "locationId": "chapel-step",
       "aliases": ["alda", "sister alda"],
       "knowledgeLimits": ["She knows nothing of the mill interior."],
-      "topics": []
+      "topics": [
+        {
+          "id": "village",
+          "name": "The village",
+          "aliases": ["panic", "mill"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Alda: I can keep the village calm, but I have not seen inside the mill. Bring back what you learn.",
+              "attitude": "steady",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
     }
   ],
   "id": "floodwheel-rescue",
@@ -177,7 +243,7 @@
       "id": "mira-saw-smoke"
     }
   ],
-  "contentVersion": "2",
+  "contentVersion": "3",
   "endings": {
     "fates": [
       {

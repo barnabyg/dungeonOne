@@ -12,7 +12,26 @@
       "knowledgeLimits": [
         "Elin did not go up to the lighthouse during the storm."
       ],
-      "topics": []
+      "topics": [
+        {
+          "id": "reef-safety",
+          "name": "Reef safety",
+          "aliases": ["reef", "boats"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Elin: Keep the boats off the broken reef. Ask the keeper about the lighthouse, and check the tide marks before anyone sails.",
+              "attitude": "cautious",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "keeper-mara",
@@ -96,7 +115,26 @@
       "knowledgeLimits": [
         "Oren arrived after dawn and did not see the surveyor."
       ],
-      "topics": []
+      "topics": [
+        {
+          "id": "cove",
+          "name": "The eastern cove",
+          "aliases": ["nets", "surveyor"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Oren: I arrived after dawn and did not see the surveyor. The storm scattered my nets across the cove.",
+              "attitude": "helpful",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "wright-sella",
@@ -110,7 +148,26 @@
       "knowledgeLimits": [
         "Sella has not crossed the flooded path to the cove."
       ],
-      "topics": []
+      "topics": [
+        {
+          "id": "storm-repairs",
+          "name": "Storm repairs",
+          "aliases": ["repairs", "brass"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Sella: The flooded path kept me in the shed. I can speak for the wreckage here, but not for what happened at the cove.",
+              "attitude": "practical",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
     }
   ],
   "id": "reefward-lighthouse",
@@ -182,7 +239,7 @@
       "id": "mara-saw-signal"
     }
   ],
-  "contentVersion": "2",
+  "contentVersion": "3",
   "endings": {
     "fates": [
       {

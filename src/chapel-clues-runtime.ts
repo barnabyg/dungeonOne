@@ -1790,7 +1790,7 @@ export function createChapelCluesRuntime(
     },
     handleAction,
     renderIntroduction: () =>
-      `${definition.title}\n${definition.introduction}\nObjective: ${definition.objective}\nCommands: look, inspect <target>, search <${casualtiesEnabled ? "feature or remains" : "feature"}>, talk <person> <topic> <approach>, move <exit>, ${definition.items === undefined ? "" : "take <item>, use <item>, "}${combatEnabled ? `attack <${casualtiesEnabled ? "monster or person" : "monster"}>, ` : ""}${endingsEnabled ? "resolve <choice>, " : ""}journal, status, inventory, help, quit. Type look for copyable actions. Clues go in the journal${definition.items === undefined ? "; this adventure has no portable inventory items" : "; portable items go in inventory"}.`,
+      `${definition.title}\n${definition.introduction}\nObjective: ${definition.objective}\nCommands: look, inspect <target>, search <${casualtiesEnabled ? "feature or remains" : "feature"}>, talk <person> <topic> <approach>, move <exit>, ${definition.items === undefined ? "" : "take <item>, use <item>, "}${combatEnabled ? `attack <${casualtiesEnabled ? "monster or person" : "monster"}>, ` : ""}${endingsEnabled ? "resolve <choice>, " : ""}journal, status, inventory, help, quit. Type look for copyable actions. Type talk <person> to see conversation commands. Clues go in the journal${definition.items === undefined ? "; this adventure has no portable inventory items" : "; portable items go in inventory"}.`,
     renderStateSummary: (input) =>
       `HP: ${stateOf(input).fighter.hp}/${stateOf(input).fighter.maxHp}.`,
     renderResult(result): string {

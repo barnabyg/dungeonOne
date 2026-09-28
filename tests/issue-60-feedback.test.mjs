@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
-function play(sample, input) {
+function play(sample, input, extraArgs = []) {
   const result = spawnSync(
     process.execPath,
     [
@@ -11,6 +14,7 @@ function play(sample, input) {
       `docs/acceptance/issue-60-samples/${sample}.json`,
       "--seed",
       "0",
+      ...extraArgs,
     ],
     { input, encoding: "utf8", env: { ...process.env, OPENAI_API_KEY: "" } },
   );
@@ -20,6 +24,7 @@ function play(sample, input) {
 
 test("a first look offers copyable actions, including conversation", () => {
   const output = play("rescue", "look\n");
+  assert.match(output, /Type talk <person> to see conversation commands/iu);
   assert.match(output, /Try:.*talk mira-vale missing-courier ask/isu);
 });
 
@@ -47,7 +52,7 @@ test("an unsupported phrase points to the current conversation command", () => {
   );
 });
 
-test("talking to a person without a topic explains that person's options", () => {
+test("talking to a person without a topic lists that person's options", () => {
   const mira = play("rescue", "talk Mira\nquit\n");
   assert.match(
     mira,
@@ -56,12 +61,45 @@ test("talking to a person without a topic explains that person's options", () =>
 
   const search = play("rescue", "search Mira\nquit\n");
   assert.match(search, /No action was taken with Mira Vale/iu);
+});
 
-  const orin = play(
-    "negotiation",
-    "move reed ferry\nmove old bell tower\nattack tower-kite\nattack tower-kite\ntalk Orin\nquit\n",
-  );
-  assert.match(orin, /Orin Coil has no available conversation topics/iu);
+test("every person presented in the player samples has a conversation topic", () => {
+  for (const sample of ["investigation", "rescue", "negotiation"]) {
+    const adventure = JSON.parse(
+      readFileSync(`docs/acceptance/issue-60-samples/${sample}.json`, "utf8"),
+    );
+    for (const npc of adventure.npcs) {
+      assert.ok(npc.topics.length > 0, `${sample}: ${npc.name}`);
+    }
+  }
+});
+
+test("a short talk request leads to an authored Orin conversation", () => {
+  const directory = mkdtempSync(join(tmpdir(), "issue-60-talk-"));
+  try {
+    const trace = join(directory, "orin.json");
+    const output = play(
+      "negotiation",
+      "move reed ferry\nmove old bell tower\nattack tower-kite\nattack tower-kite\ntalk Orin\ntalk hermit tower ask\nquit\n",
+      ["--trace", trace],
+    );
+    assert.match(
+      output,
+      /Available conversation commands: talk hermit tower ask/iu,
+    );
+    assert.match(output, /Orin: /u);
+    const replay = spawnSync(
+      process.execPath,
+      ["dist/cli.js", "--replay", trace],
+      {
+        encoding: "utf8",
+        env: { ...process.env, OPENAI_API_KEY: "" },
+      },
+    );
+    assert.equal(replay.status, 0, replay.stderr);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test("a collect request points to the current evidence command", () => {

@@ -73,7 +73,26 @@
       "locationId": "brackenford-square",
       "aliases": ["tovin", "warden", "warden tovin"],
       "knowledgeLimits": ["Tovin only heard the accusation secondhand."],
-      "topics": []
+      "topics": [
+        {
+          "id": "missing-bell",
+          "name": "The missing bell",
+          "aliases": ["bell", "accusation"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Tovin: The bell is missing and tempers are rising. Bring me evidence before I accuse anyone.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "ferrymaker",
@@ -87,7 +106,26 @@
       "knowledgeLimits": [
         "Mira works by the water and does not enter either shrine."
       ],
-      "topics": []
+      "topics": [
+        {
+          "id": "ferry",
+          "name": "The ferry landing",
+          "aliases": ["landing", "rope"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Mira: I keep the ferry ropes sound. There is blue clay and a snapped length of rope on the landing if you want to examine them.",
+              "attitude": "helpful",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "hermit",
@@ -99,7 +137,26 @@
       "locationId": "old-bell-tower",
       "aliases": ["orin", "hermit", "orin coil"],
       "knowledgeLimits": ["Orin will not discuss village politics."],
-      "topics": []
+      "topics": [
+        {
+          "id": "tower",
+          "name": "The old bell tower",
+          "aliases": ["nest", "repairs"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Orin: I keep to the tower repairs. I will not settle village politics for you. The nest above us is yours to examine.",
+              "attitude": "reserved",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
     }
   ],
   "id": "marsh-bell-dispute",
@@ -167,7 +224,7 @@
       "id": "warden-rumor"
     }
   ],
-  "contentVersion": "2",
+  "contentVersion": "3",
   "endings": {
     "fates": [
       {
