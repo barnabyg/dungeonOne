@@ -219,6 +219,76 @@ function checkNonMutations(
   );
 }
 
+function physicalEvidenceRequired(
+  runtime: ReturnType<typeof createDataRuntime>,
+  snapshot: ChapelCluesDefinition,
+  witness: RouteWitness,
+): boolean {
+  const random = createSeededRandom(witness.seed);
+  let state = runtime.createSession() as ClueState;
+  let original = state;
+  let failed = false;
+  let omitted = false;
+  for (const step of witness.steps) {
+    const gainedEvidence =
+      step.action.name === "search" &&
+      failed &&
+      (step.state.discoveries.length > original.discoveries.length ||
+        step.state.milestones.length > original.milestones.length);
+    original = step.state;
+    if (gainedEvidence) {
+      omitted = true;
+      for (const draw of step.draws) {
+        random.roll(draw.sides);
+      }
+      continue;
+    }
+    const args = JSON.parse(step.action.argumentsJson) as Record<
+      string,
+      string
+    >;
+    const intent =
+      step.action.name === "resolve_quest"
+        ? `resolve ${snapshot.endings?.choices.find((choice) => choice.id === args.resolutionId)?.label ?? ""}`
+        : undefined;
+    let result;
+    const actualDraws: Draw[] = [];
+    try {
+      result = runtime.dispatchGameTool(
+        state,
+        step.action,
+        {
+          roll(sides) {
+            const value = random.roll(sides);
+            actualDraws.push({ sides, value });
+            return value;
+          },
+        },
+        intent,
+      );
+    } catch {
+      return false;
+    }
+    if (JSON.stringify(actualDraws) !== JSON.stringify(step.draws)) {
+      return false;
+    }
+    if (!result.modelOutput.ok) {
+      continue;
+    }
+    if (
+      result.engineResult !== undefined &&
+      "events" in result.engineResult &&
+      result.engineResult.events.some(
+        (event) => event.type === "clue" && event.check?.result === "failure",
+      )
+    ) {
+      failed = true;
+    }
+    state = result.state as ClueState;
+  }
+  return omitted && state.status !== "victory";
+}
+
 /** Search only actions offered by the ordinary runtime and commit them through its public tool dispatcher. */
 export function proveGenerationRoutes(
   adventure: ValidatedAdventure,
@@ -321,7 +391,8 @@ export function proveGenerationRoutes(
           !node.socialSuccess &&
           node.physicalEvidence &&
           !node.endingOfferedBeforeEvidence &&
-          !node.socialEffectsBeforeEvidence
+          !node.socialEffectsBeforeEvidence &&
+          physicalEvidenceRequired(runtime, snapshot, witness)
         ) {
           physicalAfterFailure ??= witness;
         }

@@ -67,7 +67,7 @@ test("both endings and a combat gated discovery have replayable public action wi
   }
 });
 
-test("a failed social check has a physical search route to an ending", () => {
+function socialCandidate() {
   const document = candidate();
   document.quest.milestones.push("porter-account");
   document.discoveries.push({
@@ -151,7 +151,11 @@ test("a failed social check has a physical search route to an ending", () => {
       ],
     },
   ];
-  const { result } = routes(document);
+  return document;
+}
+
+test("a failed social check has a physical search route to an ending", () => {
+  const { result } = routes(socialCandidate());
   assert.equal(result.ok, true, JSON.stringify(result.diagnostics));
   const witness = result.evidence.physicalAfterFailure;
   assert.ok(witness);
@@ -161,6 +165,44 @@ test("a failed social check has a physical search route to an ending", () => {
       actions.indexOf("search", actions.indexOf("talk")),
   );
   assert.equal(actions.at(-1), "resolve_quest");
+});
+
+test("an unrelated physical search cannot certify a social fallback", () => {
+  const document = socialCandidate();
+  document.endings.when = [
+    { type: "milestone-recorded", id: "scribe-account" },
+  ];
+  document.endings.any = [
+    [{ type: "milestone-recorded", id: "scribe-account" }],
+  ];
+  document.quest.milestones.push("scribe-account");
+  document.npcs[1].topics = [
+    {
+      id: "answer",
+      name: "Answer",
+      aliases: ["answer"],
+      when: [],
+      challengeId: "none",
+      replies: [
+        {
+          when: [],
+          outcome: "any",
+          approach: "any",
+          text: "Here is the answer.",
+          attitude: "open",
+          approvedFactIds: [],
+          effects: [{ type: "record-milestone", id: "scribe-account" }],
+        },
+      ],
+    },
+  ];
+  const { result } = routes(document);
+  assert.equal(result.ok, false);
+  assert.ok(
+    result.diagnostics.some(
+      (entry) => entry.code === "physical-fallback-incomplete",
+    ),
+  );
 });
 
 test("combat self dependency and an unreachable ending never receive a witness", () => {
