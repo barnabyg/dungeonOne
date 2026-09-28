@@ -525,13 +525,16 @@ export function createChapelCluesRuntime(
         : ""
     }${state.ending === undefined ? "" : `\nResolution: ${state.ending.narration}`}`;
   };
+  const talkCommands = (
+    state: ClueState,
+    npc: ReturnType<typeof visible>["npcs"][number],
+  ) =>
+    npc.topics
+      .filter((topic) => eligible(state, topic.when))
+      .map((topic) => `talk ${npc.id} ${topic.id} ask`);
   const commandHints = (state: ClueState) => {
     const { features, exits, npcs } = visible(state);
-    const topic = npcs.flatMap((npc) =>
-      npc.topics
-        .filter((entry) => eligible(state, entry.when))
-        .map((entry) => `talk ${npc.id} ${entry.id} ask`),
-    )[0];
+    const topic = npcs.flatMap((npc) => talkCommands(state, npc))[0];
     const feature = searchableFeatures(state)[0];
     const evidence =
       feature === undefined
@@ -1802,9 +1805,7 @@ export function createChapelCluesRuntime(
             matches(npc, rejection.target),
           );
           if (speaker !== undefined) {
-            const commands = speaker.topics
-              .filter((topic) => eligible(state, topic.when))
-              .map((topic) => `talk ${speaker.id} ${topic.id} ask`);
+            const commands = talkCommands(state, speaker);
             return commands.length === 0
               ? `${speaker.name} has no available conversation topics. ${commandHints(state)}`
               : `No action was taken with ${speaker.name}. Available conversation commands: ${commands.join("; ")}.`;
