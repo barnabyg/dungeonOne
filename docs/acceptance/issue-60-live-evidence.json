@@ -1,0 +1,3949 @@
+{
+  "requestedModel": "gpt-5.6-luna",
+  "cases": [
+    {
+      "sample": "investigation",
+      "stage": "start",
+      "input": "What can I learn here about the missing surveyor?",
+      "contentId": "reefward-lighthouse",
+      "contentVersion": "2",
+      "contentDigest": "sha256:0b4da400dd49d3dec62a5212125400e6a2c4539d179c24861522fd4e5ed55786",
+      "fileSha256": "a7118bd7e67ad0c80042438c8b381c2992dedcde2974cab882d9647cc8e64988",
+      "seed": 0,
+      "setupActions": [],
+      "engineVersion": "chapel-clues-engine-v7",
+      "rulesVersion": "chapel-clues-rules-v4",
+      "promptVersion": "chapel-clues-dm-v9",
+      "toolSchemaVersion": "chapel-clues-tools-v7",
+      "requests": [
+        {
+          "playerInput": "What can I learn here about the missing surveyor?",
+          "scene": {
+            "title": "The Green Lamp at Reefward",
+            "objective": "Trace the missing surveyor's route through the storm-damaged lighthouse and choose how the harbor responds.",
+            "outcome": "playing",
+            "room": {
+              "id": "storm-quay",
+              "name": "Storm Quay",
+              "description": "Rainwater runs between mooring posts beneath the battered harbor bell.",
+              "features": [
+                {
+                  "id": "storm-bulletin",
+                  "name": "storm bulletin",
+                  "description": "A sodden bulletin is nailed beneath the quay signal bell."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "lantern-stairs",
+                  "name": "Lantern Stairs"
+                },
+                {
+                  "destinationId": "eastern-cove",
+                  "name": "Eastern Cove"
+                },
+                {
+                  "destinationId": "repair-shed",
+                  "name": "Repair Shed"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "harbormaster-elin",
+                  "name": "Harbormaster Elin",
+                  "condition": "living",
+                  "subjects": []
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "find-tovin",
+                "title": "Trace the missing surveyor",
+                "status": "active",
+                "milestones": []
+              },
+              "discoveries": [
+                {
+                  "id": "storm-warning",
+                  "title": "Storm warning",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "storm-bulletin",
+                    "name": "storm bulletin",
+                    "locationId": "storm-quay"
+                  },
+                  "summary": "Tovin, a harbor surveyor, failed to return after checking the storm-shifted reef.",
+                  "actionableLead": "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+                }
+              ],
+              "actionableLeads": [
+                "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+              ]
+            },
+            "suggestions": [
+              "move lantern-stairs",
+              "move eastern-cove",
+              "move repair-shed"
+            ]
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "playing"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "storm-bulletin",
+                      "lantern-stairs",
+                      "eastern-cove",
+                      "repair-shed"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "move",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {
+                    "type": "string",
+                    "enum": [
+                      "lantern-stairs",
+                      "eastern-cove",
+                      "repair-shed"
+                    ]
+                  }
+                },
+                "required": [
+                  "destinationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": []
+        },
+        {
+          "playerInput": "What can I learn here about the missing surveyor?",
+          "scene": {
+            "title": "The Green Lamp at Reefward",
+            "objective": "Trace the missing surveyor's route through the storm-damaged lighthouse and choose how the harbor responds.",
+            "outcome": "playing",
+            "room": {
+              "id": "storm-quay",
+              "name": "Storm Quay",
+              "description": "Rainwater runs between mooring posts beneath the battered harbor bell.",
+              "features": [
+                {
+                  "id": "storm-bulletin",
+                  "name": "storm bulletin",
+                  "description": "A sodden bulletin is nailed beneath the quay signal bell."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "lantern-stairs",
+                  "name": "Lantern Stairs"
+                },
+                {
+                  "destinationId": "eastern-cove",
+                  "name": "Eastern Cove"
+                },
+                {
+                  "destinationId": "repair-shed",
+                  "name": "Repair Shed"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "harbormaster-elin",
+                  "name": "Harbormaster Elin",
+                  "condition": "living",
+                  "subjects": []
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "find-tovin",
+                "title": "Trace the missing surveyor",
+                "status": "active",
+                "milestones": []
+              },
+              "discoveries": [
+                {
+                  "id": "storm-warning",
+                  "title": "Storm warning",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "storm-bulletin",
+                    "name": "storm bulletin",
+                    "locationId": "storm-quay"
+                  },
+                  "summary": "Tovin, a harbor surveyor, failed to return after checking the storm-shifted reef.",
+                  "actionableLead": "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+                }
+              ],
+              "actionableLeads": [
+                "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+              ]
+            },
+            "suggestions": [
+              "move lantern-stairs",
+              "move eastern-cove",
+              "move repair-shed"
+            ]
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "playing"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "storm-bulletin",
+                      "lantern-stairs",
+                      "eastern-cove",
+                      "repair-shed"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "move",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {
+                    "type": "string",
+                    "enum": [
+                      "lantern-stairs",
+                      "eastern-cove",
+                      "repair-shed"
+                    ]
+                  }
+                },
+                "required": [
+                  "destinationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": [
+            {
+              "call": {
+                "id": "call_UmsTwSnoT7waOKVsvM0yphGj",
+                "name": "inspect",
+                "argumentsJson": "{\"target\":\"storm-bulletin\"}"
+              },
+              "output": {
+                "ok": true,
+                "events": [
+                  {
+                    "type": "clue",
+                    "operation": "inspect",
+                    "text": "storm bulletin: A sodden bulletin is nailed beneath the quay signal bell.",
+                    "target": "storm-bulletin"
+                  }
+                ],
+                "scene": {
+                  "title": "The Green Lamp at Reefward",
+                  "objective": "Trace the missing surveyor's route through the storm-damaged lighthouse and choose how the harbor responds.",
+                  "outcome": "playing",
+                  "room": {
+                    "id": "storm-quay",
+                    "name": "Storm Quay",
+                    "description": "Rainwater runs between mooring posts beneath the battered harbor bell.",
+                    "features": [
+                      {
+                        "id": "storm-bulletin",
+                        "name": "storm bulletin",
+                        "description": "A sodden bulletin is nailed beneath the quay signal bell."
+                      }
+                    ],
+                    "exits": [
+                      {
+                        "destinationId": "lantern-stairs",
+                        "name": "Lantern Stairs"
+                      },
+                      {
+                        "destinationId": "eastern-cove",
+                        "name": "Eastern Cove"
+                      },
+                      {
+                        "destinationId": "repair-shed",
+                        "name": "Repair Shed"
+                      }
+                    ],
+                    "items": [],
+                    "opponents": [],
+                    "npcs": [
+                      {
+                        "id": "harbormaster-elin",
+                        "name": "Harbormaster Elin",
+                        "condition": "living",
+                        "subjects": []
+                      }
+                    ]
+                  },
+                  "journal": {
+                    "quest": {
+                      "id": "find-tovin",
+                      "title": "Trace the missing surveyor",
+                      "status": "active",
+                      "milestones": []
+                    },
+                    "discoveries": [
+                      {
+                        "id": "storm-warning",
+                        "title": "Storm warning",
+                        "classification": "observation",
+                        "source": {
+                          "type": "feature",
+                          "id": "storm-bulletin",
+                          "name": "storm bulletin",
+                          "locationId": "storm-quay"
+                        },
+                        "summary": "Tovin, a harbor surveyor, failed to return after checking the storm-shifted reef.",
+                        "actionableLead": "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+                      }
+                    ],
+                    "actionableLeads": [
+                      "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+                    ]
+                  },
+                  "suggestions": [
+                    "move lantern-stairs",
+                    "move eastern-cove",
+                    "move repair-shed"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "responses": [
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "toolCalls": [
+            {
+              "id": "call_UmsTwSnoT7waOKVsvM0yphGj",
+              "name": "inspect",
+              "argumentsJson": "{\"target\":\"storm-bulletin\"}"
+            }
+          ]
+        },
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "text": "The storm bulletin says **Tovin, a harbor surveyor, failed to return after checking the storm-shifted reef**. His last expected report was from **Reefward Lighthouse**, giving you the next lead in tracing his route."
+        }
+      ],
+      "toolAttempts": [
+        {
+          "call": {
+            "id": "call_UmsTwSnoT7waOKVsvM0yphGj",
+            "name": "inspect",
+            "argumentsJson": "{\"target\":\"storm-bulletin\"}"
+          },
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          },
+          "modelOutput": {
+            "ok": true,
+            "events": [
+              {
+                "type": "clue",
+                "operation": "inspect",
+                "text": "storm bulletin: A sodden bulletin is nailed beneath the quay signal bell.",
+                "target": "storm-bulletin"
+              }
+            ],
+            "scene": {
+              "title": "The Green Lamp at Reefward",
+              "objective": "Trace the missing surveyor's route through the storm-damaged lighthouse and choose how the harbor responds.",
+              "outcome": "playing",
+              "room": {
+                "id": "storm-quay",
+                "name": "Storm Quay",
+                "description": "Rainwater runs between mooring posts beneath the battered harbor bell.",
+                "features": [
+                  {
+                    "id": "storm-bulletin",
+                    "name": "storm bulletin",
+                    "description": "A sodden bulletin is nailed beneath the quay signal bell."
+                  }
+                ],
+                "exits": [
+                  {
+                    "destinationId": "lantern-stairs",
+                    "name": "Lantern Stairs"
+                  },
+                  {
+                    "destinationId": "eastern-cove",
+                    "name": "Eastern Cove"
+                  },
+                  {
+                    "destinationId": "repair-shed",
+                    "name": "Repair Shed"
+                  }
+                ],
+                "items": [],
+                "opponents": [],
+                "npcs": [
+                  {
+                    "id": "harbormaster-elin",
+                    "name": "Harbormaster Elin",
+                    "condition": "living",
+                    "subjects": []
+                  }
+                ]
+              },
+              "journal": {
+                "quest": {
+                  "id": "find-tovin",
+                  "title": "Trace the missing surveyor",
+                  "status": "active",
+                  "milestones": []
+                },
+                "discoveries": [
+                  {
+                    "id": "storm-warning",
+                    "title": "Storm warning",
+                    "classification": "observation",
+                    "source": {
+                      "type": "feature",
+                      "id": "storm-bulletin",
+                      "name": "storm bulletin",
+                      "locationId": "storm-quay"
+                    },
+                    "summary": "Tovin, a harbor surveyor, failed to return after checking the storm-shifted reef.",
+                    "actionableLead": "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+                  }
+                ],
+                "actionableLeads": [
+                  "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+                ]
+              },
+              "suggestions": [
+                "move lantern-stairs",
+                "move eastern-cove",
+                "move repair-shed"
+              ]
+            }
+          }
+        }
+      ],
+      "diagnostics": [],
+      "narration": "The storm bulletin says **Tovin, a harbor surveyor, failed to return after checking the storm-shifted reef**. His last expected report was from **Reefward Lighthouse**, giving you the next lead in tracing his route.",
+      "before": {
+        "locationId": "storm-quay",
+        "status": "playing",
+        "discoveries": [
+          "storm-warning"
+        ],
+        "milestones": []
+      },
+      "after": {
+        "locationId": "storm-quay",
+        "status": "playing",
+        "discoveries": [
+          "storm-warning"
+        ],
+        "milestones": []
+      }
+    },
+    {
+      "sample": "investigation",
+      "stage": "ready",
+      "input": "I choose to launch the harbor search.",
+      "contentId": "reefward-lighthouse",
+      "contentVersion": "2",
+      "contentDigest": "sha256:0b4da400dd49d3dec62a5212125400e6a2c4539d179c24861522fd4e5ed55786",
+      "fileSha256": "a7118bd7e67ad0c80042438c8b381c2992dedcde2974cab882d9647cc8e64988",
+      "seed": 0,
+      "setupActions": [
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"lantern-stairs\"}"
+        },
+        {
+          "name": "search",
+          "argumentsJson": "{\"target\":\"surveyor-ledger\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"lantern-room\"}"
+        },
+        {
+          "name": "search",
+          "argumentsJson": "{\"target\":\"beacon-log\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"lantern-stairs\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"storm-quay\"}"
+        }
+      ],
+      "engineVersion": "chapel-clues-engine-v7",
+      "rulesVersion": "chapel-clues-rules-v4",
+      "promptVersion": "chapel-clues-dm-v9",
+      "toolSchemaVersion": "chapel-clues-tools-v7",
+      "requests": [
+        {
+          "playerInput": "I choose to launch the harbor search.",
+          "scene": {
+            "title": "The Green Lamp at Reefward",
+            "objective": "Trace the missing surveyor's route through the storm-damaged lighthouse and choose how the harbor responds.",
+            "outcome": "playing",
+            "room": {
+              "id": "storm-quay",
+              "name": "Storm Quay",
+              "description": "Rainwater runs between mooring posts beneath the battered harbor bell. Ending choices: Launch the harbor search: The harbor launches a daylight search for Tovin.",
+              "features": [
+                {
+                  "id": "storm-bulletin",
+                  "name": "storm bulletin",
+                  "description": "A sodden bulletin is nailed beneath the quay signal bell."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "lantern-stairs",
+                  "name": "Lantern Stairs"
+                },
+                {
+                  "destinationId": "eastern-cove",
+                  "name": "Eastern Cove"
+                },
+                {
+                  "destinationId": "repair-shed",
+                  "name": "Repair Shed"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "harbormaster-elin",
+                  "name": "Harbormaster Elin",
+                  "condition": "living",
+                  "subjects": []
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "find-tovin",
+                "title": "Trace the missing surveyor",
+                "status": "active",
+                "milestones": [
+                  "surveyor-route-found"
+                ]
+              },
+              "discoveries": [
+                {
+                  "id": "storm-warning",
+                  "title": "Storm warning",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "storm-bulletin",
+                    "name": "storm bulletin",
+                    "locationId": "storm-quay"
+                  },
+                  "summary": "Tovin, a harbor surveyor, failed to return after checking the storm-shifted reef.",
+                  "actionableLead": "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+                },
+                {
+                  "id": "ledger-route",
+                  "title": "Surveyor's route",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "surveyor-ledger",
+                    "name": "surveyor ledger",
+                    "locationId": "lantern-stairs"
+                  },
+                  "summary": "Tovin planned to test a newly exposed passage marked by a green lamp.",
+                  "actionableLead": "The final entry directs you to compare the lighthouse beacon log with the eastern-cove tide marks."
+                },
+                {
+                  "id": "beacon-evidence",
+                  "title": "Beacon log entry",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "beacon-log",
+                    "name": "beacon log",
+                    "locationId": "lantern-room"
+                  },
+                  "summary": "The beacon log confirms that a green survey signal flashed toward the eastern cove after the storm began.",
+                  "actionableLead": "The log records the green signal's timing and provides the evidence needed to act at the quay."
+                }
+              ],
+              "actionableLeads": [
+                "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report.",
+                "The final entry directs you to compare the lighthouse beacon log with the eastern-cove tide marks.",
+                "The log records the green signal's timing and provides the evidence needed to act at the quay."
+              ]
+            },
+            "suggestions": [
+              "move lantern-stairs",
+              "move eastern-cove",
+              "move repair-shed",
+              "resolve Launch the harbor search"
+            ]
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "playing"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "storm-bulletin",
+                      "lantern-stairs",
+                      "eastern-cove",
+                      "repair-shed"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "move",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {
+                    "type": "string",
+                    "enum": [
+                      "lantern-stairs",
+                      "eastern-cove",
+                      "repair-shed"
+                    ]
+                  }
+                },
+                "required": [
+                  "destinationId"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "resolve_quest",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "resolutionId": {
+                    "type": "string",
+                    "enum": [
+                      "launch-search"
+                    ]
+                  }
+                },
+                "required": [
+                  "resolutionId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": []
+        },
+        {
+          "playerInput": "I choose to launch the harbor search.",
+          "scene": {
+            "title": "The Green Lamp at Reefward",
+            "objective": "Trace the missing surveyor's route through the storm-damaged lighthouse and choose how the harbor responds.",
+            "outcome": "victory",
+            "room": {
+              "id": "storm-quay",
+              "name": "Storm Quay",
+              "description": "Rainwater runs between mooring posts beneath the battered harbor bell. Resolution: Elin rings the harbor bell and sends a search boat along the eastern cove at once. The harbor launches a daylight search for Tovin. Tovin's route is reconstructed from the ledger and the beacon log; the harbor can mount a focused search before the next tide.",
+              "features": [
+                {
+                  "id": "storm-bulletin",
+                  "name": "storm bulletin",
+                  "description": "A sodden bulletin is nailed beneath the quay signal bell."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "lantern-stairs",
+                  "name": "Lantern Stairs"
+                },
+                {
+                  "destinationId": "eastern-cove",
+                  "name": "Eastern Cove"
+                },
+                {
+                  "destinationId": "repair-shed",
+                  "name": "Repair Shed"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "harbormaster-elin",
+                  "name": "Harbormaster Elin",
+                  "condition": "living",
+                  "subjects": []
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "find-tovin",
+                "title": "Trace the missing surveyor",
+                "status": "resolved",
+                "milestones": [
+                  "surveyor-route-found"
+                ]
+              },
+              "discoveries": [
+                {
+                  "id": "storm-warning",
+                  "title": "Storm warning",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "storm-bulletin",
+                    "name": "storm bulletin",
+                    "locationId": "storm-quay"
+                  },
+                  "summary": "Tovin, a harbor surveyor, failed to return after checking the storm-shifted reef.",
+                  "actionableLead": "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+                },
+                {
+                  "id": "ledger-route",
+                  "title": "Surveyor's route",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "surveyor-ledger",
+                    "name": "surveyor ledger",
+                    "locationId": "lantern-stairs"
+                  },
+                  "summary": "Tovin planned to test a newly exposed passage marked by a green lamp.",
+                  "actionableLead": "The final entry directs you to compare the lighthouse beacon log with the eastern-cove tide marks."
+                },
+                {
+                  "id": "beacon-evidence",
+                  "title": "Beacon log entry",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "beacon-log",
+                    "name": "beacon log",
+                    "locationId": "lantern-room"
+                  },
+                  "summary": "The beacon log confirms that a green survey signal flashed toward the eastern cove after the storm began.",
+                  "actionableLead": "The log records the green signal's timing and provides the evidence needed to act at the quay."
+                }
+              ],
+              "actionableLeads": [
+                "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report.",
+                "The final entry directs you to compare the lighthouse beacon log with the eastern-cove tide marks.",
+                "The log records the green signal's timing and provides the evidence needed to act at the quay."
+              ],
+              "ending": {
+                "id": "launch-search",
+                "fate": "route-recovered",
+                "casualties": [],
+                "consequences": [
+                  "search-launched"
+                ],
+                "narration": "Elin rings the harbor bell and sends a search boat along the eastern cove at once. The harbor launches a daylight search for Tovin. Tovin's route is reconstructed from the ledger and the beacon log; the harbor can mount a focused search before the next tide."
+              }
+            },
+            "suggestions": []
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "victory"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "storm-bulletin",
+                      "lantern-stairs",
+                      "eastern-cove",
+                      "repair-shed"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": [
+            {
+              "call": {
+                "id": "call_bZcOg0eYAVR8O4VSWHuEcjpr",
+                "name": "resolve_quest",
+                "argumentsJson": "{\"resolutionId\":\"launch-search\"}"
+              },
+              "output": {
+                "ok": true,
+                "events": [
+                  {
+                    "type": "clue",
+                    "operation": "resolve",
+                    "text": "Elin rings the harbor bell and sends a search boat along the eastern cove at once. The harbor launches a daylight search for Tovin. Tovin's route is reconstructed from the ledger and the beacon log; the harbor can mount a focused search before the next tide.",
+                    "target": "launch-search"
+                  }
+                ],
+                "scene": {
+                  "title": "The Green Lamp at Reefward",
+                  "objective": "Trace the missing surveyor's route through the storm-damaged lighthouse and choose how the harbor responds.",
+                  "outcome": "victory",
+                  "room": {
+                    "id": "storm-quay",
+                    "name": "Storm Quay",
+                    "description": "Rainwater runs between mooring posts beneath the battered harbor bell. Resolution: Elin rings the harbor bell and sends a search boat along the eastern cove at once. The harbor launches a daylight search for Tovin. Tovin's route is reconstructed from the ledger and the beacon log; the harbor can mount a focused search before the next tide.",
+                    "features": [
+                      {
+                        "id": "storm-bulletin",
+                        "name": "storm bulletin",
+                        "description": "A sodden bulletin is nailed beneath the quay signal bell."
+                      }
+                    ],
+                    "exits": [
+                      {
+                        "destinationId": "lantern-stairs",
+                        "name": "Lantern Stairs"
+                      },
+                      {
+                        "destinationId": "eastern-cove",
+                        "name": "Eastern Cove"
+                      },
+                      {
+                        "destinationId": "repair-shed",
+                        "name": "Repair Shed"
+                      }
+                    ],
+                    "items": [],
+                    "opponents": [],
+                    "npcs": [
+                      {
+                        "id": "harbormaster-elin",
+                        "name": "Harbormaster Elin",
+                        "condition": "living",
+                        "subjects": []
+                      }
+                    ]
+                  },
+                  "journal": {
+                    "quest": {
+                      "id": "find-tovin",
+                      "title": "Trace the missing surveyor",
+                      "status": "resolved",
+                      "milestones": [
+                        "surveyor-route-found"
+                      ]
+                    },
+                    "discoveries": [
+                      {
+                        "id": "storm-warning",
+                        "title": "Storm warning",
+                        "classification": "observation",
+                        "source": {
+                          "type": "feature",
+                          "id": "storm-bulletin",
+                          "name": "storm bulletin",
+                          "locationId": "storm-quay"
+                        },
+                        "summary": "Tovin, a harbor surveyor, failed to return after checking the storm-shifted reef.",
+                        "actionableLead": "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+                      },
+                      {
+                        "id": "ledger-route",
+                        "title": "Surveyor's route",
+                        "classification": "observation",
+                        "source": {
+                          "type": "feature",
+                          "id": "surveyor-ledger",
+                          "name": "surveyor ledger",
+                          "locationId": "lantern-stairs"
+                        },
+                        "summary": "Tovin planned to test a newly exposed passage marked by a green lamp.",
+                        "actionableLead": "The final entry directs you to compare the lighthouse beacon log with the eastern-cove tide marks."
+                      },
+                      {
+                        "id": "beacon-evidence",
+                        "title": "Beacon log entry",
+                        "classification": "observation",
+                        "source": {
+                          "type": "feature",
+                          "id": "beacon-log",
+                          "name": "beacon log",
+                          "locationId": "lantern-room"
+                        },
+                        "summary": "The beacon log confirms that a green survey signal flashed toward the eastern cove after the storm began.",
+                        "actionableLead": "The log records the green signal's timing and provides the evidence needed to act at the quay."
+                      }
+                    ],
+                    "actionableLeads": [
+                      "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report.",
+                      "The final entry directs you to compare the lighthouse beacon log with the eastern-cove tide marks.",
+                      "The log records the green signal's timing and provides the evidence needed to act at the quay."
+                    ],
+                    "ending": {
+                      "id": "launch-search",
+                      "fate": "route-recovered",
+                      "casualties": [],
+                      "consequences": [
+                        "search-launched"
+                      ],
+                      "narration": "Elin rings the harbor bell and sends a search boat along the eastern cove at once. The harbor launches a daylight search for Tovin. Tovin's route is reconstructed from the ledger and the beacon log; the harbor can mount a focused search before the next tide."
+                    }
+                  },
+                  "suggestions": []
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "responses": [
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "toolCalls": [
+            {
+              "id": "call_bZcOg0eYAVR8O4VSWHuEcjpr",
+              "name": "resolve_quest",
+              "argumentsJson": "{\"resolutionId\":\"launch-search\"}"
+            }
+          ]
+        },
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "text": "The harbor bell booms across the quay. Harbormaster Elin dispatches a search boat along the eastern cove immediately.\n\nWith Tovin’s route reconstructed from the surveyor’s ledger and beacon log, the harbor begins a focused daylight search before the next tide.\n\n**Outcome: Victory — search launched.**"
+        }
+      ],
+      "toolAttempts": [
+        {
+          "call": {
+            "id": "call_bZcOg0eYAVR8O4VSWHuEcjpr",
+            "name": "resolve_quest",
+            "argumentsJson": "{\"resolutionId\":\"launch-search\"}"
+          },
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          },
+          "modelOutput": {
+            "ok": true,
+            "events": [
+              {
+                "type": "clue",
+                "operation": "resolve",
+                "text": "Elin rings the harbor bell and sends a search boat along the eastern cove at once. The harbor launches a daylight search for Tovin. Tovin's route is reconstructed from the ledger and the beacon log; the harbor can mount a focused search before the next tide.",
+                "target": "launch-search"
+              }
+            ],
+            "scene": {
+              "title": "The Green Lamp at Reefward",
+              "objective": "Trace the missing surveyor's route through the storm-damaged lighthouse and choose how the harbor responds.",
+              "outcome": "victory",
+              "room": {
+                "id": "storm-quay",
+                "name": "Storm Quay",
+                "description": "Rainwater runs between mooring posts beneath the battered harbor bell. Resolution: Elin rings the harbor bell and sends a search boat along the eastern cove at once. The harbor launches a daylight search for Tovin. Tovin's route is reconstructed from the ledger and the beacon log; the harbor can mount a focused search before the next tide.",
+                "features": [
+                  {
+                    "id": "storm-bulletin",
+                    "name": "storm bulletin",
+                    "description": "A sodden bulletin is nailed beneath the quay signal bell."
+                  }
+                ],
+                "exits": [
+                  {
+                    "destinationId": "lantern-stairs",
+                    "name": "Lantern Stairs"
+                  },
+                  {
+                    "destinationId": "eastern-cove",
+                    "name": "Eastern Cove"
+                  },
+                  {
+                    "destinationId": "repair-shed",
+                    "name": "Repair Shed"
+                  }
+                ],
+                "items": [],
+                "opponents": [],
+                "npcs": [
+                  {
+                    "id": "harbormaster-elin",
+                    "name": "Harbormaster Elin",
+                    "condition": "living",
+                    "subjects": []
+                  }
+                ]
+              },
+              "journal": {
+                "quest": {
+                  "id": "find-tovin",
+                  "title": "Trace the missing surveyor",
+                  "status": "resolved",
+                  "milestones": [
+                    "surveyor-route-found"
+                  ]
+                },
+                "discoveries": [
+                  {
+                    "id": "storm-warning",
+                    "title": "Storm warning",
+                    "classification": "observation",
+                    "source": {
+                      "type": "feature",
+                      "id": "storm-bulletin",
+                      "name": "storm bulletin",
+                      "locationId": "storm-quay"
+                    },
+                    "summary": "Tovin, a harbor surveyor, failed to return after checking the storm-shifted reef.",
+                    "actionableLead": "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report."
+                  },
+                  {
+                    "id": "ledger-route",
+                    "title": "Surveyor's route",
+                    "classification": "observation",
+                    "source": {
+                      "type": "feature",
+                      "id": "surveyor-ledger",
+                      "name": "surveyor ledger",
+                      "locationId": "lantern-stairs"
+                    },
+                    "summary": "Tovin planned to test a newly exposed passage marked by a green lamp.",
+                    "actionableLead": "The final entry directs you to compare the lighthouse beacon log with the eastern-cove tide marks."
+                  },
+                  {
+                    "id": "beacon-evidence",
+                    "title": "Beacon log entry",
+                    "classification": "observation",
+                    "source": {
+                      "type": "feature",
+                      "id": "beacon-log",
+                      "name": "beacon log",
+                      "locationId": "lantern-room"
+                    },
+                    "summary": "The beacon log confirms that a green survey signal flashed toward the eastern cove after the storm began.",
+                    "actionableLead": "The log records the green signal's timing and provides the evidence needed to act at the quay."
+                  }
+                ],
+                "actionableLeads": [
+                  "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report.",
+                  "The final entry directs you to compare the lighthouse beacon log with the eastern-cove tide marks.",
+                  "The log records the green signal's timing and provides the evidence needed to act at the quay."
+                ],
+                "ending": {
+                  "id": "launch-search",
+                  "fate": "route-recovered",
+                  "casualties": [],
+                  "consequences": [
+                    "search-launched"
+                  ],
+                  "narration": "Elin rings the harbor bell and sends a search boat along the eastern cove at once. The harbor launches a daylight search for Tovin. Tovin's route is reconstructed from the ledger and the beacon log; the harbor can mount a focused search before the next tide."
+                }
+              },
+              "suggestions": []
+            }
+          }
+        }
+      ],
+      "diagnostics": [],
+      "narration": "The harbor bell booms across the quay. Harbormaster Elin dispatches a search boat along the eastern cove immediately.\n\nWith Tovin’s route reconstructed from the surveyor’s ledger and beacon log, the harbor begins a focused daylight search before the next tide.\n\n**Outcome: Victory — search launched.**",
+      "before": {
+        "locationId": "storm-quay",
+        "status": "playing",
+        "discoveries": [
+          "storm-warning",
+          "ledger-route",
+          "beacon-evidence"
+        ],
+        "milestones": [
+          "surveyor-route-found"
+        ]
+      },
+      "after": {
+        "locationId": "storm-quay",
+        "status": "victory",
+        "endingId": "launch-search",
+        "discoveries": [
+          "storm-warning",
+          "ledger-route",
+          "beacon-evidence"
+        ],
+        "milestones": [
+          "surveyor-route-found"
+        ]
+      }
+    },
+    {
+      "sample": "rescue",
+      "stage": "start",
+      "input": "Has Tovin been freed yet?",
+      "contentId": "floodwheel-rescue",
+      "contentVersion": "2",
+      "contentDigest": "sha256:699f7e539023aa0c0f432d4b3f42b3bcfeac49c2dcb6da6226df61cddde233d4",
+      "fileSha256": "ed2c1882a2e02211172578950ee4a965320656e84a393d81af04ef25cb56a4b3",
+      "seed": 0,
+      "setupActions": [],
+      "engineVersion": "chapel-clues-engine-v7",
+      "rulesVersion": "chapel-clues-rules-v4",
+      "promptVersion": "chapel-clues-dm-v9",
+      "toolSchemaVersion": "chapel-clues-tools-v7",
+      "requests": [
+        {
+          "playerInput": "Has Tovin been freed yet?",
+          "scene": {
+            "title": "The Floodwheel Courier",
+            "objective": "Find Tovin in the abandoned watermill and decide how to handle the recovered dispatch.",
+            "outcome": "playing",
+            "room": {
+              "id": "ford-village",
+              "name": "Ford Village",
+              "description": "A rain-dark village clusters around a shallow ford and the road to an abandoned mill.",
+              "features": [
+                {
+                  "id": "wet-ribbon",
+                  "name": "wet ribbon",
+                  "description": "A strip of courier-blue ribbon is snagged on the ford marker."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "mill-yard",
+                  "name": "Mill Yard"
+                },
+                {
+                  "destinationId": "chapel-step",
+                  "name": "Chapel Step"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "mira-vale",
+                  "name": "Mira Vale",
+                  "condition": "living",
+                  "subjects": [
+                    {
+                      "id": "missing-courier",
+                      "name": "Missing courier"
+                    }
+                  ]
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "rescue-tovin",
+                "title": "Rescue Tovin Reed",
+                "status": "active",
+                "milestones": []
+              },
+              "discoveries": [
+                {
+                  "id": "ribbon-lead",
+                  "title": "Courier ribbon",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "wet-ribbon",
+                    "name": "wet ribbon",
+                    "locationId": "ford-village"
+                  },
+                  "summary": "The ribbon bears Tovin Reed's courier knot and was torn off recently.",
+                  "actionableLead": "Follow the muddy path toward the abandoned watermill."
+                }
+              ],
+              "actionableLeads": [
+                "Follow the muddy path toward the abandoned watermill."
+              ]
+            },
+            "suggestions": [
+              "talk mira-vale missing-courier ask",
+              "move mill-yard",
+              "move chapel-step"
+            ]
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "playing"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "wet-ribbon",
+                      "mill-yard",
+                      "chapel-step"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "talk",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "speakerId": {
+                    "type": "string",
+                    "enum": [
+                      "mira-vale"
+                    ]
+                  },
+                  "topicId": {
+                    "type": "string",
+                    "enum": [
+                      "missing-courier"
+                    ]
+                  },
+                  "approach": {
+                    "type": "string",
+                    "enum": [
+                      "ask",
+                      "persuade",
+                      "deceive",
+                      "intimidate"
+                    ]
+                  }
+                },
+                "required": [
+                  "speakerId",
+                  "topicId",
+                  "approach"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "move",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {
+                    "type": "string",
+                    "enum": [
+                      "mill-yard",
+                      "chapel-step"
+                    ]
+                  }
+                },
+                "required": [
+                  "destinationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": []
+        }
+      ],
+      "responses": [
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "text": "No. Tovin has not been freed yet. The torn courier ribbon points toward the abandoned watermill—follow the path to the Mill Yard or ask Mira Vale about the missing courier."
+        }
+      ],
+      "toolAttempts": [],
+      "diagnostics": [],
+      "narration": "No. Tovin has not been freed yet. The torn courier ribbon points toward the abandoned watermill—follow the path to the Mill Yard or ask Mira Vale about the missing courier.",
+      "before": {
+        "locationId": "ford-village",
+        "status": "playing",
+        "discoveries": [
+          "ribbon-lead"
+        ],
+        "milestones": []
+      },
+      "after": {
+        "locationId": "ford-village",
+        "status": "playing",
+        "discoveries": [
+          "ribbon-lead"
+        ],
+        "milestones": []
+      }
+    },
+    {
+      "sample": "rescue",
+      "stage": "start",
+      "input": "What did Mira see at dawn?",
+      "contentId": "floodwheel-rescue",
+      "contentVersion": "2",
+      "contentDigest": "sha256:699f7e539023aa0c0f432d4b3f42b3bcfeac49c2dcb6da6226df61cddde233d4",
+      "fileSha256": "ed2c1882a2e02211172578950ee4a965320656e84a393d81af04ef25cb56a4b3",
+      "seed": 0,
+      "setupActions": [],
+      "engineVersion": "chapel-clues-engine-v7",
+      "rulesVersion": "chapel-clues-rules-v4",
+      "promptVersion": "chapel-clues-dm-v9",
+      "toolSchemaVersion": "chapel-clues-tools-v7",
+      "requests": [
+        {
+          "playerInput": "What did Mira see at dawn?",
+          "scene": {
+            "title": "The Floodwheel Courier",
+            "objective": "Find Tovin in the abandoned watermill and decide how to handle the recovered dispatch.",
+            "outcome": "playing",
+            "room": {
+              "id": "ford-village",
+              "name": "Ford Village",
+              "description": "A rain-dark village clusters around a shallow ford and the road to an abandoned mill.",
+              "features": [
+                {
+                  "id": "wet-ribbon",
+                  "name": "wet ribbon",
+                  "description": "A strip of courier-blue ribbon is snagged on the ford marker."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "mill-yard",
+                  "name": "Mill Yard"
+                },
+                {
+                  "destinationId": "chapel-step",
+                  "name": "Chapel Step"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "mira-vale",
+                  "name": "Mira Vale",
+                  "condition": "living",
+                  "subjects": [
+                    {
+                      "id": "missing-courier",
+                      "name": "Missing courier"
+                    }
+                  ]
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "rescue-tovin",
+                "title": "Rescue Tovin Reed",
+                "status": "active",
+                "milestones": []
+              },
+              "discoveries": [
+                {
+                  "id": "ribbon-lead",
+                  "title": "Courier ribbon",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "wet-ribbon",
+                    "name": "wet ribbon",
+                    "locationId": "ford-village"
+                  },
+                  "summary": "The ribbon bears Tovin Reed's courier knot and was torn off recently.",
+                  "actionableLead": "Follow the muddy path toward the abandoned watermill."
+                }
+              ],
+              "actionableLeads": [
+                "Follow the muddy path toward the abandoned watermill."
+              ]
+            },
+            "suggestions": [
+              "talk mira-vale missing-courier ask",
+              "move mill-yard",
+              "move chapel-step"
+            ]
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "playing"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "wet-ribbon",
+                      "mill-yard",
+                      "chapel-step"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "talk",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "speakerId": {
+                    "type": "string",
+                    "enum": [
+                      "mira-vale"
+                    ]
+                  },
+                  "topicId": {
+                    "type": "string",
+                    "enum": [
+                      "missing-courier"
+                    ]
+                  },
+                  "approach": {
+                    "type": "string",
+                    "enum": [
+                      "ask",
+                      "persuade",
+                      "deceive",
+                      "intimidate"
+                    ]
+                  }
+                },
+                "required": [
+                  "speakerId",
+                  "topicId",
+                  "approach"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "move",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {
+                    "type": "string",
+                    "enum": [
+                      "mill-yard",
+                      "chapel-step"
+                    ]
+                  }
+                },
+                "required": [
+                  "destinationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": []
+        },
+        {
+          "playerInput": "What did Mira see at dawn?",
+          "tools": [],
+          "toolResults": []
+        }
+      ],
+      "responses": [
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "toolCalls": [
+            {
+              "id": "call_WtUMHvMzEKCZzovhADAL33dh",
+              "name": "talk",
+              "argumentsJson": "{\"speakerId\":\"mira-vale\",\"topicId\":\"missing-courier\",\"approach\":\"ask\"}"
+            }
+          ]
+        },
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "text": "{\"delivery\":\"urgent\",\"opening\":\"please-listen\",\"factIds\":[],\"closing\":\"check-carefully\"}"
+        }
+      ],
+      "toolAttempts": [
+        {
+          "call": {
+            "id": "call_WtUMHvMzEKCZzovhADAL33dh",
+            "name": "talk",
+            "argumentsJson": "{\"speakerId\":\"mira-vale\",\"topicId\":\"missing-courier\",\"approach\":\"ask\"}"
+          },
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          },
+          "modelOutput": {
+            "ok": true,
+            "events": [
+              {
+                "type": "clue",
+                "operation": "talk",
+                "text": "Mira: Give me a reason to trust that you will not abandon him in there.",
+                "target": "mira-vale",
+                "conversation": {
+                  "speakerId": "mira-vale",
+                  "speakerName": "Mira Vale",
+                  "topicId": "missing-courier",
+                  "topicName": "Missing courier",
+                  "approach": "ask",
+                  "attitude": "guarded",
+                  "voice": "Urgent and practical.",
+                  "approvedFacts": [],
+                  "authoredReply": "Mira: Give me a reason to trust that you will not abandon him in there.",
+                  "speakerHistory": [],
+                  "allowedClosings": [
+                    "none",
+                    "check-carefully"
+                  ]
+                }
+              }
+            ],
+            "scene": {
+              "title": "The Floodwheel Courier",
+              "objective": "Find Tovin in the abandoned watermill and decide how to handle the recovered dispatch.",
+              "outcome": "playing",
+              "room": {
+                "id": "ford-village",
+                "name": "Ford Village",
+                "description": "A rain-dark village clusters around a shallow ford and the road to an abandoned mill.",
+                "features": [
+                  {
+                    "id": "wet-ribbon",
+                    "name": "wet ribbon",
+                    "description": "A strip of courier-blue ribbon is snagged on the ford marker."
+                  }
+                ],
+                "exits": [
+                  {
+                    "destinationId": "mill-yard",
+                    "name": "Mill Yard"
+                  },
+                  {
+                    "destinationId": "chapel-step",
+                    "name": "Chapel Step"
+                  }
+                ],
+                "items": [],
+                "opponents": [],
+                "npcs": [
+                  {
+                    "id": "mira-vale",
+                    "name": "Mira Vale",
+                    "condition": "living",
+                    "subjects": [
+                      {
+                        "id": "missing-courier",
+                        "name": "Missing courier"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "journal": {
+                "quest": {
+                  "id": "rescue-tovin",
+                  "title": "Rescue Tovin Reed",
+                  "status": "active",
+                  "milestones": []
+                },
+                "discoveries": [
+                  {
+                    "id": "ribbon-lead",
+                    "title": "Courier ribbon",
+                    "classification": "observation",
+                    "source": {
+                      "type": "feature",
+                      "id": "wet-ribbon",
+                      "name": "wet ribbon",
+                      "locationId": "ford-village"
+                    },
+                    "summary": "The ribbon bears Tovin Reed's courier knot and was torn off recently.",
+                    "actionableLead": "Follow the muddy path toward the abandoned watermill."
+                  }
+                ],
+                "actionableLeads": [
+                  "Follow the muddy path toward the abandoned watermill."
+                ]
+              },
+              "suggestions": [
+                "talk mira-vale missing-courier ask",
+                "move mill-yard",
+                "move chapel-step"
+              ]
+            },
+            "conversation": {
+              "speakerId": "mira-vale",
+              "speakerName": "Mira Vale",
+              "topicId": "missing-courier",
+              "topicName": "Missing courier",
+              "approach": "ask",
+              "attitude": "guarded",
+              "voice": "Urgent and practical.",
+              "approvedFacts": [],
+              "authoredReply": "Mira: Give me a reason to trust that you will not abandon him in there.",
+              "speakerHistory": [],
+              "allowedClosings": [
+                "none",
+                "check-carefully"
+              ]
+            }
+          }
+        }
+      ],
+      "diagnostics": [],
+      "narration": "Mira Vale (urgent): Please, listen. Please check carefully.",
+      "before": {
+        "locationId": "ford-village",
+        "status": "playing",
+        "discoveries": [
+          "ribbon-lead"
+        ],
+        "milestones": []
+      },
+      "after": {
+        "locationId": "ford-village",
+        "status": "playing",
+        "discoveries": [
+          "ribbon-lead"
+        ],
+        "milestones": []
+      }
+    },
+    {
+      "sample": "rescue",
+      "stage": "freed",
+      "input": "Where is Tovin now?",
+      "contentId": "floodwheel-rescue",
+      "contentVersion": "2",
+      "contentDigest": "sha256:699f7e539023aa0c0f432d4b3f42b3bcfeac49c2dcb6da6226df61cddde233d4",
+      "fileSha256": "ed2c1882a2e02211172578950ee4a965320656e84a393d81af04ef25cb56a4b3",
+      "seed": 0,
+      "setupActions": [
+        {
+          "name": "talk",
+          "argumentsJson": "{\"speakerId\":\"mira-vale\",\"topicId\":\"missing-courier\",\"approach\":\"persuade\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"mill-yard\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"wheelhouse\"}"
+        },
+        {
+          "name": "attack",
+          "argumentsJson": "{\"opponent_id\":\"wheelhouse-eel\"}"
+        },
+        {
+          "name": "search",
+          "argumentsJson": "{\"target\":\"sluice-ledger\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"mill-loft\"}"
+        },
+        {
+          "name": "search",
+          "argumentsJson": "{\"target\":\"jammed-hatch\"}"
+        }
+      ],
+      "engineVersion": "chapel-clues-engine-v7",
+      "rulesVersion": "chapel-clues-rules-v4",
+      "promptVersion": "chapel-clues-dm-v9",
+      "toolSchemaVersion": "chapel-clues-tools-v7",
+      "requests": [
+        {
+          "playerInput": "Where is Tovin now?",
+          "scene": {
+            "title": "The Floodwheel Courier",
+            "objective": "Find Tovin in the abandoned watermill and decide how to handle the recovered dispatch.",
+            "outcome": "playing",
+            "room": {
+              "id": "mill-loft",
+              "name": "Mill Loft",
+              "description": "The grain loft groans above the wheelhouse. The fallen beam has been levered aside, the hatch stands open, and Tovin waits beside it, alive and free.",
+              "features": [
+                {
+                  "id": "jammed-hatch",
+                  "name": "jammed hatch",
+                  "description": "The grain beam lies clear of the open hatch. Tovin is no longer trapped."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "wheelhouse",
+                  "name": "Wheelhouse"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "tovin-reed",
+                  "name": "Tovin Reed",
+                  "condition": "living",
+                  "subjects": []
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "rescue-tovin",
+                "title": "Rescue Tovin Reed",
+                "status": "active",
+                "milestones": [
+                  "courier-freed"
+                ]
+              },
+              "discoveries": [
+                {
+                  "id": "ribbon-lead",
+                  "title": "Courier ribbon",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "wet-ribbon",
+                    "name": "wet ribbon",
+                    "locationId": "ford-village"
+                  },
+                  "summary": "The ribbon bears Tovin Reed's courier knot and was torn off recently.",
+                  "actionableLead": "Follow the muddy path toward the abandoned watermill."
+                },
+                {
+                  "id": "dispatch-clue",
+                  "title": "Water-damaged dispatch",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "sluice-ledger",
+                    "name": "sluice ledger",
+                    "locationId": "wheelhouse"
+                  },
+                  "summary": "The ledger conceals Tovin's sealed dispatch, which warns that the upstream sluice has failed and the courier road is unsafe.",
+                  "actionableLead": "Free Tovin, then return to the village to decide how to report the danger."
+                },
+                {
+                  "id": "hatch-clue",
+                  "title": "Pinned loft hatch",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "jammed-hatch",
+                    "name": "jammed hatch",
+                    "locationId": "mill-loft"
+                  },
+                  "summary": "The beam can be levered aside; someone is alive beyond the hatch.",
+                  "actionableLead": "Return to the village with Tovin and decide what to do with the dispatch."
+                }
+              ],
+              "actionableLeads": [
+                "Follow the muddy path toward the abandoned watermill.",
+                "Free Tovin, then return to the village to decide how to report the danger.",
+                "Return to the village with Tovin and decide what to do with the dispatch."
+              ]
+            },
+            "suggestions": [
+              "move wheelhouse"
+            ]
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "playing"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "jammed-hatch",
+                      "wheelhouse"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "move",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {
+                    "type": "string",
+                    "enum": [
+                      "wheelhouse"
+                    ]
+                  }
+                },
+                "required": [
+                  "destinationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": []
+        }
+      ],
+      "responses": [
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "text": "Tovin is in the **mill loft**, alive and free, standing beside the now-open hatch."
+        }
+      ],
+      "toolAttempts": [],
+      "diagnostics": [],
+      "narration": "Tovin is in the **mill loft**, alive and free, standing beside the now-open hatch.",
+      "before": {
+        "locationId": "mill-loft",
+        "status": "playing",
+        "discoveries": [
+          "ribbon-lead",
+          "dispatch-clue",
+          "hatch-clue"
+        ],
+        "milestones": [
+          "courier-freed"
+        ]
+      },
+      "after": {
+        "locationId": "mill-loft",
+        "status": "playing",
+        "discoveries": [
+          "ribbon-lead",
+          "dispatch-clue",
+          "hatch-clue"
+        ],
+        "milestones": [
+          "courier-freed"
+        ]
+      }
+    },
+    {
+      "sample": "rescue",
+      "stage": "ready",
+      "input": "I choose to send the dispatch quietly.",
+      "contentId": "floodwheel-rescue",
+      "contentVersion": "2",
+      "contentDigest": "sha256:699f7e539023aa0c0f432d4b3f42b3bcfeac49c2dcb6da6226df61cddde233d4",
+      "fileSha256": "ed2c1882a2e02211172578950ee4a965320656e84a393d81af04ef25cb56a4b3",
+      "seed": 0,
+      "setupActions": [
+        {
+          "name": "talk",
+          "argumentsJson": "{\"speakerId\":\"mira-vale\",\"topicId\":\"missing-courier\",\"approach\":\"persuade\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"mill-yard\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"wheelhouse\"}"
+        },
+        {
+          "name": "attack",
+          "argumentsJson": "{\"opponent_id\":\"wheelhouse-eel\"}"
+        },
+        {
+          "name": "search",
+          "argumentsJson": "{\"target\":\"sluice-ledger\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"mill-loft\"}"
+        },
+        {
+          "name": "search",
+          "argumentsJson": "{\"target\":\"jammed-hatch\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"wheelhouse\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"mill-yard\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"ford-village\"}"
+        }
+      ],
+      "engineVersion": "chapel-clues-engine-v7",
+      "rulesVersion": "chapel-clues-rules-v4",
+      "promptVersion": "chapel-clues-dm-v9",
+      "toolSchemaVersion": "chapel-clues-tools-v7",
+      "requests": [
+        {
+          "playerInput": "I choose to send the dispatch quietly.",
+          "scene": {
+            "title": "The Floodwheel Courier",
+            "objective": "Find Tovin in the abandoned watermill and decide how to handle the recovered dispatch.",
+            "outcome": "playing",
+            "room": {
+              "id": "ford-village",
+              "name": "Ford Village",
+              "description": "A rain-dark village clusters around a shallow ford and the road to an abandoned mill. Ending choices: Warn the ford publicly: The village posts watch lamps and closes the hazardous crossing. Send the dispatch quietly: The dispatch reaches the district office with the mill's failure recorded.",
+              "features": [
+                {
+                  "id": "wet-ribbon",
+                  "name": "wet ribbon",
+                  "description": "A strip of courier-blue ribbon is snagged on the ford marker."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "mill-yard",
+                  "name": "Mill Yard"
+                },
+                {
+                  "destinationId": "chapel-step",
+                  "name": "Chapel Step"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "mira-vale",
+                  "name": "Mira Vale",
+                  "condition": "living",
+                  "subjects": [
+                    {
+                      "id": "missing-courier",
+                      "name": "Missing courier"
+                    }
+                  ]
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "rescue-tovin",
+                "title": "Rescue Tovin Reed",
+                "status": "active",
+                "milestones": [
+                  "courier-freed"
+                ]
+              },
+              "discoveries": [
+                {
+                  "id": "ribbon-lead",
+                  "title": "Courier ribbon",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "wet-ribbon",
+                    "name": "wet ribbon",
+                    "locationId": "ford-village"
+                  },
+                  "summary": "The ribbon bears Tovin Reed's courier knot and was torn off recently.",
+                  "actionableLead": "Follow the muddy path toward the abandoned watermill."
+                },
+                {
+                  "id": "dispatch-clue",
+                  "title": "Water-damaged dispatch",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "sluice-ledger",
+                    "name": "sluice ledger",
+                    "locationId": "wheelhouse"
+                  },
+                  "summary": "The ledger conceals Tovin's sealed dispatch, which warns that the upstream sluice has failed and the courier road is unsafe.",
+                  "actionableLead": "Free Tovin, then return to the village to decide how to report the danger."
+                },
+                {
+                  "id": "hatch-clue",
+                  "title": "Pinned loft hatch",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "jammed-hatch",
+                    "name": "jammed hatch",
+                    "locationId": "mill-loft"
+                  },
+                  "summary": "The beam can be levered aside; someone is alive beyond the hatch.",
+                  "actionableLead": "Return to the village with Tovin and decide what to do with the dispatch."
+                }
+              ],
+              "actionableLeads": [
+                "Follow the muddy path toward the abandoned watermill.",
+                "Free Tovin, then return to the village to decide how to report the danger.",
+                "Return to the village with Tovin and decide what to do with the dispatch."
+              ]
+            },
+            "suggestions": [
+              "talk mira-vale missing-courier ask",
+              "move mill-yard",
+              "move chapel-step",
+              "resolve Warn the ford publicly",
+              "resolve Send the dispatch quietly"
+            ]
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "playing"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "wet-ribbon",
+                      "mill-yard",
+                      "chapel-step"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "talk",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "speakerId": {
+                    "type": "string",
+                    "enum": [
+                      "mira-vale"
+                    ]
+                  },
+                  "topicId": {
+                    "type": "string",
+                    "enum": [
+                      "missing-courier"
+                    ]
+                  },
+                  "approach": {
+                    "type": "string",
+                    "enum": [
+                      "ask",
+                      "persuade",
+                      "deceive",
+                      "intimidate"
+                    ]
+                  }
+                },
+                "required": [
+                  "speakerId",
+                  "topicId",
+                  "approach"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "move",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {
+                    "type": "string",
+                    "enum": [
+                      "mill-yard",
+                      "chapel-step"
+                    ]
+                  }
+                },
+                "required": [
+                  "destinationId"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "resolve_quest",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "resolutionId": {
+                    "type": "string",
+                    "enum": [
+                      "warn-the-ford",
+                      "send-dispatch"
+                    ]
+                  }
+                },
+                "required": [
+                  "resolutionId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": []
+        },
+        {
+          "playerInput": "I choose to send the dispatch quietly.",
+          "scene": {
+            "title": "The Floodwheel Courier",
+            "objective": "Find Tovin in the abandoned watermill and decide how to handle the recovered dispatch.",
+            "outcome": "victory",
+            "room": {
+              "id": "ford-village",
+              "name": "Ford Village",
+              "description": "A rain-dark village clusters around a shallow ford and the road to an abandoned mill. Resolution: You send Tovin's dispatch onward with a quiet note about the failed sluice and the road's danger. The dispatch reaches the district office with the mill's failure recorded. Tovin lives, and the recovered dispatch gives the village a choice about its dangerous ford.",
+              "features": [
+                {
+                  "id": "wet-ribbon",
+                  "name": "wet ribbon",
+                  "description": "A strip of courier-blue ribbon is snagged on the ford marker."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "mill-yard",
+                  "name": "Mill Yard"
+                },
+                {
+                  "destinationId": "chapel-step",
+                  "name": "Chapel Step"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "mira-vale",
+                  "name": "Mira Vale",
+                  "condition": "living",
+                  "subjects": [
+                    {
+                      "id": "missing-courier",
+                      "name": "Missing courier"
+                    }
+                  ]
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "rescue-tovin",
+                "title": "Rescue Tovin Reed",
+                "status": "resolved",
+                "milestones": [
+                  "courier-freed"
+                ]
+              },
+              "discoveries": [
+                {
+                  "id": "ribbon-lead",
+                  "title": "Courier ribbon",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "wet-ribbon",
+                    "name": "wet ribbon",
+                    "locationId": "ford-village"
+                  },
+                  "summary": "The ribbon bears Tovin Reed's courier knot and was torn off recently.",
+                  "actionableLead": "Follow the muddy path toward the abandoned watermill."
+                },
+                {
+                  "id": "dispatch-clue",
+                  "title": "Water-damaged dispatch",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "sluice-ledger",
+                    "name": "sluice ledger",
+                    "locationId": "wheelhouse"
+                  },
+                  "summary": "The ledger conceals Tovin's sealed dispatch, which warns that the upstream sluice has failed and the courier road is unsafe.",
+                  "actionableLead": "Free Tovin, then return to the village to decide how to report the danger."
+                },
+                {
+                  "id": "hatch-clue",
+                  "title": "Pinned loft hatch",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "jammed-hatch",
+                    "name": "jammed hatch",
+                    "locationId": "mill-loft"
+                  },
+                  "summary": "The beam can be levered aside; someone is alive beyond the hatch.",
+                  "actionableLead": "Return to the village with Tovin and decide what to do with the dispatch."
+                }
+              ],
+              "actionableLeads": [
+                "Follow the muddy path toward the abandoned watermill.",
+                "Free Tovin, then return to the village to decide how to report the danger.",
+                "Return to the village with Tovin and decide what to do with the dispatch."
+              ],
+              "ending": {
+                "id": "send-dispatch",
+                "fate": "courier-saved",
+                "casualties": [],
+                "consequences": [
+                  "dispatch-sent"
+                ],
+                "narration": "You send Tovin's dispatch onward with a quiet note about the failed sluice and the road's danger. The dispatch reaches the district office with the mill's failure recorded. Tovin lives, and the recovered dispatch gives the village a choice about its dangerous ford."
+              }
+            },
+            "suggestions": []
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "victory"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "wet-ribbon",
+                      "mill-yard",
+                      "chapel-step"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": [
+            {
+              "call": {
+                "id": "call_QMAnuouKh6A4kygKekX1I3ic",
+                "name": "resolve_quest",
+                "argumentsJson": "{\"resolutionId\":\"send-dispatch\"}"
+              },
+              "output": {
+                "ok": true,
+                "events": [
+                  {
+                    "type": "clue",
+                    "operation": "resolve",
+                    "text": "You send Tovin's dispatch onward with a quiet note about the failed sluice and the road's danger. The dispatch reaches the district office with the mill's failure recorded. Tovin lives, and the recovered dispatch gives the village a choice about its dangerous ford.",
+                    "target": "send-dispatch"
+                  }
+                ],
+                "scene": {
+                  "title": "The Floodwheel Courier",
+                  "objective": "Find Tovin in the abandoned watermill and decide how to handle the recovered dispatch.",
+                  "outcome": "victory",
+                  "room": {
+                    "id": "ford-village",
+                    "name": "Ford Village",
+                    "description": "A rain-dark village clusters around a shallow ford and the road to an abandoned mill. Resolution: You send Tovin's dispatch onward with a quiet note about the failed sluice and the road's danger. The dispatch reaches the district office with the mill's failure recorded. Tovin lives, and the recovered dispatch gives the village a choice about its dangerous ford.",
+                    "features": [
+                      {
+                        "id": "wet-ribbon",
+                        "name": "wet ribbon",
+                        "description": "A strip of courier-blue ribbon is snagged on the ford marker."
+                      }
+                    ],
+                    "exits": [
+                      {
+                        "destinationId": "mill-yard",
+                        "name": "Mill Yard"
+                      },
+                      {
+                        "destinationId": "chapel-step",
+                        "name": "Chapel Step"
+                      }
+                    ],
+                    "items": [],
+                    "opponents": [],
+                    "npcs": [
+                      {
+                        "id": "mira-vale",
+                        "name": "Mira Vale",
+                        "condition": "living",
+                        "subjects": [
+                          {
+                            "id": "missing-courier",
+                            "name": "Missing courier"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "journal": {
+                    "quest": {
+                      "id": "rescue-tovin",
+                      "title": "Rescue Tovin Reed",
+                      "status": "resolved",
+                      "milestones": [
+                        "courier-freed"
+                      ]
+                    },
+                    "discoveries": [
+                      {
+                        "id": "ribbon-lead",
+                        "title": "Courier ribbon",
+                        "classification": "observation",
+                        "source": {
+                          "type": "feature",
+                          "id": "wet-ribbon",
+                          "name": "wet ribbon",
+                          "locationId": "ford-village"
+                        },
+                        "summary": "The ribbon bears Tovin Reed's courier knot and was torn off recently.",
+                        "actionableLead": "Follow the muddy path toward the abandoned watermill."
+                      },
+                      {
+                        "id": "dispatch-clue",
+                        "title": "Water-damaged dispatch",
+                        "classification": "observation",
+                        "source": {
+                          "type": "feature",
+                          "id": "sluice-ledger",
+                          "name": "sluice ledger",
+                          "locationId": "wheelhouse"
+                        },
+                        "summary": "The ledger conceals Tovin's sealed dispatch, which warns that the upstream sluice has failed and the courier road is unsafe.",
+                        "actionableLead": "Free Tovin, then return to the village to decide how to report the danger."
+                      },
+                      {
+                        "id": "hatch-clue",
+                        "title": "Pinned loft hatch",
+                        "classification": "observation",
+                        "source": {
+                          "type": "feature",
+                          "id": "jammed-hatch",
+                          "name": "jammed hatch",
+                          "locationId": "mill-loft"
+                        },
+                        "summary": "The beam can be levered aside; someone is alive beyond the hatch.",
+                        "actionableLead": "Return to the village with Tovin and decide what to do with the dispatch."
+                      }
+                    ],
+                    "actionableLeads": [
+                      "Follow the muddy path toward the abandoned watermill.",
+                      "Free Tovin, then return to the village to decide how to report the danger.",
+                      "Return to the village with Tovin and decide what to do with the dispatch."
+                    ],
+                    "ending": {
+                      "id": "send-dispatch",
+                      "fate": "courier-saved",
+                      "casualties": [],
+                      "consequences": [
+                        "dispatch-sent"
+                      ],
+                      "narration": "You send Tovin's dispatch onward with a quiet note about the failed sluice and the road's danger. The dispatch reaches the district office with the mill's failure recorded. Tovin lives, and the recovered dispatch gives the village a choice about its dangerous ford."
+                    }
+                  },
+                  "suggestions": []
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "responses": [
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "toolCalls": [
+            {
+              "id": "call_QMAnuouKh6A4kygKekX1I3ic",
+              "name": "resolve_quest",
+              "argumentsJson": "{\"resolutionId\":\"send-dispatch\"}"
+            }
+          ]
+        },
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "text": "You send Tovin’s dispatch onward with a quiet note about the failed sluice and the road’s danger.\n\nThe dispatch reaches the district office with the mill’s failure recorded. Tovin lives, and the village now has a choice about its dangerous ford.\n\n**Victory — Courier saved.**"
+        }
+      ],
+      "toolAttempts": [
+        {
+          "call": {
+            "id": "call_QMAnuouKh6A4kygKekX1I3ic",
+            "name": "resolve_quest",
+            "argumentsJson": "{\"resolutionId\":\"send-dispatch\"}"
+          },
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          },
+          "modelOutput": {
+            "ok": true,
+            "events": [
+              {
+                "type": "clue",
+                "operation": "resolve",
+                "text": "You send Tovin's dispatch onward with a quiet note about the failed sluice and the road's danger. The dispatch reaches the district office with the mill's failure recorded. Tovin lives, and the recovered dispatch gives the village a choice about its dangerous ford.",
+                "target": "send-dispatch"
+              }
+            ],
+            "scene": {
+              "title": "The Floodwheel Courier",
+              "objective": "Find Tovin in the abandoned watermill and decide how to handle the recovered dispatch.",
+              "outcome": "victory",
+              "room": {
+                "id": "ford-village",
+                "name": "Ford Village",
+                "description": "A rain-dark village clusters around a shallow ford and the road to an abandoned mill. Resolution: You send Tovin's dispatch onward with a quiet note about the failed sluice and the road's danger. The dispatch reaches the district office with the mill's failure recorded. Tovin lives, and the recovered dispatch gives the village a choice about its dangerous ford.",
+                "features": [
+                  {
+                    "id": "wet-ribbon",
+                    "name": "wet ribbon",
+                    "description": "A strip of courier-blue ribbon is snagged on the ford marker."
+                  }
+                ],
+                "exits": [
+                  {
+                    "destinationId": "mill-yard",
+                    "name": "Mill Yard"
+                  },
+                  {
+                    "destinationId": "chapel-step",
+                    "name": "Chapel Step"
+                  }
+                ],
+                "items": [],
+                "opponents": [],
+                "npcs": [
+                  {
+                    "id": "mira-vale",
+                    "name": "Mira Vale",
+                    "condition": "living",
+                    "subjects": [
+                      {
+                        "id": "missing-courier",
+                        "name": "Missing courier"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "journal": {
+                "quest": {
+                  "id": "rescue-tovin",
+                  "title": "Rescue Tovin Reed",
+                  "status": "resolved",
+                  "milestones": [
+                    "courier-freed"
+                  ]
+                },
+                "discoveries": [
+                  {
+                    "id": "ribbon-lead",
+                    "title": "Courier ribbon",
+                    "classification": "observation",
+                    "source": {
+                      "type": "feature",
+                      "id": "wet-ribbon",
+                      "name": "wet ribbon",
+                      "locationId": "ford-village"
+                    },
+                    "summary": "The ribbon bears Tovin Reed's courier knot and was torn off recently.",
+                    "actionableLead": "Follow the muddy path toward the abandoned watermill."
+                  },
+                  {
+                    "id": "dispatch-clue",
+                    "title": "Water-damaged dispatch",
+                    "classification": "observation",
+                    "source": {
+                      "type": "feature",
+                      "id": "sluice-ledger",
+                      "name": "sluice ledger",
+                      "locationId": "wheelhouse"
+                    },
+                    "summary": "The ledger conceals Tovin's sealed dispatch, which warns that the upstream sluice has failed and the courier road is unsafe.",
+                    "actionableLead": "Free Tovin, then return to the village to decide how to report the danger."
+                  },
+                  {
+                    "id": "hatch-clue",
+                    "title": "Pinned loft hatch",
+                    "classification": "observation",
+                    "source": {
+                      "type": "feature",
+                      "id": "jammed-hatch",
+                      "name": "jammed hatch",
+                      "locationId": "mill-loft"
+                    },
+                    "summary": "The beam can be levered aside; someone is alive beyond the hatch.",
+                    "actionableLead": "Return to the village with Tovin and decide what to do with the dispatch."
+                  }
+                ],
+                "actionableLeads": [
+                  "Follow the muddy path toward the abandoned watermill.",
+                  "Free Tovin, then return to the village to decide how to report the danger.",
+                  "Return to the village with Tovin and decide what to do with the dispatch."
+                ],
+                "ending": {
+                  "id": "send-dispatch",
+                  "fate": "courier-saved",
+                  "casualties": [],
+                  "consequences": [
+                    "dispatch-sent"
+                  ],
+                  "narration": "You send Tovin's dispatch onward with a quiet note about the failed sluice and the road's danger. The dispatch reaches the district office with the mill's failure recorded. Tovin lives, and the recovered dispatch gives the village a choice about its dangerous ford."
+                }
+              },
+              "suggestions": []
+            }
+          }
+        }
+      ],
+      "diagnostics": [],
+      "narration": "You send Tovin’s dispatch onward with a quiet note about the failed sluice and the road’s danger.\n\nThe dispatch reaches the district office with the mill’s failure recorded. Tovin lives, and the village now has a choice about its dangerous ford.\n\n**Victory — Courier saved.**",
+      "before": {
+        "locationId": "ford-village",
+        "status": "playing",
+        "discoveries": [
+          "ribbon-lead",
+          "dispatch-clue",
+          "hatch-clue"
+        ],
+        "milestones": [
+          "courier-freed"
+        ]
+      },
+      "after": {
+        "locationId": "ford-village",
+        "status": "victory",
+        "endingId": "send-dispatch",
+        "discoveries": [
+          "ribbon-lead",
+          "dispatch-clue",
+          "hatch-clue"
+        ],
+        "milestones": [
+          "courier-freed"
+        ]
+      }
+    },
+    {
+      "sample": "negotiation",
+      "stage": "start",
+      "input": "I return the bell to Brackenford and clear Willowbank.",
+      "contentId": "marsh-bell-dispute",
+      "contentVersion": "2",
+      "contentDigest": "sha256:66a10a0173009b6d5f9ac85ce674ced6d1d256eb5762571aa99cd612a49103ab",
+      "fileSha256": "16cf99edf90507ae93833fdda6d425d7d608c78878b143534024ec641e50f43b",
+      "seed": 0,
+      "setupActions": [],
+      "engineVersion": "chapel-clues-engine-v7",
+      "rulesVersion": "chapel-clues-rules-v4",
+      "promptVersion": "chapel-clues-dm-v9",
+      "toolSchemaVersion": "chapel-clues-tools-v7",
+      "requests": [
+        {
+          "playerInput": "I return the bell to Brackenford and clear Willowbank.",
+          "scene": {
+            "title": "The Bell Beneath the Reeds",
+            "objective": "Trace the missing bell's path and settle the dispute between Brackenford and Willowbank.",
+            "outcome": "playing",
+            "room": {
+              "id": "brackenford-square",
+              "name": "Brackenford Square",
+              "description": "Villagers argue beneath the empty wooden bell frame.",
+              "features": [
+                {
+                  "id": "quarrel-board",
+                  "name": "dispute notice",
+                  "description": "A rain-spotted notice bears both village seals and asks for an impartial settlement."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "reed-ferry",
+                  "name": "Reed Ferry"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "bracken-warden",
+                  "name": "Warden Tovin",
+                  "condition": "living",
+                  "subjects": []
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "settle-bell-dispute",
+                "title": "Settle the Bell Dispute",
+                "status": "active",
+                "milestones": []
+              },
+              "discoveries": [
+                {
+                  "id": "quarrel-notice",
+                  "title": "A public quarrel",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "quarrel-board",
+                    "name": "dispute notice",
+                    "locationId": "brackenford-square"
+                  },
+                  "summary": "The notice says Brackenford's bronze bell vanished overnight, and Willowbank is accused of stealing it.",
+                  "actionableLead": "Follow the marsh route between the two villages."
+                }
+              ],
+              "actionableLeads": [
+                "Follow the marsh route between the two villages."
+              ]
+            },
+            "suggestions": [
+              "move reed-ferry"
+            ]
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "playing"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "quarrel-board",
+                      "reed-ferry"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "move",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {
+                    "type": "string",
+                    "enum": [
+                      "reed-ferry"
+                    ]
+                  }
+                },
+                "required": [
+                  "destinationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": []
+        }
+      ],
+      "responses": [
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "text": "You don’t have the bell, and the dispute has not yet been resolved. The notice only establishes the accusation and points toward the marsh route.\n\nYou can either **inspect the dispute notice** for more context or **travel to Reed Ferry** to follow the lead."
+        }
+      ],
+      "toolAttempts": [],
+      "diagnostics": [],
+      "narration": "You don’t have the bell, and the dispute has not yet been resolved. The notice only establishes the accusation and points toward the marsh route.\n\nYou can either **inspect the dispute notice** for more context or **travel to Reed Ferry** to follow the lead.",
+      "before": {
+        "locationId": "brackenford-square",
+        "status": "playing",
+        "discoveries": [
+          "quarrel-notice"
+        ],
+        "milestones": []
+      },
+      "after": {
+        "locationId": "brackenford-square",
+        "status": "playing",
+        "discoveries": [
+          "quarrel-notice"
+        ],
+        "milestones": []
+      }
+    },
+    {
+      "sample": "negotiation",
+      "stage": "ready",
+      "input": "Settle the dispute.",
+      "contentId": "marsh-bell-dispute",
+      "contentVersion": "2",
+      "contentDigest": "sha256:66a10a0173009b6d5f9ac85ce674ced6d1d256eb5762571aa99cd612a49103ab",
+      "fileSha256": "16cf99edf90507ae93833fdda6d425d7d608c78878b143534024ec641e50f43b",
+      "seed": 0,
+      "setupActions": [
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"reed-ferry\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"old-bell-tower\"}"
+        },
+        {
+          "name": "attack",
+          "argumentsJson": "{\"opponent_id\":\"tower-kite\"}"
+        },
+        {
+          "name": "attack",
+          "argumentsJson": "{\"opponent_id\":\"tower-kite\"}"
+        },
+        {
+          "name": "search",
+          "argumentsJson": "{\"target\":\"tower-nest\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"reed-ferry\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"brackenford-square\"}"
+        }
+      ],
+      "engineVersion": "chapel-clues-engine-v7",
+      "rulesVersion": "chapel-clues-rules-v4",
+      "promptVersion": "chapel-clues-dm-v9",
+      "toolSchemaVersion": "chapel-clues-tools-v7",
+      "requests": [
+        {
+          "playerInput": "Settle the dispute.",
+          "scene": {
+            "title": "The Bell Beneath the Reeds",
+            "objective": "Trace the missing bell's path and settle the dispute between Brackenford and Willowbank.",
+            "outcome": "playing",
+            "room": {
+              "id": "brackenford-square",
+              "name": "Brackenford Square",
+              "description": "Villagers argue beneath the empty wooden bell frame. Ending choices: Propose a shared repair: Willowbank and Brackenford jointly mend the rope and hang the recovered bell between their roads. Return the bell and clear Willowbank: Brackenford takes back its bell and publicly withdraws the accusation against Willowbank.",
+              "features": [
+                {
+                  "id": "quarrel-board",
+                  "name": "dispute notice",
+                  "description": "A rain-spotted notice bears both village seals and asks for an impartial settlement."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "reed-ferry",
+                  "name": "Reed Ferry"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "bracken-warden",
+                  "name": "Warden Tovin",
+                  "condition": "living",
+                  "subjects": []
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "settle-bell-dispute",
+                "title": "Settle the Bell Dispute",
+                "status": "active",
+                "milestones": [
+                  "bell-located"
+                ]
+              },
+              "discoveries": [
+                {
+                  "id": "quarrel-notice",
+                  "title": "A public quarrel",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "quarrel-board",
+                    "name": "dispute notice",
+                    "locationId": "brackenford-square"
+                  },
+                  "summary": "The notice says Brackenford's bronze bell vanished overnight, and Willowbank is accused of stealing it.",
+                  "actionableLead": "Follow the marsh route between the two villages."
+                },
+                {
+                  "id": "bell-recovered",
+                  "title": "Bell in the nest",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "tower-nest",
+                    "name": "tower nest",
+                    "locationId": "old-bell-tower"
+                  },
+                  "summary": "The missing bell is lodged in a marsh kite's tower nest, hauled there after the ferry rope snagged it.",
+                  "actionableLead": "Return to Brackenford with the bell's true story."
+                }
+              ],
+              "actionableLeads": [
+                "Follow the marsh route between the two villages.",
+                "Return to Brackenford with the bell's true story."
+              ]
+            },
+            "suggestions": [
+              "move reed-ferry",
+              "resolve Propose a shared repair",
+              "resolve Return the bell and clear Willowbank"
+            ]
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "playing"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "quarrel-board",
+                      "reed-ferry"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "move",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {
+                    "type": "string",
+                    "enum": [
+                      "reed-ferry"
+                    ]
+                  }
+                },
+                "required": [
+                  "destinationId"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "resolve_quest",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "resolutionId": {
+                    "type": "string",
+                    "enum": [
+                      "shared-repair",
+                      "clear-willowbank"
+                    ]
+                  }
+                },
+                "required": [
+                  "resolutionId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": []
+        }
+      ],
+      "responses": [
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "text": "Which resolution do you choose?\n\n1. **Propose a shared repair:** Willowbank and Brackenford jointly mend the rope and hang the recovered bell between their roads.\n2. **Return the bell and clear Willowbank:** Brackenford takes back its bell and publicly withdraws the accusation against Willowbank."
+        }
+      ],
+      "toolAttempts": [],
+      "diagnostics": [],
+      "narration": "Which resolution do you choose?\n\n1. **Propose a shared repair:** Willowbank and Brackenford jointly mend the rope and hang the recovered bell between their roads.\n2. **Return the bell and clear Willowbank:** Brackenford takes back its bell and publicly withdraws the accusation against Willowbank.",
+      "before": {
+        "locationId": "brackenford-square",
+        "status": "playing",
+        "discoveries": [
+          "quarrel-notice",
+          "bell-recovered"
+        ],
+        "milestones": [
+          "bell-located"
+        ]
+      },
+      "after": {
+        "locationId": "brackenford-square",
+        "status": "playing",
+        "discoveries": [
+          "quarrel-notice",
+          "bell-recovered"
+        ],
+        "milestones": [
+          "bell-located"
+        ]
+      }
+    },
+    {
+      "sample": "negotiation",
+      "stage": "ready",
+      "input": "I choose to return the bell and clear Willowbank.",
+      "contentId": "marsh-bell-dispute",
+      "contentVersion": "2",
+      "contentDigest": "sha256:66a10a0173009b6d5f9ac85ce674ced6d1d256eb5762571aa99cd612a49103ab",
+      "fileSha256": "16cf99edf90507ae93833fdda6d425d7d608c78878b143534024ec641e50f43b",
+      "seed": 0,
+      "setupActions": [
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"reed-ferry\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"old-bell-tower\"}"
+        },
+        {
+          "name": "attack",
+          "argumentsJson": "{\"opponent_id\":\"tower-kite\"}"
+        },
+        {
+          "name": "attack",
+          "argumentsJson": "{\"opponent_id\":\"tower-kite\"}"
+        },
+        {
+          "name": "search",
+          "argumentsJson": "{\"target\":\"tower-nest\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"reed-ferry\"}"
+        },
+        {
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"brackenford-square\"}"
+        }
+      ],
+      "engineVersion": "chapel-clues-engine-v7",
+      "rulesVersion": "chapel-clues-rules-v4",
+      "promptVersion": "chapel-clues-dm-v9",
+      "toolSchemaVersion": "chapel-clues-tools-v7",
+      "requests": [
+        {
+          "playerInput": "I choose to return the bell and clear Willowbank.",
+          "scene": {
+            "title": "The Bell Beneath the Reeds",
+            "objective": "Trace the missing bell's path and settle the dispute between Brackenford and Willowbank.",
+            "outcome": "playing",
+            "room": {
+              "id": "brackenford-square",
+              "name": "Brackenford Square",
+              "description": "Villagers argue beneath the empty wooden bell frame. Ending choices: Propose a shared repair: Willowbank and Brackenford jointly mend the rope and hang the recovered bell between their roads. Return the bell and clear Willowbank: Brackenford takes back its bell and publicly withdraws the accusation against Willowbank.",
+              "features": [
+                {
+                  "id": "quarrel-board",
+                  "name": "dispute notice",
+                  "description": "A rain-spotted notice bears both village seals and asks for an impartial settlement."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "reed-ferry",
+                  "name": "Reed Ferry"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "bracken-warden",
+                  "name": "Warden Tovin",
+                  "condition": "living",
+                  "subjects": []
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "settle-bell-dispute",
+                "title": "Settle the Bell Dispute",
+                "status": "active",
+                "milestones": [
+                  "bell-located"
+                ]
+              },
+              "discoveries": [
+                {
+                  "id": "quarrel-notice",
+                  "title": "A public quarrel",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "quarrel-board",
+                    "name": "dispute notice",
+                    "locationId": "brackenford-square"
+                  },
+                  "summary": "The notice says Brackenford's bronze bell vanished overnight, and Willowbank is accused of stealing it.",
+                  "actionableLead": "Follow the marsh route between the two villages."
+                },
+                {
+                  "id": "bell-recovered",
+                  "title": "Bell in the nest",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "tower-nest",
+                    "name": "tower nest",
+                    "locationId": "old-bell-tower"
+                  },
+                  "summary": "The missing bell is lodged in a marsh kite's tower nest, hauled there after the ferry rope snagged it.",
+                  "actionableLead": "Return to Brackenford with the bell's true story."
+                }
+              ],
+              "actionableLeads": [
+                "Follow the marsh route between the two villages.",
+                "Return to Brackenford with the bell's true story."
+              ]
+            },
+            "suggestions": [
+              "move reed-ferry",
+              "resolve Propose a shared repair",
+              "resolve Return the bell and clear Willowbank"
+            ]
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "playing"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "quarrel-board",
+                      "reed-ferry"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "move",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {
+                    "type": "string",
+                    "enum": [
+                      "reed-ferry"
+                    ]
+                  }
+                },
+                "required": [
+                  "destinationId"
+                ],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "resolve_quest",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "resolutionId": {
+                    "type": "string",
+                    "enum": [
+                      "shared-repair",
+                      "clear-willowbank"
+                    ]
+                  }
+                },
+                "required": [
+                  "resolutionId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": []
+        },
+        {
+          "playerInput": "I choose to return the bell and clear Willowbank.",
+          "scene": {
+            "title": "The Bell Beneath the Reeds",
+            "objective": "Trace the missing bell's path and settle the dispute between Brackenford and Willowbank.",
+            "outcome": "victory",
+            "room": {
+              "id": "brackenford-square",
+              "name": "Brackenford Square",
+              "description": "Villagers argue beneath the empty wooden bell frame. Resolution: You return the bell to Brackenford while clearing Willowbank of theft. Brackenford takes back its bell and publicly withdraws the accusation against Willowbank. The marsh villages receive a settlement grounded in the bell's true path.",
+              "features": [
+                {
+                  "id": "quarrel-board",
+                  "name": "dispute notice",
+                  "description": "A rain-spotted notice bears both village seals and asks for an impartial settlement."
+                }
+              ],
+              "exits": [
+                {
+                  "destinationId": "reed-ferry",
+                  "name": "Reed Ferry"
+                }
+              ],
+              "items": [],
+              "opponents": [],
+              "npcs": [
+                {
+                  "id": "bracken-warden",
+                  "name": "Warden Tovin",
+                  "condition": "living",
+                  "subjects": []
+                }
+              ]
+            },
+            "journal": {
+              "quest": {
+                "id": "settle-bell-dispute",
+                "title": "Settle the Bell Dispute",
+                "status": "resolved",
+                "milestones": [
+                  "bell-located"
+                ]
+              },
+              "discoveries": [
+                {
+                  "id": "quarrel-notice",
+                  "title": "A public quarrel",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "quarrel-board",
+                    "name": "dispute notice",
+                    "locationId": "brackenford-square"
+                  },
+                  "summary": "The notice says Brackenford's bronze bell vanished overnight, and Willowbank is accused of stealing it.",
+                  "actionableLead": "Follow the marsh route between the two villages."
+                },
+                {
+                  "id": "bell-recovered",
+                  "title": "Bell in the nest",
+                  "classification": "observation",
+                  "source": {
+                    "type": "feature",
+                    "id": "tower-nest",
+                    "name": "tower nest",
+                    "locationId": "old-bell-tower"
+                  },
+                  "summary": "The missing bell is lodged in a marsh kite's tower nest, hauled there after the ferry rope snagged it.",
+                  "actionableLead": "Return to Brackenford with the bell's true story."
+                }
+              ],
+              "actionableLeads": [
+                "Follow the marsh route between the two villages.",
+                "Return to Brackenford with the bell's true story."
+              ],
+              "ending": {
+                "id": "clear-willowbank",
+                "fate": "truth-settled",
+                "casualties": [],
+                "consequences": [
+                  "willowbank-cleared"
+                ],
+                "narration": "You return the bell to Brackenford while clearing Willowbank of theft. Brackenford takes back its bell and publicly withdraws the accusation against Willowbank. The marsh villages receive a settlement grounded in the bell's true path."
+              }
+            },
+            "suggestions": []
+          },
+          "characterStatus": {
+            "hp": 20,
+            "maxHp": 20,
+            "equipment": [],
+            "collectedItems": [],
+            "outcome": "victory"
+          },
+          "tools": [
+            {
+              "name": "look",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_character_status",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "get_journal",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            {
+              "name": "inspect",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string",
+                    "enum": [
+                      "quarrel-board",
+                      "reed-ferry"
+                    ]
+                  }
+                },
+                "required": [
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ],
+          "toolResults": [
+            {
+              "call": {
+                "id": "call_WSBKGzwYkzR6dyZnKIanGOIJ",
+                "name": "resolve_quest",
+                "argumentsJson": "{\"resolutionId\":\"clear-willowbank\"}"
+              },
+              "output": {
+                "ok": true,
+                "events": [
+                  {
+                    "type": "clue",
+                    "operation": "resolve",
+                    "text": "You return the bell to Brackenford while clearing Willowbank of theft. Brackenford takes back its bell and publicly withdraws the accusation against Willowbank. The marsh villages receive a settlement grounded in the bell's true path.",
+                    "target": "clear-willowbank"
+                  }
+                ],
+                "scene": {
+                  "title": "The Bell Beneath the Reeds",
+                  "objective": "Trace the missing bell's path and settle the dispute between Brackenford and Willowbank.",
+                  "outcome": "victory",
+                  "room": {
+                    "id": "brackenford-square",
+                    "name": "Brackenford Square",
+                    "description": "Villagers argue beneath the empty wooden bell frame. Resolution: You return the bell to Brackenford while clearing Willowbank of theft. Brackenford takes back its bell and publicly withdraws the accusation against Willowbank. The marsh villages receive a settlement grounded in the bell's true path.",
+                    "features": [
+                      {
+                        "id": "quarrel-board",
+                        "name": "dispute notice",
+                        "description": "A rain-spotted notice bears both village seals and asks for an impartial settlement."
+                      }
+                    ],
+                    "exits": [
+                      {
+                        "destinationId": "reed-ferry",
+                        "name": "Reed Ferry"
+                      }
+                    ],
+                    "items": [],
+                    "opponents": [],
+                    "npcs": [
+                      {
+                        "id": "bracken-warden",
+                        "name": "Warden Tovin",
+                        "condition": "living",
+                        "subjects": []
+                      }
+                    ]
+                  },
+                  "journal": {
+                    "quest": {
+                      "id": "settle-bell-dispute",
+                      "title": "Settle the Bell Dispute",
+                      "status": "resolved",
+                      "milestones": [
+                        "bell-located"
+                      ]
+                    },
+                    "discoveries": [
+                      {
+                        "id": "quarrel-notice",
+                        "title": "A public quarrel",
+                        "classification": "observation",
+                        "source": {
+                          "type": "feature",
+                          "id": "quarrel-board",
+                          "name": "dispute notice",
+                          "locationId": "brackenford-square"
+                        },
+                        "summary": "The notice says Brackenford's bronze bell vanished overnight, and Willowbank is accused of stealing it.",
+                        "actionableLead": "Follow the marsh route between the two villages."
+                      },
+                      {
+                        "id": "bell-recovered",
+                        "title": "Bell in the nest",
+                        "classification": "observation",
+                        "source": {
+                          "type": "feature",
+                          "id": "tower-nest",
+                          "name": "tower nest",
+                          "locationId": "old-bell-tower"
+                        },
+                        "summary": "The missing bell is lodged in a marsh kite's tower nest, hauled there after the ferry rope snagged it.",
+                        "actionableLead": "Return to Brackenford with the bell's true story."
+                      }
+                    ],
+                    "actionableLeads": [
+                      "Follow the marsh route between the two villages.",
+                      "Return to Brackenford with the bell's true story."
+                    ],
+                    "ending": {
+                      "id": "clear-willowbank",
+                      "fate": "truth-settled",
+                      "casualties": [],
+                      "consequences": [
+                        "willowbank-cleared"
+                      ],
+                      "narration": "You return the bell to Brackenford while clearing Willowbank of theft. Brackenford takes back its bell and publicly withdraws the accusation against Willowbank. The marsh villages receive a settlement grounded in the bell's true path."
+                    }
+                  },
+                  "suggestions": []
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "responses": [
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "toolCalls": [
+            {
+              "id": "call_WSBKGzwYkzR6dyZnKIanGOIJ",
+              "name": "resolve_quest",
+              "argumentsJson": "{\"resolutionId\":\"clear-willowbank\"}"
+            }
+          ]
+        },
+        {
+          "actualModel": "gpt-5.6-luna",
+          "status": "completed",
+          "text": "You return the bell to Brackenford and reveal its true path, clearing Willowbank of theft. Brackenford withdraws the accusation publicly, and the marsh villages reach a just settlement.\n\n**Victory — truth settled.**"
+        }
+      ],
+      "toolAttempts": [
+        {
+          "call": {
+            "id": "call_WSBKGzwYkzR6dyZnKIanGOIJ",
+            "name": "resolve_quest",
+            "argumentsJson": "{\"resolutionId\":\"clear-willowbank\"}"
+          },
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          },
+          "modelOutput": {
+            "ok": true,
+            "events": [
+              {
+                "type": "clue",
+                "operation": "resolve",
+                "text": "You return the bell to Brackenford while clearing Willowbank of theft. Brackenford takes back its bell and publicly withdraws the accusation against Willowbank. The marsh villages receive a settlement grounded in the bell's true path.",
+                "target": "clear-willowbank"
+              }
+            ],
+            "scene": {
+              "title": "The Bell Beneath the Reeds",
+              "objective": "Trace the missing bell's path and settle the dispute between Brackenford and Willowbank.",
+              "outcome": "victory",
+              "room": {
+                "id": "brackenford-square",
+                "name": "Brackenford Square",
+                "description": "Villagers argue beneath the empty wooden bell frame. Resolution: You return the bell to Brackenford while clearing Willowbank of theft. Brackenford takes back its bell and publicly withdraws the accusation against Willowbank. The marsh villages receive a settlement grounded in the bell's true path.",
+                "features": [
+                  {
+                    "id": "quarrel-board",
+                    "name": "dispute notice",
+                    "description": "A rain-spotted notice bears both village seals and asks for an impartial settlement."
+                  }
+                ],
+                "exits": [
+                  {
+                    "destinationId": "reed-ferry",
+                    "name": "Reed Ferry"
+                  }
+                ],
+                "items": [],
+                "opponents": [],
+                "npcs": [
+                  {
+                    "id": "bracken-warden",
+                    "name": "Warden Tovin",
+                    "condition": "living",
+                    "subjects": []
+                  }
+                ]
+              },
+              "journal": {
+                "quest": {
+                  "id": "settle-bell-dispute",
+                  "title": "Settle the Bell Dispute",
+                  "status": "resolved",
+                  "milestones": [
+                    "bell-located"
+                  ]
+                },
+                "discoveries": [
+                  {
+                    "id": "quarrel-notice",
+                    "title": "A public quarrel",
+                    "classification": "observation",
+                    "source": {
+                      "type": "feature",
+                      "id": "quarrel-board",
+                      "name": "dispute notice",
+                      "locationId": "brackenford-square"
+                    },
+                    "summary": "The notice says Brackenford's bronze bell vanished overnight, and Willowbank is accused of stealing it.",
+                    "actionableLead": "Follow the marsh route between the two villages."
+                  },
+                  {
+                    "id": "bell-recovered",
+                    "title": "Bell in the nest",
+                    "classification": "observation",
+                    "source": {
+                      "type": "feature",
+                      "id": "tower-nest",
+                      "name": "tower nest",
+                      "locationId": "old-bell-tower"
+                    },
+                    "summary": "The missing bell is lodged in a marsh kite's tower nest, hauled there after the ferry rope snagged it.",
+                    "actionableLead": "Return to Brackenford with the bell's true story."
+                  }
+                ],
+                "actionableLeads": [
+                  "Follow the marsh route between the two villages.",
+                  "Return to Brackenford with the bell's true story."
+                ],
+                "ending": {
+                  "id": "clear-willowbank",
+                  "fate": "truth-settled",
+                  "casualties": [],
+                  "consequences": [
+                    "willowbank-cleared"
+                  ],
+                  "narration": "You return the bell to Brackenford while clearing Willowbank of theft. Brackenford takes back its bell and publicly withdraws the accusation against Willowbank. The marsh villages receive a settlement grounded in the bell's true path."
+                }
+              },
+              "suggestions": []
+            }
+          }
+        }
+      ],
+      "diagnostics": [],
+      "narration": "You return the bell to Brackenford and reveal its true path, clearing Willowbank of theft. Brackenford withdraws the accusation publicly, and the marsh villages reach a just settlement.\n\n**Victory — truth settled.**",
+      "before": {
+        "locationId": "brackenford-square",
+        "status": "playing",
+        "discoveries": [
+          "quarrel-notice",
+          "bell-recovered"
+        ],
+        "milestones": [
+          "bell-located"
+        ]
+      },
+      "after": {
+        "locationId": "brackenford-square",
+        "status": "victory",
+        "endingId": "clear-willowbank",
+        "discoveries": [
+          "quarrel-notice",
+          "bell-recovered"
+        ],
+        "milestones": [
+          "bell-located"
+        ]
+      }
+    }
+  ]
+}
