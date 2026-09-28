@@ -525,6 +525,39 @@ export function createChapelCluesRuntime(
         : ""
     }${state.ending === undefined ? "" : `\nResolution: ${state.ending.narration}`}`;
   };
+  const commandHints = (state: ClueState) => {
+    const { features, exits, npcs } = visible(state);
+    const topic = npcs.flatMap((npc) =>
+      npc.topics
+        .filter((entry) => eligible(state, entry.when))
+        .map((entry) => `talk ${npc.id} ${entry.id} ask`),
+    )[0];
+    const feature = searchableFeatures(state)[0];
+    const evidence =
+      feature === undefined
+        ? features[0] === undefined
+          ? undefined
+          : `inspect ${features[0].id}`
+        : `search ${feature.id}`;
+    const item = visibleItems(state)[0];
+    const ending = endingChoices(state)[0];
+    const actions =
+      activeOpponent(state) === undefined
+        ? [
+            evidence,
+            topic,
+            item === undefined ? undefined : `take ${item.id}`,
+            exits[0] === undefined ? undefined : `move ${exits[0].id}`,
+            ending === undefined ? undefined : `resolve ${ending.label}`,
+          ]
+        : [`attack ${activeOpponent(state)}`];
+    return `Try: ${
+      actions
+        .filter((action) => action !== undefined)
+        .slice(0, 5)
+        .join("; ") || "journal"
+    }. Clues go in your journal${definition.items === undefined ? "; this adventure has no portable inventory items" : "; portable items go in your inventory"}.`;
+  };
   const scene = (state: ClueState) => {
     const { room: here, features, exits, npcs, remains } = visible(state);
     return {
@@ -1754,14 +1787,15 @@ export function createChapelCluesRuntime(
     },
     handleAction,
     renderIntroduction: () =>
-      `${definition.title}\n${definition.introduction}\nObjective: ${definition.objective}\nCommands: look, inspect <target>, search <${casualtiesEnabled ? "feature or remains" : "feature"}>, talk <person> <topic> <approach>, move <exit>, ${definition.items === undefined ? "" : "take <item>, use <item>, "}${combatEnabled ? `attack <${casualtiesEnabled ? "monster or person" : "monster"}>, ` : ""}${endingsEnabled ? "resolve <choice>, " : ""}journal, status, inventory, help, quit.`,
+      `${definition.title}\n${definition.introduction}\nObjective: ${definition.objective}\nCommands: look, inspect <target>, search <${casualtiesEnabled ? "feature or remains" : "feature"}>, talk <person> <topic> <approach>, move <exit>, ${definition.items === undefined ? "" : "take <item>, use <item>, "}${combatEnabled ? `attack <${casualtiesEnabled ? "monster or person" : "monster"}>, ` : ""}${endingsEnabled ? "resolve <choice>, " : ""}journal, status, inventory, help, quit. Type look for copyable actions. Clues go in the journal${definition.items === undefined ? "; this adventure has no portable inventory items" : "; portable items go in inventory"}.`,
     renderStateSummary: (input) =>
       `HP: ${stateOf(input).fighter.hp}/${stateOf(input).fighter.maxHp}.`,
     renderResult(result): string {
       if (result.rejection !== undefined) {
-        return `Action unavailable: ${result.rejection.reason}.`;
+        const state = stateOf(result.state);
+        return `Action unavailable: ${result.rejection.reason}.${state.status === "playing" ? ` ${commandHints(state)}` : ""}`;
       }
-      return result.events
+      const rendered = result.events
         .map((entry) =>
           entry.type === "clue"
             ? entry.text
@@ -1772,6 +1806,12 @@ export function createChapelCluesRuntime(
                 : "",
         )
         .join("\n");
+      return result.events.some(
+        (entry) =>
+          entry.type === "clue" && ["look", "help"].includes(entry.operation),
+      )
+        ? `${rendered}\n${commandHints(stateOf(result.state))}`
+        : rendered;
     },
     projectDmScene: (input) => scene(stateOf(input)),
     projectCharacterStatus: (input) => status(stateOf(input)),

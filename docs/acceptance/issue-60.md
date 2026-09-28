@@ -22,7 +22,9 @@ The negotiation document originally allowed either ending after a ferry clue, in
 
 ## Unfamiliar-player sessions
 
-The user will arrange unfamiliar players. **No unfamiliar-player result has been collected yet.** Give each player the [player sheet](issue-60-player-sheet.md) and one assigned file. Do not expose the JSON or route tests before play. Assign at least one player to each premise, vary the order for players who try more than one, and record the sheet's goal clarity, clue discovery, completion, choice recognition, contradictions or dead ends, and desire to finish. Avoid coaching beyond terminal operation. If a player stops, record that outcome rather than treating an automated route as their completion. Add the anonymized observations, actual durations, sample sizes, corrections, reruns, and unresolved findings here before claiming player qualification.
+The user arranged three unfamiliar players. **All three quit before completion** because they could not work out what to do. All struggled to talk to anyone and found the precise command format annoying. One reported that no take or collect command was available. These are the only reported observations: premise assignment, exact inputs, goal and clue understanding, choice recognition, elapsed time, and transcripts were not captured. Do not infer those missing details or treat a route witness as a player completion. The player-experience gate failed at 0/3 completions. A second unfamiliar-player round after the command changes is outstanding.
+
+Give each future player the [player sheet](issue-60-player-sheet.md) and one assigned file. Do not expose the JSON or route tests before play. Assign at least one player to each premise, vary the order for players who try more than one, and record the sheet's goal clarity, clue discovery, completion, choice recognition, contradictions or dead ends, and desire to finish. Avoid coaching beyond terminal operation. If a player stops, record that outcome. Add the anonymized observations, actual durations, sample sizes, corrections, reruns, and unresolved findings here before claiming player qualification.
 
 ### Player setup
 
@@ -37,6 +39,16 @@ node dist/cli.js --adventure-file docs/acceptance/issue-60-samples/negotiation.j
 ```
 
 Run one of the three `node` commands per assigned session. The player may type `help`, `look`, `journal`, and `status`. A live AI session adds `--ai` and requires `OPENAI_API_KEY`. The seed is for reproducibility, not a route hint. Keep each session's trace in an ignored location if needed for diagnosis.
+
+For the next round, create an ignored trace directory and append a unique `--trace` path to each player's command (for example, `--trace .scratch/issue-60/player-1.json`). The game writes the trace when the session ends, including if the player quits. Ask before sharing a trace if a player entered personal information.
+
+```powershell
+New-Item -ItemType Directory -Force .scratch/issue-60 | Out-Null
+```
+
+### Command-friction regression
+
+`node --test tests/issue-60-feedback.test.mjs` reproduces the reported CLI blockers: the old first `look` offered no copyable actions; `talk to Mira about the missing courier` returned `invisible-target`; and `collect the ferry mud` returned `unknown-command`. The data runtime now lists current, copyable commands after `look`, `help`, and rejected actions. It explains that evidence goes in the journal and that these samples have no portable inventory items. A test checks that the suggested conversation and evidence commands work. Natural talk phrasing and `collect` still reject; the player must use the displayed commands. A parser change would alter the meaning of existing v7 traces, so this compatibility-sensitive part of the feedback remains unresolved. The regression suite replays a trace produced by the released parser to guard its existing meaning. These automated checks do **not** show that unfamiliar players can now understand or enjoy the game.
 
 ## Editorial review
 
@@ -54,4 +66,4 @@ The samples contain no item entities, so item pickup or consumption continuity w
 
 ## Verification and remaining qualification
 
-Focused tests: `npm.cmd run build` and `node --test tests/issue-60.test.mjs` (five passing tests, including six command/replay journeys). Canonical `npm.cmd run verify`: all seven gates passed with zero warnings and 411 automated tests. Unfamiliar-player responses, any necessary reruns after their findings, broad story enjoyment, and reliability on unseen premises remain outstanding. Generated content can still contain semantic inconsistencies that schema and route checks do not detect.
+For the original reviewed sample, `npm.cmd run build` and `node --test tests/issue-60.test.mjs` passed five tests, including six command/replay journeys. Its canonical `npm.cmd run verify` passed all seven gates with zero warnings and 411 automated tests. Verification of the subsequent command-hint changes is recorded with the implementation handoff. Another unfamiliar-player round, any corrections it identifies, broad story enjoyment, and reliability on unseen premises remain outstanding. Generated content can still contain semantic inconsistencies that schema and route checks do not detect.
