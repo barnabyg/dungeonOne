@@ -188,8 +188,18 @@ function command(step, document) {
 async function checkReplay(file, document, routes, run) {
   const tracePaths = [];
   try {
-    for (const [ending, witness] of Object.entries(routes.endings)) {
-      const trace = join(ROOT, `trace-${run}-${ending}.json`);
+    const witnesses = {
+      ...routes.endings,
+      ...(routes.physicalAfterFailure === undefined
+        ? {}
+        : { physicalAfterFailure: routes.physicalAfterFailure }),
+    };
+    for (const [name, witness] of Object.entries(witnesses)) {
+      const ending = witness.steps.at(-1)?.state.ending?.id;
+      if (ending === undefined) {
+        return { ok: false, code: "witness-missing-ending" };
+      }
+      const trace = join(ROOT, `trace-${run}-${name}.json`);
       tracePaths.push(trace);
       const input = `${witness.steps.map((step) => command(step, document)).join("\n")}\nquit\n`;
       const played = spawnSync(
