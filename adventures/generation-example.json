@@ -7,6 +7,7 @@
   "introduction": "A signal from the old archive has gone dark. Begin in the square.",
   "objective": "Find the missing record and decide how to share it.",
   "player": { "locationId": "square", "hp": 20, "maxHp": 20 },
+  "initialDiscoveries": ["notice-clue"],
   "locations": [
     {
       "id": "square",
@@ -19,6 +20,12 @@
       "name": "Archive",
       "description": "A dusty shelf holds the missing record.",
       "aliases": ["archive"]
+    },
+    {
+      "id": "garden",
+      "name": "Garden",
+      "description": "A quiet garden borders the square.",
+      "aliases": ["garden"]
     }
   ],
   "connections": [
@@ -28,7 +35,14 @@
       "to": "archive",
       "when": []
     },
-    { "id": "archive-to-square", "from": "archive", "to": "square", "when": [] }
+    {
+      "id": "archive-to-square",
+      "from": "archive",
+      "to": "square",
+      "when": []
+    },
+    { "id": "square-to-garden", "from": "square", "to": "garden", "when": [] },
+    { "id": "garden-to-square", "from": "garden", "to": "square", "when": [] }
   ],
   "features": [
     {
@@ -45,6 +59,14 @@
       "description": "The record contains a list of lantern signals.",
       "aliases": ["record"],
       "locationId": "archive",
+      "when": []
+    },
+    {
+      "id": "plaque",
+      "name": "plaque",
+      "description": "A plaque names the lantern keeper.",
+      "aliases": ["plaque"],
+      "locationId": "garden",
       "when": []
     }
   ],
@@ -69,6 +91,14 @@
       "sourceFeatureId": "record",
       "summary": "The record describes the missing signal.",
       "lead": "Return to the square and choose how to report it."
+    },
+    {
+      "id": "plaque-clue",
+      "title": "Keeper's plaque",
+      "classification": "observation",
+      "sourceFeatureId": "plaque",
+      "summary": "The plaque names the keeper.",
+      "lead": "Compare the keeper's name with the record."
     }
   ],
   "searches": [
@@ -88,6 +118,88 @@
         { "type": "record-milestone", "id": "record-found" }
       ],
       "text": "You find the missing record."
+    },
+    {
+      "id": "search-plaque",
+      "targetId": "plaque",
+      "when": [],
+      "effects": [{ "type": "grant-discovery", "id": "plaque-clue" }],
+      "text": "You read the keeper's name."
+    }
+  ],
+  "npcs": [
+    {
+      "id": "porter",
+      "name": "Porter",
+      "aliases": ["porter"],
+      "locationId": "square",
+      "voice": "Brisk.",
+      "knows": [],
+      "believes": [],
+      "wants": ["Help visitors."],
+      "knowledgeLimits": [],
+      "topics": []
+    },
+    {
+      "id": "scribe",
+      "name": "Scribe",
+      "aliases": ["scribe"],
+      "locationId": "archive",
+      "voice": "Quiet.",
+      "knows": [],
+      "believes": [],
+      "wants": ["Keep records."],
+      "knowledgeLimits": [],
+      "topics": []
+    },
+    {
+      "id": "gardener",
+      "name": "Gardener",
+      "aliases": ["gardener"],
+      "locationId": "garden",
+      "voice": "Warm.",
+      "knows": [],
+      "believes": [],
+      "wants": ["Care for the garden."],
+      "knowledgeLimits": [],
+      "topics": []
+    }
+  ],
+  "combatProfile": {
+    "armorClass": 16,
+    "attackBonus": 5,
+    "initiativeBonus": 1,
+    "damage": { "dice": 1, "sides": 8, "modifier": 3 }
+  },
+  "monsterDefinitions": [
+    {
+      "id": "clockwork-moth",
+      "name": "clockwork moth",
+      "description": "A clockwork moth guards the plaque.",
+      "aliases": ["moth"],
+      "maxHp": 4,
+      "stats": {
+        "armorClass": 10,
+        "attackBonus": 1,
+        "initiativeBonus": 0,
+        "damage": { "dice": 1, "sides": 2, "modifier": 0 }
+      }
+    }
+  ],
+  "monsters": [
+    {
+      "id": "garden-moth",
+      "definitionId": "clockwork-moth",
+      "locationId": "garden",
+      "hp": 4
+    }
+  ],
+  "encounters": [
+    {
+      "id": "garden-guard",
+      "monsterId": "garden-moth",
+      "when": [],
+      "effects": []
     }
   ],
   "endings": {

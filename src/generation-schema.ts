@@ -42,7 +42,8 @@ export const GENERATION_OUTPUT_FORMAT = {
     introduction: string,
     objective: string,
     player: object({ locationId: string, hp: integer, maxHp: integer }),
-    locations: list(object(located), 2),
+    initialDiscoveries: list(string, 1),
+    locations: list(object(located), 3),
     connections: list(
       object({ id: string, from: string, to: string, when: list(condition) }),
       2,
@@ -72,6 +73,77 @@ export const GENERATION_OUTPUT_FORMAT = {
         text: string,
       }),
       2,
+    ),
+    npcs: list(
+      object({
+        id: string,
+        name: string,
+        aliases: list(string, 1),
+        locationId: string,
+        voice: string,
+        knows: list(string),
+        believes: list(string),
+        wants: list(string),
+        knowledgeLimits: list(string),
+        topics: list(
+          object({
+            id: string,
+            name: string,
+            aliases: list(string, 1),
+            when: list(condition),
+            challengeId: string,
+            replies: list(
+              object({
+                when: list(condition),
+                outcome: { type: "string", enum: ["any", "unattempted"] },
+                approach: { type: "string", enum: ["any", "ask"] },
+                text: string,
+                attitude: string,
+                approvedFactIds: list(string),
+                effects: list(effect),
+              }),
+            ),
+          }),
+        ),
+      }),
+      3,
+    ),
+    combatProfile: object({
+      armorClass: integer,
+      attackBonus: integer,
+      initiativeBonus: integer,
+      damage: object({ dice: integer, sides: integer, modifier: integer }),
+    }),
+    monsterDefinitions: list(
+      object({
+        ...located,
+        maxHp: integer,
+        stats: object({
+          armorClass: integer,
+          attackBonus: integer,
+          initiativeBonus: integer,
+          damage: object({ dice: integer, sides: integer, modifier: integer }),
+        }),
+      }),
+      1,
+    ),
+    monsters: list(
+      object({
+        id: string,
+        definitionId: string,
+        locationId: string,
+        hp: integer,
+      }),
+      1,
+    ),
+    encounters: list(
+      object({
+        id: string,
+        monsterId: string,
+        when: list(condition),
+        effects: list(effect),
+      }),
+      1,
     ),
     endings: object({
       locationId: string,
