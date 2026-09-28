@@ -54,7 +54,7 @@ if (
     }
   }
   const reportPath = join(ROOT, "report.json");
-  const report = {
+  const expected = {
     protocolVersion: PLAN.protocolVersion,
     startedAt: new Date().toISOString(),
     model: PLAN.model,
@@ -73,6 +73,33 @@ if (
     },
     runs: [],
   };
+  const previous = await readFile(reportPath, "utf8").catch((error) => {
+    if (error.code === "ENOENT") {
+      return undefined;
+    }
+    throw error;
+  });
+  const report = previous === undefined ? expected : JSON.parse(previous);
+  if (
+    !Array.isArray(report.runs) ||
+    report.runs.length > runCount ||
+    report.runs.some((run, index) => run.run !== index + 1) ||
+    [
+      "protocolVersion",
+      "model",
+      "schemaVersion",
+      "rulesVersion",
+      "engineVersion",
+      "generationSourceSha256",
+      "exampleSha256",
+      "schemaSha256",
+      "premisePlanSha256",
+    ].some((key) => report[key] !== expected[key])
+  ) {
+    throw new Error(
+      "Existing evaluation report does not match the frozen protocol.",
+    );
+  }
   const save = async () => {
     const temp = join(ROOT, "report.tmp");
     const content = JSON.stringify(report, null, 2);
@@ -82,7 +109,7 @@ if (
     await writeFile(temp, content, { mode: 0o600 });
     await rename(temp, reportPath);
   };
-  for (let index = 0; index < runCount; index++) {
+  for (let index = report.runs.length; index < runCount; index++) {
     const premise = PLAN.premises[index % PLAN.premises.length];
     const file = join(ROOT, `candidate-${index + 1}.json`);
     const attempts = [];
