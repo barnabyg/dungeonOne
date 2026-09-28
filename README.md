@@ -59,6 +59,12 @@ shows the plan without an API key, and `node scripts/eval-generation.mjs --batch
 executes it after a build with `OPENAI_API_KEY` set. Bounded reports are kept
 under ignored `.generation-evaluations/`.
 
+For reviewed sample adventures, live-DM spot checks, and the unfamiliar-player
+handoff, see [issue 60 acceptance](docs/acceptance/issue-60.md). The retained
+sample files live in `docs/acceptance/issue-60-samples/`; all three include documented
+editorial corrections. Their successful scripted routes do not substitute for
+unfamiliar-player feedback.
+
 ## Install, build, and play
 
 From a clean checkout:

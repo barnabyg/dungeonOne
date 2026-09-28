@@ -1,0 +1,516 @@
+{
+  "npcs": [
+    {
+      "id": "harbormaster-elin",
+      "wants": ["Keep boats away from the broken reef."],
+      "knows": [],
+      "name": "Harbormaster Elin",
+      "voice": "Measured and salty.",
+      "believes": [],
+      "locationId": "storm-quay",
+      "aliases": ["elin", "harbormaster"],
+      "knowledgeLimits": [
+        "Elin did not go up to the lighthouse during the storm."
+      ],
+      "topics": []
+    },
+    {
+      "id": "keeper-mara",
+      "wants": ["Protect the lighthouse's remaining instruments."],
+      "knows": ["mara-saw-signal"],
+      "name": "Keeper Mara",
+      "voice": "Clipped, tired, and precise.",
+      "believes": [],
+      "locationId": "lantern-stairs",
+      "aliases": ["mara", "keeper"],
+      "knowledgeLimits": [
+        "Mara was sheltering in the lantern room when the surveyor vanished."
+      ],
+      "topics": [
+        {
+          "replies": [
+            {
+              "approvedFactIds": ["mara-saw-signal"],
+              "text": "Mara: I saw Tovin take the green survey lamp toward the eastern cove. He said the tide marks would prove the reef had shifted.",
+              "approach": "any",
+              "outcome": "success",
+              "attitude": "reluctantly candid",
+              "effects": [],
+              "when": [
+                {
+                  "type": "discovery-known",
+                  "id": "storm-warning"
+                }
+              ]
+            },
+            {
+              "approvedFactIds": [],
+              "text": "Mara: I have said enough. If you want proof, search the beacon log in the lantern room.",
+              "approach": "any",
+              "outcome": "failure",
+              "attitude": "defensive",
+              "effects": [],
+              "when": [
+                {
+                  "type": "discovery-known",
+                  "id": "storm-warning"
+                }
+              ]
+            },
+            {
+              "approvedFactIds": [],
+              "text": "Mara: Bring me a reason to trust you; the storm has made every question sound like an accusation.",
+              "approach": "ask",
+              "outcome": "unattempted",
+              "attitude": "guarded",
+              "effects": [],
+              "when": []
+            },
+            {
+              "approvedFactIds": [],
+              "text": "Mara: The lantern room is open. Do not touch the cracked lens.",
+              "approach": "any",
+              "outcome": "any",
+              "attitude": "guarded",
+              "effects": [],
+              "when": []
+            }
+          ],
+          "id": "surveyor-signal",
+          "name": "The surveyor's signal",
+          "aliases": ["signal", "surveyor", "tovin"],
+          "challengeId": "mara-question",
+          "when": []
+        }
+      ]
+    },
+    {
+      "id": "fisher-oren",
+      "wants": ["Recover the nets blown into the cove."],
+      "knows": [],
+      "name": "Fisher Oren",
+      "voice": "Broad and reassuring.",
+      "believes": [],
+      "locationId": "eastern-cove",
+      "aliases": ["oren", "fisher"],
+      "knowledgeLimits": [
+        "Oren arrived after dawn and did not see the surveyor."
+      ],
+      "topics": []
+    },
+    {
+      "id": "wright-sella",
+      "wants": ["Salvage usable brass from the storm wreckage."],
+      "knows": [],
+      "name": "Wright Sella",
+      "voice": "Bright and practical.",
+      "believes": [],
+      "locationId": "repair-shed",
+      "aliases": ["sella", "wright"],
+      "knowledgeLimits": [
+        "Sella has not crossed the flooded path to the cove."
+      ],
+      "topics": []
+    }
+  ],
+  "id": "reefward-lighthouse",
+  "initialDiscoveries": ["storm-warning"],
+  "features": [
+    {
+      "id": "storm-bulletin",
+      "description": "A sodden bulletin is nailed beneath the quay signal bell.",
+      "name": "storm bulletin",
+      "locationId": "storm-quay",
+      "aliases": ["bulletin", "warning"],
+      "when": []
+    },
+    {
+      "id": "surveyor-ledger",
+      "description": "A leather ledger lies under a loose stair tread, its last page salt-stiffened.",
+      "name": "surveyor ledger",
+      "locationId": "lantern-stairs",
+      "aliases": ["ledger", "survey ledger"],
+      "when": []
+    },
+    {
+      "id": "beacon-log",
+      "description": "The brass-bound beacon log rests beside the cracked lantern controls.",
+      "name": "beacon log",
+      "locationId": "lantern-room",
+      "aliases": ["log", "beacon log"],
+      "when": []
+    },
+    {
+      "id": "tide-stake",
+      "description": "A painted survey stake leans from a pocket of shingle above the foam.",
+      "name": "tide stake",
+      "locationId": "eastern-cove",
+      "aliases": ["stake", "survey stake"],
+      "when": []
+    },
+    {
+      "id": "tool-rack",
+      "description": "A rack of storm-bent hooks and lantern poles fills the repair shed.",
+      "name": "tool rack",
+      "locationId": "repair-shed",
+      "aliases": ["rack", "tools"],
+      "when": []
+    }
+  ],
+  "monsterDefinitions": [
+    {
+      "maxHp": 5,
+      "id": "reef-crab",
+      "description": "A dinner-plate-sized crab clicks its heavy claws beside a washed-up measuring case.",
+      "name": "reef crab",
+      "aliases": ["crab"],
+      "stats": {
+        "armorClass": 11,
+        "attackBonus": 2,
+        "damage": {
+          "modifier": 1,
+          "dice": 1,
+          "sides": 3
+        },
+        "initiativeBonus": 1
+      }
+    }
+  ],
+  "facts": [
+    {
+      "statement": "Mara saw Tovin carry a green survey lamp toward the eastern cove before the worst gusts struck.",
+      "id": "mara-saw-signal"
+    }
+  ],
+  "contentVersion": "2",
+  "endings": {
+    "fates": [
+      {
+        "text": "Tovin's route is reconstructed from the ledger and the beacon log; the harbor can mount a focused search before the next tide.",
+        "id": "route-recovered",
+        "when": []
+      },
+      {
+        "text": "The reef measurements are secured, so no other boat will follow the shifted channel by mistake.",
+        "id": "reef-charted",
+        "when": [
+          {
+            "type": "discovery-known",
+            "id": "tide-mark"
+          }
+        ]
+      }
+    ],
+    "locationId": "storm-quay",
+    "any": [
+      [
+        {
+          "type": "discovery-known",
+          "id": "beacon-evidence"
+        }
+      ]
+    ],
+    "choices": [
+      {
+        "narration": [
+          {
+            "text": "Elin rings the harbor bell and sends a search boat along the eastern cove at once.",
+            "when": []
+          }
+        ],
+        "id": "launch-search",
+        "consequences": [
+          {
+            "text": "The harbor launches a daylight search for Tovin.",
+            "id": "search-launched",
+            "when": []
+          }
+        ],
+        "aliases": ["launch search", "search boat"],
+        "label": "Launch the harbor search",
+        "when": []
+      },
+      {
+        "narration": [
+          {
+            "text": "Sella copies the safe route onto a fresh chart while Oren carries it to the fishing crews.",
+            "when": []
+          }
+        ],
+        "id": "publish-chart",
+        "consequences": [
+          {
+            "text": "A warning chart is posted for every crew using the harbor.",
+            "id": "chart-published",
+            "when": []
+          }
+        ],
+        "aliases": ["publish chart", "warning chart"],
+        "label": "Publish a reef warning chart",
+        "when": [
+          {
+            "type": "discovery-known",
+            "id": "tide-mark"
+          }
+        ]
+      }
+    ],
+    "when": [
+      {
+        "type": "milestone-recorded",
+        "id": "surveyor-route-found"
+      },
+      {
+        "type": "discovery-known",
+        "id": "beacon-evidence"
+      }
+    ]
+  },
+  "player": {
+    "maxHp": 20,
+    "locationId": "storm-quay",
+    "hp": 20
+  },
+  "quest": {
+    "id": "find-tovin",
+    "milestones": ["surveyor-route-found"],
+    "title": "Trace the missing surveyor"
+  },
+  "rulesVersion": "chapel-clues-rules-v4",
+  "connections": [
+    {
+      "id": "quay-to-stairs",
+      "to": "lantern-stairs",
+      "from": "storm-quay",
+      "when": []
+    },
+    {
+      "id": "stairs-to-quay",
+      "to": "storm-quay",
+      "from": "lantern-stairs",
+      "when": []
+    },
+    {
+      "id": "stairs-to-lantern",
+      "to": "lantern-room",
+      "from": "lantern-stairs",
+      "when": []
+    },
+    {
+      "id": "lantern-to-stairs",
+      "to": "lantern-stairs",
+      "from": "lantern-room",
+      "when": []
+    },
+    {
+      "id": "quay-to-cove",
+      "to": "eastern-cove",
+      "from": "storm-quay",
+      "when": []
+    },
+    {
+      "id": "cove-to-quay",
+      "to": "storm-quay",
+      "from": "eastern-cove",
+      "when": []
+    },
+    {
+      "id": "quay-to-shed",
+      "to": "repair-shed",
+      "from": "storm-quay",
+      "when": []
+    },
+    {
+      "id": "shed-to-quay",
+      "to": "storm-quay",
+      "from": "repair-shed",
+      "when": []
+    }
+  ],
+  "title": "The Green Lamp at Reefward",
+  "objective": "Trace the missing surveyor's route through the storm-damaged lighthouse and choose how the harbor responds.",
+  "encounters": [
+    {
+      "monsterId": "cove-reef-crab",
+      "id": "crab-at-case",
+      "effects": [],
+      "when": []
+    }
+  ],
+  "socialChallenges": [
+    {
+      "evidenceWhen": [
+        {
+          "type": "discovery-known",
+          "id": "storm-warning"
+        }
+      ],
+      "guardedMilestoneIds": [],
+      "guardedFactIds": ["mara-saw-signal"],
+      "id": "mara-question",
+      "dc": 11,
+      "modifier": 0,
+      "guardedDiscoveryIds": []
+    }
+  ],
+  "combatProfile": {
+    "armorClass": 14,
+    "attackBonus": 4,
+    "damage": {
+      "modifier": 2,
+      "dice": 1,
+      "sides": 6
+    },
+    "initiativeBonus": 1
+  },
+  "discoveries": [
+    {
+      "classification": "observation",
+      "id": "storm-warning",
+      "title": "Storm warning",
+      "sourceFeatureId": "storm-bulletin",
+      "lead": "The bulletin names Reefward Lighthouse as the last place the surveyor was expected to report.",
+      "summary": "Tovin, a harbor surveyor, failed to return after checking the storm-shifted reef."
+    },
+    {
+      "classification": "observation",
+      "id": "ledger-route",
+      "title": "Surveyor's route",
+      "sourceFeatureId": "surveyor-ledger",
+      "lead": "The final entry directs you to compare the lighthouse beacon log with the eastern-cove tide marks.",
+      "summary": "Tovin planned to test a newly exposed passage marked by a green lamp."
+    },
+    {
+      "classification": "observation",
+      "id": "beacon-evidence",
+      "title": "Beacon log entry",
+      "sourceFeatureId": "beacon-log",
+      "lead": "The log records the green signal's timing and provides the evidence needed to act at the quay.",
+      "summary": "The beacon log confirms that a green survey signal flashed toward the eastern cove after the storm began."
+    },
+    {
+      "classification": "observation",
+      "id": "tide-mark",
+      "title": "Shifted tide mark",
+      "sourceFeatureId": "tide-stake",
+      "lead": "The painted stake shows where the reef channel has moved.",
+      "summary": "The tide stake proves that the former safe channel now runs over a sharp reef shelf."
+    },
+    {
+      "classification": "observation",
+      "id": "salvage-lamp",
+      "title": "Spare signal lamp",
+      "sourceFeatureId": "tool-rack",
+      "lead": "A repaired lamp could guide searchers through the mist.",
+      "summary": "The repair shed holds a working green signal lamp with fresh oil."
+    }
+  ],
+  "locations": [
+    {
+      "aliases": ["quay", "harbor"],
+      "description": "Rainwater runs between mooring posts beneath the battered harbor bell.",
+      "name": "Storm Quay",
+      "id": "storm-quay"
+    },
+    {
+      "aliases": ["stairs", "lighthouse base"],
+      "description": "The lighthouse door stands open above stairs slick with blown spray.",
+      "name": "Lantern Stairs",
+      "id": "lantern-stairs"
+    },
+    {
+      "aliases": ["lantern room", "top"],
+      "description": "A cracked Fresnel lens turns slowly in the windless room at the tower's crown.",
+      "name": "Lantern Room",
+      "id": "lantern-room"
+    },
+    {
+      "aliases": ["cove", "east cove"],
+      "description": "Shingle and kelp fill a narrow cove beneath the reefward cliff.",
+      "name": "Eastern Cove",
+      "id": "eastern-cove"
+    },
+    {
+      "aliases": ["shed", "workshop"],
+      "description": "A low shed shelters repair tools, spare lamps, and wind-torn canvas.",
+      "name": "Repair Shed",
+      "id": "repair-shed"
+    }
+  ],
+  "introduction": "Surveyor Tovin vanished while charting a reef exposed by last night's storm. His last scheduled report was from Reefward Lighthouse.",
+  "searches": [
+    {
+      "targetId": "storm-bulletin",
+      "text": "The blurred bulletin identifies Tovin and notes his planned lighthouse report.",
+      "id": "search-bulletin",
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "storm-warning"
+        }
+      ],
+      "when": []
+    },
+    {
+      "targetId": "surveyor-ledger",
+      "text": "The ledger's final page maps Tovin's intended signal route and records the eastern cove as his next station.",
+      "id": "search-ledger",
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "ledger-route"
+        },
+        {
+          "type": "record-milestone",
+          "id": "surveyor-route-found"
+        }
+      ],
+      "when": []
+    },
+    {
+      "targetId": "beacon-log",
+      "text": "A precise entry records a green lamp flashing three times toward the eastern cove after midnight.",
+      "id": "search-beacon-log",
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "beacon-evidence"
+        }
+      ],
+      "when": []
+    },
+    {
+      "targetId": "tide-stake",
+      "text": "The stake's fresh paint and skewed position show that the reef channel has shifted east.",
+      "id": "search-tide-stake",
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "tide-mark"
+        }
+      ],
+      "when": []
+    },
+    {
+      "targetId": "tool-rack",
+      "text": "Behind the hooks, you find an oil-filled green signal lamp ready for use.",
+      "id": "search-tool-rack",
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "salvage-lamp"
+        }
+      ],
+      "when": []
+    }
+  ],
+  "monsters": [
+    {
+      "locationId": "eastern-cove",
+      "id": "cove-reef-crab",
+      "definitionId": "reef-crab",
+      "hp": 5
+    }
+  ],
+  "schemaVersion": 3
+}

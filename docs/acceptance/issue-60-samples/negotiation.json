@@ -1,0 +1,450 @@
+{
+  "npcs": [
+    {
+      "id": "reed-elder",
+      "wants": ["Protect Willowbank's good name."],
+      "knows": ["elder-testimony"],
+      "name": "Elder Sella",
+      "voice": "Measured and stern.",
+      "believes": [],
+      "locationId": "willowbank-green",
+      "aliases": ["sella", "elder", "elder sella"],
+      "knowledgeLimits": ["Sella did not see who moved the bell."],
+      "topics": [
+        {
+          "replies": [
+            {
+              "approvedFactIds": ["elder-testimony"],
+              "text": "Elder Sella: At dawn I found a trail of blue marsh clay leading away from our shrine. We did not take Brackenford's bell.",
+              "approach": "any",
+              "outcome": "success",
+              "attitude": "reluctantly candid",
+              "effects": [],
+              "when": [
+                {
+                  "type": "discovery-known",
+                  "id": "shrine-trail"
+                }
+              ]
+            },
+            {
+              "approvedFactIds": [],
+              "text": "Elder Sella: Your questions sound like accusations. Look at the shrine trail before you judge us.",
+              "approach": "any",
+              "outcome": "failure",
+              "attitude": "offended",
+              "effects": [],
+              "when": []
+            },
+            {
+              "approvedFactIds": [],
+              "text": "Elder Sella: Bring me something more than rumors, and I may tell you what I noticed at dawn.",
+              "approach": "ask",
+              "outcome": "unattempted",
+              "attitude": "guarded",
+              "effects": [],
+              "when": []
+            },
+            {
+              "approvedFactIds": [],
+              "text": "Elder Sella: The shrine remains open to anyone willing to examine the ground.",
+              "approach": "any",
+              "outcome": "any",
+              "attitude": "reserved",
+              "effects": [],
+              "when": []
+            }
+          ],
+          "id": "dawn-question",
+          "name": "Dawn at the shrine",
+          "aliases": ["dawn", "shrine", "trail"],
+          "challengeId": "sella-dawn-challenge",
+          "when": []
+        }
+      ]
+    },
+    {
+      "id": "bracken-warden",
+      "wants": ["Recover the bell without bloodshed."],
+      "knows": ["warden-rumor"],
+      "name": "Warden Tovin",
+      "voice": "Clipped but weary.",
+      "believes": [],
+      "locationId": "brackenford-square",
+      "aliases": ["tovin", "warden", "warden tovin"],
+      "knowledgeLimits": ["Tovin only heard the accusation secondhand."],
+      "topics": []
+    },
+    {
+      "id": "ferrymaker",
+      "wants": ["Keep the ferry ropes sound."],
+      "knows": [],
+      "name": "Mira Fen",
+      "voice": "Practical and soft-spoken.",
+      "believes": [],
+      "locationId": "reed-ferry",
+      "aliases": ["mira", "ferrymaker", "mira fen"],
+      "knowledgeLimits": [
+        "Mira works by the water and does not enter either shrine."
+      ],
+      "topics": []
+    },
+    {
+      "id": "hermit",
+      "wants": ["Be left to his repairs."],
+      "knows": [],
+      "name": "Orin Coil",
+      "voice": "Distracted and dry.",
+      "believes": [],
+      "locationId": "old-bell-tower",
+      "aliases": ["orin", "hermit", "orin coil"],
+      "knowledgeLimits": ["Orin will not discuss village politics."],
+      "topics": []
+    }
+  ],
+  "id": "marsh-bell-dispute",
+  "initialDiscoveries": ["quarrel-notice"],
+  "features": [
+    {
+      "id": "quarrel-board",
+      "description": "A rain-spotted notice bears both village seals and asks for an impartial settlement.",
+      "name": "dispute notice",
+      "locationId": "brackenford-square",
+      "aliases": ["notice", "board", "dispute notice"],
+      "when": []
+    },
+    {
+      "id": "willow-shrine-steps",
+      "description": "The pale shrine steps are scuffed with fresh blue clay and a dragged groove.",
+      "name": "shrine steps",
+      "locationId": "willowbank-green",
+      "aliases": ["steps", "shrine", "shrine steps"],
+      "when": []
+    },
+    {
+      "id": "ferry-mud",
+      "description": "Blue clay cakes the ferry landing beside a snapped length of bell-rope.",
+      "name": "ferry landing",
+      "locationId": "reed-ferry",
+      "aliases": ["landing", "mud", "ferry landing"],
+      "when": []
+    },
+    {
+      "id": "tower-nest",
+      "description": "A ruined tower nest holds the missing bronze bell beneath dry reeds.",
+      "name": "tower nest",
+      "locationId": "old-bell-tower",
+      "aliases": ["nest", "bell", "tower nest"],
+      "when": []
+    }
+  ],
+  "monsterDefinitions": [
+    {
+      "maxHp": 5,
+      "id": "marsh-kite",
+      "description": "A broad-winged marsh kite fiercely guards its nest.",
+      "name": "marsh kite",
+      "aliases": ["kite"],
+      "stats": {
+        "armorClass": 11,
+        "attackBonus": 2,
+        "damage": {
+          "modifier": 1,
+          "dice": 1,
+          "sides": 4
+        },
+        "initiativeBonus": 1
+      }
+    }
+  ],
+  "facts": [
+    {
+      "statement": "Elder Sella found blue marsh clay on a trail leading away from Willowbank's shrine.",
+      "id": "elder-testimony"
+    },
+    {
+      "statement": "Warden Tovin heard that Willowbank villagers rang no bell during the night.",
+      "id": "warden-rumor"
+    }
+  ],
+  "contentVersion": "2",
+  "endings": {
+    "fates": [
+      {
+        "text": "The marsh villages receive a settlement grounded in the bell's true path.",
+        "id": "truth-settled",
+        "when": []
+      }
+    ],
+    "locationId": "brackenford-square",
+    "any": [
+      [
+        {
+          "type": "discovery-known",
+          "id": "ferry-rope"
+        }
+      ],
+      [
+        {
+          "type": "discovery-known",
+          "id": "bell-recovered"
+        }
+      ]
+    ],
+    "choices": [
+      {
+        "narration": [
+          {
+            "text": "You present the ferry evidence and ask both villages to share the bell's repair cost.",
+            "when": []
+          }
+        ],
+        "id": "shared-repair",
+        "consequences": [
+          {
+            "text": "Willowbank and Brackenford jointly mend the rope and hang the recovered bell between their roads.",
+            "id": "repair-agreed",
+            "when": []
+          }
+        ],
+        "aliases": ["repair", "shared repair"],
+        "label": "Propose a shared repair",
+        "when": []
+      },
+      {
+        "narration": [
+          {
+            "text": "You return the bell to Brackenford while clearing Willowbank of theft.",
+            "when": []
+          }
+        ],
+        "id": "clear-willowbank",
+        "consequences": [
+          {
+            "text": "Brackenford takes back its bell and publicly withdraws the accusation against Willowbank.",
+            "id": "willowbank-cleared",
+            "when": []
+          }
+        ],
+        "aliases": ["clear willowbank", "return bell"],
+        "label": "Return the bell and clear Willowbank",
+        "when": []
+      }
+    ],
+    "when": [
+      {
+        "type": "discovery-known",
+        "id": "bell-recovered"
+      }
+    ]
+  },
+  "player": {
+    "maxHp": 20,
+    "locationId": "brackenford-square",
+    "hp": 20
+  },
+  "quest": {
+    "id": "settle-bell-dispute",
+    "milestones": ["bell-located"],
+    "title": "Settle the Bell Dispute"
+  },
+  "rulesVersion": "chapel-clues-rules-v4",
+  "connections": [
+    {
+      "id": "square-to-ferry",
+      "to": "reed-ferry",
+      "from": "brackenford-square",
+      "when": []
+    },
+    {
+      "id": "ferry-to-square",
+      "to": "brackenford-square",
+      "from": "reed-ferry",
+      "when": []
+    },
+    {
+      "id": "ferry-to-willowbank",
+      "to": "willowbank-green",
+      "from": "reed-ferry",
+      "when": []
+    },
+    {
+      "id": "willowbank-to-ferry",
+      "to": "reed-ferry",
+      "from": "willowbank-green",
+      "when": []
+    },
+    {
+      "id": "ferry-to-tower",
+      "to": "old-bell-tower",
+      "from": "reed-ferry",
+      "when": []
+    },
+    {
+      "id": "tower-to-ferry",
+      "to": "reed-ferry",
+      "from": "old-bell-tower",
+      "when": []
+    }
+  ],
+  "title": "The Bell Beneath the Reeds",
+  "objective": "Trace the missing bell's path and settle the dispute between Brackenford and Willowbank.",
+  "encounters": [
+    {
+      "monsterId": "tower-kite",
+      "id": "kite-guard",
+      "effects": [],
+      "when": []
+    }
+  ],
+  "socialChallenges": [
+    {
+      "evidenceWhen": [
+        {
+          "type": "discovery-known",
+          "id": "shrine-trail"
+        }
+      ],
+      "guardedMilestoneIds": [],
+      "guardedFactIds": ["elder-testimony"],
+      "id": "sella-dawn-challenge",
+      "dc": 10,
+      "modifier": 1,
+      "guardedDiscoveryIds": []
+    }
+  ],
+  "combatProfile": {
+    "armorClass": 15,
+    "attackBonus": 4,
+    "damage": {
+      "modifier": 2,
+      "dice": 1,
+      "sides": 6
+    },
+    "initiativeBonus": 1
+  },
+  "discoveries": [
+    {
+      "classification": "observation",
+      "id": "quarrel-notice",
+      "title": "A public quarrel",
+      "sourceFeatureId": "quarrel-board",
+      "lead": "Follow the marsh route between the two villages.",
+      "summary": "The notice says Brackenford's bronze bell vanished overnight, and Willowbank is accused of stealing it."
+    },
+    {
+      "classification": "observation",
+      "id": "shrine-trail",
+      "title": "Clay trail",
+      "sourceFeatureId": "willow-shrine-steps",
+      "lead": "Compare the clay with the ferry landing.",
+      "summary": "Fresh blue marsh clay and a dragged groove leave Willowbank's shrine toward the river."
+    },
+    {
+      "classification": "observation",
+      "id": "ferry-rope",
+      "title": "Snapped bell-rope",
+      "sourceFeatureId": "ferry-mud",
+      "lead": "The rope points toward the abandoned bell tower.",
+      "summary": "A snapped bell-rope lies in the blue clay at the ferry; its frayed end shows the bell was dragged through the marsh, not carried by villagers."
+    },
+    {
+      "classification": "observation",
+      "id": "bell-recovered",
+      "title": "Bell in the nest",
+      "sourceFeatureId": "tower-nest",
+      "lead": "Return to Brackenford with the bell's true story.",
+      "summary": "The missing bell is lodged in a marsh kite's tower nest, hauled there after the ferry rope snagged it."
+    }
+  ],
+  "locations": [
+    {
+      "aliases": ["brackenford", "square", "brackenford square"],
+      "description": "Villagers argue beneath the empty wooden bell frame.",
+      "name": "Brackenford Square",
+      "id": "brackenford-square"
+    },
+    {
+      "aliases": ["willowbank", "green", "willowbank green"],
+      "description": "Willows shade a small shrine beside the marsh road.",
+      "name": "Willowbank Green",
+      "id": "willowbank-green"
+    },
+    {
+      "aliases": ["ferry", "reed ferry", "landing"],
+      "description": "A rope ferry rocks beside a muddy, reed-choked landing.",
+      "name": "Reed Ferry",
+      "id": "reed-ferry"
+    },
+    {
+      "aliases": ["tower", "old bell tower", "ruin"],
+      "description": "A leaning stone tower rises from a quiet island of reeds.",
+      "name": "Old Bell Tower",
+      "id": "old-bell-tower"
+    }
+  ],
+  "introduction": "Brackenford accuses neighboring Willowbank of stealing its bronze bell. Both villages have asked you to find the truth before the quarrel becomes a feud.",
+  "searches": [
+    {
+      "targetId": "quarrel-board",
+      "text": "The notice sets out the charge and the need for a neutral witness.",
+      "id": "search-quarrel-board",
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "quarrel-notice"
+        }
+      ],
+      "when": []
+    },
+    {
+      "targetId": "willow-shrine-steps",
+      "text": "You trace blue clay and a dragging mark from the shrine toward the river.",
+      "id": "search-shrine-steps",
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "shrine-trail"
+        }
+      ],
+      "when": []
+    },
+    {
+      "targetId": "ferry-mud",
+      "text": "The snapped rope and muddy groove show that the bell was dragged downriver toward the old tower.",
+      "id": "search-ferry-mud",
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "ferry-rope"
+        }
+      ],
+      "when": []
+    },
+    {
+      "targetId": "tower-nest",
+      "text": "Beneath the reeds, you find Brackenford's bell caught in the kite's nest.",
+      "id": "search-tower-nest",
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "bell-recovered"
+        },
+        {
+          "type": "record-milestone",
+          "id": "bell-located"
+        }
+      ],
+      "when": []
+    }
+  ],
+  "monsters": [
+    {
+      "locationId": "old-bell-tower",
+      "id": "tower-kite",
+      "definitionId": "marsh-kite",
+      "hp": 5
+    }
+  ],
+  "schemaVersion": 3
+}
