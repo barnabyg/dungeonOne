@@ -47,6 +47,20 @@ test("an unsupported phrase points to the current conversation command", () => {
   );
 });
 
+test("talking to a person without a topic explains that person's options", () => {
+  const mira = play("rescue", "talk Mira\nquit\n");
+  assert.match(
+    mira,
+    /To talk to Mira Vale, try: talk mira-vale missing-courier ask/iu,
+  );
+
+  const orin = play(
+    "negotiation",
+    "move reed ferry\nmove old bell tower\nattack tower-kite\nattack tower-kite\ntalk Orin\nquit\n",
+  );
+  assert.match(orin, /Orin Coil has no available conversation topics/iu);
+});
+
 test("a collect request points to the current evidence command", () => {
   const output = play(
     "negotiation",

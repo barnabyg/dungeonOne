@@ -1792,7 +1792,24 @@ export function createChapelCluesRuntime(
       `HP: ${stateOf(input).fighter.hp}/${stateOf(input).fighter.maxHp}.`,
     renderResult(result): string {
       if (result.rejection !== undefined) {
+        const rejection = result.rejection;
         const state = stateOf(result.state);
+        if (
+          state.status === "playing" &&
+          rejection.reason === "invisible-target"
+        ) {
+          const speaker = visible(state).npcs.find((npc) =>
+            matches(npc, rejection.target),
+          );
+          if (speaker !== undefined) {
+            const topics = speaker.topics.filter((topic) =>
+              eligible(state, topic.when),
+            );
+            return topics.length === 0
+              ? `${speaker.name} has no available conversation topics. ${commandHints(state)}`
+              : `To talk to ${speaker.name}, try: ${topics.map((topic) => `talk ${speaker.id} ${topic.id} ask`).join("; ")}.`;
+          }
+        }
         return `Action unavailable: ${result.rejection.reason}.${state.status === "playing" ? ` ${commandHints(state)}` : ""}`;
       }
       const rendered = result.events
