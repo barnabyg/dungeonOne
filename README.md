@@ -65,6 +65,10 @@ sample files live in `docs/acceptance/issue-60-samples/`; all three include docu
 editorial corrections. Their successful scripted routes do not substitute for
 unfamiliar-player feedback.
 
+For the increment-5 clean-checkout handoff, including generation costs and
+privacy, copyable seeded journeys, and qualification limits, see
+[issue 61 handoff](docs/acceptance/issue-61.md).
+
 ## Install, build, and play
 
 From a clean checkout:
