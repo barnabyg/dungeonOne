@@ -17,6 +17,7 @@ import { loadScriptedDmModel } from "./scripted-dm-model.js";
 import { loadAdventureFile } from "./adventure-file.js";
 import { createDataRuntime } from "./data-runtime.js";
 import { generateAdventure } from "./generation.js";
+import { SaveSession } from "./save.js";
 
 function chooseStartupSeed(): number {
   return randomBytes(4).readUInt32LE(0);
@@ -28,6 +29,8 @@ type StartupOptions = Readonly<
       runtime: AdventureRuntime;
       seed: number;
       tracePath?: string;
+      savePath?: string;
+      saveSession?: SaveSession;
       ai?: Readonly<{ model: string }>;
     }
   | { mode: "replay"; replayPath: string }
@@ -39,6 +42,8 @@ const USAGE = [
   "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
   "       dungeon-one --ai [--model <model-id>] [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
   "       dungeon-one --replay <path>",
+  "       dungeon-one --adventure-file <schema-3.json> --seed <seed> --save <path>",
+  "       dungeon-one --resume <path>",
   "       dungeon-one --adventure-file <path> [--ai] [--seed <seed>] [--trace <path>]",
   "       dungeon-one --validate-adventure <path>",
   "       dungeon-one --generate-adventure <output.json> --premise <text> --model <model-id>",
@@ -147,10 +152,35 @@ async function resolveStartupOptions(
     throw new Error(`--replay cannot be combined with play options.\n${USAGE}`);
   }
 
+  if (
+    args[0] === "--resume" &&
+    args.length === 2 &&
+    args[1] !== undefined &&
+    !args[1].startsWith("--")
+  ) {
+    const saveSession = await SaveSession.load(args[1]);
+    return {
+      mode: "play",
+      runtime: saveSession.runtime,
+      seed: saveSession.seed,
+      saveSession,
+    };
+  }
+  if (
+    args.some(
+      (argument) => argument === "--resume" || argument.startsWith("--resume="),
+    )
+  ) {
+    throw new Error(
+      `--resume requires one path and cannot be combined with other options.\n${USAGE}`,
+    );
+  }
+
   let adventureId: string | undefined;
   let adventureFile: string | undefined;
   let seedArgument: readonly string[] | undefined;
   let tracePath: string | undefined;
+  let savePath: string | undefined;
   let ai = false;
   let model: string | undefined;
 
@@ -267,11 +297,32 @@ async function resolveStartupOptions(
       tracePath = value;
       continue;
     }
+    if (argument === "--save" || argument?.startsWith("--save=") === true) {
+      const value =
+        argument === "--save"
+          ? args[++index]
+          : argument.slice("--save=".length);
+      if (
+        savePath !== undefined ||
+        value === undefined ||
+        value.length === 0 ||
+        value.startsWith("--")
+      ) {
+        throw new Error(USAGE);
+      }
+      savePath = value;
+      continue;
+    }
     throw new Error(USAGE);
   }
 
   if (!ai && model !== undefined) {
     throw new Error(`--model requires --ai.\n${USAGE}`);
+  }
+  if (savePath !== undefined && (ai || tracePath !== undefined)) {
+    throw new Error(
+      `--save cannot be combined with --ai or --trace.\n${USAGE}`,
+    );
   }
 
   let runtime: AdventureRuntime;
@@ -292,6 +343,7 @@ async function resolveStartupOptions(
     runtime,
     seed: resolveStartupSeed(seedArgument ?? [], chooseStartupSeed),
     ...(tracePath === undefined ? {} : { tracePath }),
+    ...(savePath === undefined ? {} : { savePath }),
     ...(ai ? { ai: { model: model ?? OPENAI_DM_DEFAULT_MODEL } } : {}),
   };
 }
@@ -392,12 +444,41 @@ async function main(): Promise<void> {
     terminal,
     prompt: "> ",
   });
+  // Readline's built-in async iterator can miss EOF while a command awaits a
+  // durable save. Capture lines and close before entering the play loop.
+  const pendingLines: string[] = [];
+  let closed = false;
+  let wake: (() => void) | undefined;
+  lines.on("line", (line) => {
+    pendingLines.push(line);
+    wake?.();
+  });
+  lines.on("close", () => {
+    closed = true;
+    wake?.();
+  });
+  const queuedLines = {
+    prompt: () => lines.prompt(),
+    close: () => lines.close(),
+    async *[Symbol.asyncIterator]() {
+      while (!closed || pendingLines.length > 0) {
+        if (pendingLines.length > 0) {
+          yield pendingLines.shift()!;
+        } else {
+          await new Promise<void>((resolve) => {
+            wake = resolve;
+          });
+          wake = undefined;
+        }
+      }
+    },
+  };
 
   try {
     await playGame(
       { ...startup, ...(dmModel === undefined ? {} : { dmModel }) },
       {
-        lines,
+        lines: queuedLines,
         terminal,
         write(text) {
           process.stdout.write(text);
@@ -405,6 +486,7 @@ async function main(): Promise<void> {
       },
     );
   } catch (error) {
+    lines.close();
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);
     process.exitCode = 1;

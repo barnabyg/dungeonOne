@@ -2,6 +2,7 @@ import { runDmTurn, type DmModel, type DmTranscriptEntry } from "./dm-turn.js";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
 import type { RuntimeResult as ActionResult } from "./runtime-contract.js";
 import type { Action } from "./session.js";
+import { SaveSession } from "./save.js";
 import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
 import {
   completeSessionTrace,
@@ -19,6 +20,8 @@ export type PlayOptions = Readonly<{
   runtime?: AdventureRuntime;
   tracePath?: string;
   dmModel?: DmModel;
+  savePath?: string;
+  saveSession?: SaveSession;
 }>;
 
 export type PlayIo = Readonly<{
@@ -74,8 +77,19 @@ export async function playGame(
   ) {
     throw new Error("DM model identity is required for trace export.");
   }
-  const random = createSeededRandom(options.seed);
-  let state = createSession();
+  if (
+    (options.savePath !== undefined || options.saveSession !== undefined) &&
+    options.dmModel !== undefined
+  ) {
+    throw new Error("Saved play does not support AI or scripted DM mode.");
+  }
+  const saveSession =
+    options.saveSession ??
+    (options.savePath === undefined
+      ? undefined
+      : await SaveSession.start(options.savePath, runtime, options.seed));
+  const random = saveSession?.random ?? createSeededRandom(options.seed);
+  let state = saveSession?.state ?? createSession();
   const commandTrace =
     options.tracePath === undefined || options.dmModel !== undefined
       ? undefined
@@ -88,7 +102,13 @@ export async function playGame(
   let transcript: readonly DmTranscriptEntry[] = [];
 
   io.write(`Seed: ${options.seed} (${RANDOM_ALGORITHM})\n`);
-  io.write(`${renderIntroduction()}\n`);
+  if (options.saveSession !== undefined) {
+    io.write(
+      `Resumed ${runtime.id} at ${"locationId" in state ? state.locationId : "current location"}; status: ${state.status}.\n`,
+    );
+  } else {
+    io.write(`${renderIntroduction()}\n`);
+  }
   if (runtime.renderStateSummary === undefined) {
     const initialStatus = handleAction(state, { type: "status" }, random);
     state = initialStatus.state;
@@ -220,7 +240,9 @@ export async function playGame(
     } else {
       const action = parseCommand(line);
       let result: ActionResult;
-      if (commandTrace === undefined) {
+      if (saveSession !== undefined) {
+        result = await saveSession.commit(line, action);
+      } else if (commandTrace === undefined) {
         result = handleAction(state, action, random);
       } else {
         const rolls: RollRecord[] = [];

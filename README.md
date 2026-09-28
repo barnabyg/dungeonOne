@@ -370,6 +370,24 @@ the explicit-model override path. It is not part of canonical verification:
 npm.cmd run smoke:ai -- --model <model-id>
 ```
 
+### Save and resume a schema-3 adventure
+
+Start command play with an automatic local save:
+
+```powershell
+npm.cmd start -- --adventure-file .\adventures\chapel-clues.json --seed 0 --save .\chapel-save.json
+```
+
+Enter `move chapel path`, then close the process with EOF (Ctrl+Z, Enter in a Windows terminal) or close the terminal. The accepted move is saved before the next prompt. In a new process, run:
+
+```powershell
+npm.cmd start -- --resume .\chapel-save.json
+```
+
+The resumed scene is Chapel Path, with HP and offered actions shown; the opening introduction and move are not repeated. The save embeds the validated adventure, so the original JSON file can be moved or deleted. A save is replaced atomically after each committed action. If a write fails, play stops and reports that the last action was not saved; resume the previous valid save rather than continuing from the failed process. Reads and rejected commands do not add committed transitions. `quit` ends the in-world session, so use EOF or close the process when you intend to resume.
+
+Saves contain local player actions and the full adventure, including private story facts. Keep them in a private location. Save version 1 supports command play for schema-3 adventures. `--save` cannot be combined with AI mode or `--trace`; `--resume` accepts only a save file. A diagnostic trace remains a separate replay artifact.
+
 To export a diagnostic trace, add `--trace <path>` (or
 `--trace=<path>`):
 
