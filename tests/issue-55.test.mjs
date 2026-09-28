@@ -192,6 +192,18 @@ test("incomplete shapes and impossible clue paths fail without creating output",
           ];
         },
       ],
+      [
+        "unreachable-encounter",
+        (doc) => {
+          doc.quest.milestones.push("moth-awakened");
+          doc.encounters[0].when = [
+            { type: "milestone-recorded", id: "moth-awakened" },
+          ];
+          doc.encounters[0].effects = [
+            { type: "record-milestone", id: "moth-awakened" },
+          ];
+        },
+      ],
     ];
     for (const [reason, change] of cases) {
       const document = candidate();

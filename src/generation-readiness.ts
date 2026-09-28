@@ -48,6 +48,7 @@ function explore(snapshot: ChapelCluesDefinition, omittedNpc?: string) {
   const locations = new Set<string>();
   const discoveries = new Set<string>();
   const visibleNpcs = new Set<string>();
+  const triggeredEncounters = new Set<string>();
   const availableChoices = new Map<string, Set<string>>();
   let completion = false;
   let limited = false;
@@ -64,10 +65,29 @@ function explore(snapshot: ChapelCluesDefinition, omittedNpc?: string) {
       }
     }
     const add = (next: State) => {
-      const id = signature(next);
+      let facts = next.facts;
+      const fought = new Set(next.fought);
+      for (const monster of monsters.filter(
+        (entry) => entry.locationId === next.location && !fought.has(entry.id),
+      )) {
+        const encounter = encounters.find(
+          (entry) => entry.monsterId === monster.id,
+        );
+        if (encounter === undefined || !positive(encounter.when, facts)) {
+          continue;
+        }
+        if (fought.size >= 1) {
+          return;
+        }
+        fought.add(monster.id);
+        triggeredEncounters.add(encounter.id);
+        facts = apply(facts, encounter.effects);
+      }
+      const resolved = { ...next, facts, fought };
+      const id = signature(resolved);
       if (!seen.has(id)) {
         seen.add(id);
-        queue.push(next);
+        queue.push(resolved);
       }
     };
     const ending = snapshot.endings;
@@ -101,30 +121,7 @@ function explore(snapshot: ChapelCluesDefinition, omittedNpc?: string) {
       if (route.from !== state.location || !positive(route.when, state.facts)) {
         continue;
       }
-      const guards = monsters.filter(
-        (monster) => monster.locationId === route.to,
-      );
-      const unfought = guards.filter(
-        (monster) => !state.fought.has(monster.id),
-      );
-      if (state.fought.size + unfought.length > 1) {
-        continue;
-      }
-      const fought = new Set(state.fought);
-      let facts = state.facts;
-      for (const guard of unfought) {
-        const encounter = encounters.find(
-          (entry) => entry.monsterId === guard.id,
-        );
-        if (encounter === undefined || !positive(encounter.when, facts)) {
-          break;
-        }
-        fought.add(guard.id);
-        facts = apply(facts, encounter.effects);
-      }
-      if (fought.size === state.fought.size + unfought.length) {
-        add({ location: route.to, facts, fought });
-      }
+      add({ ...state, location: route.to });
     }
     for (const feature of snapshot.features) {
       if (
@@ -170,6 +167,7 @@ function explore(snapshot: ChapelCluesDefinition, omittedNpc?: string) {
     locations,
     discoveries,
     visibleNpcs,
+    triggeredEncounters,
     availableChoices,
     completion,
     limited,
@@ -229,6 +227,11 @@ export function checkGenerationReadiness(
   }
   if (route.locations.size < count) {
     fail("unreachable-location", "/locations", snapshot.id);
+  }
+  for (let i = 0; i < encounters.length; i++) {
+    if (!route.triggeredEncounters.has(encounters[i]!.id)) {
+      fail("unreachable-encounter", `/encounters/${i}`, encounters[i]!.id);
+    }
   }
   for (let i = 0; i < npcs.length; i++) {
     const npc = npcs[i]!;
