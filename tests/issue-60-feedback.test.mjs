@@ -113,6 +113,17 @@ test("a collect request points to the current evidence command", () => {
   );
 });
 
+test("the action list includes both offered ending choices", () => {
+  const output = play(
+    "negotiation",
+    "move reed ferry\nmove old bell tower\nattack tower-kite\nattack tower-kite\nsearch tower-nest\nmove reed ferry\nmove brackenford square\nlook\nquit\n",
+  );
+  assert.match(
+    output,
+    /Try:.*resolve Propose a shared repair; resolve Return the bell and clear Willowbank/isu,
+  );
+});
+
 test("the released v7 trace keeps its rejected command semantics", () => {
   const replay = spawnSync(
     process.execPath,

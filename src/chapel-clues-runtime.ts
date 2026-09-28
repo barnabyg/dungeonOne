@@ -543,7 +543,9 @@ export function createChapelCluesRuntime(
           : `inspect ${features[0].id}`
         : `search ${feature.id}`;
     const item = visibleItems(state)[0];
-    const ending = endingChoices(state)[0];
+    const endings = endingChoices(state).map(
+      (choice) => `resolve ${choice.label}`,
+    );
     const actions =
       activeOpponent(state) === undefined
         ? [
@@ -551,14 +553,11 @@ export function createChapelCluesRuntime(
             topic,
             item === undefined ? undefined : `take ${item.id}`,
             exits[0] === undefined ? undefined : `move ${exits[0].id}`,
-            ending === undefined ? undefined : `resolve ${ending.label}`,
+            ...endings,
           ]
         : [`attack ${activeOpponent(state)}`];
     return `Try: ${
-      actions
-        .filter((action) => action !== undefined)
-        .slice(0, 5)
-        .join("; ") || "journal"
+      actions.filter((action) => action !== undefined).join("; ") || "journal"
     }. Clues go in your journal${definition.items === undefined ? "; this adventure has no portable inventory items" : "; portable items go in your inventory"}.`;
   };
   const scene = (state: ClueState) => {
