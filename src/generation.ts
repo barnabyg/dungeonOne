@@ -70,6 +70,7 @@ export type GenerationOptions = Readonly<{
 
 export type GenerationAttemptEvidence = Readonly<{
   attempt: number;
+  prompt: string;
   promptSha256: string;
   elapsedMs: number;
   status:
@@ -498,6 +499,7 @@ export async function generateAdventure(options: GenerationOptions): Promise<{
       const outputTokens = usage?.output_tokens;
       options.onAttempt?.({
         attempt,
+        prompt,
         promptSha256,
         elapsedMs: Math.round(performance.now() - began),
         status,

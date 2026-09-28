@@ -64,10 +64,12 @@ test("evaluation observes each generation attempt without retaining provider pay
       ],
     );
     assert.match(attempts[0].promptSha256, /^[a-f0-9]{64}$/u);
-    assert.doesNotMatch(
-      JSON.stringify(attempts),
-      /SECRET-KEY|missing surveyor|evaluation-witness/iu,
+    assert.match(attempts[0].prompt, /A missing surveyor/u);
+    assert.equal(
+      attempts[0].promptSha256,
+      createHash("sha256").update(attempts[0].prompt).digest("hex"),
     );
+    assert.doesNotMatch(JSON.stringify(attempts), /SECRET-KEY/iu);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
