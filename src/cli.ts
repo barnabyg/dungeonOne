@@ -330,7 +330,7 @@ async function main(): Promise<void> {
       });
       const quotedPath = `'${result.outputPath.replaceAll("'", "''")}'`;
       process.stdout.write(
-        `Generated ${result.id}\nDigest: ${result.digest}\nModel: ${result.model}\nRoute witnesses: ${Object.entries(
+        `Generated ${result.id}\nDigest: ${result.digest}\nModel: ${result.model}\nAttempts: ${result.attempts}\nValidation warnings: ${result.warnings}\nRoute witnesses: ${Object.entries(
           result.routes.endings,
         )
           .map(

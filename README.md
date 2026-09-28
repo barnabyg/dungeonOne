@@ -16,8 +16,9 @@ All development tools and the official OpenAI SDK are exact-version dependencies
 
 Generation is opt-in and requires an explicit model, a printable premise of at
 most 500 characters, an existing output directory, and a new output filename.
-It makes one bounded OpenAI response request, accepts at most 16 KiB of
-response text, checks the returned schema 3 / rules v4 document with the
+It makes at most three bounded OpenAI response requests (an initial attempt
+and up to two diagnostic guided repairs), accepts at most 16 KiB of
+response text per attempt, checks each returned schema 3 / rules v4 document with the
 ordinary adventure loader, then explores offered actions through the data
 runtime before creating the file. The route check witnesses both endings and
 every static `analysis-incomplete` warning; when social challenges exist it
@@ -27,7 +28,10 @@ seconds. A budget limit or unsupported route rejects the candidate as
 incomplete. This is evidence for at least one seeded route, not a guarantee
 that every random seed or player choice succeeds. Generation cannot be combined with play, replay,
 validation, seed, or trace options. Failed attempts leave the requested output
-untouched. Provider details and rejected content are not printed.
+untouched. Repair requests include the premise, stable diagnostic codes and
+paths, and at most 6 KiB of relevant candidate context. They cannot change
+validation rules or the output path. Repeated content and provider failures
+stop generation. Provider details and rejected content are not printed.
 
 ```powershell
 $env:OPENAI_API_KEY = "your-key"
@@ -36,8 +40,9 @@ node dist/cli.js --validate-adventure .\my-adventure.json
 node dist/cli.js --adventure-file .\my-adventure.json --seed 0
 ```
 
-The generator reports the content ID, SHA-256 digest, model, route witness seeds,
-warning count, explored states, and commands to validate and play the file.
+The generator reports the content ID, SHA-256 digest, model, attempt count,
+warning count, route witness seeds, explored states, and commands to validate
+and play the file.
 `generateAdventure` also returns the action, state, and draw witnesses for
 inspection or replay. Generation asks the model for a small adventure with
 two endings. A strict response schema limits fields
