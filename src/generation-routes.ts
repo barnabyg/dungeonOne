@@ -116,7 +116,7 @@ function conditionHolds(state: ClueState, condition: ClueCondition): boolean {
     case "milestone-recorded":
       return state.milestones.includes(condition.id);
     case "actor-alive":
-      return (state.npcHealth?.[condition.id]?.hp ?? 0) > 0;
+      return (state.npcHealth?.[condition.id]?.hp ?? 1) > 0;
     case "actor-dead":
       return state.npcHealth?.[condition.id]?.hp === 0;
     case "actor-dead-at":

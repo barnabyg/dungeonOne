@@ -16,6 +16,7 @@ import type {
   ValidatedAdventure,
 } from "./adventure-loader.js";
 import { GENERATION_OUTPUT_FORMAT } from "./generation-schema.js";
+import { checkGenerationContinuity } from "./generation-continuity.js";
 import { checkGenerationReadiness } from "./generation-readiness.js";
 import { proveGenerationRoutes } from "./generation-routes.js";
 import type { RouteEvidence } from "./generation-routes.js";
@@ -143,6 +144,17 @@ function checkCandidate(candidate: string): CandidateCheck {
     return {
       ok: false,
       diagnostics: routes.diagnostics,
+      reason: "Adventure generation rejected candidate",
+    };
+  }
+  const continuity = checkGenerationContinuity(
+    loaded.adventure,
+    routes.evidence,
+  );
+  if (continuity.length > 0) {
+    return {
+      ok: false,
+      diagnostics: continuity,
       reason: "Adventure generation rejected candidate",
     };
   }
