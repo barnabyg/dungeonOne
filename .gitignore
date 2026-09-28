@@ -4,3 +4,4 @@ node_modules/
 .verify-artifacts/
 .scratch/
 .dm-evaluations/
+.generation-evaluations/

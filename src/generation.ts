@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import {
   link,
   lstat,
@@ -65,6 +65,19 @@ export type GenerationOptions = Readonly<{
   model: string;
   apiKey: string;
   client?: ResponsesClient;
+  onAttempt?: (evidence: GenerationAttemptEvidence) => void;
+}>;
+
+export type GenerationAttemptEvidence = Readonly<{
+  attempt: number;
+  promptSha256: string;
+  elapsedMs: number;
+  status:
+    "accepted" | "rejected" | "provider-failure" | "incomplete" | "repeated";
+  diagnosticCodes: readonly string[];
+  candidateSha256?: string;
+  inputTokens?: number;
+  outputTokens?: number;
 }>;
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -471,17 +484,51 @@ export async function generateAdventure(options: GenerationOptions): Promise<{
             "Bounded relevant candidate context:",
             repairContext(priorCandidate, priorCheck!.diagnostics),
           ];
+    const prompt = instructions.join("\n");
+    const promptSha256 = createHash("sha256").update(prompt).digest("hex");
+    const began = performance.now();
+    const report = (
+      status: GenerationAttemptEvidence["status"],
+      diagnosticCodes: readonly string[],
+      response?: unknown,
+    ) => {
+      const usage =
+        record(response) && record(response.usage) ? response.usage : undefined;
+      const inputTokens = usage?.input_tokens;
+      const outputTokens = usage?.output_tokens;
+      options.onAttempt?.({
+        attempt,
+        promptSha256,
+        elapsedMs: Math.round(performance.now() - began),
+        status,
+        diagnosticCodes,
+        ...(record(response) && typeof response.output_text === "string"
+          ? {
+              candidateSha256: createHash("sha256")
+                .update(response.output_text)
+                .digest("hex"),
+            }
+          : {}),
+        ...(typeof inputTokens === "number" && Number.isFinite(inputTokens)
+          ? { inputTokens }
+          : {}),
+        ...(typeof outputTokens === "number" && Number.isFinite(outputTokens)
+          ? { outputTokens }
+          : {}),
+      });
+    };
     let response: unknown;
     try {
       response = await requestCandidate(client, {
         model: options.model,
-        instructions: instructions.join("\n"),
+        instructions: prompt,
         input: "Return the complete adventure document now.",
         text: { format: GENERATION_OUTPUT_FORMAT },
         max_output_tokens: 6000,
         store: false,
       });
     } catch {
+      report("provider-failure", ["provider-request-failed"]);
       throw new Error("Adventure generation provider request failed.");
     }
     if (
@@ -490,6 +537,7 @@ export async function generateAdventure(options: GenerationOptions): Promise<{
       typeof response.output_text !== "string" ||
       refused(response)
     ) {
+      report("incomplete", ["incomplete-or-refused"], response);
       throw new Error(
         "Adventure generation returned an incomplete or refused response.",
       );
@@ -497,6 +545,7 @@ export async function generateAdventure(options: GenerationOptions): Promise<{
     candidate = response.output_text;
     const signature = candidateSignature(candidate);
     if (seen.has(signature)) {
+      report("repeated", ["repeated-response"], response);
       throw new Error(
         priorCheck === undefined
           ? "Adventure generation repeated a response."
@@ -506,9 +555,17 @@ export async function generateAdventure(options: GenerationOptions): Promise<{
     seen.add(signature);
     const check = checkCandidate(candidate);
     if (check.ok) {
+      report("accepted", [], response);
       accepted = check;
       break;
     }
+    report(
+      "rejected",
+      check.diagnostics
+        .slice(0, REPAIR_DIAGNOSTIC_LIMIT)
+        .map(({ code }) => code),
+      response,
+    );
     priorCandidate = candidate;
     priorCheck = check;
   }
