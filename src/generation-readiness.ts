@@ -198,6 +198,9 @@ export function checkGenerationReadiness(
   ) {
     fail("npc-count", "/npcs", snapshot.id);
   }
+  if ((snapshot.socialChallenges ?? []).length === 0) {
+    fail("missing-social-challenge", "/socialChallenges", snapshot.id);
+  }
   const encounters = snapshot.encounters ?? [];
   const monsters = snapshot.monsters ?? [];
   if (

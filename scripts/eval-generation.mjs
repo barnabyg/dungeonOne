@@ -10,7 +10,12 @@ import {
 } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-import { generateAdventure } from "../dist/generation.js";
+import {
+  generateAdventure,
+  GENERATION_REQUEST_TIMEOUT_MS,
+  GENERATION_TOTAL_TIMEOUT_MS,
+  GENERATION_MAX_OUTPUT_TOKENS,
+} from "../dist/generation.js";
 import { CLUES_ENGINE_VERSION } from "../dist/chapel-clues-runtime.js";
 
 const PLAN = JSON.parse(
@@ -84,15 +89,18 @@ if (!validArgs) {
     schemaVersion: PLAN.schemaVersion,
     rulesVersion: PLAN.rulesVersion,
     engineVersion: CLUES_ENGINE_VERSION,
+    requestTimeoutMs: GENERATION_REQUEST_TIMEOUT_MS,
+    totalTimeoutMs: GENERATION_TOTAL_TIMEOUT_MS,
+    maxOutputTokens: GENERATION_MAX_OUTPUT_TOKENS,
     generationSourceSha256: hash(source),
     exampleSha256: hash(example),
     schemaSha256: hash(schema),
     generationSchemaSha256: hash(generationSchema),
     premisePlanSha256: hash(JSON.stringify(PLAN)),
     pricing: {
-      inputUsdPerMillion: 0.25,
-      outputUsdPerMillion: 2,
-      source: "https://developers.openai.com/api/docs/models/gpt-5-mini",
+      inputUsdPerMillion: PLAN.model === "gpt-5.6-terra" ? 2 : 0.25,
+      outputUsdPerMillion: PLAN.model === "gpt-5.6-terra" ? 12 : 2,
+      source: `https://developers.openai.com/api/docs/models/${PLAN.model === "gpt-5.6-terra" ? "gpt-5.6-terra" : "gpt-5-mini"}`,
       note: "Upper estimate treats all input tokens as uncached; missing usage is excluded.",
     },
     runs: [],
@@ -108,6 +116,7 @@ if (!validArgs) {
     !Array.isArray(report.runs) ||
     report.runs.length > runCount ||
     report.runs.some((run, index) => run.run !== index + 1) ||
+    JSON.stringify(report.pricing) !== JSON.stringify(expected.pricing) ||
     [
       "protocolVersion",
       "batch",
@@ -115,6 +124,9 @@ if (!validArgs) {
       "schemaVersion",
       "rulesVersion",
       "engineVersion",
+      "requestTimeoutMs",
+      "totalTimeoutMs",
+      "maxOutputTokens",
       "generationSourceSha256",
       "exampleSha256",
       "schemaSha256",
@@ -200,9 +212,11 @@ if (!validArgs) {
       0,
     );
     item.estimatedUsd = Number(
-      ((item.inputTokens * 0.25 + item.outputTokens * 2) / 1_000_000).toFixed(
-        6,
-      ),
+      (
+        (item.inputTokens * report.pricing.inputUsdPerMillion +
+          item.outputTokens * report.pricing.outputUsdPerMillion) /
+        1_000_000
+      ).toFixed(6),
     );
     report.runs.push(item);
     await save();

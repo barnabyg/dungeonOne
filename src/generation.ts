@@ -23,7 +23,9 @@ import type { RouteEvidence } from "./generation-routes.js";
 
 const PREMISE_LIMIT = 500;
 const RESPONSE_LIMIT = 16 * 1024;
-const TIMEOUT_MS = 60_000;
+export const GENERATION_REQUEST_TIMEOUT_MS = 120_000;
+export const GENERATION_TOTAL_TIMEOUT_MS = 300_000;
+export const GENERATION_MAX_OUTPUT_TOKENS = 10_000;
 const MAX_ATTEMPTS = 3;
 const REPAIR_CONTEXT_LIMIT = 6 * 1024;
 const REPAIR_DIAGNOSTIC_LIMIT = 8;
@@ -56,6 +58,7 @@ const REPAIR_REFERENCE_FIELDS = new Set([
 type ResponsesClient = Readonly<{
   responses: Readonly<{
     create(body: Record<string, unknown>): Promise<unknown>;
+    retrieve?(id: string): Promise<unknown>;
   }>;
 }>;
 
@@ -369,18 +372,61 @@ function refused(response: Record<string, unknown>): boolean {
   );
 }
 
+function providerFailureCode(error: unknown): string {
+  if (
+    record(error) &&
+    Number.isInteger(error.status) &&
+    Number(error.status) >= 400 &&
+    Number(error.status) <= 599
+  ) {
+    return `provider-http-${error.status}`;
+  }
+  if (
+    error instanceof Error &&
+    (error.name === "APIConnectionTimeoutError" || error.name === "AbortError")
+  ) {
+    return "provider-timeout";
+  }
+  if (error instanceof Error && error.name === "APIConnectionError") {
+    return "provider-connection-error";
+  }
+  return "provider-request-failed";
+}
+
 async function requestCandidate(
   client: ResponsesClient,
   body: Record<string, unknown>,
 ): Promise<unknown> {
+  const started = performance.now();
+  let response = await requestWithTimeout(client.responses.create(body));
+  while (
+    record(response) &&
+    (response.status === "queued" || response.status === "in_progress")
+  ) {
+    if (
+      typeof response.id !== "string" ||
+      client.responses.retrieve === undefined ||
+      performance.now() - started >= GENERATION_TOTAL_TIMEOUT_MS
+    ) {
+      throw new Error("background response polling failed");
+    }
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 2000);
+    });
+    response = await requestWithTimeout(client.responses.retrieve(response.id));
+  }
+  return response;
+}
+
+async function requestWithTimeout(request: Promise<unknown>): Promise<unknown> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
-      client.responses.create(body),
+      request,
       new Promise<never>((_, reject) => {
         timeout = setTimeout(
           () => reject(new Error("request timeout")),
-          TIMEOUT_MS,
+          GENERATION_REQUEST_TIMEOUT_MS,
         );
       }),
     ]);
@@ -448,10 +494,16 @@ export async function generateAdventure(options: GenerationOptions): Promise<{
   );
   const client =
     options.client ??
-    new OpenAI({ apiKey: options.apiKey, maxRetries: 0, timeout: TIMEOUT_MS });
+    new OpenAI({
+      apiKey: options.apiKey,
+      maxRetries: 0,
+      timeout: GENERATION_REQUEST_TIMEOUT_MS,
+    });
   const rules = [
     "Create one tiny, original Dungeon One adventure as a single JSON object. No markdown or commentary.",
     "The JSON must conform to schemaVersion 3 and chapel-clues-rules-v4. Include 3-5 reachable locations, 3-5 distinct placed NPCs, 1-3 single-opponent encounters, an initial discovery lead, at least three obtainable discoveries, and two distinct reachable ending choices. Completion must need at most one encounter and must survive any one NPC being unavailable or a social check failing.",
+    "Include at least one social challenge linked to an NPC topic. Its replies need success, failure, unattempted ask, and a final unconditional any/any fallback. After a failed challenge, a physical search must still supply evidence needed for an ending.",
+    "In this tiny generation subset, leave every NPC believes array, NPC reply effects array, and encounter effects array empty. Every approvedFactId in a reply must also appear in that speaker's knows array. Grant discoveries only through searches of their declared source features. Every condition id must reference an existing discovery or quest milestone of its stated type.",
     "Use only the supported data schema; no scripts, placeholders, or terminal control characters.",
   ];
   let priorCandidate = "";
@@ -523,14 +575,15 @@ export async function generateAdventure(options: GenerationOptions): Promise<{
     try {
       response = await requestCandidate(client, {
         model: options.model,
+        background: true,
         instructions: prompt,
         input: "Return the complete adventure document now.",
         text: { format: GENERATION_OUTPUT_FORMAT },
-        max_output_tokens: 6000,
+        max_output_tokens: GENERATION_MAX_OUTPUT_TOKENS,
         store: false,
       });
-    } catch {
-      report("provider-failure", ["provider-request-failed"]);
+    } catch (error) {
+      report("provider-failure", [providerFailureCode(error)]);
       throw new Error("Adventure generation provider request failed.");
     }
     if (

@@ -20,6 +20,7 @@ const list = (items: unknown, minItems = 0) => ({
   items,
   minItems,
 });
+const emptyList = (items: unknown) => ({ type: "array", items, maxItems: 0 });
 const object = (properties: Record<string, unknown>) => ({
   type: "object",
   additionalProperties: false,
@@ -87,6 +88,19 @@ export const GENERATION_OUTPUT_FORMAT = {
       }),
       2,
     ),
+    facts: list(object({ id, statement: string }), 1),
+    socialChallenges: list(
+      object({
+        id,
+        modifier: integer,
+        dc: integer,
+        guardedFactIds: list(id, 1),
+        guardedDiscoveryIds: list(id),
+        guardedMilestoneIds: list(id),
+        evidenceWhen: list(condition, 1),
+      }),
+      1,
+    ),
     npcs: list(
       object({
         id,
@@ -95,7 +109,7 @@ export const GENERATION_OUTPUT_FORMAT = {
         locationId: id,
         voice: string,
         knows: list(id),
-        believes: list(id),
+        believes: emptyList(id),
         wants: list(string),
         knowledgeLimits: list(string),
         topics: list(
@@ -108,12 +122,15 @@ export const GENERATION_OUTPUT_FORMAT = {
             replies: list(
               object({
                 when: list(condition),
-                outcome: { type: "string", enum: ["any", "unattempted"] },
+                outcome: {
+                  type: "string",
+                  enum: ["any", "unattempted", "success", "failure"],
+                },
                 approach: { type: "string", enum: ["any", "ask"] },
                 text: string,
                 attitude: string,
                 approvedFactIds: list(id),
-                effects: list(effect),
+                effects: emptyList(effect),
               }),
             ),
           }),
@@ -154,7 +171,7 @@ export const GENERATION_OUTPUT_FORMAT = {
         id,
         monsterId: id,
         when: list(condition),
-        effects: list(effect),
+        effects: emptyList(effect),
       }),
       1,
     ),

@@ -1,6 +1,6 @@
 {
-  "protocolVersion": 2,
-  "model": "gpt-5-mini-2025-08-07",
+  "protocolVersion": 8,
+  "model": "gpt-5.6-terra",
   "schemaVersion": 3,
   "rulesVersion": "chapel-clues-rules-v4",
   "runsPerPremise": 1,

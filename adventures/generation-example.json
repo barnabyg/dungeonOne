@@ -127,6 +127,23 @@
       "text": "You read the keeper's name."
     }
   ],
+  "facts": [
+    {
+      "id": "porter-secret",
+      "statement": "The porter saw a lantern keeper enter the archive after dark."
+    }
+  ],
+  "socialChallenges": [
+    {
+      "id": "porter-question",
+      "modifier": 0,
+      "dc": 11,
+      "guardedFactIds": ["porter-secret"],
+      "guardedDiscoveryIds": [],
+      "guardedMilestoneIds": [],
+      "evidenceWhen": [{ "type": "discovery-known", "id": "record-clue" }]
+    }
+  ],
   "npcs": [
     {
       "id": "porter",
@@ -134,11 +151,57 @@
       "aliases": ["porter"],
       "locationId": "square",
       "voice": "Brisk.",
-      "knows": [],
+      "knows": ["porter-secret"],
       "believes": [],
       "wants": ["Help visitors."],
       "knowledgeLimits": [],
-      "topics": []
+      "topics": [
+        {
+          "id": "archive-account",
+          "name": "Archive account",
+          "aliases": ["archive account"],
+          "when": [],
+          "challengeId": "porter-question",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "success",
+              "approach": "any",
+              "text": "Porter: I saw a lantern keeper enter the archive after dark.",
+              "attitude": "frank",
+              "approvedFactIds": ["porter-secret"],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "failure",
+              "approach": "any",
+              "text": "Porter: I cannot give you an account. Read the record yourself.",
+              "attitude": "guarded",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "unattempted",
+              "approach": "ask",
+              "text": "Porter: I need a reason before I speak plainly.",
+              "attitude": "guarded",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Porter: The archive record is open for you to inspect.",
+              "attitude": "guarded",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "scribe",
