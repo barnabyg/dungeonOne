@@ -148,6 +148,18 @@ test("incomplete shapes and impossible clue paths fail without creating output",
         },
       ],
       [
+        "insufficient-clues",
+        (doc) => {
+          doc.searches.splice(2, 0, {
+            id: "shadowing-plaque-search",
+            targetId: "plaque",
+            when: [],
+            effects: [{ type: "record-milestone", id: "record-found" }],
+            text: "The plaque points back to the record.",
+          });
+        },
+      ],
+      [
         "missing-producer",
         (doc) => {
           doc.discoveries.push({

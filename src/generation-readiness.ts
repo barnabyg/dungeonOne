@@ -126,15 +126,18 @@ function explore(snapshot: ChapelCluesDefinition, omittedNpc?: string) {
         add({ location: route.to, facts, fought });
       }
     }
-    for (const search of snapshot.searches) {
-      const feature = snapshot.features.find(
-        (entry) => entry.id === search.targetId,
-      );
+    for (const feature of snapshot.features) {
       if (
-        feature?.locationId === state.location &&
-        positive(feature.when, state.facts) &&
-        positive(search.when, state.facts)
+        feature.locationId !== state.location ||
+        !positive(feature.when, state.facts)
       ) {
+        continue;
+      }
+      const search = snapshot.searches.find(
+        (entry) =>
+          entry.targetId === feature.id && positive(entry.when, state.facts),
+      );
+      if (search !== undefined) {
         add({ ...state, facts: apply(state.facts, search.effects) });
       }
     }
@@ -151,14 +154,14 @@ function explore(snapshot: ChapelCluesDefinition, omittedNpc?: string) {
         if (!positive(topic.when, state.facts)) {
           continue;
         }
-        for (const reply of topic.replies) {
-          if (
-            (reply.outcome === "any" || reply.outcome === "unattempted") &&
-            (reply.approach === "any" || reply.approach === "ask") &&
-            positive(reply.when, state.facts)
-          ) {
-            add({ ...state, facts: apply(state.facts, reply.effects) });
-          }
+        const reply = topic.replies.find(
+          (entry) =>
+            (entry.outcome === "any" || entry.outcome === "unattempted") &&
+            (entry.approach === "any" || entry.approach === "ask") &&
+            positive(entry.when, state.facts),
+        );
+        if (reply !== undefined) {
+          add({ ...state, facts: apply(state.facts, reply.effects) });
         }
       }
     }
