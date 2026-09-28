@@ -13,7 +13,6 @@ import { join, resolve } from "node:path";
 import { generateAdventure } from "../dist/generation.js";
 import { CLUES_ENGINE_VERSION } from "../dist/chapel-clues-runtime.js";
 
-const ROOT = resolve(".generation-evaluations");
 const PLAN = JSON.parse(
   await readFile(
     new URL("./generation-premises.json", import.meta.url),
@@ -33,15 +32,38 @@ const schema = await readFile(
   new URL("../schema/adventure-v3.schema.json", import.meta.url),
   "utf8",
 );
+const generationSchema = await readFile(
+  new URL("../src/generation-schema.ts", import.meta.url),
+  "utf8",
+);
 const runCount = PLAN.premises.length * PLAN.runsPerPremise;
+const batch = process.argv[2] === "--batch" ? Number(process.argv[3]) : NaN;
+const dryRun = process.argv[4] === "--dry-run";
+const validArgs =
+  (process.argv.length === 4 || (process.argv.length === 5 && dryRun)) &&
+  Number.isSafeInteger(batch) &&
+  batch > 0 &&
+  runCount === 10 &&
+  PLAN.premises.length === 10 &&
+  PLAN.runsPerPremise === 1;
+const ROOT = resolve(
+  ".generation-evaluations",
+  `protocol-${PLAN.protocolVersion}`,
+  `batch-${batch}`,
+);
 
-if (
-  process.argv.length !== 2 ||
-  runCount !== 30 ||
-  !process.env.OPENAI_API_KEY
-) {
+if (!validArgs) {
   process.stderr.write(
-    "Evaluation requires the frozen 30-run plan and OPENAI_API_KEY.\n",
+    "Usage: node scripts/eval-generation.mjs --batch <positive-number> [--dry-run]\n",
+  );
+  process.exitCode = 2;
+} else if (dryRun) {
+  process.stdout.write(
+    `${JSON.stringify({ protocolVersion: PLAN.protocolVersion, batch, total: runCount, model: PLAN.model, premises: PLAN.premises })}\n`,
+  );
+} else if (!process.env.OPENAI_API_KEY) {
+  process.stderr.write(
+    "OPENAI_API_KEY is required for generation evaluation.\n",
   );
   process.exitCode = 2;
 } else {
@@ -56,6 +78,7 @@ if (
   const reportPath = join(ROOT, "report.json");
   const expected = {
     protocolVersion: PLAN.protocolVersion,
+    batch,
     startedAt: new Date().toISOString(),
     model: PLAN.model,
     schemaVersion: PLAN.schemaVersion,
@@ -64,6 +87,7 @@ if (
     generationSourceSha256: hash(source),
     exampleSha256: hash(example),
     schemaSha256: hash(schema),
+    generationSchemaSha256: hash(generationSchema),
     premisePlanSha256: hash(JSON.stringify(PLAN)),
     pricing: {
       inputUsdPerMillion: 0.25,
@@ -86,6 +110,7 @@ if (
     report.runs.some((run, index) => run.run !== index + 1) ||
     [
       "protocolVersion",
+      "batch",
       "model",
       "schemaVersion",
       "rulesVersion",
@@ -93,6 +118,7 @@ if (
       "generationSourceSha256",
       "exampleSha256",
       "schemaSha256",
+      "generationSchemaSha256",
       "premisePlanSha256",
     ].some((key) => report[key] !== expected[key])
   ) {

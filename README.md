@@ -52,10 +52,12 @@ example's ID. A model may still return content that fails validation; the
 error reports only diagnostic codes and paths. No
 generation provider is needed to play a successfully written file.
 
-For the frozen 30-run generation reliability protocol and its current evidence,
-see [issue 59 acceptance](docs/acceptance/issue-59.md). The opt-in runner is
-`node scripts/eval-generation.mjs` after a build, with `OPENAI_API_KEY` set;
-its bounded report is kept under ignored `.generation-evaluations/`.
+For the generation reliability protocol and its current evidence, see
+[issue 59 acceptance](docs/acceptance/issue-59.md). The opt-in runner evaluates
+ten premises at a time: `node scripts/eval-generation.mjs --batch 1 --dry-run`
+shows the plan without an API key, and `node scripts/eval-generation.mjs --batch 1`
+executes it after a build with `OPENAI_API_KEY` set. Bounded reports are kept
+under ignored `.generation-evaluations/`.
 
 ## Install, build, and play
 

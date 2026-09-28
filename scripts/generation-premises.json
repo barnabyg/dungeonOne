@@ -1,9 +1,9 @@
 {
-  "protocolVersion": 1,
+  "protocolVersion": 2,
   "model": "gpt-5-mini-2025-08-07",
   "schemaVersion": 3,
   "rulesVersion": "chapel-clues-rules-v4",
-  "runsPerPremise": 3,
+  "runsPerPremise": 1,
   "premises": [
     {
       "category": "investigation",
