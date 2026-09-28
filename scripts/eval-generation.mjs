@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { readFile, mkdir, rename, rm, writeFile } from "node:fs/promises";
+import {
+  readFile,
+  readdir,
+  mkdir,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import { generateAdventure } from "../dist/generation.js";
@@ -39,6 +46,13 @@ if (
   process.exitCode = 2;
 } else {
   await mkdir(ROOT, { recursive: true });
+  // An interrupted prior batch can leave a validated candidate or trace behind.
+  // The evaluation owns these exact names; clear them before any provider call.
+  for (const name of await readdir(ROOT)) {
+    if (/^(?:candidate-\d+|trace-\d+-[a-z0-9-]+)\.json$/u.test(name)) {
+      await rm(join(ROOT, name), { force: true });
+    }
+  }
   const reportPath = join(ROOT, "report.json");
   const report = {
     protocolVersion: PLAN.protocolVersion,
