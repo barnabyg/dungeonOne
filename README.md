@@ -18,8 +18,14 @@ Generation is opt-in and requires an explicit model, a printable premise of at
 most 500 characters, an existing output directory, and a new output filename.
 It makes one bounded OpenAI response request, accepts at most 16 KiB of
 response text, checks the returned schema 3 / rules v4 document with the
-ordinary adventure loader, and creates the file only
-after validation succeeds. Generation cannot be combined with play, replay,
+ordinary adventure loader, then explores offered actions through the data
+runtime before creating the file. The route check witnesses both endings and
+every static `analysis-incomplete` warning; when social challenges exist it
+also witnesses a physical search route after a failed check. It tries seeds
+0–15 and is bounded to 32 actions per route, 12,000 explored states, and five
+seconds. A budget limit or unsupported route rejects the candidate as
+incomplete. This is evidence for at least one seeded route, not a guarantee
+that every random seed or player choice succeeds. Generation cannot be combined with play, replay,
 validation, seed, or trace options. Failed attempts leave the requested output
 untouched. Provider details and rejected content are not printed.
 
@@ -30,9 +36,11 @@ node dist/cli.js --validate-adventure .\my-adventure.json
 node dist/cli.js --adventure-file .\my-adventure.json --seed 0
 ```
 
-The generator reports the content ID, SHA-256 digest, model, and commands to
-validate and play the file. Generation asks the model for a small two-location,
-two-search adventure with two endings. A strict response schema limits fields
+The generator reports the content ID, SHA-256 digest, model, route witness seeds,
+warning count, explored states, and commands to validate and play the file.
+`generateAdventure` also returns the action, state, and draw witnesses for
+inspection or replay. Generation asks the model for a small adventure with
+two endings. A strict response schema limits fields
 and values, while the loader checks references and play rules. Generation uses
 a bundled valid example to guide the model and rejects a response with the
 example's ID. A model may still return content that fails validation; the

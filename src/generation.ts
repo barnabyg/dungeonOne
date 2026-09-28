@@ -13,6 +13,8 @@ import OpenAI from "openai";
 import { loadAdventure } from "./adventure-loader.js";
 import { GENERATION_OUTPUT_FORMAT } from "./generation-schema.js";
 import { checkGenerationReadiness } from "./generation-readiness.js";
+import { proveGenerationRoutes } from "./generation-routes.js";
+import type { RouteEvidence } from "./generation-routes.js";
 
 const PREMISE_LIMIT = 500;
 const RESPONSE_LIMIT = 16 * 1024;
@@ -65,6 +67,7 @@ export async function generateAdventure(options: GenerationOptions): Promise<{
   digest: string;
   model: string;
   outputPath: string;
+  routes: RouteEvidence;
 }> {
   const premise = options.premise.trim();
   if (
@@ -162,6 +165,14 @@ export async function generateAdventure(options: GenerationOptions): Promise<{
       .join(", ");
     throw new Error(`Adventure generation rejected candidate (${reasons}).`);
   }
+  const routes = proveGenerationRoutes(loaded.adventure, loaded.diagnostics);
+  if (!routes.ok) {
+    const reasons = routes.diagnostics
+      .slice(0, 3)
+      .map(({ code, path, entity }) => `${code} at ${path} (${entity})`)
+      .join(", ");
+    throw new Error(`Adventure generation rejected candidate (${reasons}).`);
+  }
   const tempPath = join(
     dirname(outputPath),
     `.${basename(outputPath)}.${randomBytes(12).toString("hex")}.tmp`,
@@ -187,5 +198,6 @@ export async function generateAdventure(options: GenerationOptions): Promise<{
     digest: loaded.adventure.digest,
     model: options.model,
     outputPath,
+    routes: routes.evidence,
   };
 }

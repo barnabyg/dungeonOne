@@ -330,7 +330,16 @@ async function main(): Promise<void> {
       });
       const quotedPath = `'${result.outputPath.replaceAll("'", "''")}'`;
       process.stdout.write(
-        `Generated ${result.id}\nDigest: ${result.digest}\nModel: ${result.model}\nValidate: node dist/cli.js --validate-adventure ${quotedPath}\nPlay: node dist/cli.js --adventure-file ${quotedPath} --seed 0\n`,
+        `Generated ${result.id}\nDigest: ${result.digest}\nModel: ${result.model}\nRoute witnesses: ${Object.entries(
+          result.routes.endings,
+        )
+          .map(
+            ([id, route]) =>
+              `${id} (seed ${route.seed}, ${route.steps.length} actions)`,
+          )
+          .join(
+            ", ",
+          )}\nWarnings witnessed: ${Object.keys(result.routes.warnings).length}\nExplored: ${result.routes.exploredStates} states across ${result.routes.seedAttempts} seeds\nValidate: node dist/cli.js --validate-adventure ${quotedPath}\nPlay: node dist/cli.js --adventure-file ${quotedPath} --seed 0\n`,
       );
     } catch (error) {
       process.stderr.write(
