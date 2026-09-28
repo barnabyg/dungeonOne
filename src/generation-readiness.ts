@@ -241,7 +241,9 @@ export function checkGenerationReadiness(
   }
   const choices = [...route.availableChoices];
   if (choices.length >= 2) {
-    const outcomes = choices.map(([, values]) => [...values].sort().join("|"));
+    const outcomes = choices.map(([, values]) =>
+      JSON.stringify([...values].sort()),
+    );
     if (new Set(outcomes).size < 2) {
       fail("duplicate-resolution", "/endings/choices", snapshot.id);
     }

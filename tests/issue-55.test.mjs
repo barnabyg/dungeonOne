@@ -70,6 +70,17 @@ test("a playable candidate passes generation, validation, and command startup", 
   });
 });
 
+test("distinct ending prose containing separators remains distinct", async () => {
+  await inDirectory(async (directory) => {
+    const document = candidate();
+    document.endings.choices[0].consequences[0].text = "a|b";
+    document.endings.choices[0].narration[0].text = "c";
+    document.endings.choices[1].consequences[0].text = "a";
+    document.endings.choices[1].narration[0].text = "b|c";
+    await generate(document, join(directory, "distinct.json"));
+  });
+});
+
 test("incomplete shapes and impossible clue paths fail without creating output", async () => {
   await inDirectory(async (directory) => {
     const cases = [
