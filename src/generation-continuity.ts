@@ -10,7 +10,7 @@ import type { RouteEvidence, RouteWitness } from "./generation-routes.js";
 import { createSeededRandom } from "./random.js";
 
 function eligible(state: ClueState, conditions: readonly ClueCondition[]) {
-  return conditions.every(({ type, id, locationId }) => {
+  return conditions.every(({ type, id, locationId, tier }) => {
     switch (type) {
       case "discovery-known":
         return state.discoveries.includes(id);
@@ -25,6 +25,8 @@ function eligible(state: ClueState, conditions: readonly ClueCondition[]) {
           state.npcHealth?.[id]?.hp === 0 &&
           state.npcDeathLocations?.[id] === locationId
         );
+      case "relationship-tier":
+        return state.relationships?.[id]?.tier === tier;
     }
   });
 }

@@ -71,10 +71,10 @@ function digest(value: unknown): string {
 
 function requireSaveRuntime(runtime: AdventureRuntime): void {
   if (
-    runtime.content?.snapshot.schemaVersion !== 3 ||
+    ![3, 4].includes(runtime.content?.snapshot.schemaVersion ?? 0) ||
     runtime.engineVersion === undefined
   ) {
-    throw new Error("Saves require a schema-3 adventure.");
+    throw new Error("Saves require a schema-3 or schema-4 adventure.");
   }
 }
 
@@ -102,6 +102,14 @@ type DomainEvent = Readonly<
       locationId: string;
     }
   | { type: "milestone-recorded"; actionId: string; milestoneId: string }
+  | {
+      type: "relationship-changed";
+      actionId: string;
+      targetId: string;
+      from: string;
+      to: string;
+      reason: string;
+    }
   | {
       type: "item-transferred";
       actionId: string;
@@ -279,6 +287,24 @@ function eventsFor(
   for (const milestoneId of after.milestones) {
     if (!before.milestones.includes(milestoneId)) {
       events.push({ type: "milestone-recorded", actionId, milestoneId });
+    }
+  }
+  for (const [targetId, relationship] of Object.entries(
+    after.relationships ?? {},
+  )) {
+    const prior = before.relationships?.[targetId];
+    if (
+      prior !== undefined &&
+      (prior.tier !== relationship.tier || prior.reason !== relationship.reason)
+    ) {
+      events.push({
+        type: "relationship-changed",
+        actionId,
+        targetId,
+        from: prior.tier,
+        to: relationship.tier,
+        reason: relationship.reason,
+      });
     }
   }
   for (const [itemId, position] of Object.entries(after.items ?? {})) {

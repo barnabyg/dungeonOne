@@ -45,7 +45,8 @@ export function analyzeProgression(
         (candidate) =>
           candidate.type === condition.type &&
           candidate.id === condition.id &&
-          candidate.locationId === condition.locationId,
+          candidate.locationId === condition.locationId &&
+          candidate.tier === condition.tier,
       ),
     );
   const shadowedOutputs = new Set<string>();
@@ -67,7 +68,11 @@ export function analyzeProgression(
           )
       ) {
         search.effects
-          .filter((effect) => effect.type !== "relocate-npc")
+          .filter(
+            (effect) =>
+              effect.type === "grant-discovery" ||
+              effect.type === "record-milestone",
+          )
           .forEach((effect) => shadowedOutputs.add(output(effect)));
         return;
       }
@@ -100,7 +105,11 @@ export function analyzeProgression(
               )
           ) {
             reply.effects
-              .filter((effect) => effect.type !== "relocate-npc")
+              .filter(
+                (effect) =>
+                  effect.type === "grant-discovery" ||
+                  effect.type === "record-milestone",
+              )
               .forEach((effect) => shadowedOutputs.add(output(effect)));
             return;
           }
@@ -195,7 +204,10 @@ export function analyzeProgression(
           eligible(producer.when)
         ) {
           for (const effect of producer.effects) {
-            if (effect.type === "relocate-npc") {
+            if (
+              effect.type !== "grant-discovery" &&
+              effect.type !== "record-milestone"
+            ) {
               continue;
             }
             const value = output(effect);
@@ -267,7 +279,9 @@ export function analyzeProgression(
         (producer.unsupported || producer.when.some((c) => !positive(c))) &&
         producer.effects.some(
           (effect) =>
-            effect.type !== "relocate-npc" && output(effect) === value,
+            (effect.type === "grant-discovery" ||
+              effect.type === "record-milestone") &&
+            output(effect) === value,
         ),
     );
   const listed = [
@@ -290,7 +304,9 @@ export function analyzeProgression(
     const hasProducer = producers.some((producer) =>
       producer.effects.some(
         (effect) =>
-          effect.type !== "relocate-npc" && output(effect) === entry.value,
+          (effect.type === "grant-discovery" ||
+            effect.type === "record-milestone") &&
+          output(effect) === entry.value,
       ),
     );
     report(

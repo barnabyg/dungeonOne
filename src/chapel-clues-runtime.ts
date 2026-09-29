@@ -4,6 +4,7 @@ import {
   type ClueCondition,
   type ClueEffect,
   type DialogueReply,
+  type Relationship,
   type ValidatedAdventure,
 } from "./adventure-loader.js";
 import { parseBoundedJson } from "./bounded-json.js";
@@ -27,6 +28,7 @@ import type { Action } from "./session.js";
 import type { RandomSource } from "./random.js";
 
 export const CLUES_ENGINE_VERSION = "chapel-clues-engine-v7";
+export const RELATIONSHIP_ENGINE_VERSION = "chapel-clues-engine-v8";
 export const CASUALTY_CLUES_ENGINE_VERSION = "chapel-clues-engine-v6";
 export const RESCUE_CLUES_ENGINE_VERSION = "chapel-clues-engine-v5";
 export const POTION_CLUES_ENGINE_VERSION = "chapel-clues-engine-v4";
@@ -51,6 +53,7 @@ export type ClueState = Readonly<{
   discoveries: readonly string[];
   discoveryLocations?: Readonly<Record<string, string>>;
   milestones: readonly string[];
+  relationships?: Readonly<Record<string, Relationship>>;
   socialChallenges: Readonly<
     Record<
       string,
@@ -156,14 +159,21 @@ export type ClueJournal = Readonly<{
 export function createChapelCluesRuntime(
   content: ValidatedAdventure,
 ): AdventureRuntime {
-  if (content.snapshot.schemaVersion !== 3) {
+  if (
+    content.snapshot.schemaVersion !== 3 &&
+    content.snapshot.schemaVersion !== 4
+  ) {
     throw new Error("Expected chapel clues content.");
   }
   const definition: ChapelCluesDefinition = content.snapshot;
   const combatEnabled = definition.combatProfile !== undefined;
-  const endingsEnabled = definition.rulesVersion === "chapel-clues-rules-v4";
+  const relationshipsEnabled =
+    definition.rulesVersion === "chapel-clues-rules-v5";
+  const endingsEnabled = definition.endings !== undefined;
   const casualtiesEnabled =
-    endingsEnabled || definition.rulesVersion === "chapel-clues-rules-v3";
+    endingsEnabled ||
+    relationshipsEnabled ||
+    definition.rulesVersion === "chapel-clues-rules-v3";
   const stateOf = (input: RuntimeState): ClueState => {
     if (
       !("runtimeKind" in input) ||
@@ -175,17 +185,19 @@ export function createChapelCluesRuntime(
     return input;
   };
   const eligible = (state: ClueState, conditions: readonly ClueCondition[]) =>
-    conditions.every(({ type, id, locationId }) =>
+    conditions.every(({ type, id, locationId, tier }) =>
       type === "discovery-known"
         ? state.discoveries.includes(id)
-        : type === "actor-dead"
-          ? state.npcHealth?.[id]?.hp === 0
-          : type === "actor-alive"
-            ? (state.npcHealth?.[id]?.hp ?? 0) > 0
-            : type === "actor-dead-at"
-              ? state.npcHealth?.[id]?.hp === 0 &&
-                state.npcDeathLocations?.[id] === locationId
-              : state.milestones.includes(id),
+        : type === "relationship-tier"
+          ? state.relationships?.[id]?.tier === tier
+          : type === "actor-dead"
+            ? state.npcHealth?.[id]?.hp === 0
+            : type === "actor-alive"
+              ? (state.npcHealth?.[id]?.hp ?? 0) > 0
+              : type === "actor-dead-at"
+                ? state.npcHealth?.[id]?.hp === 0 &&
+                  state.npcDeathLocations?.[id] === locationId
+                : state.milestones.includes(id),
     );
   const npcById = (id: string) =>
     (definition.npcs ?? []).find((entry) => entry.id === id);
@@ -1300,7 +1312,10 @@ export function createChapelCluesRuntime(
               route.every((needed) =>
                 reply.when.some(
                   (actual) =>
-                    actual.type === needed.type && actual.id === needed.id,
+                    actual.type === needed.type &&
+                    actual.id === needed.id &&
+                    actual.tier === needed.tier &&
+                    actual.locationId === needed.locationId,
                 ),
               ),
           ) &&
@@ -1361,7 +1376,10 @@ export function createChapelCluesRuntime(
         milestones = [...state.milestones],
         discoveryLocations = { ...state.discoveryLocations };
       for (const effect of reply.effects) {
-        if (effect.type !== "relocate-npc") {
+        if (
+          effect.type === "grant-discovery" ||
+          effect.type === "record-milestone"
+        ) {
           const list =
             effect.type === "grant-discovery" ? discoveries : milestones;
           if (!list.includes(effect.id)) {
@@ -1373,9 +1391,15 @@ export function createChapelCluesRuntime(
         }
       }
       const npcLocations = { ...state.npcLocations };
+      const relationships = { ...state.relationships };
       for (const effect of reply.effects) {
         if (effect.type === "relocate-npc") {
           npcLocations[effect.id] = effect.toLocationId!;
+        } else if (effect.type === "set-relationship") {
+          relationships[effect.id] = {
+            tier: effect.tier!,
+            reason: effect.reason!,
+          };
         }
       }
       const next: ClueState = {
@@ -1384,6 +1408,7 @@ export function createChapelCluesRuntime(
         milestones,
         ...(hasRelocation ? { discoveryLocations } : {}),
         ...(hasRelocation ? { npcLocations } : {}),
+        ...(relationshipsEnabled ? { relationships } : {}),
         socialChallenges:
           check === undefined || challenge === undefined
             ? state.socialChallenges
@@ -1591,41 +1616,47 @@ export function createChapelCluesRuntime(
     ];
   }
   const hasRelocation = definition.rulesVersion !== "chapel-clues-rules-v1";
-  const version = endingsEnabled
+  const version = relationshipsEnabled
     ? {
-        engineVersion: CLUES_ENGINE_VERSION,
-        promptVersion: CLUES_PROMPT_VERSION,
-        toolSchemaVersion: CLUES_TOOL_VERSION,
+        engineVersion: RELATIONSHIP_ENGINE_VERSION,
+        promptVersion: "chapel-clues-dm-v10",
+        toolSchemaVersion: "chapel-clues-tools-v8",
       }
-    : casualtiesEnabled
+    : endingsEnabled
       ? {
-          engineVersion: CASUALTY_CLUES_ENGINE_VERSION,
-          promptVersion: "chapel-clues-dm-v6",
-          toolSchemaVersion: "chapel-clues-tools-v6",
+          engineVersion: CLUES_ENGINE_VERSION,
+          promptVersion: CLUES_PROMPT_VERSION,
+          toolSchemaVersion: CLUES_TOOL_VERSION,
         }
-      : hasRelocation
+      : casualtiesEnabled
         ? {
-            engineVersion: RESCUE_CLUES_ENGINE_VERSION,
-            promptVersion: "chapel-clues-dm-v5",
-            toolSchemaVersion: "chapel-clues-tools-v5",
+            engineVersion: CASUALTY_CLUES_ENGINE_VERSION,
+            promptVersion: "chapel-clues-dm-v6",
+            toolSchemaVersion: "chapel-clues-tools-v6",
           }
-        : definition.items !== undefined
+        : hasRelocation
           ? {
-              engineVersion: POTION_CLUES_ENGINE_VERSION,
-              promptVersion: "chapel-clues-dm-v4",
-              toolSchemaVersion: "chapel-clues-tools-v4",
+              engineVersion: RESCUE_CLUES_ENGINE_VERSION,
+              promptVersion: "chapel-clues-dm-v5",
+              toolSchemaVersion: "chapel-clues-tools-v5",
             }
-          : combatEnabled
+          : definition.items !== undefined
             ? {
-                engineVersion: COMBAT_CLUES_ENGINE_VERSION,
-                promptVersion: "chapel-clues-dm-v3",
-                toolSchemaVersion: "chapel-clues-tools-v3",
+                engineVersion: POTION_CLUES_ENGINE_VERSION,
+                promptVersion: "chapel-clues-dm-v4",
+                toolSchemaVersion: "chapel-clues-tools-v4",
               }
-            : {
-                engineVersion: LEGACY_CLUES_ENGINE_VERSION,
-                promptVersion: "chapel-clues-dm-v2",
-                toolSchemaVersion: "chapel-clues-tools-v2",
-              };
+            : combatEnabled
+              ? {
+                  engineVersion: COMBAT_CLUES_ENGINE_VERSION,
+                  promptVersion: "chapel-clues-dm-v3",
+                  toolSchemaVersion: "chapel-clues-tools-v3",
+                }
+              : {
+                  engineVersion: LEGACY_CLUES_ENGINE_VERSION,
+                  promptVersion: "chapel-clues-dm-v2",
+                  toolSchemaVersion: "chapel-clues-tools-v2",
+                };
   return Object.freeze({
     id: definition.id,
     version: definition.contentVersion,
@@ -1696,6 +1727,15 @@ export function createChapelCluesRuntime(
       discoveries: [...(definition.initialDiscoveries ?? [])],
       ...(hasRelocation ? { discoveryLocations: {} } : {}),
       milestones: [...(definition.initialMilestones ?? [])],
+      ...(relationshipsEnabled
+        ? {
+            relationships: Object.fromEntries(
+              (definition.relationships ?? []).map(
+                ({ targetId, tier, reason }) => [targetId, { tier, reason }],
+              ),
+            ),
+          }
+        : {}),
       socialChallenges: {},
       conversationHistory: [],
       ...(hasRelocation

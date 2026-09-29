@@ -1435,7 +1435,7 @@ function replayFormat4(trace: JsonObject): void {
       localKinds: [
         "dm",
         "local-help",
-        ...(content.snapshot.schemaVersion === 3
+        ...([3, 4].includes(content.snapshot.schemaVersion)
           ? ["local-journal" as const]
           : []),
         "local-status",
@@ -1450,7 +1450,7 @@ function replayFormat4(trace: JsonObject): void {
         "status",
         "inventory",
         "quit",
-        ...(content.snapshot.schemaVersion === 3 ? ["journal"] : []),
+        ...([3, 4].includes(content.snapshot.schemaVersion) ? ["journal"] : []),
       ].includes(input);
       requireMatch(
         `turn ${index + 1} input routing`,

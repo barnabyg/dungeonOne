@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 4,
+  "id": "remembering-guard",
+  "contentVersion": "1",
+  "rulesVersion": "chapel-clues-rules-v5",
+  "title": "The Gate Watch",
+  "introduction": "A guard watches the gate between the yard and the orchard.",
+  "objective": "Speak with the guard, then return to see how you are received.",
+  "player": { "locationId": "yard", "hp": 20, "maxHp": 20 },
+  "locations": [
+    {
+      "id": "yard",
+      "name": "Gate Yard",
+      "description": "A guard stands by the gate.",
+      "aliases": ["yard"]
+    },
+    {
+      "id": "orchard",
+      "name": "Orchard",
+      "description": "Apple trees shade a path back to the gate.",
+      "aliases": ["orchard"]
+    }
+  ],
+  "connections": [
+    { "id": "yard-orchard", "from": "yard", "to": "orchard", "when": [] },
+    { "id": "orchard-yard", "from": "orchard", "to": "yard", "when": [] }
+  ],
+  "features": [],
+  "quest": { "id": "gate-visit", "title": "Visit the gate", "milestones": [] },
+  "discoveries": [],
+  "searches": [],
+  "facts": [],
+  "relationships": [
+    {
+      "targetId": "guard",
+      "tier": "neutral",
+      "reason": "The guard has just met the player."
+    }
+  ],
+  "npcs": [
+    {
+      "id": "guard",
+      "name": "Gate Guard",
+      "aliases": ["guard"],
+      "locationId": "yard",
+      "voice": "Direct and observant.",
+      "knows": [],
+      "believes": [],
+      "wants": ["Keep the gate orderly."],
+      "knowledgeLimits": ["Does not know what happened in the orchard."],
+      "combat": {
+        "hp": 1,
+        "maxHp": 1,
+        "stats": {
+          "armorClass": 1,
+          "attackBonus": 0,
+          "initiativeBonus": 0,
+          "damage": { "dice": 1, "sides": 2, "modifier": 0 }
+        }
+      },
+      "topics": [
+        {
+          "id": "insult",
+          "name": "Insult the guard",
+          "aliases": ["insult"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Guard: I will remember that insult.",
+              "attitude": "hostile",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "set-relationship",
+                  "id": "guard",
+                  "tier": "hostile",
+                  "reason": "The player insulted the guard privately."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "help",
+          "name": "Help the guard",
+          "aliases": ["help"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Guard: Thank you for helping with the gate.",
+              "attitude": "grateful",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "set-relationship",
+                  "id": "guard",
+                  "tier": "trusted",
+                  "reason": "The player helped secure the gate privately."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "return",
+          "name": "Ask to return",
+          "aliases": ["return"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [
+                {
+                  "type": "relationship-tier",
+                  "id": "guard",
+                  "tier": "hostile"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Guard: You insulted me. I will not help you through the gate.",
+              "attitude": "hostile",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "relationship-tier",
+                  "id": "guard",
+                  "tier": "trusted"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Guard: Welcome back. I can help you through the gate.",
+              "attitude": "friendly",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Guard: State your business at the gate.",
+              "attitude": "neutral",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "combatProfile": {
+    "armorClass": 16,
+    "attackBonus": 20,
+    "initiativeBonus": 20,
+    "damage": { "dice": 1, "sides": 8, "modifier": 3 }
+  }
+}

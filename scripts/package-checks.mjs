@@ -69,9 +69,11 @@ const authoredAssets = [
   "adventures/stolen-signet.json",
   "adventures/signet-exploration.json",
   "adventures/tide-observatory.json",
+  "adventures/remembering-guard.json",
   "schema/adventure-v1.schema.json",
   "schema/adventure-v2.schema.json",
   "schema/adventure-v3.schema.json",
+  "schema/adventure-v4.schema.json",
 ];
 
 for (const adventure of authoredAssets.filter((asset) =>

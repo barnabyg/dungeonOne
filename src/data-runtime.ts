@@ -11,6 +11,7 @@ export function createDataRuntime(
     case 2:
       return createSignetRuntime(content);
     case 3:
+    case 4:
       return createChapelCluesRuntime(content);
     default:
       return createExplorationRuntime(content);

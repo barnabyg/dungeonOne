@@ -124,6 +124,8 @@ function conditionHolds(state: ClueState, condition: ClueCondition): boolean {
         state.npcHealth?.[condition.id]?.hp === 0 &&
         state.npcDeathLocations?.[condition.id] === condition.locationId
       );
+    case "relationship-tier":
+      return state.relationships?.[condition.id]?.tier === condition.tier;
   }
 }
 

@@ -170,6 +170,20 @@ clocks, and new rule systems are outside this profile.
 
 ### External chapel clues
 
+[The Gate Watch](adventures/remembering-guard.json) is a small
+[schema 4](schema/adventure-v4.schema.json) / `chapel-clues-rules-v5` adventure.
+`talk guard insult ask` or `talk guard help ask`, leave for the orchard, then
+return and `talk guard return ask` to hear the consequence. Relationship tiers
+are `hostile`, `neutral`, and `trusted`. Dialogue can set a tier and a private
+reason; relationship predicates select later replies. Saves retain the tier
+and reason and record each actual change. The public scene and DM tools expose
+only the current authored reply. A dead guard cannot speak or help.
+
+```text
+node dist/cli.js --adventure-file adventures/remembering-guard.json --seed 0 --save gate-save.json
+node dist/cli.js --resume gate-save.json
+```
+
 [The chapel clues document](adventures/chapel-clues.json) uses
 [schema 3](schema/adventure-v3.schema.json) and `chapel-clues-rules-v4`.
 It provides the inn, ferry landing, chapel path, ruined chapel, and crypt as directed
