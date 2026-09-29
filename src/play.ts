@@ -77,12 +77,6 @@ export async function playGame(
   ) {
     throw new Error("DM model identity is required for trace export.");
   }
-  if (
-    (options.savePath !== undefined || options.saveSession !== undefined) &&
-    options.dmModel !== undefined
-  ) {
-    throw new Error("Saved play does not support AI or scripted DM mode.");
-  }
   const saveSession =
     options.saveSession ??
     (options.savePath === undefined
@@ -210,6 +204,12 @@ export async function playGame(
           random,
           model: options.dmModel,
           runtime,
+          ...(saveSession === undefined
+            ? {}
+            : {
+                executeTool: (toolState, call, playerInput) =>
+                  saveSession.executeTool(toolState, call, playerInput),
+              }),
         });
         state = result.state;
         transcript = result.transcript;

@@ -43,7 +43,8 @@ const USAGE = [
   "       dungeon-one --ai [--model <model-id>] [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
   "       dungeon-one --replay <path>",
   "       dungeon-one --adventure-file <schema-3.json> --seed <seed> --save <path>",
-  "       dungeon-one --resume <path>",
+  "       dungeon-one --adventure-file <schema-3.json> --ai --seed <seed> --save <path>",
+  "       dungeon-one --resume <path> [--ai] [--model <model-id>]",
   "       dungeon-one --adventure-file <path> [--ai] [--seed <seed>] [--trace <path>]",
   "       dungeon-one --validate-adventure <path>",
   "       dungeon-one --generate-adventure <output.json> --premise <text> --model <model-id>",
@@ -154,16 +155,32 @@ async function resolveStartupOptions(
 
   if (
     args[0] === "--resume" &&
-    args.length === 2 &&
     args[1] !== undefined &&
     !args[1].startsWith("--")
   ) {
+    const resumeArgs = args.slice(2);
+    const resumeAi = resumeArgs.includes("--ai");
+    const modelIndex = resumeArgs.indexOf("--model");
+    const resumeModel = modelIndex < 0 ? undefined : resumeArgs[modelIndex + 1];
+    if (
+      resumeArgs.length !== (resumeAi ? 1 : 0) + (modelIndex < 0 ? 0 : 2) ||
+      (resumeModel !== undefined &&
+        (!resumeAi ||
+          resumeModel.startsWith("--") ||
+          resumeModel.length === 0)) ||
+      (modelIndex >= 0 && resumeModel === undefined)
+    ) {
+      throw new Error(`Invalid resume options.\n${USAGE}`);
+    }
     const saveSession = await SaveSession.load(args[1]);
     return {
       mode: "play",
       runtime: saveSession.runtime,
       seed: saveSession.seed,
       saveSession,
+      ...(resumeAi
+        ? { ai: { model: resumeModel ?? OPENAI_DM_DEFAULT_MODEL } }
+        : {}),
     };
   }
   if (
@@ -319,10 +336,8 @@ async function resolveStartupOptions(
   if (!ai && model !== undefined) {
     throw new Error(`--model requires --ai.\n${USAGE}`);
   }
-  if (savePath !== undefined && (ai || tracePath !== undefined)) {
-    throw new Error(
-      `--save cannot be combined with --ai or --trace.\n${USAGE}`,
-    );
+  if (savePath !== undefined && tracePath !== undefined) {
+    throw new Error(`--save cannot be combined with --trace.\n${USAGE}`);
   }
 
   let runtime: AdventureRuntime;

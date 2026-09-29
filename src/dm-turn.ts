@@ -408,6 +408,13 @@ export async function runDmTurn(
     random: Pick<RandomSource, "roll">;
     model: DmModel;
     runtime?: AdventureRuntime;
+    executeTool?: (
+      state: SessionState,
+      call: DmToolCall,
+      playerInput: string,
+    ) => Promise<
+      Readonly<{ result: GameToolDispatchResult; rolls: readonly DmRoll[] }>
+    >;
   }>,
 ): Promise<DmTurnResult> {
   const runtime = input.runtime ?? resolveAdventure();
@@ -418,6 +425,9 @@ export async function runDmTurn(
   const toolAttempts: DmToolAttempt[] = [];
   const mechanics: string[] = [];
   let state = input.state;
+  const setState = (next: SessionState): void => {
+    state = next;
+  };
   const budget = { readCalls: 0, mutationAttempts: 0 };
   const readToolNames = new Set(runtime.readToolNames);
   const mutationToolNames = new Set(runtime.mutationToolNames);
@@ -584,12 +594,19 @@ export async function runDmTurn(
         return value;
       },
     };
-    const result = runtime.dispatchGameTool(
-      state,
-      call,
-      recordingRandom,
-      input.playerInput,
-    );
+    const executed =
+      input.executeTool === undefined
+        ? {
+            result: runtime.dispatchGameTool(
+              state,
+              call,
+              recordingRandom,
+              input.playerInput,
+            ),
+            rolls,
+          }
+        : await input.executeTool(state, call, input.playerInput);
+    const result = executed.result;
     const validated =
       result.engineResult !== undefined || result.modelOutput.ok;
     const disposition = {
@@ -597,8 +614,8 @@ export async function runDmTurn(
       validated,
       executed: validated,
     } as const;
-    state = result.state;
-    const toolResult = { call, result, disposition, rolls };
+    setState(result.state);
+    const toolResult = { call, result, disposition, rolls: executed.rolls };
     toolResults.push(toolResult);
     toolAttempts.push(toolResult);
     mechanics.push(renderMechanics(result, runtime));

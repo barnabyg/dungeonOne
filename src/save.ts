@@ -14,8 +14,10 @@ import type {
   AdventureRuntime,
   RuntimeEvent,
   RuntimeState,
+  RuntimeToolResult,
 } from "./runtime-contract.js";
 import type { Action } from "./session.js";
+import type { GameToolCall } from "./game-tools.js";
 import type { RollRecord } from "./trace.js";
 import type { ClueState } from "./chapel-clues-runtime.js";
 
@@ -518,10 +520,72 @@ export class SaveSession {
     ) {
       throw new Error("Save checkpoint differs from replayed transitions.");
     }
-    if (session.state.status !== "playing") {
-      throw new Error("Completed sessions cannot resume gameplay.");
+    if (session.state.status === "quit") {
+      throw new Error("Quit sessions cannot resume gameplay.");
     }
     return session;
+  }
+
+  async executeTool(
+    state: RuntimeState,
+    call: GameToolCall,
+    playerInput: string,
+  ): Promise<
+    Readonly<{ result: RuntimeToolResult; rolls: readonly RollRecord[] }>
+  > {
+    if (!isDeepStrictEqual(state, this.state)) {
+      throw new Error("Saved AI state differs from the current turn.");
+    }
+    const rolls: RollRecord[] = [];
+    const result = this.runtime.dispatchGameTool(
+      state,
+      call,
+      {
+        roll: (sides) => {
+          const value = this.random.roll(sides);
+          rolls.push({ sides, value });
+          return value;
+        },
+      },
+      playerInput,
+    );
+    if (!isDeepStrictEqual(state, result.state) || rolls.length > 0) {
+      if (
+        !result.modelOutput.ok ||
+        result.engineResult === undefined ||
+        !("events" in result.engineResult)
+      ) {
+        throw new Error("Rejected AI action changed saved state or dice.");
+      }
+      const args = JSON.parse(call.argumentsJson) as Record<string, string>;
+      const rawInput =
+        call.name === "move"
+          ? `move ${args.destinationId}`
+          : call.name === "talk"
+            ? `talk ${args.speakerId} ${args.topicId} ${args.approach}`
+            : call.name === "use_item"
+              ? `use ${args.item_id}`
+              : call.name === "attack"
+                ? `attack ${args.opponent_id}`
+                : call.name === "take"
+                  ? `take ${args.item_id}`
+                  : call.name === "search"
+                    ? `search ${args.target}`
+                    : call.name === "resolve_quest"
+                      ? `resolve ${args.resolutionId}`
+                      : undefined;
+      if (rawInput === undefined) {
+        throw new Error(`Unsupported saved AI action: ${call.name}.`);
+      }
+      await this.record(
+        rawInput,
+        this.runtime.parseCommand(rawInput),
+        result.state,
+        result.engineResult.events,
+        rolls,
+      );
+    }
+    return { result, rolls };
   }
 
   async commit(
@@ -554,24 +618,33 @@ export class SaveSession {
       }
       return result;
     }
+    await this.record(rawInput, action, result.state, result.events, rolls);
+    return result;
+  }
+
+  private async record(
+    rawInput: string,
+    action: Action,
+    afterState: RuntimeState,
+    events: readonly RuntimeEvent[],
+    rolls: readonly RollRecord[],
+  ): Promise<void> {
+    if (this.transitions.length >= TRANSITION_LIMIT) {
+      throw new Error("Save transition limit reached.");
+    }
+    const before = this.state;
     const sequence = this.transitions.length + 1;
     const actionId = `action-${sequence}`;
-    this.state = result.state;
+    this.state = afterState;
     this.transitions.push({
       sequence,
       actionId,
       rawInput,
       action,
       rolls,
-      domainEvent: eventFor(action, actionId, result.state),
-      domainEvents: eventsFor(
-        action,
-        actionId,
-        before,
-        result.state,
-        result.events,
-      ),
-      stateDigest: digest(result.state),
+      domainEvent: eventFor(action, actionId, afterState),
+      domainEvents: eventsFor(action, actionId, before, afterState, events),
+      stateDigest: digest(afterState),
       randomPosition: this.randomPosition,
       randomState: randomStateAt(this.seed, this.randomPosition),
     });
@@ -583,7 +656,6 @@ export class SaveSession {
         { cause: error },
       );
     }
-    return result;
   }
 
   private async persist(): Promise<void> {
