@@ -72,6 +72,7 @@ export type RuntimeResult =
     }>;
 export type RuntimeToolResult = Readonly<{
   state: RuntimeState;
+  action?: Action;
   engineResult?:
     | Readonly<{ events: readonly RuntimeEvent[] }>
     | Readonly<{ rejection: RuntimeRejection }>;

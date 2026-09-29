@@ -1993,6 +1993,7 @@ export function createChapelCluesRuntime(
       )?.conversation;
       return {
         state: result.state,
+        action,
         engineResult: { events: result.events },
         modelOutput: {
           ok: true,

@@ -29,6 +29,7 @@ type Transition = Readonly<{
   actionId: string;
   rawInput: string;
   action: Action;
+  source?: "ai-tool";
   rolls: readonly RollRecord[];
   domainEvent: Readonly<{
     type: "actor-relocated" | "action-committed";
@@ -445,10 +446,13 @@ export class SaveSession {
         transition.sequence !== index + 1 ||
         transition.actionId !== `action-${index + 1}` ||
         (save.formatVersion === 1 && transition.domainEvents !== undefined) ||
-        !isDeepStrictEqual(
-          runtime.parseCommand(transition.rawInput),
-          transition.action,
-        )
+        (transition.source === undefined
+          ? !isDeepStrictEqual(
+              runtime.parseCommand(transition.rawInput),
+              transition.action,
+            )
+          : transition.source !== "ai-tool" ||
+            transition.rawInput !== JSON.stringify(transition.action))
       ) {
         throw new Error(
           `Save transition ${index + 1} has invalid action identity.`,
@@ -557,32 +561,16 @@ export class SaveSession {
       ) {
         throw new Error("Rejected AI action changed saved state or dice.");
       }
-      const args = JSON.parse(call.argumentsJson) as Record<string, string>;
-      const rawInput =
-        call.name === "move"
-          ? `move ${args.destinationId}`
-          : call.name === "talk"
-            ? `talk ${args.speakerId} ${args.topicId} ${args.approach}`
-            : call.name === "use_item"
-              ? `use ${args.item_id}`
-              : call.name === "attack"
-                ? `attack ${args.opponent_id}`
-                : call.name === "take"
-                  ? `take ${args.item_id}`
-                  : call.name === "search"
-                    ? `search ${args.target}`
-                    : call.name === "resolve_quest"
-                      ? `resolve ${args.resolutionId}`
-                      : undefined;
-      if (rawInput === undefined) {
-        throw new Error(`Unsupported saved AI action: ${call.name}.`);
+      if (result.action === undefined) {
+        throw new Error("Committed AI tool has no validated action.");
       }
       await this.record(
-        rawInput,
-        this.runtime.parseCommand(rawInput),
+        JSON.stringify(result.action),
+        result.action,
         result.state,
         result.engineResult.events,
         rolls,
+        "ai-tool",
       );
     }
     return { result, rolls };
@@ -628,6 +616,7 @@ export class SaveSession {
     afterState: RuntimeState,
     events: readonly RuntimeEvent[],
     rolls: readonly RollRecord[],
+    source?: "ai-tool",
   ): Promise<void> {
     if (this.transitions.length >= TRANSITION_LIMIT) {
       throw new Error("Save transition limit reached.");
@@ -641,6 +630,7 @@ export class SaveSession {
       actionId,
       rawInput,
       action,
+      ...(source === undefined ? {} : { source }),
       rolls,
       domainEvent: eventFor(action, actionId, afterState),
       domainEvents: eventsFor(action, actionId, before, afterState, events),
