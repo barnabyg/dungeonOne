@@ -1,0 +1,13 @@
+wait 3
+move square
+move cellar
+talk guard request-passage persuade
+search route-register
+take restorative-tonic
+move square
+look
+journal
+move back-lane
+move hall
+resolve file-register
+journal

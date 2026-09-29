@@ -1,0 +1,7 @@
+move square
+move cellar
+search route-register
+move square
+move hall
+resolve post-register
+journal

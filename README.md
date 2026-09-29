@@ -221,6 +221,16 @@ save and enter `wait 3`, `wait 2`, `search route-register`, `move square`,
 next `>` prompt, Ctrl+C and `node dist/cli.js --resume deadline-save.json`
 continue the same clock.
 
+[Raiders at the Crossroads](adventures/raider-crossroads.json) is a separate
+schema-5 adventure. Start at the town-edge hall and choose to help Lysa,
+refuse the errand, or leave town. The cellar register supports on-time and
+late reports even if Neri or Lysa is unavailable. A stone passage, cart,
+crate, shutter, and tonic are visible fixtures for the later adjudication
+work; command mode currently supports only the listed commands. See the
+[issue 72 route witnesses and judgment matrix](docs/acceptance/issue-72.md)
+for seeded play and the proposed action/day contract. The released
+`consequence-journey` content remains unchanged.
+
 ```text
 node dist/cli.js --adventure-file adventures/remembering-guard.json --seed 0 --save gate-save.json
 node dist/cli.js --resume gate-save.json
