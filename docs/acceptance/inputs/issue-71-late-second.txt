@@ -1,0 +1,10 @@
+move cellar
+talk guard return ask
+move square
+move back-lane
+move hall
+talk lysa response ask
+talk lysa report-rescue ask
+talk lysa response ask
+journal
+resolve file-register

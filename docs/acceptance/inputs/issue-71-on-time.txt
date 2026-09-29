@@ -1,0 +1,5 @@
+talk guard help ask
+search route-register
+move square
+move hall
+resolve file-register

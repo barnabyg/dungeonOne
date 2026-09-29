@@ -4,6 +4,8 @@ Dungeon One is a text-first TypeScript game with an offline command mode and an 
 
 For a reproducible author/player handoff, including checked-in journeys,
 clean-checkout results, and replay limits, see [increment 4 acceptance](docs/acceptance/issue-53.md).
+For the combined guard, rescue, item, enemy, and deadline route across a
+restart, see the [issue 71 player handoff](docs/acceptance/issue-71.md).
 
 ## Requirements
 
