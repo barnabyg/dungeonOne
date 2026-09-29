@@ -402,13 +402,13 @@ Start command play with an automatic local save:
 npm.cmd start -- --adventure-file .\adventures\chapel-clues.json --seed 0 --save .\chapel-save.json
 ```
 
-Enter `move chapel path`, then close the process with EOF (Ctrl+Z, Enter in a Windows terminal) or close the terminal. The accepted move is saved before the next prompt. In a new process, run:
+Enter `move chapel path` and wait for the next `>` prompt, then press Ctrl+C in PowerShell or close the terminal. The accepted move is saved before the next prompt. In a new process, run:
 
 ```powershell
 npm.cmd start -- --resume .\chapel-save.json
 ```
 
-The resumed scene is Chapel Path, with HP and offered actions shown; the opening introduction and move are not repeated. The save embeds the validated adventure, so the original JSON file can be moved or deleted. A save is replaced atomically after each committed action. If a write fails, play stops and reports that the last action was not saved; resume the previous valid save rather than continuing from the failed process. Reads and rejected commands do not add committed transitions. `quit` ends the in-world session, so use EOF or close the process when you intend to resume.
+The resumed scene is Chapel Path, with HP and offered actions shown; the opening introduction and move are not repeated. The save embeds the validated adventure, so the original JSON file can be moved or deleted. A save is replaced atomically after each committed action. If a write fails, play stops and reports that the last action was not saved; resume the previous valid save rather than continuing from the failed process. Reads and rejected commands do not add committed transitions. `quit` ends the in-world session, so stop the process only after the next prompt when you intend to resume.
 
 Saves contain local player actions and the full adventure, including private story facts. Keep them in a private location. Save version 3 records settled combat attacks, deaths, encounter completion, one-attempt social checks, healing, and the earlier search, discovery, milestone, item, and actor relocation events. Each transition records its dice and RNG position and state; loading reconstructs the stream from the seed and rejects divergence at the affected transition or checkpoint. A player attack and automatic opponent turn are saved together before the next prompt. Version-1 and version-2 saves remain readable and upgrade on the next committed action. Command and AI play support schema-3 saves. Add `--ai` to the start command above to use a live DM, or use `--resume <path> --ai` to continue with one; `--model <model-id>` may follow `--ai` when resuming. The AI tool action is saved before narration is requested, so a provider failure after the action does not repeat it on restart. Local reads and reflection remain available after resuming a completed adventure. Saves do not include credentials, provider responses, or a transcript summary. `--save` cannot be combined with `--trace`. A diagnostic trace remains a separate replay artifact.
 
@@ -545,7 +545,7 @@ Raw player text is intentionally included because it is necessary to diagnose
 interpretation; treat exported traces accordingly when players may enter
 sensitive text.
 
-On macOS or Linux, use `npm` in place of `npm.cmd`. The optional seed must be a decimal integer from `0` through `4294967295`. If omitted, the game chooses one. Every run prints its seed once so it can be replayed. The game then displays the objective, fighter HP, session state, entrance scene, and a help hint. Enter `help` to list commands, `quit` to leave cleanly, or send EOF (`Ctrl+Z` then Enter on Windows; `Ctrl+D` on macOS/Linux) to close input cleanly.
+On macOS or Linux, use `npm` in place of `npm.cmd`. The optional seed must be a decimal integer from `0` through `4294967295`. If omitted, the game chooses one. Every run prints its seed once so it can be replayed. The game then displays the objective, fighter HP, session state, entrance scene, and a help hint. Enter `help` to list commands or `quit` to leave cleanly. To resume a saved game later, wait for the next prompt after your action and then stop the process; Ctrl+C works in PowerShell. EOF can also close input where the terminal supports it (`Ctrl+D` on macOS/Linux).
 
 ## Deterministic randomness
 
