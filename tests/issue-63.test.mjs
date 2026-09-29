@@ -48,7 +48,7 @@ test("evidence, item, and actor changes remain authoritative through restart and
     );
     assert.equal(first.status, 0, first.stderr);
     const saved = JSON.parse(readFileSync(savePath, "utf8"));
-    assert.equal(saved.formatVersion, 2);
+    assert.equal(saved.formatVersion, 3);
     assert.equal(saved.transitions.length, 6);
     assert.deepEqual(
       saved.transitions[0].domainEvents.map(({ type }) => type),
@@ -272,12 +272,14 @@ test("version-1 saves remain readable and upgrade after a new command", () => {
     save.formatVersion = 1;
     for (const transition of save.transitions) {
       delete transition.domainEvents;
+      delete transition.randomState;
     }
+    delete save.checkpoint.randomState;
     writeFileSync(savePath, JSON.stringify(save));
     const resumed = run("move inn\n", ["--resume", savePath]);
     assert.equal(resumed.status, 0, resumed.stderr);
     const upgraded = JSON.parse(readFileSync(savePath, "utf8"));
-    assert.equal(upgraded.formatVersion, 2);
+    assert.equal(upgraded.formatVersion, 3);
     assert.equal(
       upgraded.transitions[0].domainEvents[0].type,
       "actor-relocated",

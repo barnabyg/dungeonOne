@@ -5,7 +5,11 @@ import { isDeepStrictEqual } from "node:util";
 import { loadAdventure, type AdventureDefinition } from "./adventure-loader.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { createDataRuntime } from "./data-runtime.js";
-import { createSeededRandom, RANDOM_ALGORITHM } from "./random.js";
+import {
+  createSeededRandom,
+  randomStateAt,
+  RANDOM_ALGORITHM,
+} from "./random.js";
 import type {
   AdventureRuntime,
   RuntimeEvent,
@@ -33,11 +37,12 @@ type Transition = Readonly<{
   domainEvents?: readonly DomainEvent[];
   stateDigest: string;
   randomPosition: number;
+  randomState?: number;
 }>;
 
 type SaveEnvelope = Readonly<{
   kind: "dungeon-one-save";
-  formatVersion: 1 | 2;
+  formatVersion: 1 | 2 | 3;
   runtime: Readonly<{
     engineVersion: string;
     rulesVersion: string;
@@ -52,6 +57,7 @@ type SaveEnvelope = Readonly<{
     state: RuntimeState;
     stateDigest: string;
     randomPosition: number;
+    randomState?: number;
     status: string;
   }>;
 }>;
@@ -102,6 +108,43 @@ type DomainEvent = Readonly<
     }
   | { type: "item-consumed"; actionId: string; itemId: string }
   | {
+      type: "social-check-attempted";
+      actionId: string;
+      challengeId: string;
+      approach: string;
+      die: number;
+      result: "success" | "failure";
+    }
+  | {
+      type: "combat-started" | "combat-ended";
+      actionId: string;
+      opponentId: string;
+    }
+  | {
+      type: "initiative-rolled";
+      actionId: string;
+      combatantId: string;
+    }
+  | { type: "turn-started"; actionId: string; combatantId: string }
+  | { type: "encounter-effect"; actionId: string; effectId: string }
+  | {
+      type: "attack-resolved";
+      actionId: string;
+      attackerId: string;
+      targetId: string;
+      attackRoll: number;
+      outcome: "miss" | "hit" | "critical-hit";
+      damage?: number;
+      targetHp: number;
+    }
+  | {
+      type: "actor-defeated";
+      actionId: string;
+      actorId: string;
+      locationId: string;
+    }
+  | { type: "healing-item-used"; actionId: string; itemId: string }
+  | {
       type: "actor-relocated";
       actionId: string;
       actorId: string;
@@ -124,10 +167,88 @@ function eventsFor(
   beforeState: RuntimeState,
   afterState: RuntimeState,
   resultEvents: readonly RuntimeEvent[],
+  includeSettledEvents = true,
 ): readonly DomainEvent[] {
   const before = clueState(beforeState);
   const after = clueState(afterState);
   const events: DomainEvent[] = [];
+  for (const entry of includeSettledEvents ? resultEvents : []) {
+    if (entry.type === "attack-resolved") {
+      events.push({
+        type: "attack-resolved",
+        actionId,
+        attackerId: entry.attackerId,
+        targetId: entry.targetId,
+        attackRoll: entry.attackRoll,
+        outcome: entry.outcome,
+        ...(entry.damage === undefined ? {} : { damage: entry.damage }),
+        targetHp: entry.targetHp,
+      });
+      if (entry.targetHp === 0) {
+        events.push({
+          type: "actor-defeated",
+          actionId,
+          actorId: entry.targetId,
+          locationId: before.locationId,
+        });
+      }
+    } else if (entry.type === "clue") {
+      if (entry.check !== undefined) {
+        events.push({
+          type: "social-check-attempted",
+          actionId,
+          challengeId: entry.check.challengeId,
+          approach: entry.check.approach,
+          die: entry.check.die,
+          result: entry.check.result,
+        });
+      }
+      if (
+        entry.operation === "combat-started" ||
+        entry.operation === "combat-ended"
+      ) {
+        events.push({
+          type: entry.operation,
+          actionId,
+          opponentId: entry.target ?? "fighter",
+        });
+      }
+      if (
+        entry.operation === "initiative-rolled" &&
+        entry.target !== undefined
+      ) {
+        events.push({
+          type: "initiative-rolled",
+          actionId,
+          combatantId: entry.target,
+        });
+      }
+      if (entry.operation === "turn-started" && entry.target !== undefined) {
+        events.push({
+          type: "turn-started",
+          actionId,
+          combatantId: entry.target,
+        });
+      }
+      if (
+        entry.operation === "encounter-effect" &&
+        entry.target !== undefined
+      ) {
+        events.push({
+          type: "encounter-effect",
+          actionId,
+          effectId: entry.target,
+        });
+      }
+      if (entry.operation === "use" && entry.target !== undefined) {
+        events.push({
+          type: "healing-item-used",
+          actionId,
+          itemId: entry.target,
+        });
+      }
+    }
+  }
   if (action.type === "search") {
     const search = resultEvents.find(
       (entry) => entry.type === "clue" && entry.operation === "search",
@@ -276,7 +397,9 @@ export class SaveSession {
     const save = parsed as SaveEnvelope;
     if (
       save.kind !== "dungeon-one-save" ||
-      (save.formatVersion !== 1 && save.formatVersion !== 2)
+      (save.formatVersion !== 1 &&
+        save.formatVersion !== 2 &&
+        save.formatVersion !== 3)
     ) {
       throw new Error(
         "Unsupported save format (diagnostic traces cannot be resumed).",
@@ -346,7 +469,7 @@ export class SaveSession {
           eventFor(transition.action, transition.actionId, result.state),
           transition.domainEvent,
         ) ||
-        (save.formatVersion === 2 &&
+        (save.formatVersion >= 2 &&
           !isDeepStrictEqual(
             eventsFor(
               transition.action,
@@ -354,17 +477,21 @@ export class SaveSession {
               before,
               result.state,
               result.events,
+              save.formatVersion === 3,
             ),
             transition.domainEvents,
           )) ||
         digest(result.state) !== transition.stateDigest ||
-        session.randomPosition !== transition.randomPosition
+        session.randomPosition !== transition.randomPosition ||
+        (save.formatVersion === 3 &&
+          transition.randomState !==
+            randomStateAt(session.seed, session.randomPosition))
       ) {
         throw new Error(`Save diverges at transition ${index + 1}.`);
       }
       session.state = result.state;
       session.transitions.push(
-        save.formatVersion === 1
+        save.formatVersion < 3
           ? {
               ...transition,
               domainEvents: eventsFor(
@@ -374,6 +501,7 @@ export class SaveSession {
                 result.state,
                 result.events,
               ),
+              randomState: randomStateAt(session.seed, session.randomPosition),
             }
           : transition,
       );
@@ -381,6 +509,9 @@ export class SaveSession {
     if (
       save.checkpoint.sequence !== session.transitions.length ||
       save.checkpoint.randomPosition !== session.randomPosition ||
+      (save.formatVersion === 3 &&
+        save.checkpoint.randomState !==
+          randomStateAt(session.seed, session.randomPosition)) ||
       save.checkpoint.stateDigest !== digest(session.state) ||
       save.checkpoint.status !== session.state.status ||
       !isDeepStrictEqual(save.checkpoint.state, session.state)
@@ -442,6 +573,7 @@ export class SaveSession {
       ),
       stateDigest: digest(result.state),
       randomPosition: this.randomPosition,
+      randomState: randomStateAt(this.seed, this.randomPosition),
     });
     try {
       await this.persist();
@@ -458,7 +590,7 @@ export class SaveSession {
     const content = this.runtime.content!;
     const save: SaveEnvelope = {
       kind: "dungeon-one-save",
-      formatVersion: 2,
+      formatVersion: 3,
       runtime: {
         engineVersion: this.runtime.engineVersion!,
         rulesVersion: this.runtime.rulesVersion,
@@ -473,6 +605,7 @@ export class SaveSession {
         state: this.state,
         stateDigest: digest(this.state),
         randomPosition: this.randomPosition,
+        randomState: randomStateAt(this.seed, this.randomPosition),
         status: this.state.status,
       },
     };

@@ -37,6 +37,14 @@ export function createSeededRandom(seed: number): RandomSource {
   };
 }
 
+export function randomStateAt(seed: number, drawCount: number): number {
+  requireUint32(seed, "Seed");
+  if (!Number.isSafeInteger(drawCount) || drawCount < 0) {
+    throw new Error("Random draw count must be a nonnegative safe integer.");
+  }
+  return (seed + Math.imul(drawCount, 0x6d2b_79f5)) >>> 0;
+}
+
 function parseSeed(value: string): number {
   if (!/^\d+$/u.test(value)) {
     throw new Error("Seed must be a decimal unsigned 32-bit integer.");
