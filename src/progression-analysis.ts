@@ -46,7 +46,8 @@ export function analyzeProgression(
           candidate.type === condition.type &&
           candidate.id === condition.id &&
           candidate.locationId === condition.locationId &&
-          candidate.tier === condition.tier,
+          candidate.tier === condition.tier &&
+          candidate.at === condition.at,
       ),
     );
   const shadowedOutputs = new Set<string>();
@@ -154,6 +155,18 @@ export function analyzeProgression(
       });
     }
   });
+  (snapshot.clocks ?? []).forEach((clock, i) =>
+    clock.thresholds.forEach((threshold, j) => {
+      producers.push({
+        path: `/clocks/${i}/thresholds/${j}`,
+        entity: clock.id,
+        locationId: snapshot.player.locationId,
+        when: [],
+        effects: threshold.effects,
+        unsupported: false,
+      });
+    }),
+  );
 
   const seed = new Set([
     ...(snapshot.initialDiscoveries ?? []).map((id) => `discovery-known/${id}`),

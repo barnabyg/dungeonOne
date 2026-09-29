@@ -126,6 +126,8 @@ function conditionHolds(state: ClueState, condition: ClueCondition): boolean {
       );
     case "relationship-tier":
       return state.relationships?.[condition.id]?.tier === condition.tier;
+    case "clock-before":
+      return (state.clocks?.[condition.id] ?? 0) < (condition.at ?? 0);
   }
 }
 

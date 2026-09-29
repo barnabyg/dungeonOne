@@ -4,6 +4,7 @@ import { ADVENTURE_SCHEMA, type Schema } from "./adventure-schema.js";
 import { SIGNET_SCHEMA } from "./signet-schema.js";
 import { CHAPEL_CLUES_SCHEMA } from "./chapel-clues-schema.js";
 import { RELATIONSHIP_SCHEMA } from "./relationship-schema.js";
+import { CLOCK_SCHEMA } from "./clock-schema.js";
 import { analyzeProgression } from "./progression-analysis.js";
 
 export const EXPLORATION_RULES_VERSION = "exploration-rules-v1";
@@ -92,10 +93,12 @@ export type ClueCondition = Readonly<{
     | "actor-dead"
     | "actor-alive"
     | "actor-dead-at"
+    | "clock-before"
     | "relationship-tier";
   id: string;
   locationId?: string;
   tier?: RelationshipTier;
+  at?: number;
 }>;
 export type RelationshipTier = "hostile" | "neutral" | "trusted";
 export type Relationship = Readonly<{ tier: RelationshipTier; reason: string }>;
@@ -154,7 +157,7 @@ export type DialogueNpc = Readonly<{
   }>;
 }>;
 export type ChapelCluesDefinition = Readonly<{
-  schemaVersion: 3 | 4;
+  schemaVersion: 3 | 4 | 5;
   id: string;
   contentVersion: string;
   rulesVersion:
@@ -162,7 +165,8 @@ export type ChapelCluesDefinition = Readonly<{
     | "chapel-clues-rules-v2"
     | "chapel-clues-rules-v3"
     | "chapel-clues-rules-v4"
-    | "chapel-clues-rules-v5";
+    | "chapel-clues-rules-v5"
+    | "chapel-clues-rules-v6";
   title: string;
   introduction: string;
   objective: string;
@@ -174,6 +178,28 @@ export type ChapelCluesDefinition = Readonly<{
     tier: RelationshipTier;
     reason: string;
   }>[];
+  clocks?: readonly Readonly<{
+    id: string;
+    name: string;
+    initial: number;
+    maximum: number;
+    thresholds: readonly Readonly<{
+      at: number;
+      text: string;
+      effects: readonly Readonly<{
+        type: "record-milestone" | "grant-discovery";
+        id: string;
+      }>[];
+    }>[];
+  }>[];
+  timeCosts?: Readonly<{
+    move: number;
+    search: number;
+    talk: number;
+    take: number;
+    use: number;
+    attack: number;
+  }>;
   locations: readonly (LocationDefinition &
     Readonly<{ descriptions?: readonly ConditionalClueText[] }>)[];
   connections: readonly (ConnectionDefinition &
@@ -818,6 +844,7 @@ function validateClueReferences(
       "chapel-clues-rules-v3",
       "chapel-clues-rules-v4",
       "chapel-clues-rules-v5",
+      "chapel-clues-rules-v6",
     ].includes(snapshot.rulesVersion) &&
     (snapshot.npcs ?? []).some(
       (npc) => npc.combat !== undefined || npc.remains !== undefined,
@@ -832,9 +859,11 @@ function validateClueReferences(
   }
   if (
     snapshot.endings !== undefined &&
-    !["chapel-clues-rules-v4", "chapel-clues-rules-v5"].includes(
-      snapshot.rulesVersion,
-    )
+    ![
+      "chapel-clues-rules-v4",
+      "chapel-clues-rules-v5",
+      "chapel-clues-rules-v6",
+    ].includes(snapshot.rulesVersion)
   ) {
     error(
       "unsupported-rules",
@@ -930,7 +959,8 @@ function validateClueReferences(
   if (
     snapshot.rulesVersion === "chapel-clues-rules-v3" ||
     snapshot.rulesVersion === "chapel-clues-rules-v4" ||
-    snapshot.rulesVersion === "chapel-clues-rules-v5"
+    snapshot.rulesVersion === "chapel-clues-rules-v5" ||
+    snapshot.rulesVersion === "chapel-clues-rules-v6"
   ) {
     (snapshot.monsters ?? []).forEach((monster, i) => {
       if (npcs.has(monster.id)) {
@@ -951,6 +981,43 @@ function validateClueReferences(
       error("unknown-reference", path, entity, `Unknown reference: ${id}.`);
     }
   };
+  const clockIds = new Set<string>();
+  (snapshot.clocks ?? []).forEach((clock, i) => {
+    const path = `/clocks/${i}`;
+    if (clockIds.has(clock.id)) {
+      error("duplicate-id", `${path}/id`, clock.id, "Duplicate clock ID.");
+    }
+    clockIds.add(clock.id);
+    if (clock.initial >= clock.maximum) {
+      error(
+        "invalid-clock",
+        `${path}/initial`,
+        clock.id,
+        "Clock initial value must be below its maximum.",
+      );
+    }
+    let previous = clock.initial;
+    clock.thresholds.forEach((threshold, j) => {
+      const thresholdPath = `${path}/thresholds/${j}`;
+      if (threshold.at <= previous || threshold.at > clock.maximum) {
+        error(
+          "invalid-clock",
+          `${thresholdPath}/at`,
+          clock.id,
+          "Thresholds must increase strictly from initial value through the maximum.",
+        );
+      }
+      previous = threshold.at;
+      threshold.effects.forEach((effect, k) =>
+        ref(
+          effect.type === "record-milestone" ? milestones : discoveries,
+          effect.id,
+          `${thresholdPath}/effects/${k}/id`,
+          clock.id,
+        ),
+      );
+    });
+  });
   (snapshot.items ?? []).forEach((item, i) => {
     ref(locations, item.locationId, `/items/${i}/locationId`, item.id);
     ref(features, item.featureId, `/items/${i}/featureId`, item.id);
@@ -972,6 +1039,28 @@ function validateClueReferences(
     entity: string,
   ) => {
     list.forEach((entry, i) => {
+      if (entry.type === "clock-before") {
+        if (
+          entry.at === undefined ||
+          entry.at >
+            (snapshot.clocks?.find((clock) => clock.id === entry.id)?.maximum ??
+              0)
+        ) {
+          error(
+            "invalid-condition",
+            `${path}/${i}/at`,
+            entity,
+            "Clock condition needs a threshold within the clock bounds.",
+          );
+        }
+      } else if (entry.at !== undefined) {
+        error(
+          "invalid-condition",
+          `${path}/${i}/at`,
+          entity,
+          "Only clock-before accepts a threshold.",
+        );
+      }
       if (entry.type === "relationship-tier") {
         if (entry.tier === undefined) {
           error(
@@ -992,11 +1081,13 @@ function validateClueReferences(
       ref(
         entry.type === "discovery-known"
           ? discoveries
-          : entry.type === "relationship-tier"
-            ? relationshipTargets
-            : entry.type.startsWith("actor-")
-              ? npcs
-              : milestones,
+          : entry.type === "clock-before"
+            ? clockIds
+            : entry.type === "relationship-tier"
+              ? relationshipTargets
+              : entry.type.startsWith("actor-")
+                ? npcs
+                : milestones,
         entry.id,
         `${path}/${i}/id`,
         entity,
@@ -1005,7 +1096,8 @@ function validateClueReferences(
         if (
           snapshot.rulesVersion !== "chapel-clues-rules-v3" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v4" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v5"
+          snapshot.rulesVersion !== "chapel-clues-rules-v5" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v6"
         ) {
           error(
             "unsupported-rules",
@@ -1017,7 +1109,8 @@ function validateClueReferences(
         if (
           entry.type !== "actor-dead" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v4" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v5"
+          snapshot.rulesVersion !== "chapel-clues-rules-v5" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v6"
         ) {
           error(
             "unsupported-rules",
@@ -1853,11 +1946,13 @@ export function loadAdventure(input: string | Uint8Array):
       (parsed as { rulesVersion?: string } | null)?.rulesVersion ===
         "signet-rules-v1"
       ? SIGNET_SCHEMA
-      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 4
-        ? RELATIONSHIP_SCHEMA
-        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 3
-          ? CHAPEL_CLUES_SCHEMA
-          : ADVENTURE_SCHEMA,
+      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 5
+        ? CLOCK_SCHEMA
+        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 4
+          ? RELATIONSHIP_SCHEMA
+          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 3
+            ? CHAPEL_CLUES_SCHEMA
+            : ADVENTURE_SCHEMA,
     "",
     diagnostics,
   );
@@ -1872,7 +1967,11 @@ export function loadAdventure(input: string | Uint8Array):
   const snapshot = parsed as AdventureDefinition;
   if (snapshot.schemaVersion === 2) {
     validateSignetReferences(snapshot, diagnostics);
-  } else if (snapshot.schemaVersion === 3 || snapshot.schemaVersion === 4) {
+  } else if (
+    snapshot.schemaVersion === 3 ||
+    snapshot.schemaVersion === 4 ||
+    snapshot.schemaVersion === 5
+  ) {
     validateClueReferences(snapshot, diagnostics);
   } else if (snapshot.schemaVersion === 1) {
     validateReferences(snapshot, diagnostics);
@@ -1885,7 +1984,11 @@ export function loadAdventure(input: string | Uint8Array):
       ),
     });
   }
-  if (snapshot.schemaVersion === 3 || snapshot.schemaVersion === 4) {
+  if (
+    snapshot.schemaVersion === 3 ||
+    snapshot.schemaVersion === 4 ||
+    snapshot.schemaVersion === 5
+  ) {
     diagnostics.push(...analyzeProgression(snapshot));
   }
   if (diagnostics.some((entry) => entry.severity === "error")) {

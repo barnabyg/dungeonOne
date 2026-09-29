@@ -71,10 +71,12 @@ function digest(value: unknown): string {
 
 function requireSaveRuntime(runtime: AdventureRuntime): void {
   if (
-    ![3, 4].includes(runtime.content?.snapshot.schemaVersion ?? 0) ||
+    ![3, 4, 5].includes(runtime.content?.snapshot.schemaVersion ?? 0) ||
     runtime.engineVersion === undefined
   ) {
-    throw new Error("Saves require a schema-3 or schema-4 adventure.");
+    throw new Error(
+      "Saves require a schema-3, schema-4, or schema-5 adventure.",
+    );
   }
 }
 
@@ -102,6 +104,19 @@ type DomainEvent = Readonly<
       locationId: string;
     }
   | { type: "milestone-recorded"; actionId: string; milestoneId: string }
+  | {
+      type: "clock-advanced";
+      actionId: string;
+      clockId: string;
+      from: number;
+      to: number;
+    }
+  | {
+      type: "clock-threshold-crossed";
+      actionId: string;
+      clockId: string;
+      at: number;
+    }
   | {
       type: "relationship-changed";
       actionId: string;
@@ -204,6 +219,26 @@ function eventsFor(
         });
       }
     } else if (entry.type === "clue") {
+      if (entry.operation === "clock-advanced" && entry.clock !== undefined) {
+        events.push({
+          type: "clock-advanced",
+          actionId,
+          clockId: entry.clock.id,
+          from: entry.clock.from,
+          to: entry.clock.to,
+        });
+      }
+      if (
+        entry.operation === "clock-threshold" &&
+        entry.clock?.threshold !== undefined
+      ) {
+        events.push({
+          type: "clock-threshold-crossed",
+          actionId,
+          clockId: entry.clock.id,
+          at: entry.clock.threshold,
+        });
+      }
       if (entry.check !== undefined) {
         events.push({
           type: "social-check-attempted",

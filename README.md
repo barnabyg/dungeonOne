@@ -189,6 +189,36 @@ Lysa is dead. Use `--adventure-file adventures/rescue-witness.json` to play it;
 `--save <path>` and `--resume <path>` preserve the report, relationship reason,
 tonic, and actor fates.
 
+[Raiders at the Hall](adventures/deadline-rescue.json) uses
+[schema 5](schema/adventure-v5.schema.json) / `chapel-clues-rules-v6` to add an
+authored deadline to that route. The raider plan starts at 0/6. At 2, a horn
+warns that raiders are near; at 5, they close the short passage. The hall stays
+reachable and the register can still be filed or posted by the long route.
+`look`, `inspect`, `status`, `journal`, `inventory`, `help`, invalid commands,
+and provider retries cost 0 time units. Each accepted `move`, `search`,
+`talk`, `take`, `use`, or `attack` costs 1. `resolve` costs 0. `wait 1`,
+`wait 2`, or `wait 3` spends that many units; wait is unavailable in combat or
+after completion. The clock stops at its authored maximum. The current value
+appears in the scene, status, and journal. Crossing a threshold applies its
+typed effects once and records a durable event; saving and resuming preserve
+the value and earlier effects. Clock definitions declare unique IDs, initial
+and maximum values, strictly increasing thresholds, typed discovery or
+milestone effects, and action costs. A `clock-before` condition lets ending
+prose distinguish an on-time arrival from a late one. The loader rejects
+invalid IDs, bounds, order, or references before play.
+
+```powershell
+npm.cmd run build
+node dist/cli.js --adventure-file adventures/deadline-rescue.json --seed 0 --save deadline-save.json
+```
+
+To meet the deadline, enter `search route-register`, `move square`,
+`move hall`, and `resolve file-register`. To see the missed route, start a new
+save and enter `wait 3`, `wait 2`, `search route-register`, `move square`,
+`move back-lane`, `move hall`, and `resolve file-register`. After a saved action returns to the
+next `>` prompt, Ctrl+C and `node dist/cli.js --resume deadline-save.json`
+continue the same clock.
+
 ```text
 node dist/cli.js --adventure-file adventures/remembering-guard.json --seed 0 --save gate-save.json
 node dist/cli.js --resume gate-save.json

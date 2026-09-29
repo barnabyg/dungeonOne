@@ -5,6 +5,8 @@ import { loadAdventure } from "./adventure-loader.js";
 import { createDataRuntime } from "./data-runtime.js";
 import {
   CLUES_ENGINE_VERSION,
+  RELATIONSHIP_ENGINE_VERSION,
+  CLOCK_ENGINE_VERSION,
   CASUALTY_CLUES_ENGINE_VERSION,
   COMBAT_CLUES_ENGINE_VERSION,
   LEGACY_CLUES_ENGINE_VERSION,
@@ -1350,6 +1352,8 @@ function replayFormat4(trace: JsonObject): void {
     trace.engineVersion !== DATA_ENGINE_VERSION &&
     trace.engineVersion !== SIGNET_ENGINE_VERSION &&
     trace.engineVersion !== CLUES_ENGINE_VERSION &&
+    trace.engineVersion !== RELATIONSHIP_ENGINE_VERSION &&
+    trace.engineVersion !== CLOCK_ENGINE_VERSION &&
     trace.engineVersion !== CASUALTY_CLUES_ENGINE_VERSION &&
     trace.engineVersion !== RESCUE_CLUES_ENGINE_VERSION &&
     trace.engineVersion !== COMBAT_CLUES_ENGINE_VERSION &&
@@ -1435,7 +1439,7 @@ function replayFormat4(trace: JsonObject): void {
       localKinds: [
         "dm",
         "local-help",
-        ...([3, 4].includes(content.snapshot.schemaVersion)
+        ...([3, 4, 5].includes(content.snapshot.schemaVersion)
           ? ["local-journal" as const]
           : []),
         "local-status",
@@ -1450,7 +1454,9 @@ function replayFormat4(trace: JsonObject): void {
         "status",
         "inventory",
         "quit",
-        ...([3, 4].includes(content.snapshot.schemaVersion) ? ["journal"] : []),
+        ...([3, 4, 5].includes(content.snapshot.schemaVersion)
+          ? ["journal"]
+          : []),
       ].includes(input);
       requireMatch(
         `turn ${index + 1} input routing`,

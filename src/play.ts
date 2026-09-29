@@ -42,6 +42,7 @@ const GAMEPLAY_ACTION_TYPES: ReadonlySet<Action["type"]> = new Set([
   "use",
   "attack",
   "resolve",
+  "wait",
 ]);
 
 function isGameplayAction(action: Action): boolean {

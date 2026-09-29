@@ -10,7 +10,7 @@ import type { RouteEvidence, RouteWitness } from "./generation-routes.js";
 import { createSeededRandom } from "./random.js";
 
 function eligible(state: ClueState, conditions: readonly ClueCondition[]) {
-  return conditions.every(({ type, id, locationId, tier }) => {
+  return conditions.every(({ type, id, locationId, tier, at }) => {
     switch (type) {
       case "discovery-known":
         return state.discoveries.includes(id);
@@ -27,6 +27,8 @@ function eligible(state: ClueState, conditions: readonly ClueCondition[]) {
         );
       case "relationship-tier":
         return state.relationships?.[id]?.tier === tier;
+      case "clock-before":
+        return (state.clocks?.[id] ?? 0) < (at ?? 0);
     }
   });
 }

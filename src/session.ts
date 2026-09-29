@@ -60,6 +60,7 @@ export type Action = Readonly<
   | { type: "use"; target?: string }
   | { type: "attack"; target?: string }
   | { type: "resolve"; target?: string }
+  | { type: "wait"; amount?: string }
   | { type: "status" }
   | { type: "inventory" }
   | { type: "journal" }
@@ -1050,6 +1051,11 @@ export function handleAction(
       return {
         state,
         rejection: { reason: "unknown-command", input: "resolve" },
+      };
+    case "wait":
+      return {
+        state,
+        rejection: { reason: "unknown-command", input: "wait" },
       };
     case "leave":
       return handleGameAction(state, action, random);

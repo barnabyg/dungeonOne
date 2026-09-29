@@ -112,6 +112,7 @@ export type GameToolName =
   | "use_item"
   | "attack"
   | "resolve_quest"
+  | "wait"
   | "leave"
   | "get_journal"
   | "get_character_status";
@@ -660,6 +661,9 @@ function parseTool(
         : { type: "action", action: { type: "inspect", target } };
     }
     default:
+      if (name === "wait") {
+        return "unknown-tool";
+      }
       name satisfies never;
       return "invalid-arguments";
   }
