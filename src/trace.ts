@@ -138,8 +138,9 @@ function contentHeader(
 }
 
 export type SessionTrace = ContentTraceHeader & {
-  readonly formatVersion:
-    typeof TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION | 4;
+  formatVersion:
+    typeof TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION | 4 | 5;
+  segment?: TraceSegment;
   readonly rulesVersion: string;
   readonly adventure: Readonly<{
     id: string;
@@ -155,8 +156,9 @@ export type SessionTrace = ContentTraceHeader & {
 };
 
 export type DmSessionTrace = ContentTraceHeader & {
-  readonly formatVersion:
-    typeof DM_TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION | 4;
+  formatVersion:
+    typeof DM_TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION | 4 | 5;
+  segment?: TraceSegment;
   readonly rulesVersion: string;
   readonly adventure: Readonly<{
     id: string;
@@ -178,6 +180,11 @@ export type DmSessionTrace = ContentTraceHeader & {
 };
 
 export type AnySessionTrace = SessionTrace | DmSessionTrace;
+
+export type TraceSegment = Readonly<{
+  index: number;
+  previousDigest: string | null;
+}>;
 
 export function createSessionTrace(
   initialSeed: number,
@@ -261,7 +268,7 @@ export function recordDmTraceTurn(
       name: attempt.call.name,
       arguments: encodeToolArguments(
         attempt.call.argumentsJson,
-        trace.formatVersion === 4,
+        trace.formatVersion >= 4,
       ),
       disposition: attempt.disposition,
       rolls: attempt.rolls,

@@ -1,4 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { readTraceFile } from "./trace-file.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { loadAdventure } from "./adventure-loader.js";
@@ -1577,6 +1579,11 @@ function replayCommandTrace(trace: ReplayTrace): void {
 export async function verifyTraceFile(path: string): Promise<void> {
   const parsed = await readTraceFile(path);
   const envelope = requireObject(parsed, "Trace");
+  if (envelope.formatVersion === 5) {
+    throw new Error(
+      "Format-5 trace segments require --replay with the complete ordered segment list.",
+    );
+  }
   if (envelope.formatVersion === 4) {
     replayFormat4(envelope);
     return;
@@ -1616,6 +1623,138 @@ export async function verifyTraceFile(path: string): Promise<void> {
     );
   }
   replayCommandTrace(validateFormat1Trace(parsed));
+}
+
+function segmentEntries(trace: JsonObject): JsonObject[] {
+  return requireArray(
+    trace.mode === "command" ? trace.actions : trace.turns,
+    "segment entries",
+  ).map((entry, index) => {
+    const decoded = requireObject(entry, `segment entry ${index + 1}`);
+    requireMatch(
+      `segment entry ${index + 1} sequence`,
+      decoded.sequence,
+      index + 1,
+    );
+    return decoded;
+  });
+}
+
+function segmentEndState(trace: JsonObject): unknown {
+  return segmentEntries(trace).at(-1)?.stateAfter ?? trace.initialState;
+}
+
+async function segmentDigest(path: string): Promise<string> {
+  return `sha256:${createHash("sha256")
+    .update(await readFile(path))
+    .digest("hex")}`;
+}
+
+export async function prepareTraceContinuation(
+  path: string,
+  state: unknown,
+  seed: number,
+): Promise<{ index: number; previousDigest: string }> {
+  const trace = requireObject(await readTraceFile(path), "Previous segment");
+  if (trace.formatVersion !== 5) {
+    throw new Error(
+      "Previous trace must be a format-5 segment; ordinary format-4 traces cannot be spliced.",
+    );
+  }
+  const segment = requireObject(trace.segment, "Previous segment link");
+  const index = requireInteger(segment.index, "previous segment index");
+  if (index < 0 || (index === 0) !== (segment.previousDigest === null)) {
+    throw new Error("Previous segment link is invalid.");
+  }
+  requireMatch("resume seed", trace.random, {
+    algorithm: RANDOM_ALGORITHM,
+    initialSeed: seed,
+  });
+  requireMatch("resume state", segmentEndState(trace), state);
+  requireMatch("previous segment completion", trace.completion, {
+    reason: "eof",
+    outcome:
+      state &&
+      typeof state === "object" &&
+      "status" in state &&
+      (state.status === "victory" || state.status === "defeat")
+        ? state.status
+        : "incomplete",
+  });
+  return { index: index + 1, previousDigest: await segmentDigest(path) };
+}
+
+export async function verifyTraceSegments(
+  paths: readonly string[],
+): Promise<void> {
+  if (paths.length < 2) {
+    throw new Error(
+      "A resumed journey requires at least two ordered format-5 trace segments.",
+    );
+  }
+  let first: JsonObject | undefined;
+  let previous: JsonObject | undefined;
+  let previousDigest: string | null = null;
+  const entries: JsonObject[] = [];
+  for (const [index, path] of paths.entries()) {
+    const trace = requireObject(await readTraceFile(path), `Segment ${index}`);
+    if (trace.formatVersion !== 5) {
+      throw new Error(
+        `Segment ${index} is not format 5; ordinary format-4 traces cannot be spliced.`,
+      );
+    }
+    const link = requireObject(trace.segment, `Segment ${index} link`);
+    requireFields(link, ["index", "previousDigest"], `Segment ${index} link`);
+    requireMatch(`segment ${index} index`, link.index, index);
+    requireMatch(
+      `segment ${index} previous digest`,
+      link.previousDigest,
+      previousDigest,
+    );
+    if (previous !== undefined) {
+      for (const key of [
+        "mode",
+        "engineVersion",
+        "rulesVersion",
+        "adventure",
+        "content",
+        "adventureSnapshot",
+        "random",
+        "dm",
+      ]) {
+        requireMatch(`segment ${index} ${key}`, trace[key], first?.[key]);
+      }
+      requireMatch(
+        `segment ${index} initial state`,
+        trace.initialState,
+        segmentEndState(previous),
+      );
+      const boundaryState = segmentEndState(previous);
+      const status = requireObject(
+        boundaryState,
+        "segment boundary state",
+      ).status;
+      requireMatch(`segment ${index - 1} completion`, previous.completion, {
+        reason: "eof",
+        outcome:
+          status === "victory" || status === "defeat" ? status : "incomplete",
+      });
+    }
+    first ??= trace;
+    previous = trace;
+    previousDigest = await segmentDigest(path);
+    entries.push(...segmentEntries(trace));
+  }
+  const mode = first?.mode;
+  const key = mode === "command" ? "actions" : "turns";
+  const merged: JsonObject = {
+    ...first,
+    formatVersion: 4,
+    completion: previous?.completion,
+    [key]: entries.map((entry, index) => ({ ...entry, sequence: index + 1 })),
+  };
+  delete merged.segment;
+  replayFormat4(merged);
 }
 
 function expectedBlockedCallFailure(

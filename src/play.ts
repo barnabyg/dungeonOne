@@ -1,4 +1,5 @@
 import { runDmTurn, type DmModel, type DmTranscriptEntry } from "./dm-turn.js";
+import { resolve } from "node:path";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
 import type {
   RuntimeResult as ActionResult,
@@ -6,6 +7,7 @@ import type {
 } from "./runtime-contract.js";
 import type { Action } from "./session.js";
 import { SaveSession } from "./save.js";
+import { prepareTraceContinuation } from "./replay.js";
 import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
 import {
   completeSessionTrace,
@@ -25,6 +27,7 @@ export type PlayOptions = Readonly<{
   dmModel?: DmModel;
   savePath?: string;
   saveSession?: SaveSession;
+  previousTracePath?: string;
 }>;
 
 export type PlayIo = Readonly<{
@@ -57,6 +60,13 @@ export async function playGame(
   io: PlayIo,
 ): Promise<void> {
   const runtime = options.runtime ?? resolveAdventure();
+  if (
+    options.tracePath !== undefined &&
+    resolve(options.tracePath) ===
+      resolve(options.saveSession?.path ?? options.savePath ?? "")
+  ) {
+    throw new Error("Trace and save paths must differ.");
+  }
   const {
     createSession,
     handleAction,
@@ -96,6 +106,27 @@ export async function playGame(
     options.tracePath === undefined || dmIdentity === undefined
       ? undefined
       : createDmSessionTrace(options.seed, state, dmIdentity, runtime);
+  const trace = commandTrace ?? dmTrace;
+  if (trace !== undefined && saveSession !== undefined) {
+    if (
+      options.previousTracePath !== undefined &&
+      resolve(options.previousTracePath) === resolve(options.tracePath!)
+    ) {
+      throw new Error(
+        "The new trace path must differ from the previous segment path.",
+      );
+    }
+    const continuation =
+      options.previousTracePath === undefined
+        ? { index: 0, previousDigest: null }
+        : await prepareTraceContinuation(
+            options.previousTracePath,
+            state,
+            options.seed,
+          );
+    trace.formatVersion = 5;
+    trace.segment = continuation;
+  }
   let terminationReason: "quit" | "eof" = "eof";
   let transcript: readonly DmTranscriptEntry[] = [];
 
@@ -251,7 +282,13 @@ export async function playGame(
       const action = parseCommand(line);
       let result: ActionResult;
       if (saveSession !== undefined) {
-        result = await saveSession.commit(line, action);
+        const rolls: RollRecord[] = [];
+        result = await saveSession.commit(line, action, (recorded) =>
+          rolls.push(...recorded),
+        );
+        if (commandTrace !== undefined) {
+          recordTraceAction(commandTrace, line, action, rolls, result);
+        }
       } else if (commandTrace === undefined) {
         result = handleAction(state, action, random);
       } else {
@@ -290,7 +327,6 @@ export async function playGame(
     }
   }
 
-  const trace = commandTrace ?? dmTrace;
   if (options.tracePath !== undefined && trace !== undefined) {
     completeSessionTrace(trace, terminationReason, state);
     await writeSessionTrace(options.tracePath, trace);

@@ -3,7 +3,7 @@ import { parseBoundedJson } from "./bounded-json.js";
 
 const TRACE_BYTE_LIMIT = 16 * 1024 * 1024;
 
-// Keep enough significant digits to distinguish supported versions 1–4 even
+// Keep enough significant digits to distinguish supported versions 1–5 even
 // when a legal numeric spelling has millions of zeroes before its exponent.
 function numericToken() {
   let digits = "",
@@ -54,7 +54,7 @@ function numericToken() {
 /** Locate the last top-level formatVersion without retaining the envelope.
  * JSON validation happens afterward. Keys may be escaped or cross chunks, and
  * quoted text/nested fields must never masquerade as envelope metadata. */
-async function isFormat4(file: FileHandle): Promise<boolean> {
+async function isBoundedFormat(file: FileHandle): Promise<boolean> {
   const chunk = Buffer.alloc(64 * 1024);
   let position = 0;
   let depth = 0;
@@ -155,7 +155,7 @@ async function isFormat4(file: FileHandle): Promise<boolean> {
   if (captureValue) {
     finishValue();
   }
-  return version === 4;
+  return version === 4 || version === 5;
 }
 
 export async function readTraceFile(path: string): Promise<unknown> {
@@ -172,7 +172,7 @@ export async function readTraceFile(path: string): Promise<unknown> {
     if (!(await file.stat()).isFile()) {
       throw new Error("Expected a regular trace file.");
     }
-    if (await isFormat4(file)) {
+    if (await isBoundedFormat(file)) {
       if ((await file.stat()).size > TRACE_BYTE_LIMIT) {
         throw new Error(`byte-limit: Trace exceeds ${TRACE_BYTE_LIMIT} bytes.`);
       }

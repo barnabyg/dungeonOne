@@ -648,6 +648,7 @@ export class SaveSession {
   async commit(
     rawInput: string,
     action: Action,
+    onRolls?: (rolls: readonly RollRecord[]) => void,
   ): Promise<ReturnType<AdventureRuntime["handleAction"]>> {
     if (this.transitions.length >= TRANSITION_LIMIT) {
       throw new Error("Save transition limit reached.");
@@ -673,9 +674,11 @@ export class SaveSession {
         }
         this.randomPosition = randomPositionBefore;
       }
+      onRolls?.([]);
       return result;
     }
     await this.record(rawInput, action, result.state, result.events, rolls);
+    onRolls?.(rolls);
     return result;
   }
 

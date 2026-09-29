@@ -11,7 +11,7 @@ import {
   createOpenAiDmModel,
   OPENAI_DM_DEFAULT_MODEL,
 } from "./openai-dm-model.js";
-import { verifyTraceFile } from "./replay.js";
+import { verifyTraceFile, verifyTraceSegments } from "./replay.js";
 import { resolveStartupSeed } from "./random.js";
 import { loadScriptedDmModel } from "./scripted-dm-model.js";
 import { loadAdventureFile } from "./adventure-file.js";
@@ -31,9 +31,10 @@ type StartupOptions = Readonly<
       tracePath?: string;
       savePath?: string;
       saveSession?: SaveSession;
+      previousTracePath?: string;
       ai?: Readonly<{ model: string }>;
     }
-  | { mode: "replay"; replayPath: string }
+  | { mode: "replay"; replayPaths: readonly string[] }
   | { mode: "help" }
   | { mode: "validate"; result: Awaited<ReturnType<typeof loadAdventureFile>> }
   | { mode: "generate"; premise: string; outputPath: string; model: string }
@@ -41,10 +42,10 @@ type StartupOptions = Readonly<
 const USAGE = [
   "Usage: dungeon-one [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
   "       dungeon-one --ai [--model <model-id>] [--seed <0-4294967295>] [--trace <path>] [--adventure stolen-signet|chapel]",
-  "       dungeon-one --replay <path>",
+  "       dungeon-one --replay <path> [next-segment.json ...]",
   "       dungeon-one --adventure-file <schema-3-or-4-or-5.json> --seed <seed> --save <path>",
   "       dungeon-one --adventure-file <schema-3-or-4-or-5.json> --ai --seed <seed> --save <path>",
-  "       dungeon-one --resume <path> [--ai] [--model <model-id>]",
+  "       dungeon-one --resume <path> [--ai] [--model <model-id>] [--trace <path> --previous-trace <path>]",
   "       dungeon-one --adventure-file <path> [--ai] [--seed <seed>] [--trace <path>]",
   "       dungeon-one --validate-adventure <path>",
   "       dungeon-one --generate-adventure <output.json> --premise <text> --model <model-id>",
@@ -129,20 +130,18 @@ async function resolveStartupOptions(
     return { mode: "validate", result: await loadAdventureFile(path) };
   }
   if (
-    args.length === 2 &&
+    args.length >= 2 &&
     args[0] === "--replay" &&
-    args[1] !== undefined &&
-    args[1].length > 0 &&
-    !args[1].startsWith("--")
+    args.slice(1).every((path) => path.length > 0 && !path.startsWith("--"))
   ) {
-    return { mode: "replay", replayPath: args[1] };
+    return { mode: "replay", replayPaths: args.slice(1) };
   }
   if (
     args.length === 1 &&
     args[0]?.startsWith("--replay=") === true &&
     args[0].slice("--replay=".length).length > 0
   ) {
-    return { mode: "replay", replayPath: args[0].slice("--replay=".length) };
+    return { mode: "replay", replayPaths: [args[0].slice("--replay=".length)] };
   }
 
   if (
@@ -162,8 +161,23 @@ async function resolveStartupOptions(
     const resumeAi = resumeArgs.includes("--ai");
     const modelIndex = resumeArgs.indexOf("--model");
     const resumeModel = modelIndex < 0 ? undefined : resumeArgs[modelIndex + 1];
+    const traceIndex = resumeArgs.indexOf("--trace");
+    const previousIndex = resumeArgs.indexOf("--previous-trace");
+    const tracePath = traceIndex < 0 ? undefined : resumeArgs[traceIndex + 1];
+    const previousTracePath =
+      previousIndex < 0 ? undefined : resumeArgs[previousIndex + 1];
     if (
-      resumeArgs.length !== (resumeAi ? 1 : 0) + (modelIndex < 0 ? 0 : 2) ||
+      resumeArgs.length !==
+        (resumeAi ? 1 : 0) +
+          (modelIndex < 0 ? 0 : 2) +
+          (traceIndex < 0 ? 0 : 2) +
+          (previousIndex < 0 ? 0 : 2) ||
+      (tracePath === undefined) !== (previousTracePath === undefined) ||
+      (tracePath !== undefined &&
+        (tracePath.length === 0 || tracePath.startsWith("--"))) ||
+      (previousTracePath !== undefined &&
+        (previousTracePath.length === 0 ||
+          previousTracePath.startsWith("--"))) ||
       (resumeModel !== undefined &&
         (!resumeAi ||
           resumeModel.startsWith("--") ||
@@ -178,6 +192,9 @@ async function resolveStartupOptions(
       runtime: saveSession.runtime,
       seed: saveSession.seed,
       saveSession,
+      ...(tracePath === undefined
+        ? {}
+        : { tracePath, previousTracePath: previousTracePath! }),
       ...(resumeAi
         ? { ai: { model: resumeModel ?? OPENAI_DM_DEFAULT_MODEL } }
         : {}),
@@ -336,9 +353,6 @@ async function resolveStartupOptions(
   if (!ai && model !== undefined) {
     throw new Error(`--model requires --ai.\n${USAGE}`);
   }
-  if (savePath !== undefined && tracePath !== undefined) {
-    throw new Error(`--save cannot be combined with --trace.\n${USAGE}`);
-  }
 
   let runtime: AdventureRuntime;
   if (adventureFile === undefined) {
@@ -419,9 +433,13 @@ async function main(): Promise<void> {
 
   if (startup.mode === "replay") {
     try {
-      await verifyTraceFile(startup.replayPath);
+      if (startup.replayPaths.length === 1) {
+        await verifyTraceFile(startup.replayPaths[0]!);
+      } else {
+        await verifyTraceSegments(startup.replayPaths);
+      }
       process.stdout.write(
-        `Trace verified successfully: ${startup.replayPath}\n`,
+        `Trace verified successfully: ${startup.replayPaths.join(", ")}\n`,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

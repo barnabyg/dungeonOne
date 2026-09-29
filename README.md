@@ -440,7 +440,29 @@ npm.cmd start -- --resume .\chapel-save.json
 
 The resumed scene is Chapel Path, with HP and offered actions shown; the opening introduction and move are not repeated. The save embeds the validated adventure, so the original JSON file can be moved or deleted. A save is replaced atomically after each committed action. If a write fails, play stops and reports that the last action was not saved; resume the previous valid save rather than continuing from the failed process. Reads and rejected commands do not add committed transitions. `quit` ends the in-world session, so stop the process only after the next prompt when you intend to resume.
 
-Saves contain local player actions and the full adventure, including private story facts. Keep them in a private location. Save version 3 records settled combat attacks, deaths, encounter completion, one-attempt social checks, healing, and the earlier search, discovery, milestone, item, and actor relocation events. Each transition records its dice and RNG position and state; loading reconstructs the stream from the seed and rejects divergence at the affected transition or checkpoint. A player attack and automatic opponent turn are saved together before the next prompt. Version-1 and version-2 saves remain readable and upgrade on the next committed action. Command and AI play support schema-3 saves. Add `--ai` to the start command above to use a live DM, or use `--resume <path> --ai` to continue with one; `--model <model-id>` may follow `--ai` when resuming. The AI tool action is saved before narration is requested, so a provider failure after the action does not repeat it on restart. Local reads and reflection remain available after resuming a completed adventure. Saves do not include credentials, provider responses, or a transcript summary. `--save` cannot be combined with `--trace`. A diagnostic trace remains a separate replay artifact.
+Saves contain local player actions and the full adventure, including private story facts. Keep them in a private location. Save version 3 records settled combat attacks, deaths, encounter completion, one-attempt social checks, healing, and the earlier search, discovery, milestone, item, and actor relocation events. Each transition records its dice and RNG position and state; loading reconstructs the stream from the seed and rejects divergence at the affected transition or checkpoint. A player attack and automatic opponent turn are saved together before the next prompt. Version-1 and version-2 saves remain readable and upgrade on the next committed action. Command and AI play support schema-3 saves. Add `--ai` to the start command above to use a live DM, or use `--resume <path> --ai` to continue with one; `--model <model-id>` may follow `--ai` when resuming. The AI tool action is saved before narration is requested, so a provider failure after the action does not repeat it on restart. Local reads and reflection remain available after resuming a completed adventure. Saves do not include credentials, provider responses, or a transcript summary. A diagnostic trace remains a separate replay artifact.
+
+### Verify a journey across save and resume
+
+Start a schema-3, schema-4, or schema-5 adventure with both a durable save and a diagnostic trace:
+
+```powershell
+npm.cmd start -- --adventure-file .\adventures\chapel-clues.json --seed 0 --save .\chapel-save.json --trace .\segment-0.json
+```
+
+Enter `move chapel path`, wait for the next `>` prompt, then press Ctrl+C. Resume with a new trace path and the previous segment path:
+
+```powershell
+npm.cmd start -- --resume .\chapel-save.json --trace .\segment-1.json --previous-trace .\segment-0.json
+```
+
+Enter `move ruined chapel`, wait for the next prompt, then press Ctrl+C. Verify the ordered chain:
+
+```powershell
+npm.cmd start -- --replay .\segment-0.json .\segment-1.json
+```
+
+The same options work with `--ai` on both play commands, using a live model or the scripted test DM. Each saved process exports a format-5 trace segment containing its command actions or AI turns, tool attempts, draws, events, rejections, and resulting states. A segment has an index and the SHA-256 digest of the previous segment file. Replay checks the links, exact content and runtime identity, seed, boundary state, and every entry by running the complete sequence from the initial seed. Missing, reordered, modified, or incompatible segments fail. Keep every segment file; a single format-5 segment cannot establish a complete resumed journey. An ordinary format-4 trace is never treated as a continuation. Format-1 through format-4 replay keeps its released behavior. The save is the only resumable file; trace segments are diagnostic evidence.
 
 To export a diagnostic trace, add `--trace <path>` (or
 `--trace=<path>`):
@@ -501,7 +523,7 @@ standard error, exits nonzero, and does not change the game outcome.
 
 ## Session trace formats
 
-Current built-in and explicit-file command and scripted-AI sessions export self-contained format `4` with the validated adventure snapshot and digest. Historical chapel command and scripted-AI sessions used trace format `3`. It carries the
+Ordinary built-in and explicit-file command and scripted-AI sessions export self-contained format `4` with the validated adventure snapshot and digest. Sessions recorded alongside a save export linked format-`5` segments as described above. Historical chapel command and scripted-AI sessions used trace format `3`. It carries the
 same authoritative action/call, event or rejection, draw, result, and resulting
 state evidence as formats 1 and 2, with explicit chapel content/rules versions.
 AI traces also record the chapel prompt/tool versions and normalized provider
