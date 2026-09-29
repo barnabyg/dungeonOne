@@ -6,6 +6,7 @@ import { CHAPEL_CLUES_SCHEMA } from "./chapel-clues-schema.js";
 import { RELATIONSHIP_SCHEMA } from "./relationship-schema.js";
 import { CLOCK_SCHEMA } from "./clock-schema.js";
 import { ADJUDICATION_SCHEMA } from "./adjudication-schema.js";
+import { DAY_SCHEMA } from "./day-schema.js";
 import { analyzeProgression } from "./progression-analysis.js";
 
 export const EXPLORATION_RULES_VERSION = "exploration-rules-v1";
@@ -158,7 +159,7 @@ export type DialogueNpc = Readonly<{
   }>;
 }>;
 export type ChapelCluesDefinition = Readonly<{
-  schemaVersion: 3 | 4 | 5 | 6;
+  schemaVersion: 3 | 4 | 5 | 6 | 7;
   id: string;
   contentVersion: string;
   rulesVersion:
@@ -168,7 +169,8 @@ export type ChapelCluesDefinition = Readonly<{
     | "chapel-clues-rules-v4"
     | "chapel-clues-rules-v5"
     | "chapel-clues-rules-v6"
-    | "chapel-clues-rules-v7";
+    | "chapel-clues-rules-v7"
+    | "chapel-clues-rules-v8";
   title: string;
   introduction: string;
   objective: string;
@@ -183,14 +185,18 @@ export type ChapelCluesDefinition = Readonly<{
   clocks?: readonly Readonly<{
     id: string;
     name: string;
+    unit?: "day";
     initial: number;
     maximum: number;
     thresholds: readonly Readonly<{
       at: number;
       text: string;
+      visibleFrom?: readonly string[];
       effects: readonly Readonly<{
-        type: "record-milestone" | "grant-discovery";
+        type: "record-milestone" | "grant-discovery" | "relocate-npc";
         id: string;
+        fromLocationId?: string;
+        toLocationId?: string;
       }>[];
     }>[];
   }>[];
@@ -863,6 +869,7 @@ function validateClueReferences(
       "chapel-clues-rules-v5",
       "chapel-clues-rules-v6",
       "chapel-clues-rules-v7",
+      "chapel-clues-rules-v8",
     ].includes(snapshot.rulesVersion) &&
     (snapshot.npcs ?? []).some(
       (npc) => npc.combat !== undefined || npc.remains !== undefined,
@@ -882,6 +889,7 @@ function validateClueReferences(
       "chapel-clues-rules-v5",
       "chapel-clues-rules-v6",
       "chapel-clues-rules-v7",
+      "chapel-clues-rules-v8",
     ].includes(snapshot.rulesVersion)
   ) {
     error(
@@ -984,7 +992,8 @@ function validateClueReferences(
     snapshot.rulesVersion === "chapel-clues-rules-v4" ||
     snapshot.rulesVersion === "chapel-clues-rules-v5" ||
     snapshot.rulesVersion === "chapel-clues-rules-v6" ||
-    snapshot.rulesVersion === "chapel-clues-rules-v7"
+    snapshot.rulesVersion === "chapel-clues-rules-v7" ||
+    snapshot.rulesVersion === "chapel-clues-rules-v8"
   ) {
     (snapshot.monsters ?? []).forEach((monster, i) => {
       if (npcs.has(monster.id)) {
@@ -1032,14 +1041,97 @@ function validateClueReferences(
         );
       }
       previous = threshold.at;
-      threshold.effects.forEach((effect, k) =>
-        ref(
-          effect.type === "record-milestone" ? milestones : discoveries,
-          effect.id,
-          `${thresholdPath}/effects/${k}/id`,
-          clock.id,
-        ),
-      );
+      if (snapshot.schemaVersion === 7) {
+        const visibleFrom = new Set<string>();
+        for (const [index, locationId] of (
+          threshold.visibleFrom ?? []
+        ).entries()) {
+          ref(
+            locations,
+            locationId,
+            `${thresholdPath}/visibleFrom/${index}`,
+            clock.id,
+          );
+          if (visibleFrom.has(locationId)) {
+            error(
+              "duplicate-id",
+              `${thresholdPath}/visibleFrom/${index}`,
+              clock.id,
+              "Duplicate observer location.",
+            );
+          }
+          visibleFrom.add(locationId);
+        }
+      }
+      threshold.effects.forEach((effect, k) => {
+        const effectPath = `${thresholdPath}/effects/${k}`;
+        if (effect.type === "relocate-npc") {
+          if (snapshot.schemaVersion !== 7) {
+            error(
+              "unsupported-rules",
+              effectPath,
+              effect.id,
+              "Scheduled relocation requires day rules.",
+            );
+          }
+          ref(npcs, effect.id, `${effectPath}/id`, clock.id);
+          if (
+            effect.fromLocationId === undefined ||
+            effect.toLocationId === undefined
+          ) {
+            error(
+              "invalid-clock",
+              effectPath,
+              effect.id,
+              "Scheduled relocation needs both locations.",
+            );
+          } else {
+            ref(
+              locations,
+              effect.fromLocationId,
+              `${effectPath}/fromLocationId`,
+              effect.id,
+            );
+            ref(
+              locations,
+              effect.toLocationId,
+              `${effectPath}/toLocationId`,
+              effect.id,
+            );
+            if (
+              !snapshot.connections.some(
+                ({ from, to }) =>
+                  from === effect.fromLocationId && to === effect.toLocationId,
+              )
+            ) {
+              error(
+                "invalid-clock",
+                effectPath,
+                effect.id,
+                "Scheduled relocation must use an authored connection.",
+              );
+            }
+          }
+        } else {
+          if (
+            effect.fromLocationId !== undefined ||
+            effect.toLocationId !== undefined
+          ) {
+            error(
+              "invalid-clock",
+              effectPath,
+              effect.id,
+              "Only relocation accepts locations.",
+            );
+          }
+          ref(
+            effect.type === "record-milestone" ? milestones : discoveries,
+            effect.id,
+            `${effectPath}/id`,
+            clock.id,
+          );
+        }
+      });
     });
   });
   (snapshot.items ?? []).forEach((item, i) => {
@@ -1122,7 +1214,8 @@ function validateClueReferences(
           snapshot.rulesVersion !== "chapel-clues-rules-v4" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v5" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v6" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v7"
+          snapshot.rulesVersion !== "chapel-clues-rules-v7" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v8"
         ) {
           error(
             "unsupported-rules",
@@ -1136,7 +1229,8 @@ function validateClueReferences(
           snapshot.rulesVersion !== "chapel-clues-rules-v4" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v5" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v6" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v7"
+          snapshot.rulesVersion !== "chapel-clues-rules-v7" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v8"
         ) {
           error(
             "unsupported-rules",
@@ -2098,15 +2192,18 @@ export function loadAdventure(input: string | Uint8Array):
       (parsed as { rulesVersion?: string } | null)?.rulesVersion ===
         "signet-rules-v1"
       ? SIGNET_SCHEMA
-      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 6
-        ? ADJUDICATION_SCHEMA
-        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 5
-          ? CLOCK_SCHEMA
-          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 4
-            ? RELATIONSHIP_SCHEMA
-            : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 3
-              ? CHAPEL_CLUES_SCHEMA
-              : ADVENTURE_SCHEMA,
+      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 7
+        ? DAY_SCHEMA
+        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 6
+          ? ADJUDICATION_SCHEMA
+          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 5
+            ? CLOCK_SCHEMA
+            : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 4
+              ? RELATIONSHIP_SCHEMA
+              : (parsed as { schemaVersion?: number } | null)?.schemaVersion ===
+                  3
+                ? CHAPEL_CLUES_SCHEMA
+                : ADVENTURE_SCHEMA,
     "",
     diagnostics,
   );
@@ -2125,10 +2222,11 @@ export function loadAdventure(input: string | Uint8Array):
     snapshot.schemaVersion === 3 ||
     snapshot.schemaVersion === 4 ||
     snapshot.schemaVersion === 5 ||
-    snapshot.schemaVersion === 6
+    snapshot.schemaVersion === 6 ||
+    snapshot.schemaVersion === 7
   ) {
     validateClueReferences(snapshot, diagnostics);
-    if (snapshot.schemaVersion === 6) {
+    if (snapshot.schemaVersion === 6 || snapshot.schemaVersion === 7) {
       validateAdjudicationProfiles(snapshot, diagnostics);
     }
   } else if (snapshot.schemaVersion === 1) {
@@ -2146,7 +2244,8 @@ export function loadAdventure(input: string | Uint8Array):
     snapshot.schemaVersion === 3 ||
     snapshot.schemaVersion === 4 ||
     snapshot.schemaVersion === 5 ||
-    snapshot.schemaVersion === 6
+    snapshot.schemaVersion === 6 ||
+    snapshot.schemaVersion === 7
   ) {
     diagnostics.push(...analyzeProgression(snapshot));
   }

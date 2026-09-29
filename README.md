@@ -221,6 +221,38 @@ from legal exits, and the blocked scene text persists through save and resume.
 Invalid and repeated attempts cost no time or dice. The cellar route remains
 available; after the raider deadline, the back lane provides a way to report.
 
+[Days at the Crossroads](adventures/day-raider-crossroads.json) uses
+[schema 7](schema/adventure-v7.schema.json) / `chapel-clues-rules-v8` for an
+explicit day clock. `wait days N` accepts 1 through 7 days, provided the full
+wait fits before the authored maximum. Major accepted actions cost one day;
+reads, rejections, and `resolve` cost none. A wait reports its start and end
+day and each crossed threshold in order. A road horn is public on day 2. On
+day 3 the cellar guard moves to the square; players at the hall see only that
+the day passed, while a later visit reveals the new post. On day 7 the raiders
+close the short passage. The journal reveals threshold milestones only after
+they are witnessed or discovered in a relevant location. The back lane still
+permits a late report with a distinct consequence. AI mode offers only the
+number of days that fit and accepts a matching request such as “wait three
+days.” Schema-5 and schema-6 adventures keep their earlier wait rules.
+
+```powershell
+npm.cmd run build
+node dist/cli.js --adventure-file adventures/day-raider-crossroads.json --seed 0 --save day-raider-save.json
+```
+
+At the prompt, enter `wait days 7`. Expect the day 2 horn, a day 3 passage
+without an off-screen guard report, and the day 7 closure. After the next `>`
+prompt, press Ctrl+C. Resume with:
+
+```powershell
+node dist/cli.js --resume day-raider-save.json
+```
+
+Enter `move back lane`, `move square`, `move cellar`, `search route-register`,
+`move square`, `move back lane`, `move hall`, and `resolve file-register`. Expect
+the guard in the square, an empty cellar post, the register discovery, and a
+completed report that says it arrived after the deadline.
+
 ```powershell
 npm.cmd run build
 node dist/cli.js --adventure-file adventures/deadline-rescue.json --seed 0 --save deadline-save.json

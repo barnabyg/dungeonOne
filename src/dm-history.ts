@@ -59,12 +59,14 @@ export function projectDmHistory(
     (definition?.clocks ?? []).flatMap((clock) =>
       clock.thresholds
         .filter((threshold) =>
-          threshold.effects.some(
-            ({ type, id }) =>
-              type === "record-milestone" &&
-              publicMilestones.has(id) &&
-              state.milestones.includes(id),
-          ),
+          definition?.schemaVersion === 7
+            ? state.observedThresholds?.includes(`${clock.id}:${threshold.at}`)
+            : threshold.effects.some(
+                ({ type, id }) =>
+                  type === "record-milestone" &&
+                  publicMilestones.has(id) &&
+                  state.milestones.includes(id),
+              ),
         )
         .map(({ at }) => `${clock.id}:${at}`),
     ),
@@ -115,6 +117,7 @@ export function projectDmHistory(
         case "actor-relocated":
           if (
             event.actorId !== "player" &&
+            definition?.schemaVersion !== 7 &&
             (speakerId === event.actorId ||
               (speakerId === undefined &&
                 (visibleActors.has(event.actorId) ||
