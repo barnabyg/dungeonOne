@@ -20,6 +20,7 @@ import type { Action } from "./session.js";
 import type { GameToolCall } from "./game-tools.js";
 import type { RollRecord } from "./trace.js";
 import type { ClueState } from "./chapel-clues-runtime.js";
+import { projectDmHistory, type DmHistory } from "./dm-history.js";
 
 const SAVE_BYTE_LIMIT = 16 * 1024 * 1024;
 const TRANSITION_LIMIT = 10000;
@@ -95,7 +96,7 @@ function eventFor(
     : { type: "action-committed", actionId, actionType: action.type };
 }
 
-type DomainEvent = Readonly<
+export type DomainEvent = Readonly<
   | { type: "search-performed"; actionId: string; targetId: string }
   | {
       type: "discovery-granted";
@@ -398,6 +399,13 @@ export class SaveSession {
   private transitions: Transition[];
   private randomPosition = 0;
   private seeded: ReturnType<typeof createSeededRandom>;
+
+  dmHistory(state: RuntimeState, speakerId?: string): DmHistory | undefined {
+    if (!("runtimeKind" in state) || state.runtimeKind !== "chapel-clues") {
+      return undefined;
+    }
+    return projectDmHistory(this.runtime, state, this.transitions, speakerId);
+  }
 
   private constructor(
     path: string,

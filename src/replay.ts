@@ -1432,7 +1432,14 @@ function replayFormat4(trace: JsonObject): void {
       adventureId: runtime.id,
       adventureVersion: runtime.version,
       rulesVersion: runtime.rulesVersion,
-      promptVersions: [runtime.promptVersion],
+      promptVersions: [
+        runtime.promptVersion,
+        ...({
+          "chapel-clues-dm-v10": ["chapel-clues-dm-v9"],
+          "chapel-clues-dm-v11": ["chapel-clues-dm-v10"],
+          "chapel-clues-dm-v12": ["chapel-clues-dm-v11"],
+        }[runtime.promptVersion] ?? []),
+      ],
       toolSchemaVersion: runtime.toolSchemaVersion,
       validateRuntimeState: requireObject,
       runtime,

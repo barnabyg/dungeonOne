@@ -283,6 +283,7 @@ function instructions(request: DmModelRequest): string {
       JSON.stringify({
         promptVersion: request.promptVersion,
         reply: request.reply,
+        history: request.history,
       }),
     ].join("\n\n");
   }
@@ -293,6 +294,7 @@ function instructions(request: DmModelRequest): string {
       promptVersion: request.promptVersion,
       scene: request.scene,
       characterStatus: request.characterStatus,
+      history: request.history,
     }),
   ].join("\n\n");
 }
@@ -314,6 +316,7 @@ function functionOutput(
       result: latest.output,
       scene: request.scene,
       characterStatus: request.characterStatus,
+      history: request.history,
     }),
   };
 }

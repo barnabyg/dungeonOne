@@ -1,6 +1,9 @@
 import { runDmTurn, type DmModel, type DmTranscriptEntry } from "./dm-turn.js";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
-import type { RuntimeResult as ActionResult } from "./runtime-contract.js";
+import type {
+  RuntimeResult as ActionResult,
+  RuntimeState,
+} from "./runtime-contract.js";
 import type { Action } from "./session.js";
 import { SaveSession } from "./save.js";
 import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
@@ -205,6 +208,12 @@ export async function playGame(
           random,
           model: options.dmModel,
           runtime,
+          ...(saveSession === undefined
+            ? {}
+            : {
+                history: (historyState: RuntimeState, speakerId?: string) =>
+                  saveSession.dmHistory(historyState, speakerId),
+              }),
           ...(saveSession === undefined
             ? {}
             : {

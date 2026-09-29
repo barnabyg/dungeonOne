@@ -9,6 +9,7 @@ import {
 } from "./game-tools.js";
 import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
 import type { RandomSource } from "./random.js";
+import type { DmHistory } from "./dm-history.js";
 import type {
   RuntimeState as SessionState,
   RuntimeToolResult as GameToolDispatchResult,
@@ -63,6 +64,7 @@ type DmRouteModelRequest = Readonly<{
   transcript: readonly DmTranscriptEntry[];
   scene: ReturnType<typeof projectDmScene>;
   characterStatus: ReturnType<typeof projectCharacterStatus>;
+  history?: DmHistory | undefined;
   tools: readonly GameToolDefinition[];
   toolResults: readonly Readonly<{
     call: DmToolCall;
@@ -86,6 +88,7 @@ type DmNpcReplyRequest = Readonly<{
   tools: readonly [];
   toolResults: readonly [];
   reply: DmNpcReplyContext;
+  history?: DmHistory | undefined;
 }>;
 
 export type DmModelRequest = DmRouteModelRequest | DmNpcReplyRequest;
@@ -415,6 +418,10 @@ export async function runDmTurn(
     ) => Promise<
       Readonly<{ result: GameToolDispatchResult; rolls: readonly DmRoll[] }>
     >;
+    history?: (
+      state: SessionState,
+      speakerId?: string,
+    ) => DmHistory | undefined;
   }>,
 ): Promise<DmTurnResult> {
   const runtime = input.runtime ?? resolveAdventure();
@@ -486,6 +493,9 @@ export async function runDmTurn(
         transcript,
         scene: runtime.projectDmScene(state),
         characterStatus: runtime.projectCharacterStatus(state),
+        ...(input.history === undefined
+          ? {}
+          : { history: input.history(state) }),
         tools: offeredTools(state, budget.mutationAttempts > 0, runtime),
         toolResults: toolResults.map(({ call, result }) => ({
           call,
@@ -666,6 +676,9 @@ export async function runDmTurn(
             attitude: conversation.attitude,
             approvedFacts: conversation.approvedFacts,
           },
+          ...(input.history === undefined
+            ? {}
+            : { history: input.history(state, conversation.speakerId) }),
         });
       } catch {
         return fail(

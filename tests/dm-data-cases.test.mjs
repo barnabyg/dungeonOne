@@ -35,7 +35,7 @@ test("data campaign scenarios execute through the shipped runtime and projected 
     );
     assert.equal(report.contentVersion, "8");
     assert.equal(report.rulesVersion, "chapel-clues-rules-v4");
-    assert.equal(report.promptVersion, "chapel-clues-dm-v9");
+    assert.equal(report.promptVersion, "chapel-clues-dm-v10");
     assert.equal(report.toolSchemaVersion, "chapel-clues-tools-v7");
     assert.equal(
       report.requests[0].scene.room.id,
