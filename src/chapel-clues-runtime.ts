@@ -461,6 +461,7 @@ export function createChapelCluesRuntime(
             eligible(state, guard.when ?? []) &&
             eligible(state, resource.when) &&
             resource.capability === "noise" &&
+            visible(state).exits.length > 0 &&
             state.distractionChecks?.[profile.id] === undefined &&
             (state.clocks?.[profile.clockId] ?? 0) + profile.timeCost <
               profile.expiresAt

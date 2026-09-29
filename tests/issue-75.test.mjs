@@ -272,6 +272,29 @@ test("failure locks the attempt and invalid scenes consume no d20", () => {
   assert.equal(rng.calls, 1);
 });
 
+test("a distraction is not offered when every alternate exit is currently closed", () => {
+  const closed = structuredClone(content);
+  closed.connections.find(({ id }) => id === "cellar-square").when = [
+    { type: "clock-before", id: "raider-plan", at: 1 },
+  ];
+  const game = runtime(closed);
+  const state = cellar(game);
+  const rng = dice(1);
+  assert.deepEqual(game.projectDmScene(state).room.exits, []);
+  assert.equal(
+    game.getGameToolDefinitions(state).some(({ name }) => name === "distract"),
+    false,
+  );
+  const rejected = game.handleAction(
+    state,
+    game.parseCommand("attempt distract guard with heavy crate"),
+    rng,
+  );
+  assert.equal(rejected.rejection.reason, "invalid-adjudication");
+  assert.deepEqual(rejected.state, state);
+  assert.equal(rng.calls, 0);
+});
+
 test("both outcomes survive save/resume, replay, and provider failure after commit once", () =>
   temporary((path) => {
     for (const [seed, outcome] of [
