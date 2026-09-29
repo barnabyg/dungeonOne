@@ -552,7 +552,7 @@ export function createChapelCluesRuntime(
             evidence,
             topic,
             item === undefined ? undefined : `take ${item.id}`,
-            exits[0] === undefined ? undefined : `move ${exits[0].id}`,
+            ...exits.map((exit) => `move ${exit.id}`),
             ...endings,
           ]
         : [`attack ${activeOpponent(state)}`];

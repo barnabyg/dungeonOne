@@ -22,6 +22,22 @@ function run(input, args) {
   });
 }
 
+test("inn hints include every available exit before and after a rejected move", () => {
+  const result = run(
+    "search missing-person-notice\nmove chapel\nmove chapel-path\n",
+    ["--adventure-file", chapel, "--seed", "0"],
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Exits: Ferry Landing, Chapel Path/);
+  assert.match(result.stdout, /Try: .*move ferry-landing; move chapel-path/);
+  assert.match(result.stdout, /Action unavailable: invisible-target/);
+  assert.match(result.stdout, /Chapel Path\n/);
+  assert.equal(
+    (result.stdout.match(/move ferry-landing; move chapel-path/g) ?? []).length,
+    2,
+  );
+});
+
 test("evidence, item, and actor changes remain authoritative through restart and revisit", () => {
   const directory = mkdtempSync(join(tmpdir(), "dungeon-issue-63-"));
   try {
