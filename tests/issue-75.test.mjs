@@ -131,6 +131,14 @@ test("command and AI phrasing use one authored profile and identical d20 result"
   assert.equal(ai.modelOutput.ok, true);
   assert.deepEqual(ai.state, command.state);
   assert.deepEqual(ai.engineResult.events, command.events);
+  const nounPhrase = game.dispatchGameTool(
+    start,
+    { name: "distract", argumentsJson: '{"profileId":"crate-guard-door"}' },
+    dice(13),
+    "I create a distraction with the heavy crate to slip past the guard",
+  );
+  assert.equal(nounPhrase.modelOutput.ok, true);
+  assert.deepEqual(nounPhrase.state, command.state);
   assert.equal(commandDice.calls, 1);
   assert.equal(aiDice.calls, 1);
   assert.match(

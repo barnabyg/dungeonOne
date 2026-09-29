@@ -2838,7 +2838,9 @@ export function createChapelCluesRuntime(
           /\b(not|never|no|dont|without|avoid|refuse|instead|maybe|might|if|unless|whether|either|or|should|could|would|can|may|perhaps|consider|then|and|also)\b|\b(?:don t|won t)\b/u.test(
             intent,
           ) ||
-          !/\b(distract|lure|draw|rattle)\b|make a racket/u.test(intent) ||
+          !/\b(distract|lure|draw|rattle|divert)\b|\b(?:create|make|cause|stage|try|attempt)\b.{0,40}\b(?:distraction|diversion)\b|make a racket/u.test(
+            intent,
+          ) ||
           ![guard.id, guard.name, ...guard.aliases].some(mentions) ||
           ![resource.id, resource.name, ...resource.aliases].some(mentions)
         ) {
