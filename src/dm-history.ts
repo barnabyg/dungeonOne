@@ -1,7 +1,11 @@
-import type { ChapelCluesDefinition } from "./adventure-loader.js";
+import {
+  normalizeAlias,
+  type ChapelCluesDefinition,
+} from "./adventure-loader.js";
 import type { ClueState } from "./chapel-clues-runtime.js";
 import type { DomainEvent } from "./save.js";
 import type { AdventureRuntime } from "./runtime-contract.js";
+import type { Action } from "./session.js";
 
 export const DM_HISTORY_LIMIT = 12;
 
@@ -10,6 +14,7 @@ export type DmHistoryFact = Readonly<{
   type: DomainEvent["type"];
   subjectId: string;
   detail?: string;
+  cause?: string;
 }>;
 
 export type DmHistory = Readonly<{
@@ -20,6 +25,7 @@ export type DmHistory = Readonly<{
 
 type HistoryTransition = Readonly<{
   sequence: number;
+  action?: Action;
   domainEvents?: readonly DomainEvent[];
 }>;
 
@@ -85,10 +91,24 @@ export function projectDmHistory(
               (speakerId === undefined && visibleActors.has(event.targetId))) &&
             state.relationships?.[event.targetId]?.tier === event.to
           ) {
+            const action = transition.action;
+            const cause =
+              action?.type === "talk" && action.target === event.targetId
+                ? definition?.npcs
+                    ?.find(({ id }) => id === event.targetId)
+                    ?.topics.find((topic) =>
+                      [topic.id, ...topic.aliases].some(
+                        (alias) =>
+                          normalizeAlias(alias) ===
+                          normalizeAlias(action.topic ?? ""),
+                      ),
+                    )?.name
+                : undefined;
             candidates.push({
               ...common,
               subjectId: event.targetId,
               detail: event.to,
+              ...(cause === undefined ? {} : { cause }),
             });
           }
           break;
@@ -98,7 +118,9 @@ export function projectDmHistory(
             (speakerId === event.actorId ||
               (speakerId === undefined &&
                 (visibleActors.has(event.actorId) ||
-                  event.from === state.locationId))) &&
+                  event.from === state.locationId ||
+                  (transition.action?.type === "talk" &&
+                    transition.action.target === event.actorId)))) &&
             state.npcLocations?.[event.actorId] === event.to
           ) {
             candidates.push({
@@ -113,7 +135,9 @@ export function projectDmHistory(
             (speakerId === event.actorId ||
               (speakerId === undefined &&
                 (event.locationId === state.locationId ||
-                  visibleActors.has(event.actorId)))) &&
+                  visibleActors.has(event.actorId) ||
+                  (transition.action?.type === "attack" &&
+                    transition.action.target === event.actorId)))) &&
             (state.npcHealth?.[event.actorId]?.hp === 0 ||
               state.monsters?.[event.actorId]?.hp === 0)
           ) {

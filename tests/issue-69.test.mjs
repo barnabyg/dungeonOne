@@ -68,6 +68,18 @@ test("saved history recovers rescue, item use, death, and public deadline after 
   );
   assert.ok(
     history.facts.some(
+      (fact) => fact.type === "actor-relocated" && fact.subjectId === "neri",
+    ),
+  );
+  assert.ok(
+    history.facts.some(
+      (fact) =>
+        fact.type === "relationship-changed" &&
+        fact.cause === "Tell Lysa about Neri's rescue",
+    ),
+  );
+  assert.ok(
+    history.facts.some(
       (fact) => fact.type === "clock-threshold-crossed" && fact.detail === "5",
     ),
   );
@@ -105,7 +117,9 @@ test("saved history recovers rescue, item use, death, and public deadline after 
   assert.ok(
     dead.resumed
       .dmHistory(dead.resumed.state)
-      .facts.every((fact) => fact.subjectId !== "neri"),
+      .facts.some(
+        (fact) => fact.type === "actor-defeated" && fact.subjectId === "neri",
+      ),
   );
   const cellar = await savedJourney(["attack neri"]);
   assert.ok(
@@ -135,7 +149,8 @@ test("a guard's earlier treatment is selected from the save after returning", as
       (fact) =>
         fact.type === "relationship-changed" &&
         fact.subjectId === "guard" &&
-        fact.detail === "hostile",
+        fact.detail === "hostile" &&
+        fact.cause === "Insult the guard",
     ),
   );
   assert.ok(
