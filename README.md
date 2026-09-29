@@ -253,6 +253,27 @@ Enter `move back lane`, `move square`, `move cellar`, `search route-register`,
 the guard in the square, no guard listed in the cellar, the register discovery, and a
 completed report that says it arrived after the deadline.
 
+[Distraction at the Crossroads](adventures/distracted-crossroads.json) extends
+schema 7 with an authored guard distraction. The cellar guard blocks the side
+door to the hall. `attempt distract guard with heavy crate` makes one d20 check
+with a fixed modifier and DC, costing one day on either result. Success opens
+the side door until Day 5; failure leaves the steps to the square available.
+The result, remaining day, and route persist through save and resume. A
+paraphrase cannot reroll the same profile. Absent or dead guards, hidden or
+unsuitable props, and combat reject the attempt before a die is drawn.
+
+```powershell
+npm.cmd run build
+node dist/cli.js --adventure-file adventures/distracted-crossroads.json --seed 1 --save distraction-save.json
+```
+
+Enter `move cellar`, `attempt distract guard with heavy crate`, `move hall`,
+`move cellar`, `look`, `wait days 1`, `look`, and `move hall`. The seed 1 check
+succeeds; the side door is open on Day 4 and guarded again on Day 5. The final
+move names the still-open square route. Start a separate save with seed 0 to
+see a failed check, then repeat the attempt as `attempt distract cellar guard
+with crate`; it remains spent.
+
 ```powershell
 npm.cmd run build
 node dist/cli.js --adventure-file adventures/deadline-rescue.json --seed 0 --save deadline-save.json

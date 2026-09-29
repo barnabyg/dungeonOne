@@ -191,6 +191,32 @@ export function projectDmHistory(
             });
           }
           break;
+        case "guard-distracted": {
+          const profile = definition?.distractionProfiles?.find(
+            ({ id }) => id === event.profileId,
+          );
+          const connection = definition?.connections.find(
+            ({ id }) => id === event.connectionId,
+          );
+          if (
+            speakerId === undefined &&
+            profile !== undefined &&
+            connection?.from === state.locationId &&
+            state.distractionChecks?.[event.profileId]?.result === event.result
+          ) {
+            candidates.push({
+              ...common,
+              subjectId: event.profileId,
+              detail:
+                event.result === "failure"
+                  ? "failure"
+                  : (state.clocks?.[profile.clockId] ?? 0) < profile.expiresAt
+                    ? "active until day " + profile.expiresAt
+                    : "expired",
+            });
+          }
+          break;
+        }
         default:
           break;
       }

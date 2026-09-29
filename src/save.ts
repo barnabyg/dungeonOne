@@ -178,6 +178,21 @@ export type DomainEvent = Readonly<
       blockedConnectionIds: readonly string[];
     }
   | {
+      type: "guard-distracted";
+      actionId: string;
+      profileId: string;
+      guardId: string;
+      resourceId: string;
+      connectionId: string;
+      expiresAt: number;
+      timeCost: number;
+      die: number;
+      modifier: number;
+      total: number;
+      dc: number;
+      result: "success" | "failure";
+    }
+  | {
       type: "actor-relocated";
       actionId: string;
       actorId: string;
@@ -226,6 +241,13 @@ function eventsFor(
         });
       }
     } else if (entry.type === "clue") {
+      if (entry.operation === "distract" && entry.distraction !== undefined) {
+        events.push({
+          type: "guard-distracted",
+          actionId,
+          ...entry.distraction,
+        });
+      }
       if (
         entry.operation === "adjudicate" &&
         entry.adjudication !== undefined

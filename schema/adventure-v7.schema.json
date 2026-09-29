@@ -412,7 +412,7 @@
           },
           "capability": {
             "type": "string",
-            "const": "brace"
+            "enum": ["brace", "noise"]
           }
         }
       }
@@ -2353,6 +2353,101 @@
             "maxLength": 4096
           },
           "blockedText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        }
+      }
+    },
+    "distractionProfiles": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "guardId",
+          "resourceId",
+          "connectionId",
+          "clockId",
+          "expiresAt",
+          "timeCost",
+          "modifier",
+          "dc",
+          "successText",
+          "failureText",
+          "activeText",
+          "expiredText"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "guardId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "resourceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "connectionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "clockId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "timeCost": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7
+          },
+          "modifier": {
+            "type": "integer",
+            "minimum": -10,
+            "maximum": 10
+          },
+          "dc": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "successText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "failureText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "activeText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "expiredText": {
             "type": "string",
             "minLength": 1,
             "maxLength": 4096

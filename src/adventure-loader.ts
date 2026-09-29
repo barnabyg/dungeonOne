@@ -222,6 +222,21 @@ export type ChapelCluesDefinition = Readonly<{
     successText: string;
     blockedText: string;
   }>[];
+  distractionProfiles?: readonly Readonly<{
+    id: string;
+    guardId: string;
+    resourceId: string;
+    connectionId: string;
+    clockId: string;
+    expiresAt: number;
+    timeCost: number;
+    modifier: number;
+    dc: number;
+    successText: string;
+    failureText: string;
+    activeText: string;
+    expiredText: string;
+  }>[];
   locations: readonly (LocationDefinition &
     Readonly<{ descriptions?: readonly ConditionalClueText[] }>)[];
   connections: readonly (ConnectionDefinition &
@@ -229,7 +244,7 @@ export type ChapelCluesDefinition = Readonly<{
   features: readonly (FeatureDefinition &
     Readonly<{
       when: readonly ClueCondition[];
-      capability?: "brace";
+      capability?: "brace" | "noise";
       descriptions?: readonly ConditionalClueText[];
     }>)[];
   quest: Readonly<{ id: string; title: string; milestones: readonly string[] }>;
@@ -940,6 +955,10 @@ function validateClueReferences(
       {
         namespace: "adjudicationProfiles",
         entries: snapshot.adjudicationProfiles ?? [],
+      },
+      {
+        namespace: "distractionProfiles",
+        entries: snapshot.distractionProfiles ?? [],
       },
       { namespace: "features", entries: snapshot.features },
       { namespace: "discoveries", entries: snapshot.discoveries },
@@ -2130,6 +2149,74 @@ function validateAdjudicationProfiles(
   }
 }
 
+function validateDistractionProfiles(
+  snapshot: ChapelCluesDefinition,
+  diagnostics: AdventureDiagnostic[],
+): void {
+  const guarded = new Set<string>();
+  for (const [index, profile] of (
+    snapshot.distractionProfiles ?? []
+  ).entries()) {
+    const path = `/distractionProfiles/${index}`;
+    const error = (field: string, message: string) =>
+      diagnostics.push({
+        severity: "error",
+        code: "invalid-adjudication",
+        path: `${path}/${field}`,
+        entity: profile.id,
+        message,
+      });
+    const guard = snapshot.npcs?.find(({ id }) => id === profile.guardId);
+    const resource = snapshot.features.find(
+      ({ id }) => id === profile.resourceId,
+    );
+    const connection = snapshot.connections.find(
+      ({ id }) => id === profile.connectionId,
+    );
+    const clock = snapshot.clocks?.find(({ id }) => id === profile.clockId);
+    if (guard?.combat === undefined) {
+      error("guardId", "Guard must be a living, combat-capable NPC.");
+    }
+    if (resource?.capability !== "noise") {
+      error("resourceId", "Distraction requires a noise-capable feature.");
+    }
+    if (connection === undefined) {
+      error("connectionId", "Unknown guarded connection.");
+    } else {
+      if (
+        guard !== undefined &&
+        resource !== undefined &&
+        (connection.from !== guard.locationId ||
+          connection.from !== resource.locationId)
+      ) {
+        error("connectionId", "Guard, feature, and route must share a scene.");
+      }
+      if (connection.when.length > 0) {
+        error("connectionId", "Guarded route cannot have another condition.");
+      }
+      if (guarded.has(connection.id)) {
+        error("connectionId", "Only one profile may control a guarded route.");
+      }
+      guarded.add(connection.id);
+      if (
+        snapshot.connections.filter(
+          ({ from, id }) => from === connection.from && id !== connection.id,
+        ).length === 0
+      ) {
+        error("connectionId", "A failed check needs an alternate exit.");
+      }
+    }
+    if (clock?.unit !== "day") {
+      error("clockId", "Distraction requires a day clock.");
+    } else if (
+      profile.expiresAt <= clock.initial + profile.timeCost ||
+      profile.expiresAt > clock.maximum
+    ) {
+      error("expiresAt", "Expiry must leave a usable success interval.");
+    }
+  }
+}
+
 export function freezeDefinition<T>(value: T): T {
   if (value !== null && typeof value === "object") {
     for (const child of Object.values(value)) {
@@ -2228,6 +2315,9 @@ export function loadAdventure(input: string | Uint8Array):
     validateClueReferences(snapshot, diagnostics);
     if (snapshot.schemaVersion === 6 || snapshot.schemaVersion === 7) {
       validateAdjudicationProfiles(snapshot, diagnostics);
+    }
+    if (snapshot.schemaVersion === 7) {
+      validateDistractionProfiles(snapshot, diagnostics);
     }
   } else if (snapshot.schemaVersion === 1) {
     validateReferences(snapshot, diagnostics);

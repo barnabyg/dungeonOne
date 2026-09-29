@@ -280,6 +280,8 @@ function renderRejection(rejection: Rejection): string {
       return rejection.detail;
     case "blocked-passage":
       return "A barricade blocks that passage.";
+    case "guarded-passage":
+      return "A guard blocks that passage.";
     default:
       rejection satisfies never;
       throw new Error("Unreachable rejection");

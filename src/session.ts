@@ -71,6 +71,12 @@ export type Action = Readonly<
         intent: string;
       }>;
     }
+  | {
+      type: "distract";
+      profileId: string;
+      guardId: string;
+      resourceId: string;
+    }
   | { type: "status" }
   | { type: "inventory" }
   | { type: "journal" }
@@ -185,6 +191,7 @@ export type Rejection = Readonly<
   | { reason: "terminal-state"; status: "victory" | "defeat" }
   | { reason: "invalid-adjudication"; detail: string }
   | { reason: "blocked-passage"; destinationId: string; profileId: string }
+  | { reason: "guarded-passage"; destinationId: string; guardId: string }
 >;
 
 export type ActionResult =
@@ -1084,6 +1091,14 @@ export function handleAction(
         rejection: {
           reason: "invalid-adjudication",
           detail: "This adventure does not offer barricades.",
+        },
+      };
+    case "distract":
+      return {
+        state,
+        rejection: {
+          reason: "invalid-adjudication",
+          detail: "This adventure does not offer distractions.",
         },
       };
     case "quit":
