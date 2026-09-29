@@ -179,6 +179,16 @@ reason; relationship predicates select later replies. Saves retain the tier
 and reason and record each actual change. The public scene and DM tools expose
 only the current authored reply. A dead guard cannot speak or help.
 
+[The Cellar Witness](adventures/rescue-witness.json) uses the same rules for a
+rescue across three locations. Search the route register in the cellar, then
+`talk neri rescue ask` to move Neri to the square. At the hall, Lysa's response
+stays unconfirmed until the player uses `talk lysa report-rescue ask`. If Neri
+dies, `talk lysa report-death ask` provides a truthful alternative. The route
+register supports `resolve file-register` or `resolve post-register` even when
+Lysa is dead. Use `--adventure-file adventures/rescue-witness.json` to play it;
+`--save <path>` and `--resume <path>` preserve the report, relationship reason,
+tonic, and actor fates.
+
 ```text
 node dist/cli.js --adventure-file adventures/remembering-guard.json --seed 0 --save gate-save.json
 node dist/cli.js --resume gate-save.json
