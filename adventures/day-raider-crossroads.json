@@ -15,19 +15,8 @@
     {
       "id": "cellar",
       "name": "Cellar",
-      "description": "The cellar steps lead toward the square. A guard watches the exit beside a route register, a sealed tonic, and a heavy empty crate.",
-      "aliases": ["cellar"],
-      "descriptions": [
-        {
-          "when": [
-            {
-              "type": "milestone-recorded",
-              "id": "guard-post-changed"
-            }
-          ],
-          "text": "The cellar steps lead toward the square. The guard's post beside the route register, tonic, and heavy crate is empty."
-        }
-      ]
+      "description": "The cellar steps lead toward the square. A guard's post stands beside a route register, a sealed tonic, and a heavy empty crate.",
+      "aliases": ["cellar"]
     },
     {
       "id": "square",
@@ -222,7 +211,6 @@
       "rescue-reported",
       "death-reported",
       "raiders-near",
-      "guard-post-changed",
       "deadline-missed",
       "help-promised",
       "refusal-stated"
@@ -1061,10 +1049,6 @@
           "text": "The cellar guard leaves the cellar and takes a post in the square.",
           "visibleFrom": ["cellar", "square"],
           "effects": [
-            {
-              "type": "record-milestone",
-              "id": "guard-post-changed"
-            },
             {
               "type": "relocate-npc",
               "id": "guard",

@@ -57,8 +57,8 @@ test("day schema validates observers and adjacent scheduled movement", () => {
     (copy) => delete copy.clocks[0].unit,
     (copy) => (copy.clocks[0].thresholds[1].visibleFrom = ["nowhere"]),
     (copy) => (copy.clocks[0].thresholds[1].visibleFrom = ["square", "square"]),
-    (copy) => (copy.clocks[0].thresholds[1].effects[1].id = "absent-guard"),
-    (copy) => (copy.clocks[0].thresholds[1].effects[1].toLocationId = "hall"),
+    (copy) => (copy.clocks[0].thresholds[1].effects[0].id = "absent-guard"),
+    (copy) => (copy.clocks[0].thresholds[1].effects[0].toLocationId = "hall"),
   ];
   for (const change of changes) {
     const copy = structuredClone(content);
@@ -123,6 +123,34 @@ test("a cellar wait does not reveal the off-screen closure until the square", ()
   assert.match(
     game.renderResult(game.handleAction(square, { type: "journal" })),
     /deadline-missed/,
+  );
+});
+
+test("a dead guard is never reported as having changed posts", () => {
+  const game = runtime();
+  const move = (state, destination) =>
+    game.handleAction(state, { type: "move", destination }).state;
+  const cellar = move(move(game.createSession(), "square"), "cellar");
+  const deadGuard = {
+    ...cellar,
+    npcHealth: {
+      ...cellar.npcHealth,
+      guard: { ...cellar.npcHealth.guard, hp: 0 },
+    },
+    npcDeathLocations: { ...cellar.npcDeathLocations, guard: "cellar" },
+  };
+  const waited = game.handleAction(deadGuard, game.parseCommand("wait days 1"));
+  assert.equal(waited.state.npcLocations.guard, "cellar");
+  assert.match(game.renderResult(waited), /Day 3 passes/);
+  assert.doesNotMatch(game.renderResult(waited), /guard leaves the cellar/);
+  const scene = game.renderResult(
+    game.handleAction(waited.state, { type: "look" }),
+  );
+  assert.match(scene, /A guard's post stands beside a route register/);
+  assert.doesNotMatch(scene, /Cellar Guard/);
+  assert.doesNotMatch(
+    game.renderResult(game.handleAction(waited.state, { type: "journal" })),
+    /guard-post-changed/,
   );
 });
 

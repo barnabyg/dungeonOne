@@ -250,7 +250,7 @@ node dist/cli.js --resume day-raider-save.json
 
 Enter `move back lane`, `move square`, `move cellar`, `search route-register`,
 `move square`, `move back lane`, `move hall`, and `resolve file-register`. Expect
-the guard in the square, an empty cellar post, the register discovery, and a
+the guard in the square, no guard listed in the cellar, the register discovery, and a
 completed report that says it arrived after the deadline.
 
 ```powershell
