@@ -136,8 +136,11 @@ export function projectDmHistory(
               (speakerId === undefined &&
                 (event.locationId === state.locationId ||
                   visibleActors.has(event.actorId) ||
-                  (transition.action?.type === "attack" &&
-                    transition.action.target === event.actorId)))) &&
+                  transition.domainEvents?.some(
+                    (entry) =>
+                      entry.type === "attack-resolved" &&
+                      entry.targetId === event.actorId,
+                  )))) &&
             (state.npcHealth?.[event.actorId]?.hp === 0 ||
               state.monsters?.[event.actorId]?.hp === 0)
           ) {

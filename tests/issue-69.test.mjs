@@ -129,6 +129,22 @@ test("saved history recovers rescue, item use, death, and public deadline after 
         (fact) => fact.type === "actor-defeated" && fact.subjectId === "neri",
       ),
   );
+  const aliasedSource = structuredClone(source);
+  aliasedSource.npcs.find(({ id }) => id === "neri").aliases.push("witness");
+  const aliasedContent = loadAdventure(JSON.stringify(aliasedSource));
+  assert.equal(aliasedContent.ok, true);
+  const aliasedRuntime = createDataRuntime(aliasedContent.adventure);
+  const aliasedDeath = await savedJourney(
+    ["attack witness", "move square", "move hall"],
+    aliasedRuntime,
+  );
+  assert.ok(
+    aliasedDeath.resumed
+      .dmHistory(aliasedDeath.resumed.state)
+      .facts.some(
+        (fact) => fact.type === "actor-defeated" && fact.subjectId === "neri",
+      ),
+  );
 });
 
 test("a guard's earlier treatment is selected from the save after returning", async () => {
