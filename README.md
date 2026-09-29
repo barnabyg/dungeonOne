@@ -209,6 +209,18 @@ milestone effects, and action costs. A `clock-before` condition lets ending
 prose distinguish an on-time arrival from a late one. The loader rejects
 invalid IDs, bounds, order, or references before play.
 
+[Barricade at the Crossroads](adventures/barricaded-crossroads.json) uses
+[schema 6](schema/adventure-v6.schema.json) / `chapel-clues-rules-v7` for the
+first bounded physical judgment. In the square, `attempt barricade short
+passage with market cart` braces the visible short route between the square
+and hall. Its typed profile names a passage-capable connection, a brace-capable
+feature, and the two directed connections it blocks. The rules engine checks
+the current scene and applies the effect; neither command nor AI mode can set
+a difficulty or edit other state. The cart remains visible, the route disappears
+from legal exits, and the blocked scene text persists through save and resume.
+Invalid and repeated attempts cost no time or dice. The cellar route remains
+available; after the raider deadline, the back lane provides a way to report.
+
 ```powershell
 npm.cmd run build
 node dist/cli.js --adventure-file adventures/deadline-rescue.json --seed 0 --save deadline-save.json

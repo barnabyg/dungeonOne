@@ -9,6 +9,7 @@ import {
   CLUES_ENGINE_VERSION,
   RELATIONSHIP_ENGINE_VERSION,
   CLOCK_ENGINE_VERSION,
+  ADJUDICATION_ENGINE_VERSION,
   CASUALTY_CLUES_ENGINE_VERSION,
   COMBAT_CLUES_ENGINE_VERSION,
   LEGACY_CLUES_ENGINE_VERSION,
@@ -1356,6 +1357,7 @@ function replayFormat4(trace: JsonObject): void {
     trace.engineVersion !== CLUES_ENGINE_VERSION &&
     trace.engineVersion !== RELATIONSHIP_ENGINE_VERSION &&
     trace.engineVersion !== CLOCK_ENGINE_VERSION &&
+    trace.engineVersion !== ADJUDICATION_ENGINE_VERSION &&
     trace.engineVersion !== CASUALTY_CLUES_ENGINE_VERSION &&
     trace.engineVersion !== RESCUE_CLUES_ENGINE_VERSION &&
     trace.engineVersion !== COMBAT_CLUES_ENGINE_VERSION &&

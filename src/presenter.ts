@@ -276,6 +276,8 @@ function renderRejection(rejection: Rejection): string {
       return "The fighter must be alive to escape with the signet.";
     case "terminal-state":
       return "The adventure is over; you can't change the final state. You may look, inspect, check status or inventory, ask for help, or quit.";
+    case "invalid-adjudication":
+      return rejection.detail;
     default:
       rejection satisfies never;
       throw new Error("Unreachable rejection");

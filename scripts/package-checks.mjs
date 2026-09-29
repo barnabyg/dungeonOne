@@ -71,11 +71,13 @@ const authoredAssets = [
   "adventures/tide-observatory.json",
   "adventures/remembering-guard.json",
   "adventures/deadline-rescue.json",
+  "adventures/barricaded-crossroads.json",
   "schema/adventure-v1.schema.json",
   "schema/adventure-v2.schema.json",
   "schema/adventure-v3.schema.json",
   "schema/adventure-v4.schema.json",
   "schema/adventure-v5.schema.json",
+  "schema/adventure-v6.schema.json",
 ];
 
 for (const adventure of authoredAssets.filter((asset) =>

@@ -61,6 +61,16 @@ export type Action = Readonly<
   | { type: "attack"; target?: string }
   | { type: "resolve"; target?: string }
   | { type: "wait"; amount?: string }
+  | {
+      type: "adjudicate";
+      proposal: Readonly<{
+        profileId: string;
+        targetId: string;
+        resourceId: string;
+        approach: "brace";
+        intent: string;
+      }>;
+    }
   | { type: "status" }
   | { type: "inventory" }
   | { type: "journal" }
@@ -173,6 +183,7 @@ export type Rejection = Readonly<
   | { reason: "invalid-attack-target"; target: string }
   | { reason: "dead-target"; targetId: OpponentId }
   | { reason: "terminal-state"; status: "victory" | "defeat" }
+  | { reason: "invalid-adjudication"; detail: string }
 >;
 
 export type ActionResult =
@@ -1065,6 +1076,14 @@ export function handleAction(
       return {
         state,
         rejection: { reason: "unknown-command", input: action.input },
+      };
+    case "adjudicate":
+      return {
+        state,
+        rejection: {
+          reason: "invalid-adjudication",
+          detail: "This adventure does not offer barricades.",
+        },
       };
     case "quit":
       return {

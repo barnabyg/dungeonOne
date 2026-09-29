@@ -5,6 +5,7 @@ import { SIGNET_SCHEMA } from "./signet-schema.js";
 import { CHAPEL_CLUES_SCHEMA } from "./chapel-clues-schema.js";
 import { RELATIONSHIP_SCHEMA } from "./relationship-schema.js";
 import { CLOCK_SCHEMA } from "./clock-schema.js";
+import { ADJUDICATION_SCHEMA } from "./adjudication-schema.js";
 import { analyzeProgression } from "./progression-analysis.js";
 
 export const EXPLORATION_RULES_VERSION = "exploration-rules-v1";
@@ -157,7 +158,7 @@ export type DialogueNpc = Readonly<{
   }>;
 }>;
 export type ChapelCluesDefinition = Readonly<{
-  schemaVersion: 3 | 4 | 5;
+  schemaVersion: 3 | 4 | 5 | 6;
   id: string;
   contentVersion: string;
   rulesVersion:
@@ -166,7 +167,8 @@ export type ChapelCluesDefinition = Readonly<{
     | "chapel-clues-rules-v3"
     | "chapel-clues-rules-v4"
     | "chapel-clues-rules-v5"
-    | "chapel-clues-rules-v6";
+    | "chapel-clues-rules-v6"
+    | "chapel-clues-rules-v7";
   title: string;
   introduction: string;
   objective: string;
@@ -200,13 +202,28 @@ export type ChapelCluesDefinition = Readonly<{
     use: number;
     attack: number;
   }>;
+  adjudicationProfiles?: readonly Readonly<{
+    id: string;
+    family: "barricade";
+    targetId: string;
+    targetAliases?: readonly string[];
+    resourceId: string;
+    approach: "brace";
+    effect: Readonly<{
+      type: "block-connections";
+      connectionIds: readonly string[];
+    }>;
+    successText: string;
+    blockedText: string;
+  }>[];
   locations: readonly (LocationDefinition &
     Readonly<{ descriptions?: readonly ConditionalClueText[] }>)[];
   connections: readonly (ConnectionDefinition &
-    Readonly<{ when: readonly ClueCondition[] }>)[];
+    Readonly<{ when: readonly ClueCondition[]; capability?: "passage" }>)[];
   features: readonly (FeatureDefinition &
     Readonly<{
       when: readonly ClueCondition[];
+      capability?: "brace";
       descriptions?: readonly ConditionalClueText[];
     }>)[];
   quest: Readonly<{ id: string; title: string; milestones: readonly string[] }>;
@@ -845,6 +862,7 @@ function validateClueReferences(
       "chapel-clues-rules-v4",
       "chapel-clues-rules-v5",
       "chapel-clues-rules-v6",
+      "chapel-clues-rules-v7",
     ].includes(snapshot.rulesVersion) &&
     (snapshot.npcs ?? []).some(
       (npc) => npc.combat !== undefined || npc.remains !== undefined,
@@ -863,6 +881,7 @@ function validateClueReferences(
       "chapel-clues-rules-v4",
       "chapel-clues-rules-v5",
       "chapel-clues-rules-v6",
+      "chapel-clues-rules-v7",
     ].includes(snapshot.rulesVersion)
   ) {
     error(
@@ -910,6 +929,10 @@ function validateClueReferences(
     [
       { namespace: "locations", entries: snapshot.locations },
       { namespace: "connections", entries: snapshot.connections },
+      {
+        namespace: "adjudicationProfiles",
+        entries: snapshot.adjudicationProfiles ?? [],
+      },
       { namespace: "features", entries: snapshot.features },
       { namespace: "discoveries", entries: snapshot.discoveries },
       { namespace: "searches", entries: snapshot.searches },
@@ -960,7 +983,8 @@ function validateClueReferences(
     snapshot.rulesVersion === "chapel-clues-rules-v3" ||
     snapshot.rulesVersion === "chapel-clues-rules-v4" ||
     snapshot.rulesVersion === "chapel-clues-rules-v5" ||
-    snapshot.rulesVersion === "chapel-clues-rules-v6"
+    snapshot.rulesVersion === "chapel-clues-rules-v6" ||
+    snapshot.rulesVersion === "chapel-clues-rules-v7"
   ) {
     (snapshot.monsters ?? []).forEach((monster, i) => {
       if (npcs.has(monster.id)) {
@@ -1097,7 +1121,8 @@ function validateClueReferences(
           snapshot.rulesVersion !== "chapel-clues-rules-v3" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v4" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v5" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v6"
+          snapshot.rulesVersion !== "chapel-clues-rules-v6" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v7"
         ) {
           error(
             "unsupported-rules",
@@ -1110,7 +1135,8 @@ function validateClueReferences(
           entry.type !== "actor-dead" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v4" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v5" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v6"
+          snapshot.rulesVersion !== "chapel-clues-rules-v6" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v7"
         ) {
           error(
             "unsupported-rules",
@@ -1884,6 +1910,132 @@ function validateClueReferences(
   }
 }
 
+function validateAdjudicationProfiles(
+  snapshot: ChapelCluesDefinition,
+  diagnostics: AdventureDiagnostic[],
+): void {
+  const profiles = snapshot.adjudicationProfiles ?? [];
+  const seen = new Set<string>();
+  const tuples = new Set<string>();
+  const passageAliases = new Map<string, string>();
+  for (const [index, profile] of profiles.entries()) {
+    const path = `/adjudicationProfiles/${index}`;
+    const error = (suffix: string, message: string) =>
+      diagnostics.push({
+        severity: "error",
+        code: "invalid-adjudication",
+        path: `${path}${suffix}`,
+        entity: profile.id,
+        message,
+      });
+    if (seen.has(profile.id)) {
+      error("/id", "Duplicate adjudication profile ID.");
+    }
+    seen.add(profile.id);
+    if (
+      profile.targetAliases?.some((alias, i) =>
+        profile
+          .targetAliases!.slice(0, i)
+          .some((prior) => normalizeAlias(prior) === normalizeAlias(alias)),
+      )
+    ) {
+      error("/targetAliases", "Duplicate target alias.");
+    }
+    const target = snapshot.connections.find(
+      ({ id }) => id === profile.targetId,
+    );
+    const resource = snapshot.features.find(
+      ({ id }) => id === profile.resourceId,
+    );
+    const tuple = `${profile.targetId}/${profile.resourceId}`;
+    if (tuples.has(tuple)) {
+      error(
+        "/resourceId",
+        "More than one profile matches this passage and object.",
+      );
+    }
+    tuples.add(tuple);
+    if (target !== undefined) {
+      const destination = snapshot.locations.find(({ id }) => id === target.to);
+      for (const alias of [
+        target.id,
+        destination?.id,
+        destination?.name,
+        ...(destination?.aliases ?? []),
+        ...(profile.targetAliases ?? []),
+      ]) {
+        if (alias === undefined) {
+          continue;
+        }
+        const key = `${target.from}/${normalizeAlias(alias)}`;
+        const previous = passageAliases.get(key);
+        if (previous !== undefined && previous !== target.id) {
+          error("/targetAliases", `Ambiguous passage name: ${alias}.`);
+        }
+        passageAliases.set(key, target.id);
+      }
+    }
+    if (target?.capability !== "passage") {
+      error("/targetId", "Target must reference a passage-capable connection.");
+    }
+    if (resource?.capability !== "brace") {
+      error("/resourceId", "Resource must reference a brace-capable feature.");
+    }
+    if (
+      target !== undefined &&
+      resource !== undefined &&
+      target.from !== resource.locationId
+    ) {
+      error(
+        "/resourceId",
+        "The brace and passage must be in the same visible scene.",
+      );
+    }
+    if (!profile.effect.connectionIds.includes(profile.targetId)) {
+      error(
+        "/effect/connectionIds",
+        "The effect must block its selected passage.",
+      );
+    }
+    if (
+      new Set(profile.effect.connectionIds).size !==
+      profile.effect.connectionIds.length
+    ) {
+      error("/effect/connectionIds", "Effect connection IDs must be unique.");
+    }
+    for (const [effectIndex, id] of profile.effect.connectionIds.entries()) {
+      const connection = snapshot.connections.find((entry) => entry.id === id);
+      if (
+        connection === undefined ||
+        target === undefined ||
+        !(
+          [connection.from, connection.to].includes(target.from) &&
+          [connection.from, connection.to].includes(target.to)
+        )
+      ) {
+        error(
+          `/effect/connectionIds/${effectIndex}`,
+          "Effect may block only this passage's directed connections.",
+        );
+      }
+    }
+    for (const location of snapshot.locations) {
+      const exits = snapshot.connections.filter(
+        ({ from }) => from === location.id,
+      );
+      if (
+        exits.length > 0 &&
+        exits.every(({ id }) => profile.effect.connectionIds.includes(id))
+      ) {
+        error(
+          "/effect/connectionIds",
+          `Barricade would remove every exit from ${location.id}.`,
+        );
+      }
+    }
+  }
+}
+
 export function freezeDefinition<T>(value: T): T {
   if (value !== null && typeof value === "object") {
     for (const child of Object.values(value)) {
@@ -1946,13 +2098,15 @@ export function loadAdventure(input: string | Uint8Array):
       (parsed as { rulesVersion?: string } | null)?.rulesVersion ===
         "signet-rules-v1"
       ? SIGNET_SCHEMA
-      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 5
-        ? CLOCK_SCHEMA
-        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 4
-          ? RELATIONSHIP_SCHEMA
-          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 3
-            ? CHAPEL_CLUES_SCHEMA
-            : ADVENTURE_SCHEMA,
+      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 6
+        ? ADJUDICATION_SCHEMA
+        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 5
+          ? CLOCK_SCHEMA
+          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 4
+            ? RELATIONSHIP_SCHEMA
+            : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 3
+              ? CHAPEL_CLUES_SCHEMA
+              : ADVENTURE_SCHEMA,
     "",
     diagnostics,
   );
@@ -1970,9 +2124,13 @@ export function loadAdventure(input: string | Uint8Array):
   } else if (
     snapshot.schemaVersion === 3 ||
     snapshot.schemaVersion === 4 ||
-    snapshot.schemaVersion === 5
+    snapshot.schemaVersion === 5 ||
+    snapshot.schemaVersion === 6
   ) {
     validateClueReferences(snapshot, diagnostics);
+    if (snapshot.schemaVersion === 6) {
+      validateAdjudicationProfiles(snapshot, diagnostics);
+    }
   } else if (snapshot.schemaVersion === 1) {
     validateReferences(snapshot, diagnostics);
   }
@@ -1987,7 +2145,8 @@ export function loadAdventure(input: string | Uint8Array):
   if (
     snapshot.schemaVersion === 3 ||
     snapshot.schemaVersion === 4 ||
-    snapshot.schemaVersion === 5
+    snapshot.schemaVersion === 5 ||
+    snapshot.schemaVersion === 6
   ) {
     diagnostics.push(...analyzeProgression(snapshot));
   }

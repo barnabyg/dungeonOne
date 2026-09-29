@@ -170,6 +170,24 @@ export function projectDmHistory(
             });
           }
           break;
+        case "passage-barricaded":
+          if (
+            speakerId === undefined &&
+            state.barricades?.includes(event.profileId) &&
+            event.blockedConnectionIds.some((id) =>
+              definition?.connections.some(
+                (connection) =>
+                  connection.id === id && connection.from === state.locationId,
+              ),
+            )
+          ) {
+            candidates.push({
+              ...common,
+              subjectId: event.profileId,
+              detail: event.targetId,
+            });
+          }
+          break;
         default:
           break;
       }

@@ -72,12 +72,10 @@ function digest(value: unknown): string {
 
 function requireSaveRuntime(runtime: AdventureRuntime): void {
   if (
-    ![3, 4, 5].includes(runtime.content?.snapshot.schemaVersion ?? 0) ||
+    ![3, 4, 5, 6].includes(runtime.content?.snapshot.schemaVersion ?? 0) ||
     runtime.engineVersion === undefined
   ) {
-    throw new Error(
-      "Saves require a schema-3, schema-4, or schema-5 adventure.",
-    );
+    throw new Error("Saves require a schema-3 through schema-6 adventure.");
   }
 }
 
@@ -172,6 +170,14 @@ export type DomainEvent = Readonly<
     }
   | { type: "healing-item-used"; actionId: string; itemId: string }
   | {
+      type: "passage-barricaded";
+      actionId: string;
+      profileId: string;
+      targetId: string;
+      resourceId: string;
+      blockedConnectionIds: readonly string[];
+    }
+  | {
       type: "actor-relocated";
       actionId: string;
       actorId: string;
@@ -220,6 +226,16 @@ function eventsFor(
         });
       }
     } else if (entry.type === "clue") {
+      if (
+        entry.operation === "adjudicate" &&
+        entry.adjudication !== undefined
+      ) {
+        events.push({
+          type: "passage-barricaded",
+          actionId,
+          ...entry.adjudication,
+        });
+      }
       if (entry.operation === "clock-advanced" && entry.clock !== undefined) {
         events.push({
           type: "clock-advanced",

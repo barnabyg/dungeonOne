@@ -1,0 +1,1085 @@
+{
+  "schemaVersion": 6,
+  "id": "barricaded-crossroads",
+  "contentVersion": "1",
+  "rulesVersion": "chapel-clues-rules-v7",
+  "title": "Barricade at the Crossroads",
+  "introduction": "At the hall on the edge of town, Lysa asks you to bring back the cellar route register before raiders close the short passage. Neri is still in the cellar. You may help, refuse the errand, or leave town; the long lane remains open if you return late. In the square, the market cart can brace the short passage toward the hall; the cellar remains open and the back lane opens if the raiders take the short way.",
+  "objective": "Choose whether to help Lysa. If you do, copy the cellar route register and report it at the hall; the long lane permits a late report. You may also refuse or leave town without claiming the errand was done.",
+  "player": {
+    "locationId": "hall",
+    "hp": 20,
+    "maxHp": 20
+  },
+  "locations": [
+    {
+      "id": "cellar",
+      "name": "Cellar",
+      "description": "The cellar steps lead toward the square. A guard watches the exit beside a route register, a sealed tonic, and a heavy empty crate.",
+      "aliases": ["cellar"]
+    },
+    {
+      "id": "square",
+      "name": "Square",
+      "description": "The square joins the hall and cellar. A stone short passage and a back lane divide the routes; a loose market cart stands nearby.",
+      "aliases": ["square"],
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "deadline-missed"
+            }
+          ],
+          "text": "The raiders hold the short passage through the square. The long street toward the hall remains open."
+        }
+      ]
+    },
+    {
+      "id": "hall",
+      "name": "Hall",
+      "description": "The stone hall stands at the town edge. Lysa's report desk faces the road out of town; the square leads toward the cellar.",
+      "aliases": ["hall"],
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "deadline-missed"
+            }
+          ],
+          "text": "The raiders have closed the short passage, but the reporting desk remains open."
+        }
+      ]
+    },
+    {
+      "id": "back-lane",
+      "name": "Back Lane",
+      "description": "A narrow lane loops around the raiders toward the hall; a wooden shutter rests against a wall.",
+      "aliases": ["back lane"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "cellar-square",
+      "from": "cellar",
+      "to": "square",
+      "when": []
+    },
+    {
+      "id": "square-cellar",
+      "from": "square",
+      "to": "cellar",
+      "when": []
+    },
+    {
+      "id": "square-hall",
+      "from": "square",
+      "to": "hall",
+      "when": [
+        {
+          "type": "clock-before",
+          "id": "raider-plan",
+          "at": 7
+        }
+      ],
+      "capability": "passage"
+    },
+    {
+      "id": "hall-square",
+      "from": "hall",
+      "to": "square",
+      "when": [
+        {
+          "type": "clock-before",
+          "id": "raider-plan",
+          "at": 7
+        }
+      ],
+      "capability": "passage"
+    },
+    {
+      "id": "square-back-lane",
+      "from": "square",
+      "to": "back-lane",
+      "when": [
+        {
+          "type": "milestone-recorded",
+          "id": "deadline-missed"
+        }
+      ]
+    },
+    {
+      "id": "back-lane-square",
+      "from": "back-lane",
+      "to": "square",
+      "when": []
+    },
+    {
+      "id": "back-lane-hall",
+      "from": "back-lane",
+      "to": "hall",
+      "when": []
+    },
+    {
+      "id": "hall-back-lane",
+      "from": "hall",
+      "to": "back-lane",
+      "when": []
+    }
+  ],
+  "features": [
+    {
+      "id": "route-register",
+      "name": "route register",
+      "description": "A public record of the safe path out of the cellar.",
+      "aliases": ["register"],
+      "locationId": "cellar",
+      "when": []
+    },
+    {
+      "id": "tonic-shelf",
+      "name": "tonic shelf",
+      "description": "A shelf holding a sealed restorative tonic.",
+      "aliases": ["shelf"],
+      "locationId": "cellar",
+      "when": []
+    },
+    {
+      "id": "heavy-crate",
+      "name": "heavy crate",
+      "description": "An empty wooden crate beside the cellar exit.",
+      "aliases": ["crate"],
+      "locationId": "cellar",
+      "when": []
+    },
+    {
+      "id": "cellar-exit",
+      "name": "cellar exit",
+      "description": "The steps lead from the cellar to the square.",
+      "aliases": ["steps"],
+      "locationId": "cellar",
+      "when": []
+    },
+    {
+      "id": "short-passage",
+      "name": "stone short passage",
+      "description": "Stone walls frame the short route to the hall. The masonry will not burn.",
+      "aliases": ["passage"],
+      "locationId": "square",
+      "when": []
+    },
+    {
+      "id": "market-cart",
+      "name": "market cart",
+      "description": "A loose wooden cart stands near the short passage.",
+      "aliases": ["cart"],
+      "locationId": "square",
+      "when": [],
+      "capability": "brace"
+    },
+    {
+      "id": "wooden-shutter",
+      "name": "wooden shutter",
+      "description": "A dry shutter leans against the lane wall.",
+      "aliases": ["shutter"],
+      "locationId": "back-lane",
+      "when": []
+    },
+    {
+      "id": "hall-masonry",
+      "name": "hall masonry",
+      "description": "The hall walls are stone and cannot burn.",
+      "aliases": ["walls"],
+      "locationId": "hall",
+      "when": []
+    },
+    {
+      "id": "notice-frame",
+      "name": "wooden notice frame",
+      "description": "A wooden frame holds route notices at the hall entrance.",
+      "aliases": ["frame"],
+      "locationId": "hall",
+      "when": []
+    }
+  ],
+  "quest": {
+    "id": "route-report",
+    "title": "Decide what to do about the cellar route",
+    "milestones": [
+      "neri-rescued",
+      "rescue-reported",
+      "death-reported",
+      "raiders-near",
+      "deadline-missed",
+      "help-promised",
+      "refusal-stated"
+    ]
+  },
+  "discoveries": [
+    {
+      "id": "safe-route",
+      "title": "Safe route",
+      "classification": "observation",
+      "sourceFeatureId": "route-register",
+      "summary": "The register identifies a safe route out of the cellar.",
+      "lead": "Return to Lysa's hall desk by the short passage or, if blocked, the back lane."
+    }
+  ],
+  "searches": [
+    {
+      "id": "read-register",
+      "targetId": "route-register",
+      "when": [],
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "safe-route"
+        }
+      ],
+      "text": "You copy the safe route from the register."
+    }
+  ],
+  "facts": [],
+  "relationships": [
+    {
+      "targetId": "lysa",
+      "tier": "neutral",
+      "reason": "Lysa has not heard any account of Neri's fate."
+    },
+    {
+      "targetId": "guard",
+      "tier": "neutral",
+      "reason": "The guard has just met the player."
+    }
+  ],
+  "npcs": [
+    {
+      "id": "neri",
+      "name": "Neri",
+      "aliases": ["neri"],
+      "locationId": "cellar",
+      "voice": "Tired but clear.",
+      "knows": [],
+      "believes": [],
+      "wants": ["Reach the square alive."],
+      "knowledgeLimits": ["Does not know what Lysa has heard."],
+      "combat": {
+        "hp": 1,
+        "maxHp": 1,
+        "stats": {
+          "armorClass": 1,
+          "attackBonus": 0,
+          "initiativeBonus": 0,
+          "damage": {
+            "dice": 1,
+            "sides": 2,
+            "modifier": 0
+          }
+        }
+      },
+      "remains": {
+        "description": "Neri lies where they fell."
+      },
+      "topics": [
+        {
+          "id": "rescue",
+          "name": "Help Neri escape",
+          "aliases": ["rescue"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "neri-rescued"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Neri: You already helped me to the square.",
+              "attitude": "grateful",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Neri: Thank you. I will wait in the square while you speak to Lysa.",
+              "attitude": "grateful",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "relocate-npc",
+                  "id": "neri",
+                  "toLocationId": "square"
+                },
+                {
+                  "type": "record-milestone",
+                  "id": "neri-rescued"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lysa",
+      "name": "Lysa",
+      "aliases": ["lysa"],
+      "locationId": "hall",
+      "voice": "Careful and direct.",
+      "knows": [],
+      "believes": [],
+      "wants": [
+        "Receive an accurate route report before the raiders arrive, if the player chooses to help."
+      ],
+      "knowledgeLimits": [
+        "Has not visited the cellar or square; knows Neri's fate only if the player reports it."
+      ],
+      "combat": {
+        "hp": 1,
+        "maxHp": 1,
+        "stats": {
+          "armorClass": 1,
+          "attackBonus": 0,
+          "initiativeBonus": 0,
+          "damage": {
+            "dice": 1,
+            "sides": 2,
+            "modifier": 0
+          }
+        }
+      },
+      "remains": {
+        "description": "Lysa lies where they fell. The register can still be delivered to the hall."
+      },
+      "topics": [
+        {
+          "id": "request",
+          "name": "Ask about the cellar errand",
+          "aliases": ["errand"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Lysa: Neri and the route register are in the cellar. Please help if you can. If you refuse or leave, I will not call the route delivered.",
+              "attitude": "concerned",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        },
+        {
+          "id": "help",
+          "name": "Promise to help",
+          "aliases": ["accept errand"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Lysa: Thank you. The cellar is through the square; return by the long lane if the raiders close the short passage.",
+              "attitude": "hopeful",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "record-milestone",
+                  "id": "help-promised"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "refuse",
+          "name": "Tell Lysa you refuse",
+          "aliases": ["decline errand"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Lysa: I understand. The register remains in the cellar, and Neri has not been brought here. You can still reconsider while the hall is open.",
+              "attitude": "disappointed",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "record-milestone",
+                  "id": "refusal-stated"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "report-rescue",
+          "name": "Tell Lysa about Neri's rescue",
+          "aliases": ["report rescue"],
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "neri-rescued"
+            },
+            {
+              "type": "actor-alive",
+              "id": "neri"
+            }
+          ],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Lysa: You say Neri reached the square. Thank you for telling me; I can help with the report.",
+              "attitude": "grateful",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "record-milestone",
+                  "id": "rescue-reported"
+                },
+                {
+                  "type": "set-relationship",
+                  "id": "lysa",
+                  "tier": "trusted",
+                  "reason": "The player privately reported Neri's rescue to Lysa in the hall."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "report-death",
+          "name": "Tell Lysa Neri died",
+          "aliases": ["report death"],
+          "when": [
+            {
+              "type": "actor-dead",
+              "id": "neri"
+            }
+          ],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Lysa: I am sorry Neri died. We must record that truthfully.",
+              "attitude": "grieving",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "record-milestone",
+                  "id": "death-reported"
+                },
+                {
+                  "type": "set-relationship",
+                  "id": "lysa",
+                  "tier": "neutral",
+                  "reason": "The player privately reported Neri's death to Lysa in the hall."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "response",
+          "name": "Ask Lysa for a response",
+          "aliases": ["response"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [
+                {
+                  "type": "actor-dead",
+                  "id": "neri"
+                },
+                {
+                  "type": "milestone-recorded",
+                  "id": "death-reported"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Lysa: Since you told me Neri died, I will record their death and use the register without their help.",
+              "attitude": "grieving",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "actor-alive",
+                  "id": "neri"
+                },
+                {
+                  "type": "milestone-recorded",
+                  "id": "rescue-reported"
+                },
+                {
+                  "type": "relationship-tier",
+                  "id": "lysa",
+                  "tier": "trusted"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Lysa: Since you told me Neri reached the square, I will help you deliver the register.",
+              "attitude": "friendly",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Lysa: I have no report of Neri's fate. Bring me the register and tell me what you know.",
+              "attitude": "neutral",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "guard",
+      "name": "Cellar Guard",
+      "aliases": ["guard"],
+      "locationId": "cellar",
+      "voice": "Direct and observant.",
+      "knows": [],
+      "believes": [],
+      "wants": ["Keep the cellar exit orderly."],
+      "knowledgeLimits": ["Does not know what happens beyond the cellar."],
+      "combat": {
+        "hp": 1,
+        "maxHp": 1,
+        "stats": {
+          "armorClass": 1,
+          "attackBonus": 0,
+          "initiativeBonus": 0,
+          "damage": {
+            "dice": 1,
+            "sides": 2,
+            "modifier": 0
+          }
+        }
+      },
+      "topics": [
+        {
+          "id": "insult",
+          "name": "Insult the guard",
+          "aliases": ["insult"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Guard: I will remember that insult at the cellar exit.",
+              "attitude": "hostile",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "set-relationship",
+                  "id": "guard",
+                  "tier": "hostile",
+                  "reason": "The player insulted the guard privately."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "help",
+          "name": "Help the guard",
+          "aliases": ["help"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Guard: Thank you for helping at the cellar exit.",
+              "attitude": "grateful",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "set-relationship",
+                  "id": "guard",
+                  "tier": "trusted",
+                  "reason": "The player helped secure the gate privately."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "return",
+          "name": "Ask to return",
+          "aliases": ["return"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [
+                {
+                  "type": "relationship-tier",
+                  "id": "guard",
+                  "tier": "hostile"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Guard: You insulted me. I will not guide you through the streets.",
+              "attitude": "hostile",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "relationship-tier",
+                  "id": "guard",
+                  "tier": "trusted"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Guard: Welcome back. I can guide you through the streets.",
+              "attitude": "friendly",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Guard: State your business in the cellar.",
+              "attitude": "neutral",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        },
+        {
+          "id": "request-passage",
+          "name": "Ask the guard to guide you",
+          "aliases": ["guide me"],
+          "when": [],
+          "challengeId": "guard-guidance",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "success",
+              "approach": "any",
+              "text": "Guard: I can point out the route. The register itself is on the cellar table.",
+              "attitude": "helpful",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "failure",
+              "approach": "any",
+              "text": "Guard: No. You can read the register and walk back without my guidance.",
+              "attitude": "guarded",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Guard: The register is available whether or not I guide you.",
+              "attitude": "neutral",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scout",
+      "name": "Raider Scout",
+      "aliases": ["scout"],
+      "locationId": "cellar",
+      "voice": "Terse and threatening.",
+      "knows": [],
+      "believes": [],
+      "wants": ["Keep the route register from reaching the hall."],
+      "knowledgeLimits": ["Does not know what happened at the hall."],
+      "combat": {
+        "hp": 1,
+        "maxHp": 1,
+        "stats": {
+          "armorClass": 1,
+          "attackBonus": 0,
+          "initiativeBonus": 0,
+          "damage": {
+            "dice": 1,
+            "sides": 2,
+            "modifier": 0
+          }
+        }
+      },
+      "remains": {
+        "description": "The raider scout lies defeated beside the cellar steps."
+      },
+      "topics": []
+    }
+  ],
+  "combatProfile": {
+    "armorClass": 16,
+    "attackBonus": 20,
+    "initiativeBonus": 20,
+    "damage": {
+      "dice": 1,
+      "sides": 8,
+      "modifier": 3
+    }
+  },
+  "items": [
+    {
+      "id": "restorative-tonic",
+      "name": "restorative tonic",
+      "description": "A sealed tonic from the cellar shelf.",
+      "aliases": ["tonic"],
+      "locationId": "cellar",
+      "featureId": "tonic-shelf",
+      "healing": {
+        "dice": 1,
+        "sides": 4,
+        "modifier": 1,
+        "target": "fighter"
+      }
+    }
+  ],
+  "endings": {
+    "locationId": "hall",
+    "when": [],
+    "any": [
+      [
+        {
+          "type": "actor-alive",
+          "id": "neri"
+        }
+      ],
+      [
+        {
+          "type": "actor-dead",
+          "id": "neri"
+        }
+      ]
+    ],
+    "fates": [
+      {
+        "id": "dead-in-cellar",
+        "when": [
+          {
+            "type": "actor-dead-at",
+            "id": "neri",
+            "locationId": "cellar"
+          }
+        ],
+        "text": "Neri died in the cellar; no rescue is claimed."
+      },
+      {
+        "id": "dead-in-square",
+        "when": [
+          {
+            "type": "actor-dead-at",
+            "id": "neri",
+            "locationId": "square"
+          }
+        ],
+        "text": "Neri reached the square but died there; no living rescue is claimed."
+      },
+      {
+        "id": "alive-in-square",
+        "when": [
+          {
+            "type": "actor-alive",
+            "id": "neri"
+          },
+          {
+            "type": "milestone-recorded",
+            "id": "neri-rescued"
+          }
+        ],
+        "text": "Neri is alive in the square after the rescue."
+      },
+      {
+        "id": "alive-in-cellar",
+        "when": [
+          {
+            "type": "actor-alive",
+            "id": "neri"
+          }
+        ],
+        "text": "Neri remains alive in the cellar and has not been rescued."
+      }
+    ],
+    "choices": [
+      {
+        "id": "file-register",
+        "label": "File the register",
+        "aliases": ["file register"],
+        "when": [
+          {
+            "type": "discovery-known",
+            "id": "safe-route"
+          }
+        ],
+        "consequences": [
+          {
+            "id": "register-filed",
+            "when": [],
+            "text": "The route register is filed at the hall."
+          },
+          {
+            "id": "lysa-unavailable",
+            "when": [
+              {
+                "type": "actor-dead",
+                "id": "lysa"
+              }
+            ],
+            "text": "Lysa is dead; the register is filed without her."
+          },
+          {
+            "id": "deadline-met",
+            "when": [
+              {
+                "type": "clock-before",
+                "id": "raider-plan",
+                "at": 7
+              }
+            ],
+            "text": "You deliver the route before the raiders close the safe passage."
+          },
+          {
+            "id": "deadline-missed",
+            "when": [
+              {
+                "type": "milestone-recorded",
+                "id": "deadline-missed"
+              }
+            ],
+            "text": "The raiders closed the short passage before the register was delivered; the report arrives after the deadline."
+          }
+        ],
+        "narration": [
+          {
+            "when": [],
+            "text": "The route is recorded."
+          }
+        ]
+      },
+      {
+        "id": "post-register",
+        "label": "Post the register",
+        "aliases": ["post register"],
+        "when": [
+          {
+            "type": "discovery-known",
+            "id": "safe-route"
+          }
+        ],
+        "consequences": [
+          {
+            "id": "register-posted",
+            "when": [],
+            "text": "The route register is posted publicly at the hall."
+          },
+          {
+            "id": "lysa-unavailable",
+            "when": [
+              {
+                "type": "actor-dead",
+                "id": "lysa"
+              }
+            ],
+            "text": "Lysa is dead; the register is posted without her."
+          },
+          {
+            "id": "deadline-met",
+            "when": [
+              {
+                "type": "clock-before",
+                "id": "raider-plan",
+                "at": 7
+              }
+            ],
+            "text": "You deliver the route before the raiders close the safe passage."
+          },
+          {
+            "id": "deadline-missed",
+            "when": [
+              {
+                "type": "milestone-recorded",
+                "id": "deadline-missed"
+              }
+            ],
+            "text": "The raiders closed the short passage before the register was delivered; the report arrives after the deadline."
+          }
+        ],
+        "narration": [
+          {
+            "when": [],
+            "text": "The route is made public."
+          }
+        ]
+      },
+      {
+        "id": "refuse-errand",
+        "label": "Refuse the errand",
+        "aliases": ["refuse errand"],
+        "when": [],
+        "consequences": [
+          {
+            "id": "register-undelivered",
+            "when": [],
+            "text": "You decline the errand. The route register was not delivered to the hall."
+          },
+          {
+            "id": "deadline-already-missed",
+            "when": [
+              {
+                "type": "milestone-recorded",
+                "id": "deadline-missed"
+              }
+            ],
+            "text": "The raiders have already closed the short passage."
+          }
+        ],
+        "narration": [
+          {
+            "when": [
+              {
+                "type": "actor-dead",
+                "id": "lysa"
+              }
+            ],
+            "text": "With Lysa dead, you leave the report desk without accepting the errand."
+          },
+          {
+            "when": [],
+            "text": "You tell Lysa your decision and step away from the report desk."
+          }
+        ]
+      },
+      {
+        "id": "leave-town",
+        "label": "Leave town",
+        "aliases": ["leave town"],
+        "when": [],
+        "consequences": [
+          {
+            "id": "departed-without-report",
+            "when": [],
+            "text": "You leave town without filing or posting the route register."
+          },
+          {
+            "id": "deadline-already-missed",
+            "when": [
+              {
+                "type": "milestone-recorded",
+                "id": "deadline-missed"
+              }
+            ],
+            "text": "The raiders have already closed the short passage."
+          }
+        ],
+        "narration": [
+          {
+            "when": [],
+            "text": "You take the road beyond the hall and leave town."
+          }
+        ]
+      }
+    ]
+  },
+  "timeCosts": {
+    "move": 1,
+    "search": 1,
+    "talk": 1,
+    "take": 1,
+    "use": 1,
+    "attack": 1
+  },
+  "clocks": [
+    {
+      "id": "raider-plan",
+      "name": "Raider plan",
+      "initial": 0,
+      "maximum": 8,
+      "thresholds": [
+        {
+          "at": 2,
+          "text": "A horn sounds from the road. The raiders are nearing the hall.",
+          "effects": [
+            {
+              "type": "record-milestone",
+              "id": "raiders-near"
+            }
+          ]
+        },
+        {
+          "at": 7,
+          "text": "The raiders close the short passage. The register can still be delivered, and the back lane remains open.",
+          "effects": [
+            {
+              "type": "record-milestone",
+              "id": "deadline-missed"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "socialChallenges": [
+    {
+      "id": "guard-guidance",
+      "modifier": 0,
+      "dc": 18,
+      "guardedFactIds": [],
+      "guardedDiscoveryIds": [],
+      "guardedMilestoneIds": [],
+      "evidenceWhen": []
+    }
+  ],
+  "adjudicationProfiles": [
+    {
+      "id": "cart-short-passage",
+      "family": "barricade",
+      "targetId": "square-hall",
+      "resourceId": "market-cart",
+      "approach": "brace",
+      "effect": {
+        "type": "block-connections",
+        "connectionIds": ["square-hall", "hall-square"]
+      },
+      "successText": "You wedge the market cart across the short passage to the hall.",
+      "blockedText": "The market cart blocks the short passage between Square and Hall.",
+      "targetAliases": ["short passage", "stone short passage"]
+    }
+  ]
+}
