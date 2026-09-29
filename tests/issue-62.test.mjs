@@ -44,7 +44,7 @@ test("schema-3 command adventure resumes a committed move from embedded content"
     assert.match(first.stdout, /Chapel Path/);
     const save = JSON.parse(readFileSync(savePath, "utf8"));
     assert.equal(save.kind, "dungeon-one-save");
-    assert.equal(save.formatVersion, 1);
+    assert.equal(save.formatVersion, 2);
     assert.equal(save.transitions.length, 1);
     assert.deepEqual(save.transitions[0].domainEvent, {
       type: "actor-relocated",

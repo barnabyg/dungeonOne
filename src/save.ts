@@ -6,9 +6,14 @@ import { loadAdventure, type AdventureDefinition } from "./adventure-loader.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { createDataRuntime } from "./data-runtime.js";
 import { createSeededRandom, RANDOM_ALGORITHM } from "./random.js";
-import type { AdventureRuntime, RuntimeState } from "./runtime-contract.js";
+import type {
+  AdventureRuntime,
+  RuntimeEvent,
+  RuntimeState,
+} from "./runtime-contract.js";
 import type { Action } from "./session.js";
 import type { RollRecord } from "./trace.js";
+import type { ClueState } from "./chapel-clues-runtime.js";
 
 const SAVE_BYTE_LIMIT = 16 * 1024 * 1024;
 const TRANSITION_LIMIT = 10000;
@@ -25,13 +30,14 @@ type Transition = Readonly<{
     locationId?: string;
     actionType: string;
   }>;
+  domainEvents?: readonly DomainEvent[];
   stateDigest: string;
   randomPosition: number;
 }>;
 
 type SaveEnvelope = Readonly<{
   kind: "dungeon-one-save";
-  formatVersion: 1;
+  formatVersion: 1 | 2;
   runtime: Readonly<{
     engineVersion: string;
     rulesVersion: string;
@@ -78,6 +84,126 @@ function eventFor(
     : { type: "action-committed", actionId, actionType: action.type };
 }
 
+type DomainEvent = Readonly<
+  | { type: "search-performed"; actionId: string; targetId: string }
+  | {
+      type: "discovery-granted";
+      actionId: string;
+      discoveryId: string;
+      locationId: string;
+    }
+  | { type: "milestone-recorded"; actionId: string; milestoneId: string }
+  | {
+      type: "item-transferred";
+      actionId: string;
+      itemId: string;
+      from: "room";
+      to: "inventory";
+    }
+  | { type: "item-consumed"; actionId: string; itemId: string }
+  | {
+      type: "actor-relocated";
+      actionId: string;
+      actorId: string;
+      from: string;
+      to: string;
+    }
+  | { type: "action-committed"; actionId: string; actionType: string }
+>;
+
+function clueState(state: RuntimeState): ClueState {
+  if (!("runtimeKind" in state) || state.runtimeKind !== "chapel-clues") {
+    throw new Error("Save transition has an unsupported runtime state.");
+  }
+  return state;
+}
+
+function eventsFor(
+  action: Action,
+  actionId: string,
+  beforeState: RuntimeState,
+  afterState: RuntimeState,
+  resultEvents: readonly RuntimeEvent[],
+): readonly DomainEvent[] {
+  const before = clueState(beforeState);
+  const after = clueState(afterState);
+  const events: DomainEvent[] = [];
+  if (action.type === "search") {
+    const search = resultEvents.find(
+      (entry) => entry.type === "clue" && entry.operation === "search",
+    );
+    if (search?.type !== "clue" || search.target === undefined) {
+      throw new Error("Committed search has no resolved target.");
+    }
+    events.push({
+      type: "search-performed",
+      actionId,
+      targetId: search.target,
+    });
+  }
+  for (const discoveryId of after.discoveries) {
+    if (!before.discoveries.includes(discoveryId)) {
+      events.push({
+        type: "discovery-granted",
+        actionId,
+        discoveryId,
+        locationId:
+          after.discoveryLocations?.[discoveryId] ?? before.locationId,
+      });
+    }
+  }
+  for (const milestoneId of after.milestones) {
+    if (!before.milestones.includes(milestoneId)) {
+      events.push({ type: "milestone-recorded", actionId, milestoneId });
+    }
+  }
+  for (const [itemId, position] of Object.entries(after.items ?? {})) {
+    const prior = before.items?.[itemId];
+    if (prior === "room" && position === "inventory") {
+      events.push({
+        type: "item-transferred",
+        actionId,
+        itemId,
+        from: "room",
+        to: "inventory",
+      });
+    } else if (prior === "inventory" && position === "consumed") {
+      events.push({ type: "item-consumed", actionId, itemId });
+    }
+  }
+  if (before.locationId !== after.locationId) {
+    events.push({
+      type: "actor-relocated",
+      actionId,
+      actorId: "player",
+      from: before.locationId,
+      to: after.locationId,
+    });
+  }
+  for (const [actorId, locationId] of Object.entries(
+    after.npcLocations ?? {},
+  )) {
+    const prior = before.npcLocations?.[actorId];
+    if (prior !== undefined && prior !== locationId) {
+      events.push({
+        type: "actor-relocated",
+        actionId,
+        actorId,
+        from: prior,
+        to: locationId,
+      });
+    }
+  }
+  if (events.length === 0) {
+    events.push({
+      type: "action-committed",
+      actionId,
+      actionType: action.type,
+    });
+  }
+  return events;
+}
+
 export class SaveSession {
   readonly runtime: AdventureRuntime;
   readonly seed: number;
@@ -86,6 +212,7 @@ export class SaveSession {
   state: RuntimeState;
   private transitions: Transition[];
   private randomPosition = 0;
+  private seeded: ReturnType<typeof createSeededRandom>;
 
   private constructor(
     path: string,
@@ -100,15 +227,15 @@ export class SaveSession {
     this.seed = seed;
     this.state = state;
     this.transitions = transitions;
-    const seeded = createSeededRandom(seed);
+    this.seeded = createSeededRandom(seed);
     this.random = {
       nextUint32: () => {
         this.randomPosition++;
-        return seeded.nextUint32();
+        return this.seeded.nextUint32();
       },
       roll: (sides: number) => {
         this.randomPosition++;
-        return seeded.roll(sides);
+        return this.seeded.roll(sides);
       },
     };
   }
@@ -147,7 +274,10 @@ export class SaveSession {
       throw new Error("Invalid save envelope.");
     }
     const save = parsed as SaveEnvelope;
-    if (save.kind !== "dungeon-one-save" || save.formatVersion !== 1) {
+    if (
+      save.kind !== "dungeon-one-save" ||
+      (save.formatVersion !== 1 && save.formatVersion !== 2)
+    ) {
       throw new Error(
         "Unsupported save format (diagnostic traces cannot be resumed).",
       );
@@ -189,6 +319,7 @@ export class SaveSession {
         !transition ||
         transition.sequence !== index + 1 ||
         transition.actionId !== `action-${index + 1}` ||
+        (save.formatVersion === 1 && transition.domainEvents !== undefined) ||
         !isDeepStrictEqual(
           runtime.parseCommand(transition.rawInput),
           transition.action,
@@ -209,19 +340,43 @@ export class SaveSession {
       });
       if (
         result.rejection !== undefined ||
-        isDeepStrictEqual(before, result.state) ||
+        (isDeepStrictEqual(before, result.state) && rolls.length === 0) ||
         !isDeepStrictEqual(rolls, transition.rolls) ||
         !isDeepStrictEqual(
           eventFor(transition.action, transition.actionId, result.state),
           transition.domainEvent,
         ) ||
+        (save.formatVersion === 2 &&
+          !isDeepStrictEqual(
+            eventsFor(
+              transition.action,
+              transition.actionId,
+              before,
+              result.state,
+              result.events,
+            ),
+            transition.domainEvents,
+          )) ||
         digest(result.state) !== transition.stateDigest ||
         session.randomPosition !== transition.randomPosition
       ) {
         throw new Error(`Save diverges at transition ${index + 1}.`);
       }
       session.state = result.state;
-      session.transitions.push(transition);
+      session.transitions.push(
+        save.formatVersion === 1
+          ? {
+              ...transition,
+              domainEvents: eventsFor(
+                transition.action,
+                transition.actionId,
+                before,
+                result.state,
+                result.events,
+              ),
+            }
+          : transition,
+      );
     }
     if (
       save.checkpoint.sequence !== session.transitions.length ||
@@ -246,6 +401,7 @@ export class SaveSession {
       throw new Error("Save transition limit reached.");
     }
     const before = this.state;
+    const randomPositionBefore = this.randomPosition;
     const rolls: RollRecord[] = [];
     const result = this.runtime.handleAction(before, action, {
       roll: (sides) => {
@@ -256,8 +412,15 @@ export class SaveSession {
     });
     if (
       result.rejection !== undefined ||
-      isDeepStrictEqual(before, result.state)
+      (isDeepStrictEqual(before, result.state) && rolls.length === 0)
     ) {
+      if (this.randomPosition !== randomPositionBefore) {
+        this.seeded = createSeededRandom(this.seed);
+        for (let index = 0; index < randomPositionBefore; index++) {
+          this.seeded.nextUint32();
+        }
+        this.randomPosition = randomPositionBefore;
+      }
       return result;
     }
     const sequence = this.transitions.length + 1;
@@ -270,6 +433,13 @@ export class SaveSession {
       action,
       rolls,
       domainEvent: eventFor(action, actionId, result.state),
+      domainEvents: eventsFor(
+        action,
+        actionId,
+        before,
+        result.state,
+        result.events,
+      ),
       stateDigest: digest(result.state),
       randomPosition: this.randomPosition,
     });
@@ -288,7 +458,7 @@ export class SaveSession {
     const content = this.runtime.content!;
     const save: SaveEnvelope = {
       kind: "dungeon-one-save",
-      formatVersion: 1,
+      formatVersion: 2,
       runtime: {
         engineVersion: this.runtime.engineVersion!,
         rulesVersion: this.runtime.rulesVersion,
