@@ -184,6 +184,7 @@ export type Rejection = Readonly<
   | { reason: "dead-target"; targetId: OpponentId }
   | { reason: "terminal-state"; status: "victory" | "defeat" }
   | { reason: "invalid-adjudication"; detail: string }
+  | { reason: "blocked-passage"; destinationId: string; profileId: string }
 >;
 
 export type ActionResult =

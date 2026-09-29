@@ -278,6 +278,8 @@ function renderRejection(rejection: Rejection): string {
       return "The adventure is over; you can't change the final state. You may look, inspect, check status or inventory, ask for help, or quit.";
     case "invalid-adjudication":
       return rejection.detail;
+    case "blocked-passage":
+      return "A barricade blocks that passage.";
     default:
       rejection satisfies never;
       throw new Error("Unreachable rejection");

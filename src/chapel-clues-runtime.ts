@@ -1251,6 +1251,29 @@ export function createChapelCluesRuntime(
       const destination = exits.find((entry) =>
         matches(entry, action.destination!),
       );
+      if (destination === undefined && state.status === "playing") {
+        const blocked = definition.connections.find(
+          (entry) =>
+            entry.from === state.locationId &&
+            blockedConnectionIds(state).includes(entry.id) &&
+            matches(room(entry.to), action.destination!),
+        );
+        const profile = definition.adjudicationProfiles?.find(
+          (entry) =>
+            state.barricades?.includes(entry.id) &&
+            entry.effect.connectionIds.includes(blocked?.id ?? ""),
+        );
+        if (blocked !== undefined && profile !== undefined) {
+          return {
+            state,
+            rejection: {
+              reason: "blocked-passage",
+              destinationId: blocked.to,
+              profileId: profile.id,
+            },
+          };
+        }
+      }
       if (state.status !== "playing" || destination === undefined) {
         return {
           state,
@@ -2275,6 +2298,13 @@ export function createChapelCluesRuntime(
         const state = stateOf(result.state);
         if (rejection.reason === "invalid-adjudication") {
           return `Action unavailable: ${rejection.detail} ${commandHints(state)}`;
+        }
+        if (rejection.reason === "blocked-passage") {
+          const profile = definition.adjudicationProfiles?.find(
+            ({ id }) => id === rejection.profileId,
+          );
+          const available = visible(state).exits.map(({ name }) => name);
+          return `${profile?.blockedText ?? "A barricade blocks this passage."} You cannot move to ${room(rejection.destinationId).name}. Available exits: ${available.join(", ") || "none"}.`;
         }
         if (
           state.status === "playing" &&

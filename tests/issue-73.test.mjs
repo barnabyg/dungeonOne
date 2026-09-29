@@ -272,6 +272,37 @@ test("the barricaded route still reaches an honest late ending", () =>
     assert.deepEqual(state.barricades, ["cart-short-passage"]);
   }));
 
+test("a blocked move names the barricade and available exits", () => {
+  const game = runtime();
+  const squareState = square(game);
+  const barricaded = game.handleAction(
+    squareState,
+    game.parseCommand("attempt barricade short passage with market cart"),
+  );
+  const rejected = game.handleAction(
+    barricaded.state,
+    game.parseCommand("move hall"),
+  );
+  assert.equal(rejected.rejection.reason, "blocked-passage");
+  assert.deepEqual(rejected.state, barricaded.state);
+  assert.equal(rejected.state.clocks["raider-plan"], 1);
+  assert.equal(
+    game.handleAction(barricaded.state, game.parseCommand("move nowhere"))
+      .rejection.reason,
+    "invisible-target",
+  );
+  const played = run(
+    "move square\nattempt barricade short passage with market cart\nmove hall\n",
+    ["--adventure-file", fixture, "--seed", "0"],
+  );
+  assert.equal(played.status, 0, played.stderr);
+  assert.match(
+    played.stdout,
+    /The market cart blocks the short passage between Square and Hall\. You cannot move to Hall\. Available exits: Cellar\./,
+  );
+  assert.doesNotMatch(played.stdout, /Action unavailable: invisible-target/);
+});
+
 test("command barricade survives departure and resume with identical save and replay", () =>
   directory((path) => {
     const wholeSave = join(path, "whole-save.json");
