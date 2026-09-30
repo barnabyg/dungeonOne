@@ -72,7 +72,7 @@ test("opposite command and scripted-AI clue orders converge on one attributed di
       "--trace",
       commandTrace,
     ]);
-    assert.match(output, /Pell: I have already answered/);
+    assert.match(output, /Pell: I cannot give you my shift account/);
     assert.match(
       output,
       /Altered beacon setting \[observation; beacon setting plate, Signal Records Room\]/,
@@ -169,7 +169,10 @@ test("a failed check cannot be rerolled by paraphrase; success reveals only Pell
         trace,
       ],
     );
-    assert.equal((output.match(/I have already answered/g) ?? []).length, 4);
+    assert.equal(
+      (output.match(/I cannot give you my shift account/g) ?? []).length,
+      4,
+    );
     assert.equal(read(trace).actions.flatMap(({ rolls }) => rolls).length, 1);
     assert.equal(
       read(save).checkpoint.state.socialChallenges["pell-account"].result,
