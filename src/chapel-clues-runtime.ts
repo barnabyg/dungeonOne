@@ -539,6 +539,10 @@ export function createChapelCluesRuntime(
             eligible(state, profile.when),
         )
       : [];
+  const offerCommands = (state: ClueState) =>
+    availableOffers(state).map(
+      (profile) => `offer ${profile.itemId} to ${profile.npcId}`,
+    );
   const offerNotice = (state: ClueState) =>
     (definition.offerProfiles ?? [])
       .filter((profile) => state.offers?.[profile.id] !== undefined)
@@ -823,9 +827,7 @@ export function createChapelCluesRuntime(
               (profile) =>
                 `attempt deceive ${profile.allyId} about ${profile.claimId}`,
             ),
-            ...availableOffers(state).map(
-              (profile) => `offer ${profile.itemId} to ${profile.npcId}`,
-            ),
+            ...offerCommands(state),
             ...endings,
             ...(clocksEnabled &&
             state.status === "playing" &&
@@ -934,9 +936,7 @@ export function createChapelCluesRuntime(
                   (profile) =>
                     `attempt deceive ${profile.allyId} about ${profile.claimId}`,
                 ),
-                ...availableOffers(state).map(
-                  (profile) => `offer ${profile.itemId} to ${profile.npcId}`,
-                ),
+                ...offerCommands(state),
                 ...(casualtiesEnabled
                   ? npcs
                       .filter((npc) => npc.combat !== undefined)
