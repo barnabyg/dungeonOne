@@ -6,6 +6,9 @@ For a reproducible author/player handoff, including checked-in journeys,
 clean-checkout results, and replay limits, see [increment 4 acceptance](docs/acceptance/issue-53.md).
 For the combined guard, rescue, item, enemy, and deadline route across a
 restart, see the [issue 71 player handoff](docs/acceptance/issue-71.md).
+The new [Hollow Beacon opening](adventures/hollow-beacon.json) is a short
+authored adventure with two leads and a persistent watch response; see its
+[player test and story plan](docs/acceptance/issue-81.md).
 
 ## Requirements
 
