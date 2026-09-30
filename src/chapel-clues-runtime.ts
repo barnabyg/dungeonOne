@@ -2870,6 +2870,10 @@ export function createChapelCluesRuntime(
                               promptVersion: "chapel-clues-dm-v2",
                               toolSchemaVersion: "chapel-clues-tools-v2",
                             };
+  const displayedClueText = (entry: ClueTextEvent, state: ClueState) =>
+    entry.operation === "follow"
+      ? `You follow ${npcById(entry.target ?? "")?.name ?? "the witness"} through the adjacent route to ${room(state.locationId).name}. ${describe(state)}`
+      : entry.text;
   return Object.freeze({
     id: definition.id,
     version: definition.contentVersion,
@@ -2880,6 +2884,17 @@ export function createChapelCluesRuntime(
     content,
     localStatusReads: true,
     renderDmNarration(call, result) {
+      if (
+        call.name === "follow" &&
+        result.modelOutput.ok &&
+        result.engineResult !== undefined &&
+        "events" in result.engineResult
+      ) {
+        return result.engineResult.events
+          .filter((entry) => entry.type === "clue")
+          .map((entry) => displayedClueText(entry, stateOf(result.state)))
+          .join("\n");
+      }
       if (
         call.name === "offer" &&
         result.modelOutput.ok &&
@@ -3245,7 +3260,7 @@ export function createChapelCluesRuntime(
       const rendered = result.events
         .map((entry) =>
           entry.type === "clue"
-            ? entry.text
+            ? displayedClueText(entry, stateOf(result.state))
             : entry.type === "attack-resolved"
               ? renderAttack(entry)
               : entry.type === "session-quit"

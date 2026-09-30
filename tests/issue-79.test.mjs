@@ -215,6 +215,44 @@ test("describing a noisy prop does not authorize a distraction check", () => {
   assert.equal(draws, 0);
 });
 
+test("AI follow narration states the authoritative day transition", async () => {
+  const runtime = game("day-raider-crossroads");
+  const square = command(runtime, runtime.createSession(), "move square");
+  const cellar = command(runtime, square, "move cellar");
+  const state = command(runtime, cellar, "wait days 1");
+  let responses = 0;
+  const turn = await runDmTurn({
+    runtime,
+    state,
+    playerInput: "Trail the guard.",
+    transcript: [],
+    random: { roll: () => 20 },
+    model: {
+      identity: { provider: "scripted", model: "issue-79" },
+      respond: async () => {
+        responses += 1;
+        return responses === 1
+          ? {
+              toolCalls: [
+                {
+                  id: "follow",
+                  name: "follow",
+                  argumentsJson: '{"npcId":"guard"}',
+                },
+              ],
+            }
+          : { text: "The clock has not advanced." };
+      },
+    },
+  });
+  assert.equal(responses, 1);
+  assert.match(turn.narration, /follow Cellar Guard/u);
+  assert.match(turn.narration, /Day 3 → Day 4/u);
+  assert.match(turn.narration, /Clocks: Day 4/u);
+  assert.doesNotMatch(turn.narration, /Clocks: Day 3/u);
+  assert.doesNotMatch(turn.narration, /has not advanced/u);
+});
+
 test("provider failure after a committed check repeats its exact mechanics and a next action", async () => {
   const runtime = game("bribed-crossroads");
   const state = command(runtime, runtime.createSession(), "move cellar");

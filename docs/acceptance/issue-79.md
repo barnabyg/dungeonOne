@@ -12,7 +12,7 @@ route, save/resume, journal and actor knowledge, bounded speaker history,
 expiry, and same-mode trace replay. Command play remains API-key-free.
 
 `npm.cmd run verify` passed with 531 tests and zero warnings. The focused
-`tests/issue-79.test.mjs` suite passed all 17 cases.
+`tests/issue-79.test.mjs` suite passed all 20 cases after review fixes.
 
 ## Bounded live review
 
@@ -38,14 +38,13 @@ time, or state change. The model then used two read tools and asked for a single
 explicit action. Thus the engine boundary held in eight of eight probes, while
 model tool selection was seven of eight.
 
-**Prose review:** Barricade, distraction, deception, offer, ambiguity, and
-destruction correctly described their authoritative results or lack of action.
-The compound clarification correctly said that the attempted distraction was
-not executed. The follow narration said the clock “remains Day 4”; the
-authoritative mechanics show Day 3 → Day 4. This wording is imprecise about the
-elapsed day, so the sampled narration quality is seven of eight. These eight
-isolated turns do not establish general live-model reliability or a complete
-unfamiliar-player journey.
+**Prose review:** All eight sampled narrations described their authoritative
+result or lack of action without claiming an uncommitted effect. The follow
+response is now engine-owned and shows both the settled scene at Day 4 and the
+Day 3 → Day 4 transition. The compound clarification did not claim that the
+distraction or attack happened. This is eight of eight for the sampled prose;
+these isolated turns do not establish general live-model reliability or a
+complete unfamiliar-player journey.
 
 ## Diagnostic boundary
 
