@@ -466,12 +466,15 @@ export async function runDmTurn(
     ) {
       return COMMITTED_ACTION_FALLBACK;
     }
-    const last = toolResults.at(-1);
+    const actionIndex = toolResults.findLastIndex(({ call }) =>
+      mutationToolNames.has(call.name),
+    );
+    const last = toolResults[actionIndex];
     const committed =
       last?.result.engineResult !== undefined &&
       "events" in last.result.engineResult;
     const next = runtime.projectDmScene(state).suggestions?.[0];
-    return `${committed ? "The action resolved" : "No action was committed"}. ${mechanics.at(-1) ?? "No authoritative result was returned."}${next === undefined ? "" : ` Next: ${next}.`}`;
+    return `${committed ? "The action resolved" : "No action was committed"}. ${mechanics[actionIndex] ?? "No authoritative result was returned."}${next === undefined ? "" : ` Next: ${next}.`}`;
   };
   const fail = (
     diagnostic: DmDiagnostic,

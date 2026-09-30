@@ -231,3 +231,49 @@ test("provider failure after a committed check repeats its exact mechanics and a
   assert.match(result.narration, /Next:/u);
   assert.equal(result.diagnostics[0].code, "model-failure");
 });
+
+test("provider failure after a read still describes the committed check", async () => {
+  const runtime = game("bribed-crossroads");
+  const state = command(runtime, runtime.createSession(), "move cellar");
+  let responses = 0;
+  const result = await runDmTurn({
+    runtime,
+    state,
+    playerInput: "Rattle the heavy crate to draw the guard away.",
+    transcript: [],
+    random: { roll: () => 20 },
+    model: {
+      identity: { provider: "scripted", model: "issue-79" },
+      respond: async () => {
+        responses += 1;
+        if (responses === 1) {
+          return {
+            toolCalls: [
+              {
+                id: "distraction",
+                name: "distract",
+                argumentsJson: '{"profileId":"crate-guard-door"}',
+              },
+            ],
+          };
+        }
+        if (responses === 2) {
+          return {
+            toolCalls: [
+              {
+                id: "read",
+                name: "inspect",
+                argumentsJson: '{"target":"heavy-crate"}',
+              },
+            ],
+          };
+        }
+        throw new Error("provider unavailable");
+      },
+    },
+  });
+  assert.equal(result.toolResults.length, 2);
+  assert.match(result.narration, /^The action resolved/u);
+  assert.match(result.narration, /d20 20.*DC 12.*success/u);
+  assert.match(result.narration, /Time cost: 1 day/u);
+});
