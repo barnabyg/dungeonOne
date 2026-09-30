@@ -11,7 +11,7 @@ import { runDmTurn } from "../dist/dm-turn.js";
 
 const cli = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
 const adventure = fileURLToPath(
-  new URL("../adventures/hollow-beacon-journey.json", import.meta.url),
+  new URL("../adventures/hollow-beacon-conversations.json", import.meta.url),
 );
 
 function withDirectory(body) {
@@ -45,8 +45,25 @@ function snapshot(path) {
 function runtime() {
   const loaded = loadAdventure(readFileSync(adventure));
   assert.equal(loaded.ok, true);
+  assert.equal(loaded.adventure.snapshot.contentVersion, "3");
   return createDataRuntime(loaded.adventure);
 }
+
+test("the previous Hollow Beacon journey retains its versioned content", () => {
+  const previous = loadAdventure(
+    readFileSync(
+      fileURLToPath(
+        new URL("../adventures/hollow-beacon-journey.json", import.meta.url),
+      ),
+    ),
+  );
+  assert.equal(previous.ok, true);
+  assert.equal(previous.adventure.snapshot.contentVersion, "2");
+  assert.notEqual(
+    previous.adventure.digest,
+    loadAdventure(readFileSync(adventure)).adventure.digest,
+  );
+});
 
 test("a named person's topic menu is copyable and costs no day, roll, or conversation", () =>
   withDirectory((directory) => {
@@ -92,7 +109,7 @@ test("a named person's topic menu is copyable and costs no day, roll, or convers
       "--save",
       suggestedSave,
     ]);
-    assert.match(answer, /ask Sera what she knows/);
+    assert.match(answer, /Ask Sera at the camp what she knows/);
     assert.deepEqual(
       snapshot(suggestedSave).checkpoint,
       snapshot(directSave).checkpoint,
@@ -133,6 +150,16 @@ test("topic menus follow the current scene and a person with no topic says so", 
         ({ speakerId }) => speakerId,
       ),
       ["sera", "iona", "iona"],
+    );
+    assert.deepEqual(
+      snapshot(save).checkpoint.state.conversationHistory.map(
+        ({ statements }) => statements,
+      ),
+      [
+        ["The beacon keeper is missing from the watch post and service gate."],
+        [],
+        [],
+      ],
     );
     assert.deepEqual(snapshot(save).checkpoint.state.milestones, [
       "lead-followed",
@@ -195,7 +222,7 @@ test("natural AI talk reaches the same bounded reply after a provider failure", 
   });
   assert.deepEqual(ai.state, command.state);
   assert.equal(ai.diagnostics[0].code, "model-failure");
-  assert.match(ai.narration, /ask Sera what she knows/);
+  assert.match(ai.narration, /Ask Sera at the camp what she knows/);
   assert.equal(ai.toolAttempts.length, 1);
   assert.deepEqual(ai.toolAttempts[0].rolls, []);
   assert.deepEqual(
@@ -244,7 +271,7 @@ test("an AI reply failure preserves the opening conversation in a resumable save
       ],
       script,
     );
-    assert.match(output, /ask Sera what she knows/);
+    assert.match(output, /Ask Sera at the camp what she knows/);
     const saved = snapshot(save);
     assert.equal(saved.checkpoint.state.conversationHistory.length, 1);
     assert.equal(
