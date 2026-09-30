@@ -151,6 +151,16 @@ test("accepted offer spends one carried tonic without healing and changes the gu
   );
   assert.equal(tool.modelOutput.ok, true);
   assert.deepEqual(tool.state, result.state);
+  assert.equal(
+    game.renderDmNarration(
+      {
+        name: "offer",
+        argumentsJson: JSON.stringify({ profileId: "guard-tonic" }),
+      },
+      tool,
+    ),
+    result.events[0].text,
+  );
 });
 
 test("an already trusted guard remains eligible for the authored offer", () => {
@@ -319,6 +329,13 @@ test("command and scripted AI save one exchange, resume it, and keep the ending 
       );
       assert.equal(played.status, 0, played.stderr);
       assert.match(played.stdout, /Offer accepted/);
+      if (ai) {
+        assert.match(
+          played.stdout,
+          /Relationship with Cellar Guard: neutral → trusted/,
+        );
+        assert.match(played.stdout, /No healing occurs/);
+      }
       const saved = JSON.parse(readFileSync(save, "utf8"));
       const events = saved.transitions.flatMap(
         ({ domainEvents }) => domainEvents,

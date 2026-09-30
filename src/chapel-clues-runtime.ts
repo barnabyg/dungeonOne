@@ -2691,6 +2691,19 @@ export function createChapelCluesRuntime(
     localStatusReads: true,
     renderDmNarration(call, result) {
       if (
+        call.name === "offer" &&
+        result.modelOutput.ok &&
+        result.engineResult !== undefined &&
+        "events" in result.engineResult
+      ) {
+        const offerEvent = result.engineResult.events.find(
+          (entry) => entry.type === "clue" && entry.operation === "offer",
+        );
+        if (offerEvent?.type === "clue") {
+          return offerEvent.text;
+        }
+      }
+      if (
         call.name !== "use_item" ||
         !result.modelOutput.ok ||
         result.engineResult === undefined ||
