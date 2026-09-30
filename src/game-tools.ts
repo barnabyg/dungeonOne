@@ -115,6 +115,7 @@ export type GameToolName =
   | "wait"
   | "adjudicate"
   | "distract"
+  | "deceive"
   | "leave"
   | "get_journal"
   | "get_character_status";
@@ -663,7 +664,12 @@ function parseTool(
         : { type: "action", action: { type: "inspect", target } };
     }
     default:
-      if (name === "wait" || name === "adjudicate" || name === "distract") {
+      if (
+        name === "wait" ||
+        name === "adjudicate" ||
+        name === "distract" ||
+        name === "deceive"
+      ) {
         return "unknown-tool";
       }
       name satisfies never;

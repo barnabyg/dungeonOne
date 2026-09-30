@@ -7,6 +7,7 @@ import { RELATIONSHIP_SCHEMA } from "./relationship-schema.js";
 import { CLOCK_SCHEMA } from "./clock-schema.js";
 import { ADJUDICATION_SCHEMA } from "./adjudication-schema.js";
 import { DAY_SCHEMA } from "./day-schema.js";
+import { DECEPTION_SCHEMA } from "./deception-schema.js";
 import { analyzeProgression } from "./progression-analysis.js";
 
 export const EXPLORATION_RULES_VERSION = "exploration-rules-v1";
@@ -159,7 +160,7 @@ export type DialogueNpc = Readonly<{
   }>;
 }>;
 export type ChapelCluesDefinition = Readonly<{
-  schemaVersion: 3 | 4 | 5 | 6 | 7;
+  schemaVersion: 3 | 4 | 5 | 6 | 7 | 8;
   id: string;
   contentVersion: string;
   rulesVersion:
@@ -170,7 +171,8 @@ export type ChapelCluesDefinition = Readonly<{
     | "chapel-clues-rules-v5"
     | "chapel-clues-rules-v6"
     | "chapel-clues-rules-v7"
-    | "chapel-clues-rules-v8";
+    | "chapel-clues-rules-v8"
+    | "chapel-clues-rules-v9";
   title: string;
   introduction: string;
   objective: string;
@@ -236,6 +238,22 @@ export type ChapelCluesDefinition = Readonly<{
     failureText: string;
     activeText: string;
     expiredText: string;
+  }>[];
+  deceptionProfiles?: readonly Readonly<{
+    id: string;
+    allyId: string;
+    claimId: string;
+    claimAliases?: readonly string[];
+    claimText: string;
+    responseTopicId: string;
+    playerModifier: number;
+    defenderModifier: number;
+    timeCost: number;
+    when: readonly ClueCondition[];
+    successText: string;
+    failureText: string;
+    acceptedReply: string;
+    rejectedReply: string;
   }>[];
   locations: readonly (LocationDefinition &
     Readonly<{ descriptions?: readonly ConditionalClueText[] }>)[];
@@ -885,6 +903,7 @@ function validateClueReferences(
       "chapel-clues-rules-v6",
       "chapel-clues-rules-v7",
       "chapel-clues-rules-v8",
+      "chapel-clues-rules-v9",
     ].includes(snapshot.rulesVersion) &&
     (snapshot.npcs ?? []).some(
       (npc) => npc.combat !== undefined || npc.remains !== undefined,
@@ -905,6 +924,7 @@ function validateClueReferences(
       "chapel-clues-rules-v6",
       "chapel-clues-rules-v7",
       "chapel-clues-rules-v8",
+      "chapel-clues-rules-v9",
     ].includes(snapshot.rulesVersion)
   ) {
     error(
@@ -960,6 +980,10 @@ function validateClueReferences(
         namespace: "distractionProfiles",
         entries: snapshot.distractionProfiles ?? [],
       },
+      {
+        namespace: "deceptionProfiles",
+        entries: snapshot.deceptionProfiles ?? [],
+      },
       { namespace: "features", entries: snapshot.features },
       { namespace: "discoveries", entries: snapshot.discoveries },
       { namespace: "searches", entries: snapshot.searches },
@@ -1012,7 +1036,8 @@ function validateClueReferences(
     snapshot.rulesVersion === "chapel-clues-rules-v5" ||
     snapshot.rulesVersion === "chapel-clues-rules-v6" ||
     snapshot.rulesVersion === "chapel-clues-rules-v7" ||
-    snapshot.rulesVersion === "chapel-clues-rules-v8"
+    snapshot.rulesVersion === "chapel-clues-rules-v8" ||
+    snapshot.rulesVersion === "chapel-clues-rules-v9"
   ) {
     (snapshot.monsters ?? []).forEach((monster, i) => {
       if (npcs.has(monster.id)) {
@@ -1060,7 +1085,7 @@ function validateClueReferences(
         );
       }
       previous = threshold.at;
-      if (snapshot.schemaVersion === 7) {
+      if (snapshot.schemaVersion >= 7) {
         const visibleFrom = new Set<string>();
         for (const [index, locationId] of (
           threshold.visibleFrom ?? []
@@ -1085,7 +1110,7 @@ function validateClueReferences(
       threshold.effects.forEach((effect, k) => {
         const effectPath = `${thresholdPath}/effects/${k}`;
         if (effect.type === "relocate-npc") {
-          if (snapshot.schemaVersion !== 7) {
+          if (snapshot.schemaVersion < 7) {
             error(
               "unsupported-rules",
               effectPath,
@@ -1234,7 +1259,8 @@ function validateClueReferences(
           snapshot.rulesVersion !== "chapel-clues-rules-v5" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v6" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v7" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v8"
+          snapshot.rulesVersion !== "chapel-clues-rules-v8" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v9"
         ) {
           error(
             "unsupported-rules",
@@ -1249,7 +1275,8 @@ function validateClueReferences(
           snapshot.rulesVersion !== "chapel-clues-rules-v5" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v6" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v7" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v8"
+          snapshot.rulesVersion !== "chapel-clues-rules-v8" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v9"
         ) {
           error(
             "unsupported-rules",
@@ -1286,6 +1313,50 @@ function validateClueReferences(
       }
     });
   };
+  const deceptionTargets = new Set<string>();
+  const deceptionResponses = new Set<string>();
+  (snapshot.deceptionProfiles ?? []).forEach((profile, i) => {
+    const path = `/deceptionProfiles/${i}`;
+    const ally = snapshot.npcs?.find(({ id }) => id === profile.allyId);
+    const topic = ally?.topics.find(({ id }) => id === profile.responseTopicId);
+    if (ally?.combat === undefined) {
+      error(
+        "invalid-adjudication",
+        `${path}/allyId`,
+        profile.id,
+        "Ally must be a living, combat-capable NPC.",
+      );
+    }
+    if (topic === undefined || topic.challengeId !== "none") {
+      error(
+        "invalid-adjudication",
+        `${path}/responseTopicId`,
+        profile.id,
+        "Response must name an unchallenged topic on the ally.",
+      );
+    }
+    const key = `${profile.allyId}/${profile.claimId}`;
+    if (deceptionTargets.has(key)) {
+      error(
+        "duplicate-id",
+        `${path}/claimId`,
+        profile.id,
+        "Only one tactic may make this claim to this ally.",
+      );
+    }
+    deceptionTargets.add(key);
+    const responseKey = `${profile.allyId}/${profile.responseTopicId}`;
+    if (deceptionResponses.has(responseKey)) {
+      error(
+        "duplicate-id",
+        `${path}/responseTopicId`,
+        profile.id,
+        "Only one tactic may control this ally response.",
+      );
+    }
+    deceptionResponses.add(responseKey);
+    conditions(profile.when, `${path}/when`, profile.id);
+  });
   if (snapshot.endings !== undefined) {
     const endings = snapshot.endings;
     ref(locations, endings.locationId, "/endings/locationId", snapshot.id);
@@ -2279,18 +2350,21 @@ export function loadAdventure(input: string | Uint8Array):
       (parsed as { rulesVersion?: string } | null)?.rulesVersion ===
         "signet-rules-v1"
       ? SIGNET_SCHEMA
-      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 7
-        ? DAY_SCHEMA
-        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 6
-          ? ADJUDICATION_SCHEMA
-          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 5
-            ? CLOCK_SCHEMA
-            : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 4
-              ? RELATIONSHIP_SCHEMA
+      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 8
+        ? DECEPTION_SCHEMA
+        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 7
+          ? DAY_SCHEMA
+          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 6
+            ? ADJUDICATION_SCHEMA
+            : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 5
+              ? CLOCK_SCHEMA
               : (parsed as { schemaVersion?: number } | null)?.schemaVersion ===
-                  3
-                ? CHAPEL_CLUES_SCHEMA
-                : ADVENTURE_SCHEMA,
+                  4
+                ? RELATIONSHIP_SCHEMA
+                : (parsed as { schemaVersion?: number } | null)
+                      ?.schemaVersion === 3
+                  ? CHAPEL_CLUES_SCHEMA
+                  : ADVENTURE_SCHEMA,
     "",
     diagnostics,
   );
@@ -2310,13 +2384,14 @@ export function loadAdventure(input: string | Uint8Array):
     snapshot.schemaVersion === 4 ||
     snapshot.schemaVersion === 5 ||
     snapshot.schemaVersion === 6 ||
-    snapshot.schemaVersion === 7
+    snapshot.schemaVersion === 7 ||
+    snapshot.schemaVersion === 8
   ) {
     validateClueReferences(snapshot, diagnostics);
-    if (snapshot.schemaVersion === 6 || snapshot.schemaVersion === 7) {
+    if (snapshot.schemaVersion >= 6) {
       validateAdjudicationProfiles(snapshot, diagnostics);
     }
-    if (snapshot.schemaVersion === 7) {
+    if (snapshot.schemaVersion >= 7) {
       validateDistractionProfiles(snapshot, diagnostics);
     }
   } else if (snapshot.schemaVersion === 1) {
@@ -2335,7 +2410,8 @@ export function loadAdventure(input: string | Uint8Array):
     snapshot.schemaVersion === 4 ||
     snapshot.schemaVersion === 5 ||
     snapshot.schemaVersion === 6 ||
-    snapshot.schemaVersion === 7
+    snapshot.schemaVersion === 7 ||
+    snapshot.schemaVersion === 8
   ) {
     diagnostics.push(...analyzeProgression(snapshot));
   }

@@ -72,7 +72,9 @@ function digest(value: unknown): string {
 
 function requireSaveRuntime(runtime: AdventureRuntime): void {
   if (
-    ![3, 4, 5, 6, 7].includes(runtime.content?.snapshot.schemaVersion ?? 0) ||
+    ![3, 4, 5, 6, 7, 8].includes(
+      runtime.content?.snapshot.schemaVersion ?? 0,
+    ) ||
     runtime.engineVersion === undefined
   ) {
     throw new Error("Saves require a schema-3 through schema-7 adventure.");
@@ -193,6 +195,20 @@ export type DomainEvent = Readonly<
       result: "success" | "failure";
     }
   | {
+      type: "ally-deceived";
+      actionId: string;
+      profileId: string;
+      allyId: string;
+      claimId: string;
+      playerDie: number;
+      playerModifier: number;
+      playerTotal: number;
+      defenderDie: number;
+      defenderModifier: number;
+      defenderTotal: number;
+      result: "success" | "failure";
+    }
+  | {
       type: "actor-relocated";
       actionId: string;
       actorId: string;
@@ -241,6 +257,13 @@ function eventsFor(
         });
       }
     } else if (entry.type === "clue") {
+      if (entry.operation === "deceive" && entry.deception !== undefined) {
+        events.push({
+          type: "ally-deceived",
+          actionId,
+          ...entry.deception,
+        });
+      }
       if (entry.operation === "distract" && entry.distraction !== undefined) {
         events.push({
           type: "guard-distracted",

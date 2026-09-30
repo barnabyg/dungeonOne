@@ -59,7 +59,7 @@ export function projectDmHistory(
     (definition?.clocks ?? []).flatMap((clock) =>
       clock.thresholds
         .filter((threshold) =>
-          definition?.schemaVersion === 7
+          (definition?.schemaVersion ?? 0) >= 7
             ? state.observedThresholds?.includes(`${clock.id}:${threshold.at}`)
             : threshold.effects.some(
                 ({ type, id }) =>
@@ -117,7 +117,7 @@ export function projectDmHistory(
         case "actor-relocated":
           if (
             event.actorId !== "player" &&
-            definition?.schemaVersion !== 7 &&
+            (definition?.schemaVersion ?? 0) < 7 &&
             (speakerId === event.actorId ||
               (speakerId === undefined &&
                 (visibleActors.has(event.actorId) ||
@@ -217,6 +217,18 @@ export function projectDmHistory(
           }
           break;
         }
+        case "ally-deceived":
+          if (
+            speakerId === event.allyId &&
+            state.deceptionChecks?.[event.profileId]?.result === event.result
+          ) {
+            candidates.push({
+              ...common,
+              subjectId: event.allyId,
+              detail: `${event.claimId}: ${event.result === "success" ? "accepted claim" : "rejected claim"}`,
+            });
+          }
+          break;
         default:
           break;
       }
