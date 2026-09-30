@@ -11,8 +11,8 @@ current suggested command. The existing issue 75–78 tests cover the command
 route, save/resume, journal and actor knowledge, bounded speaker history,
 expiry, and same-mode trace replay. Command play remains API-key-free.
 
-`npm.cmd run verify` passed with 531 tests and zero warnings. The focused
-`tests/issue-79.test.mjs` suite passed all 20 cases after review fixes.
+The final `npm.cmd run verify` passed with 534 tests and zero warnings. The
+focused `tests/issue-79.test.mjs` suite passed all 20 cases.
 
 ## Bounded live review
 
