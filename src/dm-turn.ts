@@ -462,6 +462,7 @@ export async function runDmTurn(
         "chapel-clues-rules-v8",
         "chapel-clues-rules-v9",
         "chapel-clues-rules-v10",
+        "chapel-clues-rules-v11",
       ].includes(runtime.rulesVersion)
     ) {
       return COMMITTED_ACTION_FALLBACK;

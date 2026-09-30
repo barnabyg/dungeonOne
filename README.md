@@ -329,6 +329,30 @@ Enter `move cellar`, `take tonic`, `offer tonic to guard`,
 enter `move cellar`, `take tonic`, `move square`, `move hall`, and
 `offer tonic to lysa`. The refused tonic stays available for ordinary healing.
 
+[The Hollow Beacon journey](adventures/hollow-beacon-journey.json) extends the
+opening under [schema 10](schema/adventure-v10.schema.json) /
+`chapel-clues-rules-v11`. Its named Caravan Deadline clock begins at Day 0;
+the caravan reaches the fork on Day 3. The Ridge Trail costs 2 days and closes
+at Day 3. The Valley Road costs 4 days and remains open afterward, with
+shelter tracks that make a late rescue possible. Each exit shows its cost.
+Local moves, searches, talks, and combat rounds cost zero days; accepted
+journeys and explicit `wait days <1-7>` advance the clock. Threshold effects
+resolve in ascending order once, while off-screen events require visible
+evidence before the journal reports them. The original
+`hollow-beacon.json` and schema-9 action costs keep their released behavior.
+
+```powershell
+npm.cmd run build
+node dist/cli.js --adventure-file adventures/hollow-beacon-journey.json --seed 0 --save beacon-journey-save.json
+```
+
+For the quick route, enter `move keeper-path`, `search latch`,
+`move watch-yard`, `move ridge-trail`, `search broken-marker`,
+`move beacon-tower`, and `resolve hold-beacon`. For the slower route, start
+with a fresh save path and enter `move refugee-camp`,
+`talk sera keeper-warning ask`, `move watch-yard`, `move valley-road`,
+`search wagon-ruts`, `move beacon-tower`, and `resolve hold-beacon`.
+
 [Raiders at the Crossroads](adventures/raider-crossroads.json) is a separate
 schema-5 adventure. Start at the town-edge hall and choose to help Lysa,
 refuse the errand, or leave town. The cellar register supports on-time and

@@ -35,6 +35,7 @@ export const DAY_ENGINE_VERSION = "chapel-clues-engine-v11";
 export const DISTRACTION_ENGINE_VERSION = "chapel-clues-engine-v12";
 export const DECEPTION_ENGINE_VERSION = "chapel-clues-engine-v13";
 export const OFFER_ENGINE_VERSION = "chapel-clues-engine-v14";
+export const TRAVEL_ENGINE_VERSION = "chapel-clues-engine-v15";
 export const CASUALTY_CLUES_ENGINE_VERSION = "chapel-clues-engine-v6";
 export const RESCUE_CLUES_ENGINE_VERSION = "chapel-clues-engine-v5";
 export const POTION_CLUES_ENGINE_VERSION = "chapel-clues-engine-v4";
@@ -266,11 +267,13 @@ export function createChapelCluesRuntime(
     content.snapshot.schemaVersion !== 6 &&
     content.snapshot.schemaVersion !== 7 &&
     content.snapshot.schemaVersion !== 8 &&
-    content.snapshot.schemaVersion !== 9
+    content.snapshot.schemaVersion !== 9 &&
+    content.snapshot.schemaVersion !== 10
   ) {
     throw new Error("Expected chapel clues content.");
   }
   const definition: ChapelCluesDefinition = content.snapshot;
+  const routeTravelEnabled = definition.schemaVersion === 10;
   const dayEnabled = definition.schemaVersion >= 7;
   const deceptionEnabled = definition.schemaVersion >= 8;
   const offersEnabled = definition.schemaVersion >= 9;
@@ -285,9 +288,11 @@ export function createChapelCluesRuntime(
   const clocksEnabled =
     definition.rulesVersion === "chapel-clues-rules-v6" || adjudicationEnabled;
   const timeHelp = clocksEnabled
-    ? dayEnabled
-      ? `wait days <1-7>, Days per accepted action: move/follow ${definition.timeCosts!.move}, search ${definition.timeCosts!.search}, talk ${definition.timeCosts!.talk}, take ${definition.timeCosts!.take}, use ${definition.timeCosts!.use}, attack ${definition.timeCosts!.attack}. Read commands and resolve cost 0.`
-      : `wait <1|2|3>, Time units per accepted action: move ${definition.timeCosts!.move}, search ${definition.timeCosts!.search}, talk ${definition.timeCosts!.talk}, take ${definition.timeCosts!.take}, use ${definition.timeCosts!.use}, attack ${definition.timeCosts!.attack}. Read commands and resolve cost 0.`
+    ? routeTravelEnabled
+      ? "wait days <1-7>. Each visible exit shows its journey cost in days. Local movement, investigation, conversation, and combat rounds cost 0 days."
+      : dayEnabled
+        ? `wait days <1-7>, Days per accepted action: move/follow ${definition.timeCosts!.move}, search ${definition.timeCosts!.search}, talk ${definition.timeCosts!.talk}, take ${definition.timeCosts!.take}, use ${definition.timeCosts!.use}, attack ${definition.timeCosts!.attack}. Read commands and resolve cost 0.`
+        : `wait <1|2|3>, Time units per accepted action: move ${definition.timeCosts!.move}, search ${definition.timeCosts!.search}, talk ${definition.timeCosts!.talk}, take ${definition.timeCosts!.take}, use ${definition.timeCosts!.use}, attack ${definition.timeCosts!.attack}. Read commands and resolve cost 0.`
     : "";
   const endingsEnabled = definition.endings !== undefined;
   const casualtiesEnabled =
@@ -563,6 +568,12 @@ export function createChapelCluesRuntime(
         `${npcById(profile.npcId)?.name ?? profile.npcId} ${profile.outcome === "accepted" ? "accepted" : "refused"} the ${definition.items?.find(({ id }) => id === profile.itemId)?.name ?? profile.itemId}; it was ${profile.itemCost === "consumed" ? "spent" : "kept"}${profile.outcome === "accepted" ? `, and the relationship is ${state.relationships?.[profile.npcId]?.tier ?? "unchanged"}` : ""}. ${profile.costText ?? ""}`.trim(),
       )
       .join(" ");
+  const journeyFits = (state: ClueState, days: number) =>
+    !routeTravelEnabled ||
+    (state.clocks?.[definition.clocks![0]!.id] ??
+      definition.clocks![0]!.initial) +
+      days <=
+      definition.clocks![0]!.maximum;
   const visible = (state: ClueState) => ({
     room: room(state.locationId),
     features: definition.features.filter(
@@ -587,11 +598,22 @@ export function createChapelCluesRuntime(
         (entry) =>
           entry.from === state.locationId &&
           eligible(state, entry.when) &&
+          journeyFits(state, entry.travelDays ?? 0) &&
           !blockedConnectionIds(state).includes(entry.id) &&
           !routeGuarded(state, entry.id),
       )
       .map((entry) => room(entry.to)),
   });
+  const exitLabel = (state: ClueState, destinationId: string) => {
+    const destination = room(destinationId);
+    if (!routeTravelEnabled) {
+      return destination.name;
+    }
+    const days = definition.connections.find(
+      (entry) => entry.from === state.locationId && entry.to === destinationId,
+    )!.travelDays!;
+    return `${destination.name} (${days} day${days === 1 ? "" : "s"})`;
+  };
   const followTrail = (state: ClueState, npcId: string) => {
     const trail = state.witnessedDepartures?.[npcId];
     return trail !== undefined &&
@@ -611,6 +633,7 @@ export function createChapelCluesRuntime(
         entry.from === trail.from &&
         entry.to === trail.to &&
         eligible(state, entry.when) &&
+        journeyFits(state, entry.travelDays ?? 0) &&
         !blockedConnectionIds(state).includes(entry.id) &&
         !routeGuarded(state, entry.id),
     );
@@ -849,7 +872,7 @@ export function createChapelCluesRuntime(
               .map((item) => item.name)
               .join(", ") || "none"
           }.`
-    }${combatEnabled ? `\nOpponents: ${opponents.join(", ") || "none"}.` : ""}${barricadeNotice(state, "\n")}${distractionNotice(state) === "" ? "" : `\n${distractionNotice(state)}`}${offerNotice(state) === "" ? "" : `\n${offerNotice(state)}`}${trailNotice(state) === "" ? "" : `\n${trailNotice(state)}`}\nExits: ${exits.map((entry) => entry.name).join(", ") || "none"}.${
+    }${combatEnabled ? `\nOpponents: ${opponents.join(", ") || "none"}.` : ""}${barricadeNotice(state, "\n")}${distractionNotice(state) === "" ? "" : `\n${distractionNotice(state)}`}${offerNotice(state) === "" ? "" : `\n${offerNotice(state)}`}${trailNotice(state) === "" ? "" : `\n${trailNotice(state)}`}\nExits: ${exits.map((entry) => exitLabel(state, entry.id)).join(", ") || "none"}.${
       endingChoices(state).length > 0
         ? `\nEnding choices: ${endingPreview(state)}`
         : ""
@@ -932,7 +955,10 @@ export function createChapelCluesRuntime(
               ?.descriptions,
           ),
         })),
-        exits: exits.map(({ id, name }) => ({ destinationId: id, name })),
+        exits: exits.map(({ id }) => ({
+          destinationId: id,
+          name: exitLabel(state, id),
+        })),
         items: visibleItems(state).map(
           ({ id, name, description, featureId }) => ({
             id,
@@ -1028,7 +1054,9 @@ export function createChapelCluesRuntime(
     (definition.clocks ?? [])
       .map((clock) =>
         dayEnabled
-          ? `Day ${state.clocks?.[clock.id] ?? clock.initial}`
+          ? routeTravelEnabled
+            ? `${clock.name}: Day ${state.clocks?.[clock.id] ?? clock.initial}/${clock.maximum}`
+            : `Day ${state.clocks?.[clock.id] ?? clock.initial}`
           : `${clock.name}: ${state.clocks?.[clock.id] ?? clock.initial}/${clock.maximum}`,
       )
       .join(", ");
@@ -2390,34 +2418,46 @@ export function createChapelCluesRuntime(
       return result;
     }
     const costs = definition.timeCosts!;
+    const routeDays =
+      routeTravelEnabled && (action.type === "move" || action.type === "follow")
+        ? definition.connections.find(
+            (entry) =>
+              entry.from === before.locationId &&
+              entry.to === stateOf(result.state).locationId,
+          )?.travelDays
+        : undefined;
     const amount =
       action.type === "wait"
         ? dayEnabled
           ? Number(/^days ([1-7])$/u.exec(action.amount ?? "")![1])
           : Number(action.amount)
-        : action.type === "move" ||
-            action.type === "follow" ||
-            action.type === "search" ||
-            action.type === "talk" ||
-            action.type === "take" ||
-            action.type === "use" ||
-            action.type === "attack"
-          ? costs[action.type === "follow" ? "move" : action.type]
-          : action.type === "distract"
-            ? (definition.distractionProfiles?.find(
-                ({ id }) => id === action.profileId,
-              )?.timeCost ?? 0)
-            : action.type === "deceive"
-              ? (definition.deceptionProfiles?.find(
+        : routeTravelEnabled
+          ? (routeDays ?? 0)
+          : action.type === "move" ||
+              action.type === "follow" ||
+              action.type === "search" ||
+              action.type === "talk" ||
+              action.type === "take" ||
+              action.type === "use" ||
+              action.type === "attack"
+            ? costs[action.type === "follow" ? "move" : action.type]
+            : action.type === "distract"
+              ? (definition.distractionProfiles?.find(
                   ({ id }) => id === action.profileId,
                 )?.timeCost ?? 0)
-              : action.type === "offer"
-                ? (definition.offerProfiles?.find(
+              : action.type === "deceive"
+                ? (definition.deceptionProfiles?.find(
                     ({ id }) => id === action.profileId,
                   )?.timeCost ?? 0)
-                : 0;
+                : action.type === "offer"
+                  ? (definition.offerProfiles?.find(
+                      ({ id }) => id === action.profileId,
+                    )?.timeCost ?? 0)
+                  : 0;
     if (amount === 0) {
-      return result;
+      return routeTravelEnabled
+        ? { ...result, state: observeThresholds(stateOf(result.state)) }
+        : result;
     }
     let next = stateOf(result.state);
     if (Object.keys(before.witnessedDepartures ?? {}).length > 0) {
@@ -2518,7 +2558,20 @@ export function createChapelCluesRuntime(
         });
       }
     }
-    return { state: observeThresholds(next), events };
+    const observed = observeThresholds(next);
+    if (routeTravelEnabled && routeDays !== undefined) {
+      const first = events[0];
+      if (
+        first?.type === "clue" &&
+        (first.operation === "move" || first.operation === "follow")
+      ) {
+        events[0] = {
+          ...first,
+          text: `You travel to ${room(observed.locationId).name} in ${routeDays} day${routeDays === 1 ? "" : "s"}. ${describe(observed)}`,
+        };
+      }
+    }
+    return { state: observed, events };
   }
   const tool = (
     name: GameToolDefinition["name"],
@@ -2724,7 +2777,9 @@ export function createChapelCluesRuntime(
         ? [
             tool(
               "move",
-              "Move to a visible adjacent location.",
+              routeTravelEnabled
+                ? "Travel through a visible exit for its shown day cost; local exits cost zero days."
+                : "Move to a visible adjacent location.",
               "destinationId",
               exits.map(({ id }) => id),
             ),
@@ -2793,83 +2848,89 @@ export function createChapelCluesRuntime(
     ];
   }
   const hasRelocation = definition.rulesVersion !== "chapel-clues-rules-v1";
-  const version = offersEnabled
+  const version = routeTravelEnabled
     ? {
-        engineVersion: OFFER_ENGINE_VERSION,
-        promptVersion: "chapel-clues-dm-v17",
-        toolSchemaVersion: "chapel-clues-tools-v14",
+        engineVersion: TRAVEL_ENGINE_VERSION,
+        promptVersion: "chapel-clues-dm-v18",
+        toolSchemaVersion: "chapel-clues-tools-v15",
       }
-    : deceptionEnabled
+    : offersEnabled
       ? {
-          engineVersion: DECEPTION_ENGINE_VERSION,
-          promptVersion: "chapel-clues-dm-v16",
-          toolSchemaVersion: "chapel-clues-tools-v13",
+          engineVersion: OFFER_ENGINE_VERSION,
+          promptVersion: "chapel-clues-dm-v17",
+          toolSchemaVersion: "chapel-clues-tools-v14",
         }
-      : distractionEnabled
+      : deceptionEnabled
         ? {
-            engineVersion: DISTRACTION_ENGINE_VERSION,
-            promptVersion: "chapel-clues-dm-v15",
-            toolSchemaVersion: "chapel-clues-tools-v12",
+            engineVersion: DECEPTION_ENGINE_VERSION,
+            promptVersion: "chapel-clues-dm-v16",
+            toolSchemaVersion: "chapel-clues-tools-v13",
           }
-        : dayEnabled
+        : distractionEnabled
           ? {
-              engineVersion: DAY_ENGINE_VERSION,
-              promptVersion: "chapel-clues-dm-v14",
-              toolSchemaVersion: "chapel-clues-tools-v11",
+              engineVersion: DISTRACTION_ENGINE_VERSION,
+              promptVersion: "chapel-clues-dm-v15",
+              toolSchemaVersion: "chapel-clues-tools-v12",
             }
-          : adjudicationEnabled
+          : dayEnabled
             ? {
-                engineVersion: ADJUDICATION_ENGINE_VERSION,
-                promptVersion: "chapel-clues-dm-v13",
-                toolSchemaVersion: "chapel-clues-tools-v10",
+                engineVersion: DAY_ENGINE_VERSION,
+                promptVersion: "chapel-clues-dm-v14",
+                toolSchemaVersion: "chapel-clues-tools-v11",
               }
-            : clocksEnabled
+            : adjudicationEnabled
               ? {
-                  engineVersion: CLOCK_ENGINE_VERSION,
-                  promptVersion: "chapel-clues-dm-v12",
-                  toolSchemaVersion: "chapel-clues-tools-v9",
+                  engineVersion: ADJUDICATION_ENGINE_VERSION,
+                  promptVersion: "chapel-clues-dm-v13",
+                  toolSchemaVersion: "chapel-clues-tools-v10",
                 }
-              : relationshipsEnabled
+              : clocksEnabled
                 ? {
-                    engineVersion: RELATIONSHIP_ENGINE_VERSION,
-                    promptVersion: "chapel-clues-dm-v11",
-                    toolSchemaVersion: "chapel-clues-tools-v8",
+                    engineVersion: CLOCK_ENGINE_VERSION,
+                    promptVersion: "chapel-clues-dm-v12",
+                    toolSchemaVersion: "chapel-clues-tools-v9",
                   }
-                : endingsEnabled
+                : relationshipsEnabled
                   ? {
-                      engineVersion: CLUES_ENGINE_VERSION,
-                      promptVersion: CLUES_PROMPT_VERSION,
-                      toolSchemaVersion: CLUES_TOOL_VERSION,
+                      engineVersion: RELATIONSHIP_ENGINE_VERSION,
+                      promptVersion: "chapel-clues-dm-v11",
+                      toolSchemaVersion: "chapel-clues-tools-v8",
                     }
-                  : casualtiesEnabled
+                  : endingsEnabled
                     ? {
-                        engineVersion: CASUALTY_CLUES_ENGINE_VERSION,
-                        promptVersion: "chapel-clues-dm-v6",
-                        toolSchemaVersion: "chapel-clues-tools-v6",
+                        engineVersion: CLUES_ENGINE_VERSION,
+                        promptVersion: CLUES_PROMPT_VERSION,
+                        toolSchemaVersion: CLUES_TOOL_VERSION,
                       }
-                    : hasRelocation
+                    : casualtiesEnabled
                       ? {
-                          engineVersion: RESCUE_CLUES_ENGINE_VERSION,
-                          promptVersion: "chapel-clues-dm-v5",
-                          toolSchemaVersion: "chapel-clues-tools-v5",
+                          engineVersion: CASUALTY_CLUES_ENGINE_VERSION,
+                          promptVersion: "chapel-clues-dm-v6",
+                          toolSchemaVersion: "chapel-clues-tools-v6",
                         }
-                      : definition.items !== undefined
+                      : hasRelocation
                         ? {
-                            engineVersion: POTION_CLUES_ENGINE_VERSION,
-                            promptVersion: "chapel-clues-dm-v4",
-                            toolSchemaVersion: "chapel-clues-tools-v4",
+                            engineVersion: RESCUE_CLUES_ENGINE_VERSION,
+                            promptVersion: "chapel-clues-dm-v5",
+                            toolSchemaVersion: "chapel-clues-tools-v5",
                           }
-                        : combatEnabled
+                        : definition.items !== undefined
                           ? {
-                              engineVersion: COMBAT_CLUES_ENGINE_VERSION,
-                              promptVersion: "chapel-clues-dm-v3",
-                              toolSchemaVersion: "chapel-clues-tools-v3",
+                              engineVersion: POTION_CLUES_ENGINE_VERSION,
+                              promptVersion: "chapel-clues-dm-v4",
+                              toolSchemaVersion: "chapel-clues-tools-v4",
                             }
-                          : {
-                              engineVersion: LEGACY_CLUES_ENGINE_VERSION,
-                              promptVersion: "chapel-clues-dm-v2",
-                              toolSchemaVersion: "chapel-clues-tools-v2",
-                            };
+                          : combatEnabled
+                            ? {
+                                engineVersion: COMBAT_CLUES_ENGINE_VERSION,
+                                promptVersion: "chapel-clues-dm-v3",
+                                toolSchemaVersion: "chapel-clues-tools-v3",
+                              }
+                            : {
+                                engineVersion: LEGACY_CLUES_ENGINE_VERSION,
+                                promptVersion: "chapel-clues-dm-v2",
+                                toolSchemaVersion: "chapel-clues-tools-v2",
+                              };
   const displayedClueText = (entry: ClueTextEvent, state: ClueState) =>
     entry.operation === "follow"
       ? `You follow ${npcById(entry.target ?? "")?.name ?? "the witness"} through the adjacent route to ${room(state.locationId).name}. ${describe(state)}`
