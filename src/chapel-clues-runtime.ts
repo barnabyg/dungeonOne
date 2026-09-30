@@ -880,13 +880,20 @@ export function createChapelCluesRuntime(
         : ""
     }${clocksEnabled ? `\nClocks: ${clockStatus(state)}.` : ""}${state.ending === undefined ? "" : `\nResolution: ${state.ending.narration}`}`;
   };
-  const talkCommands = (
+  const talkOptions = (
     state: ClueState,
     npc: ReturnType<typeof visible>["npcs"][number],
   ) =>
     npc.topics
       .filter((topic) => eligible(state, topic.when))
-      .map((topic) => `talk ${npc.id} ${topic.id} ask`);
+      .map((topic) => ({
+        name: topic.name,
+        command: `talk ${npc.id} ${topic.id} ask`,
+      }));
+  const talkCommands = (
+    state: ClueState,
+    npc: ReturnType<typeof visible>["npcs"][number],
+  ) => talkOptions(state, npc).map(({ command }) => command);
   const commandHints = (state: ClueState) => {
     const { features, exits, npcs } = visible(state);
     const topic = npcs.flatMap((npc) => talkCommands(state, npc))[0];
