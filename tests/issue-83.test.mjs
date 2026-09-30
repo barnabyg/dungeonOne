@@ -81,7 +81,7 @@ test("a named person's topic menu is copyable and costs no day, roll, or convers
     ]);
     assert.match(
       menu,
-      /Current topics: Ask about the beacon and two leads — talk iona brief ask/,
+      /Captain Iona can discuss: Ask about the beacon and two leads — talk iona brief ask/,
     );
     assert.match(menu, /Ask how the watch responds — talk iona response ask/);
     assert.doesNotMatch(menu, /talk iona relay-warning ask/);

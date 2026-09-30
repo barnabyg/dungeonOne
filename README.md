@@ -353,6 +353,15 @@ with a fresh save path and enter `move refugee-camp`,
 `talk sera keeper-warning ask`, `move watch-yard`, `move valley-road`,
 `search wagon-ruts`, `move beacon-tower`, and `resolve hold-beacon`.
 
+[The conversation opening](adventures/hollow-beacon-conversations.json) is
+content version 3. It keeps the version-2 journey available for old saves and
+removes an unsupported claim from Iona's first reply. To find a subject without
+spending time, enter `talk Captain Iona` or `talk to Captain Iona` in the Watch
+Yard, or `talk Sera` at the Refugee Camp. The response names currently available
+subjects with commands you can copy. See the [issue 83 player handoff and
+review](docs/acceptance/issue-83.md) for a complete exchange and the reviewer's
+feedback.
+
 [Raiders at the Crossroads](adventures/raider-crossroads.json) is a separate
 schema-5 adventure. Start at the town-edge hall and choose to help Lysa,
 refuse the errand, or leave town. The cellar register supports on-time and

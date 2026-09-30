@@ -3349,12 +3349,10 @@ export function createChapelCluesRuntime(
                 ? `${speaker.name} has no available conversation topics. ${commandHints(state)}`
                 : `No action was taken with ${speaker.name}. Available conversation commands: ${commands.join("; ")}.`;
             }
-            const topics = speaker.topics.filter((topic) =>
-              eligible(state, topic.when),
-            );
-            return topics.length === 0
-              ? `${speaker.name} has nothing relevant to discuss right now. No conversation was recorded.`
-              : `No conversation was recorded with ${speaker.name}. Current topics: ${topics.map((topic) => `${topic.name} — talk ${speaker.id} ${topic.id} ask`).join("; ")}.`;
+            const options = talkOptions(state, speaker);
+            return options.length === 0
+              ? `${speaker.name} has nothing relevant to discuss right now.`
+              : `${speaker.name} can discuss: ${options.map(({ name, command }) => `${name} — ${command}`).join("; ")}. Choose a command to speak.`;
           }
         }
         return `Action unavailable: ${result.rejection.reason}.${state.status === "playing" ? ` ${commandHints(state)}` : ""}`;
