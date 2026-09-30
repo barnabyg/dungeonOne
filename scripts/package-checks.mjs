@@ -74,6 +74,7 @@ const authoredAssets = [
   "adventures/barricaded-crossroads.json",
   "adventures/day-raider-crossroads.json",
   "adventures/deceptive-crossroads.json",
+  "adventures/bribed-crossroads.json",
   "schema/adventure-v1.schema.json",
   "schema/adventure-v2.schema.json",
   "schema/adventure-v3.schema.json",
@@ -82,6 +83,7 @@ const authoredAssets = [
   "schema/adventure-v6.schema.json",
   "schema/adventure-v7.schema.json",
   "schema/adventure-v8.schema.json",
+  "schema/adventure-v9.schema.json",
 ];
 
 for (const adventure of authoredAssets.filter((asset) =>

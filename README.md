@@ -306,6 +306,26 @@ Enter `attempt deceive lysa about neri safe route` and `talk lysa response
 ask`. A successful check shows both rolls and Lysa's conditional belief.
 To see failure, use seed 5 and a separate save path.
 
+[The Cellar Offer](adventures/bribed-crossroads.json) uses
+[schema 9](schema/adventure-v9.schema.json) / `chapel-clues-rules-v10` for
+authored item offers. Take the restorative tonic in the cellar, then offer it
+to the visible guard. He accepts it, spends the tonic, and becomes trusted;
+`talk guard return ask` reflects that change. Lysa refuses the same offer and
+returns the tonic to inventory. Each valid offer costs one day, while stale,
+uncarried, absent, dead, or unoffered attempts change nothing. Offering never
+applies the tonic's healing effect. Read `look`, `status`, `inventory`, or
+`journal` after the exchange, and resume a save to see the same outcome.
+
+```powershell
+npm.cmd run build
+node dist/cli.js --adventure-file adventures/bribed-crossroads.json --seed 0 --save offer-save.json
+```
+
+Enter `move cellar`, `take tonic`, `offer tonic to guard`,
+`talk guard return ask`, and `inventory`. To try refusal, start a fresh save,
+enter `move cellar`, `take tonic`, `move square`, `move hall`, and
+`offer tonic to lysa`. The refused tonic stays available for ordinary healing.
+
 [Raiders at the Crossroads](adventures/raider-crossroads.json) is a separate
 schema-5 adventure. Start at the town-edge hall and choose to help Lysa,
 refuse the errand, or leave town. The cellar register supports on-time and

@@ -229,6 +229,18 @@ export function projectDmHistory(
             });
           }
           break;
+        case "item-offered":
+          if (
+            (speakerId === undefined || speakerId === event.npcId) &&
+            state.offers?.[event.profileId] === event.outcome
+          ) {
+            candidates.push({
+              ...common,
+              subjectId: event.npcId,
+              detail: `${event.itemId}: ${event.outcome}; ${event.itemCost}`,
+            });
+          }
+          break;
         default:
           break;
       }

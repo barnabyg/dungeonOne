@@ -8,6 +8,7 @@ import { CLOCK_SCHEMA } from "./clock-schema.js";
 import { ADJUDICATION_SCHEMA } from "./adjudication-schema.js";
 import { DAY_SCHEMA } from "./day-schema.js";
 import { DECEPTION_SCHEMA } from "./deception-schema.js";
+import { OFFER_SCHEMA } from "./offer-schema.js";
 import { analyzeProgression } from "./progression-analysis.js";
 
 export const EXPLORATION_RULES_VERSION = "exploration-rules-v1";
@@ -160,7 +161,7 @@ export type DialogueNpc = Readonly<{
   }>;
 }>;
 export type ChapelCluesDefinition = Readonly<{
-  schemaVersion: 3 | 4 | 5 | 6 | 7 | 8;
+  schemaVersion: 3 | 4 | 5 | 6 | 7 | 8 | 9;
   id: string;
   contentVersion: string;
   rulesVersion:
@@ -172,7 +173,8 @@ export type ChapelCluesDefinition = Readonly<{
     | "chapel-clues-rules-v6"
     | "chapel-clues-rules-v7"
     | "chapel-clues-rules-v8"
-    | "chapel-clues-rules-v9";
+    | "chapel-clues-rules-v9"
+    | "chapel-clues-rules-v10";
   title: string;
   introduction: string;
   objective: string;
@@ -254,6 +256,17 @@ export type ChapelCluesDefinition = Readonly<{
     failureText: string;
     acceptedReply: string;
     rejectedReply: string;
+  }>[];
+  offerProfiles?: readonly Readonly<{
+    id: string;
+    npcId: string;
+    itemId: string;
+    outcome: "accepted" | "refused";
+    itemCost: "consumed" | "retained";
+    timeCost: number;
+    when: readonly ClueCondition[];
+    responseText: string;
+    relationship?: Readonly<{ tier: Relationship["tier"]; reason: string }>;
   }>[];
   locations: readonly (LocationDefinition &
     Readonly<{ descriptions?: readonly ConditionalClueText[] }>)[];
@@ -904,6 +917,7 @@ function validateClueReferences(
       "chapel-clues-rules-v7",
       "chapel-clues-rules-v8",
       "chapel-clues-rules-v9",
+      "chapel-clues-rules-v10",
     ].includes(snapshot.rulesVersion) &&
     (snapshot.npcs ?? []).some(
       (npc) => npc.combat !== undefined || npc.remains !== undefined,
@@ -925,6 +939,7 @@ function validateClueReferences(
       "chapel-clues-rules-v7",
       "chapel-clues-rules-v8",
       "chapel-clues-rules-v9",
+      "chapel-clues-rules-v10",
     ].includes(snapshot.rulesVersion)
   ) {
     error(
@@ -984,6 +999,7 @@ function validateClueReferences(
         namespace: "deceptionProfiles",
         entries: snapshot.deceptionProfiles ?? [],
       },
+      { namespace: "offerProfiles", entries: snapshot.offerProfiles ?? [] },
       { namespace: "features", entries: snapshot.features },
       { namespace: "discoveries", entries: snapshot.discoveries },
       { namespace: "searches", entries: snapshot.searches },
@@ -1037,7 +1053,8 @@ function validateClueReferences(
     snapshot.rulesVersion === "chapel-clues-rules-v6" ||
     snapshot.rulesVersion === "chapel-clues-rules-v7" ||
     snapshot.rulesVersion === "chapel-clues-rules-v8" ||
-    snapshot.rulesVersion === "chapel-clues-rules-v9"
+    snapshot.rulesVersion === "chapel-clues-rules-v9" ||
+    snapshot.rulesVersion === "chapel-clues-rules-v10"
   ) {
     (snapshot.monsters ?? []).forEach((monster, i) => {
       if (npcs.has(monster.id)) {
@@ -1260,7 +1277,8 @@ function validateClueReferences(
           snapshot.rulesVersion !== "chapel-clues-rules-v6" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v7" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v8" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v9"
+          snapshot.rulesVersion !== "chapel-clues-rules-v9" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v10"
         ) {
           error(
             "unsupported-rules",
@@ -1276,7 +1294,8 @@ function validateClueReferences(
           snapshot.rulesVersion !== "chapel-clues-rules-v6" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v7" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v8" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v9"
+          snapshot.rulesVersion !== "chapel-clues-rules-v9" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v10"
         ) {
           error(
             "unsupported-rules",
@@ -1356,6 +1375,62 @@ function validateClueReferences(
     }
     deceptionResponses.add(responseKey);
     conditions(profile.when, `${path}/when`, profile.id);
+  });
+  const offerTargets = new Set<string>();
+  (snapshot.offerProfiles ?? []).forEach((profile, i) => {
+    const path = `/offerProfiles/${i}`;
+    ref(npcs, profile.npcId, `${path}/npcId`, profile.id);
+    ref(
+      new Set((snapshot.items ?? []).map(({ id }) => id)),
+      profile.itemId,
+      `${path}/itemId`,
+      profile.id,
+    );
+    conditions(profile.when, `${path}/when`, profile.id);
+    const key = `${profile.npcId}/${profile.itemId}`;
+    if (offerTargets.has(key)) {
+      error(
+        "duplicate-id",
+        `${path}/itemId`,
+        profile.id,
+        "Only one offer profile may pair this NPC and item.",
+      );
+    }
+    offerTargets.add(key);
+    if (
+      profile.outcome === "accepted" &&
+      (profile.relationship === undefined ||
+        !relationshipTargets.has(profile.npcId))
+    ) {
+      error(
+        "invalid-adjudication",
+        `${path}/relationship`,
+        profile.id,
+        "An accepted offer must change a defined relationship.",
+      );
+    }
+    if (
+      profile.outcome === "accepted" &&
+      profile.relationship?.tier ===
+        snapshot.relationships?.find(
+          ({ targetId }) => targetId === profile.npcId,
+        )?.tier
+    ) {
+      error(
+        "invalid-adjudication",
+        `${path}/relationship/tier`,
+        profile.id,
+        "An accepted offer must change the initial relationship tier.",
+      );
+    }
+    if (profile.outcome === "refused" && profile.relationship !== undefined) {
+      error(
+        "invalid-adjudication",
+        `${path}/relationship`,
+        profile.id,
+        "A refused offer cannot change a relationship.",
+      );
+    }
   });
   if (snapshot.endings !== undefined) {
     const endings = snapshot.endings;
@@ -2350,21 +2425,24 @@ export function loadAdventure(input: string | Uint8Array):
       (parsed as { rulesVersion?: string } | null)?.rulesVersion ===
         "signet-rules-v1"
       ? SIGNET_SCHEMA
-      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 8
-        ? DECEPTION_SCHEMA
-        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 7
-          ? DAY_SCHEMA
-          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 6
-            ? ADJUDICATION_SCHEMA
-            : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 5
-              ? CLOCK_SCHEMA
+      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 9
+        ? OFFER_SCHEMA
+        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 8
+          ? DECEPTION_SCHEMA
+          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 7
+            ? DAY_SCHEMA
+            : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 6
+              ? ADJUDICATION_SCHEMA
               : (parsed as { schemaVersion?: number } | null)?.schemaVersion ===
-                  4
-                ? RELATIONSHIP_SCHEMA
+                  5
+                ? CLOCK_SCHEMA
                 : (parsed as { schemaVersion?: number } | null)
-                      ?.schemaVersion === 3
-                  ? CHAPEL_CLUES_SCHEMA
-                  : ADVENTURE_SCHEMA,
+                      ?.schemaVersion === 4
+                  ? RELATIONSHIP_SCHEMA
+                  : (parsed as { schemaVersion?: number } | null)
+                        ?.schemaVersion === 3
+                    ? CHAPEL_CLUES_SCHEMA
+                    : ADVENTURE_SCHEMA,
     "",
     diagnostics,
   );
@@ -2385,7 +2463,8 @@ export function loadAdventure(input: string | Uint8Array):
     snapshot.schemaVersion === 5 ||
     snapshot.schemaVersion === 6 ||
     snapshot.schemaVersion === 7 ||
-    snapshot.schemaVersion === 8
+    snapshot.schemaVersion === 8 ||
+    snapshot.schemaVersion === 9
   ) {
     validateClueReferences(snapshot, diagnostics);
     if (snapshot.schemaVersion >= 6) {
@@ -2411,7 +2490,8 @@ export function loadAdventure(input: string | Uint8Array):
     snapshot.schemaVersion === 5 ||
     snapshot.schemaVersion === 6 ||
     snapshot.schemaVersion === 7 ||
-    snapshot.schemaVersion === 8
+    snapshot.schemaVersion === 8 ||
+    snapshot.schemaVersion === 9
   ) {
     diagnostics.push(...analyzeProgression(snapshot));
   }

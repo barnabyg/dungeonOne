@@ -78,6 +78,7 @@ export type Action = Readonly<
       resourceId: string;
     }
   | { type: "deceive"; profileId: string; allyId: string; claimId: string }
+  | { type: "offer"; profileId: string; npcId: string; itemId: string }
   | { type: "status" }
   | { type: "inventory" }
   | { type: "journal" }
@@ -1108,6 +1109,14 @@ export function handleAction(
         rejection: {
           reason: "invalid-adjudication",
           detail: "This adventure does not offer deception checks.",
+        },
+      };
+    case "offer":
+      return {
+        state,
+        rejection: {
+          reason: "invalid-adjudication",
+          detail: "This adventure does not offer item exchanges.",
         },
       };
     case "quit":
