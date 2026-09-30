@@ -675,7 +675,7 @@
               ],
               "outcome": "any",
               "approach": "any",
-              "text": "Guard: Welcome back. I can guide you through the streets.",
+              "text": "Guard: Welcome back. I trust you; take the square route through the streets.",
               "attitude": "friendly",
               "approvedFactIds": [],
               "effects": []
@@ -1159,7 +1159,7 @@
       "itemCost": "consumed",
       "timeCost": 1,
       "when": [],
-      "responseText": "The guard accepts the tonic and promises to guide you.",
+      "responseText": "The guard accepts the tonic, thanks you, and treats you as a trusted visitor.",
       "relationship": {
         "tier": "trusted",
         "reason": "The guard accepted the restorative tonic as a gift."

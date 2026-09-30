@@ -122,7 +122,11 @@ test("accepted offer spends one carried tonic without healing and changes the gu
   );
   assert.match(
     game.renderResult(act(game, result.state, "talk guard return ask")),
-    /Welcome back/,
+    /Welcome back.*square route/,
+  );
+  assert.equal(
+    act(game, result.state, "move hall").rejection.reason,
+    "guarded-passage",
   );
   assert.match(
     game.renderResult(act(game, result.state, "look")),
