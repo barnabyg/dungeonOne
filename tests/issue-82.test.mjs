@@ -429,3 +429,52 @@ test("scripted AI and command travel reach the same canonical late world", () =>
     );
     assert.match(run("", ["--replay", aiTrace]), /Trace verified successfully/);
   }));
+
+test("scripted AI clarification after travel spends no day or draw", () =>
+  withDirectory((directory) => {
+    const commandSave = join(directory, "command.json");
+    const aiSave = join(directory, "clarified.json");
+    const aiScript = join(directory, "clarification-script.json");
+    run("move valley-road\n", [
+      "--adventure-file",
+      adventure,
+      "--seed",
+      "7",
+      "--save",
+      commandSave,
+    ]);
+    writeFileSync(
+      aiScript,
+      JSON.stringify([
+        {
+          toolCalls: [
+            {
+              id: "valley",
+              name: "move",
+              argumentsJson: JSON.stringify({ destinationId: "valley-road" }),
+            },
+          ],
+        },
+        { text: "You arrive on the valley road." },
+        { text: "Which route do you mean?" },
+      ]),
+    );
+    const output = run(
+      "Take the valley road\nGo onward\n",
+      ["--adventure-file", adventure, "--seed", "7", "--ai", "--save", aiSave],
+      aiScript,
+    );
+    assert.match(output, /Which route do you mean\?/);
+    assert.deepEqual(
+      save(aiSave).checkpoint.state,
+      save(commandSave).checkpoint.state,
+    );
+    assert.equal(
+      save(aiSave).checkpoint.randomPosition,
+      save(commandSave).checkpoint.randomPosition,
+    );
+    assert.deepEqual(
+      save(aiSave).checkpoint.randomState,
+      save(commandSave).checkpoint.randomState,
+    );
+  }));
