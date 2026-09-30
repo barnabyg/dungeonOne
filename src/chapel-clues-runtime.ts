@@ -274,6 +274,7 @@ export function createChapelCluesRuntime(
   }
   const definition: ChapelCluesDefinition = content.snapshot;
   const routeTravelEnabled = definition.schemaVersion === 10;
+  const namedTalkEnabled = definition.schemaVersion === 10;
   const dayEnabled = definition.schemaVersion >= 7;
   const deceptionEnabled = definition.schemaVersion >= 8;
   const offersEnabled = definition.schemaVersion >= 9;
@@ -3127,21 +3128,43 @@ export function createChapelCluesRuntime(
       }
       const [verb, ...rest] = normalized.split(" ");
       if (verb === "talk") {
-        const approach = rest.at(-1) ?? "";
-        const subject = rest.slice(0, -1).join(" ");
+        const parts =
+          namedTalkEnabled && rest[0] === "to" ? rest.slice(1) : rest;
+        const namedSpeaker = namedTalkEnabled
+          ? (definition.npcs ?? []).find((npc) =>
+              [npc.id, npc.name, ...npc.aliases].some(
+                (alias) => normalizeAlias(alias) === parts.join(" "),
+              ),
+            )
+          : undefined;
+        if (namedSpeaker !== undefined) {
+          return {
+            type: "talk",
+            target: namedSpeaker.id,
+            topic: "",
+            approach: "",
+          };
+        }
+        const approach = parts.at(-1) ?? "";
+        const subject = parts.slice(0, -1).join(" ");
         const speaker = (definition.npcs ?? [])
           .flatMap((npc) =>
-            [npc.id, ...npc.aliases].map((alias) => ({
+            [
+              npc.id,
+              ...(namedTalkEnabled ? [npc.name] : []),
+              ...npc.aliases,
+            ].map((alias) => ({
               npc,
               alias: normalizeAlias(alias),
             })),
           )
           .sort((a, b) => b.alias.length - a.alias.length)
           .find(({ alias }) => subject.startsWith(`${alias} `));
-        const target = speaker === undefined ? (rest[0] ?? "") : speaker.npc.id;
+        const target =
+          speaker === undefined ? (parts[0] ?? "") : speaker.npc.id;
         const topic =
           speaker === undefined
-            ? rest.slice(1, -1).join(" ")
+            ? parts.slice(1, -1).join(" ")
             : subject.slice(speaker.alias.length + 1);
         return { type: "talk", target, topic, approach };
       }
@@ -3313,10 +3336,18 @@ export function createChapelCluesRuntime(
             matches(npc, rejection.target),
           );
           if (speaker !== undefined) {
-            const commands = talkCommands(state, speaker);
-            return commands.length === 0
-              ? `${speaker.name} has no available conversation topics. ${commandHints(state)}`
-              : `No action was taken with ${speaker.name}. Available conversation commands: ${commands.join("; ")}.`;
+            if (!namedTalkEnabled) {
+              const commands = talkCommands(state, speaker);
+              return commands.length === 0
+                ? `${speaker.name} has no available conversation topics. ${commandHints(state)}`
+                : `No action was taken with ${speaker.name}. Available conversation commands: ${commands.join("; ")}.`;
+            }
+            const topics = speaker.topics.filter((topic) =>
+              eligible(state, topic.when),
+            );
+            return topics.length === 0
+              ? `${speaker.name} has nothing relevant to discuss right now. No conversation was recorded.`
+              : `No conversation was recorded with ${speaker.name}. Current topics: ${topics.map((topic) => `${topic.name} — talk ${speaker.id} ${topic.id} ask`).join("; ")}.`;
           }
         }
         return `Action unavailable: ${result.rejection.reason}.${state.status === "playing" ? ` ${commandHints(state)}` : ""}`;
