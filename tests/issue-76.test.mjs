@@ -195,6 +195,45 @@ test("hidden, dead, absent, unoffered, and repeated tactics reject without draws
   assert.deepEqual(stale.state, attempted);
 });
 
+test("a prior direct report closes the contradictory tactic before either die", () => {
+  const game = runtime();
+  const start = game.createSession();
+  const informed = {
+    ...start,
+    milestones: [...start.milestones, "neri-rescued"],
+    npcLocations: { ...start.npcLocations, neri: "square" },
+  };
+  const reported = game.handleAction(
+    informed,
+    game.parseCommand("talk lysa report rescue ask"),
+  );
+  assert.equal(reported.rejection, undefined);
+  assert.equal(reported.state.milestones.includes("rescue-reported"), true);
+  assert.equal(
+    game
+      .getGameToolDefinitions(reported.state)
+      .some(({ name }) => name === "deceive"),
+    false,
+  );
+  const rng = dice(20, 1);
+  const rejected = game.handleAction(
+    reported.state,
+    game.parseCommand(command),
+    rng,
+  );
+  assert.equal(rejected.rejection.reason, "invalid-adjudication");
+  assert.deepEqual(rejected.state, reported.state);
+  assert.equal(rng.calls, 0);
+  const response = game.handleAction(
+    reported.state,
+    game.parseCommand("talk lysa response ask"),
+  );
+  assert.match(
+    game.renderResult(response),
+    /Since you told me Neri reached the square/,
+  );
+});
+
 test("command and scripted-AI journeys save one event set and replay after provider failure", () => {
   const directory = mkdtempSync(join(tmpdir(), "dungeon-issue-76-"));
   try {

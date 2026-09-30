@@ -500,12 +500,22 @@ export function createChapelCluesRuntime(
       : [];
   const availableDeceptions = (state: ClueState) =>
     state.status === "playing" && activeOpponent(state) === undefined
-      ? (definition.deceptionProfiles ?? []).filter(
-          (profile) =>
+      ? (definition.deceptionProfiles ?? []).filter((profile) => {
+          const ally = visible(state).npcs.find(
+            ({ id }) => id === profile.allyId,
+          );
+          const response = ally?.topics.find(
+            ({ id }) => id === profile.responseTopicId,
+          );
+          return (
             state.deceptionChecks?.[profile.id] === undefined &&
             eligible(state, profile.when) &&
-            visible(state).npcs.some(({ id }) => id === profile.allyId),
-        )
+            response !== undefined &&
+            !response.replies
+              .slice(0, -1)
+              .some((reply) => eligible(state, reply.when))
+          );
+        })
       : [];
   const visible = (state: ClueState) => ({
     room: room(state.locationId),
