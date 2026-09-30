@@ -274,16 +274,6 @@ move names the still-open square route. Start a separate save with seed 0 to
 see a failed check, then repeat the attempt as `attempt distract cellar guard
 with crate`; it remains spent.
 
-[Deception at the Crossroads](adventures/deceptive-crossroads.json) uses
-[schema 8](schema/adventure-v8.schema.json) / `chapel-clues-rules-v9` for an
-authored lie to a visible ally. `attempt deceive lysa about neri safe route`
-rolls a player and defender d20 with authored modifiers; the defender wins a
-tie. Either result costs one day, and the check can be tried once. `talk lysa
-response ask` then reflects whether Lysa accepted the claim. The claim remains
-her belief only: Neri's actual fate, discoveries, and other actors' knowledge
-do not change. Seed 0 succeeds and seed 5 fails from the initial hall scene.
-Hidden, absent, dead, unoffered, and repeated attempts cost no day or dice.
-
 ```powershell
 npm.cmd run build
 node dist/cli.js --adventure-file adventures/deadline-rescue.json --seed 0 --save deadline-save.json
@@ -295,6 +285,26 @@ save and enter `wait 3`, `wait 2`, `search route-register`, `move square`,
 `move back-lane`, `move hall`, and `resolve file-register`. After a saved action returns to the
 next `>` prompt, Ctrl+C and `node dist/cli.js --resume deadline-save.json`
 continue the same clock.
+
+[Deception at the Crossroads](adventures/deceptive-crossroads.json) uses
+[schema 8](schema/adventure-v8.schema.json) / `chapel-clues-rules-v9` for an
+authored lie to a visible ally. `attempt deceive lysa about neri safe route`
+rolls a player and defender d20 with authored modifiers; the defender wins a
+tie. Either result costs one day, and the check can be tried once. `talk lysa
+response ask` then reflects whether Lysa accepted the claim. The claim remains
+her belief only: Neri's actual fate, discoveries, and other actors' knowledge
+do not change. Seed 0 succeeds and seed 5 fails from the initial hall scene.
+Once Lysa has received a direct rescue or death report, the tactic closes.
+Hidden, absent, dead, unoffered, and repeated attempts cost no day or dice.
+
+```powershell
+npm.cmd run build
+node dist/cli.js --adventure-file adventures/deceptive-crossroads.json --seed 0 --save deception-save.json
+```
+
+Enter `attempt deceive lysa about neri safe route` and `talk lysa response
+ask`. A successful check shows both rolls and Lysa's conditional belief.
+To see failure, use seed 5 and a separate save path.
 
 [Raiders at the Crossroads](adventures/raider-crossroads.json) is a separate
 schema-5 adventure. Start at the town-edge hall and choose to help Lysa,

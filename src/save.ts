@@ -77,7 +77,7 @@ function requireSaveRuntime(runtime: AdventureRuntime): void {
     ) ||
     runtime.engineVersion === undefined
   ) {
-    throw new Error("Saves require a schema-3 through schema-7 adventure.");
+    throw new Error("Saves require a schema-3 through schema-8 adventure.");
   }
 }
 
