@@ -456,10 +456,27 @@ export async function runDmTurn(
     ]),
     diagnostics,
   });
+  const attemptedActionFallback = (): string => {
+    if (
+      ![
+        "chapel-clues-rules-v8",
+        "chapel-clues-rules-v9",
+        "chapel-clues-rules-v10",
+      ].includes(runtime.rulesVersion)
+    ) {
+      return COMMITTED_ACTION_FALLBACK;
+    }
+    const last = toolResults.at(-1);
+    const committed =
+      last?.result.engineResult !== undefined &&
+      "events" in last.result.engineResult;
+    const next = runtime.projectDmScene(state).suggestions?.[0];
+    return `${committed ? "The action resolved" : "No action was committed"}. ${mechanics.at(-1) ?? "No authoritative result was returned."}${next === undefined ? "" : ` Next: ${next}.`}`;
+  };
   const fail = (
     diagnostic: DmDiagnostic,
     narration = budget.mutationAttempts > 0
-      ? COMMITTED_ACTION_FALLBACK
+      ? attemptedActionFallback()
       : SAFE_FALLBACK,
     transcriptPlayerInput = playerInput,
   ): DmTurnResult => {

@@ -638,6 +638,22 @@ export function createChapelCluesRuntime(
     [entry.id, ...entry.aliases].some(
       (alias) => normalizeAlias(alias) === normalizeAlias(value),
     );
+  const actionIntent = (input: string | undefined) =>
+    normalizeAlias(input ?? "")
+      .replace(/[^a-z0-9 ]/gu, " ")
+      .replace(/\s+/gu, " ")
+      .trim();
+  const mentionsAlias = (intent: string, aliases: readonly string[]) =>
+    aliases.some((alias) =>
+      ` ${intent} `.includes(` ${normalizeAlias(alias)} `),
+    );
+  const unsafeActionIntent = (input: string | undefined, intent: string) =>
+    input === undefined ||
+    input.length > 256 ||
+    /[?;]/u.test(input) ||
+    /\b(?:not|never|no|dont|without|avoid|refuse|instead|maybe|might|if|unless|whether|either|or|should|could|would|can|may|perhaps|consider|then|and|also|afterwards|subsequently|burn|destroy|smash|kill)\b|\b(?:don t|won t)\b/u.test(
+      intent,
+    );
   const nextSearch = (state: ClueState, featureId: string) =>
     definition.searches.find(
       (search) => search.targetId === featureId && eligible(state, search.when),
@@ -3354,23 +3370,17 @@ export function createChapelCluesRuntime(
         }
         const item = definition.items!.find(({ id }) => id === profile.itemId)!;
         const npc = npcById(profile.npcId)!;
-        const intent = normalizeAlias(playerInput ?? "")
-          .replace(/[^a-z0-9 ]/gu, " ")
-          .replace(/\s+/gu, " ");
-        const mentions = (aliases: readonly string[]) =>
-          aliases.some((alias) =>
-            ` ${intent} `.includes(` ${normalizeAlias(alias)} `),
-          );
+        const intent = actionIntent(playerInput);
         if (
-          playerInput === undefined ||
-          playerInput.length > 256 ||
-          /[?;]/u.test(playerInput) ||
-          /\b(not|never|no|dont|without|avoid|refuse|instead|maybe|might|if|unless|whether|either|or|should|could|would|can|may|perhaps|consider|then|and|also)\b/u.test(
-            intent,
-          ) ||
-          !/\b(offer|give|bribe|hand)\b/u.test(intent) ||
-          !mentions([item.id, item.name, ...item.aliases]) ||
-          !mentions([npc.id, npc.name, ...npc.aliases])
+          unsafeActionIntent(playerInput, intent) ||
+          !/\b(offer|give|bribe|hand|trade|present)\b/u.test(intent) ||
+          !mentionsAlias(intent, [item.id, item.name, ...item.aliases]) ||
+          !mentionsAlias(intent, [npc.id, npc.name, ...npc.aliases]) ||
+          (definition.npcs ?? []).some(
+            (other) =>
+              other.id !== npc.id &&
+              mentionsAlias(intent, [other.id, other.name, ...other.aliases]),
+          )
         ) {
           return rejectProposal(
             "Name one carried item and visible NPC in a clear offer.",
@@ -3420,24 +3430,22 @@ export function createChapelCluesRuntime(
         const ally = (definition.npcs ?? []).find(
           ({ id }) => id === profile.allyId,
         )!;
-        const intent = normalizeAlias(playerInput ?? "")
-          .replace(/[^a-z0-9 ]/gu, " ")
-          .replace(/\s+/gu, " ");
-        const mentionsAlly = [ally.id, ally.name, ...ally.aliases].some(
-          (alias) => ` ${intent} `.includes(` ${normalizeAlias(alias)} `),
-        );
+        const intent = actionIntent(playerInput);
+        const mentionsAlly = mentionsAlias(intent, [
+          ally.id,
+          ally.name,
+          ...ally.aliases,
+        ]);
         if (
-          playerInput === undefined ||
-          playerInput.length > 256 ||
-          /[?;]/u.test(playerInput) ||
-          /\b(not|never|no|dont|without|avoid|refuse|instead|maybe|might|if|unless|whether|either|or|should|could|would|can|may|perhaps|consider|then|and|also)\b/u.test(
+          unsafeActionIntent(playerInput, intent) ||
+          !/\b(deceive|mislead|lie|fool|trick|convince|tell|persuade)\b/u.test(
             intent,
           ) ||
-          !/\b(deceive|mislead|lie|fool|trick|convince|tell)\b/u.test(intent) ||
           !mentionsAlly ||
-          ![profile.claimId, ...(profile.claimAliases ?? [])].some((alias) =>
-            ` ${intent} `.includes(` ${normalizeAlias(alias)} `),
-          )
+          !mentionsAlias(intent, [
+            profile.claimId,
+            ...(profile.claimAliases ?? []),
+          ])
         ) {
           return rejectProposal(
             "Ask for a clear affirmative lie naming the visible ally and offered claim.",
@@ -3490,23 +3498,23 @@ export function createChapelCluesRuntime(
         const resource = definition.features.find(
           ({ id }) => id === profile.resourceId,
         )!;
-        const intent = normalizeAlias(playerInput ?? "")
-          .replace(/[^a-z0-9 ]/gu, " ")
-          .replace(/\s+/gu, " ");
-        const mentions = (alias: string) =>
-          ` ${intent} `.includes(` ${normalizeAlias(alias)} `);
+        const intent = actionIntent(playerInput);
         if (
-          playerInput === undefined ||
-          playerInput.length > 256 ||
-          /[?;]/u.test(playerInput) ||
-          /\b(not|never|no|dont|without|avoid|refuse|instead|maybe|might|if|unless|whether|either|or|should|could|would|can|may|perhaps|consider|then|and|also)\b|\b(?:don t|won t)\b/u.test(
+          unsafeActionIntent(playerInput, intent) ||
+          !/\b(distract|lure|draw|rattle|divert|noise|noisy|clatter)\b|\b(?:create|make|cause|stage|try|attempt)\b.{0,40}\b(?:distraction|diversion)\b|make a racket/u.test(
             intent,
           ) ||
-          !/\b(distract|lure|draw|rattle|divert)\b|\b(?:create|make|cause|stage|try|attempt)\b.{0,40}\b(?:distraction|diversion)\b|make a racket/u.test(
-            intent,
-          ) ||
-          ![guard.id, guard.name, ...guard.aliases].some(mentions) ||
-          ![resource.id, resource.name, ...resource.aliases].some(mentions)
+          !mentionsAlias(intent, [guard.id, guard.name, ...guard.aliases]) ||
+          !mentionsAlias(intent, [
+            resource.id,
+            resource.name,
+            ...resource.aliases,
+          ]) ||
+          (definition.npcs ?? []).some(
+            (other) =>
+              other.id !== guard.id &&
+              mentionsAlias(intent, [other.id, other.name, ...other.aliases]),
+          )
         ) {
           return rejectProposal(
             "Ask for a clear affirmative distraction naming one visible guard and object.",
@@ -3567,9 +3575,7 @@ export function createChapelCluesRuntime(
         const resource = definition.features.find(
           ({ id }) => id === profile.resourceId,
         )!;
-        const normalizedIntent = normalizeAlias(playerInput ?? "")
-          .replace(/[^a-z0-9 ]/gu, " ")
-          .replace(/\s+/gu, " ");
+        const normalizedIntent = actionIntent(playerInput);
         const mentions = (alias: string) =>
           ` ${normalizedIntent} `.includes(` ${normalizeAlias(alias)} `);
         const namesTarget = [
@@ -3608,13 +3614,10 @@ export function createChapelCluesRuntime(
             [feature.id, feature.name, ...feature.aliases].some(mentions),
         );
         if (
-          playerInput === undefined ||
-          playerInput.length > 256 ||
-          /[?;]/u.test(playerInput) ||
-          /\b(not|never|no|dont|without|avoid|refuse|instead|maybe|might|if|unless|whether|either|or|should|could|would|can|may|perhaps|consider|then|and|also)\b|\b(?:don t|won t)\b/u.test(
+          unsafeActionIntent(playerInput, normalizedIntent) ||
+          !/\b(barricade|block|brace|bar|wedge|obstruct)\b/u.test(
             normalizedIntent,
           ) ||
-          !/\b(barricade|block|brace)\b/u.test(normalizedIntent) ||
           !namesTarget ||
           !namesResource ||
           namesAnotherPassage ||
@@ -3631,7 +3634,7 @@ export function createChapelCluesRuntime(
             targetId: target.id,
             resourceId: resource.id,
             approach: "brace",
-            intent: playerInput,
+            intent: playerInput!,
           },
         };
         const result = advanceAction(state, action, random);
@@ -3728,13 +3731,16 @@ export function createChapelCluesRuntime(
       }
       if (call.name === "follow" && playerInput !== undefined) {
         const npc = npcById(String(record.npcId));
-        const intent = normalizeAlias(playerInput).replace(/[.!]/gu, "");
+        const intent = actionIntent(playerInput);
         if (
           npc === undefined ||
-          ![npc.id, npc.name, ...npc.aliases].some((alias) =>
-            ["follow", "i follow", "i want to follow", "i will follow"].some(
-              (prefix) => intent === `${prefix} ${normalizeAlias(alias)}`,
-            ),
+          unsafeActionIntent(playerInput, intent) ||
+          !/\b(follow|trail|shadow|pursue|tail)\b/u.test(intent) ||
+          !mentionsAlias(intent, [npc.id, npc.name, ...npc.aliases]) ||
+          (definition.npcs ?? []).some(
+            (other) =>
+              other.id !== npc.id &&
+              mentionsAlias(intent, [other.id, other.name, ...other.aliases]),
           )
         ) {
           return fail("unavailable-reference");
