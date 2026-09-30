@@ -1319,12 +1319,12 @@ function validateClueReferences(
     const path = `/deceptionProfiles/${i}`;
     const ally = snapshot.npcs?.find(({ id }) => id === profile.allyId);
     const topic = ally?.topics.find(({ id }) => id === profile.responseTopicId);
-    if (ally?.combat === undefined) {
+    if (ally === undefined) {
       error(
         "invalid-adjudication",
         `${path}/allyId`,
         profile.id,
-        "Ally must be a living, combat-capable NPC.",
+        "Unknown ally.",
       );
     }
     if (topic === undefined || topic.challengeId !== "none") {

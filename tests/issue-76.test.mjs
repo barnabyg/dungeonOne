@@ -82,6 +82,42 @@ test("schema v8 validates finite actor-specific tactics and preserves v7", () =>
   }
 });
 
+test("a visible peaceful ally can be the defender", () => {
+  const copy = structuredClone(content);
+  const scribe = structuredClone(copy.npcs.find(({ id }) => id === "lysa"));
+  scribe.id = "scribe";
+  scribe.name = "Scribe";
+  scribe.aliases = ["scribe"];
+  scribe.topics = [scribe.topics.find(({ id }) => id === "response")];
+  delete scribe.combat;
+  delete scribe.remains;
+  copy.npcs.push(scribe);
+  copy.deceptionProfiles[0].id = "scribe-neri-safe";
+  copy.deceptionProfiles[0].allyId = "scribe";
+  const game = runtime(copy);
+  const start = game.createSession();
+  assert.deepEqual(
+    game.getGameToolDefinitions(start).find(({ name }) => name === "deceive")
+      .parameters.properties.profileId.enum,
+    ["scribe-neri-safe"],
+  );
+  const result = game.handleAction(
+    start,
+    {
+      type: "deceive",
+      profileId: "scribe-neri-safe",
+      allyId: "scribe",
+      claimId: "neri-safe-route",
+    },
+    dice(20, 1),
+  );
+  assert.equal(result.rejection, undefined);
+  assert.equal(
+    result.state.deceptionChecks["scribe-neri-safe"].result,
+    "success",
+  );
+});
+
 test("opposed check shows both dice, defender wins ties, and only Lysa holds the claim", () => {
   const game = runtime();
   const start = game.createSession();
