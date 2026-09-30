@@ -226,6 +226,40 @@ test("one journey crosses multiple ordered thresholds exactly once", () =>
     ]);
   }));
 
+test("following a witnessed journey shows and spends that route's day cost", () =>
+  withDirectory((directory) => {
+    const witness = structuredClone(content);
+    witness.npcs.find((npc) => npc.id === "sera").locationId = "watch-yard";
+    witness.clocks[0].thresholds.unshift({
+      at: 1,
+      text: "Sera sets out along the valley road.",
+      visibleFrom: ["watch-yard"],
+      effects: [
+        {
+          type: "relocate-npc",
+          id: "sera",
+          fromLocationId: "watch-yard",
+          toLocationId: "valley-road",
+        },
+      ],
+    });
+    const path = join(directory, "witness.json");
+    const saved = join(directory, "witness-save.json");
+    writeFileSync(path, JSON.stringify(witness));
+    const output = run("wait days 1\nlook\nfollow sera\n", [
+      "--adventure-file",
+      path,
+      "--seed",
+      "0",
+      "--save",
+      saved,
+    ]);
+    assert.match(output, /Follow now: follow sera \(4 days\)/);
+    assert.match(output, /You follow Sera to Valley Road in 4 days/);
+    assert.equal(save(saved).checkpoint.state.locationId, "valley-road");
+    assert.equal(save(saved).checkpoint.state.clocks["caravan-deadline"], 5);
+  }));
+
 test("reads, invalid moves, and split resumes preserve clock and next draw", () =>
   withDirectory((directory) => {
     const plain = join(directory, "plain.json");

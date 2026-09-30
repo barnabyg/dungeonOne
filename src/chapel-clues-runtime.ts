@@ -649,10 +649,11 @@ export function createChapelCluesRuntime(
     });
   const trailNotice = (state: ClueState) =>
     followTargets(state)
-      .map(
-        (npc) =>
-          `You saw ${npc.name} leave toward ${room(state.witnessedDepartures![npc.id]!.to).name}. Follow now: follow ${npc.id}.`,
-      )
+      .map((npc) => {
+        const trail = state.witnessedDepartures![npc.id]!;
+        const days = followConnection(state, trail)?.travelDays ?? 0;
+        return `You saw ${npc.name} leave toward ${room(trail.to).name}. Follow now: follow ${npc.id}${routeTravelEnabled ? ` (${days} day${days === 1 ? "" : "s"})` : ""}.`;
+      })
       .join(" ");
   const matches = (
     entry: { id: string; aliases: readonly string[] },
@@ -2567,7 +2568,7 @@ export function createChapelCluesRuntime(
       ) {
         events[0] = {
           ...first,
-          text: `You travel to ${room(observed.locationId).name} in ${routeDays} day${routeDays === 1 ? "" : "s"}. ${describe(observed)}`,
+          text: `You ${first.operation === "follow" ? `follow ${npcById(first.target ?? "")?.name ?? "the witness"}` : "travel"} to ${room(observed.locationId).name} in ${routeDays} day${routeDays === 1 ? "" : "s"}. ${describe(observed)}`,
         };
       }
     }
@@ -2933,7 +2934,9 @@ export function createChapelCluesRuntime(
                               };
   const displayedClueText = (entry: ClueTextEvent, state: ClueState) =>
     entry.operation === "follow"
-      ? `You follow ${npcById(entry.target ?? "")?.name ?? "the witness"} through the adjacent route to ${room(state.locationId).name}. ${describe(state)}`
+      ? routeTravelEnabled
+        ? entry.text
+        : `You follow ${npcById(entry.target ?? "")?.name ?? "the witness"} through the adjacent route to ${room(state.locationId).name}. ${describe(state)}`
       : entry.text;
   return Object.freeze({
     id: definition.id,
