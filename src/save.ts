@@ -19,7 +19,7 @@ import type {
 import type { Action } from "./session.js";
 import type { GameToolCall } from "./game-tools.js";
 import type { RollRecord } from "./trace.js";
-import type { ClueState } from "./chapel-clues-runtime.js";
+import type { ClueState, OfferResolution } from "./chapel-clues-runtime.js";
 import { projectDmHistory, type DmHistory } from "./dm-history.js";
 
 const SAVE_BYTE_LIMIT = 16 * 1024 * 1024;
@@ -171,15 +171,7 @@ export type DomainEvent = Readonly<
       locationId: string;
     }
   | { type: "healing-item-used"; actionId: string; itemId: string }
-  | {
-      type: "item-offered";
-      actionId: string;
-      profileId: string;
-      npcId: string;
-      itemId: string;
-      outcome: "accepted" | "refused";
-      itemCost: "consumed" | "retained";
-    }
+  | ({ type: "item-offered"; actionId: string } & OfferResolution)
   | {
       type: "passage-barricaded";
       actionId: string;

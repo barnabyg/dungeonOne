@@ -121,6 +121,13 @@ export type ClueState = Readonly<{
       }>
     | undefined;
 }>;
+export type OfferResolution = Readonly<{
+  profileId: string;
+  npcId: string;
+  itemId: string;
+  outcome: "accepted" | "refused";
+  itemCost: "consumed" | "retained";
+}>;
 export type ClueTextEvent = Readonly<{
   type: "clue";
   operation:
@@ -197,13 +204,7 @@ export type ClueTextEvent = Readonly<{
     defenderTotal: number;
     result: "success" | "failure";
   }>;
-  offer?: Readonly<{
-    profileId: string;
-    npcId: string;
-    itemId: string;
-    outcome: "accepted" | "refused";
-    itemCost: "consumed" | "retained";
-  }>;
+  offer?: OfferResolution;
 }>;
 export type ClueEvent = AttackResolvedEvent<string> | ClueTextEvent;
 export type ClueConversation = Readonly<{
