@@ -370,8 +370,12 @@ guarded shift account may add testimony, but a failed check is remembered and
 the plate remains available if Pell refuses, leaves the loft at Day 3, or dies.
 Watch scenes and Iona's replies reflect the discovery and deadline. Earlier
 Hollow Beacon content versions remain available for their existing saves.
-Build with npm.cmd run build, then start the route with
-node dist/cli.js --adventure-file adventures/hollow-beacon-watch.json --seed 0 --save beacon-watch-save.json.
+
+```powershell
+npm.cmd run build
+npm.cmd start -- --adventure-file .\adventures\hollow-beacon-watch.json --seed 0 --save .\beacon-watch-save.json
+```
+
 Enter move watch-loft, talk Pell, talk pell shift persuade, move signal-records,
 search setting-plate, and journal. With seed 0, Pell refuses the first check;
 the journal still attributes the altered setting to the physical plate. The
