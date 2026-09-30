@@ -61,7 +61,11 @@
     "player": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["locationId", "hp", "maxHp"],
+      "required": [
+        "locationId",
+        "hp",
+        "maxHp"
+      ],
       "properties": {
         "locationId": {
           "type": "string",
@@ -88,7 +92,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "description", "aliases"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "aliases"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -122,14 +131,20 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["when", "text"],
+              "required": [
+                "when",
+                "text"
+              ],
               "properties": {
                 "when": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["type", "id"],
+                    "required": [
+                      "type",
+                      "id"
+                    ],
                     "properties": {
                       "type": {
                         "type": "string",
@@ -157,7 +172,11 @@
                       },
                       "tier": {
                         "type": "string",
-                        "enum": ["hostile", "neutral", "trusted"]
+                        "enum": [
+                          "hostile",
+                          "neutral",
+                          "trusted"
+                        ]
                       },
                       "at": {
                         "type": "integer",
@@ -185,7 +204,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "from", "to", "when"],
+        "required": [
+          "id",
+          "from",
+          "to",
+          "when"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -210,7 +234,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
@@ -238,7 +265,11 @@
                 },
                 "tier": {
                   "type": "string",
-                  "enum": ["hostile", "neutral", "trusted"]
+                  "enum": [
+                    "hostile",
+                    "neutral",
+                    "trusted"
+                  ]
                 },
                 "at": {
                   "type": "integer",
@@ -311,7 +342,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
@@ -339,7 +373,11 @@
                 },
                 "tier": {
                   "type": "string",
-                  "enum": ["hostile", "neutral", "trusted"]
+                  "enum": [
+                    "hostile",
+                    "neutral",
+                    "trusted"
+                  ]
                 },
                 "at": {
                   "type": "integer",
@@ -355,14 +393,20 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["when", "text"],
+              "required": [
+                "when",
+                "text"
+              ],
               "properties": {
                 "when": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["type", "id"],
+                    "required": [
+                      "type",
+                      "id"
+                    ],
                     "properties": {
                       "type": {
                         "type": "string",
@@ -390,7 +434,11 @@
                       },
                       "tier": {
                         "type": "string",
-                        "enum": ["hostile", "neutral", "trusted"]
+                        "enum": [
+                          "hostile",
+                          "neutral",
+                          "trusted"
+                        ]
                       },
                       "at": {
                         "type": "integer",
@@ -412,7 +460,10 @@
           },
           "capability": {
             "type": "string",
-            "enum": ["brace", "noise"]
+            "enum": [
+              "brace",
+              "noise"
+            ]
           }
         }
       }
@@ -420,7 +471,11 @@
     "quest": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "title", "milestones"],
+      "required": [
+        "id",
+        "title",
+        "milestones"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -468,7 +523,13 @@
     "endings": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["locationId", "when", "any", "fates", "choices"],
+      "required": [
+        "locationId",
+        "when",
+        "any",
+        "fates",
+        "choices"
+      ],
       "properties": {
         "locationId": {
           "type": "string",
@@ -481,7 +542,10 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["type", "id"],
+            "required": [
+              "type",
+              "id"
+            ],
             "properties": {
               "type": {
                 "type": "string",
@@ -509,7 +573,11 @@
               },
               "tier": {
                 "type": "string",
-                "enum": ["hostile", "neutral", "trusted"]
+                "enum": [
+                  "hostile",
+                  "neutral",
+                  "trusted"
+                ]
               },
               "at": {
                 "type": "integer",
@@ -527,7 +595,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
@@ -555,7 +626,11 @@
                 },
                 "tier": {
                   "type": "string",
-                  "enum": ["hostile", "neutral", "trusted"]
+                  "enum": [
+                    "hostile",
+                    "neutral",
+                    "trusted"
+                  ]
                 },
                 "at": {
                   "type": "integer",
@@ -573,7 +648,11 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "when", "text"],
+            "required": [
+              "id",
+              "when",
+              "text"
+            ],
             "properties": {
               "id": {
                 "type": "string",
@@ -586,7 +665,10 @@
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": ["type", "id"],
+                  "required": [
+                    "type",
+                    "id"
+                  ],
                   "properties": {
                     "type": {
                       "type": "string",
@@ -614,7 +696,11 @@
                     },
                     "tier": {
                       "type": "string",
-                      "enum": ["hostile", "neutral", "trusted"]
+                      "enum": [
+                        "hostile",
+                        "neutral",
+                        "trusted"
+                      ]
                     },
                     "at": {
                       "type": "integer",
@@ -675,7 +761,10 @@
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": ["type", "id"],
+                  "required": [
+                    "type",
+                    "id"
+                  ],
                   "properties": {
                     "type": {
                       "type": "string",
@@ -703,7 +792,11 @@
                     },
                     "tier": {
                       "type": "string",
-                      "enum": ["hostile", "neutral", "trusted"]
+                      "enum": [
+                        "hostile",
+                        "neutral",
+                        "trusted"
+                      ]
                     },
                     "at": {
                       "type": "integer",
@@ -719,7 +812,11 @@
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": ["id", "when", "text"],
+                  "required": [
+                    "id",
+                    "when",
+                    "text"
+                  ],
                   "properties": {
                     "id": {
                       "type": "string",
@@ -732,7 +829,10 @@
                       "items": {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": ["type", "id"],
+                        "required": [
+                          "type",
+                          "id"
+                        ],
                         "properties": {
                           "type": {
                             "type": "string",
@@ -760,7 +860,11 @@
                           },
                           "tier": {
                             "type": "string",
-                            "enum": ["hostile", "neutral", "trusted"]
+                            "enum": [
+                              "hostile",
+                              "neutral",
+                              "trusted"
+                            ]
                           },
                           "at": {
                             "type": "integer",
@@ -785,14 +889,20 @@
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": ["when", "text"],
+                  "required": [
+                    "when",
+                    "text"
+                  ],
                   "properties": {
                     "when": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": ["type", "id"],
+                        "required": [
+                          "type",
+                          "id"
+                        ],
                         "properties": {
                           "type": {
                             "type": "string",
@@ -820,7 +930,11 @@
                           },
                           "tier": {
                             "type": "string",
-                            "enum": ["hostile", "neutral", "trusted"]
+                            "enum": [
+                              "hostile",
+                              "neutral",
+                              "trusted"
+                            ]
                           },
                           "at": {
                             "type": "integer",
@@ -851,7 +965,13 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "title", "classification", "summary", "lead"],
+        "required": [
+          "id",
+          "title",
+          "classification",
+          "summary",
+          "lead"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -866,7 +986,11 @@
           },
           "classification": {
             "type": "string",
-            "enum": ["observation", "testimony", "belief"]
+            "enum": [
+              "observation",
+              "testimony",
+              "belief"
+            ]
           },
           "sourceFeatureId": {
             "type": "string",
@@ -895,14 +1019,20 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["when", "text"],
+              "required": [
+                "when",
+                "text"
+              ],
               "properties": {
                 "when": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["type", "id"],
+                    "required": [
+                      "type",
+                      "id"
+                    ],
                     "properties": {
                       "type": {
                         "type": "string",
@@ -930,7 +1060,11 @@
                       },
                       "tier": {
                         "type": "string",
-                        "enum": ["hostile", "neutral", "trusted"]
+                        "enum": [
+                          "hostile",
+                          "neutral",
+                          "trusted"
+                        ]
                       },
                       "at": {
                         "type": "integer",
@@ -959,7 +1093,13 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "targetId", "when", "effects", "text"],
+        "required": [
+          "id",
+          "targetId",
+          "when",
+          "effects",
+          "text"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -978,7 +1118,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
@@ -1006,7 +1149,11 @@
                 },
                 "tier": {
                   "type": "string",
-                  "enum": ["hostile", "neutral", "trusted"]
+                  "enum": [
+                    "hostile",
+                    "neutral",
+                    "trusted"
+                  ]
                 },
                 "at": {
                   "type": "integer",
@@ -1022,7 +1169,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
@@ -1047,7 +1197,11 @@
                 },
                 "tier": {
                   "type": "string",
-                  "enum": ["hostile", "neutral", "trusted"]
+                  "enum": [
+                    "hostile",
+                    "neutral",
+                    "trusted"
+                  ]
                 },
                 "reason": {
                   "type": "string",
@@ -1072,7 +1226,10 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "statement"],
+        "required": [
+          "id",
+          "statement"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -1140,7 +1297,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
@@ -1168,7 +1328,11 @@
                 },
                 "tier": {
                   "type": "string",
-                  "enum": ["hostile", "neutral", "trusted"]
+                  "enum": [
+                    "hostile",
+                    "neutral",
+                    "trusted"
+                  ]
                 },
                 "at": {
                   "type": "integer",
@@ -1225,7 +1389,11 @@
           "combat": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["hp", "maxHp", "stats"],
+            "required": [
+              "hp",
+              "maxHp",
+              "stats"
+            ],
             "properties": {
               "hp": {
                 "type": "integer",
@@ -1265,7 +1433,11 @@
                   "damage": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["dice", "sides", "modifier"],
+                    "required": [
+                      "dice",
+                      "sides",
+                      "modifier"
+                    ],
                     "properties": {
                       "dice": {
                         "type": "integer",
@@ -1291,7 +1463,9 @@
           "remains": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["description"],
+            "required": [
+              "description"
+            ],
             "properties": {
               "description": {
                 "type": "string",
@@ -1301,7 +1475,10 @@
               "search": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["text", "effects"],
+                "required": [
+                  "text",
+                  "effects"
+                ],
                 "properties": {
                   "text": {
                     "type": "string",
@@ -1313,7 +1490,10 @@
                     "items": {
                       "type": "object",
                       "additionalProperties": false,
-                      "required": ["type", "id"],
+                      "required": [
+                        "type",
+                        "id"
+                      ],
                       "properties": {
                         "type": {
                           "type": "string",
@@ -1338,7 +1518,11 @@
                         },
                         "tier": {
                           "type": "string",
-                          "enum": ["hostile", "neutral", "trusted"]
+                          "enum": [
+                            "hostile",
+                            "neutral",
+                            "trusted"
+                          ]
                         },
                         "reason": {
                           "type": "string",
@@ -1394,7 +1578,10 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["type", "id"],
+                    "required": [
+                      "type",
+                      "id"
+                    ],
                     "properties": {
                       "type": {
                         "type": "string",
@@ -1422,7 +1609,11 @@
                       },
                       "tier": {
                         "type": "string",
-                        "enum": ["hostile", "neutral", "trusted"]
+                        "enum": [
+                          "hostile",
+                          "neutral",
+                          "trusted"
+                        ]
                       },
                       "at": {
                         "type": "integer",
@@ -1459,7 +1650,10 @@
                         "items": {
                           "type": "object",
                           "additionalProperties": false,
-                          "required": ["type", "id"],
+                          "required": [
+                            "type",
+                            "id"
+                          ],
                           "properties": {
                             "type": {
                               "type": "string",
@@ -1487,7 +1681,11 @@
                             },
                             "tier": {
                               "type": "string",
-                              "enum": ["hostile", "neutral", "trusted"]
+                              "enum": [
+                                "hostile",
+                                "neutral",
+                                "trusted"
+                              ]
                             },
                             "at": {
                               "type": "integer",
@@ -1500,7 +1698,12 @@
                       },
                       "outcome": {
                         "type": "string",
-                        "enum": ["any", "unattempted", "success", "failure"]
+                        "enum": [
+                          "any",
+                          "unattempted",
+                          "success",
+                          "failure"
+                        ]
                       },
                       "approach": {
                         "type": "string",
@@ -1537,7 +1740,10 @@
                         "items": {
                           "type": "object",
                           "additionalProperties": false,
-                          "required": ["type", "id"],
+                          "required": [
+                            "type",
+                            "id"
+                          ],
                           "properties": {
                             "type": {
                               "type": "string",
@@ -1562,7 +1768,11 @@
                             },
                             "tier": {
                               "type": "string",
-                              "enum": ["hostile", "neutral", "trusted"]
+                              "enum": [
+                                "hostile",
+                                "neutral",
+                                "trusted"
+                              ]
                             },
                             "reason": {
                               "type": "string",
@@ -1651,7 +1861,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
@@ -1679,7 +1892,11 @@
                 },
                 "tier": {
                   "type": "string",
-                  "enum": ["hostile", "neutral", "trusted"]
+                  "enum": [
+                    "hostile",
+                    "neutral",
+                    "trusted"
+                  ]
                 },
                 "at": {
                   "type": "integer",
@@ -1697,7 +1914,10 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["type", "id"],
+                "required": [
+                  "type",
+                  "id"
+                ],
                 "properties": {
                   "type": {
                     "type": "string",
@@ -1725,7 +1945,11 @@
                   },
                   "tier": {
                     "type": "string",
-                    "enum": ["hostile", "neutral", "trusted"]
+                    "enum": [
+                      "hostile",
+                      "neutral",
+                      "trusted"
+                    ]
                   },
                   "at": {
                     "type": "integer",
@@ -1745,7 +1969,12 @@
     "combatProfile": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["armorClass", "attackBonus", "initiativeBonus", "damage"],
+      "required": [
+        "armorClass",
+        "attackBonus",
+        "initiativeBonus",
+        "damage"
+      ],
       "properties": {
         "armorClass": {
           "type": "integer",
@@ -1765,7 +1994,11 @@
         "damage": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["dice", "sides", "modifier"],
+          "required": [
+            "dice",
+            "sides",
+            "modifier"
+          ],
           "properties": {
             "dice": {
               "type": "integer",
@@ -1791,7 +2024,14 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "description", "aliases", "maxHp", "stats"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "aliases",
+          "maxHp",
+          "stats"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -1853,7 +2093,11 @@
               "damage": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["dice", "sides", "modifier"],
+                "required": [
+                  "dice",
+                  "sides",
+                  "modifier"
+                ],
                 "properties": {
                   "dice": {
                     "type": "integer",
@@ -1883,7 +2127,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "definitionId", "locationId", "hp"],
+        "required": [
+          "id",
+          "definitionId",
+          "locationId",
+          "hp"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -1917,7 +2166,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "monsterId", "when", "effects"],
+        "required": [
+          "id",
+          "monsterId",
+          "when",
+          "effects"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -1936,7 +2190,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
@@ -1964,7 +2221,11 @@
                 },
                 "tier": {
                   "type": "string",
-                  "enum": ["hostile", "neutral", "trusted"]
+                  "enum": [
+                    "hostile",
+                    "neutral",
+                    "trusted"
+                  ]
                 },
                 "at": {
                   "type": "integer",
@@ -1980,7 +2241,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
@@ -2005,7 +2269,11 @@
                 },
                 "tier": {
                   "type": "string",
-                  "enum": ["hostile", "neutral", "trusted"]
+                  "enum": [
+                    "hostile",
+                    "neutral",
+                    "trusted"
+                  ]
                 },
                 "reason": {
                   "type": "string",
@@ -2077,7 +2345,12 @@
           "healing": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["dice", "sides", "modifier", "target"],
+            "required": [
+              "dice",
+              "sides",
+              "modifier",
+              "target"
+            ],
             "properties": {
               "dice": {
                 "type": "integer",
@@ -2096,7 +2369,9 @@
               },
               "target": {
                 "type": "string",
-                "enum": ["fighter"]
+                "enum": [
+                  "fighter"
+                ]
               }
             }
           }
@@ -2110,7 +2385,11 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["targetId", "tier", "reason"],
+        "required": [
+          "targetId",
+          "tier",
+          "reason"
+        ],
         "properties": {
           "targetId": {
             "type": "string",
@@ -2120,7 +2399,11 @@
           },
           "tier": {
             "type": "string",
-            "enum": ["hostile", "neutral", "trusted"]
+            "enum": [
+              "hostile",
+              "neutral",
+              "trusted"
+            ]
           },
           "reason": {
             "type": "string",
@@ -2133,7 +2416,14 @@
     "timeCosts": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["move", "search", "talk", "take", "use", "attack"],
+      "required": [
+        "move",
+        "search",
+        "talk",
+        "take",
+        "use",
+        "attack"
+      ],
       "properties": {
         "move": {
           "type": "integer",
@@ -2174,7 +2464,14 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "initial", "maximum", "thresholds", "unit"],
+        "required": [
+          "id",
+          "name",
+          "initial",
+          "maximum",
+          "thresholds",
+          "unit"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -2204,7 +2501,12 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["at", "text", "effects", "visibleFrom"],
+              "required": [
+                "at",
+                "text",
+                "effects",
+                "visibleFrom"
+              ],
               "properties": {
                 "at": {
                   "type": "integer",
@@ -2223,11 +2525,17 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["type", "id"],
+                    "required": [
+                      "type",
+                      "id"
+                    ],
                     "properties": {
                       "type": {
                         "type": "string",
-                        "enum": ["record-milestone", "relocate-npc"]
+                        "enum": [
+                          "record-milestone",
+                          "relocate-npc"
+                        ]
                       },
                       "id": {
                         "type": "string",
@@ -2328,7 +2636,10 @@
           "effect": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["type", "connectionIds"],
+            "required": [
+              "type",
+              "connectionIds"
+            ],
             "properties": {
               "type": {
                 "type": "string",
@@ -2537,7 +2848,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
@@ -2565,7 +2879,11 @@
                 },
                 "tier": {
                   "type": "string",
-                  "enum": ["hostile", "neutral", "trusted"]
+                  "enum": [
+                    "hostile",
+                    "neutral",
+                    "trusted"
+                  ]
                 },
                 "at": {
                   "type": "integer",
@@ -2636,11 +2954,17 @@
           },
           "outcome": {
             "type": "string",
-            "enum": ["accepted", "refused"]
+            "enum": [
+              "accepted",
+              "refused"
+            ]
           },
           "itemCost": {
             "type": "string",
-            "enum": ["consumed", "retained"]
+            "enum": [
+              "consumed",
+              "retained"
+            ]
           },
           "timeCost": {
             "type": "integer",
@@ -2652,7 +2976,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["type", "id"],
+              "required": [
+                "type",
+                "id"
+              ],
               "properties": {
                 "type": {
                   "type": "string",
@@ -2680,7 +3007,11 @@
                 },
                 "tier": {
                   "type": "string",
-                  "enum": ["hostile", "neutral", "trusted"]
+                  "enum": [
+                    "hostile",
+                    "neutral",
+                    "trusted"
+                  ]
                 },
                 "at": {
                   "type": "integer",
@@ -2696,14 +3027,26 @@
             "minLength": 1,
             "maxLength": 4096
           },
+          "costText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
           "relationship": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["tier", "reason"],
+            "required": [
+              "tier",
+              "reason"
+            ],
             "properties": {
               "tier": {
                 "type": "string",
-                "enum": ["hostile", "neutral", "trusted"]
+                "enum": [
+                  "hostile",
+                  "neutral",
+                  "trusted"
+                ]
               },
               "reason": {
                 "type": "string",

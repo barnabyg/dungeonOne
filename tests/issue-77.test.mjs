@@ -73,6 +73,9 @@ test("schema v9 validates bounded offer profiles and preserves v8", () => {
     (copy) => {
       copy.offerProfiles[1].relationship = { tier: "trusted", reason: "No" };
     },
+    (copy) => {
+      copy.offerProfiles[1].itemCost = "consumed";
+    },
   ]) {
     const copy = structuredClone(content);
     mutate(copy);
@@ -202,6 +205,7 @@ test("refused offer follows retained-item policy and keeps healing available", (
 test("an authored refusal may spend the item, but says so without healing", () => {
   const copy = structuredClone(content);
   copy.offerProfiles[1].itemCost = "consumed";
+  copy.offerProfiles[1].costText = "The bottle breaks when Lysa hands it back.";
   const game = runtime(copy);
   const cellar = cellarWithTonic(game);
   const hall = act(
@@ -215,7 +219,11 @@ test("an authored refusal may spend the item, but says so without healing", () =
   assert.equal(result.state.fighter.hp, hall.fighter.hp);
   assert.match(
     game.renderResult(result),
-    /Offer refused.*restorative tonic is spent.*No healing occurs/s,
+    /bottle breaks when Lysa hands it back.*Offer refused.*restorative tonic is spent.*No healing occurs/s,
+  );
+  assert.match(
+    game.renderResult(act(game, result.state, "look")),
+    /bottle breaks/,
   );
 });
 

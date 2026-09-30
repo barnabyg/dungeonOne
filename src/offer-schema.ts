@@ -38,6 +38,7 @@ export const OFFER_SCHEMA = {
           timeCost: { type: "integer", minimum: 0, maximum: 7 },
           when: base.properties!.npcs!.items!.properties!.when!,
           responseText: prose,
+          costText: prose,
           relationship: {
             type: "object",
             additionalProperties: false,

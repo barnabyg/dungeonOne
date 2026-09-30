@@ -266,6 +266,7 @@ export type ChapelCluesDefinition = Readonly<{
     timeCost: number;
     when: readonly ClueCondition[];
     responseText: string;
+    costText?: string;
     relationship?: Readonly<{ tier: Relationship["tier"]; reason: string }>;
   }>[];
   locations: readonly (LocationDefinition &
@@ -1429,6 +1430,29 @@ function validateClueReferences(
         `${path}/relationship`,
         profile.id,
         "A refused offer cannot change a relationship.",
+      );
+    }
+    if (
+      profile.outcome === "refused" &&
+      profile.itemCost === "consumed" &&
+      profile.costText === undefined
+    ) {
+      error(
+        "invalid-adjudication",
+        `${path}/costText`,
+        profile.id,
+        "A consumed refused offer requires an authored explanation of the item loss.",
+      );
+    }
+    if (
+      profile.costText !== undefined &&
+      (profile.outcome !== "refused" || profile.itemCost !== "consumed")
+    ) {
+      error(
+        "invalid-adjudication",
+        `${path}/costText`,
+        profile.id,
+        "Cost text is only used when a refused offer consumes an item.",
       );
     }
   });

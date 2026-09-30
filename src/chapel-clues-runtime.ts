@@ -542,9 +542,8 @@ export function createChapelCluesRuntime(
   const offerNotice = (state: ClueState) =>
     (definition.offerProfiles ?? [])
       .filter((profile) => state.offers?.[profile.id] !== undefined)
-      .map(
-        (profile) =>
-          `${npcById(profile.npcId)?.name ?? profile.npcId} ${profile.outcome === "accepted" ? "accepted" : "refused"} the ${definition.items?.find(({ id }) => id === profile.itemId)?.name ?? profile.itemId}; it was ${profile.itemCost === "consumed" ? "spent" : "kept"}${profile.outcome === "accepted" ? `, and the relationship is ${state.relationships?.[profile.npcId]?.tier ?? "unchanged"}` : ""}.`,
+      .map((profile) =>
+        `${npcById(profile.npcId)?.name ?? profile.npcId} ${profile.outcome === "accepted" ? "accepted" : "refused"} the ${definition.items?.find(({ id }) => id === profile.itemId)?.name ?? profile.itemId}; it was ${profile.itemCost === "consumed" ? "spent" : "kept"}${profile.outcome === "accepted" ? `, and the relationship is ${state.relationships?.[profile.npcId]?.tier ?? "unchanged"}` : ""}. ${profile.costText ?? ""}`.trim(),
       )
       .join(" ");
   const visible = (state: ClueState) => ({
@@ -1489,7 +1488,7 @@ export function createChapelCluesRuntime(
         type: "clue",
         operation: "offer",
         target: npc.id,
-        text: `You offer the ${item.name} to ${npc.name}. ${profile.responseText} Offer ${profile.outcome}. The ${item.name} is ${profile.itemCost === "consumed" ? "spent" : "kept in your inventory"}. ${profile.outcome === "accepted" ? `Relationship with ${npc.name}: ${state.relationships?.[npc.id]?.tier ?? "neutral"} → ${profile.relationship!.tier}. ${profile.relationship!.reason}` : "Relationship unchanged."} Time cost: ${profile.timeCost} day${profile.timeCost === 1 ? "" : "s"}. No healing occurs.`,
+        text: `You offer the ${item.name} to ${npc.name}. ${profile.responseText} ${profile.costText === undefined ? "" : `${profile.costText} `}Offer ${profile.outcome}. The ${item.name} is ${profile.itemCost === "consumed" ? "spent" : "kept in your inventory"}. ${profile.outcome === "accepted" ? `Relationship with ${npc.name}: ${state.relationships?.[npc.id]?.tier ?? "neutral"} → ${profile.relationship!.tier}. ${profile.relationship!.reason}` : "Relationship unchanged."} Time cost: ${profile.timeCost} day${profile.timeCost === 1 ? "" : "s"}. No healing occurs.`,
         offer: {
           profileId: profile.id,
           npcId: npc.id,
