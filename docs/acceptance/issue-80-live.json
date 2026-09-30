@@ -1,0 +1,1112 @@
+{
+  "issue": 80,
+  "requestedModel": "gpt-5.6-luna",
+  "cases": [
+    {
+      "id": "barricade-1",
+      "category": "barricade",
+      "file": "bribed-crossroads",
+      "setup": [
+        "move square"
+      ],
+      "input": "Use that loose market cart to block the short passage to the hall.",
+      "expectedTool": "adjudicate",
+      "selectedTool": "adjudicate",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "adjudicate",
+          "argumentsJson": "{\"profileId\":\"cart-short-passage\",\"targetId\":\"square-hall\",\"resourceId\":\"market-cart\",\"approach\":\"brace\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "Barricade: You wedge the market cart across the short passage to the hall. The market cart blocks the short passage between Square and Hall. No roll or time cost."
+      ],
+      "narration": "You wedge the loose market cart across the short passage to the hall. The passage is now blocked. No time passes.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_054986f42e3f84fc016abd202bfa8487d1999df3b4d0f80973",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1042,
+            "outputTokens": 53,
+            "totalTokens": 1095
+          }
+        },
+        {
+          "responseId": "resp_054986f42e3f84fc016abd20341d9087d183d0730a758ed9a5",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1599,
+            "outputTokens": 28,
+            "totalTokens": 1627
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "65f2ad72217b80a41a7426f7a708d42e2a9cdb57dbd5323572e6578c7048fbf4",
+      "afterSha256": "e4dafacf3b3d625a42fcb9eaec8ef4f1162f6dc719f1f7836cd36ac3fc35e1f0"
+    },
+    {
+      "id": "barricade-2",
+      "category": "barricade",
+      "file": "bribed-crossroads",
+      "setup": [
+        "move square"
+      ],
+      "input": "Can you shove the market cart across the short passage? Do it.",
+      "expectedTool": "adjudicate",
+      "selectedTool": "adjudicate",
+      "selectionCorrect": true,
+      "changed": false,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "adjudicate",
+          "argumentsJson": "{\"profileId\":\"cart-short-passage\",\"targetId\":\"square-hall\",\"resourceId\":\"market-cart\",\"approach\":\"brace\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "Action unavailable: Ask for a clear affirmative barricade request naming one visible passage and object. Try: inspect short-passage; move cellar; move hall; attempt barricade square-hall with market-cart; wait days 1. Clues go in your journal; portable items go in your inventory."
+      ],
+      "narration": "Please clearly confirm the barricade: **“Barricade the stone short passage with the market cart.”**",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_084c71b6ab770f29016abd2036eb8487d18700736cd0b62cae",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1042,
+            "outputTokens": 71,
+            "totalTokens": 1113
+          }
+        },
+        {
+          "responseId": "resp_084c71b6ab770f29016abd203e250487d19f5fcf26489ccc6a",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1327,
+            "outputTokens": 63,
+            "totalTokens": 1390
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "65f2ad72217b80a41a7426f7a708d42e2a9cdb57dbd5323572e6578c7048fbf4",
+      "afterSha256": "65f2ad72217b80a41a7426f7a708d42e2a9cdb57dbd5323572e6578c7048fbf4"
+    },
+    {
+      "id": "barricade-3",
+      "category": "barricade",
+      "file": "bribed-crossroads",
+      "setup": [
+        "move square"
+      ],
+      "input": "Brace the square's short passage with the market cart.",
+      "expectedTool": "adjudicate",
+      "selectedTool": "adjudicate",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "adjudicate",
+          "argumentsJson": "{\"profileId\":\"cart-short-passage\",\"targetId\":\"square-hall\",\"resourceId\":\"market-cart\",\"approach\":\"brace\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "Barricade: You wedge the market cart across the short passage to the hall. The market cart blocks the short passage between Square and Hall. No roll or time cost."
+      ],
+      "narration": "You wedge the market cart across the square’s short passage to the hall. The passage is now barricaded. No time passes.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0cdd6d4ba5f31f58016abd203fdbfc87d1972c7eafc48f9487",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1039,
+            "outputTokens": 54,
+            "totalTokens": 1093
+          }
+        },
+        {
+          "responseId": "resp_0cdd6d4ba5f31f58016abd2046bfb487d1b719a7c07b6b1175",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1597,
+            "outputTokens": 30,
+            "totalTokens": 1627
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "65f2ad72217b80a41a7426f7a708d42e2a9cdb57dbd5323572e6578c7048fbf4",
+      "afterSha256": "e4dafacf3b3d625a42fcb9eaec8ef4f1162f6dc719f1f7836cd36ac3fc35e1f0"
+    },
+    {
+      "id": "distraction-1",
+      "category": "distraction",
+      "file": "bribed-crossroads",
+      "setup": [
+        "move cellar"
+      ],
+      "input": "Bang on the heavy crate so the guard looks away.",
+      "expectedTool": "distract",
+      "selectedTool": "distract",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "distract",
+          "argumentsJson": "{\"profileId\":\"crate-guard-door\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "Distraction check: d20 20 + modifier 2 = 22 vs DC 12 — success. Time cost: 1 day. The crate rattles. The guard turns toward it, leaving the side door to the hall open. The opening lasts until Day 5.\nDay 1 → Day 2.\nA horn sounds from the road. The raiders are nearing the hall."
+      ],
+      "narration": "The crate rattles loudly. The guard turns toward it, leaving the side door to the hall open until Day 5.\n\nA horn sounds from the road: the raiders are nearing the hall. It is Day 2.\n\nWhat do you do? You could search the route register, enter the hall, take the restorative tonic, or leave by the cellar exit.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_09d416dddfd3e801016abd20484cc887d1be88181fe184035b",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1484,
+            "outputTokens": 41,
+            "totalTokens": 1525
+          }
+        },
+        {
+          "responseId": "resp_09d416dddfd3e801016abd2049f9ec87d1ba90f7531371be8b",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 2633,
+            "outputTokens": 78,
+            "totalTokens": 2711
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "5c6fbecf6ae40ed283effcac06b7a9274452f394317e9ad1515352d97dcc6ab5",
+      "afterSha256": "dd99a3d576a9f17e52da483fe11a55cd78985e91306e199dca278eea4053be48"
+    },
+    {
+      "id": "distraction-2",
+      "category": "distraction",
+      "file": "bribed-crossroads",
+      "setup": [
+        "move cellar"
+      ],
+      "input": "Draw the cellar guard away by rattling the heavy crate.",
+      "expectedTool": "distract",
+      "selectedTool": "distract",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "distract",
+          "argumentsJson": "{\"profileId\":\"crate-guard-door\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "Distraction check: d20 20 + modifier 2 = 22 vs DC 12 — success. Time cost: 1 day. The crate rattles. The guard turns toward it, leaving the side door to the hall open. The opening lasts until Day 5.\nDay 1 → Day 2.\nA horn sounds from the road. The raiders are nearing the hall."
+      ],
+      "narration": "The crate rattles loudly. The guard turns toward it, leaving the side door to the hall open until Day 5.\n\nA horn sounds from the road—the raiders are nearing the hall. It is Day 2.\n\nYou can now search the route register, enter the hall, take the restorative tonic, or leave via the square.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_03b1d6992f52a568016abd204be07087d19616406e4f71af62",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1485,
+            "outputTokens": 35,
+            "totalTokens": 1520
+          }
+        },
+        {
+          "responseId": "resp_03b1d6992f52a568016abd2054182487d18a08396508690083",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 2628,
+            "outputTokens": 72,
+            "totalTokens": 2700
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "5c6fbecf6ae40ed283effcac06b7a9274452f394317e9ad1515352d97dcc6ab5",
+      "afterSha256": "dd99a3d576a9f17e52da483fe11a55cd78985e91306e199dca278eea4053be48"
+    },
+    {
+      "id": "distraction-3",
+      "category": "distraction",
+      "file": "bribed-crossroads",
+      "setup": [
+        "move cellar"
+      ],
+      "input": "I want to make a racket with the heavy crate to distract the guard.",
+      "expectedTool": "distract",
+      "selectedTool": "distract",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "distract",
+          "argumentsJson": "{\"profileId\":\"crate-guard-door\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "Distraction check: d20 20 + modifier 2 = 22 vs DC 12 — success. Time cost: 1 day. The crate rattles. The guard turns toward it, leaving the side door to the hall open. The opening lasts until Day 5.\nDay 1 → Day 2.\nA horn sounds from the road. The raiders are nearing the hall."
+      ],
+      "narration": "The crate rattles loudly. The guard turns toward it, leaving the side door to the hall open until Day 5.\n\nA horn sounds from the road: the raiders are nearing the hall. The clock advances to Day 2.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0d77e8b75a391191016abd205620e487d1833df26ac28b1c1a",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1488,
+            "outputTokens": 42,
+            "totalTokens": 1530
+          }
+        },
+        {
+          "responseId": "resp_0d77e8b75a391191016abd20598ecc87d1b981c67aa327a77f",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 2638,
+            "outputTokens": 52,
+            "totalTokens": 2690
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "5c6fbecf6ae40ed283effcac06b7a9274452f394317e9ad1515352d97dcc6ab5",
+      "afterSha256": "dd99a3d576a9f17e52da483fe11a55cd78985e91306e199dca278eea4053be48"
+    },
+    {
+      "id": "deception-1",
+      "category": "deception",
+      "file": "bribed-crossroads",
+      "setup": [],
+      "input": "Convince Lysa that Neri made it to the safe route, even though that is false.",
+      "expectedTool": "deceive",
+      "selectedTool": "deceive",
+      "selectionCorrect": true,
+      "changed": false,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "deceive",
+          "argumentsJson": "{\"profileId\":\"lysa-neri-safe\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "Action unavailable: Ask for a clear affirmative lie naming the visible ally and offered claim. Try: inspect hall-masonry; talk lysa request ask; move cellar; move square; move back-lane; attempt deceive lysa about neri-safe-route; resolve Refuse the errand; resolve Leave town; wait days 1. Clues go in your journal; portable items go in your inventory."
+      ],
+      "narration": "Please state the lie explicitly—for example: “I tell Lysa that Neri made it to the safe route.”",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0751505bb487480d016abd205d3bc087d18a2981d2aebcab9a",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1392,
+            "outputTokens": 45,
+            "totalTokens": 1437
+          }
+        },
+        {
+          "responseId": "resp_0751505bb487480d016abd205efdc087d1aadf1cc71fe42eb0",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1630,
+            "outputTokens": 27,
+            "totalTokens": 1657
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "74a1008d80a885f2148b71b60748007cd69f688d826c6aceec65692f02a07420",
+      "afterSha256": "74a1008d80a885f2148b71b60748007cd69f688d826c6aceec65692f02a07420"
+    },
+    {
+      "id": "deception-2",
+      "category": "deception",
+      "file": "bribed-crossroads",
+      "setup": [],
+      "input": "Lie to Lysa and say Neri reached safety.",
+      "expectedTool": "deceive",
+      "selectedTool": "deceive",
+      "selectionCorrect": true,
+      "changed": false,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "deceive",
+          "argumentsJson": "{\"profileId\":\"lysa-neri-safe\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "Action unavailable: Ask for a clear affirmative lie naming the visible ally and offered claim. Try: inspect hall-masonry; talk lysa request ask; move cellar; move square; move back-lane; attempt deceive lysa about neri-safe-route; resolve Refuse the errand; resolve Leave town; wait days 1. Clues go in your journal; portable items go in your inventory."
+      ],
+      "narration": "Do you clearly want to lie to Lysa, saying that Neri reached safety?",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0df3d79562bff641016abd2060cc1c87d19e0b03970239e611",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1383,
+            "outputTokens": 52,
+            "totalTokens": 1435
+          }
+        },
+        {
+          "responseId": "resp_0df3d79562bff641016abd2062244087d1875031366b25f197",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1628,
+            "outputTokens": 41,
+            "totalTokens": 1669
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "74a1008d80a885f2148b71b60748007cd69f688d826c6aceec65692f02a07420",
+      "afterSha256": "74a1008d80a885f2148b71b60748007cd69f688d826c6aceec65692f02a07420"
+    },
+    {
+      "id": "deception-3",
+      "category": "deception",
+      "file": "bribed-crossroads",
+      "setup": [],
+      "input": "Tell Lysa the untrue story that Neri is safe.",
+      "expectedTool": "deceive",
+      "selectedTool": "deceive",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "deceive",
+          "argumentsJson": "{\"profileId\":\"lysa-neri-safe\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "You claim to lysa: Neri reached the safe route and needs no rescue. Opposed deception: player d20 20 + 2 = 22; lysa d20 20 + 1 = 21. Tie rule: defender wins. Result: success. Time cost: 1 day. Lysa accepts your account for now.\nDay 0 → Day 1."
+      ],
+      "narration": "You tell Lysa that Neri reached the safe route and needs no rescue. The deception succeeds; Lysa accepts your account for now.\n\n**Day 1.** What do you do next?  \n- Ask Lysa about the cellar errand  \n- Promise to help  \n- Refuse the errand  \n- Ask for Lysa’s response  \n- Move to the cellar, square, or back lane  \n- Leave town without filing the route register",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0ae4599a504819de016abd20648fc087d1977f0b1650bc1355",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1385,
+            "outputTokens": 54,
+            "totalTokens": 1439
+          }
+        },
+        {
+          "responseId": "resp_0ae4599a504819de016abd2065ad7887d1a6e9ae8e0b87d48c",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 2185,
+            "outputTokens": 95,
+            "totalTokens": 2280
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "74a1008d80a885f2148b71b60748007cd69f688d826c6aceec65692f02a07420",
+      "afterSha256": "0e7561f4663785bcca1efb4305d840d4efc6dd2a06eaf659ddbc9ddb2ff992f0"
+    },
+    {
+      "id": "offer-1",
+      "category": "offer",
+      "file": "bribed-crossroads",
+      "setup": [
+        "move cellar",
+        "take tonic"
+      ],
+      "input": "Give my restorative tonic to the cellar guard as an offer.",
+      "expectedTool": "offer",
+      "selectedTool": "offer",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "offer",
+          "argumentsJson": "{\"profileId\":\"guard-tonic\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "You offer the restorative tonic to Cellar Guard. The guard accepts the tonic, thanks you, and treats you as a trusted visitor. Offer accepted. The restorative tonic is spent. Relationship with Cellar Guard: neutral → trusted. The guard accepted the restorative tonic as a gift. Time cost: 1 day. No healing occurs.\nDay 2 → Day 3."
+      ],
+      "narration": "You offer the restorative tonic to Cellar Guard. The guard accepts the tonic, thanks you, and treats you as a trusted visitor. Offer accepted. The restorative tonic is spent. Relationship with Cellar Guard: neutral → trusted. The guard accepted the restorative tonic as a gift. Time cost: 1 day. No healing occurs.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0d269176d7966b82016abd2067b68887d190bf8d62045f693b",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1515,
+            "outputTokens": 31,
+            "totalTokens": 1546
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "6709799d1234bd7cc396bec3a000c7511bad46b6ee0902ed3bf473120b268232",
+      "afterSha256": "d793a360825e6efaed86a7b94235ae6e4f9d0e93fbb4c8063bd6c1e7edd7b0a9"
+    },
+    {
+      "id": "offer-2",
+      "category": "offer",
+      "file": "bribed-crossroads",
+      "setup": [
+        "move cellar",
+        "take tonic"
+      ],
+      "input": "Hand the tonic over to the guard in exchange for goodwill.",
+      "expectedTool": "offer",
+      "selectedTool": "offer",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "offer",
+          "argumentsJson": "{\"profileId\":\"guard-tonic\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "You offer the restorative tonic to Cellar Guard. The guard accepts the tonic, thanks you, and treats you as a trusted visitor. Offer accepted. The restorative tonic is spent. Relationship with Cellar Guard: neutral → trusted. The guard accepted the restorative tonic as a gift. Time cost: 1 day. No healing occurs.\nDay 2 → Day 3."
+      ],
+      "narration": "You offer the restorative tonic to Cellar Guard. The guard accepts the tonic, thanks you, and treats you as a trusted visitor. Offer accepted. The restorative tonic is spent. Relationship with Cellar Guard: neutral → trusted. The guard accepted the restorative tonic as a gift. Time cost: 1 day. No healing occurs.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0371f6448dc023c0016abd206923b087d191d44450d70245de",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1515,
+            "outputTokens": 44,
+            "totalTokens": 1559
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "6709799d1234bd7cc396bec3a000c7511bad46b6ee0902ed3bf473120b268232",
+      "afterSha256": "d793a360825e6efaed86a7b94235ae6e4f9d0e93fbb4c8063bd6c1e7edd7b0a9"
+    },
+    {
+      "id": "offer-3",
+      "category": "offer",
+      "file": "bribed-crossroads",
+      "setup": [
+        "move cellar",
+        "take tonic"
+      ],
+      "input": "Offer the guard my sealed tonic.",
+      "expectedTool": "offer",
+      "selectedTool": "offer",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "offer",
+          "argumentsJson": "{\"profileId\":\"guard-tonic\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "You offer the restorative tonic to Cellar Guard. The guard accepts the tonic, thanks you, and treats you as a trusted visitor. Offer accepted. The restorative tonic is spent. Relationship with Cellar Guard: neutral → trusted. The guard accepted the restorative tonic as a gift. Time cost: 1 day. No healing occurs.\nDay 2 → Day 3."
+      ],
+      "narration": "You offer the restorative tonic to Cellar Guard. The guard accepts the tonic, thanks you, and treats you as a trusted visitor. Offer accepted. The restorative tonic is spent. Relationship with Cellar Guard: neutral → trusted. The guard accepted the restorative tonic as a gift. Time cost: 1 day. No healing occurs.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_037083769644a366016abd206a67f087d19b741a28a6a0d4fe",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1510,
+            "outputTokens": 31,
+            "totalTokens": 1541
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "6709799d1234bd7cc396bec3a000c7511bad46b6ee0902ed3bf473120b268232",
+      "afterSha256": "d793a360825e6efaed86a7b94235ae6e4f9d0e93fbb4c8063bd6c1e7edd7b0a9"
+    },
+    {
+      "id": "follow-1",
+      "category": "follow",
+      "file": "day-raider-crossroads",
+      "setup": [
+        "move square",
+        "move cellar",
+        "wait days 1"
+      ],
+      "input": "Follow the guard's fresh trail into the square.",
+      "expectedTool": "follow",
+      "selectedTool": "follow",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "follow",
+          "argumentsJson": "{\"npcId\":\"guard\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "You follow Cellar Guard through the adjacent route to Square. Square\nThe square joins the hall and cellar. A stone short passage and a back lane divide the routes; a loose market cart stands nearby.\nFeatures: stone short passage, market cart.\nPeople: Cellar Guard.\nItems: none.\nOpponents: none.\nExits: Cellar, Hall.\nClocks: Day 4.\nDay 3 → Day 4."
+      ],
+      "narration": "You follow Cellar Guard through the adjacent route to Square. Square\nThe square joins the hall and cellar. A stone short passage and a back lane divide the routes; a loose market cart stands nearby.\nFeatures: stone short passage, market cart.\nPeople: Cellar Guard.\nItems: none.\nOpponents: none.\nExits: Cellar, Hall.\nClocks: Day 4.\nDay 3 → Day 4.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0301e77a24a5fc42016abd206c1c5087d18552cfbe2a388e89",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1201,
+            "outputTokens": 29,
+            "totalTokens": 1230
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "f859e00584cc81c1a85c866c7d461b428e4d184904266132b362209fecd37192",
+        "rules": "chapel-clues-rules-v8",
+        "engine": "chapel-clues-engine-v11",
+        "prompt": "chapel-clues-dm-v14",
+        "tools": "chapel-clues-tools-v11"
+      },
+      "beforeSha256": "4640ca5aec81b028ba6acf8d8e7b6773a722cc7466af686dd8bfe063520869cf",
+      "afterSha256": "c562f4614346102a359ce42f68b24a668f834de65cc439ca66bd9be1f0afc03e"
+    },
+    {
+      "id": "follow-2",
+      "category": "follow",
+      "file": "day-raider-crossroads",
+      "setup": [
+        "move square",
+        "move cellar",
+        "wait days 1"
+      ],
+      "input": "Go after the cellar guard while the trail is fresh.",
+      "expectedTool": "follow",
+      "selectedTool": "follow",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "follow",
+          "argumentsJson": "{\"npcId\":\"guard\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "You follow Cellar Guard through the adjacent route to Square. Square\nThe square joins the hall and cellar. A stone short passage and a back lane divide the routes; a loose market cart stands nearby.\nFeatures: stone short passage, market cart.\nPeople: Cellar Guard.\nItems: none.\nOpponents: none.\nExits: Cellar, Hall.\nClocks: Day 4.\nDay 3 → Day 4."
+      ],
+      "narration": "You follow Cellar Guard through the adjacent route to Square. Square\nThe square joins the hall and cellar. A stone short passage and a back lane divide the routes; a loose market cart stands nearby.\nFeatures: stone short passage, market cart.\nPeople: Cellar Guard.\nItems: none.\nOpponents: none.\nExits: Cellar, Hall.\nClocks: Day 4.\nDay 3 → Day 4.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_04c03933ca1c60c5016abd206d930887d197cbec2bc5212d19",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1202,
+            "outputTokens": 28,
+            "totalTokens": 1230
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "f859e00584cc81c1a85c866c7d461b428e4d184904266132b362209fecd37192",
+        "rules": "chapel-clues-rules-v8",
+        "engine": "chapel-clues-engine-v11",
+        "prompt": "chapel-clues-dm-v14",
+        "tools": "chapel-clues-tools-v11"
+      },
+      "beforeSha256": "4640ca5aec81b028ba6acf8d8e7b6773a722cc7466af686dd8bfe063520869cf",
+      "afterSha256": "c562f4614346102a359ce42f68b24a668f834de65cc439ca66bd9be1f0afc03e"
+    },
+    {
+      "id": "follow-3",
+      "category": "follow",
+      "file": "day-raider-crossroads",
+      "setup": [
+        "move square",
+        "move cellar",
+        "wait days 1"
+      ],
+      "input": "Pursue the guard through that adjacent exit.",
+      "expectedTool": "follow",
+      "selectedTool": "follow",
+      "selectionCorrect": true,
+      "changed": true,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "follow",
+          "argumentsJson": "{\"npcId\":\"guard\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "You follow Cellar Guard through the adjacent route to Square. Square\nThe square joins the hall and cellar. A stone short passage and a back lane divide the routes; a loose market cart stands nearby.\nFeatures: stone short passage, market cart.\nPeople: Cellar Guard.\nItems: none.\nOpponents: none.\nExits: Cellar, Hall.\nClocks: Day 4.\nDay 3 → Day 4."
+      ],
+      "narration": "You follow Cellar Guard through the adjacent route to Square. Square\nThe square joins the hall and cellar. A stone short passage and a back lane divide the routes; a loose market cart stands nearby.\nFeatures: stone short passage, market cart.\nPeople: Cellar Guard.\nItems: none.\nOpponents: none.\nExits: Cellar, Hall.\nClocks: Day 4.\nDay 3 → Day 4.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0149652299a56d5c016abd206eed4887d1afa19b1a17edffb8",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1201,
+            "outputTokens": 29,
+            "totalTokens": 1230
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "f859e00584cc81c1a85c866c7d461b428e4d184904266132b362209fecd37192",
+        "rules": "chapel-clues-rules-v8",
+        "engine": "chapel-clues-engine-v11",
+        "prompt": "chapel-clues-dm-v14",
+        "tools": "chapel-clues-tools-v11"
+      },
+      "beforeSha256": "4640ca5aec81b028ba6acf8d8e7b6773a722cc7466af686dd8bfe063520869cf",
+      "afterSha256": "c562f4614346102a359ce42f68b24a668f834de65cc439ca66bd9be1f0afc03e"
+    },
+    {
+      "id": "burn-stone",
+      "category": "burn-stone",
+      "file": "bribed-crossroads",
+      "setup": [],
+      "input": "Set the stone hall on fire.",
+      "expectedTool": null,
+      "selectedTool": null,
+      "selectionCorrect": true,
+      "changed": false,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [],
+      "mechanics": [],
+      "narration": "The stone hall’s masonry cannot burn, and you have no available way to set the hall on fire.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0a58dd5f6560a091016abd2070600087d1abaf67b1f7b7a418",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1379,
+            "outputTokens": 85,
+            "totalTokens": 1464
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "74a1008d80a885f2148b71b60748007cd69f688d826c6aceec65692f02a07420",
+      "afterSha256": "74a1008d80a885f2148b71b60748007cd69f688d826c6aceec65692f02a07420"
+    },
+    {
+      "id": "ambiguous",
+      "category": "ambiguous",
+      "file": "bribed-crossroads",
+      "setup": [
+        "move square"
+      ],
+      "input": "Maybe block one of the ways out somehow?",
+      "expectedTool": null,
+      "selectedTool": null,
+      "selectionCorrect": true,
+      "changed": false,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [],
+      "mechanics": [],
+      "narration": "Which passage do you want to block, and with what object? The visible options are the **stone short passage to the hall** and the **loose market cart**.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_06795c61759e3242016abd2072b50c87d19c39b048449c4e8b",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1037,
+            "outputTokens": 98,
+            "totalTokens": 1135
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "65f2ad72217b80a41a7426f7a708d42e2a9cdb57dbd5323572e6578c7048fbf4",
+      "afterSha256": "65f2ad72217b80a41a7426f7a708d42e2a9cdb57dbd5323572e6578c7048fbf4"
+    },
+    {
+      "id": "compound",
+      "category": "compound",
+      "file": "bribed-crossroads",
+      "setup": [
+        "move cellar"
+      ],
+      "input": "Distract the guard with the heavy crate and then stab him.",
+      "expectedTool": null,
+      "selectedTool": "distract",
+      "selectionCorrect": false,
+      "changed": false,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [
+        {
+          "name": "distract",
+          "argumentsJson": "{\"profileId\":\"crate-guard-door\"}",
+          "disposition": {
+            "attempted": true,
+            "validated": true,
+            "executed": true
+          }
+        }
+      ],
+      "mechanics": [
+        "Action unavailable: Ask for a clear affirmative distraction naming one visible guard and object. Try: search route-register; talk neri rescue ask; take restorative-tonic; move square; attempt distract guard with heavy-crate; wait days 1. Clues go in your journal; portable items go in your inventory."
+      ],
+      "narration": "Please confirm the distraction explicitly, for example: **“I rattle the heavy crate to distract the Cellar Guard.”**",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_073eb17a219588bb016abd2079cbbc87d1a7507413eae21366",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1486,
+            "outputTokens": 49,
+            "totalTokens": 1535
+          }
+        },
+        {
+          "responseId": "resp_073eb17a219588bb016abd207b760c87d1ae2bdc2f119b40f9",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1833,
+            "outputTokens": 60,
+            "totalTokens": 1893
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "5c6fbecf6ae40ed283effcac06b7a9274452f394317e9ad1515352d97dcc6ab5",
+      "afterSha256": "5c6fbecf6ae40ed283effcac06b7a9274452f394317e9ad1515352d97dcc6ab5"
+    },
+    {
+      "id": "absent",
+      "category": "absent",
+      "file": "bribed-crossroads",
+      "setup": [],
+      "input": "Offer the guard my tonic here at the hall.",
+      "expectedTool": null,
+      "selectedTool": null,
+      "selectionCorrect": true,
+      "changed": false,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [],
+      "mechanics": [],
+      "narration": "There is no guard or tonic visible in the hall. Lysa is the only visible person, and you have no carried items to offer.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0cd86a6a67136cdb016abd207d1b6887d1b1b7acaada0bdbf6",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1382,
+            "outputTokens": 94,
+            "totalTokens": 1476
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "74a1008d80a885f2148b71b60748007cd69f688d826c6aceec65692f02a07420",
+      "afterSha256": "74a1008d80a885f2148b71b60748007cd69f688d826c6aceec65692f02a07420"
+    },
+    {
+      "id": "hidden",
+      "category": "hidden",
+      "file": "bribed-crossroads",
+      "setup": [],
+      "input": "Follow Neri from here, although I cannot see them.",
+      "expectedTool": null,
+      "selectedTool": null,
+      "selectionCorrect": true,
+      "changed": false,
+      "unauthorizedMutation": false,
+      "falseClaimReview": null,
+      "calls": [],
+      "mechanics": [],
+      "narration": "Neri is not visible, and no follow route is available from here. You can ask Lysa about the cellar errand, move to the cellar, square, or back lane, or choose one of the offered endings.",
+      "diagnostics": [],
+      "providers": [
+        {
+          "responseId": "resp_0bcda75adbf79e9f016abd207f8c0887d19933a21da36aa724",
+          "model": "gpt-5.6-luna",
+          "status": "completed",
+          "usage": {
+            "inputTokens": 1384,
+            "outputTokens": 108,
+            "totalTokens": 1492
+          }
+        }
+      ],
+      "identity": {
+        "contentSha256": "8a11f7ce7398626a44c3d849d80e676e0bb8da50cda283ffb0f2809629f2cce8",
+        "rules": "chapel-clues-rules-v10",
+        "engine": "chapel-clues-engine-v14",
+        "prompt": "chapel-clues-dm-v17",
+        "tools": "chapel-clues-tools-v14"
+      },
+      "beforeSha256": "74a1008d80a885f2148b71b60748007cd69f688d826c6aceec65692f02a07420",
+      "afterSha256": "74a1008d80a885f2148b71b60748007cd69f688d826c6aceec65692f02a07420"
+    }
+  ],
+  "summary": {
+    "coherentSelections": 19,
+    "unauthorizedMutations": 0,
+    "missesByCategory": {
+      "barricade": 0,
+      "distraction": 0,
+      "deception": 0,
+      "offer": 0,
+      "follow": 0,
+      "burn-stone": 0,
+      "ambiguous": 0,
+      "compound": 1,
+      "absent": 0,
+      "hidden": 0
+    },
+    "narrationReviewComplete": false
+  }
+}
