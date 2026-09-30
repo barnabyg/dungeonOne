@@ -146,6 +146,26 @@ test("accepted offer spends one carried tonic without healing and changes the gu
   assert.deepEqual(tool.state, result.state);
 });
 
+test("an already trusted guard remains eligible for the authored offer", () => {
+  const game = runtime();
+  const carried = cellarWithTonic(game);
+  const trusted = act(game, carried, "talk guard help ask").state;
+  assert.equal(trusted.relationships.guard.tier, "trusted");
+  assert.deepEqual(
+    game.getGameToolDefinitions(trusted).find(({ name }) => name === "offer")
+      .parameters.properties.profileId.enum,
+    ["guard-tonic"],
+  );
+  const offered = act(game, trusted, "offer tonic to guard");
+  assert.equal(offered.rejection, undefined);
+  assert.equal(offered.state.relationships.guard.tier, "trusted");
+  assert.notEqual(
+    offered.state.relationships.guard.reason,
+    trusted.relationships.guard.reason,
+  );
+  assert.equal(offered.state.items["restorative-tonic"], "consumed");
+});
+
 test("refused offer follows retained-item policy and keeps healing available", () => {
   const game = runtime();
   const cellar = cellarWithTonic(game);

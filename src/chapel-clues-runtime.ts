@@ -536,9 +536,6 @@ export function createChapelCluesRuntime(
             state.offers?.[profile.id] === undefined &&
             state.items?.[profile.itemId] === "inventory" &&
             visible(state).npcs.some(({ id }) => id === profile.npcId) &&
-            (profile.outcome === "refused" ||
-              state.relationships?.[profile.npcId]?.tier !==
-                profile.relationship?.tier) &&
             eligible(state, profile.when),
         )
       : [];
