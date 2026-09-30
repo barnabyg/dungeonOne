@@ -362,6 +362,22 @@ subjects with commands you can copy. See the [issue 83 player handoff and
 review](docs/acceptance/issue-83.md) for a complete exchange and the reviewer's
 feedback.
 
+[The watch route](adventures/hollow-beacon-watch.json) is content version 4.
+From the Watch Yard, visit Pell in the Watch Loft and compare the setting plate
+in the Signal Records Room. The plate establishes that the signal direction
+changed; it does not identify who changed it or prove the keeper's fate. Pell's
+guarded shift account may add testimony, but a failed check is remembered and
+the plate remains available if Pell refuses, leaves the loft at Day 3, or dies.
+Watch scenes and Iona's replies reflect the discovery and deadline. Earlier
+Hollow Beacon content versions remain available for their existing saves.
+Build with npm.cmd run build, then start the route with
+node dist/cli.js --adventure-file adventures/hollow-beacon-watch.json --seed 0 --save beacon-watch-save.json.
+Enter move watch-loft, talk Pell, talk pell shift persuade, move signal-records,
+search setting-plate, and journal. With seed 0, Pell refuses the first check;
+the journal still attributes the altered setting to the physical plate. The
+watch route can be investigated in either order, and wait days 3 moves Pell to
+the Watch Yard while the records room stays open.
+
 [Raiders at the Crossroads](adventures/raider-crossroads.json) is a separate
 schema-5 adventure. Start at the town-edge hall and choose to help Lysa,
 refuse the errand, or leave town. The cellar register supports on-time and
