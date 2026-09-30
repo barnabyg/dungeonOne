@@ -3501,7 +3501,7 @@ export function createChapelCluesRuntime(
         const intent = actionIntent(playerInput);
         if (
           unsafeActionIntent(playerInput, intent) ||
-          !/\b(distract|lure|draw|rattle|divert|noise|noisy|clatter)\b|\b(?:create|make|cause|stage|try|attempt)\b.{0,40}\b(?:distraction|diversion)\b|make a racket/u.test(
+          !/\b(distract|lure|draw|rattle|divert|shake|bang)\b|\b(?:create|make|cause|stage|try|attempt)\b.{0,40}\b(?:noise|distraction|diversion|racket)\b/u.test(
             intent,
           ) ||
           !mentionsAlias(intent, [guard.id, guard.name, ...guard.aliases]) ||

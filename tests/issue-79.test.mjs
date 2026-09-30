@@ -195,6 +195,26 @@ test("unoffered physical target and hidden actor cannot be selected by the DM", 
   }
 });
 
+test("describing a noisy prop does not authorize a distraction check", () => {
+  const runtime = game("bribed-crossroads");
+  const initial = command(runtime, runtime.createSession(), "move cellar");
+  let draws = 0;
+  const result = runtime.dispatchGameTool(
+    initial,
+    { name: "distract", argumentsJson: '{"profileId":"crate-guard-door"}' },
+    {
+      roll: () => {
+        draws += 1;
+        return 20;
+      },
+    },
+    "The heavy crate is noisy beside the guard.",
+  );
+  assert.equal(result.modelOutput.ok, false);
+  assert.deepEqual(result.state, initial);
+  assert.equal(draws, 0);
+});
+
 test("provider failure after a committed check repeats its exact mechanics and a next action", async () => {
   const runtime = game("bribed-crossroads");
   const state = command(runtime, runtime.createSession(), "move cellar");
