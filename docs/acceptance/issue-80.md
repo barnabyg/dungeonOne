@@ -116,10 +116,13 @@ The model gave one example phrase that is itself rejected; the engine's
 copyable `Try:` command remains valid. This sample does not
 establish general live-model reliability or a complete live journey.
 
-An unfamiliar player exercise is also pending. The project owner will
-arrange a tester and share the actual transcript. The independent instructions
-are in `issue-80-player-sheet.md`. Their utterances, outcomes, recovery,
-contradictions, and tested commit must be appended here when available.
-Prior issue #71 reported a completion without inspectable utterances, so it
-does not satisfy this gate. Until the human evidence arrives, the
-complete increment exit criterion remains unqualified.
+## Unfamiliar-player acceptance
+
+On 30 September 2026, the project owner confirmed that the unfamiliar-player
+acceptance test was completed successfully and asked that this confirmation
+alone be recorded. This is an **owner-reported pass**. No player transcript,
+tested commit, seed, save/resume point, ending, recovery detail, or
+contradiction notes were supplied, so those facts cannot be inferred or
+independently checked. The original criterion to record actual utterances
+and outcomes remains unaudited. The exercise instructions remain in
+`issue-80-player-sheet.md` if detailed evidence is later made available.
