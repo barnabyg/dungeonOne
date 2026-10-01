@@ -4117,7 +4117,8 @@ export function createChapelCluesRuntime(
         if (
           feature === undefined ||
           unsafeActionIntent(playerInput, intent) ||
-          !/\b(brace|barricade)\b/u.test(intent) ||
+          (intent.match(/\b(brace|barricade)\b/gu)?.length ?? 0) !== 1 ||
+          /[.!]\s*\S|[\r\n]/u.test(playerInput) ||
           !mentionsAlias(intent, [
             feature.id,
             feature.name,

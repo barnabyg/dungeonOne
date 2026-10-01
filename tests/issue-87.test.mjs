@@ -116,6 +116,8 @@ test("command and bounded AI choices match; hidden, invalid, compound and out-of
     "Brace cart and attack raider",
     "Brace cart. Travel to tower.",
     "Brace secret wall",
+    "Brace cart. Brace cart.",
+    "Brace cart, brace cart",
   ]) {
     const result = game.dispatchGameTool(state, braceCall, noDice, input);
     assert.equal(result.modelOutput.ok, false, input);
