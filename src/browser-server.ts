@@ -33,9 +33,11 @@ import { SaveSession } from "./save.js";
 import { BROWSER_HTML, BROWSER_CSS, BROWSER_SCRIPT } from "./browser-page.js";
 import {
   cachedHints,
+  cachedStrongerHints,
   hintCandidates,
   hintRevision,
   prepareHints,
+  strongerHintCandidates,
   type BrowserHints,
   type HintPreparer,
 } from "./browser-hints.js";
@@ -46,13 +48,10 @@ export type BrowserOptions = Readonly<{
   apiKey: string;
   dmModel?: DmModel;
   hintPreparer?: HintPreparer;
+  strongerHintPreparer?: HintPreparer;
 }>;
 
-async function readPlayerInput(
-  request: IncomingMessage,
-): Promise<
-  ({ message: string } | { optionId: string }) & { revision: string }
-> {
+async function readBody(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
@@ -63,7 +62,15 @@ async function readPlayerInput(
     }
     chunks.push(bytes);
   }
-  const body: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
+}
+
+async function readPlayerInput(
+  request: IncomingMessage,
+): Promise<
+  ({ message: string } | { optionId: string }) & { revision: string }
+> {
+  const body = await readBody(request);
   if (
     body === null ||
     typeof body !== "object" ||
@@ -116,6 +123,13 @@ export type BrowserView = Readonly<
       actions: readonly BrowserAction[];
       title: string;
       history: readonly BrowserTurn[];
+      strongerHints?:
+        | BrowserHints
+        | Readonly<{
+            revision: string;
+            status: "preparing";
+            entries: readonly string[];
+          }>;
       hints:
         | BrowserHints
         | Readonly<{
@@ -195,6 +209,9 @@ function playerView(
             },
           ]),
     ],
+    ...(cachedStrongerHints(session) === undefined
+      ? {}
+      : { strongerHints: cachedStrongerHints(session)! }),
     hints: cachedHints(session) ?? {
       revision: hintRevision(session),
       status: "preparing",
@@ -302,35 +319,46 @@ export async function startBrowserServer(options: BrowserOptions) {
     | { revision: string; result?: BrowserHints; persisted?: boolean }
     | undefined;
   let hintWrite: Promise<void> | undefined;
+  let strongerJob: typeof hintJob;
   const flushHints = () => {
+    const job = [hintJob, strongerJob].find(
+      (candidate) => candidate?.result !== undefined && !candidate.persisted,
+    );
     if (
       closed ||
       turning ||
       retained !== undefined ||
-      hintJob?.result === undefined ||
-      hintJob.persisted
+      job?.result === undefined
     ) {
       return;
     }
-    const result = hintJob.result;
+    const result = job.result;
+    // Completion belongs to this captured job even if a later scene has
+    // replaced the active request. It is projected only for its own revision.
+    const finishWrite = (failed = false) => {
+      if (failed) {
+        job.result = { ...result, status: "unavailable", entries: [] };
+      }
+      job.persisted = true;
+    };
     turning = true;
     hintWrite = (async () => {
       try {
         const session = await SaveSession.load(options.savePath);
         if (hintRevision(session) === result.revision) {
-          await session.saveBrowserHints(result);
+          if (job === strongerJob) {
+            await session.saveBrowserStrongerHints(result);
+          } else {
+            await session.saveBrowserHints(result);
+          }
         }
-        if (hintJob?.revision === result.revision) {
-          hintJob.persisted = true;
-        }
+        finishWrite();
       } catch {
         // Derived-cache failure never turns a committed action into a retry.
-        if (hintJob?.revision === result.revision) {
-          hintJob.result = { ...result, status: "unavailable", entries: [] };
-          hintJob.persisted = true;
-        }
+        finishWrite(true);
       } finally {
         turning = false;
+        flushHints();
       }
     })();
   };
@@ -381,6 +409,48 @@ export async function startBrowserServer(options: BrowserOptions) {
         }
       });
   };
+  const requestStrongerHints = (session: SaveSession) => {
+    const revision = hintRevision(session);
+    if (
+      cachedStrongerHints(session) !== undefined ||
+      strongerJob?.revision === revision
+    ) {
+      return;
+    }
+    const job: NonNullable<typeof hintJob> = { revision };
+    strongerJob = job;
+    const candidates = strongerHintCandidates(session);
+    void Promise.resolve()
+      .then(() => options.strongerHintPreparer?.([...candidates]) ?? candidates)
+      .then((entries) => {
+        if (
+          !Array.isArray(entries) ||
+          entries.length !== 1 ||
+          !candidates.includes(entries[0]!)
+        ) {
+          throw new Error("Unapproved stronger hint content.");
+        }
+        job.result = {
+          version: 1,
+          revision,
+          status: "ready",
+          entries: [...entries],
+        };
+      })
+      .catch(() => {
+        job.result = {
+          version: 1,
+          revision,
+          status: "unavailable",
+          entries: [],
+        };
+      })
+      .finally(() => {
+        if (strongerJob === job) {
+          flushHints();
+        }
+      });
+  };
   const readSlot = async (): Promise<BrowserView> => {
     try {
       const session = retained ?? (await SaveSession.load(options.savePath));
@@ -405,6 +475,17 @@ export async function startBrowserServer(options: BrowserOptions) {
       return {
         ...view,
         ...(hints === undefined ? {} : { hints }),
+        ...(strongerJob?.revision === hintRevision(session)
+          ? {
+              strongerHints: strongerJob.persisted
+                ? strongerJob.result!
+                : {
+                    revision: strongerJob.revision,
+                    status: "preparing" as const,
+                    entries: [],
+                  },
+            }
+          : {}),
         ...(saveFailed ? { recovery: "unsaved" as const } : {}),
       };
     } catch (error) {
@@ -485,9 +566,12 @@ export async function startBrowserServer(options: BrowserOptions) {
           return;
         }
         if (
-          !["/api/start", "/api/turn", "/api/recover"].includes(
-            request.url ?? "",
-          )
+          ![
+            "/api/start",
+            "/api/turn",
+            "/api/recover",
+            "/api/hints/stronger",
+          ].includes(request.url ?? "")
         ) {
           json(response, 404, { error: "Unknown endpoint." });
           return;
@@ -521,6 +605,43 @@ export async function startBrowserServer(options: BrowserOptions) {
                 "Result retained but not durably saved. Repair local storage and read current state again. Do not repeat the action.",
               view: await readSlot(),
             });
+          } finally {
+            releaseTurn();
+          }
+          return;
+        }
+        if (request.url === "/api/hints/stronger") {
+          turning = true;
+          try {
+            const body = await readBody(request).catch(() => undefined);
+            if (
+              body === null ||
+              typeof body !== "object" ||
+              Array.isArray(body) ||
+              Object.keys(body).length !== 1 ||
+              !("revision" in body) ||
+              typeof body.revision !== "string" ||
+              !/^[a-f0-9]{64}$/.test(body.revision)
+            ) {
+              json(response, 400, { error: "Invalid hint request." });
+              return;
+            }
+            const view = await readSlot();
+            if (
+              retained !== undefined ||
+              view.slot !== "occupied" ||
+              body.revision !== view.hints.revision ||
+              view.hints.status !== "ready"
+            ) {
+              json(response, 409, {
+                error:
+                  "Read the current baseline hints before requesting a stronger hint.",
+                view,
+              });
+              return;
+            }
+            requestStrongerHints(await SaveSession.load(options.savePath));
+            json(response, 200, { view: await readSlot() });
           } finally {
             releaseTurn();
           }

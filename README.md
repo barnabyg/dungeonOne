@@ -23,6 +23,11 @@ All development tools and the official OpenAI SDK are exact-version dependencies
 current legal actions. It stays collapsed until opened, refreshes as game progress
 changes, and restores its cached content with the save slot. Opening/reopening
 uses no AI calls, actions, time or dice. Reload starts with Hints collapsed.
+After reading baseline guidance, select **Request a stronger hint** for a
+concrete next step drawn from current journal leads and permitted actions.
+Escalation is explicit and cached for that game position; it never creates a
+conversation turn or changes the adventure. Waiting and unavailable results
+appear within Hints. See [issue 103 player checks](docs/acceptance/issue-103.md).
 See [issue 102 player checks](docs/acceptance/issue-102.md) for the seeded journey
 and an offline real-browser delay/failure fixture.
 

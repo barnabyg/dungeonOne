@@ -53,6 +53,7 @@ type SaveEnvelope = Readonly<{
   generation?: string;
   browserHistory?: BrowserHistory;
   browserHints?: unknown;
+  browserStrongerHints?: unknown;
   browserHistoryDigest?: string;
   kind: "dungeon-one-save";
   formatVersion: 1 | 2 | 3;
@@ -469,6 +470,12 @@ export class SaveSession {
   browserHistory: BrowserHistory | undefined;
   // Optional derived browser guidance; older save envelopes remain readable.
   browserHints: unknown;
+  browserStrongerHints: unknown;
+
+  async saveBrowserStrongerHints(hints: unknown): Promise<void> {
+    this.browserStrongerHints = hints;
+    await this.persist();
+  }
 
   async saveBrowserHints(hints: unknown): Promise<void> {
     this.browserHints = hints;
@@ -732,6 +739,7 @@ export class SaveSession {
       );
     }
     session.browserHints = save.browserHints;
+    session.browserStrongerHints = save.browserStrongerHints;
     return session;
   }
 
@@ -868,6 +876,9 @@ export class SaveSession {
       ...(this.browserHints === undefined
         ? {}
         : { browserHints: this.browserHints }),
+      ...(this.browserStrongerHints === undefined
+        ? {}
+        : { browserStrongerHints: this.browserStrongerHints }),
       ...(this.browserHistory === undefined
         ? {}
         : {

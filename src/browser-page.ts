@@ -32,6 +32,8 @@ export const BROWSER_HTML = `<!doctype html>
 </nav><section id="information" aria-labelledby="information-title" hidden>
 <button id="close-information">Close information</button>
 <h2 id="information-title" tabindex="-1"></h2><div id="information-body"></div>
+<div id="stronger-hint" hidden><button id="request-stronger-hint" type="button" aria-describedby="stronger-hint-result">Request a stronger hint</button>
+<p id="stronger-hint-result" role="status" aria-live="polite" aria-atomic="true"></p></div>
 </section></aside></main></body></html>`;
 
 export const BROWSER_CSS = `:root{color-scheme:light;font-family:Georgia,serif;color:#25352f;background:#f3f1eb;font-size:18px;line-height:1.65}
@@ -58,20 +60,23 @@ let activePanel;
 let contextButtons = [];
 let sceneButtons = [];
 let hintPollRevision;
+let strongerRequestRevision;
+let strongerError;
 function pollHints(view) {
-  if (view.slot === "empty" || !view.hints || view.hints.status !== "preparing" || typeof setTimeout !== "function") { return; }
+  if (view.slot === "empty" || !view.hints || (view.hints.status !== "preparing" && (!view.strongerHints || view.strongerHints.status !== "preparing")) || typeof setTimeout !== "function") { return; }
   const revision = view.hints.revision;
   if (hintPollRevision === revision) { return; }
   hintPollRevision = revision;
   async function poll() {
     if (!currentView || !currentView.hints || currentView.hints.revision !== revision) { return; }
     try {
-      const response = await fetch("/api/hints");
-      const hints = await response.json();
+      const response = await fetch("/api/state");
+      const view = await response.json();
+      const hints = view.hints;
       if (response.ok && hints && hints.revision === revision && currentView.hints.revision === revision) {
-        currentView = { ...currentView, hints };
+        currentView = { ...currentView, hints, strongerHints: view.strongerHints };
         if (activePanel === "hints") { renderInformation(); }
-        if (hints.status !== "preparing") { return; }
+        if (hints.status !== "preparing" && (!view.strongerHints || view.strongerHints.status !== "preparing")) { hintPollRevision = undefined; return; }
       }
     } catch { /* Reading current information remains available. */ }
     if (currentView.hints.revision === revision) { setTimeout(poll, 250); }
@@ -130,9 +135,14 @@ function renderInformation() {
   const journal = currentView.scene.journal;
   element("information-body").replaceChildren();
   text("information-title", panels[activePanel]);
+  element("stronger-hint").hidden = activePanel !== "hints";
   if (activePanel === "hints") {
     const hints = currentView.hints;
     informationBlock("Optional guidance", hints && hints.status === "ready" ? hints.entries : [hints && hints.status === "unavailable" ? "Hints unavailable for this position. Your progress is saved; you can keep playing and read current information." : "Preparing hints for this position…"]);
+    const stronger = currentView.strongerHints;
+    const requesting = strongerRequestRevision === hints.revision || (stronger && stronger.status === "preparing");
+    element("request-stronger-hint").disabled = pending || hints.status !== "ready" || requesting || !!stronger;
+    text("stronger-hint-result", requesting ? "Preparing a stronger hint…" : stronger ? (stronger.status === "ready" ? stronger.entries.join(" ") : "Stronger hint unavailable for this position. You can keep playing using your journal and known leads.") : strongerError && strongerError.revision === hints.revision ? strongerError.message : "A stronger hint is optional. Request it when you want a concrete next step.");
   } else if (activePanel === "inventory") {
     inventoryBlock("Equipment", status.equipment, "No equipment.");
     inventoryBlock("Carried items", status.collectedItems, "No carried items.");
@@ -150,6 +160,30 @@ function renderInformation() {
     informationBlock("Current leads", leads.length ? leads : ["No current leads."]);
   }
 }
+element("request-stronger-hint").addEventListener("click", async () => {
+  if (pending || !currentView || currentView.slot === "empty" || currentView.hints.status !== "ready" || currentView.strongerHints || strongerRequestRevision === currentView.hints.revision) { return; }
+  const revision = currentView.hints.revision;
+  strongerRequestRevision = revision;
+  strongerError = undefined;
+  renderInformation();
+  try {
+    const response = await fetch("/api/hints/stronger", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision }) });
+    const result = await response.json();
+    if (!currentView.hints || currentView.hints.revision !== revision) { return; }
+    if (!response.ok) { throw new Error(result.error || "Stronger hint unavailable. Read current state before trying again."); }
+    if (result.view && result.view.hints.revision === revision) {
+      currentView = { ...currentView, strongerHints: result.view.strongerHints };
+      pollHints(currentView);
+    }
+  } catch {
+    if (currentView.hints && currentView.hints.revision === revision) {
+      strongerError = { revision, message: "Stronger hint unavailable. Read current state before trying again." };
+    }
+  } finally {
+    if (strongerRequestRevision === revision) { strongerRequestRevision = undefined; }
+    renderInformation();
+  }
+});
 function closeInformation() {
   if (!activePanel) { return; }
   const opener = element("open-" + activePanel);
@@ -179,6 +213,7 @@ function busy(value) {
   ["start", "refresh", "send", "message"].forEach((id) => { element(id).disabled = value; });
   [...contextButtons, ...sceneButtons].forEach((button) => { button.disabled = value; });
   element("conversation").setAttribute("aria-busy", String(value));
+  renderInformation();
 }
 function entry(label, value, className = "reply") {
   const conversation = element("conversation");
