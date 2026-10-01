@@ -78,6 +78,7 @@ const authoredAssets = [
   "adventures/hollow-beacon.json",
   "adventures/hollow-beacon-journey.json",
   "adventures/hollow-beacon-watch.json",
+  "adventures/hollow-beacon-refugees.json",
   "schema/adventure-v1.schema.json",
   "schema/adventure-v2.schema.json",
   "schema/adventure-v3.schema.json",

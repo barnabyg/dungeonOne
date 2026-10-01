@@ -47,7 +47,7 @@ launch environment, then run this copyable PowerShell command:
 npm.cmd run browser -- --seed 0 --save .\hollow-beacon-browser-save.json
 ```
 
-The launcher serves **Hollow Beacon: Watch Route** (issue #84, content version 4) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
+The launcher starts **Hollow Beacon: Refugee Route** (issue #85, content version 5) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
 your desktop browser. If opening fails, use the printed URL. Keep the
 launcher running; Ctrl+C stops the service without closing the saved session.
 Rerun the same command to read the same slot at its saved seed, even if the
@@ -60,7 +60,13 @@ including when two starts race. The page displays the authoritative scene,
 location, visible exits, Day 0, Day 3 caravan deadline, 20/20 HP, and seed 0.
 **Read current state** rereads the verified slot. Existing slots load without
 replacement; corrupt, closed (`quit`), other-adventure, or older-content slots
-produce an error and remain unchanged. Active or completed Hollow Beacon slots
+produce an error and remain unchanged. Released v4 Watch Route slots continue
+with their original content and endings, including completed Review mode.
+V5 adds the camp survey and Refugee Overlook, attributed testimony and contested
+claims, and provisional tower instructions that leave play open. A finale for
+the expanded investigation is not part of this release. See the
+[issue 85 player checks](docs/acceptance/issue-85.md).
+Active or completed Hollow Beacon slots
 offer **New game**. Its keyboard-accessible confirmation explains that progress,
 conversation and both hint levels will be replaced, and displays the new seed
 from the launcher. **Cancel** or Escape preserves the current game; confirming

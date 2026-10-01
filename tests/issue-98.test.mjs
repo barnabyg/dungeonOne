@@ -210,18 +210,22 @@ test("secondary panels preserve conversation, scroll and focus while showing cla
             classification: "observation",
             source: { name: "Plate" },
             summary: "Alteration observed",
+            actionableLead: "Compare the plate",
           },
           {
             title: "Account",
             classification: "testimony",
             source: { name: "Pell" },
             summary: "Pell says",
+            actionableLead: "Compare Pell's account with the plate",
           },
           {
             title: "Suspicion",
             classification: "belief",
             source: { name: "Iona" },
             summary: "Unconfirmed",
+            actionableLead:
+              "Check the unconfirmed claim against physical evidence",
           },
         ],
       },
@@ -266,7 +270,10 @@ test("secondary panels preserve conversation, scroll and focus while showing cla
       );
     }
     if (name === "leads") {
-      assert.match(content(), /Compare the plate/);
+      assert.match(
+        content(),
+        /Observed evidence leads.*Plate — Plate: Compare the plate.*Testimony leads.*Account — Pell.*Contested claim leads.*Suspicion — Iona/,
+      );
     }
     nodes.get("close-information").listeners.click();
     assert.equal(document.activeElement, button);
@@ -283,6 +290,8 @@ test("secondary panels preserve conversation, scroll and focus while showing cla
   assert.equal(nodes.get("location").textContent, "Watch Yard");
   nodes.get("open-leads").listeners.click();
   view.scene.journal.actionableLeads = ["Report the alteration to Iona"];
+  view.scene.journal.discoveries[0].actionableLead =
+    "Report the alteration to Iona";
   nodes.get("refresh").listeners.click();
   await new Promise((resolve) => {
     setImmediate(resolve);

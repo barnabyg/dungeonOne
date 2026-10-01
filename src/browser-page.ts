@@ -181,11 +181,13 @@ function renderInformation() {
   } else {
     if (activePanel === "journal") {
       informationBlock(journal.quest.title, ["Quest: " + journal.quest.status]);
-      for (const [classification, label] of [["observation", "Observed evidence"], ["testimony", "Testimony"], ["belief", "Beliefs"]]) {
-        const entries = journal.discoveries.filter((entry) => entry.classification === classification).map((entry) => entry.title + " — " + entry.source.name + ": " + entry.summary);
-        informationBlock(label, entries.length ? entries : ["None recorded."]);
-      }
     }
+    const showingLeads = activePanel === "leads";
+    for (const [classification, label, leadLabel] of [["observation", "Observed evidence", "Observed evidence leads"], ["testimony", "Testimony", "Testimony leads"], ["belief", "Beliefs", "Contested claim leads"]]) {
+      const entries = journal.discoveries.filter((entry) => entry.classification === classification).map((entry) => entry.title + " — " + entry.source.name + ": " + (showingLeads ? entry.actionableLead : entry.summary));
+      informationBlock(showingLeads ? leadLabel : label, entries.length ? entries : ["None recorded."]);
+    }
+    if (showingLeads) { return; }
     const leads = [...new Set(journal.actionableLeads.filter((lead) => lead.trim()))];
     informationBlock("Current leads", leads.length ? leads : ["No current leads."]);
   }
@@ -421,7 +423,7 @@ element("start").addEventListener("click", () => { void read(true); });
 element("new-game").addEventListener("click", () => {
   if (pending || !currentView || currentView.slot !== "occupied") { return; }
   replacementView = currentView;
-  text("new-game-description", "Your existing progress, conversation history, replies, result cards and both hint levels will be replaced. Start Hollow Beacon: Watch Route with seed " + replacementView.newGameSeed + "?");
+  text("new-game-description", "Your existing progress, conversation history, replies, result cards and both hint levels will be replaced. Start a new Hollow Beacon adventure with seed " + replacementView.newGameSeed + "?");
   element("new-game-confirmation").showModal();
   element("cancel-new-game").focus();
 });
