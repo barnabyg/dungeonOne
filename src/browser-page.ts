@@ -4,24 +4,25 @@ export const BROWSER_HTML = `<!doctype html>
 <title>Hollow Beacon</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
 <body><a class="skip" href="#scene">Skip to scene</a>
 <header><p class="eyebrow">DUNGEON ONE · LOCAL ADVENTURE</p><h1>Hollow Beacon</h1><p id="seed">Reading save slot…</p></header>
-<main><aside aria-label="Adventure status"><h2>At a glance</h2><dl>
+<main><aside id="scene-context" aria-label="Current scene and adventure status"><p class="eyebrow">CURRENT SCENE</p>
+<h2 id="scene-title">Your save slot</h2><p id="description">Checking for an existing adventure…</p><p id="objective"></p>
+<div class="controls"><button id="start" hidden>Start adventure</button><button id="refresh">Read current state</button></div>
+<h2>At a glance</h2><dl>
 <dt>Location</dt><dd id="location">Not started</dd><dt>HP</dt><dd id="hp">—</dd>
 <dt>Time</dt><dd id="time">—</dd><dt>Deadline</dt><dd id="deadline">—</dd><dt>Session</dt><dd id="session">—</dd></dl>
 <h2>Visible exits</h2><ul id="exits"><li>Start to see exits.</li></ul></aside>
-<section id="scene" tabindex="-1" aria-labelledby="scene-title"><div id="scene-context"><p class="eyebrow">CURRENT SCENE</p>
-<h2 id="scene-title">Your save slot</h2><p id="description">Checking for an existing adventure…</p>
-<p id="objective"></p><h3 id="details-title" hidden>In view</h3><ul id="details"></ul>
-<div id="context" aria-label="Selected context" hidden><div class="context-heading"><h3 id="context-title" tabindex="-1"></h3><button id="close-context">Close options</button></div><div id="context-actions"></div></div>
-<div class="controls"><button id="start" hidden>Start adventure</button><button id="refresh">Read current state</button></div>
-<p id="feedback" role="status" aria-live="polite"></p></div>
-<h3>Conversation</h3><div id="conversation" role="log" aria-live="polite" aria-label="Adventure conversation"></div>
+<section id="scene" tabindex="-1" aria-labelledby="conversation-title">
+<h2 id="conversation-title">Conversation</h2><div id="conversation" role="log" aria-live="polite" aria-label="Adventure conversation"></div>
 <form id="turn" hidden><label for="message">What do you do or ask?</label>
 <textarea id="message" maxlength="1000" rows="3" required aria-describedby="message-help" placeholder="Describe one action, or ask a question."></textarea>
 <p id="message-help">Enter to send · Shift+Enter for a new line</p>
 <button id="send" type="submit">Send message</button></form>
+<p id="feedback" role="status" aria-live="polite"></p>
 <p class="note">Progress saves automatically. Conversation history is not restored after reload in this opening.</p>
 </section>
-<aside id="information-navigation" aria-label="Player information">
+<aside id="information-navigation" aria-label="Interactions and player information">
+<div id="context" aria-label="Selected context" hidden><div class="context-heading"><h3 id="context-title" tabindex="-1"></h3><button id="close-context">Close options</button></div><div id="context-actions"></div></div>
+<h2 id="details-title" hidden>In view</h2><ul id="details"></ul>
 <h2>Player information</h2><nav aria-label="Information panels">
 <button id="open-inventory" aria-controls="information" aria-expanded="false" disabled>Inventory</button>
 <button id="open-character" aria-controls="information" aria-expanded="false" disabled>Character</button>
@@ -33,20 +34,19 @@ export const BROWSER_HTML = `<!doctype html>
 </section></aside></main></body></html>`;
 
 export const BROWSER_CSS = `:root{color-scheme:light;font-family:Georgia,serif;color:#25352f;background:#f3f1eb;font-size:18px;line-height:1.65}
-*{box-sizing:border-box}body{margin:0}header{max-width:1180px;margin:auto;padding:32px 36px 24px;border-bottom:1px solid #d1d7cd}h1,h2,h3,p{margin:0 0 16px}h1{font-size:2.3rem;line-height:1.2}h2{font-size:1.45rem}h3{font-size:1.05rem}header p:last-child{margin:0}
+*{box-sizing:border-box}body{margin:0}header{max-width:2400px;margin:auto;padding:20px 36px 16px;border-bottom:1px solid #d1d7cd}h1,h2,h3,p{margin:0 0 16px}h1{font-size:1.9rem;line-height:1.2}h2{font-size:1.45rem}h3{font-size:1.05rem}header p:last-child{margin:0}
 .eyebrow,dt,button,.note,#seed{font-family:system-ui,sans-serif}.eyebrow{font-size:.7rem;letter-spacing:.13em;color:#57685d;margin-bottom:10px}
-main{max-width:1180px;margin:32px auto;display:grid;grid-template-columns:280px minmax(0,1fr);gap:48px;padding:0 36px;align-items:start}
-aside{position:sticky;top:24px;padding:24px;background:#e6eae0;border:1px solid #cbd2c3;border-radius:6px;max-height:calc(100vh - 48px);overflow:auto}aside h2{font-size:1.05rem}dl{margin:0 0 24px}dt{font-size:.75rem;color:#526154;margin-top:16px}dd{margin:0;line-height:1.4}ul{padding-left:22px}li{margin-bottom:8px}aside ul{font-size:.9rem;margin-bottom:0}
-section{min-width:0;background:#fffdf8;padding:32px;border:1px solid #d7dbd0;border-radius:6px}#description{white-space:pre-wrap}#objective{color:#526154}.controls{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}button{cursor:pointer;font-size:.85rem;padding:12px 18px;border-radius:4px;border:1px solid #345645;background:#345645;color:#fff}button:disabled{opacity:.65;cursor:wait}button:hover{background:#234535}#refresh{background:transparent;color:#25352f}
-:focus-visible{outline:3px solid #a75b20;outline-offset:4px}#feedback{font-family:system-ui,sans-serif;font-size:.85rem;margin-top:18px;min-height:1.6em}.note{font-size:.75rem;color:#59665d;border-top:1px solid #d7dbd0;padding-top:18px}.skip{position:absolute;left:12px;top:-100px;background:#fff;padding:8px}.skip:focus{top:12px}[hidden]{display:none!important}
-form{margin:24px 0}label{display:block;font-family:system-ui,sans-serif;font-size:.85rem}textarea{display:block;width:100%;margin:8px 0 12px;padding:12px;font:inherit;border:1px solid #83917f;border-radius:4px}article{margin:18px 0;padding:16px;border-left:3px solid #cbd2c3;background:#f3f1eb}article h4{font:600 .8rem system-ui,sans-serif;margin:0 0 8px}article p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.player{border-color:#345645}.result{background:#e6eae0}.notice,.waiting{font-size:.85rem}#conversation:empty{display:none}
-.dialogue{background:#eef2e9;border-left:3px solid #58734f}.dialogue p{font-style:italic}.dialogue h4{color:#345645}#message-help{font:.75rem system-ui,sans-serif;color:#59665d}
-main{max-width:1500px;grid-template-columns:220px minmax(0,1fr) 280px;gap:24px}header{max-width:1500px}
-#conversation{max-height:55vh;overflow:auto;overflow-anchor:none}#information-navigation{padding:18px}nav{display:flex;flex-wrap:wrap;gap:8px}nav button{padding:8px 10px}nav button[aria-expanded="true"]{background:#234535;outline:2px solid #a75b20}#information{margin-top:18px;padding:0;border:0;background:transparent}#information-title{margin-top:18px}#information-body h3{margin-top:20px}#information-body p{white-space:pre-wrap;overflow-wrap:anywhere}#information-body ul{font-size:.85rem}#close-information{background:transparent;color:#25352f}
-#context{margin:20px 0;padding:18px;background:#eef2e9;border:1px solid #cbd2c3;border-radius:6px}.context-heading{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:18px}.context-heading h3{margin:0}#close-context{flex:none;padding:6px 0;background:transparent;border:0;color:#526154;text-decoration:underline;text-underline-offset:3px}#close-context:hover{color:#25352f}#context-actions{display:flex;flex-wrap:wrap;gap:14px}#context-actions p{flex-basis:100%;margin:8px 0 0}#context-actions button{text-align:left}#details li{margin-bottom:14px}#details li p{margin:8px 0 0}
-@media(min-width:1051px){body{height:100dvh;display:flex;flex-direction:column}header{width:100%;flex:none;padding:20px 36px 16px}header h1{font-size:1.9rem}main{width:100%;flex:1;min-height:0;margin:24px auto}aside{position:static;max-height:100%}#scene{height:100%;min-height:0;display:flex;flex-direction:column;padding:24px}#scene-context{flex:0 1 auto;min-height:0;max-height:42%;overflow:auto;scrollbar-gutter:stable;padding-right:8px}#scene>h3{flex:none;margin:16px 0 8px}#conversation{flex:1;min-height:0;max-height:none}#turn{flex:none;margin:16px 0 12px;padding-top:12px;border-top:1px solid #d7dbd0}#turn textarea{min-height:76px;height:76px;resize:vertical;max-height:20vh;margin-bottom:8px}#message-help{margin-bottom:8px}#turn label{font-weight:600}#scene>.note{flex:none;margin:0;padding-top:10px}.controls{margin-top:18px}#feedback{margin:12px 0 0}}
-@media(max-width:1050px){main{grid-template-columns:180px minmax(0,1fr);padding:0 24px}#information-navigation{position:fixed;right:12px;bottom:12px;top:auto;width:280px;max-height:45vh;z-index:2;box-shadow:0 4px 16px #25352f33}#scene{padding-bottom:130px}}
-@media(max-width:760px){header{padding:24px}main{grid-template-columns:1fr;gap:24px;margin-top:24px}aside{position:sticky;top:0;max-height:35vh;z-index:1}aside dl{display:grid;grid-template-columns:80px 1fr;gap:4px;margin-bottom:8px}aside dt{margin:0}aside h2{margin-bottom:8px}section{padding:24px}#information-navigation{width:min(280px,calc(100vw - 24px))}}`;
+main{max-width:2400px;margin:24px auto;display:grid;grid-template-columns:minmax(280px,1fr) minmax(0,880px) minmax(300px,1fr);gap:28px;padding:0 36px;align-items:start}
+aside{min-width:0;padding:24px;background:#e6eae0;border:1px solid #cbd2c3;border-radius:6px}aside h2{font-size:1.05rem}aside p{font-size:.9rem}dl{display:grid;grid-template-columns:90px minmax(0,1fr);gap:10px 16px;margin:0 0 24px}dt{font-size:.75rem;color:#526154}dd{margin:0;line-height:1.4}ul{padding-left:22px}li{margin-bottom:8px}
+section{min-width:0;background:#fffdf8;padding:24px;border:1px solid #d7dbd0;border-radius:6px}#description{white-space:pre-wrap}#objective{color:#526154}.controls{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0 28px}button{cursor:pointer;font:.85rem system-ui,sans-serif;padding:12px 18px;border-radius:4px;border:1px solid #345645;background:#345645;color:#fff}button:disabled{opacity:.65;cursor:wait}button:hover{background:#234535}#refresh{background:transparent;color:#25352f}
+:focus-visible{outline:3px solid #a75b20;outline-offset:4px}#feedback{font:.8rem system-ui,sans-serif;margin:0 0 12px;min-height:1.4em}.note{font:.75rem system-ui,sans-serif;color:#59665d;border-top:1px solid #d7dbd0;padding-top:12px;margin:0}.skip{position:absolute;left:12px;top:-100px;background:#fff;padding:8px}.skip:focus{top:12px}[hidden]{display:none!important}
+#scene{position:sticky;top:24px;height:calc(100dvh - 202px);min-height:420px;display:flex;flex-direction:column}#conversation-title{flex:none;font-size:1.1rem}#conversation{flex:1;min-height:0;overflow:auto;overflow-anchor:none}#conversation:empty::before{content:"Your conversation will appear here.";color:#59665d;font-size:.9rem}#turn{flex:none;margin:16px 0 12px;padding-top:16px;border-top:1px solid #d7dbd0}label{display:block;font:600 .85rem system-ui,sans-serif}textarea{display:block;width:100%;min-height:76px;height:76px;max-height:20vh;resize:vertical;margin:8px 0;padding:12px;font:inherit;border:1px solid #83917f;border-radius:4px}#message-help{font:.75rem system-ui,sans-serif;color:#59665d;margin-bottom:8px}
+article{margin:16px 0;padding:16px;border-left:3px solid #cbd2c3;background:#f3f1eb}article h4{font:600 .8rem system-ui,sans-serif;margin:0 0 8px}article p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.player{border-color:#345645}.result{background:#e6eae0}.notice,.waiting{font-size:.85rem}.dialogue{background:#eef2e9;border-left:3px solid #58734f}.dialogue p{font-style:italic}.dialogue h4{color:#345645}
+#exits,#details{list-style:none;padding:0;margin:0 0 28px}#exits{display:flex;flex-wrap:wrap;gap:12px}#exits li{margin:0}#details li{margin-bottom:18px}#details li p{margin:8px 0 0}#context{margin:0 0 28px;padding:18px;background:#fffdf8;border:1px solid #cbd2c3;border-radius:6px}.context-heading{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:18px}.context-heading h3{margin:0}#close-context{flex:none;padding:6px 0;background:transparent;border:0;color:#526154;text-decoration:underline;text-underline-offset:3px}#close-context:hover{color:#25352f}#context-actions{display:flex;flex-wrap:wrap;gap:14px}#context-actions p{flex-basis:100%;margin:8px 0 0}#context-actions button{text-align:left;max-width:100%}
+nav{display:flex;flex-wrap:wrap;gap:8px}nav button{padding:8px 10px}nav button[aria-expanded="true"]{background:#234535;outline:2px solid #a75b20}#information{margin-top:18px;padding:0;border:0;background:transparent}#information-title{margin-top:18px}#information-body h3{margin-top:20px}#information-body p{white-space:pre-wrap;overflow-wrap:anywhere}#information-body ul{font-size:.85rem}#close-information{background:transparent;color:#25352f}
+@media(max-width:1250px){main{grid-template-columns:250px minmax(0,1fr) 280px;gap:20px;padding:0 24px}aside,section{padding:18px}dl{grid-template-columns:75px minmax(0,1fr);gap:8px}#context{padding:12px}.context-heading{flex-wrap:wrap;gap:8px}#scene{height:calc(100dvh - 202px)}}
+@media(max-width:1050px){main{grid-template-columns:minmax(220px,1fr) minmax(0,2fr)}#information-navigation{grid-column:1;grid-row:2}#scene{grid-column:2;grid-row:1 / span 2}}
+@media(max-width:760px){header{padding:24px}main{display:flex;flex-direction:column;gap:24px;margin-top:24px;padding:0 24px}main>*{width:100%}#scene{position:static;height:auto;min-height:0;order:3}#conversation{flex:auto;max-height:50vh}#information-navigation{order:2}textarea{max-height:none}}`;
 
 export const BROWSER_SCRIPT = `"use strict";
 const element = (id) => document.getElementById(id);
@@ -75,7 +75,6 @@ function chooseContext(id, name) {
     contextButtons.push(button); element("context-actions").append(button);
   }
   element("context").hidden = false;
-  element("context").scrollIntoView({ block: "nearest" });
   element("context-title").focus({ preventScroll: true });
 }
 function contextList(id, targets) {

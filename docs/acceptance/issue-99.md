@@ -37,9 +37,14 @@ Click **Start adventure**. The opening shows Watch Yard, Day 0, and 20/20 HP.
    A draft in the message composer survives a contextual action or stale rejection.
 
 On desktop windows wider than 1050 pixels, the composer stays within the
-viewport even after a long conversation or when options are open. Scene
-details and conversation scroll independently. Option buttons have visible
-gaps; the underlined **Close options** control sits in the panel heading.
+viewport even after a long conversation or when options are open. Location,
+scene description, status, and exits occupy the left column. Visible targets,
+contextual options, and player information occupy the right column. The
+centre holds only conversation and the composer. Side columns flow naturally
+with the page; only conversation history has an internal scroll area. Option
+buttons have visible gaps; the underlined **Close options** control sits in
+the panel heading. Open the journal and scroll the page to check that the
+central composer remains accessible while reading a longer side column.
 Check at 1280×720, 1920×1080 (including a scaled 4K desktop), and 3840×2160.
 Smaller windows retain the vertically scrolling responsive layout.
 
