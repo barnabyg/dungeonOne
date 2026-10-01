@@ -41,7 +41,9 @@ export type BrowserOptions = Readonly<{
 
 async function readPlayerInput(
   request: IncomingMessage,
-): Promise<{ message: string } | { optionId: string }> {
+): Promise<
+  ({ message: string } | { optionId: string }) & { revision: string }
+> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
@@ -54,21 +56,30 @@ async function readPlayerInput(
   }
   const body: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
   if (
+    body === null ||
+    typeof body !== "object" ||
+    !("revision" in body) ||
+    typeof body.revision !== "string" ||
+    !/^[a-f0-9]{64}$/.test(body.revision)
+  ) {
+    throw new Error("Invalid revision.");
+  }
+  if (
     body !== null &&
     typeof body === "object" &&
     !Array.isArray(body) &&
-    Object.keys(body).length === 1 &&
+    Object.keys(body).length === 2 &&
     "optionId" in body &&
     typeof body.optionId === "string" &&
     body.optionId.length <= 64
   ) {
-    return { optionId: body.optionId };
+    return { optionId: body.optionId, revision: body.revision };
   }
   if (
     body === null ||
     typeof body !== "object" ||
     Array.isArray(body) ||
-    Object.keys(body).length !== 1 ||
+    Object.keys(body).length !== 2 ||
     !("message" in body) ||
     typeof body.message !== "string" ||
     /[\ud800-\udfff]/u.test(body.message) ||
@@ -77,13 +88,16 @@ async function readPlayerInput(
   ) {
     throw new Error("Invalid player message.");
   }
-  return { message: body.message };
+  return { message: body.message, revision: body.revision };
 }
 
 export type BrowserView = Readonly<
   | { slot: "empty"; title: string; seed: number }
   | {
       slot: "occupied";
+      revision: string;
+      position: number;
+      recovery: "saved" | "pending" | "unsaved";
       seed: number;
       scene: DmScene;
       clocks: ReturnType<NonNullable<AdventureRuntime["projectPlayerClocks"]>>;
@@ -111,11 +125,18 @@ function assertSupported(session: SaveSession): void {
   }
 }
 
-function playerView(session: SaveSession, revision: string): BrowserView {
+function playerView(
+  session: SaveSession,
+  revision: string,
+): Extract<BrowserView, { slot: "occupied" }> {
   assertSupported(session);
   const status = session.runtime.projectCharacterStatus(session.state);
   return {
     slot: "occupied",
+    revision,
+    position: session.progress.sequence,
+    recovery:
+      session.browserHistory?.pending === undefined ? "saved" : "pending",
     seed: session.seed,
     scene: session.runtime.projectDmScene(session.state),
     clocks: session.runtime.projectPlayerClocks?.(session.state) ?? [],
@@ -124,9 +145,40 @@ function playerView(session: SaveSession, revision: string): BrowserView {
     // Public premise of the supported authored Watch Route, not a hidden
     // clock threshold/effect projection or a parse of terminal narration.
     deadline: { name: "Caravan at the ridge fork", day: 3 },
-    actions: browserActions(session, revision),
+    actions: browserActions(
+      session,
+      createHash("sha256")
+        .update(
+          JSON.stringify({
+            generation: session.generation,
+            progress: session.progress,
+          }),
+        )
+        .digest("hex"),
+    ),
     title: session.runtime.content!.snapshot.title,
-    history: session.browserHistory?.turns ?? [],
+    history: [
+      ...(session.browserHistory?.turns ?? []),
+      ...(session.browserHistory?.pending === undefined
+        ? []
+        : [
+            {
+              sequence: session.progress.sequence,
+              message: session.browserHistory.pending.message,
+              reply:
+                session.browserHistory.pending.reply ??
+                "Waiting for the complete reply…",
+              ...(session.browserHistory.pending.speaker === undefined
+                ? {}
+                : { speaker: session.browserHistory.pending.speaker }),
+              cards: session.browserHistory.pending.cards,
+              committed:
+                session.progress.sequence >
+                session.browserHistory.pending.sequence,
+              notice: `Turn pending at position ${session.progress.sequence}. Do not repeat it; read current state.`,
+            },
+          ]),
+    ],
   };
 }
 
@@ -182,8 +234,10 @@ async function recoverHistory(session: SaveSession): Promise<void> {
         sequence: session.progress.sequence,
         message: pending.message,
         reply:
+          pending.reply ??
           "The previous turn was interrupted before its reply was saved. " +
-          notice,
+            notice,
+        ...(pending.speaker === undefined ? {} : { speaker: pending.speaker }),
         cards: pending.cards,
         committed,
         notice,
@@ -214,21 +268,30 @@ export async function startBrowserServer(options: BrowserOptions) {
     throw new Error("The bundled Hollow Beacon adventure is invalid.");
   }
   const runtime = createDataRuntime(loaded.adventure);
+  let retained: SaveSession | undefined;
+  // Callers own the exclusive turn lock while changing the recovery session.
+  const retainSession = (session: SaveSession | undefined) => {
+    retained = session;
+  };
+  let saveFailed = false;
   const readSlot = async (): Promise<BrowserView> => {
     try {
-      const session = await SaveSession.load(options.savePath);
-      return playerView(
+      const session = retained ?? (await SaveSession.load(options.savePath));
+      const view = playerView(
         session,
         createHash("sha256")
           .update(
             JSON.stringify({
               progress: session.progress,
+              generation: session.generation,
+              history: session.browserHistory,
               seed: session.seed,
               content: session.runtime.content!.digest,
             }),
           )
           .digest("hex"),
       );
+      return saveFailed ? { ...view, recovery: "unsaved" } : view;
     } catch (error) {
       if (!hasCode(error, "ENOENT")) {
         throw error;
@@ -300,7 +363,11 @@ export async function startBrowserServer(options: BrowserOptions) {
           json(response, 403, { error: "Unrelated origin rejected." });
           return;
         }
-        if (request.url !== "/api/start" && request.url !== "/api/turn") {
+        if (
+          !["/api/start", "/api/turn", "/api/recover"].includes(
+            request.url ?? "",
+          )
+        ) {
           json(response, 404, { error: "Unknown endpoint." });
           return;
         }
@@ -308,13 +375,36 @@ export async function startBrowserServer(options: BrowserOptions) {
           json(response, 409, {
             error:
               "A turn is already pending. Wait for its reply; this request was not applied.",
+            view: await readSlot(),
           });
+          return;
+        }
+        if (request.url === "/api/recover") {
+          turning = true;
+          try {
+            if (retained !== undefined) {
+              await retained.saveBrowserHistory(retained.browserHistory!);
+              await recoverHistory(retained);
+              retainSession(undefined);
+              saveFailed = false;
+            }
+            json(response, 200, { view: await readSlot() });
+          } catch {
+            saveFailed = true;
+            json(response, 503, {
+              error:
+                "Result retained but not durably saved. Repair local storage and read current state again. Do not repeat the action.",
+              view: await readSlot(),
+            });
+          } finally {
+            releaseTurn();
+          }
           return;
         }
         if (request.url === "/api/turn") {
           turning = true;
           try {
-            let input: { message: string } | { optionId: string };
+            let input: Awaited<ReturnType<typeof readPlayerInput>>;
             try {
               input = await readPlayerInput(request);
             } catch {
@@ -324,10 +414,24 @@ export async function startBrowserServer(options: BrowserOptions) {
               });
               return;
             }
+            const viewBefore = await readSlot();
+            if (
+              retained !== undefined ||
+              viewBefore.slot !== "occupied" ||
+              input.revision !== viewBefore.revision
+            ) {
+              json(response, 409, {
+                error:
+                  retained !== undefined
+                    ? "Result not durably saved. Read current state to recover it before continuing."
+                    : "This request is stale. Current saved position refreshed; no action was committed.",
+                view: viewBefore,
+              });
+              return;
+            }
             const session = await SaveSession.load(options.savePath);
             assertSupported(session);
             await recoverHistory(session);
-            const viewBefore = await readSlot();
             const selected =
               "optionId" in input && viewBefore.slot === "occupied"
                 ? viewBefore.actions.find(
@@ -352,6 +456,7 @@ export async function startBrowserServer(options: BrowserOptions) {
               return;
             }
             const transcript = browserTranscript(session.browserHistory);
+            retainSession(session);
             await session.saveBrowserHistory({
               version: 1,
               progress: session.progress,
@@ -413,6 +518,16 @@ export async function startBrowserServer(options: BrowserOptions) {
                       ...history,
                       pending: {
                         ...history.pending!,
+                        ...(toolResult.modelOutput.ok &&
+                        toolResult.modelOutput.conversation !== undefined
+                          ? {
+                              reply:
+                                toolResult.modelOutput.conversation
+                                  .authoredReply,
+                              speaker:
+                                toolResult.modelOutput.conversation.speakerName,
+                            }
+                          : {}),
                         cards: [
                           ...history.pending!.cards,
                           resultCard(session, call, toolResult, mechanics),
@@ -442,7 +557,7 @@ export async function startBrowserServer(options: BrowserOptions) {
             const notice = result.diagnostics.some(
               ({ code }) => code === "model-failure",
             )
-              ? `AI service failed. ${committed ? "Your action was saved; do not repeat it." : "No action was committed."}`
+              ? `AI service failed. ${committed ? `Your action was saved; do not repeat it. Position ${session.progress.sequence}.` : "No action was committed. You may retry when AI is available."}`
               : committed
                 ? "Action saved."
                 : "No action was committed.";
@@ -462,15 +577,16 @@ export async function startBrowserServer(options: BrowserOptions) {
               progress: session.progress,
               turns: [...session.browserHistory!.turns, turn],
             });
+            retainSession(undefined);
             json(response, 200, { view: await readSlot(), ...turn });
           } catch {
-            // Recover only while holding the turn lock. GET never writes the slot.
-            await SaveSession.load(options.savePath)
-              .then(recoverHistory)
-              .catch(() => undefined);
+            saveFailed = retained !== undefined;
+            const durable = await SaveSession.load(options.savePath).catch(
+              () => undefined,
+            );
             json(response, 500, {
-              error:
-                "Unable to complete the turn. Read current state to check saved progress before sending another action; this request will not be retried automatically.",
+              error: `Unable to durably save the complete turn. Durable position: ${durable?.progress.sequence ?? "unavailable"}. Result retained in this process; read current state to save it without repeating the action.`,
+              view: await readSlot(),
             });
           } finally {
             releaseTurn();

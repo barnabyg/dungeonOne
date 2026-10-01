@@ -44,7 +44,11 @@ async function post(server, message) {
   return fetch(server.url + "/api/turn", {
     method: "POST",
     headers: { Origin: server.url, "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({
+      message,
+      revision: (await (await fetch(server.url + "/api/state")).json())
+        .revision,
+    }),
   });
 }
 async function withGame(model, body) {

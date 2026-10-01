@@ -15,7 +15,14 @@ const server = await startBrowserServer({
         ),
         speaker: "reply" in request ? request.reply.speakerId : undefined,
       });
-      if (request.toolResults.length && process.argv[4] === "interrupt") {
+      if (process.argv[4] === "before") {
+        process.send({ type: "entered" });
+        await new Promise(() => {});
+      }
+      if (
+        (request.toolResults.length || "reply" in request) &&
+        process.argv[4] === "interrupt"
+      ) {
         process.send({ type: "committed" });
         await new Promise(() => {});
       }

@@ -24,11 +24,15 @@ test("context actions use the AI turn and match typed state, dice, dialogue and 
     join(directory, "typed.json"),
   ];
   const counts = [0, 0];
-  const post = (server, body) =>
+  const post = async (server, body) =>
     fetch(server.url + "/api/turn", {
       method: "POST",
       headers: { Origin: server.url },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ...body,
+        revision: (await (await fetch(server.url + "/api/state")).json())
+          .revision,
+      }),
     });
   try {
     for (let i = 0; i < 2; i++) {
@@ -156,11 +160,15 @@ test("ending stakes are public, selection is explicit, and AI cannot substitute 
       },
     },
   });
-  const post = (body) =>
+  const post = async (body) =>
     fetch(server.url + "/api/turn", {
       method: "POST",
       headers: { Origin: server.url },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ...body,
+        revision: (await (await fetch(server.url + "/api/state")).json())
+          .revision,
+      }),
     });
   try {
     await fetch(server.url + "/api/start", {

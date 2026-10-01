@@ -49,7 +49,11 @@ async function post(server, endpoint, body) {
   return fetch(server.url + endpoint, {
     method: "POST",
     headers: { Origin: server.url, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      ...body,
+      revision: (await (await fetch(server.url + "/api/state")).json())
+        .revision,
+    }),
   });
 }
 const view = async (server) => (await fetch(server.url + "/api/state")).json();

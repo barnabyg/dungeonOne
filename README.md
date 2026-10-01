@@ -49,7 +49,10 @@ input stays disabled until the complete reply arrives. Replies retain NPC
 attribution, authoritative result cards explain resolved actions, and the
 location, exits, HP, and time refresh from verified saved state. Consequential
 results save before display. Provider failures report whether an action was
-saved; do not repeat an action marked saved.
+saved; do not repeat an action marked saved. Lost responses and stale tab requests
+refresh the preserved position without repeating the action. Save failures retain
+the result; repair storage and use **Read current state** to recover it. Keep the
+launcher running if it reports an unsaved result. See [issue 101 recovery checks](docs/acceptance/issue-101.md).
 
 Click a visible exit to travel immediately, or select a person or object to
 see its current local options. Topic, inspection, search, and ending buttons

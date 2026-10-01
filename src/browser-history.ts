@@ -21,6 +21,8 @@ export type BrowserHistory = Readonly<{
   }>;
   turns: readonly BrowserTurn[];
   pending?: Readonly<{
+    reply?: string;
+    speaker?: string;
     sequence: number;
     message: string;
     cards: readonly ResultCard[];
@@ -116,7 +118,9 @@ export function validateBrowserHistory(
     const pending = value.pending;
     if (
       !record(pending) ||
-      !keys(pending, ["sequence", "message", "cards"]) ||
+      !keys(pending, ["sequence", "message", "cards", "reply", "speaker"]) ||
+      (pending.reply !== undefined && !text(pending.reply)) ||
+      (pending.speaker !== undefined && !text(pending.speaker)) ||
       !Number.isSafeInteger(pending.sequence) ||
       typeof pending.sequence !== "number" ||
       pending.sequence < sequence ||

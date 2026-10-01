@@ -48,11 +48,15 @@ test("information reads track discovery, return visits and the deadline without 
       },
     },
   });
-  const post = (endpoint, body) =>
+  const post = async (endpoint, body) =>
     fetch(server.url + endpoint, {
       method: "POST",
       headers: { Origin: server.url, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ...body,
+        revision: (await (await fetch(server.url + "/api/state")).json())
+          .revision,
+      }),
     });
   async function readOnly() {
     const before = await readFile(savePath, "utf8");

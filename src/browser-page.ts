@@ -220,11 +220,17 @@ async function read(start = false) {
   text("feedback", start ? "Saving the opening…" : "Reading current state…");
   try {
     const response = await fetch(start ? "/api/start" : "/api/state", { method: start ? "POST" : "GET" });
-    const view = await response.json();
+    let view = await response.json();
     if (!response.ok) { throw new Error(view.error || "Unable to read the save slot."); }
+    if (view.recovery === "unsaved") {
+      const recovery = await fetch("/api/recover", { method: "POST" });
+      const result = await recovery.json();
+      if (result.view) { view = result.view; render(view); restoreHistory(view); }
+      if (!recovery.ok) { throw new Error(result.error); }
+    }
     render(view);
     restoreHistory(view);
-    text("feedback", view.slot === "empty" ? "Ready to start." : "Saved progress and conversation loaded.");
+    text("feedback", view.slot === "empty" ? "Ready to start." : view.recovery === "pending" ? "A turn is pending. Read current state again before continuing; do not repeat it." : "Saved progress and conversation loaded. Position " + view.position + ".");
     if (start) { element("scene").focus(); }
   } catch (error) {
     text("feedback", error instanceof Error ? error.message : "Unable to reach the local service. Restart the launcher and open its new URL.");
@@ -244,9 +250,9 @@ async function submitTurn(message, body = { message }) {
   const waiting = entry("Dungeon Master", "Waiting for a complete reply…", "waiting");
   text("feedback", "Your message is pending…");
   try {
-    const response = await fetch("/api/turn", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const response = await fetch("/api/turn", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, revision: currentView.revision }) });
     const result = await response.json();
-    if (result.view) { render(result.view); }
+    if (result.view) { render(result.view); restoreHistory(result.view); }
     if (!response.ok) { throw new Error(result.error || "Unable to complete the turn."); }
     waiting.remove();
     restoreHistory(result.view);
@@ -254,6 +260,11 @@ async function submitTurn(message, body = { message }) {
     text("feedback", result.notice);
   } catch (error) {
     waiting.remove();
+    try {
+      const response = await fetch("/api/state");
+      const view = await response.json();
+      if (response.ok) { render(view); restoreHistory(view); }
+    } catch { /* Read current state remains available when connection returns. */ }
     const message = error instanceof Error ? error.message : "Connection lost. Read current state before sending another action.";
     entry("Turn unavailable", message, "notice");
     text("feedback", message);

@@ -50,6 +50,7 @@ type Transition = Readonly<{
 }>;
 
 type SaveEnvelope = Readonly<{
+  generation?: string;
   browserHistory?: BrowserHistory;
   browserHistoryDigest?: string;
   kind: "dungeon-one-save";
@@ -463,6 +464,7 @@ function eventsFor(
 }
 
 export class SaveSession {
+  generation = randomBytes(16).toString("hex");
   browserHistory: BrowserHistory | undefined;
 
   get progress(): BrowserHistory["progress"] {
@@ -541,12 +543,27 @@ export class SaveSession {
   }
 
   static async load(path: string): Promise<SaveSession> {
-    const info = await stat(path);
+    const recoveryPath = `${path}.recovery`;
+    const recovering = await stat(recoveryPath).then(
+      () => true,
+      (error: unknown) => {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "ENOENT"
+        ) {
+          return false;
+        }
+        throw error;
+      },
+    );
+    const sourcePath = recovering ? recoveryPath : path;
+    const info = await stat(sourcePath);
     if (!info.isFile() || info.size > SAVE_BYTE_LIMIT) {
       throw new Error("Save must be a regular file within the size limit.");
     }
     const parsed: unknown = parseBoundedJson(
-      await readFile(path),
+      await readFile(sourcePath),
       SAVE_BYTE_LIMIT,
       48,
     );
@@ -600,6 +617,15 @@ export class SaveSession {
       [],
       runtime.createSession(),
     );
+    if (
+      save.generation !== undefined &&
+      (typeof save.generation !== "string" ||
+        !/^[a-f0-9]{32}$/.test(save.generation))
+    ) {
+      throw new Error("Invalid save generation.");
+    }
+    // Legacy slots retain a stable identity without changing their format.
+    session.generation = save.generation ?? digest(save.content).slice(-32);
     for (const [index, transition] of save.transitions.entries()) {
       if (
         !transition ||
@@ -829,6 +855,7 @@ export class SaveSession {
   private async persist(exclusive = false): Promise<void> {
     const content = this.runtime.content!;
     const save: SaveEnvelope = {
+      generation: this.generation,
       ...(this.browserHistory === undefined
         ? {}
         : {
@@ -873,8 +900,15 @@ export class SaveSession {
         // A hard link is atomic and never replaces an occupied destination.
         await link(temporary, this.path);
         await unlink(temporary);
-      } else {
+      } else if (this.browserHistory === undefined) {
+        // Keep the released command-save failure contract: failed publication
+        // resumes the prior primary. Browser turns opt into retained recovery.
         await rename(temporary, this.path);
+      } else {
+        // A synced recovery journal survives interruption or failure while
+        // publishing the main slot. Loading verifies it by the same replay.
+        await rename(temporary, `${this.path}.recovery`);
+        await rename(`${this.path}.recovery`, this.path);
       }
     } catch (error) {
       await file.close().catch(() => undefined);
