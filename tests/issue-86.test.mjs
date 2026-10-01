@@ -40,6 +40,16 @@ test("one remembered claim changes only Iona; evidence restores trust after acce
   for (const die of [1, 20]) {
     const game = runtime();
     const initial = game.createSession();
+    assert.ok(
+      game
+        .projectDmScene(initial)
+        .suggestions.includes("talk iona safe-signal persuade"),
+    );
+    assert.ok(
+      !game
+        .projectDmScene(initial)
+        .suggestions.includes("talk iona safe-signal ask"),
+    );
     let draws = 0;
     const random = {
       roll: () => {

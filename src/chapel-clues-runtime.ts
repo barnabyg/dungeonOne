@@ -1079,11 +1079,7 @@ export function createChapelCluesRuntime(
                 ...searchableFeatures(state).map(
                   (feature) => `search ${feature.id}`,
                 ),
-                ...npcs.flatMap((npc) =>
-                  npc.topics
-                    .filter((topic) => topicAvailable(state, topic))
-                    .map((topic) => `talk ${npc.id} ${topic.id} ask`),
-                ),
+                ...npcs.flatMap((npc) => talkCommands(state, npc)),
                 ...searchableRemains(state).map((npc) => `search ${npc.id}`),
                 ...exits.map((exit) => `move ${exit.id}`),
                 ...followTargets(state).map((npc) => `follow ${npc.id}`),
