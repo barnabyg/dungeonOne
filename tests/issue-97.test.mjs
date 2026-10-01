@@ -376,6 +376,11 @@ test("browser script submits through API/storage, locks pending input and render
         return {
           id,
           children: [],
+          scrollTop: 0,
+          clientHeight: 100,
+          get scrollHeight() {
+            return this.children.length * 100;
+          },
           listeners: {},
           textContent: "",
           value: "",
@@ -485,6 +490,10 @@ test("browser script submits through API/storage, locks pending input and render
       assert.equal(nodes.get("send").disabled, false);
       assert.equal(nodes.get("message").focused, true);
       const articles = nodes.get("conversation").children;
+      assert.equal(
+        nodes.get("conversation").scrollTop,
+        nodes.get("conversation").scrollHeight,
+      );
       assert.equal(
         articles[1].children[1].textContent,
         "<script>untrusted reply</script>",

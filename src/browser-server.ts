@@ -17,7 +17,7 @@ import {
 } from "./openai-dm-model.js";
 import { loadAdventureFile } from "./adventure-file.js";
 import { createDataRuntime } from "./data-runtime.js";
-import type { DmScene } from "./game-tools.js";
+import type { CharacterStatus, DmScene } from "./game-tools.js";
 import type { AdventureRuntime } from "./runtime-contract.js";
 import { SaveSession } from "./save.js";
 import { BROWSER_HTML, BROWSER_CSS, BROWSER_SCRIPT } from "./browser-page.js";
@@ -64,6 +64,7 @@ export type BrowserView = Readonly<
       scene: DmScene;
       clocks: ReturnType<NonNullable<AdventureRuntime["projectPlayerClocks"]>>;
       hp: Readonly<{ current: number; maximum: number }>;
+      character: CharacterStatus;
       deadline: Readonly<{ name: string; day: number }>;
     }
 >;
@@ -92,6 +93,7 @@ function playerView(session: SaveSession): BrowserView {
     scene: session.runtime.projectDmScene(session.state),
     clocks: session.runtime.projectPlayerClocks?.(session.state) ?? [],
     hp: { current: status.hp, maximum: status.maxHp },
+    character: status,
     // Public premise of the supported authored Watch Route, not a hidden
     // clock threshold/effect projection or a parse of terminal narration.
     deadline: { name: "Caravan at the ridge fork", day: 3 },

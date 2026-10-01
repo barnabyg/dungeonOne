@@ -52,6 +52,14 @@ results save before display. Provider failures report whether an action was
 saved; do not repeat an action marked saved.
 
 Start/read makes no AI call. Gameplay requires a valid key and network access.
+Open **Inventory**, **Character**, **Journal**, or **Known leads** beside the
+conversation with a click, or Tab to a button and press Enter/Space. The journal
+separates observed evidence, testimony, beliefs, and current leads. Empty
+inventory is shown explicitly. Panels update after each completed turn;
+opening, switching, and closing them creates no messages, AI calls, time costs,
+or dice draws. Close or Escape restores focus to the panel's button and keeps
+the conversation's scroll position. Location, exits, HP, and time remain in
+the status sidebar. See [issue 98 player checks](docs/acceptance/issue-98.md).
 Conversation history is not restored after reload or restart yet; progress is.
 Command gameplay, CLI resume, existing save formats, and replay remain available.
 See [issue 97 player checks](docs/acceptance/issue-97.md) for the seeded journey
