@@ -34,6 +34,7 @@ Click **Start adventure**. The opening shows Watch Yard, Day 0, and 20/20 HP.
 7. Use Tab and Enter or Space to select a target and activate an offered action.
    While waiting, other turn controls are disabled. Close options or Escape
    returns focus to the scene.
+   A draft in the message composer survives a contextual action or stale rejection.
 
 Button text uses the current public target and subject names; exit labels may
 also include their travel cost. Typed equivalents can be copied from each

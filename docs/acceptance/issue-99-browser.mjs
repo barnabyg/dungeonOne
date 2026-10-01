@@ -66,6 +66,9 @@ try {
   await stale.waitForFunction(
     () => document.getElementById("location").textContent === "Watch Yard",
   );
+  const draft = "An unfinished question about the keeper";
+  await pages[0].getByLabel("What do you do or ask?").fill(draft);
+  await stale.getByLabel("What do you do or ask?").fill(draft);
   const routes = [
     ["talk", { speakerId: "iona", topicId: "brief", approach: "ask" }],
     ["move", { destinationId: "watch-loft" }],
@@ -123,6 +126,10 @@ try {
       () => !document.getElementById("send").disabled,
     );
     assert.deepEqual(await checkpoint(0), await checkpoint(1));
+    assert.equal(
+      await pages[0].getByLabel("What do you do or ask?").inputValue(),
+      draft,
+    );
     assert.deepEqual(clicked.cards, typed.cards);
     assert.equal(clicked.reply, typed.reply);
     if (name === "talk") {
@@ -156,6 +163,10 @@ try {
   );
   assert.equal(await readFile(paths[0], "utf8"), before);
   assert.equal(count, calls);
+  assert.equal(
+    await stale.getByLabel("What do you do or ask?").inputValue(),
+    draft,
+  );
   console.log(
     "Real Edge browser: keyboard travel, attributed dialogue, inspection, search and stale intent passed; clicked/typed checkpoints and RNG equal (one draw).",
   );

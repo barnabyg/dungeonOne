@@ -228,7 +228,7 @@ async function submitTurn(message, body = { message }) {
   if (!message) { return; }
   busy(true);
   entry("You", message, "player");
-  element("message").value = "";
+  if (!("optionId" in body)) { element("message").value = ""; }
   const waiting = entry("Dungeon Master", "Waiting for a complete reply…", "waiting");
   text("feedback", "Your message is pending…");
   try {
