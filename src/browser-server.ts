@@ -296,6 +296,7 @@ export async function startBrowserServer(options: BrowserOptions) {
   };
   let saveFailed = false;
   let turning = false;
+  let starting: Promise<BrowserView> | undefined;
   let closed = false;
   let hintJob:
     | { revision: string; result?: BrowserHints; persisted?: boolean }
@@ -489,6 +490,10 @@ export async function startBrowserServer(options: BrowserOptions) {
           )
         ) {
           json(response, 404, { error: "Unknown endpoint." });
+          return;
+        }
+        if (request.url === "/api/start" && starting !== undefined) {
+          json(response, 200, await starting);
           return;
         }
         if (turning) {
@@ -715,29 +720,38 @@ export async function startBrowserServer(options: BrowserOptions) {
           }
           return;
         }
-        turning = true;
-        try {
-          const session = await SaveSession.start(
-            options.savePath,
-            runtime,
-            options.seed,
-            {
-              exclusive: true,
-            },
-          );
-          scheduleHints(session);
-          if (options.hintPreparer === undefined) {
-            await session.saveBrowserHints(session.browserHints);
+        const start = (async () => {
+          turning = true;
+          try {
+            const session = await SaveSession.start(
+              options.savePath,
+              runtime,
+              options.seed,
+              {
+                exclusive: true,
+              },
+            );
+            scheduleHints(session);
+            if (options.hintPreparer === undefined) {
+              await session.saveBrowserHints(session.browserHints);
+            }
+          } catch (error) {
+            if (!hasCode(error, "EEXIST")) {
+              throw error;
+            }
+          } finally {
+            releaseTurn();
           }
-        } catch (error) {
-          if (!hasCode(error, "EEXIST")) {
-            throw error;
+          return readSlot();
+        })();
+        starting = start;
+        const clearStart = () => {
+          if (starting === start) {
+            starting = undefined;
           }
-        } finally {
-          releaseTurn();
-        }
-        json(response, 200, await readSlot());
-        flushHints();
+        };
+        void start.then(clearStart, clearStart);
+        json(response, 200, await start);
         return;
       }
       if (request.method !== "GET") {
