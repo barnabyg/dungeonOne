@@ -171,7 +171,17 @@ function restoreHistory(view) {
   (view.history || []).forEach((turn) => {
     entry("You", turn.message, "player");
     entry(turn.speaker ? "NPC dialogue · " + turn.speaker : "Dungeon Master", turn.reply, turn.speaker ? "dialogue" : "reply");
-    turn.cards.forEach((card) => { entry(card.title, card.text, "result"); });
+    turn.cards.forEach((card) => {
+      // Old saves keep their full authoritative cards. Display overlapping NPC
+      // speech once, while retaining any separate mechanical consequences.
+      const normalize = (value) => value.replace(/\\s+/g, " ").trim();
+      const reply = normalize(turn.reply);
+      const text = turn.speaker ? card.text.split("\\n").filter((line) => {
+        const content = normalize(line);
+        return !content || !reply.includes(content);
+      }).join("\\n").trim() : card.text;
+      if (text) { entry(card.title, text, "result"); }
+    });
     entry("Save status", turn.notice, "notice");
   });
 }

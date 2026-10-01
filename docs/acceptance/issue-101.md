@@ -13,6 +13,9 @@ Open the printed URL and click **Start adventure**. Type each message separately
 1. `Go to the Watch Loft` — expect Watch Loft, one travel card, and saved progress.
 2. `Persuade Pell to tell me about his shift` — expect the social result, a Pell
    reply, and refreshed character/journal panels. The action draws seeded dice.
+   Expect the NPC reply once: a result card repeating that speech is hidden,
+   while distinct mechanical consequences remain visible. Reload and confirm
+   the same presentation.
 3. `What can I see?` — expect an AI reply from the preserved position.
 
 Open the same URL in a second tab before sending an action in the first tab.

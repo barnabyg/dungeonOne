@@ -632,3 +632,61 @@ test("failure before a journal exists retains rolled result in memory, blocks re
     },
   );
 });
+
+test("NPC dialogue appears once after reload while distinct resolved mechanics remain visible and saved", async () => {
+  await game(
+    {
+      async respond(request) {
+        return request.toolResults.length || "reply" in request
+          ? reply(request)
+          : request.playerInput.includes("Pell")
+            ? talk()
+            : move();
+      },
+    },
+    async (server, path) => {
+      await post(server, {
+        revision: (await state(server)).revision,
+        message: "Move to Watch Loft",
+      });
+      const turn = await (
+        await post(server, {
+          revision: (await state(server)).revision,
+          message: "Persuade Pell about his shift",
+        })
+      ).json();
+      const duplicate = turn.cards[0].text;
+      assert.equal(duplicate, turn.reply);
+      const saved = await readFile(path, "utf8");
+      const browser = await page(server);
+      assert.equal(
+        browser.texts().filter((text) => text === turn.reply).length,
+        1,
+      );
+      assert.ok(browser.texts().includes("Travelled to Watch Loft."));
+      assert.equal(await readFile(path, "utf8"), saved);
+      // A card containing both repeated speech and distinct mechanics displays
+      // just the mechanics, without rewriting the persisted historical card.
+      const session = await SaveSession.load(path);
+      const history = session.browserHistory;
+      const turns = [...history.turns];
+      turns[turns.length - 1] = {
+        ...turns.at(-1),
+        cards: [
+          { title: "Resolved action", text: duplicate + "\nDay 0 → Day 1." },
+        ],
+      };
+      await session.saveBrowserHistory({ ...history, turns });
+      const updated = await page(server);
+      assert.equal(
+        updated.texts().filter((text) => text === turn.reply).length,
+        1,
+      );
+      assert.ok(updated.texts().includes("Day 0 → Day 1."));
+      assert.equal(
+        (await state(server)).history.at(-1).cards[0].text,
+        duplicate + "\nDay 0 → Day 1.",
+      );
+    },
+  );
+});
