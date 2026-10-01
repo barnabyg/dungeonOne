@@ -5,6 +5,13 @@ import {
 } from "node:http";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import {
+  browserActions,
+  matchesBrowserAction,
+  type BrowserAction,
+} from "./browser-actions.js";
 import {
   DM_TURN_LIMITS,
   runDmTurn,
@@ -29,7 +36,9 @@ export type BrowserOptions = Readonly<{
   dmModel?: DmModel;
 }>;
 
-async function readPlayerInput(request: IncomingMessage): Promise<string> {
+async function readPlayerInput(
+  request: IncomingMessage,
+): Promise<{ message: string } | { optionId: string }> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
@@ -42,6 +51,17 @@ async function readPlayerInput(request: IncomingMessage): Promise<string> {
   }
   const body: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
   if (
+    body !== null &&
+    typeof body === "object" &&
+    !Array.isArray(body) &&
+    Object.keys(body).length === 1 &&
+    "optionId" in body &&
+    typeof body.optionId === "string" &&
+    body.optionId.length <= 64
+  ) {
+    return { optionId: body.optionId };
+  }
+  if (
     body === null ||
     typeof body !== "object" ||
     Array.isArray(body) ||
@@ -53,7 +73,7 @@ async function readPlayerInput(request: IncomingMessage): Promise<string> {
   ) {
     throw new Error("Invalid player message.");
   }
-  return body.message;
+  return { message: body.message };
 }
 
 export type BrowserView = Readonly<
@@ -66,6 +86,7 @@ export type BrowserView = Readonly<
       hp: Readonly<{ current: number; maximum: number }>;
       character: CharacterStatus;
       deadline: Readonly<{ name: string; day: number }>;
+      actions: readonly BrowserAction[];
     }
 >;
 
@@ -84,7 +105,7 @@ function assertSupported(session: SaveSession): void {
   }
 }
 
-function playerView(session: SaveSession): BrowserView {
+function playerView(session: SaveSession, revision: string): BrowserView {
   assertSupported(session);
   const status = session.runtime.projectCharacterStatus(session.state);
   return {
@@ -97,6 +118,7 @@ function playerView(session: SaveSession): BrowserView {
     // Public premise of the supported authored Watch Route, not a hidden
     // clock threshold/effect projection or a parse of terminal narration.
     deadline: { name: "Caravan at the ridge fork", day: 3 },
+    actions: browserActions(session, revision),
   };
 }
 
@@ -124,7 +146,13 @@ export async function startBrowserServer(options: BrowserOptions) {
   const runtime = createDataRuntime(loaded.adventure);
   const readSlot = async (): Promise<BrowserView> => {
     try {
-      return playerView(await SaveSession.load(options.savePath));
+      const session = await SaveSession.load(options.savePath);
+      return playerView(
+        session,
+        createHash("sha256")
+          .update(await readFile(options.savePath))
+          .digest("hex"),
+      );
     } catch (error) {
       if (!hasCode(error, "ENOENT")) {
         throw error;
@@ -208,9 +236,9 @@ export async function startBrowserServer(options: BrowserOptions) {
         if (request.url === "/api/turn") {
           turning = true;
           try {
-            let playerInput: string;
+            let input: { message: string } | { optionId: string };
             try {
-              playerInput = await readPlayerInput(request);
+              input = await readPlayerInput(request);
             } catch {
               json(response, 400, {
                 error:
@@ -220,6 +248,23 @@ export async function startBrowserServer(options: BrowserOptions) {
             }
             const session = await SaveSession.load(options.savePath);
             assertSupported(session);
+            const viewBefore = await readSlot();
+            const selected =
+              "optionId" in input && viewBefore.slot === "occupied"
+                ? viewBefore.actions.find(
+                    (action) => action.id === input.optionId,
+                  )
+                : undefined;
+            if ("optionId" in input && selected === undefined) {
+              json(response, 409, {
+                error:
+                  "That option is no longer available. Current information refreshed; no action was committed.",
+                view: viewBefore,
+              });
+              return;
+            }
+            const playerInput =
+              "message" in input ? input.message : selected!.message;
             let committed = false;
             const result = await runDmTurn({
               state: session.state,
@@ -231,6 +276,28 @@ export async function startBrowserServer(options: BrowserOptions) {
               history: (state, speakerId) =>
                 session.dmHistory(state, speakerId),
               executeTool: async (state, call, input) => {
+                // AI still interprets the request; a click authorizes only its
+                // selected intent, including its exact speaker/topic or ending.
+                if (
+                  selected !== undefined &&
+                  ![
+                    "get_scene",
+                    "get_character_status",
+                    "get_journal",
+                  ].includes(call.name) &&
+                  !matchesBrowserAction(selected, call)
+                ) {
+                  return {
+                    result: {
+                      state,
+                      modelOutput: {
+                        ok: false,
+                        error: { code: "unavailable-reference" },
+                      },
+                    },
+                    rolls: [],
+                  };
+                }
                 const executed = await session.executeTool(state, call, input);
                 committed ||=
                   !isDeepStrictEqual(state, executed.result.state) ||

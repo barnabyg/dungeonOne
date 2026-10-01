@@ -1,0 +1,189 @@
+import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
+import type { GameToolCall } from "./game-tools.js";
+import type { SaveSession } from "./save.js";
+
+export type BrowserAction = Readonly<{
+  id: string;
+  contextId: string;
+  label: string;
+  message: string;
+  stakes?: string;
+  call: GameToolCall;
+}>;
+
+export function matchesBrowserAction(
+  action: BrowserAction,
+  call: GameToolCall,
+): boolean {
+  if (action.call.name !== call.name) {
+    return false;
+  }
+  try {
+    const args: unknown = JSON.parse(call.argumentsJson);
+    const expected: unknown = JSON.parse(action.call.argumentsJson);
+    return isDeepStrictEqual(args, expected);
+  } catch {
+    return false;
+  }
+}
+
+// Project only public targets, intersected with the engine's current tools.
+export function browserActions(
+  session: SaveSession,
+  revision: string,
+): readonly BrowserAction[] {
+  const scene = session.runtime.projectDmScene(session.state);
+  const tools = session.runtime.getGameToolDefinitions(session.state);
+  const permits = (name: string, property: string, value: string) => {
+    const properties = tools.find((tool) => tool.name === name)?.parameters
+      .properties as Record<string, { enum?: readonly string[] }> | undefined;
+    return properties?.[property]?.enum?.includes(value) === true;
+  };
+  const actions: BrowserAction[] = [];
+  const add = (
+    contextId: string,
+    label: string,
+    message: string,
+    call: GameToolCall,
+    stakes?: string,
+  ) => {
+    actions.push({
+      id: createHash("sha256")
+        .update(revision + JSON.stringify(call))
+        .digest("hex"),
+      contextId,
+      label,
+      message,
+      call,
+      ...(stakes === undefined ? {} : { stakes }),
+    });
+  };
+  const offer = (
+    contextId: string,
+    name: GameToolCall["name"],
+    property: string,
+    target: string,
+    label: string,
+    message: string,
+    stakes?: string,
+  ) => {
+    if (permits(name, property, target)) {
+      add(
+        contextId,
+        label,
+        message,
+        { name, argumentsJson: JSON.stringify({ [property]: target }) },
+        stakes,
+      );
+    }
+  };
+  for (const exit of scene.room.exits) {
+    offer(
+      "exit:" + exit.destinationId,
+      "move",
+      "destinationId",
+      exit.destinationId,
+      "Travel to " + exit.name,
+      "Travel to " + exit.name,
+    );
+    offer(
+      "exit:" + exit.destinationId,
+      "inspect",
+      "target",
+      exit.destinationId,
+      "Inspect exit",
+      "Inspect " + exit.name,
+    );
+  }
+  for (const target of [
+    ...scene.room.features,
+    ...scene.room.items,
+    ...scene.room.opponents,
+  ]) {
+    offer(
+      "target:" + target.id,
+      "inspect",
+      "target",
+      target.id,
+      "Inspect",
+      "Inspect " + target.name,
+    );
+    offer(
+      "target:" + target.id,
+      "search",
+      "target",
+      target.id,
+      "Search",
+      "Search " + target.name,
+    );
+    offer(
+      "target:" + target.id,
+      "take",
+      "itemId",
+      target.id,
+      "Take",
+      "Take " + target.name,
+    );
+  }
+  for (const npc of scene.room.npcs ?? []) {
+    if (npc.condition === "dead") {
+      offer(
+        "npc:" + npc.id,
+        "inspect",
+        "target",
+        npc.id,
+        "Inspect remains",
+        "Inspect " + npc.name,
+      );
+      offer(
+        "npc:" + npc.id,
+        "search",
+        "target",
+        npc.id,
+        "Search remains",
+        "Search " + npc.name,
+      );
+    }
+    for (const subject of npc.subjects) {
+      if (
+        permits("talk", "speakerId", npc.id) &&
+        permits("talk", "topicId", subject.id) &&
+        permits("talk", "approach", "ask")
+      ) {
+        for (const approach of ["ask", "persuade"] as const) {
+          if (!permits("talk", "approach", approach)) {
+            continue;
+          }
+          add(
+            "npc:" + npc.id,
+            (approach === "ask" ? "" : "Persuade: ") + subject.name,
+            approach === "ask"
+              ? "Ask " + npc.name + ' about "' + subject.name + '".'
+              : "Persuade " + npc.name + ' to discuss "' + subject.name + '".',
+            {
+              name: "talk",
+              argumentsJson: JSON.stringify({
+                speakerId: npc.id,
+                topicId: subject.id,
+                approach,
+              }),
+            },
+          );
+        }
+      }
+    }
+  }
+  for (const choice of scene.endingChoices ?? []) {
+    offer(
+      "ending",
+      "resolve_quest",
+      "resolutionId",
+      choice.id,
+      choice.label,
+      "Resolve " + choice.label,
+      choice.stakes,
+    );
+  }
+  return actions;
+}

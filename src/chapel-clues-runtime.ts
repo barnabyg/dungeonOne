@@ -950,6 +950,18 @@ export function createChapelCluesRuntime(
       title: definition.title,
       objective: definition.objective,
       outcome: state.status,
+      ...(endingsEnabled
+        ? {
+            endingChoices: endingChoices(state).map((choice) => ({
+              id: choice.id,
+              label: choice.label,
+              stakes: choice.consequences
+                .filter((entry) => eligible(state, entry.when))
+                .map((entry) => entry.text)
+                .join(" "),
+            })),
+          }
+        : {}),
       room: {
         id: here.id,
         name: here.name,

@@ -11,6 +11,7 @@ export const BROWSER_HTML = `<!doctype html>
 <section id="scene" tabindex="-1" aria-labelledby="scene-title"><p class="eyebrow">CURRENT SCENE</p>
 <h2 id="scene-title">Your save slot</h2><p id="description">Checking for an existing adventure…</p>
 <p id="objective"></p><h3 id="details-title" hidden>In view</h3><ul id="details"></ul>
+<div id="context" aria-label="Selected context" hidden><h3 id="context-title" tabindex="-1"></h3><div id="context-actions"></div><button id="close-context">Close options</button></div>
 <div class="controls"><button id="start" hidden>Start adventure</button><button id="refresh">Read current state</button></div>
 <p id="feedback" role="status" aria-live="polite"></p>
 <h3>Conversation</h3><div id="conversation" role="log" aria-live="polite" aria-label="Adventure conversation"></div>
@@ -51,6 +52,44 @@ const text = (id, value) => { element(id).textContent = value; };
 let pending = false;
 let currentView;
 let activePanel;
+let contextButtons = [];
+let sceneButtons = [];
+function closeContext() {
+  element("context").hidden = true;
+  contextButtons = [];
+}
+function chooseContext(id, name) {
+  if (pending) { return; }
+  text("context-title", name);
+  element("context-actions").replaceChildren();
+  contextButtons = [];
+  for (const action of currentView.actions.filter((action) => action.contextId === id)) {
+    if (action.stakes) {
+      const stakes = document.createElement("p"); stakes.textContent = action.label + ": " + action.stakes;
+      element("context-actions").append(stakes);
+    }
+    const button = document.createElement("button"); button.textContent = action.label;
+    button.addEventListener("click", () => submitTurn(action.message, { optionId: action.id }));
+    contextButtons.push(button); element("context-actions").append(button);
+  }
+  element("context").hidden = false;
+  element("context-title").focus({ preventScroll: true });
+}
+function contextList(id, targets) {
+  element(id).replaceChildren(...targets.map((target) => {
+    const item = document.createElement("li");
+    const offers = (currentView.actions || []).filter((action) => action.contextId === target.contextId);
+    if (!offers.length) { item.textContent = target.description || target.name; return item; }
+    const button = document.createElement("button"); button.textContent = target.name;
+    const travel = offers.find((action) => action.call.name === "move");
+    button.addEventListener("click", () => travel ? submitTurn(travel.message, { optionId: travel.id }) : chooseContext(target.contextId, target.name));
+    sceneButtons.push(button); button.disabled = pending; item.append(button);
+    if (target.description) { const description = document.createElement("p"); description.textContent = target.description; item.append(description); }
+    return item;
+  }));
+}
+element("close-context").addEventListener("click", () => { closeContext(); element("scene").focus(); });
+element("context").addEventListener("keydown", (event) => { if (event.key === "Escape") { closeContext(); element("scene").focus(); } });
 const panels = { inventory: "Inventory", character: "Character", journal: "Journal", leads: "Known leads" };
 function informationBlock(heading, values) {
   const title = document.createElement("h3"); title.textContent = heading;
@@ -111,6 +150,7 @@ element("information").addEventListener("keydown", (event) => {
 function busy(value) {
   pending = value;
   ["start", "refresh", "send", "message"].forEach((id) => { element(id).disabled = value; });
+  [...contextButtons, ...sceneButtons].forEach((button) => { button.disabled = value; });
   element("conversation").setAttribute("aria-busy", String(value));
 }
 function entry(label, value, className = "reply") {
@@ -130,6 +170,8 @@ function list(id, values) {
   }));
 }
 function render(view) {
+  closeContext();
+  sceneButtons = [];
   currentView = view;
   Object.keys(panels).forEach((name) => { element("open-" + name).disabled = view.slot === "empty"; });
   if (view.slot === "empty") { closeInformation(); }
@@ -152,12 +194,13 @@ function render(view) {
   text("time", view.clocks.map((clock) => clock.name + ": " + (clock.unit === "day" ? "Day " : "") + clock.value).join("; ") || "No clock");
   text("deadline", view.deadline.name + ": Day " + view.deadline.day);
   text("session", scene.outcome);
-  list("exits", scene.room.exits.map((exit) => exit.name));
-  list("details", [
-    ...scene.room.features.map((feature) => feature.name + ": " + feature.description),
-    ...(scene.room.npcs || []).map((npc) => npc.name + (npc.condition === "dead" ? " (dead)" : "")),
-    ...scene.room.items.map((item) => item.name + ": " + item.description),
-    ...scene.room.opponents.map((opponent) => opponent.name + " (" + opponent.condition + ")")
+  contextList("exits", scene.room.exits.map((exit) => ({ ...exit, contextId: "exit:" + exit.destinationId })));
+  contextList("details", [
+    ...scene.room.features.map((feature) => ({ ...feature, contextId: "target:" + feature.id })),
+    ...(scene.room.npcs || []).map((npc) => ({ ...npc, contextId: "npc:" + npc.id })),
+    ...scene.room.items.map((item) => ({ ...item, contextId: "target:" + item.id })),
+    ...scene.room.opponents.map((opponent) => ({ ...opponent, contextId: "target:" + opponent.id })),
+    ...((scene.endingChoices || []).length ? [{ name: "Ending choices", contextId: "ending" }] : [])
   ]);
 }
 async function read(start = false) {
@@ -180,10 +223,8 @@ element("message").addEventListener("keydown", (event) => {
   event.preventDefault();
   if (!pending && !event.repeat) { element("turn").requestSubmit(); }
 });
-element("turn").addEventListener("submit", async (event) => {
-  event.preventDefault();
+async function submitTurn(message, body = { message }) {
   if (pending) { return; }
-  const message = element("message").value.trim();
   if (!message) { return; }
   busy(true);
   entry("You", message, "player");
@@ -191,11 +232,12 @@ element("turn").addEventListener("submit", async (event) => {
   const waiting = entry("Dungeon Master", "Waiting for a complete reply…", "waiting");
   text("feedback", "Your message is pending…");
   try {
-    const response = await fetch("/api/turn", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message }) });
+    const response = await fetch("/api/turn", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const result = await response.json();
+    if (result.view) { render(result.view); }
     if (!response.ok) { throw new Error(result.error || "Unable to complete the turn."); }
     waiting.remove();
-    entry(result.speaker ? "NPC dialogue" : "Dungeon Master", result.reply, result.speaker ? "dialogue" : "reply");
+    entry(result.speaker ? "NPC dialogue · " + result.speaker : "Dungeon Master", result.reply, result.speaker ? "dialogue" : "reply");
     result.cards.forEach((card) => { entry(card.title, card.text, "result"); });
     entry("Save status", result.notice, "notice");
     render(result.view);
@@ -209,6 +251,10 @@ element("turn").addEventListener("submit", async (event) => {
     busy(false);
     element("message").focus();
   }
+}
+element("turn").addEventListener("submit", (event) => {
+  event.preventDefault();
+  return submitTurn(element("message").value.trim());
 });
 element("start").addEventListener("click", () => { void read(true); });
 element("refresh").addEventListener("click", () => { void read(); });

@@ -51,6 +51,13 @@ location, exits, HP, and time refresh from verified saved state. Consequential
 results save before display. Provider failures report whether an action was
 saved; do not repeat an action marked saved.
 
+Click a visible exit to travel immediately, or select a person or object to
+see its current local options. Topic, inspection, search, and ending buttons
+send one explicit intent through that same AI turn. Ending options show their
+public stakes before selection. Old scene options are rejected and refreshed
+without spending time or dice. Tab and Enter/Space activate the controls.
+See [issue 99 player checks](docs/acceptance/issue-99.md).
+
 Start/read makes no AI call. Gameplay requires a valid key and network access.
 Open **Inventory**, **Character**, **Journal**, or **Known leads** beside the
 conversation with a click, or Tab to a button and press Enter/Space. The journal

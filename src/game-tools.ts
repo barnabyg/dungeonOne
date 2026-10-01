@@ -77,6 +77,11 @@ export type DmScene = Readonly<{
   >;
   journal?: ChapelJournal | ClueJournal;
   suggestions?: readonly string[];
+  endingChoices?: readonly Readonly<{
+    id: string;
+    label: string;
+    stakes: string;
+  }>[];
 }>;
 
 export type CharacterStatus = Readonly<{
