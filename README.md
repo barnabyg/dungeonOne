@@ -81,6 +81,13 @@ public stakes before selection. Old scene options are rejected and refreshed
 without spending time or dice. Tab and Enter/Space activate the controls.
 See [issue 99 player checks](docs/acceptance/issue-99.md).
 
+Completing a signal, refusal or departure choice enters **Review mode**.
+Conversation input, scene actions and stronger hints close, including requests
+from old tabs or direct API clients. The final conversation, ending result cards
+and current information remain readable; reload and launcher restart restore
+them without repeating the ending or calling AI. Outstanding hint preparation
+cannot publish guidance after completion. See [issue 105 player checks](docs/acceptance/issue-105.md).
+
 Start/read makes no AI call. Gameplay requires a valid key and network access.
 Open **Inventory**, **Character**, **Journal**, or **Known leads** beside the
 conversation with a click, or Tab to a button and press Enter/Space. The journal

@@ -34,6 +34,9 @@ export function browserActions(
   revision: string,
 ): readonly BrowserAction[] {
   const scene = session.runtime.projectDmScene(session.state);
+  if (scene.outcome !== "playing") {
+    return [];
+  }
   const tools = session.runtime.getGameToolDefinitions(session.state);
   const permits = (name: string, property: string, value: string) => {
     const properties = tools.find((tool) => tool.name === name)?.parameters

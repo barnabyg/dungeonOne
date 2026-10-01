@@ -732,19 +732,48 @@ export function createChapelCluesRuntime(
       .replace(/[^a-z0-9 ]/gu, " ")
       .replace(/\s+/gu, " ")
       .trim()} `;
-    if (
-      /\b(?:not|never|avoid|without|don t|do not|won t|will not|can t|cannot|refuse|refused|decline|declined|reject|rejected|oppose|opposed|against|instead of|rather than|no|maybe|perhaps|might|could|either|unsure|consider|considering)\b/u.test(
-        words,
-      )
-    ) {
-      return undefined;
-    }
     const matches =
       definition.endings?.choices.filter((choice) =>
         [choice.label, ...choice.aliases].some((alias) =>
           words.includes(` ${normalizeAlias(alias)} `),
         ),
       ) ?? [];
+    // A refusal can itself be an authored affirmative choice. Remove only
+    // that choice's name before checking for negation or uncertainty around it.
+    const intentWords =
+      matches.length === 1
+        ? [matches[0]!.label, ...matches[0]!.aliases].reduce(
+            (remaining, alias) =>
+              remaining.replaceAll(` ${normalizeAlias(alias)} `, " "),
+            words,
+          )
+        : words;
+    if (
+      matches.length === 1 &&
+      /^(?:refuse|decline|reject) /u.test(normalizeAlias(matches[0]!.label)) &&
+      ![
+        "",
+        "i",
+        "resolve",
+        "choose",
+        "select",
+        "i choose",
+        "i select",
+        "i choose to",
+        "i decide to",
+        "i want to",
+        "i will",
+      ].includes(intentWords.trim().replace(/ please$/u, ""))
+    ) {
+      return undefined;
+    }
+    if (
+      /\b(?:not|never|avoid|without|don t|do not|won t|will not|can t|cannot|refuse|refused|decline|declined|reject|rejected|oppose|opposed|against|instead of|rather than|no|maybe|perhaps|might|could|either|unsure|consider|considering)\b/u.test(
+        intentWords,
+      )
+    ) {
+      return undefined;
+    }
     return matches.length === 1 ? matches[0]!.id : undefined;
   };
   const resolveEnding = (

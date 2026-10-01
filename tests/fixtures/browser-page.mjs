@@ -27,6 +27,9 @@ export async function browserPage(server, transport = fetch) {
     },
     setAttribute(name, value) {
       this.attributes[name] = value;
+      if (id === "conversation" && name === "aria-busy" && value === "false") {
+        ready();
+      }
     },
     focus() {
       focused = id;

@@ -166,6 +166,7 @@ function playerView(
 ): Extract<BrowserView, { slot: "occupied" }> {
   assertSupported(session);
   const status = session.runtime.projectCharacterStatus(session.state);
+  const completed = status.outcome !== "playing";
   return {
     slot: "occupied",
     revision,
@@ -216,14 +217,21 @@ function playerView(
             },
           ]),
     ],
-    ...(cachedStrongerHints(session) === undefined
+    ...(completed || cachedStrongerHints(session) === undefined
       ? {}
       : { strongerHints: cachedStrongerHints(session)! }),
-    hints: cachedHints(session) ?? {
-      revision: hintRevision(session),
-      status: "preparing",
-      entries: [],
-    },
+    hints: completed
+      ? {
+          version: 1,
+          revision: hintRevision(session),
+          status: "unavailable",
+          entries: [],
+        }
+      : (cachedHints(session) ?? {
+          revision: hintRevision(session),
+          status: "preparing",
+          entries: [],
+        }),
   };
 }
 
@@ -358,7 +366,10 @@ export async function startBrowserServer(options: BrowserOptions) {
     hintWrite = (async () => {
       try {
         const session = await SaveSession.load(options.savePath);
-        if (hintRevision(session) === result.revision) {
+        if (
+          session.runtime.projectDmScene(session.state).outcome === "playing" &&
+          hintRevision(session) === result.revision
+        ) {
           if (job === strongerJob) {
             await session.saveBrowserStrongerHints(result);
           } else {
@@ -376,6 +387,10 @@ export async function startBrowserServer(options: BrowserOptions) {
     })();
   };
   const scheduleHints = (session: SaveSession) => {
+    if (session.runtime.projectDmScene(session.state).outcome !== "playing") {
+      clearHintJobs();
+      return;
+    }
     if (cachedHints(session) !== undefined) {
       return;
     }
@@ -494,13 +509,16 @@ export async function startBrowserServer(options: BrowserOptions) {
         options.seed,
       );
       const hints =
-        hintJob?.revision === hintRevision(session) && hintJob.persisted
+        view.scene.outcome === "playing" &&
+        hintJob?.revision === hintRevision(session) &&
+        hintJob.persisted
           ? hintJob.result
           : undefined;
       return {
         ...view,
         ...(hints === undefined ? {} : { hints }),
-        ...(strongerJob?.revision === hintRevision(session)
+        ...(view.scene.outcome === "playing" &&
+        strongerJob?.revision === hintRevision(session)
           ? {
               strongerHints: strongerJob.persisted
                 ? strongerJob.result!
@@ -531,7 +549,11 @@ export async function startBrowserServer(options: BrowserOptions) {
     await recoverHistory(session);
     const missingHints = cachedHints(session) === undefined;
     scheduleHints(session);
-    if (options.hintPreparer === undefined && missingHints) {
+    if (
+      session.runtime.projectDmScene(session.state).outcome === "playing" &&
+      options.hintPreparer === undefined &&
+      missingHints
+    ) {
       await session.saveBrowserHints(session.browserHints);
     }
   } catch (error) {
@@ -753,6 +775,7 @@ export async function startBrowserServer(options: BrowserOptions) {
             if (
               retained !== undefined ||
               view.slot !== "occupied" ||
+              view.scene.outcome !== "playing" ||
               body.revision !== view.hints.revision ||
               view.hints.status !== "ready"
             ) {
@@ -787,13 +810,17 @@ export async function startBrowserServer(options: BrowserOptions) {
             if (
               retained !== undefined ||
               viewBefore.slot !== "occupied" ||
+              viewBefore.scene.outcome !== "playing" ||
               input.revision !== viewBefore.revision
             ) {
               json(response, 409, {
                 error:
                   retained !== undefined
                     ? "Result not durably saved. Read current state to recover it before continuing."
-                    : "This request is stale. Current saved position refreshed; no action was committed.",
+                    : viewBefore.slot === "occupied" &&
+                        viewBefore.scene.outcome !== "playing"
+                      ? "This adventure has ended. Review your conversation and current information; further interaction is closed."
+                      : "This request is stale. Current saved position refreshed; no action was committed.",
                 view: viewBefore,
               });
               return;

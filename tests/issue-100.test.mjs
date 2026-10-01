@@ -231,7 +231,7 @@ test("completed sessions continue as readable history with the saved adventure a
     assert.match(page.nodes.get("seed").textContent, /Hollow Beacon.*Seed 0/);
     assert.equal(
       page.nodes.get("session").textContent,
-      result.view.scene.outcome,
+      result.view.scene.outcome + " · Review mode",
     );
     assert.equal(page.entries[0].text, "Hold the beacon");
   } finally {

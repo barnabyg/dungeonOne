@@ -67,11 +67,14 @@ let hintPollRevision;
 let strongerRequestRevision;
 let strongerError;
 let replacementView;
+function reviewing() {
+  return currentView && currentView.slot === "occupied" && currentView.scene.outcome !== "playing";
+}
 async function currentResponseView(view) {
   const response = await fetch("/api/state");
   const latest = await response.json();
   if (!response.ok) { throw new Error("Read current state before displaying this response."); }
-  return latest.generation !== view.generation ? latest : view;
+  return latest.revision !== view.revision ? latest : view;
 }
 function pollHints(view) {
   if (view.slot === "empty" || !view.hints || (view.hints.status !== "preparing" && (!view.strongerHints || view.strongerHints.status !== "preparing")) || typeof setTimeout !== "function") { return; }
@@ -84,6 +87,10 @@ function pollHints(view) {
       const response = await fetch("/api/state");
       const view = await response.json();
       const hints = view.hints;
+      if (response.ok && view.slot === "occupied" && view.scene.outcome !== "playing") {
+        render(view); restoreHistory(view); hintPollRevision = undefined;
+        return;
+      }
       if (response.ok && currentView.hints.revision === revision && view.generation !== currentView.generation) {
         render(view); restoreHistory(view);
         text("feedback", "The save slot was replaced in another tab. Current new game loaded; old hints were discarded.");
@@ -104,7 +111,7 @@ function closeContext() {
   contextButtons = [];
 }
 function chooseContext(id, name) {
-  if (pending) { return; }
+  if (pending || reviewing()) { return; }
   text("context-title", name);
   element("context-actions").replaceChildren();
   contextButtons = [];
@@ -152,6 +159,13 @@ function renderInformation() {
   element("information-body").replaceChildren();
   text("information-title", panels[activePanel]);
   element("stronger-hint").hidden = activePanel !== "hints";
+  if (activePanel === "hints" && reviewing()) {
+    element("stronger-hint").hidden = true;
+    element("request-stronger-hint").disabled = true;
+    text("stronger-hint-result", "");
+    informationBlock("Adventure complete", ["Review your conversation, journal and current information. Further AI interaction and hints are closed."]);
+    return;
+  }
   if (activePanel === "hints") {
     const hints = currentView.hints;
     informationBlock("Optional guidance", hints && hints.status === "ready" ? hints.entries : [hints && hints.status === "unavailable" ? "Hints unavailable for this position. Your progress is saved; you can keep playing and read current information." : "Preparing hints for this position…"]);
@@ -177,7 +191,7 @@ function renderInformation() {
   }
 }
 element("request-stronger-hint").addEventListener("click", async () => {
-  if (pending || !currentView || currentView.slot === "empty" || currentView.hints.status !== "ready" || currentView.strongerHints || strongerRequestRevision === currentView.hints.revision) { return; }
+  if (pending || reviewing() || !currentView || currentView.slot === "empty" || currentView.hints.status !== "ready" || currentView.strongerHints || strongerRequestRevision === currentView.hints.revision) { return; }
   const revision = currentView.hints.revision;
   strongerRequestRevision = revision;
   strongerError = undefined;
@@ -189,6 +203,10 @@ element("request-stronger-hint").addEventListener("click", async () => {
     if (!response.ok) { throw new Error(result.error || "Stronger hint unavailable. Read current state before trying again."); }
     if (result.view) {
       const latest = await currentResponseView(result.view);
+      if (latest.slot === "occupied" && latest.scene.outcome !== "playing") {
+        render(latest); restoreHistory(latest);
+        return;
+      }
       if (latest.generation !== currentView.generation) {
         render(latest); restoreHistory(latest);
         text("feedback", "The save slot was replaced in another tab. Current new game loaded; old hints were discarded.");
@@ -236,6 +254,7 @@ element("information").addEventListener("keydown", (event) => {
 function busy(value) {
   pending = value;
   ["start", "new-game", "refresh", "send", "message"].forEach((id) => { element(id).disabled = value; });
+  ["send", "message"].forEach((id) => { element(id).disabled = value || !!reviewing(); });
   [...contextButtons, ...sceneButtons].forEach((button) => { button.disabled = value; });
   element("conversation").setAttribute("aria-busy", String(value));
   renderInformation();
@@ -285,6 +304,7 @@ function render(view) {
     strongerError = undefined;
   }
   currentView = view;
+  ["send", "message"].forEach((id) => { element(id).disabled = pending || !!reviewing(); });
   pollHints(view);
   Object.keys(panels).forEach((name) => { element("open-" + name).disabled = view.slot === "empty"; });
   if (view.slot === "empty") { closeInformation(); }
@@ -307,7 +327,7 @@ function render(view) {
   text("hp", view.hp.current + " / " + view.hp.maximum);
   text("time", view.clocks.map((clock) => clock.name + ": " + (clock.unit === "day" ? "Day " : "") + clock.value).join("; ") || "No clock");
   text("deadline", view.deadline.name + ": Day " + view.deadline.day);
-  text("session", scene.outcome);
+  text("session", scene.outcome + (reviewing() ? " · Review mode" : ""));
   contextList("exits", scene.room.exits.map((exit) => ({ ...exit, contextId: "exit:" + exit.destinationId })));
   contextList("details", [
     ...scene.room.features.map((feature) => ({ ...feature, contextId: "target:" + feature.id })),
@@ -345,7 +365,7 @@ element("message").addEventListener("keydown", (event) => {
   if (!pending && !event.repeat) { element("turn").requestSubmit(); }
 });
 async function submitTurn(message, body = { message }) {
-  if (pending) { return; }
+  if (pending || reviewing()) { return; }
   if (!message.trim()) { return; }
   busy(true);
   entry("You", message, "player");
@@ -364,6 +384,7 @@ async function submitTurn(message, body = { message }) {
         text("feedback", "The save slot was replaced in another tab. Current new game loaded; the old reply was discarded.");
         return;
       }
+      result.view = latest;
     }
     if (result.view) { render(result.view); restoreHistory(result.view); }
     if (!response.ok) { throw new Error(result.error || "Unable to complete the turn."); }
@@ -379,11 +400,11 @@ async function submitTurn(message, body = { message }) {
       if (response.ok) { render(view); restoreHistory(view); }
     } catch { /* Read current state remains available when connection returns. */ }
     const message = error instanceof Error ? error.message : "Connection lost. Read current state before sending another action.";
-    entry("Turn unavailable", message, "notice");
+    if (!reviewing()) { entry("Turn unavailable", message, "notice"); }
     text("feedback", message);
   } finally {
     busy(false);
-    element("message").focus();
+    element(reviewing() ? "scene" : "message").focus();
   }
 }
 element("turn").addEventListener("submit", (event) => {
