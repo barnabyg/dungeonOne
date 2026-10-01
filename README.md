@@ -56,7 +56,9 @@ serving the page or writing a save. Credentials stay in the launch environment.
 
 Click **Start adventure** for an empty slot. The complete opening is saved
 through the verified save authority without replacing an occupied file,
-including when two starts race. The page displays the authoritative scene,
+including when two starts race. Starting creates missing parent directories for
+the configured save path; reading an empty slot creates no directories.
+The page displays the authoritative scene,
 location, visible exits, Day 0, Day 3 caravan deadline, 20/20 HP, and seed 0.
 **Read current state** rereads the verified slot. Existing slots load without
 replacement; corrupt, closed (`quit`), other-adventure, or older-content slots

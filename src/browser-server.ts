@@ -6,7 +6,7 @@ import {
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import { createHash, randomBytes } from "node:crypto";
-import { rename, unlink } from "node:fs/promises";
+import { mkdir, rename, unlink } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import {
   browserActions,
@@ -1009,6 +1009,7 @@ export async function startBrowserServer(options: BrowserOptions) {
         const start = (async () => {
           turning = true;
           try {
+            await mkdir(dirname(options.savePath), { recursive: true });
             const session = await SaveSession.start(
               options.savePath,
               runtime,

@@ -15,11 +15,11 @@ Use a fresh slot directory. From PowerShell:
 ```powershell
 Set-Location C:\docs\git\dungeonOne
 npm.cmd run build
-New-Item -ItemType Directory -Force .\.scratch\issue-86-player | Out-Null
 npm.cmd run browser -- --seed 1 --save .\.scratch\issue-86-player\slot.json
 ```
 
-Open the printed URL and select **Start adventure**. Expect Watch Yard, Day 0
+Open the printed URL and select **Start adventure**. Missing save directories
+are created when you start. Expect Watch Yard, Day 0
 and full HP. Select **Captain Iona**: her current neutral relationship is shown.
 **Persuade: Claim the familiar signal is safe** shows one d20 + 0, DC 12,
 no rerolls, 0 days and the relationship consequences before selection.
