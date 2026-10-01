@@ -8,12 +8,12 @@ export const BROWSER_HTML = `<!doctype html>
 <dt>Location</dt><dd id="location">Not started</dd><dt>HP</dt><dd id="hp">—</dd>
 <dt>Time</dt><dd id="time">—</dd><dt>Deadline</dt><dd id="deadline">—</dd><dt>Session</dt><dd id="session">—</dd></dl>
 <h2>Visible exits</h2><ul id="exits"><li>Start to see exits.</li></ul></aside>
-<section id="scene" tabindex="-1" aria-labelledby="scene-title"><p class="eyebrow">CURRENT SCENE</p>
+<section id="scene" tabindex="-1" aria-labelledby="scene-title"><div id="scene-context"><p class="eyebrow">CURRENT SCENE</p>
 <h2 id="scene-title">Your save slot</h2><p id="description">Checking for an existing adventure…</p>
 <p id="objective"></p><h3 id="details-title" hidden>In view</h3><ul id="details"></ul>
-<div id="context" aria-label="Selected context" hidden><h3 id="context-title" tabindex="-1"></h3><div id="context-actions"></div><button id="close-context">Close options</button></div>
+<div id="context" aria-label="Selected context" hidden><div class="context-heading"><h3 id="context-title" tabindex="-1"></h3><button id="close-context">Close options</button></div><div id="context-actions"></div></div>
 <div class="controls"><button id="start" hidden>Start adventure</button><button id="refresh">Read current state</button></div>
-<p id="feedback" role="status" aria-live="polite"></p>
+<p id="feedback" role="status" aria-live="polite"></p></div>
 <h3>Conversation</h3><div id="conversation" role="log" aria-live="polite" aria-label="Adventure conversation"></div>
 <form id="turn" hidden><label for="message">What do you do or ask?</label>
 <textarea id="message" maxlength="1000" rows="3" required aria-describedby="message-help" placeholder="Describe one action, or ask a question."></textarea>
@@ -43,6 +43,8 @@ form{margin:24px 0}label{display:block;font-family:system-ui,sans-serif;font-siz
 .dialogue{background:#eef2e9;border-left:3px solid #58734f}.dialogue p{font-style:italic}.dialogue h4{color:#345645}#message-help{font:.75rem system-ui,sans-serif;color:#59665d}
 main{max-width:1500px;grid-template-columns:220px minmax(0,1fr) 280px;gap:24px}header{max-width:1500px}
 #conversation{max-height:55vh;overflow:auto;overflow-anchor:none}#information-navigation{padding:18px}nav{display:flex;flex-wrap:wrap;gap:8px}nav button{padding:8px 10px}nav button[aria-expanded="true"]{background:#234535;outline:2px solid #a75b20}#information{margin-top:18px;padding:0;border:0;background:transparent}#information-title{margin-top:18px}#information-body h3{margin-top:20px}#information-body p{white-space:pre-wrap;overflow-wrap:anywhere}#information-body ul{font-size:.85rem}#close-information{background:transparent;color:#25352f}
+#context{margin:20px 0;padding:18px;background:#eef2e9;border:1px solid #cbd2c3;border-radius:6px}.context-heading{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:18px}.context-heading h3{margin:0}#close-context{flex:none;padding:6px 0;background:transparent;border:0;color:#526154;text-decoration:underline;text-underline-offset:3px}#close-context:hover{color:#25352f}#context-actions{display:flex;flex-wrap:wrap;gap:14px}#context-actions p{flex-basis:100%;margin:8px 0 0}#context-actions button{text-align:left}#details li{margin-bottom:14px}#details li p{margin:8px 0 0}
+@media(min-width:1051px){body{height:100dvh;display:flex;flex-direction:column}header{width:100%;flex:none;padding:20px 36px 16px}header h1{font-size:1.9rem}main{width:100%;flex:1;min-height:0;margin:24px auto}aside{position:static;max-height:100%}#scene{height:100%;min-height:0;display:flex;flex-direction:column;padding:24px}#scene-context{flex:0 1 auto;min-height:0;max-height:42%;overflow:auto;scrollbar-gutter:stable;padding-right:8px}#scene>h3{flex:none;margin:16px 0 8px}#conversation{flex:1;min-height:0;max-height:none}#turn{flex:none;margin:16px 0 12px;padding-top:12px;border-top:1px solid #d7dbd0}#turn textarea{min-height:76px;height:76px;resize:vertical;max-height:20vh;margin-bottom:8px}#message-help{margin-bottom:8px}#turn label{font-weight:600}#scene>.note{flex:none;margin:0;padding-top:10px}.controls{margin-top:18px}#feedback{margin:12px 0 0}}
 @media(max-width:1050px){main{grid-template-columns:180px minmax(0,1fr);padding:0 24px}#information-navigation{position:fixed;right:12px;bottom:12px;top:auto;width:280px;max-height:45vh;z-index:2;box-shadow:0 4px 16px #25352f33}#scene{padding-bottom:130px}}
 @media(max-width:760px){header{padding:24px}main{grid-template-columns:1fr;gap:24px;margin-top:24px}aside{position:sticky;top:0;max-height:35vh;z-index:1}aside dl{display:grid;grid-template-columns:80px 1fr;gap:4px;margin-bottom:8px}aside dt{margin:0}aside h2{margin-bottom:8px}section{padding:24px}#information-navigation{width:min(280px,calc(100vw - 24px))}}`;
 
@@ -73,6 +75,7 @@ function chooseContext(id, name) {
     contextButtons.push(button); element("context-actions").append(button);
   }
   element("context").hidden = false;
+  element("context").scrollIntoView({ block: "nearest" });
   element("context-title").focus({ preventScroll: true });
 }
 function contextList(id, targets) {

@@ -36,6 +36,13 @@ Click **Start adventure**. The opening shows Watch Yard, Day 0, and 20/20 HP.
    returns focus to the scene.
    A draft in the message composer survives a contextual action or stale rejection.
 
+On desktop windows wider than 1050 pixels, the composer stays within the
+viewport even after a long conversation or when options are open. Scene
+details and conversation scroll independently. Option buttons have visible
+gaps; the underlined **Close options** control sits in the panel heading.
+Check at 1280×720, 1920×1080 (including a scaled 4K desktop), and 3840×2160.
+Smaller windows retain the vertically scrolling responsive layout.
+
 Button text uses the current public target and subject names; exit labels may
 also include their travel cost. Typed equivalents can be copied from each
 clicked request in the conversation.
