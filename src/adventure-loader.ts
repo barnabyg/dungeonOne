@@ -9,6 +9,7 @@ import { ADJUDICATION_SCHEMA } from "./adjudication-schema.js";
 import { DAY_SCHEMA } from "./day-schema.js";
 import { DECEPTION_SCHEMA } from "./deception-schema.js";
 import { OFFER_SCHEMA } from "./offer-schema.js";
+import { BRACE_SCHEMA } from "./brace-schema.js";
 import { CLAIM_SCHEMA } from "./claim-schema.js";
 import { TRAVEL_SCHEMA } from "./travel-schema.js";
 import { analyzeProgression } from "./progression-analysis.js";
@@ -165,7 +166,7 @@ export type DialogueNpc = Readonly<{
   }>;
 }>;
 export type ChapelCluesDefinition = Readonly<{
-  schemaVersion: 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+  schemaVersion: 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
   id: string;
   contentVersion: string;
   rulesVersion:
@@ -180,7 +181,8 @@ export type ChapelCluesDefinition = Readonly<{
     | "chapel-clues-rules-v9"
     | "chapel-clues-rules-v10"
     | "chapel-clues-rules-v11"
-    | "chapel-clues-rules-v12";
+    | "chapel-clues-rules-v12"
+    | "chapel-clues-rules-v13";
   title: string;
   introduction: string;
   objective: string;
@@ -341,6 +343,11 @@ export type ChapelCluesDefinition = Readonly<{
     evidenceWhen: readonly ClueCondition[];
     evidenceAlternatives?: readonly (readonly ClueCondition[])[];
   }>[];
+  combatBrace?: Readonly<{
+    featureId: string;
+    monsterId: string;
+    armorClassBonus: number;
+  }>;
   combatProfile?: CombatStats;
   monsterDefinitions?: readonly (LocationDefinition &
     Readonly<{ maxHp: number; stats: CombatStats }>)[];
@@ -931,6 +938,7 @@ function validateClueReferences(
       "chapel-clues-rules-v10",
       "chapel-clues-rules-v11",
       "chapel-clues-rules-v12",
+      "chapel-clues-rules-v13",
     ].includes(snapshot.rulesVersion) &&
     (snapshot.npcs ?? []).some(
       (npc) => npc.combat !== undefined || npc.remains !== undefined,
@@ -955,6 +963,7 @@ function validateClueReferences(
       "chapel-clues-rules-v10",
       "chapel-clues-rules-v11",
       "chapel-clues-rules-v12",
+      "chapel-clues-rules-v13",
     ].includes(snapshot.rulesVersion)
   ) {
     error(
@@ -1071,7 +1080,8 @@ function validateClueReferences(
     snapshot.rulesVersion === "chapel-clues-rules-v9" ||
     snapshot.rulesVersion === "chapel-clues-rules-v10" ||
     snapshot.rulesVersion === "chapel-clues-rules-v11" ||
-    snapshot.rulesVersion === "chapel-clues-rules-v12"
+    snapshot.rulesVersion === "chapel-clues-rules-v12" ||
+    snapshot.rulesVersion === "chapel-clues-rules-v13"
   ) {
     (snapshot.monsters ?? []).forEach((monster, i) => {
       if (npcs.has(monster.id)) {
@@ -1297,7 +1307,8 @@ function validateClueReferences(
           snapshot.rulesVersion !== "chapel-clues-rules-v9" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v10" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v11" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v12"
+          snapshot.rulesVersion !== "chapel-clues-rules-v12" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v13"
         ) {
           error(
             "unsupported-rules",
@@ -1316,7 +1327,8 @@ function validateClueReferences(
           snapshot.rulesVersion !== "chapel-clues-rules-v9" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v10" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v11" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v12"
+          snapshot.rulesVersion !== "chapel-clues-rules-v12" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v13"
         ) {
           error(
             "unsupported-rules",
@@ -2516,30 +2528,33 @@ export function loadAdventure(input: string | Uint8Array):
       (parsed as { rulesVersion?: string } | null)?.rulesVersion ===
         "signet-rules-v1"
       ? SIGNET_SCHEMA
-      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 11
-        ? CLAIM_SCHEMA
-        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 10
-          ? TRAVEL_SCHEMA
-          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 9
-            ? OFFER_SCHEMA
-            : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 8
-              ? DECEPTION_SCHEMA
+      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 12
+        ? BRACE_SCHEMA
+        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 11
+          ? CLAIM_SCHEMA
+          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 10
+            ? TRAVEL_SCHEMA
+            : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 9
+              ? OFFER_SCHEMA
               : (parsed as { schemaVersion?: number } | null)?.schemaVersion ===
-                  7
-                ? DAY_SCHEMA
+                  8
+                ? DECEPTION_SCHEMA
                 : (parsed as { schemaVersion?: number } | null)
-                      ?.schemaVersion === 6
-                  ? ADJUDICATION_SCHEMA
+                      ?.schemaVersion === 7
+                  ? DAY_SCHEMA
                   : (parsed as { schemaVersion?: number } | null)
-                        ?.schemaVersion === 5
-                    ? CLOCK_SCHEMA
+                        ?.schemaVersion === 6
+                    ? ADJUDICATION_SCHEMA
                     : (parsed as { schemaVersion?: number } | null)
-                          ?.schemaVersion === 4
-                      ? RELATIONSHIP_SCHEMA
+                          ?.schemaVersion === 5
+                      ? CLOCK_SCHEMA
                       : (parsed as { schemaVersion?: number } | null)
-                            ?.schemaVersion === 3
-                        ? CHAPEL_CLUES_SCHEMA
-                        : ADVENTURE_SCHEMA,
+                            ?.schemaVersion === 4
+                        ? RELATIONSHIP_SCHEMA
+                        : (parsed as { schemaVersion?: number } | null)
+                              ?.schemaVersion === 3
+                          ? CHAPEL_CLUES_SCHEMA
+                          : ADVENTURE_SCHEMA,
     "",
     diagnostics,
   );
@@ -2563,9 +2578,36 @@ export function loadAdventure(input: string | Uint8Array):
     snapshot.schemaVersion === 8 ||
     snapshot.schemaVersion === 9 ||
     snapshot.schemaVersion === 10 ||
-    snapshot.schemaVersion === 11
+    snapshot.schemaVersion === 11 ||
+    snapshot.schemaVersion === 12
   ) {
     validateClueReferences(snapshot, diagnostics);
+    if (snapshot.combatBrace !== undefined) {
+      const brace = snapshot.combatBrace;
+      const feature = snapshot.features.find(
+        ({ id }) => id === brace.featureId,
+      );
+      const monster = snapshot.monsters?.find(
+        ({ id }) => id === brace.monsterId,
+      );
+      if (
+        feature === undefined ||
+        monster === undefined ||
+        feature.locationId !== monster.locationId ||
+        !snapshot.encounters?.some(
+          ({ monsterId }) => monsterId === brace.monsterId,
+        )
+      ) {
+        diagnostics.push({
+          severity: "error",
+          code: "invalid-combat-brace",
+          path: "/combatBrace",
+          entity: brace.featureId,
+          message:
+            "Combat cover requires a feature beside an encountered monster.",
+        });
+      }
+    }
     if (snapshot.schemaVersion >= 6) {
       validateAdjudicationProfiles(snapshot, diagnostics);
     }
@@ -2592,7 +2634,8 @@ export function loadAdventure(input: string | Uint8Array):
     snapshot.schemaVersion === 8 ||
     snapshot.schemaVersion === 9 ||
     snapshot.schemaVersion === 10 ||
-    snapshot.schemaVersion === 11
+    snapshot.schemaVersion === 11 ||
+    snapshot.schemaVersion === 12
   ) {
     diagnostics.push(...analyzeProgression(snapshot));
   }

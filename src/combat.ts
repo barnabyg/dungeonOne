@@ -39,6 +39,11 @@ export type AttackResolvedEvent<Id extends string = CombatantId> = Readonly<{
   targetArmorClass: number;
   outcome: "miss" | "hit" | "critical-hit";
   damage?: number;
+  damageRolls?: Readonly<{
+    sides: number;
+    values: readonly number[];
+    modifier: number;
+  }>;
   targetHp: number;
   targetMaxHp: number;
 }>;

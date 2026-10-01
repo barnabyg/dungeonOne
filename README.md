@@ -47,7 +47,7 @@ launch environment, then run this copyable PowerShell command:
 npm.cmd run browser -- --seed 0 --save .\hollow-beacon-browser-save.json
 ```
 
-The launcher starts **Hollow Beacon: Trust and Evidence** (issue #86, content version 6) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
+The launcher starts **Hollow Beacon: Road Threat** (issue #87, content version 7) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
 your desktop browser. If opening fails, use the printed URL. Keep the
 launcher running; Ctrl+C stops the service without closing the saved session.
 Rerun the same command to read the same slot at its saved seed, even if the
@@ -77,6 +77,14 @@ signal, keeper and caravan do not change from belief alone. Journal keeps the
 earlier belief as an attributed historical record and the correction as testimony.
 Released v4 and v5 saves/history continue under their original tuples. See the
 [issue 86 browser handoff](docs/acceptance/issue-86.md).
+V7 adds a raider encounter on the shorter Ridge Trail, with a visible one-use
+cover choice: spend one action for +4 AC against the next enemy attack. Attack,
+healing and cover spend no days; the engine resolves one enemy response before
+returning the turn. Cards show initiative, action cost, attack dice, damage and
+HP separately from narration. The defeated raider's supply sack supplies an
+attributed aftermath clue. V7 uses schema 12 / `chapel-clues-rules-v13` /
+`chapel-clues-engine-v17`; released v4-v6 slots keep their content, history and
+rules. See [issue 87 player checks](docs/acceptance/issue-87.md).
 Active or completed Hollow Beacon slots
 offer **New game**. Its keyboard-accessible confirmation explains that progress,
 conversation and both hint levels will be replaced, and displays the new seed

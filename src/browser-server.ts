@@ -45,7 +45,7 @@ import {
 } from "./browser-hints.js";
 
 export type BrowserOptions = Readonly<{
-  contentVersion?: "4" | "5" | "6";
+  contentVersion?: "4" | "5" | "6" | "7";
   savePath: string;
   seed: number;
   apiKey: string;
@@ -158,11 +158,14 @@ function assertSupported(session: SaveSession): void {
         session.runtime.content?.snapshot.schemaVersion === 10) ||
       (session.runtime.version === "6" &&
         session.runtime.rulesVersion === "chapel-clues-rules-v12" &&
-        session.runtime.content?.snapshot.schemaVersion === 11)
+        session.runtime.content?.snapshot.schemaVersion === 11) ||
+      (session.runtime.version === "7" &&
+        session.runtime.rulesVersion === "chapel-clues-rules-v13" &&
+        session.runtime.content?.snapshot.schemaVersion === 12)
     )
   ) {
     throw new Error(
-      "This browser supports Hollow Beacon content versions 4 and 5 with chapel-clues-rules-v11/schema 10, or version 6 with chapel-clues-rules-v12/schema 11. The occupied slot was left unchanged; select another save path.",
+      "This browser supports Hollow Beacon content versions 4 and 5 with chapel-clues-rules-v11/schema 10, version 6 with chapel-clues-rules-v12/schema 11, or version 7 with chapel-clues-rules-v13/schema 12. The occupied slot was left unchanged; select another save path.",
     );
   }
 }
@@ -323,11 +326,13 @@ export async function startBrowserServer(options: BrowserOptions) {
   const loaded = await loadAdventureFile(
     fileURLToPath(
       new URL(
-        options.contentVersion === "6"
-          ? "../adventures/hollow-beacon-trust.json"
-          : options.contentVersion === "5"
-            ? "../adventures/hollow-beacon-refugees.json"
-            : "../adventures/hollow-beacon-watch.json",
+        options.contentVersion === "7"
+          ? "../adventures/hollow-beacon-threat.json"
+          : options.contentVersion === "6"
+            ? "../adventures/hollow-beacon-trust.json"
+            : options.contentVersion === "5"
+              ? "../adventures/hollow-beacon-refugees.json"
+              : "../adventures/hollow-beacon-watch.json",
         import.meta.url,
       ),
     ),

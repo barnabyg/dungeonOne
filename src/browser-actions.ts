@@ -129,6 +129,41 @@ export function browserActions(
       "Take " + target.name,
     );
   }
+  for (const choice of scene.combatChoices ?? []) {
+    offer(
+      "target:" + choice.featureId,
+      "brace",
+      "target",
+      choice.featureId,
+      choice.label,
+      "Brace " +
+        scene.room.features.find(({ id }) => id === choice.featureId)!.name,
+      choice.stakes,
+    );
+  }
+  for (const opponent of scene.room.opponents) {
+    offer(
+      "target:" + opponent.id,
+      "attack",
+      "opponent_id",
+      opponent.id,
+      "Attack (1 action)",
+      "Attack " + opponent.name,
+      scene.combatStatus,
+    );
+  }
+  for (const item of session.runtime.projectCharacterStatus(session.state)
+    .collectedItems) {
+    offer(
+      "inventory:" + item.id,
+      "use_item",
+      "item_id",
+      item.id,
+      "Use " + item.name,
+      "Use " + item.name,
+      scene.combatStatus,
+    );
+  }
   for (const npc of scene.room.npcs ?? []) {
     if (npc.condition === "dead") {
       offer(

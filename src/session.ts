@@ -59,6 +59,7 @@ export type Action = Readonly<
   | { type: "open"; target?: string }
   | { type: "take"; target?: string }
   | { type: "use"; target?: string }
+  | { type: "brace"; target?: string }
   | { type: "attack"; target?: string }
   | { type: "resolve"; target?: string }
   | { type: "wait"; amount?: string }
@@ -1128,10 +1129,11 @@ export function handleAction(
             : { ...state, status: "quit" },
         events: [{ type: "session-quit" }],
       };
+    case "brace":
     case "follow":
       return {
         state,
-        rejection: { reason: "unknown-command", input: "follow" },
+        rejection: { reason: "unknown-command", input: action.type },
       };
     default:
       action satisfies never;

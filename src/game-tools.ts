@@ -83,6 +83,12 @@ export type DmScene = Readonly<{
   >;
   journal?: ChapelJournal | ClueJournal;
   suggestions?: readonly string[];
+  combatChoices?: readonly Readonly<{
+    featureId: string;
+    label: string;
+    stakes: string;
+  }>[];
+  combatStatus?: string;
   endingChoices?: readonly Readonly<{
     id: string;
     label: string;
@@ -100,6 +106,7 @@ export type CharacterStatus = Readonly<{
   }>[];
   outcome: SessionState["status"];
   combatTurn?: string;
+  conditions?: readonly string[];
 }>;
 
 type JsonSchema = Readonly<Record<string, unknown>>;
@@ -122,6 +129,7 @@ export type GameToolName =
   | "open"
   | "take"
   | "use_item"
+  | "brace"
   | "attack"
   | "resolve_quest"
   | "wait"
@@ -683,7 +691,8 @@ function parseTool(
         name === "adjudicate" ||
         name === "distract" ||
         name === "deceive" ||
-        name === "offer"
+        name === "offer" ||
+        name === "brace"
       ) {
         return "unknown-tool";
       }

@@ -9,7 +9,7 @@ export const BROWSER_HTML = `<!doctype html>
 <div class="controls"><button id="start" hidden>Start adventure</button><button id="new-game" hidden>New game</button><button id="refresh">Read current state</button></div>
 <h2>At a glance</h2><dl>
 <dt>Location</dt><dd id="location">Not started</dd><dt>HP</dt><dd id="hp">—</dd>
-<dt>Time</dt><dd id="time">—</dd><dt>Deadline</dt><dd id="deadline">—</dd><dt>Session</dt><dd id="session">—</dd></dl>
+<dt>Combat</dt><dd id="combat">No active combat.</dd><dt>Time</dt><dd id="time">—</dd><dt>Deadline</dt><dd id="deadline">—</dd><dt>Session</dt><dd id="session">—</dd></dl>
 <h2>Visible exits</h2><ul id="exits"><li>Start to see exits.</li></ul></aside>
 <section id="scene" tabindex="-1" aria-labelledby="conversation-title">
 <h2 id="conversation-title">Conversation</h2><div id="conversation" role="log" aria-live="polite" aria-label="Adventure conversation"></div>
@@ -177,7 +177,7 @@ function renderInformation() {
     inventoryBlock("Equipment", status.equipment, "No equipment.");
     inventoryBlock("Carried items", status.collectedItems, "No carried items.");
   } else if (activePanel === "character") {
-    informationBlock("Current status", ["HP: " + status.hp + " / " + status.maxHp, "Session: " + status.outcome, ...(status.combatTurn ? ["Combat turn: " + status.combatTurn] : [])]);
+    informationBlock("Current status", ["HP: " + status.hp + " / " + status.maxHp, "Session: " + status.outcome, ...(status.combatTurn ? ["Combat turn: " + status.combatTurn] : []), ...(status.conditions || [])]);
   } else {
     if (activePanel === "journal") {
       informationBlock(journal.quest.title, ["Quest: " + journal.quest.status]);
@@ -335,11 +335,13 @@ function render(view) {
   text("hp", view.hp.current + " / " + view.hp.maximum);
   text("time", view.clocks.map((clock) => clock.name + ": " + (clock.unit === "day" ? "Day " : "") + clock.value).join("; ") || "No clock");
   text("deadline", view.deadline.name + ": Day " + view.deadline.day);
+  text("combat", scene.combatStatus || (view.character.combatTurn ? "Turn: " + view.character.combatTurn : "No active combat."));
   text("session", scene.outcome + (reviewing() ? " · Review mode" : ""));
   contextList("exits", scene.room.exits.map((exit) => ({ ...exit, contextId: "exit:" + exit.destinationId })));
   contextList("details", [
     ...scene.room.features.map((feature) => ({ ...feature, contextId: "target:" + feature.id })),
     ...(scene.room.npcs || []).map((npc) => ({ ...npc, contextId: "npc:" + npc.id })),
+    ...view.character.collectedItems.map((item) => ({ ...item, contextId: "inventory:" + item.id })),
     ...scene.room.items.map((item) => ({ ...item, contextId: "target:" + item.id })),
     ...scene.room.opponents.map((opponent) => ({ ...opponent, contextId: "target:" + opponent.id })),
     ...((scene.endingChoices || []).length ? [{ name: "Ending choices", contextId: "ending" }] : [])

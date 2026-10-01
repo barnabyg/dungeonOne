@@ -5,7 +5,7 @@ import { announceBrowser } from "./browser-launch.js";
 import { startBrowserServer } from "./browser-server.js";
 
 const USAGE =
-  "Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--save <path>]\nAdventure: Hollow Beacon: Refugee Route (v5). Existing v4 slots continue unchanged. Default slot: hollow-beacon-browser-save.json\nSet OPENAI_API_KEY in the environment before launch.";
+  "Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--save <path>]\nAdventure: Hollow Beacon: Road Threat (v7). Existing v4-v6 slots continue unchanged. Default slot: hollow-beacon-browser-save.json\nSet OPENAI_API_KEY in the environment before launch.";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -35,7 +35,7 @@ async function main(): Promise<void> {
     () => randomBytes(4).readUInt32LE(0),
   );
   const server = await startBrowserServer({
-    contentVersion: "6",
+    contentVersion: "7",
     seed,
     savePath: resolve(
       values.get("--save") ?? "hollow-beacon-browser-save.json",
