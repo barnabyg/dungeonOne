@@ -38,7 +38,11 @@ function keys(value: Record<string, unknown>, allowed: readonly string[]) {
   return Object.keys(value).every((key) => allowed.includes(key));
 }
 function text(value: unknown): value is string {
-  return typeof value === "string" && value.length <= 100_000;
+  return (
+    typeof value === "string" &&
+    value.length <= 100_000 &&
+    !/[\ud800-\udfff]/u.test(value)
+  );
 }
 function cards(value: unknown): boolean {
   return (

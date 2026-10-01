@@ -324,7 +324,13 @@ test("invalid input and unrelated origins never reach the AI or alter storage", 
     },
     async (server, path) => {
       const before = await readFile(path, "utf8");
-      for (const message of ["", " ", "x".repeat(1001), "x".repeat(9000)]) {
+      for (const message of [
+        "",
+        " ",
+        "\ud800",
+        "x".repeat(1001),
+        "x".repeat(9000),
+      ]) {
         assert.equal((await post(server, message)).status, 400);
       }
       assert.equal(

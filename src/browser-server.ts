@@ -71,6 +71,7 @@ async function readPlayerInput(
     Object.keys(body).length !== 1 ||
     !("message" in body) ||
     typeof body.message !== "string" ||
+    /[\ud800-\udfff]/u.test(body.message) ||
     body.message.trim().length === 0 ||
     body.message.length > DM_TURN_LIMITS.maxPlayerInputCharacters
   ) {
