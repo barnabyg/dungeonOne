@@ -17,6 +17,7 @@ export function createDataRuntime(
     case 7:
     case 8:
     case 9:
+    case 11:
     case 10:
       return createChapelCluesRuntime(content);
     default:

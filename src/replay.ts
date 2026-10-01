@@ -15,6 +15,7 @@ import {
   DECEPTION_ENGINE_VERSION,
   OFFER_ENGINE_VERSION,
   TRAVEL_ENGINE_VERSION,
+  CLAIM_ENGINE_VERSION,
   CASUALTY_CLUES_ENGINE_VERSION,
   COMBAT_CLUES_ENGINE_VERSION,
   LEGACY_CLUES_ENGINE_VERSION,
@@ -1368,6 +1369,7 @@ function replayFormat4(trace: JsonObject): void {
     trace.engineVersion !== DECEPTION_ENGINE_VERSION &&
     trace.engineVersion !== OFFER_ENGINE_VERSION &&
     trace.engineVersion !== TRAVEL_ENGINE_VERSION &&
+    trace.engineVersion !== CLAIM_ENGINE_VERSION &&
     trace.engineVersion !== CASUALTY_CLUES_ENGINE_VERSION &&
     trace.engineVersion !== RESCUE_CLUES_ENGINE_VERSION &&
     trace.engineVersion !== COMBAT_CLUES_ENGINE_VERSION &&

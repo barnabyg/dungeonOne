@@ -56,7 +56,13 @@ export type DmScene = Readonly<{
       id: string;
       name: string;
       condition: "living" | "dead";
-      subjects: readonly Readonly<{ id: string; name: string }>[];
+      description?: string;
+      subjects: readonly Readonly<{
+        id: string;
+        name: string;
+        intent?: "claim" | "correction";
+        stakes?: string;
+      }>[];
     }>[];
     exits: readonly Readonly<{
       destinationId: string;

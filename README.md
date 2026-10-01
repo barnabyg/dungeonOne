@@ -47,7 +47,7 @@ launch environment, then run this copyable PowerShell command:
 npm.cmd run browser -- --seed 0 --save .\hollow-beacon-browser-save.json
 ```
 
-The launcher starts **Hollow Beacon: Refugee Route** (issue #85, content version 5) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
+The launcher starts **Hollow Beacon: Trust and Evidence** (issue #86, content version 6) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
 your desktop browser. If opening fails, use the printed URL. Keep the
 launcher running; Ctrl+C stops the service without closing the saved session.
 Rerun the same command to read the same slot at its saved seed, even if the
@@ -66,6 +66,15 @@ V5 adds the camp survey and Refugee Overlook, attributed testimony and contested
 claims, and provisional tower instructions that leave play open. A finale for
 the expanded investigation is not part of this release. See the
 [issue 85 player checks](docs/acceptance/issue-85.md).
+V6 uses [schema 11](schema/adventure-v11.schema.json) / `chapel-clues-rules-v12`:
+one remembered safe-signal claim can change Captain Iona's trust and private
+belief, and the observed setting plate permits an honest correction after
+acceptance or refusal. Her current relationship and the check stakes are public;
+the result card shows the engine's die, DC and result. Other actors and the
+signal, keeper and caravan do not change from belief alone. Journal keeps the
+earlier belief as an attributed historical record and the correction as testimony.
+Released v4 and v5 saves/history continue under their original tuples. See the
+[issue 86 browser handoff](docs/acceptance/issue-86.md).
 Active or completed Hollow Beacon slots
 offer **New game**. Its keyboard-accessible confirmation explains that progress,
 conversation and both hint levels will be replaced, and displays the new seed

@@ -154,7 +154,11 @@ export function browserActions(
         permits("talk", "topicId", subject.id) &&
         permits("talk", "approach", "ask")
       ) {
-        for (const approach of ["ask", "persuade"] as const) {
+        for (const approach of (subject.intent === "claim"
+          ? ["persuade"]
+          : subject.intent === "correction"
+            ? ["ask"]
+            : ["ask", "persuade"]) as readonly ("ask" | "persuade")[]) {
           if (!permits("talk", "approach", approach)) {
             continue;
           }
@@ -172,6 +176,7 @@ export function browserActions(
                 approach,
               }),
             },
+            subject.stakes,
           );
         }
       }

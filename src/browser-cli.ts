@@ -35,7 +35,7 @@ async function main(): Promise<void> {
     () => randomBytes(4).readUInt32LE(0),
   );
   const server = await startBrowserServer({
-    contentVersion: "5",
+    contentVersion: "6",
     seed,
     savePath: resolve(
       values.get("--save") ?? "hollow-beacon-browser-save.json",
