@@ -5,7 +5,9 @@ import {
 } from "node:http";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
+import { rename, unlink } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
 import {
   browserActions,
   matchesBrowserAction,
@@ -112,9 +114,11 @@ export type BrowserView = Readonly<
   | {
       slot: "occupied";
       revision: string;
+      generation: string;
       position: number;
       recovery: "saved" | "pending" | "unsaved";
       seed: number;
+      newGameSeed: number;
       scene: DmScene;
       clocks: ReturnType<NonNullable<AdventureRuntime["projectPlayerClocks"]>>;
       hp: Readonly<{ current: number; maximum: number }>;
@@ -158,16 +162,19 @@ function assertSupported(session: SaveSession): void {
 function playerView(
   session: SaveSession,
   revision: string,
+  newGameSeed: number,
 ): Extract<BrowserView, { slot: "occupied" }> {
   assertSupported(session);
   const status = session.runtime.projectCharacterStatus(session.state);
   return {
     slot: "occupied",
     revision,
+    generation: session.generation,
     position: session.progress.sequence,
     recovery:
       session.browserHistory?.pending === undefined ? "saved" : "pending",
     seed: session.seed,
+    newGameSeed,
     scene: session.runtime.projectDmScene(session.state),
     clocks: session.runtime.projectPlayerClocks?.(session.state) ?? [],
     hp: { current: status.hp, maximum: status.maxHp },
@@ -320,6 +327,12 @@ export async function startBrowserServer(options: BrowserOptions) {
     | undefined;
   let hintWrite: Promise<void> | undefined;
   let strongerJob: typeof hintJob;
+  // The replacement caller holds the turn lock and has checked that neither
+  // current hint job is pending before discarding the old generation's caches.
+  const clearHintJobs = () => {
+    hintJob = undefined;
+    strongerJob = undefined;
+  };
   const flushHints = () => {
     const job = [hintJob, strongerJob].find(
       (candidate) => candidate?.result !== undefined && !candidate.persisted,
@@ -452,6 +465,17 @@ export async function startBrowserServer(options: BrowserOptions) {
       });
   };
   const readSlot = async (): Promise<BrowserView> => {
+    // A readable cache may precede release of its publication lock. Wait for
+    // the recovery-file rename before loading, so it cannot look like an empty
+    // slot while the journal is being moved to the primary.
+    let publishing = hintWrite;
+    while (publishing !== undefined) {
+      await publishing;
+      if (publishing === hintWrite) {
+        break;
+      }
+      publishing = hintWrite;
+    }
     try {
       const session = retained ?? (await SaveSession.load(options.savePath));
       const view = playerView(
@@ -467,6 +491,7 @@ export async function startBrowserServer(options: BrowserOptions) {
             }),
           )
           .digest("hex"),
+        options.seed,
       );
       const hints =
         hintJob?.revision === hintRevision(session) && hintJob.persisted
@@ -571,6 +596,7 @@ export async function startBrowserServer(options: BrowserOptions) {
             "/api/turn",
             "/api/recover",
             "/api/hints/stronger",
+            "/api/new-game",
           ].includes(request.url ?? "")
         ) {
           json(response, 404, { error: "Unknown endpoint." });
@@ -586,6 +612,103 @@ export async function startBrowserServer(options: BrowserOptions) {
               "A turn is already pending. Wait for its reply; this request was not applied.",
             view: await readSlot(),
           });
+          return;
+        }
+        if (request.url === "/api/new-game") {
+          turning = true;
+          let stagedPath: string | undefined;
+          let previous: SaveSession | undefined;
+          try {
+            const body = await readBody(request).catch(() => undefined);
+            if (
+              body === null ||
+              typeof body !== "object" ||
+              Array.isArray(body) ||
+              Object.keys(body).length !== 3 ||
+              !("confirmed" in body) ||
+              body.confirmed !== true ||
+              !("seed" in body) ||
+              body.seed !== options.seed ||
+              !("revision" in body) ||
+              typeof body.revision !== "string"
+            ) {
+              json(response, 400, {
+                error:
+                  "Confirm replacement with the displayed seed and current slot revision.",
+              });
+              return;
+            }
+            const before = await readSlot();
+            if (
+              retained !== undefined ||
+              before.slot !== "occupied" ||
+              body.revision !== before.revision ||
+              [hintJob, strongerJob].some(
+                (job) => job !== undefined && !job.persisted,
+              )
+            ) {
+              json(response, 409, {
+                error:
+                  "New game was not started. Read current state and wait for pending turns or hints to finish before confirming replacement.",
+                view: before,
+              });
+              return;
+            }
+            previous = await SaveSession.load(options.savePath);
+            retainSession(previous);
+            // Publish any verified recovery journal before replacing the primary,
+            // so a prior journal cannot resurrect the old game after restart.
+            await previous.saveBrowserHistory(
+              previous.browserHistory ?? {
+                version: 1,
+                progress: previous.progress,
+                turns: [],
+              },
+            );
+            stagedPath = join(
+              dirname(options.savePath),
+              `.${basename(options.savePath)}.${randomBytes(8).toString("hex")}.new-game`,
+            );
+            const fresh = await SaveSession.start(
+              stagedPath,
+              runtime,
+              options.seed,
+              { exclusive: true },
+            );
+            await fresh.saveBrowserHistory({
+              version: 1,
+              progress: fresh.progress,
+              turns: [],
+            });
+            if (options.hintPreparer === undefined) {
+              await fresh.saveBrowserHints(prepareHints(fresh));
+            }
+            await SaveSession.load(stagedPath);
+            // The only replacement point: a complete verified same-directory file.
+            // Before this atomic rename the old slot remains recoverable; after it
+            // restart sees the entire new generation, including empty history.
+            await rename(stagedPath, options.savePath);
+            retainSession(undefined);
+            clearHintJobs();
+            saveFailed = false;
+            scheduleHints(fresh);
+            json(response, 200, { view: await readSlot() });
+          } catch {
+            json(response, 500, {
+              error:
+                "New game replacement failed. Read current state to recover the verified slot before trying again.",
+              view: await readSlot(),
+            });
+          } finally {
+            if (retained === previous) {
+              retainSession(undefined);
+            }
+            if (stagedPath !== undefined) {
+              await unlink(stagedPath).catch(() => undefined);
+              await unlink(`${stagedPath}.recovery`).catch(() => undefined);
+            }
+            releaseTurn();
+          }
           return;
         }
         if (request.url === "/api/recover") {

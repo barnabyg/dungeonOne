@@ -64,10 +64,10 @@ test("a local player starts an empty slot and reads the same verified state afte
       seed: 99,
       apiKey: "test-credential",
     });
-    assert.deepEqual(
-      await (await fetch(`${server.url}/api/state`)).json(),
-      view,
-    );
+    assert.deepEqual(await (await fetch(`${server.url}/api/state`)).json(), {
+      ...view,
+      newGameSeed: 99,
+    });
     await fetch(`${server.url}/api/start`, {
       method: "POST",
       headers: { Origin: server.url },

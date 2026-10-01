@@ -160,7 +160,7 @@ test("page reload and a second process retain exact messages, NPC labels, cards,
     );
     await server.stop();
     server = await launch(path, 999);
-    assert.deepEqual(await view(server), second.view);
+    assert.deepEqual(await view(server), { ...second.view, newGameSeed: 999 });
     assert.deepEqual((await reloadPage(server)).entries, page.entries);
     assert.equal(
       server.messages.filter(({ type }) => type === "provider-call").length,
@@ -226,7 +226,7 @@ test("completed sessions continue as readable history with the saved adventure a
     assert.notEqual(result.view.scene.outcome, "active");
     await server.stop();
     server = await launch(path, 55);
-    assert.deepEqual(await view(server), result.view);
+    assert.deepEqual(await view(server), { ...result.view, newGameSeed: 55 });
     const page = await reloadPage(server);
     assert.match(page.nodes.get("seed").textContent, /Hollow Beacon.*Seed 0/);
     assert.equal(

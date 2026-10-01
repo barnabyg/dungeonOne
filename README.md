@@ -52,8 +52,15 @@ including when two starts race. The page displays the authoritative scene,
 location, visible exits, Day 0, Day 3 caravan deadline, 20/20 HP, and seed 0.
 **Read current state** rereads the verified slot. Existing slots load without
 replacement; corrupt, closed (`quit`), other-adventure, or older-content slots
-produce an error and remain unchanged. For a fresh run choose a new save path
-whose parent directory already exists.
+produce an error and remain unchanged. Active or completed Hollow Beacon slots
+offer **New game**. Its keyboard-accessible confirmation explains that progress,
+conversation and both hint levels will be replaced, and displays the new seed
+from the launcher. **Cancel** or Escape preserves the current game; confirming
+saves a fresh opening in the same slot. Pending turns or hint preparation reject
+replacement until they finish. An interrupted write recovers a whole verified
+old or new slot; after a failure or lost response, use **Read current state**
+before retrying. Old-tab actions and delayed replies cannot enter the new game.
+See [issue 104 player checks](docs/acceptance/issue-104.md).
 
 Type one ordinary-language action or question and select **Send message**.
 The browser uses the same bounded AI tools as the CLI and its default model

@@ -19,7 +19,7 @@ const post = (server, path, body) =>
 async function settled(server) {
   for (let i = 0; i < 100; i++) {
     const view = await state(server);
-    if (view.strongerHints?.status !== "preparing") {
+    if (view.strongerHints && view.strongerHints.status !== "preparing") {
       return view;
     }
     await new Promise((resolve) => {
@@ -27,6 +27,24 @@ async function settled(server) {
     });
   }
   assert.fail("Stronger hint did not settle");
+}
+// A cache can be readable just before its write releases the exclusive lock.
+// Retry only the explicit pending-work rejection, never stale game intents.
+async function postAfterHintWrite(server, path, body) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const response = await post(server, path, body);
+    if (
+      response.status !== 409 ||
+      !/already pending/.test((await response.clone().json()).error)
+    ) {
+      assert.equal(response.status, 200);
+      return response;
+    }
+    await new Promise((resolve) => {
+      setTimeout(resolve, 10);
+    });
+  }
+  assert.fail("Hint persistence did not release the turn lock");
 }
 async function page(server) {
   let ready;
@@ -256,12 +274,12 @@ test("stale, out-of-order, failed and fabricated guidance never attaches to a ne
       (await settled(server)).strongerHints,
       ready.strongerHints,
     );
-    await post(server, "/api/turn", {
+    await postAfterHintWrite(server, "/api/turn", {
       revision: loft.revision,
       message: "Go to Watch Yard",
     });
     const back = await state(server);
-    await post(server, "/api/hints/stronger", {
+    await postAfterHintWrite(server, "/api/hints/stronger", {
       revision: back.hints.revision,
     });
     const before = (await SaveSession.load(savePath)).progress;

@@ -6,7 +6,7 @@ export const BROWSER_HTML = `<!doctype html>
 <header><p class="eyebrow">DUNGEON ONE · LOCAL ADVENTURE</p><h1>Hollow Beacon</h1><p id="seed">Reading save slot…</p></header>
 <main><aside id="scene-context" aria-label="Current scene and adventure status"><p class="eyebrow">CURRENT SCENE</p>
 <h2 id="scene-title">Your save slot</h2><p id="description">Checking for an existing adventure…</p><p id="objective"></p>
-<div class="controls"><button id="start" hidden>Start adventure</button><button id="refresh">Read current state</button></div>
+<div class="controls"><button id="start" hidden>Start adventure</button><button id="new-game" hidden>New game</button><button id="refresh">Read current state</button></div>
 <h2>At a glance</h2><dl>
 <dt>Location</dt><dd id="location">Not started</dd><dt>HP</dt><dd id="hp">—</dd>
 <dt>Time</dt><dd id="time">—</dd><dt>Deadline</dt><dd id="deadline">—</dd><dt>Session</dt><dd id="session">—</dd></dl>
@@ -34,7 +34,11 @@ export const BROWSER_HTML = `<!doctype html>
 <h2 id="information-title" tabindex="-1"></h2><div id="information-body"></div>
 <div id="stronger-hint" hidden><button id="request-stronger-hint" type="button" aria-describedby="stronger-hint-result">Request a stronger hint</button>
 <p id="stronger-hint-result" role="status" aria-live="polite" aria-atomic="true"></p></div>
-</section></aside></main></body></html>`;
+</section></aside></main>
+<dialog id="new-game-confirmation" aria-labelledby="new-game-title" aria-describedby="new-game-description">
+<h2 id="new-game-title">Replace this adventure?</h2><p id="new-game-description"></p>
+<div class="controls"><button id="cancel-new-game" autofocus>Cancel</button><button id="confirm-new-game">Replace and start new game</button></div>
+</dialog></body></html>`;
 
 export const BROWSER_CSS = `:root{color-scheme:light;font-family:Georgia,serif;color:#25352f;background:#f3f1eb;font-size:18px;line-height:1.65}
 *{box-sizing:border-box}body{margin:0}header{max-width:2400px;margin:auto;padding:20px 36px 16px;border-bottom:1px solid #d1d7cd}h1,h2,h3,p{margin:0 0 16px}h1{font-size:1.9rem;line-height:1.2}h2{font-size:1.45rem}h3{font-size:1.05rem}header p:last-child{margin:0}
@@ -62,6 +66,13 @@ let sceneButtons = [];
 let hintPollRevision;
 let strongerRequestRevision;
 let strongerError;
+let replacementView;
+async function currentResponseView(view) {
+  const response = await fetch("/api/state");
+  const latest = await response.json();
+  if (!response.ok) { throw new Error("Read current state before displaying this response."); }
+  return latest.generation !== view.generation ? latest : view;
+}
 function pollHints(view) {
   if (view.slot === "empty" || !view.hints || (view.hints.status !== "preparing" && (!view.strongerHints || view.strongerHints.status !== "preparing")) || typeof setTimeout !== "function") { return; }
   const revision = view.hints.revision;
@@ -73,6 +84,11 @@ function pollHints(view) {
       const response = await fetch("/api/state");
       const view = await response.json();
       const hints = view.hints;
+      if (response.ok && currentView.hints.revision === revision && view.generation !== currentView.generation) {
+        render(view); restoreHistory(view);
+        text("feedback", "The save slot was replaced in another tab. Current new game loaded; old hints were discarded.");
+        return;
+      }
       if (response.ok && hints && hints.revision === revision && currentView.hints.revision === revision) {
         currentView = { ...currentView, hints, strongerHints: view.strongerHints };
         if (activePanel === "hints") { renderInformation(); }
@@ -171,6 +187,15 @@ element("request-stronger-hint").addEventListener("click", async () => {
     const result = await response.json();
     if (!currentView.hints || currentView.hints.revision !== revision) { return; }
     if (!response.ok) { throw new Error(result.error || "Stronger hint unavailable. Read current state before trying again."); }
+    if (result.view) {
+      const latest = await currentResponseView(result.view);
+      if (latest.generation !== currentView.generation) {
+        render(latest); restoreHistory(latest);
+        text("feedback", "The save slot was replaced in another tab. Current new game loaded; old hints were discarded.");
+        return;
+      }
+    }
+    if (!currentView.hints || currentView.hints.revision !== revision) { return; }
     if (result.view && result.view.hints.revision === revision) {
       currentView = { ...currentView, strongerHints: result.view.strongerHints };
       pollHints(currentView);
@@ -210,7 +235,7 @@ element("information").addEventListener("keydown", (event) => {
 });
 function busy(value) {
   pending = value;
-  ["start", "refresh", "send", "message"].forEach((id) => { element(id).disabled = value; });
+  ["start", "new-game", "refresh", "send", "message"].forEach((id) => { element(id).disabled = value; });
   [...contextButtons, ...sceneButtons].forEach((button) => { button.disabled = value; });
   element("conversation").setAttribute("aria-busy", String(value));
   renderInformation();
@@ -253,6 +278,12 @@ function list(id, values) {
 function render(view) {
   closeContext();
   sceneButtons = [];
+  if (currentView && currentView.generation !== view.generation) {
+    closeInformation();
+    hintPollRevision = undefined;
+    strongerRequestRevision = undefined;
+    strongerError = undefined;
+  }
   currentView = view;
   pollHints(view);
   Object.keys(panels).forEach((name) => { element("open-" + name).disabled = view.slot === "empty"; });
@@ -261,6 +292,7 @@ function render(view) {
   text("seed", view.title + " · Seed " + view.seed + " · Single local save slot");
   const empty = view.slot === "empty";
   element("start").hidden = !empty;
+  element("new-game").hidden = empty;
   element("details-title").hidden = empty;
   element("turn").hidden = empty;
   if (empty) {
@@ -323,6 +355,16 @@ async function submitTurn(message, body = { message }) {
   try {
     const response = await fetch("/api/turn", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, revision: currentView.revision }) });
     const result = await response.json();
+    // Another tab may have replaced the slot after this reply was produced.
+    // Read the current generation before displaying a delayed turn response.
+    if (result.view) {
+      const latest = await currentResponseView(result.view);
+      if (latest.generation !== result.view.generation) {
+        render(latest); restoreHistory(latest);
+        text("feedback", "The save slot was replaced in another tab. Current new game loaded; the old reply was discarded.");
+        return;
+      }
+    }
     if (result.view) { render(result.view); restoreHistory(result.view); }
     if (!response.ok) { throw new Error(result.error || "Unable to complete the turn."); }
     waiting.remove();
@@ -349,5 +391,39 @@ element("turn").addEventListener("submit", (event) => {
   return submitTurn(element("message").value);
 });
 element("start").addEventListener("click", () => { void read(true); });
+element("new-game").addEventListener("click", () => {
+  if (pending || !currentView || currentView.slot !== "occupied") { return; }
+  replacementView = currentView;
+  text("new-game-description", "Your existing progress, conversation history, replies, result cards and both hint levels will be replaced. Start Hollow Beacon: Watch Route with seed " + replacementView.newGameSeed + "?");
+  element("new-game-confirmation").showModal();
+  element("cancel-new-game").focus();
+});
+element("cancel-new-game").addEventListener("click", () => { element("new-game-confirmation").close(); });
+element("new-game-confirmation").addEventListener("close", () => { element("new-game").focus({ preventScroll: true }); });
+element("confirm-new-game").addEventListener("click", async () => {
+  if (pending || !replacementView) { return; }
+  const before = replacementView;
+  element("new-game-confirmation").close();
+  busy(true);
+  let replaced = false;
+  text("feedback", "Replacing the save slot…");
+  try {
+    const response = await fetch("/api/new-game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: before.revision, seed: before.newGameSeed, confirmed: true }) });
+    const result = await response.json();
+    if (!response.ok) { throw new Error(result.error || "New game replacement failed. Read current state."); }
+    const latest = await currentResponseView(result.view);
+    element("message").value = "";
+    render(latest);
+    restoreHistory(latest);
+    text("feedback", latest.generation === result.view.generation ? "New game saved. Seed " + latest.seed + ". Previous progress and conversation replaced." : "The save slot was replaced again in another tab. Current new game loaded.");
+    replaced = true;
+    element("scene").focus();
+  } catch (error) {
+    text("feedback", error instanceof Error ? error.message : "Connection lost during replacement. Read current state before trying again.");
+  } finally {
+    busy(false); replacementView = undefined;
+    if (!replaced) { element("new-game").focus(); }
+  }
+});
 element("refresh").addEventListener("click", () => { void read(); });
 void read();`;
