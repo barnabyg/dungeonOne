@@ -186,19 +186,25 @@ test("ending stakes are public, selection is explicit, and AI cannot substitute 
     assert.ok(choices.every(({ stakes }) => stakes.length > 0));
     const hold = choices.find(({ label }) => label === "Hold the beacon");
     assert.match(hold.stakes, /safe stop/);
-    const before = await readFile(savePath, "utf8");
+    const before = JSON.parse(await readFile(savePath, "utf8")).checkpoint;
     chosen = "hold-beacon";
     const unsolicited = await (
       await post({ message: "What are my choices?" })
     ).json();
     assert.equal(unsolicited.committed, false);
-    assert.equal(await readFile(savePath, "utf8"), before);
+    assert.deepEqual(
+      JSON.parse(await readFile(savePath, "utf8")).checkpoint,
+      before,
+    );
     chosen = JSON.parse(
       choices.find(({ id }) => id !== hold.id).call.argumentsJson,
     ).resolutionId;
     const substituted = await (await post({ optionId: hold.id })).json();
     assert.equal(substituted.committed, false);
-    assert.equal(await readFile(savePath, "utf8"), before);
+    assert.deepEqual(
+      JSON.parse(await readFile(savePath, "utf8")).checkpoint,
+      before,
+    );
     chosen = "hold-beacon";
     const selected = await (await post({ optionId: hold.id })).json();
     assert.equal(selected.committed, true);

@@ -148,7 +148,7 @@ test("questions, clarification and rejected or compound attempts preserve author
     ],
   ];
   await withGame(scripted(routes), async (server, path, directory) => {
-    const before = await readFile(path, "utf8");
+    const before = await checkpoint(path);
     const initial = await SaveSession.load(path);
     const engine = await SaveSession.start(
       join(directory, "engine.json"),
@@ -171,7 +171,7 @@ test("questions, clarification and rejected or compound attempts preserve author
         await engine.commit(command, engine.runtime.parseCommand(command));
       }
       assert.deepEqual(await checkpoint(path), await checkpoint(engine.path));
-      assert.equal(await readFile(path, "utf8"), before);
+      assert.deepEqual(await checkpoint(path), before);
     }
   });
 });
@@ -222,11 +222,11 @@ test("provider failures report whether an action was saved and never execute it 
       },
     },
     async (server, path) => {
-      const before = await readFile(path, "utf8");
+      const before = await checkpoint(path);
       const first = await (await post(server, "Go to the loft")).json();
       assert.equal(first.committed, false);
       assert.match(first.notice, /AI service failed.*No action was committed/);
-      assert.equal(await readFile(path, "utf8"), before);
+      assert.deepEqual(await checkpoint(path), before);
       const second = await (await post(server, "Go to the loft")).json();
       assert.equal(second.committed, true);
       assert.match(second.notice, /saved; do not repeat/);
@@ -291,7 +291,7 @@ test("pending server turns reject concurrent turns and starts before another pro
       },
     },
     async (server, path) => {
-      const before = await readFile(path, "utf8");
+      const before = await checkpoint(path);
       const first = post(server, "What should I do?");
       try {
         await waiting;
@@ -306,7 +306,7 @@ test("pending server turns reject concurrent turns and starts before another pro
           409,
         );
         assert.equal(calls, 1);
-        assert.equal(await readFile(path, "utf8"), before);
+        assert.deepEqual(await checkpoint(path), before);
       } finally {
         release();
       }
@@ -443,7 +443,7 @@ test("browser script submits through API/storage, locks pending input and render
       });
       await loaded;
       assert.equal(nodes.get("location").textContent, "Watch Yard");
-      const before = await readFile(path, "utf8");
+      const before = await checkpoint(path);
       nodes.get("message").value = "Go to the Watch Loft";
       let prevented = false;
       const keydown = nodes.get("message").listeners.keydown;
@@ -480,7 +480,7 @@ test("browser script submits through API/storage, locks pending input and render
         await nodes.get("turn").listeners.submit({ preventDefault() {} });
         keydown(enter);
         assert.equal(calls, 1);
-        assert.equal(await readFile(path, "utf8"), before);
+        assert.deepEqual(await checkpoint(path), before);
       } finally {
         release();
       }

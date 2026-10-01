@@ -67,7 +67,14 @@ opening, switching, and closing them creates no messages, AI calls, time costs,
 or dice draws. Close or Escape restores focus to the panel's button and keeps
 the conversation's scroll position. Location, exits, HP, and time remain in
 the status sidebar. See [issue 98 player checks](docs/acceptance/issue-98.md).
-Conversation history is not restored after reload or restart yet; progress is.
+Reloading the page or restarting the launcher restores exact player messages,
+AI replies, NPC labels, result cards, and save notices alongside verified progress.
+The saved adventure, seed, and active/completed outcome remain visible.
+If the process stops after an action saves but before its reply saves, continuing
+shows the authoritative result and an interruption notice; it never repeats the action.
+History is display data, independent of bounded AI context and the authoritative
+journal. See [issue 100 player checks](docs/acceptance/issue-100.md) and the
+[browser history persistence contract](docs/browser-history.md).
 Command gameplay, CLI resume, existing save formats, and replay remain available.
 See [issue 97 player checks](docs/acceptance/issue-97.md) for the seeded journey
 and [issue 96 acceptance](docs/acceptance/issue-96.md) for startup checks.

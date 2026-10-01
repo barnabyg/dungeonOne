@@ -21,6 +21,11 @@ import type { GameToolCall } from "./game-tools.js";
 import type { RollRecord } from "./trace.js";
 import type { ClueState, OfferResolution } from "./chapel-clues-runtime.js";
 import { projectDmHistory, type DmHistory } from "./dm-history.js";
+import {
+  historyDigest,
+  validateBrowserHistory,
+  type BrowserHistory,
+} from "./browser-history.js";
 
 const SAVE_BYTE_LIMIT = 16 * 1024 * 1024;
 const TRANSITION_LIMIT = 10000;
@@ -45,6 +50,8 @@ type Transition = Readonly<{
 }>;
 
 type SaveEnvelope = Readonly<{
+  browserHistory?: BrowserHistory;
+  browserHistoryDigest?: string;
   kind: "dungeon-one-save";
   formatVersion: 1 | 2 | 3;
   runtime: Readonly<{
@@ -456,6 +463,24 @@ function eventsFor(
 }
 
 export class SaveSession {
+  browserHistory: BrowserHistory | undefined;
+
+  get progress(): BrowserHistory["progress"] {
+    return {
+      sequence: this.transitions.length,
+      stateDigest: digest(this.state),
+      randomPosition: this.randomPosition,
+    };
+  }
+
+  async saveBrowserHistory(history: BrowserHistory): Promise<void> {
+    this.browserHistory = validateBrowserHistory(
+      history,
+      historyDigest(history),
+      this.progress,
+    );
+    await this.persist();
+  }
   readonly runtime: AdventureRuntime;
   readonly seed: number;
   readonly path: string;
@@ -662,6 +687,16 @@ export class SaveSession {
     if (session.state.status === "quit") {
       throw new Error("Quit sessions cannot resume gameplay.");
     }
+    if (
+      save.browserHistory !== undefined ||
+      save.browserHistoryDigest !== undefined
+    ) {
+      session.browserHistory = validateBrowserHistory(
+        save.browserHistory,
+        save.browserHistoryDigest,
+        session.progress,
+      );
+    }
     return session;
   }
 
@@ -669,6 +704,7 @@ export class SaveSession {
     state: RuntimeState,
     call: GameToolCall,
     playerInput: string,
+    beforeCommit?: (result: RuntimeToolResult) => void,
   ): Promise<
     Readonly<{ result: RuntimeToolResult; rolls: readonly RollRecord[] }>
   > {
@@ -699,6 +735,7 @@ export class SaveSession {
       if (result.action === undefined) {
         throw new Error("Committed AI tool has no validated action.");
       }
+      beforeCommit?.(result);
       await this.record(
         JSON.stringify(result.action),
         result.action,
@@ -776,6 +813,9 @@ export class SaveSession {
       randomPosition: this.randomPosition,
       randomState: randomStateAt(this.seed, this.randomPosition),
     });
+    if (this.browserHistory !== undefined) {
+      this.browserHistory = { ...this.browserHistory, progress: this.progress };
+    }
     try {
       await this.persist();
     } catch (error) {
@@ -789,6 +829,12 @@ export class SaveSession {
   private async persist(exclusive = false): Promise<void> {
     const content = this.runtime.content!;
     const save: SaveEnvelope = {
+      ...(this.browserHistory === undefined
+        ? {}
+        : {
+            browserHistory: this.browserHistory,
+            browserHistoryDigest: historyDigest(this.browserHistory),
+          }),
       kind: "dungeon-one-save",
       formatVersion: 3,
       runtime: {

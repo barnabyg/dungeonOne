@@ -6,18 +6,12 @@ import {
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import {
   browserActions,
   matchesBrowserAction,
   type BrowserAction,
 } from "./browser-actions.js";
-import {
-  DM_TURN_LIMITS,
-  runDmTurn,
-  type DmModel,
-  type DmTranscriptEntry,
-} from "./dm-turn.js";
+import { DM_TURN_LIMITS, runDmTurn, type DmModel } from "./dm-turn.js";
 import {
   createOpenAiDmModel,
   OPENAI_DM_DEFAULT_MODEL,
@@ -25,7 +19,16 @@ import {
 import { loadAdventureFile } from "./adventure-file.js";
 import { createDataRuntime } from "./data-runtime.js";
 import type { CharacterStatus, DmScene } from "./game-tools.js";
-import type { AdventureRuntime } from "./runtime-contract.js";
+import type {
+  AdventureRuntime,
+  RuntimeToolResult,
+} from "./runtime-contract.js";
+import type { GameToolCall } from "./game-tools.js";
+import {
+  browserTranscript,
+  type BrowserTurn,
+  type ResultCard,
+} from "./browser-history.js";
 import { SaveSession } from "./save.js";
 import { BROWSER_HTML, BROWSER_CSS, BROWSER_SCRIPT } from "./browser-page.js";
 
@@ -87,6 +90,8 @@ export type BrowserView = Readonly<
       character: CharacterStatus;
       deadline: Readonly<{ name: string; day: number }>;
       actions: readonly BrowserAction[];
+      title: string;
+      history: readonly BrowserTurn[];
     }
 >;
 
@@ -119,7 +124,71 @@ function playerView(session: SaveSession, revision: string): BrowserView {
     // clock threshold/effect projection or a parse of terminal narration.
     deadline: { name: "Caravan at the ridge fork", day: 3 },
     actions: browserActions(session, revision),
+    title: session.runtime.content!.snapshot.title,
+    history: session.browserHistory?.turns ?? [],
   };
+}
+
+function resultCard(
+  session: SaveSession,
+  call: GameToolCall,
+  result: RuntimeToolResult,
+  mechanics: string,
+): ResultCard {
+  const events =
+    result.engineResult !== undefined && "events" in result.engineResult
+      ? result.engineResult.events
+      : undefined;
+  return {
+    title: session.runtime.readToolNames.includes(call.name)
+      ? "Authoritative information"
+      : events !== undefined
+        ? "Resolved action"
+        : "Action rejected",
+    text:
+      call.name === "move" && events !== undefined
+        ? [
+            `Travelled to ${session.runtime.projectDmScene(result.state).room.name}.`,
+            session.runtime.renderResult({
+              state: result.state,
+              events: events.filter(
+                (event) => event.type !== "clue" || event.operation !== "move",
+              ),
+            }),
+          ]
+            .filter((text) => text.length > 0)
+            .join("\n")
+        : mechanics,
+  };
+}
+
+async function recoverHistory(session: SaveSession): Promise<void> {
+  const history = session.browserHistory;
+  if (history?.pending === undefined) {
+    return;
+  }
+  const pending = history.pending;
+  const committed = session.progress.sequence > pending.sequence;
+  const notice = committed
+    ? "Your action was saved; do not repeat it."
+    : "No action was committed.";
+  await session.saveBrowserHistory({
+    version: 1,
+    progress: session.progress,
+    turns: [
+      ...history.turns,
+      {
+        sequence: session.progress.sequence,
+        message: pending.message,
+        reply:
+          "The previous turn was interrupted before its reply was saved. " +
+          notice,
+        cards: pending.cards,
+        committed,
+        notice,
+      },
+    ],
+  });
 }
 
 export async function startBrowserServer(options: BrowserOptions) {
@@ -150,7 +219,13 @@ export async function startBrowserServer(options: BrowserOptions) {
       return playerView(
         session,
         createHash("sha256")
-          .update(await readFile(options.savePath))
+          .update(
+            JSON.stringify({
+              progress: session.progress,
+              seed: session.seed,
+              content: session.runtime.content!.digest,
+            }),
+          )
           .digest("hex"),
       );
     } catch (error) {
@@ -164,20 +239,22 @@ export async function startBrowserServer(options: BrowserOptions) {
       };
     }
   };
+  let turning = false;
   // Invalid, incompatible or closed occupied slots fail before listening.
   await readSlot();
+  try {
+    await recoverHistory(await SaveSession.load(options.savePath));
+  } catch (error) {
+    if (!hasCode(error, "ENOENT")) {
+      throw error;
+    }
+  }
   const model =
     options.dmModel ??
     createOpenAiDmModel({
       apiKey: options.apiKey,
       model: OPENAI_DM_DEFAULT_MODEL,
     });
-  let transcript: readonly DmTranscriptEntry[] = [];
-  let turning = false;
-  // Only the holder of the synchronous turn lock calls these after awaiting.
-  const rememberTurn = (entries: readonly DmTranscriptEntry[]) => {
-    transcript = entries;
-  };
   const releaseTurn = () => {
     turning = false;
   };
@@ -248,6 +325,7 @@ export async function startBrowserServer(options: BrowserOptions) {
             }
             const session = await SaveSession.load(options.savePath);
             assertSupported(session);
+            await recoverHistory(session);
             const viewBefore = await readSlot();
             const selected =
               "optionId" in input && viewBefore.slot === "occupied"
@@ -265,6 +343,24 @@ export async function startBrowserServer(options: BrowserOptions) {
             }
             const playerInput =
               "message" in input ? input.message : selected!.message;
+            if ((session.browserHistory?.turns.length ?? 0) >= 10000) {
+              json(response, 409, {
+                error:
+                  "The conversation history limit has been reached. Choose a new save path to start another adventure; this slot was left unchanged.",
+              });
+              return;
+            }
+            const transcript = browserTranscript(session.browserHistory);
+            await session.saveBrowserHistory({
+              version: 1,
+              progress: session.progress,
+              turns: session.browserHistory?.turns ?? [],
+              pending: {
+                sequence: session.progress.sequence,
+                message: playerInput,
+                cards: [],
+              },
+            });
             let committed = false;
             const result = await runDmTurn({
               state: session.state,
@@ -298,14 +394,38 @@ export async function startBrowserServer(options: BrowserOptions) {
                     rolls: [],
                   };
                 }
-                const executed = await session.executeTool(state, call, input);
+                const executed = await session.executeTool(
+                  state,
+                  call,
+                  input,
+                  (toolResult) => {
+                    const history = session.browserHistory!;
+                    const events = toolResult.engineResult;
+                    const mechanics =
+                      events !== undefined && "events" in events
+                        ? session.runtime.renderResult({
+                            state: toolResult.state,
+                            events: events.events,
+                          })
+                        : "";
+                    session.browserHistory = {
+                      ...history,
+                      pending: {
+                        ...history.pending!,
+                        cards: [
+                          ...history.pending!.cards,
+                          resultCard(session, call, toolResult, mechanics),
+                        ],
+                      },
+                    };
+                  },
+                );
                 committed ||=
                   !isDeepStrictEqual(state, executed.result.state) ||
                   executed.rolls.length > 0;
                 return executed;
               },
             });
-            const view = await readSlot();
             const lastOutput = result.toolResults.at(-1)?.result.modelOutput;
             const conversation = lastOutput?.ok
               ? lastOutput.conversation
@@ -314,55 +434,39 @@ export async function startBrowserServer(options: BrowserOptions) {
               conversation?.approvedFacts.length === 0
                 ? conversation.authoredReply
                 : result.narration;
-            rememberTurn([
-              ...result.transcript.slice(0, -1),
-              { role: "dungeon-master", text: reply },
-            ]);
             const cards = result.toolResults.map(
-              ({ call, result: toolResult }, index) => ({
-                title: session.runtime.readToolNames.includes(call.name)
-                  ? "Authoritative information"
-                  : toolResult.engineResult !== undefined &&
-                      "events" in toolResult.engineResult
-                    ? "Resolved action"
-                    : "Action rejected",
-                text:
-                  call.name === "move" &&
-                  toolResult.engineResult !== undefined &&
-                  "events" in toolResult.engineResult
-                    ? [
-                        `Travelled to ${session.runtime.projectDmScene(toolResult.state).room.name}.`,
-                        session.runtime.renderResult({
-                          state: toolResult.state,
-                          events: toolResult.engineResult.events.filter(
-                            (event) =>
-                              event.type !== "clue" ||
-                              event.operation !== "move",
-                          ),
-                        }),
-                      ]
-                        .filter((text) => text.length > 0)
-                        .join("\n")
-                    : result.mechanics[index],
-              }),
+              ({ call, result: toolResult }, index) =>
+                resultCard(session, call, toolResult, result.mechanics[index]!),
             );
-            json(response, 200, {
-              view,
+            const notice = result.diagnostics.some(
+              ({ code }) => code === "model-failure",
+            )
+              ? `AI service failed. ${committed ? "Your action was saved; do not repeat it." : "No action was committed."}`
+              : committed
+                ? "Action saved."
+                : "No action was committed.";
+            const turn: BrowserTurn = {
+              sequence: session.progress.sequence,
+              message: playerInput,
               reply,
               ...(conversation === undefined
                 ? {}
                 : { speaker: conversation.speakerName }),
               cards,
               committed,
-              notice: result.diagnostics.some(
-                ({ code }) => code === "model-failure",
-              )
-                ? `AI service failed. ${committed ? "Your action was saved; do not repeat it." : "No action was committed."}`
-                : committed
-                  ? "Action saved."
-                  : "No action was committed.",
+              notice,
+            };
+            await session.saveBrowserHistory({
+              version: 1,
+              progress: session.progress,
+              turns: [...session.browserHistory!.turns, turn],
             });
+            json(response, 200, { view: await readSlot(), ...turn });
           } catch {
+            // Recover only while holding the turn lock. GET never writes the slot.
+            await SaveSession.load(options.savePath)
+              .then(recoverHistory)
+              .catch(() => undefined);
             json(response, 500, {
               error:
                 "Unable to complete the turn. Read current state to check saved progress before sending another action; this request will not be retried automatically.",

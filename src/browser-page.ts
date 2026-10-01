@@ -18,7 +18,7 @@ export const BROWSER_HTML = `<!doctype html>
 <p id="message-help">Enter to send · Shift+Enter for a new line</p>
 <button id="send" type="submit">Send message</button></form>
 <p id="feedback" role="status" aria-live="polite"></p>
-<p class="note">Progress saves automatically. Conversation history is not restored after reload in this opening.</p>
+<p class="note">Progress and conversation history restore after reload or restart.</p>
 </section>
 <aside id="information-navigation" aria-label="Interactions and player information">
 <div id="context" aria-label="Selected context" hidden><div class="context-heading"><h3 id="context-title" tabindex="-1"></h3><button id="close-context">Close options</button></div><div id="context-actions"></div></div>
@@ -166,6 +166,15 @@ function entry(label, value, className = "reply") {
   if (follow || className === "player") { conversation.scrollTop = conversation.scrollHeight; }
   return item;
 }
+function restoreHistory(view) {
+  element("conversation").replaceChildren();
+  (view.history || []).forEach((turn) => {
+    entry("You", turn.message, "player");
+    entry(turn.speaker ? "NPC dialogue · " + turn.speaker : "Dungeon Master", turn.reply, turn.speaker ? "dialogue" : "reply");
+    turn.cards.forEach((card) => { entry(card.title, card.text, "result"); });
+    entry("Save status", turn.notice, "notice");
+  });
+}
 function list(id, values) {
   element(id).replaceChildren(...values.map((value) => {
     const item = document.createElement("li"); item.textContent = value; return item;
@@ -178,7 +187,7 @@ function render(view) {
   Object.keys(panels).forEach((name) => { element("open-" + name).disabled = view.slot === "empty"; });
   if (view.slot === "empty") { closeInformation(); }
   renderInformation();
-  text("seed", "Seed " + view.seed + " · Single local save slot");
+  text("seed", view.title + " · Seed " + view.seed + " · Single local save slot");
   const empty = view.slot === "empty";
   element("start").hidden = !empty;
   element("details-title").hidden = empty;
@@ -214,7 +223,8 @@ async function read(start = false) {
     const view = await response.json();
     if (!response.ok) { throw new Error(view.error || "Unable to read the save slot."); }
     render(view);
-    text("feedback", view.slot === "empty" ? "Ready to start." : "Saved state loaded. Conversation history is not restored in this opening.");
+    restoreHistory(view);
+    text("feedback", view.slot === "empty" ? "Ready to start." : "Saved progress and conversation loaded.");
     if (start) { element("scene").focus(); }
   } catch (error) {
     text("feedback", error instanceof Error ? error.message : "Unable to reach the local service. Restart the launcher and open its new URL.");
@@ -227,7 +237,7 @@ element("message").addEventListener("keydown", (event) => {
 });
 async function submitTurn(message, body = { message }) {
   if (pending) { return; }
-  if (!message) { return; }
+  if (!message.trim()) { return; }
   busy(true);
   entry("You", message, "player");
   if (!("optionId" in body)) { element("message").value = ""; }
@@ -239,9 +249,7 @@ async function submitTurn(message, body = { message }) {
     if (result.view) { render(result.view); }
     if (!response.ok) { throw new Error(result.error || "Unable to complete the turn."); }
     waiting.remove();
-    entry(result.speaker ? "NPC dialogue · " + result.speaker : "Dungeon Master", result.reply, result.speaker ? "dialogue" : "reply");
-    result.cards.forEach((card) => { entry(card.title, card.text, "result"); });
-    entry("Save status", result.notice, "notice");
+    restoreHistory(result.view);
     render(result.view);
     text("feedback", result.notice);
   } catch (error) {
@@ -256,7 +264,7 @@ async function submitTurn(message, body = { message }) {
 }
 element("turn").addEventListener("submit", (event) => {
   event.preventDefault();
-  return submitTurn(element("message").value.trim());
+  return submitTurn(element("message").value);
 });
 element("start").addEventListener("click", () => { void read(true); });
 element("refresh").addEventListener("click", () => { void read(); });
