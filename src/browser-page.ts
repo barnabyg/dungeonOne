@@ -13,7 +13,11 @@ export const BROWSER_HTML = `<!doctype html>
 <p id="objective"></p><h3 id="details-title" hidden>In view</h3><ul id="details"></ul>
 <div class="controls"><button id="start" hidden>Start adventure</button><button id="refresh">Read current state</button></div>
 <p id="feedback" role="status" aria-live="polite"></p>
-<p class="note">This opening lets you start and read one save slot. Player messages and restored conversation history arrive in a later update.</p>
+<h3>Conversation</h3><div id="conversation" role="log" aria-live="polite" aria-label="Adventure conversation"></div>
+<form id="turn" hidden><label for="message">What do you do or ask?</label>
+<textarea id="message" maxlength="1000" rows="3" required placeholder="Describe one action, or ask a question."></textarea>
+<button id="send" type="submit">Send message</button></form>
+<p class="note">Progress saves automatically. Conversation history is not restored after reload in this opening.</p>
 </section></main></body></html>`;
 
 export const BROWSER_CSS = `:root{color-scheme:light;font-family:Georgia,serif;color:#25352f;background:#f3f1eb;font-size:18px;line-height:1.65}
@@ -23,11 +27,26 @@ main{max-width:1180px;margin:32px auto;display:grid;grid-template-columns:280px 
 aside{position:sticky;top:24px;padding:24px;background:#e6eae0;border:1px solid #cbd2c3;border-radius:6px;max-height:calc(100vh - 48px);overflow:auto}aside h2{font-size:1.05rem}dl{margin:0 0 24px}dt{font-size:.75rem;color:#526154;margin-top:16px}dd{margin:0;line-height:1.4}ul{padding-left:22px}li{margin-bottom:8px}aside ul{font-size:.9rem;margin-bottom:0}
 section{min-width:0;background:#fffdf8;padding:32px;border:1px solid #d7dbd0;border-radius:6px}#description{white-space:pre-wrap}#objective{color:#526154}.controls{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}button{cursor:pointer;font-size:.85rem;padding:12px 18px;border-radius:4px;border:1px solid #345645;background:#345645;color:#fff}button:disabled{opacity:.65;cursor:wait}button:hover{background:#234535}#refresh{background:transparent;color:#25352f}
 :focus-visible{outline:3px solid #a75b20;outline-offset:4px}#feedback{font-family:system-ui,sans-serif;font-size:.85rem;margin-top:18px;min-height:1.6em}.note{font-size:.75rem;color:#59665d;border-top:1px solid #d7dbd0;padding-top:18px}.skip{position:absolute;left:12px;top:-100px;background:#fff;padding:8px}.skip:focus{top:12px}[hidden]{display:none!important}
+form{margin:24px 0}label{display:block;font-family:system-ui,sans-serif;font-size:.85rem}textarea{display:block;width:100%;margin:8px 0 12px;padding:12px;font:inherit;border:1px solid #83917f;border-radius:4px}article{margin:18px 0;padding:16px;border-left:3px solid #cbd2c3;background:#f3f1eb}article h4{font:600 .8rem system-ui,sans-serif;margin:0 0 8px}article p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.player{border-color:#345645}.result{background:#e6eae0}.notice,.waiting{font-size:.85rem}#conversation:empty{display:none}
 @media(max-width:760px){header{padding:24px}main{grid-template-columns:1fr;padding:0 24px;gap:24px;margin-top:24px}aside{position:static;max-height:none}section{padding:24px}}`;
 
 export const BROWSER_SCRIPT = `"use strict";
 const element = (id) => document.getElementById(id);
 const text = (id, value) => { element(id).textContent = value; };
+let pending = false;
+function busy(value) {
+  pending = value;
+  ["start", "refresh", "send", "message"].forEach((id) => { element(id).disabled = value; });
+  element("conversation").setAttribute("aria-busy", String(value));
+}
+function entry(label, value, className = "reply") {
+  const item = document.createElement("article");
+  item.className = className;
+  const heading = document.createElement("h4"); heading.textContent = label;
+  const body = document.createElement("p"); body.textContent = value;
+  item.append(heading, body); element("conversation").append(item);
+  return item;
+}
 function list(id, values) {
   element(id).replaceChildren(...values.map((value) => {
     const item = document.createElement("li"); item.textContent = value; return item;
@@ -38,6 +57,7 @@ function render(view) {
   const empty = view.slot === "empty";
   element("start").hidden = !empty;
   element("details-title").hidden = empty;
+  element("turn").hidden = empty;
   if (empty) {
     text("scene-title", view.title);
     text("description", "The save slot is empty. Start the adventure to save its opening state.");
@@ -60,8 +80,8 @@ function render(view) {
   ]);
 }
 async function read(start = false) {
-  const buttons = [element("start"), element("refresh")];
-  buttons.forEach((button) => { button.disabled = true; });
+  if (pending) { return; }
+  busy(true);
   text("feedback", start ? "Saving the opening…" : "Reading current state…");
   try {
     const response = await fetch(start ? "/api/start" : "/api/state", { method: start ? "POST" : "GET" });
@@ -72,8 +92,38 @@ async function read(start = false) {
     if (start) { element("scene").focus(); }
   } catch (error) {
     text("feedback", error instanceof Error ? error.message : "Unable to reach the local service. Restart the launcher and open its new URL.");
-  } finally { buttons.forEach((button) => { button.disabled = false; }); }
+  } finally { busy(false); }
 }
+element("turn").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (pending) { return; }
+  const message = element("message").value.trim();
+  if (!message) { return; }
+  busy(true);
+  entry("You", message, "player");
+  element("message").value = "";
+  const waiting = entry("Dungeon Master", "Waiting for a complete reply…", "waiting");
+  text("feedback", "Your message is pending…");
+  try {
+    const response = await fetch("/api/turn", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message }) });
+    const result = await response.json();
+    if (!response.ok) { throw new Error(result.error || "Unable to complete the turn."); }
+    waiting.remove();
+    entry("Dungeon Master", result.reply);
+    result.cards.forEach((card) => { entry(card.title, card.text, "result"); });
+    entry("Save status", result.notice, "notice");
+    render(result.view);
+    text("feedback", result.notice);
+  } catch (error) {
+    waiting.remove();
+    const message = error instanceof Error ? error.message : "Connection lost. Read current state before sending another action.";
+    entry("Turn unavailable", message, "notice");
+    text("feedback", message);
+  } finally {
+    busy(false);
+    element("message").focus();
+  }
+});
 element("start").addEventListener("click", () => { void read(true); });
 element("refresh").addEventListener("click", () => { void read(); });
 void read();`;

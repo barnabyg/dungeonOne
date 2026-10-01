@@ -42,12 +42,20 @@ replacement; corrupt, closed (`quit`), other-adventure, or older-content slots
 produce an error and remain unchanged. For a fresh run choose a new save path
 whose parent directory already exists.
 
-This first browser slice starts and reads current state. Sending player
-messages, restoring conversation history, and live AI requests are subsequent
-tickets. No AI call is made by start/read, and the supplied key is checked for
-presence only. Command gameplay, CLI resume, existing save formats, and replay
-remain available. See [issue 96 acceptance](docs/acceptance/issue-96.md) for
-player checks and verification evidence.
+Type one ordinary-language action or question and select **Send message**.
+The browser uses the same bounded AI tools as the CLI and its default model
+(`gpt-5.6-luna`). Your request appears immediately with a waiting indicator;
+input stays disabled until the complete reply arrives. Replies retain NPC
+attribution, authoritative result cards explain resolved actions, and the
+location, exits, HP, and time refresh from verified saved state. Consequential
+results save before display. Provider failures report whether an action was
+saved; do not repeat an action marked saved.
+
+Start/read makes no AI call. Gameplay requires a valid key and network access.
+Conversation history is not restored after reload or restart yet; progress is.
+Command gameplay, CLI resume, existing save formats, and replay remain available.
+See [issue 97 player checks](docs/acceptance/issue-97.md) for the seeded journey
+and [issue 96 acceptance](docs/acceptance/issue-96.md) for startup checks.
 
 ### Generate a tiny adventure
 

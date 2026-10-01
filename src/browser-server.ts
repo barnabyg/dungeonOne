@@ -1,5 +1,20 @@
-import { createServer, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
+import {
+  DM_TURN_LIMITS,
+  runDmTurn,
+  type DmModel,
+  type DmTranscriptEntry,
+} from "./dm-turn.js";
+import {
+  createOpenAiDmModel,
+  OPENAI_DM_DEFAULT_MODEL,
+} from "./openai-dm-model.js";
 import { loadAdventureFile } from "./adventure-file.js";
 import { createDataRuntime } from "./data-runtime.js";
 import type { DmScene } from "./game-tools.js";
@@ -11,7 +26,35 @@ export type BrowserOptions = Readonly<{
   savePath: string;
   seed: number;
   apiKey: string;
+  dmModel?: DmModel;
 }>;
+
+async function readPlayerInput(request: IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of request) {
+    const bytes = Buffer.from(chunk as Uint8Array);
+    size += bytes.length;
+    if (size > 8192) {
+      throw new Error("Request too large.");
+    }
+    chunks.push(bytes);
+  }
+  const body: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  if (
+    body === null ||
+    typeof body !== "object" ||
+    Array.isArray(body) ||
+    Object.keys(body).length !== 1 ||
+    !("message" in body) ||
+    typeof body.message !== "string" ||
+    body.message.trim().length === 0 ||
+    body.message.length > DM_TURN_LIMITS.maxPlayerInputCharacters
+  ) {
+    throw new Error("Invalid player message.");
+  }
+  return body.message;
+}
 
 export type BrowserView = Readonly<
   | { slot: "empty"; title: string; seed: number }
@@ -93,6 +136,21 @@ export async function startBrowserServer(options: BrowserOptions) {
   };
   // Invalid, incompatible or closed occupied slots fail before listening.
   await readSlot();
+  const model =
+    options.dmModel ??
+    createOpenAiDmModel({
+      apiKey: options.apiKey,
+      model: OPENAI_DM_DEFAULT_MODEL,
+    });
+  let transcript: readonly DmTranscriptEntry[] = [];
+  let turning = false;
+  // Only the holder of the synchronous turn lock calls these after awaiting.
+  const rememberTurn = (entries: readonly DmTranscriptEntry[]) => {
+    transcript = entries;
+  };
+  const releaseTurn = () => {
+    turning = false;
+  };
 
   let url = "";
   const respond = (
@@ -134,8 +192,112 @@ export async function startBrowserServer(options: BrowserOptions) {
           json(response, 403, { error: "Unrelated origin rejected." });
           return;
         }
-        if (request.url !== "/api/start") {
+        if (request.url !== "/api/start" && request.url !== "/api/turn") {
           json(response, 404, { error: "Unknown endpoint." });
+          return;
+        }
+        if (turning) {
+          json(response, 409, {
+            error:
+              "A turn is already pending. Wait for its reply; this request was not applied.",
+          });
+          return;
+        }
+        if (request.url === "/api/turn") {
+          turning = true;
+          try {
+            let playerInput: string;
+            try {
+              playerInput = await readPlayerInput(request);
+            } catch {
+              json(response, 400, {
+                error:
+                  "Enter one message of 1–1000 characters. No action was committed.",
+              });
+              return;
+            }
+            const session = await SaveSession.load(options.savePath);
+            assertSupported(session);
+            let committed = false;
+            const result = await runDmTurn({
+              state: session.state,
+              playerInput,
+              transcript,
+              random: session.random,
+              model,
+              runtime: session.runtime,
+              history: (state, speakerId) =>
+                session.dmHistory(state, speakerId),
+              executeTool: async (state, call, input) => {
+                const executed = await session.executeTool(state, call, input);
+                committed ||=
+                  !isDeepStrictEqual(state, executed.result.state) ||
+                  executed.rolls.length > 0;
+                return executed;
+              },
+            });
+            const view = await readSlot();
+            const lastOutput = result.toolResults.at(-1)?.result.modelOutput;
+            const conversation = lastOutput?.ok
+              ? lastOutput.conversation
+              : undefined;
+            const reply =
+              conversation?.approvedFacts.length === 0
+                ? conversation.authoredReply
+                : result.narration;
+            rememberTurn([
+              ...result.transcript.slice(0, -1),
+              { role: "dungeon-master", text: reply },
+            ]);
+            const cards = result.toolResults.map(
+              ({ call, result: toolResult }, index) => ({
+                title: session.runtime.readToolNames.includes(call.name)
+                  ? "Authoritative information"
+                  : toolResult.engineResult !== undefined &&
+                      "events" in toolResult.engineResult
+                    ? "Resolved action"
+                    : "Action rejected",
+                text:
+                  call.name === "move" &&
+                  toolResult.engineResult !== undefined &&
+                  "events" in toolResult.engineResult
+                    ? [
+                        `Travelled to ${session.runtime.projectDmScene(toolResult.state).room.name}.`,
+                        session.runtime.renderResult({
+                          state: toolResult.state,
+                          events: toolResult.engineResult.events.filter(
+                            (event) =>
+                              event.type !== "clue" ||
+                              event.operation !== "move",
+                          ),
+                        }),
+                      ]
+                        .filter((text) => text.length > 0)
+                        .join("\n")
+                    : result.mechanics[index],
+              }),
+            );
+            json(response, 200, {
+              view,
+              reply,
+              cards,
+              committed,
+              notice: result.diagnostics.some(
+                ({ code }) => code === "model-failure",
+              )
+                ? `AI service failed. ${committed ? "Your action was saved; do not repeat it." : "No action was committed."}`
+                : committed
+                  ? "Action saved."
+                  : "No action was committed.",
+            });
+          } catch {
+            json(response, 500, {
+              error:
+                "Unable to complete the turn. Read current state to check saved progress before sending another action; this request will not be retried automatically.",
+            });
+          } finally {
+            releaseTurn();
+          }
           return;
         }
         try {
