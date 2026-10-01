@@ -142,7 +142,7 @@ function renderInformation() {
     const stronger = currentView.strongerHints;
     const requesting = strongerRequestRevision === hints.revision || (stronger && stronger.status === "preparing");
     element("request-stronger-hint").disabled = pending || hints.status !== "ready" || requesting || !!stronger;
-    text("stronger-hint-result", requesting ? "Preparing a stronger hint…" : stronger ? (stronger.status === "ready" ? stronger.entries.join(" ") : "Stronger hint unavailable for this position. You can keep playing using your journal and known leads.") : strongerError && strongerError.revision === hints.revision ? strongerError.message : "A stronger hint is optional. Request it when you want a concrete next step.");
+    text("stronger-hint-result", requesting ? "Preparing a stronger hint…" : stronger ? (stronger.status === "ready" ? stronger.entries.join(" ") : "Stronger hint unavailable for this position. You can keep playing using your journal and known leads.") : strongerError && strongerError.revision === hints.revision ? strongerError.message : "A stronger hint is optional. Request it when you want more focused guidance.");
   } else if (activePanel === "inventory") {
     inventoryBlock("Equipment", status.equipment, "No equipment.");
     inventoryBlock("Carried items", status.collectedItems, "No carried items.");

@@ -105,7 +105,8 @@ test("explicit page escalation preserves gameplay and conversation, is public, c
     },
     strongerHintPreparer: (candidates) => {
       calls++;
-      assert.ok(candidates[0].includes("Travel to Watch Loft"));
+      assert.ok(candidates[0].includes("Watch Loft"));
+      assert.ok(!candidates[0].includes("Travel to"));
       assert.ok(!candidates.join(" ").includes("Altered beacon setting"));
       return new Promise((resolve) => {
         release = () => resolve(candidates);
@@ -140,7 +141,7 @@ test("explicit page escalation preserves gameplay and conversation, is public, c
     assert.equal(after.strongerHints.status, "ready");
     assert.match(
       after.strongerHints.entries[0],
-      /Try this next: Travel to Watch Loft/,
+      /Your current lead (?:mentions|points toward) Watch Loft/,
     );
     assert.deepEqual(after.scene, before.scene);
     assert.deepEqual(after.history, before.history);
@@ -157,7 +158,7 @@ test("explicit page escalation preserves gameplay and conversation, is public, c
       restored.click("open-hints");
       assert.match(
         restored.nodes.get("stronger-hint-result").textContent,
-        /Try this next/,
+        /Your current lead/,
       );
       restored.click("close-information");
     }
@@ -243,7 +244,11 @@ test("stale, out-of-order, failed and fabricated guidance never attaches to a ne
     await post(server, "/api/hints/stronger", {
       revision: loft.hints.revision,
     });
-    assert.match(jobs[1].candidates[0], /Ask Pell/);
+    assert.match(jobs[1].candidates[0], /Pell alongside Signal Records Room/);
+    assert.doesNotMatch(
+      jobs[1].candidates[0],
+      /Ask Pell|last signal shift|Try this next|Travel to/,
+    );
     jobs[1].resolve(jobs[1].candidates);
     const ready = await settled(server);
     jobs[0].resolve(jobs[0].candidates);

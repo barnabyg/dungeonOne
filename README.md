@@ -24,7 +24,8 @@ current legal actions. It stays collapsed until opened, refreshes as game progre
 changes, and restores its cached content with the save slot. Opening/reopening
 uses no AI calls, actions, time or dice. Reload starts with Hints collapsed.
 After reading baseline guidance, select **Request a stronger hint** for a
-concrete next step drawn from current journal leads and permitted actions.
+more focused reflection on subjects already named in current journal leads.
+It highlights possible connections without naming an exact action or solution.
 Escalation is explicit and cached for that game position; it never creates a
 conversation turn or changes the adventure. Waiting and unavailable results
 appear within Hints. See [issue 103 player checks](docs/acceptance/issue-103.md).

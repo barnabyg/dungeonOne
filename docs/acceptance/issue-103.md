@@ -14,7 +14,8 @@ Open the printed URL, **Start adventure**, then open **Hints**. Expect the
 baseline objective, leads and legal options; no stronger nudge appears until
 you select **Request a stronger hint**. Use Tab to reach the button and
 Enter/Space to activate it. Its result is a polite, atomic live status.
-The opening nudge suggests travelling to Watch Loft along a known journal lead.
+The opening nudge points toward Watch Loft and asks what information is missing.
+It does not name a travel command or prescribe an exact next action.
 It cannot identify an undiscovered culprit, claim the setting has been altered,
 or establish the missing keeper's fate. The guidance is a suggestion, not a
 guaranteed result. Location, Day 0, HP 20/20, inventory and conversation remain
@@ -24,9 +25,11 @@ button is disabled because this position already has a result.
 Type these separately, waiting for each complete reply:
 
 1. `Go to Watch Loft` — saved travel. The old stronger guidance disappears;
-   request a new nudge to see a concrete suggestion to ask Pell about the shift.
+   request a new nudge highlighting Pell alongside the Signal Records Room,
+   asking how those sources might fit together. It does not select a topic.
 2. `Enter the Signal Records Room` — saved travel. Request a stronger hint;
-   it suggests searching the known setting plate without supplying its result.
+   it points out subjects in a current lead without instructing you to search
+   the setting plate or supplying its result.
 3. `Compare the setting plate` — the journal records discovered evidence.
    Guidance may refer to current public leads, without inventing a culprit.
 4. `Return to Watch Loft` — guidance uses this position's current facts.
@@ -87,4 +90,7 @@ exact preservation of the save outside the optional hint cache, invalid content
 rejection, and the no-justified-action explanation. Live AI wording and audible
 screen-reader output were not tested; the native button and live-region semantics
 were checked in the browser. Guidance follows public lead names heuristically;
-it does not solve or rank hidden adventure outcomes.
+it does not solve or rank hidden adventure outcomes, select a dialogue topic,
+or prescribe a sequence of actions. Older optional stronger-hint wording is
+discarded without changing or rejecting the saved adventure; request the softer
+nudge explicitly after updating.

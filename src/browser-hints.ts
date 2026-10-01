@@ -79,40 +79,40 @@ export function strongerHintCandidates(
       name: target.name,
     })),
   ];
-  // Choose a concrete information-gathering step, without claiming a hidden
-  // result or interpreting authored adventure internals.
-  const informationActions = ["talk", "search", "move", "inspect"].flatMap(
-    (name) =>
-      actions.filter(
-        (option) =>
-          option.call.name === name &&
-          (name !== "talk" ||
-            JSON.parse(option.call.argumentsJson).approach === "ask"),
-      ),
+  // Narrow attention to subjects already named together in a public lead.
+  // Availability is a grounding check, not an instruction to execute a tool.
+  const available = targets.filter((target) =>
+    actions.some(
+      (action) =>
+        action.contextId === target.contextId &&
+        ["talk", "search", "move", "inspect"].includes(action.call.name),
+    ),
   );
-  const linked = leads.flatMap((lead) =>
-    targets
-      .map((target) => ({
-        target,
-        mention: lead.toLowerCase().indexOf(target.name.toLowerCase()),
-      }))
-      .filter(({ mention }) => mention >= 0)
-      .sort((left, right) => left.mention - right.mention)
-      .flatMap(({ target }) =>
-        informationActions.filter(
-          (option) => option.contextId === target.contextId,
-        ),
-      ),
-  )[0];
-  const action = linked ?? informationActions[0];
-  if (scene.outcome !== "playing" || action === undefined) {
+  const linked = leads
+    .map((lead) =>
+      available
+        .map((target) => ({
+          target,
+          mention: lead.toLowerCase().indexOf(target.name.toLowerCase()),
+        }))
+        .filter(({ mention }) => mention >= 0)
+        .sort((left, right) => left.mention - right.mention)
+        .map(({ target }) => target.name),
+    )
+    .find((names) => names.length > 0);
+  if (scene.outcome !== "playing" || available.length === 0) {
     return [
       "No stronger next step is justified by your current knowledge and available actions. Revisit your journal and known leads; this hint cannot reveal an undiscovered solution.",
     ];
   }
-  return [
-    `Try this next: ${action.message}${action.message.endsWith(".") ? "" : "."} ${linked === undefined ? "This is an available" : "Following a lead already in your journal, this is an available"} ${action.call.name === "move" ? "route to a visible location" : "way to gather information about a known subject"}. Read the result, then compare it with your journal and current objective: ${scene.objective} No particular discovery or success is guaranteed.`,
-  ];
+  const names = [...new Set(linked ?? [available[0]!.name])].slice(0, 2);
+  return names.length === 2
+    ? [
+        `Your current lead mentions ${names[0]} alongside ${names[1]}. Consider how information from those sources might fit together. What would help you make sense of what you already know?`,
+      ]
+    : [
+        `${linked === undefined ? "One subject still in view is" : "Your current lead points toward"} ${names[0]}. What information is still missing from that part of the story? Consider it alongside what your journal already records.`,
+      ];
 }
 
 export function cachedStrongerHints(
