@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { open, readFile, rename, stat, unlink } from "node:fs/promises";
+import { link, open, readFile, rename, stat, unlink } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { loadAdventure, type AdventureDefinition } from "./adventure-loader.js";
@@ -502,6 +502,7 @@ export class SaveSession {
     path: string,
     runtime: AdventureRuntime,
     seed: number,
+    options: Readonly<{ exclusive?: boolean }> = {},
   ): Promise<SaveSession> {
     const session = new SaveSession(
       path,
@@ -510,7 +511,7 @@ export class SaveSession {
       [],
       runtime.createSession(),
     );
-    await session.persist();
+    await session.persist(options.exclusive ?? false);
     return session;
   }
 
@@ -785,7 +786,7 @@ export class SaveSession {
     }
   }
 
-  private async persist(): Promise<void> {
+  private async persist(exclusive = false): Promise<void> {
     const content = this.runtime.content!;
     const save: SaveEnvelope = {
       kind: "dungeon-one-save",
@@ -821,7 +822,14 @@ export class SaveSession {
       await file.writeFile(bytes);
       await file.sync();
       await file.close();
-      await rename(temporary, this.path);
+      if (exclusive) {
+        // Publish the complete, synced save only if the slot is still empty.
+        // A hard link is atomic and never replaces an occupied destination.
+        await link(temporary, this.path);
+        await unlink(temporary);
+      } else {
+        await rename(temporary, this.path);
+      }
     } catch (error) {
       await file.close().catch(() => undefined);
       await unlink(temporary).catch(() => undefined);

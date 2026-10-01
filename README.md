@@ -17,6 +17,38 @@ authored adventure with two leads and a persistent watch response; see its
 
 All development tools and the official OpenAI SDK are exact-version dependencies in `package.json` and `package-lock.json`. Installation and dependency auditing require registry access. Command play, help, invalid-argument handling, and trace replay do not require a network connection, AI credentials, or any external service. Live AI play and adventure generation require network access and an OpenAI API key.
 
+### Hollow Beacon in a desktop browser
+
+After `npm.cmd ci` and `npm.cmd run build`, supply `OPENAI_API_KEY` in the
+launch environment, then run this copyable PowerShell command:
+
+```powershell
+npm.cmd run browser -- --seed 0 --save .\hollow-beacon-browser-save.json
+```
+
+The launcher serves **Hollow Beacon: Watch Route** (issue #84, content version 4) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
+your desktop browser. If opening fails, use the printed URL. Keep the
+launcher running; Ctrl+C stops the service without closing the saved session.
+Rerun the same command to read the same slot at its saved seed, even if the
+new command requests a different seed. Missing AI configuration fails before
+serving the page or writing a save. Credentials stay in the launch environment.
+
+Click **Start adventure** for an empty slot. The complete opening is saved
+through the verified save authority without replacing an occupied file,
+including when two starts race. The page displays the authoritative scene,
+location, visible exits, Day 0, Day 3 caravan deadline, 20/20 HP, and seed 0.
+**Read current state** rereads the verified slot. Existing slots load without
+replacement; corrupt, closed (`quit`), other-adventure, or older-content slots
+produce an error and remain unchanged. For a fresh run choose a new save path
+whose parent directory already exists.
+
+This first browser slice starts and reads current state. Sending player
+messages, restoring conversation history, and live AI requests are subsequent
+tickets. No AI call is made by start/read, and the supplied key is checked for
+presence only. Command gameplay, CLI resume, existing save formats, and replay
+remain available. See [issue 96 acceptance](docs/acceptance/issue-96.md) for
+player checks and verification evidence.
+
 ### Generate a tiny adventure
 
 Generation is opt-in and requires an explicit model, a printable premise of at

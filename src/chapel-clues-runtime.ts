@@ -3376,6 +3376,13 @@ export function createChapelCluesRuntime(
         : rendered;
     },
     projectDmScene: (input) => scene(stateOf(input)),
+    projectPlayerClocks: (input) =>
+      (definition.clocks ?? []).map((clock) => ({
+        id: clock.id,
+        name: clock.name,
+        unit: clock.unit ?? "tick",
+        value: stateOf(input).clocks?.[clock.id] ?? clock.initial,
+      })),
     projectCharacterStatus: (input) => status(stateOf(input)),
     getGameToolDefinitions: (input) => tools(stateOf(input)),
     dispatchGameTool(input, call, random, playerInput): RuntimeToolResult {

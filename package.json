@@ -9,6 +9,7 @@
   "packageManager": "npm@11.6.4",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "browser": "node dist/browser-cli.js",
     "check:package": "node scripts/package-checks.mjs",
     "check:security": "node scripts/security-checks.mjs",
     "eval:dm": "npm run build && node scripts/eval-dm.mjs",

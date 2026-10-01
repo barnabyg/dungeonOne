@@ -132,4 +132,10 @@ export type AdventureRuntime = Readonly<{
   getGameToolDefinitions(state: RuntimeState): readonly GameToolDefinition[];
   projectCharacterStatus(state: RuntimeState): CharacterStatus;
   projectDmScene(state: RuntimeState): DmScene;
+  projectPlayerClocks?(state: RuntimeState): readonly Readonly<{
+    id: string;
+    name: string;
+    unit: "day" | "tick";
+    value: number;
+  }>[];
 }>;

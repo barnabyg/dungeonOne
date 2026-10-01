@@ -1,0 +1,212 @@
+import { createServer, type ServerResponse } from "node:http";
+import { fileURLToPath } from "node:url";
+import { loadAdventureFile } from "./adventure-file.js";
+import { createDataRuntime } from "./data-runtime.js";
+import type { DmScene } from "./game-tools.js";
+import type { AdventureRuntime } from "./runtime-contract.js";
+import { SaveSession } from "./save.js";
+import { BROWSER_HTML, BROWSER_CSS, BROWSER_SCRIPT } from "./browser-page.js";
+
+export type BrowserOptions = Readonly<{
+  savePath: string;
+  seed: number;
+  apiKey: string;
+}>;
+
+export type BrowserView = Readonly<
+  | { slot: "empty"; title: string; seed: number }
+  | {
+      slot: "occupied";
+      seed: number;
+      scene: DmScene;
+      clocks: ReturnType<NonNullable<AdventureRuntime["projectPlayerClocks"]>>;
+      hp: Readonly<{ current: number; maximum: number }>;
+      deadline: Readonly<{ name: string; day: number }>;
+    }
+>;
+
+function hasCode(error: unknown, code: string): boolean {
+  return error instanceof Error && "code" in error && error.code === code;
+}
+
+function assertSupported(session: SaveSession): void {
+  if (
+    session.runtime.id !== "hollow-beacon" ||
+    session.runtime.version !== "4"
+  ) {
+    throw new Error(
+      "This browser supports Hollow Beacon: Watch Route (content version 4). The occupied slot was left unchanged; select another save path.",
+    );
+  }
+}
+
+function playerView(session: SaveSession): BrowserView {
+  assertSupported(session);
+  const status = session.runtime.projectCharacterStatus(session.state);
+  return {
+    slot: "occupied",
+    seed: session.seed,
+    scene: session.runtime.projectDmScene(session.state),
+    clocks: session.runtime.projectPlayerClocks?.(session.state) ?? [],
+    hp: { current: status.hp, maximum: status.maxHp },
+    // Public premise of the supported authored Watch Route, not a hidden
+    // clock threshold/effect projection or a parse of terminal narration.
+    deadline: { name: "Caravan at the ridge fork", day: 3 },
+  };
+}
+
+export async function startBrowserServer(options: BrowserOptions) {
+  if (options.apiKey.trim().length === 0) {
+    throw new Error(
+      "OPENAI_API_KEY is required for browser mode. Set it in the launch environment before starting.",
+    );
+  }
+  if (
+    !Number.isInteger(options.seed) ||
+    options.seed < 0 ||
+    options.seed > 0xffffffff
+  ) {
+    throw new Error("Seed must be an integer from 0 to 4294967295.");
+  }
+  const loaded = await loadAdventureFile(
+    fileURLToPath(
+      new URL("../adventures/hollow-beacon-watch.json", import.meta.url),
+    ),
+  );
+  if (!loaded.ok) {
+    throw new Error("The bundled Hollow Beacon adventure is invalid.");
+  }
+  const runtime = createDataRuntime(loaded.adventure);
+  const readSlot = async (): Promise<BrowserView> => {
+    try {
+      return playerView(await SaveSession.load(options.savePath));
+    } catch (error) {
+      if (!hasCode(error, "ENOENT")) {
+        throw error;
+      }
+      return {
+        slot: "empty",
+        title: loaded.adventure.snapshot.title,
+        seed: options.seed,
+      };
+    }
+  };
+  // Invalid, incompatible or closed occupied slots fail before listening.
+  await readSlot();
+
+  let url = "";
+  const respond = (
+    response: ServerResponse,
+    status: number,
+    type: string,
+    body: string,
+  ) => {
+    response.writeHead(status, {
+      "Content-Type": type,
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy":
+        "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+      "Referrer-Policy": "no-referrer",
+    });
+    response.end(body);
+  };
+  const json = (response: ServerResponse, status: number, value: unknown) =>
+    respond(
+      response,
+      status,
+      "application/json; charset=utf-8",
+      JSON.stringify(value),
+    );
+  const server = createServer((request, response) => {
+    void (async () => {
+      // Exact Host plus Origin checks also prevent DNS rebinding and cross-site starts.
+      if (request.headers.host !== new URL(url).host) {
+        json(response, 403, { error: "Unrelated host rejected." });
+        return;
+      }
+      if (request.method === "POST") {
+        if (
+          request.headers.origin !== url ||
+          (request.headers["sec-fetch-site"] !== undefined &&
+            request.headers["sec-fetch-site"] !== "same-origin")
+        ) {
+          json(response, 403, { error: "Unrelated origin rejected." });
+          return;
+        }
+        if (request.url !== "/api/start") {
+          json(response, 404, { error: "Unknown endpoint." });
+          return;
+        }
+        try {
+          await SaveSession.start(options.savePath, runtime, options.seed, {
+            exclusive: true,
+          });
+        } catch (error) {
+          if (!hasCode(error, "EEXIST")) {
+            throw error;
+          }
+        }
+        json(response, 200, await readSlot());
+        return;
+      }
+      if (request.method !== "GET") {
+        json(response, 405, { error: "Method not allowed." });
+        return;
+      }
+      switch (request.url) {
+        case "/":
+          respond(response, 200, "text/html; charset=utf-8", BROWSER_HTML);
+          break;
+        case "/app.css":
+          respond(response, 200, "text/css; charset=utf-8", BROWSER_CSS);
+          break;
+        case "/app.js":
+          respond(
+            response,
+            200,
+            "text/javascript; charset=utf-8",
+            BROWSER_SCRIPT,
+          );
+          break;
+        case "/api/state":
+          json(response, 200, await readSlot());
+          break;
+        default:
+          json(response, 404, { error: "Unknown endpoint." });
+      }
+    })().catch(() => {
+      // Filesystem errors and validation details can contain paths or internal
+      // content. Keep the browser error public and leave the slot unchanged.
+      json(response, 500, {
+        error:
+          "Unable to read or start the save slot. Check the local save file and restart; it has not been replaced.",
+      });
+    });
+  });
+  server.requestTimeout = 5000;
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      server.off("error", reject);
+      resolve();
+    });
+  });
+  const address = server.address();
+  if (address === null || typeof address === "string") {
+    throw new Error("Unable to determine the local browser port.");
+  }
+  url = `http://127.0.0.1:${address.port}`;
+  return {
+    url,
+    async close(): Promise<void> {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+        server.closeIdleConnections();
+        // Browsers may hold speculative sockets without sending a request;
+        // they must not keep Ctrl+C or restart waiting indefinitely.
+        server.closeAllConnections();
+      });
+    },
+  };
+}

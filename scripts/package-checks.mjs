@@ -77,6 +77,7 @@ const authoredAssets = [
   "adventures/bribed-crossroads.json",
   "adventures/hollow-beacon.json",
   "adventures/hollow-beacon-journey.json",
+  "adventures/hollow-beacon-watch.json",
   "schema/adventure-v1.schema.json",
   "schema/adventure-v2.schema.json",
   "schema/adventure-v3.schema.json",
@@ -107,6 +108,10 @@ for (const schema of authoredAssets.filter((asset) =>
 
 for (const required of [
   "dist/cli.js",
+  "dist/browser-cli.js",
+  "dist/browser-server.js",
+  "dist/browser-page.js",
+  "dist/browser-launch.js",
   "dist/openai-dm-model.js",
   "dist/session.js",
   "dist/signet-runtime.js",
