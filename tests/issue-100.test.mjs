@@ -308,6 +308,29 @@ test("invalid or mismatched browser records fail without replacing the valid slo
         save.browserHistory.turns[0].sequence++;
       },
       (save) => {
+        save.browserHistory.turns[0].sequence = 0;
+      },
+      (save) => {
+        save.browserHistory.turns[0].cards = [];
+      },
+      (save) => {
+        save.browserHistory.turns = [];
+        save.browserHistory.pending = {
+          sequence: 0,
+          message: "Move to the Watch Loft",
+          cards: [],
+        };
+      },
+      (save) => {
+        save.browserHistory.pending = {
+          sequence: 1,
+          message: "Question",
+          cards: [
+            { title: "Resolved action", text: "Impossible unsaved result" },
+          ],
+        };
+      },
+      (save) => {
         save.browserHistory.turns[0].providerPayload = "private";
       },
     ]) {

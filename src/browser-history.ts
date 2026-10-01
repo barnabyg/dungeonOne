@@ -44,7 +44,7 @@ function text(value: unknown): value is string {
     !/[\ud800-\udfff]/u.test(value)
   );
 }
-function cards(value: unknown): boolean {
+function cards(value: unknown): value is readonly ResultCard[] {
   return (
     Array.isArray(value) &&
     value.length <= 16 &&
@@ -103,6 +103,9 @@ export function validateBrowserHistory(
       (turn.speaker !== undefined && !text(turn.speaker)) ||
       !cards(turn.cards) ||
       typeof turn.committed !== "boolean" ||
+      (turn.committed &&
+        (turn.sequence <= sequence ||
+          !turn.cards.some((card) => card.title === "Resolved action"))) ||
       !text(turn.notice)
     ) {
       return fail();
@@ -122,6 +125,15 @@ export function validateBrowserHistory(
       !text(pending.message) ||
       pending.message.length > 1000 ||
       !cards(pending.cards)
+    ) {
+      return fail();
+    }
+    const committed = pending.sequence < progress.sequence;
+    if (
+      committed
+        ? pending.cards.length !== 1 ||
+          pending.cards[0]?.title !== "Resolved action"
+        : pending.cards.length !== 0
     ) {
       return fail();
     }
