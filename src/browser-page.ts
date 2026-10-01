@@ -28,6 +28,7 @@ export const BROWSER_HTML = `<!doctype html>
 <button id="open-character" aria-controls="information" aria-expanded="false" disabled>Character</button>
 <button id="open-journal" aria-controls="information" aria-expanded="false" disabled>Journal</button>
 <button id="open-leads" aria-controls="information" aria-expanded="false" disabled>Known leads</button>
+<button id="open-hints" aria-controls="information" aria-expanded="false" disabled>Hints</button>
 </nav><section id="information" aria-labelledby="information-title" hidden>
 <button id="close-information">Close information</button>
 <h2 id="information-title" tabindex="-1"></h2><div id="information-body"></div>
@@ -56,6 +57,27 @@ let currentView;
 let activePanel;
 let contextButtons = [];
 let sceneButtons = [];
+let hintPollRevision;
+function pollHints(view) {
+  if (view.slot === "empty" || !view.hints || view.hints.status !== "preparing" || typeof setTimeout !== "function") { return; }
+  const revision = view.hints.revision;
+  if (hintPollRevision === revision) { return; }
+  hintPollRevision = revision;
+  async function poll() {
+    if (!currentView || !currentView.hints || currentView.hints.revision !== revision) { return; }
+    try {
+      const response = await fetch("/api/hints");
+      const hints = await response.json();
+      if (response.ok && hints && hints.revision === revision && currentView.hints.revision === revision) {
+        currentView = { ...currentView, hints };
+        if (activePanel === "hints") { renderInformation(); }
+        if (hints.status !== "preparing") { return; }
+      }
+    } catch { /* Reading current information remains available. */ }
+    if (currentView.hints.revision === revision) { setTimeout(poll, 250); }
+  }
+  setTimeout(poll, 250);
+}
 function closeContext() {
   element("context").hidden = true;
   contextButtons = [];
@@ -92,7 +114,7 @@ function contextList(id, targets) {
 }
 element("close-context").addEventListener("click", () => { closeContext(); element("scene").focus(); });
 element("context").addEventListener("keydown", (event) => { if (event.key === "Escape") { closeContext(); element("scene").focus(); } });
-const panels = { inventory: "Inventory", character: "Character", journal: "Journal", leads: "Known leads" };
+const panels = { inventory: "Inventory", character: "Character", journal: "Journal", leads: "Known leads", hints: "Hints" };
 function informationBlock(heading, values) {
   const title = document.createElement("h3"); title.textContent = heading;
   const items = document.createElement("ul");
@@ -108,7 +130,10 @@ function renderInformation() {
   const journal = currentView.scene.journal;
   element("information-body").replaceChildren();
   text("information-title", panels[activePanel]);
-  if (activePanel === "inventory") {
+  if (activePanel === "hints") {
+    const hints = currentView.hints;
+    informationBlock("Optional guidance", hints && hints.status === "ready" ? hints.entries : [hints && hints.status === "unavailable" ? "Hints unavailable for this position. Your progress is saved; you can keep playing and read current information." : "Preparing hints for this position…"]);
+  } else if (activePanel === "inventory") {
     inventoryBlock("Equipment", status.equipment, "No equipment.");
     inventoryBlock("Carried items", status.collectedItems, "No carried items.");
   } else if (activePanel === "character") {
@@ -194,6 +219,7 @@ function render(view) {
   closeContext();
   sceneButtons = [];
   currentView = view;
+  pollHints(view);
   Object.keys(panels).forEach((name) => { element("open-" + name).disabled = view.slot === "empty"; });
   if (view.slot === "empty") { closeInformation(); }
   renderInformation();

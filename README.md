@@ -19,6 +19,13 @@ All development tools and the official OpenAI SDK are exact-version dependencies
 
 ### Hollow Beacon in a desktop browser
 
+**Hints** prepares optional guidance from public objectives, known leads and
+current legal actions. It stays collapsed until opened, refreshes as game progress
+changes, and restores its cached content with the save slot. Opening/reopening
+uses no AI calls, actions, time or dice. Reload starts with Hints collapsed.
+See [issue 102 player checks](docs/acceptance/issue-102.md) for the seeded journey
+and an offline real-browser delay/failure fixture.
+
 After `npm.cmd ci` and `npm.cmd run build`, supply `OPENAI_API_KEY` in the
 launch environment, then run this copyable PowerShell command:
 

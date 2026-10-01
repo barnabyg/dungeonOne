@@ -52,6 +52,7 @@ type Transition = Readonly<{
 type SaveEnvelope = Readonly<{
   generation?: string;
   browserHistory?: BrowserHistory;
+  browserHints?: unknown;
   browserHistoryDigest?: string;
   kind: "dungeon-one-save";
   formatVersion: 1 | 2 | 3;
@@ -466,6 +467,13 @@ function eventsFor(
 export class SaveSession {
   generation = randomBytes(16).toString("hex");
   browserHistory: BrowserHistory | undefined;
+  // Optional derived browser guidance; older save envelopes remain readable.
+  browserHints: unknown;
+
+  async saveBrowserHints(hints: unknown): Promise<void> {
+    this.browserHints = hints;
+    await this.persist();
+  }
 
   get progress(): BrowserHistory["progress"] {
     return {
@@ -723,6 +731,7 @@ export class SaveSession {
         session.progress,
       );
     }
+    session.browserHints = save.browserHints;
     return session;
   }
 
@@ -856,6 +865,9 @@ export class SaveSession {
     const content = this.runtime.content!;
     const save: SaveEnvelope = {
       generation: this.generation,
+      ...(this.browserHints === undefined
+        ? {}
+        : { browserHints: this.browserHints }),
       ...(this.browserHistory === undefined
         ? {}
         : {

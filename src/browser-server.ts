@@ -31,12 +31,21 @@ import {
 } from "./browser-history.js";
 import { SaveSession } from "./save.js";
 import { BROWSER_HTML, BROWSER_CSS, BROWSER_SCRIPT } from "./browser-page.js";
+import {
+  cachedHints,
+  hintCandidates,
+  hintRevision,
+  prepareHints,
+  type BrowserHints,
+  type HintPreparer,
+} from "./browser-hints.js";
 
 export type BrowserOptions = Readonly<{
   savePath: string;
   seed: number;
   apiKey: string;
   dmModel?: DmModel;
+  hintPreparer?: HintPreparer;
 }>;
 
 async function readPlayerInput(
@@ -107,6 +116,13 @@ export type BrowserView = Readonly<
       actions: readonly BrowserAction[];
       title: string;
       history: readonly BrowserTurn[];
+      hints:
+        | BrowserHints
+        | Readonly<{
+            revision: string;
+            status: "preparing";
+            entries: readonly string[];
+          }>;
     }
 >;
 
@@ -179,6 +195,11 @@ function playerView(
             },
           ]),
     ],
+    hints: cachedHints(session) ?? {
+      revision: hintRevision(session),
+      status: "preparing",
+      entries: [],
+    },
   };
 }
 
@@ -274,6 +295,91 @@ export async function startBrowserServer(options: BrowserOptions) {
     retained = session;
   };
   let saveFailed = false;
+  let turning = false;
+  let closed = false;
+  let hintJob:
+    | { revision: string; result?: BrowserHints; persisted?: boolean }
+    | undefined;
+  let hintWrite: Promise<void> | undefined;
+  const flushHints = () => {
+    if (
+      closed ||
+      turning ||
+      retained !== undefined ||
+      hintJob?.result === undefined ||
+      hintJob.persisted
+    ) {
+      return;
+    }
+    const result = hintJob.result;
+    turning = true;
+    hintWrite = (async () => {
+      try {
+        const session = await SaveSession.load(options.savePath);
+        if (hintRevision(session) === result.revision) {
+          await session.saveBrowserHints(result);
+        }
+        if (hintJob?.revision === result.revision) {
+          hintJob.persisted = true;
+        }
+      } catch {
+        // Derived-cache failure never turns a committed action into a retry.
+        if (hintJob?.revision === result.revision) {
+          hintJob.result = { ...result, status: "unavailable", entries: [] };
+          hintJob.persisted = true;
+        }
+      } finally {
+        turning = false;
+      }
+    })();
+  };
+  const scheduleHints = (session: SaveSession) => {
+    if (cachedHints(session) !== undefined) {
+      return;
+    }
+    if (options.hintPreparer === undefined) {
+      session.browserHints = prepareHints(session);
+      return;
+    }
+    const revision = hintRevision(session);
+    if (hintJob?.revision === revision) {
+      return;
+    }
+    const job: NonNullable<typeof hintJob> = { revision };
+    hintJob = job;
+    const candidates = hintCandidates(session);
+    void Promise.resolve()
+      .then(() => options.hintPreparer!(candidates))
+      .then((entries) => {
+        if (
+          !Array.isArray(entries) ||
+          entries.length === 0 ||
+          entries.length > candidates.length ||
+          entries.some((entry) => !candidates.includes(entry))
+        ) {
+          throw new Error("Unapproved hint content.");
+        }
+        job.result = {
+          version: 1,
+          revision,
+          status: "ready",
+          entries: [...new Set(entries)],
+        };
+      })
+      .catch(() => {
+        job.result = {
+          version: 1,
+          revision,
+          status: "unavailable",
+          entries: [],
+        };
+      })
+      .finally(() => {
+        if (hintJob === job) {
+          flushHints();
+        }
+      });
+  };
   const readSlot = async (): Promise<BrowserView> => {
     try {
       const session = retained ?? (await SaveSession.load(options.savePath));
@@ -291,7 +397,15 @@ export async function startBrowserServer(options: BrowserOptions) {
           )
           .digest("hex"),
       );
-      return saveFailed ? { ...view, recovery: "unsaved" } : view;
+      const hints =
+        hintJob?.revision === hintRevision(session) && hintJob.persisted
+          ? hintJob.result
+          : undefined;
+      return {
+        ...view,
+        ...(hints === undefined ? {} : { hints }),
+        ...(saveFailed ? { recovery: "unsaved" as const } : {}),
+      };
     } catch (error) {
       if (!hasCode(error, "ENOENT")) {
         throw error;
@@ -303,11 +417,16 @@ export async function startBrowserServer(options: BrowserOptions) {
       };
     }
   };
-  let turning = false;
   // Invalid, incompatible or closed occupied slots fail before listening.
   await readSlot();
   try {
-    await recoverHistory(await SaveSession.load(options.savePath));
+    const session = await SaveSession.load(options.savePath);
+    await recoverHistory(session);
+    const missingHints = cachedHints(session) === undefined;
+    scheduleHints(session);
+    if (options.hintPreparer === undefined && missingHints) {
+      await session.saveBrowserHints(session.browserHints);
+    }
   } catch (error) {
     if (!hasCode(error, "ENOENT")) {
       throw error;
@@ -321,6 +440,7 @@ export async function startBrowserServer(options: BrowserOptions) {
     });
   const releaseTurn = () => {
     turning = false;
+    flushHints();
   };
 
   let url = "";
@@ -539,6 +659,7 @@ export async function startBrowserServer(options: BrowserOptions) {
                 committed ||=
                   !isDeepStrictEqual(state, executed.result.state) ||
                   executed.rolls.length > 0;
+                scheduleHints(session);
                 return executed;
               },
             });
@@ -572,6 +693,7 @@ export async function startBrowserServer(options: BrowserOptions) {
               committed,
               notice,
             };
+            scheduleHints(session);
             await session.saveBrowserHistory({
               version: 1,
               progress: session.progress,
@@ -593,16 +715,29 @@ export async function startBrowserServer(options: BrowserOptions) {
           }
           return;
         }
+        turning = true;
         try {
-          await SaveSession.start(options.savePath, runtime, options.seed, {
-            exclusive: true,
-          });
+          const session = await SaveSession.start(
+            options.savePath,
+            runtime,
+            options.seed,
+            {
+              exclusive: true,
+            },
+          );
+          scheduleHints(session);
+          if (options.hintPreparer === undefined) {
+            await session.saveBrowserHints(session.browserHints);
+          }
         } catch (error) {
           if (!hasCode(error, "EEXIST")) {
             throw error;
           }
+        } finally {
+          releaseTurn();
         }
         json(response, 200, await readSlot());
+        flushHints();
         return;
       }
       if (request.method !== "GET") {
@@ -627,6 +762,11 @@ export async function startBrowserServer(options: BrowserOptions) {
         case "/api/state":
           json(response, 200, await readSlot());
           break;
+        case "/api/hints": {
+          const view = await readSlot();
+          json(response, 200, view.slot === "occupied" ? view.hints : null);
+          break;
+        }
         default:
           json(response, 404, { error: "Unknown endpoint." });
       }
@@ -655,6 +795,8 @@ export async function startBrowserServer(options: BrowserOptions) {
   return {
     url,
     async close(): Promise<void> {
+      closed = true;
+      await hintWrite;
       await new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));
         server.closeIdleConnections();
