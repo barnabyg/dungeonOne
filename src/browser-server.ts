@@ -280,6 +280,9 @@ export async function startBrowserServer(options: BrowserOptions) {
             json(response, 200, {
               view,
               reply,
+              ...(conversation === undefined
+                ? {}
+                : { speaker: conversation.speakerName }),
               cards,
               committed,
               notice: result.diagnostics.some(

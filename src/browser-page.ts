@@ -15,7 +15,8 @@ export const BROWSER_HTML = `<!doctype html>
 <p id="feedback" role="status" aria-live="polite"></p>
 <h3>Conversation</h3><div id="conversation" role="log" aria-live="polite" aria-label="Adventure conversation"></div>
 <form id="turn" hidden><label for="message">What do you do or ask?</label>
-<textarea id="message" maxlength="1000" rows="3" required placeholder="Describe one action, or ask a question."></textarea>
+<textarea id="message" maxlength="1000" rows="3" required aria-describedby="message-help" placeholder="Describe one action, or ask a question."></textarea>
+<p id="message-help">Enter to send · Shift+Enter for a new line</p>
 <button id="send" type="submit">Send message</button></form>
 <p class="note">Progress saves automatically. Conversation history is not restored after reload in this opening.</p>
 </section></main></body></html>`;
@@ -28,6 +29,7 @@ aside{position:sticky;top:24px;padding:24px;background:#e6eae0;border:1px solid 
 section{min-width:0;background:#fffdf8;padding:32px;border:1px solid #d7dbd0;border-radius:6px}#description{white-space:pre-wrap}#objective{color:#526154}.controls{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}button{cursor:pointer;font-size:.85rem;padding:12px 18px;border-radius:4px;border:1px solid #345645;background:#345645;color:#fff}button:disabled{opacity:.65;cursor:wait}button:hover{background:#234535}#refresh{background:transparent;color:#25352f}
 :focus-visible{outline:3px solid #a75b20;outline-offset:4px}#feedback{font-family:system-ui,sans-serif;font-size:.85rem;margin-top:18px;min-height:1.6em}.note{font-size:.75rem;color:#59665d;border-top:1px solid #d7dbd0;padding-top:18px}.skip{position:absolute;left:12px;top:-100px;background:#fff;padding:8px}.skip:focus{top:12px}[hidden]{display:none!important}
 form{margin:24px 0}label{display:block;font-family:system-ui,sans-serif;font-size:.85rem}textarea{display:block;width:100%;margin:8px 0 12px;padding:12px;font:inherit;border:1px solid #83917f;border-radius:4px}article{margin:18px 0;padding:16px;border-left:3px solid #cbd2c3;background:#f3f1eb}article h4{font:600 .8rem system-ui,sans-serif;margin:0 0 8px}article p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.player{border-color:#345645}.result{background:#e6eae0}.notice,.waiting{font-size:.85rem}#conversation:empty{display:none}
+.dialogue{background:#eef2e9;border-left:3px solid #58734f}.dialogue p{font-style:italic}.dialogue h4{color:#345645}#message-help{font:.75rem system-ui,sans-serif;color:#59665d}
 @media(max-width:760px){header{padding:24px}main{grid-template-columns:1fr;padding:0 24px;gap:24px;margin-top:24px}aside{position:static;max-height:none}section{padding:24px}}`;
 
 export const BROWSER_SCRIPT = `"use strict";
@@ -94,6 +96,11 @@ async function read(start = false) {
     text("feedback", error instanceof Error ? error.message : "Unable to reach the local service. Restart the launcher and open its new URL.");
   } finally { busy(false); }
 }
+element("message").addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey || event.isComposing) { return; }
+  event.preventDefault();
+  if (!pending && !event.repeat) { element("turn").requestSubmit(); }
+});
 element("turn").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (pending) { return; }
@@ -109,7 +116,7 @@ element("turn").addEventListener("submit", async (event) => {
     const result = await response.json();
     if (!response.ok) { throw new Error(result.error || "Unable to complete the turn."); }
     waiting.remove();
-    entry("Dungeon Master", result.reply);
+    entry(result.speaker ? "NPC dialogue" : "Dungeon Master", result.reply, result.speaker ? "dialogue" : "reply");
     result.cards.forEach((card) => { entry(card.title, card.text, "result"); });
     entry("Save status", result.notice, "notice");
     render(result.view);

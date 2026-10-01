@@ -118,6 +118,7 @@ test("browser conversation, evidence search and travel save the corresponding en
       assert.ok(turn.cards.length > 0);
       if (i === 0) {
         assert.match(turn.reply, /Iona/);
+        assert.equal(turn.speaker, "Captain Iona");
       }
       if (i === 2) {
         assert.match(turn.reply, /Pell/);
@@ -409,6 +410,9 @@ test("browser script submits through API/storage, locks pending input and render
           addEventListener(event, listener) {
             this.listeners[event] = listener;
           },
+          requestSubmit() {
+            this.submission = this.listeners.submit({ preventDefault() {} });
+          },
           setAttribute(name, value) {
             this[name] = value;
           },
@@ -436,9 +440,24 @@ test("browser script submits through API/storage, locks pending input and render
       assert.equal(nodes.get("location").textContent, "Watch Yard");
       const before = await readFile(path, "utf8");
       nodes.get("message").value = "Go to the Watch Loft";
-      const pending = nodes
-        .get("turn")
-        .listeners.submit({ preventDefault() {} });
+      let prevented = false;
+      const keydown = nodes.get("message").listeners.keydown;
+      const enter = {
+        key: "Enter",
+        shiftKey: false,
+        isComposing: false,
+        repeat: false,
+        preventDefault() {
+          prevented = true;
+        },
+      };
+      keydown({ ...enter, shiftKey: true });
+      keydown({ ...enter, isComposing: true });
+      keydown({ ...enter, repeat: true });
+      assert.equal(nodes.get("turn").submission, undefined);
+      keydown(enter);
+      assert.equal(prevented, true);
+      const pending = nodes.get("turn").submission;
       try {
         await waiting;
         for (const id of ["message", "send", "refresh"]) {
@@ -454,6 +473,7 @@ test("browser script submits through API/storage, locks pending input and render
           /Waiting for a complete reply/,
         );
         await nodes.get("turn").listeners.submit({ preventDefault() {} });
+        keydown(enter);
         assert.equal(calls, 1);
         assert.equal(await readFile(path, "utf8"), before);
       } finally {

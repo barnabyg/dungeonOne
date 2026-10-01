@@ -35,6 +35,16 @@ On completion, the full reply and concise authoritative cards appear, input
 becomes usable, and persistent fields refresh. No unsolicited full character
 sheet is appended. Tab through the editor and Send to check keyboard access.
 
+Keyboard and dialogue follow-up: Enter now sends the message; Shift+Enter
+inserts a newline. Holding Enter or pressing it while a turn is pending must
+not send an additional turn. Typing with an input method must still allow
+Enter to confirm composition. NPC replies have an **NPC dialogue** heading,
+italic spoken text, and a distinct tinted background and border; ordinary
+Dungeon Master replies and authoritative cards retain their own appearance.
+To check, type `Ask Iona about the beacon` and press Enter: expect one saved
+conversation and a visibly distinct attributed Iona reply. With text in the
+editor, Shift+Enter must add a newline without creating a conversation entry.
+
 Try `Search the secret setting` or `Go to somewhere imaginary`: expect a
 rejection or clarification, with no saved action, time advance, or dice draw.
 Try `Go to the loft and search the plate`: expect clarification, rejection,
