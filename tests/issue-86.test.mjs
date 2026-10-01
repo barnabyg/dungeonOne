@@ -149,6 +149,8 @@ test("ambiguous, compound, hidden, dead, stale and wrong-approach AI social inte
     "Maybe persuade Iona the familiar signal is safe.",
     "Tell Iona the familiar signal is safe and travel to the loft.",
     "Tell Iona the familiar signal is safe. Move watch-loft.",
+    "Tell Iona the familiar signal is safe. Correct Iona with the setting plate correction.",
+    "Tell Iona the familiar signal is safe, correct Iona with the setting plate correction.",
     "Tell Iona and Sera the familiar signal is safe.",
     "Should I tell Iona the familiar signal is safe?",
     "Do not tell Iona the familiar signal is safe.",

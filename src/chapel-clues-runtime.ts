@@ -3907,6 +3907,9 @@ export function createChapelCluesRuntime(
             record.approach !==
               (topic.intent === "claim" ? "persuade" : "ask") ||
             unsafeActionIntent(playerInput, intent) ||
+            /[.!]\s*\S|[\r\n]|,\s*(?:tell|correct|retract|report|show|claim|persuade|convince|assure)\b/iu.test(
+              playerInput ?? "",
+            ) ||
             /\b(move|travel|search|attack|wait|take|use|offer|follow|resolve)\b/u.test(
               intent,
             ) ||
