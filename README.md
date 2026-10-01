@@ -19,6 +19,14 @@ All development tools and the official OpenAI SDK are exact-version dependencies
 
 ### Hollow Beacon in a desktop browser
 
+The combined saved journey, desktop observations, bounded live-provider evidence,
+and delivered interfaces for the increment 8 rewrite are in the
+[increment 9 qualification and handoff](docs/acceptance/issue-106.md).
+Full verification includes real browser/API/storage journeys using pinned
+Playwright: Windows requires installed Microsoft Edge; Linux/macOS require
+`npx playwright install chromium` (on Linux CI, use `--with-deps`). Browser
+tests are offline; live checks are opt-in and never run during verification.
+
 **Hints** prepares optional guidance from public objectives, known leads and
 current legal actions. It stays collapsed until opened, refreshes as game progress
 changes, and restores its cached content with the save slot. Opening/reopening

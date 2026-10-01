@@ -1,0 +1,468 @@
+{
+  "issue": 106,
+  "mode": "live",
+  "requestedModel": "gpt-5.6-luna",
+  "startedAt": "2026-10-01T17:05:29.676Z",
+  "seed": 0,
+  "maxProviderCalls": 15,
+  "calls": [
+    {
+      "input": "Travel to Watch Loft (0 days)",
+      "phase": "interpretation",
+      "promptVersion": "chapel-clues-dm-v18",
+      "promptDigest": "59b3eb2c541eca80c2093bc4cdc6a26bed1078fa14b7308fcbfc28accbe77c9b",
+      "toolSchemaDigest": "376aba13ad111351b1ed31bea4b4fa2ae41a6d38f42e6379392ff8e21ae58c95",
+      "provider": {
+        "responseId": "resp_0368011fbf4d9a7b016abe92db4d0c87d1803086aa886786d5",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 1334,
+          "outputTokens": 20,
+          "totalTokens": 1354
+        }
+      },
+      "toolCalls": [
+        {
+          "id": "call_R0upiPTmUrnww2RJBd2QZRTF",
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"watch-loft\"}"
+        }
+      ],
+      "latencyMs": 1252
+    },
+    {
+      "input": "Travel to Watch Loft (0 days)",
+      "phase": "narration",
+      "promptVersion": "chapel-clues-dm-v18",
+      "promptDigest": "59b3eb2c541eca80c2093bc4cdc6a26bed1078fa14b7308fcbfc28accbe77c9b",
+      "toolSchemaDigest": "5e0ea17a904837233e1262b02d589e59cafa59e0764998643e38c21ad0c136f4",
+      "provider": {
+        "responseId": "resp_0368011fbf4d9a7b016abe92dc7a8887d1b95674d3005c2c6c",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 1975,
+          "outputTokens": 98,
+          "totalTokens": 2073
+        }
+      },
+      "toolCalls": [],
+      "latencyMs": 1996
+    },
+    {
+      "input": "Persuade Pell to discuss \"Ask about the last signal shift\".",
+      "phase": "interpretation",
+      "promptVersion": "chapel-clues-dm-v18",
+      "promptDigest": "59b3eb2c541eca80c2093bc4cdc6a26bed1078fa14b7308fcbfc28accbe77c9b",
+      "toolSchemaDigest": "6f706963ee819ec5c5a9762362d74d74e42b344d221e99d932b6bf44dc7bfa40",
+      "provider": {
+        "responseId": "resp_0a5841411237c9bd016abe92de817087d1963099eea1eebbb0",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 1252,
+          "outputTokens": 47,
+          "totalTokens": 1299
+        }
+      },
+      "toolCalls": [
+        {
+          "id": "call_yFZe91CBP772ZZ4CShJGrO4i",
+          "name": "talk",
+          "argumentsJson": "{\"speakerId\":\"pell\",\"topicId\":\"shift\",\"approach\":\"persuade\"}"
+        }
+      ],
+      "latencyMs": 1631
+    },
+    {
+      "input": "Persuade Pell to discuss \"Ask about the last signal shift\".",
+      "phase": "npc-reply",
+      "promptVersion": "chapel-clues-dm-v18",
+      "promptDigest": "dc2b94c9f3d38e3aeae17ab6b8d440fa983ad1da8f4bf27e31036c4529721213",
+      "toolSchemaDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "provider": {
+        "responseId": "resp_05922d01dbe2681b016abe92e0354087d1b0891808e78ba2a0",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 259,
+          "outputTokens": 93,
+          "totalTokens": 352
+        }
+      },
+      "toolCalls": [],
+      "latencyMs": 1726
+    },
+    {
+      "input": "Travel to Signal Records Room",
+      "phase": "interpretation",
+      "promptVersion": "chapel-clues-dm-v18",
+      "promptDigest": "59b3eb2c541eca80c2093bc4cdc6a26bed1078fa14b7308fcbfc28accbe77c9b",
+      "toolSchemaDigest": "6f706963ee819ec5c5a9762362d74d74e42b344d221e99d932b6bf44dc7bfa40",
+      "provider": {
+        "responseId": "resp_0f539e7c4a3646aa016abe92e1ecb087d1aba3d2aa89a68aae",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 1290,
+          "outputTokens": 32,
+          "totalTokens": 1322
+        }
+      },
+      "toolCalls": [
+        {
+          "id": "call_sHNTh7mLYa2ddennvOTrx3vz",
+          "name": "move",
+          "argumentsJson": "{\"destinationId\":\"signal-records\"}"
+        }
+      ],
+      "latencyMs": 1414
+    },
+    {
+      "input": "Travel to Signal Records Room",
+      "phase": "narration",
+      "promptVersion": "chapel-clues-dm-v18",
+      "promptDigest": "59b3eb2c541eca80c2093bc4cdc6a26bed1078fa14b7308fcbfc28accbe77c9b",
+      "toolSchemaDigest": "a909b463da4d75b8fba3dc30d5babf955ba160c299b075e5e594dee724fa6c05",
+      "provider": {
+        "responseId": "resp_0f539e7c4a3646aa016abe92e351b087d18ba6427e59b82449",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 2110,
+          "outputTokens": 31,
+          "totalTokens": 2141
+        }
+      },
+      "toolCalls": [
+        {
+          "id": "call_w2vVIvd3UZzYJGq9HMAZR4rL",
+          "name": "inspect",
+          "argumentsJson": "{\"target\":\"setting-plate\"}"
+        }
+      ],
+      "latencyMs": 1315
+    },
+    {
+      "input": "Travel to Signal Records Room",
+      "phase": "narration",
+      "promptVersion": "chapel-clues-dm-v18",
+      "promptDigest": "59b3eb2c541eca80c2093bc4cdc6a26bed1078fa14b7308fcbfc28accbe77c9b",
+      "toolSchemaDigest": "a909b463da4d75b8fba3dc30d5babf955ba160c299b075e5e594dee724fa6c05",
+      "provider": {
+        "responseId": "resp_0f539e7c4a3646aa016abe92e4a29087d181e6193d726001bf",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 3057,
+          "outputTokens": 100,
+          "totalTokens": 3157
+        }
+      },
+      "toolCalls": [],
+      "latencyMs": 1780
+    },
+    {
+      "input": "Search beacon setting plate",
+      "phase": "interpretation",
+      "promptVersion": "chapel-clues-dm-v18",
+      "promptDigest": "59b3eb2c541eca80c2093bc4cdc6a26bed1078fa14b7308fcbfc28accbe77c9b",
+      "toolSchemaDigest": "8870d0d1cfb7bbc2ca24236bcd61d44eb2177c0cd8254f71f88677f4f55228ff",
+      "provider": {
+        "responseId": "resp_04ccc40da1db0f18016abe92e66eb087d1a30bac74ac5e12b0",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 1317,
+          "outputTokens": 32,
+          "totalTokens": 1349
+        }
+      },
+      "toolCalls": [
+        {
+          "id": "call_NFAyu4JU7UZ1iVOAbBoMIxhp",
+          "name": "search",
+          "argumentsJson": "{\"target\":\"setting-plate\"}"
+        }
+      ],
+      "latencyMs": 983
+    },
+    {
+      "input": "Search beacon setting plate",
+      "phase": "narration",
+      "promptVersion": "chapel-clues-dm-v18",
+      "promptDigest": "59b3eb2c541eca80c2093bc4cdc6a26bed1078fa14b7308fcbfc28accbe77c9b",
+      "toolSchemaDigest": "a909b463da4d75b8fba3dc30d5babf955ba160c299b075e5e594dee724fa6c05",
+      "provider": {
+        "responseId": "resp_04ccc40da1db0f18016abe92e787a887d1903fff6b563790b7",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 2599,
+          "outputTokens": 75,
+          "totalTokens": 2674
+        }
+      },
+      "toolCalls": [],
+      "latencyMs": 1860
+    },
+    {
+      "input": "Which person do you mean by the watch? I am only asking for clarification.",
+      "phase": "interpretation",
+      "promptVersion": "chapel-clues-dm-v18",
+      "promptDigest": "59b3eb2c541eca80c2093bc4cdc6a26bed1078fa14b7308fcbfc28accbe77c9b",
+      "toolSchemaDigest": "466d422a4bbb0f387adda78bde4cd1ed30cdae837335df878dc5a7e8494bbc86",
+      "provider": {
+        "responseId": "resp_0f7812a76cd3c363016abe92e9584887d1905c6e1712d1f56d",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 1526,
+          "outputTokens": 134,
+          "totalTokens": 1660
+        }
+      },
+      "toolCalls": [],
+      "latencyMs": 3332
+    }
+  ],
+  "turns": [
+    {
+      "message": "Travel to Watch Loft (0 days)",
+      "clicked": true,
+      "expectedTool": "move",
+      "expectedArguments": {
+        "destinationId": "watch-loft"
+      },
+      "committed": true,
+      "positionBefore": 0,
+      "positionAfter": 1,
+      "location": "Watch Loft",
+      "clocks": [
+        {
+          "id": "caravan-deadline",
+          "name": "Caravan Deadline",
+          "unit": "day",
+          "value": 0
+        }
+      ],
+      "outcome": "playing",
+      "reply": "You are in the **Watch Loft**. Pell tends the watch bell and keeps the last shift’s signal notes.\n\nAvailable actions:\n- **Ask Pell about the last signal shift**\n- **Travel to the Signal Records Room** (0 days)\n- **Travel to the Watch Yard** (0 days)",
+      "cards": [
+        {
+          "title": "Resolved action",
+          "text": "Travelled to Watch Loft."
+        }
+      ],
+      "notice": "Action saved.",
+      "latencyMs": 3285
+    },
+    {
+      "message": "Persuade Pell to discuss \"Ask about the last signal shift\".",
+      "clicked": true,
+      "expectedTool": "talk",
+      "expectedArguments": {
+        "speakerId": "pell",
+        "topicId": "shift",
+        "approach": "persuade"
+      },
+      "committed": true,
+      "positionBefore": 1,
+      "positionAfter": 2,
+      "location": "Watch Loft",
+      "clocks": [
+        {
+          "id": "caravan-deadline",
+          "name": "Caravan Deadline",
+          "unit": "day",
+          "value": 0
+        }
+      ],
+      "outcome": "playing",
+      "reply": "Pell: I cannot give you my shift account. The fixed plate in the records room is yours to inspect.",
+      "cards": [
+        {
+          "title": "Resolved action",
+          "text": "Pell: I cannot give you my shift account. The fixed plate in the records room is yours to inspect."
+        }
+      ],
+      "notice": "Action saved.",
+      "latencyMs": 3396
+    },
+    {
+      "message": "Travel to Signal Records Room",
+      "clicked": false,
+      "expectedTool": "move",
+      "expectedArguments": {
+        "destinationId": "signal-records"
+      },
+      "committed": true,
+      "positionBefore": 2,
+      "positionAfter": 3,
+      "location": "Signal Records Room",
+      "clocks": [
+        {
+          "id": "caravan-deadline",
+          "name": "Caravan Deadline",
+          "unit": "day",
+          "value": 0
+        }
+      ],
+      "outcome": "playing",
+      "reply": "The setting plate shows an approved score toward the **caravan fork** and a fresher score toward the **east cut**. The marks may indicate the beacon’s signal was altered, but the plate cannot identify who made the new mark.\n\nAvailable actions:\n- **Travel to Watch Loft** (0 days)\n- Pursue another available lead (if one is offered)",
+      "cards": [
+        {
+          "title": "Resolved action",
+          "text": "Travelled to Signal Records Room."
+        },
+        {
+          "title": "Authoritative information",
+          "text": "beacon setting plate: The plate carries an approved score toward the caravan fork and a fresher score toward the east cut. Search it to compare their alignment; the plate cannot identify who made the new mark."
+        }
+      ],
+      "notice": "Action saved.",
+      "latencyMs": 4543
+    },
+    {
+      "message": "Search beacon setting plate",
+      "clicked": true,
+      "expectedTool": "search",
+      "expectedArguments": {
+        "target": "setting-plate"
+      },
+      "committed": true,
+      "positionBefore": 3,
+      "positionAfter": 4,
+      "location": "Signal Records Room",
+      "clocks": [
+        {
+          "id": "caravan-deadline",
+          "name": "Caravan Deadline",
+          "unit": "day",
+          "value": 0
+        }
+      ],
+      "outcome": "playing",
+      "reply": "You compare the two scored marks. The fresh **east-cut** score would redirect the beacon from the approved **caravan fork**. The alteration is real, but its author and purpose remain unknown.\n\nAvailable action:\n- **Travel to Watch Loft** (0 days)",
+      "cards": [
+        {
+          "title": "Resolved action",
+          "text": "You compare the two scored marks. The fresh east-cut score would change the beacon's direction from the approved caravan fork. The alteration is real; its author and purpose are unknown."
+        }
+      ],
+      "notice": "Action saved.",
+      "latencyMs": 2875
+    },
+    {
+      "message": "Which person do you mean by the watch? I am only asking for clarification.",
+      "clicked": false,
+      "expectedTool": null,
+      "expectedArguments": null,
+      "committed": false,
+      "positionBefore": 4,
+      "positionAfter": 4,
+      "location": "Signal Records Room",
+      "clocks": [
+        {
+          "id": "caravan-deadline",
+          "name": "Caravan Deadline",
+          "unit": "day",
+          "value": 0
+        }
+      ],
+      "outcome": "playing",
+      "reply": "By “the watch,” I mean **Iona at the Watch Yard**. The journal directs you to report the altered setting to her before traveling to the Beacon Tower.",
+      "cards": [],
+      "notice": "No action was committed.",
+      "latencyMs": 3362
+    }
+  ],
+  "hints": [
+    {
+      "baseline": {
+        "version": 1,
+        "revision": "c9d208e01fd6be28824b92eb58414b0126f9f8b7832d83b6c9e0398a56fe97bd",
+        "status": "ready",
+        "entries": [
+          "Current objective: Investigate the watch loft and setting plate, or another lead, then travel to the Beacon Tower and decide what signal to send. The late valley route still permits a rescue.",
+          "Known lead: Visit Pell in the Watch Loft and compare the setting plate in the Signal Records Room; the camp and keeper's path offer other leads.",
+          "You can Travel to Refugee Camp (0 days)",
+          "You can Inspect Refugee Camp (0 days)",
+          "You can Travel to Keeper's Path (0 days)",
+          "You can Inspect Keeper's Path (0 days)",
+          "You can Travel to Ridge Trail (2 days)",
+          "You can Inspect Ridge Trail (2 days)",
+          "You can Travel to Valley Road (4 days)",
+          "You can Inspect Valley Road (4 days)",
+          "You can Travel to Watch Loft (0 days)",
+          "You can Inspect Watch Loft (0 days)",
+          "You can Inspect beacon lamp",
+          "You can Ask Captain Iona about \"Ask about the beacon and watch leads\".",
+          "You can Persuade Captain Iona to discuss \"Ask about the beacon and watch leads\".",
+          "You can Ask Captain Iona about \"Ask how the watch responds\".",
+          "You can Persuade Captain Iona to discuss \"Ask how the watch responds\"."
+        ]
+      },
+      "stronger": {
+        "version": 1,
+        "revision": "c9d208e01fd6be28824b92eb58414b0126f9f8b7832d83b6c9e0398a56fe97bd",
+        "status": "ready",
+        "entries": [
+          "Your current lead mentions Watch Loft alongside Keeper's Path. Consider how information from those sources might fit together. What would help you make sense of what you already know?"
+        ]
+      },
+      "providerCalls": 0,
+      "positionBefore": 0,
+      "positionAfter": 0
+    },
+    {
+      "baseline": {
+        "version": 1,
+        "revision": "b0607494a1b664b6cf4a0bbd738b2312975bcbfd3f50c5041ed041eb7bf7c990",
+        "status": "ready",
+        "entries": [
+          "Current objective: Investigate the watch loft and setting plate, or another lead, then travel to the Beacon Tower and decide what signal to send. The late valley route still permits a rescue.",
+          "Known lead: The plate establishes an altered setting. Report it to Iona, then decide at the tower; neither keeper nor caravan is confirmed safe.",
+          "Known lead: Treat the changed setting as a provisional warning. Tell Iona at the Watch Yard, then choose a signal at the tower.",
+          "You can Travel to Watch Loft (0 days)",
+          "You can Inspect Watch Loft (0 days)",
+          "You can Inspect beacon setting plate"
+        ]
+      },
+      "stronger": {
+        "version": 1,
+        "revision": "b0607494a1b664b6cf4a0bbd738b2312975bcbfd3f50c5041ed041eb7bf7c990",
+        "status": "ready",
+        "entries": [
+          "One subject still in view is Watch Loft. What information is still missing from that part of the story? Consider it alongside what your journal already records."
+        ]
+      },
+      "providerCalls": 0,
+      "positionBefore": 4,
+      "positionAfter": 4
+    }
+  ],
+  "identity": {
+    "provider": {
+      "provider": "openai",
+      "model": "gpt-5.6-luna"
+    },
+    "adventure": "hollow-beacon",
+    "contentVersion": "4",
+    "contentDigest": "sha256:9fbfafa8c7b49e96fbeddcfc5d6db466cfc6b6cc1c09e59670126f74d4f9a5d5",
+    "rulesVersion": "chapel-clues-rules-v11",
+    "promptVersion": "chapel-clues-dm-v18",
+    "toolSchemaVersion": "chapel-clues-tools-v15",
+    "systemPromptDigest": "59b3eb2c541eca80c2093bc4cdc6a26bed1078fa14b7308fcbfc28accbe77c9b"
+  },
+  "finishedAt": "2026-10-01T17:05:47.292Z",
+  "tokens": {
+    "input": 16719,
+    "output": 662
+  },
+  "cost": {
+    "usd": null,
+    "reason": "Responses reports tokens, not billed dollars. No unsupported rate or invoice estimate is substituted."
+  }
+}

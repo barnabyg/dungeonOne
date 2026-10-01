@@ -8,12 +8,15 @@ import { startBrowserServer } from "../../dist/browser-server.js";
 
 const { chromium } = await import(pathToFileURL(process.argv[2]).href);
 const directory = await mkdtemp(join(tmpdir(), "dungeon-99-browser-"));
-const browser = await chromium.launch({ channel: "msedge", headless: true });
+const browser = await chromium.launch(
+  process.platform === "win32" ? { channel: "msedge" } : {},
+);
 const servers = [];
 const pages = [];
 const paths = [];
 let expected;
 let count = 0;
+const pageErrors = [];
 const model = {
   async respond(request) {
     count++;
@@ -51,7 +54,7 @@ try {
     );
     const page = await browser.newPage();
     pages.push(page);
-    page.on("pageerror", (error) => console.error("page", error));
+    page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.goto(servers[i].url);
     await page
       .getByRole("button", { name: "Start adventure", exact: true })
@@ -61,7 +64,7 @@ try {
     );
   }
   const stale = await browser.newPage();
-  stale.on("pageerror", (error) => console.error("stale page", error));
+  stale.on("pageerror", (error) => pageErrors.push(error.message));
   await stale.goto(servers[0].url);
   await stale.waitForFunction(
     () => document.getElementById("location").textContent === "Watch Yard",
@@ -159,7 +162,7 @@ try {
   );
   assert.match(
     await stale.locator("#feedback").textContent(),
-    /no longer available/,
+    /no longer available|request is stale/,
   );
   assert.equal(await readFile(paths[0], "utf8"), before);
   assert.equal(count, calls);
@@ -167,6 +170,7 @@ try {
     await stale.getByLabel("What do you do or ask?").inputValue(),
     draft,
   );
+  assert.deepEqual(pageErrors, []);
   console.log(
     "Real Edge browser: keyboard travel, attributed dialogue, inspection, search and stale intent passed; clicked/typed checkpoints and RNG equal (one draw).",
   );

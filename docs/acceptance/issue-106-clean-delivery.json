@@ -1,0 +1,14 @@
+{
+  "seed": 0,
+  "launcherUrls": [
+    "http://127.0.0.1:56869",
+    "http://127.0.0.1:56876"
+  ],
+  "checks": [
+    "Normal launcher prints available loopback URL and opening autosaves",
+    "Eight tracked-provider HTTP actions autosave the Hold ending",
+    "Normal launcher restart restores exact completed review and save bytes",
+    "Reset autosaves fresh opening and another restart preserves it"
+  ],
+  "completed": true
+}

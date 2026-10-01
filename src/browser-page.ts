@@ -271,7 +271,10 @@ function entry(label, value, className = "reply") {
   return item;
 }
 function restoreHistory(view) {
-  element("conversation").replaceChildren();
+  const conversation = element("conversation");
+  const scrollTop = conversation.scrollTop;
+  const following = conversation.scrollTop + conversation.clientHeight >= conversation.scrollHeight - 24;
+  conversation.replaceChildren();
   (view.history || []).forEach((turn) => {
     entry("You", turn.message, "player");
     entry(turn.speaker ? "NPC dialogue · " + turn.speaker : "Dungeon Master", turn.reply, turn.speaker ? "dialogue" : "reply");
@@ -288,6 +291,9 @@ function restoreHistory(view) {
     });
     entry("Save status", turn.notice, "notice");
   });
+  // A reply may arrive while the player is reading older turns. Rebuilding
+  // the saved transcript must not pull them away from that reading position.
+  if (!following) { conversation.scrollTop = scrollTop; }
 }
 function list(id, values) {
   element(id).replaceChildren(...values.map((value) => {
