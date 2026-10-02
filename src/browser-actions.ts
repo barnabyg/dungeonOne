@@ -207,6 +207,19 @@ export function browserActions(
     );
   }
   for (const npc of scene.room.npcs ?? []) {
+    if (session.runtime.content?.snapshot.schemaVersion === 15) {
+      offer(
+        "npc:" + npc.id,
+        "attack",
+        "opponent_id",
+        npc.id,
+        "Attack (1 action)",
+        "Attack " + npc.name,
+        scene.combat === undefined
+          ? "Start combat. Attack costs 1 action, 0 days. At 0 HP the session ends in defeat; no retreat or surrender after attacking."
+          : scene.combatStatus,
+      );
+    }
     if (npc.condition === "dead") {
       offer(
         "npc:" + npc.id,

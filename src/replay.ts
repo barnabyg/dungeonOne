@@ -18,6 +18,7 @@ import {
   CLAIM_ENGINE_VERSION,
   BRACE_ENGINE_VERSION,
   QUEST_ITEM_ENGINE_VERSION,
+  CONFRONTATION_ENGINE_VERSION,
   RECOVERY_ENGINE_VERSION,
   CASUALTY_CLUES_ENGINE_VERSION,
   COMBAT_CLUES_ENGINE_VERSION,
@@ -1375,6 +1376,7 @@ function replayFormat4(trace: JsonObject): void {
     trace.engineVersion !== CLAIM_ENGINE_VERSION &&
     trace.engineVersion !== BRACE_ENGINE_VERSION &&
     trace.engineVersion !== QUEST_ITEM_ENGINE_VERSION &&
+    trace.engineVersion !== CONFRONTATION_ENGINE_VERSION &&
     trace.engineVersion !== RECOVERY_ENGINE_VERSION &&
     trace.engineVersion !== CASUALTY_CLUES_ENGINE_VERSION &&
     trace.engineVersion !== RESCUE_CLUES_ENGINE_VERSION &&

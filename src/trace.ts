@@ -105,7 +105,8 @@ type ContentTraceHeader = Readonly<{
   mode?: "command" | "ai";
   engineVersion?: string;
   content?: Readonly<{
-    schemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
+    schemaVersion:
+      1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
     id: string;
     contentVersion: string;
     digest: string;
