@@ -123,7 +123,7 @@ export function browserActions(
     offer(
       "target:" + target.id,
       "take",
-      "itemId",
+      "item_id",
       target.id,
       "Take",
       "Take " + target.name,

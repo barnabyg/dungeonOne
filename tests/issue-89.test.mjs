@@ -479,9 +479,32 @@ test(
         for (const message of [
           "Travel to Watch Loft",
           "Travel to Signal Records Room",
-          "Take spare signal component",
         ]) {
           assert.equal((await typed(page, message)).committed, true, message);
+        }
+        if (clicked) {
+          await page
+            .getByRole("button", {
+              name: "spare signal component",
+              exact: true,
+            })
+            .click();
+          assert.ok(
+            (await view(server)).actions.some(
+              (action) => action.call.name === "take",
+            ),
+          );
+          const response = page.waitForResponse((r) =>
+            r.url().endsWith("/api/turn"),
+          );
+          await page.getByRole("button", { name: "Take", exact: true }).click();
+          assert.equal((await (await response).json()).committed, true);
+          await idle(page);
+        } else {
+          assert.equal(
+            (await typed(page, "Take spare signal component")).committed,
+            true,
+          );
         }
         await page.locator("#open-inventory").click();
         assert.match(
