@@ -1,0 +1,1991 @@
+{
+  "schemaVersion": 14,
+  "id": "hollow-beacon",
+  "contentVersion": "9",
+  "rulesVersion": "chapel-clues-rules-v15",
+  "title": "The Hollow Beacon: Signal Component",
+  "introduction": "The beacon is dark; the caravan reaches the fork on Day 3. Investigate Pell and the setting plate at the watch, or Sera and the signal survey at the Refugee Camp. Both routes remain open independently. Local investigation costs no whole days. The Ridge Trail costs 2 days and closes on Day 3; the Valley Road costs 4 days and remains open. Camp and tower choices continue the investigation; no rescue is confirmed by a choice alone. You can claim to Captain Iona that the familiar signal is safe. This is a remembered DC 12 check of your credibility, not proof. A refusal leaves both physical routes open; report the setting plate afterward to correct the claim. A raider bars the shorter Ridge Trail to seize travelers' supplies. Spend one action bracing the fallen cart for +4 AC against the next enemy attack, once per encounter. Combat rounds spend no days. The slower valley avoids this threat. The Beacon Tower is the onward lead: the Tower Runner has provisional signal instructions. From Ridge Shelter, the guarded Tower Approach costs 0 days and begins combat immediately; the safe Drainage Walk costs 1 day, crosses the Day 3 deadline from the ridge, and needs no clue, roll, item or ally. Both reach the same tower. The dressing station at Ridge Shelter has one camp dressing per session, usable outside combat while injured. Restore exactly min(8, missing HP) HP for 0 days; consume the dressing and no other item. Full HP does not spend it. At 0 HP you are defeated and the session ends. There is no retreat or surrender once combat begins; choose the drainage walk before entering the guarded approach. A spare signal component rests on the setting plate in the Signal Records Room. Carry it to the beacon socket at the tower and fit it before instructing the runner to light the beacon. Fitting spends the component, costs 0 days and no dice, and restores no HP. Holding, refusing or leaving remains possible without it.",
+  "objective": "Compare the watch or refugee evidence about the familiar signal. Help, mistrust, or leave the camp; continue investigating the missing keeper and caravan. Tower instructions remain provisional.",
+  "player": {
+    "locationId": "watch-yard",
+    "hp": 20,
+    "maxHp": 20
+  },
+  "locations": [
+    {
+      "id": "watch-yard",
+      "name": "Watch Yard",
+      "description": "Iona's post overlooks the dark beacon. Local walks lead to the Watch Loft, Refugee Camp, and Keeper's Path. The Ridge Trail takes 2 days; the Valley Road takes 4. The ridge closes at Day 3.",
+      "aliases": ["yard", "watch yard"],
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "discovery-known",
+              "id": "altered-setting"
+            },
+            {
+              "type": "milestone-recorded",
+              "id": "deadline-passed"
+            }
+          ],
+          "text": "The plate confirms a changed signal setting, but no culprit. A black pennant marks the caravan's missed turn. The Watch Loft, camp, and keeper's gate remain local walks; the Ridge Trail is closed and the Valley Road reaches the tower in 4 days. No rescue is confirmed."
+        },
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "deadline-passed"
+            }
+          ],
+          "text": "A black pennant marks the caravan's missed Day 3 turn. The Watch Loft shift has ended. The loft, camp, and keeper's gate remain local walks. The Ridge Trail is closed; the Valley Road still reaches the tower in 4 days. No rescue is confirmed."
+        },
+        {
+          "when": [
+            {
+              "type": "discovery-known",
+              "id": "altered-setting"
+            }
+          ],
+          "text": "The plate you examined shows a changed signal setting, but no culprit. Iona remains at the post; the Watch Loft, camp, and keeper's gate are local walks. The Ridge Trail takes 2 days, the Valley Road 4, and the deadline is Day 3."
+        },
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "warning-relayed"
+            }
+          ],
+          "text": "Iona's yellow caution flag hangs at the post; runners are stationed at the fork. The Watch Loft, camp, and keeper's gate are local walks. The Ridge Trail takes 2 days, the Valley Road 4. The signal decision remains open."
+        }
+      ]
+    },
+    {
+      "id": "watch-loft",
+      "name": "Watch Loft",
+      "description": "Pell tends the watch bell and keeps the last shift's signal notes. The adjoining Signal Records Room holds the fixed setting plate. Both the records room and Watch Yard are local walks.",
+      "aliases": ["loft", "watch loft"],
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "actor-dead",
+              "id": "pell"
+            }
+          ],
+          "text": "Pell lies where they fell beside the watch bell. The fixed setting plate remains available in the Signal Records Room next door. The keeper's and caravan's fates remain unconfirmed."
+        },
+        {
+          "when": [
+            {
+              "type": "discovery-known",
+              "id": "altered-setting"
+            },
+            {
+              "type": "milestone-recorded",
+              "id": "deadline-passed"
+            }
+          ],
+          "text": "Pell has left the bell for Iona's post after the missed Day 3 turn. The setting plate next door still shows a changed signal direction, but no culprit or completed rescue."
+        },
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "deadline-passed"
+            }
+          ],
+          "text": "The bell is silent. Pell moved to Iona's post after the Day 3 deadline. The Signal Records Room is still open for inspection; no report of a rescue has returned."
+        },
+        {
+          "when": [
+            {
+              "type": "discovery-known",
+              "id": "altered-setting"
+            }
+          ],
+          "text": "The watch bell and Pell's shift notes remain here. The setting plate in the next room shows an altered alignment; no one here has identified who changed it. The Watch Yard is a local walk away."
+        }
+      ]
+    },
+    {
+      "id": "signal-records",
+      "name": "Signal Records Room",
+      "description": "A fixed setting plate and the approved fork mark are mounted side by side. The Watch Loft is a local walk away. Comparing the marks may show whether the beacon's signal was altered.",
+      "aliases": ["records", "records room"],
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "discovery-known",
+              "id": "altered-setting"
+            },
+            {
+              "type": "milestone-recorded",
+              "id": "deadline-passed"
+            }
+          ],
+          "text": "The approved fork score and fresh east-cut score remain visible after the missed Day 3 turn. They support an altered setting, but reveal neither its author nor the caravan's fate."
+        },
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "deadline-passed"
+            }
+          ],
+          "text": "The plate remains available after the Day 3 deadline. The watch shift has ended, but the marks can still be compared. The caravan's fate is unconfirmed."
+        },
+        {
+          "when": [
+            {
+              "type": "discovery-known",
+              "id": "altered-setting"
+            }
+          ],
+          "text": "The old fork score and fresh east-cut score remain visible on the plate. Their difference supports a provisional inference about the signal, not an account of who changed it. The Watch Loft is next door."
+        }
+      ]
+    },
+    {
+      "id": "refugee-camp",
+      "name": "Refugee Camp",
+      "description": "Sera watches the dark beacon beside canvas shelters. A fixed camp signal survey points toward the Refugee Overlook. You may help, mistrust, or leave the group; the survey remains open even if Sera will not speak.",
+      "aliases": ["camp", "refugee camp"],
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "actor-dead",
+              "id": "sera"
+            }
+          ],
+          "text": "Sera lies beside the shelters and cannot answer. The fixed camp signal survey and Refugee Overlook remain accessible. Her death establishes no culprit or caravan fate."
+        },
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "deadline-passed"
+            }
+          ],
+          "text": "After the missed Day 3 turn, Sera has gone to the Valley Road shelters to seek news. Empty canvas shelters and the fixed camp signal survey remain. The Refugee Overlook is open; no rescue is confirmed."
+        },
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "camp-refused"
+            }
+          ],
+          "text": "The group keeps its distance after you refused help. The fixed camp signal survey and Refugee Overlook remain open; Sera will still discuss public evidence."
+        },
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "camp-helped"
+            }
+          ],
+          "text": "The group has cleared a space beside the shelters after your offer of help. The fixed camp signal survey and Refugee Overlook remain open. Nobody claims a rescue."
+        }
+      ]
+    },
+    {
+      "id": "keeper-path",
+      "name": "Keeper's Path",
+      "description": "The short path ends at the beacon's locked service gate. A damaged shutter latch lies beside it; the keeper is nowhere in sight. The Watch Yard is behind you.",
+      "aliases": ["path", "keeper path"]
+    },
+    {
+      "id": "ridge-trail",
+      "name": "Ridge Trail",
+      "description": "The quick ridge route took two days. Wind has scoured the signal markers; from here Ridge Shelter is a local walk. You can see a broken marker post but cannot tell who damaged it. A raider demands your supplies and bars your path. Brace the fallen cart for temporary cover: one action, +4 AC against the next enemy attack. Continue to Ridge Shelter for a dressing and a choice of guarded or safe routes to the tower.",
+      "aliases": ["ridge", "ridge trail"],
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "ridge-cleared"
+            }
+          ],
+          "text": "The defeated raider lies beside the fallen cart. Search the discarded supply sack to learn why they attacked, inspect the broken marker, or continue to Ridge Shelter. Continue to Ridge Shelter for recovery and the tower route choice."
+        }
+      ]
+    },
+    {
+      "id": "valley-road",
+      "name": "Valley Road",
+      "description": "The sheltered valley route took four days. Fresh cart ruts and roadside shelters suggest the caravan had somewhere to wait. Ridge Shelter is a local walk from here. Continue to Ridge Shelter for a dressing and a choice of guarded or safe routes to the tower.",
+      "aliases": ["valley", "valley road"]
+    },
+    {
+      "id": "beacon-tower",
+      "name": "Beacon Tower",
+      "description": "The lamp controls and tower runner are within reach. Give a provisional instruction to hold, light, refuse, or leave the watch. All choices keep the investigation playable; none establishes a rescue. Fit a carried spare signal component in the beacon socket before requesting light. The other instructions need no component.",
+      "aliases": ["tower", "beacon tower"],
+      "descriptions": []
+    },
+    {
+      "id": "refugee-overlook",
+      "name": "Refugee Overlook",
+      "aliases": ["overlook"],
+      "description": "A local path from the Refugee Camp ends beside a fixed sighting frame. Its old fork notch and fresh east-cut notch can be compared with the familiar beacon line. The camp path stays open.",
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "discovery-known",
+              "id": "refugee-alignment"
+            }
+          ],
+          "text": "The sighting frame records the familiar light aimed toward the east cut instead of the old caravan fork. That makes the signal unsafe to trust without verification. Neither culprit nor keeper fate is established."
+        }
+      ]
+    },
+    {
+      "id": "ridge-shelter",
+      "name": "Ridge Shelter",
+      "description": "The Beacon Tower is the onward lead: the Tower Runner has provisional signal instructions. From Ridge Shelter, the guarded Tower Approach costs 0 days and begins combat immediately; the safe Drainage Walk costs 1 day, crosses the Day 3 deadline from the ridge, and needs no clue, roll, item or ally. Both reach the same tower. The dressing station at Ridge Shelter has one camp dressing per session, usable outside combat while injured. Restore exactly min(8, missing HP) HP for 0 days; consume the dressing and no other item. Full HP does not spend it. At 0 HP you are defeated and the session ends. There is no retreat or surrender once combat begins; choose the drainage walk before entering the guarded approach.",
+      "aliases": ["shelter"],
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "camp-dressing-used"
+            }
+          ],
+          "text": "The Beacon Tower is the onward lead: the Tower Runner has provisional signal instructions. From Ridge Shelter, the guarded Tower Approach costs 0 days and begins combat immediately; the safe Drainage Walk costs 1 day, crosses the Day 3 deadline from the ridge, and needs no clue, roll, item or ally. Both reach the same tower. The camp dressing is consumed; recovery is exhausted. At 0 HP the session ends in defeat. No retreat or surrender once combat starts."
+        }
+      ]
+    },
+    {
+      "id": "tower-approach",
+      "name": "Tower Approach",
+      "description": "A lone sentry bars the direct tower path. At 0 HP you are defeated and the session ends. There is no retreat or surrender once combat begins; choose the drainage walk before entering the guarded approach. After victory the Beacon Tower is a local walk; no clue is required.",
+      "aliases": ["approach"],
+      "descriptions": []
+    },
+    {
+      "id": "drainage-walk",
+      "name": "Drainage Walk",
+      "description": "The unguarded drainage walk passes beneath the sentry. The Beacon Tower is a local walk onward; the Tower Runner has provisional signal instructions.",
+      "aliases": ["drainage"],
+      "descriptions": []
+    }
+  ],
+  "connections": [
+    {
+      "id": "yard-camp",
+      "from": "watch-yard",
+      "to": "refugee-camp",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "camp-yard",
+      "from": "refugee-camp",
+      "to": "watch-yard",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "yard-path",
+      "from": "watch-yard",
+      "to": "keeper-path",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "path-yard",
+      "from": "keeper-path",
+      "to": "watch-yard",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "yard-ridge",
+      "from": "watch-yard",
+      "to": "ridge-trail",
+      "when": [
+        {
+          "type": "clock-before",
+          "id": "caravan-deadline",
+          "at": 3
+        }
+      ],
+      "travelDays": 2
+    },
+    {
+      "id": "yard-valley",
+      "from": "watch-yard",
+      "to": "valley-road",
+      "when": [],
+      "travelDays": 4
+    },
+    {
+      "id": "ridge-tower",
+      "from": "ridge-trail",
+      "to": "ridge-shelter",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "valley-tower",
+      "from": "valley-road",
+      "to": "ridge-shelter",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "ridge-yard",
+      "from": "ridge-trail",
+      "to": "watch-yard",
+      "when": [],
+      "travelDays": 2
+    },
+    {
+      "id": "valley-yard",
+      "from": "valley-road",
+      "to": "watch-yard",
+      "when": [],
+      "travelDays": 4
+    },
+    {
+      "id": "tower-ridge",
+      "from": "ridge-shelter",
+      "to": "ridge-trail",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "tower-valley",
+      "from": "ridge-shelter",
+      "to": "valley-road",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "yard-loft",
+      "from": "watch-yard",
+      "to": "watch-loft",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "loft-yard",
+      "from": "watch-loft",
+      "to": "watch-yard",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "loft-records",
+      "from": "watch-loft",
+      "to": "signal-records",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "records-loft",
+      "from": "signal-records",
+      "to": "watch-loft",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "camp-overlook",
+      "from": "refugee-camp",
+      "to": "refugee-overlook",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "overlook-camp",
+      "from": "refugee-overlook",
+      "to": "refugee-camp",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "camp-valley",
+      "from": "refugee-camp",
+      "to": "valley-road",
+      "when": [],
+      "travelDays": 4
+    },
+    {
+      "id": "ridge-shelter-tower-approach",
+      "from": "ridge-shelter",
+      "to": "tower-approach",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "ridge-shelter-drainage-walk",
+      "from": "ridge-shelter",
+      "to": "drainage-walk",
+      "when": [],
+      "travelDays": 1
+    },
+    {
+      "id": "tower-approach-beacon-tower",
+      "from": "tower-approach",
+      "to": "beacon-tower",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "drainage-walk-beacon-tower",
+      "from": "drainage-walk",
+      "to": "beacon-tower",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "tower-approach-ridge-shelter",
+      "from": "tower-approach",
+      "to": "ridge-shelter",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "drainage-walk-ridge-shelter",
+      "from": "drainage-walk",
+      "to": "ridge-shelter",
+      "when": [],
+      "travelDays": 0
+    },
+    {
+      "id": "beacon-tower-ridge-shelter",
+      "from": "beacon-tower",
+      "to": "ridge-shelter",
+      "when": [],
+      "travelDays": 0
+    }
+  ],
+  "features": [
+    {
+      "id": "dark-beacon",
+      "name": "beacon lamp",
+      "description": "The tower lamp gave no signal at dusk. From the yard you cannot tell why it failed or where the keeper went.",
+      "aliases": ["beacon"],
+      "locationId": "watch-yard",
+      "when": []
+    },
+    {
+      "id": "shutter-latch",
+      "name": "damaged shutter latch",
+      "description": "A loose latch from the beacon shutter is bent outward. The damage alone does not identify who touched it or whether a signal would be false.",
+      "aliases": ["latch"],
+      "locationId": "keeper-path",
+      "when": []
+    },
+    {
+      "id": "broken-marker",
+      "name": "broken ridge marker",
+      "description": "The marker is snapped by a hard lateral blow. Wind or a traveler may have struck it.",
+      "aliases": ["marker"],
+      "locationId": "ridge-trail",
+      "when": []
+    },
+    {
+      "id": "wagon-ruts",
+      "name": "caravan wagon ruts",
+      "description": "The ruts turn toward sheltered ground. They show a plausible waiting place, not the caravan's final fate.",
+      "aliases": ["ruts"],
+      "locationId": "valley-road",
+      "when": []
+    },
+    {
+      "id": "setting-plate",
+      "name": "beacon setting plate",
+      "description": "The plate carries an approved score toward the caravan fork and a fresher score toward the east cut. Search it to compare their alignment; the plate cannot identify who made the new mark.",
+      "aliases": ["plate", "setting"],
+      "locationId": "signal-records",
+      "when": [],
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "discovery-known",
+              "id": "altered-setting"
+            }
+          ],
+          "text": "The approved fork score and fresh east-cut score do not align. The plate establishes a changed signal direction, but gives no name, motive, or keeper's fate."
+        }
+      ]
+    },
+    {
+      "id": "camp-survey",
+      "name": "camp signal survey",
+      "aliases": ["survey"],
+      "locationId": "refugee-camp",
+      "when": [],
+      "description": "A fixed board maps the old caravan fork and the east cut. Search it, then compare the sighting frame at Refugee Overlook; no testimony is required."
+    },
+    {
+      "id": "sighting-frame",
+      "name": "sighting frame",
+      "aliases": ["frame"],
+      "locationId": "refugee-overlook",
+      "when": [],
+      "description": "An old fork notch and a fresh east-cut notch are visible against the beacon line. Search to compare the direction; marks alone do not identify who made them."
+    },
+    {
+      "id": "fallen-cart",
+      "name": "fallen cart",
+      "description": "Brace once during the raider fight: one action, +4 AC against the next enemy attack; no player attack or day cost. The cover then collapses.",
+      "aliases": ["cart", "cover"],
+      "locationId": "ridge-trail",
+      "when": []
+    },
+    {
+      "id": "supply-sack",
+      "name": "discarded supply sack",
+      "description": "The raider left a torn sack by the cart.",
+      "aliases": ["sack"],
+      "locationId": "ridge-trail",
+      "when": [
+        {
+          "type": "milestone-recorded",
+          "id": "ridge-cleared"
+        }
+      ]
+    },
+    {
+      "id": "dressing-station",
+      "name": "camp dressing station",
+      "description": "The dressing station at Ridge Shelter has one camp dressing per session, usable outside combat while injured. Restore exactly min(8, missing HP) HP for 0 days; consume the dressing and no other item. Full HP does not spend it.",
+      "aliases": ["station", "dressing station"],
+      "locationId": "ridge-shelter",
+      "when": [],
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "camp-dressing-used"
+            }
+          ],
+          "text": "The one camp dressing is consumed. Recovery cannot be repeated; both tower routes remain open."
+        }
+      ]
+    },
+    {
+      "id": "tower-route-board",
+      "name": "tower route board",
+      "description": "The Beacon Tower is the onward lead: the Tower Runner has provisional signal instructions. From Ridge Shelter, the guarded Tower Approach costs 0 days and begins combat immediately; the safe Drainage Walk costs 1 day, crosses the Day 3 deadline from the ridge, and needs no clue, roll, item or ally. Both reach the same tower. At 0 HP you are defeated and the session ends. There is no retreat or surrender once combat begins; choose the drainage walk before entering the guarded approach.",
+      "aliases": ["board"],
+      "locationId": "ridge-shelter",
+      "when": []
+    },
+    {
+      "id": "beacon-socket",
+      "name": "beacon socket",
+      "aliases": ["socket", "beacon socket"],
+      "description": "An empty keyed socket. Fit the carried spare signal component here to enable a light instruction. Cost: one component, 0 days, no dice; no healing.",
+      "locationId": "beacon-tower",
+      "when": [],
+      "descriptions": [
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "component-fitted"
+            }
+          ],
+          "text": "The spare signal component is fitted permanently in the beacon socket. A light instruction is now possible; no rescue is established."
+        }
+      ]
+    }
+  ],
+  "quest": {
+    "id": "beacon-decision",
+    "title": "Decide what to tell the watch about the dark beacon",
+    "milestones": [
+      "lead-followed",
+      "warning-relayed",
+      "deadline-passed",
+      "route-examined",
+      "watch-account",
+      "camp-helped",
+      "camp-refused",
+      "signal-held",
+      "signal-lit",
+      "decision-declined",
+      "decision-abandoned",
+      "iona-claim-attempted",
+      "iona-claim-corrected",
+      "ridge-cleared",
+      "camp-dressing-used",
+      "approach-cleared",
+      "component-fitted"
+    ]
+  },
+  "initialDiscoveries": ["dark-beacon-known"],
+  "discoveries": [
+    {
+      "id": "dark-beacon-known",
+      "title": "Dark beacon",
+      "classification": "observation",
+      "sourceFeatureId": "dark-beacon",
+      "summary": "At dusk the beacon was dark while a caravan approached the fork; the cause was unknown.",
+      "lead": "Visit Pell and the setting plate at the watch, or Sera, the camp signal survey and Refugee Overlook. Both evidence routes are independently accessible.",
+      "leads": []
+    },
+    {
+      "id": "keeper-warning",
+      "title": "Keeper's warning",
+      "classification": "testimony",
+      "sourceNpcId": "sera",
+      "summary": "Sera says the missing keeper warned her that an unverified beacon signal could draw the wrong people to the fork. This is her account, not proof of sabotage.",
+      "lead": "Tell Captain Iona about Sera's warning, or inspect the damaged latch on Keeper's Path."
+    },
+    {
+      "id": "damaged-latch",
+      "title": "Damaged shutter latch",
+      "classification": "observation",
+      "sourceFeatureId": "shutter-latch",
+      "summary": "The beacon shutter's latch is bent outward. The cause and the keeper's whereabouts remain unknown.",
+      "lead": "Compare the refugee survey and sighting frame with the watch plate. Continue to the tower for provisional instructions; keep investigating afterward."
+    },
+    {
+      "id": "ridge-marker",
+      "title": "Broken ridge marker",
+      "classification": "observation",
+      "sourceFeatureId": "broken-marker",
+      "summary": "A ridge signal marker is broken; the damage does not identify a culprit.",
+      "lead": "Compare the refugee survey and sighting frame with the watch plate. Continue to the tower for provisional instructions; keep investigating afterward."
+    },
+    {
+      "id": "valley-shelter",
+      "title": "Valley shelter tracks",
+      "classification": "observation",
+      "sourceFeatureId": "wagon-ruts",
+      "summary": "Caravan ruts turn toward sheltered ground, so a late rescue remains possible.",
+      "lead": "Compare the refugee survey and sighting frame with the watch plate. Continue to the tower for provisional instructions; keep investigating afterward."
+    },
+    {
+      "id": "pell-shift",
+      "title": "Pell's shift account",
+      "classification": "testimony",
+      "sourceNpcId": "pell",
+      "summary": "Pell says they copied the approved fork setting before dusk, but did not see who handled the lamp afterward.",
+      "lead": "Compare Pell's account with the physical setting plate in the Signal Records Room."
+    },
+    {
+      "id": "altered-setting",
+      "title": "Altered beacon setting",
+      "classification": "observation",
+      "sourceFeatureId": "setting-plate",
+      "summary": "The fixed plate's approved score points to the caravan fork, while a fresher score points to the east cut. The signal direction was altered; who changed it and why remain unknown.",
+      "lead": "Compare the refugee survey and sighting frame with the watch plate. Continue to the tower for provisional instructions; keep investigating afterward."
+    },
+    {
+      "id": "camp-survey-known",
+      "title": "Camp signal survey",
+      "classification": "observation",
+      "sourceFeatureId": "camp-survey",
+      "summary": "The fixed survey maps the caravan fork separately from the east cut.",
+      "lead": "Compare the sighting frame at Refugee Overlook; Sera is another source, but her cooperation is not required."
+    },
+    {
+      "id": "refugee-alignment",
+      "title": "Refugee signal alignment",
+      "classification": "observation",
+      "sourceFeatureId": "sighting-frame",
+      "summary": "The old fork notch and fresh east-cut notch show the familiar beacon line pointing away from the caravan fork. An unverified familiar signal may be dangerous; who changed it and why remain unknown.",
+      "lead": "Compare the watch setting plate or report this warning to Iona. The Ridge Trail or Valley Road reaches the tower; a signal choice cannot confirm a rescue."
+    },
+    {
+      "id": "pursuer-claim",
+      "title": "Contested pursuer claim",
+      "classification": "belief",
+      "sourceNpcId": "sera",
+      "summary": "Sera suspects pursuers could follow the familiar light. This is a contested claim, not an observed pursuer, proof of sabotage, or a keeper fate.",
+      "lead": "Check the camp signal survey and sighting frame at Refugee Overlook for physical evidence."
+    },
+    {
+      "id": "iona-signal-belief",
+      "title": "Iona accepted the safe-signal claim",
+      "classification": "belief",
+      "sourceNpcId": "iona",
+      "summary": "At the time of the claim, Iona accepted the player's assertion that the familiar signal was safe. This records her private belief then, not an observed signal, keeper rescue, or caravan fate. A later correction is recorded separately.",
+      "lead": "Inspect the beacon setting plate in the Signal Records Room, or the camp signal survey and sighting frame. Return with the plate comparison to correct Captain Iona; nobody else heard this claim.",
+      "leads": [
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "iona-claim-corrected"
+            }
+          ],
+          "text": "Captain Iona has received your correction; the earlier claim record is historical. Continue investigating with Pell or Sera; neither heard this private report."
+        }
+      ]
+    },
+    {
+      "id": "iona-claim-refusal",
+      "title": "Iona refused the safe-signal claim",
+      "classification": "testimony",
+      "sourceNpcId": "iona",
+      "summary": "Iona refused the unsupported safe-signal claim and asked for physical evidence. No world fact changed.",
+      "lead": "Inspect the beacon setting plate in the Signal Records Room, or the camp signal survey and sighting frame. Return with the plate comparison to correct Captain Iona; nobody else heard this claim.",
+      "leads": [
+        {
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "iona-claim-corrected"
+            }
+          ],
+          "text": "Captain Iona has received your correction; the earlier claim record is historical. Continue investigating with Pell or Sera; neither heard this private report."
+        }
+      ]
+    },
+    {
+      "id": "iona-evidence-correction",
+      "title": "Iona corrected the safe-signal belief",
+      "classification": "testimony",
+      "sourceNpcId": "iona",
+      "summary": "After the player reported the observed setting plate comparison, Iona withdrew any acceptance of the safe-signal claim and trusted the player for correcting it. She identifies no culprit or keeper/caravan fate.",
+      "lead": "Continue investigating with Pell or Sera. Iona's correction is local to her; other actors have not heard this report."
+    },
+    {
+      "id": "raider-motive",
+      "title": "Supplies taken from the road",
+      "classification": "observation",
+      "sourceFeatureId": "supply-sack",
+      "summary": "Food wrappers and a demand for supplies explain the ambush. This does not identify who altered the beacon.",
+      "lead": "Inspect the broken ridge marker or continue to Ridge Shelter for recovery and the guarded or safe routes to the tower."
+    },
+    {
+      "id": "tower-onward-lead",
+      "title": "Tower routes and instructions",
+      "classification": "observation",
+      "sourceFeatureId": "tower-route-board",
+      "summary": "The Beacon Tower is the onward lead: the Tower Runner has provisional signal instructions. From Ridge Shelter, the guarded Tower Approach costs 0 days and begins combat immediately; the safe Drainage Walk costs 1 day, crosses the Day 3 deadline from the ridge, and needs no clue, roll, item or ally. Both reach the same tower.",
+      "lead": "The Beacon Tower is the onward lead: the Tower Runner has provisional signal instructions. From Ridge Shelter, the guarded Tower Approach costs 0 days and begins combat immediately; the safe Drainage Walk costs 1 day, crosses the Day 3 deadline from the ridge, and needs no clue, roll, item or ally. Both reach the same tower."
+    },
+    {
+      "id": "fitted-socket",
+      "title": "Signal component fitted",
+      "classification": "observation",
+      "sourceFeatureId": "beacon-socket",
+      "summary": "You fitted the spare component in the beacon socket. It is spent, the socket is ready, and no HP or days were spent. No rescue is established.",
+      "lead": "The Tower Runner can now accept a light instruction. Holding, refusing or leaving remain choices."
+    }
+  ],
+  "searches": [
+    {
+      "id": "examine-latch",
+      "targetId": "shutter-latch",
+      "when": [],
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "damaged-latch"
+        },
+        {
+          "type": "record-milestone",
+          "id": "lead-followed"
+        }
+      ],
+      "text": "You examine the latch and record its damage. You find no trace of the keeper."
+    },
+    {
+      "id": "examine-marker",
+      "targetId": "broken-marker",
+      "when": [],
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "ridge-marker"
+        },
+        {
+          "type": "record-milestone",
+          "id": "route-examined"
+        }
+      ],
+      "text": "You inspect the broken marker. It offers no proof of sabotage."
+    },
+    {
+      "id": "examine-ruts",
+      "targetId": "wagon-ruts",
+      "when": [],
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "valley-shelter"
+        },
+        {
+          "type": "record-milestone",
+          "id": "route-examined"
+        }
+      ],
+      "text": "You follow the wagon ruts to sheltered ground and mark a possible rescue route."
+    },
+    {
+      "id": "compare-setting",
+      "targetId": "setting-plate",
+      "when": [],
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "altered-setting"
+        },
+        {
+          "type": "record-milestone",
+          "id": "lead-followed"
+        }
+      ],
+      "text": "You compare the two scored marks. The fresh east-cut score would change the beacon's direction from the approved caravan fork. The alteration is real; its author and purpose are unknown."
+    },
+    {
+      "id": "read-camp-survey",
+      "targetId": "camp-survey",
+      "when": [],
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "camp-survey-known"
+        },
+        {
+          "type": "record-milestone",
+          "id": "lead-followed"
+        }
+      ],
+      "text": "The survey separates the old caravan fork from the east cut. The sighting frame at Refugee Overlook provides an independent physical comparison."
+    },
+    {
+      "id": "compare-sighting-frame",
+      "targetId": "sighting-frame",
+      "when": [],
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "refugee-alignment"
+        },
+        {
+          "type": "record-milestone",
+          "id": "lead-followed"
+        }
+      ],
+      "text": "The old fork notch and fresh east-cut notch disagree. The familiar signal line points away from the caravan fork: trusting it without verification may be dangerous. No culprit or completed rescue is established."
+    },
+    {
+      "id": "search-supply-sack",
+      "targetId": "supply-sack",
+      "when": [],
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "raider-motive"
+        }
+      ],
+      "text": "Food wrappers and a demand for supplies explain the ambush. They reveal no beacon culprit. Inspect the ridge marker or continue to the tower."
+    },
+    {
+      "id": "shelter-routes",
+      "targetId": "tower-route-board",
+      "when": [],
+      "effects": [
+        {
+          "type": "grant-discovery",
+          "id": "tower-onward-lead"
+        }
+      ],
+      "text": "The Beacon Tower is the onward lead: the Tower Runner has provisional signal instructions. From Ridge Shelter, the guarded Tower Approach costs 0 days and begins combat immediately; the safe Drainage Walk costs 1 day, crosses the Day 3 deadline from the ridge, and needs no clue, roll, item or ally. Both reach the same tower."
+    }
+  ],
+  "facts": [
+    {
+      "id": "beacon-dark",
+      "statement": "The valley beacon is dark at dusk."
+    },
+    {
+      "id": "caravan-coming",
+      "statement": "A caravan is approaching the ridge fork."
+    },
+    {
+      "id": "keeper-missing",
+      "statement": "The beacon keeper is missing from the watch post and service gate."
+    },
+    {
+      "id": "pell-approved-setting",
+      "statement": "Before dusk, Pell copied the approved beacon setting toward the caravan fork."
+    }
+  ],
+  "relationships": [
+    {
+      "targetId": "iona",
+      "tier": "neutral",
+      "reason": "Iona has just met the player."
+    },
+    {
+      "targetId": "sera",
+      "tier": "neutral",
+      "reason": "Sera has just met the player."
+    },
+    {
+      "targetId": "pell",
+      "tier": "neutral",
+      "reason": "Pell is on watch duty and has not yet spoken to the player."
+    }
+  ],
+  "npcs": [
+    {
+      "id": "iona",
+      "name": "Captain Iona",
+      "aliases": ["iona", "captain"],
+      "locationId": "watch-yard",
+      "voice": "Urgent, precise, and willing to hear evidence.",
+      "knows": ["beacon-dark", "caravan-coming", "keeper-missing"],
+      "believes": [],
+      "wants": [
+        "Give the caravan an honest signal before it reaches the fork."
+      ],
+      "knowledgeLimits": [
+        "Has not visited the camp or service gate; knows their findings only if the player reports them."
+      ],
+      "topics": [
+        {
+          "id": "brief",
+          "name": "Ask about the beacon and watch leads",
+          "aliases": ["brief", "beacon"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "deadline-passed"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: The black pennant marks a missed turn, not a rescue. The records room and keeper's path can still be checked; the Valley Road remains open.",
+              "attitude": "urgent",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "warning-relayed"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: Your caution reached me. The yellow flag is posted and the runners are at the fork. I still need your signal decision.",
+              "attitude": "friendly",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "lead-followed"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: You have returned from a lead. Tell me if you want a caution relayed to the caravan; I will not assume what you found.",
+              "attitude": "neutral",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: The caravan is nearing the fork. Pell is in the Watch Loft and the fixed setting plate is in the Signal Records Room. Sera and the keeper's path are other leads. I will not call a dark lamp a completed signal.",
+              "attitude": "neutral",
+              "approvedFactIds": [
+                "beacon-dark",
+                "caravan-coming",
+                "keeper-missing"
+              ],
+              "effects": []
+            }
+          ]
+        },
+        {
+          "id": "relay-warning",
+          "name": "Relay a caution to the watch",
+          "aliases": ["warning", "caution"],
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "lead-followed"
+            }
+          ],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "deadline-passed"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: The Day 3 window has passed. A caution cannot hold the caravan before the fork now. From the tower, you can still direct runners toward the valley shelters.",
+              "attitude": "neutral",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "warning-relayed"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: The yellow caution flag is already posted. My runners are holding the caravan at the fork; the beacon remains dark until we choose a signal.",
+              "attitude": "friendly",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: I hear your caution. I will post a yellow flag and send runners to hold the caravan at the fork while we decide. The beacon stays dark for now.",
+              "attitude": "grateful",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "record-milestone",
+                  "id": "warning-relayed"
+                },
+                {
+                  "type": "set-relationship",
+                  "id": "iona",
+                  "tier": "trusted",
+                  "reason": "The player warned Iona, who posted a caution flag and sent runners."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "response",
+          "name": "Ask how the watch responds",
+          "aliases": ["response"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "iona-claim-corrected"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: I no longer believe the familiar signal is safe. I trust your evidence-backed correction. Nobody else heard your report; the beacon and rescue remain unresolved.",
+              "attitude": "candid",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "discovery-known",
+                  "id": "iona-signal-belief"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: I believe your assurance for now and trust your word. It is still only my belief. The setting plate can test it; no keeper or caravan rescue is established.",
+              "attitude": "trusting",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "discovery-known",
+                  "id": "iona-claim-refusal"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: I refused your assurance and remain guarded. You can recover my trust by inspecting the setting plate and correcting your claim.",
+              "attitude": "guarded",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "deadline-passed"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: The planned turn was missed. No report confirms the caravan or keeper safe. A tower signal can still direct runners toward the valley shelters.",
+              "attitude": "urgent",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "warning-relayed"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: Because you warned us, the yellow flag and runners are holding the caravan. The beacon is still dark; I still need your final decision.",
+              "attitude": "friendly",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: No caution has reached the watch. The beacon is dark and the caravan is approaching the fork.",
+              "attitude": "neutral",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        },
+        {
+          "id": "setting",
+          "name": "Report the altered setting",
+          "aliases": ["plate", "alteration"],
+          "when": [
+            {
+              "type": "discovery-known",
+              "id": "altered-setting"
+            }
+          ],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "deadline-passed"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: Your plate comparison suggests the setting would aim away from the fork. I have not seen who changed it. The Day 3 turn is missed, but a late rescue may still be possible from the tower.",
+              "attitude": "concerned",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: Your plate comparison is a reason to hold an unverified light. I cannot say who changed the setting or where the keeper went. The signal decision remains yours.",
+              "attitude": "concerned",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        },
+        {
+          "id": "safe-signal",
+          "name": "Claim the familiar signal is safe",
+          "aliases": ["familiar signal is safe", "safe signal", "safe-signal"],
+          "when": [],
+          "challengeId": "iona-safe-signal",
+          "intent": "claim",
+          "stakes": "Captain Iona only: one d20 + 0 against DC 12, remembered without rerolls. Acceptance grants trust and a private belief; refusal loses trust. Costs 0 days. The plate can correct either result; no signal or rescue changes.",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "success",
+              "approach": "any",
+              "text": "Iona: I accept your claim that the familiar signal is safe and trust your word for now. This is my belief, not a verified setting or rescue. Compare the setting plate and return if you were mistaken.",
+              "attitude": "trusting",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "grant-discovery",
+                  "id": "iona-signal-belief"
+                },
+                {
+                  "type": "record-milestone",
+                  "id": "iona-claim-attempted"
+                },
+                {
+                  "type": "set-relationship",
+                  "id": "iona",
+                  "tier": "trusted",
+                  "reason": "Iona accepted the player's unsupported safe-signal claim."
+                }
+              ]
+            },
+            {
+              "when": [],
+              "outcome": "failure",
+              "approach": "any",
+              "text": "Iona: I refuse that unsupported claim and distrust your assurance. Inspect the setting plate in the records room; bring back its comparison. The camp survey and sighting frame are also open.",
+              "attitude": "guarded",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "grant-discovery",
+                  "id": "iona-claim-refusal"
+                },
+                {
+                  "type": "record-milestone",
+                  "id": "iona-claim-attempted"
+                },
+                {
+                  "type": "set-relationship",
+                  "id": "iona",
+                  "tier": "hostile",
+                  "reason": "Iona refused the player's unsupported safe-signal claim."
+                }
+              ]
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: The setting plate remains available; no rescue is confirmed.",
+              "attitude": "guarded",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        },
+        {
+          "id": "correct-signal",
+          "name": "Correct the safe-signal claim with the setting plate",
+          "aliases": ["setting plate correction", "correct-signal"],
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "iona-claim-attempted"
+            },
+            {
+              "type": "discovery-known",
+              "id": "altered-setting"
+            }
+          ],
+          "challengeId": "none",
+          "intent": "correction",
+          "stakes": "Report your observed plate comparison to Captain Iona. Restores her trust and withdraws her safe-signal belief. No dice, 0 days; other actors, beacon, keeper and caravan do not change.",
+          "replies": [
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "iona-claim-corrected"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: Your correction stands. I trust your willingness to correct yourself, but the signal must be verified. Nobody else heard this report.",
+              "attitude": "candid",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Iona: The plate comparison contradicts the safe-signal claim. I withdraw any acceptance of it. Your honest correction restores my trust. We still have no culprit or confirmed rescue; speak to Pell or Sera to continue.",
+              "attitude": "candid",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "grant-discovery",
+                  "id": "iona-evidence-correction"
+                },
+                {
+                  "type": "record-milestone",
+                  "id": "iona-claim-corrected"
+                },
+                {
+                  "type": "set-relationship",
+                  "id": "iona",
+                  "tier": "trusted",
+                  "reason": "Iona trusts the player for correcting the claim with observed plate evidence."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sera",
+      "name": "Sera",
+      "aliases": ["sera", "messenger"],
+      "locationId": "refugee-camp",
+      "voice": "Wary, direct, and protective of the camp.",
+      "knows": ["beacon-dark", "keeper-missing"],
+      "believes": [],
+      "wants": [
+        "Keep the caravan and refugees from following an unverified signal."
+      ],
+      "knowledgeLimits": [
+        "Has not seen the shutter latch or the watch's response to a warning."
+      ],
+      "topics": [
+        {
+          "id": "keeper-warning",
+          "name": "Ask what the keeper said",
+          "aliases": ["keeper", "warning"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "deadline-passed"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Sera: The Day 3 turn was missed. I am seeking news at the valley shelters, not reporting a rescue. The survey and sighting frame remain open.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "camp-refused"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Sera: You refused our request. I still warn against an unverified light, but I have no new witness account. Check the survey and Refugee Overlook.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "camp-helped"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Sera: Thank you for helping make room. My warning remains an account, not proof. Compare the survey and sighting frame.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Sera: Before the keeper went missing, they told me not to trust an unverified beacon light. I fear someone could use it to draw pursuers toward the caravan. I did not see anyone tamper with the lamp.",
+              "attitude": "wary",
+              "approvedFactIds": ["keeper-missing"],
+              "effects": [
+                {
+                  "type": "grant-discovery",
+                  "id": "keeper-warning"
+                },
+                {
+                  "type": "record-milestone",
+                  "id": "lead-followed"
+                },
+                {
+                  "type": "grant-discovery",
+                  "id": "pursuer-claim"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "help",
+          "name": "Help the group make room",
+          "aliases": ["help"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Sera: We accept your help clearing space beside the shelters. This helps our camp; it does not rescue the keeper or caravan.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "record-milestone",
+                  "id": "camp-helped"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "refuse",
+          "name": "Refuse help and mistrust the claim",
+          "aliases": ["refuse"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Sera: You may refuse. The survey and sighting frame at Refugee Overlook remain yours to inspect; no one has proved a pursuer is following.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "record-milestone",
+                  "id": "camp-refused"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "alignment",
+          "name": "Discuss the observed signal alignment",
+          "aliases": ["alignment"],
+          "when": [
+            {
+              "type": "discovery-known",
+              "id": "refugee-alignment"
+            }
+          ],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Sera: Your frame comparison is physical evidence of a changed direction. It does not prove my suspicion about pursuers or reveal the keeper.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        },
+        {
+          "id": "account",
+          "name": "Ask for the refugee journey account",
+          "aliases": ["journey"],
+          "when": [],
+          "challengeId": "sera-account",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "success",
+              "approach": "any",
+              "text": "Sera: The missing keeper warned me about an unverified familiar light. I suspect pursuers, but saw no one change it.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "grant-discovery",
+                  "id": "keeper-warning"
+                },
+                {
+                  "type": "grant-discovery",
+                  "id": "pursuer-claim"
+                },
+                {
+                  "type": "record-milestone",
+                  "id": "lead-followed"
+                }
+              ]
+            },
+            {
+              "when": [],
+              "outcome": "failure",
+              "approach": "any",
+              "text": "Sera: I will not give that account. Search the camp signal survey and the sighting frame at Refugee Overlook.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Sera: Persuade me to give my account, or inspect the survey and sighting frame.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ],
+      "combat": {
+        "hp": 8,
+        "maxHp": 8,
+        "stats": {
+          "armorClass": 10,
+          "attackBonus": 1,
+          "initiativeBonus": 0,
+          "damage": {
+            "dice": 1,
+            "sides": 4,
+            "modifier": 0
+          }
+        }
+      },
+      "remains": {
+        "description": "Sera cannot answer. The camp signal survey and Refugee Overlook remain physical leads."
+      }
+    },
+    {
+      "id": "pell",
+      "name": "Pell",
+      "aliases": ["signaler"],
+      "locationId": "watch-loft",
+      "voice": "Careful and terse; distinguishes their own shift from anything learned later.",
+      "combat": {
+        "hp": 8,
+        "maxHp": 8,
+        "stats": {
+          "armorClass": 10,
+          "attackBonus": 1,
+          "initiativeBonus": 0,
+          "damage": {
+            "dice": 1,
+            "sides": 4,
+            "modifier": 0
+          }
+        }
+      },
+      "remains": {
+        "description": "Pell lies where they fell. The setting plate remains in the adjoining records room; their death cannot erase its marks."
+      },
+      "knows": ["pell-approved-setting"],
+      "believes": [],
+      "wants": [
+        "Keep the watch's account accurate without accusing the absent keeper."
+      ],
+      "knowledgeLimits": [
+        "Pell did not see who changed the setting and has not seen the keeper or the caravan after leaving the loft."
+      ],
+      "topics": [
+        {
+          "id": "shift",
+          "name": "Ask about the last signal shift",
+          "aliases": ["watch", "signal"],
+          "when": [],
+          "challengeId": "pell-account",
+          "replies": [
+            {
+              "when": [
+                {
+                  "type": "milestone-recorded",
+                  "id": "deadline-passed"
+                }
+              ],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Pell: The Day 3 turn was missed. I came down to Iona's post, but I cannot yet report the caravan safe. The plate in the records room remains available.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "success",
+              "approach": "any",
+              "text": "Pell: I copied the approved setting toward the caravan fork before dusk. I did not see who handled the lamp later. Compare my account with the fixed plate next door.",
+              "attitude": "candid",
+              "approvedFactIds": ["pell-approved-setting"],
+              "effects": [
+                {
+                  "type": "grant-discovery",
+                  "id": "pell-shift"
+                },
+                {
+                  "type": "record-milestone",
+                  "id": "watch-account"
+                },
+                {
+                  "type": "record-milestone",
+                  "id": "lead-followed"
+                }
+              ]
+            },
+            {
+              "when": [],
+              "outcome": "failure",
+              "approach": "any",
+              "text": "Pell: I cannot give you my shift account. The fixed plate in the records room is yours to inspect.",
+              "attitude": "guarded",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "unattempted",
+              "approach": "ask",
+              "text": "Pell: The approved marks and the current setting can be compared on the plate next door. I will not give a full shift account on a bare question.",
+              "attitude": "guarded",
+              "approvedFactIds": [],
+              "effects": []
+            },
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Pell: Compare the setting plate in the records room. I cannot name anyone who touched the lamp.",
+              "attitude": "guarded",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        },
+        {
+          "id": "plate",
+          "name": "Discuss the altered plate",
+          "aliases": ["alteration"],
+          "when": [
+            {
+              "type": "discovery-known",
+              "id": "altered-setting"
+            }
+          ],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Pell: Your comparison shows the two scores differ. My watch did not establish who changed the setting or where the keeper went.",
+              "attitude": "concerned",
+              "approvedFactIds": [],
+              "effects": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tower-runner",
+      "name": "Tower Runner",
+      "aliases": ["runner"],
+      "locationId": "beacon-tower",
+      "voice": "Precise about instructions and uncertainty.",
+      "knows": [],
+      "believes": [],
+      "wants": ["Relay provisional instructions without claiming a rescue."],
+      "knowledgeLimits": ["Has no confirmed keeper or caravan fate."],
+      "topics": [
+        {
+          "id": "hold-beacon",
+          "name": "Hold the beacon and continue",
+          "aliases": ["hold beacon"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Runner: I will relay your instruction to hold the unverified light. No rescue is confirmed. You can continue investigating via the camp and watch.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "record-milestone",
+                  "id": "signal-held"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "light-beacon",
+          "name": "Light the beacon and continue",
+          "aliases": ["light beacon"],
+          "when": [
+            {
+              "type": "milestone-recorded",
+              "id": "component-fitted"
+            }
+          ],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Runner: I will relay your instruction to light the current setting. Who follows remains unknown. You can continue investigating.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "record-milestone",
+                  "id": "signal-lit"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "refuse-watch",
+          "name": "Refuse the watch and continue",
+          "aliases": ["refuse watch"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Runner: You decline to choose a signal. The investigation remains open; the camp and watch can still be visited.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "record-milestone",
+                  "id": "decision-declined"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "walk-away",
+          "name": "Leave the watch and continue",
+          "aliases": ["walk away"],
+          "when": [],
+          "challengeId": "none",
+          "replies": [
+            {
+              "when": [],
+              "outcome": "any",
+              "approach": "any",
+              "text": "Runner: You leave the watch decision unresolved. Continue by the ridge or valley exits; no rescue is claimed.",
+              "attitude": "wary",
+              "approvedFactIds": [],
+              "effects": [
+                {
+                  "type": "record-milestone",
+                  "id": "decision-abandoned"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "combatProfile": {
+    "armorClass": 16,
+    "attackBonus": 5,
+    "initiativeBonus": 1,
+    "damage": {
+      "dice": 1,
+      "sides": 8,
+      "modifier": 3
+    }
+  },
+  "timeCosts": {
+    "move": 0,
+    "search": 0,
+    "talk": 0,
+    "take": 0,
+    "use": 0,
+    "attack": 0
+  },
+  "clocks": [
+    {
+      "id": "caravan-deadline",
+      "name": "Caravan Deadline",
+      "unit": "day",
+      "initial": 0,
+      "maximum": 14,
+      "thresholds": [
+        {
+          "at": 3,
+          "text": "The watch raises a black pennant: the caravan missed its planned turn at the fork. The Watch Loft shift ends; no rescue is confirmed. Sera leaves the camp to seek news at the valley shelters; the camp survey remains accessible.",
+          "visibleFrom": [
+            "watch-yard",
+            "beacon-tower",
+            "watch-loft",
+            "signal-records",
+            "refugee-camp",
+            "refugee-overlook",
+            "valley-road"
+          ],
+          "effects": [
+            {
+              "type": "record-milestone",
+              "id": "deadline-passed"
+            },
+            {
+              "type": "relocate-npc",
+              "id": "pell",
+              "fromLocationId": "watch-loft",
+              "toLocationId": "watch-yard"
+            },
+            {
+              "type": "relocate-npc",
+              "id": "sera",
+              "fromLocationId": "refugee-camp",
+              "toLocationId": "valley-road"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "adjudicationProfiles": [],
+  "socialChallenges": [
+    {
+      "id": "pell-account",
+      "modifier": 0,
+      "dc": 12,
+      "guardedFactIds": ["pell-approved-setting"],
+      "guardedDiscoveryIds": ["pell-shift"],
+      "guardedMilestoneIds": ["watch-account"],
+      "evidenceWhen": []
+    },
+    {
+      "id": "sera-account",
+      "modifier": 0,
+      "dc": 12,
+      "guardedFactIds": [],
+      "guardedDiscoveryIds": [],
+      "guardedMilestoneIds": [],
+      "evidenceWhen": []
+    },
+    {
+      "id": "iona-safe-signal",
+      "modifier": 0,
+      "dc": 12,
+      "guardedFactIds": [],
+      "guardedDiscoveryIds": [],
+      "guardedMilestoneIds": [],
+      "evidenceWhen": []
+    }
+  ],
+  "combatBrace": {
+    "featureId": "fallen-cart",
+    "monsterId": "ridge-raider",
+    "armorClassBonus": 4
+  },
+  "monsterDefinitions": [
+    {
+      "id": "road-raider",
+      "name": "ridge raider",
+      "description": "A hungry raider brandishes a chipped blade and demands your supplies.",
+      "aliases": ["raider", "ridge raider"],
+      "maxHp": 18,
+      "stats": {
+        "armorClass": 13,
+        "attackBonus": 5,
+        "initiativeBonus": 2,
+        "damage": {
+          "dice": 1,
+          "sides": 6,
+          "modifier": 3
+        }
+      }
+    },
+    {
+      "id": "tower-sentry-definition",
+      "name": "tower sentry",
+      "description": "A lone sentry guards the direct tower approach. No retreat or surrender; defeat ends the session.",
+      "aliases": ["sentry"],
+      "maxHp": 10,
+      "stats": {
+        "armorClass": 11,
+        "attackBonus": 2,
+        "initiativeBonus": 0,
+        "damage": {
+          "dice": 1,
+          "sides": 4,
+          "modifier": 1
+        }
+      }
+    }
+  ],
+  "monsters": [
+    {
+      "id": "ridge-raider",
+      "definitionId": "road-raider",
+      "locationId": "ridge-trail",
+      "hp": 18
+    },
+    {
+      "id": "tower-sentry",
+      "definitionId": "tower-sentry-definition",
+      "locationId": "tower-approach",
+      "hp": 10
+    }
+  ],
+  "encounters": [
+    {
+      "id": "ridge-threat",
+      "monsterId": "ridge-raider",
+      "when": [],
+      "effects": [
+        {
+          "type": "record-milestone",
+          "id": "ridge-cleared"
+        }
+      ]
+    },
+    {
+      "id": "optional-tower-threat",
+      "monsterId": "tower-sentry",
+      "when": [],
+      "effects": [
+        {
+          "type": "record-milestone",
+          "id": "approach-cleared"
+        }
+      ]
+    }
+  ],
+  "recovery": {
+    "featureId": "dressing-station",
+    "milestoneId": "camp-dressing-used",
+    "hp": 8,
+    "timeCost": 0
+  },
+  "items": [
+    {
+      "id": "signal-component",
+      "name": "spare signal component",
+      "aliases": ["component", "signal component"],
+      "description": "A keyed signal component for the beacon socket at the Beacon Tower. Fit it there outside combat: spend this component once for 0 days and no dice; no healing occurs. The fitted socket enables the runner to light the beacon; it confirms no rescue.",
+      "locationId": "signal-records",
+      "featureId": "setting-plate"
+    }
+  ],
+  "questItem": {
+    "itemId": "signal-component",
+    "featureId": "beacon-socket",
+    "milestoneId": "component-fitted",
+    "discoveryId": "fitted-socket",
+    "timeCost": 0
+  }
+}

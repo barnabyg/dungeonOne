@@ -93,6 +93,12 @@ export type DmScene = Readonly<{
     label: string;
     stakes: string;
   }>[];
+  itemUseChoices?: readonly Readonly<{
+    itemId: string;
+    featureId: string;
+    label: string;
+    stakes: string;
+  }>[];
   combatStatus?: string;
   endingChoices?: readonly Readonly<{
     id: string;
@@ -108,6 +114,7 @@ export type CharacterStatus = Readonly<{
   collectedItems: readonly Readonly<{
     id: string;
     name: string;
+    description?: string;
   }>[];
   outcome: SessionState["status"];
   combatTurn?: string;
@@ -134,6 +141,7 @@ export type GameToolName =
   | "talk"
   | "open"
   | "take"
+  | "place_item"
   | "use_item"
   | "recover"
   | "brace"
@@ -699,6 +707,7 @@ function parseTool(
         name === "distract" ||
         name === "deceive" ||
         name === "offer" ||
+        name === "place_item" ||
         name === "recover" ||
         name === "brace"
       ) {

@@ -150,7 +150,7 @@ function informationBlock(heading, values) {
   element("information-body").append(title, items);
 }
 function inventoryBlock(heading, items, empty) {
-  informationBlock(heading, items.length ? items.map((item) => item.name) : [empty]);
+  informationBlock(heading, items.length ? items.map((item) => item.name + (item.description ? ": " + item.description : "")) : [empty]);
 }
 function renderInformation() {
   if (!activePanel || !currentView || currentView.slot === "empty") { return; }

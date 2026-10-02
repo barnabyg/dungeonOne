@@ -47,7 +47,7 @@ launch environment, then run this copyable PowerShell command:
 npm.cmd run browser -- --seed 0 --save .\hollow-beacon-browser-save.json
 ```
 
-The launcher starts **Hollow Beacon: Recovery and Detour** (issue #88, content version 8) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
+The launcher starts **Hollow Beacon: Signal Component** (issue #89, content version 9) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
 your desktop browser. If opening fails, use the printed URL. Keep the
 launcher running; Ctrl+C stops the service without closing the saved session.
 Rerun the same command to read the same slot at its saved seed, even if the
@@ -105,6 +105,13 @@ replacement until they finish. An interrupted write recovers a whole verified
 old or new slot; after a failure or lost response, use **Read current state**
 before retrying. Old-tab actions and delayed replies cannot enter the new game.
 See [issue 104 player checks](docs/acceptance/issue-104.md).
+
+V9 adds a spare signal component at the watch setting plate. Take and inspect it,
+then fit it at the tower's beacon socket outside combat. This spends one component
+for zero days and dice, without healing, and enables the existing provisional
+light instruction. Inventory, socket, Journal and local hints refresh together;
+wrong-target and repeated use preserve the committed state. Released v4-v8
+slots remain unchanged. See [issue 89 player checks](docs/acceptance/issue-89.md).
 
 Type one ordinary-language action or question and select **Send message**.
 The browser uses the same bounded AI tools as the CLI and its default model

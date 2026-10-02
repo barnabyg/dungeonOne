@@ -82,6 +82,7 @@ const authoredAssets = [
   "adventures/hollow-beacon-trust.json",
   "adventures/hollow-beacon-threat.json",
   "adventures/hollow-beacon-recovery.json",
+  "adventures/hollow-beacon-component.json",
   "schema/adventure-v1.schema.json",
   "schema/adventure-v2.schema.json",
   "schema/adventure-v3.schema.json",
@@ -95,6 +96,7 @@ const authoredAssets = [
   "schema/adventure-v11.schema.json",
   "schema/adventure-v12.schema.json",
   "schema/adventure-v13.schema.json",
+  "schema/adventure-v14.schema.json",
 ];
 
 for (const adventure of authoredAssets.filter((asset) =>

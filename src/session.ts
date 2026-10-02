@@ -59,6 +59,7 @@ export type Action = Readonly<
   | { type: "open"; target?: string }
   | { type: "take"; target?: string }
   | { type: "use"; target?: string }
+  | { type: "place"; itemId: string; target: string }
   | { type: "recover"; target?: string }
   | { type: "brace"; target?: string }
   | { type: "attack"; target?: string }
@@ -1130,6 +1131,7 @@ export function handleAction(
             : { ...state, status: "quit" },
         events: [{ type: "session-quit" }],
       };
+    case "place":
     case "recover":
     case "brace":
     case "follow":

@@ -53,7 +53,7 @@ export function browserActions(
   ) => {
     actions.push({
       id: createHash("sha256")
-        .update(revision + JSON.stringify(call))
+        .update(revision + contextId + JSON.stringify(call))
         .digest("hex"),
       contextId,
       label,
@@ -129,6 +129,40 @@ export function browserActions(
       "Take " + target.name,
     );
   }
+  for (const choice of scene.itemUseChoices ?? []) {
+    const item = session.runtime
+      .projectCharacterStatus(session.state)
+      .collectedItems.find(({ id }) => id === choice.itemId)!;
+    const target = scene.room.features.find(
+      ({ id }) => id === choice.featureId,
+    )!;
+    add(
+      "inventory:" + choice.itemId,
+      choice.label,
+      "Fit " + item.name + " in " + target.name,
+      {
+        name: "place_item",
+        argumentsJson: JSON.stringify({
+          item_id: choice.itemId,
+          target: choice.featureId,
+        }),
+      },
+      choice.stakes,
+    );
+    add(
+      "target:" + choice.featureId,
+      choice.label,
+      "Fit " + item.name + " in " + target.name,
+      {
+        name: "place_item",
+        argumentsJson: JSON.stringify({
+          item_id: choice.itemId,
+          target: choice.featureId,
+        }),
+      },
+      choice.stakes,
+    );
+  }
   for (const choice of scene.recoveryChoices ?? []) {
     offer(
       "target:" + choice.featureId,
@@ -166,6 +200,14 @@ export function browserActions(
   }
   for (const item of session.runtime.projectCharacterStatus(session.state)
     .collectedItems) {
+    offer(
+      "inventory:" + item.id,
+      "inspect",
+      "target",
+      item.id,
+      "Inspect",
+      "Inspect " + item.name,
+    );
     offer(
       "inventory:" + item.id,
       "use_item",

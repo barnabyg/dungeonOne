@@ -168,6 +168,24 @@ export function analyzeProgression(
     }),
   );
 
+  if (snapshot.questItem) {
+    const quest = snapshot.questItem;
+    const item = snapshot.items?.find(({ id }) => id === quest.itemId);
+    const source = snapshot.features.find(({ id }) => id === item?.featureId);
+    const target = snapshot.features.find(({ id }) => id === quest.featureId);
+    if (source && target)
+      producers.push({
+        path: "/questItem",
+        entity: quest.itemId,
+        locationId: target.locationId,
+        when: source.when,
+        effects: [
+          { type: "grant-discovery", id: quest.discoveryId },
+          { type: "record-milestone", id: quest.milestoneId },
+        ],
+        unsupported: true,
+      });
+  }
   const seed = new Set([
     ...(snapshot.initialDiscoveries ?? []).map((id) => `discovery-known/${id}`),
     ...(snapshot.initialMilestones ?? []).map(
