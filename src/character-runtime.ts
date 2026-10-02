@@ -328,6 +328,33 @@ export function createCharacterRuntime(
           modelOutput: { ok: false, error: { code: "invalid-arguments" } },
         };
       }
+      const check = availableChecks(state).find(
+        ({ id }) => id === args.checkId,
+      );
+      const request = playerInput
+        ?.trim()
+        .toLowerCase()
+        .replace(/^please\s+/u, "")
+        .replace(/[.!]$/u, "");
+      const feature = definition.features.find(
+        ({ id }) => id === check?.featureId,
+      );
+      const affirmativeRequests =
+        check === undefined
+          ? []
+          : [
+              `attempt the ${check.id} ${check.ability} check`,
+              `check ${check.id}`,
+              `try ${check.id}`,
+              `attempt ${check.id}`,
+              `try the ${check.ability} check at ${feature!.name.toLowerCase()}`,
+            ];
+      if (request === undefined || !affirmativeRequests.includes(request)) {
+        return {
+          state,
+          modelOutput: { ok: false, error: { code: "unavailable-reference" } },
+        };
+      }
       const action: Action = { type: "ability-check", checkId: args.checkId };
       const result = handleAction(state, action, random);
       return result.rejection === undefined

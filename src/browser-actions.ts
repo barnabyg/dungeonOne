@@ -92,7 +92,10 @@ export function browserActions(
       "checkId",
       check.id,
       "Try " + check.ability + " check",
-      "Attempt the " + check.id + " " + check.ability + " check",
+      "Try the " +
+        check.ability +
+        " check at " +
+        definition!.features.find(({ id }) => id === check.featureId)!.name,
       `${check.ability} check, DC ${check.dc}; once per adventure, no time cost. Success earns ${definition!.characterAdventure!.rewards.filter((reward) => reward.trigger === "check-success" && reward.targetId === check.id).reduce((xp, reward) => xp + reward.xp, 0)} pending XP if this character has not earned that reward before. Failure preserves ordinary observation and investigation.`,
     );
   }
