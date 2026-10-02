@@ -373,8 +373,9 @@ test("the new item is bounded to its tuple, respects hidden targets, and keeps h
     "move signal-records",
     "take potion",
     "take component",
-  ])
+  ]) {
     at = act(healer, at, command).state;
+  }
   assert.ok(act(healer, at, "use potion").rejection);
   const injured = { ...at, fighter: { ...at.fighter, hp: 1 } };
   const healed = healer.handleAction(
@@ -646,7 +647,9 @@ test(
       }
       assert.deepEqual(finalStates[0], finalStates[1]);
     } finally {
-      if (server) await stop(server);
+      if (server) {
+        await stop(server);
+      }
       await browser?.close();
       rmSync(dir, { recursive: true, force: true });
     }

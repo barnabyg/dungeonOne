@@ -3762,8 +3762,9 @@ export function createChapelCluesRuntime(
         (verb === "use" || verb === "fit" || verb === "place")
       ) {
         const match = /^(.+) (?:at|in|into|on) (.+)$/u.exec(rest.join(" "));
-        if (match)
+        if (match) {
           return { type: "place", itemId: match[1]!, target: match[2]! };
+        }
       }
       if (verb === "take" || verb === "use" || verb === "drink") {
         return {
@@ -3889,10 +3890,11 @@ export function createChapelCluesRuntime(
       }
       const offered = tools(state).find((entry) => entry.name === call.name);
       if (offered === undefined) {
-        if (call.name === "place_item" && questItemEnabled)
+        if (call.name === "place_item" && questItemEnabled) {
           return rejectProposal(
             "Fit the carried signal component only at the visible beacon socket, outside combat. Missing, hidden or spent components cannot be used; no item is consumed.",
           );
+        }
         if (call.name === "follow" && dayEnabled) {
           return rejectProposal(
             "Following is unavailable: the trail may be lost or the route blocked. Check the visible exits for another route.",
@@ -4261,8 +4263,9 @@ export function createChapelCluesRuntime(
           Object.keys(record).length !== 2 ||
           record.item_id !== definition.questItem?.itemId ||
           record.target !== placementFeature(state)?.id
-        )
+        ) {
           return fail("invalid-arguments");
+        }
         const item = questItem()!;
         const feature = placementFeature(state)!;
         const intent = actionIntent(playerInput);
@@ -4277,8 +4280,9 @@ export function createChapelCluesRuntime(
           ) ||
           !mentionsAlias(intent, [item.id, item.name, ...item.aliases]) ||
           !mentionsAlias(intent, [feature.id, feature.name, ...feature.aliases])
-        )
+        ) {
           return fail("unavailable-reference");
+        }
         const action: Action = {
           type: "place",
           itemId: item.id,

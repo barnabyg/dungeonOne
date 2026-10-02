@@ -173,7 +173,7 @@ export function analyzeProgression(
     const item = snapshot.items?.find(({ id }) => id === quest.itemId);
     const source = snapshot.features.find(({ id }) => id === item?.featureId);
     const target = snapshot.features.find(({ id }) => id === quest.featureId);
-    if (source && target)
+    if (source && target) {
       producers.push({
         path: "/questItem",
         entity: quest.itemId,
@@ -185,6 +185,7 @@ export function analyzeProgression(
         ],
         unsupported: true,
       });
+    }
   }
   const seed = new Set([
     ...(snapshot.initialDiscoveries ?? []).map((id) => `discovery-known/${id}`),
