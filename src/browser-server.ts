@@ -271,7 +271,7 @@ function playerView(
     characterLabel:
       status.sheet === undefined
         ? "Fighter"
-        : `${status.sheet.name} � Fighter level ${status.sheet.level}`,
+        : `${status.sheet.name} \u00b7 Fighter level ${status.sheet.level}`,
     history: [
       ...(session.browserHistory?.turns ?? []),
       ...(session.browserHistory?.pending === undefined

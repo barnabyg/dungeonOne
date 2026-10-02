@@ -28,7 +28,8 @@ Intelligence 10, Wisdom 11, Charisma 9; HP 19/19, AC 16, attack +3, damage
 the saved sheet must still exist. Save a second Fighter and expect both sheets.
 
 Choose Ada and **Start Hollow Beacon**. Expect the levels 1–2 recommendation
-and the same saved sheet. **Character** opens scores, modifiers, gear and XP;
+and the same saved sheet. Ada's name appears prominently above HP and location,
+with Fighter and level beside it. **Character** opens scores, modifiers, gear and XP;
 opening it never consumes an action, advances time or calls AI.
 
 To test continuation, wait until the reply is complete and input is enabled,
