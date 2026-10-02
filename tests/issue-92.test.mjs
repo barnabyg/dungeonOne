@@ -201,6 +201,33 @@ test(
           await page.locator("#deadline").textContent(),
           /3 day\(s\) until/,
         );
+        for (const id of [
+          "location",
+          "hp",
+          "time",
+          "deadline",
+          "message",
+          "send",
+        ]) {
+          const bounds = await page.locator("#" + id).boundingBox();
+          assert.ok(
+            bounds.y >= 0 && bounds.y + bounds.height <= 720,
+            id + " must be readable in the opening viewport",
+          );
+        }
+        assert.match(
+          await page.locator("#feedback").textContent(),
+          /Opening saved/,
+        );
+        const exitsBounds = await page.locator("#exits").boundingBox();
+        assert.ok(
+          exitsBounds.y + exitsBounds.height <= 720,
+          "opening exits must be visible",
+        );
+        assert.ok(
+          (await page.locator("#conversation").boundingBox()).height >= 100,
+          "conversation must remain readable beside the persistent status",
+        );
         await page
           .getByRole("button", { name: "Captain Iona", exact: true })
           .click();

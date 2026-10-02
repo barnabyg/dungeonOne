@@ -5,16 +5,21 @@ export const BROWSER_HTML = `<!doctype html>
 <body><a class="skip" href="#scene">Skip to scene</a>
 <header><p class="eyebrow">DUNGEON ONE · LOCAL ADVENTURE</p><h1>Hollow Beacon</h1><p id="seed">Reading save slot…</p></header>
 <main><aside id="scene-context" aria-label="Current scene and adventure status"><p class="eyebrow">CURRENT SCENE</p>
-<h2 id="scene-title">Your save slot</h2><p id="description">Checking for an existing adventure…</p><p id="objective"></p>
+<h2 id="scene-title">Your save slot</h2><p id="objective"></p>
+<h2>Visible exits</h2><ul id="exits"><li>Start to see exits.</li></ul>
+<p id="description">Checking for an existing adventure…</p>
 <div class="controls"><button id="start" hidden>Start adventure</button><button id="new-game" hidden>New game</button><button id="refresh">Read current state</button></div>
 <h2>At a glance</h2><dl>
-<dt>Location</dt><dd id="location">Not started</dd><dt>HP</dt><dd id="hp">—</dd>
 <dt>Defense</dt><dd id="defense">—</dd><dt>Attack</dt><dd id="attack">—</dd><dt>Conditions</dt><dd id="conditions">—</dd>
-<dt>Combat</dt><dd id="combat">No active combat.</dd><dt>Time</dt><dd id="time">—</dd><dt>Deadline</dt><dd id="deadline">—</dd><dt>Session</dt><dd id="session">—</dd></dl>
+<dt>Combat</dt><dd id="combat">No active combat.</dd></dl>
 <h2>Current leads</h2><ul id="current-leads"><li>Start to read your leads.</li></ul>
 <h2>Last saved action</h2><p id="last-consequence">No action yet.</p>
-<h2>Visible exits</h2><ul id="exits"><li>Start to see exits.</li></ul></aside>
+</aside>
 <section id="scene" tabindex="-1" aria-labelledby="conversation-title">
+<dl id="journey-status" aria-label="Current position and resources">
+<div><dt>Location</dt><dd id="location">Not started</dd></div><div><dt>HP</dt><dd id="hp">—</dd></div>
+<div><dt>Time</dt><dd id="time">—</dd></div><div><dt>Session</dt><dd id="session">—</dd></div>
+<div class="deadline"><dt>Deadline</dt><dd id="deadline">—</dd></div></dl>
 <h2 id="conversation-title">Conversation</h2><div id="conversation" role="log" aria-live="polite" aria-label="Adventure conversation"></div>
 <form id="turn" hidden><label for="message">What do you do or ask?</label>
 <textarea id="message" maxlength="1000" rows="3" required aria-describedby="message-help" placeholder="Describe one action, or ask a question."></textarea>
@@ -51,6 +56,9 @@ aside{min-width:0;padding:24px;background:#e6eae0;border:1px solid #cbd2c3;borde
 section{min-width:0;background:#fffdf8;padding:24px;border:1px solid #d7dbd0;border-radius:6px}#description{white-space:pre-wrap}#objective{color:#526154}.controls{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0 28px}button{cursor:pointer;font:.85rem system-ui,sans-serif;padding:12px 18px;border-radius:4px;border:1px solid #345645;background:#345645;color:#fff}button:disabled{opacity:.65;cursor:wait}button:hover{background:#234535}#refresh{background:transparent;color:#25352f}
 :focus-visible{outline:3px solid #a75b20;outline-offset:4px}#feedback{font:.8rem system-ui,sans-serif;margin:0 0 12px;min-height:1.4em}.note{font:.75rem system-ui,sans-serif;color:#59665d;border-top:1px solid #d7dbd0;padding-top:12px;margin:0}.skip{position:absolute;left:12px;top:-100px;background:#fff;padding:8px}.skip:focus{top:12px}[hidden]{display:none!important}
 #scene{position:sticky;top:24px;height:calc(100dvh - 202px);min-height:420px;display:flex;flex-direction:column}#conversation-title{flex:none;font-size:1.1rem}#conversation{flex:1;min-height:0;overflow:auto;overflow-anchor:none}#conversation:empty::before{content:"Your conversation will appear here.";color:#59665d;font-size:.9rem}#turn{flex:none;margin:16px 0 12px;padding-top:16px;border-top:1px solid #d7dbd0}label{display:block;font:600 .85rem system-ui,sans-serif}textarea{display:block;width:100%;min-height:76px;height:76px;max-height:20vh;resize:vertical;margin:8px 0;padding:12px;font:inherit;border:1px solid #83917f;border-radius:4px}#message-help{font:.75rem system-ui,sans-serif;color:#59665d;margin-bottom:8px}
+#journey-status{flex:none;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 16px;margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid #d7dbd0;font:.75rem/1.35 system-ui,sans-serif}#journey-status div{min-width:0}#journey-status dt,#journey-status dd{display:inline;font-size:inherit;overflow-wrap:anywhere}#journey-status dt{margin-right:8px;font-weight:600}#journey-status .deadline{grid-column:1 / -1}#conversation:empty::before{content:"Choose a person or object in view to read its options, or ask about something you can see."}
+#scene-context #objective{font-size:.85rem;line-height:1.4}#exits button{font-size:.75rem;padding:8px 10px}
+#scene #conversation-title{line-height:1.25;margin-bottom:10px}#conversation{min-height:100px}#journey-status{gap:4px 12px;font-size:.7rem;margin-bottom:10px;padding-bottom:8px}#turn{margin:10px 0 8px;padding-top:10px}textarea{min-height:60px;height:60px}#scene .note{font-size:.7rem;line-height:1.4;padding-top:8px}
 article{margin:16px 0;padding:16px;border-left:3px solid #cbd2c3;background:#f3f1eb}article h4{font:600 .8rem system-ui,sans-serif;margin:0 0 8px}article p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.player{border-color:#345645}.result{background:#e6eae0;border-color:#345645;font:.85rem/1.6 system-ui,sans-serif}.notice,.waiting{font-size:.85rem}.dialogue{background:#eef2e9;border-left:3px solid #58734f}.dialogue p{font-style:italic}.dialogue h4{color:#345645}#current-leads{font-size:.85rem}#last-consequence{white-space:pre-wrap;overflow-wrap:anywhere;font:.8rem/1.5 system-ui,sans-serif;max-height:180px;overflow:auto}
 #exits,#details{list-style:none;padding:0;margin:0 0 28px}#exits{display:flex;flex-wrap:wrap;gap:12px}#exits li{margin:0}#details li{margin-bottom:18px}#details li p{margin:8px 0 0}#context{margin:0 0 28px;padding:18px;background:#fffdf8;border:1px solid #cbd2c3;border-radius:6px}.context-heading{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:18px}.context-heading h3{margin:0}#close-context{flex:none;padding:6px 0;background:transparent;border:0;color:#526154;text-decoration:underline;text-underline-offset:3px}#close-context:hover{color:#25352f}#context-actions{display:flex;flex-wrap:wrap;gap:14px}#context-actions p{flex-basis:100%;margin:8px 0 0}#context-actions button{text-align:left;max-width:100%}
 nav{display:flex;flex-wrap:wrap;gap:8px}nav button{padding:8px 10px}nav button[aria-expanded="true"]{background:#234535;outline:2px solid #a75b20}#information{margin-top:18px;padding:0;border:0;background:transparent}#information-title{margin-top:18px}#information-body h3{margin-top:20px}#information-body p{white-space:pre-wrap;overflow-wrap:anywhere}#information-body ul{font-size:.85rem}#close-information{background:transparent;color:#25352f}
@@ -395,7 +403,7 @@ async function read(start = false) {
     }
     render(view);
     restoreHistory(view);
-    text("feedback", view.slot === "empty" ? "Ready to start." : view.recovery === "pending" ? "A turn is pending. Read current state again before continuing; do not repeat it." : "Saved progress and conversation loaded. Position " + view.position + ".");
+    text("feedback", view.slot === "empty" ? "Ready to start." : view.recovery === "pending" ? "A turn is pending. Read current state again before continuing; do not repeat it." : view.position === 0 && !(view.history || []).length ? "Opening saved. Choose a person or object in view, or ask your first question." : "Saved progress and conversation loaded. Position " + view.position + ".");
     if (start) { element("scene").focus(); }
   } catch (error) {
     text("feedback", error instanceof Error ? error.message : "Unable to reach the local service. Restart the launcher and open its new URL.");

@@ -12,6 +12,12 @@ const server = await startBrowserServer({
   dmModel: model,
 });
 process.stdout.write(server.url + "\n");
+process.stdout.write("Fixture PID: " + process.pid + "\n");
+process.stdin.on("data", (data) => {
+  if (data.toString().trim() === "stop") {
+    void server.close().then(() => process.exit());
+  }
+});
 process.once("SIGINT", () => {
   void server.close();
 });
