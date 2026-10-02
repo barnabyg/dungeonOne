@@ -141,6 +141,7 @@ export type GameToolDefinition = Readonly<{
 }>;
 
 export type GameToolName =
+  | "check_ability"
   | "look"
   | "move"
   | "follow"
@@ -709,6 +710,7 @@ function parseTool(
     }
     default:
       if (
+        name === "check_ability" ||
         name === "wait" ||
         name === "follow" ||
         name === "adjudicate" ||

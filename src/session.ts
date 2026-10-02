@@ -44,6 +44,7 @@ export type SessionState = Readonly<{
 }>;
 
 export type Action = Readonly<
+  | { type: "ability-check"; checkId: string }
   | { type: "help" }
   | { type: "look" }
   | { type: "inspect"; target?: string }
@@ -1132,6 +1133,7 @@ export function handleAction(
         events: [{ type: "session-quit" }],
       };
     case "place":
+    case "ability-check":
     case "recover":
     case "brace":
     case "follow":

@@ -85,6 +85,17 @@ export function browserActions(
       );
     }
   };
+  for (const check of definition?.characterAdventure?.checks ?? []) {
+    offer(
+      "target:" + check.featureId,
+      "check_ability",
+      "checkId",
+      check.id,
+      "Try " + check.ability + " check",
+      "Attempt the " + check.id + " " + check.ability + " check",
+      `${check.ability} check, DC ${check.dc}; once per adventure, no time cost. Failure preserves ordinary observation and investigation.`,
+    );
+  }
   for (const exit of scene.room.exits) {
     const combatRoute =
       session.runtime.id === "hollow-beacon" &&

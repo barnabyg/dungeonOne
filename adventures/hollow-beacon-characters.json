@@ -3,7 +3,7 @@
   "id": "hollow-beacon",
   "contentVersion": "12",
   "rulesVersion": "character-adventure-rules-v1",
-  "title": "Hollow Beacon: A Fighter\u2019s Warning",
+  "title": "Hollow Beacon: A Fighter’s Warning",
   "introduction": "The beacon is dark; the caravan reaches the fork on Day 3. Investigate Pell and the setting plate at the watch, or Sera and the signal survey at the Refugee Camp. Both routes remain open independently. Local investigation costs no whole days. The Ridge Trail costs 2 days and closes on Day 3; the Valley Road costs 4 days and remains open. Camp and tower choices continue the investigation; no rescue is confirmed by a choice alone. You can claim to Captain Iona that the familiar signal is safe. This is a remembered DC 12 check of your credibility, not proof. A refusal leaves both physical routes open; report the setting plate afterward to correct the claim. A raider bars the shorter Ridge Trail to seize travelers' supplies. Spend one action bracing the fallen cart for +4 AC against the next enemy attack, once per encounter. Combat rounds spend no days. The slower valley avoids this threat. The Beacon Tower is the onward lead: the Tower Runner has provisional signal instructions. From Ridge Shelter, the guarded Tower Approach costs 0 days and begins combat immediately; the safe Drainage Walk costs 1 day, crosses the Day 3 deadline from the ridge, and needs no clue, roll, item or ally. Both reach the same tower. The dressing station at Ridge Shelter has one camp dressing per session, usable outside combat while injured. Restore exactly min(8, missing HP) HP for 0 days; consume the dressing and no other item. Full HP does not spend it. At 0 HP you are defeated and the session ends. There is no retreat or surrender once combat begins; choose the drainage walk before entering the guarded approach. A spare signal component rests on the setting plate in the Signal Records Room. Carry it to the beacon socket at the tower and fit it before instructing the runner to light the beacon. Fitting spends the component, costs 0 days and no dice, and restores no HP. Holding, refusing or leaving remains possible without it. At the tower, an operator bars the signal controls. Evidence or a living watch ally can secure control without a fight. The fixed tower work order remains searchable after failed checks. A deliberate attack starts a third encounter: attack and carried healing use the existing combat actions; 0 HP ends in defeat, and there is no retreat or surrender after attacking. You can leave and gather evidence before attacking. Control opens a final warning decision, not a completed rescue or terminal ending.",
   "objective": "Reach the tower, establish control with proof, a watch warrant, or force, then inspect the final warning decision. The keeper and caravan remain unconfirmed.",
   "player": {
@@ -3150,7 +3150,48 @@
         "ability": "charisma"
       }
     ],
-    "checks": [],
+    "checks": [
+      {
+        "id": "read-beacon",
+        "featureId": "dark-beacon",
+        "ability": "wisdom",
+        "dc": 12,
+        "successText": "You notice the lamp housing is intact. To learn why the light failed, follow the keeper path and examine the latch.",
+        "failureText": "Distance and darkness make the lamp hard to read. The keeper path remains open; ordinary examination of the latch needs no check."
+      },
+      {
+        "id": "strength-assessment",
+        "featureId": "shutter-latch",
+        "ability": "strength",
+        "dc": 12,
+        "successText": "Your assessment is confident. The visible evidence can still be examined normally.",
+        "failureText": "Your assessment is uncertain. Examine the visible feature normally; evidence and onward routes remain available."
+      },
+      {
+        "id": "dexterity-assessment",
+        "featureId": "broken-marker",
+        "ability": "dexterity",
+        "dc": 12,
+        "successText": "Your assessment is confident. The visible evidence can still be examined normally.",
+        "failureText": "Your assessment is uncertain. Examine the visible feature normally; evidence and onward routes remain available."
+      },
+      {
+        "id": "constitution-assessment",
+        "featureId": "wagon-ruts",
+        "ability": "constitution",
+        "dc": 12,
+        "successText": "Your assessment is confident. The visible evidence can still be examined normally.",
+        "failureText": "Your assessment is uncertain. Examine the visible feature normally; evidence and onward routes remain available."
+      },
+      {
+        "id": "intelligence-assessment",
+        "featureId": "dark-beacon",
+        "ability": "intelligence",
+        "dc": 12,
+        "successText": "Your assessment is confident. The visible evidence can still be examined normally.",
+        "failureText": "Your assessment is uncertain. Examine the visible feature normally; evidence and onward routes remain available."
+      }
+    ],
     "rewards": [
       {
         "id": "hollow-beacon-completion",

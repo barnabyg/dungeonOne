@@ -27,6 +27,7 @@ export type AttackDefinition<Id extends string = CombatantId> = Readonly<{
   targetArmorClass: number;
   targetMaxHp: number;
   damage: DamageDefinition;
+  minimumDamage?: number;
 }>;
 
 export type AttackResolvedEvent<Id extends string = CombatantId> = Readonly<{
@@ -127,7 +128,11 @@ export function resolveAttack<Id extends string>(
     };
   }
 
-  const damage = rollDamage(definition.damage, critical ? 2 : 1, random);
+  const rolledDamage = rollDamage(definition.damage, critical ? 2 : 1, random);
+  const damage =
+    definition.minimumDamage === undefined
+      ? rolledDamage
+      : Math.max(definition.minimumDamage, rolledDamage);
   const remainingHp = Math.max(0, targetHp - damage);
   return {
     targetHp: remainingHp,

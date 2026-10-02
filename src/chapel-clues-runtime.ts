@@ -65,6 +65,18 @@ export type ClueState = Readonly<{
     narration: string;
   }>;
   character?: CharacterSheet;
+  abilityChecks?: Readonly<
+    Record<
+      string,
+      Readonly<{
+        die: number;
+        modifier: number;
+        total: number;
+        dc: number;
+        result: "success" | "failure";
+      }>
+    >
+  >;
   fighter: Readonly<{ hp: number; maxHp: number }>;
   discoveries: readonly string[];
   discoveryLocations?: Readonly<Record<string, string>>;
@@ -153,6 +165,7 @@ export type OfferResolution = Readonly<{
 export type ClueTextEvent = Readonly<{
   type: "clue";
   operation:
+    | "ability-check"
     | "look"
     | "inspect"
     | "move"
@@ -272,6 +285,7 @@ export type ClueJournal = Readonly<{
 
 export function createChapelCluesRuntime(
   content: ValidatedAdventure,
+  options: Readonly<{ minimumDamage?: number }> = {},
 ): AdventureRuntime {
   if (
     content.snapshot.schemaVersion !== 3 &&
@@ -1402,6 +1416,9 @@ export function createChapelCluesRuntime(
           definition.combatProfile!.armorClass + armorClassBonus,
         targetMaxHp: state.fighter.maxHp,
         damage: stats.damage,
+        ...(options.minimumDamage === undefined
+          ? {}
+          : { minimumDamage: options.minimumDamage }),
       },
       state.fighter.hp,
       random,
@@ -2375,6 +2392,9 @@ export function createChapelCluesRuntime(
           targetArmorClass: stats.armorClass,
           targetMaxHp: maxHp,
           damage: definition.combatProfile!.damage,
+          ...(options.minimumDamage === undefined
+            ? {}
+            : { minimumDamage: options.minimumDamage }),
         },
         actor === undefined
           ? state.monsters![opponentId!]!.hp
