@@ -9,7 +9,10 @@ export const BROWSER_HTML = `<!doctype html>
 <div class="controls"><button id="start" hidden>Start adventure</button><button id="new-game" hidden>New game</button><button id="refresh">Read current state</button></div>
 <h2>At a glance</h2><dl>
 <dt>Location</dt><dd id="location">Not started</dd><dt>HP</dt><dd id="hp">—</dd>
+<dt>Defense</dt><dd id="defense">—</dd><dt>Attack</dt><dd id="attack">—</dd><dt>Conditions</dt><dd id="conditions">—</dd>
 <dt>Combat</dt><dd id="combat">No active combat.</dd><dt>Time</dt><dd id="time">—</dd><dt>Deadline</dt><dd id="deadline">—</dd><dt>Session</dt><dd id="session">—</dd></dl>
+<h2>Current leads</h2><ul id="current-leads"><li>Start to read your leads.</li></ul>
+<h2>Last saved action</h2><p id="last-consequence">No action yet.</p>
 <h2>Visible exits</h2><ul id="exits"><li>Start to see exits.</li></ul></aside>
 <section id="scene" tabindex="-1" aria-labelledby="conversation-title">
 <h2 id="conversation-title">Conversation</h2><div id="conversation" role="log" aria-live="polite" aria-label="Adventure conversation"></div>
@@ -18,7 +21,7 @@ export const BROWSER_HTML = `<!doctype html>
 <p id="message-help">Enter to send · Shift+Enter for a new line</p>
 <button id="send" type="submit">Send message</button></form>
 <p id="feedback" role="status" aria-live="polite"></p>
-<p class="note">Progress and conversation history restore after reload or restart.</p>
+<p class="note">Result cards and current information are authoritative. Conversation is a saved account; journal sources distinguish evidence, testimony and belief.</p>
 </section>
 <aside id="information-navigation" aria-label="Interactions and player information">
 <div id="context" aria-label="Selected context" hidden><div class="context-heading"><h3 id="context-title" tabindex="-1"></h3><button id="close-context">Close options</button></div><div id="context-actions"></div></div>
@@ -48,7 +51,7 @@ aside{min-width:0;padding:24px;background:#e6eae0;border:1px solid #cbd2c3;borde
 section{min-width:0;background:#fffdf8;padding:24px;border:1px solid #d7dbd0;border-radius:6px}#description{white-space:pre-wrap}#objective{color:#526154}.controls{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0 28px}button{cursor:pointer;font:.85rem system-ui,sans-serif;padding:12px 18px;border-radius:4px;border:1px solid #345645;background:#345645;color:#fff}button:disabled{opacity:.65;cursor:wait}button:hover{background:#234535}#refresh{background:transparent;color:#25352f}
 :focus-visible{outline:3px solid #a75b20;outline-offset:4px}#feedback{font:.8rem system-ui,sans-serif;margin:0 0 12px;min-height:1.4em}.note{font:.75rem system-ui,sans-serif;color:#59665d;border-top:1px solid #d7dbd0;padding-top:12px;margin:0}.skip{position:absolute;left:12px;top:-100px;background:#fff;padding:8px}.skip:focus{top:12px}[hidden]{display:none!important}
 #scene{position:sticky;top:24px;height:calc(100dvh - 202px);min-height:420px;display:flex;flex-direction:column}#conversation-title{flex:none;font-size:1.1rem}#conversation{flex:1;min-height:0;overflow:auto;overflow-anchor:none}#conversation:empty::before{content:"Your conversation will appear here.";color:#59665d;font-size:.9rem}#turn{flex:none;margin:16px 0 12px;padding-top:16px;border-top:1px solid #d7dbd0}label{display:block;font:600 .85rem system-ui,sans-serif}textarea{display:block;width:100%;min-height:76px;height:76px;max-height:20vh;resize:vertical;margin:8px 0;padding:12px;font:inherit;border:1px solid #83917f;border-radius:4px}#message-help{font:.75rem system-ui,sans-serif;color:#59665d;margin-bottom:8px}
-article{margin:16px 0;padding:16px;border-left:3px solid #cbd2c3;background:#f3f1eb}article h4{font:600 .8rem system-ui,sans-serif;margin:0 0 8px}article p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.player{border-color:#345645}.result{background:#e6eae0}.notice,.waiting{font-size:.85rem}.dialogue{background:#eef2e9;border-left:3px solid #58734f}.dialogue p{font-style:italic}.dialogue h4{color:#345645}
+article{margin:16px 0;padding:16px;border-left:3px solid #cbd2c3;background:#f3f1eb}article h4{font:600 .8rem system-ui,sans-serif;margin:0 0 8px}article p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.player{border-color:#345645}.result{background:#e6eae0;border-color:#345645;font:.85rem/1.6 system-ui,sans-serif}.notice,.waiting{font-size:.85rem}.dialogue{background:#eef2e9;border-left:3px solid #58734f}.dialogue p{font-style:italic}.dialogue h4{color:#345645}#current-leads{font-size:.85rem}#last-consequence{white-space:pre-wrap;overflow-wrap:anywhere;font:.8rem/1.5 system-ui,sans-serif;max-height:180px;overflow:auto}
 #exits,#details{list-style:none;padding:0;margin:0 0 28px}#exits{display:flex;flex-wrap:wrap;gap:12px}#exits li{margin:0}#details li{margin-bottom:18px}#details li p{margin:8px 0 0}#context{margin:0 0 28px;padding:18px;background:#fffdf8;border:1px solid #cbd2c3;border-radius:6px}.context-heading{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:18px}.context-heading h3{margin:0}#close-context{flex:none;padding:6px 0;background:transparent;border:0;color:#526154;text-decoration:underline;text-underline-offset:3px}#close-context:hover{color:#25352f}#context-actions{display:flex;flex-wrap:wrap;gap:14px}#context-actions p{flex-basis:100%;margin:8px 0 0}#context-actions button{text-align:left;max-width:100%}
 nav{display:flex;flex-wrap:wrap;gap:8px}nav button{padding:8px 10px}nav button[aria-expanded="true"]{background:#234535;outline:2px solid #a75b20}#information{margin-top:18px;padding:0;border:0;background:transparent}#information-title{margin-top:18px}#information-body h3{margin-top:20px}#information-body p{white-space:pre-wrap;overflow-wrap:anywhere}#information-body ul{font-size:.85rem}#close-information{background:transparent;color:#25352f}
 @media(max-width:1250px){main{grid-template-columns:250px minmax(0,1fr) 280px;gap:20px;padding:0 24px}aside,section{padding:18px}dl{grid-template-columns:75px minmax(0,1fr);gap:8px}#context{padding:12px}.context-heading{flex-wrap:wrap;gap:8px}#scene{height:calc(100dvh - 202px)}}
@@ -62,6 +65,7 @@ let pending = false;
 let currentView;
 let activePanel;
 let contextButtons = [];
+let contextOpener;
 let sceneButtons = [];
 let hintPollRevision;
 let strongerRequestRevision;
@@ -106,12 +110,15 @@ function pollHints(view) {
   }
   setTimeout(poll, 250);
 }
-function closeContext() {
+function closeContext(restoreFocus = false) {
   element("context").hidden = true;
   contextButtons = [];
+  if (restoreFocus && contextOpener) { contextOpener.focus({ preventScroll: true }); }
+  contextOpener = undefined;
 }
-function chooseContext(id, name) {
+function chooseContext(id, name, opener) {
   if (pending || reviewing()) { return; }
+  contextOpener = opener;
   text("context-title", name);
   element("context-actions").replaceChildren();
   contextButtons = [];
@@ -134,14 +141,14 @@ function contextList(id, targets) {
     if (!offers.length) { item.textContent = target.description || target.name; return item; }
     const button = document.createElement("button"); button.textContent = target.name;
     const travel = offers.find((action) => action.call.name === "move");
-    button.addEventListener("click", () => travel ? submitTurn(travel.message, { optionId: travel.id }) : chooseContext(target.contextId, target.name));
+    button.addEventListener("click", () => travel ? submitTurn(travel.message, { optionId: travel.id }) : chooseContext(target.contextId, target.name, button));
     sceneButtons.push(button); button.disabled = pending; item.append(button);
     if (target.description) { const description = document.createElement("p"); description.textContent = target.description; item.append(description); }
     return item;
   }));
 }
-element("close-context").addEventListener("click", () => { closeContext(); element("scene").focus(); });
-element("context").addEventListener("keydown", (event) => { if (event.key === "Escape") { closeContext(); element("scene").focus(); } });
+element("close-context").addEventListener("click", () => { closeContext(true); });
+element("context").addEventListener("keydown", (event) => { if (event.key === "Escape") { event.preventDefault(); closeContext(true); } });
 const panels = { inventory: "Inventory", character: "Character", journal: "Journal", leads: "Known leads", hints: "Hints" };
 function informationBlock(heading, values) {
   const title = document.createElement("h3"); title.textContent = heading;
@@ -155,6 +162,7 @@ function inventoryBlock(heading, items, empty) {
 function renderInformation() {
   if (!activePanel || !currentView || currentView.slot === "empty") { return; }
   const status = currentView.character;
+  const information = currentView.information;
   const journal = currentView.scene.journal;
   element("information-body").replaceChildren();
   text("information-title", panels[activePanel]);
@@ -176,9 +184,15 @@ function renderInformation() {
   } else if (activePanel === "inventory") {
     inventoryBlock("Equipment", status.equipment, "No equipment.");
     inventoryBlock("Carried items", status.collectedItems, "No carried items.");
+    if (information) {
+      informationBlock("Items in this scene", currentView.scene.room.items.length ? currentView.scene.room.items.map((item) => item.name + " — not carried. " + item.placement.description) : ["No portable items in view."]);
+      informationBlock("Spent items", information.spentItems.length ? information.spentItems : ["No spent items."]);
+    }
     if (status.resources) { informationBlock("Local resources", status.resources); }
   } else if (activePanel === "character") {
     informationBlock("Current status", ["HP: " + status.hp + " / " + status.maxHp, "Session: " + status.outcome, ...(status.combatTurn ? ["Combat turn: " + status.combatTurn] : []), ...(status.conditions || [])]);
+    if (information && information.defense !== undefined) { informationBlock("Combat profile", ["Defense: AC " + information.defense, "Attack: " + information.attack, currentView.scene.combatStatus || "No active combat."]); }
+    if (information && information.relationships.length) { informationBlock("Relationships in view", information.relationships); }
     if (status.resources) { informationBlock("Local resources", status.resources); }
   } else {
     if (activePanel === "journal") {
@@ -186,13 +200,16 @@ function renderInformation() {
       if (status.resources) { informationBlock("Resource record", status.resources); }
     }
     const showingLeads = activePanel === "leads";
+    const refreshed = information && information.refreshedLeads;
+    if (showingLeads && refreshed) { informationBlock("Current leads", information.currentLeads.length ? information.currentLeads : ["No open leads. Review the final record."]); }
     for (const [classification, label, leadLabel] of [["observation", "Observed evidence", "Observed evidence leads"], ["testimony", "Testimony", "Testimony leads"], ["belief", "Beliefs", "Contested claim leads"]]) {
-      const entries = journal.discoveries.filter((entry) => entry.classification === classification).map((entry) => entry.title + " — " + entry.source.name + ": " + (showingLeads ? entry.actionableLead : entry.summary));
+      const entries = journal.discoveries.filter((entry) => entry.classification === classification && (!showingLeads || refreshed || entry.actionableLead.trim())).map((entry) => entry.title + " — " + entry.source.name + ": " + (showingLeads && !refreshed ? entry.actionableLead : entry.summary));
       informationBlock(showingLeads ? leadLabel : label, entries.length ? entries : ["None recorded."]);
     }
     if (showingLeads) { return; }
-    const leads = [...new Set(journal.actionableLeads.filter((lead) => lead.trim()))];
+    const leads = information ? information.currentLeads : [...new Set(journal.actionableLeads.filter((lead) => lead.trim()))];
     informationBlock("Current leads", leads.length ? leads : ["No current leads."]);
+    if (journal.ending) { informationBlock("Final record", [journal.ending.narration]); }
   }
 }
 element("request-stronger-hint").addEventListener("click", async () => {
@@ -330,23 +347,35 @@ function render(view) {
     text("scene-title", view.title);
     text("description", "The save slot is empty. Start the adventure to save its opening state.");
     text("location", "Not started"); text("hp", "—"); text("time", "—"); text("deadline", "—"); text("session", "Not started");
+    ["defense", "attack", "conditions"].forEach((id) => text(id, "—")); text("combat", "No active combat.");
+    list("current-leads", ["Start to read your leads."]); text("last-consequence", "No action yet.");
     text("objective", ""); list("details", []); list("exits", ["Start to see exits."]); return;
   }
   const scene = view.scene;
-  text("scene-title", scene.room.name); text("description", scene.room.description);
-  text("objective", scene.objective); text("location", scene.room.name);
+  text("scene-title", scene.room.name); text("description", view.information && view.information.sceneDescription ? view.information.sceneDescription : scene.room.description);
+  text("objective", reviewing() ? "Adventure complete. Review your final record and saved journey." : scene.objective); text("location", scene.room.name);
   text("hp", view.hp.current + " / " + view.hp.maximum);
+  const information = view.information;
+  text("defense", information && information.defense !== undefined ? "AC " + information.defense : "No combat profile.");
+  text("attack", information && information.attack ? information.attack : "No combat profile.");
+  text("conditions", (view.character.conditions || []).join(" ") || "No active conditions.");
+  const leads = information ? information.currentLeads : scene.journal.actionableLeads;
+  list("current-leads", leads.length ? leads : [reviewing() ? "No open leads. Review the final record." : "No current leads."]);
+  const last = [...(view.history || [])].reverse().find((turn) => turn.committed && turn.cards.some((card) => card.title === "Resolved action"));
+  text("last-consequence", last ? last.cards.filter((card) => card.title === "Resolved action").map((card) => card.text).join("\\n") : "No action yet.");
   text("time", view.clocks.map((clock) => clock.name + ": " + (clock.unit === "day" ? "Day " : "") + clock.value).join("; ") || "No clock");
-  text("deadline", view.deadline.name + ": Day " + view.deadline.day);
+  const day = view.clocks.find((clock) => clock.unit === "day");
+  const remaining = day ? view.deadline.day - day.value : undefined;
+  text("deadline", view.deadline.name + ": Day " + view.deadline.day + (remaining === undefined ? "" : remaining > 0 ? " · " + remaining + " day(s) until the deadline" : remaining === 0 ? " · Deadline reached" : " · " + (-remaining) + " day(s) past the deadline"));
   text("combat", scene.combatStatus || (view.character.combatTurn ? "Turn: " + view.character.combatTurn : "No active combat."));
   text("session", scene.outcome + (reviewing() ? " · Review mode" : ""));
   contextList("exits", scene.room.exits.map((exit) => ({ ...exit, contextId: "exit:" + exit.destinationId })));
   contextList("details", [
     ...scene.room.features.map((feature) => ({ ...feature, contextId: "target:" + feature.id })),
-    ...(scene.room.npcs || []).map((npc) => ({ ...npc, contextId: "npc:" + npc.id })),
-    ...view.character.collectedItems.map((item) => ({ ...item, contextId: "inventory:" + item.id })),
-    ...scene.room.items.map((item) => ({ ...item, contextId: "target:" + item.id })),
-    ...scene.room.opponents.map((opponent) => ({ ...opponent, contextId: "target:" + opponent.id })),
+    ...(scene.room.npcs || []).map((npc) => ({ ...npc, description: npc.condition === "dead" ? "Dead; no conversation available." : npc.description, contextId: "npc:" + npc.id })),
+    ...view.character.collectedItems.map((item) => ({ ...item, description: "Carried. " + (item.description || ""), contextId: "inventory:" + item.id })),
+    ...scene.room.items.map((item) => ({ ...item, description: "Not carried. " + item.placement.description + ". " + item.description, contextId: "target:" + item.id })),
+    ...scene.room.opponents.map((opponent) => ({ ...opponent, description: "Condition: " + opponent.condition, contextId: "target:" + opponent.id })),
     ...((scene.endingChoices || []).length ? [{ name: "Ending choices", contextId: "ending" }] : [])
   ]);
 }

@@ -21,6 +21,10 @@ import {
 import { loadAdventureFile } from "./adventure-file.js";
 import { createDataRuntime } from "./data-runtime.js";
 import type { CharacterStatus, DmScene } from "./game-tools.js";
+import {
+  browserInformation,
+  type BrowserInformation,
+} from "./browser-information.js";
 import type {
   AdventureRuntime,
   RuntimeToolResult,
@@ -124,6 +128,7 @@ export type BrowserView = Readonly<
       clocks: ReturnType<NonNullable<AdventureRuntime["projectPlayerClocks"]>>;
       hp: Readonly<{ current: number; maximum: number }>;
       character: CharacterStatus;
+      information: BrowserInformation;
       deadline: Readonly<{ name: string; day: number }>;
       actions: readonly BrowserAction[];
       title: string;
@@ -203,6 +208,7 @@ function playerView(
     clocks: session.runtime.projectPlayerClocks?.(session.state) ?? [],
     hp: { current: status.hp, maximum: status.maxHp },
     character: status,
+    information: browserInformation(session),
     // Public premise of the supported authored Watch Route, not a hidden
     // clock threshold/effect projection or a parse of terminal narration.
     deadline: { name: "Caravan at the ridge fork", day: 3 },
@@ -287,7 +293,14 @@ function resultCard(
           ]
             .filter((text) => text.length > 0)
             .join("\n")
-        : mechanics,
+        : !result.modelOutput.ok && result.engineResult === undefined
+          ? result.modelOutput.error.code === "unavailable-reference"
+            ? "That subject or action is not available at this position. Choose a person, object or exit in view, or clarify which visible subject you mean. No time, dice or items were spent."
+            : result.modelOutput.error.code === "invalid-arguments" ||
+                result.modelOutput.error.code === "malformed-json"
+              ? "The request did not identify one complete supported action. Clarify the person, object or destination, or choose its contextual options. No time, dice or items were spent."
+              : mechanics
+          : mechanics,
   };
 }
 

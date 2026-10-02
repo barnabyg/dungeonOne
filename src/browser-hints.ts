@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { browserActions } from "./browser-actions.js";
 import type { SaveSession } from "./save.js";
+import { browserInformation } from "./browser-information.js";
 
 export type BrowserHints = Readonly<{
   version: 1;
@@ -31,7 +32,7 @@ export function hintCandidates(session: SaveSession): readonly string[] {
   return [
     ...new Set([
       `Current objective: ${scene.objective}`,
-      ...(scene.journal?.actionableLeads ?? []).map(
+      ...browserInformation(session).currentLeads.map(
         (lead) => `Known lead: ${lead}`,
       ),
       ...browserActions(session, hintRevision(session)).map(
@@ -60,7 +61,7 @@ export function strongerHintCandidates(
 ): readonly string[] {
   const scene = session.runtime.projectDmScene(session.state);
   const actions = browserActions(session, hintRevision(session));
-  const leads = scene.journal?.actionableLeads ?? [];
+  const leads = browserInformation(session).currentLeads;
   const targets = [
     ...scene.room.exits.map((exit) => ({
       contextId: "exit:" + exit.destinationId,
