@@ -146,7 +146,11 @@ function contextList(id, targets) {
   element(id).replaceChildren(...targets.map((target) => {
     const item = document.createElement("li");
     const offers = (currentView.actions || []).filter((action) => action.contextId === target.contextId);
-    if (!offers.length) { item.textContent = target.description || target.name; return item; }
+    if (!offers.length) {
+      const detail = target.condition || (!reviewing() && target.description);
+      item.textContent = target.name + (detail ? " — " + detail : "");
+      return item;
+    }
     const button = document.createElement("button"); button.textContent = target.name;
     const travel = offers.find((action) => action.call.name === "move");
     button.addEventListener("click", () => travel ? submitTurn(travel.message, { optionId: travel.id }) : chooseContext(target.contextId, target.name, button));

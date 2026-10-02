@@ -141,6 +141,9 @@ confirmed visible status/exits and usable input/contextual actions; automated
 bounds also require at least 100px of conversation space and an in-viewport
 composer. The specification review also caught a suppressed Iona correction;
 that was restored and tested. Standards review's naming finding was corrected.
+The completed Review keeps scene entity names and conditions visible, omitting
+obsolete action instructions; the full browser journey checks Vey's named dead
+condition and the retirement of control instructions.
 
 ![Revised opening at 1280×720](issue-92-opening.png)
 

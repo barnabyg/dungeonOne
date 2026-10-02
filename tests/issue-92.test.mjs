@@ -413,6 +413,14 @@ test(
           await page.locator("#session").textContent(),
           /Review mode/,
         );
+        assert.match(
+          await page.locator("#details").textContent(),
+          /Vey — dead/,
+        );
+        assert.doesNotMatch(
+          await page.locator("#details").textContent(),
+          /Search to secure|light instruction is now possible/,
+        );
         const saved = read(savePath).checkpoint,
           count = controls.calls;
         await page.locator("#open-journal").click();
