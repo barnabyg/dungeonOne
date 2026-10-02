@@ -291,6 +291,44 @@ test("Vey defeat freezes actions, and a nonessential runner death leaves the phy
   );
 });
 
+test("the Day 3 drainage arrival exposes consistent late stakes before and after warning-board review", () => {
+  const runtime = game(),
+    random = createSeededRandom(0);
+  let state = walk(
+    runtime,
+    runtime.createSession(),
+    [...proofStart, "move ridge-trail", "brace cart"],
+    random,
+  );
+  while (state.combat) {
+    state = action(runtime, state, "attack raider", random).state;
+  }
+  state = walk(
+    runtime,
+    state,
+    [
+      "move ridge-shelter",
+      "move drainage-walk",
+      "move beacon-tower",
+      "search tower-work-order",
+      "talk vey plate-proof ask",
+    ],
+    random,
+  );
+  assert.equal(state.clocks["caravan-deadline"], 3);
+  assert.ok(state.milestones.includes("deadline-passed"));
+  assert.equal(state.monsters["tower-sentry"].hp, 10);
+  const board = runtime
+    .projectDmScene(state)
+    .room.features.find((feature) => feature.id === "final-warning-board");
+  assert.match(board.description, /Arrival on Day 3 or later is late/);
+  assert.match(
+    runtime.renderResult(action(runtime, state, "search final-warning-board")),
+    /Day 3 or later is late/,
+  );
+  assert.equal(state.status, "playing");
+});
+
 function callFor(command) {
   const [verb, target, topic, approach] = command.split(" ");
   const name = {

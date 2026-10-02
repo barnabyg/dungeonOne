@@ -662,7 +662,7 @@
       "name": "final warning board",
       "aliases": ["final-warning-board"],
       "locationId": "beacon-tower",
-      "description": "Final decision point: a verified safe signal requires physical alignment evidence and the fitted component; a slower human warning needs neither; an urgent risky signal cannot promise safe arrival. Arrival after Day 3 is late. These are preparation stakes for the next act, not completed outcomes. Search to review them; gameplay remains open.",
+      "description": "Final decision point: a verified safe signal requires physical alignment evidence and the fitted component; a slower human warning needs neither; an urgent risky signal cannot promise safe arrival. Arrival on Day 3 or later is late. These are preparation stakes for the next act, not completed outcomes. Search to review them; gameplay remains open.",
       "when": [
         {
           "type": "milestone-recorded",
