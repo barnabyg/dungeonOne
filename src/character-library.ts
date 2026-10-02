@@ -59,8 +59,8 @@ function validProgress(progress: SaveSession["progress"] | undefined): boolean {
   );
 }
 
-/** A single atomic library publication owns all career revisions. The lock is
- * process-owned; a crashed owner's lock is recoverable without guessing expiry. */
+/** A single atomic library publication owns all career revisions, protected by
+ * OS-owned exclusion which automatically releases after a crashed process. */
 export class CharacterLibrary {
   constructor(readonly path: string) {}
 
@@ -206,7 +206,7 @@ export class CharacterLibrary {
     change: (data: LibraryData) => void | Promise<void>,
   ): Promise<LibraryData> {
     await mkdir(dirname(this.path), { recursive: true });
-    const release = await acquireFileLock(`${this.path}.lock`);
+    const release = await acquireFileLock(this.path);
     try {
       const data = await this.read();
       if (data.revision !== revision) {

@@ -149,7 +149,7 @@ export class CharacterCareer {
   }
 
   async beginTurn(session: SaveSession): Promise<() => Promise<void>> {
-    const release = await acquireFileLock(`${session.path}.turn-lock`);
+    const release = await acquireFileLock(session.path);
     try {
       const data = await this.library.read();
       const entry = data.sessions.find(

@@ -3,7 +3,8 @@ import test from "node:test";
 import { mkdtemp, rm, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { CharacterCareer } from "../dist/character-career.js";
 import { SaveSession } from "../dist/save.js";
 import { acquireFileLock } from "../dist/file-lock.js";
@@ -80,32 +81,50 @@ test("an interrupted start recovers its exact reservation; competing starts and 
   }
 });
 
-test("a lock from an exited owner recovers, while a live process owns its lock", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "career-lock-"));
-  const path = join(directory, "owner.lock");
-  try {
-    const child = spawnSync(
+test(
+  "a crashed OS lock owner releases; concurrent recovery grants exactly one owner",
+  { timeout: 10000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "career-lock-"));
+    const path = join(directory, "owner.lock");
+    const child = spawn(
       process.execPath,
       [
         "--input-type=module",
         "-e",
-        "process.stdout.write(String(process.pid))",
+        `import { acquireFileLock } from ${JSON.stringify(new URL("../dist/file-lock.js", import.meta.url).href)}; await acquireFileLock(process.argv[1]); process.stdout.write("owned");`,
+        path,
       ],
-      { encoding: "utf8" },
+      { windowsHide: true },
     );
-    assert.equal(child.status, 0);
-    await writeFile(
-      path,
-      JSON.stringify({ pid: Number(child.stdout), token: "old" }),
-    );
-    const release = await acquireFileLock(path);
-    await assert.rejects(acquireFileLock(path), /busy/);
-    await release();
-    await assert.rejects(readFile(path), { code: "ENOENT" });
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-});
+    try {
+      const [ready] = await once(child.stdout, "data");
+      assert.equal(ready.toString(), "owned");
+      await assert.rejects(acquireFileLock(path), /busy/);
+      const closed = once(child, "close");
+      child.kill();
+      await closed;
+      const contenders = await Promise.allSettled(
+        Array.from({ length: 8 }, () => acquireFileLock(path)),
+      );
+      const owners = contenders.filter(
+        (result) => result.status === "fulfilled",
+      );
+      assert.equal(owners.length, 1);
+      for (const result of contenders.filter(
+        (result) => result.status === "rejected",
+      )) {
+        assert.match(result.reason.message, /busy/);
+      }
+      await owners[0].value();
+      const next = await acquireFileLock(path);
+      await next();
+    } finally {
+      child.kill();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
 
 test("a missing character library leaves the embedded adventure readable without enabling play or XP publication", async () => {
   const directory = await mkdtemp(join(tmpdir(), "career-orphan-"));
