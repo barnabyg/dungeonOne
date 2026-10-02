@@ -1,3 +1,4 @@
+import type { CharacterSheet } from "./character-rules.js";
 import {
   normalizeAlias,
   type ChapelCluesDefinition,
@@ -63,6 +64,7 @@ export type ClueState = Readonly<{
     consequences: readonly string[];
     narration: string;
   }>;
+  character?: CharacterSheet;
   fighter: Readonly<{ hp: number; maxHp: number }>;
   discoveries: readonly string[];
   discoveryLocations?: Readonly<Record<string, string>>;

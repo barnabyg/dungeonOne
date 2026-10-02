@@ -1,3 +1,12 @@
+import { CharacterCareer } from "./character-career.js";
+import { characterAdventures } from "./adventure-registry.js";
+import {
+  characterProfile,
+  PRESETS,
+  ABILITIES,
+  abilityModifier,
+} from "./character-rules.js";
+import type { ChapelCluesDefinition } from "./adventure-loader.js";
 import {
   createServer,
   type IncomingMessage,
@@ -55,6 +64,7 @@ import {
 
 export type BrowserOptions = Readonly<{
   contentVersion?: "4" | "5" | "6" | "7" | "8" | "9" | "10" | "11";
+  libraryPath?: string;
   savePath: string;
   seed: number;
   apiKey: string;
@@ -121,9 +131,16 @@ async function readPlayerInput(
 }
 
 export type BrowserView = Readonly<
-  | { slot: "empty"; title: string; introduction: string; seed: number }
+  | {
+      slot: "empty";
+      title: string;
+      introduction: string;
+      seed: number;
+      careerMode?: boolean;
+    }
   | {
       slot: "occupied";
+      careerMode?: boolean;
       revision: string;
       generation: string;
       position: number;
@@ -164,6 +181,15 @@ function hasCode(error: unknown, code: string): boolean {
 }
 
 function assertSupported(session: SaveSession): void {
+  if (
+    session.runtime.content?.snapshot.schemaVersion === 17 &&
+    session.runtime.engineVersion === "character-adventure-engine-v1" &&
+    session.runtime.startingCharacter !== undefined &&
+    session.runtime.id === "hollow-beacon" &&
+    session.runtime.version === "12"
+  ) {
+    return;
+  }
   if (
     session.runtime.id !== "hollow-beacon" ||
     !(
@@ -220,7 +246,9 @@ function playerView(
     information: browserInformation(session),
     // Public premise of the supported authored Watch Route, not a hidden
     // clock threshold/effect projection or a parse of terminal narration.
-    deadline: { name: "Caravan at the ridge fork", day: 3 },
+    ...(session.runtime.id === "hollow-beacon"
+      ? { deadline: { name: "Caravan at the ridge fork", day: 3 } }
+      : {}),
     actions: browserActions(
       session,
       createHash("sha256")
@@ -234,7 +262,10 @@ function playerView(
     ),
     title: session.runtime.content!.snapshot.title,
     introduction: session.runtime.content!.snapshot.introduction,
-    characterLabel: "Fighter",
+    characterLabel:
+      status.sheet === undefined
+        ? "Fighter"
+        : `${status.sheet.name} � Fighter level ${status.sheet.level}`,
     history: [
       ...(session.browserHistory?.turns ?? []),
       ...(session.browserHistory?.pending === undefined
@@ -347,7 +378,11 @@ async function recoverHistory(session: SaveSession): Promise<void> {
 }
 
 export async function startBrowserServer(options: BrowserOptions) {
-  if (options.apiKey.trim().length === 0) {
+  if (
+    options.apiKey.trim().length === 0 &&
+    options.libraryPath === undefined &&
+    options.dmModel === undefined
+  ) {
     throw new Error(
       "OPENAI_API_KEY is required for browser mode. Set it in the launch environment before starting.",
     );
@@ -385,6 +420,43 @@ export async function startBrowserServer(options: BrowserOptions) {
     throw new Error("The bundled Hollow Beacon adventure is invalid.");
   }
   const runtime = createDataRuntime(loaded.adventure);
+  const career =
+    options.libraryPath === undefined
+      ? undefined
+      : new CharacterCareer(options.libraryPath);
+  let savePath = options.savePath;
+  await career?.recoverStarts();
+  const libraryView = async () => {
+    if (career === undefined) {
+      throw new Error("Character library is not enabled.");
+    }
+    const data = await career.library.read();
+    return {
+      revision: data.revision,
+      presets: PRESETS,
+      characters: data.characters.map((record) => ({
+        ...record,
+        profile: characterProfile(record.sheet),
+        modifiers: Object.fromEntries(
+          ABILITIES.map((ability) => [
+            ability,
+            abilityModifier(record.sheet.abilities[ability]),
+          ]),
+        ),
+      })),
+      sessions: data.sessions.map((entry) => ({
+        id: entry.id,
+        characterId: entry.characterId,
+        title: entry.content.title,
+        status: entry.status,
+      })),
+      adventures: (await characterAdventures()).map(({ snapshot }) => ({
+        id: snapshot.id,
+        title: snapshot.title,
+        ...(snapshot as ChapelCluesDefinition).characterAdventure,
+      })),
+    };
+  };
   const artwork =
     options.artworkPath === undefined
       ? undefined
@@ -433,7 +505,7 @@ export async function startBrowserServer(options: BrowserOptions) {
     turning = true;
     hintWrite = (async () => {
       try {
-        const session = await SaveSession.load(options.savePath);
+        const session = await SaveSession.load(savePath);
         if (
           session.runtime.projectDmScene(session.state).outcome === "playing" &&
           hintRevision(session) === result.revision
@@ -548,6 +620,10 @@ export async function startBrowserServer(options: BrowserOptions) {
       });
   };
   const readSlot = async (): Promise<BrowserView> => {
+    const selected = await career?.library.read();
+    if (selected?.selectedSessionId !== undefined) {
+      savePath = career!.sessionPath(selected.selectedSessionId);
+    }
     // A readable cache may precede release of its publication lock. Wait for
     // the recovery-file rename before loading, so it cannot look like an empty
     // slot while the journal is being moved to the primary.
@@ -560,7 +636,7 @@ export async function startBrowserServer(options: BrowserOptions) {
       publishing = hintWrite;
     }
     try {
-      const session = retained ?? (await SaveSession.load(options.savePath));
+      const session = retained ?? (await SaveSession.load(savePath));
       const view = playerView(
         session,
         createHash("sha256")
@@ -589,6 +665,7 @@ export async function startBrowserServer(options: BrowserOptions) {
       );
       return {
         ...view,
+        ...(career === undefined ? {} : { careerMode: true }),
         ...(sceneArtwork === undefined ? {} : { artwork: sceneArtwork }),
         ...(hints === undefined ? {} : { hints }),
         ...(view.scene.outcome === "playing" &&
@@ -611,6 +688,7 @@ export async function startBrowserServer(options: BrowserOptions) {
       }
       return {
         slot: "empty",
+        ...(career === undefined ? {} : { careerMode: true }),
         title: loaded.adventure.snapshot.title,
         introduction: loaded.adventure.snapshot.introduction,
         seed: options.seed,
@@ -620,7 +698,7 @@ export async function startBrowserServer(options: BrowserOptions) {
   // Invalid, incompatible or closed occupied slots fail before listening.
   await readSlot();
   try {
-    const session = await SaveSession.load(options.savePath);
+    const session = await SaveSession.load(savePath);
     await recoverHistory(session);
     const missingHints = cachedHints(session) === undefined;
     scheduleHints(session);
@@ -638,10 +716,16 @@ export async function startBrowserServer(options: BrowserOptions) {
   }
   const model =
     options.dmModel ??
-    createOpenAiDmModel({
-      apiKey: options.apiKey,
-      model: OPENAI_DM_DEFAULT_MODEL,
-    });
+    (options.apiKey.trim().length === 0
+      ? {
+          async respond() {
+            throw new Error("Configure OPENAI_API_KEY to play.");
+          },
+        }
+      : createOpenAiDmModel({
+          apiKey: options.apiKey,
+          model: OPENAI_DM_DEFAULT_MODEL,
+        }));
   const releaseTurn = () => {
     turning = false;
     flushHints();
@@ -687,6 +771,100 @@ export async function startBrowserServer(options: BrowserOptions) {
           json(response, 403, { error: "Unrelated origin rejected." });
           return;
         }
+        if (request.url?.startsWith("/api/characters/")) {
+          if (career === undefined) {
+            json(response, 404, { error: "Character library is not enabled." });
+            return;
+          }
+          if (
+            turning ||
+            retained !== undefined ||
+            [hintJob, strongerJob].some(
+              (job) => job !== undefined && !job.persisted,
+            )
+          ) {
+            json(response, 409, {
+              error:
+                "Wait for the pending adventure reply before changing selection.",
+            });
+            return;
+          }
+          turning = true;
+          try {
+            const body = (await readBody(request)) as Record<string, unknown>;
+            if (
+              body === null ||
+              typeof body !== "object" ||
+              Array.isArray(body) ||
+              typeof body.revision !== "string"
+            ) {
+              throw new Error("Invalid character request.");
+            }
+            if (request.url === "/api/characters/create") {
+              if (
+                Object.keys(body).length !== 3 ||
+                typeof body.name !== "string" ||
+                typeof body.preset !== "string"
+              ) {
+                throw new Error("Enter a name and ability preset.");
+              }
+              await career.library.create(
+                body.name,
+                body.preset,
+                body.revision,
+              );
+            } else if (request.url === "/api/characters/play") {
+              if (
+                Object.keys(body).length !== 4 ||
+                typeof body.characterId !== "string" ||
+                typeof body.adventureId !== "string" ||
+                body.confirmed !== true
+              ) {
+                throw new Error("Confirm your character and adventure pair.");
+              }
+              savePath = await career.start(
+                body.characterId,
+                body.adventureId,
+                body.revision,
+                options.seed,
+                body.confirmed,
+              );
+              clearHintJobs();
+            } else if (request.url === "/api/characters/continue") {
+              if (
+                Object.keys(body).length !== 2 ||
+                typeof body.sessionId !== "string"
+              ) {
+                throw new Error("Choose a saved adventure.");
+              }
+              savePath = await career.select(body.sessionId, body.revision);
+              clearHintJobs();
+            } else {
+              json(response, 404, { error: "Unknown character action." });
+              return;
+            }
+            json(response, 200, {
+              library: await libraryView(),
+              view: await readSlot(),
+            });
+          } catch (error) {
+            const message =
+              error instanceof Error
+                ? error.message
+                : "Character action failed.";
+            json(response, 409, {
+              error:
+                /character|Character|preset|stale|Confirm|Choose|Wait|available|supported|busy|level|adventure|library/.test(
+                  message,
+                )
+                  ? message
+                  : "Character storage could not be updated. Refresh and check local storage.",
+            });
+          } finally {
+            releaseTurn();
+          }
+          return;
+        }
         if (
           ![
             "/api/start",
@@ -708,6 +886,16 @@ export async function startBrowserServer(options: BrowserOptions) {
             error:
               "A turn is already pending. Wait for its reply; this request was not applied.",
             view: await readSlot(),
+          });
+          return;
+        }
+        if (
+          career !== undefined &&
+          (request.url === "/api/start" || request.url === "/api/new-game")
+        ) {
+          json(response, 409, {
+            error:
+              "Choose a saved character and adventure from the character library.",
           });
           return;
         }
@@ -751,7 +939,7 @@ export async function startBrowserServer(options: BrowserOptions) {
               });
               return;
             }
-            previous = await SaveSession.load(options.savePath);
+            previous = await SaveSession.load(savePath);
             retainSession(previous);
             // Publish any verified recovery journal before replacing the primary,
             // so a prior journal cannot resurrect the old game after restart.
@@ -763,8 +951,8 @@ export async function startBrowserServer(options: BrowserOptions) {
               },
             );
             stagedPath = join(
-              dirname(options.savePath),
-              `.${basename(options.savePath)}.${randomBytes(8).toString("hex")}.new-game`,
+              dirname(savePath),
+              `.${basename(savePath)}.${randomBytes(8).toString("hex")}.new-game`,
             );
             const fresh = await SaveSession.start(
               stagedPath,
@@ -784,7 +972,7 @@ export async function startBrowserServer(options: BrowserOptions) {
             // The only replacement point: a complete verified same-directory file.
             // Before this atomic rename the old slot remains recoverable; after it
             // restart sees the entire new generation, including empty history.
-            await rename(stagedPath, options.savePath);
+            await rename(stagedPath, savePath);
             retainSession(undefined);
             clearHintJobs();
             saveFailed = false;
@@ -861,7 +1049,7 @@ export async function startBrowserServer(options: BrowserOptions) {
               });
               return;
             }
-            requestStrongerHints(await SaveSession.load(options.savePath));
+            requestStrongerHints(await SaveSession.load(savePath));
             json(response, 200, { view: await readSlot() });
           } finally {
             releaseTurn();
@@ -900,7 +1088,7 @@ export async function startBrowserServer(options: BrowserOptions) {
               });
               return;
             }
-            const session = await SaveSession.load(options.savePath);
+            const session = await SaveSession.load(savePath);
             assertSupported(session);
             await recoverHistory(session);
             const selected =
@@ -1054,7 +1242,7 @@ export async function startBrowserServer(options: BrowserOptions) {
             json(response, 200, { view: await readSlot(), ...turn });
           } catch {
             saveFailed = retained !== undefined;
-            const durable = await SaveSession.load(options.savePath).catch(
+            const durable = await SaveSession.load(savePath).catch(
               () => undefined,
             );
             json(response, 500, {
@@ -1069,9 +1257,9 @@ export async function startBrowserServer(options: BrowserOptions) {
         const start = (async () => {
           turning = true;
           try {
-            await mkdir(dirname(options.savePath), { recursive: true });
+            await mkdir(dirname(savePath), { recursive: true });
             const session = await SaveSession.start(
-              options.savePath,
+              savePath,
               runtime,
               options.seed,
               {
@@ -1119,6 +1307,13 @@ export async function startBrowserServer(options: BrowserOptions) {
             "text/javascript; charset=utf-8",
             BROWSER_SCRIPT,
           );
+          break;
+        case "/api/characters":
+          if (career === undefined) {
+            json(response, 404, { error: "Character library is not enabled." });
+          } else {
+            json(response, 200, await libraryView());
+          }
           break;
         case "/api/state":
           json(response, 200, await readSlot());

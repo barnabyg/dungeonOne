@@ -1,3 +1,4 @@
+import { validateCharacter } from "./character-rules.js";
 import { isDeepStrictEqual } from "node:util";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -1089,7 +1090,7 @@ function validateDmTrace(
             argumentsJson: validateDmArguments(
               call.arguments,
               `${callPath}.arguments`,
-              options.formatVersion === 4,
+              (options.formatVersion ?? 0) >= 4,
             ),
             disposition,
             rolls,
@@ -1363,6 +1364,7 @@ function requireFields(
 
 function replayFormat4(trace: JsonObject): void {
   if (
+    trace.engineVersion !== "character-adventure-engine-v1" &&
     trace.engineVersion !== DATA_ENGINE_VERSION &&
     trace.engineVersion !== SIGNET_ENGINE_VERSION &&
     trace.engineVersion !== CLUES_ENGINE_VERSION &&
@@ -1403,6 +1405,7 @@ function replayFormat4(trace: JsonObject): void {
       "adventure",
       "content",
       "adventureSnapshot",
+      ...(trace.formatVersion === 6 ? ["startingCharacter"] : []),
       "random",
       "initialState",
       "completion",
@@ -1439,7 +1442,15 @@ function replayFormat4(trace: JsonObject): void {
   if (seed < 0 || seed > 0xffffffff) {
     throw new Error("random.initialSeed must be an unsigned 32-bit integer.");
   }
-  const runtime = createDataRuntime(content);
+  if ((trace.formatVersion === 6) !== (content.snapshot.schemaVersion === 17)) {
+    throw new Error("Character trace format does not match content.");
+  }
+  const runtime = createDataRuntime(
+    content,
+    trace.formatVersion === 6
+      ? validateCharacter(trace.startingCharacter)
+      : undefined,
+  );
   requireSupported(
     trace.engineVersion,
     runtime.engineVersion as string,
@@ -1454,7 +1465,7 @@ function replayFormat4(trace: JsonObject): void {
   }
   if (mode === "ai") {
     const decoded = validateDmTrace(trace, {
-      formatVersion: 4,
+      formatVersion: trace.formatVersion === 6 ? 6 : 4,
       adventureId: runtime.id,
       adventureVersion: runtime.version,
       rulesVersion: runtime.rulesVersion,
@@ -1608,7 +1619,7 @@ export async function verifyTraceFile(path: string): Promise<void> {
       "Format-5 trace segments require --replay with the complete ordered segment list.",
     );
   }
-  if (envelope.formatVersion === 4) {
+  if (envelope.formatVersion === 4 || envelope.formatVersion === 6) {
     replayFormat4(envelope);
     return;
   }

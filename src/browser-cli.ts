@@ -5,7 +5,7 @@ import { announceBrowser } from "./browser-launch.js";
 import { startBrowserServer } from "./browser-server.js";
 
 const USAGE =
-  "Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--save <path>] [--artwork <manifest.json>]\nAdventure: Hollow Beacon: Final Warning (v11). Existing v4-v10 slots continue unchanged. Default slot: hollow-beacon-browser-save.json\nSet OPENAI_API_KEY in the environment before launch.";
+  "Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--save <path>] [--artwork <manifest.json>] [--characters <library.json>] [--legacy]\nCreate or choose a saved Fighter, then select an adventure. Default library: characters.json. --legacy starts Hollow Beacon v11; existing v4-v11 slots continue unchanged.\nSet OPENAI_API_KEY in the environment before launch.";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -16,11 +16,18 @@ async function main(): Promise<void> {
   const values = new Map<string, string>();
   for (let index = 0; index < args.length; index++) {
     const argument = args[index]!;
+    if (argument === "--legacy" && !values.has("--legacy")) {
+      values.set("--legacy", "true");
+      continue;
+    }
     const equals = argument.indexOf("=");
     const name = equals < 0 ? argument : argument.slice(0, equals);
     const value = equals < 0 ? args[++index] : argument.slice(equals + 1);
     if (
-      (name !== "--seed" && name !== "--save" && name !== "--artwork") ||
+      (name !== "--seed" &&
+        name !== "--save" &&
+        name !== "--artwork" &&
+        name !== "--characters") ||
       values.has(name) ||
       !value ||
       value.startsWith("--")
@@ -36,6 +43,11 @@ async function main(): Promise<void> {
   );
   const server = await startBrowserServer({
     contentVersion: "11",
+    ...(values.has("--legacy")
+      ? {}
+      : {
+          libraryPath: resolve(values.get("--characters") ?? "characters.json"),
+        }),
     seed,
     savePath: resolve(
       values.get("--save") ?? "hollow-beacon-browser-save.json",

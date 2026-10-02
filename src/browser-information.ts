@@ -24,7 +24,9 @@ export function browserInformation(session: SaveSession): BrowserInformation {
     ChapelCluesDefinition | undefined;
   const scene = session.runtime.projectDmScene(session.state);
   const state = session.state;
-  const profile = definition?.combatProfile;
+  const profile =
+    session.runtime.projectCharacterStatus(state).profile ??
+    definition?.combatProfile;
   const usesFinalePresentation =
     session.runtime.id === "hollow-beacon" &&
     (definition?.schemaVersion ?? 0) >= 16;

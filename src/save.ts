@@ -1,3 +1,4 @@
+import { validateCharacter, type CharacterSheet } from "./character-rules.js";
 import { createHash, randomBytes } from "node:crypto";
 import { link, open, readFile, rename, stat, unlink } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
@@ -56,7 +57,8 @@ type SaveEnvelope = Readonly<{
   browserStrongerHints?: unknown;
   browserHistoryDigest?: string;
   kind: "dungeon-one-save";
-  formatVersion: 1 | 2 | 3;
+  formatVersion: 1 | 2 | 3 | 4;
+  startingCharacter?: CharacterSheet;
   runtime: Readonly<{
     engineVersion: string;
     rulesVersion: string;
@@ -82,7 +84,7 @@ function digest(value: unknown): string {
 
 function requireSaveRuntime(runtime: AdventureRuntime): void {
   if (
-    ![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].includes(
+    ![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17].includes(
       runtime.content?.snapshot.schemaVersion ?? 0,
     ) ||
     runtime.engineVersion === undefined
@@ -594,7 +596,8 @@ export class SaveSession {
       save.kind !== "dungeon-one-save" ||
       (save.formatVersion !== 1 &&
         save.formatVersion !== 2 &&
-        save.formatVersion !== 3)
+        save.formatVersion !== 3 &&
+        save.formatVersion !== 4)
     ) {
       throw new Error(
         "Unsupported save format (diagnostic traces cannot be resumed).",
@@ -614,7 +617,21 @@ export class SaveSession {
     if (!loaded.ok || loaded.adventure.digest !== save.content.digest) {
       throw new Error("Save adventure snapshot is invalid or changed.");
     }
-    const runtime = createDataRuntime(loaded.adventure);
+    if (
+      (save.formatVersion === 4) !==
+      (loaded.adventure.snapshot.schemaVersion === 17)
+    ) {
+      throw new Error("Character save format does not match content.");
+    }
+    if (save.formatVersion !== 4 && save.startingCharacter !== undefined) {
+      throw new Error("Legacy save contains an unsupported character.");
+    }
+    const runtime = createDataRuntime(
+      loaded.adventure,
+      save.formatVersion === 4
+        ? validateCharacter(save.startingCharacter)
+        : undefined,
+    );
     requireSaveRuntime(runtime);
     if (
       save.runtime.engineVersion !== runtime.engineVersion ||
@@ -684,13 +701,13 @@ export class SaveSession {
               before,
               result.state,
               result.events,
-              save.formatVersion === 3,
+              save.formatVersion >= 3,
             ),
             transition.domainEvents,
           )) ||
         digest(result.state) !== transition.stateDigest ||
         session.randomPosition !== transition.randomPosition ||
-        (save.formatVersion === 3 &&
+        (save.formatVersion >= 3 &&
           transition.randomState !==
             randomStateAt(session.seed, session.randomPosition))
       ) {
@@ -716,7 +733,7 @@ export class SaveSession {
     if (
       save.checkpoint.sequence !== session.transitions.length ||
       save.checkpoint.randomPosition !== session.randomPosition ||
-      (save.formatVersion === 3 &&
+      (save.formatVersion >= 3 &&
         save.checkpoint.randomState !==
           randomStateAt(session.seed, session.randomPosition)) ||
       save.checkpoint.stateDigest !== digest(session.state) ||
@@ -886,7 +903,10 @@ export class SaveSession {
             browserHistoryDigest: historyDigest(this.browserHistory),
           }),
       kind: "dungeon-one-save",
-      formatVersion: 3,
+      formatVersion: this.runtime.startingCharacter === undefined ? 3 : 4,
+      ...(this.runtime.startingCharacter === undefined
+        ? {}
+        : { startingCharacter: this.runtime.startingCharacter }),
       runtime: {
         engineVersion: this.runtime.engineVersion!,
         rulesVersion: this.runtime.rulesVersion,

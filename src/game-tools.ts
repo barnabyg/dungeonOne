@@ -1,3 +1,8 @@
+import type {
+  CharacterSheet,
+  Ability,
+  characterProfile,
+} from "./character-rules.js";
 import {
   ADVENTURE,
   type DoorId,
@@ -108,6 +113,9 @@ export type DmScene = Readonly<{
 }>;
 
 export type CharacterStatus = Readonly<{
+  sheet?: CharacterSheet;
+  modifiers?: Readonly<Record<Ability, number>>;
+  profile?: ReturnType<typeof characterProfile>;
   hp: number;
   maxHp: number;
   equipment: readonly Readonly<{ id: string; name: string }>[];

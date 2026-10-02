@@ -9,6 +9,8 @@ import { ADJUDICATION_SCHEMA } from "./adjudication-schema.js";
 import { DAY_SCHEMA } from "./day-schema.js";
 import { DECEPTION_SCHEMA } from "./deception-schema.js";
 import { OFFER_SCHEMA } from "./offer-schema.js";
+import { CHARACTER_ADVENTURE_SCHEMA } from "./character-adventure-schema.js";
+import type { Ability } from "./character-rules.js";
 import { FINALE_SCHEMA } from "./finale-schema.js";
 import { CONFRONTATION_SCHEMA } from "./confrontation-schema.js";
 import { QUEST_ITEM_SCHEMA } from "./quest-item-schema.js";
@@ -170,7 +172,8 @@ export type DialogueNpc = Readonly<{
   }>;
 }>;
 export type ChapelCluesDefinition = Readonly<{
-  schemaVersion: 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
+  schemaVersion:
+    3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17;
   id: string;
   contentVersion: string;
   rulesVersion:
@@ -190,7 +193,32 @@ export type ChapelCluesDefinition = Readonly<{
     | "chapel-clues-rules-v14"
     | "chapel-clues-rules-v15"
     | "chapel-clues-rules-v16"
-    | "chapel-clues-rules-v17";
+    | "chapel-clues-rules-v17"
+    | "character-adventure-rules-v1";
+  characterAdventure?: Readonly<{
+    rulesVersion: "fighter-rules-v1";
+    classes: readonly "Fighter"[];
+    playerCount: 1;
+    recommendedLevels: Readonly<{ minimum: number; maximum: number }>;
+    socialAbilities: readonly Readonly<{
+      challengeId: string;
+      ability: Ability;
+    }>[];
+    checks: readonly Readonly<{
+      id: string;
+      featureId: string;
+      ability: Ability;
+      dc: number;
+      successText: string;
+      failureText: string;
+    }>[];
+    rewards: readonly Readonly<{
+      id: string;
+      xp: number;
+      trigger: "completion" | "milestone" | "discovery" | "actor-defeated";
+      targetId: string;
+    }>[];
+  }>;
   title: string;
   introduction: string;
   objective: string;
@@ -2563,6 +2591,101 @@ export function loadAdventure(input: string | Uint8Array):
           message: error.message,
         },
       ],
+    });
+  }
+  if ((parsed as { schemaVersion?: number } | null)?.schemaVersion === 17) {
+    validateStructure(
+      parsed,
+      CHARACTER_ADVENTURE_SCHEMA as Schema,
+      "",
+      diagnostics,
+    );
+    if (diagnostics.length > 0) {
+      return freezeDefinition({ ok: false, diagnostics });
+    }
+    const snapshot = parsed as ChapelCluesDefinition;
+    const metadata = snapshot.characterAdventure!;
+    const body = { ...snapshot };
+    delete body.characterAdventure;
+    const legacy = loadAdventure(
+      JSON.stringify({
+        ...body,
+        schemaVersion: 16,
+        rulesVersion: "chapel-clues-rules-v17",
+      }),
+    );
+    if (!legacy.ok) {
+      return legacy;
+    }
+    const fail = (message: string) =>
+      diagnostics.push({
+        severity: "error",
+        code: "invalid-character-adventure",
+        path: "/characterAdventure",
+        entity: null,
+        message,
+      });
+    if (
+      metadata.recommendedLevels.minimum > metadata.recommendedLevels.maximum
+    ) {
+      fail("Recommended level range is reversed.");
+    }
+    const challenges = snapshot.socialChallenges ?? [];
+    if (
+      metadata.socialAbilities.length !== challenges.length ||
+      new Set(metadata.socialAbilities.map((entry) => entry.challengeId))
+        .size !== challenges.length ||
+      metadata.socialAbilities.some(
+        (entry) =>
+          !challenges.some((challenge) => challenge.id === entry.challengeId),
+      )
+    ) {
+      fail("Every social challenge requires one ability.");
+    }
+    if (
+      new Set(metadata.checks.map((entry) => entry.id)).size !==
+        metadata.checks.length ||
+      metadata.checks.some(
+        (entry) =>
+          !snapshot.features.some((feature) => feature.id === entry.featureId),
+      )
+    ) {
+      fail("Checks require unique identities and existing features.");
+    }
+    if (
+      new Set(metadata.rewards.map((entry) => entry.id)).size !==
+      metadata.rewards.length
+    ) {
+      fail("Reward identities must be unique.");
+    }
+    for (const reward of metadata.rewards) {
+      const targets =
+        reward.trigger === "milestone"
+          ? snapshot.quest.milestones
+          : reward.trigger === "discovery"
+            ? snapshot.discoveries.map(({ id }) => id)
+            : reward.trigger === "actor-defeated"
+              ? [...(snapshot.monsters ?? []), ...(snapshot.npcs ?? [])].map(
+                  ({ id }) => id,
+                )
+              : [""];
+      if (!targets.includes(reward.targetId)) {
+        fail("Reward has an unknown trigger target.");
+      }
+    }
+    if (diagnostics.length > 0) {
+      return freezeDefinition({ ok: false, diagnostics });
+    }
+    const canonical = canonicalJson(snapshot);
+    return freezeDefinition({
+      ok: true,
+      adventure: {
+        ...legacy.adventure,
+        snapshot,
+        canonicalJson: canonical,
+        digest: `sha256:${createHash("sha256").update(canonical, "utf8").digest("hex")}`,
+      },
+      diagnostics: legacy.diagnostics,
     });
   }
   validateStructure(

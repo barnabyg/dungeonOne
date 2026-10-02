@@ -1,3 +1,4 @@
+import type { CharacterSheet } from "./character-rules.js";
 import { writeFile } from "node:fs/promises";
 import type { AdventureDefinition } from "./adventure-loader.js";
 import { parseBoundedJson } from "./bounded-json.js";
@@ -102,11 +103,12 @@ type LocalTraceTurn = Readonly<
 >;
 
 type ContentTraceHeader = Readonly<{
+  startingCharacter?: CharacterSheet;
   mode?: "command" | "ai";
   engineVersion?: string;
   content?: Readonly<{
     schemaVersion:
-      1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
+      1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17;
     id: string;
     contentVersion: string;
     digest: string;
@@ -126,6 +128,9 @@ function contentHeader(
     throw new Error("Data runtime requires engine identity.");
   }
   return {
+    ...(runtime.startingCharacter === undefined
+      ? {}
+      : { startingCharacter: runtime.startingCharacter }),
     mode,
     engineVersion: runtime.engineVersion,
     content: {
@@ -140,7 +145,11 @@ function contentHeader(
 
 export type SessionTrace = ContentTraceHeader & {
   formatVersion:
-    typeof TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION | 4 | 5;
+    | typeof TRACE_FORMAT_VERSION
+    | typeof CHAPEL_TRACE_FORMAT_VERSION
+    | 4
+    | 5
+    | 6;
   segment?: TraceSegment;
   readonly rulesVersion: string;
   readonly adventure: Readonly<{
@@ -158,7 +167,11 @@ export type SessionTrace = ContentTraceHeader & {
 
 export type DmSessionTrace = ContentTraceHeader & {
   formatVersion:
-    typeof DM_TRACE_FORMAT_VERSION | typeof CHAPEL_TRACE_FORMAT_VERSION | 4 | 5;
+    | typeof DM_TRACE_FORMAT_VERSION
+    | typeof CHAPEL_TRACE_FORMAT_VERSION
+    | 4
+    | 5
+    | 6;
   segment?: TraceSegment;
   readonly rulesVersion: string;
   readonly adventure: Readonly<{

@@ -1,3 +1,4 @@
+import type { CharacterSheet } from "./character-rules.js";
 import type { Action, SessionState, Event, Rejection } from "./session.js";
 import type {
   ChapelState,
@@ -104,8 +105,9 @@ export type AdventureRuntime = Readonly<{
   toolSchemaVersion: string;
   readToolNames: readonly string[];
   mutationToolNames: readonly string[];
-  commandTraceFormatVersion: 1 | 3 | 4;
-  dmTraceFormatVersion: 2 | 3 | 4;
+  startingCharacter?: CharacterSheet;
+  commandTraceFormatVersion: 1 | 3 | 4 | 6;
+  dmTraceFormatVersion: 2 | 3 | 4 | 6;
   content?: ValidatedAdventure;
   engineVersion?: string;
   localStatusReads?: boolean;
