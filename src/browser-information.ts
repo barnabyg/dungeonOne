@@ -53,6 +53,24 @@ export function browserInformation(session: SaveSession): BrowserInformation {
                 : [
                     "Compare the setting plate at the watch or the camp survey and sighting frame. Testimony and beliefs remain attributed accounts.",
                   ];
+    const ionaAlive =
+      "runtimeKind" in state &&
+      state.runtimeKind === "chapel-clues" &&
+      state.npcHealth?.iona?.hp !== 0;
+    if (
+      scene.outcome === "playing" &&
+      scene.combat === undefined &&
+      ionaAlive &&
+      milestones.includes("iona-claim-attempted") &&
+      !milestones.includes("iona-claim-corrected")
+    ) {
+      const correction = discoveries.find(({ id }) =>
+        ["iona-signal-belief", "iona-claim-refusal"].includes(id),
+      );
+      if (correction?.actionableLead) {
+        currentLeads = [correction.actionableLead, ...currentLeads];
+      }
+    }
   }
   return {
     ...(profile === undefined

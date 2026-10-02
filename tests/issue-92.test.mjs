@@ -65,6 +65,99 @@ async function clickAction(page, server, name, args) {
 }
 
 test(
+  "relationship followups stay public and current through a failed claim, return and correction",
+  { timeout: 30000 },
+  async () => {
+    const directory = mkdtempSync(join(tmpdir(), "dungeon-92-relationship-"));
+    let server, browser;
+    try {
+      const savePath = join(directory, "slot.json");
+      const { model } = journeyModel();
+      server = await startBrowserServer({
+        contentVersion: "11",
+        seed: 0,
+        savePath,
+        apiKey: "offline",
+        dmModel: model,
+      });
+      browser = await chromium.launch(
+        process.platform === "win32" ? { channel: "msedge" } : {},
+      );
+      const page = await browser.newPage();
+      await page.goto(server.url);
+      await idle(page);
+      await page.locator("#start").click();
+      await idle(page);
+      await typed(
+        page,
+        "Claim to Captain Iona that the familiar signal is safe",
+      );
+      for (const message of [
+        "Travel to Watch Loft",
+        "Travel to Signal Records Room",
+        "Search beacon setting plate",
+        "Travel to Watch Loft",
+        "Travel to Watch Yard",
+      ]) {
+        assert.equal((await typed(page, message)).committed, true);
+      }
+      assert.match(
+        await page.locator("#current-leads").textContent(),
+        /correct Captain Iona/,
+      );
+      await page.locator("#open-leads").click();
+      assert.match(
+        await page.locator("#information-body").textContent(),
+        /correct Captain Iona/,
+      );
+      await page.locator("#open-hints").click();
+      assert.match(
+        await page.locator("#information-body").textContent(),
+        /correct Captain Iona/,
+      );
+      await page.locator("#open-character").click();
+      assert.match(
+        await page.locator("#information-body").textContent(),
+        /Relationships in view.*Captain Iona/s,
+      );
+      await page.keyboard.press("Escape");
+      const before = read(savePath).checkpoint;
+      const corrected = await typed(
+        page,
+        "Correct Captain Iona with the setting plate correction",
+      );
+      assert.equal(corrected.committed, true);
+      assert.equal(
+        read(savePath).checkpoint.randomPosition,
+        before.randomPosition,
+      );
+      assert.doesNotMatch(
+        await page.locator("#current-leads").textContent(),
+        /correct Captain Iona/,
+      );
+      await page.locator("#open-character").click();
+      assert.match(
+        await page.locator("#information-body").textContent(),
+        /Captain Iona.*trusted/s,
+      );
+      await page.locator("#open-journal").click();
+      assert.match(
+        await page.locator("#information-body").textContent(),
+        /Iona corrected the safe-signal belief/,
+      );
+      assert.match(
+        corrected.reply,
+        /Nobody else|other actors|no culprit|no.*rescue/i,
+      );
+    } finally {
+      await server?.close();
+      await browser?.close();
+      rmSync(directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
   "full browser journey reads current resources, returns, resumes combat and reviews without stale guidance or repeated commits",
   { timeout: 90000 },
   async () => {

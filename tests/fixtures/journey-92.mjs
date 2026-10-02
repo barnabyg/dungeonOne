@@ -159,6 +159,22 @@ export function journeyModel() {
       { name, argumentsJson: JSON.stringify(args) },
     ]),
   );
+  intents.set("Claim to Captain Iona that the familiar signal is safe", {
+    name: "talk",
+    argumentsJson: JSON.stringify({
+      speakerId: "iona",
+      topicId: "safe-signal",
+      approach: "persuade",
+    }),
+  });
+  intents.set("Correct Captain Iona with the setting plate correction", {
+    name: "talk",
+    argumentsJson: JSON.stringify({
+      speakerId: "iona",
+      topicId: "correct-signal",
+      approach: "ask",
+    }),
+  });
   return {
     controls,
     model: {
