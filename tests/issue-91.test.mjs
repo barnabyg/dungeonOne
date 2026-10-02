@@ -387,8 +387,7 @@ test(
           const choice = current.actions.find(
             (o) =>
               o.call.name === "resolve_quest" &&
-              JSON.parse(o.call.argumentsJson).resolutionId ===
-                "verified-safe-signal",
+              JSON.parse(o.call.argumentsJson).resolutionId === ending,
           );
           intents.set(choice.message, choice.call);
           fail = true;
@@ -408,6 +407,7 @@ test(
           assert.equal((await (await response).json()).committed, true);
           await idle(page);
           const finalCheckpoint = JSON.parse(readFileSync(savePath)).checkpoint;
+          assert.equal(finalCheckpoint.state.ending.id, ending);
           if (typed) {
             assert.deepEqual(finalCheckpoint, pairs.get(ending));
           } else {
