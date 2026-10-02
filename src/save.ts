@@ -82,12 +82,12 @@ function digest(value: unknown): string {
 
 function requireSaveRuntime(runtime: AdventureRuntime): void {
   if (
-    ![3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(
+    ![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].includes(
       runtime.content?.snapshot.schemaVersion ?? 0,
     ) ||
     runtime.engineVersion === undefined
   ) {
-    throw new Error("Saves require a schema-3 through schema-12 adventure.");
+    throw new Error("Saves require a schema-3 through schema-13 adventure.");
   }
 }
 

@@ -129,6 +129,18 @@ export function browserActions(
       "Take " + target.name,
     );
   }
+  for (const choice of scene.recoveryChoices ?? []) {
+    offer(
+      "target:" + choice.featureId,
+      "recover",
+      "target",
+      choice.featureId,
+      choice.label,
+      "Recover at " +
+        scene.room.features.find(({ id }) => id === choice.featureId)!.name,
+      choice.stakes,
+    );
+  }
   for (const choice of scene.combatChoices ?? []) {
     offer(
       "target:" + choice.featureId,

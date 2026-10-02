@@ -47,7 +47,7 @@ launch environment, then run this copyable PowerShell command:
 npm.cmd run browser -- --seed 0 --save .\hollow-beacon-browser-save.json
 ```
 
-The launcher starts **Hollow Beacon: Road Threat** (issue #87, content version 7) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
+The launcher starts **Hollow Beacon: Recovery and Detour** (issue #88, content version 8) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
 your desktop browser. If opening fails, use the printed URL. Keep the
 launcher running; Ctrl+C stops the service without closing the saved session.
 Rerun the same command to read the same slot at its saved seed, even if the
@@ -85,6 +85,17 @@ HP separately from narration. The defeated raider's supply sack supplies an
 attributed aftermath clue. V7 uses schema 12 / `chapel-clues-rules-v13` /
 `chapel-clues-engine-v17`; released v4-v6 slots keep their content, history and
 rules. See [issue 87 player checks](docs/acceptance/issue-87.md).
+V8 adds Ridge Shelter between either road and the tower. Its dressing station
+restores exactly `min(8, missing HP)` HP once per session, outside combat while
+injured, for 0 days. It consumes the camp dressing without spending a carried
+item. Full HP preserves the dressing. The guarded Tower Approach starts a second
+fight for 0 days; the safe Drainage Walk adds 1 day and requires no clue or roll.
+Both lead to the Tower Runner. Combat has no retreat or surrender; 0 HP ends
+the session in defeat. Recovery costs and route stakes are public before travel
+or treatment; resource use appears in Character, Inventory and Journal. V8 uses
+schema 13 / `chapel-clues-rules-v14` / `chapel-clues-engine-v18`, with new bounded
+recovery tools and prompt versions. Released v4-v7 content and occupied slots
+continue unchanged. See [issue 88 player checks](docs/acceptance/issue-88.md).
 Active or completed Hollow Beacon slots
 offer **New game**. Its keyboard-accessible confirmation explains that progress,
 conversation and both hint levels will be replaced, and displays the new seed

@@ -1,0 +1,560 @@
+{
+  "content": {
+    "id": "hollow-beacon",
+    "version": "8",
+    "schemaVersion": 13,
+    "rulesVersion": "chapel-clues-rules-v14",
+    "digest": "sha256:cc5f99c2845c84844d6b8bb585a6c5ebd601713947cfa7427d7b060ccd3ca364"
+  },
+  "engineVersion": "chapel-clues-engine-v18",
+  "journeys": [
+    {
+      "seed": 0,
+      "route": "fight",
+      "commands": [
+        "move ridge-trail",
+        "brace cart",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "move ridge-shelter",
+        "recover station",
+        "move tower-approach",
+        "attack sentry",
+        "attack sentry",
+        "attack sentry",
+        "move beacon-tower"
+      ],
+      "checkpoints": [
+        {
+          "name": "after first fight",
+          "hp": 14,
+          "day": 2,
+          "location": "ridge-trail",
+          "combat": null,
+          "dressingSpent": false
+        },
+        {
+          "name": "after recovery",
+          "hp": 20,
+          "day": 2,
+          "location": "ridge-shelter",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "optional threat or avoidance",
+          "hp": 20,
+          "day": 2,
+          "location": "tower-approach",
+          "combat": "tower-sentry",
+          "dressingSpent": true
+        },
+        {
+          "name": "next act",
+          "hp": 20,
+          "day": 2,
+          "location": "beacon-tower",
+          "combat": null,
+          "dressingSpent": true
+        }
+      ],
+      "status": "playing",
+      "discoveries": [
+        "dark-beacon-known"
+      ]
+    },
+    {
+      "seed": 0,
+      "route": "avoid",
+      "commands": [
+        "move ridge-trail",
+        "brace cart",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "move ridge-shelter",
+        "recover station",
+        "move drainage-walk",
+        "move beacon-tower"
+      ],
+      "checkpoints": [
+        {
+          "name": "after first fight",
+          "hp": 14,
+          "day": 2,
+          "location": "ridge-trail",
+          "combat": null,
+          "dressingSpent": false
+        },
+        {
+          "name": "after recovery",
+          "hp": 20,
+          "day": 2,
+          "location": "ridge-shelter",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "optional threat or avoidance",
+          "hp": 20,
+          "day": 3,
+          "location": "drainage-walk",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "next act",
+          "hp": 20,
+          "day": 3,
+          "location": "beacon-tower",
+          "combat": null,
+          "dressingSpent": true
+        }
+      ],
+      "status": "playing",
+      "discoveries": [
+        "dark-beacon-known"
+      ]
+    },
+    {
+      "seed": 5,
+      "route": "fight",
+      "commands": [
+        "move ridge-trail",
+        "brace cart",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "move ridge-shelter",
+        "recover station",
+        "move tower-approach",
+        "attack sentry",
+        "attack sentry",
+        "move beacon-tower"
+      ],
+      "checkpoints": [
+        {
+          "name": "after first fight",
+          "hp": 12,
+          "day": 2,
+          "location": "ridge-trail",
+          "combat": null,
+          "dressingSpent": false
+        },
+        {
+          "name": "after recovery",
+          "hp": 20,
+          "day": 2,
+          "location": "ridge-shelter",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "optional threat or avoidance",
+          "hp": 20,
+          "day": 2,
+          "location": "tower-approach",
+          "combat": "tower-sentry",
+          "dressingSpent": true
+        },
+        {
+          "name": "next act",
+          "hp": 17,
+          "day": 2,
+          "location": "beacon-tower",
+          "combat": null,
+          "dressingSpent": true
+        }
+      ],
+      "status": "playing",
+      "discoveries": [
+        "dark-beacon-known"
+      ]
+    },
+    {
+      "seed": 5,
+      "route": "avoid",
+      "commands": [
+        "move ridge-trail",
+        "brace cart",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "move ridge-shelter",
+        "recover station",
+        "move drainage-walk",
+        "move beacon-tower"
+      ],
+      "checkpoints": [
+        {
+          "name": "after first fight",
+          "hp": 12,
+          "day": 2,
+          "location": "ridge-trail",
+          "combat": null,
+          "dressingSpent": false
+        },
+        {
+          "name": "after recovery",
+          "hp": 20,
+          "day": 2,
+          "location": "ridge-shelter",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "optional threat or avoidance",
+          "hp": 20,
+          "day": 3,
+          "location": "drainage-walk",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "next act",
+          "hp": 20,
+          "day": 3,
+          "location": "beacon-tower",
+          "combat": null,
+          "dressingSpent": true
+        }
+      ],
+      "status": "playing",
+      "discoveries": [
+        "dark-beacon-known"
+      ]
+    },
+    {
+      "seed": 8,
+      "route": "fight",
+      "commands": [
+        "move ridge-trail",
+        "brace cart",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "move ridge-shelter",
+        "recover station",
+        "move tower-approach",
+        "attack sentry",
+        "attack sentry",
+        "attack sentry",
+        "move beacon-tower"
+      ],
+      "checkpoints": [
+        {
+          "name": "after first fight",
+          "hp": 11,
+          "day": 2,
+          "location": "ridge-trail",
+          "combat": null,
+          "dressingSpent": false
+        },
+        {
+          "name": "after recovery",
+          "hp": 19,
+          "day": 2,
+          "location": "ridge-shelter",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "optional threat or avoidance",
+          "hp": 19,
+          "day": 2,
+          "location": "tower-approach",
+          "combat": "tower-sentry",
+          "dressingSpent": true
+        },
+        {
+          "name": "next act",
+          "hp": 14,
+          "day": 2,
+          "location": "beacon-tower",
+          "combat": null,
+          "dressingSpent": true
+        }
+      ],
+      "status": "playing",
+      "discoveries": [
+        "dark-beacon-known"
+      ]
+    },
+    {
+      "seed": 8,
+      "route": "avoid",
+      "commands": [
+        "move ridge-trail",
+        "brace cart",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "move ridge-shelter",
+        "recover station",
+        "move drainage-walk",
+        "move beacon-tower"
+      ],
+      "checkpoints": [
+        {
+          "name": "after first fight",
+          "hp": 11,
+          "day": 2,
+          "location": "ridge-trail",
+          "combat": null,
+          "dressingSpent": false
+        },
+        {
+          "name": "after recovery",
+          "hp": 19,
+          "day": 2,
+          "location": "ridge-shelter",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "optional threat or avoidance",
+          "hp": 19,
+          "day": 3,
+          "location": "drainage-walk",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "next act",
+          "hp": 19,
+          "day": 3,
+          "location": "beacon-tower",
+          "combat": null,
+          "dressingSpent": true
+        }
+      ],
+      "status": "playing",
+      "discoveries": [
+        "dark-beacon-known"
+      ]
+    },
+    {
+      "seed": 9,
+      "route": "fight",
+      "commands": [
+        "move ridge-trail",
+        "brace cart",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "move ridge-shelter",
+        "recover station",
+        "move tower-approach",
+        "attack sentry",
+        "attack sentry",
+        "move beacon-tower"
+      ],
+      "checkpoints": [
+        {
+          "name": "after first fight",
+          "hp": 3,
+          "day": 2,
+          "location": "ridge-trail",
+          "combat": null,
+          "dressingSpent": false
+        },
+        {
+          "name": "after recovery",
+          "hp": 11,
+          "day": 2,
+          "location": "ridge-shelter",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "optional threat or avoidance",
+          "hp": 11,
+          "day": 2,
+          "location": "tower-approach",
+          "combat": "tower-sentry",
+          "dressingSpent": true
+        },
+        {
+          "name": "next act",
+          "hp": 6,
+          "day": 2,
+          "location": "beacon-tower",
+          "combat": null,
+          "dressingSpent": true
+        }
+      ],
+      "status": "playing",
+      "discoveries": [
+        "dark-beacon-known"
+      ]
+    },
+    {
+      "seed": 9,
+      "route": "avoid",
+      "commands": [
+        "move ridge-trail",
+        "brace cart",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "move ridge-shelter",
+        "recover station",
+        "move drainage-walk",
+        "move beacon-tower"
+      ],
+      "checkpoints": [
+        {
+          "name": "after first fight",
+          "hp": 3,
+          "day": 2,
+          "location": "ridge-trail",
+          "combat": null,
+          "dressingSpent": false
+        },
+        {
+          "name": "after recovery",
+          "hp": 11,
+          "day": 2,
+          "location": "ridge-shelter",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "optional threat or avoidance",
+          "hp": 11,
+          "day": 3,
+          "location": "drainage-walk",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "next act",
+          "hp": 11,
+          "day": 3,
+          "location": "beacon-tower",
+          "combat": null,
+          "dressingSpent": true
+        }
+      ],
+      "status": "playing",
+      "discoveries": [
+        "dark-beacon-known"
+      ]
+    },
+    {
+      "seed": 10,
+      "route": "fight",
+      "commands": [
+        "move ridge-trail",
+        "brace cart",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "move ridge-shelter",
+        "recover station",
+        "move tower-approach",
+        "attack sentry",
+        "attack sentry",
+        "move beacon-tower"
+      ],
+      "checkpoints": [
+        {
+          "name": "after first fight",
+          "hp": 2,
+          "day": 2,
+          "location": "ridge-trail",
+          "combat": null,
+          "dressingSpent": false
+        },
+        {
+          "name": "after recovery",
+          "hp": 10,
+          "day": 2,
+          "location": "ridge-shelter",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "optional threat or avoidance",
+          "hp": 10,
+          "day": 2,
+          "location": "tower-approach",
+          "combat": "tower-sentry",
+          "dressingSpent": true
+        },
+        {
+          "name": "next act",
+          "hp": 10,
+          "day": 2,
+          "location": "beacon-tower",
+          "combat": null,
+          "dressingSpent": true
+        }
+      ],
+      "status": "playing",
+      "discoveries": [
+        "dark-beacon-known"
+      ]
+    },
+    {
+      "seed": 10,
+      "route": "avoid",
+      "commands": [
+        "move ridge-trail",
+        "brace cart",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "attack raider",
+        "move ridge-shelter",
+        "recover station",
+        "move drainage-walk",
+        "move beacon-tower"
+      ],
+      "checkpoints": [
+        {
+          "name": "after first fight",
+          "hp": 2,
+          "day": 2,
+          "location": "ridge-trail",
+          "combat": null,
+          "dressingSpent": false
+        },
+        {
+          "name": "after recovery",
+          "hp": 10,
+          "day": 2,
+          "location": "ridge-shelter",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "optional threat or avoidance",
+          "hp": 10,
+          "day": 3,
+          "location": "drainage-walk",
+          "combat": null,
+          "dressingSpent": true
+        },
+        {
+          "name": "next act",
+          "hp": 10,
+          "day": 3,
+          "location": "beacon-tower",
+          "combat": null,
+          "dressingSpent": true
+        }
+      ],
+      "status": "playing",
+      "discoveries": [
+        "dark-beacon-known"
+      ]
+    }
+  ]
+}

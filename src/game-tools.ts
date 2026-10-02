@@ -88,6 +88,11 @@ export type DmScene = Readonly<{
     label: string;
     stakes: string;
   }>[];
+  recoveryChoices?: readonly Readonly<{
+    featureId: string;
+    label: string;
+    stakes: string;
+  }>[];
   combatStatus?: string;
   endingChoices?: readonly Readonly<{
     id: string;
@@ -107,6 +112,7 @@ export type CharacterStatus = Readonly<{
   outcome: SessionState["status"];
   combatTurn?: string;
   conditions?: readonly string[];
+  resources?: readonly string[];
 }>;
 
 type JsonSchema = Readonly<Record<string, unknown>>;
@@ -129,6 +135,7 @@ export type GameToolName =
   | "open"
   | "take"
   | "use_item"
+  | "recover"
   | "brace"
   | "attack"
   | "resolve_quest"
@@ -692,6 +699,7 @@ function parseTool(
         name === "distract" ||
         name === "deceive" ||
         name === "offer" ||
+        name === "recover" ||
         name === "brace"
       ) {
         return "unknown-tool";

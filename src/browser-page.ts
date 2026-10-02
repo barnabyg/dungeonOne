@@ -176,11 +176,14 @@ function renderInformation() {
   } else if (activePanel === "inventory") {
     inventoryBlock("Equipment", status.equipment, "No equipment.");
     inventoryBlock("Carried items", status.collectedItems, "No carried items.");
+    if (status.resources) { informationBlock("Local resources", status.resources); }
   } else if (activePanel === "character") {
     informationBlock("Current status", ["HP: " + status.hp + " / " + status.maxHp, "Session: " + status.outcome, ...(status.combatTurn ? ["Combat turn: " + status.combatTurn] : []), ...(status.conditions || [])]);
+    if (status.resources) { informationBlock("Local resources", status.resources); }
   } else {
     if (activePanel === "journal") {
       informationBlock(journal.quest.title, ["Quest: " + journal.quest.status]);
+      if (status.resources) { informationBlock("Resource record", status.resources); }
     }
     const showingLeads = activePanel === "leads";
     for (const [classification, label, leadLabel] of [["observation", "Observed evidence", "Observed evidence leads"], ["testimony", "Testimony", "Testimony leads"], ["belief", "Beliefs", "Contested claim leads"]]) {
