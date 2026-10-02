@@ -278,7 +278,7 @@ function renderInformation() {
     if (information && information.defense !== undefined) { informationBlock("Combat profile", ["Defense: AC " + information.defense, "Attack: " + information.attack, currentView.scene.combatStatus || "No active combat."]); }
     if (status.sheet) {
       informationBlock("Ability scores", Object.entries(status.sheet.abilities).map(([ability, score]) => ability + ": " + score + " (" + (status.modifiers && status.modifiers[ability] >= 0 ? "+" : "") + (status.modifiers ? status.modifiers[ability] : "see rules") + ")"));
-      informationBlock("Career", ["XP: " + status.sheet.xp, status.profile.nextLevelXp === null ? "Level 3 is the supported maximum. Further XP remains recorded." : "Next level at " + status.profile.nextLevelXp + " XP.", "Initiative: " + status.profile.initiativeBonus, "Equipment: " + status.equipment.map((item) => item.name).join(", ")]);
+      informationBlock("Career", ["XP: " + status.sheet.xp, "Pending adventure XP: " + status.pendingXp + " (credited on surviving completion)", status.profile.nextLevelXp === null ? "Level 3 is the supported maximum. Further XP remains recorded." : "Next level at " + status.profile.nextLevelXp + " XP.", "Initiative: " + status.profile.initiativeBonus, "Equipment: " + status.equipment.map((item) => item.name).join(", ")]);
     } else { informationBlock("Historical sheet", ["Ability scores, name and level were not recorded in this adventure."]); }
     if (information && information.relationships.length) { informationBlock("Relationships in view", information.relationships.map((relationship) => relationship.replace(/\\bthe player\\b/g, "you"))); }
   } else {

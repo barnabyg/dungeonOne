@@ -114,6 +114,7 @@ export type DmScene = Readonly<{
 
 export type CharacterStatus = Readonly<{
   sheet?: CharacterSheet;
+  pendingXp?: number;
   modifiers?: Readonly<Record<Ability, number>>;
   profile?: ReturnType<typeof characterProfile>;
   hp: number;

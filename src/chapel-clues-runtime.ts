@@ -65,6 +65,8 @@ export type ClueState = Readonly<{
     narration: string;
   }>;
   character?: CharacterSheet;
+  pendingRewards?: readonly Readonly<{ id: string; xp: number }>[];
+  characterResult?: CharacterSheet;
   abilityChecks?: Readonly<
     Record<
       string,
@@ -165,6 +167,8 @@ export type OfferResolution = Readonly<{
 export type ClueTextEvent = Readonly<{
   type: "clue";
   operation:
+    | "reward"
+    | "level-up"
     | "ability-check"
     | "look"
     | "inspect"

@@ -17,6 +17,7 @@ import { parseBoundedJson } from "./bounded-json.js";
 import {
   ABILITIES,
   abilityModifier,
+  advanceCharacter,
   characterProfile,
   validateCharacter,
   type CharacterSheet,
@@ -93,13 +94,80 @@ export function createCharacterRuntime(
             features.some(({ id }) => id === check.featureId),
         );
   };
+  const settle = (result: RuntimeResult): RuntimeResult => {
+    if (result.rejection !== undefined) {
+      return result;
+    }
+    const state = stateOf(result.state);
+    const pending = [...(state.pendingRewards ?? [])];
+    const events = [...result.events];
+    for (const reward of support.rewards) {
+      if (
+        sheet.earnedRewards.includes(reward.id) ||
+        pending.some(({ id }) => id === reward.id)
+      ) {
+        continue;
+      }
+      const earned =
+        reward.trigger === "completion"
+          ? state.status === "victory" && state.fighter.hp > 0
+          : reward.trigger === "milestone"
+            ? state.milestones.includes(reward.targetId)
+            : reward.trigger === "discovery"
+              ? state.discoveries.includes(reward.targetId)
+              : (state.monsters?.[reward.targetId]?.hp ??
+                  state.npcHealth?.[reward.targetId]?.hp) === 0;
+      if (earned) {
+        pending.push({ id: reward.id, xp: reward.xp });
+        events.push({
+          type: "clue",
+          operation: "reward",
+          text: `${reward.xp} XP earned (${reward.id}); pending until surviving completion.`,
+        });
+      }
+    }
+    let characterResult = state.characterResult;
+    if (
+      state.status === "victory" &&
+      state.fighter.hp > 0 &&
+      characterResult === undefined
+    ) {
+      const xp = pending.reduce((sum, reward) => sum + reward.xp, 0);
+      characterResult = {
+        ...advanceCharacter(sheet, xp, state.fighter.hp),
+        earnedRewards: [...sheet.earnedRewards, ...pending.map(({ id }) => id)],
+      };
+      events.push({
+        type: "clue",
+        operation: "level-up",
+        text: `${sheet.name} completes the adventure: ${xp} XP credited, ${characterResult.xp} career XP. ${characterResult.level > sheet.level ? `Level ${sheet.level} → ${characterResult.level}; maximum HP ${profile.maxHp} → ${characterProfile(characterResult).maxHp}, attack bonus ${profile.attackBonus} → ${characterProfile(characterResult).attackBonus}. ` : ""}${characterResult.level === 3 ? "Level 3 is the supported cap; further XP stays recorded. " : ""}Remaining HP is preserved. Rest before the next adventure.`,
+      });
+    }
+    return {
+      state: {
+        ...state,
+        pendingRewards: pending,
+        ...(characterResult === undefined
+          ? {}
+          : {
+              characterResult,
+              fighter: {
+                ...state.fighter,
+                maxHp: characterProfile(characterResult).maxHp,
+              },
+            }),
+      },
+      events,
+    };
+  };
   const handleAction = (
     state: RuntimeState,
     action: Action,
     random?: Pick<RandomSource, "roll">,
   ): RuntimeResult => {
     if (action.type !== "ability-check") {
-      return legacy.handleAction(state, action, random);
+      const result = legacy.handleAction(state, action, random);
+      return result.state === state ? result : settle(result);
     }
     const check = availableChecks(state).find(
       ({ id }) => id === action.checkId,
@@ -121,7 +189,7 @@ export function createCharacterRuntime(
     const total = die + modifier;
     const result = total >= check.dc ? "success" : "failure";
     const current = stateOf(state);
-    return {
+    return settle({
       state: {
         ...current,
         abilityChecks: {
@@ -136,7 +204,7 @@ export function createCharacterRuntime(
           text: `${check.ability} ${sheet.abilities[check.ability]}: d20 ${die} ${modifier >= 0 ? "+" : ""}${modifier} = ${total} vs DC ${check.dc} — ${result}. ${result === "success" ? check.successText : check.failureText}`,
         },
       ],
-    };
+    });
   };
   const runtime: AdventureRuntime = Object.freeze({
     ...legacy,
@@ -152,6 +220,7 @@ export function createCharacterRuntime(
       ...legacy.createSession(),
       character: sheet,
       abilityChecks: {},
+      pendingRewards: [],
     }),
     mutationToolNames: [...legacy.mutationToolNames, "check_ability"],
     systemPrompt: `${legacy.systemPrompt} Character scores, equipment, levels and XP are engine-owned. Never invent or change them. Optional ability checks have remembered outcomes and cost no time; use check_ability only for an explicit request naming an offered check. Essential observation remains available through ordinary inspect/search and dialogue.`,
@@ -201,7 +270,30 @@ export function createCharacterRuntime(
         };
       }
       if (call.name !== "check_ability") {
-        return legacy.dispatchGameTool(state, call, random, playerInput);
+        const result = legacy.dispatchGameTool(
+          state,
+          call,
+          random,
+          playerInput,
+        );
+        if (
+          !result.modelOutput.ok ||
+          result.engineResult === undefined ||
+          !("events" in result.engineResult) ||
+          result.state === state
+        ) {
+          return result;
+        }
+        const settled = settle({
+          state: result.state,
+          events: result.engineResult.events,
+        });
+        return {
+          ...result,
+          state: settled.state,
+          engineResult: { events: settled.events! },
+          modelOutput: { ...result.modelOutput, events: settled.events! },
+        };
       }
       let args: unknown;
       try {
@@ -264,8 +356,16 @@ export function createCharacterRuntime(
     },
     projectCharacterStatus: (state) => ({
       ...legacy.projectCharacterStatus(state),
-      sheet,
-      profile,
+      sheet: stateOf(state).characterResult ?? sheet,
+      profile: characterProfile(stateOf(state).characterResult ?? sheet),
+      maxHp: characterProfile(stateOf(state).characterResult ?? sheet).maxHp,
+      pendingXp:
+        stateOf(state).status === "playing"
+          ? (stateOf(state).pendingRewards ?? []).reduce(
+              (sum, reward) => sum + reward.xp,
+              0,
+            )
+          : 0,
       modifiers: Object.fromEntries(
         ABILITIES.map((ability) => [
           ability,

@@ -47,6 +47,7 @@ export type CharacterSheet = Readonly<{
   xp: number;
   hp: number;
   equipment: readonly ["chain-mail", "shield", "longsword"];
+  earnedRewards: readonly string[];
 }>;
 
 export function abilityModifier(score: number): number {
@@ -132,6 +133,16 @@ export function validateCharacter(value: unknown): CharacterSheet {
     throw new Error("Unsupported character equipment.");
   }
   if (
+    !Array.isArray(sheet.earnedRewards) ||
+    sheet.earnedRewards.length > 10000 ||
+    sheet.earnedRewards.some(
+      (id) => typeof id !== "string" || !/^[a-z][a-z0-9-]{0,127}$/.test(id),
+    ) ||
+    new Set(sheet.earnedRewards).size !== sheet.earnedRewards.length
+  ) {
+    throw new Error("Invalid earned reward identities.");
+  }
+  if (
     !Number.isInteger(sheet.hp) ||
     sheet.hp < 0 ||
     sheet.hp > characterProfile(sheet).maxHp
@@ -160,6 +171,7 @@ export function createCharacter(
     xp: 0,
     hp: 1,
     equipment: ["chain-mail", "shield", "longsword"],
+    earnedRewards: [],
   };
   return validateCharacter({ ...base, hp: characterProfile(base).maxHp });
 }
