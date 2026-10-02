@@ -193,7 +193,8 @@ for (const [ending, clicked, lost, fail] of [
         endingButton.listeners.click();
         const button = browser.nodes
           .get("context-actions")
-          .children.find((item) => item.textContent === choice.label);
+          .children.flatMap((item) => item.children)
+          .find((item) => item.textContent === choice.label);
         await button.listeners.click();
       } else {
         await browser.submit(choice.message);

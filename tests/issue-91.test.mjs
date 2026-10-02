@@ -448,6 +448,7 @@ test(
               );
             }
           }
+          await page.locator("#game-menu > summary").click();
           await page.locator("#new-game").click();
           await page.locator("#cancel-new-game").click();
           assert.equal(readFileSync(savePath, "utf8"), durable);

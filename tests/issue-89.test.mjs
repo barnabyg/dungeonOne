@@ -542,14 +542,9 @@ test(
         await stale.goto(server.url);
         await idle(stale);
         if (clicked) {
-          await page
-            .getByRole("button", {
-              name: "spare signal component",
-              exact: true,
-            })
-            .click();
+          await page.locator("#open-inventory").click();
           assert.match(
-            await page.locator("#context-actions").textContent(),
+            await page.locator("#information-body").textContent(),
             /one component.*0 days.*no healing/s,
           );
           await control(server, "fail");
@@ -614,9 +609,7 @@ test(
           ).status,
           409,
         );
-        await stale
-          .getByRole("button", { name: "spare signal component", exact: true })
-          .click();
+        await stale.locator("#open-inventory").click();
         const staleResponse = stale.waitForResponse((r) =>
           r.url().endsWith("/api/turn"),
         );

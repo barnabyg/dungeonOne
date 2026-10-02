@@ -401,6 +401,7 @@ test(
         r.url().endsWith("/api/turn"),
       );
       await page
+        .locator("#context-actions")
         .getByRole("button", { name: "Brace cover (1 action)", exact: true })
         .click();
       const covered = await (await response).json();
@@ -564,6 +565,7 @@ test(
               r.url().endsWith("/api/turn"),
             );
             await page
+              .locator("#context-actions")
               .getByRole("button", {
                 name: "Brace cover (1 action)",
                 exact: true,

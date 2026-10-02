@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import type { GameToolCall } from "./game-tools.js";
 import type { SaveSession } from "./save.js";
+import type { ChapelCluesDefinition } from "./adventure-loader.js";
 
 export type BrowserAction = Readonly<{
   id: string;
@@ -38,12 +39,15 @@ export function browserActions(
     return [];
   }
   const tools = session.runtime.getGameToolDefinitions(session.state);
+  const definition = session.runtime.content?.snapshot as
+    ChapelCluesDefinition | undefined;
   const permits = (name: string, property: string, value: string) => {
     const properties = tools.find((tool) => tool.name === name)?.parameters
       .properties as Record<string, { enum?: readonly string[] }> | undefined;
     return properties?.[property]?.enum?.includes(value) === true;
   };
   const actions: BrowserAction[] = [];
+  const milestones: readonly string[] = scene.journal?.quest.milestones ?? [];
   const add = (
     contextId: string,
     label: string,
@@ -82,6 +86,14 @@ export function browserActions(
     }
   };
   for (const exit of scene.room.exits) {
+    const combatRoute =
+      session.runtime.id === "hollow-beacon" &&
+      (((definition?.schemaVersion ?? 0) >= 12 &&
+        exit.destinationId === "ridge-trail" &&
+        !milestones.includes("ridge-cleared")) ||
+        ((definition?.schemaVersion ?? 0) >= 13 &&
+          exit.destinationId === "tower-approach" &&
+          !milestones.includes("approach-cleared")));
     offer(
       "exit:" + exit.destinationId,
       "move",
@@ -89,6 +101,9 @@ export function browserActions(
       exit.destinationId,
       "Travel to " + exit.name,
       "Travel to " + exit.name,
+      combatRoute
+        ? "Combat on arrival. No retreat or surrender once fighting."
+        : undefined,
     );
     offer(
       "exit:" + exit.destinationId,
@@ -207,19 +222,6 @@ export function browserActions(
     );
   }
   for (const npc of scene.room.npcs ?? []) {
-    if ((session.runtime.content?.snapshot.schemaVersion ?? 0) >= 15) {
-      offer(
-        "npc:" + npc.id,
-        "attack",
-        "opponent_id",
-        npc.id,
-        "Attack (1 action)",
-        "Attack " + npc.name,
-        scene.combat === undefined
-          ? "Start combat. Attack costs 1 action, 0 days. At 0 HP the session ends in defeat; no retreat or surrender after attacking."
-          : scene.combatStatus,
-      );
-    }
     if (npc.condition === "dead") {
       offer(
         "npc:" + npc.id,
@@ -244,9 +246,16 @@ export function browserActions(
         permits("talk", "topicId", subject.id) &&
         permits("talk", "approach", "ask")
       ) {
+        const topic = definition?.npcs
+          ?.find(({ id }) => id === npc.id)
+          ?.topics.find(({ id }) => id === subject.id);
+        const distinctPersuasion =
+          topic !== undefined &&
+          (topic.challengeId !== "none" ||
+            topic.replies.some(({ approach }) => approach === "persuade"));
         for (const approach of (subject.intent === "claim"
           ? ["persuade"]
-          : subject.intent === "correction"
+          : subject.intent === "correction" || !distinctPersuasion
             ? ["ask"]
             : ["ask", "persuade"]) as readonly ("ask" | "persuade")[]) {
           if (!permits("talk", "approach", approach)) {
@@ -270,6 +279,19 @@ export function browserActions(
           );
         }
       }
+    }
+    if ((definition?.schemaVersion ?? 0) >= 15) {
+      offer(
+        "npc:" + npc.id,
+        "attack",
+        "opponent_id",
+        npc.id,
+        "Attack (1 action)",
+        "Attack " + npc.name,
+        scene.combat === undefined
+          ? "Start combat. Attack costs 1 action, 0 days. At 0 HP the session ends in defeat; no retreat or surrender after attacking."
+          : scene.combatStatus,
+      );
     }
   }
   for (const choice of scene.endingChoices ?? []) {

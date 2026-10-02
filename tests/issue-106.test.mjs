@@ -150,6 +150,9 @@ test(
           "leads",
           "hints",
         ]) {
+          if (panel === "leads") {
+            await page.locator("#open-journal").click();
+          }
           await page.locator("#open-" + panel).focus();
           await page.keyboard.press("Enter");
           assert.equal(
@@ -162,7 +165,7 @@ test(
           await page.keyboard.press("Escape");
           assert.equal(
             await page
-              .locator("#open-" + panel)
+              .locator("#open-" + (panel === "leads" ? "journal" : panel))
               .evaluate((e) => e === document.activeElement),
             true,
           );
@@ -280,6 +283,7 @@ test(
           await page.locator("#information-body").textContent(),
           /Further AI interaction and hints are closed/,
         );
+        await page.locator("#game-menu > summary").click();
         await page.locator("#new-game").click();
         assert.equal(
           await page

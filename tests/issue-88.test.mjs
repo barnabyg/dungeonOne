@@ -447,6 +447,7 @@ test(
           await page.locator("#information").textContent(),
           /Tower routes and instructions.*Drainage Walk/s,
         );
+        await page.locator("#close-information").click();
         await page
           .getByRole("button", { name: "camp dressing station", exact: true })
           .click();
@@ -529,10 +530,15 @@ test(
         );
         for (const panel of ["character", "inventory", "journal"]) {
           await page.locator("#open-" + panel).click();
-          assert.match(
-            await page.locator("#information").textContent(),
-            /dressing consumed/,
-          );
+          const information = await page.locator("#information").textContent();
+          if (panel === "journal") {
+            assert.match(information, /dressing consumed/);
+          } else {
+            assert.doesNotMatch(information, /dressing consumed/);
+            if (panel === "character") {
+              assert.match(information, /HP: 11 \/ 20/);
+            }
+          }
         }
         await restart(); // After recovery; exact history retained.
         assert.match(await page.locator("#hp").textContent(), /11 \/ 20/);
@@ -559,6 +565,7 @@ test(
             })
             .catch(() => undefined);
           await page
+            .locator("#combat-actions")
             .getByRole("button", { name: "Attack (1 action)", exact: true })
             .click();
           await committed;

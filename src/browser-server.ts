@@ -38,6 +38,11 @@ import {
 import { SaveSession } from "./save.js";
 import { BROWSER_HTML, BROWSER_CSS, BROWSER_SCRIPT } from "./browser-page.js";
 import {
+  artworkForLocation,
+  loadBrowserArtwork,
+  type BrowserArtwork,
+} from "./browser-artwork.js";
+import {
   cachedHints,
   cachedStrongerHints,
   hintCandidates,
@@ -56,6 +61,7 @@ export type BrowserOptions = Readonly<{
   dmModel?: DmModel;
   hintPreparer?: HintPreparer;
   strongerHintPreparer?: HintPreparer;
+  artworkPath?: string;
 }>;
 
 async function readBody(request: IncomingMessage): Promise<unknown> {
@@ -115,7 +121,7 @@ async function readPlayerInput(
 }
 
 export type BrowserView = Readonly<
-  | { slot: "empty"; title: string; seed: number }
+  | { slot: "empty"; title: string; introduction: string; seed: number }
   | {
       slot: "occupied";
       revision: string;
@@ -129,9 +135,12 @@ export type BrowserView = Readonly<
       hp: Readonly<{ current: number; maximum: number }>;
       character: CharacterStatus;
       information: BrowserInformation;
-      deadline: Readonly<{ name: string; day: number }>;
+      deadline?: Readonly<{ name: string; day: number }>;
       actions: readonly BrowserAction[];
       title: string;
+      introduction: string;
+      characterLabel: string;
+      artwork?: BrowserArtwork;
       history: readonly BrowserTurn[];
       strongerHints?:
         | BrowserHints
@@ -224,6 +233,8 @@ function playerView(
         .digest("hex"),
     ),
     title: session.runtime.content!.snapshot.title,
+    introduction: session.runtime.content!.snapshot.introduction,
+    characterLabel: "Fighter",
     history: [
       ...(session.browserHistory?.turns ?? []),
       ...(session.browserHistory?.pending === undefined
@@ -374,6 +385,10 @@ export async function startBrowserServer(options: BrowserOptions) {
     throw new Error("The bundled Hollow Beacon adventure is invalid.");
   }
   const runtime = createDataRuntime(loaded.adventure);
+  const artwork =
+    options.artworkPath === undefined
+      ? undefined
+      : await loadBrowserArtwork(options.artworkPath);
   let retained: SaveSession | undefined;
   // Callers own the exclusive turn lock while changing the recovery session.
   const retainSession = (session: SaveSession | undefined) => {
@@ -567,8 +582,14 @@ export async function startBrowserServer(options: BrowserOptions) {
         hintJob.persisted
           ? hintJob.result
           : undefined;
+      const sceneArtwork = artworkForLocation(
+        artwork,
+        session.runtime,
+        view.scene.room.id,
+      );
       return {
         ...view,
+        ...(sceneArtwork === undefined ? {} : { artwork: sceneArtwork }),
         ...(hints === undefined ? {} : { hints }),
         ...(view.scene.outcome === "playing" &&
         strongerJob?.revision === hintRevision(session)
@@ -591,6 +612,7 @@ export async function startBrowserServer(options: BrowserOptions) {
       return {
         slot: "empty",
         title: loaded.adventure.snapshot.title,
+        introduction: loaded.adventure.snapshot.introduction,
         seed: options.seed,
       };
     }
@@ -637,7 +659,7 @@ export async function startBrowserServer(options: BrowserOptions) {
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy":
-        "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+        "default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
       "Referrer-Policy": "no-referrer",
     });
     response.end(body);

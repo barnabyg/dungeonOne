@@ -19,6 +19,73 @@ All development tools and the official OpenAI SDK are exact-version dependencies
 
 ### Hollow Beacon in a desktop browser
 
+The browser presents an illustrated current scene, a compact Fighter HP/day/
+caravan deadline strip, nearby people and objects, and the saved adventure.
+The parchment and charcoal layout adapts to phone widths; the scene and story
+precede the exploration list, with a reachable composer. **Read the scene** expands the full
+description and objective. Decorative artwork does not establish game facts.
+Routine successful turns use a small **Saved** indicator; failures retain explicit
+messages about whether an action committed. **Game menu** contains the seed,
+**New game**, and **Refresh adventure** for rereading or recovering saved progress.
+
+Friendly NPC options lead with conversation. Persuasion appears when an authored
+topic has distinct consequences or a real check; initiating violence is a separate
+danger action with its stakes. Combat routes warn before travel. During a fight,
+the encounter panel keeps enemy HP, turn ownership and currently legal Attack,
+Cover and carried healing controls available after each round. Routes are visibly
+inspection-only until combat ends. The engine still owns costs, dice and outcomes.
+
+**Journal** contains **Evidence** and **Leads** views, preserving observation,
+testimony and belief attribution. Known world supplies belong in the journal;
+Inventory shows carried items with their currently legal inspection/use controls.
+Character introduces the supported Fighter and its current combat profile.
+See the [UI redesign player handoff](docs/acceptance/ui-gameplay-redesign.md).
+
+Adventure titles, opening text, scene names and character labels come from the
+browser presentation data. An optional local artwork pack supplies illustrations
+by adventure ID, content version and location ID. A missing, mismatched or broken
+image uses the neutral dice motif; the UI never guesses scenery from a location's
+English name. Only the current location's image is sent to the page. Images are
+presentation assets and do not enter saves, replay, journal evidence or AI context.
+The browser launcher still supports the existing Hollow Beacon v4-v11 family;
+this UI change does not enable other authored/generated adventures in browser
+mode. Custom adventures remain playable through command mode.
+
+To supply location images, create a JSON manifest next to local PNG, JPEG or WebP
+files. For example, `artwork/manifest.json`:
+
+```json
+{
+  "adventureId": "hollow-beacon",
+  "version": "11",
+  "locations": [
+    {
+      "id": "watch-yard",
+      "file": "watch-yard.webp",
+      "alt": "An illustration of the watch yard"
+    },
+    {
+      "id": "watch-loft",
+      "file": "watch-loft.webp",
+      "alt": "An illustration of the watch loft"
+    }
+  ]
+}
+```
+
+```powershell
+npm.cmd run browser -- --seed 0 --save .\ui-redesign-player-save.json --artwork .\artwork\manifest.json
+```
+
+File paths must remain inside the manifest's folder, including after resolving
+symlinks. Packs allow at most 50 images, 2 MiB per file and 20 MiB total; the JSON
+manifest is limited to 64 KiB. Invalid packs fail before a save changes. Use
+stable, publicly visible setting details, without hidden enemies, clue solutions
+or mutable outcomes. Artwork loads once at startup; restart after changing it.
+Automatic generation is not included. A future generation step can create and
+cache a pack during adventure authoring, then use this same presentation hook
+without making image generation part of taking a turn.
+
 The combined saved journey, desktop observations, bounded live-provider evidence,
 and delivered interfaces for the increment 8 rewrite are in the
 [increment 9 qualification and handoff](docs/acceptance/issue-106.md).
@@ -60,7 +127,7 @@ including when two starts race. Starting creates missing parent directories for
 the configured save path; reading an empty slot creates no directories.
 The page displays the authoritative scene,
 location, visible exits, Day 0, Day 3 caravan deadline, 20/20 HP, and seed 0.
-**Read current state** rereads the verified slot. Existing slots load without
+**Refresh adventure** in Game menu rereads the verified slot. Existing slots load without
 replacement; corrupt, closed (`quit`), other-adventure, or older-content slots
 produce an error and remain unchanged. Released v4 Watch Route slots continue
 with their original content and endings, including completed Review mode.
@@ -91,7 +158,7 @@ item. Full HP preserves the dressing. The guarded Tower Approach starts a second
 fight for 0 days; the safe Drainage Walk adds 1 day and requires no clue or roll.
 Both lead to the Tower Runner. Combat has no retreat or surrender; 0 HP ends
 the session in defeat. Recovery costs and route stakes are public before travel
-or treatment; resource use appears in Character, Inventory and Journal. V8 uses
+or treatment; known world supplies appear in Journal. V8 uses
 schema 13 / `chapel-clues-rules-v14` / `chapel-clues-engine-v18`, with new bounded
 recovery tools and prompt versions. Released v4-v7 content and occupied slots
 continue unchanged. See [issue 88 player checks](docs/acceptance/issue-88.md).
@@ -122,7 +189,7 @@ conversation and both hint levels will be replaced, and displays the new seed
 from the launcher. **Cancel** or Escape preserves the current game; confirming
 saves a fresh opening in the same slot. Pending turns or hint preparation reject
 replacement until they finish. An interrupted write recovers a whole verified
-old or new slot; after a failure or lost response, use **Read current state**
+old or new slot; after a failure or lost response, use **Refresh adventure** in Game menu
 before retrying. Old-tab actions and delayed replies cannot enter the new game.
 See [issue 104 player checks](docs/acceptance/issue-104.md).
 
@@ -142,7 +209,7 @@ location, exits, HP, and time refresh from verified saved state. Consequential
 results save before display. Provider failures report whether an action was
 saved; do not repeat an action marked saved. Lost responses and stale tab requests
 refresh the preserved position without repeating the action. Save failures retain
-the result; repair storage and use **Read current state** to recover it. Keep the
+the result; repair storage and use **Refresh adventure** in Game menu to recover it. Keep the
 launcher running if it reports an unsaved result. See [issue 101 recovery checks](docs/acceptance/issue-101.md).
 
 Click a visible exit to travel immediately, or select a person or object to
@@ -160,17 +227,19 @@ them without repeating the ending or calling AI. Outstanding hint preparation
 cannot publish guidance after completion. See [issue 105 player checks](docs/acceptance/issue-105.md).
 
 Start/read makes no AI call. Gameplay requires a valid key and network access.
-Open **Inventory**, **Character**, **Journal**, or **Known leads** beside the
-conversation with a click, or Tab to a button and press Enter/Space. The journal
+Open **Inventory**, **Character**, or **Journal** from the player toolbar
+with a click, or Tab to a button and press Enter/Space. The journal
 separates observed evidence, testimony, beliefs, and current leads. Empty
 inventory is shown explicitly. Panels update after each completed turn;
 opening, switching, and closing them creates no messages, AI calls, time costs,
 or dice draws. Close or Escape restores focus to the panel's button and keeps
-the conversation's scroll position. Location, exits, HP, and time remain in
-the status sidebar. See [issue 98 player checks](docs/acceptance/issue-98.md).
+the conversation's scroll position. Location, HP, day and deadline remain in the scene status strip;
+exits remain in the choices panel. Open Journal to switch Evidence and Leads views. See [issue 98 player checks](docs/acceptance/issue-98.md).
 Reloading the page or restarting the launcher restores exact player messages,
-AI replies, NPC labels, result cards, and save notices alongside verified progress.
-The saved adventure, seed, and active/completed outcome remain visible.
+AI replies, NPC labels and result cards alongside verified progress. Routine save
+notices remain in the saved history and use the compact Saved indicator in the UI;
+interruption and failure notices remain explicit. Game menu contains the seed and
+session details; the scene shows the active encounter or completed Review mode.
 If the process stops after an action saves but before its reply saves, continuing
 shows the authoritative result and an interruption notice; it never repeats the action.
 History is display data, independent of bounded AI context and the authoritative

@@ -179,6 +179,7 @@ test("secondary panels preserve conversation, scroll and focus while showing cla
   let reads = 0;
   const view = {
     slot: "occupied",
+    characterLabel: "Fighter",
     seed: 0,
     hp: { current: 20, maximum: 20 },
     clocks: [],
@@ -258,15 +259,16 @@ test("secondary panels preserve conversation, scroll and focus while showing cla
     assert.equal(document.activeElement.id, "information-title");
     assert.equal(document.activeElement.focusOptions.preventScroll, true);
     if (name === "inventory") {
-      assert.match(content(), /No equipment.*No carried items/);
+      assert.match(content(), /No carried items/);
+      assert.doesNotMatch(content(), /No equipment/);
     }
     if (name === "character") {
-      assert.match(content(), /20 \/ 20.*playing/);
+      assert.match(content(), /Fighter.*20 \/ 20/);
     }
     if (name === "journal") {
       assert.match(
         content(),
-        /Observed evidence.*Alteration observed.*Testimony.*Pell says.*Beliefs.*Unconfirmed.*Current leads.*Compare the plate/,
+        /Observed evidence.*Alteration observed.*Testimony.*Pell says.*Beliefs.*Unconfirmed/,
       );
     }
     if (name === "leads") {
@@ -276,7 +278,10 @@ test("secondary panels preserve conversation, scroll and focus while showing cla
       );
     }
     nodes.get("close-information").listeners.click();
-    assert.equal(document.activeElement, button);
+    assert.equal(
+      document.activeElement,
+      name === "leads" ? nodes.get("open-journal") : button,
+    );
     assert.equal(nodes.get("information").hidden, true);
   }
   nodes.get("open-journal").listeners.click();

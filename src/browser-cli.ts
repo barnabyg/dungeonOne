@@ -5,7 +5,7 @@ import { announceBrowser } from "./browser-launch.js";
 import { startBrowserServer } from "./browser-server.js";
 
 const USAGE =
-  "Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--save <path>]\nAdventure: Hollow Beacon: Final Warning (v11). Existing v4-v10 slots continue unchanged. Default slot: hollow-beacon-browser-save.json\nSet OPENAI_API_KEY in the environment before launch.";
+  "Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--save <path>] [--artwork <manifest.json>]\nAdventure: Hollow Beacon: Final Warning (v11). Existing v4-v10 slots continue unchanged. Default slot: hollow-beacon-browser-save.json\nSet OPENAI_API_KEY in the environment before launch.";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -20,7 +20,7 @@ async function main(): Promise<void> {
     const name = equals < 0 ? argument : argument.slice(0, equals);
     const value = equals < 0 ? args[++index] : argument.slice(equals + 1);
     if (
-      (name !== "--seed" && name !== "--save") ||
+      (name !== "--seed" && name !== "--save" && name !== "--artwork") ||
       values.has(name) ||
       !value ||
       value.startsWith("--")
@@ -41,6 +41,9 @@ async function main(): Promise<void> {
       values.get("--save") ?? "hollow-beacon-browser-save.json",
     ),
     apiKey: process.env.OPENAI_API_KEY ?? "",
+    ...(values.has("--artwork")
+      ? { artworkPath: resolve(values.get("--artwork")!) }
+      : {}),
   });
   const stop = () => {
     void server.close().catch(() => {

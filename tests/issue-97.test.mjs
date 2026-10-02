@@ -512,7 +512,8 @@ test("browser script submits through API/storage, locks pending input and render
         articles[2].children[1].textContent,
         "Travelled to Watch Loft.",
       );
-      assert.equal(articles[3].children[1].textContent, "Action saved.");
+      assert.equal(articles.length, 3);
+      assert.equal(nodes.get("save-indicator").textContent, "Saved");
       assert.equal(
         (await SaveSession.load(path)).state.locationId,
         "watch-loft",

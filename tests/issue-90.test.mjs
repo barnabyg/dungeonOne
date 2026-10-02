@@ -564,6 +564,9 @@ async function typed(page, message) {
   return result;
 }
 async function offered(page, server, name, args, clicked = false) {
+  if (await page.locator("#information").isVisible()) {
+    await page.locator("#close-information").click();
+  }
   const current = await view(server);
   const offer = current.actions.find(
     (option) =>
@@ -685,6 +688,9 @@ test(
             );
             assert.match(attackOffer.stakes, /0 HP.*defeat.*no retreat/s);
             if (clicked) {
+              if (await page.locator("#information").isVisible()) {
+                await page.locator("#close-information").click();
+              }
               await page
                 .getByRole("button", { name: "Vey", exact: true })
                 .click();

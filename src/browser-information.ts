@@ -9,6 +9,12 @@ export type BrowserInformation = Readonly<{
   currentLeads: readonly string[];
   usesFinalePresentation: boolean;
   sceneDescription?: string;
+  combat?: Readonly<{
+    opponentName: string;
+    hp: number;
+    maxHp: number;
+    turn: string;
+  }>;
 }>;
 
 // Browser presentation only: do not change released runtime projections, AI
@@ -19,12 +25,27 @@ export function browserInformation(session: SaveSession): BrowserInformation {
   const scene = session.runtime.projectDmScene(session.state);
   const state = session.state;
   const profile = definition?.combatProfile;
-  const usesFinalePresentation = (definition?.schemaVersion ?? 0) >= 16;
+  const usesFinalePresentation =
+    session.runtime.id === "hollow-beacon" &&
+    (definition?.schemaVersion ?? 0) >= 16;
   const milestones: readonly string[] = scene.journal?.quest.milestones ?? [];
   const ending =
     scene.journal && "ending" in scene.journal
       ? scene.journal.ending
       : undefined;
+  const opponentId =
+    scene.combat && "opponentId" in scene.combat
+      ? scene.combat.opponentId
+      : undefined;
+  const opponent =
+    opponentId && "runtimeKind" in state && state.runtimeKind === "chapel-clues"
+      ? (state.monsters?.[opponentId] ?? state.npcHealth?.[opponentId])
+      : undefined;
+  // The clock cap is a storage bound, not the public caravan deadline.
+  const sceneDescription = scene.room.description.replace(
+    / Clocks: .*?(?= Ending choices:| Resolution:|$)/u,
+    "",
+  );
   let currentLeads = scene.journal?.actionableLeads ?? [];
   if (usesFinalePresentation) {
     const discoveries = scene.journal?.discoveries ?? [];
@@ -73,6 +94,20 @@ export function browserInformation(session: SaveSession): BrowserInformation {
     }
   }
   return {
+    sceneDescription,
+    ...(opponent === undefined
+      ? {}
+      : {
+          combat: {
+            opponentName:
+              [...scene.room.opponents, ...(scene.room.npcs ?? [])].find(
+                ({ id }) => id === opponentId,
+              )?.name ?? "Opponent",
+            hp: opponent.hp,
+            maxHp: opponent.maxHp,
+            turn: scene.combat!.currentTurn,
+          },
+        }),
     ...(profile === undefined
       ? {}
       : {

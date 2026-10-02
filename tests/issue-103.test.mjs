@@ -323,7 +323,13 @@ test("guidance explains when no justified next action exists without revealing a
       projectDmScene: () => ({
         outcome: "victory",
         objective: "Finished",
-        room: { exits: [], features: [], items: [], opponents: [] },
+        room: {
+          description: "",
+          exits: [],
+          features: [],
+          items: [],
+          opponents: [],
+        },
       }),
       getGameToolDefinitions: () => [],
     },

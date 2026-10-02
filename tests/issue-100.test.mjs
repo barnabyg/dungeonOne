@@ -155,7 +155,7 @@ test("page reload and a second process retain exact messages, NPC labels, cards,
     assert.ok(
       page.entries.some(
         ({ label, text }) =>
-          label === first.cards[0].title && text === first.cards[0].text,
+          label === "Outcome" && text === first.cards[0].text,
       ),
     );
     await server.stop();

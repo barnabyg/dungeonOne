@@ -366,6 +366,7 @@ test(
           /Contested pursuer claim/,
         );
         await page.keyboard.press("Escape");
+        await page.locator("#open-journal").click();
         await page.locator("#open-leads").click();
         assert.match(
           await page.locator("#information-body").textContent(),

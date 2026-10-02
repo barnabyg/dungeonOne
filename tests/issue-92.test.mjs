@@ -24,6 +24,15 @@ async function typed(page, message) {
   await idle(page);
   return result;
 }
+async function readLeads(page) {
+  if (!(await page.locator("#journal-tabs").isVisible())) {
+    await page.locator("#open-journal").click();
+  }
+  await page.locator("#open-leads").click();
+  const content = await page.locator("#current-leads").textContent();
+  await page.locator("#close-information").click();
+  return content;
+}
 async function clickAction(page, server, name, args) {
   const current = await view(server);
   const offer = current.actions.find(
@@ -32,7 +41,14 @@ async function clickAction(page, server, name, args) {
       JSON.stringify(JSON.parse(call.argumentsJson)) === JSON.stringify(args),
   );
   assert.ok(offer, name + JSON.stringify(args));
-  if (name !== "move") {
+  const inventory = offer.contextId.startsWith("inventory:");
+  if (await page.locator("#information").isVisible()) {
+    await page.locator("#close-information").click();
+  }
+  if (inventory) {
+    await page.locator("#open-inventory").click();
+  }
+  if (name !== "move" && !inventory) {
     const context = offer.contextId;
     const target =
       context === "ending"
@@ -55,7 +71,7 @@ async function clickAction(page, server, name, args) {
           exact: true,
         })
       : page
-          .locator("#context-actions")
+          .locator(inventory ? "#information-body" : "#context-actions")
           .getByRole("button", { name: offer.label, exact: true });
   const reply = page.waitForResponse((r) => r.url().endsWith("/api/turn"));
   await button.click();
@@ -101,10 +117,8 @@ test(
       ]) {
         assert.equal((await typed(page, message)).committed, true);
       }
-      assert.match(
-        await page.locator("#current-leads").textContent(),
-        /correct Captain Iona/,
-      );
+      assert.match(await readLeads(page), /correct Captain Iona/);
+      await page.locator("#open-journal").click();
       await page.locator("#open-leads").click();
       assert.match(
         await page.locator("#information-body").textContent(),
@@ -131,10 +145,7 @@ test(
         read(savePath).checkpoint.randomPosition,
         before.randomPosition,
       );
-      assert.doesNotMatch(
-        await page.locator("#current-leads").textContent(),
-        /correct Captain Iona/,
-      );
+      assert.doesNotMatch(await readLeads(page), /correct Captain Iona/);
       await page.locator("#open-character").click();
       assert.match(
         await page.locator("#information-body").textContent(),
@@ -199,7 +210,7 @@ test(
         );
         assert.match(
           await page.locator("#deadline").textContent(),
-          /3 day\(s\) until/,
+          /3 days remaining/,
         );
         for (const id of [
           "location",
@@ -233,7 +244,9 @@ test(
           .click();
         await page.keyboard.press("Escape");
         assert.equal(
-          await page.evaluate(() => document.activeElement.textContent),
+          await page.evaluate(() =>
+            document.activeElement.getAttribute("aria-label"),
+          ),
           "Captain Iona",
         );
         const initial = read(savePath).checkpoint,
@@ -245,6 +258,9 @@ test(
           "leads",
           "hints",
         ]) {
+          if (panel === "leads") {
+            await page.locator("#open-journal").click();
+          }
           await page.locator("#open-" + panel).click();
           assert.equal(
             await page.evaluate(() => document.activeElement.id),
@@ -253,7 +269,7 @@ test(
           await page.keyboard.press("Escape");
           assert.equal(
             await page.evaluate(() => document.activeElement.id),
-            "open-" + panel,
+            "open-" + (panel === "leads" ? "journal" : panel),
           );
         }
         await page.locator("#open-hints").click();
@@ -386,7 +402,7 @@ test(
               ),
             );
             assert.doesNotMatch(
-              await page.locator("#current-leads").textContent(),
+              await readLeads(page),
               /Vey|Pell|Tower Runner|Holding|refusing|leaving/,
             );
           }
@@ -401,10 +417,7 @@ test(
         }
         const complete = await view(server);
         assert.equal(complete.scene.outcome, "victory");
-        assert.match(
-          await page.locator("#current-leads").textContent(),
-          /No open leads/,
-        );
+        assert.match(await readLeads(page), /No open leads/);
         assert.match(
           await page.locator("#last-consequence").textContent(),
           /no confirmed rescue or death/,
