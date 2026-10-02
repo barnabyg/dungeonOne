@@ -25,8 +25,9 @@ export function browserInformation(session: SaveSession): BrowserInformation {
   const scene = session.runtime.projectDmScene(session.state);
   const state = session.state;
   const profile =
-    session.runtime.projectCharacterStatus(state).profile ??
-    definition?.combatProfile;
+    session.runtime.startingCharacter === undefined
+      ? definition?.combatProfile
+      : session.runtime.projectCharacterStatus(state).profile;
   const usesFinalePresentation =
     session.runtime.id === "hollow-beacon" &&
     (definition?.schemaVersion ?? 0) >= 16;

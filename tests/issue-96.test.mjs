@@ -265,6 +265,7 @@ test("missing configuration leaves no save and reports a clear setup error", asy
       process.execPath,
       [
         fileURLToPath(new URL("../dist/browser-cli.js", import.meta.url)),
+        "--legacy",
         "--seed",
         "0",
         "--save",
