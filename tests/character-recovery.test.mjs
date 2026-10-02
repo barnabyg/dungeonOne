@@ -9,6 +9,8 @@ import { CharacterCareer } from "../dist/character-career.js";
 import { SaveSession } from "../dist/save.js";
 import { acquireFileLock } from "../dist/file-lock.js";
 import { startBrowserServer } from "../dist/browser-server.js";
+import { loadAdventure } from "../dist/adventure-loader.js";
+import { createDataRuntime } from "../dist/data-runtime.js";
 
 test("an interrupted start recovers its exact reservation; competing starts and turns fail", async () => {
   const directory = await mkdtemp(join(tmpdir(), "career-start-recovery-"));
@@ -199,6 +201,49 @@ test("a missing character library leaves the embedded adventure readable without
     await assert.rejects(career.acceptSession(path), /association is missing/);
   } finally {
     await server?.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("career continuation rejects independently valid content that differs from the reserved module", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "career-reservation-"));
+  const career = new CharacterCareer(join(directory, "characters.json"));
+  try {
+    const data = await career.library.create(
+      "Ada",
+      "balanced",
+      (await career.library.read()).revision,
+    );
+    const path = await career.start(
+      data.characters[0].sheet.id,
+      "hollow-beacon",
+      data.revision,
+      42,
+      true,
+    );
+    const original = await SaveSession.load(path);
+    const entry = (await career.library.read()).sessions[0];
+    const changed = loadAdventure(
+      JSON.stringify({ ...entry.content, title: "Different module" }),
+    );
+    assert.equal(changed.ok, true);
+    const alternate = await SaveSession.start(
+      join(directory, "alternate.json"),
+      createDataRuntime(changed.adventure, entry.startingCharacter),
+      entry.seed,
+    );
+    await alternate.commit(
+      "move keeper-path",
+      alternate.runtime.parseCommand("move keeper-path"),
+    );
+    const bytes = JSON.parse(await readFile(alternate.path, "utf8"));
+    bytes.generation = original.generation;
+    await writeFile(path, JSON.stringify(bytes));
+    const validButDifferent = await SaveSession.load(path);
+    assert.equal(validButDifferent.generation, original.generation);
+    assert.ok(validButDifferent.progress.sequence > original.progress.sequence);
+    await assert.rejects(career.beginTurn(validButDifferent), /stale/);
+  } finally {
     await rm(directory, { recursive: true, force: true });
   }
 });

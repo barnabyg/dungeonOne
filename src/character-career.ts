@@ -2,7 +2,11 @@ import { randomBytes, createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { CharacterLibrary } from "./character-library.js";
+import {
+  CharacterLibrary,
+  type CareerSession,
+  type CharacterRecord,
+} from "./character-library.js";
 import { createDataRuntime } from "./data-runtime.js";
 import {
   loadAdventure,
@@ -13,6 +17,40 @@ import { SaveSession } from "./save.js";
 import { acquireFileLock } from "./file-lock.js";
 import { characterProfile, validateCharacter } from "./character-rules.js";
 import type { ClueState } from "./chapel-clues-runtime.js";
+
+export function matchesCareerSession(
+  entry: CareerSession,
+  session: SaveSession,
+): boolean {
+  return (
+    entry.generation === session.generation &&
+    entry.seed === session.seed &&
+    isDeepStrictEqual(entry.content, session.runtime.content?.snapshot) &&
+    isDeepStrictEqual(
+      entry.startingCharacter,
+      session.runtime.startingCharacter,
+    ) &&
+    entry.progress !== undefined &&
+    session.progress.sequence >= entry.progress.sequence &&
+    session.progress.randomPosition >= entry.progress.randomPosition &&
+    (session.progress.sequence !== entry.progress.sequence ||
+      (session.progress.stateDigest === entry.progress.stateDigest &&
+        session.progress.randomPosition === entry.progress.randomPosition))
+  );
+}
+
+export function hasActiveCharacter(
+  entry: CareerSession,
+  record: CharacterRecord,
+): boolean {
+  return (
+    entry.status === "playing" &&
+    record.availability === "active" &&
+    record.sheet.id === entry.characterId &&
+    record.activeSessionId === entry.id &&
+    record.revision === entry.characterRevision
+  );
+}
 
 export class CharacterCareer {
   readonly library: CharacterLibrary;
@@ -162,19 +200,9 @@ export class CharacterCareer {
       if (
         entry === undefined ||
         record === undefined ||
-        record.activeSessionId !== entry.id ||
-        record.revision !== entry.characterRevision ||
-        entry.status !== "playing" ||
-        entry.generation !== session.generation ||
-        !isDeepStrictEqual(
-          entry.startingCharacter,
-          session.runtime.startingCharacter,
-        ) ||
-        !isDeepStrictEqual(session.progress, durable.progress) ||
-        (entry.progress !== undefined &&
-          (session.progress.sequence < entry.progress.sequence ||
-            (session.progress.sequence === entry.progress.sequence &&
-              session.progress.stateDigest !== entry.progress.stateDigest)))
+        !hasActiveCharacter(entry, record) ||
+        !matchesCareerSession(entry, session) ||
+        !isDeepStrictEqual(session.progress, durable.progress)
       ) {
         throw new Error(
           "This character adventure is stale or has no active library association. Restore the current records to continue; this copy remains available for review.",
@@ -226,17 +254,8 @@ export class CharacterCareer {
         ({ sheet }) => sheet.id === entry.characterId,
       )!;
       if (
-        entry.generation !== session.generation ||
-        record.activeSessionId !== entry.id ||
-        record.revision !== entry.characterRevision ||
-        !isDeepStrictEqual(
-          entry.startingCharacter,
-          session.runtime.startingCharacter,
-        ) ||
-        (entry.progress !== undefined &&
-          (session.progress.sequence < entry.progress.sequence ||
-            (session.progress.sequence === entry.progress.sequence &&
-              session.progress.stateDigest !== entry.progress.stateDigest)))
+        !hasActiveCharacter(entry, record) ||
+        !matchesCareerSession(entry, session)
       ) {
         throw new Error(
           "Character result is stale or conflicts with the active career.",

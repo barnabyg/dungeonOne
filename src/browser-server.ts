@@ -1,4 +1,8 @@
-import { CharacterCareer } from "./character-career.js";
+import {
+  CharacterCareer,
+  matchesCareerSession,
+  hasActiveCharacter,
+} from "./character-career.js";
 import { characterAdventures } from "./adventure-registry.js";
 import {
   characterProfile,
@@ -682,19 +686,9 @@ export async function startBrowserServer(options: BrowserOptions) {
         );
         const safe =
           entry !== undefined &&
-          entry.generation === session.generation &&
-          isDeepStrictEqual(
-            entry.startingCharacter,
-            session.runtime.startingCharacter,
-          ) &&
-          (entry.progress === undefined ||
-            (session.progress.sequence >= entry.progress.sequence &&
-              (session.progress.sequence !== entry.progress.sequence ||
-                session.progress.stateDigest ===
-                  entry.progress.stateDigest))) &&
+          matchesCareerSession(entry, session) &&
           (session.state.status !== "playing" ||
-            (entry.status === "playing" &&
-              record?.activeSessionId === entry.id));
+            (record !== undefined && hasActiveCharacter(entry, record)));
         if (!safe) {
           view = {
             ...view,
