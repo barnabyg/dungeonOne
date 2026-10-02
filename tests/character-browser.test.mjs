@@ -30,6 +30,18 @@ test(
       await page.locator("#open-characters").click();
       await page.locator("#show-create-character").click();
       await page.locator("#character-name").fill("Ada");
+      assert.match(
+        await page.locator("#preset-scores").innerText(),
+        /strength: 14 \(\+1\)/,
+      );
+      assert.match(
+        await page.locator("#preset-scores").innerText(),
+        /HP 19\/19/,
+      );
+      assert.match(
+        await page.locator("#preset-scores").innerText(),
+        /AC 16.*Attack \+3.*Damage 1d8 \+1.*Initiative \+0/,
+      );
       await page.locator("#create-character button[type=submit]").click();
       await page
         .locator("#library-feedback")
@@ -52,6 +64,19 @@ test(
       await page.locator("#show-create-character").click();
       await page.locator("#character-name").fill("Bram");
       await page.locator("#character-preset").selectOption("stout");
+      assert.match(
+        await page.locator("#preset-scores").innerText(),
+        /HP 20\/20/,
+      );
+      assert.match(
+        await page.locator("#preset-scores").innerText(),
+        /AC 15.*Attack \+4.*Initiative -1/,
+      );
+      assert.equal(
+        JSON.parse(await readFile(options.libraryPath, "utf8")).characters
+          .length,
+        1,
+      );
       await page.locator("#create-character button[type=submit]").click();
       await page
         .locator("#library-sheet-name")

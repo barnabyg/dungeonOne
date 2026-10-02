@@ -2,6 +2,7 @@ import { CharacterCareer } from "./character-career.js";
 import { characterAdventures } from "./adventure-registry.js";
 import {
   characterProfile,
+  createCharacter,
   PRESETS,
   ABILITIES,
   abilityModifier,
@@ -436,6 +437,23 @@ export async function startBrowserServer(options: BrowserOptions) {
     return {
       revision: data.revision,
       presets: PRESETS,
+      presetProfiles: Object.fromEntries(
+        Object.keys(PRESETS).map((preset) => {
+          const preview = createCharacter("Preview", preset, "0".repeat(32));
+          return [
+            preset,
+            {
+              profile: characterProfile(preview),
+              modifiers: Object.fromEntries(
+                ABILITIES.map((ability) => [
+                  ability,
+                  abilityModifier(preview.abilities[ability]),
+                ]),
+              ),
+            },
+          ];
+        }),
+      ),
       characters: data.characters.map((record) => ({
         ...record,
         profile: characterProfile(record.sheet),

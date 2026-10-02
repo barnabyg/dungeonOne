@@ -650,7 +650,13 @@ function libraryButton(parent, label, action) {
 }
 function presetScores() {
   if (!libraryData) { return; }
-  libraryText("preset-scores", Object.entries(libraryData.presets[element("character-preset").value]).map(([ability, score]) => ability + ": " + score).join(" \u00b7 "));
+  const preset = element("character-preset").value;
+  const preview = libraryData.presetProfiles[preset];
+  const scores = Object.entries(libraryData.presets[preset]).map(([ability, score]) => ability + ": " + score + " (" + (preview.modifiers[ability] >= 0 ? "+" : "") + preview.modifiers[ability] + ")").join(" \u00b7 ");
+  libraryText("preset-scores", "Fighter level 1 \u00b7 XP 0 \u00b7 HP " + preview.profile.maxHp + "/" + preview.profile.maxHp + "\\n" + scores + "\\n" + fighterCapabilities(preview.profile));
+}
+function fighterCapabilities(profile) {
+  return "Chain mail, shield, longsword \u00b7 AC " + profile.armorClass + " \u00b7 Attack +" + profile.attackBonus + " \u00b7 Damage 1d8 " + (profile.damage.modifier >= 0 ? "+" : "") + profile.damage.modifier + " \u00b7 Initiative " + (profile.initiativeBonus >= 0 ? "+" : "") + profile.initiativeBonus;
 }
 function renderLibrary() {
   const list = element("library-characters"); list.replaceChildren();
@@ -663,7 +669,7 @@ function renderLibrary() {
   element("library-adventures").replaceChildren();
   if (record) {
     libraryText("library-sheet-name", record.sheet.name + " \u00b7 Fighter level " + record.sheet.level);
-    libraryText("library-sheet-details", "HP " + record.sheet.hp + "/" + record.profile.maxHp + " \u00b7 XP " + record.sheet.xp + " \u00b7 " + record.availability + "\\nChain mail, shield, longsword \u00b7 AC " + record.profile.armorClass + " \u00b7 Attack +" + record.profile.attackBonus + " \u00b7 Damage 1d8 " + (record.profile.damage.modifier >= 0 ? "+" : "") + record.profile.damage.modifier + " \u00b7 Initiative " + record.profile.initiativeBonus);
+    libraryText("library-sheet-details", "HP " + record.sheet.hp + "/" + record.profile.maxHp + " \u00b7 XP " + record.sheet.xp + " \u00b7 " + record.availability + "\\n" + fighterCapabilities(record.profile));
     libraryText("library-sheet-abilities", Object.entries(record.sheet.abilities).map(([ability, score]) => ability + ": " + score + " (" + (record.modifiers[ability] >= 0 ? "+" : "") + record.modifiers[ability] + ")").join(" \u00b7 "));
     if (record.availability === "active") { libraryButton(element("library-adventures"), "Continue this adventure", () => libraryAction("continue", { sessionId: record.activeSessionId }, true)); }
     if (record.availability === "rest-needed") { libraryButton(element("library-adventures"), "Rest between adventures", () => libraryAction("rest", { characterId: record.sheet.id })); }
