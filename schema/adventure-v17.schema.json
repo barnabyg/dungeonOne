@@ -2962,7 +2962,8 @@
                   "completion",
                   "milestone",
                   "discovery",
-                  "actor-defeated"
+                  "actor-defeated",
+                  "check-success"
                 ]
               },
               "targetId": {

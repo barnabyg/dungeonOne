@@ -6,31 +6,10 @@ import { join } from "node:path";
 import { CharacterCareer } from "../dist/character-career.js";
 import { SaveSession } from "../dist/save.js";
 
-export const beaconPeaceful = [
-  "move watch-loft",
-  "move signal-records",
-  "search setting-plate",
-  "move watch-loft",
-  "move watch-yard",
-  "move valley-road",
-  "search wagon-ruts",
-  "move ridge-shelter",
-  "move drainage-walk",
-  "move beacon-tower",
-  "search tower-work-order",
-  "talk vey plate-proof ask",
-  "search final-warning-board",
-  "resolve human-warning",
-];
-export const stonebridgePeaceful = [
-  "move archives",
-  "search archive-chest",
-  "take bridge-seal",
-  "move toll-yard",
-  "move bridge-span",
-  "place bridge-seal at bridge-socket",
-  "resolve open-crossing",
-];
+import {
+  beaconPeaceful,
+  stonebridgePeaceful,
+} from "./fixtures/character-journeys.mjs";
 
 async function journey(session, commands) {
   for (const command of commands) {

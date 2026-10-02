@@ -2427,15 +2427,15 @@
       "name": "ridge raider",
       "description": "A hungry raider brandishes a chipped blade and demands your supplies.",
       "aliases": ["raider", "ridge raider"],
-      "maxHp": 18,
+      "maxHp": 14,
       "stats": {
         "armorClass": 13,
-        "attackBonus": 5,
-        "initiativeBonus": 2,
+        "attackBonus": 3,
+        "initiativeBonus": 1,
         "damage": {
           "dice": 1,
           "sides": 6,
-          "modifier": 3
+          "modifier": 1
         }
       }
     },
@@ -2462,7 +2462,7 @@
       "id": "ridge-raider",
       "definitionId": "road-raider",
       "locationId": "ridge-trail",
-      "hp": 18
+      "hp": 14
     },
     {
       "id": "tower-sentry",
@@ -3198,6 +3198,36 @@
         "xp": 1000,
         "trigger": "completion",
         "targetId": ""
+      },
+      {
+        "id": "hollow-beacon-read-beacon",
+        "xp": 20,
+        "trigger": "check-success",
+        "targetId": "read-beacon"
+      },
+      {
+        "id": "hollow-beacon-strength-assessment",
+        "xp": 20,
+        "trigger": "check-success",
+        "targetId": "strength-assessment"
+      },
+      {
+        "id": "hollow-beacon-dexterity-assessment",
+        "xp": 20,
+        "trigger": "check-success",
+        "targetId": "dexterity-assessment"
+      },
+      {
+        "id": "hollow-beacon-constitution-assessment",
+        "xp": 20,
+        "trigger": "check-success",
+        "targetId": "constitution-assessment"
+      },
+      {
+        "id": "hollow-beacon-intelligence-assessment",
+        "xp": 20,
+        "trigger": "check-success",
+        "targetId": "intelligence-assessment"
       }
     ]
   }

@@ -47,6 +47,17 @@ export type CareerSession = {
 function missing(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
+const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
+function validProgress(progress: SaveSession["progress"] | undefined): boolean {
+  return (
+    progress !== undefined &&
+    Number.isSafeInteger(progress.sequence) &&
+    progress.sequence >= 0 &&
+    Number.isSafeInteger(progress.randomPosition) &&
+    progress.randomPosition >= 0 &&
+    /^sha256:[a-f0-9]{64}$/.test(progress.stateDigest)
+  );
+}
 
 /** A single atomic library publication owns all career revisions. The lock is
  * process-owned; a crashed owner's lock is recoverable without guessing expiry. */
@@ -56,7 +67,7 @@ export class CharacterLibrary {
   async read(): Promise<LibraryData> {
     let data: unknown;
     try {
-      data = parseBoundedJson(await readFile(this.path), 16 * 1024 * 1024, 48);
+      data = parseBoundedJson(await readFile(this.path), MAX_LIBRARY_BYTES, 48);
     } catch (error) {
       if (!missing(error)) {
         throw error;
@@ -100,7 +111,12 @@ export class CharacterLibrary {
           (id) => typeof id !== "string" || id.length > 128,
         ) ||
         new Set(record.earnedRewards).size !== record.earnedRewards.length ||
-        new Set(record.acceptedReceipts).size !== record.acceptedReceipts.length
+        new Set(record.acceptedReceipts).size !==
+          record.acceptedReceipts.length ||
+        JSON.stringify(record.earnedRewards) !==
+          JSON.stringify(record.sheet.earnedRewards) ||
+        record.acceptedReceipts.some((id) => !/^[a-f0-9]{64}$/.test(id)) ||
+        (record.availability === "defeated") !== (record.sheet.hp === 0)
       ) {
         throw new Error("Invalid character record.");
       }
@@ -123,9 +139,30 @@ export class CharacterLibrary {
           session.status,
         ) ||
         (session.generation !== undefined &&
-          !/^[a-f0-9]{32}$/.test(session.generation))
+          !/^[a-f0-9]{32}$/.test(session.generation)) ||
+        (session.status !== "starting" &&
+          (session.generation === undefined ||
+            !validProgress(session.progress)))
       ) {
         throw new Error("Invalid career session.");
+      }
+      if (!["starting", "playing"].includes(session.status)) {
+        const receipt = session.receipt;
+        const owner = library.characters.find(
+          ({ sheet }) => sheet.id === session.characterId,
+        )!;
+        if (
+          receipt === undefined ||
+          !/^[a-f0-9]{64}$/.test(receipt.id) ||
+          receipt.stateDigest !== session.progress!.stateDigest ||
+          receipt.outcome !== session.status ||
+          !owner.acceptedReceipts.includes(receipt.id) ||
+          validateCharacter(receipt.characterResult).id !== session.characterId
+        ) {
+          throw new Error("Invalid character completion receipt.");
+        }
+      } else if (session.receipt !== undefined) {
+        throw new Error("Active adventure has a completion receipt.");
       }
       sessions.add(session.id);
     }
@@ -148,6 +185,19 @@ export class CharacterLibrary {
         throw new Error("Character active-session association is invalid.");
       }
     }
+    if (
+      library.sessions.some(
+        (session) =>
+          ["starting", "playing"].includes(session.status) &&
+          !library.characters.some(
+            (record) =>
+              record.activeSessionId === session.id &&
+              record.revision === session.characterRevision,
+          ),
+      )
+    ) {
+      throw new Error("Active adventure has no current character association.");
+    }
     return library;
   }
 
@@ -166,10 +216,16 @@ export class CharacterLibrary {
       }
       await change(data);
       data.revision = randomBytes(16).toString("hex");
+      const bytes = `${JSON.stringify(data)}\n`;
+      if (Buffer.byteLength(bytes) > MAX_LIBRARY_BYTES) {
+        throw new Error(
+          "Character library byte limit reached; no change was saved.",
+        );
+      }
       const temporary = `${this.path}.${randomBytes(8).toString("hex")}.tmp`;
       const file = await open(temporary, "wx");
       try {
-        await file.writeFile(`${JSON.stringify(data)}\n`);
+        await file.writeFile(bytes);
         await file.sync();
         await file.close();
         await rename(temporary, this.path);

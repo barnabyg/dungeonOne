@@ -734,22 +734,24 @@ export async function startBrowserServer(options: BrowserOptions) {
     }
   };
   // Invalid, incompatible or closed occupied slots fail before listening.
-  await readSlot();
-  try {
-    const session = await SaveSession.load(savePath);
-    await recoverHistory(session);
-    const missingHints = cachedHints(session) === undefined;
-    scheduleHints(session);
-    if (
-      session.runtime.projectDmScene(session.state).outcome === "playing" &&
-      options.hintPreparer === undefined &&
-      missingHints
-    ) {
-      await session.saveBrowserHints(session.browserHints);
-    }
-  } catch (error) {
-    if (!hasCode(error, "ENOENT")) {
-      throw error;
+  const initialView = await readSlot();
+  if (initialView.slot === "occupied" && initialView.scene.outcome !== "quit") {
+    try {
+      const session = await SaveSession.load(savePath);
+      await recoverHistory(session);
+      const missingHints = cachedHints(session) === undefined;
+      scheduleHints(session);
+      if (
+        session.runtime.projectDmScene(session.state).outcome === "playing" &&
+        options.hintPreparer === undefined &&
+        missingHints
+      ) {
+        await session.saveBrowserHints(session.browserHints);
+      }
+    } catch (error) {
+      if (!hasCode(error, "ENOENT")) {
+        throw error;
+      }
     }
   }
   const model =

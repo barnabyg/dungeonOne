@@ -9,6 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 function run(args, capture = false) {
   const command = process.env.npm_execpath ? process.execPath : "npm";
@@ -101,6 +102,9 @@ const authoredAssets = [
   "schema/adventure-v15.schema.json",
   "schema/adventure-v16.schema.json",
   "adventures/hollow-beacon-finale.json",
+  "adventures/hollow-beacon-characters.json",
+  "adventures/stonebridge-characters.json",
+  "schema/adventure-v17.schema.json",
 ];
 
 for (const adventure of authoredAssets.filter((asset) =>
@@ -167,6 +171,29 @@ try {
     },
   );
   const cli = path.join(installed, "dist", "cli.js");
+  const { CharacterCareer } = await import(
+    pathToFileURL(path.join(installed, "dist", "character-career.js")).href
+  );
+  const { SaveSession } = await import(
+    pathToFileURL(path.join(installed, "dist", "save.js")).href
+  );
+  const career = new CharacterCareer(path.join(caller, "characters.json"));
+  const library = await career.library.create(
+    "Package Fighter",
+    "balanced",
+    (await career.library.read()).revision,
+  );
+  const sessionPath = await career.start(
+    library.characters[0].sheet.id,
+    "stonebridge",
+    library.revision,
+    42,
+    true,
+  );
+  const characterSession = await SaveSession.load(sessionPath);
+  if (characterSession.runtime.startingCharacter?.name !== "Package Fighter") {
+    throw new Error("Extracted package character initialization failed.");
+  }
   const runExtracted = (args, input = "") => {
     const result = spawnSync(process.execPath, [cli, ...args], {
       cwd: caller,

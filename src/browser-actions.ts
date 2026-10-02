@@ -93,7 +93,7 @@ export function browserActions(
       check.id,
       "Try " + check.ability + " check",
       "Attempt the " + check.id + " " + check.ability + " check",
-      `${check.ability} check, DC ${check.dc}; once per adventure, no time cost. Failure preserves ordinary observation and investigation.`,
+      `${check.ability} check, DC ${check.dc}; once per adventure, no time cost. Success earns ${definition!.characterAdventure!.rewards.filter((reward) => reward.trigger === "check-success" && reward.targetId === check.id).reduce((xp, reward) => xp + reward.xp, 0)} pending XP if this character has not earned that reward before. Failure preserves ordinary observation and investigation.`,
     );
   }
   for (const exit of scene.room.exits) {

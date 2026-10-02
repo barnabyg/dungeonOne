@@ -10,6 +10,31 @@ The new [Hollow Beacon opening](adventures/hollow-beacon.json) is a short
 authored adventure with two leads and a persistent watch response; see its
 [player test and story plan](docs/acceptance/issue-81.md).
 
+## Independent characters and leveled adventures
+
+[Increment 10](increment-10-implementation-plan.md) adds an independent character
+library, character creation and selection before adventure selection, full sheets
+with six ability scores, and Fighter levels 1–3. The browser defaults to this mode.
+Hollow Beacon v12 recommends levels 1–2; Stonebridge recommends levels 2–3.
+Characters retain identity and earned XP across adventures; each game preserves
+its frozen starting sheet for accurate continuation and review.
+
+See the [house rules](docs/character-rules.md) and
+[player testing guide](docs/acceptance/increment-10-characters.md) for creation,
+two complete journeys, restart, and compatibility checks. `--characters` chooses
+the library path; session files live in the adjacent `character-adventures`
+directory. Preserve both when copying or backing up a career. `--legacy` uses the
+original Hollow Beacon v11 single slot. Existing save/trace formats remain
+readable with their original rules. The adventure generator retains its existing
+mode. Live-provider and unfamiliar-player qualification are still pending.
+
+```powershell
+npm.cmd run browser -- --seed 42 --characters .\.scratch\character-player\characters.json --save .\.scratch\character-player\legacy.json
+```
+
+Character creation and sheet reads work without an API key. Gameplay requires
+`OPENAI_API_KEY` configured before launch.
+
 ## Requirements
 
 - Node.js 24.21.0 LTS (pinned in `.nvmrc`; supported runtime line: Node.js 24.x)
@@ -50,9 +75,10 @@ by adventure ID, content version and location ID. A missing, mismatched or broke
 image uses the neutral dice motif; the UI never guesses scenery from a location's
 English name. Only the current location's image is sent to the page. Images are
 presentation assets and do not enter saves, replay, journal evidence or AI context.
-The browser launcher still supports the existing Hollow Beacon v4-v11 family;
-this UI change does not enable other authored/generated adventures in browser
-mode. Custom adventures remain playable through command mode.
+The browser launcher supports the existing Hollow Beacon v4-v11 family in legacy
+slots, plus the two bundled character-enabled modules. Arbitrary authored or
+generated modules remain outside browser support. Custom legacy adventures
+remain playable through command mode.
 
 To supply location images, create a JSON manifest next to local PNG, JPEG or WebP
 files. For example, `artwork/manifest.json`:
@@ -77,7 +103,7 @@ files. For example, `artwork/manifest.json`:
 ```
 
 ```powershell
-npm.cmd run browser -- --seed 0 --save .\ui-redesign-player-save.json --artwork .\artwork\manifest.json
+npm.cmd run browser -- --legacy --seed 0 --save .\ui-redesign-player-save.json --artwork .\artwork\manifest.json
 ```
 
 File paths must remain inside the manifest's folder, including after resolving
@@ -114,7 +140,7 @@ After `npm.cmd ci` and `npm.cmd run build`, supply `OPENAI_API_KEY` in the
 launch environment, then run this copyable PowerShell command:
 
 ```powershell
-npm.cmd run browser -- --seed 0 --save .\hollow-beacon-browser-save.json
+npm.cmd run browser -- --legacy --seed 0 --save .\hollow-beacon-browser-save.json
 ```
 
 The launcher starts **Hollow Beacon: Final Warning** (issue #91, content version 11) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open

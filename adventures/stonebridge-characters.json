@@ -363,6 +363,12 @@
         "xp": 100,
         "trigger": "milestone",
         "targetId": "raider-cleared"
+      },
+      {
+        "id": "stonebridge-reasoning",
+        "xp": 20,
+        "trigger": "check-success",
+        "targetId": "bridge-reasoning"
       }
     ]
   }

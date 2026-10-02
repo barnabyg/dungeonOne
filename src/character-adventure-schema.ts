@@ -70,7 +70,13 @@ export const CHARACTER_ADVENTURE_SCHEMA = {
           xp: { type: "integer", minimum: 1, maximum: 100000 },
           trigger: {
             type: "string",
-            enum: ["completion", "milestone", "discovery", "actor-defeated"],
+            enum: [
+              "completion",
+              "milestone",
+              "discovery",
+              "actor-defeated",
+              "check-success",
+            ],
           },
           targetId: { type: "string", maxLength: 128 },
         }),

@@ -34,7 +34,7 @@ export const BROWSER_HTML = `<!doctype html>
 <div id="context" aria-label="Selected context" hidden><div class="context-heading"><h3 id="context-title" tabindex="-1"></h3><button id="close-context">Close options</button></div><p id="context-description"></p><div id="context-actions"></div></div>
 <h2 id="details-title" hidden>In view</h2><ul id="details"></ul><h2 id="exits-title">Explore</h2><p id="travel-notice" hidden>Travel is unavailable during combat. You can still inspect a route.</p><ul id="exits"><li>Start to explore.</li></ul></div>
 </aside></main>
-<dialog id="new-game-confirmation" aria-labelledby="new-game-title" aria-describedby="new-game-description"><h2 id="new-game-title">Replace this adventure?</h2><p id="new-game-description"></p><div class="controls"><button id="cancel-new-game" autofocus>Cancel</button><button id="confirm-new-game">Replace and start new game</button></div></dialog><dialog id="character-library" aria-labelledby="library-title"><h2 id="library-title">Your characters</h2><p>Save a character independently, then choose an adventure.</p><p id="library-feedback" role="status"></p><div id="library-characters"></div><button id="show-create-character" type="button">Create character</button><form id="create-character" hidden><h3>Create a Fighter</h3><label for="character-name">Character name</label><input id="character-name" maxlength="40" required><label for="character-preset">Ability preset</label><select id="character-preset"><option value="balanced">Balanced</option><option value="stout">Stout � strength and endurance</option><option value="scout">Scout � agility and awareness</option></select><p id="preset-scores"></p><button type="submit">Save character</button><button id="cancel-create-character" type="button">Cancel creation</button></form><section id="library-sheet" hidden><h3 id="library-sheet-name"></h3><p id="library-sheet-details"></p><p id="library-sheet-abilities"></p><div id="library-adventures"></div></section><h3>Saved adventures</h3><div id="library-sessions"></div><button id="close-characters" type="button">Close character library</button></dialog></body></html>`;
+<dialog id="new-game-confirmation" aria-labelledby="new-game-title" aria-describedby="new-game-description"><h2 id="new-game-title">Replace this adventure?</h2><p id="new-game-description"></p><div class="controls"><button id="cancel-new-game" autofocus>Cancel</button><button id="confirm-new-game">Replace and start new game</button></div></dialog><dialog id="character-library" aria-labelledby="library-title"><h2 id="library-title">Your characters</h2><p>Save a character independently, then choose an adventure.</p><p id="library-feedback" role="status"></p><div id="library-characters"></div><button id="show-create-character" type="button">Create character</button><form id="create-character" hidden><h3>Create a Fighter</h3><label for="character-name">Character name</label><input id="character-name" maxlength="40" required><label for="character-preset">Ability preset</label><select id="character-preset"><option value="balanced">Balanced</option><option value="stout">Stout \u00b7 strength and endurance</option><option value="scout">Scout \u00b7 agility and awareness</option></select><p id="preset-scores"></p><button type="submit">Save character</button><button id="cancel-create-character" type="button">Cancel creation</button></form><section id="library-sheet" hidden><h3 id="library-sheet-name"></h3><p id="library-sheet-details"></p><p id="library-sheet-abilities"></p><div id="library-adventures"></div></section><h3>Saved adventures</h3><div id="library-sessions"></div><button id="close-characters" type="button">Close character library</button></dialog></body></html>`;
 
 export const BROWSER_CSS = `:root{color-scheme:light;font-family:Georgia,serif;color:#292b27;background:#151f23;font-size:17px;line-height:1.55;--ink:#263d3d;--gold:#d5b474;--line:#d4c9b5;--paper:#f7f0e1}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#304043,#151f23 75%);min-height:100dvh}h1,h2,h3,p{margin:0 0 12px}h1{font-size:1.4rem;line-height:1.1}h2{font-size:1.45rem;line-height:1.2}h3{font-size:1.05rem}button,summary,dt,.eyebrow,.story-heading,#feedback,#message-help{font-family:system-ui,sans-serif}button,summary{font-size:.8rem}button{border:1px solid var(--ink);background:var(--ink);color:#fff9e9;padding:10px 14px;border-radius:6px;cursor:pointer;line-height:1.4}button:hover{background:#3a5451}button:disabled{opacity:.55;cursor:default}button.danger{background:#fff4e9;color:#883c2d;border-color:#b57561}button.danger:hover{background:#f5ded1}button.secondary{background:transparent;color:var(--ink);border-color:var(--line)}button.secondary:hover{background:#e8dec9}:focus-visible{outline:3px solid #bb762c;outline-offset:3px}[hidden]{display:none!important}.skip{position:absolute;top:-100px;left:12px;background:var(--paper);padding:10px;z-index:20}.skip:focus{top:12px}
@@ -650,21 +650,21 @@ function libraryButton(parent, label, action) {
 }
 function presetScores() {
   if (!libraryData) { return; }
-  libraryText("preset-scores", Object.entries(libraryData.presets[element("character-preset").value]).map(([ability, score]) => ability + ": " + score).join(" � "));
+  libraryText("preset-scores", Object.entries(libraryData.presets[element("character-preset").value]).map(([ability, score]) => ability + ": " + score).join(" \u00b7 "));
 }
 function renderLibrary() {
   const list = element("library-characters"); list.replaceChildren();
   if (!libraryData.characters.length) { list.textContent = "No saved characters yet."; }
   for (const record of libraryData.characters) {
-    libraryButton(list, record.sheet.name + " � Fighter level " + record.sheet.level + " � " + record.availability, () => { selectedCharacter = record.sheet.id; renderLibrary(); });
+    libraryButton(list, record.sheet.name + " \u00b7 Fighter level " + record.sheet.level + " \u00b7 " + record.availability, () => { selectedCharacter = record.sheet.id; renderLibrary(); });
   }
   const record = libraryData.characters.find((entry) => entry.sheet.id === selectedCharacter);
   element("library-sheet").hidden = !record;
   element("library-adventures").replaceChildren();
   if (record) {
-    libraryText("library-sheet-name", record.sheet.name + " � Fighter level " + record.sheet.level);
-    libraryText("library-sheet-details", "HP " + record.sheet.hp + "/" + record.profile.maxHp + " � XP " + record.sheet.xp + " � " + record.availability + "\\nChain mail, shield, longsword � AC " + record.profile.armorClass + " � Attack +" + record.profile.attackBonus + " � Damage 1d8 " + (record.profile.damage.modifier >= 0 ? "+" : "") + record.profile.damage.modifier + " � Initiative " + record.profile.initiativeBonus);
-    libraryText("library-sheet-abilities", Object.entries(record.sheet.abilities).map(([ability, score]) => ability + ": " + score + " (" + (record.modifiers[ability] >= 0 ? "+" : "") + record.modifiers[ability] + ")").join(" � "));
+    libraryText("library-sheet-name", record.sheet.name + " \u00b7 Fighter level " + record.sheet.level);
+    libraryText("library-sheet-details", "HP " + record.sheet.hp + "/" + record.profile.maxHp + " \u00b7 XP " + record.sheet.xp + " \u00b7 " + record.availability + "\\nChain mail, shield, longsword \u00b7 AC " + record.profile.armorClass + " \u00b7 Attack +" + record.profile.attackBonus + " \u00b7 Damage 1d8 " + (record.profile.damage.modifier >= 0 ? "+" : "") + record.profile.damage.modifier + " \u00b7 Initiative " + record.profile.initiativeBonus);
+    libraryText("library-sheet-abilities", Object.entries(record.sheet.abilities).map(([ability, score]) => ability + ": " + score + " (" + (record.modifiers[ability] >= 0 ? "+" : "") + record.modifiers[ability] + ")").join(" \u00b7 "));
     if (record.availability === "active") { libraryButton(element("library-adventures"), "Continue this adventure", () => libraryAction("continue", { sessionId: record.activeSessionId }, true)); }
     if (record.availability === "rest-needed") { libraryButton(element("library-adventures"), "Rest between adventures", () => libraryAction("rest", { characterId: record.sheet.id })); }
     if (record.availability === "active") { libraryButton(element("library-adventures"), "Abandon adventure", () => { if (window.confirm("Abandon this adventure? Pending XP will be discarded. Your career and this adventure record remain saved; rest is required before another start.")) { void libraryAction("abandon", { characterId: record.sheet.id, confirmed: true }); } }); }
@@ -674,7 +674,7 @@ function renderLibrary() {
         const range = adventure.recommendedLevels;
         const warning = record.sheet.level < range.minimum || record.sheet.level > range.maximum;
         const pair = document.createElement("div");
-        const description = document.createElement("p"); description.textContent = adventure.title + " � Recommended levels " + range.minimum + "�" + range.maximum + ". Fighter, one player. Chain mail, shield, longsword." + (warning ? " Warning: this character is outside the recommended range; difficulty stays fixed." : ""); pair.append(description);
+        const description = document.createElement("p"); description.textContent = adventure.title + " \u00b7 Recommended levels " + range.minimum + "\u2013" + range.maximum + ". Fighter, one player. Chain mail, shield, longsword." + (warning ? " Warning: this character is outside the recommended range; difficulty stays fixed." : ""); pair.append(description);
         libraryButton(pair, "Start " + adventure.title + " with " + record.sheet.name, () => libraryAction("play", { characterId: record.sheet.id, adventureId: adventure.id, confirmed: true }, true));
         element("library-adventures").append(pair);
       }
@@ -683,7 +683,7 @@ function renderLibrary() {
   const sessions = element("library-sessions"); sessions.replaceChildren();
   for (const session of libraryData.sessions) {
     const owner = libraryData.characters.find((entry) => entry.sheet.id === session.characterId);
-    libraryButton(sessions, (owner ? owner.sheet.name : "Character") + " � " + session.title + " � " + (session.status === "playing" ? "Continue adventure" : "Review adventure"), () => libraryAction("continue", { sessionId: session.id }, true));
+    libraryButton(sessions, (owner ? owner.sheet.name : "Character") + " \u00b7 " + session.title + " \u00b7 " + (session.status === "playing" ? "Continue adventure" : "Review adventure"), () => libraryAction("continue", { sessionId: session.id }, true));
   }
   presetScores();
 }

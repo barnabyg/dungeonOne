@@ -215,7 +215,12 @@ export type ChapelCluesDefinition = Readonly<{
     rewards: readonly Readonly<{
       id: string;
       xp: number;
-      trigger: "completion" | "milestone" | "discovery" | "actor-defeated";
+      trigger:
+        | "completion"
+        | "milestone"
+        | "discovery"
+        | "actor-defeated"
+        | "check-success";
       targetId: string;
     }>[];
   }>;
@@ -2664,11 +2669,13 @@ export function loadAdventure(input: string | Uint8Array):
           ? snapshot.quest.milestones
           : reward.trigger === "discovery"
             ? snapshot.discoveries.map(({ id }) => id)
-            : reward.trigger === "actor-defeated"
-              ? [...(snapshot.monsters ?? []), ...(snapshot.npcs ?? [])].map(
-                  ({ id }) => id,
-                )
-              : [""];
+            : reward.trigger === "check-success"
+              ? metadata.checks.map(({ id }) => id)
+              : reward.trigger === "actor-defeated"
+                ? [...(snapshot.monsters ?? []), ...(snapshot.npcs ?? [])].map(
+                    ({ id }) => id,
+                  )
+                : [""];
       if (!targets.includes(reward.targetId)) {
         fail("Reward has an unknown trigger target.");
       }

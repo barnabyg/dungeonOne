@@ -141,8 +141,9 @@ export class CharacterCareer {
       if (entry === undefined) {
         throw new Error("Choose a retained adventure.");
       }
-      await SaveSession.load(this.sessionPath(sessionId));
       data.selectedSessionId = sessionId;
+      // The library publishes this selection only if the retained save verifies.
+      await SaveSession.load(this.sessionPath(sessionId));
     });
     return this.sessionPath(sessionId);
   }
