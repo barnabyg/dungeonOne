@@ -10,6 +10,77 @@ import { browserActionModel } from "./fixtures/browser-action-model.mjs";
 const pixel =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aC1EAAAAASUVORK5CYII=";
 
+test(
+  "narrative emphasis is styled safely and restores without rewriting saved prose",
+  { timeout: 30000 },
+  () =>
+    withPage(
+      async ({ page, savePath }) => {
+        const original = JSON.parse(
+          await readFile(savePath, "utf8"),
+        ).checkpoint;
+        const response = page.waitForResponse((r) =>
+          r.url().endsWith("/api/turn"),
+        );
+        await page.locator("#message").fill("Describe where I am");
+        await page.locator("#message").press("Enter");
+        const result = await (await response).json();
+        assert.equal(result.committed, false);
+        await idle(page);
+        const reply = page.locator("#conversation .reply p");
+        const visible = await reply.innerText();
+        assert.match(visible, /Watch Yard.*dark.*look closely/s);
+        assert.doesNotMatch(visible, /\*\*/);
+        assert.deepEqual(await reply.locator("strong").allTextContents(), [
+          "Watch Yard",
+          "look closely",
+          '<img src=x onerror="window.emphasisInjected=1">',
+        ]);
+        assert.equal(
+          await reply.locator("em.text-emphasis").innerText(),
+          "dark",
+        );
+        assert.equal(
+          await reply.locator("strong em").innerText(),
+          "look closely",
+        );
+        assert.ok(
+          await reply
+            .locator("strong")
+            .first()
+            .evaluate(
+              (element) => Number(getComputedStyle(element).fontWeight) >= 600,
+            ),
+        );
+        assert.equal(await reply.locator("img,script,a").count(), 0);
+        assert.equal(
+          await page.evaluate(() => window.emphasisInjected),
+          undefined,
+        );
+        const saved = await readFile(savePath, "utf8");
+        const parsed = JSON.parse(saved);
+        assert.equal(parsed.browserHistory.turns.at(-1).reply, result.reply);
+        assert.match(result.reply, /\*\* Watch Yard \*\*/);
+        assert.deepEqual(parsed.checkpoint, original);
+        await page.reload();
+        await idle(page);
+        assert.equal(await reply.innerText(), visible);
+        assert.equal(await reply.locator("img,script,a").count(), 0);
+        assert.equal(await readFile(savePath, "utf8"), saved);
+      },
+      "11",
+      async () => ({
+        dmModel: {
+          async respond() {
+            return {
+              text: 'You are at ** Watch Yard **. The lamp is *dark*; ***look closely***. **<img src=x onerror="window.emphasisInjected=1">** remains literal text. An unmatched * stays visible.',
+            };
+          },
+        },
+      }),
+    ),
+);
+
 const idle = (page) =>
   page.waitForFunction(
     () =>

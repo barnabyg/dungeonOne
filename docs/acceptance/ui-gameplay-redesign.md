@@ -42,6 +42,9 @@ Released content, rules, saves, histories, replay and the AI turn contract remai
 unchanged. Existing player files are not replaced. Routine saved notices and
 original result card titles remain in saved history even when display labels are
 shortened or redundant success notices are suppressed.
+Inline emphasis in narration, scene text and information panels appears as bold
+text with a subtle amber highlight, or italics. Existing saved replies receive the
+same styling without rewriting their text. HTML and links are not interpreted.
 
 ## Player checks
 
@@ -115,6 +118,15 @@ At Watch Yard, expect guidance grounded in people currently in view, without an
 invented movement, injury or item spend. This checks live prose and is not covered
 by the offline verification provider.
 
+```text
+Describe where I am, emphasizing the location name.
+```
+
+At Watch Yard, expect the location name as styled emphasis if the DM marks it for
+emphasis. Paired asterisks must not appear around it. Reload: the same styling and
+words return, with the original provider reply still stored unchanged. This also
+applies to earlier saved replies that contain inline emphasis markers.
+
 To restart, wait until **Saved** appears and the turn controls are enabled, then
 press Ctrl+C in the launcher. Rerun exactly:
 
@@ -142,9 +154,11 @@ phone/reduced-height layout and keyboard access. Artwork checks cover identity a
 version isolation, current-location projection, missing/broken-image fallbacks,
 local raster loading, and invalid manifests. Existing saved browser journeys,
 completion, hints and failure/recovery tests exercise the redesigned controls.
+An emphasis test covers bold/italic rendering, inert HTML-like text, exact saved
+prose, no state/RNG mutation, and restoration on reload.
 
 Canonical verification: `npm.cmd run verify` passed on 2 October 2026 with all
-675 tests passing, zero failures and zero warnings. Formatting, style, type checks,
+676 tests passing, zero failures and zero warnings. Formatting, style, type checks,
 static bug analysis, dependency/audit/secret checks, and clean build/package
 validation also passed. Browser tests use an offline deterministic provider and
 the actual UI/API/save boundary; they do not assess live prose quality or latency.

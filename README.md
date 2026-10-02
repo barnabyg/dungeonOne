@@ -27,6 +27,9 @@ description and objective. Decorative artwork does not establish game facts.
 Routine successful turns use a small **Saved** indicator; failures retain explicit
 messages about whether an action committed. **Game menu** contains the seed,
 **New game**, and **Refresh adventure** for rereading or recovering saved progress.
+Inline emphasis in replies and player information uses styled bold or italic text
+instead of visible asterisks, including restored replies. Formatting is display
+only: saved prose remains exact, and provider text cannot create HTML or links.
 
 Friendly NPC options lead with conversation. Persuasion appears when an authored
 topic has distinct consequences or a real check; initiating violence is a separate
