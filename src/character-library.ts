@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { openSync, writeFileSync, closeSync } from "node:fs";
+import { acquireFileLock } from "./file-lock.js";
 import { mkdir, readFile, rename, unlink, open } from "node:fs/promises";
 import { dirname } from "node:path";
 import {
@@ -8,6 +8,7 @@ import {
   type CharacterSheet,
 } from "./character-rules.js";
 import { parseBoundedJson } from "./bounded-json.js";
+import type { SaveSession } from "./save.js";
 import type { AdventureDefinition } from "./adventure-loader.js";
 
 export type CharacterRecord = {
@@ -35,6 +36,13 @@ export type CareerSession = {
   content: AdventureDefinition;
   status: "starting" | "playing" | "victory" | "defeat" | "abandoned";
   generation?: string;
+  progress?: SaveSession["progress"];
+  receipt?: Readonly<{
+    id: string;
+    stateDigest: string;
+    outcome: string;
+    characterResult: CharacterSheet;
+  }>;
 };
 function missing(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
@@ -148,62 +156,7 @@ export class CharacterLibrary {
     change: (data: LibraryData) => void | Promise<void>,
   ): Promise<LibraryData> {
     await mkdir(dirname(this.path), { recursive: true });
-    const lockPath = `${this.path}.lock`;
-    const lock = JSON.stringify({
-      pid: process.pid,
-      token: randomBytes(16).toString("hex"),
-    });
-    for (let attempt = 0; ; attempt++) {
-      try {
-        const descriptor = openSync(lockPath, "wx");
-        try {
-          writeFileSync(descriptor, lock);
-        } finally {
-          closeSync(descriptor);
-        }
-        break;
-      } catch (error) {
-        if (
-          !(
-            error instanceof Error &&
-            "code" in error &&
-            error.code === "EEXIST"
-          ) ||
-          attempt > 1
-        ) {
-          throw new Error(
-            "Character library is busy; refresh before retrying.",
-            { cause: error },
-          );
-        }
-        const owner: unknown = JSON.parse(await readFile(lockPath, "utf8"));
-        if (
-          owner === null ||
-          typeof owner !== "object" ||
-          !("pid" in owner) ||
-          typeof owner.pid !== "number" ||
-          !Number.isInteger(owner.pid) ||
-          owner.pid <= 0
-        ) {
-          throw new Error("Character library lock needs local recovery.");
-        }
-        try {
-          process.kill(owner.pid, 0);
-          throw new Error(
-            "Character library is busy; refresh before retrying.",
-          );
-        } catch (alive) {
-          if (!(
-            alive instanceof Error &&
-            "code" in alive &&
-            alive.code === "ESRCH"
-          )) {
-            throw alive;
-          }
-          await unlink(lockPath);
-        }
-      }
-    }
+    const release = await acquireFileLock(`${this.path}.lock`);
     try {
       const data = await this.read();
       if (data.revision !== revision) {
@@ -226,9 +179,7 @@ export class CharacterLibrary {
       }
       return data;
     } finally {
-      if ((await readFile(lockPath, "utf8")) === lock) {
-        await unlink(lockPath);
-      }
+      await release();
     }
   }
 

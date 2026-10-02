@@ -185,8 +185,9 @@ function assertSupported(session: SaveSession): void {
     session.runtime.content?.snapshot.schemaVersion === 17 &&
     session.runtime.engineVersion === "character-adventure-engine-v1" &&
     session.runtime.startingCharacter !== undefined &&
-    session.runtime.id === "hollow-beacon" &&
-    session.runtime.version === "12"
+    ((session.runtime.id === "hollow-beacon" &&
+      session.runtime.version === "12") ||
+      (session.runtime.id === "stonebridge" && session.runtime.version === "1"))
   ) {
     return;
   }
@@ -426,6 +427,7 @@ export async function startBrowserServer(options: BrowserOptions) {
       : new CharacterCareer(options.libraryPath);
   let savePath = options.savePath;
   await career?.recoverStarts();
+  await career?.synchronize();
   const libraryView = async () => {
     if (career === undefined) {
       throw new Error("Character library is not enabled.");
@@ -637,7 +639,7 @@ export async function startBrowserServer(options: BrowserOptions) {
     }
     try {
       const session = retained ?? (await SaveSession.load(savePath));
-      const view = playerView(
+      let view = playerView(
         session,
         createHash("sha256")
           .update(
@@ -652,6 +654,42 @@ export async function startBrowserServer(options: BrowserOptions) {
           .digest("hex"),
         options.seed,
       );
+      if (session.runtime.startingCharacter !== undefined) {
+        const data = await career?.library.read();
+        const entry = data?.sessions.find(
+          (candidate) => career!.sessionPath(candidate.id) === session.path,
+        );
+        const record = data?.characters.find(
+          ({ sheet }) => sheet.id === entry?.characterId,
+        );
+        const safe =
+          entry !== undefined &&
+          entry.generation === session.generation &&
+          isDeepStrictEqual(
+            entry.startingCharacter,
+            session.runtime.startingCharacter,
+          ) &&
+          (entry.progress === undefined ||
+            (session.progress.sequence >= entry.progress.sequence &&
+              (session.progress.sequence !== entry.progress.sequence ||
+                session.progress.stateDigest ===
+                  entry.progress.stateDigest))) &&
+          (session.state.status !== "playing" ||
+            (entry.status === "playing" &&
+              record?.activeSessionId === entry.id));
+        if (!safe) {
+          view = {
+            ...view,
+            actions: [],
+            scene: {
+              ...view.scene,
+              outcome: "quit",
+              objective:
+                "Historical review only. Restore the current adventure and its original character library to continue this identity.",
+            },
+          };
+        }
+      }
       const hints =
         view.scene.outcome === "playing" &&
         hintJob?.revision === hintRevision(session) &&
@@ -830,6 +868,28 @@ export async function startBrowserServer(options: BrowserOptions) {
                 body.confirmed,
               );
               clearHintJobs();
+            } else if (request.url === "/api/characters/rest") {
+              if (
+                Object.keys(body).length !== 2 ||
+                typeof body.characterId !== "string"
+              ) {
+                throw new Error("Choose a character to rest.");
+              }
+              await career.rest(body.characterId, body.revision);
+            } else if (request.url === "/api/characters/abandon") {
+              if (
+                Object.keys(body).length !== 3 ||
+                typeof body.characterId !== "string" ||
+                body.confirmed !== true
+              ) {
+                throw new Error("Confirm abandonment and pending XP loss.");
+              }
+              await career.abandon(
+                body.characterId,
+                body.revision,
+                body.confirmed,
+              );
+              clearHintJobs();
             } else if (request.url === "/api/characters/continue") {
               if (
                 Object.keys(body).length !== 2 ||
@@ -1002,6 +1062,7 @@ export async function startBrowserServer(options: BrowserOptions) {
             if (retained !== undefined) {
               await retained.saveBrowserHistory(retained.browserHistory!);
               await recoverHistory(retained);
+              await career?.acceptSession(retained.path);
               retainSession(undefined);
               saveFailed = false;
             }
@@ -1058,6 +1119,7 @@ export async function startBrowserServer(options: BrowserOptions) {
         }
         if (request.url === "/api/turn") {
           turning = true;
+          let releaseCareerTurn: (() => Promise<void>) | undefined;
           try {
             let input: Awaited<ReturnType<typeof readPlayerInput>>;
             try {
@@ -1090,6 +1152,9 @@ export async function startBrowserServer(options: BrowserOptions) {
             }
             const session = await SaveSession.load(savePath);
             assertSupported(session);
+            if (session.runtime.startingCharacter !== undefined) {
+              releaseCareerTurn = await career!.beginTurn(session);
+            }
             await recoverHistory(session);
             const selected =
               "optionId" in input && viewBefore.slot === "occupied"
@@ -1238,6 +1303,7 @@ export async function startBrowserServer(options: BrowserOptions) {
               progress: session.progress,
               turns: [...session.browserHistory!.turns, turn],
             });
+            await career?.acceptSession(session.path);
             retainSession(undefined);
             json(response, 200, { view: await readSlot(), ...turn });
           } catch {
@@ -1250,6 +1316,7 @@ export async function startBrowserServer(options: BrowserOptions) {
               view: await readSlot(),
             });
           } finally {
+            await releaseCareerTurn?.();
             releaseTurn();
           }
           return;

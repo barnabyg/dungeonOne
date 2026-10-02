@@ -666,6 +666,9 @@ function renderLibrary() {
     libraryText("library-sheet-details", "HP " + record.sheet.hp + "/" + record.profile.maxHp + " � XP " + record.sheet.xp + " � " + record.availability + "\\nChain mail, shield, longsword � AC " + record.profile.armorClass + " � Attack +" + record.profile.attackBonus + " � Damage 1d8 " + (record.profile.damage.modifier >= 0 ? "+" : "") + record.profile.damage.modifier + " � Initiative " + record.profile.initiativeBonus);
     libraryText("library-sheet-abilities", Object.entries(record.sheet.abilities).map(([ability, score]) => ability + ": " + score + " (" + (record.modifiers[ability] >= 0 ? "+" : "") + record.modifiers[ability] + ")").join(" � "));
     if (record.availability === "active") { libraryButton(element("library-adventures"), "Continue this adventure", () => libraryAction("continue", { sessionId: record.activeSessionId }, true)); }
+    if (record.availability === "rest-needed") { libraryButton(element("library-adventures"), "Rest between adventures", () => libraryAction("rest", { characterId: record.sheet.id })); }
+    if (record.availability === "active") { libraryButton(element("library-adventures"), "Abandon adventure", () => { if (window.confirm("Abandon this adventure? Pending XP will be discarded. Your career and this adventure record remain saved; rest is required before another start.")) { void libraryAction("abandon", { characterId: record.sheet.id, confirmed: true }); } }); }
+    if (record.availability === "defeated") { const notice = document.createElement("p"); notice.textContent = "This character is defeated and cannot start another adventure. Its sheet and past journeys remain saved."; element("library-adventures").append(notice); }
     if (record.availability === "ready") {
       for (const adventure of libraryData.adventures) {
         const range = adventure.recommendedLevels;
@@ -678,7 +681,7 @@ function renderLibrary() {
     }
   }
   const sessions = element("library-sessions"); sessions.replaceChildren();
-  for (const session of libraryData.sessions.filter((entry) => entry.status !== "abandoned")) {
+  for (const session of libraryData.sessions) {
     const owner = libraryData.characters.find((entry) => entry.sheet.id === session.characterId);
     libraryButton(sessions, (owner ? owner.sheet.name : "Character") + " � " + session.title + " � " + (session.status === "playing" ? "Continue adventure" : "Review adventure"), () => libraryAction("continue", { sessionId: session.id }, true));
   }

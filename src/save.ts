@@ -742,7 +742,10 @@ export class SaveSession {
     ) {
       throw new Error("Save checkpoint differs from replayed transitions.");
     }
-    if (session.state.status === "quit") {
+    if (
+      session.state.status === "quit" &&
+      loaded.adventure.snapshot.schemaVersion !== 17
+    ) {
       throw new Error("Quit sessions cannot resume gameplay.");
     }
     if (

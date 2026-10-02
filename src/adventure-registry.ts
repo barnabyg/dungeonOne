@@ -6,7 +6,7 @@ export async function characterAdventures(): Promise<
   readonly ValidatedAdventure[]
 > {
   const adventures: ValidatedAdventure[] = [];
-  for (const name of ["hollow-beacon-characters"]) {
+  for (const name of ["hollow-beacon-characters", "stonebridge-characters"]) {
     const loaded = await loadAdventureFile(
       fileURLToPath(new URL(`../adventures/${name}.json`, import.meta.url)),
     );
