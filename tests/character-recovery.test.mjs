@@ -126,6 +126,28 @@ test(
   },
 );
 
+test("incomplete legacy lock files cannot strand a new storage owner", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "career-partial-lock-"));
+  const path = join(directory, "characters.json");
+  try {
+    await writeFile(path + ".lock", "");
+    await writeFile(path + ".turn-lock", '{"pid":');
+    const career = new CharacterCareer(path);
+    const result = await career.library.create(
+      "Ada",
+      "balanced",
+      (await career.library.read()).revision,
+    );
+    assert.equal(result.characters[0].sheet.name, "Ada");
+    assert.deepEqual(await career.library.read(), result);
+    // Persistent lock artifacts are no longer authoritative or overwritten.
+    assert.equal(await readFile(path + ".lock", "utf8"), "");
+    assert.equal(await readFile(path + ".turn-lock", "utf8"), '{"pid":');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("a missing character library leaves the embedded adventure readable without enabling play or XP publication", async () => {
   const directory = await mkdtemp(join(tmpdir(), "career-orphan-"));
   const career = new CharacterCareer(join(directory, "characters.json"));
