@@ -20,7 +20,7 @@ npm.cmd run build
 npm.cmd run browser -- --seed 42 --characters .\.scratch\character-player\characters.json --save .\.scratch\character-player\legacy.json
 ```
 
-The launcher prints a local URL and opens the browser. Choose **Your characters**,
+The launcher prints a local URL and opens the browser. Choose **Choose character**,
 **Create character**, name **Ada**, preset **Balanced**, then **Save character**.
 Expect a level-1 Fighter, Strength 14, Dexterity 12, Constitution 13,
 Intelligence 10, Wisdom 11, Charisma 9; HP 19/19, AC 16, attack +3, damage
@@ -75,7 +75,7 @@ completion card with 1,000 XP credited once, level 1 → 2, maximum HP 19 → 28
 attack +3 → +4, and remaining HP preserved. Opening Review and restarting must
 not grant XP again.
 
-In **Your characters**, choose Ada, then **Rest between adventures**. Expect HP
+In the character library, choose Ada, then **Rest between adventures**. Expect HP
 28/28 and available adventure buttons. Choose **Start Stonebridge** (levels 2–3).
 Expect Ada's identity, scores, gear, level and XP, with fresh adventure-local
 clues, items and clock. Reviewing Hollow Beacon later must not roll back Ada.
@@ -101,7 +101,7 @@ above the cap remains recorded.
 
 ## Checks, risk, and cancellation
 
-- From the Hollow Beacon opening, inspect the dark beacon's optional Wisdom
+- From the Hollow Beacon opening, inspect the beacon lamp's optional Wisdom
   check. Expect its score modifier, DC 12, zero time cost, one attempt, and 20
   pending XP on success. Failure leaves routine investigation and the complete
   peaceful route available. Reload preserves the result and never rerolls it.
@@ -143,6 +143,11 @@ publication, lock recovery, competing turns, stale save copies, pending-XP
 abandonment, missing-library review, and two complete journeys through the real
 browser, API and files. Package validation initializes a character adventure
 from an extracted package in a caller directory containing spaces.
+The creation preview has also been visually inspected in Edge at 1280×850 and
+390×844. Both [code-review axes](increment-10-review.md) have no unresolved findings.
+Storage exclusion and crash recovery are tested on Windows; Linux abstract IPC
+and the deterministic loopback-port fallback on other platforms remain untested
+here. A fallback port collision fails closed as busy and never shares ownership.
 
 Balance samples use seeds 0–63, all three presets and both inclusive recommended
 bounds. For an attack-only basic encounter without cover or healing, surviving
