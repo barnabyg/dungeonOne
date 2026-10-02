@@ -200,7 +200,7 @@ function renderInformation() {
       if (status.resources) { informationBlock("Resource record", status.resources); }
     }
     const showingLeads = activePanel === "leads";
-    const refreshed = information && information.refreshedLeads;
+    const refreshed = information && information.usesFinalePresentation;
     if (showingLeads && refreshed) { informationBlock("Current leads", information.currentLeads.length ? information.currentLeads : ["No open leads. Review the final record."]); }
     for (const [classification, label, leadLabel] of [["observation", "Observed evidence", "Observed evidence leads"], ["testimony", "Testimony", "Testimony leads"], ["belief", "Beliefs", "Contested claim leads"]]) {
       const entries = journal.discoveries.filter((entry) => entry.classification === classification && (!showingLeads || refreshed || entry.actionableLead.trim())).map((entry) => entry.title + " — " + entry.source.name + ": " + (showingLeads && !refreshed ? entry.actionableLead : entry.summary));

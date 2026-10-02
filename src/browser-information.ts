@@ -7,7 +7,7 @@ export type BrowserInformation = Readonly<{
   spentItems: readonly string[];
   relationships: readonly string[];
   currentLeads: readonly string[];
-  refreshedLeads: boolean;
+  usesFinalePresentation: boolean;
   sceneDescription?: string;
 }>;
 
@@ -19,14 +19,14 @@ export function browserInformation(session: SaveSession): BrowserInformation {
   const scene = session.runtime.projectDmScene(session.state);
   const state = session.state;
   const profile = definition?.combatProfile;
-  const refreshedLeads = (definition?.schemaVersion ?? 0) >= 16;
+  const usesFinalePresentation = (definition?.schemaVersion ?? 0) >= 16;
   const milestones: readonly string[] = scene.journal?.quest.milestones ?? [];
   const ending =
     scene.journal && "ending" in scene.journal
       ? scene.journal.ending
       : undefined;
   let currentLeads = scene.journal?.actionableLeads ?? [];
-  if (refreshedLeads) {
+  if (usesFinalePresentation) {
     const discoveries = scene.journal?.discoveries ?? [];
     const proof = discoveries.some(({ id }) =>
       ["altered-setting", "refugee-alignment"].includes(id),
@@ -75,10 +75,10 @@ export function browserInformation(session: SaveSession): BrowserInformation {
       )
       .map(({ name, description }) => name + " — " + description),
     currentLeads: [...new Set(currentLeads.filter((lead) => lead.trim()))],
-    refreshedLeads,
-    ...(refreshedLeads && ending !== undefined
+    usesFinalePresentation,
+    ...(usesFinalePresentation && ending !== undefined
       ? { sceneDescription: ending.narration }
-      : refreshedLeads &&
+      : usesFinalePresentation &&
           scene.room.id === "beacon-tower" &&
           milestones.includes("confrontation-resolved")
         ? {
