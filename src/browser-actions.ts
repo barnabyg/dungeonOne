@@ -136,32 +136,20 @@ export function browserActions(
     const target = scene.room.features.find(
       ({ id }) => id === choice.featureId,
     )!;
-    add(
+    const message = "Fit " + item.name + " in " + target.name;
+    const call: GameToolCall = {
+      name: "place_item",
+      argumentsJson: JSON.stringify({
+        item_id: choice.itemId,
+        target: choice.featureId,
+      }),
+    };
+    for (const contextId of [
       "inventory:" + choice.itemId,
-      choice.label,
-      "Fit " + item.name + " in " + target.name,
-      {
-        name: "place_item",
-        argumentsJson: JSON.stringify({
-          item_id: choice.itemId,
-          target: choice.featureId,
-        }),
-      },
-      choice.stakes,
-    );
-    add(
       "target:" + choice.featureId,
-      choice.label,
-      "Fit " + item.name + " in " + target.name,
-      {
-        name: "place_item",
-        argumentsJson: JSON.stringify({
-          item_id: choice.itemId,
-          target: choice.featureId,
-        }),
-      },
-      choice.stakes,
-    );
+    ]) {
+      add(contextId, choice.label, message, call, choice.stakes);
+    }
   }
   for (const choice of scene.recoveryChoices ?? []) {
     offer(
