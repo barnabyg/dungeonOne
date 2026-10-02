@@ -9,6 +9,7 @@ import { ADJUDICATION_SCHEMA } from "./adjudication-schema.js";
 import { DAY_SCHEMA } from "./day-schema.js";
 import { DECEPTION_SCHEMA } from "./deception-schema.js";
 import { OFFER_SCHEMA } from "./offer-schema.js";
+import { FINALE_SCHEMA } from "./finale-schema.js";
 import { CONFRONTATION_SCHEMA } from "./confrontation-schema.js";
 import { QUEST_ITEM_SCHEMA } from "./quest-item-schema.js";
 import { RECOVERY_SCHEMA } from "./recovery-schema.js";
@@ -169,7 +170,7 @@ export type DialogueNpc = Readonly<{
   }>;
 }>;
 export type ChapelCluesDefinition = Readonly<{
-  schemaVersion: 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
+  schemaVersion: 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
   id: string;
   contentVersion: string;
   rulesVersion:
@@ -188,7 +189,8 @@ export type ChapelCluesDefinition = Readonly<{
     | "chapel-clues-rules-v13"
     | "chapel-clues-rules-v14"
     | "chapel-clues-rules-v15"
-    | "chapel-clues-rules-v16";
+    | "chapel-clues-rules-v16"
+    | "chapel-clues-rules-v17";
   title: string;
   introduction: string;
   objective: string;
@@ -961,6 +963,7 @@ function validateClueReferences(
       "chapel-clues-rules-v14",
       "chapel-clues-rules-v15",
       "chapel-clues-rules-v16",
+      "chapel-clues-rules-v17",
     ].includes(snapshot.rulesVersion) &&
     (snapshot.npcs ?? []).some(
       (npc) => npc.combat !== undefined || npc.remains !== undefined,
@@ -989,6 +992,7 @@ function validateClueReferences(
       "chapel-clues-rules-v14",
       "chapel-clues-rules-v15",
       "chapel-clues-rules-v16",
+      "chapel-clues-rules-v17",
     ].includes(snapshot.rulesVersion)
   ) {
     error(
@@ -1109,7 +1113,8 @@ function validateClueReferences(
     snapshot.rulesVersion === "chapel-clues-rules-v13" ||
     snapshot.rulesVersion === "chapel-clues-rules-v14" ||
     snapshot.rulesVersion === "chapel-clues-rules-v15" ||
-    snapshot.rulesVersion === "chapel-clues-rules-v16"
+    snapshot.rulesVersion === "chapel-clues-rules-v16" ||
+    snapshot.rulesVersion === "chapel-clues-rules-v17"
   ) {
     (snapshot.monsters ?? []).forEach((monster, i) => {
       if (npcs.has(monster.id)) {
@@ -1339,7 +1344,8 @@ function validateClueReferences(
           snapshot.rulesVersion !== "chapel-clues-rules-v13" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v14" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v15" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v16"
+          snapshot.rulesVersion !== "chapel-clues-rules-v16" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v17"
         ) {
           error(
             "unsupported-rules",
@@ -1362,7 +1368,8 @@ function validateClueReferences(
           snapshot.rulesVersion !== "chapel-clues-rules-v13" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v14" &&
           snapshot.rulesVersion !== "chapel-clues-rules-v15" &&
-          snapshot.rulesVersion !== "chapel-clues-rules-v16"
+          snapshot.rulesVersion !== "chapel-clues-rules-v16" &&
+          snapshot.rulesVersion !== "chapel-clues-rules-v17"
         ) {
           error(
             "unsupported-rules",
@@ -2565,43 +2572,46 @@ export function loadAdventure(input: string | Uint8Array):
       (parsed as { rulesVersion?: string } | null)?.rulesVersion ===
         "signet-rules-v1"
       ? SIGNET_SCHEMA
-      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 15
-        ? CONFRONTATION_SCHEMA
-        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 14
-          ? QUEST_ITEM_SCHEMA
-          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 13
-            ? RECOVERY_SCHEMA
+      : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 16
+        ? FINALE_SCHEMA
+        : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 15
+          ? CONFRONTATION_SCHEMA
+          : (parsed as { schemaVersion?: number } | null)?.schemaVersion === 14
+            ? QUEST_ITEM_SCHEMA
             : (parsed as { schemaVersion?: number } | null)?.schemaVersion ===
-                12
-              ? BRACE_SCHEMA
+                13
+              ? RECOVERY_SCHEMA
               : (parsed as { schemaVersion?: number } | null)?.schemaVersion ===
-                  11
-                ? CLAIM_SCHEMA
+                  12
+                ? BRACE_SCHEMA
                 : (parsed as { schemaVersion?: number } | null)
-                      ?.schemaVersion === 10
-                  ? TRAVEL_SCHEMA
+                      ?.schemaVersion === 11
+                  ? CLAIM_SCHEMA
                   : (parsed as { schemaVersion?: number } | null)
-                        ?.schemaVersion === 9
-                    ? OFFER_SCHEMA
+                        ?.schemaVersion === 10
+                    ? TRAVEL_SCHEMA
                     : (parsed as { schemaVersion?: number } | null)
-                          ?.schemaVersion === 8
-                      ? DECEPTION_SCHEMA
+                          ?.schemaVersion === 9
+                      ? OFFER_SCHEMA
                       : (parsed as { schemaVersion?: number } | null)
-                            ?.schemaVersion === 7
-                        ? DAY_SCHEMA
+                            ?.schemaVersion === 8
+                        ? DECEPTION_SCHEMA
                         : (parsed as { schemaVersion?: number } | null)
-                              ?.schemaVersion === 6
-                          ? ADJUDICATION_SCHEMA
+                              ?.schemaVersion === 7
+                          ? DAY_SCHEMA
                           : (parsed as { schemaVersion?: number } | null)
-                                ?.schemaVersion === 5
-                            ? CLOCK_SCHEMA
+                                ?.schemaVersion === 6
+                            ? ADJUDICATION_SCHEMA
                             : (parsed as { schemaVersion?: number } | null)
-                                  ?.schemaVersion === 4
-                              ? RELATIONSHIP_SCHEMA
+                                  ?.schemaVersion === 5
+                              ? CLOCK_SCHEMA
                               : (parsed as { schemaVersion?: number } | null)
-                                    ?.schemaVersion === 3
-                                ? CHAPEL_CLUES_SCHEMA
-                                : ADVENTURE_SCHEMA,
+                                    ?.schemaVersion === 4
+                                ? RELATIONSHIP_SCHEMA
+                                : (parsed as { schemaVersion?: number } | null)
+                                      ?.schemaVersion === 3
+                                  ? CHAPEL_CLUES_SCHEMA
+                                  : ADVENTURE_SCHEMA,
     "",
     diagnostics,
   );
@@ -2629,7 +2639,8 @@ export function loadAdventure(input: string | Uint8Array):
     snapshot.schemaVersion === 12 ||
     snapshot.schemaVersion === 13 ||
     snapshot.schemaVersion === 14 ||
-    snapshot.schemaVersion === 15
+    snapshot.schemaVersion === 15 ||
+    snapshot.schemaVersion === 16
   ) {
     validateClueReferences(snapshot, diagnostics);
     if (snapshot.schemaVersion >= 14) {
@@ -2734,7 +2745,8 @@ export function loadAdventure(input: string | Uint8Array):
     snapshot.schemaVersion === 12 ||
     snapshot.schemaVersion === 13 ||
     snapshot.schemaVersion === 14 ||
-    snapshot.schemaVersion === 15
+    snapshot.schemaVersion === 15 ||
+    snapshot.schemaVersion === 16
   ) {
     diagnostics.push(...analyzeProgression(snapshot));
   }

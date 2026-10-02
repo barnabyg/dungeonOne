@@ -47,7 +47,7 @@ launch environment, then run this copyable PowerShell command:
 npm.cmd run browser -- --seed 0 --save .\hollow-beacon-browser-save.json
 ```
 
-The launcher starts **Hollow Beacon: Confrontation** (issue #90, content version 10) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
+The launcher starts **Hollow Beacon: Final Warning** (issue #91, content version 11) at a printed `http://127.0.0.1:<available-port>` URL and attempts to open
 your desktop browser. If opening fails, use the printed URL. Keep the
 launcher running; Ctrl+C stops the service without closing the saved session.
 Rerun the same command to read the same slot at its saved seed, even if the
@@ -65,8 +65,7 @@ replacement; corrupt, closed (`quit`), other-adventure, or older-content slots
 produce an error and remain unchanged. Released v4 Watch Route slots continue
 with their original content and endings, including completed Review mode.
 V5 adds the camp survey and Refugee Overlook, attributed testimony and contested
-claims, and provisional tower instructions that leave play open. A finale for
-the expanded investigation is not part of this release. See the
+claims, and provisional tower instructions that leave play open. The v5 investigation retains its original nonterminal decisions. See the
 [issue 85 player checks](docs/acceptance/issue-85.md).
 V6 uses [schema 11](schema/adventure-v11.schema.json) / `chapel-clues-rules-v12`:
 one remembered safe-signal claim can change Captain Iona's trust and private
@@ -101,11 +100,22 @@ plate or refugee sighting frame, present a living Captain Iona's intervention
 warrant, or deliberately fight Vey for control. Proof and alliance avoid dice
 and casualties; force uses the existing combat actions and records Vey's death.
 Failed persuasion leaves the physical evidence open. Control unlocks the final
-warning board and continuing play; final outcomes belong to issue #91. Missing
+warning board and continuing play; v10 retains its original nonterminal decisions. Missing
 components and dead allies leave an honest onward route. New slots use content
 10 / schema 15 / `chapel-clues-rules-v16` / `chapel-clues-engine-v20`; released
 v4-v9 slots retain their original content, history and rules. See the
 [issue 90 browser and CLI handoff](docs/acceptance/issue-90.md).
+V11 adds three final warnings after tower control and warning-board review.
+The verified safe signal requires physical alignment evidence and the fitted
+component; slower human warning and urgent risky signal remain available without
+that item, even late or after failed persuasion. Public stakes distinguish
+signal work, dispatch and risk from unconfirmed rescue. Conditional final records
+retain deadline, evidence, prior commitments and actual casualties. Commitment
+closes play into Review; information and saved Conversation history remain readable.
+New slots use content 11 / schema 16 / `chapel-clues-rules-v17` /
+`chapel-clues-engine-v21`; released v4-v10 slots keep their original semantics.
+See [issue 91 browser and route handoff](docs/acceptance/issue-91.md).
+
 Active or completed Hollow Beacon slots
 offer **New game**. Its keyboard-accessible confirmation explains that progress,
 conversation and both hint levels will be replaced, and displays the new seed

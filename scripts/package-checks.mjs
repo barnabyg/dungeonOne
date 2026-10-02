@@ -99,6 +99,8 @@ const authoredAssets = [
   "schema/adventure-v13.schema.json",
   "schema/adventure-v14.schema.json",
   "schema/adventure-v15.schema.json",
+  "schema/adventure-v16.schema.json",
+  "adventures/hollow-beacon-finale.json",
 ];
 
 for (const adventure of authoredAssets.filter((asset) =>

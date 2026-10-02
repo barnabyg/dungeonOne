@@ -207,7 +207,7 @@ export function browserActions(
     );
   }
   for (const npc of scene.room.npcs ?? []) {
-    if (session.runtime.content?.snapshot.schemaVersion === 15) {
+    if ((session.runtime.content?.snapshot.schemaVersion ?? 0) >= 15) {
       offer(
         "npc:" + npc.id,
         "attack",
