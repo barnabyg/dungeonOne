@@ -121,3 +121,33 @@ restart. Providers are offline fixtures; live model paraphrase quality and
 unfamiliar-player acceptance are untested. Existing canonical tests cover the
 general automatic continuation, atomic reset, recovery and completed Review
 contracts. No push or remote delivery is claimed.
+
+Clean tracked checkout `2e92e5d` on the isolated `codex/issue-89-qualification`
+branch installed 101 packages with `npm.cmd ci`, audited 102 packages and
+reported zero vulnerabilities. `CI=true npm.cmd run verify` passed all seven
+gates, **652 tests, zero failures, zero warnings**, including real Edge play and
+package extraction validation. Node was 24.13.0 (supported 24.x), npm 11.6.4.
+The normal `dist/browser-cli.js` launcher started content v9, saved Watch Yard
+through Start adventure, and resumed the exact opening/history/save bytes after
+process restart. This startup probe made zero provider calls. Full verification
+left tracked files unchanged. No live AI reliability claim is made.
+The retained [startup receipt](issue-89-startup.json) records that probe.
+
+## Standards
+
+The independent read-only Standards review found one optional duplicated-code
+finding in inventory/socket placement. Both contexts now share one message and
+tool call. Its follow-up review of `39ae8ff...2e92e5d` found no remaining findings.
+The style gate also required braces on new control-flow statements; corrected
+code passed focused tests and clean full verification.
+
+## Spec
+
+The independent Spec review found the inherited Take projection queried
+`itemId` although the engine offers `item_id`. This prevented contextual
+collection. A real-browser test reproduced it; the corrected clicked journey
+now selects Take while the other journey uses typed collection. The follow-up
+review found no remaining Spec blockers. Each review finding was committed
+separately from the implementation, preserving history.
+
+Review totals after corrections: Standards 0; Spec 0.
