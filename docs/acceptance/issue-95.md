@@ -1,28 +1,30 @@
 # Issue 95: qualify Hollow Beacon with unfamiliar players
 
 Prepared on 3 October 2026 on `feat/issue-95-player-qualification`, in the
-browser's default character mode. **Status: ready for player sessions. Not
-qualified.** The external-player gates below are open until three unfamiliar
-players have played and their evidence is recorded here.
+browser's default character mode. **Status: round 1 fixes done; ready for the
+next player session. Not qualified.** The external-player gates below stay open
+until three unfamiliar players have played and their evidence is recorded here.
 
-The issue names Hollow Beacon v12. Since #110, new character adventures start
-**v13** (`hollow-beacon` 13, `character-adventure-rules-v2`, schema 17, prompt
-`character-adventure-dm-v3`, tools `character-adventure-tools-v3`), which is
-v12 with one **Examine** action. Players get v13, so this qualification is for
-v13. No release row, tuple, save format or module offered for new play was
-changed. Stonebridge (levels 2–3) is out of scope.
+The issue names Hollow Beacon v12. #110 made new adventures start v13 (one
+**Examine** action). The first player session (below) stopped early on
+confusing text, and the project owner then approved a content release: new
+adventures now start **v14** (`hollow-beacon` 14,
+`character-adventure-rules-v2`, schema 17,
+`adventures/hollow-beacon-story.json`), which is v13 with plain player-facing
+text. This qualification is for v14. v12 and v13 saves continue under their
+own rows. Stonebridge (levels 2–3) is out of scope.
 
 ## Gates
 
 | Gate                                                                                         | Status                                              |
 | -------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Three unfamiliar players in the browser, character mode, evidence recorded                   | **Open:** sessions not yet run                      |
+| Three unfamiliar players in the browser, character mode, evidence recorded                   | **Open:** 1 session, stopped early (does not count) |
 | No authoritative contradiction or unfinishable supported branch in tested play               | **Open:** scripted routes finish; needs player play |
 | At least two finish without story coaching                                                   | **Open**                                            |
 | Completed runs plausibly fit 2–4 hours without padded travel                                 | **Open, at risk:** see [Length](#length)            |
 | At least two say they would choose another adventure                                         | **Open**                                            |
 | Named automated journeys (endings, timing, check, casualty, item, avoidance, seeds, resumes) | Done: [Automated journeys](#automated-journeys)     |
-| Canonical seven-gate verification, zero warnings                                             | Done: 740 tests, clean checkout                     |
+| Canonical seven-gate verification, zero warnings                                             | Done; rerun after round 1 (see below)               |
 | Clean checkout: install, verify, build, start, create, save, continue, finish, Review        | Done: [Clean checkout](#clean-checkout)             |
 | Diagnostic CLI replay verified separately                                                    | Done, in the same handoff run                       |
 | Handoff: PowerShell commands, browser steps, expected responses, prerequisites, limits       | Done: player and host sheets                        |
@@ -54,14 +56,15 @@ These steps are for the session host's handoff check, not for players.
 
 | Step                                                                      | Expected                                                                                                                                                 |
 | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Open the printed `http://127.0.0.1:<port>`                                | The page offers **Choose character**; no adventure yet                                                                                                   |
-| **Choose character** → **Create character**, name, **Balanced**, **Save** | “Character saved”; Fighter level 1, HP 19/19, XP 0                                                                                                       |
-| Select the character                                                      | **Start Hollow Beacon: A Fighter’s Warning with <name>**, “Recommended levels 1–2”                                                                       |
-| Start                                                                     | Watch Yard, Day 0, the Day 3 caravan deadline; **Hints** ready; empty conversation                                                                       |
+| Open the printed `http://127.0.0.1:<port>`                                | “Welcome to Dungeon One” with getting-started steps; no adventure yet                                                                                    |
+| **Adventures**                                                            | The new-character form is already open; **Save character** stays disabled until a name is typed                                                          |
+| Name, **Balanced**, **Save character**                                    | “Character saved”; the character is selected: Fighter level 1, HP 19/19, XP 0                                                                            |
+| (in the same dialog)                                                      | **Start Hollow Beacon: A Fighter’s Warning with <name>**, “Recommended levels 1–2”                                                                       |
+| Start                                                                     | Watch Yard, Day 0, the Day 3 deadline, “XP 0 / 1,000 for level 2”; the conversation opens with the story introduction; **Hints** ready                   |
 | Wait for a complete reply and an enabled box, Ctrl+C, rerun the same line | New URL; same adventure, conversation and state; no AI request                                                                                           |
 | Reach an ending                                                           | Ending card; “1000 XP credited”, **Level 1 → 2** (on a surviving ending); Review                                                                         |
 | Ctrl+C and rerun after the ending                                         | Review again; message box disabled; XP unchanged                                                                                                         |
-| **Choose character** → character → **Rest between adventures**            | Start buttons return; level-2 character still inside 1–2                                                                                                 |
+| **Adventures** → character → **Rest between adventures**                  | Start buttons return; level-2 character still inside 1–2                                                                                                 |
 | During an adventure, **Abandon adventure** → Cancel, then again → OK      | Cancel changes nothing; OK keeps the journey under **Saved adventures**, requires **Rest between adventures**, then a new start opens a fresh Watch Yard |
 | Defeat (0 HP)                                                             | Defeat Review, no XP; the character shows as defeated and cannot start another adventure, so create a new one                                            |
 
@@ -84,7 +87,7 @@ authority in its own process. Only the provider is scripted
 
 | Journey                                        | Seed              | Covers                                                                                                                                                                                                                                  |
 | ---------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| On time: verified safe signal                  | 0                 | **Failed check** (wisdom at the beacon lamp, no XP); both fights won; component fitted and **spent (item loss: v13's only lossy item mechanic is spending the component)**; Day 2, “Before Day 3” consequence; **verified safe signal** |
+| On time: verified safe signal                  | 0                 | **Failed check** (wisdom at the beacon lamp, no XP); both fights won; component fitted and **spent (item loss: the only lossy item mechanic is spending the component)**; Day 2, “Before Day 3” consequence; **verified safe signal** |
 | Valley road: slower human warning              | 0, 1, 2, 3        | **Combat avoidance** (no combat card at all, HP 19/19); **late** consequence; **slower human warning**; seeds 0–3 (this route rolls no dice)                                                                                            |
 | Casualty: urgent risky signal                  | 0                 | Sentry avoided by the drainage walk; **Vey killed (casualty)**; controls secured; component still carried; late; **urgent risky signal**                                                                                                |
 | Defeat                                         | 33                | **Defeat** by the ridge raider; no XP, level 1; Review after a restart; no provider call                                                                                                                                                |
@@ -99,7 +102,7 @@ and clicked v13 journey in real Edge, provider failures before and after a
 commit, a misbehaving provider), [`tests/issue-93.test.mjs`](../../tests/issue-93.test.mjs)
 (launcher continuation, abandonment, stale tabs, `--legacy` v4–v11 saves) and
 [`tests/issue-110.test.mjs`](../../tests/issue-110.test.mjs) (v12 saves
-continue with Inspect and Search).
+continue with Inspect and Search). Since round 1 they all play v14.
 
 ## Clean checkout
 
@@ -151,15 +154,12 @@ is not one of them.
 
 ## Things to watch in the sessions
 
-Seen while building the journeys. This is known negative evidence. It isn't
-fixed yet because the first sessions should show how much each item matters;
-each item becomes a fix or a ticket after those sessions:
+The rules-text introduction and the engine wording on ending cards, noted here
+before round 1, were fixed by v14. Still to watch:
 
-- The introduction is about 2,400 characters of rules ("0 days and no dice",
-  "min(8, missing HP)", "no retreat or surrender") rather than a story hook.
-  Several location descriptions repeat it.
-- Ending cards repeat engine wording ("Commit a verified signal … for 0 days
-  and no dice") before the story outcome.
+- Engine-written result cards still use terms such as "Fighter attack cost:
+  1 action, 0 days" and "Cost: 0 days; no dice". They come from the engine, not
+  the content, and players haven't reached them yet.
 - A level-up raises maximum HP (19 → 28) but leaves current HP (for example
   10/28) until Rest. That is correct, but it may read as a bug.
 - Defeat retires the character for good. The player sheet says so, but it may
@@ -167,6 +167,39 @@ each item becomes a fix or a ticket after those sessions:
 
 ## Player sessions
 
-_None yet._ Records go in `docs/acceptance/issue-95-sessions/`, using the
-template in the host sheet, and are summarised here with the fixes they
-produce and the rechecked routes.
+Records go in `docs/acceptance/issue-95-sessions/`, using the template in the
+host sheet.
+
+### Round 1: player 01 (stopped early)
+
+[Record](issue-95-sessions/player-01.md). The player got as far as the opening
+scene, Captain Iona and the beacon lamp. The host then stopped the session to
+pass on 14 items of feedback, so the run does not count toward any gate. Fixes,
+following the project owner's decisions of 3 October 2026:
+
+| Feedback (item)                                               | Fix                                                                                                                                                        |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| “Choose character” vs “Character” (1)                         | Toolbar: **Adventures** and **Character sheet**                                                                                                            |
+| “Close character library” (2); no layout (5)                  | Library dialog: title bar with **Close**; sections for characters, the selected character with its adventures, and saved adventures; empty states          |
+| Expected 3d6 rolls (3)                                        | Follow-up #118; the form explains what a preset is                                                                                                         |
+| Save enabled with no name (4)                                 | **Save character** is disabled until a name is typed; a first visit opens the form directly                                                                |
+| “Combat on arrival…” unclear (6)                              | Character mode: “A fight starts as soon as you reach Ridge Trail, and you can't run once it starts.”                                                       |
+| XP not in the header (7)                                      | “Fighter · Level 1 · XP 0 / 1,000 for level 2”                                                                                                             |
+| “The beacon is dark…” means nothing (8); “Read the scene” (9) | v14's story introduction opens the conversation; the header summarises the current place under **More about this place**; a welcome before any adventure   |
+| Attack offered on Captain Iona (11)                           | Character mode: no Attack click on someone you are not fighting; typing still works                                                                        |
+| “Ask how the watch responds” (12)                             | v14 introduces the beacon watch; topics renamed, for example **Ask what the watch is doing now**                                                           |
+| “Claim the familiar signal is safe” and its text (13)         | v14's introduction explains the beacon's familiar light; the topic is **Bluff: tell Iona the beacon is safe to light as it is**, with a plain one-try roll |
+| Wisdom and intelligence check text (14)                       | **Roll Wisdom** with a plain explanation; v14 drops the four generic assessment checks                                                                     |
+
+The player liked the column of places to go and people to talk to (10); it is unchanged.
+
+Rechecked: every journey in [Automated journeys](#automated-journeys) now plays
+v14 and passes: all endings, on time and late, the failed check, defeat, the
+casualty, restarts and multiple seeds. #93, #94 and #110 also pass on v14.
+[`tests/issue-95-ui.test.mjs`](../../tests/issue-95-ui.test.mjs) checks the
+page and option changes in a real browser.
+[`tests/issue-95-content.test.mjs`](../../tests/issue-95-content.test.mjs)
+checks that v14 changes only text and the removed checks, has no engine
+jargon, and opens with the story. No live AI run was made for v14. The model
+now reads the v14 descriptions and topic labels, so the next player session is
+also their first live check.

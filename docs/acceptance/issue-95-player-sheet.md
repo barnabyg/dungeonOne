@@ -42,12 +42,15 @@ you play.
 
 ## Making your character
 
-1. Select **Choose character**, then **Create character**.
-2. Type a name and pick a preset (**Balanced**, **Stout** or **Scout**). The
-   preview shows ability scores, HP, armour class and attack. Select **Save
-   character**. You get a level-1 Fighter with 0 XP.
-3. Select your character. **Hollow Beacon** shows its recommended levels
-   (1–2). Select **Start Hollow Beacon…**.
+1. Select **Adventures** at the top of the page. The first time, the form for
+   a new character opens straight away.
+2. Type a name and pick a preset (**Balanced**, **Stout** or **Scout**). A
+   preset sets your six ability scores; the preview shows them with HP, armour
+   class and attack. Select **Save character**. You get a level-1 Fighter with
+   0 XP.
+3. Your new character is selected, with **Hollow Beacon** and its recommended
+   levels (1–2) listed below. Select **Start Hollow Beacon…**. The story
+   begins in the conversation.
 
 ## Playing
 
@@ -58,7 +61,7 @@ you play.
   them.
 - Wait for each reply to finish and for the message box to come back before
   you send the next message.
-- **Character**, **Inventory**, **Journal** and **Hints** open side panels.
+- **Character sheet**, **Inventory**, **Journal** and **Hints** open side panels.
   Opening them costs no game time and doesn't involve the AI. **Hints** gives a
   gentle nudge, and **Request a stronger hint** gives a firmer one. Use them
   whenever you like; the session host notes when you do.
@@ -84,7 +87,7 @@ and the XP isn't awarded twice.
 
 ## Starting over (only if you want to)
 
-Open **Choose character** and select your character:
+Open **Adventures** and select your character:
 
 - **After an ending:** select **Rest between adventures**, then start again.
 - **In the middle of an adventure:** select **Abandon adventure** and confirm.

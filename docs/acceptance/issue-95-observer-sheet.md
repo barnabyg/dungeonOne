@@ -70,7 +70,7 @@ paste your notes into the chat and the implementation agent writes it up.
 
 - Date / commit:
 - Played: <minutes of play> over <n> sittings
-- Content / model / seed: hollow-beacon v13 / gpt-5.6-luna / <seed>
+- Content / model / seed: hollow-beacon v14 / gpt-5.6-luna / <seed>
 - Character: preset <Balanced|Stout|Scout>; before L1 0 XP; after L<n> <xp> XP
 - Save and continue: <Ctrl+C + rerun count; did it resume correctly?>
 - Hints: <n> ordinary, <n> stronger (what prompted each)
