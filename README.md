@@ -47,8 +47,8 @@ for it, so a contextual talk click commits without the model asking for an
 approach. AI traces recorded under `character-adventure-tools-v1` still replay.
 See [issue 109](docs/acceptance/issue-109.md).
 
-New Hollow Beacon adventures start **v13** (`character-adventure-rules-v2`).
-It replaces **Inspect** and **Search** with one **Examine** action: examining a
+Hollow Beacon **v13** (`character-adventure-rules-v2`)
+replaces **Inspect** and **Search** with one **Examine** action: examining a
 feature with an available search performs that search and records its
 discovery in the same turn; examining anything else only describes it. Typed
 requests to look at, read, study, search, inspect or examine something resolve
@@ -56,6 +56,15 @@ to Examine. v13 uses `character-adventure-dm-v3` and
 `character-adventure-tools-v3`. Hollow Beacon v12 saves and Stonebridge keep
 `character-adventure-rules-v1` with Inspect and Search unchanged; nothing is
 migrated. See [issue 110](docs/acceptance/issue-110.md).
+
+New Hollow Beacon adventures start **v14** (`hollow-beacon-story.json`): v13's
+rules with its player-facing text rewritten as plain story after the first
+unfamiliar-player session. Its introduction opens the conversation, and its
+options and journal avoid engine terms. Four generic assessment checks are
+gone. v13 saves continue unchanged. In character adventures, the toolbar's
+**Adventures** opens the character library, **Character sheet** opens the
+current sheet, and click options never offer attacking someone you are not
+already fighting (type it instead). See [issue 95](docs/acceptance/issue-95.md).
 
 ```powershell
 npm.cmd run browser -- --seed 42 --characters .\.scratch\character-player\characters.json --save .\.scratch\character-player\legacy.json
@@ -156,6 +165,9 @@ and delivered interfaces for the increment 8 rewrite are in the
 The full character-mode Hollow Beacon v12 journey with a live AI Dungeon
 Master, its review and the opt-in `scripts/qualify-character-live.mjs` runner
 are in the [issue 94 qualification](docs/acceptance/issue-94.md).
+The unfamiliar-player handoff for Hollow Beacon v14 (player and host sheets,
+named journeys, and the `scripts/qualify-handoff.mjs` clean-checkout browser
+check) is in the [issue 95 qualification](docs/acceptance/issue-95.md).
 Full verification includes real browser/API/storage journeys using pinned
 Playwright: Windows requires installed Microsoft Edge; Linux/macOS require
 `npx playwright install chromium` (on Linux CI, use `--with-deps`). Browser

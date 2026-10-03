@@ -680,6 +680,13 @@ export async function runDmTurn(
       result.modelOutput.ok && result.modelOutput.conversation !== undefined
         ? result.modelOutput.conversation
         : undefined;
+    if (
+      conversation !== undefined &&
+      "authoredOnly" in conversation &&
+      conversation.authoredOnly === true
+    ) {
+      return complete(conversation.authoredReply);
+    }
     if (conversation !== undefined) {
       const allowedClosings =
         "allowedClosings" in conversation

@@ -30,11 +30,11 @@ test(
     try {
       await page.goto(server.url);
       await page.locator("#open-characters").click();
-      await page.locator("#show-create-character").click();
+      await page.locator("#character-name").waitFor({ state: "visible" });
       await page.locator("#character-name").fill("Ada");
       assert.match(
         await page.locator("#preset-scores").innerText(),
-        /strength: 14 \(\+1\)/,
+        /Strength 14 \(\+1\)/,
       );
       assert.match(
         await page.locator("#preset-scores").innerText(),
@@ -86,7 +86,7 @@ test(
         .waitFor();
       assert.match(
         await page.locator("#library-sheet-abilities").innerText(),
-        /strength: 16 \(\+2\)/,
+        /Strength 16 \(\+2\)/,
       );
       await page
         .locator("#library-adventures button")

@@ -9,6 +9,7 @@ import {
   PRESETS,
   ABILITIES,
   abilityModifier,
+  nextLevelXp,
 } from "./character-rules.js";
 import type { ChapelCluesDefinition } from "./adventure-loader.js";
 import {
@@ -139,6 +140,12 @@ async function readPlayerInput(
   return { message: body.message, revision: body.revision };
 }
 
+const nextLevelView = (status: CharacterStatus) => {
+  const next =
+    status.sheet === undefined ? undefined : nextLevelXp(status.sheet.level);
+  return next === undefined ? {} : { nextLevelXp: next };
+};
+
 export type BrowserView = Readonly<
   | {
       slot: "empty";
@@ -166,6 +173,8 @@ export type BrowserView = Readonly<
       title: string;
       introduction: string;
       characterLabel: string;
+      /** XP for the selected character's next level; absent at the top. */
+      nextLevelXp?: number;
       artwork?: BrowserArtwork;
       history: readonly BrowserTurn[];
       strongerHints?:
@@ -230,6 +239,7 @@ function playerView(
     ),
     title: session.runtime.content!.snapshot.title,
     introduction: session.runtime.content!.snapshot.introduction,
+    ...nextLevelView(status),
     characterLabel:
       status.sheet === undefined
         ? "Fighter"

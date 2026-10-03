@@ -76,6 +76,11 @@ export function levelForXp(xp: number): 1 | 2 | 3 {
   return xp >= 2500 ? 3 : xp >= 1000 ? 2 : 1;
 }
 
+/** XP needed for the next level, or undefined at the highest level. */
+export function nextLevelXp(level: 1 | 2 | 3): number | undefined {
+  return level === 1 ? 1000 : level === 2 ? 2500 : undefined;
+}
+
 export function characterProfile(sheet: CharacterSheet) {
   const strength = abilityModifier(sheet.abilities.strength);
   const dexterity = abilityModifier(sheet.abilities.dexterity);

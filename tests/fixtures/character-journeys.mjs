@@ -39,6 +39,15 @@ export function commandCall(command) {
   if (verb === "take") {
     return { name: "take", arguments: { item_id: words[0] } };
   }
+  if (verb === "attack") {
+    return { name: "attack", arguments: { opponent_id: words[0] } };
+  }
+  if (verb === "check") {
+    return { name: "check_ability", arguments: { checkId: words[0] } };
+  }
+  if (verb === "recover") {
+    return { name: "recover", arguments: { target: words[0] } };
+  }
   if (verb === "resolve") {
     return { name: "resolve_quest", arguments: { resolutionId: words[0] } };
   }

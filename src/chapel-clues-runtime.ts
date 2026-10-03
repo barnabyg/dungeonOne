@@ -262,6 +262,8 @@ export type ClueConversation = Readonly<{
   authoredReply: string;
   speakerHistory: readonly string[];
   allowedClosings?: readonly ("none" | "check-carefully")[];
+  /** Show the authored reply as written, without composing one (#95). */
+  authoredOnly?: true;
 }>;
 export type ClueJournal = Readonly<{
   quest: Readonly<{
