@@ -34,7 +34,7 @@ export const BROWSER_HTML = `<!doctype html>
 <div id="context" aria-label="Selected context" hidden><div class="context-heading"><h3 id="context-title" tabindex="-1"></h3><button id="close-context">Close options</button></div><p id="context-description"></p><div id="context-actions"></div></div>
 <h2 id="details-title" hidden>In view</h2><ul id="details"></ul><h2 id="exits-title">Explore</h2><p id="travel-notice" hidden>Travel is unavailable during combat. You can still inspect a route.</p><ul id="exits"><li>Start to explore.</li></ul></div>
 </aside></main>
-<dialog id="new-game-confirmation" aria-labelledby="new-game-title" aria-describedby="new-game-description"><h2 id="new-game-title">Replace this adventure?</h2><p id="new-game-description"></p><div class="controls"><button id="cancel-new-game" autofocus>Cancel</button><button id="confirm-new-game">Replace and start new game</button></div></dialog><dialog id="character-library" aria-labelledby="library-title"><div class="library-header"><h2 id="library-title">Adventures</h2><button id="close-characters" type="button" class="secondary">Close</button></div><p class="library-intro">Choose a character, then start or continue an adventure. Everything is saved as you play.</p><p id="library-feedback" role="status"></p><section class="library-section" aria-labelledby="library-characters-title"><h3 id="library-characters-title">Your characters</h3><div id="library-characters" class="library-list"></div><button id="show-create-character" type="button" class="secondary">Create a new character</button><form id="create-character" class="library-card" hidden><h4>Create a Fighter</h4><label for="character-name">Character name</label><input id="character-name" maxlength="40" required><label for="character-preset">Ability preset</label><p class="library-hint">A preset sets your six ability scores. You can't change them later.</p><select id="character-preset"><option value="balanced">Balanced</option><option value="stout">Stout \u00b7 strength and endurance</option><option value="scout">Scout \u00b7 agility and awareness</option></select><p id="preset-scores"></p><p class="library-hint">A strong ability gives a bonus, shown in brackets, and a weak one a penalty: it is added to or taken from your d20 roll whenever you use that ability. Scores of 13 or more give a bonus, 8 or less a penalty; 9 to 12 are average and give neither.</p><div class="controls"><button id="save-character" type="submit" disabled>Save character</button><button id="cancel-create-character" type="button" class="secondary">Cancel</button></div></form></section><section id="library-sheet" class="library-card" hidden aria-labelledby="library-sheet-name"><h3 id="library-sheet-name"></h3><p id="library-sheet-details"></p><p id="library-sheet-abilities"></p><p class="library-hint">A strong ability gives a bonus, shown in brackets, and a weak one a penalty: it is added to or taken from your d20 roll whenever you use that ability. Scores of 13 or more give a bonus, 8 or less a penalty; 9 to 12 are average and give neither.</p><h4 id="library-adventures-title">Adventures for this character</h4><div id="library-adventures"></div></section><section class="library-section" aria-labelledby="library-sessions-title"><h3 id="library-sessions-title">Saved adventures</h3><div id="library-sessions" class="library-list"></div></section></dialog></body></html>`;
+<dialog id="new-game-confirmation" aria-labelledby="new-game-title" aria-describedby="new-game-description"><h2 id="new-game-title">Replace this adventure?</h2><p id="new-game-description"></p><div class="controls"><button id="cancel-new-game" autofocus>Cancel</button><button id="confirm-new-game">Replace and start new game</button></div></dialog><dialog id="character-library" aria-labelledby="library-title"><div class="library-header"><h2 id="library-title">Adventures</h2><button id="close-characters" type="button" class="secondary">Close</button></div><p class="library-intro">Choose a character, then start or continue an adventure. Everything is saved as you play.</p><p id="library-feedback" role="status"></p><section class="library-section" aria-labelledby="library-characters-title"><h3 id="library-characters-title">Your characters</h3><div id="library-characters" class="library-list"></div><button id="show-create-character" type="button" class="secondary">Create a new character</button><form id="create-character" class="library-card" hidden><h4>Create a Fighter</h4><label for="character-name">Character name</label><input id="character-name" maxlength="40" required><label for="character-preset">Ability scores</label><p class="library-hint">Choose a preset or roll your six ability scores. You can't change them later.</p><select id="character-preset"><option value="balanced">Balanced</option><option value="stout">Stout \u00b7 strength and endurance</option><option value="scout">Scout \u00b7 agility and awareness</option><option value="roll">Roll abilities (3d6 in order)</option></select><p id="preset-scores"></p><button id="roll-abilities" type="button" class="secondary" hidden>Roll 3d6 for every ability</button><p class="library-hint">A strong ability gives a bonus, shown in brackets, and a weak one a penalty: it is added to or taken from your d20 roll whenever you use that ability. Scores of 13 or more give a bonus, 8 or less a penalty; 9 to 12 are average and give neither.</p><div class="controls"><button id="save-character" type="submit" disabled>Save character</button><button id="cancel-create-character" type="button" class="secondary">Cancel</button></div></form></section><section id="library-sheet" class="library-card" hidden aria-labelledby="library-sheet-name"><h3 id="library-sheet-name"></h3><p id="library-sheet-details"></p><p id="library-sheet-abilities"></p><p class="library-hint">A strong ability gives a bonus, shown in brackets, and a weak one a penalty: it is added to or taken from your d20 roll whenever you use that ability. Scores of 13 or more give a bonus, 8 or less a penalty; 9 to 12 are average and give neither.</p><h4 id="library-adventures-title">Adventures for this character</h4><div id="library-adventures"></div></section><section class="library-section" aria-labelledby="library-sessions-title"><h3 id="library-sessions-title">Saved adventures</h3><div id="library-sessions" class="library-list"></div></section></dialog></body></html>`;
 
 export const BROWSER_CSS = `:root{color-scheme:light;font-family:Georgia,serif;color:#292b27;background:#151f23;font-size:17px;line-height:1.55;--ink:#263d3d;--gold:#d5b474;--line:#d4c9b5;--paper:#f7f0e1}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#304043,#151f23 75%);min-height:100dvh}h1,h2,h3,p{margin:0 0 12px}h1{font-size:1.4rem;line-height:1.1}h2{font-size:1.45rem;line-height:1.2}h3{font-size:1.05rem}button,summary,dt,.eyebrow,.story-heading,#feedback,#message-help{font-family:system-ui,sans-serif}button,summary{font-size:.8rem}button{border:1px solid var(--ink);background:var(--ink);color:#fff9e9;padding:10px 14px;border-radius:6px;cursor:pointer;line-height:1.4}button:hover{background:#3a5451}button:disabled{opacity:.55;cursor:default}button.danger{background:#fff4e9;color:#883c2d;border-color:#b57561}button.danger:hover{background:#f5ded1}button.secondary{background:transparent;color:var(--ink);border-color:var(--line)}button.secondary:hover{background:#e8dec9}:focus-visible{outline:3px solid #bb762c;outline-offset:3px}[hidden]{display:none!important}.skip{position:absolute;top:-100px;left:12px;background:var(--paper);padding:10px;z-index:20}.skip:focus{top:12px}
@@ -691,16 +691,32 @@ const SESSION_STATUS = { playing: "In progress · continue", victory: "Finished 
 function abilityLine(abilities, modifiers) {
   return Object.entries(abilities).map(([ability, score]) => ability.charAt(0).toUpperCase() + ability.slice(1) + " " + score + modifierText(modifiers[ability])).join(" · ");
 }
+const ROLL_RULE = "The game rolls three d6 for each ability in order. You may reroll the whole set as often as you like, but not a single ability. A Fighter needs Strength 9, Dexterity 9 and Constitution 7 or more.";
+function rolledLine(rolls) {
+  return Object.entries(rolls).map(([ability, dice]) => ability.charAt(0).toUpperCase() + ability.slice(1) + " " + dice.join("+")).join(" · ");
+}
 function presetScores() {
   if (!libraryData) { return; }
   const preset = element("character-preset").value;
+  const rollButton = element("roll-abilities");
+  rollButton.hidden = preset !== "roll";
+  if (preset === "roll") {
+    const roll = libraryData.pendingRoll;
+    rollButton.textContent = roll ? "Reroll all abilities" : "Roll 3d6 for every ability";
+    rollButton.disabled = libraryBusy;
+    if (!roll) { libraryText("preset-scores", ROLL_RULE); }
+    else if (!roll.meetsMinimums) { libraryText("preset-scores", "Rolled " + rolledLine(roll.rolls) + "\\n" + abilityLine(roll.abilities, roll.modifiers) + "\\nBelow the Fighter minimums (Strength 9, Dexterity 9, Constitution 7). Reroll all abilities to try again."); }
+    else { libraryText("preset-scores", "Rolled " + rolledLine(roll.rolls) + "\\nFighter level 1 · XP 0 · HP " + roll.profile.maxHp + "/" + roll.profile.maxHp + "\\n" + abilityLine(roll.abilities, roll.modifiers) + "\\n" + fighterCapabilities(roll.profile)); }
+    updateSaveCharacter();
+    return;
+  }
   const preview = libraryData.presetProfiles[preset];
   libraryText("preset-scores", "Fighter level 1 · XP 0 · HP " + preview.profile.maxHp + "/" + preview.profile.maxHp + "\\n" + abilityLine(libraryData.presets[preset], preview.modifiers) + "\\n" + fighterCapabilities(preview.profile));
 }
 function fighterCapabilities(profile) {
   return "Chain mail, shield, longsword · AC " + profile.armorClass + " · Attack +" + profile.attackBonus + " · Damage 1d8 " + (profile.damage.modifier >= 0 ? "+" : "") + profile.damage.modifier + " · Initiative " + (profile.initiativeBonus >= 0 ? "+" : "") + profile.initiativeBonus;
 }
-function updateSaveCharacter() { element("save-character").disabled = libraryBusy || !element("character-name").value.trim(); }
+function updateSaveCharacter() { element("save-character").disabled = libraryBusy || !element("character-name").value.trim() || (element("character-preset").value === "roll" && !libraryData?.pendingRoll?.meetsMinimums); }
 function renderLibrary() {
   const list = element("library-characters"); list.replaceChildren();
   if (!libraryData.characters.length) { const empty = document.createElement("p"); empty.className = "library-empty"; empty.textContent = "No characters yet. Create one to begin."; list.append(empty); }
@@ -716,7 +732,7 @@ function renderLibrary() {
   if (record) {
     libraryText("library-sheet-name", record.sheet.name + " · Fighter level " + record.sheet.level);
     libraryText("library-sheet-details", "HP " + record.sheet.hp + "/" + record.profile.maxHp + " · XP " + record.sheet.xp + " · " + (AVAILABILITY[record.availability] || record.availability) + "\\n" + fighterCapabilities(record.profile));
-    libraryText("library-sheet-abilities", abilityLine(record.sheet.abilities, record.modifiers));
+    libraryText("library-sheet-abilities", abilityLine(record.sheet.abilities, record.modifiers) + (record.sheet.abilityRolls ? "\\nRolled 3d6 in order: " + rolledLine(record.sheet.abilityRolls) : ""));
     const note = (value) => { const paragraph = document.createElement("p"); paragraph.textContent = value; adventures.append(paragraph); };
     if (record.availability === "active") {
       note("This character is on an adventure. Continue it, or abandon it to start another.");
@@ -779,6 +795,11 @@ element("show-create-character").addEventListener("click", showCreateCharacter);
 element("character-name").addEventListener("input", updateSaveCharacter);
 element("cancel-create-character").addEventListener("click", hideCreateCharacter);
 element("character-preset").addEventListener("change", presetScores);
-element("create-character").addEventListener("submit", (event) => { event.preventDefault(); void libraryAction("create", { name: element("character-name").value, preset: element("character-preset").value }); });
+element("roll-abilities").addEventListener("click", () => { libraryText("library-feedback", ""); void libraryAction("roll", {}); });
+element("create-character").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const preset = element("character-preset").value;
+  void libraryAction("create", preset === "roll" ? { name: element("character-name").value, rollId: libraryData.pendingRoll?.id } : { name: element("character-name").value, preset });
+});
 element("close-characters").addEventListener("click", () => { if (!libraryBusy) { element("character-library").close(); } });
 void read();`;

@@ -20,6 +20,7 @@ import {
   abilityModifier,
   advanceCharacter,
   characterProfile,
+  playsFighterRules,
   validateCharacter,
   type CharacterSheet,
 } from "./character-rules.js";
@@ -66,7 +67,7 @@ export function createCharacterRuntime(
   const definition = content.snapshot as ChapelCluesDefinition;
   const support = definition.characterAdventure!;
   if (
-    support.rulesVersion !== sheet.rulesVersion ||
+    !playsFighterRules(support.rulesVersion, sheet.rulesVersion) ||
     !support.classes.includes(sheet.class) ||
     sheet.level < 1 ||
     sheet.level > 3 ||

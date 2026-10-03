@@ -23,6 +23,8 @@ default, and **The Stolen Signet**) and earlier handoffs such as
 library, character creation and selection before adventure selection, full sheets
 with six ability scores, and Fighter levels 1–3. The browser defaults to this mode.
 Hollow Beacon recommends levels 1–2; Stonebridge recommends levels 2–3.
+A new Fighter takes one of three ability presets or rolls 3d6 in order for
+every ability; a roll can only be replaced by rerolling the whole set (#118).
 Characters retain identity and earned XP across adventures; each game preserves
 its frozen starting sheet for accurate continuation and review.
 

@@ -5,6 +5,7 @@ import { loadAdventure } from "../dist/adventure-loader.js";
 import { createDataRuntime } from "../dist/data-runtime.js";
 import {
   createCharacter,
+  createRolledCharacter,
   advanceCharacter,
   characterProfile,
 } from "../dist/character-rules.js";
@@ -14,7 +15,7 @@ import {
   stonebridgePeaceful,
 } from "./fixtures/character-journeys.mjs";
 
-for (const [file, levels, entry, opponent, peaceful] of [
+const MODULES = [
   [
     "hollow-beacon-characters",
     [1, 2],
@@ -29,72 +30,84 @@ for (const [file, levels, entry, opponent, peaceful] of [
     "toll-raider",
     stonebridgePeaceful,
   ],
-]) {
+];
+
+/** Fights the basic opponent and walks the peaceful route on 64 seeds;
+ * returns how many seeds the character survives the fight. */
+function qualify(loaded, [file, , entry, opponent, peaceful], base, level) {
+  let surviving = 0;
+  for (let seed = 0; seed < 64; seed++) {
+    const sheet = advanceCharacter(
+      base,
+      level === 1 ? 0 : level === 2 ? 1000 : 2500,
+      base.hp,
+    );
+    sheet.hp = characterProfile(sheet).maxHp;
+    const runtime = createDataRuntime(loaded.adventure, sheet);
+    const random = createSeededRandom(seed);
+    let state = runtime.createSession();
+    const apply = (command) => {
+      const result = runtime.handleAction(
+        state,
+        runtime.parseCommand(command),
+        random,
+      );
+      assert.equal(
+        result.rejection,
+        undefined,
+        command + JSON.stringify(result.rejection),
+      );
+      state = result.state;
+    };
+    apply("move " + entry);
+    for (
+      let turn = 0;
+      turn < 100 && state.status === "playing" && state.combat !== undefined;
+      turn++
+    ) {
+      apply("attack " + opponent);
+    }
+    if (state.status === "playing") {
+      assert.equal(state.combat, undefined);
+      surviving++;
+    } else {
+      assert.equal(state.status, "defeat");
+      assert.equal(state.fighter.hp, 0);
+    }
+    // A failed optional check must leave the entire peaceful route intact.
+    state = runtime.createSession();
+    const check =
+      file === "hollow-beacon-characters" ? "read-beacon" : undefined;
+    if (check) {
+      state = runtime.handleAction(
+        state,
+        runtime.parseCommand("check " + check),
+        { roll: () => 1 },
+      ).state;
+      assert.equal(state.abilityChecks[check].result, "failure");
+    }
+    for (const command of peaceful) {
+      apply(command);
+    }
+    assert.equal(state.status, "victory");
+    assert.equal(state.fighter.hp, sheet.hp);
+  }
+  return surviving;
+}
+
+for (const module of MODULES) {
+  const [file, levels] = module;
   test(`${file}: recommended bounds and all presets qualify across 64 seeds`, async () => {
     const loaded = loadAdventure(await readFile(`adventures/${file}.json`));
     assert.equal(loaded.ok, true);
     for (const level of levels) {
       for (const preset of ["balanced", "stout", "scout"]) {
-        let surviving = 0;
-        for (let seed = 0; seed < 64; seed++) {
-          const base = createCharacter("Sample", preset);
-          const sheet = advanceCharacter(
-            base,
-            level === 1 ? 0 : level === 2 ? 1000 : 2500,
-            base.hp,
-          );
-          sheet.hp = characterProfile(sheet).maxHp;
-          const runtime = createDataRuntime(loaded.adventure, sheet);
-          const random = createSeededRandom(seed);
-          let state = runtime.createSession();
-          const apply = (command) => {
-            const result = runtime.handleAction(
-              state,
-              runtime.parseCommand(command),
-              random,
-            );
-            assert.equal(
-              result.rejection,
-              undefined,
-              command + JSON.stringify(result.rejection),
-            );
-            state = result.state;
-          };
-          apply("move " + entry);
-          for (
-            let turn = 0;
-            turn < 100 &&
-            state.status === "playing" &&
-            state.combat !== undefined;
-            turn++
-          ) {
-            apply("attack " + opponent);
-          }
-          if (state.status === "playing") {
-            assert.equal(state.combat, undefined);
-            surviving++;
-          } else {
-            assert.equal(state.status, "defeat");
-            assert.equal(state.fighter.hp, 0);
-          }
-          // A failed optional check must leave the entire peaceful route intact.
-          state = runtime.createSession();
-          const check =
-            file === "hollow-beacon-characters" ? "read-beacon" : undefined;
-          if (check) {
-            state = runtime.handleAction(
-              state,
-              runtime.parseCommand("check " + check),
-              { roll: () => 1 },
-            ).state;
-            assert.equal(state.abilityChecks[check].result, "failure");
-          }
-          for (const command of peaceful) {
-            apply(command);
-          }
-          assert.equal(state.status, "victory");
-          assert.equal(state.fighter.hp, sheet.hp);
-        }
+        const surviving = qualify(
+          loaded,
+          module,
+          createCharacter("Sample", preset),
+          level,
+        );
         assert.ok(
           surviving >= 51,
           `${file} ${preset} level ${level}: ${surviving}/64 survival must remain at least 80% on the basic fight`,
@@ -102,4 +115,77 @@ for (const [file, levels, entry, opponent, peaceful] of [
       }
     }
   });
+
+  // Combat uses only the Strength, Dexterity and Constitution modifiers, so one
+  // score per modifier band covers every roll the Fighter minimums allow. The
+  // other abilities sit at 3, the lowest roll, for the peaceful route (#118).
+  test(`${file}: every rolled Fighter meeting the minimums qualifies across 64 seeds`, async () => {
+    const loaded = loadAdventure(await readFile(`adventures/${file}.json`));
+    assert.equal(loaded.ok, true);
+    const dice = {
+      3: [1, 1, 1],
+      7: [1, 3, 3],
+      9: [3, 3, 3],
+      13: [4, 4, 5],
+      16: [5, 5, 6],
+      18: [6, 6, 6],
+    };
+    for (const level of levels) {
+      for (const strength of [9, 13, 16, 18]) {
+        for (const dexterity of [9, 13, 16, 18]) {
+          for (const constitution of [7, 9, 13, 16, 18]) {
+            const base = createRolledCharacter("Sample", {
+              strength: dice[strength],
+              dexterity: dice[dexterity],
+              constitution: dice[constitution],
+              intelligence: dice[3],
+              wisdom: dice[3],
+              charisma: dice[3],
+            });
+            const surviving = qualify(loaded, module, base, level);
+            assert.ok(
+              surviving >= 51,
+              `${file} rolled STR ${strength} DEX ${dexterity} CON ${constitution} level ${level}: ${surviving}/64 survival must remain at least 80% on the basic fight`,
+            );
+          }
+        }
+      }
+    }
+  });
 }
+
+// The minimums are needed: one Strength or Dexterity band lower, or the lowest
+// Constitution, fails the level 1 fight. Version 1 sheets accept any scores and
+// share version 2 play rules, so they stand in for the refused rolls (#118).
+test("hollow-beacon-characters: rolls below the Fighter minimums fail level 1", async () => {
+  const loaded = loadAdventure(
+    await readFile("adventures/hollow-beacon-characters.json"),
+  );
+  for (const [strength, dexterity, constitution] of [
+    [8, 9, 7],
+    [9, 8, 7],
+    [9, 9, 3],
+  ]) {
+    const base = {
+      ...createCharacter("Sample", "balanced", "0".repeat(32)),
+      abilities: {
+        strength,
+        dexterity,
+        constitution,
+        intelligence: 3,
+        wisdom: 3,
+        charisma: 3,
+      },
+    };
+    const surviving = qualify(
+      loaded,
+      MODULES[0],
+      { ...base, hp: characterProfile(base).maxHp },
+      1,
+    );
+    assert.ok(
+      surviving < 51,
+      `STR ${strength} DEX ${dexterity} CON ${constitution}: ${surviving}/64`,
+    );
+  }
+});

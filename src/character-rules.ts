@@ -1,6 +1,12 @@
 import { randomBytes } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
+import type { RandomSource } from "./random.js";
 
 export const CHARACTER_RULES = "fighter-rules-v1";
+/** Version 2 adds 3d6-in-order abilities; play rules are unchanged (#118). */
+export const ROLLED_CHARACTER_RULES = "fighter-rules-v2";
+export type FighterRules =
+  typeof CHARACTER_RULES | typeof ROLLED_CHARACTER_RULES;
 export const ABILITIES = [
   "strength",
   "dexterity",
@@ -11,6 +17,15 @@ export const ABILITIES = [
 ] as const;
 export type Ability = (typeof ABILITIES)[number];
 export type Abilities = Readonly<Record<Ability, number>>;
+export type AbilityRolls = Readonly<
+  Record<Ability, readonly [number, number, number]>
+>;
+/** A rolled set below these scores cannot make a Fighter (#118). */
+export const FIGHTER_MINIMUMS: Readonly<Partial<Record<Ability, number>>> = {
+  strength: 9,
+  dexterity: 9,
+  constitution: 7,
+};
 export const PRESETS: Readonly<Record<string, Abilities>> = {
   balanced: {
     strength: 14,
@@ -41,8 +56,10 @@ export type CharacterSheet = Readonly<{
   id: string;
   name: string;
   class: "Fighter";
-  rulesVersion: typeof CHARACTER_RULES;
+  rulesVersion: FighterRules;
   abilities: Abilities;
+  /** The recorded 3d6 for each ability; present only under version 2. */
+  abilityRolls?: AbilityRolls;
   level: 1 | 2 | 3;
   xp: number;
   hp: number;
@@ -81,7 +98,75 @@ export function nextLevelXp(level: 1 | 2 | 3): number | undefined {
   return level === 1 ? 1000 : level === 2 ? 2500 : undefined;
 }
 
-export function characterProfile(sheet: CharacterSheet) {
+/** Modules declaring version 1 accept version 2, whose play rules match. */
+export function playsFighterRules(
+  moduleRules: string,
+  sheetRules: FighterRules,
+): boolean {
+  return (
+    moduleRules === CHARACTER_RULES &&
+    (sheetRules === CHARACTER_RULES || sheetRules === ROLLED_CHARACTER_RULES)
+  );
+}
+
+/** Rolls 3d6 for each ability in order: Strength first, Charisma last. */
+export function rollAbilities(random: RandomSource): AbilityRolls {
+  const rolls: Partial<Record<Ability, readonly [number, number, number]>> = {};
+  for (const ability of ABILITIES) {
+    rolls[ability] = [random.roll(6), random.roll(6), random.roll(6)];
+  }
+  return rolls as AbilityRolls;
+}
+
+/** Each ability score is the sum of its three recorded dice. */
+export function rolledAbilities(rolls: AbilityRolls): Abilities {
+  return Object.fromEntries(
+    ABILITIES.map((ability) => [
+      ability,
+      rolls[ability][0] + rolls[ability][1] + rolls[ability][2],
+    ]),
+  ) as Abilities;
+}
+
+/** Whether a set of scores can make a Fighter under version 2. */
+export function meetsFighterMinimums(abilities: Abilities): boolean {
+  return ABILITIES.every(
+    (ability) => abilities[ability] >= (FIGHTER_MINIMUMS[ability] ?? 0),
+  );
+}
+
+function validateAbilityRolls(sheet: CharacterSheet): void {
+  if (sheet.rulesVersion === CHARACTER_RULES) {
+    if ("abilityRolls" in sheet) {
+      throw new Error("Version 1 sheets have no ability rolls.");
+    }
+    return;
+  }
+  const rolls = sheet.abilityRolls;
+  if (
+    rolls === null ||
+    typeof rolls !== "object" ||
+    Object.keys(rolls).length !== 6 ||
+    ABILITIES.some(
+      (ability) =>
+        !Array.isArray(rolls[ability]) ||
+        rolls[ability].length !== 3 ||
+        rolls[ability].some(
+          (die) => !Number.isInteger(die) || die < 1 || die > 6,
+        ),
+    ) ||
+    !isDeepStrictEqual(rolledAbilities(rolls), { ...sheet.abilities })
+  ) {
+    throw new Error("Invalid ability rolls.");
+  }
+  if (!meetsFighterMinimums(sheet.abilities)) {
+    throw new Error("Ability scores are below the Fighter minimums.");
+  }
+}
+
+export function characterProfile(
+  sheet: Pick<CharacterSheet, "abilities" | "level">,
+) {
   const strength = abilityModifier(sheet.abilities.strength);
   const dexterity = abilityModifier(sheet.abilities.dexterity);
   const constitution = abilityModifier(sheet.abilities.constitution);
@@ -115,7 +200,10 @@ export function validateCharacter(value: unknown): CharacterSheet {
   if (sheet.class !== "Fighter") {
     throw new Error("Unsupported character class.");
   }
-  if (sheet.rulesVersion !== CHARACTER_RULES) {
+  if (
+    sheet.rulesVersion !== CHARACTER_RULES &&
+    sheet.rulesVersion !== ROLLED_CHARACTER_RULES
+  ) {
     throw new Error("Unsupported character rules.");
   }
   if (
@@ -128,6 +216,7 @@ export function validateCharacter(value: unknown): CharacterSheet {
   for (const ability of ABILITIES) {
     abilityModifier(sheet.abilities[ability]);
   }
+  validateAbilityRolls(sheet);
   if (sheet.level !== levelForXp(sheet.xp)) {
     throw new Error("Character level differs from experience points.");
   }
@@ -166,12 +255,39 @@ export function createCharacter(
   if (abilities === undefined) {
     throw new Error("Choose a supported ability preset.");
   }
+  return newFighter(id, name, { rulesVersion: CHARACTER_RULES, abilities });
+}
+
+/** A level 1 Fighter from engine-rolled 3d6 in order (fighter-rules-v2). */
+export function createRolledCharacter(
+  name: string,
+  rolls: AbilityRolls,
+  id = randomBytes(16).toString("hex"),
+): CharacterSheet {
+  const abilities = rolledAbilities(rolls);
+  if (!meetsFighterMinimums(abilities)) {
+    throw new Error(
+      "This roll is below the Fighter minimums (Strength 9, Dexterity 9, Constitution 7); reroll before saving a character.",
+    );
+  }
+  return newFighter(id, name, {
+    rulesVersion: ROLLED_CHARACTER_RULES,
+    abilities,
+    abilityRolls: rolls,
+  });
+}
+
+/** A level 1 Fighter at full health; key order matches released sheets. */
+function newFighter(
+  id: string,
+  name: string,
+  scores: Pick<CharacterSheet, "rulesVersion" | "abilities" | "abilityRolls">,
+): CharacterSheet {
   const base: CharacterSheet = {
     id,
     name: name.trim(),
     class: "Fighter",
-    rulesVersion: CHARACTER_RULES,
-    abilities,
+    ...scores,
     level: 1,
     xp: 0,
     hp: 1,

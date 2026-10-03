@@ -4,7 +4,9 @@ import { mkdir, readFile, rename, unlink, open } from "node:fs/promises";
 import { dirname } from "node:path";
 import {
   createCharacter,
+  createRolledCharacter,
   validateCharacter,
+  type AbilityRolls,
   type CharacterSheet,
 } from "./character-rules.js";
 import { parseBoundedJson } from "./bounded-json.js";
@@ -239,8 +241,24 @@ export class CharacterLibrary {
     }
   }
 
-  create(name: string, preset: string, revision: string): Promise<LibraryData> {
-    const sheet = createCharacter(name, preset);
+  async create(
+    name: string,
+    preset: string,
+    revision: string,
+  ): Promise<LibraryData> {
+    return this.add(createCharacter(name, preset), revision);
+  }
+
+  /** Saves a fighter-rules-v2 character from engine-rolled abilities. */
+  async createRolled(
+    name: string,
+    rolls: AbilityRolls,
+    revision: string,
+  ): Promise<LibraryData> {
+    return this.add(createRolledCharacter(name, rolls), revision);
+  }
+
+  private add(sheet: CharacterSheet, revision: string): Promise<LibraryData> {
     return this.update(revision, (data) => {
       if (data.characters.length >= 1000) {
         throw new Error("Character library is full.");
