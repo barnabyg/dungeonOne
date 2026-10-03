@@ -178,6 +178,14 @@ an unexpected or second mutation, and no reply claimed XP, a level or a rescue.
 5. **Deliberately narrow phrasing.** `take` requires take, grab, collect or
    pick up in the player's own words (“Pocket the component” is refused with
    an honest rejection), and optional checks require the offered wording.
+6. **Inspect and Search read as the same thing (owner playtest).** The project
+   owner played the journey in the browser on 3 October 2026. They inspected
+   the setting plate without searching it, so Vey's proof option never
+   appeared, and they restarted rather than take the long detour back after
+   the Ridge Trail closed. They then completed the journey. Their feedback: the
+   two options "always feel like the same thing" and the two-step process is
+   easy to miss. Agreed direction: one **Examine** action that performs an
+   available search, in a new versioned release (#110).
 
 ## Traces and compatibility
 
