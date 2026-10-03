@@ -465,10 +465,15 @@ export async function startBrowserServer(options: BrowserOptions) {
         // Absent for characters made before they could carry treasure.
         ...(carriesTreasure(record.sheet)
           ? {
-              treasure: describeTreasure(
-                record.sheet.inventory.silver,
-                record.sheet.inventory.items,
-              ),
+              treasure: {
+                empty:
+                  record.sheet.inventory.silver === 0 &&
+                  record.sheet.inventory.items.length === 0,
+                text: describeTreasure(
+                  record.sheet.inventory.silver,
+                  record.sheet.inventory.items,
+                ),
+              },
             }
           : {}),
       })),

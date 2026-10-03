@@ -724,7 +724,7 @@ function renderLibrary() {
   // With characters saved, one is always selected so its adventures show.
   if (!libraryData.characters.some((entry) => entry.sheet.id === selectedCharacter)) { selectedCharacter = (libraryData.characters.find((entry) => entry.availability === "active") || libraryData.characters[0])?.sheet.id; }
   for (const record of libraryData.characters) {
-    const button = libraryButton(list, record.sheet.name, () => { selectedCharacter = record.sheet.id; renderLibrary(); }, "Fighter level " + record.sheet.level + " · XP " + record.sheet.xp + (record.treasure && record.treasure !== "nothing" ? " · " + record.treasure : "") + " · " + (AVAILABILITY[record.availability] || record.availability));
+    const button = libraryButton(list, record.sheet.name, () => { selectedCharacter = record.sheet.id; renderLibrary(); }, "Fighter level " + record.sheet.level + " · XP " + record.sheet.xp + (record.treasure && !record.treasure.empty ? " · " + record.treasure.text : "") + " · " + (AVAILABILITY[record.availability] || record.availability));
     button.setAttribute("aria-pressed", String(record.sheet.id === selectedCharacter));
   }
   const record = libraryData.characters.find((entry) => entry.sheet.id === selectedCharacter);
@@ -734,7 +734,7 @@ function renderLibrary() {
     libraryText("library-sheet-name", record.sheet.name + " · Fighter level " + record.sheet.level);
     libraryText("library-sheet-details", "HP " + record.sheet.hp + "/" + record.profile.maxHp + " · XP " + record.sheet.xp + " · " + (AVAILABILITY[record.availability] || record.availability) + "\\n" + fighterCapabilities(record.profile));
     libraryText("library-sheet-abilities", abilityLine(record.sheet.abilities, record.modifiers) + (record.sheet.abilityRolls ? "\\nRolled 3d6 in order: " + rolledLine(record.sheet.abilityRolls) : ""));
-    libraryText("library-sheet-treasure", record.treasure === undefined ? "Treasure: none. This character was made before characters could carry treasure." : "Treasure: " + (record.treasure === "nothing" ? "nothing yet" : record.treasure));
+    libraryText("library-sheet-treasure", record.treasure === undefined ? "Treasure: none. This character was made before characters could carry treasure." : "Treasure: " + (record.treasure.empty ? "nothing yet" : record.treasure.text));
     const note = (value) => { const paragraph = document.createElement("p"); paragraph.textContent = value; adventures.append(paragraph); };
     if (record.availability === "active") {
       note("This character is on an adventure. Continue it, or abandon it to start another.");
