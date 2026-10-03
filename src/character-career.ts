@@ -12,7 +12,7 @@ import {
   loadAdventure,
   type ChapelCluesDefinition,
 } from "./adventure-loader.js";
-import { characterAdventures } from "./adventure-registry.js";
+import { startableCharacterAdventures } from "./browser-releases.js";
 import { SaveSession } from "./save.js";
 import { acquireFileLock } from "./file-lock.js";
 import { characterProfile, validateCharacter } from "./character-rules.js";
@@ -76,7 +76,7 @@ export class CharacterCareer {
     seed: number,
     confirmed: boolean,
   ): Promise<string> {
-    const content = (await characterAdventures()).find(
+    const content = (await startableCharacterAdventures()).find(
       ({ snapshot }) => snapshot.id === adventureId,
     );
     if (content === undefined) {

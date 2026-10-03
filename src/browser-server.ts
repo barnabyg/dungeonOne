@@ -3,7 +3,6 @@ import {
   matchesCareerSession,
   hasActiveCharacter,
 } from "./character-career.js";
-import { characterAdventures } from "./adventure-registry.js";
 import {
   characterProfile,
   createCharacter,
@@ -50,8 +49,8 @@ import {
 import { SaveSession } from "./save.js";
 import {
   browserReleasePolicy,
+  startableCharacterAdventures,
   type BrowserReleasePolicy,
-  type BrowserReleaseVersion,
 } from "./browser-releases.js";
 import { BROWSER_HTML, BROWSER_CSS, BROWSER_SCRIPT } from "./browser-page.js";
 import {
@@ -71,8 +70,9 @@ import {
 } from "./browser-hints.js";
 
 export type BrowserOptions = Readonly<{
-  /** Release for new slots; occupied slots follow the release policy. */
-  contentVersion?: BrowserReleaseVersion;
+  /** Hollow Beacon version for new `--legacy` slots (a listed single-slot
+   * release); occupied saves follow the release policy. */
+  contentVersion?: string;
   libraryPath?: string;
   savePath: string;
   seed: number;
@@ -412,11 +412,13 @@ export async function startBrowserServer(options: BrowserOptions) {
         title: entry.content.title,
         status: entry.status,
       })),
-      adventures: (await characterAdventures()).map(({ snapshot }) => ({
-        id: snapshot.id,
-        title: snapshot.title,
-        ...(snapshot as ChapelCluesDefinition).characterAdventure,
-      })),
+      adventures: (await startableCharacterAdventures()).map(
+        ({ snapshot }) => ({
+          id: snapshot.id,
+          title: snapshot.title,
+          ...(snapshot as ChapelCluesDefinition).characterAdventure,
+        }),
+      ),
     };
   };
   const artwork =
@@ -821,6 +823,12 @@ export async function startBrowserServer(options: BrowserOptions) {
                 body.confirmed,
               );
               clearHintJobs();
+              // Like a single-slot start, the opening saves its baseline hints.
+              const session = await SaveSession.load(savePath);
+              scheduleHints(session);
+              if (options.hintPreparer === undefined) {
+                await session.saveBrowserHints(session.browserHints);
+              }
             } else if (request.url === "/api/characters/rest") {
               if (
                 Object.keys(body).length !== 2 ||

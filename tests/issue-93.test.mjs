@@ -15,9 +15,12 @@ import {
   BROWSER_START_VERSION,
 } from "../dist/browser-releases.js";
 import { SaveSession } from "../dist/save.js";
+import { beaconPeaceful, commandCall } from "./fixtures/character-journeys.mjs";
 
 const adventure = (name) =>
   fileURLToPath(new URL(`../adventures/${name}`, import.meta.url));
+const fixture = (name) =>
+  fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url));
 
 async function runtimeFor(name, edit) {
   if (edit === undefined) {
@@ -49,6 +52,23 @@ const post = async (server, path, body) => {
   });
   return { status: response.status, body: await response.json() };
 };
+const state = async (server) => (await fetch(`${server.url}/api/state`)).json();
+// Hint preparation finishes asynchronously after a start or turn.
+async function settled(server) {
+  for (const deadline = Date.now() + 3000; Date.now() < deadline;) {
+    const view = await state(server);
+    if (view.slot !== "occupied" || view.hints.status !== "preparing") {
+      return view;
+    }
+    await new Promise((resolve) => {
+      setTimeout(resolve, 20);
+    });
+  }
+  throw new Error("Hints stayed in preparation.");
+}
+const library = async (server) =>
+  (await fetch(`${server.url}/api/characters`)).json();
+
 // Startup must refuse the slot; a server that starts anyway is closed so a
 // failure cannot leave the test process waiting on a listening socket.
 async function rejectsStart(options, pattern, label) {
@@ -68,83 +88,159 @@ const canon = async (path) => {
   );
   return { checkpoint, transitions, content };
 };
-const state = async (server) => (await fetch(`${server.url}/api/state`)).json();
 
-// Scripted provider: each offered option is sent as its own message, and the
-// model requests exactly that option's tool call. Calls are counted.
+// Scripted in-process provider for the --legacy compatibility checks.
 function optionModel() {
-  const intents = new Map();
   const model = {
     calls: 0,
-    intents,
     async respond(request) {
       model.calls++;
-      if (request.toolResults.length) {
-        return { text: "The engine result stands." };
-      }
-      const call = intents.get(request.playerInput);
-      return call
-        ? { toolCalls: [{ id: "intent", ...call }] }
+      return request.toolResults.length
+        ? { text: "The engine result stands." }
         : { text: "Which visible action do you mean?" };
     },
   };
   return model;
 }
 
-async function choose(server, model, name, argument) {
-  const view = await state(server);
-  const offer = view.actions.find(
-    (option) =>
-      option.call.name === name &&
-      Object.values(JSON.parse(option.call.argumentsJson)).includes(argument),
+/**
+ * Starts the shipped server in its own process (see the fixture). kill() ends
+ * the process without cleanup; calls() counts provider calls in this process.
+ */
+async function launchServer(savePath, seed, libraryPath) {
+  const child = fork(
+    fixture("issue-93-server.mjs"),
+    [savePath, String(seed), ...(libraryPath ? [libraryPath] : [])],
+    { stdio: ["ignore", "pipe", "pipe", "ipc"] },
   );
-  assert.ok(offer, `${name} ${argument}`);
-  model.intents.set(offer.message, offer.call);
+  let output = "";
+  child.stdout.on("data", (chunk) => {
+    output += chunk;
+  });
+  child.stderr.on("data", (chunk) => {
+    output += chunk;
+  });
+  const url = await new Promise((resolve, reject) => {
+    child.once("message", (message) => resolve(message.url));
+    child.once("exit", () => reject(new Error(output)));
+  });
+  return {
+    url,
+    calls: () => output.split("provider-call\n").length - 1,
+    async kill() {
+      if (child.exitCode !== null || child.signalCode !== null) {
+        return;
+      }
+      const exited = new Promise((resolve) => {
+        child.once("exit", resolve);
+      });
+      child.kill();
+      await exited;
+    },
+  };
+}
+
+/** Creates a Fighter and starts the named adventure for it. */
+async function startCharacterAdventure(server, adventureId = "hollow-beacon") {
+  let data = await library(server);
+  const created = await post(server, "/api/characters/create", {
+    name: "Ada",
+    preset: "balanced",
+    revision: data.revision,
+  });
+  assert.equal(created.status, 200, JSON.stringify(created.body));
+  data = created.body.library;
+  const played = await post(server, "/api/characters/play", {
+    characterId: data.characters[0].sheet.id,
+    adventureId,
+    revision: data.revision,
+    confirmed: true,
+  });
+  assert.equal(played.status, 200, JSON.stringify(played.body));
+  return played.body.view;
+}
+
+/** Plays the offered option matching a journey command; asserts it commits. */
+async function play(server, command) {
+  const [verb, target] = command.split(" ");
+  const expected =
+    verb === "attack"
+      ? { name: "attack", arguments: { opponent_id: target } }
+      : commandCall(command);
+  const before = await state(server);
+  const offer = before.actions.find(
+    ({ call }) =>
+      call.name === expected.name &&
+      Object.entries(expected.arguments).every(
+        ([key, value]) => JSON.parse(call.argumentsJson)[key] === value,
+      ),
+  );
+  assert.ok(offer, `${command} must be offered`);
   const result = await post(server, "/api/turn", {
-    revision: view.revision,
+    revision: before.revision,
     optionId: offer.id,
   });
   assert.equal(result.status, 200, JSON.stringify(result.body));
-  assert.equal(result.body.committed, true, `${name} ${argument}`);
-  return { before: view, offer, result: result.body };
+  assert.equal(result.body.committed, true, command);
+  return { before, offer, result: result.body };
 }
 
-test("the supported-release policy names each bundled release tuple and starts the newest", async () => {
-  const versions = BROWSER_RELEASES.map(({ version }) => version);
-  assert.deepEqual(versions, ["4", "5", "6", "7", "8", "9", "10", "11"]);
-  assert.equal(BROWSER_START_VERSION, "11");
-  assert.equal(versions.at(-1), BROWSER_START_VERSION);
-  const digests = new Set();
+async function sessionFiles(directory) {
+  const data = JSON.parse(
+    await readFile(join(directory, "characters.json"), "utf8"),
+  );
+  return {
+    data,
+    path: (id) => join(directory, "character-adventures", `${id}.json`),
+  };
+}
+
+test("the release policy lists each bundled tuple, its browser mode and what new adventures start", async () => {
+  const tuples = new Set();
   for (const release of BROWSER_RELEASES) {
     const loaded = await loadAdventureFile(adventure(release.file));
     assert.equal(loaded.ok, true, release.file);
-    const { snapshot, digest } = loaded.adventure;
-    assert.equal(snapshot.id, "hollow-beacon");
+    const { snapshot } = loaded.adventure;
+    assert.equal(snapshot.id, release.id);
     assert.equal(snapshot.contentVersion, release.version);
     assert.equal(snapshot.rulesVersion, release.rulesVersion);
     assert.equal(snapshot.schemaVersion, release.schemaVersion);
-    digests.add(digest);
+    assert.equal(
+      release.mode === "character",
+      snapshot.schemaVersion === 17,
+      release.file,
+    );
+    tuples.add(`${release.id}@${release.version}`);
   }
-  assert.equal(digests.size, BROWSER_RELEASES.length);
+  assert.equal(tuples.size, BROWSER_RELEASES.length);
+  const starts = BROWSER_RELEASES.filter((release) => release.starts).map(
+    ({ id, version, mode }) => `${mode}:${id}@${version}`,
+  );
+  assert.deepEqual(starts, [
+    "character:hollow-beacon@12",
+    "character:stonebridge@1",
+    "single-slot:hollow-beacon@11",
+  ]);
+  assert.equal(BROWSER_START_VERSION, "11");
 });
 
-test("the shipped launcher starts the expanded release, then the same command continues the saved seed and state", async () =>
+test("the default launcher continues a character adventure when the same command is rerun", async () =>
   withDirectory(async (directory) => {
-    const savePath = join(directory, "increment-8-continuity", "slot.json");
+    const careerDirectory = join(directory, "increment-8-continuity");
+    const libraryPath = join(careerDirectory, "characters.json");
     const launch = async (seed) => {
       const child = spawn(
         process.execPath,
         [
-          fileURLToPath(
-            new URL("./fixtures/issue-93-launcher.mjs", import.meta.url),
-          ),
-          "--legacy",
+          fixture("issue-93-launcher.mjs"),
           "--seed",
           seed,
-          "--save",
-          savePath,
+          "--characters",
+          libraryPath,
         ],
         {
+          // The default --save path is relative; keep it inside the test.
+          cwd: directory,
           env: { ...process.env, OPENAI_API_KEY: "test-credential" },
           stdio: ["ignore", "pipe", "pipe"],
           windowsHide: true,
@@ -180,75 +276,83 @@ test("the shipped launcher starts the expanded release, then the same command co
     };
     let launcher = await launch("0");
     try {
-      assert.equal((await state(launcher)).slot, "empty");
-      const started = await post(launcher, "/api/start");
-      assert.equal(started.status, 200);
-      const view = started.body;
-      assert.equal(view.title, "Hollow Beacon: Final Warning");
+      const empty = await state(launcher);
+      assert.equal(empty.slot, "empty");
+      assert.equal(empty.careerMode, true);
+      // Single-slot start and replacement belong to --legacy.
+      assert.equal((await post(launcher, "/api/start")).status, 409);
+      const view = await startCharacterAdventure(launcher);
+      // Local baseline hints are ready as soon as the adventure starts.
+      assert.equal(view.hints.status, "ready");
+      assert.equal(view.title, "Hollow Beacon: A Fighter’s Warning");
       assert.equal(view.seed, 0);
-      assert.equal(view.scene.outcome, "playing");
-      const saved = await SaveSession.load(savePath);
-      assert.equal(saved.runtime.version, BROWSER_START_VERSION);
-      const bytes = await readFile(savePath, "utf8");
+      assert.match(view.characterLabel, /^Ada · Fighter level 1$/);
+      const { data, path } = await sessionFiles(careerDirectory);
+      const session = await SaveSession.load(path(data.selectedSessionId));
+      assert.equal(session.runtime.version, "12");
+      const bytes = [
+        await readFile(libraryPath, "utf8"),
+        await readFile(path(data.selectedSessionId), "utf8"),
+      ];
       await launcher.stop();
 
       launcher = await launch("0");
       assert.deepEqual(await state(launcher), view);
       await launcher.stop();
-      assert.equal(await readFile(savePath, "utf8"), bytes);
-
-      // A different requested seed only labels a future New game.
+      // A different requested seed only applies to a future adventure start.
       launcher = await launch("7");
       assert.deepEqual(await state(launcher), { ...view, newGameSeed: 7 });
-      assert.equal((await post(launcher, "/api/start")).body.seed, 0);
-      assert.equal(await readFile(savePath, "utf8"), bytes);
+      assert.deepEqual(
+        [
+          await readFile(libraryPath, "utf8"),
+          await readFile(path(data.selectedSessionId), "utf8"),
+        ],
+        bytes,
+      );
     } finally {
       await launcher.stop();
     }
   }));
 
-test("a v11 combat and clock checkpoint survives restart without repeating an action or RNG draw", async () =>
+test("a character combat and clock checkpoint survives a process kill without repeating an action or RNG draw", async () =>
   withDirectory(async (directory) => {
-    const savePath = join(directory, "slot.json");
-    const options = (seed, model) => ({
-      contentVersion: BROWSER_START_VERSION,
-      seed,
-      savePath,
-      apiKey: "offline",
-      dmModel: model,
-    });
-    let model = optionModel();
-    let server = await startBrowserServer(options(0, model));
+    const libraryPath = join(directory, "characters.json");
+    const savePath = join(directory, "unused-slot.json");
+    let server = await launchServer(savePath, 0, libraryPath);
     try {
-      await post(server, "/api/start");
-      const travel = await choose(server, model, "move", "ridge-trail");
+      await startCharacterAdventure(server);
+      const travel = await play(server, "move ridge-trail");
       assert.match(
         travel.result.cards[0].text,
         /Combat begins.*Day 0 → Day 2/s,
       );
-      const attack = await choose(server, model, "attack", "ridge-raider");
-      const view = await state(server);
+      const attack = await play(server, "attack ridge-raider");
+      const view = await settled(server);
       assert.equal(view.clocks[0].value, 2);
       assert.equal(view.history.length, 2);
-      const bytes = await readFile(savePath, "utf8");
-      await server.close();
+      const { data, path } = await sessionFiles(directory);
+      const sessionPath = path(data.selectedSessionId);
+      const bytes = await readFile(sessionPath, "utf8");
+      await server.kill();
 
-      model = optionModel();
-      server = await startBrowserServer(options(5, model));
+      server = await launchServer(savePath, 5, libraryPath);
       assert.deepEqual(await state(server), { ...view, newGameSeed: 5 });
-
       // A lost reply retried from the old tab cannot repeat the attack.
-      model.intents.set(attack.offer.message, attack.offer.call);
       const retry = await post(server, "/api/turn", {
         revision: attack.before.revision,
         optionId: attack.offer.id,
       });
       assert.equal(retry.status, 409);
-      assert.equal(model.calls, 0);
-      assert.equal(await readFile(savePath, "utf8"), bytes);
+      assert.equal(server.calls(), 0);
+      assert.equal(await readFile(sessionPath, "utf8"), bytes);
 
-      await choose(server, model, "attack", "ridge-raider");
-      const runtime = await runtimeFor("hollow-beacon-finale.json");
+      await play(server, "attack ridge-raider");
+      const entry = data.sessions[0];
+      const loaded = loadAdventure(JSON.stringify(entry.content));
+      const runtime = createDataRuntime(
+        loaded.adventure,
+        entry.startingCharacter,
+      );
       const reference = await SaveSession.start(
         join(directory, "reference.json"),
         runtime,
@@ -261,7 +365,7 @@ test("a v11 combat and clock checkpoint survives restart without repeating an ac
       ]) {
         await reference.commit(command, runtime.parseCommand(command));
       }
-      const continued = JSON.parse(await readFile(savePath, "utf8"));
+      const continued = JSON.parse(await readFile(sessionPath, "utf8"));
       assert.deepEqual(continued.checkpoint.state, reference.state);
       assert.equal(
         continued.checkpoint.randomPosition,
@@ -269,11 +373,253 @@ test("a v11 combat and clock checkpoint survives restart without repeating an ac
       );
       assert.equal((await state(server)).history.length, 3);
     } finally {
-      await server.close();
+      await server.kill();
     }
   }));
 
-test("released v4 active and completed slots continue under the v11 launcher until confirmed replacement", async () =>
+test("a completed character adventure restarts into Review without provider calls or a second XP award", async () =>
+  withDirectory(async (directory) => {
+    const libraryPath = join(directory, "characters.json");
+    const savePath = join(directory, "unused-slot.json");
+    let server = await launchServer(savePath, 0, libraryPath);
+    try {
+      await startCharacterAdventure(server);
+      let completion;
+      for (const command of beaconPeaceful) {
+        completion = (await play(server, command)).result;
+      }
+      assert.match(
+        completion.cards.map(({ text }) => text).join(" "),
+        /Level 1 → 2/,
+      );
+      const view = await state(server);
+      const { data, path } = await sessionFiles(directory);
+      assert.equal(data.characters[0].sheet.xp, 1000);
+      const bytes = [
+        await readFile(libraryPath, "utf8"),
+        await readFile(path(data.selectedSessionId), "utf8"),
+      ];
+      await server.kill();
+
+      server = await launchServer(savePath, 0, libraryPath);
+      const review = await state(server);
+      assert.deepEqual(review, view);
+      assert.equal(review.scene.outcome, "victory");
+      assert.deepEqual(review.actions, []);
+      assert.equal(review.hints.status, "unavailable");
+      const turn = await post(server, "/api/turn", {
+        revision: review.revision,
+        message: "Light the beacon again",
+      });
+      assert.notEqual(turn.status, 200);
+      assert.equal(server.calls(), 0);
+      assert.equal((await library(server)).characters[0].sheet.xp, 1000);
+      assert.deepEqual(
+        [
+          await readFile(libraryPath, "utf8"),
+          await readFile(path(data.selectedSessionId), "utf8"),
+        ],
+        bytes,
+      );
+    } finally {
+      await server.kill();
+    }
+  }));
+
+test("replacing an active character adventure requires confirmed abandonment and keeps the old journey", async () =>
+  withDirectory(async (directory) => {
+    const libraryPath = join(directory, "characters.json");
+    const savePath = join(directory, "unused-slot.json");
+    let server = await launchServer(savePath, 0, libraryPath);
+    try {
+      await startCharacterAdventure(server);
+      await play(server, "move watch-loft");
+      const before = await state(server);
+      const callsBefore = server.calls();
+      // A pending turn blocks abandonment; the reply never arrives.
+      const pending = fetch(`${server.url}/api/turn`, {
+        method: "POST",
+        headers: { Origin: server.url, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          revision: before.revision,
+          message: "Hold this turn",
+        }),
+      }).catch(() => undefined);
+      let data = await library(server);
+      while (server.calls() <= callsBefore) {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 20);
+        });
+      }
+      const busy = await post(server, "/api/characters/abandon", {
+        characterId: data.characters[0].sheet.id,
+        revision: data.revision,
+        confirmed: true,
+      });
+      assert.equal(busy.status, 409);
+      assert.match(busy.body.error, /Wait for the pending adventure reply/);
+      await server.kill();
+      await pending;
+
+      server = await launchServer(savePath, 3, libraryPath);
+      const recovered = await state(server);
+      assert.equal(recovered.scene.room.id, "watch-loft");
+      assert.equal(recovered.history.at(-1).committed, false);
+      assert.match(recovered.history.at(-1).notice, /No action was committed/);
+      data = await library(server);
+      const characterId = data.characters[0].sheet.id;
+      const { path, data: stored } = await sessionFiles(directory);
+      const firstSession = stored.selectedSessionId;
+      const bytes = await readFile(path(firstSession), "utf8");
+      for (const body of [
+        { characterId, revision: data.revision, confirmed: false },
+        { characterId, revision: "0".repeat(32), confirmed: true },
+      ]) {
+        assert.equal(
+          (await post(server, "/api/characters/abandon", body)).status,
+          409,
+        );
+      }
+      assert.equal(
+        (
+          await post(server, "/api/new-game", {
+            confirmed: true,
+            seed: 3,
+            revision: recovered.revision,
+          })
+        ).status,
+        409,
+      );
+      assert.equal(await readFile(path(firstSession), "utf8"), bytes);
+
+      const abandoned = await post(server, "/api/characters/abandon", {
+        characterId,
+        revision: data.revision,
+        confirmed: true,
+      });
+      assert.equal(abandoned.status, 200, JSON.stringify(abandoned.body));
+      data = abandoned.body.library;
+      assert.equal(data.characters[0].availability, "rest-needed");
+      assert.equal(data.sessions[0].status, "abandoned");
+      // The old tab cannot act in the abandoned journey.
+      const stale = await post(server, "/api/turn", {
+        revision: recovered.revision,
+        message: "Travel to Watch Yard",
+      });
+      assert.equal(stale.status, 409);
+      const calls = server.calls();
+
+      const rested = await post(server, "/api/characters/rest", {
+        characterId,
+        revision: data.revision,
+      });
+      assert.equal(rested.status, 200, JSON.stringify(rested.body));
+      const replay = await post(server, "/api/characters/play", {
+        characterId,
+        adventureId: "hollow-beacon",
+        revision: rested.body.library.revision,
+        confirmed: true,
+      });
+      assert.equal(replay.status, 200, JSON.stringify(replay.body));
+      const fresh = replay.body.view;
+      assert.equal(fresh.seed, 3);
+      assert.equal(fresh.position, 0);
+      assert.deepEqual(fresh.history, []);
+      assert.equal(fresh.scene.room.id, "watch-yard");
+      assert.equal(server.calls(), calls);
+      data = replay.body.library;
+      assert.equal(data.sessions.length, 2);
+      assert.notEqual(
+        (await sessionFiles(directory)).data.selectedSessionId,
+        firstSession,
+      );
+      // The abandoned journey stays retained for review.
+      const old = await SaveSession.load(path(firstSession));
+      assert.equal(old.state.status, "quit");
+      assert.equal(old.browserHistory.turns.length, 2);
+    } finally {
+      await server.kill();
+    }
+  }));
+
+test(
+  "a real browser creates a character, plays a typed turn, and reads exact history after a process kill",
+  { timeout: 60000 },
+  async () =>
+    withDirectory(async (directory) => {
+      const libraryPath = join(directory, "characters.json");
+      const savePath = join(directory, "unused-slot.json");
+      const idle = (page) =>
+        page.waitForFunction(
+          () =>
+            document
+              .getElementById("conversation")
+              .getAttribute("aria-busy") === "false",
+        );
+      let server = await launchServer(savePath, 0, libraryPath);
+      const browser = await chromium.launch(
+        process.platform === "win32" ? { channel: "msedge" } : {},
+      );
+      try {
+        const page = await browser.newPage();
+        await page.goto(server.url);
+        await page.locator("#open-characters").click();
+        await page.locator("#show-create-character").click();
+        await page.locator("#character-name").fill("Ada");
+        await page.locator("#create-character button[type=submit]").click();
+        await page
+          .locator("#library-feedback")
+          .filter({ hasText: "Character saved" })
+          .waitFor();
+        await page
+          .locator("#library-adventures button")
+          .filter({ hasText: "Start Hollow" })
+          .click();
+        await page.locator("#character-library").waitFor({ state: "hidden" });
+        await idle(page);
+        const message = (await state(server)).actions.find(
+          ({ call }) =>
+            call.name === "move" &&
+            JSON.parse(call.argumentsJson).destinationId === "watch-loft",
+        ).message;
+        await page.locator("#message").fill(message);
+        const reply = page.waitForResponse((r) =>
+          r.url().endsWith("/api/turn"),
+        );
+        await page.locator("#message").press("Enter");
+        assert.equal((await (await reply).json()).committed, true);
+        await idle(page);
+        assert.equal(await page.locator("#message").isDisabled(), false);
+        const history = await page.locator("#conversation").innerText();
+        assert.match(history, /Watch Loft/);
+        const before = await settled(server);
+        assert.equal(before.scene.room.id, "watch-loft");
+        await server.kill();
+
+        server = await launchServer(savePath, 0, libraryPath);
+        await page.goto(server.url);
+        await idle(page);
+        assert.equal(await page.locator("#conversation").innerText(), history);
+        assert.match(
+          await page.locator("#location").textContent(),
+          /Watch Loft/,
+        );
+        assert.match(
+          await page.locator("#active-character-name").textContent(),
+          /Ada/,
+        );
+        assert.deepEqual(await state(server), before);
+        assert.equal(server.calls(), 0);
+      } finally {
+        await browser.close();
+        await server.kill();
+      }
+    }),
+);
+
+// --legacy single-slot compatibility: released Hollow Beacon v4-v11 saves.
+
+test("--legacy: released v4 active and completed slots continue until confirmed replacement with v11", async () =>
   withDirectory(async (directory) => {
     const watch = await runtimeFor("hollow-beacon-watch.json");
     for (const completed of [false, true]) {
@@ -368,7 +714,7 @@ test("released v4 active and completed slots continue under the v11 launcher unt
     }
   }));
 
-test("unsupported, tampered, closed and corrupt slots fail clearly before serving and stay unchanged", async () =>
+test("--legacy: unsupported, tampered, closed and corrupt slots fail clearly before serving and stay unchanged", async () =>
   withDirectory(async (directory) => {
     const finale = await runtimeFor("hollow-beacon-finale.json");
     const cases = [
@@ -421,86 +767,3 @@ test("unsupported, tampered, closed and corrupt slots fail clearly before servin
       assert.equal(await readFile(savePath, "utf8"), bytes);
     }
   }));
-
-test(
-  "a real browser starts v11, commits one typed action, and reads exact history after process restart",
-  { timeout: 60000 },
-  async () =>
-    withDirectory(async (directory) => {
-      const savePath = join(directory, "slot.json");
-      const idle = (page) =>
-        page.waitForFunction(
-          () =>
-            document
-              .getElementById("conversation")
-              .getAttribute("aria-busy") === "false",
-        );
-      // Each launch is a separate process; kill() ends it without cleanup.
-      const launch = async () => {
-        const child = fork(
-          fileURLToPath(
-            new URL("./fixtures/issue-93-server.mjs", import.meta.url),
-          ),
-          [savePath],
-          { stdio: ["ignore", "ignore", "pipe", "ipc"] },
-        );
-        const url = await new Promise((resolve, reject) => {
-          child.once("message", (message) => resolve(message.url));
-          child.once("exit", () => reject(new Error("Server exited.")));
-        });
-        return {
-          url,
-          async kill() {
-            const exited = new Promise((resolve) => {
-              child.once("exit", resolve);
-            });
-            child.kill();
-            await exited;
-          },
-        };
-      };
-      let server = await launch();
-      const browser = await chromium.launch(
-        process.platform === "win32" ? { channel: "msedge" } : {},
-      );
-      try {
-        const page = await browser.newPage();
-        await page.goto(server.url);
-        await idle(page);
-        await page.locator("#start").click();
-        await idle(page);
-        assert.match(
-          await page.locator("#adventure-title").textContent(),
-          /Final Warning/,
-        );
-        await page.locator("#message").fill("Travel to Watch Loft");
-        const reply = page.waitForResponse((r) =>
-          r.url().endsWith("/api/turn"),
-        );
-        await page.locator("#message").press("Enter");
-        assert.equal((await (await reply).json()).committed, true);
-        await idle(page);
-        assert.equal(await page.locator("#message").isDisabled(), false);
-        const history = await page.locator("#conversation").innerText();
-        assert.match(history, /Travel to Watch Loft/);
-        const before = await state(server);
-        assert.equal(before.scene.room.id, "watch-loft");
-        const bytes = await readFile(savePath, "utf8");
-        await server.kill();
-
-        server = await launch();
-        await page.goto(server.url);
-        await idle(page);
-        assert.equal(await page.locator("#conversation").innerText(), history);
-        assert.match(
-          await page.locator("#location").textContent(),
-          /Watch Loft/,
-        );
-        assert.deepEqual(await state(server), before);
-        assert.equal(await readFile(savePath, "utf8"), bytes);
-      } finally {
-        await browser.close();
-        await server.kill();
-      }
-    }),
-);
