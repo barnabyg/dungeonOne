@@ -77,16 +77,37 @@ calls, using the scripted interpreter, and saves a copy of the library just
 before the plate, the work order and the warning board. Each trial then runs
 once on its own copy through the shipped HTTP server and save authority:
 
-| Checkpoint | Request                                        | Trials |
-| ---------- | ---------------------------------------------- | ------ |
-| Plate      | Typed “Look the setting plate over carefully.” | 3      |
-| Plate      | Click **Examine** on the setting plate         | 1      |
-| Work order | Typed “Read through the tower work order.”     | 2      |
-| Board      | Typed “Study the final warning board.”         | 2      |
+Budget agreed before the run: at most 24 provider calls. Used: **16 calls,
+63,559 input and 1,311 output tokens**. `gpt-5.6-luna` was requested and
+reported on every call. Full record:
+[`issue-110-live.json`](issue-110-live.json).
 
-A dry run (`--dry-run`, scripted provider) committed all 8 trials with the
-expected `examine` call and discovery, using 16 scripted calls. The live run is
-pending until a budget is agreed. The proposed hard cap is 24 provider calls.
+| Checkpoint | Request                                        | Trials | Committed first time | Discovery              |
+| ---------- | ---------------------------------------------- | ------ | -------------------- | ---------------------- |
+| Plate      | Typed “Look the setting plate over carefully.” | 3      | 3                    | `altered-setting`      |
+| Plate      | Click **Examine** on the setting plate         | 1      | 1                    | `altered-setting`      |
+| Work order | Typed “Read through the tower work order.”     | 2      | 2                    | `tower-order-known`    |
+| Board      | Typed “Study the final warning board.”         | 2      | 2                    | `final-warning-stakes` |
+
+Every trial selected exactly the expected `examine` call, advanced the saved
+position by one, and showed one **Resolved action** card. There were no
+clarifications. No request offered the model `inspect` or `search`. Turn
+latency was 2.9–3.9 s. In #94 the same three phrasings were each read as
+Inspect and needed a retyped Search.
+
+The narration kept to the results, with two exceptions unrelated to Examine:
+
+- Trial 1 called the Watch Loft "the best place to question the watch and
+  establish authority".
+- Trial 8 added that the caravan "missed its planned turn".
+
+Neither result changed state. They are ordinary narration drift.
+
+### Limits
+
+Eight trials on one seed are good evidence that these phrasings now commit.
+They cannot prove that a different phrasing will never be read as something
+else.
 
 ## Limits
 
