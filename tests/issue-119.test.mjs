@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CharacterCareer } from "../dist/character-career.js";
@@ -553,4 +553,55 @@ test("the DM is told treasure is engine-owned only in treasure releases (#119)",
   const story = createDataRuntime(load("hollow-beacon-story.json"), v3());
   assert.equal(story.promptVersion, "character-adventure-dm-v3");
   assert.doesNotMatch(story.systemPrompt, /Treasure/);
+});
+
+// Seed 4: a level 1 scout drinks its carried draught and still falls.
+test("defeat keeps the starting inventory, including a draught drunk in the fight (#119)", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "issue-119-defeat-"));
+  const path = join(directory, "characters.json");
+  const sheet = {
+    ...createCharacter("Ada", "scout", "a".repeat(32), "fighter-rules-v3"),
+    inventory: { silver: 3, items: ["healing-draught"] },
+  };
+  try {
+    await writeFile(
+      path,
+      JSON.stringify({
+        kind: "dungeon-one-characters",
+        formatVersion: 1,
+        revision: "1".repeat(32),
+        characters: [
+          {
+            sheet,
+            revision: 1,
+            availability: "ready",
+            earnedRewards: [],
+            acceptedReceipts: [],
+          },
+        ],
+        sessions: [],
+      }),
+    );
+    const career = new CharacterCareer(path);
+    const session = await SaveSession.load(
+      await career.start(sheet.id, "hollow-beacon", "1".repeat(32), 4, true),
+    );
+    await commitAll(session, ["move ridge-trail"]);
+    let drank = false;
+    while (session.state.status === "playing") {
+      const drink = !drank && session.state.fighter.hp <= 5;
+      drank ||= drink;
+      await commitAll(session, [
+        drink ? "use healing draught" : "attack ridge-raider",
+      ]);
+    }
+    assert.ok(drank);
+    assert.equal(session.state.status, "defeat");
+    await career.acceptSession(session.path);
+    const [record] = (await career.library.read()).characters;
+    assert.equal(record.availability, "defeated");
+    assert.deepEqual(record.sheet.inventory, sheet.inventory);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
