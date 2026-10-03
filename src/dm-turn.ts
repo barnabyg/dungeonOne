@@ -202,6 +202,11 @@ const SAFE_FALLBACK =
   "I couldn't complete that request safely. Please try one specific action, or ask one specific question about what you can see or your character's status.";
 const COMMITTED_ACTION_FALLBACK =
   "The attempted action's authoritative result is shown in Mechanics. No further action was executed.";
+/** Browser replies after a post-action AI failure name the visible card (#112). */
+export const BROWSER_RESOLVED_ACTION_FALLBACK =
+  "The action resolved and was saved; its authoritative result is shown in the Resolved action card below. Do not repeat it. No further action was executed.";
+export const BROWSER_REJECTED_ACTION_FALLBACK =
+  "The action was refused; the Action rejected card below gives the reason. No action was committed and nothing changed.";
 const EMPTY_INPUT_FALLBACK =
   "Please enter a question about what you can see or your character's status.";
 
@@ -422,6 +427,12 @@ export async function runDmTurn(
       state: SessionState,
       speakerId?: string,
     ) => DmHistory | undefined;
+    /**
+     * Where the player sees authoritative results: the terminal's Mechanics
+     * block (default) or the browser's result cards. Only the wording of the
+     * reply after an AI failure that follows an action depends on it.
+     */
+    resultSurface?: "mechanics" | "browser-cards";
   }>,
 ): Promise<DmTurnResult> {
   const runtime = input.runtime ?? resolveAdventure();
@@ -457,6 +468,15 @@ export async function runDmTurn(
     diagnostics,
   });
   const attemptedActionFallback = (): string => {
+    if (input.resultSurface === "browser-cards") {
+      const last = toolResults.findLast(({ call }) =>
+        mutationToolNames.has(call.name),
+      );
+      return last?.result.engineResult !== undefined &&
+        "events" in last.result.engineResult
+        ? BROWSER_RESOLVED_ACTION_FALLBACK
+        : BROWSER_REJECTED_ACTION_FALLBACK;
+    }
     if (
       ![
         "chapel-clues-rules-v8",

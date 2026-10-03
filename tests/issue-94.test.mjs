@@ -12,7 +12,11 @@ import { loadAdventure } from "../dist/adventure-loader.js";
 import { CharacterCareer } from "../dist/character-career.js";
 import { createCharacter } from "../dist/character-rules.js";
 import { createDataRuntime } from "../dist/data-runtime.js";
-import { DM_TURN_LIMITS, runDmTurn } from "../dist/dm-turn.js";
+import {
+  BROWSER_RESOLVED_ACTION_FALLBACK,
+  DM_TURN_LIMITS,
+  runDmTurn,
+} from "../dist/dm-turn.js";
 import { createSeededRandom } from "../dist/random.js";
 import { verifyTraceFile } from "../dist/replay.js";
 import {
@@ -236,6 +240,13 @@ test(
                 result.notice,
                 /Your action was saved; do not repeat it/,
               );
+              // The reply names the card the player sees, not the CLI's
+              // Mechanics block (#112).
+              assert.equal(result.reply, BROWSER_RESOLVED_ACTION_FALLBACK);
+              assert.equal(result.cards.at(-1).title, "Resolved action");
+              const shown = await page.locator("#conversation").innerText();
+              assert.ok(shown.includes(BROWSER_RESOLVED_ACTION_FALLBACK));
+              assert.doesNotMatch(shown, /Mechanics/);
             }
             if (!step.untilCombatEnds || !after.scene.combat) {
               break;
