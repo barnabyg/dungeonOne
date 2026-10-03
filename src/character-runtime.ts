@@ -77,6 +77,26 @@ export function createCharacterRuntime(
   const profile = characterProfile(sheet);
   // Rules v2: one examine action performs an available search or describes.
   const examines = definition.rulesVersion === "character-adventure-rules-v2";
+  // Hollow Beacon v14 people answer in their authored words (#95).
+  const authoredReplies =
+    definition.id === "hollow-beacon" &&
+    Number(definition.contentVersion) >= 14;
+  const withAuthoredReply = (result: RuntimeToolResult): RuntimeToolResult =>
+    authoredReplies &&
+    result.modelOutput.ok &&
+    result.modelOutput.conversation !== undefined &&
+    "authoredReply" in result.modelOutput.conversation
+      ? {
+          ...result,
+          modelOutput: {
+            ...result.modelOutput,
+            conversation: {
+              ...result.modelOutput.conversation,
+              authoredOnly: true,
+            },
+          },
+        }
+      : result;
   const legacy = createChapelCluesRuntime(
     {
       ...content,
@@ -527,18 +547,18 @@ export function createCharacterRuntime(
           !("events" in result.engineResult) ||
           result.state === state
         ) {
-          return result;
+          return withAuthoredReply(result);
         }
         const settled = settle({
           state: result.state,
           events: result.engineResult.events,
         });
-        return {
+        return withAuthoredReply({
           ...result,
           state: settled.state,
           engineResult: { events: settled.events! },
           modelOutput: { ...result.modelOutput, events: settled.events! },
-        };
+        });
       }
       let args: unknown;
       try {
@@ -607,7 +627,17 @@ export function createCharacterRuntime(
           };
     },
     renderResult: (result) => {
-      const rendered = legacy.renderResult(result);
+      // The engine's "Try:" hints predate Examine; rules v2 offers only it.
+      const rendered = examines
+        ? legacy
+            .renderResult(result)
+            .replace(/Try: [^\n]*/u, (hints) =>
+              hints.replace(
+                /\b(?:search|inspect) (?=[a-z0-9-]+)/gu,
+                "examine ",
+              ),
+            )
+        : legacy.renderResult(result);
       const checks =
         result.events?.flatMap((event) =>
           event.type === "clue" && event.check !== undefined
