@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { fork } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +8,17 @@ import test from "node:test";
 import { chromium } from "playwright";
 import { startBrowserServer } from "../dist/browser-server.js";
 import { BROWSER_START_VERSION } from "../dist/browser-releases.js";
-import { DM_TURN_LIMITS } from "../dist/dm-turn.js";
+import { loadAdventure } from "../dist/adventure-loader.js";
+import { createCharacter } from "../dist/character-rules.js";
+import { createDataRuntime } from "../dist/data-runtime.js";
+import { DM_TURN_LIMITS, runDmTurn } from "../dist/dm-turn.js";
+import { createSeededRandom } from "../dist/random.js";
+import { verifyTraceFile } from "../dist/replay.js";
+import {
+  completeSessionTrace,
+  createDmSessionTrace,
+  recordDmTraceTurn,
+} from "../dist/trace.js";
 import { DM_HISTORY_LIMIT } from "../dist/dm-history.js";
 import {
   JOURNEY_SEED,
@@ -578,4 +588,78 @@ test("hidden actors, compound requests, impossible actions, false claims and mis
     } finally {
       await server.close();
     }
+  }));
+
+test("a scripted-AI character journey records a single AI trace that replays", async () =>
+  withDirectory(async (directory) => {
+    const loaded = loadAdventure(
+      await readFile(
+        fileURLToPath(
+          new URL(
+            "../adventures/hollow-beacon-characters.json",
+            import.meta.url,
+          ),
+        ),
+      ),
+    );
+    const runtime = createDataRuntime(
+      loaded.adventure,
+      createCharacter("Ada", "balanced"),
+    );
+    const identity = { provider: "scripted", model: "issue-94-journey" };
+    let state = runtime.createSession();
+    const trace = createDmSessionTrace(JOURNEY_SEED, state, identity, runtime);
+    const random = createSeededRandom(JOURNEY_SEED);
+    const steps = journey.slice(
+      0,
+      journey.findIndex(({ id }) => id === "ridge") + 1,
+    );
+    for (const step of steps) {
+      const input = step.say ?? step.click;
+      const turn = await runDmTurn({
+        state,
+        playerInput: input,
+        transcript: [],
+        random,
+        runtime,
+        model: {
+          identity,
+          async respond(request) {
+            if ("reply" in request) {
+              return {
+                text: JSON.stringify({
+                  delivery: "steady",
+                  opening: "none",
+                  closing: "none",
+                  factIds: request.reply.approvedFacts.map(({ id }) => id),
+                }),
+              };
+            }
+            return request.toolResults.length
+              ? { text: "The result stands." }
+              : {
+                  toolCalls: [
+                    toolCall(step.call.name, step.call.arguments, step.id),
+                  ],
+                };
+          },
+        },
+      });
+      assert.deepEqual(turn.diagnostics, [], step.id);
+      assert.notDeepEqual(turn.state, state, step.id);
+      recordDmTraceTurn(trace, input, turn);
+      state = turn.state;
+    }
+    assert.equal(trace.formatVersion, 6);
+    completeSessionTrace(trace, "eof", state);
+    const path = join(directory, "trace.json");
+    await writeFile(path, JSON.stringify(trace));
+    await verifyTraceFile(path);
+    // Replay re-executes the calls: an altered recorded state is rejected.
+    const check = trace.turns.find(({ rawPlayerInput }) =>
+      rawPlayerInput.startsWith("Try the wisdom check"),
+    );
+    check.stateAfter = { ...check.stateAfter, pendingRewards: [{ xp: 20 }] };
+    await writeFile(path, JSON.stringify(trace));
+    await assert.rejects(verifyTraceFile(path));
   }));
