@@ -14,6 +14,10 @@ export const beaconPeaceful = [
   "search final-warning-board",
   "resolve human-warning",
 ];
+/** Hollow Beacon v13: examine performs each available search (#110). */
+export const beaconExamine = beaconPeaceful.map((command) =>
+  command.replace(/^search /, "examine "),
+);
 export const stonebridgePeaceful = [
   "move archives",
   "search archive-chest",
@@ -29,8 +33,8 @@ export function commandCall(command) {
   if (verb === "move") {
     return { name: "move", arguments: { destinationId: words[0] } };
   }
-  if (verb === "search") {
-    return { name: "search", arguments: { target: words[0] } };
+  if (verb === "search" || verb === "examine") {
+    return { name: verb, arguments: { target: words[0] } };
   }
   if (verb === "take") {
     return { name: "take", arguments: { item_id: words[0] } };

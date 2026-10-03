@@ -86,7 +86,9 @@ export function strongerHintCandidates(
     actions.some(
       (action) =>
         action.contextId === target.contextId &&
-        ["talk", "search", "move", "inspect"].includes(action.call.name),
+        ["talk", "search", "examine", "move", "inspect"].includes(
+          action.call.name,
+        ),
     ),
   );
   const linked = leads

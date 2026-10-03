@@ -7,7 +7,7 @@ import { CharacterCareer } from "../dist/character-career.js";
 import { SaveSession } from "../dist/save.js";
 
 import {
-  beaconPeaceful,
+  beaconExamine,
   stonebridgePeaceful,
 } from "./fixtures/character-journeys.mjs";
 
@@ -49,7 +49,7 @@ test("one independent character completes two modules, rests, advances, and revi
       /available/,
     );
     const first = await SaveSession.load(firstPath);
-    await journey(first, beaconPeaceful);
+    await journey(first, beaconExamine);
     // Simulates interruption after the terminal save, before career publication.
     await new CharacterCareer(career.library.path).synchronize();
     data = await career.library.read();

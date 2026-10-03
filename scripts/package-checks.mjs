@@ -103,6 +103,7 @@ const authoredAssets = [
   "schema/adventure-v16.schema.json",
   "adventures/hollow-beacon-finale.json",
   "adventures/hollow-beacon-characters.json",
+  "adventures/hollow-beacon-examine.json",
   "adventures/stonebridge-characters.json",
   "schema/adventure-v17.schema.json",
 ];

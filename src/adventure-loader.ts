@@ -213,7 +213,8 @@ export type ChapelCluesDefinition = Readonly<{
     | "chapel-clues-rules-v15"
     | "chapel-clues-rules-v16"
     | "chapel-clues-rules-v17"
-    | "character-adventure-rules-v1";
+    | "character-adventure-rules-v1"
+    | "character-adventure-rules-v2";
   characterAdventure?: Readonly<{
     rulesVersion: "fighter-rules-v1";
     classes: readonly "Fighter"[];

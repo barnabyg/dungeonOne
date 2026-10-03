@@ -148,6 +148,7 @@ export type GameToolName =
   | "follow"
   | "inspect"
   | "search"
+  | "examine"
   | "talk"
   | "open"
   | "take"
@@ -712,6 +713,7 @@ function parseTool(
     default:
       if (
         name === "check_ability" ||
+        name === "examine" ||
         name === "wait" ||
         name === "follow" ||
         name === "adjudicate" ||

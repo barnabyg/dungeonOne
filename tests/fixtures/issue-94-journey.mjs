@@ -1,4 +1,4 @@
-// Issue #94 full Hollow Beacon v12 character journey (seed 0), shared by the
+// Issue #94 full Hollow Beacon character journey (seed 0; v13 Examine since #110),
 // scripted browser test and the opt-in live runner. Each step is what a player
 // does in the browser: a typed ordinary-language message or a contextual click
 // on an offered option, with the one engine call it must commit (or none).
@@ -35,7 +35,7 @@ export const journey = [
   {
     id: "plate",
     say: "Look the setting plate over carefully.",
-    call: call("search", { target: "setting-plate" }),
+    call: call("examine", { target: "setting-plate" }),
   },
   {
     id: "component",
@@ -87,7 +87,7 @@ export const journey = [
   {
     id: "work-order",
     say: "Read through the tower work order.",
-    call: call("search", { target: "tower-work-order" }),
+    call: call("examine", { target: "tower-work-order" }),
   },
   {
     id: "vey",
@@ -110,7 +110,7 @@ export const journey = [
   {
     id: "board",
     say: "Study the final warning board.",
-    call: call("search", { target: "final-warning-board" }),
+    call: call("examine", { target: "final-warning-board" }),
   },
   {
     id: "ambiguous-ending",

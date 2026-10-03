@@ -15,7 +15,7 @@ import {
   BROWSER_START_VERSION,
 } from "../dist/browser-releases.js";
 import { SaveSession } from "../dist/save.js";
-import { beaconPeaceful, commandCall } from "./fixtures/character-journeys.mjs";
+import { beaconExamine, commandCall } from "./fixtures/character-journeys.mjs";
 
 const adventure = (name) =>
   fileURLToPath(new URL(`../adventures/${name}`, import.meta.url));
@@ -217,7 +217,7 @@ test("the release policy lists each bundled tuple, its browser mode and what new
     ({ id, version, mode }) => `${mode}:${id}@${version}`,
   );
   assert.deepEqual(starts, [
-    "character:hollow-beacon@12",
+    "character:hollow-beacon@13",
     "character:stonebridge@1",
     "single-slot:hollow-beacon@11",
   ]);
@@ -289,7 +289,7 @@ test("the default launcher continues a character adventure when the same command
       assert.match(view.characterLabel, /^Ada · Fighter level 1$/);
       const { data, path } = await sessionFiles(careerDirectory);
       const session = await SaveSession.load(path(data.selectedSessionId));
-      assert.equal(session.runtime.version, "12");
+      assert.equal(session.runtime.version, "13");
       const bytes = [
         await readFile(libraryPath, "utf8"),
         await readFile(path(data.selectedSessionId), "utf8"),
@@ -385,7 +385,7 @@ test("a completed character adventure restarts into Review without provider call
     try {
       await startCharacterAdventure(server);
       let completion;
-      for (const command of beaconPeaceful) {
+      for (const command of beaconExamine) {
         completion = (await play(server, command)).result;
       }
       assert.match(
