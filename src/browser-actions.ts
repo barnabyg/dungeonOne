@@ -130,6 +130,14 @@ export function browserActions(
       "Inspect exit",
       "Inspect " + exit.name,
     );
+    offer(
+      "exit:" + exit.destinationId,
+      "examine",
+      "target",
+      exit.destinationId,
+      "Examine exit",
+      "Examine " + exit.name,
+    );
   }
   for (const target of [
     ...scene.room.features,
@@ -151,6 +159,14 @@ export function browserActions(
       target.id,
       "Search",
       "Search " + target.name,
+    );
+    offer(
+      "target:" + target.id,
+      "examine",
+      "target",
+      target.id,
+      "Examine",
+      "Examine " + target.name,
     );
     offer(
       "target:" + target.id,
@@ -230,6 +246,14 @@ export function browserActions(
     );
     offer(
       "inventory:" + item.id,
+      "examine",
+      "target",
+      item.id,
+      "Examine",
+      "Examine " + item.name,
+    );
+    offer(
+      "inventory:" + item.id,
       "use_item",
       "item_id",
       item.id,
@@ -255,6 +279,14 @@ export function browserActions(
         npc.id,
         "Search remains",
         "Search " + npc.name,
+      );
+      offer(
+        "npc:" + npc.id,
+        "examine",
+        "target",
+        npc.id,
+        "Examine remains",
+        "Examine " + npc.name,
       );
     }
     for (const subject of npc.subjects) {

@@ -1,4 +1,4 @@
-// Opt-in issue #94 live evidence: one full Hollow Beacon v12 character journey
+// Opt-in issue #94 live evidence: one full Hollow Beacon character journey (v13 since #110)
 // through a real browser, the shipped HTTP server and save authority, with the
 // configured OpenAI provider. Hard-capped provider calls; injected failures
 // make no provider request. Never records credentials or full prompts.

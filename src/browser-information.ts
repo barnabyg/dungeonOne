@@ -68,7 +68,7 @@ export function browserInformation(session: SaveSession): BrowserInformation {
               ]
             : scene.room.id === "beacon-tower"
               ? [
-                  "Inspect the fixed tower work order and the controls in view. Physical evidence remains available after a refused conversation.",
+                  `${session.runtime.rulesVersion === "character-adventure-rules-v2" ? "Examine" : "Inspect"} the fixed tower work order and the controls in view. Physical evidence remains available after a refused conversation.`,
                 ]
               : proof
                 ? [

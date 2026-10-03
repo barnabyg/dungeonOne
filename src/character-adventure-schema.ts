@@ -30,7 +30,10 @@ export const CHARACTER_ADVENTURE_SCHEMA = {
   properties: {
     ...FINALE_SCHEMA.properties,
     schemaVersion: { type: "integer", const: 17 },
-    rulesVersion: { type: "string", const: "character-adventure-rules-v1" },
+    rulesVersion: {
+      type: "string",
+      enum: ["character-adventure-rules-v1", "character-adventure-rules-v2"],
+    },
     characterAdventure: object({
       rulesVersion: { type: "string", const: "fighter-rules-v1" },
       classes: {

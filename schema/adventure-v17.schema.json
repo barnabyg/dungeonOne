@@ -43,7 +43,7 @@
     },
     "rulesVersion": {
       "type": "string",
-      "const": "character-adventure-rules-v1"
+      "enum": ["character-adventure-rules-v1", "character-adventure-rules-v2"]
     },
     "title": {
       "type": "string",

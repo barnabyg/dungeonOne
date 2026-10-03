@@ -9,7 +9,7 @@ import { SaveSession } from "../dist/save.js";
 import { startBrowserServer } from "../dist/browser-server.js";
 import { browserActions } from "../dist/browser-actions.js";
 import {
-  beaconPeaceful,
+  beaconExamine,
   stonebridgePeaceful,
   commandCall,
 } from "./fixtures/character-journeys.mjs";
@@ -122,7 +122,7 @@ test(
       assert.equal(calls, 0);
       await page.locator("#close-information").click();
       let completion;
-      for (const command of beaconPeaceful) {
+      for (const command of beaconExamine) {
         completion = await offered(command);
       }
       assert.match(

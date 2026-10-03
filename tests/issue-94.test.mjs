@@ -154,7 +154,7 @@ async function selectedSessionPath(libraryPath) {
 }
 
 test(
-  "a real browser carries a new Fighter through the full v12 journey with failures, restarts, Review and one XP award",
+  "a real browser carries a new Fighter through the full v13 journey with failures, restarts, Review and one XP award",
   { timeout: 180000 },
   async () =>
     withDirectory(async (directory) => {
@@ -612,10 +612,7 @@ test("a scripted-AI character journey records a single AI trace that replays", a
     const loaded = loadAdventure(
       await readFile(
         fileURLToPath(
-          new URL(
-            "../adventures/hollow-beacon-characters.json",
-            import.meta.url,
-          ),
+          new URL("../adventures/hollow-beacon-examine.json", import.meta.url),
         ),
       ),
     );

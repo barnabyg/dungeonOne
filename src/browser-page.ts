@@ -199,7 +199,7 @@ function contextList(id, targets) {
     const button = document.createElement("button");
     const travel = offers.find((action) => action.call.name === "move");
     const blocked = id === "exits" && !!currentView.scene.combat && !travel;
-    button.textContent = blocked ? "Inspect route: " + target.name : target.name;
+    button.textContent = blocked ? (offers.some((action) => action.call.name === "examine") ? "Examine" : "Inspect") + " route: " + target.name : target.name;
     if (blocked) { button.className = "blocked-route"; }
     if (id === "details") {
       button.setAttribute("aria-label", target.name);
@@ -524,6 +524,7 @@ function render(view) {
   text("combat", scene.combatStatus || (view.character.combatTurn ? "Turn: " + view.character.combatTurn : "No active combat."));
   text("session", scene.outcome + (reviewing() ? " · Review mode" : ""));
   element("travel-notice").hidden = !scene.combat || reviewing();
+  text("travel-notice", "Travel is unavailable during combat. You can still " + ((view.actions || []).some((action) => action.call.name === "examine") ? "examine" : "inspect") + " a route.");
   renderCombat(view);
   contextList("exits", scene.room.exits.map((exit) => ({ ...exit, contextId: "exit:" + exit.destinationId })));
   contextList("details", [

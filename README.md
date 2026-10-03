@@ -22,7 +22,7 @@ default, and **The Stolen Signet**) and earlier handoffs such as
 [Increment 10](increment-10-implementation-plan.md) adds an independent character
 library, character creation and selection before adventure selection, full sheets
 with six ability scores, and Fighter levels 1–3. The browser defaults to this mode.
-Hollow Beacon v12 recommends levels 1–2; Stonebridge recommends levels 2–3.
+Hollow Beacon recommends levels 1–2; Stonebridge recommends levels 2–3.
 Characters retain identity and earned XP across adventures; each game preserves
 its frozen starting sheet for accurate continuation and review.
 
@@ -46,6 +46,16 @@ the model each offered topic's label and only the approaches the browser offers
 for it, so a contextual talk click commits without the model asking for an
 approach. AI traces recorded under `character-adventure-tools-v1` still replay.
 See [issue 109](docs/acceptance/issue-109.md).
+
+New Hollow Beacon adventures start **v13** (`character-adventure-rules-v2`).
+It replaces **Inspect** and **Search** with one **Examine** action: examining a
+feature with an available search performs that search and records its
+discovery in the same turn; examining anything else only describes it. Typed
+requests to look at, read, study, search, inspect or examine something resolve
+to Examine. v13 uses `character-adventure-dm-v3` and
+`character-adventure-tools-v3`. Hollow Beacon v12 saves and Stonebridge keep
+`character-adventure-rules-v1` with Inspect and Search unchanged; nothing is
+migrated. See [issue 110](docs/acceptance/issue-110.md).
 
 ```powershell
 npm.cmd run browser -- --seed 42 --characters .\.scratch\character-player\characters.json --save .\.scratch\character-player\legacy.json
@@ -278,9 +288,9 @@ the result; repair storage and use **Refresh adventure** in Game menu to recover
 launcher running if it reports an unsaved result. See [issue 101 recovery checks](docs/acceptance/issue-101.md).
 
 Click a visible exit to travel immediately, or select a person or object to
-see its current local options. Topic, inspection, search, and ending buttons
-send one explicit intent through that same AI turn. Ending options show their
-public stakes before selection. Old scene options are rejected and refreshed
+see its current local options. Topic, inspection, search (Examine in Hollow
+Beacon v13), and ending buttons send one explicit intent through that same AI
+turn. Ending options show their public stakes before selection. Old scene options are rejected and refreshed
 without spending time or dice. Tab and Enter/Space activate the controls.
 See [issue 99 player checks](docs/acceptance/issue-99.md).
 

@@ -49,6 +49,7 @@ export type Action = Readonly<
   | { type: "look" }
   | { type: "inspect"; target?: string }
   | { type: "search"; target?: string }
+  | { type: "examine"; target?: string }
   | {
       type: "talk";
       target?: string;
@@ -1134,6 +1135,7 @@ export function handleAction(
       };
     case "place":
     case "ability-check":
+    case "examine":
     case "recover":
     case "brace":
     case "follow":

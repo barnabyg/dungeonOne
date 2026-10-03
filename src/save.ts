@@ -373,10 +373,11 @@ function eventsFor(
       }
     }
   }
-  if (action.type === "search") {
-    const search = resultEvents.find(
-      (entry) => entry.type === "clue" && entry.operation === "search",
-    );
+  const search = resultEvents.find(
+    (entry) => entry.type === "clue" && entry.operation === "search",
+  );
+  // A committed examine is a search: it changes state only by searching.
+  if (action.type === "search" || action.type === "examine") {
     if (search?.type !== "clue" || search.target === undefined) {
       throw new Error("Committed search has no resolved target.");
     }
