@@ -90,6 +90,14 @@ pending until a budget is agreed. The proposed hard cap is 24 provider calls.
 
 ## Limits
 
+- Examine is always a mutation tool, because which one it does depends on the
+  state. An examine that only describes still uses the turn's one action. In
+  v12, `inspect` was a free read, so "look at X, then take Y" or "move, then
+  inspect" could run in one turn. In v13 the model gets one of those per turn.
+  After a provider failure, an examine that only describes also gets the
+  browser's "resolved action" fallback wording. Treating a description-only
+  examine as a read would need per-call classification in `runDmTurn`.
+
 - Stonebridge v1 still has separate Inspect and Search. Changing it would need
   its own release.
 - The CLI help text still lists `inspect` and `search`. In v13 both run
