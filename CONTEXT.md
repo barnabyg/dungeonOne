@@ -29,8 +29,8 @@ Earned character progress awarded for authored accomplishments and used to deter
 _Avoid_: Story milestones, Player score
 
 **Treasure**:
-Silver and items an adventure module awards on authored triggers. The engine decides what drops; it is kept only on surviving completion and earned once per character.
-_Avoid_: Loot table, Reward XP
+Silver and items a character finds by examining something, or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion and earned once per character. It is never simply awarded.
+_Avoid_: Reward XP, Drop
 
 **Adventure module**:
 A playable scenario defining its setting, encounters, challenges, rewards, and intended characters.
