@@ -2,11 +2,18 @@
 
 ## 1. Goal
 
-Build a playable, text-first Dungeons & Dragons-style game that stays close to the tabletop model:
+Build a playable Dungeons & Dragons-style game with a local desktop browser interface centred on text conversation, staying close to the tabletop model:
 
 - a deterministic rules system decides what happens;
+- a player owns independently saved characters and chooses which character to bring to an adventure;
 - an adventure defines what is true;
 - an AI Dungeon Master interprets player intent, presents the world, roleplays NPCs, and narrates outcomes.
+
+Browser gameplay requires the AI service. Command mode remains available for automated testing and compatibility with existing adventures and saved data. The browser experience begins with Hollow Beacon; earlier adventures do not require browser support.
+
+Scope update, 2 October 2026: [increment 10](increment-10-implementation-plan.md) is implemented locally on `codex/gameplay-ui`: independently saved character sheets, creation/selection, Fighter levels 1–3, and two adventures with recommended level ranges. Separately versioned character-enabled play preserves existing adventure/save/trace behavior. Live-provider and unfamiliar-player qualification remain pending. [ADR 0003](docs/adr/0003-save-characters-independently-of-adventure-sessions.md) records the ownership decision; the [player handoff](docs/acceptance/increment-10-characters.md) records concrete testing steps.
+
+Direction update, 3 October 2026: the character library is the default and primary browser mode. Players bring a saved character to an adventure module within its recommended level range. The remaining increment 8 tickets (#93–#95) were revised to qualify the full adventure in that mode, with Hollow Beacon v12 played by a new level-1 character. The browser's `--legacy` mode keeps the increment 9 single save slot only so released Hollow Beacon v4–v11 saves remain playable. The command-line app is a testing and regression adapter. [`src/browser-releases.ts`](src/browser-releases.ts) lists which releases start new play and which only continue; the [#93 handoff](docs/acceptance/issue-93.md) records the start/continue flow.
 
 The delivery strategy is based on **small playable vertical slices**. Each increment should be something a person can actually play, even if the content is tiny and the experience is rough. Every increment should also retire a meaningful technical or design risk.
 
@@ -17,7 +24,7 @@ The project should optimise for:
 3. **Small increments**
 4. **Testability**
 
-It should deliberately *not* optimise early for:
+It should deliberately _not_ optimise early for:
 
 - performance;
 - production-grade non-functional requirements;
@@ -37,6 +44,7 @@ Keep the major responsibilities separate from the beginning.
 Deterministic software responsible for:
 
 - character statistics;
+- ability modifiers, character levels, and earned experience points;
 - dice;
 - checks and saving throws;
 - attacks and damage;
@@ -51,10 +59,22 @@ Deterministic software responsible for:
 
 The AI should not decide rule outcomes.
 
+### Character Model
+
+A character is the persistent adventurer controlled by a player. Its character sheet is saved independently in a character library before an adventure is selected. It contains identity, class, the six ability scores, earned experience, level-derived capabilities, and permanent equipment. Multiple saved characters are supported; closing the interface or canceling adventure selection preserves a newly saved sheet.
+
+The first character-enabled release supports Fighters at levels 1–3. Strength, Dexterity, Constitution, Intelligence, Wisdom, and Charisma affect supported combat or authored checks through explicit, versioned rules. The engine derives bonuses from the sheet; new adventures define difficulty and circumstances rather than a fixed player combat profile. [Fighter rules v1](docs/character-rules.md) defines the presets, modifiers, HP/attack progression, equipment and XP thresholds as explicit old-school-inspired house rules.
+
+An adventure session references the selected character and records its initial sheet snapshot for deterministic save/resume and replay. The character library owns identity and career progress; the session owns evolving adventure state and provides verified results to the character record. One active adventure per character prevents two games from independently advancing the same sheet. Reopening a historical game cannot roll back current career progress or create another selectable character.
+
+Use new versioned content, rules, saves, and traces for character-enabled play. Preserve historical formats and runtime tuples with their original results; do not invent ability scores or a level for a character in an old save. Character/adventure writes must recover safely after interruption and accept earned rewards exactly once.
+
 ### Adventure Model
 
 Structured data describing:
 
+- supported character rules/classes, intended character count, and a recommended inclusive level range;
+- stable reward identities and authored XP awards;
 - locations;
 - NPCs;
 - monsters;
@@ -69,9 +89,11 @@ Structured data describing:
 
 The adventure establishes canon.
 
+An adventure module and a saved character sheet are separate resources. The player selects both to start an adventure session. New modules declare a recommendation such as levels 1–3 for one Fighter. Validate ranges and supported capabilities; show a warning for a supported character outside the recommendation and reject an unsupported rules version, class, or level. Initial enemies and difficulties remain authored rather than automatically scaling with level.
+
 ### World State
 
-Persistent current reality:
+Persistent current reality within an adventure session, linked to its selected character and initial character snapshot:
 
 - where everyone is;
 - who is alive;
@@ -85,6 +107,8 @@ Persistent current reality:
 
 The world-state store is authoritative. The LLM's context is not.
 
+Conversation history is persisted for the player to revisit, including their messages, AI replies, and authoritative result cards. Restoring that history must not reexecute actions or turn narration into game facts. The journal and current world state establish what the player has learned; the AI receives bounded context derived from that state.
+
 ### AI Dungeon Master
 
 Responsible for:
@@ -94,7 +118,7 @@ Responsible for:
 - describing scenes;
 - narrating rule outcomes;
 - roleplaying NPCs;
-- deciding when checks are appropriate;
+- selecting currently offered checks for eligible authored approaches;
 - improvising non-canonical detail;
 - managing pacing within explicit constraints.
 
@@ -102,21 +126,25 @@ The AI should operate through a defined set of tools rather than directly rewrit
 
 ### UI
 
-Initially text-first.
+The player completes the supported adventure in a local desktop browser. Use a restrained reading interface with a central conversation and surrounding information components.
 
-The UI should make it easy to see:
+Current location, exits, time/deadline, and HP are always visible. Character-enabled play also shows the selected name, class, and level. Inventory, the full character sheet, journal, and leads are one click away. The sheet shows six scores/modifiers, current and maximum HP, actual equipment, attack/damage, initiative, conditions, and XP progress. These information views read current authoritative state without making another AI request or taking a gameplay action.
 
-- current scene;
-- narration;
-- player choices/actions;
-- dice results when useful;
-- character status;
-- combat state;
-- inventory;
-- quest notes;
-- important recent events.
+The character-enabled opening offers **Continue adventure**, **Choose character**, and **Create character**. The library lists saved names, classes, levels, and availability. Create character lets the player review and save a named level-1 Fighter without starting a game. Choosing an available character leads to adventure selection with recommended levels and compatibility/difficulty warnings; a character already adventuring offers continuation of that game. Creating or choosing a sheet is local and does not require an AI response.
 
-A polished text interface is preferable to an ambitious graphical interface early on.
+Players type ordinary-language actions and questions or click contextual actions such as an exit or conversation topic. A click submits the intent immediately. The AI presents the response, and the engine validates and resolves the action. Questions and clarification do not advance time or consume a gameplay action.
+
+Consequential changes appear as concise result cards in the conversation, while surrounding components display current values. Attribute NPC dialogue to its speaker and distinguish authoritative results from AI narration. Show a waiting indicator followed by a complete response.
+
+Prepare hints as the scene changes, using information the player currently knows and actions the engine permits. AI may phrase that guidance. Keep the hints component hidden until requested, cache its content for immediate viewing, and require an explicit request for a stronger nudge. Hints must not expose undiscovered facts or fabricate outcomes.
+
+Increment 9's initial browser release saved automatically to one local slot, including exact conversation history. Resume restores both progress and history. Its New game confirmation explains replacement of that slot's progress and conversation. After an ending, history and final information remain readable; gameplay input and further AI questions are closed. Since increment 10 that single slot is the `--legacy` compatibility mode for released Hollow Beacon v4–v11 saves; new play uses the character library.
+
+Increment 10 separates saved characters from adventure session records. **New adventure** and **Create character** are distinct actions: starting or restarting an adventure never deletes a saved character or resets earned career progress. Active-session replacement or abandonment requires explicit confirmation and recoverable persistence. Completed adventure records retain their historical sheets and conversation. This introduces the managed records required for character continuation, not a general named-slot manager.
+
+The player configures the API key before launching a local command that starts the server and opens the browser. Keyboard operation, readable labels, visible focus, and useful waiting/error feedback are part of the initial UI. Maps, multiple slots, a hosted site, phone-specific design, an installer, browser key configuration, and streamed replies are deferred.
+
+See [the increment 9 plan](increment-9-implementation-plan.md) for the initial UI, persistence, and failure contracts, [the increment 10 plan](increment-10-implementation-plan.md) for independent characters and progression, and [the glossary](CONTEXT.md) for character, adventure session, conversation history, journal, hint, and save slot terminology.
 
 ---
 
@@ -182,7 +210,7 @@ The AI should never be able to say:
 
 ## 3.5 Prefer Narrow Excellence Over Broad Mediocrity
 
-Early versions should support very small subsets of D&D.
+Early versions should support very small subsets of D&D. The original proof slices can use one fixed character profile; the character-enabled increment expands deliberately to one class and levels 1–3.
 
 For example:
 
@@ -192,11 +220,15 @@ For example:
 - four spells;
 - one small adventure.
 
-If those elements interact convincingly, expansion becomes much safer.
+If those elements interact convincingly, expansion becomes much safer. The examples above describe early proof slices, not a permanent restriction against character advancement.
 
 ---
 
 # 4. Increment Roadmap
+
+Increment numbering records the planned work, rather than its execution order. Following completion of issue #84, pause the remaining increment 8 tickets, complete increment 9, rewrite the remaining increment 8 tickets around the delivered browser UI, and then finish increment 8. This sequence is recorded in [ADR 0001](docs/adr/0001-build-local-ai-browser-play-before-finishing-increment-8.md).
+
+Increment 10 was implemented after increment 9 and before the remaining increment 8 tickets, without a GitHub ticket. Its character library became the default browser mode. On 3 October 2026 the remaining increment 8 tickets (#93–#95) were revised to qualify the full adventure in that mode; the single save slot remains only as `--legacy` compatibility for released saves.
 
 ## Increment 1 — The Smallest Playable Dungeon
 
@@ -634,6 +666,8 @@ Unexpected player behaviour usually produces a coherent consequence rather than 
 
 ## Increment 8 — First Proper Game
 
+Delivery sequence: originally paused after issue #84 for increment 9 and the agreed ticket rewrite. GitHub issues and current acceptance records establish implementation status. Independent character selection and progression were delivered by increment 10; the remaining increment 8 tickets play the full adventure with a saved character in that mode.
+
 ### Player Experience
 
 Now build the first version intended to be played because it is enjoyable, not primarily because it proves architecture.
@@ -669,18 +703,11 @@ Possibly:
 
 ### UX Work
 
-At this stage, spend meaningful effort on:
+Use the browser experience delivered by increment 9 and extend it only as the full adventure's mechanics require. New routes, trust changes, combat, recovery, items, and endings must update the conversation, panels, contextual actions, hints, and saved history truthfully.
 
-- readable conversation layout;
-- clear distinction between narration and mechanics;
-- character sheet;
-- inventory;
-- quest journal;
-- combat status;
-- quick action affordances;
-- undo/retry for genuine interface failures;
-- useful save slots;
-- clean adventure start flow.
+The remaining start/continue, live-AI and unfamiliar-player tickets (#93–#95) target the increment 10 character library, the default browser mode: Hollow Beacon v12 is the full adventure for a new level-1 character, continuation reruns the same launcher command, and replacing an active adventure is an explicit abandon, rest and new start that keeps the old journey for review. Keep the `--legacy` single slot only for released saves. A general named-slot manager stays out of scope. Completed issue history is preserved.
+
+Retry is allowed for an uncommitted interface or provider failure. If narration fails after a committed action, display and save the authoritative result; a retry cannot reverse the consequence, reroll, or repeat the action. Further gameplay waits for AI availability. Completed games offer history review without further AI questions.
 
 ### What This Proves
 
@@ -691,6 +718,82 @@ The architecture can support an experience that people voluntarily want to conti
 External playtesters finish the adventure and ask to play another one.
 
 That is a much stronger success signal than feature completeness.
+
+Unfamiliar-player testing uses the completed adventure through the browser, each player creating a new level-1 character in their own character library. It returns during increment 8 after increment 9 has delivered the interface.
+
+---
+
+## Increment 9 — Local Browser Play
+
+### Player Experience
+
+Play the available Hollow Beacon content entirely in a local desktop browser, with central AI conversation, persistent location/exits/time/HP, one-click information panels, optional hints, contextual actions, and automatic saving. Closing the browser or stopping the local process preserves the single slot and its conversation for continuation.
+
+### Scope
+
+Support Hollow Beacon as it exists through issue #84. Give later gameplay actions and results a consistent place in the UI; design the details of future combat, quest items, and the full finale when their increment 8 tickets resume.
+
+Deliver:
+
+- a local launch command, server, and desktop browser shell;
+- player-safe structured projections, keeping hidden adventure and save data on the server;
+- typed AI turns, contextual click intents, and concise result cards;
+- one-click inventory, character, journal, and leads;
+- one automatic save slot and restored conversation history;
+- generated, cached hints that remain hidden until requested;
+- safe recovery from failures before and after an action commit;
+- protection against duplicate or stale submissions, including reload and multiple tabs;
+- confirmed new-game replacement and completed-game review;
+- browser workflow checks and clean-checkout handoff evidence.
+
+The engine continues to own rules, canon, time, RNG, and persistence authority. Reuse its established action/save paths and preserve old save, trace, and adventure interpretation. AI-only browser gameplay does not remove command-based testing or released compatibility workflows.
+
+### What This Proves
+
+The browser can keep current information accessible during play, restore the reading experience after restart, and safely present AI-mediated actions through the existing deterministic engine. Increment 9 establishes the interface for the remainder of the full adventure.
+
+### Test Focus
+
+Test complete browser → local API → engine → storage workflows, including conversations, investigation, travel, current signal decisions, refusal/departure, hints, questions, reload, server restart, reset, and failures on either side of a commit. Use scripted AI for repeatable browser checks and separately record bounded live-AI evidence.
+
+### Exit Criterion
+
+The supported Hollow Beacon content is playable and resumable through the browser; automated checks and a direct desktop walkthrough demonstrate correct state, history, and failure recovery; and installation/start/continue/reset work from a clean checkout. Canonical verification passes all required gates with zero warnings.
+
+Unfamiliar-player testing is not an increment 9 gate. It returns for the full-game qualification in increment 8. After increment 9 completes, rewrite the remaining increment 8 tickets against the delivered UI and resume the adventure work.
+
+See [the increment 9 implementation plan](increment-9-implementation-plan.md) for delivery slices and concrete verification criteria.
+
+---
+
+## Increment 10 — Independent Characters and Leveled Adventures
+
+### Player Experience
+
+Create and save a named Fighter independently of a game, or choose an existing character from the library. Inspect its full sheet, choose an adventure recommended for a stated level range, and play using character-derived combat and check values. Resume with exact character and adventure state. Complete the adventure, see earned progress and level changes, then take the same character into a second module.
+
+### Scope
+
+- independently saved character records with creation/selection before adventure startup;
+- six ability scores and engine-derived modifiers, an actual loadout, and a readable character sheet;
+- meaningful Fighter levels 1–3, stable authored XP rewards, and a documented advancement table;
+- versioned adventure metadata for character rules/classes, one-character play, and recommended levels;
+- a registry and selector for two qualified authored adventures with different recommendations;
+- linked adventure sessions with frozen starting sheets, one active session per character, and retained completed records;
+- recoverable start/result handoff, once-only rewards, and explicit New adventure/abandonment flows;
+- unchanged interpretation of historical content, saves, traces, and completed Review mode.
+
+The implemented advancement policy credits pending adventure XP when a surviving character completes the adventure, preserving remaining HP. Explicit rest restores health before another start; defeated characters are unavailable. Abandonment discards pending XP while retaining the character and historical journey. These rules do not introduce healing or advancement into old saves. New classes, spells, parties, automatic encounter scaling, resurrection, and arbitrary generated-adventure browser support remain later work.
+
+### Test Focus
+
+Prove standalone character creation and persistence before starting a game; selected-sheet effects on combat and authored checks; threshold advancement without duplicate XP; a two-adventure journey with preserved career progress; and restart, interrupted writes, stale tabs, active-character conflicts, and historical-save compatibility through browser/API/storage workflows. Qualify difficulty across the declared levels, score profiles, routes, and seeds.
+
+### Exit Criterion
+
+A player can save a character, close/reopen the interface, select it, finish one adventure, and start a second with the same identity, scores, equipment policy, and earned level. The sheet, rewards, range warnings, and saved history remain truthful. Focused and canonical verification, a clean-checkout handoff, bounded live-AI checks, and unfamiliar-player evidence qualify the new journey. The live-AI and unfamiliar-player evidence is gathered with the full adventure through #94 and #95.
+
+See [the increment 10 implementation plan](increment-10-implementation-plan.md) for the delivery slices, remaining rules decisions, and concrete acceptance scenarios.
 
 ---
 
@@ -714,6 +817,10 @@ Delay until gameplay requires them:
 - modding;
 - optimisation for huge numbers of concurrent users.
 
+For the initial browser release, also defer maps, multiple save slots, hosted deployment, phone-specific design, an installer, browser API-key setup, and streaming. UI support for earlier adventures can follow later demand.
+
+Independent character sheets and the qualified character/adventure selector are now explicit increment 10 scope. The records needed to retain character journeys do not bring a general slot manager, cloud character sharing, or broad legacy/generated-adventure UI support into that increment.
+
 Every one of these can consume substantial effort without answering the project's key question:
 
 > Is AI-mediated tabletop-style roleplaying actually fun?
@@ -731,6 +838,7 @@ Rules should be ordinary deterministic unit tests.
 Examples:
 
 - attack modifiers;
+- ability score/modifier tables, Fighter level progression, XP thresholds, and level caps;
 - AC resolution;
 - advantage/disadvantage;
 - damage;
@@ -775,9 +883,21 @@ Bad assertion:
 
 > DM said exactly "Mara looks uncertain..."
 
+## Browser Workflow Tests
+
+Test critical play and persistence workflows through the browser, local API, and storage boundary. Cover automatic save and exact history restoration, state panels, hints, duplicate/stale input, reset, and AI failure before and after a commit. Verify questions and information views preserve time and RNG, and completed games make no further AI calls.
+
+Character-enabled workflows additionally cover saving a sheet before a game exists, selecting among multiple saved characters, canceling adventure selection, one active game per character, preserving characters during New adventure, once-only result handoff, and carrying earned progress into a second module. Old game review must not roll back a current sheet; interrupted character/adventure writes must recover a consistent result.
+
+Scripted AI keeps automated browser tests deterministic; separately record live-AI checks and a direct desktop walkthrough. Increment 9 does not require unfamiliar-player testing. The full-game qualification in increment 8 does.
+
+Tests may assert exact restoration of previously displayed conversation without asserting that a live model will generate the same prose again.
+
 ## Adventure Validation Tests
 
 Generated and authored adventures should pass structural checks before play.
+
+New character-enabled modules validate supported rules/classes and inclusive level ranges, stable reward identities, and explicit ability-based challenges. Qualify the claimed range with actual character profiles; metadata alone does not establish balance. The existing schema-3 generator keeps its old mode until a separately verified upgrade supports the new mechanics and updates its continuity/readiness/route checks.
 
 ## Replay Tests
 
@@ -787,6 +907,7 @@ Record:
 - AI tool calls;
 - engine events;
 - random seed;
+- the selected character identity, frozen starting sheet, and character rules version for character-enabled sessions;
 - state transitions.
 
 This makes difficult AI-driven failures inspectable.
@@ -824,16 +945,19 @@ That naturally produces useful vertical slices.
 
 # 8. Suggested Milestone Sequence
 
-| Increment | Playable Result | Main Risk Retired |
-|---|---|---|
-| 1 | Three-room deterministic dungeon | Core rules/state architecture |
-| 2 | Same dungeon through natural language | LLM-to-engine interaction |
-| 3 | 30–60 minute authored adventure | Dialogue, secrets, non-combat play |
-| 4 | Adventure loaded entirely from data | Engine/adventure separation |
-| 5 | AI-generated tiny adventure | Generated-content reliability |
-| 6 | Persistent consequences and save/resume | Long-term coherence |
-| 7 | Unexpected actions and world clocks | DM judgement and player freedom |
-| 8 | First 2–4 hour polished adventure | Actual sustained fun |
+| Increment         | Playable Result                                                                       | Main Risk Retired                                                     |
+| ----------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 1                 | Three-room deterministic dungeon                                                      | Core rules/state architecture                                         |
+| 2                 | Same dungeon through natural language                                                 | LLM-to-engine interaction                                             |
+| 3                 | 30–60 minute authored adventure                                                       | Dialogue, secrets, non-combat play                                    |
+| 4                 | Adventure loaded entirely from data                                                   | Engine/adventure separation                                           |
+| 5                 | AI-generated tiny adventure                                                           | Generated-content reliability                                         |
+| 6                 | Persistent consequences and save/resume                                               | Long-term coherence                                                   |
+| 7                 | Unexpected actions and world clocks                                                   | DM judgement and player freedom                                       |
+| 8, through #84    | Hollow Beacon opening and watch route                                                 | Opening investigation and persistent consequences                     |
+| 9                 | Local AI browser play with persistent information and restored history                | UI usability, browser persistence, and safe AI failure recovery       |
+| 10                | Independently saved Fighter sheets, levels 1–3, and a two-adventure journey           | Character ownership, progression, balance, and safe career continuity |
+| 8, remaining work | First 2–4 hour adventure played with a saved character, qualified through the browser | Actual sustained fun                                                  |
 
 ---
 
