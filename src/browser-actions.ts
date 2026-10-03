@@ -318,15 +318,21 @@ export function browserActions(
         const topic = definition?.npcs
           ?.find(({ id }) => id === npc.id)
           ?.topics.find(({ id }) => id === subject.id);
-        for (const approach of topic === undefined
-          ? ([subject.intent === "claim" ? "persuade" : "ask"] as const)
-          : offeredTalkApproaches(topic)) {
+        const approaches =
+          topic === undefined
+            ? ([subject.intent === "claim" ? "persuade" : "ask"] as const)
+            : offeredTalkApproaches(topic);
+        for (const approach of approaches) {
           if (!permits("talk", "approach", approach)) {
             continue;
           }
+          // A character-mode topic with one approach is labelled by its own
+          // wording; "Persuade:" only tells two approaches apart.
+          const prefixed =
+            approach !== "ask" && (!characterMode || approaches.length > 1);
           add(
             "npc:" + npc.id,
-            (approach === "ask" ? "" : "Persuade: ") + subject.name,
+            (prefixed ? "Persuade: " : "") + subject.name,
             approach === "ask"
               ? "Ask " + npc.name + ' about "' + subject.name + '".'
               : "Persuade " + npc.name + ' to discuss "' + subject.name + '".',

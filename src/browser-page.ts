@@ -179,7 +179,7 @@ function chooseContext(id, name, opener) {
   for (const action of currentView.actions.filter((action) => action.contextId === id)) {
     const option = document.createElement("div"); option.className = "action-option";
     // Stakes precede commitment, including neutral-NPC violence and endings.
-    if (action.stakes) { const stakes = document.createElement("p"); stakes.textContent = action.label + ": " + action.stakes; option.append(stakes); }
+    if (action.stakes) { const stakes = document.createElement("p"); stakes.textContent = (currentView.careerMode ? "" : action.label + ": ") + action.stakes; option.append(stakes); }
     option.append(actionButton(action, contextButtons));
     element("context-actions").append(option);
   }
@@ -438,6 +438,8 @@ function restoreHistory(view) {
   // A reply may arrive while the player is reading older turns. Rebuilding
   // the saved transcript must not pull them away from that reading position.
   if (!following) { conversation.scrollTop = scrollTop; }
+  // A new adventure is read from the start of its opening.
+  if (view.careerMode && view.slot === "occupied" && !(view.history || []).length) { conversation.scrollTop = 0; }
 }
 function list(id, values) {
   element(id).replaceChildren(...values.map((value) => {
