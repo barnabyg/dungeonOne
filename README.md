@@ -35,6 +35,12 @@ npm.cmd run browser -- --seed 42 --characters .\.scratch\character-player\charac
 Character creation and sheet reads work without an API key. Gameplay requires
 `OPENAI_API_KEY` configured before launch.
 
+To continue, wait for a complete reply, press Ctrl+C and rerun the same command;
+the selected adventure opens where it was saved. To start over, abandon the
+adventure in the character library, rest, and start again; the abandoned journey
+stays reviewable. See the [issue 93 continuation handoff and supported-release
+policy](docs/acceptance/issue-93.md).
+
 ## Requirements
 
 - Node.js 24.21.0 LTS (pinned in `.nvmrc`; supported runtime line: Node.js 24.x)
