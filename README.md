@@ -35,6 +35,12 @@ original Hollow Beacon v11 single slot. Existing save/trace formats remain
 readable with their original rules. The adventure generator retains its existing
 mode. Live-provider and unfamiliar-player qualification are still pending.
 
+Character adventures use the `character-adventure-dm-v2` prompt. When the engine
+refuses an attempted action, the reply is engine-authored (no action was
+committed; the **Action rejected** card gives the reason), so AI narration cannot
+claim the refused result. Committed actions, reads and clarifications keep AI
+narration. AI traces recorded under `character-adventure-dm-v1` still replay.
+
 ```powershell
 npm.cmd run browser -- --seed 42 --characters .\.scratch\character-player\characters.json --save .\.scratch\character-player\legacy.json
 ```
