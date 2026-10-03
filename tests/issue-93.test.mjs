@@ -217,7 +217,7 @@ test("the release policy lists each bundled tuple, its browser mode and what new
     ({ id, version, mode }) => `${mode}:${id}@${version}`,
   );
   assert.deepEqual(starts, [
-    "character:hollow-beacon@13",
+    "character:hollow-beacon@14",
     "character:stonebridge@1",
     "single-slot:hollow-beacon@11",
   ]);
@@ -289,7 +289,7 @@ test("the default launcher continues a character adventure when the same command
       assert.match(view.characterLabel, /^Ada · Fighter level 1$/);
       const { data, path } = await sessionFiles(careerDirectory);
       const session = await SaveSession.load(path(data.selectedSessionId));
-      assert.equal(session.runtime.version, "13");
+      assert.equal(session.runtime.version, "14");
       const bytes = [
         await readFile(libraryPath, "utf8"),
         await readFile(path(data.selectedSessionId), "utf8"),

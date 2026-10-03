@@ -141,8 +141,8 @@ const PLATE_AND_COMPONENT = [
 ];
 const RIDGE = ["move ridge-trail", "fight ridge-raider", "move ridge-shelter"];
 const FINAL_BOARD = "examine final-warning-board";
-const ON_TIME = /Before Day 3: the warning is issued before the planned turn/;
-const LATE = /Day 3 or later: the caravan missed its planned turn/;
+const ON_TIME = /It's before Day 3: your warning goes out before the caravan/;
+const LATE = /It's after Day 3: the caravan had already missed its turn/;
 
 /** Asserts a surviving ending credited 1,000 XP once and survives restart. */
 async function assertCompletedOnce(server, relaunch, cards) {
@@ -200,7 +200,7 @@ for (const seed of [0, 1, 2, 3]) {
       await startAda(server);
       const cards = await play(server, beaconExamine);
       assert.doesNotMatch(cards, /Combat begins|Initiative/);
-      assert.match(cards, /post the warning for travellers/);
+      assert.match(cards, /send the warning by messenger/);
       assert.match(cards, LATE);
       assert.doesNotMatch(cards, ON_TIME);
       assert.equal((await state(server)).character.hp, 19);
@@ -224,8 +224,8 @@ test("casualty: killing Vey after avoiding the sentry ends late with an urgent r
       "resolve urgent-risky-signal",
     ]);
     assert.match(cards, /Vey dies at Beacon Tower/);
-    assert.match(cards, /Vey is dead; the final warning cannot reverse/);
-    assert.match(cards, /emergency shutter warning/);
+    assert.match(cards, /Vey is dead./);
+    assert.match(cards, /emergency shutter/);
     assert.match(cards, LATE);
     assert.deepEqual(carried(await state(server)), ["signal-component"]);
     await assertCompletedOnce(server, relaunch, cards);

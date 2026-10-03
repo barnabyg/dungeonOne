@@ -55,6 +55,10 @@ export function browserInformation(session: SaveSession): BrowserInformation {
     const proof = discoveries.some(({ id }) =>
       ["altered-setting", "refugee-alignment"].includes(id),
     );
+    // Hollow Beacon v14 words its leads as plain directions (#95); earlier
+    // releases keep their released wording.
+    const lead = (released: string, plain: string) =>
+      Number(session.runtime.version) >= 14 ? plain : released;
     currentLeads =
       scene.outcome !== "playing"
         ? []
@@ -63,19 +67,34 @@ export function browserInformation(session: SaveSession): BrowserInformation {
           : milestones.includes("confrontation-resolved")
             ? [
                 scene.room.id === "beacon-tower"
-                  ? "Review the final warning board and the available final choices. A choice alone confirms no rescue."
-                  : "Return to Beacon Tower to review the final warning decision. A choice alone confirms no rescue.",
+                  ? lead(
+                      "Review the final warning board and the available final choices. A choice alone confirms no rescue.",
+                      "Read the final warning board, then choose how to warn the caravan.",
+                    )
+                  : lead(
+                      "Return to Beacon Tower to review the final warning decision. A choice alone confirms no rescue.",
+                      "Go back to the Beacon Tower to choose how to warn the caravan.",
+                    ),
               ]
             : scene.room.id === "beacon-tower"
               ? [
-                  `${session.runtime.rulesVersion === "character-adventure-rules-v2" ? "Examine" : "Inspect"} the fixed tower work order and the controls in view. Physical evidence remains available after a refused conversation.`,
+                  lead(
+                    `${session.runtime.rulesVersion === "character-adventure-rules-v2" ? "Examine" : "Inspect"} the fixed tower work order and the controls in view. Physical evidence remains available after a refused conversation.`,
+                    "Examine Vey's work order. To reach the controls, show Vey proof or Iona's written authority, or fight.",
+                  ),
                 ]
               : proof
                 ? [
-                    "Compare your observed evidence with the tower work order. Read the public route costs before committing to travel.",
+                    lead(
+                      "Compare your observed evidence with the tower work order. Read the public route costs before committing to travel.",
+                      "You have proof the beacon's aim was changed. Take it to the Beacon Tower and find out who ordered it.",
+                    ),
                   ]
                 : [
-                    "Compare the setting plate at the watch or the camp survey and sighting frame. Testimony and beliefs remain attributed accounts.",
+                    lead(
+                      "Compare the setting plate at the watch or the camp survey and sighting frame. Testimony and beliefs remain attributed accounts.",
+                      "Find out whether the beacon's aim was changed: examine the setting plate in the Signal Records Room, or the camp survey and the sighting frame at the Refugee Overlook.",
+                    ),
                   ];
     const ionaAlive =
       "runtimeKind" in state &&

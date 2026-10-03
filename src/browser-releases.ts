@@ -65,6 +65,15 @@ export const BROWSER_RELEASES: readonly BrowserRelease[] = [
     schemaVersion: 17,
     file: "hollow-beacon-examine.json",
     mode: "character",
+    starts: false,
+  },
+  {
+    id: "hollow-beacon",
+    version: "14",
+    rulesVersion: "character-adventure-rules-v2",
+    schemaVersion: 17,
+    file: "hollow-beacon-story.json",
+    mode: "character",
     starts: true,
   },
   {

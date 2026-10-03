@@ -194,7 +194,8 @@ test("v13 shows one Examine option per target; v12 keeps Inspect and Search", as
   });
 });
 
-test("new character adventures start v13 while v12 saves continue", async () => {
+// v13 started new adventures until v14 replaced it (#95); its row stays.
+test("the v13 release row stays continuable after v14 replaced it, as v12 does", async () => {
   const v13Row = BROWSER_RELEASES.find(
     ({ mode, version }) => mode === "character" && version === "13",
   );
@@ -210,7 +211,7 @@ test("new character adventures start v13 while v12 saves continue", async () => 
       schemaVersion: 17,
       file: "hollow-beacon-examine.json",
       mode: "character",
-      starts: true,
+      starts: false,
     },
   );
   assert.equal(v12Row.starts, false);
@@ -219,7 +220,7 @@ test("new character adventures start v13 while v12 saves continue", async () => 
     startable
       .filter(({ snapshot }) => snapshot.id === "hollow-beacon")
       .map(({ snapshot }) => snapshot.contentVersion),
-    ["13"],
+    ["14"],
   );
   const policy = await browserReleasePolicy("11");
   policy.assertContinuable(await v12());
