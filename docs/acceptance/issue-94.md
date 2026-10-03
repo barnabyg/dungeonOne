@@ -46,7 +46,10 @@ npm.cmd run browser -- --seed 0 --characters .\.scratch\issue-94-player\characte
    game or calls the AI.
 3. Play the journey above, waiting for each complete reply and an enabled
    message box. Type the messages; click the subject and then the option for
-   the click rows. If the Dungeon Master only describes something (for
+   the click rows. The plate, work order and warning board must each end in a
+   **Resolved action** search card: Vey's proof option needs both the plate
+   and work-order discoveries, and the Ridge Trail closes on Day 3, so a missed
+   plate search costs a long detour. If the Dungeon Master only describes something (for
    example after “Look … over carefully”), it has inspected without
    searching; type the offered option text such as `Search beacon setting plate`.
    `take` needs your own words to say take, grab, collect or pick up; a check
