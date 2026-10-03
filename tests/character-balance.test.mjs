@@ -153,3 +153,39 @@ for (const module of MODULES) {
     }
   });
 }
+
+// The minimums are needed: one Strength or Dexterity band lower, or the lowest
+// Constitution, fails the level 1 fight. Version 1 sheets accept any scores and
+// share version 2 play rules, so they stand in for the refused rolls (#118).
+test("hollow-beacon-characters: rolls below the Fighter minimums fail level 1", async () => {
+  const loaded = loadAdventure(
+    await readFile("adventures/hollow-beacon-characters.json"),
+  );
+  for (const [strength, dexterity, constitution] of [
+    [8, 9, 7],
+    [9, 8, 7],
+    [9, 9, 3],
+  ]) {
+    const base = {
+      ...createCharacter("Sample", "balanced", "0".repeat(32)),
+      abilities: {
+        strength,
+        dexterity,
+        constitution,
+        intelligence: 3,
+        wisdom: 3,
+        charisma: 3,
+      },
+    };
+    const surviving = qualify(
+      loaded,
+      MODULES[0],
+      { ...base, hp: characterProfile(base).maxHp },
+      1,
+    );
+    assert.ok(
+      surviving < 51,
+      `STR ${strength} DEX ${dexterity} CON ${constitution}: ${surviving}/64`,
+    );
+  }
+});
