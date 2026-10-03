@@ -172,14 +172,19 @@ export function createCharacterRuntime(
   /**
    * Resolves a typed examine: the search when it commits something new,
    * otherwise the description. A search that is refused or finds nothing new
-   * draws no dice and changes nothing, so trying it first is safe.
+   * draws no dice and changes nothing, so trying it first is safe. As for
+   * the examine tool, a search is tried only while the engine offers one,
+   * which excludes combat and a finished adventure.
    */
   const examineAction = (
     state: RuntimeState,
     target: string | undefined,
     random?: Pick<RandomSource, "roll">,
   ): RuntimeResult => {
-    if (target !== undefined) {
+    if (
+      target !== undefined &&
+      targetsOf(legacy.getGameToolDefinitions(state), "search").length > 0
+    ) {
       const searched = legacy.handleAction(
         state,
         { type: "search", target },

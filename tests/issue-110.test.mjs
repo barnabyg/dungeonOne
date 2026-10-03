@@ -493,3 +493,55 @@ test("a v13 command trace with typed examine replays", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("v13 refuses inspect and search calls, v12 refuses examine, and the prompt names examine for carried items", async () => {
+  const runtime = await v13();
+  const state = inRecords(runtime.createSession());
+  for (const name of ["inspect", "search"]) {
+    const result = runtime.dispatchGameTool(
+      state,
+      { name, argumentsJson: JSON.stringify({ target: "setting-plate" }) },
+      createSeededRandom(0),
+      "Search the plate.",
+    );
+    assert.deepEqual(result.modelOutput, {
+      ok: false,
+      error: { code: "unknown-tool" },
+    });
+    assert.equal(result.state, state);
+  }
+  const old = await v12();
+  const refused = examine(old, inRecords(old.createSession()), "setting-plate");
+  assert.equal(refused.modelOutput.ok, false);
+  assert.match(runtime.systemPrompt, /Examine carried items with examine./);
+  assert.doesNotMatch(runtime.systemPrompt, /Inspect carried items/);
+  assert.match(old.systemPrompt, /Inspect carried items with inspect./);
+});
+
+test("in combat a typed examine only describes, as the examine tool does", async () => {
+  const runtime = await v13();
+  const random = createSeededRandom(0);
+  let state = runtime.createSession();
+  for (const command of ["move ridge-trail"]) {
+    state = runtime.handleAction(
+      state,
+      runtime.parseCommand(command),
+      random,
+    ).state;
+  }
+  assert.ok(runtime.projectDmScene(state).combat, "combat on arrival");
+  const tool = runtime
+    .getGameToolDefinitions(state)
+    .find(({ name }) => name === "examine");
+  const target = tool.parameters.properties.target.enum.find(
+    (id) => id === "broken-marker",
+  );
+  assert.ok(target);
+  const result = runtime.handleAction(
+    state,
+    runtime.parseCommand("examine " + target),
+    random,
+  );
+  assert.equal(result.state, state);
+  assert.equal(result.events[0].operation, "inspect");
+});
