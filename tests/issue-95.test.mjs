@@ -141,8 +141,8 @@ const PLATE_AND_COMPONENT = [
 ];
 const RIDGE = ["move ridge-trail", "fight ridge-raider", "move ridge-shelter"];
 const FINAL_BOARD = "examine final-warning-board";
-const ON_TIME = /It's before Day 3: your warning goes out before the caravan/;
-const LATE = /It's after Day 3: the caravan had already missed its turn/;
+const ON_TIME = /It's before Day 3. Your warning goes out before the caravan/;
+const LATE = /It's after Day 3. The caravan had already reached the fork/;
 
 /** Asserts a surviving ending credited 1,000 XP once and survives restart. */
 async function assertCompletedOnce(server, relaunch, cards) {
@@ -200,7 +200,7 @@ for (const seed of [0, 1, 2, 3]) {
       await startAda(server);
       const cards = await play(server, beaconExamine);
       assert.doesNotMatch(cards, /Combat begins|Initiative/);
-      assert.match(cards, /send the warning by messenger/);
+      assert.match(cards, /send runners down the road with a written warning/);
       assert.match(cards, LATE);
       assert.doesNotMatch(cards, ON_TIME);
       assert.equal((await state(server)).character.hp, 19);

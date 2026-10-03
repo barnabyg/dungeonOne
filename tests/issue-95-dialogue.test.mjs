@@ -68,7 +68,7 @@ async function askIona(file) {
 test("v14: a person answers in their authored words, without a second AI call", async () => {
   const { turn, requests } = await askIona("hollow-beacon-story.json");
   assert.equal(requests.length, 1);
-  assert.match(turn.narration, /^Iona: The caravan is nearing the fork/);
+  assert.match(turn.narration, /^Iona: Our beacon went dark at dusk/);
   assert.doesNotMatch(turn.narration, /Please check carefully|\(urgent\)/);
 });
 

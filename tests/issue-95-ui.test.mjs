@@ -228,8 +228,6 @@ test("character mode: a single-approach topic is labelled by its own words, with
     const iona = actions
       .filter(({ contextId }) => contextId === "npc:iona")
       .map(({ label }) => label);
-    assert.ok(
-      iona.includes("Bluff: tell Iona the beacon is safe to light as it is"),
-    );
+    assert.ok(iona.includes("Ask what's wrong with the beacon"));
     assert.ok(!iona.some((label) => label.startsWith("Persuade:")));
   }));

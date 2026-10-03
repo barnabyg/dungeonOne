@@ -4,7 +4,7 @@
   "contentVersion": "14",
   "rulesVersion": "character-adventure-rules-v2",
   "title": "Hollow Beacon: A Fighter’s Warning",
-  "introduction": "You are a sellsword who has just reached Hollow Beacon, a hilltop watch post above the valley road.\n\nEvery night the watch lights its beacon and aims it at the fork in the road below. Travellers know that light well: it shows them which way to turn. Tonight the beacon is dark, and its keeper is missing.\n\nA caravan of wagons and refugees reaches the fork on Day 3. If no one warns them in time, they may take the wrong road.\n\nCaptain Iona, who commands the beacon watch, is in the yard. Her signaller Pell is up in the Watch Loft, and refugees led by Sera are camped nearby. Find out what happened to the beacon, reach the Beacon Tower further up the valley, and decide how to warn the caravan.\n\nTwo roads lead to the tower. The Ridge Trail takes 2 days, but a raider guards it and it closes after Day 3. The Valley Road is safe but takes 4 days. Looking around the watch post takes no time.",
+  "introduction": "You are a sellsword who has just reached Hollow Beacon, a hilltop watch post above the valley road, looking for paid work.\n\nEvery night the watch lights its beacon and aims it at the fork in the road below. Travellers know that familiar light well: it shows them which way to turn. Tonight the beacon is dark, and its keeper has vanished.\n\nA caravan of supply wagons reaches the fork on Day 3. Below the watch post, refugees who fled raiders in the hills are camped and waiting for it: the caravan is their way south. If the caravan takes the wrong road, both are in danger.\n\nCaptain Iona, who commands the beacon watch, is in the yard and needs someone she can send up the valley. Pell, her signaller, set the beacon's aim last night from the Watch Loft. Sera speaks for the refugees.\n\nFind out who darkened the beacon and why, reach the Beacon Tower further up the valley, and decide how to warn the caravan. Two roads lead there: the Ridge Trail takes 2 days, but a raider guards it and it closes after Day 3; the Valley Road is safe but takes 4 days. Looking around the watch post takes no time.",
   "objective": "Find out why the beacon is dark, reach the Beacon Tower, and decide how to warn the caravan before it reaches the fork on Day 3.",
   "player": {
     "locationId": "watch-yard",
@@ -63,7 +63,7 @@
     {
       "id": "watch-loft",
       "name": "Watch Loft",
-      "description": "Pell, the signaller, tends the watch bell and keeps the notes from the last shift. Through a doorway, the Signal Records Room holds the beacon's setting plate.",
+      "description": "The watch bell hangs here, and Pell, the watch's signaller, keeps the notes from last night's shift. Pell set the beacon's aim before dusk. Through a doorway, the Signal Records Room holds the beacon's setting plate.",
       "aliases": ["loft", "watch loft"],
       "descriptions": [
         {
@@ -150,7 +150,7 @@
     {
       "id": "refugee-camp",
       "name": "Refugee Camp",
-      "description": "Sera watches the dark beacon from beside the refugees' canvas shelters. A signal survey board here points toward the Refugee Overlook. You can help the refugees, refuse them, or simply move on; the survey board stays open to you either way.",
+      "description": "Refugees huddle beside canvas shelters, two of them torn down by the wind. Sera, who speaks for them, watches the dark beacon. They fled raiders in the hills and are waiting for the caravan to take them south. A signal survey board here points toward the Refugee Overlook.",
       "aliases": ["camp", "refugee camp"],
       "descriptions": [
         {
@@ -223,7 +223,7 @@
     {
       "id": "beacon-tower",
       "name": "Beacon Tower",
-      "description": "Vey, the tower operator, stands guard over the beacon controls beside a signed work order. Show Vey proof that the aim was changed on purpose, or a written order from Captain Iona, and Vey may step aside without a fight. You could also attack, but once a fight starts there is no backing out.",
+      "description": "Vey, the tower operator, stands guard over the beacon controls beside a signed work order. Vey looks like someone who hasn't slept. Show Vey proof that the aim was changed on purpose, or a written order from Captain Iona, and Vey may step aside without a fight. You could also attack, but once a fight starts there is no backing out.",
       "aliases": ["tower", "beacon tower"],
       "descriptions": [
         {
@@ -639,7 +639,7 @@
       "name": "tower work order",
       "aliases": ["tower-work-order"],
       "locationId": "beacon-tower",
-      "description": "A work order signed by Vey, telling the watch to turn the lamp from the old fork toward the east cut to divert supply wagons.",
+      "description": "A work order signed by Vey, telling the watch to turn the lamp from the old fork toward the east cut 'to divert supply wagons'.",
       "when": [],
       "descriptions": []
     },
@@ -780,7 +780,7 @@
       "title": "Contested pursuer claim",
       "classification": "belief",
       "sourceNpcId": "sera",
-      "summary": "Sera suspects pursuers could follow the familiar light. Nobody has seen them; it's her fear, not proof.",
+      "summary": "Sera fears the raiders who drove the refugees out of the hills followed them, and could use a wrong beacon light to find the caravan. Nobody has seen them; it's her fear, not proof.",
       "lead": "Check the camp survey and the sighting frame at the Refugee Overlook."
     },
     {
@@ -834,8 +834,8 @@
       "title": "Supplies taken from the road",
       "classification": "observation",
       "sourceFeatureId": "supply-sack",
-      "summary": "Food wrappers and the raider's demand for supplies explain the ambush. It has nothing to do with the beacon.",
-      "lead": "Examine the broken marker, or go on to Ridge Shelter."
+      "summary": "The raider's sack held a note: 'wagons to the east cut, Day 3'. Someone told the raiders when and where the supply wagons would come.",
+      "lead": "Find out who sent that note. Ridge Shelter is a short walk on."
     },
     {
       "id": "tower-onward-lead",
@@ -1014,7 +1014,7 @@
           "id": "raider-motive"
         }
       ],
-      "text": "Food wrappers and the raider's demand for supplies explain the ambush. It has nothing to do with the beacon. Examine the marker, or go on toward the tower."
+      "text": "Food wrappers, an empty purse, and a scrap of paper: 'wagons to the east cut, Day 3'. The raider was waiting for supply wagons that should have come this way. Someone told them when."
     },
     {
       "id": "shelter-routes",
@@ -1038,7 +1038,7 @@
           "id": "tower-order-known"
         }
       ],
-      "text": "You read Vey's signed order: turn the lamp from the old fork toward the east cut, to divert supply wagons. Together with the setting plate or sighting frame, that's proof. It says nothing about the missing keeper."
+      "text": "You read Vey's signed order: turn the lamp from the old fork toward the east cut, 'to divert supply wagons'. The east cut is where raiders wait. Together with the setting plate or the sighting frame, that's proof the change was deliberate. It says nothing about the missing keeper."
     },
     {
       "id": "secure-abandoned-controls",
@@ -1109,17 +1109,17 @@
     {
       "targetId": "iona",
       "tier": "neutral",
-      "reason": "Iona has just met the player."
+      "reason": "Captain Iona commands the beacon watch. She has just met you and needs help she can trust."
     },
     {
       "targetId": "sera",
       "tier": "neutral",
-      "reason": "Sera has just met the player."
+      "reason": "Sera speaks for the refugees camped below the watch. She doesn't know you yet."
     },
     {
       "targetId": "pell",
       "tier": "neutral",
-      "reason": "Pell is on watch duty and has not yet spoken to the player."
+      "reason": "Pell is the watch's signaller, who set the beacon's aim last night. They don't know you yet."
     }
   ],
   "npcs": [
@@ -1135,7 +1135,7 @@
         "Give the caravan an honest signal before it reaches the fork."
       ],
       "knowledgeLimits": [
-        "Has not visited the camp or service gate; knows their findings only if the player reports them."
+        "Has not visited the camp or the service gate, and knows only what the player reports from there."
       ],
       "topics": [
         {
@@ -1191,7 +1191,7 @@
               "when": [],
               "outcome": "any",
               "approach": "any",
-              "text": "Iona: The caravan is nearing the fork and our beacon is dark. Pell is up in the Watch Loft, and the setting plate is in the records room next to it. Sera at the refugee camp and the keeper's path are worth a look too. I won't light a beacon I can't trust.",
+              "text": "Iona: Our beacon went dark at dusk and the keeper is gone. A supply caravan reaches the fork on Day 3, and the refugees below are waiting for it. Until we know why the beacon went out and where it's pointing, lighting it could send the caravan the wrong way. Pell set its aim last night; ask in the Watch Loft. Sera at the refugee camp and the keeper's path are worth a look too.",
               "attitude": "neutral",
               "approvedFactIds": [
                 "beacon-dark",
@@ -1390,132 +1390,6 @@
           ]
         },
         {
-          "id": "safe-signal",
-          "name": "Bluff: tell Iona the beacon is safe to light as it is",
-          "aliases": ["familiar signal is safe", "safe signal", "safe-signal"],
-          "when": [],
-          "challengeId": "iona-safe-signal",
-          "intent": "claim",
-          "stakes": "A bluff. Roll a d20 plus your Charisma modifier; 12 or more and Iona believes you. You get one try. If she believes you, she trusts you; if not, she trusts you less. Either way, showing her the setting plate later sets things right.",
-          "replies": [
-            {
-              "when": [],
-              "outcome": "success",
-              "approach": "any",
-              "text": "Iona: All right, I'll take your word that it's safe. But check the setting plate, and come back if you were wrong.",
-              "attitude": "trusting",
-              "approvedFactIds": [],
-              "effects": [
-                {
-                  "type": "grant-discovery",
-                  "id": "iona-signal-belief"
-                },
-                {
-                  "type": "record-milestone",
-                  "id": "iona-claim-attempted"
-                },
-                {
-                  "type": "set-relationship",
-                  "id": "iona",
-                  "tier": "trusted",
-                  "reason": "Iona accepted the player's unsupported safe-signal claim."
-                }
-              ]
-            },
-            {
-              "when": [],
-              "outcome": "failure",
-              "approach": "any",
-              "text": "Iona: I don't believe you. Go and examine the setting plate in the records room and bring me what it shows. The camp survey and sighting frame are worth a look too.",
-              "attitude": "guarded",
-              "approvedFactIds": [],
-              "effects": [
-                {
-                  "type": "grant-discovery",
-                  "id": "iona-claim-refusal"
-                },
-                {
-                  "type": "record-milestone",
-                  "id": "iona-claim-attempted"
-                },
-                {
-                  "type": "set-relationship",
-                  "id": "iona",
-                  "tier": "hostile",
-                  "reason": "Iona refused the player's unsupported safe-signal claim."
-                }
-              ]
-            },
-            {
-              "when": [],
-              "outcome": "any",
-              "approach": "any",
-              "text": "Iona: The setting plate is still in the records room.",
-              "attitude": "guarded",
-              "approvedFactIds": [],
-              "effects": []
-            }
-          ]
-        },
-        {
-          "id": "correct-signal",
-          "name": "Admit the bluff and show Iona the setting plate",
-          "aliases": ["setting plate correction", "correct-signal"],
-          "when": [
-            {
-              "type": "milestone-recorded",
-              "id": "iona-claim-attempted"
-            },
-            {
-              "type": "discovery-known",
-              "id": "altered-setting"
-            }
-          ],
-          "challengeId": "none",
-          "intent": "correction",
-          "stakes": "Tell Iona what the setting plate really shows. She trusts you again and stops believing the beacon is safe. Nobody else is affected.",
-          "replies": [
-            {
-              "when": [
-                {
-                  "type": "milestone-recorded",
-                  "id": "iona-claim-corrected"
-                }
-              ],
-              "outcome": "any",
-              "approach": "any",
-              "text": "Iona: Thank you for telling me straight. The signal still has to be checked. Nobody else heard this.",
-              "attitude": "candid",
-              "approvedFactIds": [],
-              "effects": []
-            },
-            {
-              "when": [],
-              "outcome": "any",
-              "approach": "any",
-              "text": "Iona: The plate says the beacon would point the wrong way, so it isn't safe. I'm glad you told me the truth. We still don't know who did this; talk to Pell or Sera.",
-              "attitude": "candid",
-              "approvedFactIds": [],
-              "effects": [
-                {
-                  "type": "grant-discovery",
-                  "id": "iona-evidence-correction"
-                },
-                {
-                  "type": "record-milestone",
-                  "id": "iona-claim-corrected"
-                },
-                {
-                  "type": "set-relationship",
-                  "id": "iona",
-                  "tier": "trusted",
-                  "reason": "Iona trusts the player for correcting the claim with observed plate evidence."
-                }
-              ]
-            }
-          ]
-        },
-        {
           "id": "tower-warrant",
           "name": "Ask Iona for written authority to take the tower",
           "aliases": ["tower-warrant"],
@@ -1636,7 +1510,7 @@
               "when": [],
               "outcome": "any",
               "approach": "any",
-              "text": "Sera: Before the keeper vanished, they told me not to trust the beacon unless someone had checked it. I'm afraid someone could use it to lure pursuers to the caravan. I didn't see anyone touch the lamp.",
+              "text": "Sera: Before the keeper vanished, they told me not to trust the beacon unless someone had checked its aim. I'm afraid the raiders who chased us out of the hills could use a wrong light to find the caravan. I didn't see anyone touch the lamp.",
               "attitude": "wary",
               "approvedFactIds": ["keeper-missing"],
               "effects": [
@@ -1658,7 +1532,7 @@
         },
         {
           "id": "help",
-          "name": "Help the group make room",
+          "name": "Help the refugees raise their torn shelters",
           "aliases": ["help"],
           "when": [],
           "challengeId": "none",
@@ -1667,7 +1541,7 @@
               "when": [],
               "outcome": "any",
               "approach": "any",
-              "text": "Sera: Thank you. With more room by the shelters we can rest. It doesn't help the keeper or the caravan, but it helps us.",
+              "text": "Sera: Thank you. With the shelters back up, the children can sleep out of the wind. It won't find the keeper, but we won't forget it.",
               "attitude": "wary",
               "approvedFactIds": [],
               "effects": [
@@ -1681,7 +1555,7 @@
         },
         {
           "id": "refuse",
-          "name": "Turn down the refugees' request",
+          "name": "Tell Sera you can't help with the shelters",
           "aliases": ["refuse"],
           "when": [],
           "challengeId": "none",
@@ -1690,7 +1564,7 @@
               "when": [],
               "outcome": "any",
               "approach": "any",
-              "text": "Sera: That's your choice. The survey and the sighting frame at the Refugee Overlook are still there for you.",
+              "text": "Sera: Then we'll manage. The survey board and the sighting frame at the Refugee Overlook are still there for you.",
               "attitude": "wary",
               "approvedFactIds": [],
               "effects": [
@@ -1727,7 +1601,7 @@
         },
         {
           "id": "account",
-          "name": "Ask about the refugees' journey",
+          "name": "Ask Sera why the refugees fear the beacon",
           "aliases": ["journey"],
           "when": [],
           "challengeId": "sera-account",
@@ -1736,7 +1610,7 @@
               "when": [],
               "outcome": "success",
               "approach": "any",
-              "text": "Sera: The keeper warned me not to trust the familiar light unchecked. I fear pursuers, but I never saw who changed it.",
+              "text": "Sera: We fled raiders in the hills, and I think some of them followed us. The keeper knew. They warned me never to trust the beacon unless someone had checked its aim, because a light pointing the wrong way could lead the caravan, or the raiders, anywhere. I never saw who changed it.",
               "attitude": "wary",
               "approvedFactIds": [],
               "effects": [
@@ -1758,7 +1632,7 @@
               "when": [],
               "outcome": "failure",
               "approach": "any",
-              "text": "Sera: I won't talk about that. Look at the camp survey and the sighting frame at the Refugee Overlook.",
+              "text": "Sera: I'm not telling a stranger our business. Look at the survey board and the sighting frame at the Refugee Overlook if you want to know about the beacon.",
               "attitude": "wary",
               "approvedFactIds": [],
               "effects": []
@@ -1767,7 +1641,7 @@
               "when": [],
               "outcome": "any",
               "approach": "any",
-              "text": "Sera: Give me a reason to tell you, or look at the survey and sighting frame yourself.",
+              "text": "Sera: I don't tell our story to every stranger who asks. Convince me you mean to help us, or look at the survey and the sighting frame yourself.",
               "attitude": "wary",
               "approvedFactIds": [],
               "effects": []
@@ -1850,7 +1724,7 @@
               "when": [],
               "outcome": "success",
               "approach": "any",
-              "text": "Pell: I set the beacon toward the caravan fork before dusk, as approved. I didn't see who handled the lamp after that. Compare what I've told you with the setting plate next door.",
+              "text": "Pell: Fine. Before dusk I set the beacon toward the caravan fork, exactly as approved, and wrote it on the plate. When I came back up, the lamp was dark. I didn't see who'd been at it. Compare the plate next door with what I've told you.",
               "attitude": "candid",
               "approvedFactIds": ["pell-approved-setting"],
               "effects": [
@@ -1872,7 +1746,7 @@
               "when": [],
               "outcome": "failure",
               "approach": "any",
-              "text": "Pell: I won't go through my shift with you. The setting plate in the records room is there to examine.",
+              "text": "Pell: No. I've nothing to say to you about my shift. The setting plate next door can speak for itself.",
               "attitude": "guarded",
               "approvedFactIds": [],
               "effects": []
@@ -1881,7 +1755,7 @@
               "when": [],
               "outcome": "unattempted",
               "approach": "ask",
-              "text": "Pell: The approved marks and the current setting are both on the plate next door. I'd rather not go through my whole shift for a stranger.",
+              "text": "Pell: I answer to the captain, not to a stranger off the road. Convince me you're here to help, or go and look at the setting plate next door.",
               "attitude": "guarded",
               "approvedFactIds": [],
               "effects": []
@@ -2184,7 +2058,7 @@
               "when": [],
               "outcome": "any",
               "approach": "any",
-              "text": "Vey: That's my order and that's the changed aim; I can't argue with it. I turned the signal to divert supplies. I'll stand aside. I don't know where the keeper is, or whether the caravan is safe.",
+              "text": "Vey: ...That's my signature, and that's the aim I set. The raiders said they'd burn the tower with me in it unless the supply wagons came their way, and they promised me a share. I told myself it was only food. I'll stand aside. I don't know where the keeper went; they ran when I forced the shutter.",
               "attitude": "candid",
               "approvedFactIds": [],
               "effects": [
@@ -2239,7 +2113,7 @@
               "when": [],
               "outcome": "any",
               "approach": "any",
-              "text": "Vey: That's my order and that's the changed aim; I can't argue with it. I turned the signal to divert supplies. I'll stand aside. I don't know where the keeper is, or whether the caravan is safe.",
+              "text": "Vey: ...That's my signature, and that's the aim I set. The raiders said they'd burn the tower with me in it unless the supply wagons came their way, and they promised me a share. I told myself it was only food. I'll stand aside. I don't know where the keeper went; they ran when I forced the shutter.",
               "attitude": "candid",
               "approvedFactIds": [],
               "effects": [
@@ -2294,7 +2168,7 @@
               "when": [],
               "outcome": "any",
               "approach": "any",
-              "text": "Vey: Iona's seal. Fine, I'll step aside for the watch, but I'm admitting nothing. I know nothing about the keeper or the caravan.",
+              "text": "Vey: Iona's seal. Fine, I'll step aside for the watch, but I'm admitting nothing. I don't know where the keeper went.",
               "attitude": "candid",
               "approvedFactIds": [],
               "effects": [
@@ -2390,15 +2264,6 @@
     },
     {
       "id": "sera-account",
-      "modifier": 0,
-      "dc": 12,
-      "guardedFactIds": [],
-      "guardedDiscoveryIds": [],
-      "guardedMilestoneIds": [],
-      "evidenceWhen": []
-    },
-    {
-      "id": "iona-safe-signal",
       "modifier": 0,
       "dc": 12,
       "guardedFactIds": [],
@@ -2542,7 +2407,7 @@
       {
         "id": "keeper-unconfirmed",
         "when": [],
-        "text": "What became of the keeper is still unknown."
+        "text": "Nobody finds the keeper tonight. The bent latch says they fought someone at the shutter and fled; where they went is a question for another day."
       }
     ],
     "choices": [
@@ -2564,7 +2429,7 @@
           {
             "id": "verified-signal",
             "when": [],
-            "text": "You set the beacon back to its approved aim, fit the component, and light it toward the fork: a signal the caravan can trust."
+            "text": "You set the beacon back to its approved aim, fit the spare component, and light it. The familiar light swings back toward the old fork: a signal the caravan can trust, pointing away from the raiders at the east cut."
           },
           {
             "id": "late-arrival",
@@ -2574,7 +2439,7 @@
                 "id": "deadline-passed"
               }
             ],
-            "text": "It's after Day 3: the caravan had already missed its turn, and your warning can't undo that."
+            "text": "It's after Day 3. The caravan had already reached the fork, and your warning can't undo that; whether it turned the right way, you'll learn later."
           },
           {
             "id": "on-time",
@@ -2585,7 +2450,7 @@
                 "at": 3
               }
             ],
-            "text": "It's before Day 3: your warning goes out before the caravan reaches the fork."
+            "text": "It's before Day 3. Your warning goes out before the caravan reaches the fork, in time to matter."
           },
           {
             "id": "refugees-helped",
@@ -2595,7 +2460,7 @@
                 "id": "camp-helped"
               }
             ],
-            "text": "You helped the refugees make room at the camp."
+            "text": "The refugees you helped have their shelters back up while they wait."
           },
           {
             "id": "refugees-refused",
@@ -2734,7 +2599,7 @@
           {
             "id": "unresolved-fates",
             "when": [],
-            "text": "Whether the caravan, the refugees and the keeper reach safety, nobody yet knows."
+            "text": "Whether the caravan and the refugees reach safety, nobody knows yet, but tonight someone did something about it."
           }
         ],
         "narration": [
@@ -2753,7 +2618,7 @@
           {
             "id": "human-dispatch",
             "when": [],
-            "text": "Instead of lighting the beacon, you send the warning by messenger and post it for travellers. It's honest but slow, and the altered beacon stays unrepaired."
+            "text": "You leave the altered beacon dark and send runners down the road with a written warning, and post it where travellers will see. It's honest and it can't be twisted, but on foot it travels slowly."
           },
           {
             "id": "late-arrival",
@@ -2763,7 +2628,7 @@
                 "id": "deadline-passed"
               }
             ],
-            "text": "It's after Day 3: the caravan had already missed its turn, and your warning can't undo that."
+            "text": "It's after Day 3. The caravan had already reached the fork, and your warning can't undo that; whether it turned the right way, you'll learn later."
           },
           {
             "id": "on-time",
@@ -2774,7 +2639,7 @@
                 "at": 3
               }
             ],
-            "text": "It's before Day 3: your warning goes out before the caravan reaches the fork."
+            "text": "It's before Day 3. Your warning goes out before the caravan reaches the fork, in time to matter."
           },
           {
             "id": "refugees-helped",
@@ -2784,7 +2649,7 @@
                 "id": "camp-helped"
               }
             ],
-            "text": "You helped the refugees make room at the camp."
+            "text": "The refugees you helped have their shelters back up while they wait."
           },
           {
             "id": "refugees-refused",
@@ -2923,7 +2788,7 @@
           {
             "id": "unresolved-fates",
             "when": [],
-            "text": "Whether the caravan, the refugees and the keeper reach safety, nobody yet knows."
+            "text": "Whether the caravan and the refugees reach safety, nobody knows yet, but tonight someone did something about it."
           }
         ],
         "narration": [
@@ -2942,7 +2807,7 @@
           {
             "id": "risky-signal",
             "when": [],
-            "text": "You throw open the emergency shutter at once, without checking where the light points. Travellers will see it, but so might anyone hunting them."
+            "text": "You throw open the emergency shutter at once, without checking where the light points. The whole valley will see it: travellers, and anyone hunting them."
           },
           {
             "id": "late-arrival",
@@ -2952,7 +2817,7 @@
                 "id": "deadline-passed"
               }
             ],
-            "text": "It's after Day 3: the caravan had already missed its turn, and your warning can't undo that."
+            "text": "It's after Day 3. The caravan had already reached the fork, and your warning can't undo that; whether it turned the right way, you'll learn later."
           },
           {
             "id": "on-time",
@@ -2963,7 +2828,7 @@
                 "at": 3
               }
             ],
-            "text": "It's before Day 3: your warning goes out before the caravan reaches the fork."
+            "text": "It's before Day 3. Your warning goes out before the caravan reaches the fork, in time to matter."
           },
           {
             "id": "refugees-helped",
@@ -2973,7 +2838,7 @@
                 "id": "camp-helped"
               }
             ],
-            "text": "You helped the refugees make room at the camp."
+            "text": "The refugees you helped have their shelters back up while they wait."
           },
           {
             "id": "refugees-refused",
@@ -3112,7 +2977,7 @@
           {
             "id": "unresolved-fates",
             "when": [],
-            "text": "Whether the caravan, the refugees and the keeper reach safety, nobody yet knows."
+            "text": "Whether the caravan and the refugees reach safety, nobody knows yet, but tonight someone did something about it."
           }
         ],
         "narration": [
@@ -3139,10 +3004,6 @@
       },
       {
         "challengeId": "sera-account",
-        "ability": "charisma"
-      },
-      {
-        "challengeId": "iona-safe-signal",
         "ability": "charisma"
       },
       {

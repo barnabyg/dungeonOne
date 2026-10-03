@@ -90,7 +90,7 @@ test("v14 starts new Hollow Beacon adventures; v13 saves keep continuing", async
   );
 });
 
-test("v14 keeps v13's structure: same ids, routes, people, topics and endings", async () => {
+test("v14 keeps v13's structure apart from the removed checks and bluff", async () => {
   const [before, after] = [await v13(), await v14()];
   assert.equal(after.contentVersion, "14");
   assert.equal(after.rulesVersion, before.rulesVersion);
@@ -108,11 +108,23 @@ test("v14 keeps v13's structure: same ids, routes, people, topics and endings", 
         ? "text"
         : value,
     );
+  // v14 also drops Iona's bluff, its correction and the bluff's roll.
+  const bluff = ["safe-signal", "correct-signal"];
   const withoutChecks = (content) => ({
     ...content,
     contentVersion: "",
+    npcs: content.npcs.map((npc) => ({
+      ...npc,
+      topics: npc.topics.filter(({ id }) => !bluff.includes(id)),
+    })),
+    socialChallenges: content.socialChallenges.filter(
+      ({ id }) => id !== "iona-safe-signal",
+    ),
     characterAdventure: {
       ...content.characterAdventure,
+      socialAbilities: content.characterAdventure.socialAbilities.filter(
+        ({ challengeId }) => challengeId !== "iona-safe-signal",
+      ),
       checks: [],
       rewards: [],
     },
@@ -120,7 +132,7 @@ test("v14 keeps v13's structure: same ids, routes, people, topics and endings", 
   assert.equal(
     shape(withoutChecks(after)),
     shape(withoutChecks(before)),
-    "only text and the assessment checks change",
+    "only text, the assessment checks and the bluff change",
   );
   assert.deepEqual(
     after.characterAdventure.checks.map(({ id }) => id),
@@ -163,9 +175,9 @@ test("v14 opens with a story that introduces the watch, the beacon and the deadl
   const iona = npcs.find(({ id }) => id === "iona");
   const names = iona.topics.map(({ name }) => name);
   assert.ok(!names.some((name) => /familiar signal|how the watch/.test(name)));
-  assert.ok(
-    names.includes("Bluff: tell Iona the beacon is safe to light as it is"),
-  );
+  // The bluff had no story reason to exist (owner playtest).
+  assert.ok(!names.some((name) => /bluff/i.test(name)));
+  assert.ok(!iona.topics.some(({ intent }) => intent === "claim"));
 });
 
 test("v14 journal leads are plain directions; v13 keeps its released leads", async () => {
