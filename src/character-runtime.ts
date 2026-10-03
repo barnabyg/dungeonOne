@@ -21,11 +21,11 @@ import {
   advanceCharacter,
   carriesTreasure,
   characterProfile,
+  describeTreasure,
   playsFighterRules,
   validateCharacter,
   TREASURE_ITEMS,
   type CharacterSheet,
-  type TreasureItem,
 } from "./character-rules.js";
 
 /** v2 authors the reply to a rejected mutation and limits read narration. */
@@ -354,12 +354,6 @@ export function createCharacterRuntime(
             ? state.abilityChecks?.[award.targetId]?.result === "success"
             : (state.monsters?.[award.targetId]?.hp ??
                 state.npcHealth?.[award.targetId]?.hp) === 0;
-  /** Names silver and items, for example "6 silver, healing draught". */
-  const treasureText = (silver: number, items: readonly TreasureItem[]) =>
-    [
-      ...(silver > 0 ? [`${silver} silver`] : []),
-      ...items.map((item) => TREASURE_ITEMS[item].name),
-    ].join(", ") || "nothing";
   const pendingTreasureOf = (state: ClueState) => {
     const found = state.pendingTreasure ?? [];
     return {
@@ -405,7 +399,7 @@ export function createCharacterRuntime(
       events.push({
         type: "clue",
         operation: "treasure",
-        text: `Treasure found: ${treasureText(entry.silver, entry.items)}. You keep it if you finish the adventure alive.`,
+        text: `Treasure found: ${describeTreasure(entry.silver, entry.items)}. You keep it if you finish the adventure alive.`,
       });
     }
     const kept = pendingTreasureOf({ ...state, pendingTreasure: found });
@@ -441,7 +435,7 @@ export function createCharacterRuntime(
       events.push({
         type: "clue",
         operation: "level-up",
-        text: `${sheet.name} completes the adventure: ${xp} XP credited, ${characterResult.xp} career XP. ${characterResult.level > sheet.level ? `Level ${sheet.level} → ${characterResult.level}; maximum HP ${profile.maxHp} → ${characterProfile(characterResult).maxHp}, attack bonus ${profile.attackBonus} → ${characterProfile(characterResult).attackBonus}. ` : ""}${characterResult.level === 3 ? "Level 3 is the supported cap; further XP stays recorded. " : ""}${tracksTreasure ? `Treasure kept: ${treasureText(kept.silver, kept.items)}. ` : ""}Remaining HP is preserved. Rest before the next adventure.`,
+        text: `${sheet.name} completes the adventure: ${xp} XP credited, ${characterResult.xp} career XP. ${characterResult.level > sheet.level ? `Level ${sheet.level} → ${characterResult.level}; maximum HP ${profile.maxHp} → ${characterProfile(characterResult).maxHp}, attack bonus ${profile.attackBonus} → ${characterProfile(characterResult).attackBonus}. ` : ""}${characterResult.level === 3 ? "Level 3 is the supported cap; further XP stays recorded. " : ""}${tracksTreasure ? `Treasure kept: ${describeTreasure(kept.silver, kept.items)}. ` : ""}Remaining HP is preserved. Rest before the next adventure.`,
       });
     }
     return {

@@ -143,6 +143,19 @@ export function playsFighterRules(
   );
 }
 
+/** Names silver and items, for example "6 silver, healing draught". */
+export function describeTreasure(
+  silver: number,
+  items: readonly TreasureItem[],
+): string {
+  return (
+    [
+      ...(silver > 0 ? [`${silver} silver`] : []),
+      ...items.map((item) => TREASURE_ITEMS[item].name),
+    ].join(", ") || "nothing"
+  );
+}
+
 /** Whether this sheet can receive treasure (fighter-rules-v3). */
 export function carriesTreasure(
   sheet: CharacterSheet,
