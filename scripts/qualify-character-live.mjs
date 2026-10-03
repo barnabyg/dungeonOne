@@ -356,7 +356,7 @@ async function playStep(step, phrase = step.say) {
 /** Creates Ada in the browser library and starts Hollow Beacon. */
 async function createAndStart() {
   await page.locator("#open-characters").click();
-  await page.locator("#show-create-character").click();
+  await page.locator("#character-name").waitFor({ state: "visible" });
   await page.locator("#character-name").fill("Ada");
   await page.locator("#create-character button[type=submit]").click();
   await page

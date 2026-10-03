@@ -118,7 +118,7 @@ export function browserActions(
         check.ability +
         " check at " +
         definition!.features.find(({ id }) => id === check.featureId)!.name,
-      `Roll a d20 and add your ${ability} modifier (${signed(modifier)}); ${check.dc} or more succeeds. You get one try. Success earns ${xp} XP the first time this character manages it; failing costs nothing, and you can still examine it.`,
+      `A d20 plus your ${ability} modifier (${signed(modifier)}); ${check.dc} or more succeeds. You get one try. Success earns ${xp} XP the first time this character manages it; failing costs nothing, and you can still examine it.`,
     );
   }
   for (const exit of scene.room.exits) {
@@ -140,7 +140,7 @@ export function browserActions(
       !combatRoute
         ? undefined
         : characterMode
-          ? `A fight starts as soon as you reach ${exit.name}, and you can't run once it starts.`
+          ? `A fight starts as soon as you reach ${exit.name.replace(/ \(\d+ days?\)$/, "")}, and you can't run once it starts.`
           : "Combat on arrival. No retreat or surrender once fighting.",
     );
     offer(

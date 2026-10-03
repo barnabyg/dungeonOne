@@ -8,7 +8,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { loadAdventure } from "../dist/adventure-loader.js";
+import { chromium } from "playwright";
 import { browserActions } from "../dist/browser-actions.js";
+import { BROWSER_START_VERSION } from "../dist/browser-releases.js";
+import { startBrowserServer } from "../dist/browser-server.js";
 import { createCharacter } from "../dist/character-rules.js";
 import { createDataRuntime } from "../dist/data-runtime.js";
 import { SaveSession } from "../dist/save.js";
@@ -74,7 +77,7 @@ test("character mode: a route with a fight on arrival names the route", () =>
         call.name === "move" &&
         JSON.parse(call.argumentsJson).destinationId === "ridge-trail",
     );
-    assert.match(ridge.stakes, /Ridge Trail/);
+    assert.match(ridge.stakes, /reach Ridge Trail,/);
     assert.match(ridge.stakes, /fight/);
     assert.doesNotMatch(ridge.stakes, /Combat on arrival/);
   }));
@@ -109,3 +112,109 @@ test("--legacy content keeps its released options", () =>
       ),
     );
   }));
+
+test(
+  "a real browser shows a welcome, a structured library, a disabled empty save, XP and the story opening",
+  { timeout: 60000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "dungeon-issue-95-page-"));
+    const server = await startBrowserServer({
+      contentVersion: BROWSER_START_VERSION,
+      libraryPath: join(directory, "characters.json"),
+      savePath: join(directory, "unused-slot.json"),
+      seed: 0,
+      apiKey: "offline",
+      dmModel: {
+        respond() {
+          throw new Error("No provider call is expected.");
+        },
+      },
+    });
+    const browser = await chromium.launch(
+      process.platform === "win32"
+        ? { channel: "msedge", headless: true }
+        : { headless: true },
+    );
+    const page = await browser.newPage();
+    page.setDefaultTimeout(8000);
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    try {
+      await page.goto(server.url);
+      await page
+        .locator("#conversation")
+        .filter({ hasText: "Getting started" })
+        .waitFor();
+      assert.equal(
+        await page.locator("#scene-title").innerText(),
+        "Welcome to Dungeon One",
+      );
+      assert.equal(
+        await page.locator("#open-characters").innerText(),
+        "Adventures",
+      );
+      assert.equal(
+        await page.locator("#open-character").innerText(),
+        "Character sheet",
+      );
+
+      await page.locator("#open-characters").click();
+      assert.equal(
+        await page.locator("#close-characters").innerText(),
+        "Close",
+      );
+      assert.match(
+        await page.locator("#library-sessions").innerText(),
+        /None yet/,
+      );
+      // With no characters yet, the creation form is already open.
+      await page.locator("#character-name").waitFor({ state: "visible" });
+      assert.equal(
+        await page.locator("#show-create-character").isHidden(),
+        true,
+      );
+      assert.equal(await page.locator("#save-character").isDisabled(), true);
+      await page.locator("#character-name").fill("   ");
+      assert.equal(await page.locator("#save-character").isDisabled(), true);
+      await page.locator("#character-name").fill("Tess");
+      assert.equal(await page.locator("#save-character").isDisabled(), false);
+      await page.locator("#save-character").click();
+      await page
+        .locator("#library-feedback")
+        .filter({ hasText: "Character saved" })
+        .waitFor();
+      // The new character is selected and its adventures are listed.
+      assert.equal(
+        await page
+          .locator("#library-characters button[aria-pressed=true]")
+          .innerText(),
+        "Tess\nFighter level 1 · XP 0 · Ready for an adventure",
+      );
+      await page
+        .locator("#library-adventures button")
+        .filter({ hasText: "Start Hollow" })
+        .click();
+      await page.locator("#character-library").waitFor({ state: "hidden" });
+
+      assert.match(
+        await page.locator("#active-character-details").innerText(),
+        /Level 1 · XP 0 \/ 1,000 for level 2/,
+      );
+      const opening = page.locator("#conversation .opening");
+      assert.equal(await opening.locator("h4").innerText(), "The story so far");
+      assert.equal(
+        await opening.locator("p").innerText(),
+        (await (await fetch(server.url + "/api/state")).json()).introduction,
+      );
+      assert.equal(
+        await page.locator("#scene-reading summary").innerText(),
+        "More about this place",
+      );
+      assert.deepEqual(errors, []);
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

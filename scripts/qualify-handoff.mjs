@@ -150,7 +150,7 @@ export async function qualifyHandoff(directory) {
       "the launcher prints how to stop it",
     );
     await page.locator("#open-characters").click();
-    await page.locator("#show-create-character").click();
+    await page.locator("#character-name").waitFor({ state: "visible" });
     await page.locator("#character-name").fill("Ada");
     await page.locator("#create-character button[type=submit]").click();
     await page
