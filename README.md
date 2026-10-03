@@ -1,14 +1,21 @@
 # Dungeon One
 
-Dungeon One is a text-first TypeScript game with an offline command mode and an opt-in live AI Dungeon Master mode. **The Bell Beneath the Chapel** is the normal startup adventure: investigate Tavi's disappearance, survive the crypt guardian, recover the evidence, and choose public disclosure or confidential referral. **The Stolen Signet** remains available as the compatibility and regression adventure.
+Dungeon One is a TypeScript game played in a local desktop browser with a live
+AI Dungeon Master. Players keep persistent characters in a character library and
+bring them to adventure modules aimed at a recommended level range, earning
+experience and levels as they go. **Hollow Beacon** (levels 1–2) and
+**Stonebridge** (levels 2–3) are the current modules. Start with
+[independent characters and leveled adventures](#independent-characters-and-leveled-adventures).
 
-For a reproducible author/player handoff, including checked-in journeys,
-clean-checkout results, and replay limits, see [increment 4 acceptance](docs/acceptance/issue-53.md).
-For the combined guard, rescue, item, enemy, and deadline route across a
-restart, see the [issue 71 player handoff](docs/acceptance/issue-71.md).
-The new [Hollow Beacon opening](adventures/hollow-beacon.json) is a short
-authored adventure with two leads and a persistent watch response; see its
-[player test and story plan](docs/acceptance/issue-81.md).
+The browser's `--legacy` mode keeps the earlier single save slot so released
+Hollow Beacon v4–v11 saves remain playable. The command-line app (`npm.cmd start`)
+is kept for testing: offline command mode, scripted and live AI regression
+routes, and trace replay. Its sections below document those contracts, including
+the historical command-mode adventures (**The Bell Beneath the Chapel**, the CLI
+default, and **The Stolen Signet**) and earlier handoffs such as
+[increment 4 acceptance](docs/acceptance/issue-53.md), the
+[issue 71 handoff](docs/acceptance/issue-71.md) and the
+[Hollow Beacon opening](docs/acceptance/issue-81.md).
 
 ## Independent characters and leveled adventures
 
@@ -142,8 +149,10 @@ appear within Hints. See [issue 103 player checks](docs/acceptance/issue-103.md)
 See [issue 102 player checks](docs/acceptance/issue-102.md) for the seeded journey
 and an offline real-browser delay/failure fixture.
 
-After `npm.cmd ci` and `npm.cmd run build`, supply `OPENAI_API_KEY` in the
-launch environment, then run this copyable PowerShell command:
+The rest of this section describes the `--legacy` single save slot, kept so
+released Hollow Beacon v4–v11 saves continue. For new play, use the character
+library above. After `npm.cmd ci` and `npm.cmd run build`, supply
+`OPENAI_API_KEY` in the launch environment, then run:
 
 ```powershell
 npm.cmd run browser -- --legacy --seed 0 --save .\hollow-beacon-browser-save.json
@@ -345,9 +354,10 @@ For the increment-5 clean-checkout handoff, including generation costs and
 privacy, copyable seeded journeys, and qualification limits, see
 [issue 61 handoff](docs/acceptance/issue-61.md).
 
-## Install, build, and play
+## Command-line test adapter
 
-From a clean checkout:
+The command-line app is a testing and regression adapter, not the player
+interface; players use the browser. From a clean checkout:
 
 ```powershell
 npm.cmd ci

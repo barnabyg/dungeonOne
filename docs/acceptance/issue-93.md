@@ -1,11 +1,13 @@
-# Issue 93: start and continue the expanded adventure in the browser
+# Issue 93: start and continue the expanded adventure with a saved character
 
-Implemented on `codex/gameplay-ui`, 3 October 2026. Issue #93 was written
-before increment 10 made the character library the default browser mode, so
-it describes a single save slot with **Start adventure** and **New game**.
-On 3 October 2026 the project owner confirmed that character mode is the
-intended player experience: persistent characters gain experience and levels,
-and adventure modules target level ranges. This handoff qualifies #93 there.
+Implemented on `codex/gameplay-ui`, 3 October 2026. Issue #93 was first written
+before increment 10 made the character library the default browser mode, so it
+described a single save slot with **Start adventure** and **New game**. On
+3 October 2026 the project owner confirmed that character mode is the intended
+player experience: persistent characters gain experience and levels, and
+adventure modules target level ranges. The issue was revised the same day, and
+this handoff qualifies it in character mode. The table below maps the original
+single-slot wording.
 The `--legacy` single slot remains a compatibility path for older saves.
 
 The command-line app is a testing and regression adapter only; it is not part
@@ -70,8 +72,11 @@ npm.cmd run browser -- --seed 0 --characters .\.scratch\increment-8-continuity\c
 ```
 
 Pass `--characters` explicitly. Without it the library is `characters.json` in
-the current directory. `--save` is not needed in character mode: it is read only
-for a `--legacy`-style save while no character adventure is selected.
+the current directory. `--save` is not needed in character mode: it names a
+single-slot save that is shown only while no character adventure is selected.
+Its default is `hollow-beacon-browser-save.json` in the current directory, so a
+leftover `--legacy` save there appears until you start or continue a character
+adventure.
 
 1. Open the printed `Hollow Beacon: http://127.0.0.1:<port>` URL if it did not
    open automatically. Select **Choose character**, **Create character**, enter
