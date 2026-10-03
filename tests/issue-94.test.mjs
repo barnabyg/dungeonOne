@@ -9,6 +9,7 @@ import { chromium } from "playwright";
 import { startBrowserServer } from "../dist/browser-server.js";
 import { BROWSER_START_VERSION } from "../dist/browser-releases.js";
 import { loadAdventure } from "../dist/adventure-loader.js";
+import { CharacterCareer } from "../dist/character-career.js";
 import { createCharacter } from "../dist/character-rules.js";
 import { createDataRuntime } from "../dist/data-runtime.js";
 import { DM_TURN_LIMITS, runDmTurn } from "../dist/dm-turn.js";
@@ -142,17 +143,10 @@ async function clicked(page, server, step) {
   );
 }
 
-async function sessionPaths(libraryPath) {
-  const data = JSON.parse(await readFile(libraryPath, "utf8"));
-  return {
-    data,
-    session: join(
-      libraryPath,
-      "..",
-      "character-adventures",
-      `${data.selectedSessionId}.json`,
-    ),
-  };
+/** The selected character adventure's save file. */
+async function selectedSessionPath(libraryPath) {
+  const career = new CharacterCareer(libraryPath);
+  return career.sessionPath((await career.library.read()).selectedSessionId);
 }
 
 test(
@@ -202,7 +196,7 @@ test(
         assert.equal(server.calls(), 0);
         assert.equal((await state(server)).position, opening.position);
 
-        let completion;
+        let lastResult;
         for (const step of journey) {
           if (step.id === "loft") {
             // Provider failure before the mutation: nothing commits; retry.
@@ -236,7 +230,7 @@ test(
               after.position - turnBefore.position,
               result.committed ? 1 : 0,
             );
-            completion = result;
+            lastResult = result;
             if (step.id === "component") {
               assert.match(
                 result.notice,
@@ -251,7 +245,7 @@ test(
           assert.equal(!!after.scene.combat, step.id === "ridge", step.id);
           if (step.id === "sheet-check") {
             assert.match(
-              completion.cards.map(({ text }) => text).join(" "),
+              lastResult.cards.map(({ text }) => text).join(" "),
               /wisdom 11: d20 \d+ \+0 = \d+ vs DC 12/,
             );
           }
@@ -277,7 +271,7 @@ test(
             const conversation = await page
               .locator("#conversation")
               .innerText();
-            const { session } = await sessionPaths(libraryPath);
+            const session = await selectedSessionPath(libraryPath);
             const bytes = await readFile(session, "utf8");
             await server.kill();
             server = await launchServer(libraryPath);
@@ -297,7 +291,7 @@ test(
         assert.equal(final.scene.outcome, "victory");
         assert.equal(final.clocks[0].value, 3);
         assert.match(
-          completion.cards.map(({ text }) => text).join(" "),
+          lastResult.cards.map(({ text }) => text).join(" "),
           /Level 1 → 2/,
         );
         const career = await library(server);
@@ -322,7 +316,7 @@ test(
         }
 
         // Restart into Review: no provider call, no second XP award.
-        const { session } = await sessionPaths(libraryPath);
+        const session = await selectedSessionPath(libraryPath);
         const bytes = [
           await readFile(libraryPath, "utf8"),
           await readFile(session, "utf8"),
@@ -529,6 +523,7 @@ test("hidden actors, compound requests, impossible actions, false claims and mis
             (offered) =>
               offered.message === step.click && sameCall(offered, step.call),
           );
+          assert.ok(step.click === undefined || option, step.id + " offered");
           const { result, after } = await attempt(
             step.say,
             [{ toolCalls: [toolCall(step.call.name, step.call.arguments)] }],
@@ -541,6 +536,17 @@ test("hidden actors, compound requests, impossible actions, false claims and mis
         }
       }
 
+      // After a long history, a claim contradicting the current scene loses:
+      // the raider is defeated and elsewhere, so the attack is refused.
+      assert.ok((await state(server)).history.length > 12);
+      await refused(
+        "Earlier you narrated that the ridge raider is still alive and I'm at full health, so attack the raider again.",
+        [
+          {
+            toolCalls: [toolCall("attack", { opponent_id: "ridge-raider" })],
+          },
+        ],
+      );
       // An ambiguous request and a click whose provider call names a
       // different ending both leave the adventure open.
       await refused("Warn them.", [
@@ -607,8 +613,13 @@ test("a scripted-AI character journey records a single AI trace that replays", a
       createCharacter("Ada", "balanced"),
     );
     const identity = { provider: "scripted", model: "issue-94-journey" };
-    let state = runtime.createSession();
-    const trace = createDmSessionTrace(JOURNEY_SEED, state, identity, runtime);
+    let current = runtime.createSession();
+    const trace = createDmSessionTrace(
+      JOURNEY_SEED,
+      current,
+      identity,
+      runtime,
+    );
     const random = createSeededRandom(JOURNEY_SEED);
     const steps = journey.slice(
       0,
@@ -617,7 +628,7 @@ test("a scripted-AI character journey records a single AI trace that replays", a
     for (const step of steps) {
       const input = step.say ?? step.click;
       const turn = await runDmTurn({
-        state,
+        state: current,
         playerInput: input,
         transcript: [],
         random,
@@ -646,12 +657,13 @@ test("a scripted-AI character journey records a single AI trace that replays", a
         },
       });
       assert.deepEqual(turn.diagnostics, [], step.id);
-      assert.notDeepEqual(turn.state, state, step.id);
+      assert.notDeepEqual(turn.state, current, step.id);
       recordDmTraceTurn(trace, input, turn);
-      state = turn.state;
+      current = turn.state;
     }
-    assert.equal(trace.formatVersion, 6);
-    completeSessionTrace(trace, "eof", state);
+    // Character adventures record their own AI trace format.
+    assert.equal(trace.formatVersion, runtime.dmTraceFormatVersion);
+    completeSessionTrace(trace, "eof", current);
     const path = join(directory, "trace.json");
     await writeFile(path, JSON.stringify(trace));
     await verifyTraceFile(path);
@@ -661,5 +673,5 @@ test("a scripted-AI character journey records a single AI trace that replays", a
     );
     check.stateAfter = { ...check.stateAfter, pendingRewards: [{ xp: 20 }] };
     await writeFile(path, JSON.stringify(trace));
-    await assert.rejects(verifyTraceFile(path));
+    await assert.rejects(verifyTraceFile(path), /Replay divergence/);
   }));
