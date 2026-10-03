@@ -19,10 +19,12 @@ test(
       apiKey: "",
     };
     let server = await startBrowserServer(options);
-    const browser = await chromium.launch({
-      channel: "msedge",
-      headless: true,
-    });
+    // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
+    const browser = await chromium.launch(
+      process.platform === "win32"
+        ? { channel: "msedge", headless: true }
+        : { headless: true },
+    );
     const page = await browser.newPage();
     page.setDefaultTimeout(4000);
     try {
