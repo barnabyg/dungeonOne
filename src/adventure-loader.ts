@@ -15,6 +15,11 @@ import {
 } from "./character-adventure-schema.js";
 import type { Ability, TreasureItem } from "./character-rules.js";
 
+/** Character adventures: schema 17, and schema 18 with treasure (#119). */
+export function isCharacterSchema(schemaVersion: unknown): boolean {
+  return schemaVersion === 17 || schemaVersion === 18;
+}
+
 /** What earns a character adventure's XP reward or treasure. */
 export type CharacterRewardTrigger =
   "completion" | "milestone" | "discovery" | "actor-defeated" | "check-success";
@@ -2631,7 +2636,7 @@ export function loadAdventure(input: string | Uint8Array):
   }
   const characterSchema = (parsed as { schemaVersion?: number } | null)
     ?.schemaVersion;
-  if (characterSchema === 17 || characterSchema === 18) {
+  if (isCharacterSchema(characterSchema)) {
     validateStructure(
       parsed,
       (characterSchema === 17

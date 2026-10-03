@@ -3,7 +3,11 @@ import { createHash, randomBytes } from "node:crypto";
 import { link, open, readFile, rename, stat, unlink } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { loadAdventure, type AdventureDefinition } from "./adventure-loader.js";
+import {
+  isCharacterSchema,
+  loadAdventure,
+  type AdventureDefinition,
+} from "./adventure-loader.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { createDataRuntime } from "./data-runtime.js";
 import {
@@ -620,8 +624,7 @@ export class SaveSession {
     }
     if (
       (save.formatVersion === 4) !==
-      (loaded.adventure.snapshot.schemaVersion === 17 ||
-        loaded.adventure.snapshot.schemaVersion === 18)
+      isCharacterSchema(loaded.adventure.snapshot.schemaVersion)
     ) {
       throw new Error("Character save format does not match content.");
     }
@@ -746,7 +749,7 @@ export class SaveSession {
     }
     if (
       session.state.status === "quit" &&
-      loaded.adventure.snapshot.schemaVersion !== 17
+      !isCharacterSchema(loaded.adventure.snapshot.schemaVersion)
     ) {
       throw new Error("Quit sessions cannot resume gameplay.");
     }

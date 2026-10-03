@@ -10,7 +10,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { readTraceFile } from "./trace-file.js";
 import { parseBoundedJson } from "./bounded-json.js";
-import { loadAdventure } from "./adventure-loader.js";
+import { isCharacterSchema, loadAdventure } from "./adventure-loader.js";
 import { createDataRuntime } from "./data-runtime.js";
 import {
   CLUES_ENGINE_VERSION,
@@ -1454,8 +1454,7 @@ function replayFormat4(trace: JsonObject): void {
   }
   if (
     (trace.formatVersion === 6) !==
-    (content.snapshot.schemaVersion === 17 ||
-      content.snapshot.schemaVersion === 18)
+    isCharacterSchema(content.snapshot.schemaVersion)
   ) {
     throw new Error("Character trace format does not match content.");
   }

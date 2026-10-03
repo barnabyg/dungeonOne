@@ -19,10 +19,13 @@ import {
   ABILITIES,
   abilityModifier,
   advanceCharacter,
+  carriesTreasure,
   characterProfile,
   playsFighterRules,
   validateCharacter,
+  TREASURE_ITEMS,
   type CharacterSheet,
+  type TreasureItem,
 } from "./character-rules.js";
 
 /** v2 authors the reply to a rejected mutation and limits read narration. */
@@ -77,7 +80,22 @@ export function createCharacterRuntime(
   }
   const profile = characterProfile(sheet);
   // Rules v2: one examine action performs an available search or describes.
-  const examines = definition.rulesVersion === "character-adventure-rules-v2";
+  // Rules v3 keep it and add treasure (#119).
+  const examines =
+    definition.rulesVersion === "character-adventure-rules-v2" ||
+    definition.rulesVersion === "character-adventure-rules-v3";
+  // Only fighter-rules-v3 characters find treasure, and only in modules that
+  // award it; other sessions keep their released state shape.
+  const tracksTreasure =
+    support.treasure !== undefined && carriesTreasure(sheet);
+  const treasure = tracksTreasure ? support.treasure! : [];
+  // Each carried item becomes an engine item already in the inventory.
+  const carried = carriesTreasure(sheet)
+    ? sheet.inventory.items.map((item, index) => ({
+        id: `carried-${item}-${index + 1}`,
+        item,
+      }))
+    : [];
   // Hollow Beacon v14 people answer in their authored words (#95).
   const authoredReplies =
     definition.id === "hollow-beacon" &&
@@ -129,6 +147,26 @@ export function createCharacterRuntime(
         schemaVersion: 16,
         rulesVersion: "chapel-clues-rules-v17",
         player: { ...definition.player, hp: sheet.hp, maxHp: profile.maxHp },
+        ...(carried.length === 0
+          ? {}
+          : {
+              items: [
+                ...(definition.items ?? []),
+                ...carried.map(({ id, item }) => ({
+                  id,
+                  name: TREASURE_ITEMS[item].name,
+                  description: TREASURE_ITEMS[item].description,
+                  aliases: [TREASURE_ITEMS[item].name, "draught"],
+                  // Never placed: the session starts with it carried.
+                  locationId: definition.player.locationId,
+                  featureId: definition.features[0]!.id,
+                  healing: {
+                    ...TREASURE_ITEMS[item].healing,
+                    target: "fighter" as const,
+                  },
+                })),
+              ],
+            }),
         combatProfile: profile,
         socialChallenges: (definition.socialChallenges ?? []).map(
           (challenge) => ({
@@ -301,6 +339,34 @@ export function createCharacterRuntime(
       },
     };
   };
+  /** Whether a reward's or treasure's authored trigger has happened. */
+  const triggered = (
+    award: Pick<(typeof support.rewards)[number], "trigger" | "targetId">,
+    state: ClueState,
+  ): boolean =>
+    award.trigger === "completion"
+      ? state.status === "victory" && state.fighter.hp > 0
+      : award.trigger === "milestone"
+        ? state.milestones.includes(award.targetId)
+        : award.trigger === "discovery"
+          ? state.discoveries.includes(award.targetId)
+          : award.trigger === "check-success"
+            ? state.abilityChecks?.[award.targetId]?.result === "success"
+            : (state.monsters?.[award.targetId]?.hp ??
+                state.npcHealth?.[award.targetId]?.hp) === 0;
+  /** Names silver and items, for example "6 silver, healing draught". */
+  const treasureText = (silver: number, items: readonly TreasureItem[]) =>
+    [
+      ...(silver > 0 ? [`${silver} silver`] : []),
+      ...items.map((item) => TREASURE_ITEMS[item].name),
+    ].join(", ") || "nothing";
+  const pendingTreasureOf = (state: ClueState) => {
+    const found = state.pendingTreasure ?? [];
+    return {
+      silver: found.reduce((sum, entry) => sum + entry.silver, 0),
+      items: found.flatMap(({ items }) => items),
+    };
+  };
   const settle = (result: RuntimeResult): RuntimeResult => {
     if (result.rejection !== undefined) {
       return result;
@@ -315,18 +381,7 @@ export function createCharacterRuntime(
       ) {
         continue;
       }
-      const earned =
-        reward.trigger === "completion"
-          ? state.status === "victory" && state.fighter.hp > 0
-          : reward.trigger === "milestone"
-            ? state.milestones.includes(reward.targetId)
-            : reward.trigger === "discovery"
-              ? state.discoveries.includes(reward.targetId)
-              : reward.trigger === "check-success"
-                ? state.abilityChecks?.[reward.targetId]?.result === "success"
-                : (state.monsters?.[reward.targetId]?.hp ??
-                    state.npcHealth?.[reward.targetId]?.hp) === 0;
-      if (earned) {
+      if (triggered(reward, state)) {
         pending.push({ id: reward.id, xp: reward.xp });
         events.push({
           type: "clue",
@@ -337,6 +392,23 @@ export function createCharacterRuntime(
         });
       }
     }
+    const found = [...(state.pendingTreasure ?? [])];
+    for (const entry of treasure) {
+      if (
+        sheet.earnedRewards.includes(entry.id) ||
+        found.some(({ id }) => id === entry.id) ||
+        !triggered(entry, state)
+      ) {
+        continue;
+      }
+      found.push({ id: entry.id, silver: entry.silver, items: entry.items });
+      events.push({
+        type: "clue",
+        operation: "treasure",
+        text: `Treasure found: ${treasureText(entry.silver, entry.items)}. You keep it if you finish the adventure alive.`,
+      });
+    }
+    const kept = pendingTreasureOf({ ...state, pendingTreasure: found });
     let characterResult = state.characterResult;
     if (
       state.status === "victory" &&
@@ -344,20 +416,39 @@ export function createCharacterRuntime(
       characterResult === undefined
     ) {
       const xp = pending.reduce((sum, reward) => sum + reward.xp, 0);
-      characterResult = {
+      characterResult = validateCharacter({
         ...advanceCharacter(sheet, xp, state.fighter.hp),
-        earnedRewards: [...sheet.earnedRewards, ...pending.map(({ id }) => id)],
-      };
+        earnedRewards: [
+          ...sheet.earnedRewards,
+          ...pending.map(({ id }) => id),
+          ...found.map(({ id }) => id),
+        ],
+        ...(carriesTreasure(sheet)
+          ? {
+              // Carried items drunk during the adventure are gone.
+              inventory: {
+                silver: sheet.inventory.silver + kept.silver,
+                items: [
+                  ...carried
+                    .filter(({ id }) => state.items?.[id] === "inventory")
+                    .map(({ item }) => item),
+                  ...kept.items,
+                ],
+              },
+            }
+          : {}),
+      });
       events.push({
         type: "clue",
         operation: "level-up",
-        text: `${sheet.name} completes the adventure: ${xp} XP credited, ${characterResult.xp} career XP. ${characterResult.level > sheet.level ? `Level ${sheet.level} → ${characterResult.level}; maximum HP ${profile.maxHp} → ${characterProfile(characterResult).maxHp}, attack bonus ${profile.attackBonus} → ${characterProfile(characterResult).attackBonus}. ` : ""}${characterResult.level === 3 ? "Level 3 is the supported cap; further XP stays recorded. " : ""}Remaining HP is preserved. Rest before the next adventure.`,
+        text: `${sheet.name} completes the adventure: ${xp} XP credited, ${characterResult.xp} career XP. ${characterResult.level > sheet.level ? `Level ${sheet.level} → ${characterResult.level}; maximum HP ${profile.maxHp} → ${characterProfile(characterResult).maxHp}, attack bonus ${profile.attackBonus} → ${characterProfile(characterResult).attackBonus}. ` : ""}${characterResult.level === 3 ? "Level 3 is the supported cap; further XP stays recorded. " : ""}${tracksTreasure ? `Treasure kept: ${treasureText(kept.silver, kept.items)}. ` : ""}Remaining HP is preserved. Rest before the next adventure.`,
       });
     }
     return {
       state: {
         ...state,
         pendingRewards: pending,
+        ...(tracksTreasure ? { pendingTreasure: found } : {}),
         ...(characterResult === undefined
           ? {}
           : {
@@ -438,12 +529,26 @@ export function createCharacterRuntime(
       : legacy.readToolNames,
     commandTraceFormatVersion: 6,
     dmTraceFormatVersion: 6,
-    createSession: () => ({
-      ...legacy.createSession(),
-      character: sheet,
-      abilityChecks: {},
-      pendingRewards: [],
-    }),
+    createSession: () => {
+      const session = stateOf(legacy.createSession());
+      return {
+        ...session,
+        ...(carried.length === 0
+          ? {}
+          : {
+              items: {
+                ...session.items,
+                ...Object.fromEntries(
+                  carried.map(({ id }) => [id, "inventory" as const]),
+                ),
+              },
+            }),
+        character: sheet,
+        abilityChecks: {},
+        pendingRewards: [],
+        ...(tracksTreasure ? { pendingTreasure: [] } : {}),
+      };
+    },
     mutationToolNames: [
       ...(examines
         ? [
@@ -687,6 +792,14 @@ export function createCharacterRuntime(
       sheet: stateOf(state).characterResult ?? sheet,
       profile: characterProfile(stateOf(state).characterResult ?? sheet),
       maxHp: characterProfile(stateOf(state).characterResult ?? sheet).maxHp,
+      ...(tracksTreasure
+        ? {
+            pendingTreasure:
+              stateOf(state).status === "playing"
+                ? pendingTreasureOf(stateOf(state))
+                : { silver: 0, items: [] },
+          }
+        : {}),
       pendingXp:
         stateOf(state).status === "playing"
           ? (stateOf(state).pendingRewards ?? []).reduce(
