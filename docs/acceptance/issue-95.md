@@ -22,7 +22,7 @@ changed. Stonebridge (levels 2–3) is out of scope.
 | Completed runs plausibly fit 2–4 hours without padded travel                                 | **Open, at risk:** see [Length](#length)            |
 | At least two say they would choose another adventure                                         | **Open**                                            |
 | Named automated journeys (endings, timing, check, casualty, item, avoidance, seeds, resumes) | Done: [Automated journeys](#automated-journeys)     |
-| Canonical seven-gate verification, zero warnings                                             | Done (clean checkout, below)                        |
+| Canonical seven-gate verification, zero warnings                                             | Done: 740 tests, clean checkout                     |
 | Clean checkout: install, verify, build, start, create, save, continue, finish, Review        | Done: [Clean checkout](#clean-checkout)             |
 | Diagnostic CLI replay verified separately                                                    | Done, in the same handoff run                       |
 | Handoff: PowerShell commands, browser steps, expected responses, prerequisites, limits       | Done: player and host sheets                        |
@@ -125,7 +125,15 @@ canonical verification, so it can't drift from the shipped page.
 The launcher runs through `tests/fixtures/issue-93-launcher.mjs`, which only
 stops it opening a desktop window, with a placeholder credential.
 
-**Result:** _pending, recorded when the clean run finishes._
+**Result (3 October 2026):** a fresh `git clone` of this branch at `e35c99a`
+(the code and tests here; later commits are documentation only). In it,
+`npm.cmd ci --cache .verify-artifacts/npm-cache` installed with 0
+vulnerabilities, and `CI=true npm.cmd run verify` passed **all seven gates, 740
+tests, 0 failures, zero warnings**. `npm.cmd run build` and
+`node scripts/qualify-handoff.mjs` passed every check. Tracked files were
+unchanged. Node 24.13.0, npm 11.6.4, headless Edge. Receipt:
+[`issue-95-clean-handoff.json`](issue-95-clean-handoff.json). No live
+provider request was made, and nothing was pushed.
 
 ## Length
 
