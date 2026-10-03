@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import type { RandomSource } from "./random.js";
 
 export const CHARACTER_RULES = "fighter-rules-v1";
@@ -117,6 +118,7 @@ export function rollAbilities(random: RandomSource): AbilityRolls {
   return rolls as AbilityRolls;
 }
 
+/** Each ability score is the sum of its three recorded dice. */
 export function rolledAbilities(rolls: AbilityRolls): Abilities {
   return Object.fromEntries(
     ABILITIES.map((ability) => [
@@ -126,9 +128,10 @@ export function rolledAbilities(rolls: AbilityRolls): Abilities {
   ) as Abilities;
 }
 
+/** Whether a set of scores can make a Fighter under version 2. */
 export function meetsFighterMinimums(abilities: Abilities): boolean {
   return ABILITIES.every(
-    (ability) => abilities[ability] >= (FIGHTER_MINIMUMS[ability] ?? 3),
+    (ability) => abilities[ability] >= (FIGHTER_MINIMUMS[ability] ?? 0),
   );
 }
 
@@ -152,9 +155,7 @@ function validateAbilityRolls(sheet: CharacterSheet): void {
           (die) => !Number.isInteger(die) || die < 1 || die > 6,
         ),
     ) ||
-    ABILITIES.some(
-      (ability) => rolledAbilities(rolls)[ability] !== sheet.abilities[ability],
-    )
+    !isDeepStrictEqual(rolledAbilities(rolls), { ...sheet.abilities })
   ) {
     throw new Error("Invalid ability rolls.");
   }
@@ -254,18 +255,7 @@ export function createCharacter(
   if (abilities === undefined) {
     throw new Error("Choose a supported ability preset.");
   }
-  return newFighter({
-    id,
-    name: name.trim(),
-    class: "Fighter",
-    rulesVersion: CHARACTER_RULES,
-    abilities,
-    level: 1,
-    xp: 0,
-    hp: 1,
-    equipment: ["chain-mail", "shield", "longsword"],
-    earnedRewards: [],
-  });
+  return newFighter(id, name, { rulesVersion: CHARACTER_RULES, abilities });
 }
 
 /** A level 1 Fighter from engine-rolled 3d6 in order (fighter-rules-v2). */
@@ -280,22 +270,30 @@ export function createRolledCharacter(
       "This roll is below the Fighter minimums (Strength 9, Dexterity 9, Constitution 7); reroll before saving a character.",
     );
   }
-  return newFighter({
-    id,
-    name: name.trim(),
-    class: "Fighter",
+  return newFighter(id, name, {
     rulesVersion: ROLLED_CHARACTER_RULES,
     abilities,
     abilityRolls: rolls,
+  });
+}
+
+/** A level 1 Fighter at full health; key order matches released sheets. */
+function newFighter(
+  id: string,
+  name: string,
+  scores: Pick<CharacterSheet, "rulesVersion" | "abilities" | "abilityRolls">,
+): CharacterSheet {
+  const base: CharacterSheet = {
+    id,
+    name: name.trim(),
+    class: "Fighter",
+    ...scores,
     level: 1,
     xp: 0,
     hp: 1,
     equipment: ["chain-mail", "shield", "longsword"],
     earnedRewards: [],
-  });
-}
-
-function newFighter(base: CharacterSheet): CharacterSheet {
+  };
   return validateCharacter({ ...base, hp: characterProfile(base).maxHp });
 }
 
