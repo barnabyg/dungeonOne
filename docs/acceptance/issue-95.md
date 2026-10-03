@@ -82,15 +82,16 @@ verification without credentials. Each journey creates a level-1 Fighter
 authority in its own process. Only the provider is scripted
 ([`tests/fixtures/issue-93-server.mjs`](../../tests/fixtures/issue-93-server.mjs)).
 
-| Journey                                        | Seed       | Covers                                                                                                                                                                        |
-| ---------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| On time: verified safe signal                  | 0          | **Failed check** (wisdom at the beacon lamp, no XP); both fights won; component fitted and **spent (item loss)**; Day 2, “Before Day 3” consequence; **verified safe signal** |
-| Valley road: slower human warning              | 0, 1, 2, 3 | **Combat avoidance** (no combat card at all, HP 19/19); **late** consequence; **slower human warning**; **multiple seeds**                                                    |
-| Casualty: urgent risky signal                  | 0          | Sentry avoided by the drainage walk; **Vey killed (casualty)**; controls secured; component still carried; late; **urgent risky signal**                                      |
-| Defeat                                         | 33         | **Defeat** by the ridge raider; no XP, level 1; Review after a restart; no provider call                                                                                      |
-| Restarts mid-combat and at the Day 3 threshold | 0          | Process kill **mid-combat** (sentry) and right after the **Day 3 threshold**; identical state, no call; threshold not replayed; finishes late                                 |
-| Every surviving journey above                  |            | **Completion XP credited once**: one “1000 XP credited”, level 2; kill and relaunch into Review: identical view, no call, a further turn refused, XP still 1,000              |
-| Player handoff                                 | 0          | [`scripts/qualify-handoff.mjs`](../../scripts/qualify-handoff.mjs) in a real browser (below)                                                                                  |
+| Journey                                        | Seed              | Covers                                                                                                                                                                                                                                  |
+| ---------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| On time: verified safe signal                  | 0                 | **Failed check** (wisdom at the beacon lamp, no XP); both fights won; component fitted and **spent (item loss: v13's only lossy item mechanic is spending the component)**; Day 2, “Before Day 3” consequence; **verified safe signal** |
+| Valley road: slower human warning              | 0, 1, 2, 3        | **Combat avoidance** (no combat card at all, HP 19/19); **late** consequence; **slower human warning**; seeds 0–3 (this route rolls no dice)                                                                                            |
+| Casualty: urgent risky signal                  | 0                 | Sentry avoided by the drainage walk; **Vey killed (casualty)**; controls secured; component still carried; late; **urgent risky signal**                                                                                                |
+| Defeat                                         | 33                | **Defeat** by the ridge raider; no XP, level 1; Review after a restart; no provider call                                                                                                                                                |
+| Restarts mid-combat and at the Day 3 threshold | 0                 | Process kill **mid-combat** (sentry) and right after the **Day 3 threshold**; identical state, no call; threshold not replayed; finishes late                                                                                           |
+| Ridge fight across seeds                       | 0, 1, 2, 5, 9, 33 | **Multiple seeds** on a dice route: six different fights; each run ends in a defeat (no XP) or a late verified safe signal with 1,000 XP, and both outcomes occur                                                                       |
+| Every surviving journey above                  |                   | **Completion XP credited once**: one “1000 XP credited”, level 2; kill and relaunch into Review: identical view, no call, a further turn refused, XP still 1,000                                                                        |
+| Player handoff                                 | 0                 | [`scripts/qualify-handoff.mjs`](../../scripts/qualify-handoff.mjs) in a real browser (below)                                                                                                                                            |
 
 Existing tests cover the rest of the browser boundary and are unchanged:
 [`tests/issue-94.test.mjs`](../../tests/issue-94.test.mjs) (the full typed
@@ -125,10 +126,12 @@ canonical verification, so it can't drift from the shipped page.
 The launcher runs through `tests/fixtures/issue-93-launcher.mjs`, which only
 stops it opening a desktop window, with a placeholder credential.
 
-**Result (3 October 2026):** a fresh `git clone` of this branch at `e35c99a`
-(the code and tests here; later commits are documentation only). In it,
+**Result (3 October 2026):** a fresh `git clone` of this branch at `e35c99a`.
+After review, `1ae5fee` and `f6738cd` refactored the shared test helpers and
+added the multi-seed journey; they were verified in the working checkout, not
+in a second clean clone. In it,
 `npm.cmd ci --cache .verify-artifacts/npm-cache` installed with 0
-vulnerabilities, and `CI=true npm.cmd run verify` passed **all seven gates, 740
+vulnerabilities, and `npm.cmd run verify` with `$env:CI = "true"` passed **all seven gates, 740
 tests, 0 failures, zero warnings**. `npm.cmd run build` and
 `node scripts/qualify-handoff.mjs` passed every check. Tracked files were
 unchanged. Node 24.13.0, npm 11.6.4, headless Edge. Receipt:
@@ -148,8 +151,9 @@ is not one of them.
 
 ## Things to watch in the sessions
 
-Seen while building the journeys. None is fixed yet, because player evidence
-should decide the priority:
+Seen while building the journeys. This is known negative evidence. It isn't
+fixed yet because the first sessions should show how much each item matters;
+each item becomes a fix or a ticket after those sessions:
 
 - The introduction is about 2,400 characters of rules ("0 days and no dice",
   "min(8, missing HP)", "no retreat or surrender") rather than a story hook.

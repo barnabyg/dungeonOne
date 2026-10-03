@@ -27,7 +27,7 @@ Use a clean checkout of the commit you are testing:
 ```powershell
 git clone https://github.com/barnabyg/dungeonOne.git dungeonOne-playtest
 Set-Location dungeonOne-playtest
-git switch <branch-or-commit under test>
+git switch --detach <branch-or-commit under test>
 npm.cmd ci
 npm.cmd run build
 $env:OPENAI_API_KEY = "<key>"

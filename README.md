@@ -156,6 +156,9 @@ and delivered interfaces for the increment 8 rewrite are in the
 The full character-mode Hollow Beacon v12 journey with a live AI Dungeon
 Master, its review and the opt-in `scripts/qualify-character-live.mjs` runner
 are in the [issue 94 qualification](docs/acceptance/issue-94.md).
+The unfamiliar-player handoff for Hollow Beacon v13 (player and host sheets,
+named journeys, and the `scripts/qualify-handoff.mjs` clean-checkout browser
+check) is in the [issue 95 qualification](docs/acceptance/issue-95.md).
 Full verification includes real browser/API/storage journeys using pinned
 Playwright: Windows requires installed Microsoft Edge; Linux/macOS require
 `npx playwright install chromium` (on Linux CI, use `--with-deps`). Browser
