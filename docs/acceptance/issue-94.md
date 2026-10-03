@@ -175,7 +175,8 @@ an unexpected or second mutation, and no reply claimed XP, a level or a rescue.
    therefore met by the engine, result cards and notices, **not by narration
    itself**. Follow-up: #111.
 4. **The post-commit failure text says “shown in Mechanics”.** The browser
-   labels that card **Resolved action**. Follow-up: #112.
+   labels that card **Resolved action**. Follow-up: #112, which makes the
+   browser reply name the visible card; the CLI keeps “Mechanics”.
 5. **Deliberately narrow phrasing.** `take` requires take, grab, collect or
    pick up in the player's own words (“Pocket the component” is refused with
    an honest rejection), and optional checks require the offered wording.

@@ -270,7 +270,9 @@ input stays disabled until the complete reply arrives. Replies retain NPC
 attribution, authoritative result cards explain resolved actions, and the
 location, exits, HP, and time refresh from verified saved state. Consequential
 results save before display. Provider failures report whether an action was
-saved; do not repeat an action marked saved. Lost responses and stale tab requests
+saved; do not repeat an action marked saved. The reply then points to the
+**Resolved action** or **Action rejected** card rather than the CLI's Mechanics
+block. Lost responses and stale tab requests
 refresh the preserved position without repeating the action. Save failures retain
 the result; repair storage and use **Refresh adventure** in Game menu to recover it. Keep the
 launcher running if it reports an unsaved result. See [issue 101 recovery checks](docs/acceptance/issue-101.md).
