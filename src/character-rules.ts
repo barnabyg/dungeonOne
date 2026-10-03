@@ -5,8 +5,16 @@ import type { RandomSource } from "./random.js";
 export const CHARACTER_RULES = "fighter-rules-v1";
 /** Version 2 adds 3d6-in-order abilities; play rules are unchanged (#118). */
 export const ROLLED_CHARACTER_RULES = "fighter-rules-v2";
+/**
+ * Version 3 adds a treasure inventory that the character carries between
+ * adventures (#119). New characters use it, made from presets or rolls;
+ * version 1 and 2 sheets stay as released and never receive treasure.
+ */
+export const TREASURE_CHARACTER_RULES = "fighter-rules-v3";
 export type FighterRules =
-  typeof CHARACTER_RULES | typeof ROLLED_CHARACTER_RULES;
+  | typeof CHARACTER_RULES
+  | typeof ROLLED_CHARACTER_RULES
+  | typeof TREASURE_CHARACTER_RULES;
 export const ABILITIES = [
   "strength",
   "dexterity",
@@ -52,6 +60,23 @@ export const PRESETS: Readonly<Record<string, Abilities>> = {
     charisma: 9,
   },
 };
+/** Items a character can carry between adventures. */
+export const TREASURE_ITEMS = {
+  "healing-draught": {
+    name: "Healing draught",
+    description:
+      "A small stoppered flask. Drinking it restores 1d4 + 1 HP, never above maximum HP, and uses it up.",
+    healing: { dice: 1, sides: 4, modifier: 1 },
+  },
+} as const;
+export type TreasureItem = keyof typeof TREASURE_ITEMS;
+export type Inventory = Readonly<{
+  silver: number;
+  items: readonly TreasureItem[];
+}>;
+/** Bounds that keep a carried inventory small and its sheet valid. */
+export const MAX_SILVER = 1_000_000;
+export const MAX_CARRIED_ITEMS = 20;
 export type CharacterSheet = Readonly<{
   id: string;
   name: string;
@@ -65,6 +90,8 @@ export type CharacterSheet = Readonly<{
   hp: number;
   equipment: readonly ["chain-mail", "shield", "longsword"];
   earnedRewards: readonly string[];
+  /** Silver and items carried between adventures; version 3 only. */
+  inventory?: Inventory;
 }>;
 
 export function abilityModifier(score: number): number {
@@ -98,15 +125,29 @@ export function nextLevelXp(level: 1 | 2 | 3): number | undefined {
   return level === 1 ? 1000 : level === 2 ? 2500 : undefined;
 }
 
-/** Modules declaring version 1 accept version 2, whose play rules match. */
+/**
+ * Modules declaring version 1 accept versions 2 and 3, whose play rules match;
+ * a version 3 character may also drink its carried healing draughts.
+ */
 export function playsFighterRules(
   moduleRules: string,
   sheetRules: FighterRules,
 ): boolean {
   return (
     moduleRules === CHARACTER_RULES &&
-    (sheetRules === CHARACTER_RULES || sheetRules === ROLLED_CHARACTER_RULES)
+    [
+      CHARACTER_RULES,
+      ROLLED_CHARACTER_RULES,
+      TREASURE_CHARACTER_RULES,
+    ].includes(sheetRules)
   );
+}
+
+/** Whether this sheet can receive treasure (fighter-rules-v3). */
+export function carriesTreasure(
+  sheet: CharacterSheet,
+): sheet is CharacterSheet & { inventory: Inventory } {
+  return sheet.rulesVersion === TREASURE_CHARACTER_RULES;
 }
 
 /** Rolls 3d6 for each ability in order: Strength first, Charisma last. */
@@ -136,7 +177,12 @@ export function meetsFighterMinimums(abilities: Abilities): boolean {
 }
 
 function validateAbilityRolls(sheet: CharacterSheet): void {
-  if (sheet.rulesVersion === CHARACTER_RULES) {
+  // Version 3 records dice only for a rolled character.
+  if (
+    sheet.rulesVersion === CHARACTER_RULES ||
+    (sheet.rulesVersion === TREASURE_CHARACTER_RULES &&
+      !("abilityRolls" in sheet))
+  ) {
     if ("abilityRolls" in sheet) {
       throw new Error("Version 1 sheets have no ability rolls.");
     }
@@ -161,6 +207,36 @@ function validateAbilityRolls(sheet: CharacterSheet): void {
   }
   if (!meetsFighterMinimums(sheet.abilities)) {
     throw new Error("Ability scores are below the Fighter minimums.");
+  }
+}
+
+function validateInventory(sheet: CharacterSheet): void {
+  if (!carriesTreasure(sheet)) {
+    if ("inventory" in sheet) {
+      throw new Error("Only version 3 sheets carry an inventory.");
+    }
+    return;
+  }
+  const inventory = sheet.inventory as unknown;
+  if (
+    inventory === null ||
+    typeof inventory !== "object" ||
+    Array.isArray(inventory) ||
+    JSON.stringify(Object.keys(inventory)) !==
+      JSON.stringify(["silver", "items"])
+  ) {
+    throw new Error("Invalid character inventory.");
+  }
+  const { silver, items } = inventory as Inventory;
+  if (
+    !Number.isSafeInteger(silver) ||
+    silver < 0 ||
+    silver > MAX_SILVER ||
+    !Array.isArray(items) ||
+    items.length > MAX_CARRIED_ITEMS ||
+    items.some((item) => !Object.hasOwn(TREASURE_ITEMS, item))
+  ) {
+    throw new Error("Invalid character inventory.");
   }
 }
 
@@ -202,7 +278,8 @@ export function validateCharacter(value: unknown): CharacterSheet {
   }
   if (
     sheet.rulesVersion !== CHARACTER_RULES &&
-    sheet.rulesVersion !== ROLLED_CHARACTER_RULES
+    sheet.rulesVersion !== ROLLED_CHARACTER_RULES &&
+    sheet.rulesVersion !== TREASURE_CHARACTER_RULES
   ) {
     throw new Error("Unsupported character rules.");
   }
@@ -217,6 +294,7 @@ export function validateCharacter(value: unknown): CharacterSheet {
     abilityModifier(sheet.abilities[ability]);
   }
   validateAbilityRolls(sheet);
+  validateInventory(sheet);
   if (sheet.level !== levelForXp(sheet.xp)) {
     throw new Error("Character level differs from experience points.");
   }
@@ -246,23 +324,32 @@ export function validateCharacter(value: unknown): CharacterSheet {
   return structuredClone(sheet);
 }
 
+/** A level 1 Fighter from a preset, by default under fighter-rules-v1. */
 export function createCharacter(
   name: string,
   preset: string,
   id = randomBytes(16).toString("hex"),
+  rules:
+    typeof CHARACTER_RULES | typeof TREASURE_CHARACTER_RULES = CHARACTER_RULES,
 ): CharacterSheet {
   const abilities = PRESETS[preset];
   if (abilities === undefined) {
     throw new Error("Choose a supported ability preset.");
   }
-  return newFighter(id, name, { rulesVersion: CHARACTER_RULES, abilities });
+  return newFighter(id, name, { rulesVersion: rules, abilities });
 }
 
-/** A level 1 Fighter from engine-rolled 3d6 in order (fighter-rules-v2). */
+/**
+ * A level 1 Fighter from engine-rolled 3d6 in order, by default under
+ * fighter-rules-v2.
+ */
 export function createRolledCharacter(
   name: string,
   rolls: AbilityRolls,
   id = randomBytes(16).toString("hex"),
+  rules:
+    | typeof ROLLED_CHARACTER_RULES
+    | typeof TREASURE_CHARACTER_RULES = ROLLED_CHARACTER_RULES,
 ): CharacterSheet {
   const abilities = rolledAbilities(rolls);
   if (!meetsFighterMinimums(abilities)) {
@@ -271,7 +358,7 @@ export function createRolledCharacter(
     );
   }
   return newFighter(id, name, {
-    rulesVersion: ROLLED_CHARACTER_RULES,
+    rulesVersion: rules,
     abilities,
     abilityRolls: rolls,
   });
@@ -293,6 +380,9 @@ function newFighter(
     hp: 1,
     equipment: ["chain-mail", "shield", "longsword"],
     earnedRewards: [],
+    ...(scores.rulesVersion === TREASURE_CHARACTER_RULES
+      ? { inventory: { silver: 0, items: [] } }
+      : {}),
   };
   return validateCharacter({ ...base, hp: characterProfile(base).maxHp });
 }
