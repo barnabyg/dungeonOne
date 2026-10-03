@@ -500,6 +500,10 @@ test("the library keeps treasure only on surviving completion, and abandonment r
       session.runtime.projectCharacterStatus(session.state).pendingTreasure,
       { silver: 0, items: ["healing-draught"] },
     );
+    await assert.rejects(
+      career.abandon(id, (await career.library.read()).revision, false),
+      /Pending XP and treasure found in the adventure will be discarded/,
+    );
     await abandon();
     assert.deepEqual((await sheet()).inventory, { silver: 10, items: [] });
     assert.ok(

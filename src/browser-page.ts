@@ -739,7 +739,7 @@ function renderLibrary() {
     if (record.availability === "active") {
       note("This character is on an adventure. Continue it, or abandon it to start another.");
       libraryButton(adventures, "Continue this adventure", () => libraryAction("continue", { sessionId: record.activeSessionId }, true));
-      libraryButton(adventures, "Abandon adventure", () => { if (window.confirm("Abandon this adventure? Pending XP will be discarded. Your career and this adventure record remain saved; rest is required before another start.")) { void libraryAction("abandon", { characterId: record.sheet.id, confirmed: true }); } }).className = "danger";
+      libraryButton(adventures, "Abandon adventure", () => { if (window.confirm("Abandon this adventure? Pending XP and any treasure found in it will be discarded. Your career and this adventure record remain saved; rest is required before another start.")) { void libraryAction("abandon", { characterId: record.sheet.id, confirmed: true }); } }).className = "danger";
     }
     if (record.availability === "rest-needed") { note("Rest to recover before the next adventure."); libraryButton(adventures, "Rest between adventures", () => libraryAction("rest", { characterId: record.sheet.id })); }
     if (record.availability === "defeated") { note("This character is defeated and cannot start another adventure. Its sheet and past journeys remain saved. Create a new character to play again."); }

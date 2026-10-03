@@ -335,7 +335,7 @@ export class CharacterCareer {
       !confirmed
     ) {
       throw new Error(
-        "Confirm abandonment against the current character library. Pending XP will be discarded.",
+        "Confirm abandonment against the current character library. Pending XP and treasure found in the adventure will be discarded.",
       );
     }
     const session = await SaveSession.load(
