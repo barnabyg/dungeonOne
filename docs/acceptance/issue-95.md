@@ -1,9 +1,13 @@
 # Issue 95: qualify Hollow Beacon with unfamiliar players
 
-Prepared on 3 October 2026 on `feat/issue-95-player-qualification`, in the
-browser's default character mode. **Status: rounds 1–3 fixed; ready for the
-next player session. Not qualified.** The external-player gates below stay open
-until three unfamiliar players have played and their evidence is recorded here.
+Prepared on 3 October 2026 on `feat/issue-95-player-qualification` and
+merged in #120, in the browser's default character mode. **Status: resolved
+under a revised scope.** On 3 October 2026 the project owner judged a
+three-player qualification premature: the module needs more work first (story
+depth, loot in #119, rolled abilities in #118, and length). The ticket was
+narrowed to one unfamiliar player plus the owner's own playtests, with fixes
+for what they found, and closed. The multi-player gates are deferred, not
+passed.
 
 The issue names Hollow Beacon v12. #110 made new adventures start v13 (one
 **Examine** action). The first player session (below) stopped early on
@@ -11,23 +15,23 @@ confusing text, and the project owner then approved a content release: new
 adventures now start **v14** (`hollow-beacon` 14,
 `character-adventure-rules-v2`, schema 17,
 `adventures/hollow-beacon-story.json`), which is v13 with plain player-facing
-text. This qualification is for v14. v12 and v13 saves continue under their
-own rows. Stonebridge (levels 2–3) is out of scope.
+text and a stronger story. v12 and v13 saves continue under their own rows.
+Stonebridge (levels 2–3) is out of scope.
 
 ## Gates
 
-| Gate                                                                                         | Status                                              |
-| -------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Three unfamiliar players in the browser, character mode, evidence recorded                   | **Open:** 1 session, stopped early (does not count) |
-| No authoritative contradiction or unfinishable supported branch in tested play               | **Open:** scripted routes finish; needs player play |
-| At least two finish without story coaching                                                   | **Open**                                            |
-| Completed runs plausibly fit 2–4 hours without padded travel                                 | **Open, at risk:** see [Length](#length)            |
-| At least two say they would choose another adventure                                         | **Open**                                            |
-| Named automated journeys (endings, timing, check, casualty, item, avoidance, seeds, resumes) | Done: [Automated journeys](#automated-journeys)     |
-| Canonical seven-gate verification, zero warnings                                             | Done; rerun after round 1 (see below)               |
-| Clean checkout: install, verify, build, start, create, save, continue, finish, Review        | Done: [Clean checkout](#clean-checkout)             |
-| Diagnostic CLI replay verified separately                                                    | Done, in the same handoff run                       |
-| Handoff: PowerShell commands, browser steps, expected responses, prerequisites, limits       | Done: player and host sheets                        |
+| Gate                                                                                         | Status                                                                                                                     |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| One unfamiliar player in the browser, character mode, evidence recorded                      | Done: [player 01](issue-95-sessions/player-01.md), stopped early to fix what they found (diagnostic, not a completion run) |
+| Owner playtests of the fixed build recorded                                                  | Done: [owner 01](issue-95-sessions/owner-01.md)                                                                            |
+| Negative evidence fixed, affected paths rechecked                                            | Done: [rounds 1–3](#player-sessions)                                                                                       |
+| Named automated journeys (endings, timing, check, casualty, item, avoidance, seeds, resumes) | Done: [Automated journeys](#automated-journeys)                                                                            |
+| Canonical seven-gate verification, zero warnings                                             | Done: 757 tests at merge                                                                                                   |
+| Clean checkout: install, verify, build, start, create, save, continue, finish, Review        | Done: [Clean checkout](#clean-checkout)                                                                                    |
+| Diagnostic CLI replay verified separately                                                    | Done, in the same handoff run                                                                                              |
+| Handoff: PowerShell commands, browser steps, expected responses, prerequisites, limits       | Done: player and host sheets                                                                                               |
+| Three unfamiliar players; two finish without story coaching; two would play again            | **Deferred** (owner, 3 October 2026)                                                                                       |
+| Completed runs plausibly fit 2–4 hours without padded travel                                 | **Deferred, at risk:** see [Length](#length)                                                                               |
 
 ## Handoff documents
 
@@ -147,7 +151,7 @@ A scripted route finishes in 14 turns, and #94's live run took 22 turns with
 1.4–4.8 s per turn. A player who reads everything, explores both
 investigation routes, talks to every character and fights will take longer,
 but the module has 12 locations and one main decision. Reaching 2–4 hours
-without padding is the gate most at risk. The sessions will measure it. If
+without padding is the gate most at risk. The deferred multi-player sessions will measure it. If
 completed runs are clearly shorter, the honest outcomes are more content (a
 content ticket with its own release row) or a revised target. Padding travel
 is not one of them.
