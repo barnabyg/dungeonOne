@@ -4,55 +4,13 @@
 // own process so a journey can kill and relaunch it. Only the provider is
 // scripted (tests/fixtures/issue-93-server.mjs).
 import assert from "node:assert/strict";
-import { fork } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { qualifyHandoff } from "../scripts/qualify-handoff.mjs";
 import { beaconExamine, commandCall } from "./fixtures/character-journeys.mjs";
-
-const SERVER = fileURLToPath(
-  new URL("./fixtures/issue-93-server.mjs", import.meta.url),
-);
-
-async function launchServer(directory, seed) {
-  const child = fork(
-    SERVER,
-    [
-      join(directory, "unused-slot.json"),
-      String(seed),
-      join(directory, "characters.json"),
-    ],
-    { stdio: ["ignore", "pipe", "pipe", "ipc"] },
-  );
-  let output = "";
-  child.stdout.on("data", (chunk) => {
-    output += chunk;
-  });
-  child.stderr.on("data", (chunk) => {
-    output += chunk;
-  });
-  const url = await new Promise((resolve, reject) => {
-    child.once("message", (message) => resolve(message.url));
-    child.once("exit", () => reject(new Error(output)));
-  });
-  return {
-    url,
-    calls: () => output.split("provider-call\n").length - 1,
-    async kill() {
-      if (child.exitCode !== null || child.signalCode !== null) {
-        return;
-      }
-      const exited = new Promise((resolve) => {
-        child.once("exit", resolve);
-      });
-      child.kill();
-      await exited;
-    },
-  };
-}
+import { launchScriptedServer } from "./fixtures/scripted-server-process.mjs";
 
 const post = async (server, path, body) => {
   const response = await fetch(server.url + path, {
@@ -86,19 +44,7 @@ async function startAda(server) {
 }
 
 /** The offered call a journey step names; `fight` attacks one round. */
-function stepCall(step) {
-  const [verb, target] = step.split(" ");
-  if (verb === "attack" || verb === "fight") {
-    return { name: "attack", arguments: { opponent_id: target } };
-  }
-  if (verb === "check") {
-    return { name: "check_ability", arguments: { checkId: target } };
-  }
-  if (verb === "recover") {
-    return { name: "recover", arguments: { target } };
-  }
-  return commandCall(step);
-}
+const stepCall = (step) => commandCall(step.replace(/^fight /, "attack "));
 
 const offered = (view, expected) =>
   view.actions.find(
@@ -148,14 +94,20 @@ async function withServer(seed, body) {
   const directory = await mkdtemp(join(tmpdir(), "dungeon-issue-95-"));
   const servers = [];
   const relaunch = async () => {
-    await servers.at(-1)?.kill();
-    servers.push(await launchServer(directory, seed));
+    await servers.at(-1)?.stop();
+    servers.push(
+      await launchScriptedServer({
+        savePath: join(directory, "unused-slot.json"),
+        seed,
+        libraryPath: join(directory, "characters.json"),
+      }),
+    );
     return servers.at(-1);
   };
   try {
     await body(await relaunch(), relaunch, directory);
   } finally {
-    await servers.at(-1)?.kill();
+    await servers.at(-1)?.stop();
     await rm(directory, { recursive: true, force: true });
   }
 }
@@ -276,10 +228,8 @@ test("defeat: a level-1 Fighter can fall to the ridge raider; no XP is awarded a
     assert.deepEqual(defeated.actions, []);
     assert.doesNotMatch(cards, /XP credited|Level 1 → 2/);
     const restarted = await relaunch();
-    assert.deepEqual(await state(restarted), {
-      ...defeated,
-      newGameSeed: (await state(restarted)).newGameSeed,
-    });
+    const review = await state(restarted);
+    assert.deepEqual(review, { ...defeated, newGameSeed: review.newGameSeed });
     assert.equal(restarted.calls(), 0);
     const after = await sheet(restarted);
     assert.equal(after.xp, 0);

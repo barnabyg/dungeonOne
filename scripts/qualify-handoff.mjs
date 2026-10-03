@@ -20,7 +20,7 @@
 // stops it opening a desktop browser window. Its credential is a placeholder:
 // steps 1, 2, 4 and 5 make no provider request.
 // Usage: node scripts/qualify-handoff.mjs [receipt.json]
-import { execFileSync, fork, spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,9 +31,12 @@ import {
   beaconExamine,
   commandCall,
 } from "../tests/fixtures/character-journeys.mjs";
+import { launchScriptedServer } from "../tests/fixtures/scripted-server-process.mjs";
 
 const repository = fileURLToPath(new URL("..", import.meta.url));
 const tracked = (path) => join(repository, path);
+/** The seed every step uses, as in player 01's command. */
+const SEED = 0;
 
 function check(condition, message) {
   if (!condition) {
@@ -48,7 +51,7 @@ async function launch(directory, libraryPath) {
     [
       tracked("tests/fixtures/issue-93-launcher.mjs"),
       "--seed",
-      "0",
+      String(SEED),
       "--characters",
       libraryPath,
     ],
@@ -77,6 +80,9 @@ async function launch(directory, libraryPath) {
     url,
     output: () => output,
     async stop() {
+      if (child.exitCode !== null || child.signalCode !== null) {
+        return;
+      }
       const exited = new Promise((resolveExit) => {
         child.once("exit", resolveExit);
       });
@@ -86,35 +92,15 @@ async function launch(directory, libraryPath) {
   };
 }
 
-/** The shipped server with the tracked scripted provider, in its own process. */
-async function scriptedServer(directory, libraryPath) {
-  const child = fork(
-    tracked("tests/fixtures/issue-93-server.mjs"),
-    [join(directory, "unused-slot.json"), "0", libraryPath],
-    { stdio: ["ignore", "pipe", "pipe", "ipc"] },
+/** The library and every adventure save, as text, to compare bytes. */
+async function snapshotSaves(directory, libraryPath) {
+  const library = await readFile(libraryPath, "utf8");
+  const sessions = await Promise.all(
+    JSON.parse(library).sessions.map(({ id }) =>
+      readFile(join(directory, "character-adventures", `${id}.json`), "utf8"),
+    ),
   );
-  let output = "";
-  child.stdout.on("data", (chunk) => {
-    output += chunk;
-  });
-  child.stderr.on("data", (chunk) => {
-    output += chunk;
-  });
-  const url = await new Promise((resolveUrl, reject) => {
-    child.once("message", (message) => resolveUrl(message.url));
-    child.once("exit", () => reject(new Error(output)));
-  });
-  return {
-    url,
-    calls: () => output.split("provider-call\n").length - 1,
-    async stop() {
-      const exited = new Promise((resolveExit) => {
-        child.once("exit", resolveExit);
-      });
-      child.kill();
-      await exited;
-    },
-  };
+  return [library, ...sessions];
 }
 
 const getJson = async (url, path) => (await fetch(url + path)).json();
@@ -211,7 +197,11 @@ export async function qualifyHandoff(directory) {
     await stop(launcher);
 
     // 3. The tracked journey, typed into the page.
-    const server = await scriptedServer(directory, libraryPath);
+    const server = await launchScriptedServer({
+      savePath: join(directory, "unused-slot.json"),
+      seed: SEED,
+      libraryPath,
+    });
     let completionCards = "";
     try {
       await page.goto(server.url);
@@ -249,17 +239,7 @@ export async function qualifyHandoff(directory) {
     checks.push(
       `Typed ${beaconExamine.length} tracked turns through the shipped server and scripted provider (${server.calls()} scripted calls) to the slower human warning`,
     );
-    const finished = [
-      await readFile(libraryPath, "utf8"),
-      ...(await Promise.all(
-        JSON.parse(await readFile(libraryPath, "utf8")).sessions.map(({ id }) =>
-          readFile(
-            join(directory, "character-adventures", `${id}.json`),
-            "utf8",
-          ),
-        ),
-      )),
-    ];
+    const finished = await snapshotSaves(directory, libraryPath);
 
     // 4. The launcher reopens completed Review.
     launcher = await relaunch();
@@ -274,17 +254,7 @@ export async function qualifyHandoff(directory) {
       review.character.sheet.xp === 1000 && review.character.sheet.level === 2,
       "1,000 XP credited once, level 2",
     );
-    const unchanged = [
-      await readFile(libraryPath, "utf8"),
-      ...(await Promise.all(
-        JSON.parse(await readFile(libraryPath, "utf8")).sessions.map(({ id }) =>
-          readFile(
-            join(directory, "character-adventures", `${id}.json`),
-            "utf8",
-          ),
-        ),
-      )),
-    ];
+    const unchanged = await snapshotSaves(directory, libraryPath);
     check(
       JSON.stringify(unchanged) === JSON.stringify(finished),
       "reopening Review changes no saved byte",
@@ -344,7 +314,7 @@ export async function qualifyHandoff(directory) {
     "CLI replay of tests/fixtures/historical-ai-victory.json: " +
       replay.trim().split("\n").at(-1),
   );
-  return { seed: 0, launcherUrls, checks, completed: true };
+  return { seed: SEED, launcherUrls, checks, completed: true };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
