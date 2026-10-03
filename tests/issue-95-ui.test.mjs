@@ -164,10 +164,11 @@ test(
         await page.locator("#close-characters").innerText(),
         "Close",
       );
-      assert.match(
-        await page.locator("#library-sessions").innerText(),
-        /None yet/,
-      );
+      // The library renders after its fetch; wait rather than read at once.
+      await page
+        .locator("#library-sessions")
+        .filter({ hasText: "None yet" })
+        .waitFor();
       // With no characters yet, the creation form is already open.
       await page.locator("#character-name").waitFor({ state: "visible" });
       assert.equal(
