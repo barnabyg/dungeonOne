@@ -74,7 +74,7 @@ verification without credentials.
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | Real Edge/Chromium creates Ada and plays the whole journey, typed and clicked. Panels and hints make no call. Provider failure before the loft move (nothing committed, retried) and after the take (saved, reload shows the card). Duplicate submission of the lost turn is 409 without a call. Process kill and relaunch: exact conversation, state and save bytes, zero calls. Every turn advances the position by at most one. Level 1 → 2, 1,000 XP. Kill and relaunch into Review: no call, no second award, library and save bytes unchanged | Browser, HTTP server in its own process, storage |
 | Every provider request in that journey: transcript ≤ 8 entries and ≤ 4,000 characters, verified history ≤ 12 facts, NPC reply history scoped to the speaking NPC                                                                                                                                                                                                                                                                                                                                                                                    | Provider boundary                                |
-| A deliberately misbehaving provider over HTTP: a false claim of earlier canon followed by a success narration, a hidden actor (Vey from Watch Yard), an item not carried, two calls in one response, a second mutation in one turn, an ambiguous ending, a clicked ending whose call names a different ending, and a request after completion. None changes position, location, clocks, journal, sheet, XP or level beyond the one permitted move                                                                                                   | HTTP, storage, career library                    |
+| A deliberately misbehaving provider over HTTP: a false claim of earlier canon followed by a success narration, a claim contradicting the current scene after more than 12 turns of history, a hidden actor (Vey from Watch Yard), an item not carried, two calls in one response, a second mutation in one turn, an ambiguous ending, a clicked ending whose call names a different ending, and a request after completion. None changes position, location, clocks, journal, sheet, XP or level beyond the one permitted move                      | HTTP, storage, career library                    |
 | A scripted-AI character trace (format 6) of the journey's first nine turns replays; a tampered state is rejected                                                                                                                                                                                                                                                                                                                                                                                                                                    | Trace replay                                     |
 
 The scripted provider maps this journey's phrasing to calls. It qualifies
@@ -101,7 +101,8 @@ Both reports are retained: the [main run](issue-94-live.json) and its
 offered tools, prompt and tool-schema digests, provider response IDs and
 token usage, latency and selected calls, and per-turn cards, replies, notices
 and positions. Credentials and full prompts are not recorded; player inputs
-are the fixed public route text.
+are the fixed public route text. The tool-schema digest is per call, because
+it covers the tools offered at that position, so it changes as the scene does.
 
 **Main run** (43 calls, 139,642 / 3,165 tokens, 80 s): real headless Edge
 through the shipped page, in-process server and save authority. Opening probes,
@@ -115,18 +116,27 @@ return restored the exact conversation, state and save bytes with no call.
 The sheet check, fight, recovery, avoidance and tower arrival all committed as
 expected. The run stopped when the Vey click returned a clarification.
 
-**Continuation** (11 calls, 53,614 / 893 tokens, 24 s): the runner reopened
-the same library, as rerunning the launcher does. The saved adventure
+**Continuation** (11 calls, 53,614 / 893 tokens, 24 s): a second runner
+process started a new server over the same library. This is the same server
+path the launcher uses on a rerun, but `npm.cmd run browser` itself was not
+rerun live (the launcher only accepts a real key and the scripted test covers
+its process kill and relaunch). The saved adventure
 continued at position 18 with no call. The same Vey click committed at once;
 fit, board, the ambiguous “Warn them.” (a clarification listing the three
 endings), and the clicked **Verified safe signal** followed. Final: victory,
 Day 3, 18/19 HP, level 2, 1,000 XP, `hollow-beacon-completion` earned once.
 Restarting opened Review with no call and unchanged library and save bytes.
 
-Per-turn latency was 1.4–4.8 s, per call 0.8–4.1 s. The largest live
+Per-turn latency was 1.4–4.8 s, excluding the injected failure turn (134 ms,
+no provider request); per call it was 0.8–4.1 s. The largest live
 transcript was 8 entries and 2,108 characters; the largest history was 8 facts.
 
 ### Corrections and clarification loops
+
+The reports count every uncommitted turn as a clarification: 7 in the main
+run (the three opening probes, the injected loft failure, and the plate,
+work-order and Vey turns below) and 2 in the continuation (the board turn and
+“Warn them.”).
 
 | Turn                                     | What happened                                                                                                      | Correction                          |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
@@ -156,7 +166,10 @@ an unexpected or second mutation, and no reply claimed XP, a level or a rescue.
    cards refuse unauthorized changes, but free narration is displayed as
    written. In the scripted guard test a provider's “you are now level 5”
    appears beside an **Action rejected** card and a no-commit notice. No live
-   reply made such a claim.
+   reply claimed XP, a level or a rescue, but finding 2's “was altered” is a
+   small live overclaim. The criterion against false success claims is
+   therefore met by the engine, result cards and notices, **not by narration
+   itself**.
 4. **The post-commit failure text says “shown in Mechanics”.** The browser
    labels that card **Resolved action**.
 5. **Deliberately narrow phrasing.** `take` requires take, grab, collect or
@@ -180,7 +193,10 @@ their tests (for example `tests/issue-91.test.mjs`).
 
 ## Limits of this evidence
 
-- One live journey on one seed and one route. It does not establish provider
+- One journey route plus a scripted guard route; one live journey on one
+  seed. The trace test replays the first nine turns, not the whole journey.
+  Stale-tab and generation rejection are not re-tested here; #93's tests
+  cover them in character mode. It does not establish provider
   reliability, coverage of all phrasings, or player enjoyment; #106's watch
   checks remain baseline evidence only.
 - The live run restarted the server in-process and used headless Edge;
