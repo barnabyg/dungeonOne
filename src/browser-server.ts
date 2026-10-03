@@ -1160,6 +1160,7 @@ export async function startBrowserServer(options: BrowserOptions) {
               random: session.random,
               model,
               runtime: session.runtime,
+              resultSurface: "browser-cards",
               history: (state, speakerId) =>
                 session.dmHistory(state, speakerId),
               executeTool: async (state, call, input) => {
