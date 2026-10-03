@@ -157,8 +157,12 @@ the configured save path; reading an empty slot creates no directories.
 The page displays the authoritative scene,
 location, visible exits, Day 0, Day 3 caravan deadline, 20/20 HP, and seed 0.
 **Refresh adventure** in Game menu rereads the verified slot. Existing slots load without
-replacement; corrupt, closed (`quit`), other-adventure, or older-content slots
-produce an error and remain unchanged. Released v4 Watch Route slots continue
+replacement; corrupt, closed (`quit`), other-adventure, unlisted-release or
+tampered slots produce an error and remain unchanged. New slots start v11;
+occupied v4–v11 slots continue with their own saved content and rules, without
+migration. Start v11 beside an older game by using another `--save` path. See
+the [issue 93 supported-release policy](docs/acceptance/issue-93.md).
+Released v4 Watch Route slots continue
 with their original content and endings, including completed Review mode.
 V5 adds the camp survey and Refugee Overlook, attributed testimony and contested
 claims, and provisional tower instructions that leave play open. The v5 investigation retains its original nonterminal decisions. See the
