@@ -331,21 +331,10 @@ async function playStep(step, phrase = step.say) {
     if (input === undefined) {
       continue;
     }
-    if (mode === "typed" && step.click !== undefined) {
-      step = { ...step, click: undefined };
-    }
-    if (mode === "click" && step.click === undefined) {
-      step = { ...step, click: input };
-    }
     const turn = await playTurn(step, input, mode);
     const wrong =
       turn.result.committed &&
-      !turn.selected.some(
-        (call) =>
-          call.name === step.call.name &&
-          JSON.stringify(JSON.parse(call.argumentsJson)) ===
-            JSON.stringify(step.call.arguments),
-      );
+      !turn.selected.some((call) => sameCall({ call }, step.call));
     check(step.id + ": no unexpected mutation", !wrong, {
       selected: turn.selected,
     });
@@ -501,7 +490,8 @@ try {
     if (step.id === "component") {
       check(
         "failure after mutation keeps the saved result",
-        /Your action was saved/.test(turn.result.notice ?? ""),
+        inject === undefined &&
+          /Your action was saved/.test(turn.result.notice ?? ""),
         { notice: turn.result.notice },
       );
       const calls = providerCalls();
