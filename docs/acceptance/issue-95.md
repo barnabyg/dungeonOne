@@ -1,7 +1,7 @@
 # Issue 95: qualify Hollow Beacon with unfamiliar players
 
 Prepared on 3 October 2026 on `feat/issue-95-player-qualification`, in the
-browser's default character mode. **Status: round 1 fixes done; ready for the
+browser's default character mode. **Status: rounds 1 and 2 fixed; ready for the
 next player session. Not qualified.** The external-player gates below stay open
 until three unfamiliar players have played and their evidence is recorded here.
 
@@ -85,16 +85,16 @@ verification without credentials. Each journey creates a level-1 Fighter
 authority in its own process. Only the provider is scripted
 ([`tests/fixtures/issue-93-server.mjs`](../../tests/fixtures/issue-93-server.mjs)).
 
-| Journey                                        | Seed              | Covers                                                                                                                                                                                                                                  |
-| ---------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Journey                                        | Seed              | Covers                                                                                                                                                                                                                                |
+| ---------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | On time: verified safe signal                  | 0                 | **Failed check** (wisdom at the beacon lamp, no XP); both fights won; component fitted and **spent (item loss: the only lossy item mechanic is spending the component)**; Day 2, “Before Day 3” consequence; **verified safe signal** |
-| Valley road: slower human warning              | 0, 1, 2, 3        | **Combat avoidance** (no combat card at all, HP 19/19); **late** consequence; **slower human warning**; seeds 0–3 (this route rolls no dice)                                                                                            |
-| Casualty: urgent risky signal                  | 0                 | Sentry avoided by the drainage walk; **Vey killed (casualty)**; controls secured; component still carried; late; **urgent risky signal**                                                                                                |
-| Defeat                                         | 33                | **Defeat** by the ridge raider; no XP, level 1; Review after a restart; no provider call                                                                                                                                                |
-| Restarts mid-combat and at the Day 3 threshold | 0                 | Process kill **mid-combat** (sentry) and right after the **Day 3 threshold**; identical state, no call; threshold not replayed; finishes late                                                                                           |
-| Ridge fight across seeds                       | 0, 1, 2, 5, 9, 33 | **Multiple seeds** on a dice route: six different fights; each run ends in a defeat (no XP) or a late verified safe signal with 1,000 XP, and both outcomes occur                                                                       |
-| Every surviving journey above                  |                   | **Completion XP credited once**: one “1000 XP credited”, level 2; kill and relaunch into Review: identical view, no call, a further turn refused, XP still 1,000                                                                        |
-| Player handoff                                 | 0                 | [`scripts/qualify-handoff.mjs`](../../scripts/qualify-handoff.mjs) in a real browser (below)                                                                                                                                            |
+| Valley road: slower human warning              | 0, 1, 2, 3        | **Combat avoidance** (no combat card at all, HP 19/19); **late** consequence; **slower human warning**; seeds 0–3 (this route rolls no dice)                                                                                          |
+| Casualty: urgent risky signal                  | 0                 | Sentry avoided by the drainage walk; **Vey killed (casualty)**; controls secured; component still carried; late; **urgent risky signal**                                                                                              |
+| Defeat                                         | 33                | **Defeat** by the ridge raider; no XP, level 1; Review after a restart; no provider call                                                                                                                                              |
+| Restarts mid-combat and at the Day 3 threshold | 0                 | Process kill **mid-combat** (sentry) and right after the **Day 3 threshold**; identical state, no call; threshold not replayed; finishes late                                                                                         |
+| Ridge fight across seeds                       | 0, 1, 2, 5, 9, 33 | **Multiple seeds** on a dice route: six different fights; each run ends in a defeat (no XP) or a late verified safe signal with 1,000 XP, and both outcomes occur                                                                     |
+| Every surviving journey above                  |                   | **Completion XP credited once**: one “1000 XP credited”, level 2; kill and relaunch into Review: identical view, no call, a further turn refused, XP still 1,000                                                                      |
+| Player handoff                                 | 0                 | [`scripts/qualify-handoff.mjs`](../../scripts/qualify-handoff.mjs) in a real browser (below)                                                                                                                                          |
 
 Existing tests cover the rest of the browser boundary and are unchanged:
 [`tests/issue-94.test.mjs`](../../tests/issue-94.test.mjs) (the full typed
@@ -177,19 +177,19 @@ scene, Captain Iona and the beacon lamp. The host then stopped the session to
 pass on 14 items of feedback, so the run does not count toward any gate. Fixes,
 following the project owner's decisions of 3 October 2026:
 
-| Feedback (item)                                               | Fix                                                                                                                                                        |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| “Choose character” vs “Character” (1)                         | Toolbar: **Adventures** and **Character sheet**                                                                                                            |
-| “Close character library” (2); no layout (5)                  | Library dialog: title bar with **Close**; sections for characters, the selected character with its adventures, and saved adventures; empty states          |
-| Expected 3d6 rolls (3)                                        | Follow-up #118; the form explains what a preset is                                                                                                         |
-| Save enabled with no name (4)                                 | **Save character** is disabled until a name is typed; a first visit opens the form directly                                                                |
-| “Combat on arrival…” unclear (6)                              | Character mode: “A fight starts as soon as you reach Ridge Trail, and you can't run once it starts.”                                                       |
-| XP not in the header (7)                                      | “Fighter · Level 1 · XP 0 / 1,000 for level 2”                                                                                                             |
-| “The beacon is dark…” means nothing (8); “Read the scene” (9) | v14's story introduction opens the conversation; the header summarises the current place under **More about this place**; a welcome before any adventure   |
-| Attack offered on Captain Iona (11)                           | Character mode: no Attack click on someone you are not fighting; typing still works                                                                        |
-| “Ask how the watch responds” (12)                             | v14 introduces the beacon watch; topics renamed, for example **Ask what the watch is doing now**                                                           |
-| “Claim the familiar signal is safe” and its text (13)         | v14's introduction explains the beacon's familiar light; the topic is **Bluff: tell Iona the beacon is safe to light as it is**, with a plain one-try roll |
-| Wisdom and intelligence check text (14)                       | **Roll Wisdom** with a plain explanation; v14 drops the four generic assessment checks                                                                     |
+| Feedback (item)                                               | Fix                                                                                                                                                      |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| “Choose character” vs “Character” (1)                         | Toolbar: **Adventures** and **Character sheet**                                                                                                          |
+| “Close character library” (2); no layout (5)                  | Library dialog: title bar with **Close**; sections for characters, the selected character with its adventures, and saved adventures; empty states        |
+| Expected 3d6 rolls (3)                                        | Follow-up #118; the form explains what a preset is                                                                                                       |
+| Save enabled with no name (4)                                 | **Save character** is disabled until a name is typed; a first visit opens the form directly                                                              |
+| “Combat on arrival…” unclear (6)                              | Character mode: “A fight starts as soon as you reach Ridge Trail, and you can't run once it starts.”                                                     |
+| XP not in the header (7)                                      | “Fighter · Level 1 · XP 0 / 1,000 for level 2”                                                                                                           |
+| “The beacon is dark…” means nothing (8); “Read the scene” (9) | v14's story introduction opens the conversation; the header summarises the current place under **More about this place**; a welcome before any adventure |
+| Attack offered on Captain Iona (11)                           | Character mode: no Attack click on someone you are not fighting; typing still works                                                                      |
+| “Ask how the watch responds” (12)                             | v14 introduces the beacon watch; topics renamed, for example **Ask what the watch is doing now**                                                         |
+| “Claim the familiar signal is safe” and its text (13)         | v14's introduction explains the beacon's familiar light; the bluff was first reworded, then removed in round 2                                           |
+| Wisdom and intelligence check text (14)                       | **Roll Wisdom** with a plain explanation; v14 drops the four generic assessment checks                                                                   |
 
 The player liked the column of places to go and people to talk to (10); it is unchanged.
 
@@ -203,3 +203,32 @@ checks that v14 changes only text and the removed checks, has no engine
 jargon, and opens with the story. No live AI run was made for v14. The model
 now reads the v14 descriptions and topic labels, so the next player session is
 also their first live check.
+
+### Round 2: owner playtest
+
+[Record](issue-95-sessions/owner-01.md). The project owner played v14 after
+round 1 and could finish. Their summary: the game lacked narrative, and there
+was no loot. Fixes, following their decisions of 3 October 2026:
+
+- **Story:** strengthened inside v14's existing structure. The player has a
+  reason to be there. The refugees have a stake: the caravan is their way
+  south, and raiders may be following them. A note on the ridge raider
+  foreshadows the diversion. Vey confesses a motive (raider threats and a
+  share) and what happened at the shutter. The endings and the keeper's fate
+  read as a payoff.
+- **People:** clicking Iona, Sera or Pell says who they are. Sera's request
+  and her and Pell's guarded answers say what is being asked and what would
+  change their minds.
+- **Bluff:** removed from v14, together with its correction and roll.
+- **Authored replies:** Hollow Beacon v14 people speak their authored replies.
+  The model no longer strings approved facts together with a stock closing
+  (“Please check carefully.”), so conversations need one AI call, not two.
+- **Hints:** a refused action's “Try:” hint says `examine` in v13 and v14.
+- **Modifiers:** the bracketed ability modifiers are explained on the form,
+  the library sheet and the Character sheet.
+- **Loot:** follow-up #119. 3d6 abilities remain #118.
+
+Rechecked: the named journeys, #93, #94 and #110 all pass on the round 2 v14.
+[`tests/issue-95-dialogue.test.mjs`](../../tests/issue-95-dialogue.test.mjs)
+covers authored replies (v14) against composed replies (v13) and the
+Examine-era hints. The content test now also requires the bluff's removal.
