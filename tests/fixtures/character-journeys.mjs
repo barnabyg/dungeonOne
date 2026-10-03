@@ -27,6 +27,10 @@ export const stonebridgePeaceful = [
   "place bridge-seal at bridge-socket",
   "resolve open-crossing",
 ];
+/** Stonebridge v2 (#119) follows character rules v3, which use examine. */
+export const stonebridgeExamine = stonebridgePeaceful.map((command) =>
+  command.replace(/^search /, "examine "),
+);
 
 export function commandCall(command) {
   const [verb, ...words] = command.split(" ");

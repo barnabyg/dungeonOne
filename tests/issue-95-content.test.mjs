@@ -66,7 +66,7 @@ function playerText(content) {
   );
 }
 
-test("v14 starts new Hollow Beacon adventures; v13 saves keep continuing", async () => {
+test("v14 started new Hollow Beacon adventures until v15 (#119); v13 saves keep continuing", async () => {
   const rows = BROWSER_RELEASES.filter(
     ({ id, mode }) => id === "hollow-beacon" && mode === "character",
   );
@@ -75,10 +75,11 @@ test("v14 starts new Hollow Beacon adventures; v13 saves keep continuing", async
     [
       ["12", false],
       ["13", false],
-      ["14", true],
+      ["14", false],
+      ["15", true],
     ],
   );
-  const v14Row = rows.at(-1);
+  const v14Row = rows.at(-2);
   assert.equal(v14Row.file, "hollow-beacon-story.json");
   assert.equal(v14Row.rulesVersion, "character-adventure-rules-v2");
   assert.equal(v14Row.schemaVersion, 17);
@@ -86,7 +87,7 @@ test("v14 starts new Hollow Beacon adventures; v13 saves keep continuing", async
     (await startableCharacterAdventures()).map(
       ({ snapshot }) => `${snapshot.id}@${snapshot.contentVersion}`,
     ),
-    ["hollow-beacon@14", "stonebridge@1"],
+    ["hollow-beacon@15", "stonebridge@2"],
   );
 });
 

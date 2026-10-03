@@ -10,7 +10,7 @@ import { startBrowserServer } from "../dist/browser-server.js";
 import { browserActions } from "../dist/browser-actions.js";
 import {
   beaconExamine,
-  stonebridgePeaceful,
+  stonebridgeExamine,
   commandCall,
 } from "./fixtures/character-journeys.mjs";
 
@@ -175,7 +175,7 @@ test(
         .click();
       await page.locator("#character-library").waitFor({ state: "hidden" });
       assert.equal((await view()).character.sheet.level, 2);
-      for (const command of stonebridgePeaceful) {
+      for (const command of stonebridgeExamine) {
         completion = await offered(command);
       }
       assert.match(

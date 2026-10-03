@@ -6,7 +6,14 @@ import { CHARACTER_TREASURE_SCHEMA } from "../dist/character-adventure-schema.js
 import { createDataRuntime } from "../dist/data-runtime.js";
 import { createCharacter, characterProfile } from "../dist/character-rules.js";
 import { createSeededRandom } from "../dist/random.js";
-import { beaconExamine } from "./fixtures/character-journeys.mjs";
+import {
+  BROWSER_RELEASES,
+  startableCharacterAdventures,
+} from "../dist/browser-releases.js";
+import {
+  beaconExamine,
+  stonebridgePeaceful,
+} from "./fixtures/character-journeys.mjs";
 
 // Hollow Beacon v14 rewritten as a schema 18 document with treasure.
 function treasureDocument(treasure) {
@@ -246,4 +253,76 @@ test("released schema 17 sessions are unchanged by treasure (#119)", () => {
     ...state,
     character: v3(),
   });
+});
+
+const bundled = (file) =>
+  JSON.parse(readFileSync(`adventures/${file}`, "utf8"));
+
+test("Hollow Beacon v15 and Stonebridge v2 start new adventures with treasure; earlier releases keep continuing (#119)", async () => {
+  const rows = BROWSER_RELEASES.filter(({ mode }) => mode === "character");
+  assert.deepEqual(
+    rows.map(({ id, version, starts }) => `${id}@${version}:${starts}`),
+    [
+      "hollow-beacon@12:false",
+      "hollow-beacon@13:false",
+      "hollow-beacon@14:false",
+      "stonebridge@1:false",
+      "hollow-beacon@15:true",
+      "stonebridge@2:true",
+    ],
+  );
+  for (const row of rows.slice(-2)) {
+    assert.equal(row.rulesVersion, "character-adventure-rules-v3");
+    assert.equal(row.schemaVersion, 18);
+  }
+  assert.deepEqual(
+    (await startableCharacterAdventures()).map(
+      ({ snapshot }) => `${snapshot.id}@${snapshot.contentVersion}`,
+    ),
+    ["hollow-beacon@15", "stonebridge@2"],
+  );
+});
+
+test("v15 and Stonebridge v2 change only their tuple and treasure (#119)", () => {
+  for (const [before, after] of [
+    ["hollow-beacon-story.json", "hollow-beacon-loot.json"],
+    ["stonebridge-characters.json", "stonebridge-loot.json"],
+  ]) {
+    const old = bundled(before);
+    const next = bundled(after);
+    const { treasure, ...support } = next.characterAdventure;
+    assert.deepEqual(
+      {
+        ...next,
+        schemaVersion: old.schemaVersion,
+        contentVersion: old.contentVersion,
+        rulesVersion: old.rulesVersion,
+        characterAdventure: support,
+      },
+      old,
+      after,
+    );
+    assert.ok(treasure.length > 0);
+  }
+});
+
+// Treasure stays rare and small: at most one draught and 25 silver per module,
+// and the draught needs an optional fight.
+test("treasure is rare and of low value (#119)", () => {
+  for (const file of ["hollow-beacon-loot.json", "stonebridge-loot.json"]) {
+    const { treasure } = bundled(file).characterAdventure;
+    assert.ok(treasure.reduce((sum, { silver }) => sum + silver, 0) <= 25);
+    assert.ok(treasure.flatMap(({ items }) => items).length <= 1);
+  }
+  for (const [file, route] of [
+    ["hollow-beacon-loot.json", beaconExamine],
+    ["stonebridge-loot.json", stonebridgePeaceful],
+  ]) {
+    const loaded = loadAdventure(readFileSync(`adventures/${file}`, "utf8"));
+    assert.equal(loaded.ok, true, file);
+    const { state } = play(createDataRuntime(loaded.adventure, v3()), route);
+    assert.equal(state.status, "victory");
+    assert.deepEqual(state.characterResult.inventory.items, [], file);
+    assert.ok(state.characterResult.inventory.silver <= 15, file);
+  }
 });
