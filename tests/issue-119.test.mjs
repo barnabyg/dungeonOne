@@ -427,3 +427,15 @@ test("the library keeps treasure only on surviving completion, and abandonment r
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("the DM is told treasure is engine-owned only in treasure releases (#119)", () => {
+  const load = (file) =>
+    loadAdventure(readFileSync(`adventures/${file}`, "utf8")).adventure;
+  const loot = createDataRuntime(load("hollow-beacon-loot.json"), v3());
+  assert.equal(loot.promptVersion, "character-adventure-dm-v4");
+  assert.equal(loot.toolSchemaVersion, "character-adventure-tools-v3");
+  assert.match(loot.systemPrompt, /Treasure is engine-owned/);
+  const story = createDataRuntime(load("hollow-beacon-story.json"), v3());
+  assert.equal(story.promptVersion, "character-adventure-dm-v3");
+  assert.doesNotMatch(story.systemPrompt, /Treasure/);
+});
