@@ -620,7 +620,8 @@ export class SaveSession {
     }
     if (
       (save.formatVersion === 4) !==
-      (loaded.adventure.snapshot.schemaVersion === 17)
+      (loaded.adventure.snapshot.schemaVersion === 17 ||
+        loaded.adventure.snapshot.schemaVersion === 18)
     ) {
       throw new Error("Character save format does not match content.");
     }

@@ -1452,7 +1452,11 @@ function replayFormat4(trace: JsonObject): void {
   if (seed < 0 || seed > 0xffffffff) {
     throw new Error("random.initialSeed must be an unsigned 32-bit integer.");
   }
-  if ((trace.formatVersion === 6) !== (content.snapshot.schemaVersion === 17)) {
+  if (
+    (trace.formatVersion === 6) !==
+    (content.snapshot.schemaVersion === 17 ||
+      content.snapshot.schemaVersion === 18)
+  ) {
     throw new Error("Character trace format does not match content.");
   }
   const runtime = createDataRuntime(
