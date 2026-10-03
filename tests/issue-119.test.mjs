@@ -21,8 +21,23 @@ import {
   stonebridgePeaceful,
 } from "./fixtures/character-journeys.mjs";
 
-// Hollow Beacon v14 rewritten as a schema 18 document with treasure.
-function treasureDocument(treasure) {
+// Hollow Beacon v14 rewritten as a schema 18 document with treasure: silver
+// found in the supply sack or given by the tower runner, and a draught placed
+// in the sack.
+const DRAUGHT_ITEM = {
+  id: "sack-draught",
+  name: "healing draught",
+  aliases: ["healing draught", "draught"],
+  description: "A small stoppered flask.",
+  locationId: "ridge-trail",
+  featureId: "supply-sack",
+  healing: { dice: 1, sides: 4, modifier: 1, target: "fighter" },
+};
+function treasureDocument(
+  treasure,
+  treasureItems = [],
+  items = [DRAUGHT_ITEM],
+) {
   const story = JSON.parse(
     readFileSync("adventures/hollow-beacon-story.json", "utf8"),
   );
@@ -30,58 +45,96 @@ function treasureDocument(treasure) {
     ...story,
     schemaVersion: 18,
     rulesVersion: "character-adventure-rules-v3",
-    characterAdventure: { ...story.characterAdventure, treasure },
+    items: [...story.items, ...items],
+    characterAdventure: {
+      ...story.characterAdventure,
+      treasure,
+      treasureItems,
+    },
   };
 }
 const PURSE = {
   id: "raider-purse",
-  trigger: "actor-defeated",
-  targetId: "ridge-raider",
+  trigger: "discovery",
+  targetId: "raider-motive",
+  giverId: "",
   silver: 6,
-  items: [],
+  text: "The raider's purse holds 6 silver.",
+};
+const THANKS = {
+  id: "runner-thanks",
+  trigger: "completion",
+  targetId: "",
+  giverId: "tower-runner",
+  silver: 15,
+  text: "The tower runner hands you 15 silver for the warning.",
+};
+const KEEP_DRAUGHT = {
+  id: "keep-sack-draught",
+  itemId: "sack-draught",
+  item: "healing-draught",
 };
 
-test("schema 18 adventures award treasure on authored triggers (#119)", () => {
+test("schema 18 treasure is found or given, with placed items to keep (#119)", () => {
   assert.deepEqual(
     JSON.parse(readFileSync("schema/adventure-v18.schema.json", "utf8")),
     CHARACTER_TREASURE_SCHEMA,
   );
   const loaded = loadAdventure(
-    JSON.stringify(
-      treasureDocument([
-        PURSE,
-        {
-          id: "keeper-draught",
-          trigger: "completion",
-          targetId: "",
-          silver: 0,
-          items: ["healing-draught"],
-        },
-      ]),
-    ),
+    JSON.stringify(treasureDocument([PURSE, THANKS], [KEEP_DRAUGHT])),
   );
   assert.equal(loaded.ok, true, JSON.stringify(loaded.diagnostics));
   assert.equal(loaded.adventure.snapshot.characterAdventure.treasure.length, 2);
 });
 
-test("treasure must be unique, reachable and worth something (#119)", () => {
-  for (const [treasure, message] of [
-    [[{ ...PURSE, targetId: "nobody" }], /unknown trigger target/],
-    [[PURSE, PURSE], /unique/],
-    [[{ ...PURSE, id: "hollow-beacon-completion" }], /unique/],
-    [[{ ...PURSE, silver: 0 }], /awards nothing/],
+test("treasure always has a source and is never simply awarded (#119)", () => {
+  for (const [document, message] of [
+    [treasureDocument([{ ...PURSE, targetId: "nobody" }]), /unknown trigger/],
+    [treasureDocument([PURSE, PURSE]), /unique/],
+    [
+      treasureDocument([{ ...PURSE, id: "hollow-beacon-completion" }]),
+      /unique/,
+    ],
+    [treasureDocument([{ ...THANKS, giverId: "" }]), /needs a giver/],
+    [treasureDocument([{ ...THANKS, giverId: "nobody" }]), /needs a giver/],
+    [treasureDocument([{ ...PURSE, giverId: "iona" }]), /needs a giver/],
+    [
+      treasureDocument([], [{ ...KEEP_DRAUGHT, itemId: "nothing" }]),
+      /placed items/,
+    ],
+    [
+      treasureDocument([], [{ ...KEEP_DRAUGHT, itemId: "signal-component" }]),
+      /placed items/,
+    ],
+    [
+      treasureDocument([], [KEEP_DRAUGHT, { ...KEEP_DRAUGHT, id: "again" }]),
+      /placed items/,
+    ],
   ]) {
-    const loaded = loadAdventure(JSON.stringify(treasureDocument(treasure)));
+    const loaded = loadAdventure(JSON.stringify(document));
     assert.equal(loaded.ok, false);
     assert.match(
       loaded.diagnostics.map(({ message }) => message).join("\n"),
       message,
     );
   }
-  const unknownItem = loadAdventure(
-    JSON.stringify(treasureDocument([{ ...PURSE, items: ["vorpal-sword"] }])),
+  // Defeats, checks and milestones award XP, never treasure.
+  for (const trigger of ["actor-defeated", "check-success", "milestone"]) {
+    assert.equal(
+      loadAdventure(
+        JSON.stringify(
+          treasureDocument([{ ...PURSE, trigger, targetId: "ridge-raider" }]),
+        ),
+      ).ok,
+      false,
+      trigger,
+    );
+  }
+  assert.equal(
+    loadAdventure(JSON.stringify(treasureDocument([{ ...PURSE, silver: 0 }])))
+      .ok,
+    false,
   );
-  assert.equal(unknownItem.ok, false);
   // Schema 17 keeps its released syntax: no treasure, no rules v3.
   const story = treasureDocument([PURSE]);
   for (const document of [
@@ -91,6 +144,7 @@ test("treasure must be unique, reachable and worth something (#119)", () => {
       characterAdventure: {
         ...story.characterAdventure,
         treasure: undefined,
+        treasureItems: undefined,
       },
       rulesVersion: "character-adventure-rules-v2",
     },
@@ -99,23 +153,6 @@ test("treasure must be unique, reachable and worth something (#119)", () => {
   }
 });
 
-const TREASURE = [
-  PURSE,
-  {
-    id: "sack-draught",
-    trigger: "discovery",
-    targetId: "raider-motive",
-    silver: 0,
-    items: ["healing-draught"],
-  },
-  {
-    id: "beacon-purse",
-    trigger: "completion",
-    targetId: "",
-    silver: 15,
-    items: [],
-  },
-];
 const v3 = (inventory = { silver: 0, items: [] }) => ({
   ...createCharacter("Ada", "stout", "a".repeat(32), "fighter-rules-v3"),
   inventory,
@@ -159,42 +196,47 @@ function defeatRaider(runtime) {
 }
 
 const adventure = () => {
-  const loaded = loadAdventure(JSON.stringify(treasureDocument(TREASURE)));
+  const loaded = loadAdventure(
+    JSON.stringify(treasureDocument([PURSE, THANKS], [KEEP_DRAUGHT])),
+  );
   assert.equal(loaded.ok, true);
   return loaded.adventure;
 };
 
-test("treasure is found on its triggers and credited on surviving completion (#119)", () => {
+test("treasure is found by examining, given by a person, and kept on surviving completion (#119)", () => {
   const runtime = createDataRuntime(adventure(), v3());
   const fought = defeatRaider(runtime);
-  assert.match(fought.text, /6 silver/);
+  // Defeating the raider awards nothing by itself.
+  assert.doesNotMatch(fought.text, /silver|Treasure/);
+  const searched = play(runtime, ["examine supply-sack"], 0, fought.state);
+  assert.match(
+    searched.text,
+    /The raider's purse holds 6 silver\. You keep it if you finish the adventure alive\./,
+  );
+  const taken = play(runtime, ["take healing draught"], 0, searched.state);
+  assert.match(taken.text, /keep the healing draught/);
   assert.deepEqual(
-    runtime.projectCharacterStatus(fought.state).pendingTreasure,
-    {
-      silver: 6,
-      items: [],
-    },
+    runtime.projectCharacterStatus(taken.state).pendingTreasure,
+    { silver: 6, items: ["healing-draught"] },
   );
-  const searched = play(
+  const done = play(
     runtime,
-    ["examine supply-sack", "move watch-yard"],
+    ["move watch-yard", ...beaconExamine],
     0,
-    fought.state,
+    taken.state,
   );
-  assert.match(searched.text, /Healing draught/i);
-  const done = play(runtime, beaconExamine, 0, searched.state);
   assert.equal(done.state.status, "victory");
-  assert.match(done.text, /15 silver/);
+  assert.match(done.text, /The tower runner hands you 15 silver/);
   assert.match(done.text, /Treasure kept: 21 silver, healing draught/);
   const result = done.state.characterResult;
   assert.deepEqual(result.inventory, {
     silver: 21,
     items: ["healing-draught"],
   });
-  for (const id of ["raider-purse", "sack-draught", "beacon-purse"]) {
+  for (const id of ["raider-purse", "runner-thanks", "keep-sack-draught"]) {
     assert.ok(result.earnedRewards.includes(id), id);
   }
-  // Treasure is earned once per character: a replay finds nothing new.
+  // Treasure is earned once per character: a replay keeps nothing new.
   const again = createDataRuntime(adventure(), {
     ...result,
     hp: characterProfile(result).maxHp,
@@ -202,6 +244,49 @@ test("treasure is found on its triggers and credited on surviving completion (#1
   const replay = play(again, beaconExamine);
   assert.doesNotMatch(replay.text, /silver/);
   assert.deepEqual(replay.state.characterResult.inventory, result.inventory);
+});
+
+test("a found draught can be drunk at once, and is then not kept (#119)", () => {
+  const runtime = createDataRuntime(adventure(), v3());
+  const fought = defeatRaider(runtime);
+  assert.ok(fought.state.fighter.hp < fought.state.fighter.maxHp);
+  const drunk = play(
+    runtime,
+    ["take healing draught", "use healing draught"],
+    0,
+    fought.state,
+  );
+  assert.match(drunk.text, /healing draught is consumed/);
+  assert.deepEqual(
+    runtime.projectCharacterStatus(drunk.state).pendingTreasure,
+    { silver: 0, items: [] },
+  );
+  const done = play(
+    runtime,
+    ["move watch-yard", ...beaconExamine],
+    0,
+    drunk.state,
+  );
+  assert.deepEqual(done.state.characterResult.inventory, {
+    silver: 15,
+    items: [],
+  });
+  assert.ok(
+    !done.state.characterResult.earnedRewards.includes("keep-sack-draught"),
+  );
+});
+
+test("a giver who is dead gives nothing (#119)", () => {
+  const runtime = createDataRuntime(adventure(), v3());
+  let state = runtime.createSession();
+  state = {
+    ...state,
+    npcHealth: { ...state.npcHealth, "tower-runner": { hp: 0, maxHp: 8 } },
+  };
+  const done = play(runtime, beaconExamine, 0, state);
+  assert.equal(done.state.status, "victory");
+  assert.doesNotMatch(done.text, /tower runner hands you/);
+  assert.equal(done.state.characterResult.inventory.silver, 0);
 });
 
 test("characters made before fighter-rules-v3 receive no treasure (#119)", () => {
@@ -289,36 +374,57 @@ test("Hollow Beacon v15 and Stonebridge v2 start new adventures with treasure; e
   );
 });
 
-test("v15 and Stonebridge v2 change only their tuple and treasure (#119)", () => {
+test("v15 and Stonebridge v2 add only a placed draught and its treasure (#119)", () => {
   for (const [before, after] of [
     ["hollow-beacon-story.json", "hollow-beacon-loot.json"],
     ["stonebridge-characters.json", "stonebridge-loot.json"],
   ]) {
     const old = bundled(before);
     const next = bundled(after);
-    const { treasure, ...support } = next.characterAdventure;
+    const { treasure, treasureItems, ...support } = next.characterAdventure;
+    const draught = next.items.find(({ id }) => id === "healing-draught");
+    assert.ok(draught.healing, after);
+    assert.ok(treasure.length > 0);
+    assert.deepEqual(
+      treasureItems.map(({ itemId }) => itemId),
+      ["healing-draught"],
+    );
     assert.deepEqual(
       {
         ...next,
         schemaVersion: old.schemaVersion,
         contentVersion: old.contentVersion,
         rulesVersion: old.rulesVersion,
+        items: next.items.filter((item) => item !== draught),
+        // The supply sack now holds the raider's purse and the flask.
+        searches: next.searches.map((search) =>
+          search.id === "search-supply-sack"
+            ? old.searches.find(({ id }) => id === search.id)
+            : search,
+        ),
         characterAdventure: support,
       },
       old,
       after,
     );
-    assert.ok(treasure.length > 0);
   }
 });
 
 // Treasure stays rare and small: at most one draught and 25 silver per module,
-// and the draught needs an optional fight.
+// and the draught lies on the optional fight's ground.
 test("treasure is rare and of low value (#119)", () => {
-  for (const file of ["hollow-beacon-loot.json", "stonebridge-loot.json"]) {
-    const { treasure } = bundled(file).characterAdventure;
+  for (const [file, location] of [
+    ["hollow-beacon-loot.json", "ridge-trail"],
+    ["stonebridge-loot.json", "raider-den"],
+  ]) {
+    const content = bundled(file);
+    const { treasure, treasureItems } = content.characterAdventure;
     assert.ok(treasure.reduce((sum, { silver }) => sum + silver, 0) <= 25);
-    assert.ok(treasure.flatMap(({ items }) => items).length <= 1);
+    assert.equal(treasureItems.length, 1);
+    assert.equal(
+      content.items.find(({ id }) => id === treasureItems[0].itemId).locationId,
+      location,
+    );
   }
   for (const [file, route] of [
     ["hollow-beacon-loot.json", beaconExamine],
@@ -329,7 +435,7 @@ test("treasure is rare and of low value (#119)", () => {
     const { state } = play(createDataRuntime(loaded.adventure, v3()), route);
     assert.equal(state.status, "victory");
     assert.deepEqual(state.characterResult.inventory.items, [], file);
-    assert.ok(state.characterResult.inventory.silver <= 15, file);
+    assert.ok(state.characterResult.inventory.silver <= 10, file);
   }
 });
 
@@ -378,36 +484,41 @@ test("the library keeps treasure only on surviving completion, and abandonment r
       (await career.library.read()).revision,
     );
     id = created.characters[0].sheet.id;
-    // Hollow Beacon on the valley road: only the completion purse.
+    // Hollow Beacon on the valley road: only the tower runner's thanks.
     let session = await start("hollow-beacon", 0);
     await commitAll(session, beaconExamine);
     await career.acceptSession(session.path);
     assert.deepEqual((await sheet()).inventory, { silver: 10, items: [] });
     await rest();
 
-    // Stonebridge's raider cache is found, then abandoned: nothing is kept.
+    // Stonebridge's draught is taken, then abandoned: nothing is kept.
     session = await start("stonebridge", STONEBRIDGE_SEED);
     await commitAll(session, ["move raider-den"]);
     await fight(session, "toll-raider");
+    await commitAll(session, ["take healing draught"]);
     assert.deepEqual(
       session.runtime.projectCharacterStatus(session.state).pendingTreasure,
-      { silver: 5, items: ["healing-draught"] },
+      { silver: 0, items: ["healing-draught"] },
     );
     await abandon();
     assert.deepEqual((await sheet()).inventory, { silver: 10, items: [] });
     assert.ok(
-      !(await sheet()).earnedRewards.includes("stonebridge-raider-cache"),
+      !(await sheet()).earnedRewards.includes("stonebridge-den-draught"),
     );
     await rest();
 
-    // A second try keeps the cache and the completion share.
+    // A second try keeps the draught and the purse in the archive chest.
     session = await start("stonebridge", STONEBRIDGE_SEED);
     await commitAll(session, ["move raider-den"]);
     await fight(session, "toll-raider");
-    await commitAll(session, ["move toll-yard", ...stonebridgeExamine]);
+    await commitAll(session, [
+      "take healing draught",
+      "move toll-yard",
+      ...stonebridgeExamine,
+    ]);
     await career.acceptSession(session.path);
     assert.deepEqual((await sheet()).inventory, {
-      silver: 30,
+      silver: 15,
       items: ["healing-draught"],
     });
     await rest();
@@ -420,7 +531,7 @@ test("the library keeps treasure only on surviving completion, and abandonment r
     await commitAll(session, ["use healing draught"]);
     await abandon();
     assert.deepEqual((await sheet()).inventory, {
-      silver: 30,
+      silver: 15,
       items: ["healing-draught"],
     });
   } finally {

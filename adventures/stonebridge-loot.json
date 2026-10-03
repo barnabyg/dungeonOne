@@ -207,6 +207,20 @@
       "aliases": ["bridge-seal"],
       "locationId": "archives",
       "featureId": "archive-chest"
+    },
+    {
+      "id": "healing-draught",
+      "name": "healing draught",
+      "aliases": ["draught", "flask"],
+      "description": "A small stoppered flask the raider kept behind the stone cover. Drinking it restores 1d4 + 1 HP, never above maximum HP, and uses it up.",
+      "locationId": "raider-den",
+      "featureId": "stone-cover",
+      "healing": {
+        "dice": 1,
+        "sides": 4,
+        "modifier": 1,
+        "target": "fighter"
+      }
     }
   ],
   "combatProfile": {
@@ -373,18 +387,19 @@
     ],
     "treasure": [
       {
-        "id": "stonebridge-raider-cache",
-        "trigger": "milestone",
-        "targetId": "raider-cleared",
+        "id": "stonebridge-archive-purse",
+        "trigger": "discovery",
+        "targetId": "bridge-instructions",
+        "giverId": "",
         "silver": 5,
-        "items": ["healing-draught"]
-      },
+        "text": "Beneath the instructions lies a forgotten purse with 5 silver, and you take it."
+      }
+    ],
+    "treasureItems": [
       {
-        "id": "stonebridge-toll-share",
-        "trigger": "completion",
-        "targetId": "",
-        "silver": 15,
-        "items": []
+        "id": "stonebridge-den-draught",
+        "itemId": "healing-draught",
+        "item": "healing-draught"
       }
     ]
   }

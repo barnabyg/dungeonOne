@@ -13,7 +13,12 @@ import {
   CHARACTER_ADVENTURE_SCHEMA,
   CHARACTER_TREASURE_SCHEMA,
 } from "./character-adventure-schema.js";
-import type { Ability, TreasureItem } from "./character-rules.js";
+import { isDeepStrictEqual } from "node:util";
+import {
+  TREASURE_ITEMS,
+  type Ability,
+  type TreasureItem,
+} from "./character-rules.js";
 
 /** Character adventures: schema 17, and schema 18 with treasure (#119). */
 export function isCharacterSchema(schemaVersion: unknown): boolean {
@@ -251,13 +256,23 @@ export type ChapelCluesDefinition = Readonly<{
       trigger: CharacterRewardTrigger;
       targetId: string;
     }>[];
-    /** Schema 18 only: silver and items awarded on the reward triggers. */
+    /**
+     * Schema 18 only: silver found when examining reveals a discovery, or
+     * given at completion by a living person (`giverId`), as `text` tells.
+     */
     treasure?: readonly Readonly<{
       id: string;
-      trigger: CharacterRewardTrigger;
+      trigger: "discovery" | "completion";
       targetId: string;
+      giverId: string;
       silver: number;
-      items: readonly TreasureItem[];
+      text: string;
+    }>[];
+    /** Schema 18 only: placed items a character keeps if still carried. */
+    treasureItems?: readonly Readonly<{
+      id: string;
+      itemId: string;
+      item: TreasureItem;
     }>[];
   }>;
   title: string;
@@ -2698,15 +2713,41 @@ export function loadAdventure(input: string | Uint8Array):
       fail("Checks require unique identities and existing features.");
     }
     const treasure = metadata.treasure ?? [];
+    const treasureItems = metadata.treasureItems ?? [];
     // Rewards and treasure share each character's once-only ledger.
-    const awards = [...metadata.rewards, ...treasure];
-    if (new Set(awards.map((entry) => entry.id)).size !== awards.length) {
+    const ledger = [...metadata.rewards, ...treasure, ...treasureItems];
+    if (new Set(ledger.map((entry) => entry.id)).size !== ledger.length) {
       fail("Reward and treasure identities must be unique.");
     }
-    if (treasure.some((entry) => entry.silver === 0 && !entry.items.length)) {
-      fail("Treasure awards nothing.");
+    // Treasure is found or given, never simply awarded (#119).
+    if (
+      treasure.some((entry) =>
+        entry.trigger === "completion"
+          ? !(snapshot.npcs ?? []).some(({ id }) => id === entry.giverId)
+          : entry.giverId !== "",
+      )
+    ) {
+      fail("Treasure at completion needs a giver; found treasure has none.");
     }
-    for (const reward of awards) {
+    if (
+      new Set(treasureItems.map(({ itemId }) => itemId)).size !==
+        treasureItems.length ||
+      treasureItems.some((entry) => {
+        const placed = snapshot.items?.find(({ id }) => id === entry.itemId);
+        return (
+          placed === undefined ||
+          !isDeepStrictEqual(placed.healing, {
+            ...TREASURE_ITEMS[entry.item].healing,
+            target: "fighter",
+          })
+        );
+      })
+    ) {
+      fail(
+        "Treasure items must be distinct placed items that match their kind.",
+      );
+    }
+    for (const reward of [...metadata.rewards, ...treasure]) {
       const targets =
         reward.trigger === "milestone"
           ? snapshot.quest.milestones

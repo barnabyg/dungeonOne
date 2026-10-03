@@ -89,8 +89,9 @@ export const CHARACTER_ADVENTURE_SCHEMA = {
   },
 } as const;
 /**
- * Schema 18 (character adventure rules v3, #119) adds treasure: silver and
- * carried items the engine awards on the same triggers as XP rewards.
+ * Schema 18 (character adventure rules v3, #119) adds treasure, which always
+ * has a source in the story: silver found by examining something or given by
+ * a living person at the end, and placed items a character can keep.
  */
 export const CHARACTER_TREASURE_SCHEMA = {
   ...CHARACTER_ADVENTURE_SCHEMA,
@@ -106,14 +107,20 @@ export const CHARACTER_TREASURE_SCHEMA = {
         maxItems: 256,
         items: object({
           id,
-          trigger,
+          trigger: { type: "string", enum: ["discovery", "completion"] },
           targetId: { type: "string", maxLength: 128 },
-          silver: { type: "integer", minimum: 0, maximum: 10000 },
-          items: {
-            type: "array",
-            maxItems: 4,
-            items: { type: "string", enum: ["healing-draught"] },
-          },
+          giverId: { type: "string", maxLength: 128 },
+          silver: { type: "integer", minimum: 1, maximum: 10000 },
+          text: { type: "string", minLength: 1, maxLength: 4096 },
+        }),
+      },
+      treasureItems: {
+        type: "array",
+        maxItems: 256,
+        items: object({
+          id,
+          itemId: id,
+          item: { type: "string", enum: ["healing-draught"] },
         }),
       },
     }),

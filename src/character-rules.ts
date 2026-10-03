@@ -64,6 +64,7 @@ export const PRESETS: Readonly<Record<string, Abilities>> = {
 export const TREASURE_ITEMS = {
   "healing-draught": {
     name: "healing draught",
+    aliases: ["draught"],
     description:
       "A small stoppered flask. Drinking it restores 1d4 + 1 HP, never above maximum HP, and uses it up.",
     healing: { dice: 1, sides: 4, modifier: 1 },

@@ -1,4 +1,4 @@
-import type { CharacterSheet, TreasureItem } from "./character-rules.js";
+import type { CharacterSheet } from "./character-rules.js";
 import {
   normalizeAlias,
   type ChapelCluesDefinition,
@@ -67,11 +67,7 @@ export type ClueState = Readonly<{
   character?: CharacterSheet;
   pendingRewards?: readonly Readonly<{ id: string; xp: number }>[];
   /** Treasure found this adventure, kept on surviving completion (#119). */
-  pendingTreasure?: readonly Readonly<{
-    id: string;
-    silver: number;
-    items: readonly TreasureItem[];
-  }>[];
+  pendingTreasure?: readonly Readonly<{ id: string; silver: number }>[];
   characterResult?: CharacterSheet;
   abilityChecks?: Readonly<
     Record<

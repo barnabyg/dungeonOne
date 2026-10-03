@@ -1014,7 +1014,7 @@
           "id": "raider-motive"
         }
       ],
-      "text": "Food wrappers, an empty purse, and a scrap of paper: 'wagons to the east cut, Day 3'. The raider was waiting for supply wagons that should have come this way. Someone told them when."
+      "text": "Food wrappers, a small stoppered flask, a purse and a scrap of paper: 'wagons to the east cut, Day 3'. The raider was waiting for supply wagons that should have come this way. Someone told them when."
     },
     {
       "id": "shelter-routes",
@@ -2374,6 +2374,20 @@
       "description": "A spare part for the beacon's socket at the Beacon Tower. Fit it there, outside a fight, so the beacon can be lit properly. It can be used once.",
       "locationId": "signal-records",
       "featureId": "setting-plate"
+    },
+    {
+      "id": "healing-draught",
+      "name": "healing draught",
+      "aliases": ["draught", "flask"],
+      "description": "A small stoppered flask from the raider's sack. Drinking it restores 1d4 + 1 HP, never above maximum HP, and uses it up.",
+      "locationId": "ridge-trail",
+      "featureId": "supply-sack",
+      "healing": {
+        "dice": 1,
+        "sides": 4,
+        "modifier": 1,
+        "target": "fighter"
+      }
     }
   ],
   "questItem": {
@@ -3050,24 +3064,26 @@
     "treasure": [
       {
         "id": "hollow-beacon-raider-purse",
-        "trigger": "actor-defeated",
-        "targetId": "ridge-raider",
-        "silver": 4,
-        "items": []
-      },
-      {
-        "id": "hollow-beacon-sack-draught",
         "trigger": "discovery",
         "targetId": "raider-motive",
-        "silver": 0,
-        "items": ["healing-draught"]
+        "giverId": "",
+        "silver": 4,
+        "text": "The raider's purse holds 4 silver, and you take it."
       },
       {
-        "id": "hollow-beacon-watch-thanks",
+        "id": "hollow-beacon-runner-thanks",
         "trigger": "completion",
         "targetId": "",
+        "giverId": "tower-runner",
         "silver": 10,
-        "items": []
+        "text": "The tower runner presses 10 silver from the watch's purse into your hand for the warning."
+      }
+    ],
+    "treasureItems": [
+      {
+        "id": "hollow-beacon-sack-draught",
+        "itemId": "healing-draught",
+        "item": "healing-draught"
       }
     ]
   }

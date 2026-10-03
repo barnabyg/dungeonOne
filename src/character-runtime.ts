@@ -88,11 +88,12 @@ export function createCharacterRuntime(
   const examines =
     definition.rulesVersion === "character-adventure-rules-v2" ||
     definition.rulesVersion === "character-adventure-rules-v3";
-  // Only fighter-rules-v3 characters find treasure, and only in modules that
-  // award it; other sessions keep their released state shape.
+  // Only fighter-rules-v3 characters keep treasure, and only in modules that
+  // place it; other sessions keep their released state shape.
   const tracksTreasure =
     support.treasure !== undefined && carriesTreasure(sheet);
   const treasure = tracksTreasure ? support.treasure! : [];
+  const treasureItems = tracksTreasure ? (support.treasureItems ?? []) : [];
   // Each carried item becomes an engine item already in the inventory.
   const carried = carriesTreasure(sheet)
     ? sheet.inventory.items.map((item, index) => ({
@@ -160,7 +161,10 @@ export function createCharacterRuntime(
                   id,
                   name: TREASURE_ITEMS[item].name,
                   description: TREASURE_ITEMS[item].description,
-                  aliases: [TREASURE_ITEMS[item].name, "draught"],
+                  aliases: [
+                    TREASURE_ITEMS[item].name,
+                    ...TREASURE_ITEMS[item].aliases,
+                  ],
                   // Never placed: the session starts with it carried.
                   locationId: definition.player.locationId,
                   featureId: definition.features[0]!.id,
@@ -358,11 +362,24 @@ export function createCharacterRuntime(
             ? state.abilityChecks?.[award.targetId]?.result === "success"
             : (state.monsters?.[award.targetId]?.hp ??
                 state.npcHealth?.[award.targetId]?.hp) === 0;
+  /**
+   * Treasure the character keeps on surviving completion: silver found or
+   * given, and noticed treasure items still carried (not drunk or dropped).
+   */
   const pendingTreasureOf = (state: ClueState) => {
     const found = state.pendingTreasure ?? [];
+    const kept = treasureItems.filter(
+      (entry) =>
+        found.some(({ id }) => id === entry.id) &&
+        state.items?.[entry.itemId] === "inventory",
+    );
     return {
       silver: found.reduce((sum, entry) => sum + entry.silver, 0),
-      items: found.flatMap(({ items }) => items),
+      items: kept.map(({ item }) => item),
+      ids: [
+        ...found.filter(({ silver }) => silver > 0).map(({ id }) => id),
+        ...kept.map(({ id }) => id),
+      ],
     };
   };
   const settle = (result: RuntimeResult): RuntimeResult => {
@@ -390,21 +407,37 @@ export function createCharacterRuntime(
         });
       }
     }
+    // Treasure always has a source: silver is found when examining reveals
+    // it or given at the end by a living person, and items are taken (#119).
     const found = [...(state.pendingTreasure ?? [])];
+    const unclaimed = (id: string) =>
+      !sheet.earnedRewards.includes(id) &&
+      !found.some((entry) => entry.id === id);
+    const completed = state.status === "victory" && state.fighter.hp > 0;
     for (const entry of treasure) {
-      if (
-        sheet.earnedRewards.includes(entry.id) ||
-        found.some(({ id }) => id === entry.id) ||
-        !triggered(entry, state)
-      ) {
-        continue;
+      const source =
+        entry.trigger === "discovery"
+          ? state.discoveries.includes(entry.targetId)
+          : completed && (state.npcHealth?.[entry.giverId]?.hp ?? 1) > 0;
+      if (unclaimed(entry.id) && source) {
+        found.push({ id: entry.id, silver: entry.silver });
+        events.push({
+          type: "clue",
+          operation: "treasure",
+          text: `${entry.text} You keep it if you finish the adventure alive.`,
+        });
       }
-      found.push({ id: entry.id, silver: entry.silver, items: entry.items });
-      events.push({
-        type: "clue",
-        operation: "treasure",
-        text: `Treasure found: ${describeTreasure(entry.silver, entry.items)}. You keep it if you finish the adventure alive.`,
-      });
+    }
+    for (const entry of treasureItems) {
+      if (unclaimed(entry.id) && state.items?.[entry.itemId] === "inventory") {
+        found.push({ id: entry.id, silver: 0 });
+        const name = TREASURE_ITEMS[entry.item].name;
+        events.push({
+          type: "clue",
+          operation: "treasure",
+          text: `You can keep the ${name} after this adventure if you finish alive with it unused.`,
+        });
+      }
     }
     const kept = pendingTreasureOf({ ...state, pendingTreasure: found });
     let characterResult = state.characterResult;
@@ -419,7 +452,7 @@ export function createCharacterRuntime(
         earnedRewards: [
           ...sheet.earnedRewards,
           ...pending.map(({ id }) => id),
-          ...found.map(({ id }) => id),
+          ...kept.ids,
         ],
         ...(carriesTreasure(sheet)
           ? {
@@ -797,7 +830,9 @@ export function createCharacterRuntime(
         ? {
             pendingTreasure:
               stateOf(state).status === "playing"
-                ? pendingTreasureOf(stateOf(state))
+                ? (({ silver, items }) => ({ silver, items }))(
+                    pendingTreasureOf(stateOf(state)),
+                  )
                 : { silver: 0, items: [] },
           }
         : {}),

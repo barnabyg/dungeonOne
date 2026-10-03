@@ -116,20 +116,26 @@ test(
       while ((await view()).scene.combatStatus !== "No active combat.") {
         cards += await offered("attack ridge-raider");
       }
-      assert.match(cards, /Treasure found: 4 silver\./);
+      // Defeating the raider awards nothing; its belongings hold the loot.
+      assert.doesNotMatch(cards, /silver/);
+      assert.match(
+        await offered("examine supply-sack"),
+        /The raider's purse holds 4 silver, and you take it\./,
+      );
       assert.match(
         await characterPanel(),
         /Found this adventure: 4 silver — yours if you finish alive/,
       );
       assert.match(
-        await offered("examine supply-sack"),
-        /Treasure found: healing draught\./,
+        await offered("take healing-draught"),
+        /You can keep the healing draught/,
       );
       await offered("move watch-yard");
       let completion = "";
       for (const command of beaconExamine) {
         completion = await offered(command);
       }
+      assert.match(completion, /The tower runner presses 10 silver/);
       assert.match(completion, /Treasure kept: 14 silver, healing draught\./);
       assert.match(await characterPanel(), /Silver: 14/);
 
