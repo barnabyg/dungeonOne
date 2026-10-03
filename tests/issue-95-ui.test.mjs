@@ -174,6 +174,10 @@ test(
         true,
       );
       assert.equal(await page.locator("#save-character").isDisabled(), true);
+      assert.match(
+        await page.locator("#create-character").innerText(),
+        /The number in brackets is the ability's modifier: it is added to a d20 roll/,
+      );
       await page.locator("#character-name").fill("   ");
       assert.equal(await page.locator("#save-character").isDisabled(), true);
       await page.locator("#character-name").fill("Tess");
