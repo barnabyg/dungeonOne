@@ -172,9 +172,9 @@ an unexpected or second mutation, and no reply claimed XP, a level or a rescue.
    reply claimed XP, a level or a rescue, but finding 2's “was altered” is a
    small live overclaim. The criterion against false success claims is
    therefore met by the engine, result cards and notices, **not by narration
-   itself**.
+   itself**. Follow-up: #111.
 4. **The post-commit failure text says “shown in Mechanics”.** The browser
-   labels that card **Resolved action**.
+   labels that card **Resolved action**. Follow-up: #112.
 5. **Deliberately narrow phrasing.** `take` requires take, grab, collect or
    pick up in the player's own words (“Pocket the component” is refused with
    an honest rejection), and optional checks require the offered wording.
