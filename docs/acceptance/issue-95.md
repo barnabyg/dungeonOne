@@ -1,7 +1,7 @@
 # Issue 95: qualify Hollow Beacon with unfamiliar players
 
 Prepared on 3 October 2026 on `feat/issue-95-player-qualification`, in the
-browser's default character mode. **Status: rounds 1 and 2 fixed; ready for the
+browser's default character mode. **Status: rounds 1–3 fixed; ready for the
 next player session. Not qualified.** The external-player gates below stay open
 until three unfamiliar players have played and their evidence is recorded here.
 
@@ -232,3 +232,27 @@ Rechecked: the named journeys, #93, #94 and #110 all pass on the round 2 v14.
 [`tests/issue-95-dialogue.test.mjs`](../../tests/issue-95-dialogue.test.mjs)
 covers authored replies (v14) against composed replies (v13) and the
 Examine-era hints. The content test now also requires the bluff's removal.
+
+### Round 3: owner follow-up
+
+The project owner called the round 2 result “all pretty good” and raised three
+more points ([record](issue-95-sessions/owner-01.md#follow-up)):
+
+- **Why modifiers:** the explanation now says why some abilities have one:
+  13 or more gives a bonus, 8 or less a penalty, 9 to 12 is average. Average
+  scores show no “(+0)”, and a check only mentions a bonus or penalty the
+  character actually has. The round 2 text (“10 or 11 gives +0”) was also
+  wrong: 9 to 12 give +0.
+- **Opponent HP:** during a fight the opponent's name, HP and a red health bar
+  sit in the header beside the player's own HP.
+- **Fight XP:** in v14, defeating the ridge raider or the tower sentry earns
+  100 XP each, through the existing `actor-defeated` reward. Like the check
+  XP, it is earned once per character and credited with the completion award.
+  Killing a person (Vey) earns nothing. The header shows XP earned this
+  adventure. A level-1 character finishing with both fights has 1,200 XP,
+  still level 2, so Stonebridge's 2–3 range is unaffected.
+
+Rechecked: the named journeys assert the new totals (1,200 with both fights,
+1,100 with the raider, 1,000 without fights) and the fight XP lines. #94's
+journey and guard tests assert 1,100. A real-browser test checks the opponent
+block in the header.

@@ -36,3 +36,11 @@
 | 8   | Introductions were missing                                                                                                                | Clicking Iona, Sera or Pell says who they are; the loft names Pell as the signaller who set the aim                                                                                                                        |
 | 9   | Guarded answer without a way forward                                                                                                      | Pell says they answer to the captain and that convincing them, or the setting plate, are the ways forward                                                                                                                  |
 | 10  | Thin story; no rewards except XP                                                                                                          | Story strengthened within v14's structure: a reason to be there, the refugees' stake, the raider's note, Vey's motive and confession, and endings with a payoff. Loot is follow-up #119 (owner decision)                   |
+
+## Follow-up
+
+After round 2 the owner found it “all pretty good”, with three points: the
+modifier explanation didn't say why some abilities have one, and “(+0)” is
+pointless; the opponent's HP was hard to find during fights; and winning
+fights should give XP. All three are fixed in round 3 (see the issue 95
+record).
