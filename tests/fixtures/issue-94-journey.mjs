@@ -92,6 +92,7 @@ export const journey = [
   {
     id: "vey",
     click: 'Ask Vey about "Present the work order and setting plate".',
+    say: "I show Vey the signed work order and the setting plate as proof.",
     call: call("talk", {
       speakerId: "vey",
       topicId: "plate-proof",

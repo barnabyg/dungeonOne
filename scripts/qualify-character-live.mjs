@@ -2,12 +2,16 @@
 // through a real browser, the shipped HTTP server and save authority, with the
 // configured OpenAI provider. Hard-capped provider calls; injected failures
 // make no provider request. Never records credentials or full prompts.
-// Usage: node scripts/qualify-character-live.mjs [report.json] [maxCalls] [--dry-run]
+// Usage: node scripts/qualify-character-live.mjs [report.json] [maxCalls]
+//   [--dry-run] [--resume <run directory> --from <step id>]
 // --dry-run substitutes the scripted journey interpreter for the provider to
-// check the harness itself without credentials or provider calls.
+// check the harness itself without credentials or provider calls. --resume
+// reopens an earlier run's character library (the browser continues its
+// selected adventure, as rerunning the launcher does) and plays on from the
+// named journey step; maxCalls is then the budget remaining for that run.
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { chromium } from "playwright";
 import { startBrowserServer } from "../dist/browser-server.js";
 import { BROWSER_START_VERSION } from "../dist/browser-releases.js";
@@ -26,7 +30,21 @@ import {
   sameCall,
 } from "../tests/fixtures/issue-94-journey.mjs";
 
-const args = process.argv.slice(2).filter((arg) => arg !== "--dry-run");
+const flag = (name) => {
+  const index = process.argv.indexOf(name);
+  return index === -1 ? undefined : process.argv[index + 1];
+};
+const resumed = flag("--resume");
+const from = flag("--from");
+if ((resumed === undefined) !== (from === undefined)) {
+  throw new Error("--resume and --from are used together.");
+}
+const args = process.argv
+  .slice(2)
+  .filter(
+    (arg, index, all) =>
+      !arg.startsWith("--") && !["--resume", "--from"].includes(all[index - 1]),
+  );
 const dryRun = process.argv.includes("--dry-run");
 if (!dryRun && !process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY is required.");
@@ -35,7 +53,10 @@ const output = resolve(args[0] ?? ".verify-artifacts/issue-94-live.json");
 const maxProviderCalls = Number(args[1] ?? 80);
 const root = resolve(".verify-artifacts");
 await mkdir(root, { recursive: true });
-const directory = await mkdtemp(join(root, "issue-94-live-"));
+const directory =
+  resumed === undefined
+    ? await mkdtemp(join(root, "issue-94-live-"))
+    : resolve(resumed);
 const libraryPath = join(directory, "characters.json");
 const career = new CharacterCareer(libraryPath);
 const digest = (value) =>
@@ -83,6 +104,8 @@ const provider = dryRun
 const report = {
   issue: 94,
   mode: dryRun ? "dry-run" : "live-browser",
+  ...(from === undefined ? {} : { resumedAtStep: from }),
+  runDirectory: relative(process.cwd(), directory),
   requestedModel: OPENAI_DM_DEFAULT_MODEL,
   startedAt: new Date().toISOString(),
   seed: JOURNEY_SEED,
@@ -200,13 +223,19 @@ const sessionPath = async () =>
 
 /** Plays one browser turn and records it; returns the committed call, if any. */
 async function playTurn(step, input, mode) {
+  if (providerCalls() >= maxProviderCalls) {
+    throw new Error("Qualification provider budget exhausted");
+  }
   const before = await state();
   const firstCall = report.calls.length;
   const start = performance.now();
   let result;
   if (mode === "click") {
     const action = before.actions.find(
-      (offered) => offered.message === input && sameCall(offered, step.call),
+      (offered) =>
+        offered.message === input &&
+        sameCall(offered, step.call) &&
+        !offered.contextId.startsWith("inventory:"),
     );
     if (action === undefined) {
       throw new Error(step.id + ": option not offered: " + input);
@@ -277,8 +306,12 @@ async function playTurn(step, input, mode) {
  * option text, then a click. Every retry is recorded as a correction.
  */
 async function playStep(step, phrase = step.say) {
+  // A click is retried once with the step's typed phrasing, when it has one.
   const attempts = step.click
-    ? [[step.click, "click"]]
+    ? [
+        [step.click, "click"],
+        [step.say, "typed"],
+      ]
     : [
         [phrase, "typed"],
         [
@@ -297,6 +330,9 @@ async function playStep(step, phrase = step.say) {
   for (const [index, [input, mode]] of attempts.entries()) {
     if (input === undefined) {
       continue;
+    }
+    if (mode === "typed" && step.click !== undefined) {
+      step = { ...step, click: undefined };
     }
     if (mode === "click" && step.click === undefined) {
       step = { ...step, click: input };
@@ -328,22 +364,8 @@ async function playStep(step, phrase = step.say) {
   throw new Error(step.id + ": not committed after corrections");
 }
 
-/** Closes the server and starts a new one over the same library. */
-async function restart() {
-  await servers.at(-1).close();
-  servers.push(await startBrowserServer(options));
-  await page.goto(url());
-  await idle();
-}
-
-try {
-  servers.push(await startBrowserServer(options));
-  browser = await chromium.launch(
-    process.platform === "win32" ? { channel: "msedge" } : {},
-  );
-  page = await browser.newPage();
-  page.setDefaultTimeout(15000);
-  await page.goto(url());
+/** Creates Ada in the browser library and starts Hollow Beacon. */
+async function createAndStart() {
   await page.locator("#open-characters").click();
   await page.locator("#show-create-character").click();
   await page.locator("#character-name").fill("Ada");
@@ -358,21 +380,10 @@ try {
     .click();
   await page.locator("#character-library").waitFor({ state: "hidden" });
   await idle();
-  const session = await SaveSession.load(await sessionPath());
-  const runtime = session.runtime;
-  report.identity = {
-    provider: provider.identity,
-    adventure: runtime.id,
-    contentVersion: runtime.version,
-    contentDigest: runtime.content.digest,
-    rulesVersion: runtime.rulesVersion,
-    engineVersion: runtime.engineVersion,
-    promptVersion: runtime.promptVersion,
-    toolSchemaVersion: runtime.toolSchemaVersion,
-    systemPromptDigest: digest(runtime.systemPrompt),
-  };
-  report.startingSheet = runtime.startingCharacter;
+}
 
+/** Local panels, hints and unauthorized requests at the opening. */
+async function openingProbes() {
   // Local panels and approved hints: no provider call, no game change.
   const opening = await state();
   await page.locator("#open-character").click();
@@ -409,8 +420,61 @@ try {
         turn.after.scene.outcome === "playing",
     );
   }
+}
 
-  for (const step of journey) {
+/** Closes the server and starts a new one over the same library. */
+async function restart() {
+  await servers.at(-1).close();
+  servers.push(await startBrowserServer(options));
+  await page.goto(url());
+  await idle();
+}
+
+try {
+  servers.push(await startBrowserServer(options));
+  browser = await chromium.launch(
+    process.platform === "win32" ? { channel: "msedge" } : {},
+  );
+  page = await browser.newPage();
+  page.setDefaultTimeout(15000);
+  await page.goto(url());
+  await (resumed === undefined ? createAndStart() : idle());
+  const session = await SaveSession.load(await sessionPath());
+  const runtime = session.runtime;
+  report.identity = {
+    provider: provider.identity,
+    adventure: runtime.id,
+    contentVersion: runtime.version,
+    contentDigest: runtime.content.digest,
+    rulesVersion: runtime.rulesVersion,
+    engineVersion: runtime.engineVersion,
+    promptVersion: runtime.promptVersion,
+    toolSchemaVersion: runtime.toolSchemaVersion,
+    systemPromptDigest: digest(runtime.systemPrompt),
+  };
+  report.startingSheet = runtime.startingCharacter;
+  if (resumed === undefined) {
+    await openingProbes();
+  } else {
+    const view = await state();
+    report.resumedAt = {
+      position: view.position,
+      location: view.scene.room.name,
+    };
+    check(
+      "rerun continues the saved adventure without a provider call",
+      providerCalls() === 0 &&
+        view.position === session.progress.sequence &&
+        view.history.length > 0,
+    );
+  }
+
+  const first =
+    from === undefined ? 0 : journey.findIndex(({ id }) => id === from);
+  if (first === -1) {
+    throw new Error("Unknown journey step: " + from);
+  }
+  for (const step of journey.slice(first)) {
     if (step.id === "loft") {
       inject = "before";
       const before = await state();
