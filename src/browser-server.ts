@@ -6,11 +6,17 @@ import {
 import {
   characterProfile,
   createCharacter,
+  meetsFighterMinimums,
   PRESETS,
   ABILITIES,
   abilityModifier,
   nextLevelXp,
+  rollAbilities,
+  rolledAbilities,
+  type Abilities,
+  type AbilityRolls,
 } from "./character-rules.js";
+import { createSeededRandom } from "./random.js";
 import type { ChapelCluesDefinition } from "./adventure-loader.js";
 import {
   createServer,
@@ -381,6 +387,23 @@ export async function startBrowserServer(options: BrowserOptions) {
   let savePath = options.savePath;
   await career?.recoverStarts();
   await career?.synchronize();
+  // Ability rolls draw from their own stream of the startup seed (#118). The
+  // server keeps the one pending roll, so saving cannot choose its own scores.
+  const abilityRandom = createSeededRandom(
+    createHash("sha256")
+      .update(`ability-rolls:${options.seed}`)
+      .digest()
+      .readUInt32LE(0),
+  );
+  let rollCount = 0;
+  let pendingRoll: { id: number; rolls: AbilityRolls } | undefined;
+  const modifiersOf = (abilities: Abilities) =>
+    Object.fromEntries(
+      ABILITIES.map((ability) => [
+        ability,
+        abilityModifier(abilities[ability]),
+      ]),
+    );
   const libraryView = async () => {
     if (career === undefined) {
       throw new Error("Character library is not enabled.");
@@ -396,25 +419,29 @@ export async function startBrowserServer(options: BrowserOptions) {
             preset,
             {
               profile: characterProfile(preview),
-              modifiers: Object.fromEntries(
-                ABILITIES.map((ability) => [
-                  ability,
-                  abilityModifier(preview.abilities[ability]),
-                ]),
-              ),
+              modifiers: modifiersOf(preview.abilities),
             },
           ];
         }),
       ),
+      pendingRoll:
+        pendingRoll === undefined
+          ? undefined
+          : (() => {
+              const abilities = rolledAbilities(pendingRoll.rolls);
+              return {
+                id: pendingRoll.id,
+                rolls: pendingRoll.rolls,
+                abilities,
+                modifiers: modifiersOf(abilities),
+                profile: characterProfile({ abilities, level: 1 }),
+                meetsMinimums: meetsFighterMinimums(abilities),
+              };
+            })(),
       characters: data.characters.map((record) => ({
         ...record,
         profile: characterProfile(record.sheet),
-        modifiers: Object.fromEntries(
-          ABILITIES.map((ability) => [
-            ability,
-            abilityModifier(record.sheet.abilities[ability]),
-          ]),
-        ),
+        modifiers: modifiersOf(record.sheet.abilities),
       })),
       sessions: data.sessions.map((entry) => ({
         id: entry.id,
@@ -803,7 +830,37 @@ export async function startBrowserServer(options: BrowserOptions) {
             ) {
               throw new Error("Invalid character request.");
             }
-            if (request.url === "/api/characters/create") {
+            if (request.url === "/api/characters/roll") {
+              if (Object.keys(body).length !== 1) {
+                throw new Error("Invalid character request.");
+              }
+              // Only the whole set is ever rerolled (#118).
+              pendingRoll = {
+                id: ++rollCount,
+                rolls: rollAbilities(abilityRandom),
+              };
+            } else if (
+              request.url === "/api/characters/create" &&
+              Object.keys(body).length === 3 &&
+              typeof body.name === "string" &&
+              typeof body.rollId === "number"
+            ) {
+              const roll = pendingRoll;
+              if (roll?.id !== body.rollId) {
+                throw new Error(
+                  "This ability roll is no longer current; roll again before saving a character.",
+                );
+              }
+              await career.library.createRolled(
+                body.name,
+                roll.rolls,
+                body.revision,
+              );
+              // A saved set is spent; a newer roll is left for the player.
+              if (pendingRoll === roll) {
+                pendingRoll = undefined;
+              }
+            } else if (request.url === "/api/characters/create") {
               if (
                 Object.keys(body).length !== 3 ||
                 typeof body.name !== "string" ||
