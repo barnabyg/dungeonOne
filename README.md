@@ -68,6 +68,20 @@ gone. v13 saves continue unchanged. In character adventures, the toolbar's
 current sheet, and click options never offer attacking someone you are not
 already fighting (type it instead). See [issue 95](docs/acceptance/issue-95.md).
 
+New adventures start **Hollow Beacon v15** (`hollow-beacon-loot.json`) and
+**Stonebridge v2** (`stonebridge-loot.json`), schema 18 under
+`character-adventure-rules-v3`: the same content plus a little treasure (#119).
+Characters created from now on use `fighter-rules-v3` and carry silver and a
+healing draught (1d4 + 1 HP) between adventures. Treasure is always found by
+examining something or given by a named person, never simply awarded. A found
+draught can be drunk at once. Treasure is pending until surviving completion and
+earned once per character; abandonment and defeat keep the starting inventory,
+including any draught drunk.
+Older characters still play but receive no treasure. Stonebridge v2 uses
+Examine, and treasure releases use `character-adventure-dm-v4`. v14 and
+Stonebridge v1 saves continue unchanged. See the
+[house rules](docs/character-rules.md#fighter-rules-version-3).
+
 ```powershell
 npm.cmd run browser -- --seed 42 --characters .\.scratch\character-player\characters.json --save .\.scratch\character-player\legacy.json
 ```

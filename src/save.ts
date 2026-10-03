@@ -3,7 +3,11 @@ import { createHash, randomBytes } from "node:crypto";
 import { link, open, readFile, rename, stat, unlink } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import { loadAdventure, type AdventureDefinition } from "./adventure-loader.js";
+import {
+  isCharacterSchema,
+  loadAdventure,
+  type AdventureDefinition,
+} from "./adventure-loader.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { createDataRuntime } from "./data-runtime.js";
 import {
@@ -84,12 +88,12 @@ function digest(value: unknown): string {
 
 function requireSaveRuntime(runtime: AdventureRuntime): void {
   if (
-    ![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17].includes(
+    ![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].includes(
       runtime.content?.snapshot.schemaVersion ?? 0,
     ) ||
     runtime.engineVersion === undefined
   ) {
-    throw new Error("Saves require a schema-3 through schema-16 adventure.");
+    throw new Error("Saves require a schema-3 through schema-18 adventure.");
   }
 }
 
@@ -620,7 +624,7 @@ export class SaveSession {
     }
     if (
       (save.formatVersion === 4) !==
-      (loaded.adventure.snapshot.schemaVersion === 17)
+      isCharacterSchema(loaded.adventure.snapshot.schemaVersion)
     ) {
       throw new Error("Character save format does not match content.");
     }
@@ -745,7 +749,7 @@ export class SaveSession {
     }
     if (
       session.state.status === "quit" &&
-      loaded.adventure.snapshot.schemaVersion !== 17
+      !isCharacterSchema(loaded.adventure.snapshot.schemaVersion)
     ) {
       throw new Error("Quit sessions cannot resume gameplay.");
     }

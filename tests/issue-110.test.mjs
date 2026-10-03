@@ -220,7 +220,7 @@ test("the v13 release row stays continuable after v14 replaced it, as v12 does",
     startable
       .filter(({ snapshot }) => snapshot.id === "hollow-beacon")
       .map(({ snapshot }) => snapshot.contentVersion),
-    ["14"],
+    ["15"],
   );
   const policy = await browserReleasePolicy("11");
   policy.assertContinuable(await v12());

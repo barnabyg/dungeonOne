@@ -17,6 +17,16 @@ const ability = {
     "charisma",
   ],
 } as const;
+const trigger = {
+  type: "string",
+  enum: [
+    "completion",
+    "milestone",
+    "discovery",
+    "actor-defeated",
+    "check-success",
+  ],
+} as const;
 const object = (properties: Record<string, unknown>) => ({
   type: "object",
   additionalProperties: false,
@@ -71,17 +81,46 @@ export const CHARACTER_ADVENTURE_SCHEMA = {
         items: object({
           id,
           xp: { type: "integer", minimum: 1, maximum: 100000 },
-          trigger: {
-            type: "string",
-            enum: [
-              "completion",
-              "milestone",
-              "discovery",
-              "actor-defeated",
-              "check-success",
-            ],
-          },
+          trigger,
           targetId: { type: "string", maxLength: 128 },
+        }),
+      },
+    }),
+  },
+} as const;
+/**
+ * Schema 18 (character adventure rules v3, #119) adds treasure, which always
+ * has a source in the story: silver found by examining something or given by
+ * a living person at the end, and placed items a character can keep.
+ */
+export const CHARACTER_TREASURE_SCHEMA = {
+  ...CHARACTER_ADVENTURE_SCHEMA,
+  title: "Dungeon One character adventure v18",
+  properties: {
+    ...CHARACTER_ADVENTURE_SCHEMA.properties,
+    schemaVersion: { type: "integer", const: 18 },
+    rulesVersion: { type: "string", enum: ["character-adventure-rules-v3"] },
+    characterAdventure: object({
+      ...CHARACTER_ADVENTURE_SCHEMA.properties.characterAdventure.properties,
+      treasure: {
+        type: "array",
+        maxItems: 256,
+        items: object({
+          id,
+          trigger: { type: "string", enum: ["discovery", "completion"] },
+          targetId: { type: "string", maxLength: 128 },
+          giverId: { type: "string", maxLength: 128 },
+          silver: { type: "integer", minimum: 1, maximum: 10000 },
+          text: { type: "string", minLength: 1, maxLength: 4096 },
+        }),
+      },
+      treasureItems: {
+        type: "array",
+        maxItems: 256,
+        items: object({
+          id,
+          itemId: id,
+          item: { type: "string", enum: ["healing-draught"] },
         }),
       },
     }),

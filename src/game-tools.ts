@@ -2,6 +2,7 @@ import type {
   CharacterSheet,
   Ability,
   characterProfile,
+  TreasureItem,
 } from "./character-rules.js";
 import {
   ADVENTURE,
@@ -115,6 +116,11 @@ export type DmScene = Readonly<{
 export type CharacterStatus = Readonly<{
   sheet?: CharacterSheet;
   pendingXp?: number;
+  /** Treasure found this adventure; only for characters who can keep it. */
+  pendingTreasure?: Readonly<{
+    silver: number;
+    items: readonly TreasureItem[];
+  }>;
   modifiers?: Readonly<Record<Ability, number>>;
   profile?: ReturnType<typeof characterProfile>;
   hp: number;

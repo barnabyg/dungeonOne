@@ -6,6 +6,7 @@ import {
   createCharacter,
   createRolledCharacter,
   validateCharacter,
+  TREASURE_CHARACTER_RULES,
   type AbilityRolls,
   type CharacterSheet,
 } from "./character-rules.js";
@@ -241,21 +242,28 @@ export class CharacterLibrary {
     }
   }
 
+  /** Saves a preset character; new characters carry treasure (#119). */
   async create(
     name: string,
     preset: string,
     revision: string,
   ): Promise<LibraryData> {
-    return this.add(createCharacter(name, preset), revision);
+    return this.add(
+      createCharacter(name, preset, undefined, TREASURE_CHARACTER_RULES),
+      revision,
+    );
   }
 
-  /** Saves a fighter-rules-v2 character from engine-rolled abilities. */
+  /** Saves a character from engine-rolled abilities, recording the dice. */
   async createRolled(
     name: string,
     rolls: AbilityRolls,
     revision: string,
   ): Promise<LibraryData> {
-    return this.add(createRolledCharacter(name, rolls), revision);
+    return this.add(
+      createRolledCharacter(name, rolls, undefined, TREASURE_CHARACTER_RULES),
+      revision,
+    );
   }
 
   private add(sheet: CharacterSheet, revision: string): Promise<LibraryData> {

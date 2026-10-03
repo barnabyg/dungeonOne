@@ -11,7 +11,9 @@ import {
 } from "../dist/character-rules.js";
 import { createSeededRandom } from "../dist/random.js";
 import {
+  beaconExamine,
   beaconPeaceful,
+  stonebridgeExamine,
   stonebridgePeaceful,
 } from "./fixtures/character-journeys.mjs";
 
@@ -30,10 +32,29 @@ const MODULES = [
     "toll-raider",
     stonebridgePeaceful,
   ],
+  // Treasure releases (#119) play with fighter-rules-v3 characters.
+  [
+    "hollow-beacon-loot",
+    [1, 2],
+    "ridge-trail",
+    "ridge-raider",
+    beaconExamine,
+    "fighter-rules-v3",
+  ],
+  [
+    "stonebridge-loot",
+    [2, 3],
+    "raider-den",
+    "toll-raider",
+    stonebridgeExamine,
+    "fighter-rules-v3",
+  ],
 ];
+const rulesOf = (module) => module[5];
 
 /** Fights the basic opponent and walks the peaceful route on 64 seeds;
- * returns how many seeds the character survives the fight. */
+ * returns how many seeds the character survives the fight. A character
+ * carrying a healing draught drinks it on its turn once at 5 HP or less. */
 function qualify(loaded, [file, , entry, opponent, peaceful], base, level) {
   let surviving = 0;
   for (let seed = 0; seed < 64; seed++) {
@@ -65,7 +86,12 @@ function qualify(loaded, [file, , entry, opponent, peaceful], base, level) {
       turn < 100 && state.status === "playing" && state.combat !== undefined;
       turn++
     ) {
-      apply("attack " + opponent);
+      const low =
+        state.fighter.hp <= 5 &&
+        Object.entries(state.items ?? {}).some(
+          ([id, place]) => id.startsWith("carried-") && place === "inventory",
+        );
+      apply(low ? "use healing draught" : "attack " + opponent);
     }
     if (state.status === "playing") {
       assert.equal(state.combat, undefined);
@@ -76,8 +102,7 @@ function qualify(loaded, [file, , entry, opponent, peaceful], base, level) {
     }
     // A failed optional check must leave the entire peaceful route intact.
     state = runtime.createSession();
-    const check =
-      file === "hollow-beacon-characters" ? "read-beacon" : undefined;
+    const check = file.startsWith("hollow-beacon") ? "read-beacon" : undefined;
     if (check) {
       state = runtime.handleAction(
         state,
@@ -91,6 +116,11 @@ function qualify(loaded, [file, , entry, opponent, peaceful], base, level) {
     }
     assert.equal(state.status, "victory");
     assert.equal(state.fighter.hp, sheet.hp);
+    // An unused draught is still carried at the end.
+    assert.deepEqual(
+      state.characterResult.inventory?.items,
+      sheet.inventory?.items,
+    );
   }
   return surviving;
 }
@@ -105,7 +135,7 @@ for (const module of MODULES) {
         const surviving = qualify(
           loaded,
           module,
-          createCharacter("Sample", preset),
+          createCharacter("Sample", preset, undefined, rulesOf(module)),
           level,
         );
         assert.ok(
@@ -134,14 +164,19 @@ for (const module of MODULES) {
       for (const strength of [9, 13, 16, 18]) {
         for (const dexterity of [9, 13, 16, 18]) {
           for (const constitution of [7, 9, 13, 16, 18]) {
-            const base = createRolledCharacter("Sample", {
-              strength: dice[strength],
-              dexterity: dice[dexterity],
-              constitution: dice[constitution],
-              intelligence: dice[3],
-              wisdom: dice[3],
-              charisma: dice[3],
-            });
+            const base = createRolledCharacter(
+              "Sample",
+              {
+                strength: dice[strength],
+                dexterity: dice[dexterity],
+                constitution: dice[constitution],
+                intelligence: dice[3],
+                wisdom: dice[3],
+                charisma: dice[3],
+              },
+              undefined,
+              rulesOf(module) ?? "fighter-rules-v2",
+            );
             const surviving = qualify(loaded, module, base, level);
             assert.ok(
               surviving >= 51,
@@ -189,3 +224,34 @@ test("hollow-beacon-characters: rolls below the Fighter minimums fail level 1", 
     );
   }
 });
+
+// A carried draught never decides balance: each loot release qualifies with or
+// without one, and one draught adds at most a little survival. Drinking costs a
+// turn, so on a few seeds it does not help at all (#119).
+for (const module of MODULES.filter((entry) => rulesOf(entry))) {
+  const [file, levels] = module;
+  test(`${file}: a carried healing draught adds only a little survival`, async () => {
+    const loaded = loadAdventure(await readFile(`adventures/${file}.json`));
+    for (const level of levels) {
+      for (const preset of ["balanced", "stout", "scout"]) {
+        const base = createCharacter(
+          "Sample",
+          preset,
+          undefined,
+          "fighter-rules-v3",
+        );
+        const without = qualify(loaded, module, base, level);
+        const carrying = qualify(
+          loaded,
+          module,
+          { ...base, inventory: { silver: 0, items: ["healing-draught"] } },
+          level,
+        );
+        assert.ok(
+          carrying >= 51 && carrying - without <= 6,
+          `${file} ${preset} level ${level}: ${without}/64 without, ${carrying}/64 with a draught`,
+        );
+      }
+    }
+  });
+}

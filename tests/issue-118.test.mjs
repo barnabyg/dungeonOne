@@ -110,7 +110,7 @@ test(
       const [saved] = JSON.parse(
         await readFile(options.libraryPath, "utf8"),
       ).characters;
-      assert.equal(saved.sheet.rulesVersion, "fighter-rules-v2");
+      assert.equal(saved.sheet.rulesVersion, "fighter-rules-v3");
       assert.deepEqual(saved.sheet.abilityRolls, SECOND_ROLL);
       assert.equal(saved.sheet.abilities.wisdom, 14);
       assert.match(
@@ -122,7 +122,7 @@ test(
       assert.equal(reused.status, 409);
       assert.match(reused.body.error, /no longer current/);
 
-      // A version 2 character plays a module that declares version 1, and its
+      // A version 3 character plays a module that declares version 1, and its
       // frozen starting sheet keeps the dice across a restart.
       await page
         .locator("#library-adventures button")
@@ -130,7 +130,7 @@ test(
         .click();
       await page.locator("#character-library").waitFor({ state: "hidden" });
       const before = await (await fetch(server.url + "/api/state")).json();
-      assert.equal(before.character.sheet.rulesVersion, "fighter-rules-v2");
+      assert.equal(before.character.sheet.rulesVersion, "fighter-rules-v3");
       assert.equal(before.character.maxHp, 18);
       await server.close();
       server = await startBrowserServer(options);

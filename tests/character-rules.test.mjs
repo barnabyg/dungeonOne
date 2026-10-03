@@ -179,3 +179,92 @@ test("rolled sheets must match their recorded dice, and preset sheets stay fight
     /ability rolls/,
   );
 });
+
+// Issue 119: new characters carry a treasure inventory under fighter-rules-v3.
+test("new characters can be made under fighter-rules-v3 with an empty inventory", () => {
+  const preset = createCharacter(
+    "Ada",
+    "balanced",
+    "e".repeat(32),
+    "fighter-rules-v3",
+  );
+  assert.equal(preset.rulesVersion, "fighter-rules-v3");
+  assert.equal(preset.abilityRolls, undefined);
+  assert.deepEqual(preset.inventory, { silver: 0, items: [] });
+  assert.deepEqual(Object.keys(preset).slice(-2), [
+    "earnedRewards",
+    "inventory",
+  ]);
+  assert.deepEqual(validateCharacter(preset), preset);
+  const rolls = dice([3, 3, 3], [4, 4, 4], [3, 3, 3]);
+  const rolled = createRolledCharacter(
+    "Bram",
+    rolls,
+    "f".repeat(32),
+    "fighter-rules-v3",
+  );
+  assert.equal(rolled.rulesVersion, "fighter-rules-v3");
+  assert.deepEqual(rolled.abilityRolls, rolls);
+  assert.deepEqual(rolled.inventory, { silver: 0, items: [] });
+  assert.deepEqual(validateCharacter(rolled), rolled);
+  assert.deepEqual(advanceCharacter(rolled, 1000, 5).inventory, {
+    silver: 0,
+    items: [],
+  });
+  assert.throws(
+    () =>
+      createRolledCharacter(
+        "Low",
+        dice([1, 1, 1], [6, 6, 6], [6, 6, 6]),
+        undefined,
+        "fighter-rules-v3",
+      ),
+    /Fighter minimums/,
+  );
+});
+
+test("a fighter-rules-v3 inventory holds bounded silver and known items only", () => {
+  const sheet = createCharacter(
+    "Ada",
+    "balanced",
+    "e".repeat(32),
+    "fighter-rules-v3",
+  );
+  const stocked = {
+    ...sheet,
+    inventory: { silver: 21, items: ["healing-draught", "healing-draught"] },
+  };
+  assert.deepEqual(validateCharacter(stocked), stocked);
+  // Key order is not part of validity.
+  const reordered = { ...sheet, inventory: { items: [], silver: 2 } };
+  assert.deepEqual(validateCharacter(reordered), reordered);
+  for (const inventory of [
+    undefined,
+    { silver: -1, items: [] },
+    { silver: 1.5, items: [] },
+    { silver: 1_000_001, items: [] },
+    { silver: 0 },
+    { silver: 0, items: ["vorpal-sword"] },
+    { silver: 0, items: Array(21).fill("healing-draught") },
+    { silver: 0, items: [], gold: 1 },
+  ]) {
+    assert.throws(
+      () => validateCharacter({ ...sheet, inventory }),
+      /inventory/,
+      JSON.stringify(inventory),
+    );
+  }
+  const preset = createCharacter("Bram", "balanced", "d".repeat(32));
+  assert.throws(
+    () => validateCharacter({ ...preset, inventory: { silver: 0, items: [] } }),
+    /inventory/,
+  );
+  assert.throws(
+    () =>
+      validateCharacter({
+        ...sheet,
+        abilityRolls: dice([3, 3, 3], [4, 4, 4], [3, 3, 3]),
+      }),
+    /ability rolls/,
+  );
+});

@@ -9,8 +9,25 @@ import { ADJUDICATION_SCHEMA } from "./adjudication-schema.js";
 import { DAY_SCHEMA } from "./day-schema.js";
 import { DECEPTION_SCHEMA } from "./deception-schema.js";
 import { OFFER_SCHEMA } from "./offer-schema.js";
-import { CHARACTER_ADVENTURE_SCHEMA } from "./character-adventure-schema.js";
-import type { Ability } from "./character-rules.js";
+import {
+  CHARACTER_ADVENTURE_SCHEMA,
+  CHARACTER_TREASURE_SCHEMA,
+} from "./character-adventure-schema.js";
+import { isDeepStrictEqual } from "node:util";
+import {
+  TREASURE_ITEMS,
+  type Ability,
+  type TreasureItem,
+} from "./character-rules.js";
+
+/** Character adventures: schema 17, and schema 18 with treasure (#119). */
+export function isCharacterSchema(schemaVersion: unknown): boolean {
+  return schemaVersion === 17 || schemaVersion === 18;
+}
+
+/** What earns a character adventure's XP reward or treasure. */
+export type CharacterRewardTrigger =
+  "completion" | "milestone" | "discovery" | "actor-defeated" | "check-success";
 import { FINALE_SCHEMA } from "./finale-schema.js";
 import { CONFRONTATION_SCHEMA } from "./confrontation-schema.js";
 import { QUEST_ITEM_SCHEMA } from "./quest-item-schema.js";
@@ -192,7 +209,7 @@ export type DialogueNpc = Readonly<{
 }>;
 export type ChapelCluesDefinition = Readonly<{
   schemaVersion:
-    3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17;
+    3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18;
   id: string;
   contentVersion: string;
   rulesVersion:
@@ -214,7 +231,8 @@ export type ChapelCluesDefinition = Readonly<{
     | "chapel-clues-rules-v16"
     | "chapel-clues-rules-v17"
     | "character-adventure-rules-v1"
-    | "character-adventure-rules-v2";
+    | "character-adventure-rules-v2"
+    | "character-adventure-rules-v3";
   characterAdventure?: Readonly<{
     rulesVersion: "fighter-rules-v1";
     classes: readonly "Fighter"[];
@@ -235,13 +253,26 @@ export type ChapelCluesDefinition = Readonly<{
     rewards: readonly Readonly<{
       id: string;
       xp: number;
-      trigger:
-        | "completion"
-        | "milestone"
-        | "discovery"
-        | "actor-defeated"
-        | "check-success";
+      trigger: CharacterRewardTrigger;
       targetId: string;
+    }>[];
+    /**
+     * Schema 18 only: silver found when examining reveals a discovery, or
+     * given at completion by a living person (`giverId`), as `text` tells.
+     */
+    treasure?: readonly Readonly<{
+      id: string;
+      trigger: "discovery" | "completion";
+      targetId: string;
+      giverId: string;
+      silver: number;
+      text: string;
+    }>[];
+    /** Schema 18 only: placed items a character keeps if still carried. */
+    treasureItems?: readonly Readonly<{
+      id: string;
+      itemId: string;
+      item: TreasureItem;
     }>[];
   }>;
   title: string;
@@ -2618,10 +2649,14 @@ export function loadAdventure(input: string | Uint8Array):
       ],
     });
   }
-  if ((parsed as { schemaVersion?: number } | null)?.schemaVersion === 17) {
+  const characterSchema = (parsed as { schemaVersion?: number } | null)
+    ?.schemaVersion;
+  if (isCharacterSchema(characterSchema)) {
     validateStructure(
       parsed,
-      CHARACTER_ADVENTURE_SCHEMA as Schema,
+      (characterSchema === 17
+        ? CHARACTER_ADVENTURE_SCHEMA
+        : CHARACTER_TREASURE_SCHEMA) as Schema,
       "",
       diagnostics,
     );
@@ -2677,13 +2712,42 @@ export function loadAdventure(input: string | Uint8Array):
     ) {
       fail("Checks require unique identities and existing features.");
     }
-    if (
-      new Set(metadata.rewards.map((entry) => entry.id)).size !==
-      metadata.rewards.length
-    ) {
-      fail("Reward identities must be unique.");
+    const treasure = metadata.treasure ?? [];
+    const treasureItems = metadata.treasureItems ?? [];
+    // Rewards and treasure share each character's once-only ledger.
+    const ledger = [...metadata.rewards, ...treasure, ...treasureItems];
+    if (new Set(ledger.map((entry) => entry.id)).size !== ledger.length) {
+      fail("Reward and treasure identities must be unique.");
     }
-    for (const reward of metadata.rewards) {
+    // Treasure is found or given, never simply awarded (#119).
+    if (
+      treasure.some((entry) =>
+        entry.trigger === "completion"
+          ? !(snapshot.npcs ?? []).some(({ id }) => id === entry.giverId)
+          : entry.giverId !== "",
+      )
+    ) {
+      fail("Treasure at completion needs a giver; found treasure has none.");
+    }
+    if (
+      new Set(treasureItems.map(({ itemId }) => itemId)).size !==
+        treasureItems.length ||
+      treasureItems.some((entry) => {
+        const placed = snapshot.items?.find(({ id }) => id === entry.itemId);
+        return (
+          placed === undefined ||
+          !isDeepStrictEqual(placed.healing, {
+            ...TREASURE_ITEMS[entry.item].healing,
+            target: "fighter",
+          })
+        );
+      })
+    ) {
+      fail(
+        "Treasure items must be distinct placed items that match their kind.",
+      );
+    }
+    for (const reward of [...metadata.rewards, ...treasure]) {
       const targets =
         reward.trigger === "milestone"
           ? snapshot.quest.milestones
@@ -2697,7 +2761,9 @@ export function loadAdventure(input: string | Uint8Array):
                   )
                 : [""];
       if (!targets.includes(reward.targetId)) {
-        fail("Reward has an unknown trigger target.");
+        fail(
+          `${"xp" in reward ? "Reward" : "Treasure"} has an unknown trigger target.`,
+        );
       }
     }
     if (diagnostics.length > 0) {

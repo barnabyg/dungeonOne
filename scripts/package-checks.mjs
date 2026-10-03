@@ -106,7 +106,10 @@ const authoredAssets = [
   "adventures/hollow-beacon-examine.json",
   "adventures/hollow-beacon-story.json",
   "adventures/stonebridge-characters.json",
+  "adventures/hollow-beacon-loot.json",
+  "adventures/stonebridge-loot.json",
   "schema/adventure-v17.schema.json",
+  "schema/adventure-v18.schema.json",
 ];
 
 for (const adventure of authoredAssets.filter((asset) =>

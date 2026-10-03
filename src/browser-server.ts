@@ -4,8 +4,10 @@ import {
   hasActiveCharacter,
 } from "./character-career.js";
 import {
+  carriesTreasure,
   characterProfile,
   createCharacter,
+  describeTreasure,
   meetsFighterMinimums,
   PRESETS,
   ABILITIES,
@@ -146,6 +148,21 @@ async function readPlayerInput(
   return { message: body.message, revision: body.revision };
 }
 
+const treasureView = (status: CharacterStatus) => {
+  const found = status.pendingTreasure;
+  return status.sheet === undefined || !carriesTreasure(status.sheet)
+    ? {}
+    : {
+        treasure: {
+          silver: status.sheet.inventory.silver,
+          ...(found === undefined ||
+          (found.silver === 0 && found.items.length === 0)
+            ? {}
+            : { found: describeTreasure(found.silver, found.items) }),
+        },
+      };
+};
+
 const nextLevelView = (status: CharacterStatus) => {
   const next =
     status.sheet === undefined ? undefined : nextLevelXp(status.sheet.level);
@@ -181,6 +198,8 @@ export type BrowserView = Readonly<
       characterLabel: string;
       /** XP for the selected character's next level; absent at the top. */
       nextLevelXp?: number;
+      /** Silver carried and treasure found; only for characters who keep it. */
+      treasure?: Readonly<{ silver: number; found?: string }>;
       artwork?: BrowserArtwork;
       history: readonly BrowserTurn[];
       strongerHints?:
@@ -226,6 +245,7 @@ function playerView(
     clocks: session.runtime.projectPlayerClocks?.(session.state) ?? [],
     hp: { current: status.hp, maximum: status.maxHp },
     character: status,
+    ...treasureView(status),
     information: browserInformation(session),
     // Public premise of the supported authored Watch Route, not a hidden
     // clock threshold/effect projection or a parse of terminal narration.
@@ -442,6 +462,20 @@ export async function startBrowserServer(options: BrowserOptions) {
         ...record,
         profile: characterProfile(record.sheet),
         modifiers: modifiersOf(record.sheet.abilities),
+        // Absent for characters made before they could carry treasure.
+        ...(carriesTreasure(record.sheet)
+          ? {
+              treasure: {
+                empty:
+                  record.sheet.inventory.silver === 0 &&
+                  record.sheet.inventory.items.length === 0,
+                text: describeTreasure(
+                  record.sheet.inventory.silver,
+                  record.sheet.inventory.items,
+                ),
+              },
+            }
+          : {}),
       })),
       sessions: data.sessions.map((entry) => ({
         id: entry.id,
@@ -449,13 +483,14 @@ export async function startBrowserServer(options: BrowserOptions) {
         title: entry.content.title,
         status: entry.status,
       })),
-      adventures: (await startableCharacterAdventures()).map(
-        ({ snapshot }) => ({
-          id: snapshot.id,
-          title: snapshot.title,
-          ...(snapshot as ChapelCluesDefinition).characterAdventure,
-        }),
-      ),
+      adventures: (await startableCharacterAdventures()).map(({ snapshot }) => {
+        // Treasure stays a surprise; the page never lists what drops.
+        const support = {
+          ...(snapshot as ChapelCluesDefinition).characterAdventure!,
+        };
+        delete support.treasure;
+        return { id: snapshot.id, title: snapshot.title, ...support };
+      }),
     };
   };
   const artwork =

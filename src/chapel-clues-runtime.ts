@@ -66,6 +66,8 @@ export type ClueState = Readonly<{
   }>;
   character?: CharacterSheet;
   pendingRewards?: readonly Readonly<{ id: string; xp: number }>[];
+  /** Treasure found this adventure, kept on surviving completion (#119). */
+  pendingTreasure?: readonly Readonly<{ id: string; silver: number }>[];
   characterResult?: CharacterSheet;
   abilityChecks?: Readonly<
     Record<
@@ -168,6 +170,7 @@ export type ClueTextEvent = Readonly<{
   type: "clue";
   operation:
     | "reward"
+    | "treasure"
     | "level-up"
     | "ability-check"
     | "look"
