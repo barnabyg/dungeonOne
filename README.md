@@ -41,6 +41,12 @@ committed; the **Action rejected** card gives the reason), so AI narration canno
 claim the refused result. Committed actions, reads and clarifications keep AI
 narration. AI traces recorded under `character-adventure-dm-v1` still replay.
 
+Character adventures use `character-adventure-tools-v2`. Its `talk` tool gives
+the model each offered topic's label and only the approaches the browser offers
+for it, so a contextual talk click commits without the model asking for an
+approach. AI traces recorded under `character-adventure-tools-v1` still replay.
+See [issue 109](docs/acceptance/issue-109.md).
+
 ```powershell
 npm.cmd run browser -- --seed 42 --characters .\.scratch\character-player\characters.json --save .\.scratch\character-player\legacy.json
 ```

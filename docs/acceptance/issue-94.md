@@ -160,7 +160,8 @@ an unexpected or second mutation, and no reply claimed XP, a level or a rescue.
    so the model asked for an approach the click had already chosen, and
    offered unavailable ones. The rerun committed, so this is intermittent.
    Fixing it changes the tool schema shared with released saves and needs a
-   new tool version; it is left to follow-up issue #109.
+   new tool version; it is left to follow-up issue #109, which
+   `character-adventure-tools-v2` resolves ([issue 109](issue-109.md)).
 2. **“Look over”, “read through” and “study” mean inspect.** The model's
    choice is defensible but costs the player a turn. Narration after the
    plate inspect said the setting “was altered” before the search granted
