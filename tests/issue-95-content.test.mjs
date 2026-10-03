@@ -138,9 +138,20 @@ test("v14 keeps v13's structure apart from the removed checks and bluff", async 
     after.characterAdventure.checks.map(({ id }) => id),
     ["read-beacon"],
   );
+  // Winning a fight earns XP; defeating a person does not (owner playtest).
   assert.deepEqual(
-    after.characterAdventure.rewards.map(({ id }) => id),
-    ["hollow-beacon-completion", "hollow-beacon-read-beacon"],
+    after.characterAdventure.rewards.map(({ id, xp, trigger, targetId }) => [
+      id,
+      xp,
+      trigger,
+      targetId,
+    ]),
+    [
+      ["hollow-beacon-completion", 1000, "completion", ""],
+      ["hollow-beacon-read-beacon", 20, "check-success", "read-beacon"],
+      ["hollow-beacon-ridge-raider", 100, "actor-defeated", "ridge-raider"],
+      ["hollow-beacon-tower-sentry", 100, "actor-defeated", "tower-sentry"],
+    ],
   );
   assert.equal(loadAdventure(JSON.stringify(after)).ok, true);
 });

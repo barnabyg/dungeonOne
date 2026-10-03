@@ -3033,6 +3033,18 @@
         "xp": 20,
         "trigger": "check-success",
         "targetId": "read-beacon"
+      },
+      {
+        "id": "hollow-beacon-ridge-raider",
+        "xp": 100,
+        "trigger": "actor-defeated",
+        "targetId": "ridge-raider"
+      },
+      {
+        "id": "hollow-beacon-tower-sentry",
+        "xp": 100,
+        "trigger": "actor-defeated",
+        "targetId": "tower-sentry"
       }
     ]
   }

@@ -144,10 +144,11 @@ const FINAL_BOARD = "examine final-warning-board";
 const ON_TIME = /It's before Day 3. Your warning goes out before the caravan/;
 const LATE = /It's after Day 3. The caravan had already reached the fork/;
 
-/** Asserts a surviving ending credited 1,000 XP once and survives restart. */
-async function assertCompletedOnce(server, relaunch, cards) {
+/** Asserts a surviving ending credited its XP once and survives restart. */
+async function assertCompletedOnce(server, relaunch, cards, xp = 1000) {
   assert.match(cards, /Level 1 → 2/);
-  assert.equal((cards.match(/1000 XP credited/g) ?? []).length, 1);
+  assert.equal((cards.match(/\d+ XP credited/g) ?? []).length, 1);
+  assert.match(cards, new RegExp(`${xp} XP credited`));
   const completed = await state(server);
   assert.equal(completed.scene.outcome, "victory");
   assert.deepEqual(completed.actions, []);
@@ -161,7 +162,7 @@ async function assertCompletedOnce(server, relaunch, cards) {
   assert.notEqual(turn.status, 200);
   assert.equal(restarted.calls(), 0);
   const after = await sheet(restarted);
-  assert.equal(after.xp, 1000);
+  assert.equal(after.xp, xp);
   assert.equal(after.level, 2);
 }
 
@@ -185,13 +186,16 @@ test("on time: a failed check, both fights and a spent component end in a verifi
     ]);
     assert.match(cards, /Combat victory! The ridge raider is defeated/);
     assert.match(cards, /Combat victory! The tower sentry is defeated/);
+    // Each fight won earns XP, credited with the completion award.
+    assert.match(cards, /\+100 XP for defeating the ridge raider/);
+    assert.match(cards, /\+100 XP for defeating the tower sentry/);
     assert.match(cards, /component is fitted permanently .* and spent/);
     assert.match(cards, ON_TIME);
     assert.doesNotMatch(cards, LATE);
     const final = await state(server);
     assert.equal(final.clocks[0].value, 2);
     assert.deepEqual(carried(final), []);
-    await assertCompletedOnce(server, relaunch, cards);
+    await assertCompletedOnce(server, relaunch, cards, 1200);
   }));
 
 for (const seed of [0, 1, 2, 3]) {
@@ -224,11 +228,13 @@ test("casualty: killing Vey after avoiding the sentry ends late with an urgent r
       "resolve urgent-risky-signal",
     ]);
     assert.match(cards, /Vey dies at Beacon Tower/);
+    // Killing a person earns nothing.
+    assert.doesNotMatch(cards, /XP for defeating Vey/);
     assert.match(cards, /Vey is dead./);
     assert.match(cards, /emergency shutter/);
     assert.match(cards, LATE);
     assert.deepEqual(carried(await state(server)), ["signal-component"]);
-    await assertCompletedOnce(server, relaunch, cards);
+    await assertCompletedOnce(server, relaunch, cards, 1100);
   }));
 
 test("defeat: a level-1 Fighter can fall to the ridge raider; no XP is awarded and Review survives restart", async () =>
@@ -286,7 +292,7 @@ test("restarts mid-combat and at the Day 3 threshold continue exactly, then fini
     assert.doesNotMatch(cards, /Day 2 → Day 3/);
     assert.match(cards, LATE);
     assert.equal((await state(server)).clocks[0].value, 3);
-    await assertCompletedOnce(server, relaunch, cards);
+    await assertCompletedOnce(server, relaunch, cards, 1200);
   }));
 
 test(
@@ -342,7 +348,7 @@ test("across seeds the ridge fight rolls differently and every run reaches a vic
       ]);
       assert.match(cards, LATE);
       assert.match(cards, /Level 1 → 2/);
-      assert.equal((await sheet(server)).xp, 1000);
+      assert.equal((await sheet(server)).xp, 1100);
       outcomes.push("victory");
     });
   }

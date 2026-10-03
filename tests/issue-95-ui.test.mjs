@@ -15,6 +15,7 @@ import { startBrowserServer } from "../dist/browser-server.js";
 import { createCharacter } from "../dist/character-rules.js";
 import { createDataRuntime } from "../dist/data-runtime.js";
 import { SaveSession } from "../dist/save.js";
+import { launchScriptedServer } from "./fixtures/scripted-server-process.mjs";
 
 const adventure = async (file) =>
   loadAdventure(
@@ -174,10 +175,15 @@ test(
         true,
       );
       assert.equal(await page.locator("#save-character").isDisabled(), true);
+      // The form says why some abilities have a modifier, and an average
+      // score shows none.
+      const form = await page.locator("#create-character").innerText();
       assert.match(
-        await page.locator("#create-character").innerText(),
-        /The number in brackets is the ability's modifier: it is added to a d20 roll/,
+        form,
+        /Scores of 13 or more give a bonus, 8 or less a penalty; 9 to 12 are average/,
       );
+      assert.match(form, /Strength 14 \(\+1\) · Dexterity 12 · /);
+      assert.doesNotMatch(form, /\(\+0\)/);
       await page.locator("#character-name").fill("   ");
       assert.equal(await page.locator("#save-character").isDisabled(), true);
       await page.locator("#character-name").fill("Tess");
@@ -231,3 +237,66 @@ test("character mode: a single-approach topic is labelled by its own words, with
     assert.ok(iona.includes("Ask what's wrong with the beacon"));
     assert.ok(!iona.some((label) => label.startsWith("Persuade:")));
   }));
+
+test(
+  "in a fight the opponent's name and HP sit in the header beside yours",
+  { timeout: 60000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "dungeon-issue-95-fight-"));
+    const server = await launchScriptedServer({
+      savePath: join(directory, "unused-slot.json"),
+      seed: 0,
+      libraryPath: join(directory, "characters.json"),
+    });
+    const browser = await chromium.launch(
+      process.platform === "win32"
+        ? { channel: "msedge", headless: true }
+        : { headless: true },
+    );
+    const page = await browser.newPage();
+    page.setDefaultTimeout(8000);
+    try {
+      const post = async (path, body) =>
+        (
+          await fetch(server.url + path, {
+            method: "POST",
+            headers: { Origin: server.url, "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          })
+        ).json();
+      let library = await (await fetch(server.url + "/api/characters")).json();
+      library = (
+        await post("/api/characters/create", {
+          name: "Ada",
+          preset: "balanced",
+          revision: library.revision,
+        })
+      ).library;
+      await post("/api/characters/play", {
+        characterId: library.characters[0].sheet.id,
+        adventureId: "hollow-beacon",
+        revision: library.revision,
+        confirmed: true,
+      });
+      await page.goto(server.url);
+      assert.equal(await page.locator("#opponent-status").isHidden(), true);
+      await page
+        .locator("#exits button")
+        .filter({ hasText: "Ridge Trail" })
+        .click();
+      await page.locator("#opponent-status").waitFor({ state: "visible" });
+      assert.equal(
+        await page.locator("#opponent-name").innerText(),
+        "Ridge raider",
+      );
+      assert.match(
+        await page.locator("#opponent-hp").innerText(),
+        /^\d+ \/ 14 HP$/,
+      );
+    } finally {
+      await browser.close();
+      await server.stop();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

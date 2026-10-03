@@ -118,7 +118,7 @@ export function browserActions(
         check.ability +
         " check at " +
         definition!.features.find(({ id }) => id === check.featureId)!.name,
-      `A d20 plus your ${ability} modifier (${signed(modifier)}); ${check.dc} or more succeeds. You get one try. Success earns ${xp} XP the first time this character manages it; failing costs nothing, and you can still examine it.`,
+      `Roll a d20${modifier > 0 ? ` and add your ${ability} bonus (${signed(modifier)})` : modifier < 0 ? ` and take away your ${ability} penalty (${signed(modifier)})` : ""}; ${check.dc} or more succeeds. You get one try. Success earns ${xp} XP the first time this character manages it; failing costs nothing, and you can still examine it.`,
     );
   }
   for (const exit of scene.room.exits) {

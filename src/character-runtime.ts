@@ -81,6 +81,29 @@ export function createCharacterRuntime(
   const authoredReplies =
     definition.id === "hollow-beacon" &&
     Number(definition.contentVersion) >= 14;
+  // v14 names what earned the XP in plain words; earlier releases keep their
+  // recorded wording, which their saves replay.
+  const rewardReason = (reward: (typeof support.rewards)[number]) => {
+    if (reward.trigger === "completion") {
+      return "completing the adventure";
+    }
+    if (reward.trigger === "check-success") {
+      return "a successful roll";
+    }
+    if (reward.trigger === "actor-defeated") {
+      const monster = definition.monsters?.find(
+        ({ id }) => id === reward.targetId,
+      );
+      const name =
+        definition.monsterDefinitions?.find(
+          ({ id }) => id === monster?.definitionId,
+        )?.name ??
+        definition.npcs?.find(({ id }) => id === reward.targetId)?.name ??
+        reward.targetId;
+      return `defeating the ${name}`;
+    }
+    return "your progress";
+  };
   const withAuthoredReply = (result: RuntimeToolResult): RuntimeToolResult =>
     authoredReplies &&
     result.modelOutput.ok &&
@@ -307,7 +330,9 @@ export function createCharacterRuntime(
         events.push({
           type: "clue",
           operation: "reward",
-          text: `${reward.xp} XP earned (${reward.id}); pending until surviving completion.`,
+          text: authoredReplies
+            ? `+${reward.xp} XP for ${rewardReason(reward)}. You receive it when you finish the adventure alive.`
+            : `${reward.xp} XP earned (${reward.id}); pending until surviving completion.`,
         });
       }
     }

@@ -192,7 +192,8 @@ test(
         await page.locator("#open-character").click();
         assert.match(
           await page.locator("#information-body").innerText(),
-          /wisdom: 11 \(\+0\)/,
+          // An average score shows no modifier.
+          /wisdom: 11\n/,
         );
         await page.locator("#close-information").click();
         await page.locator("#open-hints").click();
@@ -307,7 +308,8 @@ test(
         );
         const career = await library(server);
         assert.equal(career.characters[0].sheet.level, 2);
-        assert.equal(career.characters[0].sheet.xp, 1000);
+        // 1,000 for completing the adventure plus 100 for the ridge raider.
+        assert.equal(career.characters[0].sheet.xp, 1100);
 
         // Long history stays bounded and NPC replies stay speaker-scoped.
         const requests = server.requests();
@@ -345,7 +347,7 @@ test(
         });
         assert.notEqual(again.status, 200);
         assert.equal(server.calls(), 0);
-        assert.equal((await library(server)).characters[0].sheet.xp, 1000);
+        assert.equal((await library(server)).characters[0].sheet.xp, 1100);
         assert.deepEqual(
           [
             await readFile(libraryPath, "utf8"),
@@ -590,7 +592,8 @@ test("hidden actors, compound requests, impossible actions, false claims and mis
       assert.equal(result.committed, true);
       assert.equal(after.scene.outcome, "victory");
       const sheet = (await library(server)).characters[0].sheet;
-      assert.equal(sheet.xp, 1000);
+      // Completion plus the ridge raider fought on the way.
+      assert.equal(sheet.xp, 1100);
       assert.equal(sheet.level, 2);
 
       // After completion nothing more reaches the provider or the career.
