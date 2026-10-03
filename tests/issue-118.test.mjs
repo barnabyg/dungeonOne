@@ -29,7 +29,7 @@ test(
       seed: 1,
       apiKey: "",
     };
-    const server = await startBrowserServer(options);
+    let server = await startBrowserServer(options);
     // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
     const browser = await chromium.launch(
       process.platform === "win32"
@@ -121,6 +121,25 @@ test(
       const reused = await post("create", { name: "Again", rollId: 2 });
       assert.equal(reused.status, 409);
       assert.match(reused.body.error, /no longer current/);
+
+      // A version 2 character plays a module that declares version 1, and its
+      // frozen starting sheet keeps the dice across a restart.
+      await page
+        .locator("#library-adventures button")
+        .filter({ hasText: "Start Hollow" })
+        .click();
+      await page.locator("#character-library").waitFor({ state: "hidden" });
+      const before = await (await fetch(server.url + "/api/state")).json();
+      assert.equal(before.character.sheet.rulesVersion, "fighter-rules-v2");
+      assert.equal(before.character.maxHp, 18);
+      await server.close();
+      server = await startBrowserServer(options);
+      const after = await (await fetch(server.url + "/api/state")).json();
+      assert.deepEqual(after.character, before.character);
+      const [session] = JSON.parse(
+        await readFile(options.libraryPath, "utf8"),
+      ).sessions;
+      assert.deepEqual(session.startingCharacter.abilityRolls, SECOND_ROLL);
     } finally {
       await browser.close();
       await server.close();
