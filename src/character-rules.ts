@@ -236,8 +236,9 @@ function validateInventory(sheet: CharacterSheet): void {
     inventory === null ||
     typeof inventory !== "object" ||
     Array.isArray(inventory) ||
-    JSON.stringify(Object.keys(inventory)) !==
-      JSON.stringify(["silver", "items"])
+    Object.keys(inventory).length !== 2 ||
+    !Object.hasOwn(inventory, "silver") ||
+    !Object.hasOwn(inventory, "items")
   ) {
     throw new Error("Invalid character inventory.");
   }

@@ -235,6 +235,9 @@ test("a fighter-rules-v3 inventory holds bounded silver and known items only", (
     inventory: { silver: 21, items: ["healing-draught", "healing-draught"] },
   };
   assert.deepEqual(validateCharacter(stocked), stocked);
+  // Key order is not part of validity.
+  const reordered = { ...sheet, inventory: { items: [], silver: 2 } };
+  assert.deepEqual(validateCharacter(reordered), reordered);
   for (const inventory of [
     undefined,
     { silver: -1, items: [] },
