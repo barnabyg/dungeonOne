@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import type { GameToolCall } from "./game-tools.js";
 import type { SaveSession } from "./save.js";
-import type { ChapelCluesDefinition } from "./adventure-loader.js";
+import {
+  offeredTalkApproaches,
+  type ChapelCluesDefinition,
+} from "./adventure-loader.js";
 
 export type BrowserAction = Readonly<{
   id: string;
@@ -257,21 +260,14 @@ export function browserActions(
     for (const subject of npc.subjects) {
       if (
         permits("talk", "speakerId", npc.id) &&
-        permits("talk", "topicId", subject.id) &&
-        permits("talk", "approach", "ask")
+        permits("talk", "topicId", subject.id)
       ) {
         const topic = definition?.npcs
           ?.find(({ id }) => id === npc.id)
           ?.topics.find(({ id }) => id === subject.id);
-        const distinctPersuasion =
-          topic !== undefined &&
-          (topic.challengeId !== "none" ||
-            topic.replies.some(({ approach }) => approach === "persuade"));
-        for (const approach of (subject.intent === "claim"
-          ? ["persuade"]
-          : subject.intent === "correction" || !distinctPersuasion
-            ? ["ask"]
-            : ["ask", "persuade"]) as readonly ("ask" | "persuade")[]) {
+        for (const approach of topic === undefined
+          ? ([subject.intent === "claim" ? "persuade" : "ask"] as const)
+          : offeredTalkApproaches(topic)) {
           if (!permits("talk", "approach", approach)) {
             continue;
           }

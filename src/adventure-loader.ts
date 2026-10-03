@@ -153,6 +153,25 @@ export type DialogueTopic = Readonly<{
   stakes?: string;
   replies: readonly DialogueReply[];
 }>;
+
+/**
+ * The approaches a player is offered for a topic: claims are persuade-only,
+ * corrections ask-only, and other topics offer persuade only when it can
+ * differ from asking. The browser buttons and the character `talk` tool share
+ * this rule, so the model is offered exactly what the player can click (#109).
+ */
+export function offeredTalkApproaches(
+  topic: Pick<DialogueTopic, "intent" | "challengeId" | "replies">,
+): readonly ("ask" | "persuade")[] {
+  if (topic.intent === "claim") {
+    return ["persuade"];
+  }
+  return topic.intent === undefined &&
+    (topic.challengeId !== "none" ||
+      topic.replies.some(({ approach }) => approach === "persuade"))
+    ? ["ask", "persuade"]
+    : ["ask"];
+}
 export type DialogueNpc = Readonly<{
   id: string;
   name: string;

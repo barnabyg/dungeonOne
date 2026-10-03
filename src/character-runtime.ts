@@ -1,7 +1,8 @@
 import { createChapelCluesRuntime } from "./chapel-clues-runtime.js";
-import type {
-  ChapelCluesDefinition,
-  ValidatedAdventure,
+import {
+  offeredTalkApproaches,
+  type ChapelCluesDefinition,
+  type ValidatedAdventure,
 } from "./adventure-loader.js";
 import type {
   AdventureRuntime,
@@ -26,6 +27,12 @@ import {
 /** v2 authors the reply to a rejected mutation and limits read narration. */
 export const CHARACTER_PROMPT_VERSION = "character-adventure-dm-v2";
 export const PREVIOUS_CHARACTER_PROMPT_VERSION = "character-adventure-dm-v1";
+/**
+ * v2 names each offered topic's label and only its offered approaches in the
+ * `talk` tool, so a contextual talk click is unambiguous (#109).
+ */
+export const CHARACTER_TOOL_VERSION = "character-adventure-tools-v2";
+export const PREVIOUS_CHARACTER_TOOL_VERSION = "character-adventure-tools-v1";
 export const REJECTED_ACTION_REPLY =
   "That did not happen: the request was refused, so no action was committed and nothing changed. The Action rejected card gives the reason.";
 
@@ -99,6 +106,63 @@ export function createCharacterRuntime(
             current.abilityChecks?.[check.id] === undefined &&
             features.some(({ id }) => id === check.featureId),
         );
+  };
+  /**
+   * Replaces the generic talk definition: the same speakers and topics, each
+   * topic with its player-facing label and the approaches the browser offers.
+   * The engine still decides every talk result.
+   */
+  const talkTool = (
+    state: RuntimeState,
+    generic: GameToolDefinition,
+  ): GameToolDefinition => {
+    const speakers = (legacy.projectDmScene(stateOf(state)).room.npcs ?? [])
+      .filter(({ condition }) => condition === "living")
+      .map((npc) => {
+        const authored = definition.npcs?.find(({ id }) => id === npc.id);
+        return {
+          ...npc,
+          subjects: npc.subjects.flatMap((subject) => {
+            const topic = authored?.topics.find(({ id }) => id === subject.id);
+            return topic === undefined
+              ? []
+              : [{ ...subject, approaches: offeredTalkApproaches(topic) }];
+          }),
+        };
+      })
+      .filter(({ subjects }) => subjects.length > 0);
+    const offered = new Set(
+      speakers.flatMap(({ subjects }) =>
+        subjects.flatMap(({ approaches }) => approaches),
+      ),
+    );
+    const properties = generic.parameters.properties as Record<string, unknown>;
+    return {
+      ...generic,
+      description: `Talk to a visible speaker about an offered topic with one of that topic's offered approaches. A request to ask a speaker about a topic label means approach ask; a request to persuade a speaker to discuss it means approach persuade. Never ask the player to choose an approach they already named. Speakers, topic labels and offered approaches: ${speakers
+        .map(
+          (npc) =>
+            `${npc.id} (${npc.name}): ${npc.subjects
+              .map(
+                (subject) =>
+                  `${subject.id} "${subject.name}" [${subject.approaches.join(" or ")}${subject.approaches.length === 1 ? " only" : ""}]${subject.stakes === undefined ? "" : ` (${subject.stakes})`}`,
+              )
+              .join(", ")}`,
+        )
+        .join("; ")}.`,
+      parameters: {
+        ...generic.parameters,
+        properties: {
+          ...properties,
+          approach: {
+            type: "string",
+            enum: (["ask", "persuade"] as const).filter((approach) =>
+              offered.has(approach),
+            ),
+          },
+        },
+      },
+    };
   };
   const settle = (result: RuntimeResult): RuntimeResult => {
     if (result.rejection !== undefined) {
@@ -221,7 +285,7 @@ export function createCharacterRuntime(
     engineVersion: "character-adventure-engine-v1",
     rulesVersion: "character-adventure-rules-v1",
     promptVersion: CHARACTER_PROMPT_VERSION,
-    toolSchemaVersion: "character-adventure-tools-v1",
+    toolSchemaVersion: CHARACTER_TOOL_VERSION,
     commandTraceFormatVersion: 6,
     dmTraceFormatVersion: 6,
     createSession: () => ({
@@ -254,9 +318,9 @@ export function createCharacterRuntime(
     handleAction,
     getGameToolDefinitions: (state) => {
       const checks = availableChecks(state);
-      const tools: GameToolDefinition[] = [
-        ...legacy.getGameToolDefinitions(state),
-      ];
+      const tools: GameToolDefinition[] = legacy
+        .getGameToolDefinitions(state)
+        .map((tool) => (tool.name === "talk" ? talkTool(state, tool) : tool));
       if (checks.length > 0) {
         tools.push({
           type: "function",

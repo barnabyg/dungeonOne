@@ -1,7 +1,9 @@
 import { validateCharacter } from "./character-rules.js";
 import {
   CHARACTER_PROMPT_VERSION,
+  CHARACTER_TOOL_VERSION,
   PREVIOUS_CHARACTER_PROMPT_VERSION,
+  PREVIOUS_CHARACTER_TOOL_VERSION,
 } from "./character-runtime.js";
 import { isDeepStrictEqual } from "node:util";
 import { createHash } from "node:crypto";
@@ -939,7 +941,7 @@ function validateDmTrace(
     adventureVersion?: string;
     rulesVersion?: string;
     promptVersions?: readonly string[];
-    toolSchemaVersion?: string;
+    toolSchemaVersions?: readonly string[];
     validateRuntimeState?: (value: unknown, path: string) => JsonObject;
     localKinds?: readonly ReplayDmTurn["kind"][];
     runtime?: ReplayRuntime;
@@ -988,11 +990,15 @@ function validateDmTrace(
       `Unsupported DM prompt version ${JSON.stringify(dm.promptVersion)}.`,
     );
   }
-  requireSupported(
-    dm.toolSchemaVersion,
-    options.toolSchemaVersion ?? GAME_TOOL_SCHEMA_VERSION,
-    "tool schema version",
-  );
+  if (
+    !(options.toolSchemaVersions ?? [GAME_TOOL_SCHEMA_VERSION]).some(
+      (version) => version === dm.toolSchemaVersion,
+    )
+  ) {
+    throw new Error(
+      `Unsupported tool schema version ${JSON.stringify(dm.toolSchemaVersion)}.`,
+    );
+  }
   requireString(dm.provider, "dm.provider");
   requireString(dm.model, "dm.model");
   const runtimeState = options.validateRuntimeState ?? validateState;
@@ -1482,7 +1488,14 @@ function replayFormat4(trace: JsonObject): void {
           [CHARACTER_PROMPT_VERSION]: [PREVIOUS_CHARACTER_PROMPT_VERSION],
         }[runtime.promptVersion] ?? []),
       ],
-      toolSchemaVersion: runtime.toolSchemaVersion,
+      // Tool definitions only steer the model; replay re-dispatches each
+      // recorded call, so v1 character traces replay unchanged (#109).
+      toolSchemaVersions: [
+        runtime.toolSchemaVersion,
+        ...({
+          [CHARACTER_TOOL_VERSION]: [PREVIOUS_CHARACTER_TOOL_VERSION],
+        }[runtime.toolSchemaVersion] ?? []),
+      ],
       validateRuntimeState: requireObject,
       runtime,
       localKinds: [
@@ -1646,7 +1659,7 @@ export async function verifyTraceFile(path: string): Promise<void> {
           adventureVersion: config.version,
           rulesVersion: config.rulesVersion,
           promptVersions: config.promptVersions,
-          toolSchemaVersion: config.toolVersion,
+          toolSchemaVersions: [config.toolVersion],
           localKinds: config.localKinds,
           validateRuntimeState: requireObject,
         }),
