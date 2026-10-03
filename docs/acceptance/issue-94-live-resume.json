@@ -1,0 +1,797 @@
+{
+  "issue": 94,
+  "mode": "live-browser",
+  "resumedAtStep": "vey",
+  "runDirectory": ".verify-artifacts\\issue-94-live-oKOgpF",
+  "requestedModel": "gpt-5.6-luna",
+  "startedAt": "2026-10-03T11:10:32.951Z",
+  "seed": 0,
+  "maxProviderCalls": 37,
+  "calls": [
+    {
+      "turn": 1,
+      "phase": "interpretation",
+      "input": "Ask Vey about \"Present the work order and setting plate\".",
+      "promptVersion": "character-adventure-dm-v1",
+      "systemPromptDigest": "95c21c2773ccd855e5b5936b48e0b0fe334d2f7df462a8f14c86e3c1a7ce4d30",
+      "toolSchemaDigest": "0fb9791108a52035e0618e89927c684973e43be2544589fd19ec479b27c9ac11",
+      "offeredTools": [
+        "look",
+        "get_character_status",
+        "get_journal",
+        "wait",
+        "inspect",
+        "talk",
+        "move",
+        "attack"
+      ],
+      "transcriptEntries": 8,
+      "transcriptCharacters": 1970,
+      "historyFacts": 5,
+      "historySpeaker": null,
+      "provider": {
+        "responseId": "resp_0ea89175301245ea016ac0e2ab4f2887d18329d7dbc7e925ed",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 3007,
+          "outputTokens": 30,
+          "totalTokens": 3037
+        }
+      },
+      "toolCalls": [
+        {
+          "name": "talk",
+          "argumentsJson": "{\"speakerId\":\"vey\",\"topicId\":\"plate-proof\",\"approach\":\"ask\"}"
+        }
+      ],
+      "latencyMs": 1509
+    },
+    {
+      "turn": 1,
+      "phase": "npc-reply",
+      "input": "Ask Vey about \"Present the work order and setting plate\".",
+      "promptVersion": "character-adventure-dm-v1",
+      "systemPromptDigest": "dc2b94c9f3d38e3aeae17ab6b8d440fa983ad1da8f4bf27e31036c4529721213",
+      "toolSchemaDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "offeredTools": [],
+      "transcriptEntries": 0,
+      "transcriptCharacters": 0,
+      "historyFacts": 0,
+      "historySpeaker": "vey",
+      "provider": {
+        "responseId": "resp_083207685027b8a8016ac0e2acaef887d18db03c32071edf95",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 257,
+          "outputTokens": 132,
+          "totalTokens": 389
+        }
+      },
+      "toolCalls": [],
+      "text": "{\"delivery\":\"steady\",\"opening\":\"none\",\"factIds\":[],\"closing\":\"none\"}",
+      "latencyMs": 2347
+    },
+    {
+      "turn": 2,
+      "phase": "interpretation",
+      "input": "Fit the spare component into the beacon socket.",
+      "promptVersion": "character-adventure-dm-v1",
+      "systemPromptDigest": "95c21c2773ccd855e5b5936b48e0b0fe334d2f7df462a8f14c86e3c1a7ce4d30",
+      "toolSchemaDigest": "612acf560ee6a2aaadc39f378edf2b627c9b9a39ab178428b46ab2b8f76aa9ba",
+      "offeredTools": [
+        "look",
+        "get_character_status",
+        "get_journal",
+        "wait",
+        "inspect",
+        "search",
+        "talk",
+        "move",
+        "attack",
+        "place_item"
+      ],
+      "transcriptEntries": 8,
+      "transcriptCharacters": 1736,
+      "historyFacts": 6,
+      "historySpeaker": null,
+      "provider": {
+        "responseId": "resp_0a23d304367a2533016ac0e2af452887d1a0635ba6194654ae",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 3431,
+          "outputTokens": 37,
+          "totalTokens": 3468
+        }
+      },
+      "toolCalls": [
+        {
+          "name": "place_item",
+          "argumentsJson": "{\"item_id\":\"signal-component\",\"target\":\"beacon-socket\"}"
+        }
+      ],
+      "latencyMs": 1628
+    },
+    {
+      "turn": 2,
+      "phase": "narration",
+      "input": "Fit the spare component into the beacon socket.",
+      "promptVersion": "character-adventure-dm-v1",
+      "systemPromptDigest": "95c21c2773ccd855e5b5936b48e0b0fe334d2f7df462a8f14c86e3c1a7ce4d30",
+      "toolSchemaDigest": "0df788dbcface4f534b03ec8fcad8c90fa5fdfec410e465d291b3f0d5863b8c9",
+      "offeredTools": [
+        "look",
+        "get_character_status",
+        "get_journal",
+        "inspect"
+      ],
+      "transcriptEntries": 8,
+      "transcriptCharacters": 1736,
+      "historyFacts": 7,
+      "historySpeaker": null,
+      "provider": {
+        "responseId": "resp_0a23d304367a2533016ac0e2b0eb0887d181bc08620c620b49",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 6341,
+          "outputTokens": 130,
+          "totalTokens": 6471
+        }
+      },
+      "toolCalls": [],
+      "text": "The spare signal component is fitted permanently in the beacon socket and spent. It cost **0 days**, with no healing. The socket is ready, but **no rescue is confirmed**.\n\nThe final warning board is accessible. You can inspect it, or give the Tower Runner one of these instructions:\n\n- **Hold the beacon and continue**\n- **Light the beacon and continue**\n- **Refuse the watch and continue**\n- **Leave the watch and continue**",
+      "latencyMs": 2283
+    },
+    {
+      "turn": 3,
+      "phase": "interpretation",
+      "input": "Study the final warning board.",
+      "promptVersion": "character-adventure-dm-v1",
+      "systemPromptDigest": "95c21c2773ccd855e5b5936b48e0b0fe334d2f7df462a8f14c86e3c1a7ce4d30",
+      "toolSchemaDigest": "1e116cfe7b9045fcc8271536b935fba485f1b89b76d1823918ea60b546c2eab8",
+      "offeredTools": [
+        "look",
+        "get_character_status",
+        "get_journal",
+        "wait",
+        "inspect",
+        "search",
+        "talk",
+        "move",
+        "attack"
+      ],
+      "transcriptEntries": 8,
+      "transcriptCharacters": 1600,
+      "historyFacts": 7,
+      "historySpeaker": null,
+      "provider": {
+        "responseId": "resp_0b9fed3fa11e2122016ac0e2b3724087d1a0dd4e27c0cefda6",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 3359,
+          "outputTokens": 31,
+          "totalTokens": 3390
+        }
+      },
+      "toolCalls": [
+        {
+          "name": "inspect",
+          "argumentsJson": "{\"target\":\"final-warning-board\"}"
+        }
+      ],
+      "latencyMs": 1356
+    },
+    {
+      "turn": 3,
+      "phase": "narration",
+      "input": "Study the final warning board.",
+      "promptVersion": "character-adventure-dm-v1",
+      "systemPromptDigest": "95c21c2773ccd855e5b5936b48e0b0fe334d2f7df462a8f14c86e3c1a7ce4d30",
+      "toolSchemaDigest": "1e116cfe7b9045fcc8271536b935fba485f1b89b76d1823918ea60b546c2eab8",
+      "offeredTools": [
+        "look",
+        "get_character_status",
+        "get_journal",
+        "wait",
+        "inspect",
+        "search",
+        "talk",
+        "move",
+        "attack"
+      ],
+      "transcriptEntries": 8,
+      "transcriptCharacters": 1600,
+      "historyFacts": 7,
+      "historySpeaker": null,
+      "provider": {
+        "responseId": "resp_0b9fed3fa11e2122016ac0e2b4d36887d1870749654780ddc7",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 6575,
+          "outputTokens": 122,
+          "totalTokens": 6697
+        }
+      },
+      "toolCalls": [],
+      "text": "The board presents three terminal paths:\n\n1. **Verified safe signal** — requires the observed setting plate and the fitted component.  \n2. **Slower human warning** — requires neither, but leaves delivery unconfirmed.  \n3. **Urgent risky signal** — requires neither and may attract pursuers.\n\nEach commitment costs 0 days and no dice. It is already **Day 3**, which is late. No choice confirms that the keeper or caravan is safe.\n\nWhich path do you choose?",
+      "latencyMs": 2503
+    },
+    {
+      "turn": 4,
+      "phase": "interpretation",
+      "input": "Search final warning board",
+      "promptVersion": "character-adventure-dm-v1",
+      "systemPromptDigest": "95c21c2773ccd855e5b5936b48e0b0fe334d2f7df462a8f14c86e3c1a7ce4d30",
+      "toolSchemaDigest": "1e116cfe7b9045fcc8271536b935fba485f1b89b76d1823918ea60b546c2eab8",
+      "offeredTools": [
+        "look",
+        "get_character_status",
+        "get_journal",
+        "wait",
+        "inspect",
+        "search",
+        "talk",
+        "move",
+        "attack"
+      ],
+      "transcriptEntries": 8,
+      "transcriptCharacters": 1437,
+      "historyFacts": 7,
+      "historySpeaker": null,
+      "provider": {
+        "responseId": "resp_08d5fd0665c1194b016ac0e2b7811087d199959e73368f7f9a",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 3317,
+          "outputTokens": 30,
+          "totalTokens": 3347
+        }
+      },
+      "toolCalls": [
+        {
+          "name": "search",
+          "argumentsJson": "{\"target\":\"final-warning-board\"}"
+        }
+      ],
+      "latencyMs": 1213
+    },
+    {
+      "turn": 4,
+      "phase": "narration",
+      "input": "Search final warning board",
+      "promptVersion": "character-adventure-dm-v1",
+      "systemPromptDigest": "95c21c2773ccd855e5b5936b48e0b0fe334d2f7df462a8f14c86e3c1a7ce4d30",
+      "toolSchemaDigest": "0df788dbcface4f534b03ec8fcad8c90fa5fdfec410e465d291b3f0d5863b8c9",
+      "offeredTools": [
+        "look",
+        "get_character_status",
+        "get_journal",
+        "inspect"
+      ],
+      "transcriptEntries": 8,
+      "transcriptCharacters": 1437,
+      "historyFacts": 8,
+      "historySpeaker": null,
+      "provider": {
+        "responseId": "resp_08d5fd0665c1194b016ac0e2b8c02087d185530dda62063ed4",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 9440,
+          "outputTokens": 140,
+          "totalTokens": 9580
+        }
+      },
+      "toolCalls": [],
+      "text": "Your search confirms the same three terminal choices:\n\n- **Verified safe signal** — uses the observed approved alignment and fitted component; lights the beacon toward the fork. No rescue is confirmed.\n- **Slower human warning** — posts a warning for travellers and messengers; delivery remains unconfirmed.\n- **Urgent risky signal** — raises the emergency shutter; it may attract pursuers, and no safe route is guaranteed.\n\nEach costs **0 days and no dice** and ends gameplay. It is already **Day 3**, so the caravan missed its planned turn.\n\nWhich choice do you commit to?",
+      "latencyMs": 2283
+    },
+    {
+      "turn": 5,
+      "phase": "interpretation",
+      "input": "Warn them.",
+      "promptVersion": "character-adventure-dm-v1",
+      "systemPromptDigest": "95c21c2773ccd855e5b5936b48e0b0fe334d2f7df462a8f14c86e3c1a7ce4d30",
+      "toolSchemaDigest": "5f590d5ca9a79b34d0a7bc865b23349c43d6ab4b7393789c86a4c666ddfdf0b0",
+      "offeredTools": [
+        "look",
+        "get_character_status",
+        "get_journal",
+        "wait",
+        "inspect",
+        "talk",
+        "move",
+        "attack",
+        "resolve_quest"
+      ],
+      "transcriptEntries": 8,
+      "transcriptCharacters": 1832,
+      "historyFacts": 8,
+      "historySpeaker": null,
+      "provider": {
+        "responseId": "resp_07f19053382ad0e6016ac0e2bb335887d180014e1477db722c",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 4886,
+          "outputTokens": 86,
+          "totalTokens": 4972
+        }
+      },
+      "toolCalls": [],
+      "text": "Which warning do you want to commit to?\n\n1. **Verified safe signal** — light the beacon toward the approved fork using the fitted component.\n2. **Slower human warning** — post a warning for travellers and messengers.\n3. **Urgent risky signal** — raise the emergency shutter, which may attract pursuers.",
+      "latencyMs": 1818
+    },
+    {
+      "turn": 6,
+      "phase": "interpretation",
+      "input": "Resolve Verified safe signal",
+      "promptVersion": "character-adventure-dm-v1",
+      "systemPromptDigest": "95c21c2773ccd855e5b5936b48e0b0fe334d2f7df462a8f14c86e3c1a7ce4d30",
+      "toolSchemaDigest": "5f590d5ca9a79b34d0a7bc865b23349c43d6ab4b7393789c86a4c666ddfdf0b0",
+      "offeredTools": [
+        "look",
+        "get_character_status",
+        "get_journal",
+        "wait",
+        "inspect",
+        "talk",
+        "move",
+        "attack",
+        "resolve_quest"
+      ],
+      "transcriptEntries": 8,
+      "transcriptCharacters": 1869,
+      "historyFacts": 8,
+      "historySpeaker": null,
+      "provider": {
+        "responseId": "resp_022428116db64c89016ac0e2bd394087d18b9f9545407ec9d7",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 4900,
+          "outputTokens": 37,
+          "totalTokens": 4937
+        }
+      },
+      "toolCalls": [
+        {
+          "name": "resolve_quest",
+          "argumentsJson": "{\"resolutionId\":\"verified-safe-signal\"}"
+        }
+      ],
+      "latencyMs": 1212
+    },
+    {
+      "turn": 6,
+      "phase": "narration",
+      "input": "Resolve Verified safe signal",
+      "promptVersion": "character-adventure-dm-v1",
+      "systemPromptDigest": "95c21c2773ccd855e5b5936b48e0b0fe334d2f7df462a8f14c86e3c1a7ce4d30",
+      "toolSchemaDigest": "0df788dbcface4f534b03ec8fcad8c90fa5fdfec410e465d291b3f0d5863b8c9",
+      "offeredTools": [
+        "look",
+        "get_character_status",
+        "get_journal",
+        "inspect"
+      ],
+      "transcriptEntries": 8,
+      "transcriptCharacters": 1869,
+      "historyFacts": 8,
+      "historySpeaker": null,
+      "provider": {
+        "responseId": "resp_022428116db64c89016ac0e2be735087d1bd6492c2465da25f",
+        "model": "gpt-5.6-luna",
+        "status": "completed",
+        "usage": {
+          "inputTokens": 8101,
+          "outputTokens": 118,
+          "totalTokens": 8219
+        }
+      },
+      "toolCalls": [],
+      "text": "The **verified safe signal** is committed.\n\nYou align the fitted beacon to the observed approved fork alignment and light it toward the fork. This costs **0 days** and requires no dice. The signal is completed, but it confirms **no rescue**.\n\nThe caravan’s planned turn was already missed on Day 3. The keeper’s fate remains unconfirmed, as do the refugees and any raiders not defeated in recorded encounters. Vey yielded control without a fight.\n\n**Adventure complete.** Ada earned **1,000 XP** and completed the Hollow Beacon adventure.",
+      "latencyMs": 2018
+    }
+  ],
+  "turns": [
+    {
+      "step": "vey",
+      "mode": "click",
+      "input": "Ask Vey about \"Present the work order and setting plate\".",
+      "expected": {
+        "name": "talk",
+        "arguments": {
+          "speakerId": "vey",
+          "topicId": "plate-proof",
+          "approach": "ask"
+        }
+      },
+      "committed": true,
+      "positionBefore": 18,
+      "positionAfter": 19,
+      "selectedCalls": [
+        {
+          "name": "talk",
+          "argumentsJson": "{\"speakerId\":\"vey\",\"topicId\":\"plate-proof\",\"approach\":\"ask\"}"
+        }
+      ],
+      "location": "Beacon Tower",
+      "day": 3,
+      "hp": 18,
+      "outcome": "playing",
+      "reply": "Vey: Your comparison exposes my signed diversion order and the changed alignment. I diverted the signal for supplies. I stand aside without a fight. I cannot tell you where the keeper is or whether the caravan is safe.",
+      "cards": [
+        {
+          "title": "Resolved action",
+          "text": "Vey: Your comparison exposes my signed diversion order and the changed alignment. I diverted the signal for supplies. I stand aside without a fight. I cannot tell you where the keeper is or whether the caravan is safe."
+        }
+      ],
+      "notice": "Action saved.",
+      "providerCalls": 2,
+      "latencyMs": 4092
+    },
+    {
+      "step": "fit",
+      "mode": "typed",
+      "input": "Fit the spare component into the beacon socket.",
+      "expected": {
+        "name": "place_item",
+        "arguments": {
+          "item_id": "signal-component",
+          "target": "beacon-socket"
+        }
+      },
+      "committed": true,
+      "positionBefore": 19,
+      "positionAfter": 20,
+      "selectedCalls": [
+        {
+          "name": "place_item",
+          "argumentsJson": "{\"item_id\":\"signal-component\",\"target\":\"beacon-socket\"}"
+        }
+      ],
+      "location": "Beacon Tower",
+      "day": 3,
+      "hp": 18,
+      "outcome": "playing",
+      "reply": "The spare signal component is fitted permanently in the beacon socket and spent. It cost **0 days**, with no healing. The socket is ready, but **no rescue is confirmed**.\n\nThe final warning board is accessible. You can inspect it, or give the Tower Runner one of these instructions:\n\n- **Hold the beacon and continue**\n- **Light the beacon and continue**\n- **Refuse the watch and continue**\n- **Leave the watch and continue**",
+      "cards": [
+        {
+          "title": "Resolved action",
+          "text": "The spare signal component is fitted permanently in the beacon socket and spent. The socket is ready; the runner can now accept a light instruction. Cost: one component, 0 days, no dice and no healing. No rescue is confirmed."
+        }
+      ],
+      "notice": "Action saved.",
+      "providerCalls": 2,
+      "latencyMs": 4108
+    },
+    {
+      "step": "board",
+      "mode": "typed",
+      "input": "Study the final warning board.",
+      "expected": {
+        "name": "search",
+        "arguments": {
+          "target": "final-warning-board"
+        }
+      },
+      "committed": false,
+      "positionBefore": 20,
+      "positionAfter": 20,
+      "selectedCalls": [
+        {
+          "name": "inspect",
+          "argumentsJson": "{\"target\":\"final-warning-board\"}"
+        }
+      ],
+      "location": "Beacon Tower",
+      "day": 3,
+      "hp": 18,
+      "outcome": "playing",
+      "reply": "The board presents three terminal paths:\n\n1. **Verified safe signal** — requires the observed setting plate and the fitted component.  \n2. **Slower human warning** — requires neither, but leaves delivery unconfirmed.  \n3. **Urgent risky signal** — requires neither and may attract pursuers.\n\nEach commitment costs 0 days and no dice. It is already **Day 3**, which is late. No choice confirms that the keeper or caravan is safe.\n\nWhich path do you choose?",
+      "cards": [
+        {
+          "title": "Authoritative information",
+          "text": "final warning board: Final choices: verified safe signal needs the observed setting plate and fitted component; slower human warning needs neither and leaves delivery unconfirmed; urgent risky signal needs neither and may attract pursuers. Each final commitment costs 0 days and no dice and ends gameplay. Day 3 or later is late. No choice alone confirms a rescue."
+        }
+      ],
+      "notice": "No action was committed.",
+      "providerCalls": 2,
+      "latencyMs": 4028
+    },
+    {
+      "step": "board",
+      "mode": "typed",
+      "input": "Search final warning board",
+      "expected": {
+        "name": "search",
+        "arguments": {
+          "target": "final-warning-board"
+        }
+      },
+      "committed": true,
+      "positionBefore": 20,
+      "positionAfter": 21,
+      "selectedCalls": [
+        {
+          "name": "search",
+          "argumentsJson": "{\"target\":\"final-warning-board\"}"
+        }
+      ],
+      "location": "Beacon Tower",
+      "day": 3,
+      "hp": 18,
+      "outcome": "playing",
+      "reply": "Your search confirms the same three terminal choices:\n\n- **Verified safe signal** — uses the observed approved alignment and fitted component; lights the beacon toward the fork. No rescue is confirmed.\n- **Slower human warning** — posts a warning for travellers and messengers; delivery remains unconfirmed.\n- **Urgent risky signal** — raises the emergency shutter; it may attract pursuers, and no safe route is guaranteed.\n\nEach costs **0 days and no dice** and ends gameplay. It is already **Day 3**, so the caravan missed its planned turn.\n\nWhich choice do you commit to?",
+      "cards": [
+        {
+          "title": "Resolved action",
+          "text": "Final choices: verified safe signal needs the observed setting plate and fitted component; slower human warning needs neither and leaves delivery unconfirmed; urgent risky signal needs neither and may attract pursuers. Each final commitment costs 0 days and no dice and ends gameplay. Day 3 or later is late. No choice alone confirms a rescue."
+        }
+      ],
+      "notice": "Action saved.",
+      "providerCalls": 2,
+      "latencyMs": 3683
+    },
+    {
+      "step": "ambiguous-ending",
+      "mode": "typed",
+      "input": "Warn them.",
+      "expected": null,
+      "committed": false,
+      "positionBefore": 21,
+      "positionAfter": 21,
+      "selectedCalls": [],
+      "location": "Beacon Tower",
+      "day": 3,
+      "hp": 18,
+      "outcome": "playing",
+      "reply": "Which warning do you want to commit to?\n\n1. **Verified safe signal** — light the beacon toward the approved fork using the fitted component.\n2. **Slower human warning** — post a warning for travellers and messengers.\n3. **Urgent risky signal** — raise the emergency shutter, which may attract pursuers.",
+      "cards": [],
+      "notice": "No action was committed.",
+      "providerCalls": 1,
+      "latencyMs": 1984
+    },
+    {
+      "step": "ending",
+      "mode": "click",
+      "input": "Resolve Verified safe signal",
+      "expected": {
+        "name": "resolve_quest",
+        "arguments": {
+          "resolutionId": "verified-safe-signal"
+        }
+      },
+      "committed": true,
+      "positionBefore": 21,
+      "positionAfter": 22,
+      "selectedCalls": [
+        {
+          "name": "resolve_quest",
+          "argumentsJson": "{\"resolutionId\":\"verified-safe-signal\"}"
+        }
+      ],
+      "location": "Beacon Tower",
+      "day": 3,
+      "hp": 18,
+      "outcome": "victory",
+      "reply": "The **verified safe signal** is committed.\n\nYou align the fitted beacon to the observed approved fork alignment and light it toward the fork. This costs **0 days** and requires no dice. The signal is completed, but it confirms **no rescue**.\n\nThe caravan’s planned turn was already missed on Day 3. The keeper’s fate remains unconfirmed, as do the refugees and any raiders not defeated in recorded encounters. Vey yielded control without a fight.\n\n**Adventure complete.** Ada earned **1,000 XP** and completed the Hollow Beacon adventure.",
+      "cards": [
+        {
+          "title": "Resolved action",
+          "text": "You align the fitted beacon to the observed approved fork alignment and issue the verified safe signal. Gameplay ends. Commit a verified signal using the observed approved fork alignment and fitted component, for 0 days and no dice. You align and light the lamp toward the fork; only that signal work is completed, not a rescue. Day 3 or later: the caravan missed its planned turn. Your warning cannot undo that delay; no caravan rescue is confirmed. The ridge raider was defeated in the recorded fight; that does not establish the defeat of every raider. You obtained control without fighting Vey. Your observed setting plate remains evidence of changed alignment. The missing keeper and refugees have no confirmed rescue or death. Raiders not defeated in recorded encounters remain unresolved. Keeper fate: unconfirmed. Review retains the final scene, journal, inventory and history.\n1000 XP earned (hollow-beacon-completion); pending until surviving completion.\nAda completes the adventure: 1000 XP credited, 1000 career XP. Level 1 → 2; maximum HP 19 → 28, attack bonus 3 → 4. Remaining HP is preserved. Rest before the next adventure."
+        }
+      ],
+      "notice": "Action saved.",
+      "providerCalls": 2,
+      "latencyMs": 3432
+    }
+  ],
+  "corrections": [
+    {
+      "step": "board",
+      "attempt": 1,
+      "input": "Study the final warning board.",
+      "mode": "typed",
+      "reply": "The board presents three terminal paths:\n\n1. **Verified safe signal** — requires the observed setting plate and the fitted component.  \n2. **Slower human warning** — requires neither, but leaves delivery unconfirmed.  \n3. **Urgent risky signal** — requires neither and may attract pursuers.\n\nEach commitment costs 0 days and no dice. It is already **Day 3**, which is late. No choice confirms that the keeper or caravan is safe.\n\nWhich path do you choose?",
+      "cards": [
+        {
+          "title": "Authoritative information",
+          "text": "final warning board: Final choices: verified safe signal needs the observed setting plate and fitted component; slower human warning needs neither and leaves delivery unconfirmed; urgent risky signal needs neither and may attract pursuers. Each final commitment costs 0 days and no dice and ends gameplay. Day 3 or later is late. No choice alone confirms a rescue."
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "name": "rerun continues the saved adventure without a provider call",
+      "passed": true
+    },
+    {
+      "name": "vey: at most one mutation",
+      "passed": true
+    },
+    {
+      "name": "vey: no unexpected mutation",
+      "passed": true,
+      "selected": [
+        {
+          "name": "talk",
+          "argumentsJson": "{\"speakerId\":\"vey\",\"topicId\":\"plate-proof\",\"approach\":\"ask\"}"
+        }
+      ]
+    },
+    {
+      "name": "fit: at most one mutation",
+      "passed": true
+    },
+    {
+      "name": "fit: no unexpected mutation",
+      "passed": true,
+      "selected": [
+        {
+          "name": "place_item",
+          "argumentsJson": "{\"item_id\":\"signal-component\",\"target\":\"beacon-socket\"}"
+        }
+      ]
+    },
+    {
+      "name": "board: at most one mutation",
+      "passed": true
+    },
+    {
+      "name": "board: no unexpected mutation",
+      "passed": true,
+      "selected": [
+        {
+          "name": "inspect",
+          "argumentsJson": "{\"target\":\"final-warning-board\"}"
+        }
+      ]
+    },
+    {
+      "name": "board: at most one mutation",
+      "passed": true
+    },
+    {
+      "name": "board: no unexpected mutation",
+      "passed": true,
+      "selected": [
+        {
+          "name": "search",
+          "argumentsJson": "{\"target\":\"final-warning-board\"}"
+        }
+      ]
+    },
+    {
+      "name": "ambiguous-ending: at most one mutation",
+      "passed": true
+    },
+    {
+      "name": "ambiguous ending commits nothing",
+      "passed": true,
+      "reply": "Which warning do you want to commit to?\n\n1. **Verified safe signal** — light the beacon toward the approved fork using the fitted component.\n2. **Slower human warning** — post a warning for travellers and messengers.\n3. **Urgent risky signal** — raise the emergency shutter, which may attract pursuers."
+    },
+    {
+      "name": "ending: at most one mutation",
+      "passed": true
+    },
+    {
+      "name": "ending: no unexpected mutation",
+      "passed": true,
+      "selected": [
+        {
+          "name": "resolve_quest",
+          "argumentsJson": "{\"resolutionId\":\"verified-safe-signal\"}"
+        }
+      ]
+    },
+    {
+      "name": "completion awards XP and level once",
+      "passed": true
+    },
+    {
+      "name": "restart opens Review with no provider call and no second award",
+      "passed": true
+    }
+  ],
+  "identity": {
+    "provider": {
+      "provider": "openai",
+      "model": "gpt-5.6-luna"
+    },
+    "adventure": "hollow-beacon",
+    "contentVersion": "12",
+    "contentDigest": "sha256:8fe41c606f6f0e47d41f114a7106d88effaee007e4bd990edd2017554d6a126e",
+    "rulesVersion": "character-adventure-rules-v1",
+    "engineVersion": "character-adventure-engine-v1",
+    "promptVersion": "character-adventure-dm-v1",
+    "toolSchemaVersion": "character-adventure-tools-v1",
+    "systemPromptDigest": "95c21c2773ccd855e5b5936b48e0b0fe334d2f7df462a8f14c86e3c1a7ce4d30"
+  },
+  "startingSheet": {
+    "id": "b8f942a6ab117167134f1a2b22389904",
+    "name": "Ada",
+    "class": "Fighter",
+    "rulesVersion": "fighter-rules-v1",
+    "abilities": {
+      "strength": 14,
+      "dexterity": 12,
+      "constitution": 13,
+      "intelligence": 10,
+      "wisdom": 11,
+      "charisma": 9
+    },
+    "level": 1,
+    "xp": 0,
+    "hp": 19,
+    "equipment": [
+      "chain-mail",
+      "shield",
+      "longsword"
+    ],
+    "earnedRewards": []
+  },
+  "resumedAt": {
+    "position": 18,
+    "location": "Beacon Tower"
+  },
+  "final": {
+    "outcome": "victory",
+    "day": 3,
+    "location": "Beacon Tower",
+    "sheet": {
+      "id": "b8f942a6ab117167134f1a2b22389904",
+      "name": "Ada",
+      "class": "Fighter",
+      "rulesVersion": "fighter-rules-v1",
+      "abilities": {
+        "strength": 14,
+        "dexterity": 12,
+        "constitution": 13,
+        "intelligence": 10,
+        "wisdom": 11,
+        "charisma": 9
+      },
+      "level": 2,
+      "xp": 1000,
+      "hp": 18,
+      "equipment": [
+        "chain-mail",
+        "shield",
+        "longsword"
+      ],
+      "earnedRewards": [
+        "hollow-beacon-completion"
+      ]
+    },
+    "historyTurns": 31
+  },
+  "finishedAt": "2026-10-03T11:10:56.478Z",
+  "providerCalls": 11,
+  "injectedFailures": 0,
+  "tokens": {
+    "input": 53614,
+    "output": 893
+  },
+  "reportedModels": [
+    "gpt-5.6-luna"
+  ],
+  "bounds": {
+    "maxTranscriptEntries": 8,
+    "maxTranscriptCharacters": 1970,
+    "maxHistoryFacts": 8
+  },
+  "clarifications": 2,
+  "cost": {
+    "usd": null,
+    "reason": "Responses reports tokens, not billed dollars. No unsupported rate or invoice estimate is substituted."
+  }
+}

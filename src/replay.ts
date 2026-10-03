@@ -1,4 +1,8 @@
 import { validateCharacter } from "./character-rules.js";
+import {
+  CHARACTER_PROMPT_VERSION,
+  PREVIOUS_CHARACTER_PROMPT_VERSION,
+} from "./character-runtime.js";
 import { isDeepStrictEqual } from "node:util";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -1475,6 +1479,7 @@ function replayFormat4(trace: JsonObject): void {
           "chapel-clues-dm-v10": ["chapel-clues-dm-v9"],
           "chapel-clues-dm-v11": ["chapel-clues-dm-v10"],
           "chapel-clues-dm-v12": ["chapel-clues-dm-v11"],
+          [CHARACTER_PROMPT_VERSION]: [PREVIOUS_CHARACTER_PROMPT_VERSION],
         }[runtime.promptVersion] ?? []),
       ],
       toolSchemaVersion: runtime.toolSchemaVersion,
