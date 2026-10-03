@@ -6,6 +6,7 @@ import {
   offeredTalkApproaches,
   type ChapelCluesDefinition,
 } from "./adventure-loader.js";
+import { abilityModifier } from "./character-rules.js";
 
 export type BrowserAction = Readonly<{
   id: string;
@@ -51,6 +52,12 @@ export function browserActions(
   };
   const actions: BrowserAction[] = [];
   const milestones: readonly string[] = scene.journal?.quest.milestones ?? [];
+  // Character adventures explain options in plain language (#95); --legacy
+  // releases keep the wording and options they shipped with.
+  const characterMode = definition?.characterAdventure !== undefined;
+  const signed = (value: number) => (value >= 0 ? "+" : "") + value;
+  const capitalized = (value: string) =>
+    value.charAt(0).toUpperCase() + value.slice(1);
   const add = (
     contextId: string,
     label: string,
@@ -89,17 +96,29 @@ export function browserActions(
     }
   };
   for (const check of definition?.characterAdventure?.checks ?? []) {
+    const ability = capitalized(check.ability);
+    const modifier = abilityModifier(
+      session.runtime.projectCharacterStatus(session.state).sheet!.abilities[
+        check.ability
+      ],
+    );
+    const xp = definition!
+      .characterAdventure!.rewards.filter(
+        (reward) =>
+          reward.trigger === "check-success" && reward.targetId === check.id,
+      )
+      .reduce((total, reward) => total + reward.xp, 0);
     offer(
       "target:" + check.featureId,
       "check_ability",
       "checkId",
       check.id,
-      "Try " + check.ability + " check",
+      "Roll " + ability,
       "Try the " +
         check.ability +
         " check at " +
         definition!.features.find(({ id }) => id === check.featureId)!.name,
-      `${check.ability} check, DC ${check.dc}; once per adventure, no time cost. Success earns ${definition!.characterAdventure!.rewards.filter((reward) => reward.trigger === "check-success" && reward.targetId === check.id).reduce((xp, reward) => xp + reward.xp, 0)} pending XP if this character has not earned that reward before. Failure preserves ordinary observation and investigation.`,
+      `Roll a d20 and add your ${ability} modifier (${signed(modifier)}); ${check.dc} or more succeeds. You get one try. Success earns ${xp} XP the first time this character manages it; failing costs nothing, and you can still examine it.`,
     );
   }
   for (const exit of scene.room.exits) {
@@ -118,9 +137,11 @@ export function browserActions(
       exit.destinationId,
       "Travel to " + exit.name,
       "Travel to " + exit.name,
-      combatRoute
-        ? "Combat on arrival. No retreat or surrender once fighting."
-        : undefined,
+      !combatRoute
+        ? undefined
+        : characterMode
+          ? `A fight starts as soon as you reach ${exit.name}, and you can't run once it starts.`
+          : "Combat on arrival. No retreat or surrender once fighting.",
     );
     offer(
       "exit:" + exit.destinationId,
@@ -322,7 +343,12 @@ export function browserActions(
         }
       }
     }
-    if ((definition?.schemaVersion ?? 0) >= 15) {
+    // In character adventures, attacking someone you are not already
+    // fighting is typed, never offered as a click beside their conversation.
+    if (
+      (definition?.schemaVersion ?? 0) >= 15 &&
+      (!characterMode || scene.combat !== undefined)
+    ) {
       offer(
         "npc:" + npc.id,
         "attack",

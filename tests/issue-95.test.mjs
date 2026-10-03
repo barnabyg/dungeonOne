@@ -55,6 +55,18 @@ const offered = (view, expected) =>
       ),
   );
 
+/** Types a message as the player; asserts it commits and returns the cards. */
+async function type(server, message) {
+  const before = await state(server);
+  const result = await post(server, "/api/turn", {
+    revision: before.revision,
+    message,
+  });
+  assert.equal(result.status, 200, JSON.stringify(result.body));
+  assert.equal(result.body.committed, true, message);
+  return result.body.cards.map(({ text }) => text).join("\n");
+}
+
 /** Clicks the offered option for one step and returns its committed cards. */
 async function click(server, step) {
   const before = await state(server);
@@ -71,7 +83,8 @@ async function click(server, step) {
 
 /**
  * Plays steps in order. `fight <id>` repeats the attack until the opponent is
- * no longer offered or the adventure ends. Returns every card's text.
+ * no longer offered or the adventure ends; `say <text>` types a message.
+ * Returns every card's text.
  */
 async function play(server, steps) {
   const cards = [];
@@ -83,6 +96,8 @@ async function play(server, steps) {
         (await state(server)).scene.outcome === "playing" &&
         offered(await state(server), stepCall(step))
       );
+    } else if (step.startsWith("say ")) {
+      cards.push(await type(server, step.slice("say ".length)));
     } else {
       cards.push(await click(server, step));
     }
@@ -201,6 +216,8 @@ test("casualty: killing Vey after avoiding the sentry ends late with an urgent r
       ...RIDGE,
       "move drainage-walk",
       "move beacon-tower",
+      // Attacking a person you are not fighting is typed, not clicked.
+      "say Attack Vey",
       "fight vey",
       "examine control-access",
       FINAL_BOARD,

@@ -1,7 +1,8 @@
 // The shipped browser server in its own process, so tests can kill and restart
 // the process. Only the provider is scripted: a player message naming an
-// offered action requests exactly that action; "Hold this turn" never gets a
-// reply. Each provider call prints
+// offered action requests exactly that action; "Attack <visible person>"
+// requests that attack, which is typed rather than offered in character
+// adventures; "Hold this turn" never gets a reply. Each provider call prints
 // "provider-call" so tests can count calls across restarts.
 // Usage: node issue-93-server.mjs <savePath> <seed> [libraryPath]
 const { startBrowserServer } = await import("../../dist/browser-server.js");
@@ -47,8 +48,23 @@ const server = await startBrowserServer({
       const action = browserActions(session, "fixture").find(
         ({ message }) => message === request.playerInput,
       );
-      return action
-        ? { toolCalls: [{ id: "intent", ...action.call }] }
+      if (action) {
+        return { toolCalls: [{ id: "intent", ...action.call }] };
+      }
+      const named = /^Attack (.+)$/.exec(request.playerInput)?.[1];
+      const person = session.runtime
+        .projectDmScene(session.state)
+        .room.npcs?.find(({ name }) => name === named);
+      return person
+        ? {
+            toolCalls: [
+              {
+                id: "intent",
+                name: "attack",
+                argumentsJson: JSON.stringify({ opponent_id: person.id }),
+              },
+            ],
+          }
         : { text: "Which offered action do you mean?" };
     },
   },
