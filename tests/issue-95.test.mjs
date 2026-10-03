@@ -289,3 +289,46 @@ test(
     }
   },
 );
+
+test("across seeds the ridge fight rolls differently and every run reaches a victory or a defeat", async () => {
+  const fights = new Set();
+  const outcomes = [];
+  for (const seed of [0, 1, 2, 5, 9, 33]) {
+    await withServer(seed, async (server) => {
+      await startAda(server);
+      const fight = await play(server, [
+        ...PLATE_AND_COMPONENT,
+        "move ridge-trail",
+        "fight ridge-raider",
+      ]);
+      fights.add(fight);
+      if ((await state(server)).scene.outcome === "defeat") {
+        assert.equal((await sheet(server)).xp, 0);
+        outcomes.push("defeat");
+        return;
+      }
+      await play(server, ["move ridge-shelter"]);
+      if (offered(await state(server), stepCall("recover dressing-station"))) {
+        assert.match(
+          await play(server, ["recover dressing-station"]),
+          /consume the camp dressing/,
+        );
+      }
+      const cards = await play(server, [
+        "move drainage-walk",
+        "move beacon-tower",
+        "examine tower-work-order",
+        "talk vey plate-proof ask",
+        "place signal-component at beacon-socket",
+        FINAL_BOARD,
+        "resolve verified-safe-signal",
+      ]);
+      assert.match(cards, LATE);
+      assert.match(cards, /Level 1 → 2/);
+      assert.equal((await sheet(server)).xp, 1000);
+      outcomes.push("victory");
+    });
+  }
+  assert.equal(fights.size, 6, "each seed rolls its own fight");
+  assert.ok(outcomes.includes("victory") && outcomes.includes("defeat"));
+});
