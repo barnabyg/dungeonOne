@@ -9,7 +9,7 @@ The human who chooses a character and controls its actions during an adventure.
 _Avoid_: Character, Fighter
 
 **Character**:
-A persistent adventurer with an identity, class, ability scores, equipment, and earned career progress that can be brought to different adventures.
+A persistent adventurer with an identity, class, ability scores, equipment, carried treasure, and earned career progress that can be brought to different adventures.
 _Avoid_: Player, Adventure save
 
 **Character sheet**:
@@ -27,6 +27,10 @@ _Avoid_: Content version, Story milestone, Hint level
 **Experience points**:
 Earned character progress awarded for authored accomplishments and used to determine advancement.
 _Avoid_: Story milestones, Player score
+
+**Treasure**:
+Silver and items an adventure module awards on authored triggers. The engine decides what drops; it is kept only on surviving completion and earned once per character.
+_Avoid_: Loot table, Reward XP
 
 **Adventure module**:
 A playable scenario defining its setting, encounters, challenges, rewards, and intended characters.
