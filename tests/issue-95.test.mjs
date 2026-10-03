@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { qualifyHandoff } from "../scripts/qualify-handoff.mjs";
 import { beaconExamine, commandCall } from "./fixtures/character-journeys.mjs";
 
 const SERVER = fileURLToPath(
@@ -320,3 +321,21 @@ test("restarts mid-combat and at the Day 3 threshold continue exactly, then fini
     assert.equal((await state(server)).clocks[0].value, 3);
     await assertCompletedOnce(server, relaunch, cards);
   }));
+
+test(
+  "the player handoff runs in a real browser: launcher start, rerun, Review, start over and CLI replay",
+  { timeout: 180000 },
+  async () => {
+    const directory = await mkdtemp(
+      join(tmpdir(), "dungeon-issue-95-handoff-"),
+    );
+    try {
+      const receipt = await qualifyHandoff(directory);
+      assert.equal(receipt.completed, true);
+      assert.equal(receipt.launcherUrls.length, 3);
+      assert.equal(receipt.checks.length, 6);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
