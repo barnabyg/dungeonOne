@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { CharacterCareer } from "../dist/character-career.js";
+import { SaveSession } from "../dist/save.js";
 import { loadAdventure } from "../dist/adventure-loader.js";
 import { CHARACTER_TREASURE_SCHEMA } from "../dist/character-adventure-schema.js";
 import { createDataRuntime } from "../dist/data-runtime.js";
@@ -12,6 +17,7 @@ import {
 } from "../dist/browser-releases.js";
 import {
   beaconExamine,
+  stonebridgeExamine,
   stonebridgePeaceful,
 } from "./fixtures/character-journeys.mjs";
 
@@ -324,5 +330,100 @@ test("treasure is rare and of low value (#119)", () => {
     assert.equal(state.status, "victory");
     assert.deepEqual(state.characterResult.inventory.items, [], file);
     assert.ok(state.characterResult.inventory.silver <= 15, file);
+  }
+});
+
+// On seed 4 the character wins each optional fight but is wounded.
+const STONEBRIDGE_SEED = 4;
+const BEACON_SEED = 4;
+
+/** Commits commands to a saved session, failing on any rejection. */
+async function commitAll(session, commands) {
+  for (const command of commands) {
+    const result = await session.commit(
+      command,
+      session.runtime.parseCommand(command),
+    );
+    assert.equal(result.rejection, undefined, command);
+  }
+}
+
+/** Attacks until the fight ends; the chosen seeds win it. */
+async function fight(session, opponent) {
+  while (session.state.combat !== undefined) {
+    await commitAll(session, ["attack " + opponent]);
+  }
+  assert.equal(session.state.status, "playing");
+}
+
+test("the library keeps treasure only on surviving completion, and abandonment rolls back drunk draughts (#119)", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "issue-119-"));
+  const career = new CharacterCareer(join(directory, "characters.json"));
+  const sheet = async () => (await career.library.read()).characters[0].sheet;
+  const start = async (adventure, seed) => {
+    const data = await career.library.read();
+    return SaveSession.load(
+      await career.start(id, adventure, data.revision, seed, true),
+    );
+  };
+  const rest = async () =>
+    career.rest(id, (await career.library.read()).revision);
+  const abandon = async () =>
+    career.abandon(id, (await career.library.read()).revision, true);
+  let id;
+  try {
+    const created = await career.library.create(
+      "Ada",
+      "stout",
+      (await career.library.read()).revision,
+    );
+    id = created.characters[0].sheet.id;
+    // Hollow Beacon on the valley road: only the completion purse.
+    let session = await start("hollow-beacon", 0);
+    await commitAll(session, beaconExamine);
+    await career.acceptSession(session.path);
+    assert.deepEqual((await sheet()).inventory, { silver: 10, items: [] });
+    await rest();
+
+    // Stonebridge's raider cache is found, then abandoned: nothing is kept.
+    session = await start("stonebridge", STONEBRIDGE_SEED);
+    await commitAll(session, ["move raider-den"]);
+    await fight(session, "toll-raider");
+    assert.deepEqual(
+      session.runtime.projectCharacterStatus(session.state).pendingTreasure,
+      { silver: 5, items: ["healing-draught"] },
+    );
+    await abandon();
+    assert.deepEqual((await sheet()).inventory, { silver: 10, items: [] });
+    assert.ok(
+      !(await sheet()).earnedRewards.includes("stonebridge-raider-cache"),
+    );
+    await rest();
+
+    // A second try keeps the cache and the completion share.
+    session = await start("stonebridge", STONEBRIDGE_SEED);
+    await commitAll(session, ["move raider-den"]);
+    await fight(session, "toll-raider");
+    await commitAll(session, ["move toll-yard", ...stonebridgeExamine]);
+    await career.acceptSession(session.path);
+    assert.deepEqual((await sheet()).inventory, {
+      silver: 30,
+      items: ["healing-draught"],
+    });
+    await rest();
+
+    // Drinking the draught and abandoning restores it with the rest of the sheet.
+    session = await start("hollow-beacon", BEACON_SEED);
+    await commitAll(session, ["move ridge-trail"]);
+    await fight(session, "ridge-raider");
+    assert.ok(session.state.fighter.hp < session.state.fighter.maxHp);
+    await commitAll(session, ["use healing draught"]);
+    await abandon();
+    assert.deepEqual((await sheet()).inventory, {
+      silver: 30,
+      items: ["healing-draught"],
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });
