@@ -3,9 +3,9 @@ import { resolve } from "node:path";
 import { resolveStartupSeed } from "./random.js";
 import { announceBrowser } from "./browser-launch.js";
 import { startBrowserServer } from "./browser-server.js";
+import { BROWSER_RELEASES, BROWSER_START_VERSION } from "./browser-releases.js";
 
-const USAGE =
-  "Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--save <path>] [--artwork <manifest.json>] [--characters <library.json>] [--legacy]\nCreate or choose a saved Fighter, then select an adventure. Default library: characters.json. --legacy starts Hollow Beacon v11; existing v4-v11 slots continue unchanged.\nSet OPENAI_API_KEY in the environment before launch.";
+const USAGE = `Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--save <path>] [--artwork <manifest.json>] [--characters <library.json>] [--legacy]\nCreate or choose a saved Fighter, then select an adventure. Default library: characters.json. --legacy starts Hollow Beacon v${BROWSER_START_VERSION}; existing v${BROWSER_RELEASES[0].version}-v${BROWSER_RELEASES.at(-1)!.version} slots continue unchanged.\nSet OPENAI_API_KEY in the environment before launch.`;
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -42,7 +42,7 @@ async function main(): Promise<void> {
     () => randomBytes(4).readUInt32LE(0),
   );
   const server = await startBrowserServer({
-    contentVersion: "11",
+    contentVersion: BROWSER_START_VERSION,
     ...(values.has("--legacy")
       ? {}
       : {

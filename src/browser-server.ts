@@ -17,7 +17,6 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
-import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdir, rename, unlink } from "node:fs/promises";
@@ -32,7 +31,6 @@ import {
   createOpenAiDmModel,
   OPENAI_DM_DEFAULT_MODEL,
 } from "./openai-dm-model.js";
-import { loadAdventureFile } from "./adventure-file.js";
 import { createDataRuntime } from "./data-runtime.js";
 import type { CharacterStatus, DmScene } from "./game-tools.js";
 import {
@@ -50,6 +48,11 @@ import {
   type ResultCard,
 } from "./browser-history.js";
 import { SaveSession } from "./save.js";
+import {
+  browserReleasePolicy,
+  type BrowserReleasePolicy,
+  type BrowserReleaseVersion,
+} from "./browser-releases.js";
 import { BROWSER_HTML, BROWSER_CSS, BROWSER_SCRIPT } from "./browser-page.js";
 import {
   artworkForLocation,
@@ -68,7 +71,8 @@ import {
 } from "./browser-hints.js";
 
 export type BrowserOptions = Readonly<{
-  contentVersion?: "4" | "5" | "6" | "7" | "8" | "9" | "10" | "11";
+  /** Release for new slots; occupied slots follow the release policy. */
+  contentVersion?: BrowserReleaseVersion;
   libraryPath?: string;
   savePath: string;
   seed: number;
@@ -185,55 +189,13 @@ function hasCode(error: unknown, code: string): boolean {
   return error instanceof Error && "code" in error && error.code === code;
 }
 
-function assertSupported(session: SaveSession): void {
-  if (
-    session.runtime.content?.snapshot.schemaVersion === 17 &&
-    session.runtime.engineVersion === "character-adventure-engine-v1" &&
-    session.runtime.startingCharacter !== undefined &&
-    ((session.runtime.id === "hollow-beacon" &&
-      session.runtime.version === "12") ||
-      (session.runtime.id === "stonebridge" && session.runtime.version === "1"))
-  ) {
-    return;
-  }
-  if (
-    session.runtime.id !== "hollow-beacon" ||
-    !(
-      (["4", "5"].includes(session.runtime.version) &&
-        session.runtime.rulesVersion === "chapel-clues-rules-v11" &&
-        session.runtime.content?.snapshot.schemaVersion === 10) ||
-      (session.runtime.version === "6" &&
-        session.runtime.rulesVersion === "chapel-clues-rules-v12" &&
-        session.runtime.content?.snapshot.schemaVersion === 11) ||
-      (session.runtime.version === "7" &&
-        session.runtime.rulesVersion === "chapel-clues-rules-v13" &&
-        session.runtime.content?.snapshot.schemaVersion === 12) ||
-      (session.runtime.version === "8" &&
-        session.runtime.rulesVersion === "chapel-clues-rules-v14" &&
-        session.runtime.content?.snapshot.schemaVersion === 13) ||
-      (session.runtime.version === "9" &&
-        session.runtime.rulesVersion === "chapel-clues-rules-v15" &&
-        session.runtime.content?.snapshot.schemaVersion === 14) ||
-      (session.runtime.version === "10" &&
-        session.runtime.rulesVersion === "chapel-clues-rules-v16" &&
-        session.runtime.content?.snapshot.schemaVersion === 15) ||
-      (session.runtime.version === "11" &&
-        session.runtime.rulesVersion === "chapel-clues-rules-v17" &&
-        session.runtime.content?.snapshot.schemaVersion === 16)
-    )
-  ) {
-    throw new Error(
-      "This browser supports Hollow Beacon content versions 4 and 5 with chapel-clues-rules-v11/schema 10, version 6 with chapel-clues-rules-v12/schema 11, version 7 with chapel-clues-rules-v13/schema 12, version 8 with chapel-clues-rules-v14/schema 13, version 9 with chapel-clues-rules-v15/schema 14, version 10 with chapel-clues-rules-v16/schema 15, or version 11 with chapel-clues-rules-v17/schema 16. The occupied slot was left unchanged; select another save path.",
-    );
-  }
-}
-
 function playerView(
   session: SaveSession,
   revision: string,
   newGameSeed: number,
+  releases: BrowserReleasePolicy,
 ): Extract<BrowserView, { slot: "occupied" }> {
-  assertSupported(session);
+  releases.assertContinuable(session.runtime);
   const status = session.runtime.projectCharacterStatus(session.state);
   const completed = status.outcome !== "playing";
   return {
@@ -400,32 +362,8 @@ export async function startBrowserServer(options: BrowserOptions) {
   ) {
     throw new Error("Seed must be an integer from 0 to 4294967295.");
   }
-  const loaded = await loadAdventureFile(
-    fileURLToPath(
-      new URL(
-        options.contentVersion === "11"
-          ? "../adventures/hollow-beacon-finale.json"
-          : options.contentVersion === "10"
-            ? "../adventures/hollow-beacon-confrontation.json"
-            : options.contentVersion === "9"
-              ? "../adventures/hollow-beacon-component.json"
-              : options.contentVersion === "8"
-                ? "../adventures/hollow-beacon-recovery.json"
-                : options.contentVersion === "7"
-                  ? "../adventures/hollow-beacon-threat.json"
-                  : options.contentVersion === "6"
-                    ? "../adventures/hollow-beacon-trust.json"
-                    : options.contentVersion === "5"
-                      ? "../adventures/hollow-beacon-refugees.json"
-                      : "../adventures/hollow-beacon-watch.json",
-        import.meta.url,
-      ),
-    ),
-  );
-  if (!loaded.ok) {
-    throw new Error("The bundled Hollow Beacon adventure is invalid.");
-  }
-  const runtime = createDataRuntime(loaded.adventure);
+  const releases = await browserReleasePolicy(options.contentVersion ?? "4");
+  const runtime = createDataRuntime(releases.start);
   const career =
     options.libraryPath === undefined
       ? undefined
@@ -675,6 +613,7 @@ export async function startBrowserServer(options: BrowserOptions) {
           )
           .digest("hex"),
         options.seed,
+        releases,
       );
       if (session.runtime.startingCharacter !== undefined) {
         const data = await career?.library.read();
@@ -739,8 +678,8 @@ export async function startBrowserServer(options: BrowserOptions) {
       return {
         slot: "empty",
         ...(career === undefined ? {} : { careerMode: true }),
-        title: loaded.adventure.snapshot.title,
-        introduction: loaded.adventure.snapshot.introduction,
+        title: releases.start.snapshot.title,
+        introduction: releases.start.snapshot.introduction,
         seed: options.seed,
       };
     }
@@ -1165,7 +1104,7 @@ export async function startBrowserServer(options: BrowserOptions) {
               return;
             }
             const session = await SaveSession.load(savePath);
-            assertSupported(session);
+            releases.assertContinuable(session.runtime);
             if (session.runtime.startingCharacter !== undefined) {
               releaseCareerTurn = await career!.beginTurn(session);
             }
