@@ -417,17 +417,23 @@ test("scripted DM: an ambiguous target gets a clarifying question, not a guess",
   assert.deepEqual(random.drawn, []);
 });
 
-test("scripted DM: a target named by order resolves to that opponent", async () => {
+test("scripted DM: an ordinal resolves to the opponent with that number in its name", async () => {
   const { runtime, state } = groupBegun();
+  const model = scripted(call("attack", { target: "minion-2" }));
   const result = await runDmTurn({
     state,
-    playerInput: "attack the second minion",
+    playerInput: "attack the second goblin",
     transcript: [],
     // Ada hits AC 12 for 4 + 3, felling it; the other two miss on natural 1s.
     random: dice(10, 4, 1, 1),
-    model: scripted(call("attack", { target: "minion-2" })),
+    model,
     runtime,
   });
+  // The prompt defines an ordinal by the number in a name, not list position.
+  assert.match(
+    model.requests[0].systemPrompt,
+    /an ordinal matching the number in its name .* Never count positions in a list\./,
+  );
   const hp = (id) =>
     result.state.encounter.combatants.find((c) => c.id === id).hp;
   assert.equal(hp("minion-2"), 0);

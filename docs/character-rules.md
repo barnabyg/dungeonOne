@@ -54,7 +54,7 @@ Combat (#128) uses the numbers above. An encounter has two sides, the party and 
 - **Refused actions.** Acting out of turn, attacking an absent, friendly or defeated target, or attacking after the fight is over is refused with an engine-written reason. A refusal changes nothing and draws no dice.
 - **Not used yet.** Weapon Mastery (Sap), Second Wind and Action Surge arrive in combat with #130, and advantage and disadvantage with them. Remarkable Athlete's advantage on initiative waits for level 3 characters (#133). An opponent uses its stat block's first melee attack; stat-block riders that need advantage (the Goblin Warrior's extra 1d4), bonus actions such as Nimble Escape, and ranged attacks are not used.
 
-**The AI Dungeon Master.** The engine is the only authority over dice, turn order, targets, hits, damage, hit points and endings. The AI DM may only call three tools: `look` and `get_character_status` to read the scene, and `attack`, whose target must be one of the living opponents it lists and which is offered only on the player's turn. Opponents are listed by id and name; when the player's words fit exactly one ("attack the second minion"), the AI calls `attack` with it, and when they name none or fit several ("attack the goblin" with three goblins) it asks which one and calls nothing. It never guesses a target. It takes no roll, damage, advantage or outcome argument; any extra argument is refused before the engine is reached. The engine writes the reply to every attack it resolves or refuses, so the AI cannot narrate a different roll or result, and a reply without a tool call changes nothing.
+**The AI Dungeon Master.** The engine is the only authority over dice, turn order, targets, hits, damage, hit points and endings. The AI DM may only call three tools: `look` and `get_character_status` to read the scene, and `attack`, whose target must be one of the living opponents it lists and which is offered only on the player's turn. Opponents are listed by id and name; when the player's words fit exactly one, by its name or by an ordinal matching the number in its name ("attack the second goblin" is Goblin Minion 2 in the storeroom), the AI calls `attack` with it; it never counts positions in a list. When they name none or fit several ("attack the goblin" with three goblins) it asks which one and calls nothing. It never guesses a target. It takes no roll, damage, advantage or outcome argument; any extra argument is refused before the engine is reached. The engine writes the reply to every attack it resolves or refuses, so the AI cannot narrate a different roll or result, and a reply without a tool call changes nothing.
 
 ## Adventure modules
 
@@ -73,16 +73,16 @@ The built-in fixture `adventures/5e/cellar-goblin.json`, _The Goblin in the Cell
 
 The game has no grid or map. Each 5e rule that needs distance is listed here with how it is handled:
 
-| Rule                                                   | Handling |
-| ------------------------------------------------------ | -------- |
-| Movement speed                                         | Omitted  |
-| Reach                                                  | Omitted  |
-| Opportunity attacks                                    | Omitted  |
-| Areas of effect                                        | Omitted  |
-| Ranged weapons and attacks                             | Deferred |
-| Weapon masteries that move or need range, such as Push | Omitted  |
-| Cleave, Push and Slow masteries                        | Omitted  |
-| Remarkable Athlete's movement after a critical hit     | Omitted  |
+| Rule                                                   | Handling                                 |
+| ------------------------------------------------------ | ---------------------------------------- |
+| Movement speed                                         | Omitted                                  |
+| Reach                                                  | Omitted                                  |
+| Opportunity attacks                                    | Omitted                                  |
+| Areas of effect                                        | Omitted                                  |
+| Ranged weapons and attacks                             | Deferred                                 |
+| Weapon masteries that move or need range, such as Push | Omitted                                  |
+| Cleave, Push and Slow masteries                        | Omitted                                  |
+| Remarkable Athlete's movement after a critical hit     | Omitted                                  |
 | Who an opponent can reach                              | Every living party combatant is in reach |
 
 Later tickets add rows when they meet another positional rule.

@@ -43,7 +43,7 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   the encounter panel lists each combatant in initiative order with its roll,
   hit points, AC, whether it is defeated and whose turn it is. Attack with the
   **Attack** button for each living opponent, or type to the AI Dungeon Master
-  ("attack the second minion"; it asks which one when a name fits several
+  ("attack the second goblin"; it asks which one when a name fits several
   opponents). Typing needs
   `OPENAI_API_KEY`; without it, typed messages are refused and the buttons
   still work. The engine rolls every die and writes every attack's result.
