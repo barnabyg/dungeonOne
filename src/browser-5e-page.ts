@@ -34,7 +34,23 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <section id="sheet" class="panel" aria-labelledby="sheet-name" hidden>
 <h2 id="sheet-name" tabindex="-1"></h2>
 <div id="sheet-body"></div>
+<section id="sheet-adventures" aria-labelledby="sheet-adventures-title"><h3 id="sheet-adventures-title">Adventures</h3><div id="adventure-choices"></div><p id="start-error" class="error" role="alert"></p></section>
 <div class="controls"><button id="close-sheet" type="button" class="secondary">Back to characters</button><button id="delete-character" type="button" class="danger">Delete character</button></div>
+</section>
+<section id="adventure" class="panel" aria-labelledby="adventure-title" hidden>
+<p id="adventure-meta" class="eyebrow dark"></p>
+<h2 id="adventure-title" tabindex="-1"></h2>
+<p id="adventure-objective" class="hint"></p>
+<section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
+<p id="turn" aria-live="polite"></p>
+<div class="table-wrap"><table id="initiative"><caption class="hint">Initiative order: each combatant rolled d20 + its initiative bonus.</caption><thead><tr><th scope="col">Turn</th><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
+<div id="attack-controls" class="controls"></div>
+</section>
+<section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title"></h3><p id="ending-text"></p></section>
+<h3>What happened</h3>
+<ol id="log" class="log" aria-live="polite"></ol>
+<p id="adventure-error" class="error" role="alert"></p>
+<form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><input id="message" maxlength="1000" autocomplete="off"><div class="controls"><button id="send-message" type="submit">Send</button><button id="close-adventure" type="button" class="secondary">Back to characters</button></div></form>
 </section>
 </main>
 <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-warning">
@@ -63,6 +79,10 @@ fieldset{border:1px solid var(--line);border-radius:8px;margin:0 0 14px;padding:
 button.danger{background:#883c2d;border-color:#883c2d}button.danger:hover{background:#9f4936}
 dialog{background:var(--paper);color:#292b27;border:1px solid #81785e;border-radius:10px;padding:20px;width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:.85rem;overflow-wrap:anywhere}
 .features{font-size:.85rem;padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.eyebrow.dark{color:#7a6331}.adventure-choice{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}.adventure-choice p{margin-bottom:8px}
+#turn{font-family:system-ui,sans-serif;font-weight:600}tr.current{background:#efe2c0}tr.defeated td,tr.defeated th{color:#8b8576;text-decoration:line-through}
+.log{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:8px;font-family:system-ui,sans-serif;font-size:.88rem}.log li{border-left:3px solid var(--line);padding:4px 10px}.log .player{font-weight:600}.card{background:#fffaf0;border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-top:6px;white-space:pre-line}.card.rejection{border-color:#883c2d}.card .dice{display:block;color:#615f50;font-size:.78rem;margin-top:4px}
+#ending{border:2px solid var(--gold);border-radius:8px;padding:12px;margin:12px 0}#message-form label{display:block;font-weight:600;font-size:.85rem}
 @media(max-width:560px){.panel{padding:14px}.masthead{padding:12px 16px}h2{font-size:1.25rem}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
@@ -95,17 +115,22 @@ async function request(path, body) {
 }
 
 function show(id) {
-  for (const panel of ["library", "creation", "sheet"]) element(panel).hidden = panel !== id;
+  for (const panel of ["library", "creation", "sheet", "adventure"]) element(panel).hidden = panel !== id;
+  if (id !== "adventure" && location.hash) history.replaceState(null, "", location.pathname);
 }
+
+const characterStatus = (entry) => entry.defeated ? "Defeated" : entry.session ? "On an adventure" : "";
 
 function feedback(message) { element("feedback").textContent = message; }
 
 function renderLibrary() {
   const list = element("characters");
-  list.replaceChildren(...library.characters.map(({ sheet, profile }) => {
+  list.replaceChildren(...library.characters.map((entry) => {
+    const { sheet, profile } = entry;
     const button = make("button");
     button.type = "button";
-    button.append(make("strong", sheet.name), make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass));
+    const status = characterStatus(entry);
+    button.append(make("strong", sheet.name), make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass + (status ? " · " + status : "")));
     button.addEventListener("click", () => openSheet(sheet.id));
     const item = make("li");
     item.append(button);
@@ -173,8 +198,173 @@ function openSheet(id) {
   const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · Chain shirt, shield and mace", "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
   element("sheet-body").replaceChildren(summary, ...profileNodes(sheet.abilities, profile, sheet.hp), rolls);
+  renderAdventureChoices(entry);
   show("sheet");
   element("sheet-name").focus();
+}
+
+function renderAdventureChoices(entry) {
+  element("start-error").textContent = "";
+  const choices = element("adventure-choices");
+  if (entry.defeated) {
+    choices.replaceChildren(make("p", entry.sheet.name + " was defeated and cannot start another adventure.", "hint"));
+    return;
+  }
+  if (entry.session) {
+    const title = (library.adventures.find(({ id }) => id === entry.session.adventureId) || { title: "an adventure" }).title;
+    const button = make("button", "Continue " + title);
+    button.type = "button";
+    button.id = "continue-adventure";
+    button.addEventListener("click", () => openAdventure(entry.session.id));
+    choices.replaceChildren(button);
+    return;
+  }
+  choices.replaceChildren(...library.adventures.map((adventure) => {
+    const box = make("div", undefined, "adventure-choice");
+    box.append(make("strong", adventure.title), make("p", adventure.objective + " " + levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty) + ".", "hint"));
+    const button = make("button", "Start " + adventure.title);
+    button.type = "button";
+    button.className = "start-adventure";
+    button.addEventListener("click", () => startAdventure(entry.sheet.id, adventure.id, button));
+    box.append(button);
+    return box;
+  }));
+}
+
+let session;
+let acting = false;
+
+const levelText = ({ min, max }) => min === max ? "Level " + min : "Levels " + min + "–" + max;
+
+async function startAdventure(characterId, adventureId, button) {
+  button.disabled = true;
+  try {
+    const result = await request("/api/5e/adventures/start", { revision: library.revision, characterId, adventureId });
+    library = result.library;
+    showAdventure(result.session);
+  } catch (error) {
+    element("start-error").textContent = error.message;
+    button.disabled = false;
+  }
+}
+
+async function openAdventure(sessionId) {
+  try {
+    const result = await request("/api/5e/session", { sessionId });
+    library = result.library;
+    showAdventure(result.session);
+  } catch (error) {
+    element("start-error").textContent = error.message;
+    feedback(error.message);
+  }
+}
+
+function showAdventure(value) {
+  session = value;
+  feedback("");
+  element("adventure-error").textContent = "";
+  renderAdventure();
+  show("adventure");
+  history.replaceState(null, "", "#adventure-" + session.id);
+  element("adventure-title").focus();
+}
+
+const diceText = (rolls) => "Dice: " + rolls.map(({ sides, value }) => "d" + sides + " " + value).join(", ");
+
+function renderAdventure() {
+  const { adventure, encounter } = session;
+  element("adventure-meta").textContent = levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty) + " · " + session.room.name;
+  element("adventure-title").textContent = adventure.title;
+  element("adventure-objective").textContent = adventure.objective;
+  const playing = session.status === "playing";
+  if (encounter) {
+    const current = encounter.combatants.find(({ id }) => id === encounter.currentTurn);
+    element("turn").textContent = current ? "Round " + encounter.round + ": " + (current.id === encounter.playerId ? "your turn." : current.name + "'s turn.") : "The fight is over.";
+    element("initiative-rows").replaceChildren(...encounter.combatants.map((combatant) => {
+      const row = make("tr", undefined, (combatant.id === encounter.currentTurn ? "current" : "") + (combatant.defeated ? " defeated" : ""));
+      row.dataset.combatant = combatant.id;
+      const name = make("th", combatant.name + (combatant.id === encounter.playerId ? " (you)" : "") + (combatant.defeated ? " (defeated)" : ""));
+      name.scope = "row";
+      const roll = combatant.initiative;
+      row.append(
+        make("td", combatant.id === encounter.currentTurn ? "▶ Now" : ""),
+        name,
+        make("td", roll.d20 + " " + (roll.bonus >= 0 ? "+ " : "− ") + Math.abs(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? " (roll-off " + roll.tieBreaks.join(", ") + ")" : "")),
+        make("td", combatant.hp + "/" + combatant.maxHp),
+        make("td", combatant.armorClass),
+      );
+      return row;
+    }));
+  }
+  element("attack-controls").replaceChildren(...session.targets.map((target) => {
+    const button = make("button", "Attack " + target.name);
+    button.type = "button";
+    button.className = "attack";
+    button.dataset.target = target.id;
+    button.disabled = acting;
+    button.addEventListener("click", () => attack(target.id));
+    return button;
+  }));
+  element("ending").hidden = !session.ending;
+  if (session.ending) {
+    element("ending-title").textContent = session.ending.title;
+    element("ending-text").textContent = session.ending.text;
+  }
+  element("message").disabled = !playing || acting;
+  element("send-message").disabled = !playing || acting;
+  element("log").replaceChildren(...session.history.map((entry) => {
+    const item = make("li");
+    if (entry.player !== undefined) item.append(make("p", "You: " + entry.player, "player"));
+    if (entry.reply && !entry.cards.some(({ text }) => text === entry.reply)) item.append(make("p", entry.reply, "reply"));
+    for (const card of entry.cards) {
+      const node = make("div", card.text, "card " + card.kind);
+      node.setAttribute("role", "note");
+      node.setAttribute("aria-label", card.kind === "result" ? "Resolved action" : "Action rejected");
+      if (card.rolls.length) node.append(make("span", diceText(card.rolls), "dice"));
+      item.append(node);
+    }
+    return item;
+  }));
+}
+
+async function act(path, body) {
+  acting = true;
+  renderAdventure();
+  element("adventure-error").textContent = "";
+  try {
+    const result = await request(path, { sessionId: session.id, sequence: session.sequence, ...body });
+    library = result.library;
+    session = result.session;
+    if (result.rejection) element("adventure-error").textContent = result.rejection;
+    return true;
+  } catch (error) {
+    element("adventure-error").textContent = error.message;
+    return false;
+  } finally {
+    acting = false;
+    renderAdventure();
+  }
+}
+
+async function attack(targetId) {
+  await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId });
+  const next = element("attack-controls").querySelector("button");
+  (next || element("adventure-title")).focus();
+}
+
+async function sendMessage(event) {
+  event.preventDefault();
+  const message = element("message").value.trim();
+  if (!message) return;
+  if (await act("/api/5e/session/message", { message })) element("message").value = "";
+  element("message").focus();
+}
+
+function leaveAdventure() {
+  const characterId = session.characterId;
+  session = undefined;
+  renderLibrary();
+  if (findEntry(characterId)) openSheet(characterId); else backToLibrary();
 }
 
 function defaultChoices() {
@@ -387,8 +577,13 @@ element("delete-confirm-name").addEventListener("input", () => { element("confir
 element("delete-form").addEventListener("submit", deleteCharacter);
 element("cancel-delete").addEventListener("click", () => element("delete-dialog").close());
 element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose) element("delete-character").focus(); });
+element("message-form").addEventListener("submit", sendMessage);
+element("close-adventure").addEventListener("click", leaveAdventure);
 request("/api/5e/library").then((value) => {
   library = value;
   renderLibrary();
+  // A reload during an adventure returns to it.
+  const resumed = /^#adventure-([a-f0-9]{32})$/.exec(location.hash);
+  if (resumed && library.characters.some(({ session: active }) => active && active.id === resumed[1])) openAdventure(resumed[1]);
 }, (error) => feedback(error.message));
 `;

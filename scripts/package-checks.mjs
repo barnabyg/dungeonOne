@@ -127,6 +127,15 @@ for (const schema of authoredAssets.filter((asset) =>
 )) {
   JSON.parse(readFileSync(schema, "utf8"));
 }
+// 5e adventure modules: the browser's --5e mode loads them at startup.
+const { FIFTH_ADVENTURE_FILES, loadFifthAdventure } =
+  await import("../dist/adventure-5e.js");
+const fifthAdventures = Object.values(FIFTH_ADVENTURE_FILES).map(
+  (file) => `adventures/5e/${file}`,
+);
+for (const adventure of fifthAdventures) {
+  await loadFifthAdventure(adventure);
+}
 
 for (const required of [
   "dist/cli.js",
@@ -137,7 +146,9 @@ for (const required of [
   "dist/openai-dm-model.js",
   "dist/session.js",
   "dist/signet-runtime.js",
+  "dist/browser-5e-server.js",
   ...authoredAssets,
+  ...fifthAdventures,
   "package.json",
   "README.md",
 ]) {
@@ -195,6 +206,15 @@ try {
     42,
     true,
   );
+  // The --5e server loads its adventure modules from the installed package.
+  const { startFifthBrowserServer } = await import(
+    pathToFileURL(path.join(installed, "dist", "browser-5e-server.js")).href
+  );
+  const fifthServer = await startFifthBrowserServer({
+    libraryPath: path.join(caller, "characters-5e.json"),
+    seed: 42,
+  });
+  await fifthServer.close();
   const characterSession = await SaveSession.load(sessionPath);
   if (characterSession.runtime.startingCharacter?.name !== "Package Fighter") {
     throw new Error("Extracted package character initialization failed.");

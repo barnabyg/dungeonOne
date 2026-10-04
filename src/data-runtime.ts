@@ -11,6 +11,12 @@ import type { AdventureRuntime as LegacyAdventureRuntime } from "./legacy-runtim
 import type { AdventureRuntime } from "./runtime-contract.js";
 
 /**
+ * The 5e runtime, for a 5e adventure module and character. Its state,
+ * actions and results are typed for 5e (see runtime-5e.ts for the types).
+ */
+export { createFifthRuntime } from "./runtime-5e.js";
+
+/**
  * The runtime registry: the only module that selects a runtime implementation.
  * Shared infrastructure obtains runtimes here and uses them only through the
  * generic AdventureRuntime interface; it never imports a runtime module.

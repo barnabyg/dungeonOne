@@ -42,7 +42,24 @@ Level 3 is the highest supported level; XP above 900 is kept.
 - **Tactical Mind (level 2):** when you fail an ability check, you can expend a use of Second Wind to add 1d10 to it instead of healing; the use is kept if the check still fails.
 - **Champion (level 3):** Improved Critical (critical hits on 19–20) and Remarkable Athlete (advantage on initiative and Strength (Athletics) checks; its movement after a critical hit is omitted).
 
-Combat (#128) uses these numbers; until then they appear on the creation screen and the character sheet.
+## Combat
+
+Combat (#128) uses the numbers above. An encounter has two sides, the party and its opponents, and each side may hold several combatants; for now every fight is one Fighter against one opponent. Every die comes from the adventure session's own seeded stream and is recorded with the action that drew it.
+
+- **Initiative.** When a fight begins, each combatant rolls d20 + its initiative bonus (Dexterity modifier). Higher totals act first. A tie goes to the higher Dexterity score; combatants still tied each roll a d20 roll-off, repeated among any still tied, and the higher roll acts first. The browser shows every combatant's roll, the order, hit points and whose turn it is.
+- **Turns.** Combatants act in initiative order, round after round, skipping the defeated. On the player's turn the player attacks one living opponent. Opponents act on their own turns, attacking a living party combatant; when there is more than one, a seeded die picks which, counting in initiative order.
+- **Attacks.** d20 + attack bonus hits when it meets or beats the target's AC. A natural 20 (19–20 for a Champion) is a critical hit, which always hits and rolls the damage dice twice; a natural 1 always misses. Damage is the dice plus the damage modifier, never below 0.
+- **Defeat.** A combatant at 0 HP is defeated. An opponent at 0 HP drops out of the fight, and when every opponent is defeated the module's victory ending follows. The player character at 0 HP is defeated at once (no death saving throws): the adventure ends in the module's defeat ending, the character's sheet is saved at 0 HP and marked defeated, and it cannot start another adventure. After a victory the character keeps its sheet as it was before the fight; XP, treasure and lasting damage arrive with #133.
+- **Refused actions.** Acting out of turn, attacking an absent, friendly or defeated target, or attacking after the fight is over is refused with an engine-written reason. A refusal changes nothing and draws no dice.
+- **Not used yet.** Weapon Mastery (Sap), Second Wind and Action Surge arrive in combat with #130, and advantage and disadvantage with them. Remarkable Athlete's advantage on initiative waits for level 3 characters (#133). An opponent uses its stat block's first melee attack; stat-block riders that need advantage (the Goblin Warrior's extra 1d4), bonus actions such as Nimble Escape, and ranged attacks are not used.
+
+**The AI Dungeon Master.** The engine is the only authority over dice, turn order, targets, hits, damage, hit points and endings. The AI DM may only call three tools: `look` and `get_character_status` to read the scene, and `attack`, whose target must be one of the living opponents it lists and which is offered only on the player's turn. It takes no roll, damage, advantage or outcome argument; any extra argument is refused before the engine is reached. The engine writes the reply to every attack it resolves or refuses, so the AI cannot narrate a different roll or result, and a reply without a tool call changes nothing.
+
+## Adventure modules
+
+A 5e adventure module is a JSON file in format version 1 (`src/adventure-5e.ts`). It declares its recommended levels (1–3) and a difficulty (easy, medium or hard), its rooms, the encounter in each room with each opponent's SRD 5.2 stat block inline (size, type, AC, average hit points and formula, ability scores, challenge rating, XP and melee attacks), and its victory and defeat endings. The validator rejects unknown room, encounter and ending references, an encounter whose victory or defeat ending names the wrong kind, and a module without a victory ending. A module in another format version is refused with a message naming the file.
+
+The built-in fixture `adventures/5e/cellar-goblin.json`, _The Goblin in the Cellar_, is one room with one SRD 5.2 Goblin Warrior (AC 15, 10 HP, Scimitar +4 for 1d6 + 2 slashing), for level 1 and declared Easy. The balance gate (#135) does not check it yet.
 
 ## House rules
 
@@ -65,6 +82,7 @@ The game has no grid or map. Each 5e rule that needs distance is listed here wit
 | Weapon masteries that move or need range, such as Push | Omitted  |
 | Cleave, Push and Slow masteries                        | Omitted  |
 | Remarkable Athlete's movement after a critical hit     | Omitted  |
+| Who an opponent can reach                              | Every living party combatant is in reach |
 
 Later tickets add rows when they meet another positional rule.
 
