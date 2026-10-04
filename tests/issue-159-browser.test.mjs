@@ -106,7 +106,8 @@ async function added(page, run) {
   const count = await page.locator("#log > li").count();
   await run();
   await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log > li").length > seen,
+    (seen) =>
+      document.querySelectorAll("#log > li:not([data-pending])").length > seen,
     count,
   );
 }
@@ -357,7 +358,7 @@ for (const viewport of [
             "utf8",
           ),
         );
-        assert.equal(file.formatVersion, 4);
+        assert.equal(file.formatVersion, 5);
         assert.ok(
           file.history.some(({ cards }) =>
             cards.some(({ lines }) =>

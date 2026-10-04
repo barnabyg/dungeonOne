@@ -120,9 +120,10 @@ const layout = (page) =>
       .getBoundingClientRect();
     const dock = document.getElementById("session-dock");
     const dockRect = dock.getBoundingClientRect();
+    // Shown buttons only: the ending's (#158) is hidden while playing.
     const buttons = [
       ...document.querySelectorAll("#session-actions button, #send-message"),
-    ];
+    ].filter((button) => button.getClientRects().length > 0);
     const focused = document.activeElement;
     const focusRect = focused.getBoundingClientRect();
     const overlaps = (a, b) =>
@@ -174,7 +175,8 @@ async function act(page, label, click) {
   const count = await page.locator("#log li").count();
   await click();
   await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log li").length > seen,
+    (seen) =>
+      document.querySelectorAll("#log li:not([data-pending])").length > seen,
     count,
   );
   // The page moves focus once the action settles.
@@ -370,7 +372,9 @@ for (const viewport of [
           )
           .click();
         await page.waitForFunction(
-          (seen) => document.querySelectorAll("#log li").length > seen,
+          (seen) =>
+            document.querySelectorAll("#log li:not([data-pending])").length >
+            seen,
           count,
         );
         actions++;

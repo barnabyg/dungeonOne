@@ -128,6 +128,6 @@ test("the turn view counts the actions this turn: two after Action Surge (#155)"
   assert.equal(runtime.projectFight(missed).turn.maxActions, 2);
 });
 
-test("adventure saves move to format version 4 for the new turn record (#155)", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 4);
+test("adventure saves move to format version 5 for the new turn record (#155)", () => {
+  assert.equal(FIFTH_SESSION_FORMAT, 5);
 });

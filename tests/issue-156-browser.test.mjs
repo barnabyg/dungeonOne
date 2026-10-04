@@ -144,7 +144,7 @@ async function enterAction(page) {
   await page.waitForFunction(
     (seen) =>
       document.querySelectorAll("#log > li").length > seen &&
-      !document.getElementById("message").disabled,
+      !document.querySelector("#action-bar [aria-busy=true]"),
     count,
   );
   // The page moves focus once the action settles.

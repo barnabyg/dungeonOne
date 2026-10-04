@@ -14,7 +14,11 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { buildFighter, rollAbilitySet } from "../dist/fighter-5e.js";
+import {
+  buildFighter,
+  defaultPlacement,
+  rollAbilitySet,
+} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
@@ -47,12 +51,11 @@ function firstFighter(seed) {
     .update(`5e-ability-rolls:${seed}:1`)
     .digest()
     .readUInt32LE(0);
-  return buildFighter(
-    "a".repeat(32),
-    "Ada",
-    rollAbilitySet(createSeededRandom(stream)),
-    DEFAULT_CHOICES,
-  );
+  const dice = rollAbilitySet(createSeededRandom(stream));
+  return buildFighter("a".repeat(32), "Ada", dice, {
+    ...DEFAULT_CHOICES,
+    placement: defaultPlacement(dice),
+  });
 }
 
 const cellarGoblin = (await loadBuiltInFifthAdventures()).find(

@@ -9,7 +9,7 @@
 //   the round and whose turn it is (#turn), and #resources, a pip for each
 //   turn resource and class feature use. It shows only what the session view
 //   projects.
-// - #session-scene: the room, the fight and the ending. The room lists only
+// - #session-scene: the room and the fight. The room lists only
 //   what is there (#157); in a fight its details collapse behind #room-toggle.
 //   The fight's initiative table shows totals, marks the current turn and
 //   keeps each roll in #initiative-breakdown; it collapses behind
@@ -22,19 +22,36 @@
 //   with its reason as visible text linked by aria-describedby. After an
 //   action, focus stays on the clicked control if it is still enabled, and
 //   otherwise moves to the newest history entry. When the adventure is over
-//   the bar is hidden: #158 shows the ending in its place.
+//   the bar is hidden and #ending (#158) takes its place: data-kind victory or
+//   defeat (in words, #ending-kind, and colour), the title and text, a defeat's
+//   permanence, and #ending-next back to the character sheet. Focus moves to
+//   #ending-title when the ending appears or is opened again.
 // - #session-history: the conversation history, #log, a live region in its own
 //   scroll area, newest at the bottom; it follows new entries only while the
 //   reader is at the bottom. Each entry (#159) has a data-kind (narration,
 //   message or action); the newest has class "newest" and tabindex -1, and
 //   focusNewestEntry() moves focus to it.
-// - #session-composer: #message-form.
+// - #session-composer: #message-form, and #dm-notice when typing to the AI DM
+//   is off (#161); once the adventure is over #composer-reason says why
+//   (#158). renderComposer() alone decides whether it is enabled.
 // Actions, history and composer share #session-dock. DOM order (and so tab
 // order) is status, scene, actions, history, composer; the dock shows history
 // above actions and composer. From 900 x 560 px the session fills the window
 // in two columns (status and scene left, the dock right, each scrolling on its
 // own); narrower, it is one column with the dock sticky at the bottom.
+//
+// Busy states (#160): while a request runs, the control that started it has
+// aria-busy (setBusy/clearBusy, with a label such as "Saving…") and cannot
+// start it again. A typed message shows at once with a client-only pending
+// "The Dungeon Master is thinking…" entry (data-pending) that renderHistory
+// replaces with the saved result; it is never saved. Confirmations go to
+// #feedback, a polite live region that show() moves under the current panel's
+// heading and route() clears on every navigation.
 import { FEATURE_USES_RULE } from "./fighter-5e.js";
+
+/** The composer's notice when the server has no AI DM (#161). */
+export const FIFTH_DM_OFF_NOTICE =
+  "Typing to the Dungeon Master is off. Use the buttons.";
 
 export const FIFTH_BROWSER_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -43,9 +60,9 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <header class="masthead"><span class="brand-mark" aria-hidden="true">◇</span><div><p class="eyebrow">5E PREVIEW</p><h1>Dungeon One</h1></div></header>
 <main id="content" tabindex="-1">
 <nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
-<p id="feedback" role="status" aria-live="polite"></p>
 <section id="library" class="panel" aria-labelledby="library-title">
 <h2 id="library-title" tabindex="-1">Your Fighters</h2>
+<p id="feedback" role="status" aria-live="polite"></p>
 <ul id="characters" class="list"></ul>
 <p id="no-characters" class="hint" hidden>No characters yet.</p>
 <button id="open-creation" type="button" class="primary">Create a Fighter</button>
@@ -56,20 +73,24 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h3>Your rolls</h3>
 <ol id="rolls" class="rolls"></ol>
 <form id="creation-form" novalidate>
-<fieldset id="placement"><legend>Place the rolls</legend><p class="hint">Choosing a roll that is already placed swaps the two abilities.</p><div id="placement-fields" class="grid"></div></fieldset>
-<fieldset id="increase"><legend>Background ability increase</legend><p class="hint">Give +2 to one ability and +1 to another, or +1 to three. No score can exceed 20.</p><div id="increase-fields" class="grid"></div></fieldset>
-<fieldset id="skills"><legend>Two skill proficiencies</legend><div id="skill-fields" class="checks"></div></fieldset>
+<fieldset id="ability-scores" aria-describedby="ability-hint increase-error"><legend>Ability scores</legend>
+<p id="ability-hint" class="hint">Place one roll on each ability; choosing a roll that is already placed swaps the two. Your background then adds +2 and +1, or +1 to three abilities. To move a bonus, choose it on another ability. No score can exceed 20.</p>
+<fieldset id="increase-mode" class="choice-row"><legend>Background increase</legend><label><input type="radio" name="increase-mode" id="increase-mode-two" value="two"> +2 and +1</label><label><input type="radio" name="increase-mode" id="increase-mode-three" value="three"> +1 to three</label></fieldset>
+<div class="table-wrap"><table id="ability-table"><thead><tr><th scope="col">Ability</th><th scope="col">Roll</th><th scope="col">Back&shy;ground</th><th scope="col" class="num">Score</th><th scope="col" class="num">Modi&shy;fier</th></tr></thead><tbody id="ability-rows"></tbody></table></div>
+<p id="increase-error" class="error" role="alert"></p>
+</fieldset>
+<fieldset id="skills" aria-describedby="skills-count skills-error"><legend>Two skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
-<label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required>
-<section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><div id="preview-body"></div></section>
+<label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required aria-describedby="name-error"><p id="name-error" class="error" role="alert"></p>
+<section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><p id="preview-status" class="hint"></p><div id="preview-body"></div></section>
 <p id="creation-error" class="error" role="alert"></p>
 <div class="controls"><button id="save-character" type="submit" class="primary">Save character</button><button id="close-creation" type="button" class="secondary">Cancel</button></div>
 </form>
 </section>
 <section id="sheet" class="panel" aria-labelledby="sheet-name" hidden>
 <h2 id="sheet-name" tabindex="-1"></h2>
+<section id="sheet-adventures" aria-labelledby="sheet-adventures-title"><h3 id="sheet-adventures-title">Adventures</h3><p id="defeat-warning" class="hint"></p><div id="adventure-choices"></div><p id="start-error" class="error" role="alert"></p></section>
 <div id="sheet-body"></div>
-<section id="sheet-adventures" aria-labelledby="sheet-adventures-title"><h3 id="sheet-adventures-title">Adventures</h3><div id="adventure-choices"></div><p id="start-error" class="error" role="alert"></p></section>
 <div class="controls"><button id="delete-character" type="button" class="danger">Delete character</button></div>
 </section>
 <section id="adventure" class="panel" aria-labelledby="adventure-title" hidden>
@@ -95,13 +116,12 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <details id="initiative-breakdown"><summary>How initiative was rolled</summary><p class="hint">Each combatant rolled d20 + its initiative bonus; ties go to the higher Dexterity, then a roll-off.</p><ul id="initiative-rolls" class="breakdown"></ul></details></div>
 <p id="feature-rule" class="hint"></p>
 </section>
-<section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title"></h3><p id="ending-text"></p></section>
 </div>
 <div id="session-dock">
-<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div><div id="explore-controls" class="controls"></div></div></section>
+<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div><div id="explore-controls" class="controls"></div></div></section>
 <section id="session-history" aria-labelledby="history-title"><h3 id="history-title">What happened</h3>
 <ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></section>
-<div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div></form></div>
+<div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div><p id="composer-reason" class="reason"></p><p id="dm-notice" class="hint" hidden>${FIFTH_DM_OFF_NOTICE}</p></form></div>
 </div>
 </div>
 </section>
@@ -135,38 +155,41 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 // --ink, --gold, --line and --paper are older aliases of the colour tokens.
 export const FIFTH_BROWSER_CSS = `:root{color-scheme:light;--color-ink:#263d3d;--color-ink-hover:#3a5451;--color-on-ink:#fff9e9;--color-paper:#f7f0e1;--color-surface:#fffaf0;--color-surface-hover:#efe5d0;--color-highlight:#efe2c0;--color-text:#292b27;--color-text-label:#4b4a3c;--color-text-muted:#615f50;--color-line:#d4c9b5;--color-control-border:#7a7260;--color-panel-border:#81785e;--color-gold:#d5b474;--color-gold-text:#7a6331;--color-discovery:#5b4a22;--color-on-dark:#f7edda;--color-night:#151f23;--color-night-light:#304043;--color-focus:#9a5a1c;--color-danger:#883c2d;--color-danger-hover:#9f4936;--color-danger-soft:#f3e0d8;--color-success:#2f6b3a;--color-warning:#8a5a00;--color-hp-healthy:var(--color-success);--color-hp-wounded:var(--color-warning);--color-hp-critical:var(--color-danger);--color-hp-down:var(--color-text-muted);--font-serif:Georgia,serif;--font-sans:system-ui,sans-serif;--text-xs:.78rem;--text-sm:.85rem;--text-md:1rem;--text-lg:1.15rem;--text-xl:1.45rem;--text-2xl:1.75rem;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--radius-sm:6px;--radius-md:8px;--radius-lg:10px;--ink:var(--color-ink);--gold:var(--color-gold);--line:var(--color-line);--paper:var(--color-paper);font-family:var(--font-serif);color:var(--color-text);background:var(--color-night);font-size:17px;line-height:1.55}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,var(--color-night-light),var(--color-night) 75%);min-height:100dvh}h1,h2,h3,p{margin:0 0 var(--space-3)}h1{font-size:var(--text-2xl);line-height:1.1}h2{font-size:var(--text-xl);line-height:1.2}h3{font-size:var(--text-lg);margin-top:var(--space-4)}
-button,legend,label,.eyebrow,.hint,.error,#feedback,table,.stats,.features{font-family:var(--font-sans)}button{font-size:var(--text-sm);border:1px solid var(--color-ink);background:transparent;color:var(--color-ink);padding:10px 14px;border-radius:var(--radius-sm);cursor:pointer;line-height:1.4}button:disabled{opacity:.55;cursor:default}
+button,legend,label,.eyebrow,.hint,.error,#feedback,table,.stats,.features{font-family:var(--font-sans)}button{font-size:var(--text-sm);border:1px solid var(--color-ink);background:transparent;color:var(--color-ink);padding:10px 14px;border-radius:var(--radius-sm);cursor:pointer;line-height:1.4}button:disabled{opacity:.55;cursor:default}button[aria-busy=true]{opacity:.8;cursor:progress}
 button.primary{background:var(--color-ink);border-color:var(--color-ink);color:var(--color-on-ink)}button.primary:hover:not(:disabled){background:var(--color-ink-hover)}button.secondary:hover:not(:disabled){background:var(--color-surface-hover)}button.quiet{border-color:transparent;text-decoration:underline;text-underline-offset:3px}button.quiet:hover:not(:disabled){background:var(--color-surface-hover)}button.danger{border-color:var(--color-danger);color:var(--color-danger)}button.danger:hover:not(:disabled){background:var(--color-danger-soft)}button.primary.danger{background:var(--color-danger);color:var(--color-on-ink)}button.primary.danger:hover:not(:disabled){background:var(--color-danger-hover)}
 :focus-visible{outline:3px solid var(--color-focus);outline-offset:3px}[tabindex="-1"]:focus{outline:none}[hidden]{display:none!important}
 .skip{position:absolute;top:-100px;left:12px;background:var(--color-paper);padding:10px;z-index:20}.skip:focus{top:12px}
 .masthead{max-width:860px;margin:auto;padding:var(--space-4);display:flex;align-items:center;gap:var(--space-3);color:var(--color-on-dark)}.brand-mark{font-size:2rem;color:var(--color-gold)}.eyebrow{font-size:.62rem;letter-spacing:.18em;color:var(--color-gold);margin-bottom:6px}
 main{max-width:860px;margin:0 auto var(--space-6);padding:0 var(--space-4)}.panel{background:var(--color-paper);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);margin-bottom:var(--space-4);min-width:0}
-#feedback{color:var(--color-on-dark);font-size:var(--text-sm)}#breadcrumb ol{list-style:none;display:flex;flex-wrap:wrap;padding:0;margin:0 0 var(--space-3);font:var(--text-sm) var(--font-sans);color:var(--color-on-dark);overflow-wrap:anywhere}#breadcrumb li+li::before{content:"›"/"";margin:0 var(--space-2);color:var(--color-gold)}#breadcrumb a{color:var(--color-gold)}#breadcrumb-list:empty{display:none}#feedback:empty{display:none}.hint{font-size:var(--text-sm);color:var(--color-text-muted)}.error{color:var(--color-danger);font-size:var(--text-sm);font-weight:600}.error:empty{display:none}
-.list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.list button{width:100%;text-align:left;background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border);display:flex;flex-direction:column}.list button:hover{background:var(--color-surface-hover)}.list strong{font:600 var(--text-md) var(--font-serif)}.list span{font-size:var(--text-xs);color:var(--color-text-muted)}
+#feedback{color:var(--color-text);font-size:var(--text-sm);background:var(--color-surface);border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3)}#breadcrumb ol{list-style:none;display:flex;flex-wrap:wrap;padding:0;margin:0 0 var(--space-3);font:var(--text-sm) var(--font-sans);color:var(--color-on-dark);overflow-wrap:anywhere}#breadcrumb li+li::before{content:"›"/"";margin:0 var(--space-2);color:var(--color-gold)}#breadcrumb a{color:var(--color-gold)}#breadcrumb-list:empty{display:none}#feedback:empty{display:none}.hint{font-size:var(--text-sm);color:var(--color-text-muted)}.error{color:var(--color-danger);font-size:var(--text-sm);font-weight:600}.error:empty{display:none}
+.list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.character-row{display:flex;gap:var(--space-2)}.list button{background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border)}.list button:hover{background:var(--color-surface-hover)}.open-character{flex:1 1 0;min-width:0;text-align:left;display:flex;flex-direction:column}.continue-adventure{flex:0 0 auto}.character-name{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.list strong{font:600 var(--text-md) var(--font-serif);overflow-wrap:anywhere}.character-stats{font-size:var(--text-xs);color:var(--color-text-muted)}.character-row .tag{color:var(--color-ink)}.character-row.defeated .open-character{background:var(--color-paper);border-style:dashed}.character-row.defeated strong,.character-row.defeated .tag{color:var(--color-text-muted)}
 .rolls{padding-left:0;list-style:none;display:grid;gap:6px;font-family:var(--font-sans)}.rolls li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.die{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);font-weight:700}.die.dropped{color:var(--color-text-muted);text-decoration:line-through;border-style:dashed}.total{font-weight:700;margin-left:6px}.roll-name{min-width:52px;font-size:var(--text-sm)}
 fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margin:0 0 14px;padding:var(--space-3);min-width:0}legend{font-weight:600;font-size:.9rem;padding:0 var(--space-1)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2) 14px}.grid label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}select,input{font:var(--text-md) var(--font-sans);padding:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);width:100%;min-width:0;margin-top:var(--space-1)}label[for=character-name]{display:block;font-weight:600;font-size:var(--text-sm)}
-.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-sm)}.checks input{width:auto;padding:0;margin-top:var(--space-1);flex:none;accent-color:var(--color-ink)}.checks small{display:block;color:var(--color-text-muted);font-weight:400}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-sm)}.checks input{width:auto;padding:0;margin-top:var(--space-1);flex:none;accent-color:var(--color-ink)}.checks small{display:block;color:var(--color-text-muted);font-weight:400}.checks input:disabled+span{color:var(--color-text-muted)}
 #preview{border-top:1px solid var(--color-line);margin-top:var(--space-4)}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:var(--space-1)}
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
 dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
 .features{font-size:var(--text-sm);padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)}
-.eyebrow.dark{color:var(--color-gold-text)}.adventure-choice{border:1px solid var(--color-line);border-radius:var(--radius-md);padding:10px var(--space-3);margin-bottom:var(--space-2)}.adventure-choice p{margin-bottom:var(--space-2)}
+.eyebrow.dark{color:var(--color-gold-text)}#sheet-adventures h3{margin-top:0}#adventure-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2);margin-bottom:var(--space-3)}#adventure-choices>:not(.adventure-choice){grid-column:1/-1;justify-self:start;margin:0}.adventure-choice{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:10px var(--space-3)}.adventure-choice p{margin:0}.adventure-choice button{margin-top:auto}.tags{display:flex;flex-wrap:wrap;gap:var(--space-1)}.tag.level{color:var(--color-text-muted)}.tag.easy{color:var(--color-success)}.tag.medium{color:var(--color-warning)}.tag.hard{color:var(--color-danger)}.defeat-notice{color:var(--color-danger);font:600 var(--text-md) var(--font-sans)}
 #turn{font-family:var(--font-sans);font-weight:600}tr.current{background:var(--color-highlight)}tr.defeated td,tr.defeated th{color:var(--color-text-muted);font-weight:400}.tag{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:999px;font:600 var(--text-xs)/1.5 var(--font-sans);white-space:nowrap}
-.log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li.newest:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}
+.log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li.newest:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}.log .reply.pending{color:var(--color-text-muted);font-style:italic}
 .log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}.card-line+.card-line{margin-top:var(--space-1)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
-#ending{border:2px solid var(--color-gold);border-radius:var(--radius-md);padding:var(--space-3);margin:var(--space-3) 0}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
+#ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
 #session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}
+#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}.thing-actions{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2);max-width:100%;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label)}#explore-controls{column-gap:var(--space-4)}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1}#log{flex:1;max-height:none}}
 @media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative td{white-space:nowrap}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
+.choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
+#ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}.short-name{display:none}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
+@media(max-width:560px){#ability-scores{padding:var(--space-2) var(--space-1)}#ability-table{font-size:var(--text-xs)}#ability-table th,#ability-table td{padding:var(--space-1) 2px}#ability-table select{font-size:var(--text-sm)}.short-name{display:inline}.long-name{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -197,6 +220,27 @@ async function request(path, body) {
   return value;
 }
 
+/** Marks the control that started a request busy, optionally relabelled. */
+function setBusy(button, label) {
+  if (!isBusy(button) && label) {
+    button.dataset.idleLabel = button.textContent;
+    button.textContent = label;
+  }
+  button.setAttribute("aria-busy", "true");
+  button.disabled = true;
+}
+
+/** Ends a busy state; the caller decides whether the control is enabled. */
+function clearBusy(button) {
+  if (button.dataset.idleLabel !== undefined) {
+    button.textContent = button.dataset.idleLabel;
+    delete button.dataset.idleLabel;
+  }
+  button.removeAttribute("aria-busy");
+}
+
+const isBusy = (button) => button.getAttribute("aria-busy") === "true";
+
 // Each view has its own history entry and URL: the library is the bare page,
 // the others a hash (#create, #character-<id>, #adventure-<id>), so a reload
 // or Back and Forward return to the view without the server routing them.
@@ -205,6 +249,8 @@ let routeTicket = 0;
 /** Shows one view, titles the page and draws its breadcrumb under Characters. */
 function show(id, title, trail) {
   for (const panel of ["library", "creation", "sheet", "adventure"]) element(panel).hidden = panel !== id;
+  // Confirmations show inside the current panel, under its heading.
+  element(id).querySelector("h2").after(element("feedback"));
   document.title = title + " · Dungeon One";
   const items = [{ label: "Characters", hash: "" }, ...trail];
   element("breadcrumb-list").replaceChildren(...items.map((item, index) => {
@@ -268,20 +314,34 @@ function showLibrary(focus) {
 }
 
 const characterStatus = (entry) => entry.defeated ? "Defeated" : entry.session ? "On an adventure" : "";
+const adventureTitle = (adventureId) => (library.adventures.find(({ id }) => id === adventureId) || { title: "an adventure" }).title;
 
 function feedback(message) { element("feedback").textContent = message; }
 
+// Each row opens the character's sheet; a character with an adventure in
+// progress also has Continue beside it (never inside it), which opens the
+// adventure as its own history entry so Back returns to the library.
 function renderLibrary() {
   const list = element("characters");
   list.replaceChildren(...library.characters.map((entry) => {
     const { sheet, profile } = entry;
-    const button = make("button", undefined, "secondary");
+    const item = make("li", undefined, "character-row" + (entry.defeated ? " defeated" : ""));
+    const button = make("button", undefined, "open-character secondary");
     button.type = "button";
+    const heading = make("span", undefined, "character-name");
+    heading.append(make("strong", sheet.name));
     const status = characterStatus(entry);
-    button.append(make("strong", sheet.name), make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass + (status ? " · " + status : "")));
+    if (status) heading.append(" ", make("span", status, "tag"));
+    button.append(heading, make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass, "character-stats"));
     button.addEventListener("click", () => go("#character-" + sheet.id));
-    const item = make("li");
     item.append(button);
+    if (entry.session && !entry.defeated) {
+      const resume = make("button", "Continue", "continue-adventure secondary");
+      resume.type = "button";
+      resume.setAttribute("aria-label", "Continue " + sheet.name + "'s adventure, " + adventureTitle(entry.session.adventureId));
+      resume.addEventListener("click", () => go("#adventure-" + entry.session.id));
+      item.append(resume);
+    }
     return item;
   }));
   element("no-characters").hidden = library.characters.length > 0;
@@ -354,8 +414,12 @@ function openSheet(id) {
 function renderAdventureChoices(entry) {
   element("start-error").textContent = "";
   const choices = element("adventure-choices");
+  const warning = element("defeat-warning");
+  warning.textContent = "At 0 HP, " + entry.sheet.name + " is defeated for good and can never start another adventure.";
+  warning.hidden = entry.defeated;
+  // A defeated character's sheet leads with its defeat.
   if (entry.defeated) {
-    choices.replaceChildren(make("p", entry.sheet.name + " was defeated and cannot start another adventure.", "hint"));
+    choices.replaceChildren(make("p", entry.sheet.name + " was defeated and cannot start another adventure.", "defeat-notice"));
     return;
   }
   if (entry.session) {
@@ -367,15 +431,18 @@ function renderAdventureChoices(entry) {
     choices.replaceChildren(button);
     return;
   }
+  // The server lists the modules in offer order: level range, then difficulty.
   choices.replaceChildren(...library.adventures.map((adventure) => {
     const box = make("div", undefined, "adventure-choice");
-    box.append(make("strong", adventure.title), make("p", adventure.objective + " " + levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty) + ".", "hint"));
-    const button = make("button", "Start " + adventure.title);
+    const tags = make("p", undefined, "tags");
+    tags.append(make("span", levelText(adventure.recommendedLevels), "tag level"), make("span", titleCase(adventure.difficulty), "tag " + adventure.difficulty));
+    const button = make("button", "Start");
     button.type = "button";
     button.className = "start-adventure secondary";
+    button.setAttribute("aria-label", "Start " + adventure.title);
     button.dataset.adventure = adventure.id;
     button.addEventListener("click", () => startAdventure(entry.sheet.id, adventure.id, button));
-    box.append(button);
+    box.append(make("strong", adventure.title), tags, make("p", adventure.objective, "hint"), button);
     return box;
   }));
 }
@@ -386,7 +453,8 @@ let acting = false;
 const levelText = ({ min, max }) => min === max ? "Level " + min : "Levels " + min + "–" + max;
 
 async function startAdventure(characterId, adventureId, button) {
-  button.disabled = true;
+  if (isBusy(button)) return;
+  setBusy(button, "Starting…");
   try {
     const result = await request("/api/5e/adventures/start", { revision: library.revision, characterId, adventureId });
     library = result.library;
@@ -394,15 +462,17 @@ async function startAdventure(characterId, adventureId, button) {
     go("#adventure-" + session.id);
   } catch (error) {
     element("start-error").textContent = error.message;
+  } finally {
+    clearBusy(button);
     button.disabled = false;
   }
 }
 
 async function openAdventure(sessionId, ticket) {
-  if (!library.characters.some(({ session: active }) => active && active.id === sessionId)) {
-    // An adventure that just ended stays viewable until the page reloads.
-    if (session && session.id === sessionId) showAdventure(session);
-    else lost("That adventure is no longer in progress.");
+  const active = library.characters.some(({ session: active }) => active && active.id === sessionId);
+  // An ended adventure stays viewable (#158): the server serves it read-only.
+  if (!active && session && session.id === sessionId) {
+    showAdventure(session);
     return;
   }
   try {
@@ -411,18 +481,24 @@ async function openAdventure(sessionId, ticket) {
     library = result.library;
     showAdventure(result.session);
   } catch (error) {
-    if (ticket === routeTicket) lost(error.message);
+    if (ticket === routeTicket) lost(active ? error.message : "That adventure is no longer in progress.");
   }
 }
 
 function showAdventure(value) {
   session = value;
+  // A draft belongs to its adventure session: opening another one clears it.
+  const form = element("message-form");
+  if (form.dataset.session !== session.id) {
+    form.dataset.session = session.id;
+    element("message").value = "";
+  }
   element("adventure-error").textContent = "";
   renderAdventure();
   const entry = findEntry(session.characterId);
   const title = session.adventure.title;
   show("adventure", title, [...(entry ? [{ label: entry.sheet.name, hash: "#character-" + entry.sheet.id }] : []), { label: title }]);
-  element("adventure-title").focus();
+  element(session.ending ? "ending-title" : "adventure-title").focus();
   followHistory = true;
   element("log").scrollTop = element("log").scrollHeight;
 }
@@ -432,7 +508,6 @@ function renderAdventure() {
   element("adventure-meta").textContent = levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty) + " · " + session.room.name;
   element("adventure-title").textContent = adventure.title;
   element("adventure-objective").textContent = adventure.objective;
-  const playing = session.status === "playing";
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
   renderRoom(session.room, fighting);
   element("encounter").hidden = !encounter;
@@ -440,14 +515,43 @@ function renderAdventure() {
   renderActions();
   element("feature-rule").textContent = session.features ? ${JSON.stringify(FEATURE_USES_RULE)} : "";
   renderStatus();
-  element("ending").hidden = !session.ending;
-  if (session.ending) {
-    element("ending-title").textContent = session.ending.title;
-    element("ending-text").textContent = session.ending.text;
-  }
-  element("message").disabled = !playing || acting;
-  element("send-message").disabled = !playing || acting;
+  renderEnding();
+  renderComposer();
   renderHistory();
+}
+
+/**
+ * Enables the composer only while the adventure is playing, the AI DM is
+ * available and nothing is in flight. Without an AI DM it is off up front,
+ * with a notice saying so (#161); after the ending it says why (#158).
+ */
+function renderComposer() {
+  const playing = session.status === "playing";
+  const enabled = playing && session.dmAvailable && !acting;
+  element("message").disabled = !enabled;
+  element("send-message").disabled = !enabled;
+  element("dm-notice").hidden = !playing || session.dmAvailable;
+  element("composer-reason").textContent = playing ? "" : "The adventure is over, so the Dungeon Master takes no more messages.";
+  const reason = !playing ? "composer-reason" : session.dmAvailable ? "" : "dm-notice";
+  if (reason) element("message").setAttribute("aria-describedby", reason);
+  else element("message").removeAttribute("aria-describedby");
+}
+
+// The ending (#158), in place of the action bar: its kind in words and
+// colour, its title and text, and one next step back to the character sheet.
+// A defeat says that it is permanent.
+function renderEnding() {
+  const { ending } = session;
+  element("ending").hidden = !ending;
+  if (!ending) return;
+  const entry = findEntry(session.characterId);
+  const name = entry ? entry.sheet.name : "This character";
+  element("ending").dataset.kind = ending.kind;
+  element("ending-kind").textContent = ending.kind === "victory" ? "Victory" : "Defeat";
+  element("ending-title").textContent = ending.title;
+  element("ending-text").textContent = ending.text;
+  element("ending-consequence").textContent = ending.kind === "defeat" ? "Defeat is permanent: " + name + " cannot start another adventure." : "";
+  element("ending-next").textContent = entry ? "Back to " + name + "'s sheet" : "Back to your characters";
 }
 
 const HEALTH_LABELS = { healthy: "Healthy", bloodied: "Bloodied", critical: "Critical", down: "Defeated" };
@@ -598,11 +702,25 @@ let followHistory = true;
 
 function renderHistory() {
   const log = element("log");
+  for (const pending of log.querySelectorAll(":scope > li[data-pending]")) pending.remove();
   if (log.dataset.session !== session.id || log.children.length > session.history.length) {
     log.dataset.session = session.id;
     log.replaceChildren();
   }
   log.append(...session.history.slice(log.children.length).map(historyEntry));
+  markNewest(log);
+  if (followHistory) log.scrollTop = log.scrollHeight;
+}
+
+/** Shows a typed message at once, with the Dungeon Master's reply pending. */
+function showPending(message) {
+  const log = element("log");
+  const item = historyEntry({ player: message, cards: [] });
+  item.dataset.pending = "true";
+  const waiting = part("p", "reply", "The Dungeon Master is thinking…");
+  waiting.classList.add("pending");
+  item.append(waiting);
+  log.append(item);
   markNewest(log);
   if (followHistory) log.scrollTop = log.scrollHeight;
 }
@@ -677,10 +795,17 @@ function renderInitiative(encounter, fighting) {
   disclose("initiative", !fighting);
 }
 
-async function act(path, body) {
+// One action at a time: every action control is disabled while one is in
+// flight, and the one that started it (found by the control selector after
+// the controls are redrawn) is busy.
+async function act(path, body, control, busyLabel, pendingMessage) {
+  if (acting) return false;
   acting = true;
   renderAdventure();
   element("adventure-error").textContent = "";
+  if (pendingMessage !== undefined) showPending(pendingMessage);
+  const button = document.querySelector(control);
+  if (button) setBusy(button, busyLabel);
   try {
     const result = await request(path, { sessionId: session.id, sequence: session.sequence, ...body });
     library = result.library;
@@ -691,6 +816,7 @@ async function act(path, body) {
     element("adventure-error").textContent = error.message;
     return false;
   } finally {
+    if (button) clearBusy(button);
     acting = false;
     renderAdventure();
   }
@@ -708,7 +834,7 @@ const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
 const EXPLORING = ["move", "examine", "take"];
 
 function renderActions() {
-  // #158 shows the ending in place of the bar; an ended adventure projects no actions.
+  // The ending (#158) takes the bar's place; an ended adventure projects no actions.
   element("action-bar").hidden = session.status !== "playing";
   const { encounter, features } = session;
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
@@ -757,16 +883,23 @@ function renderActions() {
 
 async function perform({ action, target }) {
   const targetId = target ? target.id : "";
-  if (action === "attack") await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId });
-  else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action });
-  else await act("/api/5e/session/explore", { action, target: targetId });
+  // The clicked control, found again after the bar re-renders, shows busy.
+  const control = "#action-bar button[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])");
+  if (action === "attack") await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId }, control);
+  else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action }, control);
+  else await act("/api/5e/session/explore", { action, target: targetId }, control);
   keepFocus(action, targetId);
 }
 
 // After an action, focus stays on the clicked control while it is still
 // enabled; otherwise it moves to the newest history entry, the action's
-// result, and never to an unrelated action.
+// result, and never to an unrelated action. An action that ends the
+// adventure moves focus to the ending's heading.
 function keepFocus(action, targetId) {
+  if (session.ending) {
+    element("ending-title").focus();
+    return;
+  }
   const same = [...element("action-bar").querySelectorAll("button")].find((button) => button.dataset.action === action && (button.dataset.target || "") === targetId);
   if (same && !same.disabled) same.focus();
   else focusNewestEntry();
@@ -775,14 +908,30 @@ function keepFocus(action, targetId) {
 async function sendMessage(event) {
   event.preventDefault();
   const message = element("message").value.trim();
-  if (!message) return;
-  if (await act("/api/5e/session/message", { message })) element("message").value = "";
-  element("message").focus();
+  if (!message || acting) return;
+  if (await act("/api/5e/session/message", { message }, "#send-message", "Sending…", message)) element("message").value = "";
+  element(session.ending ? "ending-title" : "message").focus();
+}
+
+// The creation's choices are sent to the server exactly as kept here; the
+// increase's shape ("two": +2 and +1, "three": +1 to three) is kept apart.
+let increaseMode = "two";
+
+
+/**
+ * The increase on switching shape: abilities already given a bonus keep one,
+ * the larger first, then the rest of the table in order fill the shape.
+ */
+function defaultIncrease(mode, current) {
+  const given = library.abilities.filter((ability) => current[ability]).sort((a, b) => current[b] - current[a]);
+  const order = [...given, ...library.abilities.filter((ability) => !current[ability])];
+  return mode === "two" ? { [order[0]]: 2, [order[1]]: 1 } : Object.fromEntries(order.slice(0, 3).map((ability) => [ability, 1]));
 }
 
 function defaultChoices() {
+  increaseMode = "two";
   return {
-    placement: Object.fromEntries(library.abilities.map((ability, index) => [ability, index])),
+    placement: { ...library.pendingCreation.defaultPlacement },
     increase: { strength: 2, constitution: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
@@ -810,48 +959,111 @@ function renderRolls() {
   }));
 }
 
-function renderChoices() {
+/** Redraws the ability table, keeps focus on the control just used and updates the preview. */
+function changeAbilities(focusId) {
+  renderAbilities();
+  if (focusId) element(focusId).focus();
+  refresh();
+}
+
+/** Gives one ability a value held by another, which takes this one's old value. */
+function swap(record, ability, chosen, empty) {
+  const other = library.abilities.find((candidate) => candidate !== ability && (record[candidate] ?? empty) === chosen);
+  const old = record[ability] ?? empty;
+  if (other) {
+    if (old === empty) delete record[other]; else record[other] = old;
+  }
+  if (chosen === empty) delete record[ability]; else record[ability] = chosen;
+}
+
+function rollSelect(ability) {
+  const select = make("select");
+  select.id = "place-" + ability;
+  select.setAttribute("aria-label", titleCase(ability) + " roll");
+  library.pendingCreation.rolls.forEach((roll, index) => {
+    const holder = library.abilities.find((candidate) => choices.placement[candidate] === index);
+    const option = make("option", roll.total + " (roll " + (index + 1) + ")" + (holder === ability ? "" : ", swaps with " + titleCase(holder)));
+    option.value = String(index);
+    select.append(option);
+  });
+  select.value = String(choices.placement[ability]);
+  select.addEventListener("change", () => {
+    swap(choices.placement, ability, Number(select.value));
+    changeAbilities(select.id);
+  });
+  return select;
+}
+
+// +2 and +1: each bonus moves by swapping, so the shape is always legal. A
+// bonus cannot be dropped to +0 here; choosing it on another ability moves it.
+function bonusSelect(ability) {
+  const select = make("select");
+  select.id = "increase-" + ability;
+  select.setAttribute("aria-label", titleCase(ability) + " background bonus");
+  const current = choices.increase[ability] || 0;
+  for (const amount of [0, 1, 2]) {
+    const holder = amount === 0 ? undefined : library.abilities.find((candidate) => choices.increase[candidate] === amount);
+    const option = make("option", "+" + amount + (amount === current || !holder ? "" : ", swaps with " + titleCase(holder)));
+    option.value = String(amount);
+    option.disabled = amount === 0 && current !== 0;
+    select.append(option);
+  }
+  select.value = String(current);
+  select.addEventListener("change", () => {
+    swap(choices.increase, ability, Number(select.value), 0);
+    changeAbilities(select.id);
+  });
+  return select;
+}
+
+// +1 to three: a tick per ability, and no fourth once three are ticked.
+function bonusCheck(ability) {
+  const label = make("label", undefined, "bonus-check");
+  const box = make("input");
+  box.type = "checkbox";
+  box.id = "increase-" + ability;
+  box.setAttribute("aria-label", titleCase(ability) + " background bonus");
+  box.checked = Boolean(choices.increase[ability]);
+  box.disabled = !box.checked && Object.keys(choices.increase).length >= 3;
+  box.addEventListener("change", () => {
+    if (box.checked) choices.increase[ability] = 1; else delete choices.increase[ability];
+    changeAbilities(box.id);
+  });
+  const text = make("span", "+1");
+  text.setAttribute("aria-hidden", "true");
+  label.append(box, text);
+  return label;
+}
+
+// Score and modifier are the sums the server applies; its preview stays the
+// authority for every derived number and for saving.
+function renderAbilities() {
   const rolls = library.pendingCreation.rolls;
-  element("placement-fields").replaceChildren(...library.abilities.map((ability) => {
-    const label = make("label", titleCase(ability));
-    const select = make("select");
-    select.id = "place-" + ability;
-    rolls.forEach((roll, index) => {
-      const option = make("option", "Roll " + (index + 1) + ": " + roll.total);
-      option.value = String(index);
-      select.append(option);
-    });
-    select.value = String(choices.placement[ability]);
-    select.addEventListener("change", () => {
-      const chosen = Number(select.value);
-      const other = library.abilities.find((candidate) => choices.placement[candidate] === chosen);
-      choices.placement[other] = choices.placement[ability];
-      choices.placement[ability] = chosen;
-      renderChoices();
-      element("place-" + ability).focus();
-      preview();
-    });
-    label.append(select);
-    return label;
+  element("increase-mode-" + increaseMode).checked = true;
+  element("ability-rows").replaceChildren(...library.abilities.map((ability) => {
+    const row = make("tr");
+    row.dataset.ability = ability;
+    // Phones show the sheet's three-letter abbreviation; the full name stays
+    // the row's accessible name.
+    const name = make("th");
+    name.scope = "row";
+    const short = make("span", ability.slice(0, 3).toUpperCase(), "short-name");
+    short.setAttribute("aria-hidden", "true");
+    name.append(make("span", titleCase(ability), "long-name"), short);
+    const roll = make("td");
+    roll.append(rollSelect(ability));
+    const bonus = make("td", undefined, "bonus");
+    bonus.append(increaseMode === "two" ? bonusSelect(ability) : bonusCheck(ability));
+    const score = rolls[choices.placement[ability]].total + (choices.increase[ability] || 0);
+    const scoreCell = make("td", score, "num score");
+    if (score >= 20) scoreCell.append(make("span", "max 20", "cap"));
+    row.append(name, roll, bonus, scoreCell, make("td", signed(Math.floor((score - 10) / 2)), "num modifier"));
+    return row;
   }));
-  element("increase-fields").replaceChildren(...library.abilities.map((ability) => {
-    const label = make("label", titleCase(ability));
-    const select = make("select");
-    select.id = "increase-" + ability;
-    for (const amount of [0, 1, 2]) {
-      const option = make("option", "+" + amount);
-      option.value = String(amount);
-      select.append(option);
-    }
-    select.value = String(choices.increase[ability] || 0);
-    select.addEventListener("change", () => {
-      const amount = Number(select.value);
-      if (amount === 0) delete choices.increase[ability]; else choices.increase[ability] = amount;
-      preview();
-    });
-    label.append(select);
-    return label;
-  }));
+}
+
+function renderChoices() {
+  renderAbilities();
   element("skill-fields").replaceChildren(...library.skills.map((skill) => {
     const label = make("label");
     const box = make("input");
@@ -860,13 +1072,15 @@ function renderChoices() {
     box.checked = choices.skills.includes(skill.id);
     box.addEventListener("change", () => {
       choices.skills = library.skills.map(({ id }) => id).filter((id) => element("skill-" + id).checked);
-      preview();
+      limitSkills();
+      refresh();
     });
     const text = make("span", skill.name);
     text.append(make("small", titleCase(skill.ability)));
     label.append(box, text);
     return label;
   }));
+  limitSkills();
   element("style-fields").replaceChildren(...library.fightingStyles.map((style) => {
     const label = make("label");
     const radio = make("input");
@@ -874,12 +1088,38 @@ function renderChoices() {
     radio.name = "fighting-style";
     radio.id = "style-" + style.id;
     radio.checked = choices.fightingStyle === style.id;
-    radio.addEventListener("change", () => { choices.fightingStyle = style.id; preview(); });
+    radio.addEventListener("change", () => { choices.fightingStyle = style.id; refresh(); });
     const text = make("span", style.name);
     text.append(make("small", style.text));
     label.append(radio, text);
     return label;
   }));
+}
+
+/** Two skills at most: once two are ticked the rest are disabled; the count is announced. */
+function limitSkills() {
+  for (const { id } of library.skills) element("skill-" + id).disabled = choices.skills.length >= 2 && !choices.skills.includes(id);
+  element("skills-count").textContent = choices.skills.length + " of 2 chosen";
+}
+
+/**
+ * Shows each unfinished choice's error beside it. While one is unfinished the
+ * preview keeps its last numbers and saving waits; otherwise it updates.
+ */
+function refresh() {
+  const missing = 3 - Object.keys(choices.increase).length;
+  const errors = {
+    "increase-error": increaseMode === "three" && missing > 0 ? "Choose " + missing + " more " + (missing === 1 ? "ability" : "abilities") + " for +1." : "",
+    "skills-error": choices.skills.length === 2 ? "" : "Choose two skills; " + choices.skills.length + " chosen.",
+  };
+  for (const [id, message] of Object.entries(errors)) element(id).textContent = message;
+  if (Object.values(errors).some(Boolean)) {
+    previewRequest++;
+    element("save-character").disabled = true;
+    element("preview-status").textContent = element("preview-body").childElementCount ? "These numbers are from your last complete choices. Finish the choices marked above to update them." : "";
+    return Promise.resolve();
+  }
+  return preview();
 }
 
 async function preview() {
@@ -888,22 +1128,34 @@ async function preview() {
     const result = await request("/api/5e/creation/preview", choices);
     if (ticket !== previewRequest) return;
     element("creation-error").textContent = "";
+    element("preview-status").textContent = "";
     element("preview-body").replaceChildren(...profileNodes(result.abilities, result.profile));
-    element("save-character").disabled = false;
+    element("save-character").disabled = isBusy(element("save-character"));
   } catch (error) {
+    // The server stays the authority: a choice it refuses blocks saving.
     if (ticket !== previewRequest) return;
     element("creation-error").textContent = error.message;
-    element("preview-body").replaceChildren(make("p", "Fix the choice above to see your numbers.", "hint"));
     element("save-character").disabled = true;
   }
 }
 
+function changeIncreaseMode(event) {
+  increaseMode = event.target.value;
+  choices.increase = defaultIncrease(increaseMode, choices.increase);
+  changeAbilities();
+}
+
 async function openCreation(ticket) {
+  const opener = element("open-creation");
+  setBusy(opener, "Opening…");
   try {
     library = await request("/api/5e/creation", {});
   } catch (error) {
     if (ticket === routeTicket) lost(error.message);
     return;
+  } finally {
+    clearBusy(opener);
+    opener.disabled = false;
   }
   if (ticket !== routeTicket) return;
   choices = choices || defaultChoices();
@@ -911,20 +1163,25 @@ async function openCreation(ticket) {
   renderChoices();
   show("creation", "Create a Fighter", [{ label: "Create a Fighter" }]);
   element("creation-title").focus();
-  await preview();
+  await refresh();
 }
 
 async function saveCharacter(event) {
   event.preventDefault();
+  const save = element("save-character");
+  if (isBusy(save)) return;
   const name = element("character-name").value.trim();
   if (!name) {
-    element("creation-error").textContent = "Enter a name for your Fighter.";
+    element("name-error").textContent = "Enter a name for your Fighter.";
     element("character-name").focus();
     return;
   }
-  element("save-character").disabled = true;
+  element("name-error").textContent = "";
+  setBusy(save, "Saving…");
   try {
     library = await request("/api/5e/characters", { revision: library.revision, name, ...choices });
+    clearBusy(save);
+    save.disabled = false;
     choices = undefined;
     element("character-name").value = "";
     // The library appends the new character. Its sheet replaces the finished
@@ -932,8 +1189,9 @@ async function saveCharacter(event) {
     go("#character-" + library.characters[library.characters.length - 1].sheet.id, true);
     feedback(name + " is saved.");
   } catch (error) {
-    element("creation-error").textContent = error.message;
-    element("save-character").disabled = false;
+    element(/name/i.test(error.message) ? "name-error" : "creation-error").textContent = error.message;
+    clearBusy(save);
+    save.disabled = false;
   }
 }
 
@@ -959,16 +1217,19 @@ function nameMatches() {
 
 async function deleteCharacter(event) {
   event.preventDefault();
-  if (!nameMatches()) return;
+  const confirm = element("confirm-delete");
+  if (!nameMatches() || isBusy(confirm)) return;
   const { id, name } = shownSheet();
-  element("confirm-delete").disabled = true;
+  setBusy(confirm, "Deleting…");
   try {
     library = await request("/api/5e/characters/delete", { revision: library.revision, characterId: id, name });
   } catch (error) {
     element("delete-error").textContent = error.message;
-    element("confirm-delete").disabled = !nameMatches();
+    clearBusy(confirm);
+    confirm.disabled = !nameMatches();
     return;
   }
+  clearBusy(confirm);
   restoreFocusOnClose = false;
   element("delete-dialog").close();
   go("", true);
@@ -978,12 +1239,15 @@ async function deleteCharacter(event) {
 element("open-creation").addEventListener("click", () => go("#create"));
 element("creation-form").addEventListener("submit", saveCharacter);
 element("close-creation").addEventListener("click", () => go(""));
+for (const mode of ["two", "three"]) element("increase-mode-" + mode).addEventListener("change", changeIncreaseMode);
+element("character-name").addEventListener("input", () => { element("name-error").textContent = ""; });
 element("delete-character").addEventListener("click", openDelete);
-element("delete-confirm-name").addEventListener("input", () => { element("confirm-delete").disabled = !nameMatches(); });
+element("delete-confirm-name").addEventListener("input", () => { element("confirm-delete").disabled = !nameMatches() || isBusy(element("confirm-delete")); });
 element("delete-form").addEventListener("submit", deleteCharacter);
 element("cancel-delete").addEventListener("click", () => element("delete-dialog").close());
 element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose) element("delete-character").focus(); });
 element("message-form").addEventListener("submit", sendMessage);
+element("ending-next").addEventListener("click", () => go(findEntry(session.characterId) ? "#character-" + session.characterId : ""));
 for (const name of Object.keys(disclosures)) {
   element(name + "-toggle").addEventListener("click", () => {
     disclosures[name] = !disclosures[name];
