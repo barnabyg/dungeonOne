@@ -7,7 +7,11 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { buildFighter, rollAbilitySet } from "../dist/fighter-5e.js";
+import {
+  buildFighter,
+  defaultPlacement,
+  rollAbilitySet,
+} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
@@ -23,16 +27,8 @@ const launch = () =>
 const adventure = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "smugglers-cellar",
 );
-// The creation screen's default choices.
+// The creation screen's default choices; the placement follows the dice.
 const DEFAULT_CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
@@ -44,12 +40,11 @@ function firstFighter(seed) {
     .update(`5e-ability-rolls:${seed}:1`)
     .digest()
     .readUInt32LE(0);
-  return buildFighter(
-    "a".repeat(32),
-    "Ada",
-    rollAbilitySet(createSeededRandom(stream)),
-    DEFAULT_CHOICES,
-  );
+  const dice = rollAbilitySet(createSeededRandom(stream));
+  return buildFighter("a".repeat(32), "Ada", dice, {
+    ...DEFAULT_CHOICES,
+    placement: defaultPlacement(dice),
+  });
 }
 
 const WALK = [

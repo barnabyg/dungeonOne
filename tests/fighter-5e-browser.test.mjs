@@ -8,7 +8,12 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { CharacterLibrary } from "../dist/character-library.js";
-import { buildFighter, fighterProfile, keptTotal } from "../dist/fighter-5e.js";
+import {
+  buildFighter,
+  defaultPlacement,
+  fighterProfile,
+  keptTotal,
+} from "../dist/fighter-5e.js";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -124,37 +129,31 @@ test(
         dice,
       );
 
-      // Put the best roll on Strength using the keyboard; the two swap.
+      // The best roll starts on Strength (#163). Put Intelligence's roll
+      // there using the keyboard; the two swap.
+      const placement = { ...defaultPlacement(dice) };
       const best = dice
         .map((roll, index) => [keptTotal(roll), index])
         .sort((a, b) => b[0] - a[0] || a[1] - b[1])[0][1];
+      assert.equal(placement.strength, best);
       const strength = page.locator("#place-strength");
+      assert.equal(await strength.inputValue(), String(best));
       await strength.focus();
-      await strength.selectOption(String(best));
+      await strength.selectOption(String(placement.intelligence));
       assert.equal(
         await page
           .locator("#place-strength")
           .evaluate((node) => node === document.activeElement),
         true,
       );
-      const placement = {
-        strength: best,
-        dexterity: 1,
-        constitution: 2,
-        intelligence: 3,
-        wisdom: 4,
-        charisma: 5,
-      };
-      if (best !== 0) {
-        const displaced = Object.keys(placement).find(
-          (ability) => ability !== "strength" && placement[ability] === best,
-        );
-        placement[displaced] = 0;
-        assert.equal(
-          await page.locator(`#place-${displaced}`).inputValue(),
-          "0",
-        );
-      }
+      [placement.strength, placement.intelligence] = [
+        placement.intelligence,
+        placement.strength,
+      ];
+      assert.equal(
+        await page.locator("#place-intelligence").inputValue(),
+        String(best),
+      );
 
       // An illegal increase cannot be entered (#162). A skill error shows
       // beside the skills and blocks saving.

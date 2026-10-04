@@ -152,6 +152,39 @@ export function keptTotal(roll: AbilityRoll): number {
   return roll.reduce((sum, die) => sum + die, 0) - Math.min(...roll);
 }
 
+/**
+ * The order a fresh creation fills the abilities, highest roll first:
+ * Strength for the mace, Constitution for hit points, Dexterity for AC (the
+ * chain shirt counts up to +2) and initiative, Wisdom for Perception and
+ * Wisdom saves, then Charisma and Intelligence. `docs/character-rules.md`
+ * records it.
+ */
+export const FIGHTER_ABILITY_PRIORITY = [
+  "strength",
+  "constitution",
+  "dexterity",
+  "wisdom",
+  "charisma",
+  "intelligence",
+] as const satisfies readonly Ability[];
+
+/**
+ * The placement a fresh creation starts with: rolls sorted by kept total,
+ * highest first, go down `FIGHTER_ABILITY_PRIORITY`. Tied totals keep their
+ * roll order, so the earlier roll takes the higher-priority ability.
+ */
+export function defaultPlacement(dice: RolledDice): Placement {
+  const order = validateDice(dice)
+    .map((roll, index) => ({ total: keptTotal(roll), index }))
+    .sort((a, b) => b.total - a.total || a.index - b.index);
+  return Object.fromEntries(
+    FIGHTER_ABILITY_PRIORITY.map((ability, rank) => [
+      ability,
+      order[rank]!.index,
+    ]),
+  ) as Placement;
+}
+
 function isRoll(value: unknown): value is AbilityRoll {
   return (
     Array.isArray(value) &&

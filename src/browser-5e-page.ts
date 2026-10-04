@@ -47,7 +47,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <div class="table-wrap"><table id="ability-table"><thead><tr><th scope="col">Ability</th><th scope="col">Roll</th><th scope="col">Back&shy;ground</th><th scope="col" class="num">Score</th><th scope="col" class="num">Modi&shy;fier</th></tr></thead><tbody id="ability-rows"></tbody></table></div>
 <p id="increase-error" class="error" role="alert"></p>
 </fieldset>
-<fieldset id="skills" aria-describedby="skills-error"><legend>Two skill proficiencies</legend><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
+<fieldset id="skills" aria-describedby="skills-count skills-error"><legend>Two skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
 <label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required aria-describedby="name-error"><p id="name-error" class="error" role="alert"></p>
 <section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><p id="preview-status" class="hint"></p><div id="preview-body"></div></section>
@@ -128,7 +128,7 @@ main{max-width:860px;margin:0 auto var(--space-6);padding:0 var(--space-4)}.pane
 .list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.character-row{display:flex;gap:var(--space-2)}.list button{background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border)}.list button:hover{background:var(--color-surface-hover)}.open-character{flex:1 1 0;min-width:0;text-align:left;display:flex;flex-direction:column}.continue-adventure{flex:0 0 auto}.character-name{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.list strong{font:600 var(--text-md) var(--font-serif);overflow-wrap:anywhere}.character-stats{font-size:var(--text-xs);color:var(--color-text-muted)}.character-row .tag{color:var(--color-ink)}.character-row.defeated .open-character{background:var(--color-paper);border-style:dashed}.character-row.defeated strong,.character-row.defeated .tag{color:var(--color-text-muted)}
 .rolls{padding-left:0;list-style:none;display:grid;gap:6px;font-family:var(--font-sans)}.rolls li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.die{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);font-weight:700}.die.dropped{color:var(--color-text-muted);text-decoration:line-through;border-style:dashed}.total{font-weight:700;margin-left:6px}.roll-name{min-width:52px;font-size:var(--text-sm)}
 fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margin:0 0 14px;padding:var(--space-3);min-width:0}legend{font-weight:600;font-size:.9rem;padding:0 var(--space-1)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2) 14px}.grid label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}select,input{font:var(--text-md) var(--font-sans);padding:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);width:100%;min-width:0;margin-top:var(--space-1)}label[for=character-name]{display:block;font-weight:600;font-size:var(--text-sm)}
-.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-sm)}.checks input{width:auto;padding:0;margin-top:var(--space-1);flex:none;accent-color:var(--color-ink)}.checks small{display:block;color:var(--color-text-muted);font-weight:400}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-sm)}.checks input{width:auto;padding:0;margin-top:var(--space-1);flex:none;accent-color:var(--color-ink)}.checks small{display:block;color:var(--color-text-muted);font-weight:400}.checks input:disabled+span{color:var(--color-text-muted)}
 #preview{border-top:1px solid var(--color-line);margin-top:var(--space-4)}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:var(--space-1)}
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
 dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
@@ -625,10 +625,6 @@ async function sendMessage(event) {
 // increase's shape ("two": +2 and +1, "three": +1 to three) is kept apart.
 let increaseMode = "two";
 
-/** Which ability each roll starts on: one replaceable rule. */
-function defaultPlacement() {
-  return Object.fromEntries(library.abilities.map((ability, index) => [ability, index]));
-}
 
 /**
  * The increase on switching shape: abilities already given a bonus keep one,
@@ -643,7 +639,7 @@ function defaultIncrease(mode, current) {
 function defaultChoices() {
   increaseMode = "two";
   return {
-    placement: defaultPlacement(),
+    placement: { ...library.pendingCreation.defaultPlacement },
     increase: { strength: 2, constitution: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
@@ -784,6 +780,7 @@ function renderChoices() {
     box.checked = choices.skills.includes(skill.id);
     box.addEventListener("change", () => {
       choices.skills = library.skills.map(({ id }) => id).filter((id) => element("skill-" + id).checked);
+      limitSkills();
       refresh();
     });
     const text = make("span", skill.name);
@@ -791,6 +788,7 @@ function renderChoices() {
     label.append(box, text);
     return label;
   }));
+  limitSkills();
   element("style-fields").replaceChildren(...library.fightingStyles.map((style) => {
     const label = make("label");
     const radio = make("input");
@@ -804,6 +802,12 @@ function renderChoices() {
     label.append(radio, text);
     return label;
   }));
+}
+
+/** Two skills at most: once two are ticked the rest are disabled; the count is announced. */
+function limitSkills() {
+  for (const { id } of library.skills) element("skill-" + id).disabled = choices.skills.length >= 2 && !choices.skills.includes(id);
+  element("skills-count").textContent = choices.skills.length + " of 2 chosen";
 }
 
 /**
