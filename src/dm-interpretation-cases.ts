@@ -19,10 +19,25 @@ import { createSeededRandom } from "./random.js";
 import { resolveHistoricalBuiltIn as resolveAdventure } from "./historical-runtime.js";
 import { resolveAdventure as resolveDataAdventure } from "./runtime.js";
 import type {
+  AdventureRuntime as LegacyAdventureRuntime,
   RuntimeEvent,
   RuntimeRejection,
   RuntimeState,
-} from "./runtime-contract.js";
+  RuntimeToolResult,
+} from "./legacy-runtime-contract.js";
+
+// runDmTurn reports generic contract types. These cases run only the old
+// runtimes, so their results carry the legacy unions.
+type LegacyDmTurnResult = Omit<DmTurnResult, "state" | "toolResults"> &
+  Readonly<{
+    state: RuntimeState;
+    toolResults: readonly (Omit<DmTurnResult["toolResults"][number], "result"> &
+      Readonly<{ result: RuntimeToolResult }>)[];
+  }>;
+
+function legacyTurnResult(result: DmTurnResult): LegacyDmTurnResult {
+  return result as LegacyDmTurnResult;
+}
 
 export type DmInterpretationScoreDimension =
   | "safety"
@@ -1491,13 +1506,17 @@ function decodeArguments(
 }
 
 function prepareCase(sample: DmInterpretationCase): Readonly<{
-  runtime: ReturnType<typeof resolveDataAdventure>;
+  runtime: LegacyAdventureRuntime;
   state: RuntimeState;
   random: ReturnType<typeof createSeededRandom>;
 }> {
+  // Data adventures resolve through the registry's generic interface; their
+  // runtimes are still old ones with the legacy unions.
   const runtime =
     sample.setup.runtime === "data"
-      ? resolveDataAdventure(sample.setup.adventureId ?? "chapel")
+      ? (resolveDataAdventure(
+          sample.setup.adventureId ?? "chapel",
+        ) as LegacyAdventureRuntime)
       : resolveAdventure(sample.setup.adventureId ?? "stolen-signet");
   const random = createSeededRandom(sample.setup.seed);
   let state = runtime.createSession();
@@ -1523,10 +1542,11 @@ function prepareCase(sample: DmInterpretationCase): Readonly<{
 
 function outcomeMatches(
   expectation: DmInterpretationEngineOutcome,
-  result: DmTurnResult,
+  turnResult: DmTurnResult,
   resultIndex: number,
   diagnosticIndex: number,
 ): boolean {
+  const result = legacyTurnResult(turnResult);
   switch (expectation.kind) {
     case "none":
       return result.toolResults.length === 0 && result.diagnostics.length === 0;
@@ -1818,7 +1838,11 @@ export async function runDmInterpretationCase(
       attempts.length <= sample.budget.maxTotalAttempts &&
       modelResponses <= sample.budget.maxModelResponses,
     random: isDeepStrictEqual(randomDraws, sample.random.expectedTurnDraws),
-    state: stateMatches(sample.stateExpectation, initialState, result.state),
+    state: stateMatches(
+      sample.stateExpectation,
+      initialState,
+      legacyTurnResult(result).state,
+    ),
   };
   return {
     caseId: sample.id,

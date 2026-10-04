@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
-import type { GameToolCall } from "./game-tools.js";
+import type { GameToolCall } from "./runtime-contract.js";
 import type { SaveSession } from "./save.js";
 import {
   offeredTalkApproaches,

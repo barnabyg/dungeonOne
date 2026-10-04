@@ -16,7 +16,6 @@ import { startableCharacterAdventures } from "./browser-releases.js";
 import { SaveSession } from "./save.js";
 import { acquireFileLock } from "./file-lock.js";
 import { characterProfile, validateCharacter } from "./character-rules.js";
-import type { ClueState } from "./chapel-clues-runtime.js";
 
 export function matchesCareerSession(
   entry: CareerSession,
@@ -238,7 +237,7 @@ export class CharacterCareer {
         "Character library association is missing. Restore the original library before career continuation.",
       );
     }
-    const state = session.state as ClueState;
+    const state = session.state;
     if (existing.status !== "playing") {
       return;
     }
@@ -266,10 +265,12 @@ export class CharacterCareer {
         return;
       }
       const outcome = state.status === "quit" ? "abandoned" : state.status;
-      const result =
-        state.status === "victory"
-          ? validateCharacter(state.characterResult)
-          : validateCharacter({ ...record.sheet, hp: state.fighter.hp });
+      if (session.runtime.projectCharacterResult === undefined) {
+        throw new Error("Career sessions require a character runtime.");
+      }
+      const result = validateCharacter(
+        session.runtime.projectCharacterResult(state, record.sheet),
+      );
       const receiptId = createHash("sha256")
         .update(
           `${entry.id}:${session.generation}:${session.progress.stateDigest}`,

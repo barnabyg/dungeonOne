@@ -40,16 +40,17 @@ import {
   OPENAI_DM_DEFAULT_MODEL,
 } from "./openai-dm-model.js";
 import { createDataRuntime } from "./data-runtime.js";
-import type { CharacterStatus, DmScene } from "./game-tools.js";
 import {
   browserInformation,
   type BrowserInformation,
 } from "./browser-information.js";
 import type {
   AdventureRuntime,
+  CharacterStatus,
+  DmScene,
+  GameToolCall,
   RuntimeToolResult,
 } from "./runtime-contract.js";
-import type { GameToolCall } from "./game-tools.js";
 import {
   browserTranscript,
   type BrowserTurn,
@@ -332,8 +333,14 @@ function resultCard(
             `Travelled to ${session.runtime.projectDmScene(result.state).room.name}.`,
             session.runtime.renderResult({
               state: result.state,
+              // The travel line above replaces the runtime's own move text.
               events: events.filter(
-                (event) => event.type !== "clue" || event.operation !== "move",
+                (event) =>
+                  !(
+                    event.type === "clue" &&
+                    "operation" in event &&
+                    event.operation === "move"
+                  ),
               ),
             }),
           ]

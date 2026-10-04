@@ -1,16 +1,15 @@
 import { stripVTControlCharacters } from "node:util";
 
-import {
-  type projectCharacterStatus,
-  type projectDmScene,
-  type GameToolCall,
-  type GameToolDefinition,
-  type GameToolName,
-} from "./game-tools.js";
-import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
+import { resolveAdventure } from "./runtime.js";
 import type { RandomSource } from "./random.js";
-import type { DmHistory } from "./dm-history.js";
 import type {
+  AdventureRuntime,
+  CharacterStatus,
+  DmHistory,
+  DmScene,
+  GameToolCall,
+  GameToolDefinition,
+  GameToolName,
   RuntimeState as SessionState,
   RuntimeToolResult as GameToolDispatchResult,
 } from "./runtime-contract.js";
@@ -62,8 +61,8 @@ type DmRouteModelRequest = Readonly<{
   systemPrompt: string;
   playerInput: string;
   transcript: readonly DmTranscriptEntry[];
-  scene: ReturnType<typeof projectDmScene>;
-  characterStatus: ReturnType<typeof projectCharacterStatus>;
+  scene: DmScene;
+  characterStatus: CharacterStatus;
   history?: DmHistory | undefined;
   tools: readonly GameToolDefinition[];
   toolResults: readonly Readonly<{

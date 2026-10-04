@@ -80,10 +80,10 @@ import type {
   RuntimeResult,
   RuntimeState,
   RuntimeToolResult,
-} from "./runtime-contract.js";
+} from "./legacy-runtime-contract.js";
 import type { Action } from "./session.js";
 import type { DmScene } from "./game-tools.js";
-export type { AdventureRuntime } from "./runtime-contract.js";
+export type { AdventureRuntime } from "./legacy-runtime-contract.js";
 
 export const LEGACY_RULES_VERSION = "stolen-signet-rules-v1";
 export const LEGACY_ADVENTURE_VERSION = "1";

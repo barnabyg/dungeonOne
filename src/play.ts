@@ -2,10 +2,10 @@ import { runDmTurn, type DmModel, type DmTranscriptEntry } from "./dm-turn.js";
 import { resolve } from "node:path";
 import { RANDOM_ALGORITHM, createSeededRandom } from "./random.js";
 import type {
+  RuntimeAction as Action,
   RuntimeResult as ActionResult,
   RuntimeState,
 } from "./runtime-contract.js";
-import type { Action } from "./session.js";
 import { SaveSession } from "./save.js";
 import { prepareTraceContinuation } from "./replay.js";
 import { resolveAdventure, type AdventureRuntime } from "./runtime.js";

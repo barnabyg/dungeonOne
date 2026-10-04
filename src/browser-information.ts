@@ -24,6 +24,7 @@ export function browserInformation(session: SaveSession): BrowserInformation {
     ChapelCluesDefinition | undefined;
   const scene = session.runtime.projectDmScene(session.state);
   const state = session.state;
+  const facts = session.runtime.projectBrowserFacts?.(state);
   const profile =
     session.runtime.startingCharacter === undefined
       ? definition?.combatProfile
@@ -41,8 +42,8 @@ export function browserInformation(session: SaveSession): BrowserInformation {
       ? scene.combat.opponentId
       : undefined;
   const opponent =
-    opponentId && "runtimeKind" in state && state.runtimeKind === "chapel-clues"
-      ? (state.monsters?.[opponentId] ?? state.npcHealth?.[opponentId])
+    opponentId && facts !== undefined
+      ? (facts.monsterHealth[opponentId] ?? facts.npcHealth[opponentId])
       : undefined;
   // The clock cap is a storage bound, not the public caravan deadline.
   const sceneDescription = scene.room.description.replace(
@@ -96,10 +97,7 @@ export function browserInformation(session: SaveSession): BrowserInformation {
                       "Find out whether the beacon's aim was changed: examine the setting plate in the Signal Records Room, or the camp survey and the sighting frame at the Refugee Overlook.",
                     ),
                   ];
-    const ionaAlive =
-      "runtimeKind" in state &&
-      state.runtimeKind === "chapel-clues" &&
-      state.npcHealth?.iona?.hp !== 0;
+    const ionaAlive = facts !== undefined && facts.npcHealth.iona?.hp !== 0;
     if (
       scene.outcome === "playing" &&
       scene.combat === undefined &&
@@ -139,9 +137,9 @@ export function browserInformation(session: SaveSession): BrowserInformation {
     // Only spent player resources and currently visible relationships are
     // projected. Unseen room items and off-scene actor state stay private.
     spentItems:
-      "runtimeKind" in state && state.runtimeKind === "chapel-clues"
+      facts !== undefined
         ? (definition?.items ?? [])
-            .filter(({ id }) => state.items?.[id] === "consumed")
+            .filter(({ id }) => facts.consumedItemIds.includes(id))
             .map(({ name }) => name + " — spent; no longer carried.")
         : [],
     relationships: (scene.room.npcs ?? [])

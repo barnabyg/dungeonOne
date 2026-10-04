@@ -1,9 +1,5 @@
-import type {
-  CharacterSheet,
-  Ability,
-  characterProfile,
-  TreasureItem,
-} from "./character-rules.js";
+// The Hollow Beacon (Stolen Signet) tool adapter: an old runtime, removed by #139.
+// The generic tool and scene types live in runtime-contract.ts.
 import {
   ADVENTURE,
   type DoorId,
@@ -12,14 +8,16 @@ import {
   type OpponentId,
   type RoomId,
 } from "./adventure.js";
-import type {
-  ChapelCombatantId,
-  ChapelJournal,
-  ChapelHostileCombatantId,
-  ChapelOpponentCombatantId,
-} from "./chapel.js";
 import type { RandomSource } from "./random.js";
-import type { ClueJournal } from "./chapel-clues-runtime.js";
+import type {
+  CharacterStatus,
+  DmInspection,
+  DmScene,
+  GameToolCall,
+  GameToolDefinition,
+  GameToolName,
+  ToolValidationErrorCode,
+} from "./runtime-contract.js";
 import {
   handleGameAction,
   type Event,
@@ -28,200 +26,19 @@ import {
   type Rejection,
   type SessionState,
 } from "./session.js";
+export type {
+  CharacterStatus,
+  DmInspection,
+  DmScene,
+  GameToolCall,
+  GameToolDefinition,
+  GameToolName,
+  ToolValidationErrorCode,
+} from "./runtime-contract.js";
 
 export const GAME_TOOL_SCHEMA_VERSION = "stolen-signet-tools-v1";
 
-export type DmScene = Readonly<{
-  title: string;
-  objective: string;
-  outcome: SessionState["status"];
-  room: Readonly<{
-    id: string;
-    name: string;
-    description: string;
-    features: readonly Readonly<{
-      id: string;
-      name: string;
-      description: string;
-    }>[];
-    items: readonly Readonly<{
-      id: string;
-      name: string;
-      description: string;
-      placement: Readonly<{
-        featureId: string;
-        description: string;
-      }>;
-    }>[];
-    opponents: readonly Readonly<{
-      id: string;
-      name: string;
-      condition: "living" | "defeated";
-    }>[];
-    npcs?: readonly Readonly<{
-      id: string;
-      name: string;
-      condition: "living" | "dead";
-      description?: string;
-      subjects: readonly Readonly<{
-        id: string;
-        name: string;
-        intent?: "claim" | "correction";
-        stakes?: string;
-      }>[];
-    }>[];
-    exits: readonly Readonly<{
-      destinationId: string;
-      name: string;
-      doorway?: Readonly<{
-        doorId: string;
-        name: string;
-        open: boolean;
-      }>;
-    }>[];
-  }>;
-  combat?: Readonly<
-    | { opponentId: string; currentTurn: string }
-    | {
-        opponentCombatantId: ChapelHostileCombatantId;
-        currentTurn: ChapelCombatantId;
-      }
-  >;
-  journal?: ChapelJournal | ClueJournal;
-  suggestions?: readonly string[];
-  combatChoices?: readonly Readonly<{
-    featureId: string;
-    label: string;
-    stakes: string;
-  }>[];
-  recoveryChoices?: readonly Readonly<{
-    featureId: string;
-    label: string;
-    stakes: string;
-  }>[];
-  itemUseChoices?: readonly Readonly<{
-    itemId: string;
-    featureId: string;
-    label: string;
-    stakes: string;
-  }>[];
-  combatStatus?: string;
-  endingChoices?: readonly Readonly<{
-    id: string;
-    label: string;
-    stakes: string;
-  }>[];
-}>;
-
-export type CharacterStatus = Readonly<{
-  sheet?: CharacterSheet;
-  pendingXp?: number;
-  /** Treasure found this adventure; only for characters who can keep it. */
-  pendingTreasure?: Readonly<{
-    silver: number;
-    items: readonly TreasureItem[];
-  }>;
-  modifiers?: Readonly<Record<Ability, number>>;
-  profile?: ReturnType<typeof characterProfile>;
-  hp: number;
-  maxHp: number;
-  equipment: readonly Readonly<{ id: string; name: string }>[];
-  collectedItems: readonly Readonly<{
-    id: string;
-    name: string;
-    description?: string;
-  }>[];
-  outcome: SessionState["status"];
-  combatTurn?: string;
-  conditions?: readonly string[];
-  resources?: readonly string[];
-}>;
-
 type JsonSchema = Readonly<Record<string, unknown>>;
-
-export type GameToolDefinition = Readonly<{
-  type: "function";
-  name: GameToolName;
-  description: string;
-  strict: true;
-  parameters: JsonSchema;
-}>;
-
-export type GameToolName =
-  | "check_ability"
-  | "look"
-  | "move"
-  | "follow"
-  | "inspect"
-  | "search"
-  | "examine"
-  | "talk"
-  | "open"
-  | "take"
-  | "place_item"
-  | "use_item"
-  | "recover"
-  | "brace"
-  | "attack"
-  | "resolve_quest"
-  | "wait"
-  | "adjudicate"
-  | "distract"
-  | "deceive"
-  | "offer"
-  | "leave"
-  | "get_journal"
-  | "get_character_status";
-
-export type GameToolCall = Readonly<{
-  name: string;
-  argumentsJson: string;
-}>;
-
-export type DmInspection = Readonly<
-  | {
-      type: "feature";
-      id: string;
-      name: string;
-      description: string;
-    }
-  | {
-      type: "item";
-      id: ItemId;
-      name: string;
-      description: string;
-    }
-  | {
-      type: "opponent";
-      id: OpponentId | ChapelOpponentCombatantId;
-      name: string;
-      description: string;
-      condition: "living" | "defeated";
-    }
-  | {
-      type: "door";
-      id: DoorId;
-      name: string;
-      description: string;
-      open: boolean;
-    }
-  | {
-      type: "named_exit";
-      destinationId: string;
-      name: string;
-      doorway?: Readonly<{
-        doorId: DoorId;
-        name: string;
-        open: boolean;
-      }>;
-    }
->;
-
-export type ToolValidationErrorCode =
-  | "unknown-tool"
-  | "malformed-json"
-  | "invalid-arguments"
-  | "unavailable-reference";
 
 type ReferenceValidationError = "invalid-arguments" | "unavailable-reference";
 

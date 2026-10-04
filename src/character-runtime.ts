@@ -1,4 +1,5 @@
 import { createChapelCluesRuntime } from "./chapel-clues-runtime.js";
+import { projectClueSessionHistory } from "./chapel-clues-records.js";
 import {
   offeredTalkApproaches,
   type ChapelCluesDefinition,
@@ -9,7 +10,7 @@ import type {
   RuntimeState,
   RuntimeResult,
   RuntimeToolResult,
-} from "./runtime-contract.js";
+} from "./legacy-runtime-contract.js";
 import type { ClueState } from "./chapel-clues-runtime.js";
 import type { GameToolDefinition } from "./game-tools.js";
 import type { RandomSource } from "./random.js";
@@ -563,6 +564,14 @@ export function createCharacterRuntime(
       : legacy.readToolNames,
     commandTraceFormatVersion: 6,
     dmTraceFormatVersion: 6,
+    projectDmHistory: (state, transitions, speakerId) =>
+      projectClueSessionHistory(runtime, state, transitions, speakerId),
+    projectCharacterResult: (state, startingSheet) => {
+      const current = stateOf(state);
+      return current.status === "victory"
+        ? current.characterResult
+        : { ...startingSheet, hp: current.fighter.hp };
+    },
     createSession: () => {
       const session = stateOf(legacy.createSession());
       return {

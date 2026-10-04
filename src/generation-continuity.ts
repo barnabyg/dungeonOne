@@ -5,7 +5,7 @@ import type {
   ValidatedAdventure,
 } from "./adventure-loader.js";
 import type { ClueState } from "./chapel-clues-runtime.js";
-import { createDataRuntime } from "./data-runtime.js";
+import { createLegacyDataRuntime as createDataRuntime } from "./data-runtime.js";
 import type { RouteEvidence, RouteWitness } from "./generation-routes.js";
 import { createSeededRandom } from "./random.js";
 

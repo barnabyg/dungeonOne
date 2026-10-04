@@ -24,6 +24,14 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   promised until the owner declares a stable release.
 - **Rules.** The [rules document](docs/character-rules.md) records the 5e rules
   in use, the house rules and each positional rule left out.
+- **Runtime interface.** Saves, traces and replay, the AI DM turn loop and its
+  history, the browser server and the character career use a runtime only
+  through `src/runtime-contract.ts` (create a session, project the player-safe
+  scene and status, offer tools, resolve an action, record save events).
+  `src/data-runtime.ts` is the single registry that selects a runtime, and an
+  ESLint rule stops shared modules from importing a pre-5e game module, so the
+  5e runtime plugs in beside the old ones and #139 deletes them without
+  touching shared code.
 
 **Removal pending (#139).** Hollow Beacon, Stonebridge, the browser's `--legacy`
 single save slot, the CLI command-mode adventures (the chapel, the Stolen Signet,
@@ -1221,8 +1229,9 @@ remain terminal-only actions, so existing format-1 traces require no new fields.
 
 **Removal pending (#139):** this section describes the pre-5e game.
 
-Programmatic DM callers use `src/game-tools.ts`; this capability does not call a
-model or require credentials. `projectDmScene` returns the public title and
+Programmatic DM callers use `src/game-tools.ts`, the Stolen Signet tool adapter;
+the tool and scene types themselves live in `src/runtime-contract.ts`. This
+capability does not call a model or require credentials. `projectDmScene` returns the public title and
 objective plus only the current room's visible features, items, opponents,
 exits, door states, outcome, and active combat turn. `projectCharacterStatus`
 separately returns exact HP, equipment, collected items, outcome, and any active
