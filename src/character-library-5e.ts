@@ -1,0 +1,294 @@
+/**
+ * The 5e character library (format version 2).
+ *
+ * It holds saved 5e Fighters and at most one pending creation: the dice of a
+ * Fighter being created. The dice are written before anyone sees them and are
+ * returned unchanged until a character is saved from them, so reloading,
+ * restarting or backing out of creation never rolls again (ADR 0005).
+ *
+ * A library in any other format version is refused with a message naming the
+ * file, and left untouched.
+ */
+import { createHash, randomBytes } from "node:crypto";
+import { mkdir, readFile } from "node:fs/promises";
+import { dirname } from "node:path";
+import { writeFileAtomically } from "./atomic-file.js";
+import { parseBoundedJson } from "./bounded-json.js";
+import { acquireFileLock } from "./file-lock.js";
+import {
+  ABILITIES,
+  buildFighter,
+  fighterProfile,
+  rollAbilitySet,
+  validateDice,
+  validateFighter,
+  type FighterChoices,
+  type FighterSheet,
+  type RolledDice,
+} from "./fighter-5e.js";
+import { createSeededRandom } from "./random.js";
+
+export const FIFTH_LIBRARY_FORMAT = 2;
+const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
+const MAX_CHARACTERS = 1000;
+
+export type PendingCreation = Readonly<{
+  /** Which creation this is in the library, counting from 1. */
+  number: number;
+  dice: RolledDice;
+}>;
+
+export type FifthCharacterRecord = Readonly<{
+  sheet: FighterSheet;
+  revision: number;
+}>;
+
+export type FifthLibraryData = {
+  kind: "dungeon-one-characters";
+  formatVersion: typeof FIFTH_LIBRARY_FORMAT;
+  revision: string;
+  creationsStarted: number;
+  pendingCreation?: PendingCreation;
+  characters: FifthCharacterRecord[];
+};
+
+function missing(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
+
+function moveAside(path: string, found: string): Error {
+  return new Error(
+    `${path} is ${found}. This build creates 5e characters and cannot read it. Move it aside, or choose another --characters path; the file has not been changed.`,
+  );
+}
+
+/** The multiset of rolls, so placement order does not matter. */
+function rollKey(dice: RolledDice): string {
+  return JSON.stringify(dice.map((roll) => roll.join(",")).sort());
+}
+
+export class FifthCharacterLibrary {
+  /**
+   * @param seed The browser's startup seed. Each creation's dice come from
+   *   their own stream of it, numbered by the library's creation count.
+   */
+  constructor(
+    readonly path: string,
+    readonly seed: number,
+  ) {}
+
+  async read(): Promise<FifthLibraryData> {
+    let bytes: Buffer;
+    try {
+      bytes = await readFile(this.path);
+    } catch (error) {
+      if (missing(error)) {
+        return {
+          kind: "dungeon-one-characters",
+          formatVersion: FIFTH_LIBRARY_FORMAT,
+          revision: "0".repeat(32),
+          creationsStarted: 0,
+          characters: [],
+        };
+      }
+      throw error;
+    }
+    let data: unknown;
+    try {
+      data = parseBoundedJson(bytes, MAX_LIBRARY_BYTES, 48);
+    } catch {
+      throw new Error(`Invalid character library ${this.path}.`);
+    }
+    if (
+      data === null ||
+      typeof data !== "object" ||
+      Array.isArray(data) ||
+      !("kind" in data) ||
+      data.kind !== "dungeon-one-characters"
+    ) {
+      throw new Error(`Invalid character library ${this.path}.`);
+    }
+    const library = data as FifthLibraryData;
+    const version = library.formatVersion as unknown;
+    if (version === 1) {
+      throw moveAside(
+        this.path,
+        "a pre-5e character library (format version 1)",
+      );
+    }
+    if (version !== FIFTH_LIBRARY_FORMAT) {
+      throw moveAside(
+        this.path,
+        `a character library in format version ${String(version)}, not ${FIFTH_LIBRARY_FORMAT}`,
+      );
+    }
+    const keys = Object.keys(library).sort().join(",");
+    if (
+      (keys !== "characters,creationsStarted,formatVersion,kind,revision" &&
+        keys !==
+          "characters,creationsStarted,formatVersion,kind,pendingCreation,revision") ||
+      !/^[a-f0-9]{32}$/.test(library.revision) ||
+      !Number.isSafeInteger(library.creationsStarted) ||
+      library.creationsStarted < 0 ||
+      !Array.isArray(library.characters) ||
+      library.characters.length > MAX_CHARACTERS
+    ) {
+      throw new Error(`Invalid character library ${this.path}.`);
+    }
+    const pending = library.pendingCreation;
+    if (pending !== undefined) {
+      if (
+        pending === null ||
+        typeof pending !== "object" ||
+        Object.keys(pending).sort().join(",") !== "dice,number" ||
+        pending.number !== library.creationsStarted
+      ) {
+        throw new Error("Invalid pending character creation.");
+      }
+      validateDice(pending.dice);
+    }
+    const ids = new Set<string>();
+    library.characters = library.characters.map((record) => {
+      if (
+        record === null ||
+        typeof record !== "object" ||
+        Object.keys(record).sort().join(",") !== "revision,sheet" ||
+        !Number.isSafeInteger(record.revision) ||
+        record.revision < 1
+      ) {
+        throw new Error("Invalid character record.");
+      }
+      const sheet = validateFighter(record.sheet);
+      if (ids.has(sheet.id)) {
+        throw new Error("Invalid character record: duplicate identity.");
+      }
+      ids.add(sheet.id);
+      return { sheet, revision: record.revision };
+    });
+    return library;
+  }
+
+  /**
+   * Applies `change` under the library's file lock and publishes it. With a
+   * `revision`, the change fails unless the library is still at it. A change
+   * returning false writes nothing.
+   */
+  private async update(
+    revision: string | undefined,
+    change: (data: FifthLibraryData) => boolean | void,
+  ): Promise<FifthLibraryData> {
+    await mkdir(dirname(this.path), { recursive: true });
+    const release = await acquireFileLock(this.path);
+    try {
+      const data = await this.read();
+      if (revision !== undefined && data.revision !== revision) {
+        throw new Error(
+          "Character library request is stale; refresh before retrying.",
+        );
+      }
+      if (change(data) === false) {
+        return data;
+      }
+      data.revision = randomBytes(16).toString("hex");
+      const bytes = `${JSON.stringify(data)}\n`;
+      if (Buffer.byteLength(bytes) > MAX_LIBRARY_BYTES) {
+        throw new Error(
+          "Character library byte limit reached; no change was saved.",
+        );
+      }
+      await writeFileAtomically(this.path, bytes);
+      return data;
+    } finally {
+      await release();
+    }
+  }
+
+  /**
+   * Returns the pending creation, rolling and saving one first if there is
+   * none. While a creation is pending, every call returns the same dice.
+   */
+  async startCreation(): Promise<
+    FifthLibraryData & { pendingCreation: PendingCreation }
+  > {
+    const data = await this.update(undefined, (library) => {
+      if (library.pendingCreation !== undefined) {
+        return false;
+      }
+      const number = library.creationsStarted + 1;
+      const stream = createHash("sha256")
+        .update(`5e-ability-rolls:${this.seed}:${number}`)
+        .digest()
+        .readUInt32LE(0);
+      library.creationsStarted = number;
+      library.pendingCreation = {
+        number,
+        dice: rollAbilitySet(createSeededRandom(stream)),
+      };
+      return true;
+    });
+    return data as FifthLibraryData & { pendingCreation: PendingCreation };
+  }
+
+  /** Saves a level 1 Fighter from the pending dice and the player's choices. */
+  async create(
+    name: string,
+    choices: FighterChoices,
+    revision: string,
+  ): Promise<FifthLibraryData> {
+    return this.update(revision, (data) => {
+      const pending = this.pending(data);
+      this.add(
+        data,
+        buildFighter(
+          randomBytes(16).toString("hex"),
+          name,
+          pending.dice,
+          choices,
+        ),
+      );
+    });
+  }
+
+  /**
+   * Saves a complete new sheet. It must be level 1 with 0 XP at full health,
+   * made from exactly the pending creation's dice.
+   */
+  async save(sheet: unknown, revision: string): Promise<FifthLibraryData> {
+    return this.update(revision, (data) => {
+      this.add(data, sheet);
+    });
+  }
+
+  private pending(data: FifthLibraryData): PendingCreation {
+    if (data.pendingCreation === undefined) {
+      throw new Error(
+        "There is no pending creation; start creating a character first.",
+      );
+    }
+    return data.pendingCreation;
+  }
+
+  private add(data: FifthLibraryData, value: unknown): void {
+    const sheet = validateFighter(value);
+    if (sheet.level !== 1 || sheet.xp !== 0) {
+      throw new Error("New characters start at level 1 with 0 XP.");
+    }
+    if (sheet.hp !== fighterProfile(sheet).maxHp) {
+      throw new Error("New characters start at full health.");
+    }
+    const dice = ABILITIES.map((ability) => sheet.abilityRolls[ability]);
+    if (rollKey(dice) !== rollKey(this.pending(data).dice)) {
+      throw new Error(
+        "A new character must use exactly the pending creation's dice.",
+      );
+    }
+    if (data.characters.length >= MAX_CHARACTERS) {
+      throw new Error("Character library is full.");
+    }
+    if (data.characters.some((record) => record.sheet.id === sheet.id)) {
+      throw new Error("A character with this identity already exists.");
+    }
+    data.characters.push({ sheet, revision: 1 });
+    delete data.pendingCreation;
+  }
+}

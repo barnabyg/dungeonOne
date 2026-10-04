@@ -15,13 +15,23 @@ dungeon-crawl adventure module, then removes the pre-5e game.
 
 - **Transition flag.** Until 5e becomes the browser's only mode (#137), 5e play
   is reached by launching the browser with a temporary `--5e` flag and its own
-  `--characters` library path. The flag arrives with #127. The default browser
-  keeps running the pre-5e game, so `main` stays playable.
+  `--characters` library path. The default browser keeps running the pre-5e
+  game, so `main` stays playable.
 - **Throwaway formats.** While 5e is in development, character library, save,
   trace and adventure module files each carry one format version. A change bumps
   it, and older files are refused with a message naming the file and asking you
   to move it aside. Nothing is migrated or deleted, and no compatibility is
   promised until the owner declares a stable release.
+- **Creating a 5e Fighter.** Launch with
+  `npm.cmd run browser -- --5e --seed 0 --characters .\.scratch\5e\characters.json`
+  (the default library is `characters-5e.json`; no OpenAI key is needed yet).
+  Choose **Create a Fighter**: the six 4d6-drop-lowest rolls are saved to the
+  library before they are shown, so reloading, restarting or leaving the screen
+  shows the same dice. Place them on any abilities, choose the background
+  increase, two skills and a Fighting Style, check the derived numbers and save.
+  Saved Fighters open as character sheets. Adventures are not playable under
+  `--5e` yet (#128). The 5e library is format version 2; a pre-5e library is
+  refused at startup and left unchanged.
 - **Rules.** The [rules document](docs/character-rules.md) records the 5e rules
   in use, the house rules and each positional rule left out.
 - **Runtime interface.** Saves, traces and replay, the AI DM turn loop and its

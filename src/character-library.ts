@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { acquireFileLock } from "./file-lock.js";
-import { mkdir, readFile, rename, unlink, open } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
+import { writeFileAtomically } from "./atomic-file.js";
 import { dirname } from "node:path";
 import {
   createCharacter,
@@ -225,17 +226,7 @@ export class CharacterLibrary {
           "Character library byte limit reached; no change was saved.",
         );
       }
-      const temporary = `${this.path}.${randomBytes(8).toString("hex")}.tmp`;
-      const file = await open(temporary, "wx");
-      try {
-        await file.writeFile(bytes);
-        await file.sync();
-        await file.close();
-        await rename(temporary, this.path);
-      } finally {
-        await file.close().catch(() => undefined);
-        await unlink(temporary).catch(() => undefined);
-      }
+      await writeFileAtomically(this.path, bytes);
       return data;
     } finally {
       await release();

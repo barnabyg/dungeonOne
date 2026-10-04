@@ -20,11 +20,7 @@ import {
 } from "./character-rules.js";
 import { createSeededRandom } from "./random.js";
 import type { ChapelCluesDefinition } from "./adventure-loader.js";
-import {
-  createServer,
-  type IncomingMessage,
-  type ServerResponse,
-} from "node:http";
+import { createServer, type IncomingMessage } from "node:http";
 import { isDeepStrictEqual } from "node:util";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdir, rename, unlink } from "node:fs/promises";
@@ -64,6 +60,12 @@ import {
 } from "./browser-releases.js";
 import { BROWSER_HTML, BROWSER_CSS, BROWSER_SCRIPT } from "./browser-page.js";
 import {
+  json,
+  readBody,
+  rejectForeignRequest,
+  respond,
+} from "./browser-http.js";
+import {
   artworkForLocation,
   loadBrowserArtwork,
   type BrowserArtwork,
@@ -92,20 +94,6 @@ export type BrowserOptions = Readonly<{
   strongerHintPreparer?: HintPreparer;
   artworkPath?: string;
 }>;
-
-async function readBody(request: IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of request) {
-    const bytes = Buffer.from(chunk as Uint8Array);
-    size += bytes.length;
-    if (size > 8192) {
-      throw new Error("Request too large.");
-    }
-    chunks.push(bytes);
-  }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
-}
 
 async function readPlayerInput(
   request: IncomingMessage,
@@ -804,45 +792,12 @@ export async function startBrowserServer(options: BrowserOptions) {
   };
 
   let url = "";
-  const respond = (
-    response: ServerResponse,
-    status: number,
-    type: string,
-    body: string,
-  ) => {
-    response.writeHead(status, {
-      "Content-Type": type,
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-      "Content-Security-Policy":
-        "default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-      "Referrer-Policy": "no-referrer",
-    });
-    response.end(body);
-  };
-  const json = (response: ServerResponse, status: number, value: unknown) =>
-    respond(
-      response,
-      status,
-      "application/json; charset=utf-8",
-      JSON.stringify(value),
-    );
   const server = createServer((request, response) => {
     void (async () => {
-      // Exact Host plus Origin checks also prevent DNS rebinding and cross-site starts.
-      if (request.headers.host !== new URL(url).host) {
-        json(response, 403, { error: "Unrelated host rejected." });
+      if (rejectForeignRequest(request, response, url)) {
         return;
       }
       if (request.method === "POST") {
-        if (
-          request.headers.origin !== url ||
-          (request.headers["sec-fetch-site"] !== undefined &&
-            request.headers["sec-fetch-site"] !== "same-origin")
-        ) {
-          json(response, 403, { error: "Unrelated origin rejected." });
-          return;
-        }
         if (request.url?.startsWith("/api/characters/")) {
           if (career === undefined) {
             json(response, 404, { error: "Character library is not enabled." });

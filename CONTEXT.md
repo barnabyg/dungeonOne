@@ -20,6 +20,10 @@ _Avoid_: Player sheet, Combat profile
 The player's collection of independently saved characters, including characters not currently taking part in an adventure.
 _Avoid_: Save slots, Party
 
+**Pending creation**:
+The six 4d6-drop-lowest ability rolls of a character being created, saved in the character library before the player sees them. They stay the same until a character is saved from them; there are no rerolls.
+_Avoid_: Roll (when the saved set is meant), Draft character
+
 **Character level**:
 The stage of a character's advancement that determines its supported class capabilities.
 _Avoid_: Content version, Story milestone, Hint level

@@ -8,6 +8,42 @@ This work includes material from the System Reference Document 5.2 ("SRD 5.2") b
 
 Ability modifiers, proficiency bonus, saving throws, skills, advantage and disadvantage, action, bonus action and reaction, the 5e XP table and SRD 5.2 stat blocks. Feats beyond the level-4 Ability Score Improvement, multiclassing, species and backgrounds' features other than the ability increase are not used.
 
+## Creating a Fighter
+
+Every character is a Fighter created at level 1 with 0 XP, using the fixed kit below. The library refuses any new sheet at another level, with XP, below full health, or not made from its pending dice.
+
+**Ability scores.** The engine rolls 4d6 six times from a seeded stream of its own: SHA-256 of the browser's startup seed and the library's creation number and drops the lowest die of each roll. The six rolls are saved in the character library as a pending creation before the player sees them, and every die, including each dropped one, is shown. While the creation is pending, reloading the page, restarting the server (with any seed) or leaving the creation screen shows the same dice; there are no rerolls and no minimum set. The player places the six results on the six abilities in any order. Saving a character spends its dice; the next creation rolls a new set. Deleting a character and starting again is allowed, but deletion is not built yet.
+
+**Background increase.** After placement the player adds +2 to one ability and +1 to another, or +1 to three. No score can exceed 20. Backgrounds' other features are not used. Placement and the increase can change until the character is saved; the dice cannot.
+
+**Modifiers.** (score − 10) / 2, rounded down: 3 is −4, 8–9 are −1, 10–11 are +0, 12–13 are +1, 18–19 are +4, 20 is +5.
+
+**Kit.** A chain shirt (AC 13 + Dexterity modifier, at most +2), a shield (+2 AC) and a mace (1d6 bludgeoning, Sap mastery). This is common-tier gear, deliberately weaker than the 2024 Fighter's chain mail and greatsword. Kit choice comes in increment 12.
+
+## The Fighter, levels 1–3
+
+| Level | XP  | Proficiency bonus | HP                 | Features                                        |
+| ----- | --- | ----------------- | ------------------ | ----------------------------------------------- |
+| 1     | 0   | +2                | 10 + Con modifier  | Fighting Style, Second Wind, Weapon Mastery     |
+| 2     | 300 | +2                | + 6 + Con modifier | Action Surge (1 use), Tactical Mind             |
+| 3     | 900 | +2                | + 6 + Con modifier | Champion: Improved Critical, Remarkable Athlete |
+
+Level 3 is the highest supported level; XP above 900 is kept.
+
+- **Armour class:** 15 + Dexterity modifier (at most +2), so 15–17 with Dexterity 10 or more and lower with less; +1 with the Defense style.
+- **Initiative:** Dexterity modifier.
+- **Mace attack:** Strength modifier + proficiency bonus to hit; 1d6 + Strength modifier bludgeoning damage. A critical hit needs a 20, or 19–20 from level 3.
+- **Saving throws:** proficient in Strength and Constitution; the others use the ability modifier alone.
+- **Skills:** two of Acrobatics, Animal Handling, Athletics, History, Insight, Intimidation, Perception, Persuasion and Survival.
+- **Fighting Style:** Defense (+1 AC in armour), Great Weapon Fighting or Two-Weapon Fighting. Archery is left out because ranged weapons are deferred. Great Weapon Fighting and Two-Weapon Fighting have no effect with a mace and shield, and the creation screen says so.
+- **Second Wind:** a bonus action to regain 1d10 + Fighter level HP; 2 uses, one regained on a short rest and all on a long rest.
+- **Weapon Mastery:** the 2024 Fighter masters three kinds of weapon. The mace is the only weapon in the game, so its Sap is the only mastery used for now: a creature it hits has disadvantage on its next attack roll before the start of your next turn. Of the SRD masteries, Graze, Nick, Sap, Topple and Vex work without positions; Cleave, Push and Slow are omitted.
+- **Action Surge (level 2):** one additional action on your turn, except Magic; 1 use per short or long rest.
+- **Tactical Mind (level 2):** when you fail an ability check, you can expend a use of Second Wind to add 1d10 to it instead of healing; the use is kept if the check still fails.
+- **Champion (level 3):** Improved Critical (critical hits on 19–20) and Remarkable Athlete (advantage on initiative and Strength (Athletics) checks; its movement after a critical hit is omitted).
+
+Combat (#128) uses these numbers; until then they appear on the creation screen and the character sheet.
+
 ## House rules
 
 - A player character at 0 HP is defeated at once; there are no death saving throws.
@@ -27,6 +63,8 @@ The game has no grid or map. Each 5e rule that needs distance is listed here wit
 | Areas of effect                                        | Omitted  |
 | Ranged weapons and attacks                             | Deferred |
 | Weapon masteries that move or need range, such as Push | Omitted  |
+| Cleave, Push and Slow masteries                        | Omitted  |
+| Remarkable Athlete's movement after a critical hit     | Omitted  |
 
 Later tickets add rows when they meet another positional rule.
 
