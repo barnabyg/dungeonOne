@@ -40,6 +40,18 @@ _Avoid_: Reward XP, Drop
 A playable scenario defining its setting, encounters, challenges, rewards, and intended characters.
 _Avoid_: Character sheet, Adventure session
 
+**Room**:
+A place in an adventure module, joined to others by two-way passages. There is no map: a character is in one room at a time, and entering a room whose fight has not been won begins it.
+_Avoid_: Location (pre-5e), Square, Tile
+
+**Feature**:
+Something fixed in a room that the character can examine, such as a chest or a ledger. Examining it may make its discovery.
+_Avoid_: Object (too broad), Item (an item can be taken)
+
+**Discovery**:
+The authored fact a character learns by first examining a feature, which may reveal an item hidden in it. The engine decides it; the AI DM cannot invent one.
+_Avoid_: Clue (pre-5e), Journal entry
+
 **Adventure session**:
 One character's particular playthrough of an adventure module, with its own events, world state, and conversation history.
 _Avoid_: Character, Adventure module

@@ -138,7 +138,8 @@ export type DmScene = Readonly<{
       id: string;
       name: string;
       description: string;
-      placement: Readonly<{
+      /** Where a pre-5e item lies; 5e items are simply in the room. */
+      placement?: Readonly<{
         featureId: string;
         description: string;
       }>;

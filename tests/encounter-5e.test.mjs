@@ -752,3 +752,103 @@ test("Sap ends at the start of the sapper's next turn", () => {
     undefined,
   );
 });
+
+const potion = (id = "potion") => ({
+  id,
+  name: "Potion of Healing",
+  healing: { dice: 2, sides: 4, modifier: 2 },
+});
+
+/** Ada, hurt to `hp` and carrying potions, on her first turn. */
+function hurtWithPotions(hp, potions = [potion()]) {
+  return startEncounter(
+    [{ ...fighter, hp, potions }, goblin()],
+    dice([20, 15], [20, 3]),
+  ).state;
+}
+
+test("drinking a potion takes the bonus action and heals 2d4 + 2, up to the maximum", () => {
+  const state = hurtWithPotions(3);
+  assert.deepEqual(availableActions(state, "pc"), [
+    "attack",
+    "drink-potion",
+    "end-turn",
+  ]);
+  const random = dice([4, 1], [4, 3]);
+  const drunk = act(
+    state,
+    { type: "drink-potion", actorId: "pc", itemId: "potion" },
+    random,
+  );
+  assert.deepEqual(drunk.events, [
+    {
+      type: "potion",
+      combatantId: "pc",
+      itemId: "potion",
+      name: "Potion of Healing",
+      rolls: [1, 3],
+      modifier: 2,
+      healing: 6,
+      hpAfter: 9,
+      maxHp: 12,
+    },
+  ]);
+  const pc = drunk.state.combatants.find(({ id }) => id === "pc");
+  assert.equal(pc.hp, 9);
+  assert.deepEqual(pc.potions, []);
+  assert.equal(drunk.state.economy.bonusAction, false);
+  // The action is still there, so the turn goes on.
+  assert.equal(currentCombatant(drunk.state).id, "pc");
+
+  const capped = act(
+    hurtWithPotions(10),
+    { type: "drink-potion", actorId: "pc", itemId: "potion" },
+    dice([4, 4], [4, 4]),
+  );
+  assert.equal(capped.events[0].healing, 2);
+  assert.equal(capped.events[0].hpAfter, 12);
+});
+
+test("a potion is refused at full health, without the potion, or with the bonus action spent", () => {
+  const drink = { type: "drink-potion", actorId: "pc", itemId: "potion" };
+  const full = hurtWithPotions(12);
+  assert.ok(!availableActions(full, "pc").includes("drink-potion"));
+  assert.match(act(full, drink, dice()).rejection.reason, /unhurt/);
+  assert.match(
+    act(hurtWithPotions(3, []), drink, dice()).rejection.reason,
+    /don't have that potion/,
+  );
+  const twice = act(
+    hurtWithPotions(3, [potion("a"), potion("b")]),
+    { ...drink, itemId: "a" },
+    dice([4, 1], [4, 1]),
+  ).state;
+  assert.ok(!availableActions(twice, "pc").includes("drink-potion"));
+  assert.match(
+    act(twice, { ...drink, itemId: "b" }, dice()).rejection.reason,
+    /already used your bonus action/,
+  );
+});
+
+test("after attacking, a carried potion keeps the turn open until it is drunk", () => {
+  const attacked = act(
+    hurtWithPotions(3),
+    { type: "attack", actorId: "pc", targetId: "goblin" },
+    dice([20, 2]),
+  ).state;
+  assert.equal(currentCombatant(attacked).id, "pc");
+  assert.deepEqual(availableActions(attacked, "pc"), [
+    "drink-potion",
+    "end-turn",
+  ]);
+  // Drinking leaves nothing to do, so the goblin acts: 2 misses.
+  const random = dice([4, 2], [4, 2], [20, 2]);
+  const drunk = act(
+    attacked,
+    { type: "drink-potion", actorId: "pc", itemId: "potion" },
+    random,
+  );
+  assert.equal(random.remaining(), 0);
+  assert.equal(currentCombatant(drunk.state).id, "pc");
+  assert.equal(drunk.state.round, 2);
+});

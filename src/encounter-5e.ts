@@ -19,7 +19,8 @@
  * - Each turn has an action, a bonus action and a reaction. A party
  *   combatant's turn lasts until it ends it or nothing it could do is left:
  *   an attack takes the action, Second Wind the bonus action, and Action
- *   Surge adds an action. Nothing uses a reaction yet.
+ *   Surge adds an action. Drinking a potion takes the bonus action (SRD 5.2).
+ *   Nothing uses a reaction yet.
  * - A hit with a Sap weapon gives the target disadvantage on its next attack
  *   roll before the start of the attacker's next turn. Advantage and
  *   disadvantage come only from such engine rules, never from an action.
@@ -58,12 +59,19 @@ export type Combatant = Readonly<{
   initiativeBonus: number;
   attack: Weapon;
   /** Fighter features, with the uses left of their maximum. */
-  secondWind?: FeatureUses &
-    Readonly<{
-      healing: Readonly<{ dice: number; sides: number; modifier: number }>;
-    }>;
+  secondWind?: FeatureUses & Readonly<{ healing: Healing }>;
   actionSurge?: FeatureUses;
+  /** Healing potions the combatant carries, which it can drink. */
+  potions?: readonly Potion[];
 }>;
+
+export type Healing = Readonly<{
+  dice: number;
+  sides: number;
+  modifier: number;
+}>;
+
+export type Potion = Readonly<{ id: string; name: string; healing: Healing }>;
 
 export type FeatureUses = Readonly<{ uses: number; max: number }>;
 
@@ -117,14 +125,15 @@ export type RollMode = Readonly<{
 }>;
 
 export type EncounterActionType =
-  "attack" | "second-wind" | "action-surge" | "end-turn";
+  "attack" | "second-wind" | "action-surge" | "drink-potion" | "end-turn";
 
 export type EncounterAction =
   | Readonly<{ type: "attack"; actorId: string; targetId: string }>
   | Readonly<{
       type: "second-wind" | "action-surge" | "end-turn";
       actorId: string;
-    }>;
+    }>
+  | Readonly<{ type: "drink-potion"; actorId: string; itemId: string }>;
 
 export type AttackEvent = Readonly<{
   type: "attack";
@@ -163,9 +172,23 @@ export type EncounterEvent =
       usesLeft: number;
     }>
   | Readonly<{ type: "action-surge"; combatantId: string; usesLeft: number }>
+  | PotionEvent
   | Readonly<{ type: "turn-ended"; combatantId: string }>
   | Readonly<{ type: "defeated"; combatantId: string }>
   | Readonly<{ type: "ended"; outcome: "victory" | "defeat" }>;
+
+/** A potion drunk, in or out of a fight. */
+export type PotionEvent = Readonly<{
+  type: "potion";
+  combatantId: string;
+  itemId: string;
+  name: string;
+  rolls: readonly number[];
+  modifier: number;
+  healing: number;
+  hpAfter: number;
+  maxHp: number;
+}>;
 
 export type EncounterRejection = Readonly<{ reason: string }>;
 
@@ -256,6 +279,57 @@ function secondWindRefusal(
     : undefined;
 }
 
+/**
+ * Rolls a potion's healing for a creature at `hp` of `maxHp`, never above
+ * the maximum. Used in and out of a fight.
+ */
+export function drinkPotion(
+  combatantId: string,
+  potion: Potion,
+  hp: number,
+  maxHp: number,
+  random: Roller,
+): PotionEvent {
+  const rolls = Array.from({ length: potion.healing.dice }, () =>
+    random.roll(potion.healing.sides),
+  );
+  const hpAfter = Math.min(
+    maxHp,
+    hp + rolls.reduce((sum, value) => sum + value, 0) + potion.healing.modifier,
+  );
+  return {
+    type: "potion",
+    combatantId,
+    itemId: potion.id,
+    name: potion.name,
+    rolls,
+    modifier: potion.healing.modifier,
+    healing: hpAfter - hp,
+    hpAfter,
+    maxHp,
+  };
+}
+
+function potionRefusal(
+  state: EncounterState,
+  actor: Combatant,
+  itemId?: string,
+): string | undefined {
+  if (
+    !(actor.potions ?? []).some(
+      ({ id }) => itemId === undefined || id === itemId,
+    )
+  ) {
+    return "You don't have that potion.";
+  }
+  if (!state.economy.bonusAction) {
+    return "You have already used your bonus action this turn.";
+  }
+  return actor.hp >= actor.maxHp
+    ? "You are unhurt, so the potion would heal nothing."
+    : undefined;
+}
+
 function actionSurgeRefusal(actor: Combatant): string | undefined {
   if (actor.actionSurge === undefined) {
     return "You don't have Action Surge.";
@@ -281,6 +355,9 @@ export function availableActions(
       : []),
     ...(actionSurgeRefusal(actor) === undefined
       ? (["action-surge"] as const)
+      : []),
+    ...(potionRefusal(state, actor) === undefined
+      ? (["drink-potion"] as const)
       : []),
     "end-turn",
   ];
@@ -623,6 +700,35 @@ export function act(
             : candidate,
         ),
         economy: { ...state.economy, actions: state.economy.actions + 1 },
+      };
+      break;
+    }
+    case "drink-potion": {
+      const refusal = potionRefusal(state, actor, action.itemId);
+      if (refusal !== undefined) {
+        return reject(refusal);
+      }
+      const potion = actor.potions!.find(({ id }) => id === action.itemId)!;
+      const drunk = drinkPotion(
+        actor.id,
+        potion,
+        actor.hp,
+        actor.maxHp,
+        random,
+      );
+      events.push(drunk);
+      next = {
+        ...state,
+        combatants: state.combatants.map((candidate) =>
+          candidate.id === actor.id
+            ? {
+                ...candidate,
+                hp: drunk.hpAfter,
+                potions: actor.potions!.filter(({ id }) => id !== potion.id),
+              }
+            : candidate,
+        ),
+        economy: { ...state.economy, bonusAction: false },
       };
       break;
     }

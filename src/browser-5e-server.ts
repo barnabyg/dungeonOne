@@ -4,8 +4,9 @@
  * It serves the 5e character library: start or resume a creation, preview the
  * player's placement and choices, save a level 1 Fighter, read its sheet and
  * delete it. A saved Fighter can take on a built-in adventure module, where
- * the player fights by clicking an attack, Second Wind, Action Surge or End
- * turn, or by typing to the AI DM. Each
+ * the player explores by clicking an exit, Examine, Take or Drink, fights by
+ * clicking an attack, Second Wind, Action Surge or End turn, or types to the
+ * AI DM. Each
  * session is saved after every action and continues after a reload or a
  * restart.
  * A library in another format is refused before the server listens.
@@ -87,13 +88,12 @@ function adventureView(adventure: FifthAdventure) {
 function sessionView(session: FifthSession) {
   const { state, runtime, adventure } = session;
   const ending = adventure.endings.find(({ id }) => id === state.endingId);
-  const room = adventure.rooms.find(({ id }) => id === state.roomId)!;
   return {
     id: session.id,
     characterId: session.character.id,
     sequence: session.transitions.length,
     adventure: adventureView(adventure),
-    room: { name: room.name, description: room.description },
+    room: runtime.projectRoom(state),
     status: state.status,
     ...(ending === undefined
       ? {}
@@ -159,6 +159,13 @@ function hasExactKeys(body: Record<string, unknown>, keys: string[]): boolean {
 const CHOICE_KEYS = ["placement", "increase", "skills", "fightingStyle"];
 /** The clicked actions that take no target. */
 const CLICK_ACTIONS = ["second-wind", "action-surge", "end-turn"] as const;
+/** The clicked exploring actions, and the action each makes from its target. */
+const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
+  move: (destinationId) => ({ type: "move", destinationId }),
+  examine: (targetId) => ({ type: "examine", targetId }),
+  take: (itemId) => ({ type: "take", itemId }),
+  use: (itemId) => ({ type: "use-item", itemId }),
+};
 
 export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   if (
@@ -333,6 +340,16 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           type: body.action as (typeof CLICK_ACTIONS)[number],
           actorId: PLAYER_ID,
         });
+      case "/api/5e/session/explore":
+        if (
+          !hasExactKeys(body, ["sessionId", "sequence", "action", "target"]) ||
+          typeof body.action !== "string" ||
+          !Object.hasOwn(EXPLORE_ACTIONS, body.action) ||
+          typeof body.target !== "string"
+        ) {
+          throw new Error("Invalid exploring request.");
+        }
+        return click(body, EXPLORE_ACTIONS[body.action]!(body.target));
       case "/api/5e/session/message": {
         if (
           !hasExactKeys(body, ["sessionId", "sequence", "message"]) ||

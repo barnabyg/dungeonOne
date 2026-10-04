@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 1,
+  "formatVersion": 2,
   "id": "goblin-storeroom",
   "title": "The Goblins in the Storeroom",
   "objective": "Clear the goblin band out of the mill storeroom.",
@@ -15,9 +15,12 @@
       "id": "storeroom",
       "name": "Mill Storeroom",
       "description": "Flour sacks are slit open across the floor, and the air is white with dust. Three goblins look up from their plunder.",
-      "encounterId": "goblin-band"
+      "encounterId": "goblin-band",
+      "features": [],
+      "items": []
     }
   ],
+  "passages": [],
   "encounters": [
     {
       "id": "goblin-band",
