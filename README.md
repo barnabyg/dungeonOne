@@ -34,12 +34,25 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   keeps its dice. The 5e library is format version 3; a pre-5e library, or a
   5e library from an earlier build (format version 2), is refused at startup
   and left unchanged.
-- **Fighting in a 5e adventure.** A saved Fighter's sheet offers **Start** for
+- **Starting a 5e adventure.** A saved Fighter's sheet offers **Start** for
   each built-in 5e adventure module, with its level range and difficulty:
   _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`), one SRD 5.2
-  Goblin Warrior, and _The Goblins in the Storeroom_
+  Goblin Warrior; _The Goblins in the Storeroom_
   (`adventures/5e/goblin-storeroom.json`), a group fight against two Goblin
-  Minions and a Goblin Warrior. Starting rolls initiative for every combatant;
+  Minions and a Goblin Warrior; and _The Smugglers' Cellar_
+  (`adventures/5e/smugglers-cellar.json`), four rooms to explore with a Giant
+  Rat, a Goblin Warrior and a Potion of Healing hidden in a chest.
+- **Exploring a 5e adventure.** The room panel shows the current room, your
+  HP, its exits, its features (with any discovery you have made), the items
+  you can see and what you carry. **Go to**, **Examine**, **Take** and
+  **Drink** buttons appear only while the engine would accept them, or you
+  can type ("search the chest", "go to the alcove", "drink the potion").
+  Examining a feature makes its discovery and can reveal a hidden item. A
+  Potion of Healing restores 2d4 + 2 HP, never above your maximum; in a
+  fight it takes your bonus action. Entering a room with a fight begins it,
+  and you cannot leave, examine or take anything until it is won. HP, feature
+  uses and carried items last from fight to fight.
+- **Fighting in a 5e adventure.** Starting a fight rolls initiative for every combatant;
   the encounter panel lists each combatant in initiative order with its roll,
   hit points, AC, whether it is defeated and whose turn it is. Attack with the
   **Attack** button for each living opponent, or type to the AI Dungeon Master
@@ -53,9 +66,9 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   refused and the buttons still work. The engine rolls every die and writes
   every action's result.
   The session is saved after every action in the
-  `characters-5e-adventures` directory beside the library (format version 2),
+  `characters-5e-adventures` directory beside the library (format version 3),
   and reloading the page or restarting with the same command returns to the
-  fight exactly as it was. Victory frees the character for another adventure;
+  adventure exactly as it was. Winning the fight that ends the adventure frees the character for another adventure;
   0 HP is instant defeat, and a defeated character cannot start another. A
   character on an adventure cannot be deleted until the adventure ends.
 - **Rules.** The [rules document](docs/character-rules.md) records the 5e rules

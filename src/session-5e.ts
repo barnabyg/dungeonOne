@@ -1,5 +1,5 @@
 /**
- * A 5e adventure session and its save file (format version 2).
+ * A 5e adventure session and its save file (format version 3).
  *
  * The save holds the character as it started, the adventure module's digest,
  * the session's seed, every committed action with the dice it drew, the
@@ -32,7 +32,7 @@ import type {
   FifthState,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 2;
+export const FIFTH_SESSION_FORMAT = 3;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;
@@ -299,8 +299,9 @@ export class FifthSession {
   }
 
   /**
-   * Creates a session at `path` and begins its fight, saving it before it is
-   * returned. The opening reply introduces the adventure.
+   * Creates a session at `path` and begins it (starting the start room's
+   * fight, if it has one), saving it before it is returned. The opening reply
+   * introduces the start room.
    */
   static async create(
     path: string,
@@ -326,13 +327,14 @@ export class FifthSession {
     const room = adventure.rooms.find(
       ({ id: roomId }) => roomId === adventure.startRoomId,
     )!;
-    const opponents = adventure.encounters
-      .find(({ id: encounterId }) => encounterId === room.encounterId)!
-      .opponents.map(({ description }) => description)
-      .join(" ");
+    const opponents =
+      adventure.encounters
+        .find(({ id: encounterId }) => encounterId === room.encounterId)
+        ?.opponents.map(({ description }) => description) ?? [];
     session.history.push({
-      reply: `${room.name}. ${room.description} ${opponents}`,
-      cards: [session.card(result, rolls)],
+      reply: [`${room.name}.`, room.description, ...opponents].join(" "),
+      // A quiet start room begins with nothing to show.
+      cards: result.events.length === 0 ? [] : [session.card(result, rolls)],
     });
     await session.persist();
     return session;

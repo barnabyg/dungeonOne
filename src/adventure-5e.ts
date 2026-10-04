@@ -1,11 +1,12 @@
 /**
- * The 5e adventure module format (format version 1) and its validator.
+ * The 5e adventure module format (format version 2) and its validator.
  *
- * A module declares its recommended levels and difficulty, its rooms, the
- * encounters in them with inline SRD 5.2 stat blocks, and its endings. Each
- * opponent in an encounter has its own name, so the player can target it. This
- * first version holds what a one-room fight needs; later tickets add
- * exploration, checks, treasure and XP, each bumping the format version.
+ * A module declares its recommended levels and difficulty, its rooms and the
+ * passages between them, the features to examine and items to take in each
+ * room, the encounters with inline SRD 5.2 stat blocks, and its endings. Each
+ * opponent in an encounter has its own name, so the player can target it.
+ * Later tickets add checks, doors, traps, treasure and XP, each bumping the
+ * format version.
  *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
@@ -16,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
 import { ABILITIES, type Abilities } from "./fighter-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 1;
+export const FIFTH_ADVENTURE_FORMAT = 2;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -55,15 +56,49 @@ export type FifthOpponent = Readonly<{
 export type FifthEncounter = Readonly<{
   id: string;
   opponents: readonly FifthOpponent[];
-  victoryEndingId: string;
+  /** Winning ends the adventure here; without one, exploring goes on. */
+  victoryEndingId?: string;
   defeatEndingId: string;
+}>;
+
+/** Something in a room to examine; examining it makes its discovery. */
+export type FifthFeature = Readonly<{
+  id: string;
+  name: string;
+  description: string;
+  discovery?: string;
+}>;
+
+/** What each kind of item does; only the SRD 5.2 Potion of Healing so far. */
+export const ITEM_KINDS = {
+  "potion-of-healing": { healing: { dice: 2, sides: 4, modifier: 2 } },
+} as const;
+export type ItemKind = keyof typeof ITEM_KINDS;
+
+/** An item placed in a room; one hidden in a feature is found by examining it. */
+export type FifthItem = Readonly<{
+  id: string;
+  name: string;
+  description: string;
+  kind: ItemKind;
+  hiddenIn?: string;
 }>;
 
 export type FifthRoom = Readonly<{
   id: string;
   name: string;
   description: string;
-  encounterId: string;
+  /** The fight that begins when the character enters. */
+  encounterId?: string;
+  features: readonly FifthFeature[];
+  items: readonly FifthItem[];
+}>;
+
+/** A two-way way between two rooms. */
+export type FifthPassage = Readonly<{
+  id: string;
+  between: readonly [string, string];
+  description: string;
 }>;
 
 export type FifthEnding = Readonly<{
@@ -83,6 +118,7 @@ export type FifthAdventure = Readonly<{
   difficulty: Difficulty;
   startRoomId: string;
   rooms: readonly FifthRoom[];
+  passages: readonly FifthPassage[];
   encounters: readonly FifthEncounter[];
   endings: readonly FifthEnding[];
 }>;
@@ -140,9 +176,30 @@ function integer(value: unknown, where: string, min: number, max: number) {
   return value as number;
 }
 
-function list(value: unknown, where: string, max: number): unknown[] {
-  if (!Array.isArray(value) || value.length < 1 || value.length > max) {
-    fail(`${where} must list 1–${max} entries.`);
+function list(value: unknown, where: string, max: number, min = 1): unknown[] {
+  if (!Array.isArray(value) || value.length < min || value.length > max) {
+    fail(`${where} must list ${min}–${max} entries.`);
+  }
+  return value;
+}
+
+/** Like `exactKeys`, but the `optional` keys may be left out. */
+function knownKeys(
+  value: unknown,
+  required: readonly string[],
+  optional: readonly string[],
+  where: string,
+): Record<string, unknown> {
+  if (
+    !isRecord(value) ||
+    !required.every((key) => key in value) ||
+    !Object.keys(value).every(
+      (key) => required.includes(key) || optional.includes(key),
+    )
+  ) {
+    fail(
+      `${where} must have ${required.join(", ")}${optional.length === 0 ? "" : ` and may have ${optional.join(", ")}`}, and nothing else.`,
+    );
   }
   return value;
 }
@@ -264,6 +321,7 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
       "difficulty",
       "startRoomId",
       "rooms",
+      "passages",
       "encounters",
       "endings",
     ],
@@ -316,9 +374,10 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
   const encounters = list(module.encounters, "encounters", 20).map(
     (entry, index) => {
       const where = `encounter ${index + 1}`;
-      const encounter = exactKeys(
+      const encounter = knownKeys(
         entry,
-        ["id", "opponents", "victoryEndingId", "defeatEndingId"],
+        ["id", "opponents", "defeatEndingId"],
+        ["victoryEndingId"],
         where,
       );
       const opponents = list(encounter.opponents, `${where} opponents`, 8).map(
@@ -351,7 +410,15 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
       return {
         id: id(encounter.id, `${where} id`),
         opponents,
-        victoryEndingId: ending(encounter.victoryEndingId, "victory", where),
+        ...(encounter.victoryEndingId === undefined
+          ? {}
+          : {
+              victoryEndingId: ending(
+                encounter.victoryEndingId,
+                "victory",
+                where,
+              ),
+            }),
         defeatEndingId: ending(encounter.defeatEndingId, "defeat", where),
       };
     },
@@ -359,24 +426,175 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
   const encounterIds = unique(encounters, "encounter");
   const rooms = list(module.rooms, "rooms", 50).map((entry, index) => {
     const where = `room ${index + 1}`;
-    const room = exactKeys(
+    const room = knownKeys(
       entry,
-      ["id", "name", "description", "encounterId"],
+      ["id", "name", "description", "features", "items"],
+      ["encounterId"],
       where,
     );
-    if (!encounterIds.has(room.encounterId as string)) {
+    if (
+      room.encounterId !== undefined &&
+      !encounterIds.has(room.encounterId as string)
+    ) {
       fail(`${where} names unknown encounter ${String(room.encounterId)}.`);
     }
+    const features = list(room.features, `${where} features`, 12, 0).map(
+      (raw, number) => {
+        const at = `${where} feature ${number + 1}`;
+        const feature = knownKeys(
+          raw,
+          ["id", "name", "description"],
+          ["discovery"],
+          at,
+        );
+        return {
+          id: id(feature.id, `${at} id`),
+          name: text(feature.name, `${at} name`, 60),
+          description: text(feature.description, `${at} description`),
+          ...(feature.discovery === undefined
+            ? {}
+            : { discovery: text(feature.discovery, `${at} discovery`) }),
+        };
+      },
+    );
+    // The player examines features by name, in any case.
+    distinct(
+      features,
+      ({ name }) => name.toLowerCase(),
+      ({ name }) => `${where} has two features named ${name}.`,
+    );
+    const items = list(room.items, `${where} items`, 12, 0).map(
+      (raw, number) => {
+        const at = `${where} item ${number + 1}`;
+        const item = knownKeys(
+          raw,
+          ["id", "name", "description", "kind"],
+          ["hiddenIn"],
+          at,
+        );
+        if (!Object.hasOwn(ITEM_KINDS, item.kind as string)) {
+          fail(
+            `${at} kind must be one of ${Object.keys(ITEM_KINDS).join(", ")}.`,
+          );
+        }
+        if (item.hiddenIn !== undefined) {
+          const holder = features.find(
+            ({ id: featureId }) => featureId === item.hiddenIn,
+          );
+          if (holder === undefined) {
+            fail(
+              `${at} is hidden in unknown feature ${String(item.hiddenIn)}.`,
+            );
+          }
+          if (holder.discovery === undefined) {
+            fail(
+              `${at} is hidden in ${holder.id}, which has no discovery to reveal it.`,
+            );
+          }
+        }
+        return {
+          id: id(item.id, `${at} id`),
+          name: text(item.name, `${at} name`, 60),
+          description: text(item.description, `${at} description`),
+          kind: item.kind as ItemKind,
+          ...(item.hiddenIn === undefined
+            ? {}
+            : { hiddenIn: item.hiddenIn as string }),
+        };
+      },
+    );
     return {
       id: id(room.id, `${where} id`),
       name: text(room.name, `${where} name`, 80),
       description: text(room.description, `${where} description`),
-      encounterId: room.encounterId as string,
+      ...(room.encounterId === undefined
+        ? {}
+        : { encounterId: room.encounterId as string }),
+      features,
+      items,
     };
   });
   const roomIds = unique(rooms, "room");
   if (!roomIds.has(module.startRoomId as string)) {
     fail(`startRoomId names unknown room ${String(module.startRoomId)}.`);
+  }
+  // Features and items share one namespace: the player examines either.
+  unique(
+    rooms.flatMap(({ features, items }) => [...features, ...items]),
+    "feature or item",
+  );
+  const placed = rooms.flatMap(({ encounterId }) =>
+    encounterId === undefined ? [] : [encounterId],
+  );
+  distinct(
+    placed,
+    (encounterId) => encounterId,
+    (encounterId) => `encounter ${encounterId} is in more than one room.`,
+  );
+  for (const { id: encounterId } of encounters) {
+    if (!placed.includes(encounterId)) {
+      fail(`encounter ${encounterId} is in no room.`);
+    }
+  }
+  const passages = list(module.passages, "passages", 100, 0).map(
+    (entry, index) => {
+      const where = `passage ${index + 1}`;
+      const passage = exactKeys(entry, ["id", "between", "description"], where);
+      if (!Array.isArray(passage.between) || passage.between.length !== 2) {
+        fail(`${where} between must name two rooms.`);
+      }
+      const [from, to] = passage.between as unknown[];
+      for (const end of [from, to]) {
+        if (!roomIds.has(end as string)) {
+          fail(`${where} names unknown room ${String(end)}.`);
+        }
+      }
+      if (from === to) {
+        fail(`${where} leads from ${String(from)} to itself.`);
+      }
+      return {
+        id: id(passage.id, `${where} id`),
+        between: [from as string, to as string] as const,
+        description: text(passage.description, `${where} description`, 200),
+      };
+    },
+  );
+  unique(passages, "passage");
+  distinct(
+    passages,
+    ({ between }) => [...between].sort().join(" "),
+    ({ between: [from, to] }) =>
+      `two passages join ${from} and ${to}; one is enough.`,
+  );
+  // Every room must be reachable from the start.
+  const reached = new Set([module.startRoomId as string]);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const { between } of passages) {
+      const [from, to] = between;
+      if (reached.has(from) !== reached.has(to)) {
+        reached.add(from).add(to);
+        grew = true;
+      }
+    }
+  }
+  for (const { id: roomId } of rooms) {
+    if (!reached.has(roomId)) {
+      fail(
+        `room ${roomId} cannot be reached from ${String(module.startRoomId)}.`,
+      );
+    }
+  }
+  // Every ending must be reachable: an encounter names it.
+  for (const { id: endingId } of endings) {
+    if (
+      !encounters.some(
+        ({ victoryEndingId, defeatEndingId }) =>
+          victoryEndingId === endingId || defeatEndingId === endingId,
+      )
+    ) {
+      fail(`ending ${endingId} cannot be reached: no encounter names it.`);
+    }
   }
   return {
     kind: "dungeon-one-5e-adventure",
@@ -388,6 +606,7 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
     difficulty: module.difficulty as Difficulty,
     startRoomId: module.startRoomId as string,
     rooms,
+    passages,
     encounters,
     endings,
   };
@@ -432,6 +651,7 @@ export async function loadFifthAdventure(
 export const FIFTH_ADVENTURE_FILES = {
   "cellar-goblin": "cellar-goblin.json",
   "goblin-storeroom": "goblin-storeroom.json",
+  "smugglers-cellar": "smugglers-cellar.json",
 } as const;
 export type FifthAdventureId = keyof typeof FIFTH_ADVENTURE_FILES;
 

@@ -421,7 +421,7 @@ test("scripted DM: an ambiguous target gets a clarifying question, not a guess",
   // The prompt tells the AI to ask, and all three goblins were offered.
   assert.match(
     model.requests[0].systemPrompt,
-    /fit more than one offered target .* ask which one/,
+    /fit more than one listed target .* ask which one/,
   );
   assert.equal(
     attackTool(model.requests[0]).parameters.properties.target.enum.length,

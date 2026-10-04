@@ -1,7 +1,7 @@
 // The `--5e` browser page (until #137): the 5e character library, the
-// creation screen and the character sheet. Bundled into dist so the extracted
-// package serves the same interface. The script builds every element with
-// textContent, never HTML from data.
+// creation screen, the character sheet and the adventure screen. Bundled into
+// dist so the extracted package serves the same interface. The script builds
+// every element with textContent, never HTML from data.
 export const FIFTH_BROWSER_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
@@ -41,6 +41,12 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <p id="adventure-meta" class="eyebrow dark"></p>
 <h2 id="adventure-title" tabindex="-1"></h2>
 <p id="adventure-objective" class="hint"></p>
+<section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3><p id="room-description"></p><p id="character-hp" class="hint"></p>
+<h4 id="exits-title">Exits</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul>
+<h4 id="features-title">Features</h4><ul id="features" class="things" aria-labelledby="features-title"></ul>
+<h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul>
+<h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul>
+</section>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
 <p id="turn" aria-live="polite"></p><p id="economy" class="hint"></p>
 <div class="table-wrap"><table id="initiative"><caption class="hint">Initiative order: each combatant rolled d20 + its initiative bonus.</caption><thead><tr><th scope="col">Turn</th><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
@@ -82,6 +88,7 @@ dialog{background:var(--paper);color:#292b27;border:1px solid #81785e;border-rad
 .eyebrow.dark{color:#7a6331}.adventure-choice{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}.adventure-choice p{margin-bottom:8px}
 #turn{font-family:system-ui,sans-serif;font-weight:600}tr.current{background:#efe2c0}tr.defeated td,tr.defeated th{color:#8b8576;text-decoration:line-through}
 .log{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:8px;font-family:system-ui,sans-serif;font-size:.88rem}.log li{border-left:3px solid var(--line);padding:4px 10px}.log .player{font-weight:600}.card{background:#fffaf0;border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-top:6px;white-space:pre-line}.card.rejection{border-color:#883c2d}.card .dice{display:block;color:#615f50;font-size:.78rem;margin-top:4px}
+h4{font:600 .85rem system-ui,sans-serif;margin:12px 0 6px;color:#4b4a3c}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:system-ui,sans-serif;font-size:.85rem}.things li{border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:#fffaf0}.things li.none{border:0;background:none;padding:0;color:#615f50}.things p{margin:0}.things .discovery{color:#5b4a22;margin-top:4px}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{border:2px solid var(--gold);border-radius:8px;padding:12px;margin:12px 0}#message-form label{display:block;font-weight:600;font-size:.85rem}
 @media(max-width:560px){#initiative th,#initiative td{padding:5px 3px}#initiative th:first-child,#initiative td:first-child{display:none}#initiative td{white-space:nowrap}#initiative .roll-off{display:block;white-space:normal;font-size:.78rem}.panel{padding:14px}.masthead{padding:12px 16px}h2{font-size:1.25rem}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
@@ -278,6 +285,8 @@ function renderAdventure() {
   element("adventure-title").textContent = adventure.title;
   element("adventure-objective").textContent = adventure.objective;
   const playing = session.status === "playing";
+  renderRoom(session.room);
+  element("encounter").hidden = !encounter;
   if (encounter) {
     const current = encounter.combatants.find(({ id }) => id === encounter.currentTurn);
     element("turn").textContent = current ? "Round " + encounter.round + ": " + (current.id === encounter.playerId ? "your turn." : current.name + "'s turn.") : "The fight is over.";
@@ -348,6 +357,46 @@ function renderAdventure() {
   }));
 }
 
+// Each list's entries, with a button for each action the engine accepts now.
+const ROOM_LISTS = [
+  { id: "exits", key: "exits", actions: [["move", "Go to "]] },
+  { id: "features", key: "features", actions: [["examine", "Examine "]] },
+  { id: "room-items", key: "items", actions: [["take", "Take "], ["examine", "Examine "]] },
+  { id: "inventory", key: "inventory", actions: [["use", "Drink "], ["examine", "Examine "]] },
+];
+
+function renderRoom(room) {
+  element("room-title").textContent = room.name;
+  element("room-description").textContent = room.description;
+  element("character-hp").textContent = "Your HP: " + room.character.hp + "/" + room.character.maxHp;
+  for (const list of ROOM_LISTS) {
+    const entries = room[list.key];
+    element(list.id).replaceChildren(...(entries.length === 0 ? [make("li", "None.", "none")] : entries.map((entry) => {
+      const item = make("li");
+      item.dataset.id = entry.id;
+      const text = make("p");
+      text.append(make("strong", entry.name), document.createTextNode(" — " + entry.description));
+      item.append(text);
+      if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
+      const buttons = list.actions.filter(([action]) => room.options[action].includes(entry.id)).map(([action, label]) => {
+        const button = make("button", label + entry.name, "explore");
+        button.type = "button";
+        button.dataset.action = action;
+        button.dataset.target = entry.id;
+        button.disabled = acting;
+        button.addEventListener("click", () => explore(action, entry.id));
+        return button;
+      });
+      if (buttons.length) {
+        const controls = make("div", undefined, "controls");
+        controls.append(...buttons);
+        item.append(controls);
+      }
+      return item;
+    })));
+  }
+}
+
 async function act(path, body) {
   acting = true;
   renderAdventure();
@@ -374,12 +423,17 @@ const FEATURE_BUTTONS = [
 ];
 
 function focusNextControl() {
-  const next = document.querySelector("#attack-controls button, #feature-controls button");
+  const next = document.querySelector("#attack-controls button, #feature-controls button, #room button.explore");
   (next || element("adventure-title")).focus();
 }
 
 async function attack(targetId) {
   await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId });
+  focusNextControl();
+}
+
+async function explore(action, target) {
+  await act("/api/5e/session/explore", { action, target });
   focusNextControl();
 }
 
