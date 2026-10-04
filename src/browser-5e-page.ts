@@ -14,7 +14,9 @@
 //   and #adventure-error; #156's action bar goes here.
 // - #session-history: the conversation history, #log, a live region in its own
 //   scroll area, newest at the bottom; it follows new entries only while the
-//   reader is at the bottom.
+//   reader is at the bottom. Each entry (#159) has a data-kind (narration,
+//   message or action); the newest has class "newest" and tabindex -1, and
+//   focusNewestEntry() moves focus to it.
 // - #session-composer: #message-form, and #dm-notice when typing to the AI DM
 //   is off (#161).
 // Actions, history and composer share #session-dock. DOM order (and so tab
@@ -142,7 +144,10 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .features{font-size:var(--text-sm);padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)}
 .eyebrow.dark{color:var(--color-gold-text)}#sheet-adventures h3{margin-top:0}#adventure-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2);margin-bottom:var(--space-3)}#adventure-choices>:not(.adventure-choice){grid-column:1/-1;justify-self:start;margin:0}.adventure-choice{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:10px var(--space-3)}.adventure-choice p{margin:0}.adventure-choice button{margin-top:auto}.tags{display:flex;flex-wrap:wrap;gap:var(--space-1)}.tag.level{color:var(--color-text-muted)}.tag.easy{color:var(--color-success)}.tag.medium{color:var(--color-warning)}.tag.hard{color:var(--color-danger)}.defeat-notice{color:var(--color-danger);font:600 var(--text-md) var(--font-sans)}
 #turn{font-family:var(--font-sans);font-weight:600}tr.current{background:var(--color-highlight)}tr.defeated td,tr.defeated th{color:var(--color-text-muted);font-weight:400}.tag{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:999px;font:600 var(--text-xs)/1.5 var(--font-sans);white-space:nowrap}
-.log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid var(--color-line);padding:var(--space-1) 10px}.log .player{font-weight:600}.card{background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:var(--space-2) 10px;margin-top:6px;white-space:pre-line}.card.rejection{border-color:var(--color-danger)}.card .dice{display:block;color:var(--color-text-muted);font-size:var(--text-xs);margin-top:var(--space-1)}
+.log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li.newest:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}
+.log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
+.card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}.card-line+.card-line{margin-top:var(--space-1)}
+.log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{border:2px solid var(--color-gold);border-radius:var(--radius-md);padding:var(--space-3);margin:var(--space-3) 0}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
@@ -443,8 +448,6 @@ function showAdventure(value) {
   element("log").scrollTop = element("log").scrollHeight;
 }
 
-const diceText = (rolls) => "Dice: " + rolls.map(({ sides, value }) => "d" + sides + " " + value).join(", ");
-
 function renderAdventure() {
   const { adventure, encounter } = session;
   element("adventure-meta").textContent = levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty) + " · " + session.room.name;
@@ -560,18 +563,97 @@ function renderStatus() {
   element("resources").replaceChildren(...items);
 }
 
+// Each kind of history entry looks different and is labelled (#159):
+// narration (the opening and entering a room) is unboxed, the player's words
+// are a bubble, AI DM replies are attributed, and result and rejection cards
+// are boxed, each line of engine text followed by the rolls behind it.
+const PART_LABELS = {
+  narration: "Narration",
+  player: "You said",
+  reply: "Dungeon Master",
+  result: "Resolved action",
+  rejection: "Action rejected",
+};
+
+function part(tag, kind, text) {
+  const node = make(tag, text, kind === "player" ? "player" : kind === "reply" || kind === "narration" ? kind : "card " + kind);
+  node.setAttribute("role", "note");
+  node.setAttribute("aria-label", PART_LABELS[kind]);
+  return node;
+}
+
+const OUTCOME_TAGS = { hit: "Hit", critical: "Critical hit", miss: "Miss" };
+const ROLL_LABELS = { initiative: "Initiative", target: "Target die", attack: "Attack", damage: "Damage", healing: "Healing" };
+const withSign = (value) => (value >= 0 ? " + " : " − ") + Math.abs(value);
+
+/** One roll beside the line it belongs to, such as "Damage: d6 1 + 3 = 4". */
+function rollGroup(group) {
+  const { purpose } = group;
+  const row = make("p", undefined, "roll " + purpose);
+  const label = ROLL_LABELS[purpose] + (purpose === "initiative" || purpose === "target" ? ", " + group.roller : "") + (group.mode ? ", " + group.mode : "");
+  row.append(make("span", label + ": ", "roll-label"));
+  // An attack rolled with two d20s lists both; damage and healing dice add up.
+  group.dice.forEach((die, index) => {
+    if (index > 0) row.append(purpose === "attack" ? ", " : " + ");
+    row.append(make("span", "d" + die.sides + " " + die.value, "roll-die" + (die.dropped ? " dropped" : "")));
+    if (die.dropped) row.append(" (not kept)");
+  });
+  if (purpose === "target") {
+    row.append(" → " + group.target);
+    return row;
+  }
+  if (group.modifier !== 0 || purpose === "initiative" || purpose === "attack") row.append(withSign(group.modifier));
+  row.append(" = ", purpose === "damage" || purpose === "healing" ? make("strong", group.total) : String(group.total));
+  if (group.rollOff) row.append(" (roll-off " + group.rollOff.join(", ") + ")");
+  if (purpose === "attack") row.append(" against AC " + group.armorClass + " ", make("span", OUTCOME_TAGS[group.outcome], "tag " + group.outcome));
+  if (group.damageType) row.append(" " + group.damageType);
+  if (group.hpAfter !== undefined) row.append(" → " + (group.target || group.roller) + " " + group.hpAfter + "/" + group.maxHp + " HP");
+  return row;
+}
+
+function historyCard(card) {
+  if (card.kind === "narration") return part("p", "narration", card.text);
+  const node = part("div", card.kind);
+  for (const line of card.lines) {
+    const block = make("div", undefined, "card-line");
+    block.append(make("p", line.text), ...line.rolls.map(rollGroup));
+    node.append(block);
+  }
+  return node;
+}
+
 function historyEntry(entry) {
   const item = make("li");
-  if (entry.player !== undefined) item.append(make("p", "You: " + entry.player, "player"));
-  if (entry.reply && !entry.cards.some(({ text }) => text === entry.reply)) item.append(make("p", entry.reply, "reply"));
-  for (const card of entry.cards) {
-    const node = make("div", card.text, "card " + card.kind);
-    node.setAttribute("role", "note");
-    node.setAttribute("aria-label", card.kind === "result" ? "Resolved action" : "Action rejected");
-    if (card.rolls.length) node.append(make("span", diceText(card.rolls), "dice"));
-    item.append(node);
+  const message = entry.player !== undefined;
+  item.dataset.kind = message ? "message" : entry.reply ? "narration" : "action";
+  if (message) {
+    const said = part("p", "player");
+    said.append(make("strong", "You:"), " " + entry.player);
+    item.append(said);
   }
+  if (entry.reply && !entry.cards.some(({ text }) => text === entry.reply)) item.append(part("p", message ? "reply" : "narration", entry.reply));
+  item.append(...entry.cards.map(historyCard));
   return item;
+}
+
+// The newest entry is marked and can take focus, so the action bar can move
+// focus to an action's result.
+function markNewest(log) {
+  for (const old of log.querySelectorAll(":scope > li.newest")) {
+    old.removeAttribute("class");
+    old.removeAttribute("tabindex");
+  }
+  const newest = log.lastElementChild;
+  if (newest) {
+    newest.classList.add("newest");
+    newest.tabIndex = -1;
+  }
+}
+
+/** Moves focus to the newest history entry, if there is one. */
+function focusNewestEntry() {
+  const newest = element("log").lastElementChild;
+  if (newest) newest.focus();
 }
 
 // History only grows, so new entries are appended: the live region announces
@@ -587,6 +669,7 @@ function renderHistory() {
     log.replaceChildren();
   }
   log.append(...session.history.slice(log.children.length).map(historyEntry));
+  markNewest(log);
   if (followHistory) log.scrollTop = log.scrollHeight;
 }
 

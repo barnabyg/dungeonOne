@@ -426,7 +426,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
               const dispatched = session.dispatch(call);
               if (dispatched.card !== undefined) {
                 cards.push(dispatched.card);
-                if (dispatched.card.kind === "result") {
+                if (dispatched.card.kind !== "rejection") {
                   // Save the committed action, and settle the character if
                   // it ended the fight, before the reply is written.
                   record(

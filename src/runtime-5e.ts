@@ -385,12 +385,25 @@ export function renderFifthEvent(
 }
 
 export function renderFifthResult(result: FifthResult): string {
+  return resultLines(result)
+    .map(({ text }) => text)
+    .join("\n");
+}
+
+type ResultLineSource = Readonly<{ text: string; event?: FifthEvent }>;
+
+/** Each line of a result's text, with the event it describes (if any). */
+function resultLines(result: FifthResult): ResultLineSource[] {
   if (result.rejection !== undefined) {
-    return result.rejection.reason;
+    return [{ text: result.rejection.reason }];
   }
-  const lines = result.events
-    .map((event) => renderFifthEvent(result.state, event))
-    .filter((line): line is string => line !== undefined);
+  const lines: ResultLineSource[] = [];
+  for (const event of result.events) {
+    const text = renderFifthEvent(result.state, event);
+    if (text !== undefined) {
+      lines.push({ text, event });
+    }
+  }
   const turn =
     result.state.encounter === undefined
       ? undefined
@@ -398,13 +411,206 @@ export function renderFifthResult(result: FifthResult): string {
   if (turn?.id === PLAYER_ID) {
     // A fresh turn starts with a turn event; otherwise the turn goes on.
     const options = availableActions(result.state.encounter!, PLAYER_ID);
-    lines.push(
-      result.events.at(-1)?.type === "turn"
-        ? "It is your turn."
-        : `It is still your turn: you can ${listed(options.map((option) => OPTION_TEXT[option]))}.`,
-    );
+    lines.push({
+      text:
+        result.events.at(-1)?.type === "turn"
+          ? "It is your turn."
+          : `It is still your turn: you can ${listed(options.map((option) => OPTION_TEXT[option]))}.`,
+    });
   }
-  return lines.join("\n");
+  return lines;
+}
+
+/** One die as the browser shows it; `dropped` marks an unkept d20. */
+export type ShownDie = Readonly<{
+  sides: number;
+  value: number;
+  dropped?: true;
+}>;
+
+/**
+ * The dice one roll used, grouped by purpose, for a result card. `roller`
+ * rolled them; `target` is who they were rolled against or for. An attack
+ * gives the AC it had to reach and its outcome; damage and healing give the
+ * HP of the creature they changed afterwards.
+ */
+export type RollGroup = Readonly<{
+  purpose: "initiative" | "target" | "attack" | "damage" | "healing";
+  roller: string;
+  target?: string;
+  dice: readonly ShownDie[];
+  modifier: number;
+  total: number;
+  /** Initiative only: the d20 roll-offs that broke a tie. */
+  rollOff?: readonly number[];
+  /** Attack only: advantage or disadvantage and its source, if any. */
+  mode?: string;
+  armorClass?: number;
+  outcome?: "hit" | "critical" | "miss";
+  /** Damage only. */
+  damageType?: string;
+  hpAfter?: number;
+  maxHp?: number;
+}>;
+
+/** One line of a result card's engine text, with the rolls behind it. */
+export type ResultLine = Readonly<{
+  text: string;
+  rolls: readonly RollGroup[];
+}>;
+
+/** How an attack's d20s were rolled, for its roll group. */
+function modeLabel(mode: RollMode): string {
+  const sources = (names: readonly string[]) => `(${names.join(", ")})`;
+  if (mode.advantage.length > 0 && mode.disadvantage.length > 0) {
+    return `advantage ${sources(mode.advantage)} and disadvantage ${sources(mode.disadvantage)} cancel`;
+  }
+  return mode.advantage.length > 0
+    ? `advantage ${sources(mode.advantage)}`
+    : `disadvantage ${sources(mode.disadvantage)}`;
+}
+
+/**
+ * A result's text line by line, each with its rolls grouped by purpose
+ * (initiative, a target die, attack, damage, healing). `rolls` are the dice
+ * the action drew, in order; `playerName` names the character outside a
+ * fight. The lines' texts joined by newlines are `renderFifthResult`.
+ * Throws when the dice do not match the events.
+ */
+export function describeFifthResult(
+  result: FifthResult,
+  rolls: readonly Readonly<{ sides: number; value: number }>[],
+  playerName: string,
+): ResultLine[] {
+  const { state } = result;
+  const name = (id: string) =>
+    id === PLAYER_ID
+      ? playerName
+      : state.encounter === undefined
+        ? id
+        : combatant(state.encounter, id).name;
+  let next = 0;
+  const take = (values: readonly number[]): ShownDie[] =>
+    values.map((value) => {
+      const die = rolls[next++];
+      if (die === undefined || die.value !== value) {
+        throw new Error("A result's dice do not match its events.");
+      }
+      return { sides: die.sides, value };
+    });
+  const groups = (event: FifthEvent | undefined): RollGroup[] => {
+    switch (event?.type) {
+      case "initiative":
+        // Every initiative die is a d20, drawn in combatant order before
+        // any roll-off.
+        next += event.order.reduce(
+          (count, roll) => count + 1 + roll.tieBreaks.length,
+          0,
+        );
+        return event.order.map((roll) => ({
+          purpose: "initiative",
+          roller: name(roll.combatantId),
+          dice: [{ sides: 20, value: roll.d20 }],
+          modifier: roll.bonus,
+          total: roll.total,
+          ...(roll.tieBreaks.length === 0 ? {} : { rollOff: roll.tieBreaks }),
+        }));
+      case "attack": {
+        const shown: RollGroup[] = [];
+        if (event.targetRoll !== undefined) {
+          shown.push({
+            purpose: "target",
+            roller: name(event.actorId),
+            target: name(event.targetId),
+            dice: take([event.targetRoll]),
+            modifier: 0,
+            total: event.targetRoll,
+          });
+        }
+        const d20s = event.mode?.d20s ?? [event.d20];
+        let kept = false;
+        const dice = take(d20s).map((die) => {
+          if (!kept && die.value === event.d20) {
+            kept = true;
+            return die;
+          }
+          return { ...die, dropped: true as const };
+        });
+        shown.push({
+          purpose: "attack",
+          roller: name(event.actorId),
+          target: name(event.targetId),
+          dice,
+          modifier: event.bonus,
+          total: event.total,
+          ...(event.mode === undefined ? {} : { mode: modeLabel(event.mode) }),
+          armorClass: event.armorClass,
+          outcome: !event.hit ? "miss" : event.critical ? "critical" : "hit",
+        });
+        if (event.hit) {
+          shown.push({
+            purpose: "damage",
+            roller: name(event.actorId),
+            target: name(event.targetId),
+            dice: take(event.damageRolls),
+            modifier: event.damageModifier,
+            total: event.damage,
+            damageType: event.damageType,
+            hpAfter: event.hpAfter,
+            maxHp: combatant(state.encounter!, event.targetId).maxHp,
+          });
+        }
+        return shown;
+      }
+      case "second-wind": {
+        const self = combatant(state.encounter!, event.combatantId);
+        const count = self.secondWind!.healing.dice;
+        const dice = rolls.slice(next, next + count);
+        next += count;
+        if (
+          dice.length !== count ||
+          dice.reduce((sum, die) => sum + die.value, 0) !== event.roll
+        ) {
+          throw new Error("A result's dice do not match its events.");
+        }
+        return [
+          {
+            purpose: "healing",
+            roller: self.name,
+            dice: dice.map(({ sides, value }) => ({ sides, value })),
+            modifier: event.modifier,
+            total: event.roll + event.modifier,
+            hpAfter: event.hpAfter,
+            maxHp: self.maxHp,
+          },
+        ];
+      }
+      case "potion":
+        return [
+          {
+            purpose: "healing",
+            roller: name(event.combatantId),
+            dice: take(event.rolls),
+            modifier: event.modifier,
+            total:
+              event.rolls.reduce((sum, value) => sum + value, 0) +
+              event.modifier,
+            hpAfter: event.hpAfter,
+            maxHp: event.maxHp,
+          },
+        ];
+      default:
+        return [];
+    }
+  };
+  const lines = resultLines(result).map(({ text, event }) => ({
+    text,
+    rolls: groups(event),
+  }));
+  if (next !== rolls.length) {
+    throw new Error("A result's dice do not match its events.");
+  }
+  return lines;
 }
 
 type Named = Readonly<{ id: string; name: string; description: string }>;
