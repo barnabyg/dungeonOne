@@ -174,7 +174,8 @@ async function act(page, label, click) {
   const count = await page.locator("#log li").count();
   await click();
   await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log li").length > seen,
+    (seen) =>
+      document.querySelectorAll("#log li:not([data-pending])").length > seen,
     count,
   );
   // The page moves focus once the action settles.
@@ -368,7 +369,9 @@ for (const viewport of [
           )
           .click();
         await page.waitForFunction(
-          (seen) => document.querySelectorAll("#log li").length > seen,
+          (seen) =>
+            document.querySelectorAll("#log li:not([data-pending])").length >
+            seen,
           count,
         );
         actions++;

@@ -84,7 +84,7 @@ test(
       await page.locator("#open-creation").click();
       await page.locator("#creation").waitFor({ state: "visible" });
       assert.equal(
-        await page.locator("#creation-title + p.hint").innerText(),
+        await page.locator("#creation-title ~ p.hint").innerText(),
         "Rolled once. No rerolls. Place the six rolls on your abilities in any order, then make your other choices.",
       );
 

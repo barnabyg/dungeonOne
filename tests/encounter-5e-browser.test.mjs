@@ -91,7 +91,8 @@ async function clickNext(page) {
       : page.locator('#feature-controls button[data-action="end-turn"]')
   ).click();
   await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log li").length > seen,
+    (seen) =>
+      document.querySelectorAll("#log li:not([data-pending])").length > seen,
     count,
   );
 }
@@ -217,7 +218,7 @@ test(
       // A typed attack, through the AI DM's tool.
       await page.locator("#message").fill("I swing my mace at the goblin!");
       await page.locator("#send-message").click();
-      await page.locator("#log li").nth(1).waitFor();
+      await page.locator("#log li:not([data-pending])").nth(1).waitFor();
       assert.match(
         await page.locator("#log li").nth(1).textContent(),
         /^You: I swing my mace at the goblin!Ada attacks Goblin Warrior with Mace/,
@@ -473,7 +474,9 @@ test(
       const before = await page.locator("#log li").count();
       await page.locator("#attack-controls button.attack").click();
       await page.waitForFunction(
-        (count) => document.querySelectorAll("#log li").length > count,
+        (count) =>
+          document.querySelectorAll("#log li:not([data-pending])").length >
+          count,
         before,
       );
     } finally {
@@ -669,7 +672,7 @@ test(
       const before = await sessionFile(directory);
       await page.locator("#message").fill("attack the goblin");
       await page.locator("#send-message").click();
-      await page.locator("#log li").nth(1).waitFor();
+      await page.locator("#log li:not([data-pending])").nth(1).waitFor();
       assert.equal(
         await page.locator("#log li").nth(1).textContent(),
         "You: attack the goblinWhich one do you mean?",
@@ -682,7 +685,7 @@ test(
       // A typed attack on a named target.
       await page.locator("#message").fill("I charge the goblin warrior");
       await page.locator("#send-message").click();
-      await page.locator("#log li").nth(2).waitFor();
+      await page.locator("#log li:not([data-pending])").nth(2).waitFor();
       assert.match(
         await page.locator("#log li").nth(2).textContent(),
         /^You: I charge the goblin warriorAda attacks Goblin Warrior with Mace/,
@@ -862,7 +865,9 @@ test(
           );
           await feature("second-wind").click();
           await page.waitForFunction(
-            (seen) => document.querySelectorAll("#log li").length > seen,
+            (seen) =>
+              document.querySelectorAll("#log li:not([data-pending])").length >
+              seen,
             count,
           );
           if (!usedSecondWind) {
