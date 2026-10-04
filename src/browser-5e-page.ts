@@ -2,6 +2,23 @@
 // creation screen, the character sheet and the adventure screen. Bundled into
 // dist so the extracted package serves the same interface. The script builds
 // every element with textContent, never HTML from data.
+//
+// Adventure session regions (#154). Later tickets fill these containers; keep
+// their ids and order so the layout holds:
+// - #session-status: the character's state (HP today; #155's HP bar and turn
+//   resources).
+// - #session-scene: the room, the fight and the ending.
+// - #session-actions: the action buttons (#attack-controls, #feature-controls)
+//   and #adventure-error; #156's action bar goes here.
+// - #session-history: the conversation history, #log, a live region in its own
+//   scroll area, newest at the bottom; it follows new entries only while the
+//   reader is at the bottom.
+// - #session-composer: #message-form.
+// Actions, history and composer share #session-dock. DOM order (and so tab
+// order) is status, scene, actions, history, composer; the dock shows history
+// above actions and composer. From 900 x 560 px the session fills the window
+// in two columns (status and scene left, the dock right, each scrolling on its
+// own); narrower, it is one column with the dock sticky at the bottom.
 export const FIFTH_BROWSER_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
@@ -42,7 +59,10 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <p id="adventure-meta" class="eyebrow dark"></p>
 <h2 id="adventure-title" tabindex="-1"></h2>
 <p id="adventure-objective" class="hint"></p>
-<section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3><p id="room-description"></p><p id="character-hp" class="hint"></p>
+<div id="session-layout">
+<section id="session-status" aria-label="Status"><p id="character-hp" class="hint"></p></section>
+<div id="session-scene">
+<section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3><p id="room-description"></p>
 <h4 id="exits-title">Exits</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul>
 <h4 id="features-title">Features</h4><ul id="features" class="things" aria-labelledby="features-title"></ul>
 <h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul>
@@ -51,13 +71,16 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
 <p id="turn" aria-live="polite"></p><p id="economy" class="hint"></p>
 <div class="table-wrap"><table id="initiative"><caption class="hint">Initiative order: each combatant rolled d20 + its initiative bonus.</caption><thead><tr><th scope="col">Turn</th><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
-<div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div>
 </section>
 <section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title"></h3><p id="ending-text"></p></section>
-<h3>What happened</h3>
-<ol id="log" class="log" aria-live="polite"></ol>
-<p id="adventure-error" class="error" role="alert"></p>
-<form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><input id="message" maxlength="1000" autocomplete="off"><div class="controls"><button id="send-message" type="submit" class="primary">Send</button></div></form>
+</div>
+<div id="session-dock">
+<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div></section>
+<section id="session-history" aria-labelledby="history-title"><h3 id="history-title">What happened</h3>
+<ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></section>
+<div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div></form></div>
+</div>
+</div>
 </section>
 </main>
 <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-warning">
@@ -109,6 +132,11 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid var(--color-line);padding:var(--space-1) 10px}.log .player{font-weight:600}.card{background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:var(--space-2) 10px;margin-top:6px;white-space:pre-line}.card.rejection{border-color:var(--color-danger)}.card .dice{display:block;color:var(--color-text-muted);font-size:var(--text-xs);margin-top:var(--space-1)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{border:2px solid var(--color-gold);border-radius:var(--radius-md);padding:var(--space-3);margin:var(--space-3) 0}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
+#session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
+#session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
+#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}
+html{scroll-padding-bottom:var(--session-dock-height,0px)}
+@media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1}#log{flex:1;max-height:none}}
 @media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative th:first-child,#initiative td:first-child{display:none}#initiative td{white-space:nowrap}#initiative .roll-off{display:block;white-space:normal;font-size:var(--text-xs)}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
@@ -366,6 +394,8 @@ function showAdventure(value) {
   const title = session.adventure.title;
   show("adventure", title, [...(entry ? [{ label: entry.sheet.name, hash: "#character-" + entry.sheet.id }] : []), { label: title }]);
   element("adventure-title").focus();
+  followHistory = true;
+  element("log").scrollTop = element("log").scrollHeight;
 }
 
 const diceText = (rolls) => "Dice: " + rolls.map(({ sides, value }) => "d" + sides + " " + value).join(", ");
@@ -435,19 +465,37 @@ function renderAdventure() {
   }
   element("message").disabled = !playing || acting;
   element("send-message").disabled = !playing || acting;
-  element("log").replaceChildren(...session.history.map((entry) => {
-    const item = make("li");
-    if (entry.player !== undefined) item.append(make("p", "You: " + entry.player, "player"));
-    if (entry.reply && !entry.cards.some(({ text }) => text === entry.reply)) item.append(make("p", entry.reply, "reply"));
-    for (const card of entry.cards) {
-      const node = make("div", card.text, "card " + card.kind);
-      node.setAttribute("role", "note");
-      node.setAttribute("aria-label", card.kind === "result" ? "Resolved action" : "Action rejected");
-      if (card.rolls.length) node.append(make("span", diceText(card.rolls), "dice"));
-      item.append(node);
-    }
-    return item;
-  }));
+  renderHistory();
+}
+
+function historyEntry(entry) {
+  const item = make("li");
+  if (entry.player !== undefined) item.append(make("p", "You: " + entry.player, "player"));
+  if (entry.reply && !entry.cards.some(({ text }) => text === entry.reply)) item.append(make("p", entry.reply, "reply"));
+  for (const card of entry.cards) {
+    const node = make("div", card.text, "card " + card.kind);
+    node.setAttribute("role", "note");
+    node.setAttribute("aria-label", card.kind === "result" ? "Resolved action" : "Action rejected");
+    if (card.rolls.length) node.append(make("span", diceText(card.rolls), "dice"));
+    item.append(node);
+  }
+  return item;
+}
+
+// History only grows, so new entries are appended: the live region announces
+// just them. The log follows the newest entry only while the reader is at the
+// bottom; someone who scrolled up to read older entries stays where they are.
+// Only the reader's scrolling changes that, not the dock resizing around it.
+let followHistory = true;
+
+function renderHistory() {
+  const log = element("log");
+  if (log.dataset.session !== session.id || log.children.length > session.history.length) {
+    log.dataset.session = session.id;
+    log.replaceChildren();
+  }
+  log.append(...session.history.slice(log.children.length).map(historyEntry));
+  if (followHistory) log.scrollTop = log.scrollHeight;
 }
 
 // Each list's entries, with a button for each action the engine accepts now.
@@ -752,6 +800,15 @@ document.querySelector(".skip").addEventListener("click", (event) => {
   event.preventDefault();
   element("content").focus();
 });
+element("log").addEventListener("scroll", () => {
+  const log = element("log");
+  followHistory = log.scrollHeight - log.scrollTop - log.clientHeight < 24;
+});
+// On a phone the dock is sticky: keep focused controls clear of it.
+new ResizeObserver(() => {
+  const dock = element("session-dock");
+  document.documentElement.style.setProperty("--session-dock-height", getComputedStyle(dock).position === "sticky" ? dock.offsetHeight + "px" : "0px");
+}).observe(element("session-dock"));
 window.addEventListener("popstate", () => { if (library) route(true); });
 request("/api/5e/library").then((value) => {
   library = value;

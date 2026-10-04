@@ -132,9 +132,10 @@ function examiningDm() {
   };
 }
 
-/** What the room and encounter panels and the log show. */
+/** What the status, room and encounter panels and the log show. */
 const screen = (page) =>
   page.evaluate(() => ({
+    status: document.getElementById("session-status").innerText,
     room: document.getElementById("room").innerText,
     encounterHidden: document.getElementById("encounter").hidden,
     rows: [...document.querySelectorAll("#initiative-rows tr")].map(
@@ -210,7 +211,7 @@ test(
       let shown = await screen(page);
       assert.equal(shown.encounterHidden, true);
       assert.match(shown.room, /^Foot of the Stair\n/);
-      assert.match(shown.room, /Your HP: (\d+)\/\1/);
+      assert.match(shown.status, /Your HP: (\d+)\/\1/);
       assert.match(shown.room, /Go to Alcove/);
       assert.match(shown.room, /Go to Rat-Gnawed Cellar/);
       assert.match(shown.room, /Examine Rusted Lantern/);
@@ -270,7 +271,7 @@ test(
         /The fight is over\./,
       );
       shown = await screen(page);
-      assert.match(shown.room, new RegExp(`Your HP: ${expected.hurt}/`));
+      assert.match(shown.status, new RegExp(`Your HP: ${expected.hurt}/`));
       assert.match(shown.room, /Go to Smugglers' Den/);
 
       // Reload after the fight: the same screen, from the saved session.
@@ -286,7 +287,7 @@ test(
       );
       assert.match(shown.room, /You carry\n+None\./);
       assert.match(
-        shown.room,
+        shown.status,
         new RegExp(`Your HP: ${expected.state.character.hp}/`),
       );
 

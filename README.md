@@ -42,8 +42,8 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   Minions and a Goblin Warrior; and _The Smugglers' Cellar_
   (`adventures/5e/smugglers-cellar.json`), four rooms to explore with a Giant
   Rat, a Goblin Warrior and a Potion of Healing hidden in a chest.
-- **Exploring a 5e adventure.** The room panel shows the current room, your
-  HP, its exits, its features (with any discovery you have made), the items
+- **Exploring a 5e adventure.** The room panel shows the current room, its
+  exits, its features (with any discovery you have made), the items
   you can see and what you carry. **Go to**, **Examine**, **Take** and
   **Drink** buttons appear only while the engine would accept them, or you
   can type ("search the chest", "go to the alcove", "drink the potion").
@@ -71,6 +71,15 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   adventure exactly as it was. Winning the fight that ends the adventure frees the character for another adventure;
   0 HP is instant defeat, and a defeated character cannot start another. A
   character on an adventure cannot be deleted until the adventure ends.
+- **The 5e adventure screen.** It has fixed regions: status (your HP), the
+  scene (the room, the fight and the ending), the action buttons, and the
+  conversation history ("What happened") with the box for typing to the
+  Dungeon Master. On a wide window, status and scene sit on the left and the
+  history on the right in its own scroll area, newest at the bottom, with the
+  actions and the typing box beneath it, so an action and its result are on
+  screen together. On a phone it is one column with the history, actions and
+  typing box pinned to the bottom. The history follows new entries unless you
+  have scrolled up to read older ones.
 - **Moving between 5e views.** The character library, creation, each
   character sheet and each adventure have their own address and page title
   (such as "Brannoc Ironside · Dungeon One"), so the browser's Back and
