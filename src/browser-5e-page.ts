@@ -9,10 +9,15 @@
 //   the round and whose turn it is (#turn), and #resources, a pip for each
 //   turn resource and class feature use. It shows only what the session view
 //   projects.
-// - #session-scene: the room, the fight and the ending.
+// - #session-scene: the room, the fight and the ending. The room lists only
+//   what is there (#157); in a fight its details collapse behind #room-toggle.
+//   The fight's initiative table shows totals, marks the current turn and
+//   keeps each roll in #initiative-breakdown; it collapses behind
+//   #initiative-toggle once the fight is over.
 // - #session-actions: #adventure-error and the action bar (#156), #action-bar:
 //   #attack-controls, #feature-controls (Drink in a fight, Second Wind, Action
-//   Surge, End turn) and #explore-controls (Go to, Examine, Take, Drink). It
+//   Surge, End turn) and #explore-controls (Go, Examine, Take, Drink, grouped
+//   by target with the full name as each button's accessible name). It
 //   shows every action the session view projects, an unavailable one disabled
 //   with its reason as visible text linked by aria-describedby. After an
 //   action, focus stays on the clicked control if it is still enabled, and
@@ -74,14 +79,20 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <div id="session-layout">
 <section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="resources" class="resources"></ul></section>
 <div id="session-scene">
-<section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3><p id="room-description"></p>
-<h4 id="exits-title">Exits</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul>
-<h4 id="features-title">Features</h4><ul id="features" class="things" aria-labelledby="features-title"></ul>
-<h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul>
-<h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul>
+<section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3>
+<button id="room-toggle" type="button" class="quiet disclosure" aria-expanded="false" aria-controls="room-details" hidden>Room details</button>
+<div id="room-details"><p id="room-description"></p>
+<div id="exits-group"><h4 id="exits-title">Exits</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul></div>
+<div id="features-group"><h4 id="features-title">Features</h4><ul id="features" class="things" aria-labelledby="features-title"></ul></div>
+<div id="room-items-group"><h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul></div>
+<p id="room-empty" class="hint" hidden>There is nothing else here.</p>
+<div id="inventory-group"><h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul></div>
+</div>
 </section>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
-<div class="table-wrap"><table id="initiative"><caption class="hint">Initiative order: each combatant rolled d20 + its initiative bonus.</caption><thead><tr><th scope="col">Turn</th><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
+<button id="initiative-toggle" type="button" class="quiet disclosure" aria-expanded="false" aria-controls="initiative-panel" hidden>Initiative order</button>
+<div id="initiative-panel"><div class="table-wrap"><table id="initiative" aria-label="Initiative order"><thead><tr><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
+<details id="initiative-breakdown"><summary>How initiative was rolled</summary><p class="hint">Each combatant rolled d20 + its initiative bonus; ties go to the higher Dexterity, then a roll-off.</p><ul id="initiative-rolls" class="breakdown"></ul></details></div>
 <p id="feature-rule" class="hint"></p>
 </section>
 <section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title"></h3><p id="ending-text"></p></section>
@@ -152,9 +163,10 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
 #session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}
+button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}.thing-actions{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2);max-width:100%;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label)}#explore-controls{column-gap:var(--space-4)}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1}#log{flex:1;max-height:none}}
-@media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative th:first-child,#initiative td:first-child{display:none}#initiative td{white-space:nowrap}#initiative .roll-off{display:block;white-space:normal;font-size:var(--text-xs)}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
+@media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative td{white-space:nowrap}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -421,29 +433,10 @@ function renderAdventure() {
   element("adventure-title").textContent = adventure.title;
   element("adventure-objective").textContent = adventure.objective;
   const playing = session.status === "playing";
-  renderRoom(session.room);
+  const fighting = Boolean(encounter && encounter.currentTurn !== null);
+  renderRoom(session.room, fighting);
   element("encounter").hidden = !encounter;
-  if (encounter) {
-    element("initiative-rows").replaceChildren(...encounter.combatants.map((combatant) => {
-      const row = make("tr", undefined, (combatant.id === encounter.currentTurn ? "current" : "") + (combatant.defeated ? " defeated" : ""));
-      row.dataset.combatant = combatant.id;
-      if (combatant.id === encounter.currentTurn) row.setAttribute("aria-current", "true");
-      const name = make("th", combatant.name + (combatant.id === encounter.playerId ? " (you)" : "") + (combatant.sapped ? " (sapped)" : ""));
-      name.scope = "row";
-      if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
-      const roll = combatant.initiative;
-      const initiative = make("td", roll.d20 + " " + (roll.bonus >= 0 ? "+ " : "− ") + Math.abs(roll.bonus) + " = " + roll.total);
-      if (roll.tieBreaks.length) initiative.append(make("span", " (roll-off " + roll.tieBreaks.join(", ") + ")", "roll-off"));
-      row.append(
-        make("td", combatant.id === encounter.currentTurn ? "▶ Now" : ""),
-        name,
-        initiative,
-        make("td", combatant.hp + "/" + combatant.maxHp),
-        make("td", combatant.armorClass),
-      );
-      return row;
-    }));
-  }
+  if (encounter) renderInitiative(encounter, fighting);
   renderActions();
   element("feature-rule").textContent = session.features ? ${JSON.stringify(FEATURE_USES_RULE)} : "";
   renderStatus();
@@ -614,7 +607,8 @@ function renderHistory() {
   if (followHistory) log.scrollTop = log.scrollHeight;
 }
 
-// Each list's entries; their actions are in the action bar.
+// Each list's entries; their actions are in the action bar. An empty list is
+// left out, and a room with no exits, features or items says so in one line.
 const ROOM_LISTS = [
   { id: "exits", key: "exits" },
   { id: "features", key: "features" },
@@ -622,12 +616,28 @@ const ROOM_LISTS = [
   { id: "inventory", key: "inventory" },
 ];
 
-function renderRoom(room) {
+// Disclosures (#157): in a fight the room's details collapse behind
+// #room-toggle, and once the fight is over the initiative table collapses
+// behind #initiative-toggle. Each starts collapsed whenever it appears; the
+// player's choice holds until then. #initiative-breakdown, a native details
+// element, holds each combatant's roll and roll-offs.
+const disclosures = { room: false, initiative: false };
+
+function disclose(name, shown) {
+  const toggle = element(name + "-toggle");
+  if (!shown) disclosures[name] = false;
+  toggle.hidden = !shown;
+  toggle.setAttribute("aria-expanded", String(disclosures[name]));
+  element(toggle.getAttribute("aria-controls")).hidden = shown && !disclosures[name];
+}
+
+function renderRoom(room, fighting) {
   element("room-title").textContent = room.name;
   element("room-description").textContent = room.description;
   for (const list of ROOM_LISTS) {
     const entries = room[list.key];
-    element(list.id).replaceChildren(...(entries.length === 0 ? [make("li", "None.", "none")] : entries.map((entry) => {
+    element(list.id + "-group").hidden = entries.length === 0;
+    element(list.id).replaceChildren(...entries.map((entry) => {
       const item = make("li");
       item.dataset.id = entry.id;
       const text = make("p");
@@ -635,8 +645,36 @@ function renderRoom(room) {
       item.append(text);
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
       return item;
-    })));
+    }));
   }
+  element("room-empty").hidden = room.exits.length + room.features.length + room.items.length > 0;
+  disclose("room", fighting);
+}
+
+const rollText = (roll) => "d20 " + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
+const combatantName = (encounter, combatant) => combatant.name + (combatant.id === encounter.playerId ? " (you)" : "");
+
+// The initiative table shows each total; the current turn's row is
+// highlighted and its name tagged. The rolls behind the totals are on demand.
+function renderInitiative(encounter, fighting) {
+  element("initiative-rows").replaceChildren(...encounter.combatants.map((combatant) => {
+    const current = combatant.id === encounter.currentTurn;
+    const row = make("tr", undefined, (current ? "current" : "") + (combatant.defeated ? " defeated" : ""));
+    row.dataset.combatant = combatant.id;
+    if (current) row.setAttribute("aria-current", "true");
+    const name = make("th", combatantName(encounter, combatant) + (combatant.sapped ? " (sapped)" : ""));
+    name.scope = "row";
+    if (current) name.append(" ", make("span", "Now", "tag now"));
+    if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
+    row.append(name, make("td", combatant.initiative.total), make("td", combatant.hp + "/" + combatant.maxHp), make("td", combatant.armorClass));
+    return row;
+  }));
+  element("initiative-rolls").replaceChildren(...encounter.combatants.map((combatant) => {
+    const item = make("li", combatantName(encounter, combatant) + ": " + rollText(combatant.initiative));
+    item.dataset.combatant = combatant.id;
+    return item;
+  }));
+  disclose("initiative", !fighting);
 }
 
 async function act(path, body) {
@@ -663,6 +701,9 @@ async function act(path, body) {
 // move, examination, take and drink. An action the engine would refuse stays
 // in place, disabled, with the engine's reason beside it.
 const ACTION_LABELS = { attack: "Attack ", use: "Drink ", move: "Go to ", examine: "Examine ", take: "Take ", "second-wind": "Second Wind", "action-surge": "Action Surge", "end-turn": "End turn" };
+// Exploring, each target's name is shown once beside its short verbs (#157);
+// each button's accessible name is still the full "Examine Iron-Bound Chest".
+const SHORT_VERBS = { move: "Go", examine: "Examine", take: "Take", use: "Drink" };
 const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
 const EXPLORING = ["move", "examine", "take"];
 
@@ -678,8 +719,10 @@ function renderActions() {
     const { action, target } = option;
     const group = action === "attack" ? "attack" : EXPLORING.includes(action) || (action === "use" && !fighting) ? "explore" : "feature";
     const label = ACTION_LABELS[action] + (target ? target.name : "") + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
-    const button = make("button", label);
+    const short = group === "explore";
+    const button = make("button", short ? SHORT_VERBS[action] : label);
     button.type = "button";
+    if (short) button.setAttribute("aria-label", label);
     // One opponent makes attacking the fight's primary action; several are peers.
     button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "end-turn" ? "secondary" : group + " secondary";
     button.dataset.action = action;
@@ -694,7 +737,18 @@ function renderActions() {
       button.setAttribute("aria-describedby", reason.id);
       wrap.append(reason);
     }
-    groups[group].push(wrap);
+    if (!short) {
+      groups[group].push(wrap);
+      return;
+    }
+    let thing = groups.explore.find((node) => node.dataset.target === target.id);
+    if (!thing) {
+      thing = make("span", undefined, "thing-actions");
+      thing.dataset.target = target.id;
+      thing.append(unspoken(make("span", target.name, "thing-name")));
+      groups.explore.push(thing);
+    }
+    thing.append(wrap);
   });
   element("attack-controls").replaceChildren(...groups.attack);
   element("feature-controls").replaceChildren(...groups.feature);
@@ -930,6 +984,12 @@ element("delete-form").addEventListener("submit", deleteCharacter);
 element("cancel-delete").addEventListener("click", () => element("delete-dialog").close());
 element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose) element("delete-character").focus(); });
 element("message-form").addEventListener("submit", sendMessage);
+for (const name of Object.keys(disclosures)) {
+  element(name + "-toggle").addEventListener("click", () => {
+    disclosures[name] = !disclosures[name];
+    disclose(name, true);
+  });
+}
 // The skip link moves focus without adding a history entry.
 document.querySelector(".skip").addEventListener("click", (event) => {
   event.preventDefault();

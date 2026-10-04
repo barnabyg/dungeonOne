@@ -235,9 +235,16 @@ for (const viewport of [
         await page.locator("#log li").first().waitFor();
 
         // Exploring actions live in the action region, not the room panel.
-        assert.equal(await page.locator("#room button").count(), 0);
+        assert.equal(
+          await page.locator("#room button:not(#room-toggle)").count(),
+          0,
+        );
         assert.deepEqual(
-          await page.locator("#explore-controls button").allTextContents(),
+          await page
+            .locator("#explore-controls button")
+            .evaluateAll((buttons) =>
+              buttons.map((button) => button.getAttribute("aria-label")),
+            ),
           ["Go to Alcove", "Go to Rat-Gnawed Cellar", "Examine Rusted Lantern"],
         );
 

@@ -137,7 +137,16 @@ const screen = (page) =>
   page.evaluate(() => ({
     status: document.getElementById("session-status").innerText,
     room: document.getElementById("room").innerText,
-    actions: document.getElementById("action-bar").innerText,
+    // Each action's accessible name, and the reason it is unavailable (#157).
+    actions: [...document.querySelectorAll("#action-bar button")]
+      .map((button) => {
+        const reason = button.getAttribute("aria-describedby");
+        return (
+          (button.getAttribute("aria-label") || button.textContent) +
+          (reason ? " " + document.getElementById(reason).textContent : "")
+        );
+      })
+      .join("\n"),
     encounterHidden: document.getElementById("encounter").hidden,
     rows: [...document.querySelectorAll("#initiative-rows tr")].map(
       (row) => row.textContent,
@@ -253,7 +262,7 @@ test(
         shown.room,
         /You carry\n+Potion of Healing — A stoppered vial/,
       );
-      assert.match(shown.room, /Items here\n+None\./);
+      assert.doesNotMatch(shown.room, /Items here|None\./);
       // Full health: Drink is disabled, with the reason.
       assert.match(shown.actions, /Drink Potion of Healing\s+Full HP/);
 
@@ -288,7 +297,7 @@ test(
         await page.locator("#log li").last().textContent(),
         /You drink the Potion of Healing: \d \+ \d \+ 2 = \d+; you regain \d+ HP/,
       );
-      assert.match(shown.room, /You carry\n+None\./);
+      assert.doesNotMatch(shown.room, /You carry|None\./);
       assert.match(
         shown.status,
         new RegExp(`HP ${expected.state.character.hp}/`),
