@@ -1,5 +1,5 @@
 /**
- * A 5e adventure session and its save file (format version 3).
+ * A 5e adventure session and its save file (format version 4).
  *
  * The save holds the character as it started, the adventure module's digest,
  * the session's seed, every committed action with the dice it drew, the
@@ -24,15 +24,17 @@ import { validateFighter, type FighterSheet } from "./fighter-5e.js";
 import { createSeededRandom, RANDOM_ALGORITHM } from "./random.js";
 import { createFifthRuntime } from "./data-runtime.js";
 import type { GameToolCall } from "./runtime-contract.js";
-import type {
-  FifthAction,
-  FifthEvent,
-  FifthResult,
-  FifthRuntime,
-  FifthState,
+import {
+  describeFifthResult,
+  type FifthAction,
+  type FifthEvent,
+  type FifthResult,
+  type FifthRuntime,
+  type FifthState,
+  type ResultLine,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 3;
+export const FIFTH_SESSION_FORMAT = 4;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;
@@ -47,11 +49,16 @@ export type Transition = Readonly<{
   rolls: readonly RollRecord[];
 }>;
 
-/** An engine-authored result the browser shows as a card. */
+/**
+ * An engine-authored result the browser shows as a card: `narration` for an
+ * action that only entered a room, `result` for any other resolved action,
+ * `rejection` for a refusal. `lines` split `text` line by line, each with
+ * the rolls behind it grouped by purpose.
+ */
 export type HistoryCard = Readonly<{
-  kind: "result" | "rejection";
+  kind: "narration" | "result" | "rejection";
   text: string;
-  rolls: readonly RollRecord[];
+  lines: readonly ResultLine[];
 }>;
 
 /** One exchange: the player's message (if typed), the reply and its cards. */
@@ -120,12 +127,78 @@ function validHistory(value: unknown): value is HistoryEntry[] {
         entry.cards.every(
           (card) =>
             isRecord(card) &&
-            Object.keys(card).sort().join(",") === "kind,rolls,text" &&
-            (card.kind === "result" || card.kind === "rejection") &&
+            Object.keys(card).sort().join(",") === "kind,lines,text" &&
+            ["narration", "result", "rejection"].includes(String(card.kind)) &&
             text(card.text) &&
-            validRolls(card.rolls),
+            Array.isArray(card.lines) &&
+            card.lines.every(
+              (line) =>
+                isRecord(line) &&
+                Object.keys(line).sort().join(",") === "rolls,text" &&
+                text(line.text) &&
+                Array.isArray(line.rolls) &&
+                line.rolls.every(validRollGroup),
+            ) &&
+            card.lines.map((line) => (line as ResultLine).text).join("\n") ===
+              card.text,
         ),
     )
+  );
+}
+
+const ROLL_PURPOSES = ["initiative", "target", "attack", "damage", "healing"];
+const OPTIONAL_GROUP_KEYS = [
+  "target",
+  "rollOff",
+  "mode",
+  "armorClass",
+  "outcome",
+  "damageType",
+  "hpAfter",
+  "maxHp",
+];
+
+function validRollGroup(value: unknown): boolean {
+  const integer = (field: unknown) => Number.isSafeInteger(field);
+  const optional = (field: unknown, check: (field: unknown) => boolean) =>
+    field === undefined || check(field);
+  const label = (field: unknown) =>
+    typeof field === "string" && field.length <= 200;
+  return (
+    isRecord(value) &&
+    Object.keys(value).every(
+      (key) =>
+        ["purpose", "roller", "dice", "modifier", "total"].includes(key) ||
+        OPTIONAL_GROUP_KEYS.includes(key),
+    ) &&
+    ROLL_PURPOSES.includes(String(value.purpose)) &&
+    label(value.roller) &&
+    optional(value.target, label) &&
+    Array.isArray(value.dice) &&
+    value.dice.every(
+      (die) =>
+        isRecord(die) &&
+        integer(die.sides) &&
+        integer(die.value) &&
+        optional(die.dropped, (dropped) => dropped === true) &&
+        Object.keys(die).every((key) =>
+          ["sides", "value", "dropped"].includes(key),
+        ),
+    ) &&
+    integer(value.modifier) &&
+    integer(value.total) &&
+    optional(
+      value.rollOff,
+      (rollOff) => Array.isArray(rollOff) && rollOff.every(integer),
+    ) &&
+    optional(value.mode, label) &&
+    optional(value.armorClass, integer) &&
+    optional(value.outcome, (outcome) =>
+      ["hit", "critical", "miss"].includes(String(outcome)),
+    ) &&
+    optional(value.damageType, label) &&
+    optional(value.hpAfter, integer) &&
+    optional(value.maxHp, integer)
   );
 }
 
@@ -254,12 +327,18 @@ export class FifthSession {
     };
   }
 
-  /** The engine-authored card for a resolved action. */
+  /** The engine-authored card for a resolved action and the dice it drew. */
   card(result: FifthResult, rolls: readonly RollRecord[]): HistoryCard {
+    const lines = describeFifthResult(result, rolls, this.character.name);
     return {
-      kind: result.rejection === undefined ? "result" : "rejection",
-      text: this.runtime.renderResult(result),
-      rolls,
+      kind:
+        result.rejection !== undefined
+          ? "rejection"
+          : result.events.every(({ type }) => type === "entered")
+            ? "narration"
+            : "result",
+      text: lines.map(({ text }) => text).join("\n"),
+      lines,
     };
   }
 
