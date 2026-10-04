@@ -8,7 +8,11 @@ import {
   levelForXp,
   validateFighter,
 } from "../dist/fighter-5e.js";
-import { createFifthRuntime, playerCombatant } from "../dist/runtime-5e.js";
+import {
+  createFifthRuntime,
+  playerCombatant,
+  renderFifthEvent,
+} from "../dist/runtime-5e.js";
 
 const [adventure, storeroom] = await loadBuiltInFifthAdventures();
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 17 with Defense, 12 HP, mace +5.
@@ -736,4 +740,30 @@ test("scripted DM: end_turn hands the turn to the opponents", async () => {
     "Ada ends the turn.\nGoblin Warrior attacks Ada with Scimitar: 1 + 4 = 5 against AC 17. Miss.\nIt is your turn.",
   );
   assert.equal(result.state.encounter.round, 2);
+});
+
+test("advantage and disadvantage that cancel are named on the card, with the one die", () => {
+  const { state } = begun();
+  const line = renderFifthEvent(state, {
+    type: "attack",
+    actorId: "goblin",
+    targetId: "pc",
+    weapon: "Scimitar",
+    d20: 9,
+    bonus: 4,
+    total: 13,
+    armorClass: 17,
+    hit: false,
+    critical: false,
+    mode: { d20s: [9], advantage: ["A"], disadvantage: ["B"] },
+    damageRolls: [],
+    damageModifier: 2,
+    damage: 0,
+    damageType: "slashing",
+    hpAfter: 12,
+  });
+  assert.equal(
+    line,
+    "Goblin Warrior attacks Ada with Scimitar, advantage (A) and disadvantage (B) cancel: 9 + 4 = 13 against AC 17. Miss.",
+  );
 });

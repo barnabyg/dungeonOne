@@ -175,7 +175,7 @@ function listed(items: readonly string[]): string {
 function modeText(mode: RollMode, kept: number): string {
   const sources = (names: readonly string[]) => `(${names.join(", ")})`;
   if (mode.advantage.length > 0 && mode.disadvantage.length > 0) {
-    return `, advantage ${sources(mode.advantage)} and disadvantage ${sources(mode.disadvantage)} cancelling`;
+    return `, advantage ${sources(mode.advantage)} and disadvantage ${sources(mode.disadvantage)} cancel:`;
   }
   const kind = mode.advantage.length > 0 ? "advantage" : "disadvantage";
   return `, at ${kind} ${sources(mode.advantage.length > 0 ? mode.advantage : mode.disadvantage)}: ${mode.d20s.join(" and ")}, keeping ${kept};`;
