@@ -3,7 +3,10 @@ import { resolve } from "node:path";
 import { resolveStartupSeed } from "./random.js";
 import { announceBrowser } from "./browser-launch.js";
 import { startBrowserServer } from "./browser-server.js";
-import { startFifthBrowserServer } from "./browser-5e-server.js";
+import {
+  FIFTH_DM_SETUP_HINT,
+  startFifthBrowserServer,
+} from "./browser-5e-server.js";
 import { BROWSER_RELEASES, BROWSER_START_VERSION } from "./browser-releases.js";
 
 const LEGACY_VERSIONS = BROWSER_RELEASES.filter(
@@ -14,7 +17,7 @@ const USAGE = `Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--characte
 Create or choose a saved Fighter, then select an adventure. Default library: characters.json; its adventures are saved in the adjacent character-adventures directory and continue when you rerun the same command.
 --legacy uses only the --save slot: it starts Hollow Beacon v${BROWSER_START_VERSION}; existing v${LEGACY_VERSIONS[0]}-v${LEGACY_VERSIONS.at(-1)} slots continue unchanged.
 --5e (temporary, until 5e is the only mode) creates 5e Fighters in their own library, by default characters-5e.json, and takes them into 5e adventures saved in the adjacent characters-5e-adventures directory. Only --seed and --characters apply.
-Set OPENAI_API_KEY in the environment before launch.`;
+Set OPENAI_API_KEY in the environment before launch; under --5e, without it the buttons still work and typing to the Dungeon Master is off.`;
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -92,6 +95,9 @@ async function main(): Promise<void> {
   };
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
+  if ("dmAvailable" in server && !server.dmAvailable) {
+    process.stdout.write(FIFTH_DM_SETUP_HINT);
+  }
   await announceBrowser(server.url, (message) => {
     process.stdout.write(message);
   });
