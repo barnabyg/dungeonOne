@@ -365,7 +365,7 @@ test(
     try {
       await createAndStart(page, server.url, "cellar-goblin");
       while (!(await page.locator("#ending").isVisible())) {
-        const attack = page.locator("#attack-controls button.attack");
+        const attack = page.locator("#attack-controls button.attack:enabled");
         await clickAndWait(
           page,
           (await attack.count()) > 0

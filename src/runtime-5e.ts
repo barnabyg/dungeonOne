@@ -16,7 +16,9 @@
  * The AI DM reads with `look` and `get_character_status`, and acts with
  * `move`, `examine`, `take`, `use_item`, `attack`, `second_wind`,
  * `action_surge` and `end_turn`. Each is offered only while the engine would
- * accept it, listing only what is visible and legal. The engine authors the
+ * accept it, listing only what is visible and legal: the tools come from the
+ * same projection (`projectActions`) as the browser's action bar, which asks
+ * the engine about each action. The engine authors the
  * reply to every action, accepted or rejected, so the AI cannot narrate rolls,
  * damage, advantage, discoveries, items or outcomes of its own.
  */
@@ -654,6 +656,47 @@ export type RoomView = Readonly<{
   }>;
 }>;
 
+/** A kind of action in the browser's action bar. */
+export type ActionKind =
+  | "attack"
+  | "use"
+  | "second-wind"
+  | "action-surge"
+  | "end-turn"
+  | "move"
+  | "examine"
+  | "take";
+
+/**
+ * One action the player can see in the action bar, with its target, whether
+ * the engine would accept it now and, when it would not, a short reason.
+ */
+export type ActionView = Readonly<{
+  action: ActionKind;
+  target?: Readonly<{ id: string; name: string }>;
+  available: boolean;
+  /** Present exactly when the action is unavailable. */
+  reason?: string;
+}>;
+
+/** The engine's refusals, shortened for a disabled button. */
+const SHORT_REASONS: Readonly<Record<string, string>> = {
+  "You have already used your action this turn.": "Action used",
+  "You have already used your bonus action this turn.": "Bonus action used",
+  "You are unhurt, so Second Wind would heal nothing.": "Full HP",
+  "You are unhurt, so the potion would heal nothing.": "Full HP",
+  "You have no uses of Second Wind left.": "No uses left",
+  "You have no uses of Action Surge left.": "No uses left",
+};
+
+/** Thrown by the dry-run roller: the engine accepted the action and rolls. */
+class WouldRoll extends Error {}
+const DRY_RUN = {
+  roll(): number {
+    throw new WouldRoll("A dry run draws no dice.");
+  },
+};
+
 /**
  * The 5e runtime: an `AdventureRuntime` whose state, actions and results are
  * typed for 5e. It is assignable wherever the generic interface is expected.
@@ -690,6 +733,14 @@ export type FifthRuntime = Omit<
     projectFight(state: FifthState): FightView;
     /** The player-safe room for the browser's room panel. */
     projectRoom(state: FifthState): RoomView;
+    /**
+     * The action bar: in a fight, the character's whole toolkit (an attack
+     * on each living opponent, drinking each carried potion, Second Wind,
+     * Action Surge from level 2, and End turn); exploring, each move,
+     * examination, take and drink; when the adventure is over, nothing.
+     * Each says whether the engine would accept it now, and why not.
+     */
+    projectActions(state: FifthState): readonly ActionView[];
   }>;
 
 /**
@@ -811,8 +862,6 @@ export function createFifthRuntime(
   );
   const fighting = (state: FifthState) =>
     state.encounter !== undefined && state.encounter.outcome === "ongoing";
-  const exploring = (state: FifthState) =>
-    state.status === "playing" && !fighting(state);
 
   /** Items lying in the room that the character can see. */
   const roomItems = (state: FifthState): readonly FifthItem[] =>
@@ -833,11 +882,6 @@ export function createFifthRuntime(
         ? []
         : [{ id: other, name: roomById(other).name, description }];
     });
-  const examinable = (state: FifthState): readonly Named[] => [
-    ...room(state).features,
-    ...roomItems(state),
-    ...carried(state),
-  ];
 
   /** The character as a combatant: in the fight, or as it stands now. */
   const self = (state: FifthState): Combatant =>
@@ -870,21 +914,6 @@ export function createFifthRuntime(
   const options = (state: FifthState): readonly EncounterActionType[] =>
     state.status === "playing" && state.encounter !== undefined
       ? availableActions(state.encounter, PLAYER_ID)
-      : [];
-
-  const attackTargets = (state: FifthState): readonly Combatant[] =>
-    options(state).includes("attack")
-      ? legalTargets(state.encounter!, PLAYER_ID)
-      : [];
-
-  /** Carried items the engine would let the character use now. */
-  const usable = (state: FifthState): readonly FifthItem[] =>
-    (
-      fighting(state)
-        ? options(state).includes("drink-potion")
-        : exploring(state) && state.character.hp < maxHp
-    )
-      ? carried(state)
       : [];
 
   /**
@@ -1201,6 +1230,93 @@ export function createFifthRuntime(
     }
   };
 
+  /**
+   * Asks the engine whether it would accept `action` now, without drawing
+   * dice: the reason it refuses, or undefined when it accepts. An accepted
+   * action stops at its first die, so nothing is rolled or changed.
+   */
+  const refusal = (
+    state: FifthState,
+    action: FifthAction,
+  ): string | undefined => {
+    try {
+      return handleAction(state, action, DRY_RUN).rejection?.reason;
+    } catch (error) {
+      if (error instanceof WouldRoll) {
+        return undefined;
+      }
+      throw error;
+    }
+  };
+
+  const projectActions = (state: FifthState): readonly ActionView[] => {
+    if (state.status !== "playing") {
+      return [];
+    }
+    const view = (
+      kind: ActionKind,
+      action: FifthAction,
+      target?: Readonly<{ id: string; name: string }>,
+    ): ActionView => {
+      const reason = refusal(state, action);
+      return {
+        action: kind,
+        ...(target === undefined
+          ? {}
+          : { target: { id: target.id, name: target.name } }),
+        available: reason === undefined,
+        ...(reason === undefined
+          ? {}
+          : { reason: SHORT_REASONS[reason] ?? reason }),
+      };
+    };
+    const use = (item: FifthItem) =>
+      view("use", { type: "use-item", itemId: item.id }, item);
+    const examine = (target: Named) =>
+      view("examine", { type: "examine", targetId: target.id }, target);
+    if (fighting(state)) {
+      const pc = combatant(state.encounter!, PLAYER_ID);
+      const feature = (kind: "second-wind" | "action-surge" | "end-turn") =>
+        view(kind, { type: kind, actorId: PLAYER_ID });
+      return [
+        ...legalTargets(state.encounter!, PLAYER_ID).map((target) =>
+          view(
+            "attack",
+            { type: "attack", actorId: PLAYER_ID, targetId: target.id },
+            target,
+          ),
+        ),
+        ...carried(state).map(use),
+        ...(pc.secondWind === undefined ? [] : [feature("second-wind")]),
+        ...(pc.actionSurge === undefined ? [] : [feature("action-surge")]),
+        feature("end-turn"),
+      ];
+    }
+    return [
+      ...exits(state).map((exit) =>
+        view("move", { type: "move", destinationId: exit.id }, exit),
+      ),
+      ...room(state).features.map(examine),
+      ...roomItems(state).flatMap((item) => [
+        view("take", { type: "take", itemId: item.id }, item),
+        examine(item),
+      ]),
+      ...carried(state).flatMap((item) => [use(item), examine(item)]),
+    ];
+  };
+
+  /** The targets of one kind of action that the engine would accept now. */
+  const accepted = (
+    state: FifthState,
+    kind: ActionKind,
+  ): readonly Readonly<{ id: string; name: string }>[] =>
+    projectActions(state).flatMap(({ action, target, available }) =>
+      action === kind && available && target !== undefined ? [target] : [],
+    );
+
+  const attackTargets = (state: FifthState): readonly Combatant[] =>
+    accepted(state, "attack").map(({ id }) => combatant(state.encounter!, id));
+
   const describedFeatures = (state: FifthState) =>
     room(state).features.map(({ id, name, description, discovery }) => ({
       id,
@@ -1312,7 +1428,6 @@ export function createFifthRuntime(
     const current = room(state);
     const ids = (entries: readonly Readonly<{ id: string }>[]) =>
       entries.map(({ id }) => id);
-    const open = exploring(state);
     return {
       id: current.id,
       name: current.name,
@@ -1327,10 +1442,10 @@ export function createFifthRuntime(
         health: healthOf(state.character.hp, maxHp),
       },
       options: {
-        move: open ? ids(exits(state)) : [],
-        examine: open ? ids(examinable(state)) : [],
-        take: open ? ids(roomItems(state)) : [],
-        use: ids(usable(state)),
+        move: ids(accepted(state, "move")),
+        examine: ids(accepted(state, "examine")),
+        take: ids(accepted(state, "take")),
+        use: ids(accepted(state, "use")),
       },
     };
   };
@@ -1368,12 +1483,16 @@ export function createFifthRuntime(
   const getGameToolDefinitions = (
     state: FifthState,
   ): readonly GameToolDefinition[] => {
-    const offered = options(state);
-    const open = exploring(state);
+    // The action bar's projection, so the AI DM is offered exactly the
+    // actions the player sees enabled.
+    const choices = (kind: ActionKind) => accepted(state, kind);
+    const actions = projectActions(state);
     const features = (
       Object.entries(FEATURE_TOOLS) as [FeatureTool, EncounterActionType][]
     )
-      .filter(([, type]) => offered.includes(type))
+      .filter(([, type]) =>
+        actions.some(({ action, available }) => action === type && available),
+      )
       .map(([name]) => ({
         type: "function" as const,
         name,
@@ -1401,31 +1520,31 @@ export function createFifthRuntime(
       ...targetTool(
         "move",
         "Go through an exit to a neighbouring room. A fight there begins at once. Exits:",
-        open ? exits(state) : [],
+        choices("move"),
         "The id of the room to go to.",
       ),
       ...targetTool(
         "examine",
         "Examine a feature or item closely: look at, search, read, inspect or open it. The engine says what the character finds. Targets:",
-        open ? examinable(state) : [],
+        choices("examine"),
         "The id of the feature or item to examine.",
       ),
       ...targetTool(
         "take",
         "Pick up a visible item and carry it. Items:",
-        open ? roomItems(state) : [],
+        choices("take"),
         "The id of the item to take.",
       ),
       ...targetTool(
         "use_item",
         "Drink a carried potion; the engine rolls its healing, up to the maximum. In a fight it takes the bonus action. Identical items work alike. Items:",
-        usable(state),
+        choices("use"),
         "The id of the carried item to use.",
       ),
       ...targetTool(
         "attack",
         "Attack one opponent with the character's weapon on the character's turn. The engine rolls the attack and damage. Targets:",
-        attackTargets(state),
+        choices("attack"),
         "The id of the opponent to attack.",
       ),
       ...features,
@@ -1580,6 +1699,7 @@ export function createFifthRuntime(
     projectFight: (state) =>
       projectFight(state, self(state), options(state), attackTargets(state)),
     projectRoom,
+    projectActions,
   };
   return runtime;
 }

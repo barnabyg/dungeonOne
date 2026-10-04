@@ -191,13 +191,15 @@ async function act(page, label, click) {
 const explore = (page, action, target) =>
   act(page, `${action} ${target}`, () =>
     page
-      .locator(`#room button[data-action="${action}"][data-target="${target}"]`)
+      .locator(
+        `#action-bar button[data-action="${action}"][data-target="${target}"]`,
+      )
       .click(),
   );
 
 const fightOn = (page) =>
   act(page, "fight", async () => {
-    const attack = page.locator("#attack-controls button.attack");
+    const attack = page.locator("#attack-controls button.attack:enabled");
     await (
       (await attack.count()) > 0
         ? attack.first()
@@ -307,7 +309,7 @@ for (const viewport of [
 
         let actions = 0;
         assertTabOrder(await tabRegions(page), [
-          "session-scene",
+          "session-actions",
           "session-history",
           "session-composer",
         ]);
@@ -365,7 +367,7 @@ for (const viewport of [
         const count = await page.locator("#log li").count();
         await page
           .locator(
-            '#room button[data-action="examine"][data-target="gnawed-sacks"]',
+            '#action-bar button[data-action="examine"][data-target="gnawed-sacks"]',
           )
           .click();
         await page.waitForFunction(
@@ -393,9 +395,15 @@ for (const viewport of [
         );
 
         // Back at the bottom, it follows again.
-        await page.locator("#log").evaluate((log) => {
-          log.scrollTop = log.scrollHeight;
-        });
+        // Wait for the scroll event: a player can't scroll and send in the
+        // same frame, and the page learns the position from that event.
+        await page.locator("#log").evaluate(
+          (log) =>
+            new Promise((resolve) => {
+              log.addEventListener("scroll", resolve, { once: true });
+              log.scrollTop = log.scrollHeight;
+            }),
+        );
         await say(page, "I catch my breath");
         await explore(page, "move", "den");
         await fightOn(page);

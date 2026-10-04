@@ -225,7 +225,7 @@ async function create(page, name) {
 async function fightToTheEnd(page) {
   while (!(await page.locator("#ending").isVisible())) {
     const count = await page.locator("#log li").count();
-    const attack = page.locator("#attack-controls button.attack");
+    const attack = page.locator("#attack-controls button.attack:enabled");
     await (
       (await attack.count()) > 0
         ? attack.first()
@@ -312,7 +312,7 @@ for (const viewport of [
           .locator('.start-adventure[data-adventure="smugglers-cellar"]')
           .click();
         await page.locator("#adventure").waitFor({ state: "visible" });
-        await page.locator("#room button.explore").first().waitFor();
+        await page.locator("#action-bar button.explore").first().waitFor();
         await check(page, "room");
         await page.locator('#breadcrumb a[data-view="sheet"]').click();
         await page.locator("#continue-adventure").waitFor();

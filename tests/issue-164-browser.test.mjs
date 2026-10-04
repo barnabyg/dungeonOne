@@ -127,9 +127,9 @@ for (const viewport of [
           .click();
         await page.locator("#adventure").waitFor({ state: "visible" });
         // Act once so there is progress to resume.
-        await page.locator("#room button.explore").first().click();
+        await page.locator("#explore-controls button:enabled").first().click();
         await page.waitForFunction(
-          () => document.querySelectorAll("#log li").length > 0,
+          () => document.querySelectorAll("#log > li").length > 1,
         );
         const before = {
           room: await page.locator("#room-title").textContent(),

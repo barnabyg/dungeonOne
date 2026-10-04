@@ -132,6 +132,7 @@ const screen = (page) =>
   page.evaluate(() => ({
     status: document.getElementById("session-status").innerText,
     room: document.getElementById("room").innerText,
+    actions: document.getElementById("action-bar").innerText,
     encounterHidden: document.getElementById("encounter").hidden,
     rows: [...document.querySelectorAll("#initiative-rows tr")].map(
       (row) => row.textContent,
@@ -143,7 +144,9 @@ const screen = (page) =>
 async function explore(page, action, target) {
   const count = await page.locator("#log li").count();
   await page
-    .locator(`#room button[data-action="${action}"][data-target="${target}"]`)
+    .locator(
+      `#action-bar button[data-action="${action}"][data-target="${target}"]`,
+    )
     .click();
   await page.waitForFunction(
     (seen) => document.querySelectorAll("#log li").length > seen,
@@ -154,7 +157,7 @@ async function explore(page, action, target) {
 /** Clicks the first Attack button, or End turn once the action is spent. */
 async function clickNext(page) {
   const count = await page.locator("#log li").count();
-  const attack = page.locator("#attack-controls button.attack");
+  const attack = page.locator("#attack-controls button.attack:enabled");
   await (
     (await attack.count()) > 0
       ? attack.first()
@@ -207,9 +210,9 @@ test(
       assert.equal(shown.encounterHidden, true);
       assert.match(shown.room, /^Foot of the Stair\n/);
       assert.match(shown.status, /HP (\d+)\/\1 /);
-      assert.match(shown.room, /Go to Alcove/);
-      assert.match(shown.room, /Go to Rat-Gnawed Cellar/);
-      assert.match(shown.room, /Examine Rusted Lantern/);
+      assert.match(shown.actions, /Go to Alcove/);
+      assert.match(shown.actions, /Go to Rat-Gnawed Cellar/);
+      assert.match(shown.actions, /Examine Rusted Lantern/);
       assert.ok(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -237,7 +240,7 @@ test(
       );
       shown = await screen(page);
       assert.match(shown.room, /You found: Under a mouldy blanket/);
-      assert.match(shown.room, /Take Potion of Healing/);
+      assert.match(shown.actions, /Take Potion of Healing/);
 
       await explore(page, "take", "healing-potion");
       shown = await screen(page);
@@ -246,15 +249,15 @@ test(
         /You carry\n+Potion of Healing — A stoppered vial/,
       );
       assert.match(shown.room, /Items here\n+None\./);
-      // Full health: nothing to drink yet.
-      assert.doesNotMatch(shown.room, /Drink Potion of Healing/);
+      // Full health: Drink is disabled, with the reason.
+      assert.match(shown.actions, /Drink Potion of Healing\s+Full HP/);
 
       await explore(page, "move", "stair-foot");
       await explore(page, "move", "rat-cellar");
       shown = await screen(page);
       assert.equal(shown.encounterHidden, false);
       assert.ok(shown.rows.some((row) => /Giant Rat/.test(row)));
-      assert.doesNotMatch(shown.room, /Go to/);
+      assert.doesNotMatch(shown.actions, /Go to/);
 
       while (
         (await page.locator("#turn").textContent()) !== "The fight is over."
@@ -267,7 +270,7 @@ test(
       );
       shown = await screen(page);
       assert.match(shown.status, new RegExp(`HP ${expected.hurt}/`));
-      assert.match(shown.room, /Go to Smugglers' Den/);
+      assert.match(shown.actions, /Go to Smugglers' Den/);
 
       // Reload after the fight: the same screen, from the saved session.
       await page.reload();

@@ -256,7 +256,7 @@ for (const viewport of [
 
         // Clicks until the fight ends.
         while (!(await page.locator("#ending").isVisible())) {
-          const attack = page.locator("#attack-controls button.attack");
+          const attack = page.locator("#attack-controls button.attack:enabled");
           await added(page, async () =>
             ((await attack.count()) > 0
               ? attack.first()
