@@ -3,21 +3,47 @@
 Dungeon One is a TypeScript game played in a local desktop browser with a live
 AI Dungeon Master. Players keep persistent characters in a character library and
 bring them to adventure modules aimed at a recommended level range, earning
-experience and levels as they go. **Hollow Beacon** (levels 1–2) and
-**Stonebridge** (levels 2–3) are the current modules. Start with
-[independent characters and leveled adventures](#independent-characters-and-leveled-adventures).
+experience and levels as they go.
 
-The browser's `--legacy` mode keeps the earlier single save slot so released
-Hollow Beacon v4–v11 saves remain playable. The command-line app (`npm.cmd start`)
-is kept for testing: offline command mode, scripted and live AI regression
-routes, and trace replay. Its sections below document those contracts, including
-the historical command-mode adventures (**The Bell Beneath the Chapel**, the CLI
-default, and **The Stolen Signet**) and earlier handoffs such as
-[increment 4 acceptance](docs/acceptance/issue-53.md), the
-[issue 71 handoff](docs/acceptance/issue-71.md) and the
-[Hollow Beacon opening](docs/acceptance/issue-81.md).
+## Moving to 5e
+
+The game is moving to the 2024 fifth-edition rules in SRD 5.2
+([ADR 0005](docs/adr/0005-start-afresh-on-5e-and-suspend-compatibility.md)). Increment 11 (issues #125–#140, see the
+[5e expansion plan](dnd-expansion-implementation-plan.md)) builds a 5e Fighter,
+group combat, a balance gate on each module's declared difficulty and a new
+dungeon-crawl adventure module, then removes the pre-5e game.
+
+- **Transition flag.** Until 5e becomes the browser's only mode (#137), 5e play
+  is reached by launching the browser with a temporary `--5e` flag and its own
+  `--characters` library path. The flag arrives with #127. The default browser
+  keeps running the pre-5e game, so `main` stays playable.
+- **Throwaway formats.** While 5e is in development, character library, save,
+  trace and adventure module files each carry one format version. A change bumps
+  it, and older files are refused with a message naming the file and asking you
+  to move it aside. Nothing is migrated or deleted, and no compatibility is
+  promised until the owner declares a stable release.
+- **Rules.** The [rules document](docs/character-rules.md) records the 5e rules
+  in use, the house rules and each positional rule left out.
+
+**Removal pending (#139).** Hollow Beacon, Stonebridge, the browser's `--legacy`
+single save slot, the CLI command-mode adventures (the chapel, the Stolen Signet,
+crossroads and other fixtures), the adventure generator, and every existing
+character, library, save and trace are removed without migration. The rest of
+this README documents that pre-5e game as it still runs today; its compatibility
+statements no longer bind future builds. The README is rewritten for the 5e game
+when the old game is removed. The command-line app (`npm.cmd start`) stays a
+testing adapter, not a player interface. Earlier handoffs such as
+[increment 4 acceptance](docs/acceptance/issue-53.md) and the
+[Hollow Beacon opening](docs/acceptance/issue-81.md) are historical.
+
+This work includes material from the System Reference Document 5.2 ("SRD 5.2")
+by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The
+SRD 5.2 is licensed under the Creative Commons Attribution 4.0 International
+License, available at https://creativecommons.org/licenses/by/4.0/legalcode.
 
 ## Independent characters and leveled adventures
+
+**Removal pending (#139):** this section describes the pre-5e game.
 
 [Increment 10](increment-10-implementation-plan.md) adds an independent character
 library, character creation and selection before adventure selection, full sheets
@@ -103,6 +129,8 @@ policy](docs/acceptance/issue-93.md).
 All development tools and the official OpenAI SDK are exact-version dependencies in `package.json` and `package-lock.json`. Installation and dependency auditing require registry access. Command play, help, invalid-argument handling, and trace replay do not require a network connection, AI credentials, or any external service. Live AI play and adventure generation require network access and an OpenAI API key.
 
 ### Hollow Beacon in a desktop browser
+
+**Removal pending (#139):** this section describes the pre-5e game.
 
 The browser presents an illustrated current scene, a compact Fighter HP/day/
 caravan deadline strip, nearby people and objects, and the saved adventure.
@@ -354,6 +382,8 @@ and [issue 96 acceptance](docs/acceptance/issue-96.md) for startup checks.
 
 ### Generate a tiny adventure
 
+**Removal pending (#139):** this section describes the pre-5e game.
+
 Generation is opt-in and requires an explicit model, a printable premise of at
 most 500 characters, an existing output directory, and a new output filename.
 It makes at most three bounded OpenAI response requests (an initial attempt
@@ -410,6 +440,10 @@ privacy, copyable seeded journeys, and qualification limits, see
 [issue 61 handoff](docs/acceptance/issue-61.md).
 
 ## Command-line test adapter
+
+**Removal pending (#139):** the command-line app stays a testing adapter and is
+rebuilt on the 5e adventure module in #138. The adventures, routes and formats
+below belong to the pre-5e game.
 
 The command-line app is a testing and regression adapter, not the player
 interface; players use the browser. From a clean checkout:
@@ -1032,6 +1066,8 @@ standard error, exits nonzero, and does not change the game outcome.
 
 ## Session trace formats
 
+**Removal pending (#139):** this section describes the pre-5e game.
+
 Ordinary built-in and explicit-file command and scripted-AI sessions export self-contained format `4` with the validated adventure snapshot and digest. Sessions recorded alongside a save export linked format-`5` segments as described above. Historical chapel command and scripted-AI sessions used trace format `3`. It carries the
 same authoritative action/call, event or rejection, draw, result, and resulting
 state evidence as formats 1 and 2, with explicit chapel content/rules versions.
@@ -1110,6 +1146,9 @@ On macOS or Linux, use `npm` in place of `npm.cmd`. The optional seed must be a 
 
 ## Deterministic randomness
 
+**Removal pending (#139):** the `mulberry32-v1` generator is kept for 5e; the
+combat draw orders and seeds below belong to the pre-5e game.
+
 Gameplay uses the versioned `mulberry32-v1` generator. Its unsigned 32-bit state is incremented by `0x6D2B79F5`, then mixed with the documented Mulberry32 integer operations. A die result is `floor(nextUint32 / 2^32 * sides) + 1`. Fixed output-vector tests make this version a reproducibility contract; changing the algorithm requires a new version name. Presentation, identifiers, timestamps, read-only commands, and rejected commands never draw from the gameplay generator.
 
 The combat draw order is fighter initiative (`d20+1`), goblin initiative (`d20+2`), then each attack's d20. Damage dice are drawn only after a hit, and a critical hit draws two damage dice. Initiative is rolled once when the encounter begins and retained across its rounds.
@@ -1132,6 +1171,8 @@ resurrection, death saves, and tactical movement are not part of this slice.
 
 ## Supported commands
 
+**Removal pending (#139):** this section describes the pre-5e game.
+
 Commands and their arguments are case-insensitive. Commands must use the canonical forms below; fuzzy or natural-language input is not supported.
 
 | Command            | Result                                                                           |
@@ -1152,6 +1193,8 @@ Commands and their arguments are case-insensitive. Commands must use the canonic
 | `quit`             | Leave the game cleanly without victory or defeat.                                |
 
 ## Authoritative game actions
+
+**Removal pending (#139):** this section describes the pre-5e game.
 
 Programmatic callers use `handleGameAction` from `src/session.ts` with stable
 adventure identifiers instead of terminal display text. The supported
@@ -1174,6 +1217,8 @@ those names to stable identifiers and routes gameplay through
 remain terminal-only actions, so existing format-1 traces require no new fields.
 
 ## Validated game tools
+
+**Removal pending (#139):** this section describes the pre-5e game.
 
 Programmatic DM callers use `src/game-tools.ts`; this capability does not call a
 model or require credentials. `projectDmScene` returns the public title and
@@ -1207,6 +1252,8 @@ adapter. Carried items stay absent from ordinary scene projection but can be
 inspected by stable reference and are listed by `get_character_status`.
 
 ## Scripted Dungeon Master
+
+**Removal pending (#139):** this section describes the pre-5e game.
 
 `src/dm-turn.ts` provides the provider-neutral `DmModel` port and the versioned
 `stolen-signet-dm-v3` prompt. A turn receives untrusted player text, current
@@ -1264,6 +1311,8 @@ automated tests; canonical tests never make live API requests.
 
 ## Historical DM interpretation case library
 
+**Removal pending (#139):** this section describes the pre-5e game.
+
 `src/dm-interpretation-cases.ts` preserves the pre-cutover interpretation
 contracts used by deterministic historical tests and the opt-in legacy live
 evaluator. These examples use the frozen historical runtimes; current built-in
@@ -1308,6 +1357,8 @@ the harness and engine guardrails, not model tool-selection accuracy, live prose
 quality, or human enjoyment.
 
 ## Opt-in live DM evaluation
+
+**Removal pending (#139):** this section describes the pre-5e game.
 
 Maintainers can evaluate an explicitly named OpenAI model through the production
 adapter. The default `data-chapel` campaign exercises the shipped chapel data
@@ -1395,6 +1446,8 @@ At completion, the verifier briefly waits for the open dashboard to fetch the fi
 Focused tests can be run with `npm.cmd test -- --test-name-pattern "pattern"`; they do not start the dashboard.
 
 ## Manual checks for this slice
+
+**Removal pending (#139):** this section describes the pre-5e game.
 
 After `npm.cmd run build`:
 

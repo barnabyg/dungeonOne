@@ -1,5 +1,7 @@
 # Browser history persistence contract
 
+> **Removal pending (#139).** This contract covers saves of the pre-5e game. Under [ADR 0005](adr/0005-start-afresh-on-5e-and-suspend-compatibility.md) it no longer promises that any format stays readable; 5e saves use throwaway formats until a declared stable release.
+
 The engine save remains `dungeon-one-save`, format version 3. Versions 1–3 and
 existing trace formats remain readable. Browser sessions add optional
 `browserHistory` and `browserHistoryDigest` fields to the same save envelope;
@@ -43,7 +45,6 @@ concurrent game writers in different processes. Choose separate save paths for
 separate sessions. Automated restart/interruption checks are in
 `tests/issue-100.test.mjs` and execute the page script against HTTP and disk with
 deterministic AI fixtures, including an actual killed process after commit.
-
 
 New saves carry an optional random `generation` identity; old saves remain readable.
 Every typed or clicked POST turn supplies the visible revision, hashed from the

@@ -1,5 +1,7 @@
 # Increment 4 migration contract (issue 39)
 
+> **Superseded by [ADR 0005](adr/0005-start-afresh-on-5e-and-suspend-compatibility.md).** This contract no longer binds any build. The formats and replay guarantees below belong to the pre-5e game, which is removal pending (#139); this document is deleted with it.
+
 This is the contract for the subsequent data loader and generic runtime tickets,
 not a claim that format 4 or external adventures are implemented. The chapel
 remains the startup default. Save/resume, generation, scripts, clocks and new
