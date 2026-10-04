@@ -1,0 +1,335 @@
+// The `--5e` browser page (until #137): the 5e character library, the
+// creation screen and the character sheet. Bundled into dist so the extracted
+// package serves the same interface. The script builds every element with
+// textContent, never HTML from data.
+export const FIFTH_BROWSER_HTML = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
+<body><a class="skip" href="#content">Skip to content</a>
+<header class="masthead"><span class="brand-mark" aria-hidden="true">◇</span><div><p class="eyebrow">DUNGEON ONE · 5E PREVIEW</p><h1>Characters</h1></div></header>
+<main id="content" tabindex="-1">
+<p id="feedback" role="status" aria-live="polite"></p>
+<section id="library" class="panel" aria-labelledby="library-title">
+<h2 id="library-title">Your Fighters</h2>
+<ul id="characters" class="list"></ul>
+<p id="no-characters" class="hint" hidden>No characters yet.</p>
+<button id="open-creation" type="button">Create a Fighter</button>
+</section>
+<section id="creation" class="panel" aria-labelledby="creation-title" hidden>
+<h2 id="creation-title" tabindex="-1">Create a Fighter</h2>
+<p class="hint">Your six ability rolls are 4d6, dropping the lowest die. They were rolled once and saved before you saw them: reloading, restarting or leaving this screen shows the same dice, and there are no rerolls. Until you save, you can place the rolls on any abilities and change your other choices.</p>
+<h3>Your rolls</h3>
+<ol id="rolls" class="rolls"></ol>
+<form id="creation-form" novalidate>
+<fieldset id="placement"><legend>Place the rolls</legend><p class="hint">Choosing a roll that is already placed swaps the two abilities.</p><div id="placement-fields" class="grid"></div></fieldset>
+<fieldset id="increase"><legend>Background ability increase</legend><p class="hint">Give +2 to one ability and +1 to another, or +1 to three. No score can exceed 20.</p><div id="increase-fields" class="grid"></div></fieldset>
+<fieldset id="skills"><legend>Two skill proficiencies</legend><div id="skill-fields" class="checks"></div></fieldset>
+<fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
+<label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required>
+<section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><div id="preview-body"></div></section>
+<p id="creation-error" class="error" role="alert"></p>
+<div class="controls"><button id="save-character" type="submit">Save character</button><button id="close-creation" type="button" class="secondary">Back to characters</button></div>
+</form>
+</section>
+<section id="sheet" class="panel" aria-labelledby="sheet-name" hidden>
+<h2 id="sheet-name" tabindex="-1"></h2>
+<div id="sheet-body"></div>
+<button id="close-sheet" type="button" class="secondary">Back to characters</button>
+</section>
+</main></body></html>`;
+
+export const FIFTH_BROWSER_CSS = `:root{color-scheme:light;font-family:Georgia,serif;color:#292b27;background:#151f23;font-size:17px;line-height:1.55;--ink:#263d3d;--gold:#d5b474;--line:#d4c9b5;--paper:#f7f0e1}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#304043,#151f23 75%);min-height:100dvh}h1,h2,h3,p{margin:0 0 12px}h1{font-size:1.4rem;line-height:1.1}h2{font-size:1.45rem;line-height:1.2}h3{font-size:1.05rem;margin-top:16px}
+button,legend,label,.eyebrow,.hint,.error,#feedback,table,.stats,.features{font-family:system-ui,sans-serif}button{font-size:.85rem;border:1px solid var(--ink);background:var(--ink);color:#fff9e9;padding:10px 14px;border-radius:6px;cursor:pointer;line-height:1.4}button:hover{background:#3a5451}button:disabled{opacity:.55;cursor:default}button.secondary{background:transparent;color:var(--ink);border-color:var(--line)}button.secondary:hover{background:#e8dec9}:focus-visible{outline:3px solid #bb762c;outline-offset:3px}[hidden]{display:none!important}
+.skip{position:absolute;top:-100px;left:12px;background:var(--paper);padding:10px;z-index:20}.skip:focus{top:12px}
+.masthead{max-width:860px;margin:auto;padding:16px;display:flex;align-items:center;gap:12px;color:#f7edda}.brand-mark{font-size:2rem;color:var(--gold)}.eyebrow{font-size:.62rem;letter-spacing:.18em;color:var(--gold);margin-bottom:6px}
+main{max-width:860px;margin:0 auto 24px;padding:0 16px}.panel{background:var(--paper);border:1px solid #81785e;border-radius:10px;padding:20px;margin-bottom:16px;min-width:0}
+#feedback{color:#f7edda;font-size:.85rem}#feedback:empty{display:none}.hint{font-size:.85rem;color:#615f50}.error{color:#883c2d;font-size:.85rem;font-weight:600}.error:empty{display:none}
+.list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:8px}.list button{width:100%;text-align:left;background:#fffaf0;color:#292b27;border-color:var(--line);display:flex;flex-direction:column}.list button:hover{background:#efe5d0}.list strong{font:600 1rem Georgia,serif}.list span{font-size:.78rem;color:#615f50}
+.rolls{padding-left:0;list-style:none;display:grid;gap:6px;font-family:system-ui,sans-serif}.rolls li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.die{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid #8a7d5e;border-radius:6px;background:#fffaf0;font-weight:700}.die.dropped{opacity:.55;text-decoration:line-through;border-style:dashed}.total{font-weight:700;margin-left:6px}.roll-name{min-width:52px;font-size:.85rem}
+fieldset{border:1px solid var(--line);border-radius:8px;margin:0 0 14px;padding:12px;min-width:0}legend{font-weight:600;font-size:.9rem;padding:0 4px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 14px}.grid label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}select,input{font:1rem system-ui,sans-serif;padding:8px;border:1px solid #9b9b83;border-radius:6px;background:#fffaf0;color:#292b27;width:100%;min-width:0;margin-top:4px}label[for=character-name]{display:block;font-weight:600;font-size:.85rem}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:8px;align-items:flex-start;font-size:.85rem}.checks input{width:auto;padding:0;margin-top:4px;flex:none}.checks small{display:block;color:#615f50;font-weight:400}
+#preview{border-top:1px solid var(--line);margin-top:16px}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:4px}
+.table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:.85rem;width:100%;margin-bottom:12px}th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left}th{font-weight:600;color:#4b4a3c}
+.features{font-size:.85rem;padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+@media(max-width:560px){.panel{padding:14px}.masthead{padding:12px 16px}h2{font-size:1.25rem}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
+@media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
+
+export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
+const element = (id) => document.getElementById(id);
+const make = (tag, text, className) => {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = String(text);
+  if (className) node.className = className;
+  return node;
+};
+const titleCase = (value) => value.charAt(0).toUpperCase() + value.slice(1);
+const signed = (value) => (value >= 0 ? "+" : "") + value;
+const damageText = (damage) => damage.dice + "d" + damage.sides + (damage.modifier === 0 ? "" : " " + (damage.modifier > 0 ? "+ " : "− ") + Math.abs(damage.modifier));
+let library;
+let choices;
+let previewRequest = 0;
+
+async function request(path, body) {
+  const response = await fetch(path, body === undefined ? {} : {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const value = await response.json();
+  if (!response.ok) throw new Error(value.error || "Request failed.");
+  return value;
+}
+
+function show(id) {
+  for (const panel of ["library", "creation", "sheet"]) element(panel).hidden = panel !== id;
+}
+
+function feedback(message) { element("feedback").textContent = message; }
+
+function renderLibrary() {
+  const list = element("characters");
+  list.replaceChildren(...library.characters.map(({ sheet, profile }) => {
+    const button = make("button");
+    button.type = "button";
+    button.append(make("strong", sheet.name), make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass));
+    button.addEventListener("click", () => openSheet(sheet.id));
+    const item = make("li");
+    item.append(button);
+    return item;
+  }));
+  element("no-characters").hidden = library.characters.length > 0;
+  element("open-creation").textContent = library.pendingCreation ? "Continue creating your Fighter" : "Create a Fighter";
+}
+
+function abilityTable(abilities, profile, caption) {
+  const wrap = make("div", undefined, "table-wrap");
+  const table = make("table");
+  table.append(make("caption", caption, "hint"));
+  const head = make("tr");
+  for (const label of ["Ability", "Score", "Modifier", "Saving throw"]) {
+    const cell = make("th", label);
+    cell.scope = "col";
+    head.append(cell);
+  }
+  table.append(head);
+  for (const ability of library.abilities) {
+    const row = make("tr");
+    const name = make("th", titleCase(ability));
+    name.scope = "row";
+    const save = profile.savingThrows[ability];
+    row.append(name, make("td", abilities[ability]), make("td", signed(profile.modifiers[ability])), make("td", signed(save.bonus) + (save.proficient ? " (proficient)" : "")));
+    table.append(row);
+  }
+  wrap.append(table);
+  return wrap;
+}
+
+function profileNodes(abilities, profile, hp) {
+  const stats = make("ul", undefined, "stats");
+  const entries = [
+    ["HP", (hp === undefined ? profile.maxHp : hp) + "/" + profile.maxHp],
+    ["AC", profile.armorClass],
+    ["Initiative", signed(profile.initiative)],
+    ["Proficiency bonus", signed(profile.proficiencyBonus)],
+    ["Mace", signed(profile.attack.bonus) + " to hit, " + damageText(profile.attack.damage) + " " + profile.attack.damage.type + ", " + profile.attack.mastery + (profile.attack.criticalRange === 19 ? ", critical on 19–20" : "")],
+  ];
+  for (const [label, value] of entries) {
+    const item = make("li", label + ": ");
+    item.append(make("strong", value));
+    stats.append(item);
+  }
+  const skills = make("p", "Skills: " + profile.skills.filter((skill) => skill.proficient).map((skill) => skill.name + " " + signed(skill.bonus)).join(", ") + ".", "hint");
+  const features = make("ul", undefined, "features");
+  for (const feature of profile.features) {
+    const item = make("li");
+    item.append(make("strong", feature.name + ". "), document.createTextNode(feature.text));
+    features.append(item);
+  }
+  return [stats, abilityTable(abilities, profile, "Ability scores and saving throws"), skills, make("h3", "Features"), features];
+}
+
+function openSheet(id) {
+  const entry = library.characters.find(({ sheet }) => sheet.id === id);
+  if (!entry) return;
+  const { sheet, profile } = entry;
+  element("sheet-name").textContent = sheet.name;
+  const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · Chain shirt, shield and mace", "hint");
+  const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
+  element("sheet-body").replaceChildren(summary, ...profileNodes(sheet.abilities, profile, sheet.hp), rolls);
+  show("sheet");
+  element("sheet-name").focus();
+}
+
+function defaultChoices() {
+  return {
+    placement: Object.fromEntries(library.abilities.map((ability, index) => [ability, index])),
+    increase: { strength: 2, constitution: 1 },
+    skills: ["athletics", "perception"],
+    fightingStyle: "defense",
+  };
+}
+
+function renderRolls() {
+  const rolls = library.pendingCreation.rolls;
+  element("rolls").replaceChildren(...rolls.map((roll, index) => {
+    const item = make("li");
+    item.setAttribute("aria-label", "Roll " + (index + 1) + ": " + roll.dice.map((die, position) => die + (position === roll.dropped ? " dropped" : "")).join(", ") + ", total " + roll.total);
+    const name = make("span", "Roll " + (index + 1), "roll-name");
+    name.setAttribute("aria-hidden", "true");
+    item.append(name);
+    roll.dice.forEach((die, position) => {
+      const node = make("span", die, "die" + (position === roll.dropped ? " dropped" : ""));
+      node.setAttribute("aria-hidden", "true");
+      if (position === roll.dropped) node.title = "Dropped";
+      item.append(node);
+    });
+    const total = make("span", "= " + roll.total, "total");
+    total.setAttribute("aria-hidden", "true");
+    item.append(total);
+    return item;
+  }));
+}
+
+function renderChoices() {
+  const rolls = library.pendingCreation.rolls;
+  element("placement-fields").replaceChildren(...library.abilities.map((ability) => {
+    const label = make("label", titleCase(ability));
+    const select = make("select");
+    select.id = "place-" + ability;
+    rolls.forEach((roll, index) => {
+      const option = make("option", "Roll " + (index + 1) + ": " + roll.total);
+      option.value = String(index);
+      select.append(option);
+    });
+    select.value = String(choices.placement[ability]);
+    select.addEventListener("change", () => {
+      const chosen = Number(select.value);
+      const other = library.abilities.find((candidate) => choices.placement[candidate] === chosen);
+      choices.placement[other] = choices.placement[ability];
+      choices.placement[ability] = chosen;
+      renderChoices();
+      element("place-" + ability).focus();
+      preview();
+    });
+    label.append(select);
+    return label;
+  }));
+  element("increase-fields").replaceChildren(...library.abilities.map((ability) => {
+    const label = make("label", titleCase(ability));
+    const select = make("select");
+    select.id = "increase-" + ability;
+    for (const amount of [0, 1, 2]) {
+      const option = make("option", "+" + amount);
+      option.value = String(amount);
+      select.append(option);
+    }
+    select.value = String(choices.increase[ability] || 0);
+    select.addEventListener("change", () => {
+      const amount = Number(select.value);
+      if (amount === 0) delete choices.increase[ability]; else choices.increase[ability] = amount;
+      preview();
+    });
+    label.append(select);
+    return label;
+  }));
+  element("skill-fields").replaceChildren(...library.skills.map((skill) => {
+    const label = make("label");
+    const box = make("input");
+    box.type = "checkbox";
+    box.id = "skill-" + skill.id;
+    box.checked = choices.skills.includes(skill.id);
+    box.addEventListener("change", () => {
+      choices.skills = library.skills.map(({ id }) => id).filter((id) => element("skill-" + id).checked);
+      preview();
+    });
+    const text = make("span", skill.name);
+    text.append(make("small", titleCase(skill.ability)));
+    label.append(box, text);
+    return label;
+  }));
+  element("style-fields").replaceChildren(...library.fightingStyles.map((style) => {
+    const label = make("label");
+    const radio = make("input");
+    radio.type = "radio";
+    radio.name = "fighting-style";
+    radio.id = "style-" + style.id;
+    radio.checked = choices.fightingStyle === style.id;
+    radio.addEventListener("change", () => { choices.fightingStyle = style.id; preview(); });
+    const text = make("span", style.name);
+    text.append(make("small", style.text));
+    label.append(radio, text);
+    return label;
+  }));
+}
+
+async function preview() {
+  const ticket = ++previewRequest;
+  try {
+    const result = await request("/api/5e/creation/preview", choices);
+    if (ticket !== previewRequest) return;
+    element("creation-error").textContent = "";
+    element("preview-body").replaceChildren(...profileNodes(result.abilities, result.profile));
+    element("save-character").disabled = false;
+  } catch (error) {
+    if (ticket !== previewRequest) return;
+    element("creation-error").textContent = error.message;
+    element("preview-body").replaceChildren(make("p", "Fix the choice above to see your numbers.", "hint"));
+    element("save-character").disabled = true;
+  }
+}
+
+async function openCreation() {
+  try {
+    library = await request("/api/5e/creation", {});
+  } catch (error) {
+    feedback(error.message);
+    return;
+  }
+  feedback("");
+  choices = choices || defaultChoices();
+  renderRolls();
+  renderChoices();
+  show("creation");
+  element("creation-title").focus();
+  await preview();
+}
+
+async function saveCharacter(event) {
+  event.preventDefault();
+  const name = element("character-name").value.trim();
+  if (!name) {
+    element("creation-error").textContent = "Enter a name for your Fighter.";
+    element("character-name").focus();
+    return;
+  }
+  element("save-character").disabled = true;
+  try {
+    library = await request("/api/5e/characters", { revision: library.revision, name, ...choices });
+    choices = undefined;
+    element("character-name").value = "";
+    renderLibrary();
+    feedback(name + " is saved.");
+    // The library appends the new character.
+    openSheet(library.characters[library.characters.length - 1].sheet.id);
+  } catch (error) {
+    element("creation-error").textContent = error.message;
+    element("save-character").disabled = false;
+  }
+}
+
+function backToLibrary() {
+  renderLibrary();
+  show("library");
+  element("open-creation").focus();
+}
+
+element("open-creation").addEventListener("click", openCreation);
+element("creation-form").addEventListener("submit", saveCharacter);
+element("close-creation").addEventListener("click", backToLibrary);
+element("close-sheet").addEventListener("click", backToLibrary);
+request("/api/5e/library").then((value) => {
+  library = value;
+  renderLibrary();
+}, (error) => feedback(error.message));
+`;
