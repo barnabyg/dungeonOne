@@ -4,7 +4,8 @@
  * It serves the 5e character library: start or resume a creation, preview the
  * player's placement and choices, save a level 1 Fighter, read its sheet and
  * delete it. A saved Fighter can take on a built-in adventure module, where
- * the player fights by clicking an attack or by typing to the AI DM. Each
+ * the player fights by clicking an attack, Second Wind, Action Surge or End
+ * turn, or by typing to the AI DM. Each
  * session is saved after every action and continues after a reload or a
  * restart.
  * A library in another format is refused before the server listens.
@@ -30,6 +31,7 @@ import {
   type HistoryCard,
   type HistoryEntry,
 } from "./session-5e.js";
+import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
 import {
   ABILITIES,
   buildFighter,
@@ -155,6 +157,8 @@ function hasExactKeys(body: Record<string, unknown>, keys: string[]): boolean {
 }
 
 const CHOICE_KEYS = ["placement", "increase", "skills", "fightingStyle"];
+/** The clicked actions that take no target. */
+const CLICK_ACTIONS = ["second-wind", "action-surge", "end-turn"] as const;
 
 export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   if (
@@ -240,6 +244,25 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     }
   };
 
+  /** Resolves a clicked action; a refusal changes, draws and saves nothing. */
+  const click = (body: Record<string, unknown>, action: FifthAction) =>
+    serialized(async () => {
+      const session = await openSession(body.sessionId);
+      requireCurrent(session, body.sequence);
+      const { result, rolls } = session.act(action, "click");
+      if (result.rejection !== undefined) {
+        return {
+          ...(await respondWith(session)),
+          rejection: result.rejection.reason,
+        };
+      }
+      session.history.push({
+        reply: "",
+        cards: [session.card(result, rolls)],
+      });
+      return save(session);
+    });
+
   let url = "";
   const handlePost = async (path: string, body: Record<string, unknown>) => {
     switch (path) {
@@ -294,29 +317,21 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         ) {
           throw new Error("Invalid attack request.");
         }
-        return serialized(async () => {
-          const session = await openSession(body.sessionId);
-          requireCurrent(session, body.sequence);
-          const { result, rolls } = session.act(
-            {
-              type: "attack",
-              actorId: body.actorId as string,
-              targetId: body.targetId as string,
-            },
-            "click",
-          );
-          if (result.rejection !== undefined) {
-            // Nothing changed and no die was drawn, so nothing is saved.
-            return {
-              ...(await respondWith(session)),
-              rejection: result.rejection.reason,
-            };
-          }
-          session.history.push({
-            reply: "",
-            cards: [session.card(result, rolls)],
-          });
-          return save(session);
+        return click(body, {
+          type: "attack",
+          actorId: body.actorId,
+          targetId: body.targetId,
+        });
+      case "/api/5e/session/action":
+        if (
+          !hasExactKeys(body, ["sessionId", "sequence", "action"]) ||
+          !(CLICK_ACTIONS as readonly unknown[]).includes(body.action)
+        ) {
+          throw new Error("Invalid action request.");
+        }
+        return click(body, {
+          type: body.action as (typeof CLICK_ACTIONS)[number],
+          actorId: PLAYER_ID,
         });
       case "/api/5e/session/message": {
         if (
@@ -336,7 +351,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         }
         if (model === undefined) {
           throw new Error(
-            "The AI Dungeon Master needs OPENAI_API_KEY. Set it and restart, or use the attack buttons.",
+            "The AI Dungeon Master needs OPENAI_API_KEY. Set it and restart, or use the buttons.",
           );
         }
         return serialized(async () => {

@@ -250,10 +250,13 @@ export type GameToolName =
   | "get_journal"
   | "get_character_status";
 
+/** Tools only the 5e runtime offers; kept apart from the pre-5e tool set. */
+export type FifthToolName = "second_wind" | "action_surge" | "end_turn";
+
 /** A bounded tool the AI DM may call; the runtime offers only legal ones. */
 export type GameToolDefinition = Readonly<{
   type: "function";
-  name: GameToolName;
+  name: GameToolName | FifthToolName;
   description: string;
   strict: true;
   parameters: Readonly<Record<string, unknown>>;

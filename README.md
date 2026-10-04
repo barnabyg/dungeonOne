@@ -44,11 +44,16 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   hit points, AC, whether it is defeated and whose turn it is. Attack with the
   **Attack** button for each living opponent, or type to the AI Dungeon Master
   ("attack the second goblin"; it asks which one when a name fits several
-  opponents). Typing needs
-  `OPENAI_API_KEY`; without it, typed messages are refused and the buttons
-  still work. The engine rolls every die and writes every attack's result.
+  opponents). Each turn has an action, a bonus action and a reaction:
+  **Second Wind** (a bonus action that heals 1d10 + level, offered when hurt),
+  **Action Surge** (from level 2) and **End turn** appear while they are
+  legal, with the uses left. The mace's Sap mastery gives a creature it hits
+  disadvantage on its next attack, and the result card shows both dice and the
+  source. Typing needs `OPENAI_API_KEY`; without it, typed messages are
+  refused and the buttons still work. The engine rolls every die and writes
+  every action's result.
   The session is saved after every action in the
-  `characters-5e-adventures` directory beside the library (format version 1),
+  `characters-5e-adventures` directory beside the library (format version 2),
   and reloading the page or restarting with the same command returns to the
   fight exactly as it was. Victory frees the character for another adventure;
   0 HP is instant defeat, and a defeated character cannot start another. A

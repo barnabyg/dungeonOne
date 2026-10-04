@@ -32,6 +32,10 @@ const CHOICES = {
   fightingStyle: "defense",
 };
 const ATTACK = { type: "attack", actorId: "pc", targetId: "goblin" };
+const END_TURN = { type: "end-turn", actorId: "pc" };
+/** Attack, or end the turn once the action is spent. */
+const step = (runtime, state) =>
+  runtime.attackTargets(state).length > 0 ? ATTACK : END_TURN;
 
 async function withLibrary(run) {
   const directory = await mkdtemp(join(tmpdir(), "session-5e-"));
@@ -58,7 +62,7 @@ function outcome(sheet, seed) {
     random,
   ).state;
   while (state.status === "playing") {
-    state = runtime.handleAction(state, ATTACK, random).state;
+    state = runtime.handleAction(state, step(runtime, state), random).state;
   }
   return state.status;
 }
@@ -92,7 +96,7 @@ test("starting an adventure saves the session with its fight begun, then links i
       await readFile(library.sessionPath(session.id), "utf8"),
     );
     assert.equal(file.kind, "dungeon-one-5e-session");
-    assert.equal(file.formatVersion, 1);
+    assert.equal(file.formatVersion, 2);
     assert.equal(file.random.seed, sessionSeed(3, 1));
     assert.deepEqual(file.transitions[0].action, { type: "begin" });
     // Every initiative die (and any opening goblin attack) is recorded.
@@ -130,8 +134,9 @@ test("a reloaded session continues exactly: same state, dice stream and records"
     assert.deepEqual(resumed.history, original.history);
     // Both draw the same dice from here on.
     while (original.state.status === "playing") {
-      const a = original.act(ATTACK, "click");
-      const b = resumed.act(ATTACK, "click");
+      const action = step(original.runtime, original.state);
+      const a = original.act(action, "click");
+      const b = resumed.act(action, "click");
       assert.deepEqual(b.rolls, a.rolls);
       assert.deepEqual(resumed.state, original.state);
     }
@@ -175,7 +180,7 @@ test("a session save that does not replay exactly is refused", async () => {
     await tamper((file) => file.transitions.pop(), /Invalid adventure session/);
     await tamper(
       (file) => (file.formatVersion = 0),
-      /format version 0, not 1\..*Move it aside/,
+      /format version 0, not 2\..*Move it aside/,
     );
     await tamper(
       (file) => (file.adventure.id = "lost-mine"),
@@ -204,7 +209,7 @@ test("defeat ends the character: 0 HP, defeated, and no new adventure", async ()
       revision,
     );
     while (session.state.status === "playing") {
-      session.act(ATTACK, "click");
+      session.act(step(session.runtime, session.state), "click");
     }
     assert.equal(session.state.status, "defeat");
     assert.equal(session.state.endingId, "fallen-in-the-cellar");
@@ -235,7 +240,7 @@ test("victory frees the character for another adventure", async () => {
       revision,
     );
     while (session.state.status === "playing") {
-      session.act(ATTACK, "click");
+      session.act(step(session.runtime, session.state), "click");
     }
     const data = await library.settleSession(sheet.id, session.id, "victory");
     assert.equal(data.characters[0].defeated, undefined);
@@ -270,7 +275,7 @@ test("deletion is refused, with no write, while the character is on an adventure
     );
     assert.deepEqual(await readFile(library.path), bytes);
     while (session.state.status === "playing") {
-      session.act(ATTACK, "click");
+      session.act(step(session.runtime, session.state), "click");
     }
     const settled = await library.settleSession(
       sheet.id,
