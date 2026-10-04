@@ -214,6 +214,11 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
       throw error;
     }
   };
+  /** The response to a session request: the library and the session. */
+  const respondWith = async (session: FifthSession) => ({
+    library: view(await library.read()),
+    session: sessionView(session),
+  });
   /** Saves the session, then frees or defeats its character if it ended. */
   const save = async (session: FifthSession) => {
     await persist(session);
@@ -261,10 +266,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           if (session.state.status === "playing") {
             sessions.set(session.id, session);
           }
-          return {
-            library: view(await library.read()),
-            session: sessionView(session),
-          };
+          return respondWith(session);
         });
       }
       case "/api/5e/session":
@@ -276,10 +278,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           // A session that ended before its character was settled (a crash
           // between the two saves) is settled now.
           return session.state.status === "playing"
-            ? {
-                library: view(await library.read()),
-                session: sessionView(session),
-              }
+            ? respondWith(session)
             : save(session);
         });
       case "/api/5e/session/attack":
@@ -309,8 +308,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           if (result.rejection !== undefined) {
             // Nothing changed and no die was drawn, so nothing is saved.
             return {
-              library: view(await library.read()),
-              session: sessionView(session),
+              ...(await respondWith(session)),
               rejection: result.rejection.reason,
             };
           }
