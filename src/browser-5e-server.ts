@@ -493,7 +493,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           json(response, 409, {
             error: playerMessage(
               error,
-              "Local storage could not be updated. Refresh and check local storage.",
+              "Local storage could not be updated. Refresh, and check that the library folder is writable.",
             ),
           });
         }
