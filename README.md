@@ -50,11 +50,13 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   Rat, a Goblin Warrior and a Potion of Healing hidden in a chest.
 - **Exploring a 5e adventure.** The room panel shows the current room, its
   exits, its features (with any discovery you have made), the items
-  you can see and what you carry. The action bar has a **Go to**,
-  **Examine**, **Take** and **Drink** button for each of them; one the
-  engine would refuse now stays in place, disabled, with the reason beside
-  it (a potion at full HP says "Full HP"). Or you can type ("search the
-  chest", "go to the alcove", "drink the potion").
+  you can see and what you carry, leaving out any list that is empty; in a
+  fight these details fold away behind a **Room details** button. The
+  action bar shows each one's name with a **Go**, **Examine**, **Take** or
+  **Drink** button (a screen reader hears the full "Examine Rusted
+  Lantern"); one the engine would refuse now stays in place, disabled, with
+  the reason beside it (a potion at full HP says "Full HP"). Or you can
+  type ("search the chest", "go to the alcove", "drink the potion").
   Examining a feature makes its discovery and can reveal a hidden item. A
   Potion of Healing restores 2d4 + 2 HP, never above your maximum; in a
   fight it takes your bonus action. Entering a room with a fight begins it,

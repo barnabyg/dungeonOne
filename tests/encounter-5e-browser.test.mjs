@@ -199,18 +199,14 @@ test(
         library.characters[0].sheet.abilities,
         firstFighter(seed).abilities,
       );
-      // Initiative order with rolls, HP and the current turn.
+      // Initiative order with totals, HP and the current turn.
       let shown = await panel(page);
       assert.equal(shown.rows.length, 2);
       assert.ok(
-        shown.rows.some((row) =>
-          /Ada \(you\)\d+ [+−] \d+ = \d+\d+\/\d+\d+/.test(row),
-        ),
+        shown.rows.some((row) => /Ada \(you\)( Now)?\d+\d+\/\d+\d+/.test(row)),
       );
       assert.ok(
-        shown.rows.some((row) =>
-          /Goblin Warrior\d+ \+ 2 = \d+\d+\/1015/.test(row),
-        ),
+        shown.rows.some((row) => /Goblin Warrior( Now)?\d+\d+\/1015/.test(row)),
       );
       assert.match(shown.turn, /^Round \d+: your turn\.$/);
       assert.match(shown.log, /Initiative: /);
@@ -329,7 +325,7 @@ test(
       );
       assert.match(
         await page.locator("#initiative-rows").textContent(),
-        /Ada \(you\) Defeated\d+ [+−] \d+ = \d+0\//,
+        /Ada \(you\) Defeated\d+0\//,
       );
       const after = JSON.parse(await readFile(libraryPath, "utf8"));
       assert.equal(after.characters[0].defeated, true);
