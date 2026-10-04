@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   act,
-  attack,
   availableActions,
   currentCombatant,
   legalTargets,
@@ -142,9 +141,9 @@ test("attacks hit on meeting AC, crit on 20 with doubled dice, always miss on 1"
   const start = startEncounter([fighter, goblin()], dice([20, 20], [20, 1]));
   // 10 + 5 = 15 meets AC 15: hit for 4 + 3. Goblin misses (natural 1).
   let random = dice([20, 10], [6, 4], [20, 1]);
-  let result = attack(
+  let result = act(
     start.state,
-    { actorId: "pc", targetId: "goblin" },
+    { type: "attack", actorId: "pc", targetId: "goblin" },
     random,
   );
   assert.equal(result.events[0].hit, true);
@@ -157,9 +156,9 @@ test("attacks hit on meeting AC, crit on 20 with doubled dice, always miss on 1"
   // A natural 1 misses even though 1 + 5 is irrelevant; goblin 20 crits for
   // 2d6 + 2 even though its total 24 would hit anyway.
   random = dice([20, 1], [20, 20], [6, 1], [6, 2]);
-  const missed = attack(
+  const missed = act(
     start.state,
-    { actorId: "pc", targetId: "goblin" },
+    { type: "attack", actorId: "pc", targetId: "goblin" },
     random,
   );
   assert.equal(missed.events[0].hit, false);
@@ -170,9 +169,9 @@ test("attacks hit on meeting AC, crit on 20 with doubled dice, always miss on 1"
   assert.equal(crit.damage, 5);
 
   // 9 + 5 = 14 misses AC 15.
-  result = attack(
+  result = act(
     start.state,
-    { actorId: "pc", targetId: "goblin" },
+    { type: "attack", actorId: "pc", targetId: "goblin" },
     dice([20, 9], [20, 1]),
   );
   assert.equal(result.events[0].hit, false);
@@ -184,9 +183,9 @@ test("a 19 crits only with a 19–20 critical range", () => {
     attack: { ...fighter.attack, criticalRange: 19 },
   };
   const start = startEncounter([champion, goblin()], dice([20, 20], [20, 1]));
-  const result = attack(
+  const result = act(
     start.state,
-    { actorId: "pc", targetId: "goblin" },
+    { type: "attack", actorId: "pc", targetId: "goblin" },
     dice([20, 19], [6, 6], [6, 6]),
   );
   assert.equal(result.events[0].critical, true);
@@ -197,16 +196,16 @@ test("a 19 crits only with a 19–20 critical range", () => {
 test("an opponent at 0 HP is defeated and the encounter ends in victory", () => {
   const start = startEncounter([fighter, goblin()], dice([20, 20], [20, 1]));
   const random = dice([20, 15], [6, 6], [20, 15], [6, 1]);
-  let result = attack(
+  let result = act(
     start.state,
-    { actorId: "pc", targetId: "goblin" },
+    { type: "attack", actorId: "pc", targetId: "goblin" },
     random,
   );
   // 9 damage leaves 1; the goblin then hits with 15 + 4 for 1 + 2.
   assert.equal(result.state.combatants[1].hp, 1);
-  result = attack(
+  result = act(
     result.state,
-    { actorId: "pc", targetId: "goblin" },
+    { type: "attack", actorId: "pc", targetId: "goblin" },
     dice([20, 12], [6, 1]),
   );
   assert.deepEqual(result.events.slice(-2), [
@@ -228,7 +227,11 @@ test("the player character at 0 HP is defeated at once, with no death saves", ()
     { type: "ended", outcome: "defeat" },
   ]);
   assert.equal(random.remaining(), 0);
-  const after = attack(state, { actorId: "pc", targetId: "goblin" }, dice());
+  const after = act(
+    state,
+    { type: "attack", actorId: "pc", targetId: "goblin" },
+    dice(),
+  );
   assert.deepEqual(after, {
     state,
     rejection: { reason: "The fight is over." },
@@ -250,7 +253,7 @@ test("out-of-turn, absent, friendly and defeated targets are rejected without di
     [{ actorId: "pc", targetId: "dragon" }, /no such opponent/],
     [{ actorId: "pc", targetId: "ally" }, /on your side/],
   ]) {
-    const result = attack(start.state, action, none);
+    const result = act(start.state, { type: "attack", ...action }, none);
     assert.match(result.rejection.reason, reason);
     assert.equal(result.state, start.state);
   }
@@ -261,8 +264,8 @@ test("out-of-turn, absent, friendly and defeated targets are rejected without di
     ),
   };
   assert.match(
-    attack(downed, { actorId: "pc", targetId: "second" }, none).rejection
-      .reason,
+    act(downed, { type: "attack", actorId: "pc", targetId: "second" }, none)
+      .rejection.reason,
     /already defeated/,
   );
   assert.deepEqual(
@@ -349,9 +352,9 @@ test("1v3: the player may target any living opponent, listed in initiative order
   );
   // The player hits the boss: 15 + 5 meets AC 17 for 4 + 3. Then each
   // opponent swings in initiative order, all missing on a natural 1.
-  const result = attack(
+  const result = act(
     state,
-    { actorId: "pc", targetId: "boss" },
+    { type: "attack", actorId: "pc", targetId: "boss" },
     dice([20, 15], [6, 4], [20, 1], [20, 1], [20, 1]),
   );
   assert.deepEqual(
@@ -375,9 +378,9 @@ test("1v3: the player may target any living opponent, listed in initiative order
 
 test("1v3: one opponent falls, skips its turns, and the fight goes on", () => {
   // A critical hit fells Goblin 2 (2d6 6 + 6 + 3 = 15).
-  const result = attack(
+  const result = act(
     opening(),
-    { actorId: "pc", targetId: "goblin-2" },
+    { type: "attack", actorId: "pc", targetId: "goblin-2" },
     dice([20, 20], [6, 6], [6, 6], [20, 1], [20, 1]),
   );
   assert.deepEqual(
@@ -401,8 +404,11 @@ test("1v3: one opponent falls, skips its turns, and the fight goes on", () => {
     ["goblin-1", "boss"],
   );
   assert.match(
-    attack(result.state, { actorId: "pc", targetId: "goblin-2" }, dice())
-      .rejection.reason,
+    act(
+      result.state,
+      { type: "attack", actorId: "pc", targetId: "goblin-2" },
+      dice(),
+    ).rejection.reason,
     /^Goblin Warrior 2 is already defeated\.$/,
   );
 });
@@ -411,9 +417,9 @@ test("1v3: the fight ends in victory only when the last opponent falls", () => {
   let state = opening();
   const kill = (targetId) => {
     // A critical hit for 15 fells a goblin; a second one fells the boss.
-    const result = attack(
+    const result = act(
       state,
-      { actorId: "pc", targetId },
+      { type: "attack", actorId: "pc", targetId },
       // Every opponent left misses on a natural 1.
       dice([20, 20], [6, 6], [6, 6], [20, 1], [20, 1]),
     );

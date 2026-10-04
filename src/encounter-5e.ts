@@ -640,12 +640,3 @@ export function act(
     events,
   };
 }
-
-/** `act` with an attack. */
-export function attack(
-  state: EncounterState,
-  action: Readonly<{ actorId: string; targetId: string }>,
-  random: Roller,
-): EncounterResult {
-  return act(state, { type: "attack", ...action }, random);
-}
