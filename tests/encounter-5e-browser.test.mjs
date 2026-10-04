@@ -89,7 +89,7 @@ function simulate(seed) {
  */
 async function clickNext(page) {
   const count = await page.locator("#log li").count();
-  const attack = page.locator("#attack-controls button.attack");
+  const attack = page.locator("#attack-controls button.attack:enabled");
   await (
     (await attack.count()) > 0
       ? attack.first()
@@ -824,7 +824,7 @@ test(
     });
     page.setDefaultTimeout(5000);
     const feature = (action) =>
-      page.locator(`#feature-controls button[data-action="${action}"]`);
+      page.locator(`#feature-controls button[data-action="${action}"]:enabled`);
     try {
       await createAndStart(page, server.url);
       // At full health there is no Second Wind to click, and the API refuses

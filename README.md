@@ -44,9 +44,11 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   Rat, a Goblin Warrior and a Potion of Healing hidden in a chest.
 - **Exploring a 5e adventure.** The room panel shows the current room, its
   exits, its features (with any discovery you have made), the items
-  you can see and what you carry. **Go to**, **Examine**, **Take** and
-  **Drink** buttons appear only while the engine would accept them, or you
-  can type ("search the chest", "go to the alcove", "drink the potion").
+  you can see and what you carry. The action bar has a **Go to**,
+  **Examine**, **Take** and **Drink** button for each of them; one the
+  engine would refuse now stays in place, disabled, with the reason beside
+  it (a potion at full HP says "Full HP"). Or you can type ("search the
+  chest", "go to the alcove", "drink the potion").
   Examining a feature makes its discovery and can reveal a hidden item. A
   Potion of Healing restores 2d4 + 2 HP, never above your maximum; in a
   fight it takes your bonus action. Entering a room with a fight begins it,
@@ -54,13 +56,20 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   uses and carried items last from fight to fight.
 - **Fighting in a 5e adventure.** Starting a fight rolls initiative for every combatant;
   the encounter panel lists each combatant in initiative order with its roll,
-  hit points, AC, whether it is defeated and whose turn it is. Attack with the
-  **Attack** button for each living opponent, or type to the AI Dungeon Master
+  hit points, AC, whether it is defeated and whose turn it is. In a fight the
+  action bar holds your whole toolkit: an **Attack** button for each living
+  opponent, **Drink** for each potion you carry, **Second Wind** (a bonus
+  action that heals 1d10 + level), **Action Surge** (from level 2) and **End
+  turn**, with the uses left. One the engine would refuse now stays visible
+  but disabled, with the reason beside it: "Action used", "Bonus action
+  used", "Full HP" or "No uses left". Or type to the AI Dungeon Master
   ("attack the second goblin"; it asks which one when a name fits several
-  opponents). Each turn has an action, a bonus action and a reaction:
-  **Second Wind** (a bonus action that heals 1d10 + level, offered when hurt),
-  **Action Surge** (from level 2) and **End turn** appear while they are
-  legal, with the uses left. Spent uses stay spent for the rest of the
+  opponents); it is offered only the actions the bar shows enabled. Each
+  turn has an action, a bonus action and a reaction. After you use an
+  action, focus stays on its button while it is still enabled, and
+  otherwise moves to the newest history entry (its result), so pressing
+  Enter again repeats the action or does nothing; it never drinks a potion
+  or leaves the room. Spent uses stay spent for the rest of the
   adventure; each adventure starts with all of them. The mace's Sap mastery gives a creature it hits
   disadvantage on its next attack, and the result card shows both dice and the
   source. Typing needs `OPENAI_API_KEY`; without it, typed messages are

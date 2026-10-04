@@ -190,13 +190,15 @@ async function act(page, label, click) {
 const explore = (page, action, target) =>
   act(page, `${action} ${target}`, () =>
     page
-      .locator(`#room button[data-action="${action}"][data-target="${target}"]`)
+      .locator(
+        `#action-bar button[data-action="${action}"][data-target="${target}"]`,
+      )
       .click(),
   );
 
 const fightOn = (page) =>
   act(page, "fight", async () => {
-    const attack = page.locator("#attack-controls button.attack");
+    const attack = page.locator("#attack-controls button.attack:enabled");
     await (
       (await attack.count()) > 0
         ? attack.first()
@@ -306,7 +308,7 @@ for (const viewport of [
 
         let actions = 0;
         assertTabOrder(await tabRegions(page), [
-          "session-scene",
+          "session-actions",
           "session-history",
           "session-composer",
         ]);
@@ -364,7 +366,7 @@ for (const viewport of [
         const count = await page.locator("#log li").count();
         await page
           .locator(
-            '#room button[data-action="examine"][data-target="gnawed-sacks"]',
+            '#action-bar button[data-action="examine"][data-target="gnawed-sacks"]',
           )
           .click();
         await page.waitForFunction(

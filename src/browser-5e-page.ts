@@ -10,8 +10,14 @@
 //   turn resource and class feature use. It shows only what the session view
 //   projects.
 // - #session-scene: the room, the fight and the ending.
-// - #session-actions: the action buttons (#attack-controls, #feature-controls)
-//   and #adventure-error; #156's action bar goes here.
+// - #session-actions: #adventure-error and the action bar (#156), #action-bar:
+//   #attack-controls, #feature-controls (Drink in a fight, Second Wind, Action
+//   Surge, End turn) and #explore-controls (Go to, Examine, Take, Drink). It
+//   shows every action the session view projects, an unavailable one disabled
+//   with its reason as visible text linked by aria-describedby. After an
+//   action, focus stays on the clicked control if it is still enabled, and
+//   otherwise moves to the newest history entry. When the adventure is over
+//   the bar is hidden: #158 shows the ending in its place.
 // - #session-history: the conversation history, #log, a live region in its own
 //   scroll area, newest at the bottom; it follows new entries only while the
 //   reader is at the bottom. Each entry (#159) has a data-kind (narration,
@@ -81,7 +87,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title"></h3><p id="ending-text"></p></section>
 </div>
 <div id="session-dock">
-<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div></section>
+<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div><div id="explore-controls" class="controls"></div></div></section>
 <section id="session-history" aria-labelledby="history-title"><h3 id="history-title">What happened</h3>
 <ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></section>
 <div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div></form></div>
@@ -145,7 +151,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}
+#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1}#log{flex:1;max-height:none}}
 @media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative th:first-child,#initiative td:first-child{display:none}#initiative td{white-space:nowrap}#initiative .roll-off{display:block;white-space:normal;font-size:var(--text-xs)}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
@@ -438,29 +444,8 @@ function renderAdventure() {
       return row;
     }));
   }
-  element("attack-controls").replaceChildren(...session.targets.map((target) => {
-    const button = make("button", "Attack " + target.name);
-    button.type = "button";
-    // One target makes attacking the fight's primary action; several are peers.
-    button.className = "attack " + (session.targets.length === 1 ? "primary" : "secondary");
-    button.dataset.target = target.id;
-    button.disabled = acting;
-    button.addEventListener("click", () => attack(target.id));
-    return button;
-  }));
-  const options = session.turn ? session.turn.options : [];
-  const features = session.features;
-  const left = (feature) => " (" + feature.uses + " of " + feature.max + " left)";
-  element("feature-controls").replaceChildren(...FEATURE_BUTTONS.filter(({ action }) => options.includes(action)).map(({ action, label }) => {
-    const button = make("button", label + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : ""));
-    button.type = "button";
-    button.className = action === "end-turn" ? "secondary" : "feature secondary";
-    button.dataset.action = action;
-    button.disabled = acting;
-    button.addEventListener("click", () => useFeature(action));
-    return button;
-  }));
-  element("feature-rule").textContent = features ? ${JSON.stringify(FEATURE_USES_RULE)} : "";
+  renderActions();
+  element("feature-rule").textContent = session.features ? ${JSON.stringify(FEATURE_USES_RULE)} : "";
   renderStatus();
   element("ending").hidden = !session.ending;
   if (session.ending) {
@@ -629,12 +614,12 @@ function renderHistory() {
   if (followHistory) log.scrollTop = log.scrollHeight;
 }
 
-// Each list's entries, with a button for each action the engine accepts now.
+// Each list's entries; their actions are in the action bar.
 const ROOM_LISTS = [
-  { id: "exits", key: "exits", actions: [["move", "Go to "]] },
-  { id: "features", key: "features", actions: [["examine", "Examine "]] },
-  { id: "room-items", key: "items", actions: [["take", "Take "], ["examine", "Examine "]] },
-  { id: "inventory", key: "inventory", actions: [["use", "Drink "], ["examine", "Examine "]] },
+  { id: "exits", key: "exits" },
+  { id: "features", key: "features" },
+  { id: "room-items", key: "items" },
+  { id: "inventory", key: "inventory" },
 ];
 
 function renderRoom(room) {
@@ -649,20 +634,6 @@ function renderRoom(room) {
       text.append(make("strong", entry.name), document.createTextNode(" — " + entry.description));
       item.append(text);
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
-      const buttons = list.actions.filter(([action]) => room.options[action].includes(entry.id)).map(([action, label]) => {
-        const button = make("button", label + entry.name, "explore secondary");
-        button.type = "button";
-        button.dataset.action = action;
-        button.dataset.target = entry.id;
-        button.disabled = acting;
-        button.addEventListener("click", () => explore(action, entry.id));
-        return button;
-      });
-      if (buttons.length) {
-        const controls = make("div", undefined, "controls");
-        controls.append(...buttons);
-        item.append(controls);
-      }
       return item;
     })));
   }
@@ -687,30 +658,64 @@ async function act(path, body) {
   }
 }
 
-const FEATURE_BUTTONS = [
-  { action: "second-wind", label: "Second Wind" },
-  { action: "action-surge", label: "Action Surge" },
-  { action: "end-turn", label: "End turn" },
-];
+// The action bar (#156): every action the session view projects, in its
+// order. In a fight that is the character's whole toolkit; exploring, each
+// move, examination, take and drink. An action the engine would refuse stays
+// in place, disabled, with the engine's reason beside it.
+const ACTION_LABELS = { attack: "Attack ", use: "Drink ", move: "Go to ", examine: "Examine ", take: "Take ", "second-wind": "Second Wind", "action-surge": "Action Surge", "end-turn": "End turn" };
+const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
+const EXPLORING = ["move", "examine", "take"];
 
-function focusNextControl() {
-  const next = document.querySelector("#attack-controls button, #feature-controls button, #room button.explore");
-  (next || element("adventure-title")).focus();
+function renderActions() {
+  // #158 shows the ending in place of the bar; an ended adventure projects no actions.
+  element("action-bar").hidden = session.status !== "playing";
+  const { encounter, features } = session;
+  const fighting = Boolean(encounter && encounter.currentTurn !== null);
+  const attacks = session.actions.filter(({ action }) => action === "attack").length;
+  const left = (feature) => " (" + feature.uses + " of " + feature.max + " left)";
+  const groups = { attack: [], feature: [], explore: [] };
+  session.actions.forEach((option, index) => {
+    const { action, target } = option;
+    const group = action === "attack" ? "attack" : EXPLORING.includes(action) || (action === "use" && !fighting) ? "explore" : "feature";
+    const label = ACTION_LABELS[action] + (target ? target.name : "") + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
+    const button = make("button", label);
+    button.type = "button";
+    // One opponent makes attacking the fight's primary action; several are peers.
+    button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "end-turn" ? "secondary" : group + " secondary";
+    button.dataset.action = action;
+    if (target) button.dataset.target = target.id;
+    button.disabled = acting || !option.available;
+    button.addEventListener("click", () => perform(option));
+    const wrap = make("span", undefined, "action");
+    wrap.append(button);
+    if (!option.available) {
+      const reason = make("span", option.reason, "reason");
+      reason.id = "action-reason-" + index;
+      button.setAttribute("aria-describedby", reason.id);
+      wrap.append(reason);
+    }
+    groups[group].push(wrap);
+  });
+  element("attack-controls").replaceChildren(...groups.attack);
+  element("feature-controls").replaceChildren(...groups.feature);
+  element("explore-controls").replaceChildren(...groups.explore);
 }
 
-async function attack(targetId) {
-  await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId });
-  focusNextControl();
+async function perform({ action, target }) {
+  const targetId = target ? target.id : "";
+  if (action === "attack") await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId });
+  else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action });
+  else await act("/api/5e/session/explore", { action, target: targetId });
+  keepFocus(action, targetId);
 }
 
-async function explore(action, target) {
-  await act("/api/5e/session/explore", { action, target });
-  focusNextControl();
-}
-
-async function useFeature(action) {
-  await act("/api/5e/session/action", { action });
-  focusNextControl();
+// After an action, focus stays on the clicked control while it is still
+// enabled; otherwise it moves to the newest history entry, the action's
+// result, and never to an unrelated action.
+function keepFocus(action, targetId) {
+  const same = [...element("action-bar").querySelectorAll("button")].find((button) => button.dataset.action === action && (button.dataset.target || "") === targetId);
+  if (same && !same.disabled) same.focus();
+  else focusNewestEntry();
 }
 
 async function sendMessage(event) {

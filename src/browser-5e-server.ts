@@ -4,9 +4,10 @@
  * It serves the 5e character library: start or resume a creation, preview the
  * player's placement and choices, save a level 1 Fighter, read its sheet and
  * delete it. A saved Fighter can take on a built-in adventure module, where
- * the player explores by clicking an exit, Examine, Take or Drink, fights by
- * clicking an attack, Second Wind, Action Surge or End turn, or types to the
- * AI DM. Each
+ * the player explores by clicking Go to, Examine, Take or Drink, fights by
+ * clicking an attack, Drink, Second Wind, Action Surge or End turn, or types
+ * to the AI DM. The session view projects every action in the action bar with
+ * whether the engine would accept it now and why not. Each
  * session is saved after every action and continues after a reload or a
  * restart.
  * A library in another format is refused before the server listens.
@@ -101,6 +102,7 @@ function sessionView(session: FifthSession) {
           ending: { kind: ending.kind, title: ending.title, text: ending.text },
         }),
     ...runtime.projectFight(state),
+    actions: runtime.projectActions(state),
     history: session.history,
   };
 }
