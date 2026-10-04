@@ -73,7 +73,8 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   refused and the buttons still work. The engine rolls every die and writes
   every action's result.
   The session is saved after every action in the
-  `characters-5e-adventures` directory beside the library (format version 3),
+  `characters-5e-adventures` directory beside the library (format version 4;
+  a save from an earlier build is refused and left unchanged),
   and reloading the page or restarting with the same command returns to the
   adventure exactly as it was. Winning the fight that ends the adventure frees the character for another adventure;
   0 HP is instant defeat, and a defeated character cannot start another. A
@@ -82,7 +83,7 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   defeated character's row is dimmed); a character on an adventure has
   **Continue** on its row, which reopens the adventure directly, while the
   rest of the row still opens the sheet.
-- **The 5e adventure screen.** It has fixed regions: status (your HP), the
+- **The 5e adventure screen.** It has fixed regions: the status strip, the
   scene (the room, the fight and the ending), the action buttons, and the
   conversation history ("What happened") with the box for typing to the
   Dungeon Master. On a wide window, status and scene sit on the left and the
@@ -90,7 +91,13 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   actions and the typing box beneath it, so an action and its result are on
   screen together. On a phone it is one column with the history, actions and
   typing box pinned to the bottom. The history follows new entries unless you
-  have scrolled up to read older ones.
+  have scrolled up to read older ones. The status strip shows your HP as
+  numbers and a bar with its health in words (Healthy, Bloodied at half or
+  fewer, Critical at a quarter or fewer, Defeated at 0), and a pip for each
+  Second Wind and Action Surge use; in a fight it adds the round, whose turn
+  it is, and pips for your Action (two after Action Surge), Bonus action and
+  Reaction, filled while unused. Screen readers hear each in words, such as
+  "HP 6 of 11" and "Bonus action: used".
 - **Moving between 5e views.** The character library, creation, each
   character sheet and each adventure have their own address and page title
   (such as "Brannoc Ironside · Dungeon One"), so the browser's Back and

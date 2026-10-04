@@ -484,6 +484,7 @@ test("turn economy: an attack spends the action; the turn stays open while optio
   const state = veteranFirst();
   assert.deepEqual(state.economy, {
     actions: 1,
+    maxActions: 1,
     bonusAction: true,
     reaction: true,
   });
@@ -531,6 +532,7 @@ test("turn economy: an attack spends the action; the turn stays open while optio
   assert.equal(ended.state.round, 2);
   assert.deepEqual(ended.state.economy, {
     actions: 1,
+    maxActions: 1,
     bonusAction: true,
     reaction: true,
   });
@@ -642,6 +644,7 @@ test("Action Surge: one more action this turn, once per rest", () => {
     { type: "action-surge", combatantId: "pc", usesLeft: 0 },
   ]);
   assert.equal(surged.state.economy.actions, 1);
+  assert.equal(surged.state.economy.maxActions, 2);
   assert.equal(surged.state.combatants[0].actionSurge.uses, 0);
   // The second attack ends the turn: at full HP there is nothing else.
   const second = act(

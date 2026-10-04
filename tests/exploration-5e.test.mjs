@@ -129,7 +129,7 @@ test("a quiet start room begins without dice and offers only what is visible", (
       ["rat-cellar", "Rat-Gnawed Cellar"],
     ],
   );
-  assert.deepEqual(room.character, { hp: 12, maxHp: 12 });
+  assert.deepEqual(room.character, { hp: 12, maxHp: 12, health: "healthy" });
   assert.deepEqual(room.options.take, []);
 });
 
