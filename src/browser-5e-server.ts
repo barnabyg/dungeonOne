@@ -2,7 +2,8 @@
  * The browser server behind the temporary `--5e` flag (until #137).
  *
  * It serves the 5e character library: start or resume a creation, preview the
- * player's placement and choices, save a level 1 Fighter and read its sheet.
+ * player's placement and choices, save a level 1 Fighter, read its sheet and
+ * delete it.
  * A library in another format is refused before the server listens.
  */
 import { createServer } from "node:http";
@@ -154,6 +155,24 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             library.create(
               (body.name as string).trim(),
               choicesFrom(body),
+              body.revision as string,
+            ),
+          ),
+        );
+      case "/api/5e/characters/delete":
+        if (
+          !hasExactKeys(body, ["revision", "characterId", "name"]) ||
+          typeof body.revision !== "string" ||
+          typeof body.characterId !== "string" ||
+          typeof body.name !== "string"
+        ) {
+          throw new Error("Invalid character deletion request.");
+        }
+        return libraryView(
+          await serialized(() =>
+            library.delete(
+              body.characterId as string,
+              body.name as string,
               body.revision as string,
             ),
           ),

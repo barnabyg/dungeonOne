@@ -29,7 +29,9 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   library before they are shown, so reloading, restarting or leaving the screen
   shows the same dice. Place them on any abilities, choose the background
   increase, two skills and a Fighting Style, check the derived numbers and save.
-  Saved Fighters open as character sheets. Adventures are not playable under
+  Saved Fighters open as character sheets. **Delete character** on a sheet
+  removes it permanently once you type its name exactly; a pending creation
+  keeps its dice. Adventures are not playable under
   `--5e` yet (#128). The 5e library is format version 2; a pre-5e library is
   refused at startup and left unchanged.
 - **Rules.** The [rules document](docs/character-rules.md) records the 5e rules

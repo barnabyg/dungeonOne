@@ -195,3 +195,63 @@ test("a malformed stored sheet or pending creation is rejected", async () => {
     await assert.rejects(library.read(), /dice/);
   });
 });
+
+test("deleting a character removes only it and keeps the pending dice", async () => {
+  await withDirectory(async (directory) => {
+    const path = join(directory, "characters.json");
+    const library = new FifthCharacterLibrary(path, 7);
+    let data = await library.create(
+      "Ada",
+      CHOICES,
+      (await library.startCreation()).revision,
+    );
+    data = await library.create(
+      "Bram",
+      CHOICES,
+      (await library.startCreation()).revision,
+    );
+    data = await library.startCreation();
+    const [ada, bram] = data.characters;
+    const before = await readFile(path, "utf8");
+    const keptBram = JSON.stringify(bram);
+    const keptPending = JSON.stringify(data.pendingCreation);
+    assert.ok(before.includes(keptBram) && before.includes(keptPending));
+
+    // Unknown id, inexact names and a stale revision all write nothing.
+    const refusals = [
+      [ada.sheet.id, "Ada", "0".repeat(32), /stale/],
+      ["c".repeat(32), "Ada", data.revision, /no such character/i],
+      [ada.sheet.id, "ada", data.revision, /exactly/],
+      [ada.sheet.id, " Ada", data.revision, /exactly/],
+      [ada.sheet.id, "Ada ", data.revision, /exactly/],
+      [ada.sheet.id, "Bram", data.revision, /exactly/],
+    ];
+    for (const [id, name, revision, message] of refusals) {
+      await assert.rejects(library.delete(id, name, revision), message);
+      assert.equal(await readFile(path, "utf8"), before);
+    }
+
+    const deleted = await library.delete(ada.sheet.id, "Ada", data.revision);
+    assert.deepEqual(
+      deleted.characters.map(({ sheet }) => sheet.name),
+      ["Bram"],
+    );
+    assert.notEqual(deleted.revision, data.revision);
+    const after = await readFile(path, "utf8");
+    assert.ok(after.includes(keptBram), "Bram is byte-for-byte unchanged");
+    assert.ok(after.includes(keptPending), "the pending dice are unchanged");
+    const reread = await new FifthCharacterLibrary(path, 99).read();
+    assert.deepEqual(reread, deleted);
+    assert.equal(reread.creationsStarted, data.creationsStarted);
+    // A replay of the same delete is stale; with a fresh revision, unknown.
+    await assert.rejects(
+      library.delete(ada.sheet.id, "Ada", data.revision),
+      /stale/,
+    );
+    await assert.rejects(
+      library.delete(ada.sheet.id, "Ada", deleted.revision),
+      /no such character/i,
+    );
+    assert.equal(await readFile(path, "utf8"), after);
+  });
+});
