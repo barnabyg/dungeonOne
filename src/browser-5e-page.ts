@@ -9,7 +9,7 @@
 //   the round and whose turn it is (#turn), and #resources, a pip for each
 //   turn resource and class feature use. It shows only what the session view
 //   projects.
-// - #session-scene: the room, the fight and the ending.
+// - #session-scene: the room and the fight.
 // - #session-actions: #adventure-error and the action bar (#156), #action-bar:
 //   #attack-controls, #feature-controls (Drink in a fight, Second Wind, Action
 //   Surge, End turn) and #explore-controls (Go to, Examine, Take, Drink). It
@@ -17,13 +17,17 @@
 //   with its reason as visible text linked by aria-describedby. After an
 //   action, focus stays on the clicked control if it is still enabled, and
 //   otherwise moves to the newest history entry. When the adventure is over
-//   the bar is hidden: #158 shows the ending in its place.
+//   the bar is hidden and #ending (#158) takes its place: data-kind victory or
+//   defeat (in words, #ending-kind, and colour), the title and text, a defeat's
+//   permanence, and #ending-next back to the character sheet. Focus moves to
+//   #ending-title when the ending appears or is opened again.
 // - #session-history: the conversation history, #log, a live region in its own
 //   scroll area, newest at the bottom; it follows new entries only while the
 //   reader is at the bottom. Each entry (#159) has a data-kind (narration,
 //   message or action); the newest has class "newest" and tabindex -1, and
 //   focusNewestEntry() moves focus to it.
-// - #session-composer: #message-form.
+// - #session-composer: #message-form; once the adventure is over it is
+//   disabled and #composer-reason says why.
 // Actions, history and composer share #session-dock. DOM order (and so tab
 // order) is status, scene, actions, history, composer; the dock shows history
 // above actions and composer. From 900 x 560 px the session fills the window
@@ -84,13 +88,12 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <div class="table-wrap"><table id="initiative"><caption class="hint">Initiative order: each combatant rolled d20 + its initiative bonus.</caption><thead><tr><th scope="col">Turn</th><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
 <p id="feature-rule" class="hint"></p>
 </section>
-<section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title"></h3><p id="ending-text"></p></section>
 </div>
 <div id="session-dock">
-<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div><div id="explore-controls" class="controls"></div></div></section>
+<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div><div id="explore-controls" class="controls"></div></div></section>
 <section id="session-history" aria-labelledby="history-title"><h3 id="history-title">What happened</h3>
 <ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></section>
-<div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div></form></div>
+<div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off" aria-describedby="composer-reason"><button id="send-message" type="submit" class="primary">Send</button></div><p id="composer-reason" class="reason"></p></form></div>
 </div>
 </div>
 </section>
@@ -146,7 +149,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}.card-line+.card-line{margin-top:var(--space-1)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
-#ending{border:2px solid var(--color-gold);border-radius:var(--radius-md);padding:var(--space-3);margin:var(--space-3) 0}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
+#ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
 #session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
@@ -387,10 +390,10 @@ async function startAdventure(characterId, adventureId, button) {
 }
 
 async function openAdventure(sessionId, ticket) {
-  if (!library.characters.some(({ session: active }) => active && active.id === sessionId)) {
-    // An adventure that just ended stays viewable until the page reloads.
-    if (session && session.id === sessionId) showAdventure(session);
-    else lost("That adventure is no longer in progress.");
+  const active = library.characters.some(({ session: active }) => active && active.id === sessionId);
+  // An ended adventure stays viewable (#158): the server serves it read-only.
+  if (!active && session && session.id === sessionId) {
+    showAdventure(session);
     return;
   }
   try {
@@ -399,7 +402,7 @@ async function openAdventure(sessionId, ticket) {
     library = result.library;
     showAdventure(result.session);
   } catch (error) {
-    if (ticket === routeTicket) lost(error.message);
+    if (ticket === routeTicket) lost(active ? error.message : "That adventure is no longer in progress.");
   }
 }
 
@@ -410,7 +413,7 @@ function showAdventure(value) {
   const entry = findEntry(session.characterId);
   const title = session.adventure.title;
   show("adventure", title, [...(entry ? [{ label: entry.sheet.name, hash: "#character-" + entry.sheet.id }] : []), { label: title }]);
-  element("adventure-title").focus();
+  element(session.ending ? "ending-title" : "adventure-title").focus();
   followHistory = true;
   element("log").scrollTop = element("log").scrollHeight;
 }
@@ -447,14 +450,28 @@ function renderAdventure() {
   renderActions();
   element("feature-rule").textContent = session.features ? ${JSON.stringify(FEATURE_USES_RULE)} : "";
   renderStatus();
-  element("ending").hidden = !session.ending;
-  if (session.ending) {
-    element("ending-title").textContent = session.ending.title;
-    element("ending-text").textContent = session.ending.text;
-  }
+  renderEnding();
   element("message").disabled = !playing || acting;
   element("send-message").disabled = !playing || acting;
+  element("composer-reason").textContent = playing ? "" : "The adventure is over, so the Dungeon Master takes no more messages.";
   renderHistory();
+}
+
+// The ending (#158), in place of the action bar: its kind in words and
+// colour, its title and text, and one next step back to the character sheet.
+// A defeat says that it is permanent.
+function renderEnding() {
+  const { ending } = session;
+  element("ending").hidden = !ending;
+  if (!ending) return;
+  const entry = findEntry(session.characterId);
+  const name = entry ? entry.sheet.name : "This character";
+  element("ending").dataset.kind = ending.kind;
+  element("ending-kind").textContent = ending.kind === "victory" ? "Victory" : "Defeat";
+  element("ending-title").textContent = ending.title;
+  element("ending-text").textContent = ending.text;
+  element("ending-consequence").textContent = ending.kind === "defeat" ? "Defeat is permanent: " + name + " cannot start another adventure." : "";
+  element("ending-next").textContent = entry ? "Back to " + name + "'s sheet" : "Back to your characters";
 }
 
 const HEALTH_LABELS = { healthy: "Healthy", bloodied: "Bloodied", critical: "Critical", down: "Defeated" };
@@ -667,7 +684,7 @@ const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
 const EXPLORING = ["move", "examine", "take"];
 
 function renderActions() {
-  // #158 shows the ending in place of the bar; an ended adventure projects no actions.
+  // The ending (#158) takes the bar's place; an ended adventure projects no actions.
   element("action-bar").hidden = session.status !== "playing";
   const { encounter, features } = session;
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
@@ -711,8 +728,13 @@ async function perform({ action, target }) {
 
 // After an action, focus stays on the clicked control while it is still
 // enabled; otherwise it moves to the newest history entry, the action's
-// result, and never to an unrelated action.
+// result, and never to an unrelated action. An action that ends the
+// adventure moves focus to the ending's heading.
 function keepFocus(action, targetId) {
+  if (session.ending) {
+    element("ending-title").focus();
+    return;
+  }
   const same = [...element("action-bar").querySelectorAll("button")].find((button) => button.dataset.action === action && (button.dataset.target || "") === targetId);
   if (same && !same.disabled) same.focus();
   else focusNewestEntry();
@@ -723,7 +745,7 @@ async function sendMessage(event) {
   const message = element("message").value.trim();
   if (!message) return;
   if (await act("/api/5e/session/message", { message })) element("message").value = "";
-  element("message").focus();
+  element(session.ending ? "ending-title" : "message").focus();
 }
 
 function defaultChoices() {
@@ -930,6 +952,7 @@ element("delete-form").addEventListener("submit", deleteCharacter);
 element("cancel-delete").addEventListener("click", () => element("delete-dialog").close());
 element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose) element("delete-character").focus(); });
 element("message-form").addEventListener("submit", sendMessage);
+element("ending-next").addEventListener("click", () => go(findEntry(session.characterId) ? "#character-" + session.characterId : ""));
 // The skip link moves focus without adding a history entry.
 document.querySelector(".skip").addEventListener("click", (event) => {
   event.preventDefault();

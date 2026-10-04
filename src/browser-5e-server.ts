@@ -9,7 +9,7 @@
  * to the AI DM. The session view projects every action in the action bar with
  * whether the engine would accept it now and why not. Each
  * session is saved after every action and continues after a reload or a
- * restart.
+ * restart. An ended session stays viewable, read-only, with its ending's kind.
  * A library in another format is refused before the server listens.
  */
 import { createServer } from "node:http";
@@ -219,6 +219,35 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     }
     return session;
   };
+  /**
+   * An ended session of a character still in the library, to show its
+   * ending again (#158). It is never cached, so no action can reach it.
+   */
+  const openEnded = async (sessionId: unknown): Promise<FifthSession> => {
+    const refused = new Error("There is no such adventure.");
+    if (typeof sessionId !== "string") {
+      throw refused;
+    }
+    let session: FifthSession;
+    try {
+      session = await FifthSession.load(
+        library.sessionPath(sessionId),
+        adventures,
+      );
+    } catch (error) {
+      if (error instanceof Error && "code" in error) {
+        throw refused;
+      }
+      throw error;
+    }
+    const known = (await library.read()).characters.some(
+      ({ sheet }) => sheet.id === session.character.id,
+    );
+    if (session.state.status === "playing" || !known) {
+      throw refused;
+    }
+    return session;
+  };
   const persist = async (session: FifthSession) => {
     try {
       await session.persist();
@@ -306,6 +335,12 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           throw new Error("Invalid adventure request.");
         }
         return serialized(async () => {
+          const inProgress = (await library.read()).characters.some(
+            ({ session }) => session?.id === body.sessionId,
+          );
+          if (!inProgress) {
+            return respondWith(await openEnded(body.sessionId));
+          }
           const session = await openSession(body.sessionId);
           // A session that ended before its character was settled (a crash
           // between the two saves) is settled now.
