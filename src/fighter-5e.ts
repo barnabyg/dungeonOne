@@ -61,6 +61,12 @@ export const FIGHTER_EQUIPMENT = ["chain-shirt", "shield", "mace"] as const;
  * not and are omitted.
  */
 export const FIGHTER_WEAPON_MASTERIES = ["mace"] as const;
+/**
+ * How Second Wind and Action Surge uses recover until in-adventure rests
+ * arrive. The sheet, the creation preview and the fight all show these words.
+ */
+export const FEATURE_USES_RULE =
+  "Spent uses stay spent for the rest of the adventure; each adventure starts with all of them.";
 
 export type BackgroundIncrease = Readonly<Partial<Record<Ability, 1 | 2>>>;
 export type Placement = Readonly<Record<Ability, number>>;
@@ -410,7 +416,7 @@ export function fighterProfile(
     {
       id: "second-wind",
       name: "Second Wind",
-      text: `Bonus action: regain 1d10 + ${level} HP. 2 uses; one returns on a short rest, all on a long rest.`,
+      text: `Bonus action: regain 1d10 + ${level} HP. 2 uses. ${FEATURE_USES_RULE}`,
     },
     {
       id: "weapon-mastery",
@@ -423,7 +429,7 @@ export function fighterProfile(
       {
         id: "action-surge",
         name: "Action Surge",
-        text: "Take one additional action on your turn, except Magic. 1 use per short or long rest.",
+        text: `Take one additional action on your turn, except Magic. 1 use. ${FEATURE_USES_RULE}`,
       },
       {
         id: "tactical-mind",
