@@ -147,18 +147,31 @@ function list(value: unknown, where: string, max: number): unknown[] {
   return value;
 }
 
+/** The entries' keys; fails with `message` on the first repeated key. */
+function distinct<T>(
+  entries: readonly T[],
+  key: (entry: T) => string,
+  message: (entry: T) => string,
+): Set<string> {
+  const keys = new Set<string>();
+  for (const entry of entries) {
+    if (keys.has(key(entry))) {
+      fail(message(entry));
+    }
+    keys.add(key(entry));
+  }
+  return keys;
+}
+
 function unique<T extends { id: string }>(
   entries: readonly T[],
   where: string,
 ) {
-  const ids = new Set<string>();
-  for (const entry of entries) {
-    if (ids.has(entry.id)) {
-      fail(`duplicate ${where} id ${entry.id}.`);
-    }
-    ids.add(entry.id);
-  }
-  return ids;
+  return distinct(
+    entries,
+    ({ id: entryId }) => entryId,
+    ({ id: entryId }) => `duplicate ${where} id ${entryId}.`,
+  );
 }
 
 function statBlock(value: unknown, where: string): StatBlock {
@@ -325,15 +338,13 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         },
       );
       unique(opponents, `${where} opponent`);
-      const names = new Set<string>();
-      for (const { name } of opponents) {
-        if (names.has(name)) {
-          fail(
-            `${where} has two opponents named ${name}; give each a name the player can target.`,
-          );
-        }
-        names.add(name);
-      }
+      // The player targets opponents by name, in any case.
+      distinct(
+        opponents,
+        ({ name }) => name.toLowerCase(),
+        ({ name }) =>
+          `${where} has two opponents named ${name}; give each a name the player can target.`,
+      );
       if (opponents.some(({ id: opponentId }) => opponentId === "pc")) {
         fail(`${where} opponent id pc is reserved for the player character.`);
       }

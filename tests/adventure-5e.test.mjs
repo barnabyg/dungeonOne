@@ -155,3 +155,19 @@ test("the validator rejects opponents in one encounter that share a name", () =>
     /encounter 1 has two opponents named Goblin Warrior; give each a name the player can target/,
   );
 });
+
+test("opponent names differing only in case count as the same name", () => {
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        changed((m) =>
+          m.encounters[0].opponents.push({
+            ...m.encounters[0].opponents[0],
+            id: "goblin-2",
+            name: "goblin warrior",
+          }),
+        ),
+      ),
+    /encounter 1 has two opponents named goblin warrior;/,
+  );
+});
