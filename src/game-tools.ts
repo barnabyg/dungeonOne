@@ -545,10 +545,7 @@ function parseTool(
         name === "offer" ||
         name === "place_item" ||
         name === "recover" ||
-        name === "brace" ||
-        name === "second_wind" ||
-        name === "action_surge" ||
-        name === "end_turn"
+        name === "brace"
       ) {
         return "unknown-tool";
       }

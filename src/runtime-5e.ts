@@ -41,6 +41,7 @@ import type {
   AdventureRuntime,
   CharacterStatus,
   DmScene,
+  FifthToolName,
   GameToolCall,
   GameToolDefinition,
   RuntimeResult,
@@ -74,7 +75,7 @@ const FEATURE_TOOLS = {
   second_wind: "second-wind",
   action_surge: "action-surge",
   end_turn: "end-turn",
-} as const satisfies Record<string, EncounterActionType>;
+} as const satisfies Record<FifthToolName, EncounterActionType>;
 type FeatureTool = keyof typeof FEATURE_TOOLS;
 const MUTATION_TOOLS = ["attack", ...Object.keys(FEATURE_TOOLS)];
 
