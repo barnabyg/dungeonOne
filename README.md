@@ -34,8 +34,12 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   keeps its dice. The 5e library is format version 3; a pre-5e library, or a
   5e library from an earlier build (format version 2), is refused at startup
   and left unchanged.
-- **Starting a 5e adventure.** A saved Fighter's sheet offers **Start** for
-  each built-in 5e adventure module, with its level range and difficulty:
+- **Starting a 5e adventure.** A saved Fighter's sheet leads with its
+  adventures: **Start** for each built-in 5e adventure module (or **Continue**
+  for the one in progress), tagged with its level range and difficulty and
+  ordered by level range, then Easy, Medium, Hard. A line beside them warns
+  that a character at 0 HP is defeated for good, and a defeated character's
+  sheet says so at the top. The modules are:
   _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`), one SRD 5.2
   Goblin Warrior; _The Goblins in the Storeroom_
   (`adventures/5e/goblin-storeroom.json`), a group fight against two Goblin
