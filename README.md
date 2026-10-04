@@ -91,13 +91,22 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   "Damage: d6 1 + 3 = 4 bludgeoning → Goblin Warrior 3/7 HP"; an attack at
   disadvantage lists both d20s and marks the one not kept. The newest entry
   is marked with a gold edge.
+  A typed message appears in the history at once, with "The Dungeon Master is
+  thinking…" beneath it until the reply replaces it; that placeholder is never
+  saved. While a request runs, the button that started it is marked busy
+  (such as **Opening…**, **Saving…**, **Starting…** or **Sending…**) and
+  nothing can be sent twice: every action and the typing box wait until it
+  finishes.
 - **Moving between 5e views.** The character library, creation, each
   character sheet and each adventure have their own address and page title
   (such as "Brannoc Ironside · Dungeon One"), so the browser's Back and
   Forward buttons move between them and reloading returns to the same view.
   A breadcrumb at the top (Characters › character › adventure) leads back;
   creation keeps a **Cancel**. An address for a deleted character or a
-  finished adventure opens the library with a message.
+  finished adventure opens the library with a message. Confirmations such as
+  "Brannoc Ironside is saved." and messages like these appear inside the
+  current panel, are announced to screen readers, and clear when you move to
+  another view.
 - **Rules.** The [rules document](docs/character-rules.md) records the 5e rules
   in use, the house rules and each positional rule left out.
 - **Runtime interface.** Saves, traces and replay, the AI DM turn loop and its

@@ -106,7 +106,8 @@ async function added(page, run) {
   const count = await page.locator("#log > li").count();
   await run();
   await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log > li").length > seen,
+    (seen) =>
+      document.querySelectorAll("#log > li:not([data-pending])").length > seen,
     count,
   );
 }

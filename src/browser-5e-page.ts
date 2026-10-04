@@ -15,12 +15,21 @@
 //   reader is at the bottom. Each entry (#159) has a data-kind (narration,
 //   message or action); the newest has class "newest" and tabindex -1, and
 //   focusNewestEntry() moves focus to it.
-// - #session-composer: #message-form.
+// - #session-composer: #message-form. renderComposer() alone decides whether
+//   it is enabled.
 // Actions, history and composer share #session-dock. DOM order (and so tab
 // order) is status, scene, actions, history, composer; the dock shows history
 // above actions and composer. From 900 x 560 px the session fills the window
 // in two columns (status and scene left, the dock right, each scrolling on its
 // own); narrower, it is one column with the dock sticky at the bottom.
+//
+// Busy states (#160): while a request runs, the control that started it has
+// aria-busy (setBusy/clearBusy, with a label such as "Saving…") and cannot
+// start it again. A typed message shows at once with a client-only pending
+// "The Dungeon Master is thinking…" entry (data-pending) that renderHistory
+// replaces with the saved result; it is never saved. Confirmations go to
+// #feedback, a polite live region that show() moves under the current panel's
+// heading and route() clears on every navigation.
 import { FEATURE_USES_RULE } from "./fighter-5e.js";
 
 export const FIFTH_BROWSER_HTML = `<!doctype html>
@@ -30,9 +39,9 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <header class="masthead"><span class="brand-mark" aria-hidden="true">◇</span><div><p class="eyebrow">5E PREVIEW</p><h1>Dungeon One</h1></div></header>
 <main id="content" tabindex="-1">
 <nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
-<p id="feedback" role="status" aria-live="polite"></p>
 <section id="library" class="panel" aria-labelledby="library-title">
 <h2 id="library-title" tabindex="-1">Your Fighters</h2>
+<p id="feedback" role="status" aria-live="polite"></p>
 <ul id="characters" class="list"></ul>
 <p id="no-characters" class="hint" hidden>No characters yet.</p>
 <button id="open-creation" type="button" class="primary">Create a Fighter</button>
@@ -116,13 +125,13 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 // --ink, --gold, --line and --paper are older aliases of the colour tokens.
 export const FIFTH_BROWSER_CSS = `:root{color-scheme:light;--color-ink:#263d3d;--color-ink-hover:#3a5451;--color-on-ink:#fff9e9;--color-paper:#f7f0e1;--color-surface:#fffaf0;--color-surface-hover:#efe5d0;--color-highlight:#efe2c0;--color-text:#292b27;--color-text-label:#4b4a3c;--color-text-muted:#615f50;--color-line:#d4c9b5;--color-control-border:#7a7260;--color-panel-border:#81785e;--color-gold:#d5b474;--color-gold-text:#7a6331;--color-discovery:#5b4a22;--color-on-dark:#f7edda;--color-night:#151f23;--color-night-light:#304043;--color-focus:#9a5a1c;--color-danger:#883c2d;--color-danger-hover:#9f4936;--color-danger-soft:#f3e0d8;--color-success:#2f6b3a;--color-warning:#8a5a00;--color-hp-healthy:var(--color-success);--color-hp-wounded:var(--color-warning);--color-hp-critical:var(--color-danger);--color-hp-down:var(--color-text-muted);--font-serif:Georgia,serif;--font-sans:system-ui,sans-serif;--text-xs:.78rem;--text-sm:.85rem;--text-md:1rem;--text-lg:1.15rem;--text-xl:1.45rem;--text-2xl:1.75rem;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--radius-sm:6px;--radius-md:8px;--radius-lg:10px;--ink:var(--color-ink);--gold:var(--color-gold);--line:var(--color-line);--paper:var(--color-paper);font-family:var(--font-serif);color:var(--color-text);background:var(--color-night);font-size:17px;line-height:1.55}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,var(--color-night-light),var(--color-night) 75%);min-height:100dvh}h1,h2,h3,p{margin:0 0 var(--space-3)}h1{font-size:var(--text-2xl);line-height:1.1}h2{font-size:var(--text-xl);line-height:1.2}h3{font-size:var(--text-lg);margin-top:var(--space-4)}
-button,legend,label,.eyebrow,.hint,.error,#feedback,table,.stats,.features{font-family:var(--font-sans)}button{font-size:var(--text-sm);border:1px solid var(--color-ink);background:transparent;color:var(--color-ink);padding:10px 14px;border-radius:var(--radius-sm);cursor:pointer;line-height:1.4}button:disabled{opacity:.55;cursor:default}
+button,legend,label,.eyebrow,.hint,.error,#feedback,table,.stats,.features{font-family:var(--font-sans)}button{font-size:var(--text-sm);border:1px solid var(--color-ink);background:transparent;color:var(--color-ink);padding:10px 14px;border-radius:var(--radius-sm);cursor:pointer;line-height:1.4}button:disabled{opacity:.55;cursor:default}button[aria-busy=true]{opacity:.8;cursor:progress}
 button.primary{background:var(--color-ink);border-color:var(--color-ink);color:var(--color-on-ink)}button.primary:hover:not(:disabled){background:var(--color-ink-hover)}button.secondary:hover:not(:disabled){background:var(--color-surface-hover)}button.quiet{border-color:transparent;text-decoration:underline;text-underline-offset:3px}button.quiet:hover:not(:disabled){background:var(--color-surface-hover)}button.danger{border-color:var(--color-danger);color:var(--color-danger)}button.danger:hover:not(:disabled){background:var(--color-danger-soft)}button.primary.danger{background:var(--color-danger);color:var(--color-on-ink)}button.primary.danger:hover:not(:disabled){background:var(--color-danger-hover)}
 :focus-visible{outline:3px solid var(--color-focus);outline-offset:3px}[tabindex="-1"]:focus{outline:none}[hidden]{display:none!important}
 .skip{position:absolute;top:-100px;left:12px;background:var(--color-paper);padding:10px;z-index:20}.skip:focus{top:12px}
 .masthead{max-width:860px;margin:auto;padding:var(--space-4);display:flex;align-items:center;gap:var(--space-3);color:var(--color-on-dark)}.brand-mark{font-size:2rem;color:var(--color-gold)}.eyebrow{font-size:.62rem;letter-spacing:.18em;color:var(--color-gold);margin-bottom:6px}
 main{max-width:860px;margin:0 auto var(--space-6);padding:0 var(--space-4)}.panel{background:var(--color-paper);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);margin-bottom:var(--space-4);min-width:0}
-#feedback{color:var(--color-on-dark);font-size:var(--text-sm)}#breadcrumb ol{list-style:none;display:flex;flex-wrap:wrap;padding:0;margin:0 0 var(--space-3);font:var(--text-sm) var(--font-sans);color:var(--color-on-dark);overflow-wrap:anywhere}#breadcrumb li+li::before{content:"›"/"";margin:0 var(--space-2);color:var(--color-gold)}#breadcrumb a{color:var(--color-gold)}#breadcrumb-list:empty{display:none}#feedback:empty{display:none}.hint{font-size:var(--text-sm);color:var(--color-text-muted)}.error{color:var(--color-danger);font-size:var(--text-sm);font-weight:600}.error:empty{display:none}
+#feedback{color:var(--color-text);font-size:var(--text-sm);background:var(--color-surface);border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3)}#breadcrumb ol{list-style:none;display:flex;flex-wrap:wrap;padding:0;margin:0 0 var(--space-3);font:var(--text-sm) var(--font-sans);color:var(--color-on-dark);overflow-wrap:anywhere}#breadcrumb li+li::before{content:"›"/"";margin:0 var(--space-2);color:var(--color-gold)}#breadcrumb a{color:var(--color-gold)}#breadcrumb-list:empty{display:none}#feedback:empty{display:none}.hint{font-size:var(--text-sm);color:var(--color-text-muted)}.error{color:var(--color-danger);font-size:var(--text-sm);font-weight:600}.error:empty{display:none}
 .list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.list button{width:100%;text-align:left;background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border);display:flex;flex-direction:column}.list button:hover{background:var(--color-surface-hover)}.list strong{font:600 var(--text-md) var(--font-serif)}.list span{font-size:var(--text-xs);color:var(--color-text-muted)}
 .rolls{padding-left:0;list-style:none;display:grid;gap:6px;font-family:var(--font-sans)}.rolls li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.die{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);font-weight:700}.die.dropped{color:var(--color-text-muted);text-decoration:line-through;border-style:dashed}.total{font-weight:700;margin-left:6px}.roll-name{min-width:52px;font-size:var(--text-sm)}
 fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margin:0 0 14px;padding:var(--space-3);min-width:0}legend{font-weight:600;font-size:.9rem;padding:0 var(--space-1)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2) 14px}.grid label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}select,input{font:var(--text-md) var(--font-sans);padding:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);width:100%;min-width:0;margin-top:var(--space-1)}label[for=character-name]{display:block;font-weight:600;font-size:var(--text-sm)}
@@ -133,7 +142,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .features{font-size:var(--text-sm);padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)}
 .eyebrow.dark{color:var(--color-gold-text)}.adventure-choice{border:1px solid var(--color-line);border-radius:var(--radius-md);padding:10px var(--space-3);margin-bottom:var(--space-2)}.adventure-choice p{margin-bottom:var(--space-2)}
 #turn{font-family:var(--font-sans);font-weight:600}tr.current{background:var(--color-highlight)}tr.defeated td,tr.defeated th{color:var(--color-text-muted);font-weight:400}.tag{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:999px;font:600 var(--text-xs)/1.5 var(--font-sans);white-space:nowrap}
-.log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li.newest:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}
+.log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li.newest:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}.log .reply.pending{color:var(--color-text-muted);font-style:italic}
 .log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}.card-line+.card-line{margin-top:var(--space-1)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}
@@ -175,6 +184,27 @@ async function request(path, body) {
   return value;
 }
 
+/** Marks the control that started a request busy, optionally relabelled. */
+function setBusy(button, label) {
+  if (!isBusy(button) && label) {
+    button.dataset.idleLabel = button.textContent;
+    button.textContent = label;
+  }
+  button.setAttribute("aria-busy", "true");
+  button.disabled = true;
+}
+
+/** Ends a busy state; the caller decides whether the control is enabled. */
+function clearBusy(button) {
+  if (button.dataset.idleLabel !== undefined) {
+    button.textContent = button.dataset.idleLabel;
+    delete button.dataset.idleLabel;
+  }
+  button.removeAttribute("aria-busy");
+}
+
+const isBusy = (button) => button.getAttribute("aria-busy") === "true";
+
 // Each view has its own history entry and URL: the library is the bare page,
 // the others a hash (#create, #character-<id>, #adventure-<id>), so a reload
 // or Back and Forward return to the view without the server routing them.
@@ -183,6 +213,8 @@ let routeTicket = 0;
 /** Shows one view, titles the page and draws its breadcrumb under Characters. */
 function show(id, title, trail) {
   for (const panel of ["library", "creation", "sheet", "adventure"]) element(panel).hidden = panel !== id;
+  // Confirmations show inside the current panel, under its heading.
+  element(id).querySelector("h2").after(element("feedback"));
   document.title = title + " · Dungeon One";
   const items = [{ label: "Characters", hash: "" }, ...trail];
   element("breadcrumb-list").replaceChildren(...items.map((item, index) => {
@@ -364,7 +396,8 @@ let acting = false;
 const levelText = ({ min, max }) => min === max ? "Level " + min : "Levels " + min + "–" + max;
 
 async function startAdventure(characterId, adventureId, button) {
-  button.disabled = true;
+  if (isBusy(button)) return;
+  setBusy(button, "Starting…");
   try {
     const result = await request("/api/5e/adventures/start", { revision: library.revision, characterId, adventureId });
     library = result.library;
@@ -372,6 +405,8 @@ async function startAdventure(characterId, adventureId, button) {
     go("#adventure-" + session.id);
   } catch (error) {
     element("start-error").textContent = error.message;
+  } finally {
+    clearBusy(button);
     button.disabled = false;
   }
 }
@@ -410,7 +445,6 @@ function renderAdventure() {
   element("adventure-meta").textContent = levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty) + " · " + session.room.name;
   element("adventure-title").textContent = adventure.title;
   element("adventure-objective").textContent = adventure.objective;
-  const playing = session.status === "playing";
   renderRoom(session.room);
   element("encounter").hidden = !encounter;
   if (encounter) {
@@ -468,9 +502,15 @@ function renderAdventure() {
     element("ending-title").textContent = session.ending.title;
     element("ending-text").textContent = session.ending.text;
   }
-  element("message").disabled = !playing || acting;
-  element("send-message").disabled = !playing || acting;
+  renderComposer();
   renderHistory();
+}
+
+/** Enables the composer only while the adventure is playing and nothing is in flight. */
+function renderComposer() {
+  const enabled = session.status === "playing" && !acting;
+  element("message").disabled = !enabled;
+  element("send-message").disabled = !enabled;
 }
 
 // Each kind of history entry looks different and is labelled (#159):
@@ -574,11 +614,25 @@ let followHistory = true;
 
 function renderHistory() {
   const log = element("log");
+  for (const pending of log.querySelectorAll(":scope > li[data-pending]")) pending.remove();
   if (log.dataset.session !== session.id || log.children.length > session.history.length) {
     log.dataset.session = session.id;
     log.replaceChildren();
   }
   log.append(...session.history.slice(log.children.length).map(historyEntry));
+  markNewest(log);
+  if (followHistory) log.scrollTop = log.scrollHeight;
+}
+
+/** Shows a typed message at once, with the Dungeon Master's reply pending. */
+function showPending(message) {
+  const log = element("log");
+  const item = historyEntry({ player: message, cards: [] });
+  item.dataset.pending = "true";
+  const waiting = part("p", "reply", "The Dungeon Master is thinking…");
+  waiting.classList.add("pending");
+  item.append(waiting);
+  log.append(item);
   markNewest(log);
   if (followHistory) log.scrollTop = log.scrollHeight;
 }
@@ -623,10 +677,17 @@ function renderRoom(room) {
   }
 }
 
-async function act(path, body) {
+// One action at a time: every action control is disabled while one is in
+// flight, and the one that started it (found by the control selector after
+// the controls are redrawn) is busy.
+async function act(path, body, control, busyLabel, pendingMessage) {
+  if (acting) return false;
   acting = true;
   renderAdventure();
   element("adventure-error").textContent = "";
+  if (pendingMessage !== undefined) showPending(pendingMessage);
+  const button = document.querySelector(control);
+  if (button) setBusy(button, busyLabel);
   try {
     const result = await request(path, { sessionId: session.id, sequence: session.sequence, ...body });
     library = result.library;
@@ -637,6 +698,7 @@ async function act(path, body) {
     element("adventure-error").textContent = error.message;
     return false;
   } finally {
+    if (button) clearBusy(button);
     acting = false;
     renderAdventure();
   }
@@ -654,25 +716,25 @@ function focusNextControl() {
 }
 
 async function attack(targetId) {
-  await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId });
+  await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId }, "#attack-controls button[data-target=" + JSON.stringify(targetId) + "]");
   focusNextControl();
 }
 
 async function explore(action, target) {
-  await act("/api/5e/session/explore", { action, target });
+  await act("/api/5e/session/explore", { action, target }, "#room button.explore[data-action=" + JSON.stringify(action) + "][data-target=" + JSON.stringify(target) + "]");
   focusNextControl();
 }
 
 async function useFeature(action) {
-  await act("/api/5e/session/action", { action });
+  await act("/api/5e/session/action", { action }, "#feature-controls button[data-action=" + JSON.stringify(action) + "]");
   focusNextControl();
 }
 
 async function sendMessage(event) {
   event.preventDefault();
   const message = element("message").value.trim();
-  if (!message) return;
-  if (await act("/api/5e/session/message", { message })) element("message").value = "";
+  if (!message || acting) return;
+  if (await act("/api/5e/session/message", { message }, "#send-message", "Sending…", message)) element("message").value = "";
   element("message").focus();
 }
 
@@ -785,7 +847,7 @@ async function preview() {
     if (ticket !== previewRequest) return;
     element("creation-error").textContent = "";
     element("preview-body").replaceChildren(...profileNodes(result.abilities, result.profile));
-    element("save-character").disabled = false;
+    element("save-character").disabled = isBusy(element("save-character"));
   } catch (error) {
     if (ticket !== previewRequest) return;
     element("creation-error").textContent = error.message;
@@ -795,11 +857,16 @@ async function preview() {
 }
 
 async function openCreation(ticket) {
+  const opener = element("open-creation");
+  setBusy(opener, "Opening…");
   try {
     library = await request("/api/5e/creation", {});
   } catch (error) {
     if (ticket === routeTicket) lost(error.message);
     return;
+  } finally {
+    clearBusy(opener);
+    opener.disabled = false;
   }
   if (ticket !== routeTicket) return;
   choices = choices || defaultChoices();
@@ -812,15 +879,19 @@ async function openCreation(ticket) {
 
 async function saveCharacter(event) {
   event.preventDefault();
+  const save = element("save-character");
+  if (isBusy(save)) return;
   const name = element("character-name").value.trim();
   if (!name) {
     element("creation-error").textContent = "Enter a name for your Fighter.";
     element("character-name").focus();
     return;
   }
-  element("save-character").disabled = true;
+  setBusy(save, "Saving…");
   try {
     library = await request("/api/5e/characters", { revision: library.revision, name, ...choices });
+    clearBusy(save);
+    save.disabled = false;
     choices = undefined;
     element("character-name").value = "";
     // The library appends the new character. Its sheet replaces the finished
@@ -829,7 +900,8 @@ async function saveCharacter(event) {
     feedback(name + " is saved.");
   } catch (error) {
     element("creation-error").textContent = error.message;
-    element("save-character").disabled = false;
+    clearBusy(save);
+    save.disabled = false;
   }
 }
 
@@ -855,16 +927,19 @@ function nameMatches() {
 
 async function deleteCharacter(event) {
   event.preventDefault();
-  if (!nameMatches()) return;
+  const confirm = element("confirm-delete");
+  if (!nameMatches() || isBusy(confirm)) return;
   const { id, name } = shownSheet();
-  element("confirm-delete").disabled = true;
+  setBusy(confirm, "Deleting…");
   try {
     library = await request("/api/5e/characters/delete", { revision: library.revision, characterId: id, name });
   } catch (error) {
     element("delete-error").textContent = error.message;
-    element("confirm-delete").disabled = !nameMatches();
+    clearBusy(confirm);
+    confirm.disabled = !nameMatches();
     return;
   }
+  clearBusy(confirm);
   restoreFocusOnClose = false;
   element("delete-dialog").close();
   go("", true);
@@ -875,7 +950,7 @@ element("open-creation").addEventListener("click", () => go("#create"));
 element("creation-form").addEventListener("submit", saveCharacter);
 element("close-creation").addEventListener("click", () => go(""));
 element("delete-character").addEventListener("click", openDelete);
-element("delete-confirm-name").addEventListener("input", () => { element("confirm-delete").disabled = !nameMatches(); });
+element("delete-confirm-name").addEventListener("input", () => { element("confirm-delete").disabled = !nameMatches() || isBusy(element("confirm-delete")); });
 element("delete-form").addEventListener("submit", deleteCharacter);
 element("cancel-delete").addEventListener("click", () => element("delete-dialog").close());
 element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose) element("delete-character").focus(); });
