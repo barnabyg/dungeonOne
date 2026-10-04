@@ -18,12 +18,16 @@ const launch = () =>
       : { headless: true },
   );
 
-const shownRolls = (page) =>
-  page
+// The page shows the creation screen only after rendering the rolls it
+// fetched, so wait for it before reading them.
+const shownRolls = async (page) => {
+  await page.locator("#creation").waitFor({ state: "visible" });
+  return page
     .locator("#rolls li")
     .evaluateAll((items) =>
       items.map((item) => item.getAttribute("aria-label")),
     );
+};
 
 const post = (page, path, body) =>
   page.evaluate(
