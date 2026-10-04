@@ -20,7 +20,7 @@ const launch = () =>
       : { headless: true },
   );
 
-const [adventure] = await loadBuiltInFifthAdventures();
+const [adventure, storeroom] = await loadBuiltInFifthAdventures();
 const ATTACK = { type: "attack", actorId: "pc", targetId: "goblin" };
 // The creation screen's default choices.
 const DEFAULT_CHOICES = {
@@ -121,14 +121,16 @@ const post = (page, path, body) =>
     [path, body],
   );
 
-async function createAndStart(page, url) {
+async function createAndStart(page, url, adventureId = "cellar-goblin") {
   await page.goto(url);
   await page.locator("#open-creation").click();
   await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
   await page.locator("#character-name").fill("Ada");
   await page.locator("#save-character").click();
   await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-  await page.locator(".start-adventure").click();
+  await page
+    .locator(`.start-adventure[data-adventure="${adventureId}"]`)
+    .click();
   await page.locator("#adventure").waitFor({ state: "visible" });
 }
 
@@ -247,7 +249,7 @@ test(
       assert.equal(after.characters[0].session, undefined);
       assert.equal(after.characters[0].defeated, undefined);
       await page.locator("#close-adventure").click();
-      await page.locator(".start-adventure").waitFor();
+      await page.locator(".start-adventure").first().waitFor();
     } finally {
       await browser.close();
       await server.close();
@@ -501,6 +503,231 @@ test(
       const library = JSON.parse(await readFile(libraryPath, "utf8"));
       assert.equal(library.characters[0].session, undefined);
       assert.equal(turn.body.library.characters[0].session, undefined);
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
+
+/**
+ * The storeroom fight on `seed`: a typed attack on the Goblin Warrior, then
+ * clicks on the first offered target. Its outcome, its dice, and the attack
+ * that first fells an opponent while others still stand.
+ */
+function simulateGroup(seed) {
+  const runtime = createFifthRuntime(storeroom, firstFighter(seed));
+  const source = createSeededRandom(sessionSeed(seed, 1));
+  const drawn = [[]];
+  const random = {
+    roll(sides) {
+      const value = source.roll(sides);
+      drawn.at(-1).push({ sides, value });
+      return value;
+    },
+  };
+  let state = runtime.handleAction(
+    runtime.createSession(),
+    { type: "begin" },
+    random,
+  ).state;
+  let attacks = 0;
+  let firstFall;
+  while (state.status === "playing") {
+    drawn.push([]);
+    const targetId =
+      attacks === 0 ? "warrior" : runtime.attackTargets(state)[0].id;
+    state = runtime.handleAction(
+      state,
+      { type: "attack", actorId: "pc", targetId },
+      random,
+    ).state;
+    attacks++;
+    const down = state.encounter.combatants.find(
+      ({ side, hp }) => side === "opponents" && hp === 0,
+    );
+    if (firstFall === undefined && down !== undefined) {
+      firstFall =
+        state.status === "playing" ? { attacks, id: down.id } : undefined;
+    }
+  }
+  return { status: state.status, attacks, drawn, firstFall };
+}
+
+/**
+ * A scripted AI DM that attacks the offered target the message names, and
+ * asks which one when it names none or several.
+ */
+function targetingDm() {
+  let calls = 0;
+  return {
+    async respond(request) {
+      if (request.toolResults.length > 0) {
+        return { text: "Unreachable: the engine writes attack replies." };
+      }
+      const tool = request.tools.find(({ name }) => name === "attack");
+      const offered = [
+        ...tool.description.matchAll(/([a-z0-9-]+) \(([^)]+)\)/g),
+      ].map(([, id, name]) => ({ id, name: name.toLowerCase() }));
+      const said = request.playerInput.toLowerCase();
+      const named = offered.filter(({ name }) => said.includes(name));
+      return named.length === 1
+        ? {
+            toolCalls: [
+              {
+                id: `call-${++calls}`,
+                name: "attack",
+                argumentsJson: JSON.stringify({ target: named[0].id }),
+              },
+            ],
+          }
+        : { text: "Which one do you mean?" };
+    },
+  };
+}
+
+test(
+  "a group fight with clicked and typed targets survives a reload, refuses a defeated target and ends",
+  { timeout: 90000 },
+  async () => {
+    let seed = 0;
+    let expected = simulateGroup(seed);
+    while (
+      expected.status !== "victory" ||
+      expected.firstFall === undefined ||
+      expected.firstFall.attacks < 2
+    ) {
+      expected = simulateGroup(++seed);
+      assert.ok(seed < 5000, "no seed for a group victory");
+    }
+    const directory = await mkdtemp(join(tmpdir(), "encounter-5e-group-"));
+    const libraryPath = join(directory, "characters.json");
+    const server = await startFifthBrowserServer({
+      libraryPath,
+      seed,
+      dmModel: targetingDm(),
+    });
+    const browser = await launch();
+    const page = await browser.newPage({
+      viewport: { width: 360, height: 740 },
+    });
+    page.setDefaultTimeout(5000);
+    // No page scroll, and no scroll inside the initiative table either.
+    const fits = () =>
+      page.evaluate(() => {
+        const table = document.getElementById("initiative");
+        return (
+          document.documentElement.scrollWidth <= window.innerWidth &&
+          table.scrollWidth <= table.parentElement.clientWidth
+        );
+      });
+    const attackLabels = () =>
+      page.locator("#attack-controls button.attack").allTextContents();
+    try {
+      await createAndStart(page, server.url, "goblin-storeroom");
+      // Every combatant in initiative order, readable at phone width.
+      let shown = await panel(page);
+      assert.equal(shown.rows.length, 4);
+      for (const name of [
+        "Ada (you)",
+        "Goblin Minion 1",
+        "Goblin Minion 2",
+        "Goblin Warrior",
+      ]) {
+        assert.equal(shown.rows.filter((row) => row.includes(name)).length, 1);
+      }
+      assert.ok(await fits(), "the panel fits at phone width");
+      // One attack control per living opponent, in initiative order.
+      assert.deepEqual(
+        await attackLabels(),
+        shown.rows
+          .filter((row) => !row.includes("Ada (you)"))
+          .map((row) => `Attack ${/Goblin (Minion \d|Warrior)/.exec(row)[0]}`),
+      );
+
+      // An ambiguous message is answered with a question and changes nothing.
+      const before = await sessionFile(directory);
+      await page.locator("#message").fill("attack the goblin");
+      await page.locator("#send-message").click();
+      await page.locator("#log li").nth(1).waitFor();
+      assert.equal(
+        await page.locator("#log li").nth(1).textContent(),
+        "You: attack the goblinWhich one do you mean?",
+      );
+      assert.deepEqual(
+        (await sessionFile(directory)).transitions,
+        before.transitions,
+      );
+
+      // A typed attack on a named target.
+      await page.locator("#message").fill("I charge the goblin warrior");
+      await page.locator("#send-message").click();
+      await page.locator("#log li").nth(2).waitFor();
+      assert.match(
+        await page.locator("#log li").nth(2).textContent(),
+        /^You: I charge the goblin warriorAda attacks Goblin Warrior with Mace/,
+      );
+
+      // Clicks on the first offered target until the first goblin falls.
+      const click = async () => {
+        const count = await page.locator("#log li").count();
+        await page.locator("#attack-controls button.attack").first().click();
+        await page.waitForFunction(
+          (seen) => document.querySelectorAll("#log li").length > seen,
+          count,
+        );
+      };
+      for (let attack = 1; attack < expected.firstFall.attacks; attack++) {
+        await click();
+      }
+      const fallen = storeroom.encounters[0].opponents.find(
+        ({ id }) => id === expected.firstFall.id,
+      ).name;
+      shown = await panel(page);
+      assert.ok(shown.rows.some((row) => row.includes(`${fallen} (defeated)`)));
+      assert.match(shown.turn, /^Round \d+: your turn\.$/);
+      assert.ok(!(await attackLabels()).includes(`Attack ${fallen}`));
+      assert.ok(await fits(), "the panel still fits with a defeated row");
+
+      // Attacking the fallen goblin is refused, draws nothing, saves nothing.
+      const file = await sessionFile(directory);
+      const refused = await post(page, "/api/5e/session/attack", {
+        sessionId: file.id,
+        sequence: file.transitions.length,
+        actorId: "pc",
+        targetId: expected.firstFall.id,
+      });
+      assert.equal(refused.body.rejection, `${fallen} is already defeated.`);
+      assert.equal(
+        JSON.stringify(await sessionFile(directory)),
+        JSON.stringify(file),
+      );
+
+      // Reload mid-fight: the same panel, from the saved session.
+      await page.reload();
+      await page.locator("#adventure").waitFor({ state: "visible" });
+      assert.deepEqual(await panel(page), shown);
+
+      while (!(await page.locator("#ending").isVisible())) {
+        await click();
+      }
+      assert.equal(
+        await page.locator("#ending-title").textContent(),
+        "The storeroom is clear",
+      );
+      // Every die matches an uninterrupted engine run on the same seed.
+      const finished = await sessionFile(directory);
+      assert.deepEqual(
+        finished.transitions.map(({ rolls }) => rolls),
+        expected.drawn,
+      );
+      assert.deepEqual(
+        finished.transitions.map(({ source }) => source),
+        ["start", "message", ...Array(expected.attacks - 1).fill("click")],
+      );
+      const library = JSON.parse(await readFile(libraryPath, "utf8"));
+      assert.equal(library.characters[0].session, undefined);
     } finally {
       await browser.close();
       await server.close();

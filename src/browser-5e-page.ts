@@ -83,7 +83,7 @@ dialog{background:var(--paper);color:#292b27;border:1px solid #81785e;border-rad
 #turn{font-family:system-ui,sans-serif;font-weight:600}tr.current{background:#efe2c0}tr.defeated td,tr.defeated th{color:#8b8576;text-decoration:line-through}
 .log{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:8px;font-family:system-ui,sans-serif;font-size:.88rem}.log li{border-left:3px solid var(--line);padding:4px 10px}.log .player{font-weight:600}.card{background:#fffaf0;border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-top:6px;white-space:pre-line}.card.rejection{border-color:#883c2d}.card .dice{display:block;color:#615f50;font-size:.78rem;margin-top:4px}
 #ending{border:2px solid var(--gold);border-radius:8px;padding:12px;margin:12px 0}#message-form label{display:block;font-weight:600;font-size:.85rem}
-@media(max-width:560px){.panel{padding:14px}.masthead{padding:12px 16px}h2{font-size:1.25rem}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
+@media(max-width:560px){#initiative th,#initiative td{padding:5px 3px}#initiative td{white-space:nowrap}#initiative .roll-off{display:block;white-space:normal;font-size:.78rem}.panel{padding:14px}.masthead{padding:12px 16px}h2{font-size:1.25rem}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -225,6 +225,7 @@ function renderAdventureChoices(entry) {
     const button = make("button", "Start " + adventure.title);
     button.type = "button";
     button.className = "start-adventure";
+    button.dataset.adventure = adventure.id;
     button.addEventListener("click", () => startAdventure(entry.sheet.id, adventure.id, button));
     box.append(button);
     return box;
@@ -286,10 +287,12 @@ function renderAdventure() {
       const name = make("th", combatant.name + (combatant.id === encounter.playerId ? " (you)" : "") + (combatant.defeated ? " (defeated)" : ""));
       name.scope = "row";
       const roll = combatant.initiative;
+      const initiative = make("td", roll.d20 + " " + (roll.bonus >= 0 ? "+ " : "− ") + Math.abs(roll.bonus) + " = " + roll.total);
+      if (roll.tieBreaks.length) initiative.append(make("span", " (roll-off " + roll.tieBreaks.join(", ") + ")", "roll-off"));
       row.append(
         make("td", combatant.id === encounter.currentTurn ? "▶ Now" : ""),
         name,
-        make("td", roll.d20 + " " + (roll.bonus >= 0 ? "+ " : "− ") + Math.abs(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? " (roll-off " + roll.tieBreaks.join(", ") + ")" : "")),
+        initiative,
         make("td", combatant.hp + "/" + combatant.maxHp),
         make("td", combatant.armorClass),
       );

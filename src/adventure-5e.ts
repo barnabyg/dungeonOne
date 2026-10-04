@@ -2,7 +2,8 @@
  * The 5e adventure module format (format version 1) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms, the
- * encounters in them with inline SRD 5.2 stat blocks, and its endings. This
+ * encounters in them with inline SRD 5.2 stat blocks, and its endings. Each
+ * opponent in an encounter has its own name, so the player can target it. This
  * first version holds what a one-room fight needs; later tickets add
  * exploration, checks, treasure and XP, each bumping the format version.
  *
@@ -324,6 +325,15 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         },
       );
       unique(opponents, `${where} opponent`);
+      const names = new Set<string>();
+      for (const { name } of opponents) {
+        if (names.has(name)) {
+          fail(
+            `${where} has two opponents named ${name}; give each a name the player can target.`,
+          );
+        }
+        names.add(name);
+      }
       if (opponents.some(({ id: opponentId }) => opponentId === "pc")) {
         fail(`${where} opponent id pc is reserved for the player character.`);
       }
@@ -410,6 +420,7 @@ export async function loadFifthAdventure(
 /** The built-in 5e modules, by id, in the order the browser offers them. */
 export const FIFTH_ADVENTURE_FILES = {
   "cellar-goblin": "cellar-goblin.json",
+  "goblin-storeroom": "goblin-storeroom.json",
 } as const;
 export type FifthAdventureId = keyof typeof FIFTH_ADVENTURE_FILES;
 

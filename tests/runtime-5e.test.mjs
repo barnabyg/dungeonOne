@@ -5,7 +5,7 @@ import { runDmTurn } from "../dist/dm-turn.js";
 import { buildFighter } from "../dist/fighter-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 
-const [adventure] = await loadBuiltInFifthAdventures();
+const [adventure, storeroom] = await loadBuiltInFifthAdventures();
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 17 with Defense, 12 HP, mace +5.
 const sheet = buildFighter(
   "a".repeat(32),
@@ -347,4 +347,124 @@ test("scripted DM: read tools return engine facts for the AI to voice", async ()
     model.requests[0].scene.combatStatus,
     /Round 1\. It is the player's turn\. Ada 12\/12 HP, Goblin Warrior 10\/10 HP\./,
   );
+});
+
+/** The storeroom fight with Ada first, then Minion 1, Minion 2 and the Warrior. */
+function groupBegun() {
+  const runtime = createFifthRuntime(storeroom, sheet);
+  const result = runtime.handleAction(
+    runtime.createSession(),
+    { type: "begin" },
+    dice(20, 15, 10, 5),
+  );
+  assert.deepEqual(
+    result.state.encounter.order.map(({ combatantId }) => combatantId),
+    ["pc", "minion-1", "minion-2", "warrior"],
+  );
+  return { runtime, state: result.state };
+}
+
+const attackTool = (request) =>
+  request.tools.find(({ name }) => name === "attack");
+
+test("group fight: the attack tool offers every living opponent by id and name", () => {
+  const { runtime, state } = groupBegun();
+  const tool = attackTool({ tools: runtime.getGameToolDefinitions(state) });
+  assert.deepEqual(tool.parameters.properties.target.enum, [
+    "minion-1",
+    "minion-2",
+    "warrior",
+  ]);
+  assert.match(
+    tool.description,
+    /Targets: minion-1 \(Goblin Minion 1\), minion-2 \(Goblin Minion 2\), warrior \(Goblin Warrior\)\./,
+  );
+  assert.deepEqual(
+    runtime.projectFight(state).targets.map(({ name }) => name),
+    ["Goblin Minion 1", "Goblin Minion 2", "Goblin Warrior"],
+  );
+});
+
+test("scripted DM: an ambiguous target gets a clarifying question, not a guess", async () => {
+  const { runtime, state } = groupBegun();
+  const model = scripted({
+    text: "Which goblin: Goblin Minion 1, Goblin Minion 2 or Goblin Warrior?",
+  });
+  const random = dice();
+  const result = await runDmTurn({
+    state,
+    playerInput: "attack the goblin",
+    transcript: [],
+    random,
+    model,
+    runtime,
+  });
+  // The prompt tells the AI to ask, and all three goblins were offered.
+  assert.match(
+    model.requests[0].systemPrompt,
+    /fit more than one offered target .* ask which one/,
+  );
+  assert.equal(
+    attackTool(model.requests[0]).parameters.properties.target.enum.length,
+    3,
+  );
+  assert.equal(
+    result.narration,
+    "Which goblin: Goblin Minion 1, Goblin Minion 2 or Goblin Warrior?",
+  );
+  assert.deepEqual(result.state, state);
+  assert.deepEqual(result.toolResults, []);
+  assert.deepEqual(random.drawn, []);
+});
+
+test("scripted DM: a target named by order resolves to that opponent", async () => {
+  const { runtime, state } = groupBegun();
+  const result = await runDmTurn({
+    state,
+    playerInput: "attack the second minion",
+    transcript: [],
+    // Ada hits AC 12 for 4 + 3, felling it; the other two miss on natural 1s.
+    random: dice(10, 4, 1, 1),
+    model: scripted(call("attack", { target: "minion-2" })),
+    runtime,
+  });
+  const hp = (id) =>
+    result.state.encounter.combatants.find((c) => c.id === id).hp;
+  assert.equal(hp("minion-2"), 0);
+  assert.equal(hp("minion-1"), 7);
+  assert.match(
+    result.narration,
+    /^Ada attacks Goblin Minion 2 with Mace: 10 \+ 5 = 15 against AC 12\. Hit\..*\nGoblin Minion 2 is defeated\.\n/,
+  );
+  // Only the two goblins still standing swing back.
+  assert.equal((result.narration.match(/attacks Ada/g) ?? []).length, 2);
+  assert.equal(result.state.status, "playing");
+});
+
+test("scripted DM: targeting a defeated opponent is refused by the engine without dice", async () => {
+  const { runtime, state: begun } = groupBegun();
+  const state = runtime.handleAction(
+    begun,
+    { type: "attack", actorId: "pc", targetId: "minion-1" },
+    dice(10, 4, 1, 1),
+  ).state;
+  assert.equal(state.encounter.combatants[1].hp, 0);
+  const model = scripted(call("attack", { target: "minion-1" }));
+  assert.deepEqual(
+    runtime.getGameToolDefinitions(state).find(({ name }) => name === "attack")
+      .parameters.properties.target.enum,
+    ["minion-2", "warrior"],
+  );
+  const random = dice();
+  const result = await runDmTurn({
+    state,
+    playerInput: "finish off the first minion",
+    transcript: [],
+    random,
+    model,
+    runtime,
+  });
+  assert.equal(result.narration, "Goblin Minion 1 is already defeated.");
+  assert.deepEqual(result.state, state);
+  assert.deepEqual(random.drawn, []);
 });
