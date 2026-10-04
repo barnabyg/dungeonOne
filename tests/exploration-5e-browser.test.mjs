@@ -7,7 +7,11 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { buildFighter, rollAbilitySet } from "../dist/fighter-5e.js";
+import {
+  buildFighter,
+  defaultPlacement,
+  rollAbilitySet,
+} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
@@ -23,16 +27,8 @@ const launch = () =>
 const adventure = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "smugglers-cellar",
 );
-// The creation screen's default choices.
+// The creation screen's default choices; the placement follows the dice.
 const DEFAULT_CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
@@ -44,12 +40,11 @@ function firstFighter(seed) {
     .update(`5e-ability-rolls:${seed}:1`)
     .digest()
     .readUInt32LE(0);
-  return buildFighter(
-    "a".repeat(32),
-    "Ada",
-    rollAbilitySet(createSeededRandom(stream)),
-    DEFAULT_CHOICES,
-  );
+  const dice = rollAbilitySet(createSeededRandom(stream));
+  return buildFighter("a".repeat(32), "Ada", dice, {
+    ...DEFAULT_CHOICES,
+    placement: defaultPlacement(dice),
+  });
 }
 
 const WALK = [
@@ -211,7 +206,7 @@ test(
       let shown = await screen(page);
       assert.equal(shown.encounterHidden, true);
       assert.match(shown.room, /^Foot of the Stair\n/);
-      assert.match(shown.status, /Your HP: (\d+)\/\1/);
+      assert.match(shown.status, /HP (\d+)\/\1 /);
       assert.match(shown.room, /Go to Alcove/);
       assert.match(shown.room, /Go to Rat-Gnawed Cellar/);
       assert.match(shown.room, /Examine Rusted Lantern/);
@@ -271,7 +266,7 @@ test(
         /The fight is over\./,
       );
       shown = await screen(page);
-      assert.match(shown.status, new RegExp(`Your HP: ${expected.hurt}/`));
+      assert.match(shown.status, new RegExp(`HP ${expected.hurt}/`));
       assert.match(shown.room, /Go to Smugglers' Den/);
 
       // Reload after the fight: the same screen, from the saved session.
@@ -288,7 +283,7 @@ test(
       assert.match(shown.room, /You carry\n+None\./);
       assert.match(
         shown.status,
-        new RegExp(`Your HP: ${expected.state.character.hp}/`),
+        new RegExp(`HP ${expected.state.character.hp}/`),
       );
 
       // Restart (even with another seed): the same screen.

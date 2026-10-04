@@ -616,9 +616,26 @@ export function describeFifthResult(
 type Named = Readonly<{ id: string; name: string; description: string }>;
 
 /**
+ * How hurt a creature is, for the browser's status: bloodied at half its HP
+ * or fewer (as in SRD 5.2), critical at a quarter or fewer, down at 0.
+ */
+export type Health = "healthy" | "bloodied" | "critical" | "down";
+
+export function healthOf(hp: number, maxHp: number): Health {
+  if (hp <= 0) {
+    return "down";
+  }
+  if (hp * 4 <= maxHp) {
+    return "critical";
+  }
+  return hp * 2 <= maxHp ? "bloodied" : "healthy";
+}
+
+/**
  * The player-safe room for the browser: its exits, features (with the
  * discoveries the character has made), visible items, what the character
- * carries and its hit points, and the ids each exploring action accepts now.
+ * carries, its hit points and health, and the ids each exploring action
+ * accepts now.
  */
 export type RoomView = Readonly<{
   id: string;
@@ -628,7 +645,7 @@ export type RoomView = Readonly<{
   features: readonly (Named & Readonly<{ discovery?: string }>)[];
   items: readonly Named[];
   inventory: readonly Named[];
-  character: Readonly<{ hp: number; maxHp: number }>;
+  character: Readonly<{ hp: number; maxHp: number; health: Health }>;
   options: Readonly<{
     move: readonly string[];
     examine: readonly string[];
@@ -1304,7 +1321,11 @@ export function createFifthRuntime(
       features: describedFeatures(state),
       items: roomItems(state).map(named),
       inventory: carried(state).map(named),
-      character: { hp: state.character.hp, maxHp },
+      character: {
+        hp: state.character.hp,
+        maxHp,
+        health: healthOf(state.character.hp, maxHp),
+      },
       options: {
         move: open ? ids(exits(state)) : [],
         examine: open ? ids(examinable(state)) : [],

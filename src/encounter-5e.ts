@@ -102,7 +102,10 @@ export type EncounterState = Readonly<{
 }>;
 
 export type TurnEconomy = Readonly<{
+  /** Actions left this turn. */
   actions: number;
+  /** Actions this turn in all: 1, and 1 more for each Action Surge. */
+  maxActions: number;
   bonusAction: boolean;
   /** Reset each turn; nothing uses a reaction yet. */
   reaction: boolean;
@@ -110,6 +113,7 @@ export type TurnEconomy = Readonly<{
 
 const FRESH_TURN: TurnEconomy = {
   actions: 1,
+  maxActions: 1,
   bonusAction: true,
   reaction: true,
 };
@@ -699,7 +703,11 @@ export function act(
             ? { ...candidate, actionSurge: { ...surge, uses } }
             : candidate,
         ),
-        economy: { ...state.economy, actions: state.economy.actions + 1 },
+        economy: {
+          ...state.economy,
+          actions: state.economy.actions + 1,
+          maxActions: state.economy.maxActions + 1,
+        },
       };
       break;
     }

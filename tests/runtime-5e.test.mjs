@@ -576,6 +576,7 @@ test("Second Wind, Action Surge and End turn are offered only when legal", () =>
   ]);
   assert.deepEqual(wounded.runtime.projectFight(wounded.state).turn, {
     actions: 1,
+    maxActions: 1,
     bonusAction: true,
     reaction: true,
     options: ["attack", "second-wind", "end-turn"],
