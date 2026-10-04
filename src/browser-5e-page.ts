@@ -42,9 +42,9 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h2 id="adventure-title" tabindex="-1"></h2>
 <p id="adventure-objective" class="hint"></p>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
-<p id="turn" aria-live="polite"></p>
+<p id="turn" aria-live="polite"></p><p id="economy" class="hint"></p>
 <div class="table-wrap"><table id="initiative"><caption class="hint">Initiative order: each combatant rolled d20 + its initiative bonus.</caption><thead><tr><th scope="col">Turn</th><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
-<div id="attack-controls" class="controls"></div>
+<div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div>
 </section>
 <section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title"></h3><p id="ending-text"></p></section>
 <h3>What happened</h3>
@@ -285,7 +285,7 @@ function renderAdventure() {
       const row = make("tr", undefined, (combatant.id === encounter.currentTurn ? "current" : "") + (combatant.defeated ? " defeated" : ""));
       row.dataset.combatant = combatant.id;
       if (combatant.id === encounter.currentTurn) row.setAttribute("aria-current", "true");
-      const name = make("th", combatant.name + (combatant.id === encounter.playerId ? " (you)" : "") + (combatant.defeated ? " (defeated)" : ""));
+      const name = make("th", combatant.name + (combatant.id === encounter.playerId ? " (you)" : "") + (combatant.defeated ? " (defeated)" : "") + (combatant.sapped ? " (sapped)" : ""));
       name.scope = "row";
       const roll = combatant.initiative;
       const initiative = make("td", roll.d20 + " " + (roll.bonus >= 0 ? "+ " : "− ") + Math.abs(roll.bonus) + " = " + roll.total);
@@ -309,6 +309,23 @@ function renderAdventure() {
     button.addEventListener("click", () => attack(target.id));
     return button;
   }));
+  const options = session.turn ? session.turn.options : [];
+  const features = session.features;
+  const left = (feature) => " (" + feature.uses + " of " + feature.max + " left)";
+  element("feature-controls").replaceChildren(...FEATURE_BUTTONS.filter(({ action }) => options.includes(action)).map(({ action, label }) => {
+    const button = make("button", label + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : ""));
+    button.type = "button";
+    button.className = action === "end-turn" ? "secondary" : "feature";
+    button.dataset.action = action;
+    button.disabled = acting;
+    button.addEventListener("click", () => useFeature(action));
+    return button;
+  }));
+  const turn = session.turn;
+  element("economy").textContent = [
+    turn ? "This turn: " + (turn.actions > 0 ? turn.actions + (turn.actions === 1 ? " action" : " actions") : "no action") + " left, bonus action " + (turn.bonusAction ? "available" : "used") + ", reaction " + (turn.reaction ? "available" : "used") + "." : "",
+    features ? "Second Wind: " + features.secondWind.uses + " of " + features.secondWind.max + " uses left." + (features.actionSurge ? " Action Surge: " + features.actionSurge.uses + " of " + features.actionSurge.max + " left." : "") + " Uses return after the adventure." : "",
+  ].filter(Boolean).join(" ");
   element("ending").hidden = !session.ending;
   if (session.ending) {
     element("ending-title").textContent = session.ending.title;
@@ -350,10 +367,25 @@ async function act(path, body) {
   }
 }
 
+const FEATURE_BUTTONS = [
+  { action: "second-wind", label: "Second Wind" },
+  { action: "action-surge", label: "Action Surge" },
+  { action: "end-turn", label: "End turn" },
+];
+
+function focusNextControl() {
+  const next = document.querySelector("#attack-controls button, #feature-controls button");
+  (next || element("adventure-title")).focus();
+}
+
 async function attack(targetId) {
   await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId });
-  const next = element("attack-controls").querySelector("button");
-  (next || element("adventure-title")).focus();
+  focusNextControl();
+}
+
+async function useFeature(action) {
+  await act("/api/5e/session/action", { action });
+  focusNextControl();
 }
 
 async function sendMessage(event) {

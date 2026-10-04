@@ -16,6 +16,13 @@
  *   defeat: there are no death saving throws (ADR 0005).
  * - Opponents act on their own turns. Each attacks a living party combatant;
  *   with more than one, a seeded die picks which, in initiative order.
+ * - Each turn has an action, a bonus action and a reaction. A party
+ *   combatant's turn lasts until it ends it or nothing it could do is left:
+ *   an attack takes the action, Second Wind the bonus action, and Action
+ *   Surge adds an action. Nothing uses a reaction yet.
+ * - A hit with a Sap weapon gives the target disadvantage on its next attack
+ *   roll before the start of the attacker's next turn. Advantage and
+ *   disadvantage come only from such engine rules, never from an action.
  *
  * The state allows any number of combatants per side.
  */
@@ -35,6 +42,8 @@ export type Weapon = Readonly<{
   bonus: number;
   damage: Damage;
   criticalRange: 19 | 20;
+  /** The weapon mastery its wielder uses; only Sap so far. */
+  mastery?: "Sap";
 }>;
 
 export type Combatant = Readonly<{
@@ -48,6 +57,12 @@ export type Combatant = Readonly<{
   dexterity: number;
   initiativeBonus: number;
   attack: Weapon;
+  /** Fighter features, with the uses left. */
+  secondWind?: Readonly<{
+    uses: number;
+    healing: Readonly<{ dice: number; sides: number; modifier: number }>;
+  }>;
+  actionSurge?: Readonly<{ uses: number }>;
 }>;
 
 export type InitiativeRoll = Readonly<{
@@ -70,7 +85,44 @@ export type EncounterState = Readonly<{
   turn: number;
   /** From the party's side. */
   outcome: EncounterOutcome;
+  /** What the combatant whose turn it is has left this turn. */
+  economy: TurnEconomy;
+  /** Combatants with disadvantage on their next attack, and who sapped them. */
+  sapped: readonly Readonly<{ targetId: string; sourceId: string }>[];
 }>;
+
+export type TurnEconomy = Readonly<{
+  actions: number;
+  bonusAction: boolean;
+  /** Reset each turn; nothing uses a reaction yet. */
+  reaction: boolean;
+}>;
+
+const FRESH_TURN: TurnEconomy = {
+  actions: 1,
+  bonusAction: true,
+  reaction: true,
+};
+
+/**
+ * Both d20s of an attack rolled with advantage or disadvantage, and the
+ * engine rules that gave them. With one of each, a single d20 is rolled.
+ */
+export type RollMode = Readonly<{
+  d20s: readonly number[];
+  advantage: readonly string[];
+  disadvantage: readonly string[];
+}>;
+
+export type EncounterActionType =
+  "attack" | "second-wind" | "action-surge" | "end-turn";
+
+export type EncounterAction =
+  | Readonly<{ type: "attack"; actorId: string; targetId: string }>
+  | Readonly<{
+      type: "second-wind" | "action-surge" | "end-turn";
+      actorId: string;
+    }>;
 
 export type AttackEvent = Readonly<{
   type: "attack";
@@ -83,6 +135,8 @@ export type AttackEvent = Readonly<{
   armorClass: number;
   hit: boolean;
   critical: boolean;
+  /** Present when advantage or disadvantage applied; `d20` is the kept die. */
+  mode?: RollMode;
   /** The opponent die that chose this target, when there was a choice. */
   targetRoll?: number;
   damageRolls: readonly number[];
@@ -96,6 +150,18 @@ export type EncounterEvent =
   | Readonly<{ type: "initiative"; order: readonly InitiativeRoll[] }>
   | Readonly<{ type: "turn"; combatantId: string; round: number }>
   | AttackEvent
+  | Readonly<{ type: "sapped"; targetId: string; sourceId: string }>
+  | Readonly<{
+      type: "second-wind";
+      combatantId: string;
+      roll: number;
+      modifier: number;
+      healing: number;
+      hpAfter: number;
+      usesLeft: number;
+    }>
+  | Readonly<{ type: "action-surge"; combatantId: string; usesLeft: number }>
+  | Readonly<{ type: "turn-ended"; combatantId: string }>
   | Readonly<{ type: "defeated"; combatantId: string }>
   | Readonly<{ type: "ended"; outcome: "victory" | "defeat" }>;
 
@@ -143,6 +209,79 @@ export function legalTargets(
   return state.order
     .map(({ combatantId }) => combatant(state, combatantId))
     .filter((target) => target.side !== actor.side && !isDefeated(target));
+}
+
+/**
+ * Rolls a d20 with advantage (keep the higher of two), disadvantage (keep
+ * the lower) or, with sources of both or neither, one die.
+ */
+export function rollD20(
+  random: Roller,
+  advantage: readonly string[],
+  disadvantage: readonly string[],
+): Readonly<{ d20: number; mode?: RollMode }> {
+  if (advantage.length === 0 && disadvantage.length === 0) {
+    return { d20: random.roll(20) };
+  }
+  const d20s =
+    advantage.length > 0 && disadvantage.length > 0
+      ? [random.roll(20)]
+      : [random.roll(20), random.roll(20)];
+  return {
+    d20:
+      advantage.length > 0 && disadvantage.length === 0
+        ? Math.max(...d20s)
+        : Math.min(...d20s),
+    mode: { d20s, advantage: [...advantage], disadvantage: [...disadvantage] },
+  };
+}
+
+function secondWindRefusal(
+  state: EncounterState,
+  actor: Combatant,
+): string | undefined {
+  if (actor.secondWind === undefined) {
+    return "You don't have Second Wind.";
+  }
+  if (actor.secondWind.uses === 0) {
+    return "You have no uses of Second Wind left.";
+  }
+  if (!state.economy.bonusAction) {
+    return "You have already used your bonus action this turn.";
+  }
+  return actor.hp >= actor.maxHp
+    ? "You are unhurt, so Second Wind would heal nothing."
+    : undefined;
+}
+
+function actionSurgeRefusal(actor: Combatant): string | undefined {
+  if (actor.actionSurge === undefined) {
+    return "You don't have Action Surge.";
+  }
+  return actor.actionSurge.uses === 0
+    ? "You have no uses of Action Surge left."
+    : undefined;
+}
+
+/** What `actorId` may do now; empty unless it is its turn. */
+export function availableActions(
+  state: EncounterState,
+  actorId: string,
+): readonly EncounterActionType[] {
+  const actor = currentCombatant(state);
+  if (actor?.id !== actorId) {
+    return [];
+  }
+  return [
+    ...(state.economy.actions > 0 ? (["attack"] as const) : []),
+    ...(secondWindRefusal(state, actor) === undefined
+      ? (["second-wind"] as const)
+      : []),
+    ...(actionSurgeRefusal(actor) === undefined
+      ? (["action-surge"] as const)
+      : []),
+    "end-turn",
+  ];
 }
 
 function validateCombatants(combatants: readonly Combatant[]): void {
@@ -232,7 +371,8 @@ function resolveAttack(
   targetRoll: number | undefined,
 ): { state: EncounterState; events: EncounterEvent[] } {
   const weapon = actor.attack;
-  const d20 = random.roll(20);
+  const sapped = state.sapped.some(({ targetId }) => targetId === actor.id);
+  const { d20, mode } = rollD20(random, [], sapped ? ["Sap"] : []);
   const critical = d20 >= weapon.criticalRange;
   const total = d20 + weapon.bonus;
   const hit = d20 !== 1 && (critical || total >= target.armorClass);
@@ -263,6 +403,7 @@ function resolveAttack(
       armorClass: target.armorClass,
       hit,
       critical: hit && critical,
+      ...(mode === undefined ? {} : { mode }),
       ...(targetRoll === undefined ? {} : { targetRoll }),
       damageRolls,
       damageModifier: weapon.damage.modifier,
@@ -271,14 +412,25 @@ function resolveAttack(
       hpAfter,
     },
   ];
+  // The attack spends any disadvantage Sap gave the attacker.
   let next: EncounterState = {
     ...state,
     combatants: state.combatants.map((candidate) =>
       candidate.id === target.id ? { ...candidate, hp: hpAfter } : candidate,
     ),
+    sapped: state.sapped.filter(({ targetId }) => targetId !== actor.id),
   };
   if (hpAfter === 0 && target.hp > 0) {
     events.push({ type: "defeated", combatantId: target.id });
+  } else if (hit && weapon.mastery === "Sap") {
+    next = {
+      ...next,
+      sapped: [
+        ...next.sapped.filter(({ targetId }) => targetId !== target.id),
+        { targetId: target.id, sourceId: actor.id },
+      ],
+    };
+    events.push({ type: "sapped", targetId: target.id, sourceId: actor.id });
   }
   const outcome = sideDefeated(next, "opponents")
     ? "victory"
@@ -314,6 +466,12 @@ function advance(
     if (isDefeated(actor)) {
       continue;
     }
+    // A turn starts afresh, and ends any Sap this combatant gave.
+    next = {
+      ...next,
+      economy: FRESH_TURN,
+      sapped: next.sapped.filter(({ sourceId }) => sourceId !== actor.id),
+    };
     events.push({ type: "turn", combatantId: actor.id, round: next.round });
     if (actor.side === "party") {
       return next;
@@ -341,7 +499,15 @@ export function startEncounter(
   const order = rollInitiative(combatants, random);
   const events: EncounterEvent[] = [{ type: "initiative", order }];
   const state = advance(
-    { combatants, order, round: 1, turn: 0, outcome: "ongoing" },
+    {
+      combatants,
+      order,
+      round: 1,
+      turn: 0,
+      outcome: "ongoing",
+      economy: FRESH_TURN,
+      sapped: [],
+    },
     random,
     events,
     true,
@@ -350,12 +516,13 @@ export function startEncounter(
 }
 
 /**
- * The combatant `actorId` attacks `targetId` on its own turn. Opponents then
- * act until a party combatant's turn comes round again or the encounter ends.
+ * The combatant `actorId` acts on its own turn. Its turn ends when it ends
+ * it or has nothing left to do; opponents then act until a party
+ * combatant's turn comes round again or the encounter ends.
  */
-export function attack(
+export function act(
   state: EncounterState,
-  action: Readonly<{ actorId: string; targetId: string }>,
+  action: EncounterAction,
   random: Roller,
 ): EncounterResult {
   const reject = (reason: string): EncounterResult => ({
@@ -373,17 +540,108 @@ export function attack(
   if (actor.id !== current.id) {
     return reject(`It is ${current.name}'s turn, not ${actor.name}'s.`);
   }
-  const target = state.combatants.find(({ id }) => id === action.targetId);
-  if (target === undefined) {
-    return reject("There is no such opponent here to attack.");
+  const events: EncounterEvent[] = [];
+  let next: EncounterState;
+  switch (action.type) {
+    case "attack": {
+      const target = state.combatants.find(({ id }) => id === action.targetId);
+      if (target === undefined) {
+        return reject("There is no such opponent here to attack.");
+      }
+      if (target.side === actor.side) {
+        return reject(`${target.name} is on your side.`);
+      }
+      if (isDefeated(target)) {
+        return reject(`${target.name} is already defeated.`);
+      }
+      if (state.economy.actions === 0) {
+        return reject("You have already used your action this turn.");
+      }
+      const resolved = resolveAttack(state, actor, target, random, undefined);
+      events.push(...resolved.events);
+      next = {
+        ...resolved.state,
+        economy: { ...state.economy, actions: state.economy.actions - 1 },
+      };
+      break;
+    }
+    case "second-wind": {
+      const refusal = secondWindRefusal(state, actor);
+      if (refusal !== undefined) {
+        return reject(refusal);
+      }
+      const { uses, healing } = actor.secondWind!;
+      const rolls = Array.from({ length: healing.dice }, () =>
+        random.roll(healing.sides),
+      );
+      const roll = rolls.reduce((sum, value) => sum + value, 0);
+      const hpAfter = Math.min(actor.maxHp, actor.hp + roll + healing.modifier);
+      events.push({
+        type: "second-wind",
+        combatantId: actor.id,
+        roll,
+        modifier: healing.modifier,
+        healing: hpAfter - actor.hp,
+        hpAfter,
+        usesLeft: uses - 1,
+      });
+      next = {
+        ...state,
+        combatants: state.combatants.map((candidate) =>
+          candidate.id === actor.id
+            ? {
+                ...candidate,
+                hp: hpAfter,
+                secondWind: { uses: uses - 1, healing },
+              }
+            : candidate,
+        ),
+        economy: { ...state.economy, bonusAction: false },
+      };
+      break;
+    }
+    case "action-surge": {
+      const refusal = actionSurgeRefusal(actor);
+      if (refusal !== undefined) {
+        return reject(refusal);
+      }
+      const uses = actor.actionSurge!.uses - 1;
+      events.push({
+        type: "action-surge",
+        combatantId: actor.id,
+        usesLeft: uses,
+      });
+      next = {
+        ...state,
+        combatants: state.combatants.map((candidate) =>
+          candidate.id === actor.id
+            ? { ...candidate, actionSurge: { uses } }
+            : candidate,
+        ),
+        economy: { ...state.economy, actions: state.economy.actions + 1 },
+      };
+      break;
+    }
+    case "end-turn":
+      events.push({ type: "turn-ended", combatantId: actor.id });
+      return { state: advance(state, random, events, false), events };
   }
-  if (target.side === actor.side) {
-    return reject(`${target.name} is on your side.`);
-  }
-  if (isDefeated(target)) {
-    return reject(`${target.name} is already defeated.`);
-  }
-  const resolved = resolveAttack(state, actor, target, random, undefined);
-  const events = resolved.events;
-  return { state: advance(resolved.state, random, events, false), events };
+  // With only "end-turn" left, the turn ends by itself.
+  const left = availableActions(next, actor.id);
+  return {
+    state:
+      next.outcome === "ongoing" && left.length === 1
+        ? advance(next, random, events, false)
+        : next,
+    events,
+  };
+}
+
+/** `act` with an attack. */
+export function attack(
+  state: EncounterState,
+  action: Readonly<{ actorId: string; targetId: string }>,
+  random: Roller,
+): EncounterResult {
+  return act(state, { type: "attack", ...action }, random);
 }

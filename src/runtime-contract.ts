@@ -248,7 +248,10 @@ export type GameToolName =
   | "offer"
   | "leave"
   | "get_journal"
-  | "get_character_status";
+  | "get_character_status"
+  | "second_wind"
+  | "action_surge"
+  | "end_turn";
 
 /** A bounded tool the AI DM may call; the runtime offers only legal ones. */
 export type GameToolDefinition = Readonly<{

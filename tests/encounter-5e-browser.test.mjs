@@ -22,6 +22,7 @@ const launch = () =>
 
 const [adventure, storeroom] = await loadBuiltInFifthAdventures();
 const ATTACK = { type: "attack", actorId: "pc", targetId: "goblin" };
+const END_TURN = { type: "end-turn", actorId: "pc" };
 // The creation screen's default choices.
 const DEFAULT_CHOICES = {
   placement: {
@@ -51,7 +52,10 @@ function firstFighter(seed) {
   );
 }
 
-/** Plays the first session on `seed` by always attacking: outcome and dice. */
+/**
+ * Plays the first session on `seed` by attacking, or ending the turn once
+ * the action is spent: the outcome, the attacks and each action's dice.
+ */
 function simulate(seed) {
   const runtime = createFifthRuntime(adventure, firstFighter(seed));
   const drawn = [];
@@ -72,10 +76,29 @@ function simulate(seed) {
   let attacks = 0;
   while (state.status === "playing") {
     drawn.push([]);
-    state = runtime.handleAction(state, ATTACK, random).state;
-    attacks++;
+    const action = runtime.attackTargets(state).length > 0 ? ATTACK : END_TURN;
+    state = runtime.handleAction(state, action, random).state;
+    attacks += action === ATTACK ? 1 : 0;
   }
   return { status: state.status, attacks, drawn };
+}
+
+/**
+ * Clicks the first Attack button, or End turn once the action is spent, and
+ * waits for the result card.
+ */
+async function clickNext(page) {
+  const count = await page.locator("#log li").count();
+  const attack = page.locator("#attack-controls button.attack");
+  await (
+    (await attack.count()) > 0
+      ? attack.first()
+      : page.locator('#feature-controls button[data-action="end-turn"]')
+  ).click();
+  await page.waitForFunction(
+    (seen) => document.querySelectorAll("#log li").length > seen,
+    count,
+  );
 }
 
 function findSeed(wanted, minimumAttacks) {
@@ -217,14 +240,9 @@ test(
       await page.locator("#adventure").waitFor({ state: "visible" });
       assert.deepEqual(await panel(page), shown);
 
-      // Clicked attacks to the end.
+      // Clicked attacks (and ends of turn) to the end.
       while (!(await page.locator("#ending").isVisible())) {
-        const before = await page.locator("#log li").count();
-        await page.locator("#attack-controls button.attack").click();
-        await page.waitForFunction(
-          (count) => document.querySelectorAll("#log li").length > count,
-          before,
-        );
+        await clickNext(page);
       }
       assert.equal(
         await page.locator("#ending-title").textContent(),
@@ -241,7 +259,7 @@ test(
       );
       assert.deepEqual(
         file.transitions.map(({ source }) => source),
-        ["start", "message", ...Array(expected.attacks - 1).fill("click")],
+        ["start", "message", ...Array(expected.drawn.length - 2).fill("click")],
       );
       assert.equal(file.state.status, "victory");
       // The character is free again.
@@ -300,12 +318,7 @@ test(
       await page.locator("#adventure").waitFor({ state: "visible" });
 
       while (!(await page.locator("#ending").isVisible())) {
-        const before = await page.locator("#log li").count();
-        await page.locator("#attack-controls button.attack").click();
-        await page.waitForFunction(
-          (count) => document.querySelectorAll("#log li").length > count,
-          before,
-        );
+        await clickNext(page);
       }
       assert.equal(
         await page.locator("#ending-title").textContent(),
@@ -513,8 +526,9 @@ test(
 
 /**
  * The storeroom fight on `seed`: a typed attack on the Goblin Warrior, then
- * clicks on the first offered target. Its outcome, its dice, and the attack
- * that first fells an opponent while others still stand.
+ * clicks on the first offered target, or End turn once the action is spent.
+ * Its outcome, its dice, and the player action that first fells an opponent
+ * while others still stand.
  */
 function simulateGroup(seed) {
   const runtime = createFifthRuntime(storeroom, firstFighter(seed));
@@ -532,27 +546,30 @@ function simulateGroup(seed) {
     { type: "begin" },
     random,
   ).state;
-  let attacks = 0;
+  let steps = 0;
   let firstFall;
   while (state.status === "playing") {
     drawn.push([]);
-    const targetId =
-      attacks === 0 ? "warrior" : runtime.attackTargets(state)[0].id;
-    state = runtime.handleAction(
-      state,
-      { type: "attack", actorId: "pc", targetId },
-      random,
-    ).state;
-    attacks++;
+    const targets = runtime.attackTargets(state);
+    const action =
+      targets.length === 0
+        ? END_TURN
+        : {
+            type: "attack",
+            actorId: "pc",
+            targetId: steps === 0 ? "warrior" : targets[0].id,
+          };
+    state = runtime.handleAction(state, action, random).state;
+    steps++;
     const down = state.encounter.combatants.find(
       ({ side, hp }) => side === "opponents" && hp === 0,
     );
     if (firstFall === undefined && down !== undefined) {
       firstFall =
-        state.status === "playing" ? { attacks, id: down.id } : undefined;
+        state.status === "playing" ? { steps, id: down.id } : undefined;
     }
   }
-  return { status: state.status, attacks, drawn, firstFall };
+  return { status: state.status, drawn, firstFall };
 }
 
 /**
@@ -596,7 +613,7 @@ test(
     while (
       expected.status !== "victory" ||
       expected.firstFall === undefined ||
-      expected.firstFall.attacks < 2
+      expected.firstFall.steps < 2
     ) {
       expected = simulateGroup(++seed);
       assert.ok(seed < 5000, "no seed for a group victory");
@@ -670,16 +687,8 @@ test(
       );
 
       // Clicks on the first offered target until the first goblin falls.
-      const click = async () => {
-        const count = await page.locator("#log li").count();
-        await page.locator("#attack-controls button.attack").first().click();
-        await page.waitForFunction(
-          (seen) => document.querySelectorAll("#log li").length > seen,
-          count,
-        );
-      };
-      for (let attack = 1; attack < expected.firstFall.attacks; attack++) {
-        await click();
+      for (let step = 1; step < expected.firstFall.steps; step++) {
+        await clickNext(page);
       }
       const fallen = storeroom.encounters[0].opponents.find(
         ({ id }) => id === expected.firstFall.id,
@@ -710,7 +719,7 @@ test(
       assert.deepEqual(await panel(page), shown);
 
       while (!(await page.locator("#ending").isVisible())) {
-        await click();
+        await clickNext(page);
       }
       assert.equal(
         await page.locator("#ending-title").textContent(),
@@ -724,10 +733,194 @@ test(
       );
       assert.deepEqual(
         finished.transitions.map(({ source }) => source),
-        ["start", "message", ...Array(expected.attacks - 1).fill("click")],
+        ["start", "message", ...Array(expected.drawn.length - 2).fill("click")],
       );
       const library = JSON.parse(await readFile(libraryPath, "utf8"));
       assert.equal(library.characters[0].session, undefined);
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
+
+const SECOND_WIND = { type: "second-wind", actorId: "pc" };
+
+/**
+ * The first session on `seed`, played by clicks: Second Wind whenever it is
+ * offered, else an attack, else End turn. Each action and its dice, and
+ * every rendered result.
+ */
+function simulateFeatures(seed) {
+  const runtime = createFifthRuntime(adventure, firstFighter(seed));
+  const source = createSeededRandom(sessionSeed(seed, 1));
+  const drawn = [[]];
+  const random = {
+    roll(sides) {
+      const value = source.roll(sides);
+      drawn.at(-1).push({ sides, value });
+      return value;
+    },
+  };
+  let state = runtime.handleAction(
+    runtime.createSession(),
+    { type: "begin" },
+    random,
+  ).state;
+  const actions = [];
+  const events = [];
+  while (state.status === "playing") {
+    drawn.push([]);
+    const options = runtime.projectFight(state).turn.options;
+    const action = options.includes("second-wind")
+      ? SECOND_WIND
+      : options.includes("attack")
+        ? ATTACK
+        : END_TURN;
+    const result = runtime.handleAction(state, action, random);
+    state = result.state;
+    actions.push(action.type);
+    events.push(...result.events);
+  }
+  return { status: state.status, actions, drawn, events };
+}
+
+test(
+  "Second Wind and a Sap attack in one fight: clicks, saved session and cards",
+  { timeout: 90000 },
+  async () => {
+    // A fight where Ada heals with Second Wind and a sapped goblin then
+    // attacks at disadvantage.
+    let seed = 0;
+    let expected = simulateFeatures(seed);
+    const sappedSwing = ({ events }) =>
+      events.findIndex(
+        (event) =>
+          event.type === "attack" &&
+          event.actorId === "goblin" &&
+          event.mode?.disadvantage.includes("Sap"),
+      );
+    while (
+      sappedSwing(expected) < 0 ||
+      !expected.actions.includes("second-wind")
+    ) {
+      expected = simulateFeatures(++seed);
+      assert.ok(seed < 5000, "no seed with Second Wind and Sap");
+    }
+    const directory = await mkdtemp(join(tmpdir(), "encounter-5e-features-"));
+    const libraryPath = join(directory, "characters.json");
+    let server = await startFifthBrowserServer({ libraryPath, seed });
+    const browser = await launch();
+    const page = await browser.newPage({
+      viewport: { width: 360, height: 740 },
+    });
+    page.setDefaultTimeout(5000);
+    const feature = (action) =>
+      page.locator(`#feature-controls button[data-action="${action}"]`);
+    try {
+      await createAndStart(page, server.url);
+      // At full health there is no Second Wind to click, and the API refuses
+      // it (and Action Surge, before level 2) without dice or a save.
+      assert.equal(await feature("second-wind").count(), 0);
+      const before = await sessionFile(directory);
+      for (const [action, reason] of [
+        ["second-wind", "You are unhurt, so Second Wind would heal nothing."],
+        ["action-surge", "You don't have Action Surge."],
+      ]) {
+        const refused = await post(page, "/api/5e/session/action", {
+          sessionId: before.id,
+          sequence: before.transitions.length,
+          action,
+        });
+        assert.equal(refused.body.rejection, reason);
+      }
+      const invalid = await post(page, "/api/5e/session/action", {
+        sessionId: before.id,
+        sequence: before.transitions.length,
+        action: "advantage",
+      });
+      assert.equal(invalid.status, 409);
+      assert.equal(invalid.body.error, "Invalid action request.");
+      assert.equal(
+        JSON.stringify(await sessionFile(directory)),
+        JSON.stringify(before),
+      );
+      assert.match(
+        await page.locator("#economy").textContent(),
+        /^This turn: 1 action left, bonus action available, reaction available. Second Wind: 2 of 2 uses left./,
+      );
+      let usedSecondWind = false;
+      while (!(await page.locator("#ending").isVisible())) {
+        const count = await page.locator("#log li").count();
+        if ((await feature("second-wind").count()) > 0) {
+          assert.equal(
+            await feature("second-wind").textContent(),
+            `Second Wind (${usedSecondWind ? 1 : 2} of 2 left)`,
+          );
+          await feature("second-wind").click();
+          await page.waitForFunction(
+            (seen) => document.querySelectorAll("#log li").length > seen,
+            count,
+          );
+          if (!usedSecondWind) {
+            usedSecondWind = true;
+            // The bonus action is spent; the action is not.
+            assert.match(
+              await page.locator("#economy").textContent(),
+              /^This turn: 1 action left, bonus action used, reaction available. Second Wind: 1 of 2 uses left./,
+            );
+            assert.match(
+              await page.locator("#log li").last().textContent(),
+              /^Ada uses Second Wind: \d+ \+ 1 = \d+; Ada regains \d+ HP and has \d+\/\d+ HP\. 1 use left\./,
+            );
+            // Reload and restart: the same spent use and the same panel.
+            const shown = await panel(page);
+            await server.close();
+            server = await startFifthBrowserServer({
+              libraryPath,
+              seed: seed + 1,
+            });
+            await page.goto(
+              `${server.url}/#adventure-${(await sessionFile(directory)).id}`,
+            );
+            await page.locator("#adventure").waitFor({ state: "visible" });
+            assert.deepEqual(await panel(page), shown);
+            assert.match(
+              await page.locator("#economy").textContent(),
+              /bonus action used.*Second Wind: 1 of 2 uses left\./,
+            );
+          }
+        } else {
+          await clickNext(page);
+        }
+      }
+      // The cards show the disadvantage with both dice and its source.
+      const log = await page.locator("#log").textContent();
+      assert.match(
+        log,
+        /Goblin Warrior is sapped: disadvantage on its next attack roll before Ada's next turn./,
+      );
+      assert.match(
+        log,
+        /Goblin Warrior attacks Ada with Scimitar, at disadvantage \(Sap\): \d+ and \d+, keeping \d+; /,
+      );
+      // Storage holds every click, with dice matching the engine run.
+      const file = await sessionFile(directory);
+      assert.deepEqual(
+        file.transitions.map(({ action }) => action.type),
+        ["begin", ...expected.actions],
+      );
+      assert.deepEqual(
+        file.transitions.map(({ rolls }) => rolls),
+        expected.drawn,
+      );
+      assert.ok(
+        file.history.some(({ cards }) =>
+          cards.some(({ text }) => text.includes("at disadvantage (Sap)")),
+        ),
+      );
+      assert.equal(file.state.status, expected.status);
     } finally {
       await browser.close();
       await server.close();

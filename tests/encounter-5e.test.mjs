@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  act,
   attack,
+  availableActions,
   currentCombatant,
   legalTargets,
+  rollD20,
   startEncounter,
 } from "../dist/encounter-5e.js";
 
@@ -432,4 +435,304 @@ test("1v3: the fight ends in victory only when the last opponent falls", () => {
   ]);
   assert.equal(state.outcome, "victory");
   assert.equal(currentCombatant(state), undefined);
+});
+
+// Fighter features, turn economy, Sap and advantage (#130).
+
+const sap = { ...fighter.attack, mastery: "Sap" };
+/** A hurt level 2 Fighter with Second Wind (1d10 + 2), Action Surge and Sap. */
+const veteran = (overrides = {}) => ({
+  ...fighter,
+  hp: 5,
+  attack: sap,
+  secondWind: { uses: 2, healing: { dice: 1, sides: 10, modifier: 2 } },
+  actionSurge: { uses: 1 },
+  ...overrides,
+});
+/** The veteran acts first against one goblin; no dice left over. */
+const veteranFirst = (overrides) =>
+  startEncounter([veteran(overrides), goblin()], dice([20, 20], [20, 1])).state;
+
+test("rollD20: advantage keeps the higher die, disadvantage the lower, both cancel", () => {
+  assert.deepEqual(rollD20(dice([20, 4], [20, 15]), ["Sap"], []), {
+    d20: 15,
+    mode: { d20s: [4, 15], advantage: ["Sap"], disadvantage: [] },
+  });
+  assert.deepEqual(rollD20(dice([20, 4], [20, 15]), [], ["Sap"]), {
+    d20: 4,
+    mode: { d20s: [4, 15], advantage: [], disadvantage: ["Sap"] },
+  });
+  // One of each: a single die, with both sources recorded.
+  assert.deepEqual(rollD20(dice([20, 9]), ["A"], ["B"]), {
+    d20: 9,
+    mode: { d20s: [9], advantage: ["A"], disadvantage: ["B"] },
+  });
+  assert.deepEqual(rollD20(dice([20, 9]), [], []), { d20: 9 });
+});
+
+test("turn economy: an attack spends the action; the turn stays open while options remain", () => {
+  const state = veteranFirst();
+  assert.deepEqual(state.economy, {
+    actions: 1,
+    bonusAction: true,
+    reaction: true,
+  });
+  assert.deepEqual(availableActions(state, "pc"), [
+    "attack",
+    "second-wind",
+    "action-surge",
+    "end-turn",
+  ]);
+  // 2 + 5 misses AC 15: no damage dice, and the turn goes on.
+  const missed = act(
+    state,
+    { type: "attack", actorId: "pc", targetId: "goblin" },
+    dice([20, 2]),
+  );
+  assert.equal(currentCombatant(missed.state).id, "pc");
+  assert.equal(missed.state.economy.actions, 0);
+  assert.deepEqual(availableActions(missed.state, "pc"), [
+    "second-wind",
+    "action-surge",
+    "end-turn",
+  ]);
+  const none = dice();
+  assert.deepEqual(
+    act(
+      missed.state,
+      { type: "attack", actorId: "pc", targetId: "goblin" },
+      none,
+    ),
+    {
+      state: missed.state,
+      rejection: { reason: "You have already used your action this turn." },
+    },
+  );
+  // Ending the turn hands over to the goblin, which misses on a 1.
+  const ended = act(
+    missed.state,
+    { type: "end-turn", actorId: "pc" },
+    dice([20, 1]),
+  );
+  assert.deepEqual(
+    ended.events.map(({ type }) => type),
+    ["turn-ended", "turn", "attack", "turn"],
+  );
+  assert.equal(ended.state.round, 2);
+  assert.deepEqual(ended.state.economy, {
+    actions: 1,
+    bonusAction: true,
+    reaction: true,
+  });
+  assert.match(
+    act(ended.state, { type: "end-turn", actorId: "goblin" }, none).rejection
+      .reason,
+    /Ada's turn, not Goblin Warrior's/,
+  );
+  assert.deepEqual(none.drawn, []);
+});
+
+test("Second Wind: a bonus action heals 1d10 + level, up to the maximum, and spends a use", () => {
+  const state = veteranFirst();
+  const healed = act(
+    state,
+    { type: "second-wind", actorId: "pc" },
+    dice([10, 4]),
+  );
+  assert.deepEqual(healed.events, [
+    {
+      type: "second-wind",
+      combatantId: "pc",
+      roll: 4,
+      modifier: 2,
+      healing: 6,
+      hpAfter: 11,
+      usesLeft: 1,
+    },
+  ]);
+  const self = healed.state.combatants[0];
+  assert.equal(self.hp, 11);
+  assert.equal(self.secondWind.uses, 1);
+  assert.equal(healed.state.economy.bonusAction, false);
+  // The bonus action is spent, so a second use this turn is refused.
+  const none = dice();
+  assert.equal(
+    act(healed.state, { type: "second-wind", actorId: "pc" }, none).rejection
+      .reason,
+    "You have already used your bonus action this turn.",
+  );
+  // A 10 heals 12, but only up to 12 HP.
+  const capped = act(
+    state,
+    { type: "second-wind", actorId: "pc" },
+    dice([10, 10]),
+  );
+  assert.equal(capped.events[0].healing, 7);
+  assert.equal(capped.events[0].hpAfter, 12);
+  assert.deepEqual(none.drawn, []);
+});
+
+test("Second Wind is refused without uses, at full health, or without the feature", () => {
+  const none = dice();
+  for (const [overrides, reason] of [
+    [
+      { secondWind: { uses: 0, healing: { dice: 1, sides: 10, modifier: 2 } } },
+      "You have no uses of Second Wind left.",
+    ],
+    [{ hp: 12 }, "You are unhurt, so Second Wind would heal nothing."],
+    [{ secondWind: undefined }, "You don't have Second Wind."],
+  ]) {
+    const state = veteranFirst(overrides);
+    assert.deepEqual(act(state, { type: "second-wind", actorId: "pc" }, none), {
+      state,
+      rejection: { reason },
+    });
+    assert.ok(!availableActions(state, "pc").includes("second-wind"));
+  }
+  assert.deepEqual(none.drawn, []);
+});
+
+test("the turn ends by itself once nothing is left to do", () => {
+  // Second Wind, then an attack: no action, bonus action or Action Surge
+  // use remains, so the goblin acts at once and misses on a 1.
+  const state = veteranFirst({ actionSurge: undefined });
+  const healed = act(
+    state,
+    { type: "second-wind", actorId: "pc" },
+    dice([10, 1]),
+  ).state;
+  assert.equal(currentCombatant(healed).id, "pc");
+  const swung = act(
+    healed,
+    { type: "attack", actorId: "pc", targetId: "goblin" },
+    dice([20, 2], [20, 1]),
+  );
+  assert.deepEqual(
+    swung.events.map(({ type }) => type),
+    ["attack", "turn", "attack", "turn"],
+  );
+  assert.equal(swung.state.round, 2);
+});
+
+test("Action Surge: one more action this turn, once per rest", () => {
+  const state = veteranFirst({ hp: 12 });
+  const missed = act(
+    state,
+    { type: "attack", actorId: "pc", targetId: "goblin" },
+    dice([20, 2]),
+  ).state;
+  const surged = act(missed, { type: "action-surge", actorId: "pc" }, dice());
+  assert.deepEqual(surged.events, [
+    { type: "action-surge", combatantId: "pc", usesLeft: 0 },
+  ]);
+  assert.equal(surged.state.economy.actions, 1);
+  assert.equal(surged.state.combatants[0].actionSurge.uses, 0);
+  // The second attack ends the turn: at full HP there is nothing else.
+  const second = act(
+    surged.state,
+    { type: "attack", actorId: "pc", targetId: "goblin" },
+    dice([20, 3], [20, 1]),
+  );
+  assert.deepEqual(
+    second.events.map(({ type, actorId }) => [type, actorId]),
+    [
+      ["attack", "pc"],
+      ["turn", undefined],
+      ["attack", "goblin"],
+      ["turn", undefined],
+    ],
+  );
+  const none = dice();
+  assert.equal(
+    act(second.state, { type: "action-surge", actorId: "pc" }, none).rejection
+      .reason,
+    "You have no uses of Action Surge left.",
+  );
+  assert.equal(
+    act(
+      veteranFirst({ actionSurge: undefined }),
+      { type: "action-surge", actorId: "pc" },
+      none,
+    ).rejection.reason,
+    "You don't have Action Surge.",
+  );
+  assert.deepEqual(none.drawn, []);
+});
+
+test("Sap: a hit gives the target disadvantage on its next attack, with both dice", () => {
+  const state = veteranFirst({ hp: 12, actionSurge: undefined });
+  // 12 + 5 hits AC 15 for 2 + 3; the goblin is sapped and rolls 18 and 6,
+  // keeping the 6: 6 + 4 misses AC 16.
+  const result = act(
+    state,
+    { type: "attack", actorId: "pc", targetId: "goblin" },
+    dice([20, 12], [6, 2], [20, 18], [20, 6]),
+  );
+  assert.deepEqual(result.events[1], {
+    type: "sapped",
+    targetId: "goblin",
+    sourceId: "pc",
+  });
+  const swing = result.events.find((event) => event.actorId === "goblin");
+  assert.equal(swing.d20, 6);
+  assert.equal(swing.total, 10);
+  assert.equal(swing.hit, false);
+  assert.deepEqual(swing.mode, {
+    d20s: [18, 6],
+    advantage: [],
+    disadvantage: ["Sap"],
+  });
+  // The disadvantage is spent on that attack.
+  assert.deepEqual(result.state.sapped, []);
+  // The player's own attack had no roll mode.
+  assert.equal(result.events[0].mode, undefined);
+});
+
+test("Sap: a natural 20 on the discarded die is not a critical hit, and a miss saps nothing", () => {
+  const state = veteranFirst({ hp: 12, actionSurge: undefined });
+  const result = act(
+    state,
+    { type: "attack", actorId: "pc", targetId: "goblin" },
+    dice([20, 12], [6, 2], [20, 20], [20, 11]),
+  );
+  const swing = result.events.find((event) => event.actorId === "goblin");
+  assert.equal(swing.d20, 11);
+  assert.equal(swing.critical, false);
+  assert.equal(swing.hit, false);
+
+  const missed = act(
+    state,
+    { type: "attack", actorId: "pc", targetId: "goblin" },
+    dice([20, 2], [20, 20], [6, 1], [6, 1]),
+  );
+  assert.ok(!missed.events.some(({ type }) => type === "sapped"));
+  assert.equal(
+    missed.events.find((event) => event.actorId === "goblin").mode,
+    undefined,
+  );
+});
+
+test("Sap ends at the start of the sapper's next turn", () => {
+  const ally = { ...fighter, id: "ally", name: "Bram" };
+  // Order: Bram, Ada, goblin. On Bram's turn the goblin is still sapped by
+  // Ada (as if from her last turn); the start of Ada's turn ends it.
+  const start = startEncounter(
+    [veteran({ hp: 12, actionSurge: undefined }), ally, goblin()],
+    dice([20, 15], [20, 20], [20, 1]),
+  ).state;
+  assert.equal(currentCombatant(start).id, "ally");
+  const sapped = { ...start, sapped: [{ targetId: "goblin", sourceId: "pc" }] };
+  const adaTurn = act(sapped, { type: "end-turn", actorId: "ally" }, dice());
+  assert.equal(currentCombatant(adaTurn.state).id, "pc");
+  assert.deepEqual(adaTurn.state.sapped, []);
+  // So the goblin then attacks with one die (a d2 picks its target).
+  const ended = act(
+    adaTurn.state,
+    { type: "end-turn", actorId: "pc" },
+    dice([2, 1], [20, 1]),
+  );
+  assert.equal(
+    ended.events.find((event) => event.actorId === "goblin").mode,
+    undefined,
+  );
 });
