@@ -851,16 +851,10 @@ export function createFifthRuntime(
           return reject("There is no way from here to there.");
         }
         const destination = roomById(exit.id);
-        const moved: FifthState = {
-          status: state.status,
-          adventureId: state.adventureId,
-          roomId: destination.id,
-          character: state.character,
-          inventory: state.inventory,
-          usedItemIds: state.usedItemIds,
-          examinedFeatureIds: state.examinedFeatureIds,
-          clearedEncounterIds: state.clearedEncounterIds,
-        };
+        // The fight stays behind: an ended adventure cannot move.
+        const { encounter: left, ...kept } = state;
+        void left;
+        const moved: FifthState = { ...kept, roomId: destination.id };
         const fight = encounterOf(moved);
         const opponentsHere =
           fight === undefined || state.clearedEncounterIds.includes(fight.id)

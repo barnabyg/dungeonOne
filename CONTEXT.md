@@ -45,7 +45,7 @@ A place in an adventure module, joined to others by two-way passages. There is n
 _Avoid_: Location (pre-5e), Square, Tile
 
 **Feature**:
-Something fixed in a room that the character can examine, such as a chest or a ledger. Examining it may make its discovery.
+Something fixed in a room that the character can examine, such as a chest or a ledger. Examining it may make its discovery. Not to be confused with a class feature, such as Second Wind, which the code calls a feature in combat contexts.
 _Avoid_: Object (too broad), Item (an item can be taken)
 
 **Discovery**:

@@ -1,7 +1,7 @@
 // The `--5e` browser page (until #137): the 5e character library, the
-// creation screen, the character sheet and the adventure screen. Bundled into dist so the extracted
-// package serves the same interface. The script builds every element with
-// textContent, never HTML from data.
+// creation screen, the character sheet and the adventure screen. Bundled into
+// dist so the extracted package serves the same interface. The script builds
+// every element with textContent, never HTML from data.
 export const FIFTH_BROWSER_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
