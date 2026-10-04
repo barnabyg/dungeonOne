@@ -1,0 +1,75 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 1,
+  "id": "cellar-goblin",
+  "title": "The Goblin in the Cellar",
+  "objective": "Drive out the goblin that has taken over the inn's cellar.",
+  "recommendedLevels": { "min": 1, "max": 1 },
+  "difficulty": "easy",
+  "startRoomId": "cellar",
+  "rooms": [
+    {
+      "id": "cellar",
+      "name": "Inn Cellar",
+      "description": "A low stone cellar lit by one guttering lantern. Broken casks line the walls, and the floor is wet with spilled ale.",
+      "encounterId": "cellar-goblin"
+    }
+  ],
+  "encounters": [
+    {
+      "id": "cellar-goblin",
+      "opponents": [
+        {
+          "id": "goblin",
+          "name": "Goblin Warrior",
+          "description": "A small, sharp-toothed goblin in scraps of leather, scimitar already drawn.",
+          "statBlock": {
+            "name": "Goblin Warrior",
+            "size": "Small",
+            "type": "Fey (Goblinoid)",
+            "armorClass": 15,
+            "hitPoints": { "average": 10, "formula": "3d6" },
+            "abilities": {
+              "strength": 8,
+              "dexterity": 15,
+              "constitution": 10,
+              "intelligence": 10,
+              "wisdom": 8,
+              "charisma": 8
+            },
+            "challengeRating": "1/4",
+            "xp": 50,
+            "attacks": [
+              {
+                "name": "Scimitar",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 2,
+                  "type": "slashing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "victoryEndingId": "goblin-defeated",
+      "defeatEndingId": "fallen-in-the-cellar"
+    }
+  ],
+  "endings": [
+    {
+      "id": "goblin-defeated",
+      "kind": "victory",
+      "title": "The cellar is clear",
+      "text": "The goblin falls among the broken casks. The cellar is quiet again, and the innkeeper can sleep tonight."
+    },
+    {
+      "id": "fallen-in-the-cellar",
+      "kind": "defeat",
+      "title": "Fallen in the cellar",
+      "text": "You fall to the wet stone floor. Your adventuring ends here."
+    }
+  ]
+}

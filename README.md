@@ -24,16 +24,31 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   promised until the owner declares a stable release.
 - **Creating a 5e Fighter.** Launch with
   `npm.cmd run browser -- --5e --seed 0 --characters .\.scratch\5e\characters.json`
-  (the default library is `characters-5e.json`; no OpenAI key is needed yet).
+  (the default library is `characters-5e.json`; creation needs no OpenAI key).
   Choose **Create a Fighter**: the six 4d6-drop-lowest rolls are saved to the
   library before they are shown, so reloading, restarting or leaving the screen
   shows the same dice. Place them on any abilities, choose the background
   increase, two skills and a Fighting Style, check the derived numbers and save.
   Saved Fighters open as character sheets. **Delete character** on a sheet
   removes it permanently once you type its name exactly; a pending creation
-  keeps its dice. Adventures are not playable under
-  `--5e` yet (#128). The 5e library is format version 2; a pre-5e library is
-  refused at startup and left unchanged.
+  keeps its dice. The 5e library is format version 3; a pre-5e library, or a
+  5e library from an earlier build (format version 2), is refused at startup
+  and left unchanged.
+- **Fighting in a 5e adventure.** A saved Fighter's sheet offers **Start** for
+  each built-in 5e adventure module, with its level range and difficulty. The
+  only one so far is _The Goblin in the Cellar_
+  (`adventures/5e/cellar-goblin.json`): one room, one SRD 5.2 Goblin Warrior.
+  Starting rolls initiative for every combatant; the encounter panel shows each
+  roll, the order, hit points, AC and whose turn it is. Attack with the
+  **Attack** button, or type to the AI Dungeon Master (this needs
+  `OPENAI_API_KEY`; without it, typed messages are refused and the buttons
+  still work). The engine rolls every die and writes every attack's result.
+  The session is saved after every action in the
+  `characters-5e-adventures` directory beside the library (format version 1),
+  and reloading the page or restarting with the same command returns to the
+  fight exactly as it was. Victory frees the character for another adventure;
+  0 HP is instant defeat, and a defeated character cannot start another. A
+  character on an adventure cannot be deleted until the adventure ends.
 - **Rules.** The [rules document](docs/character-rules.md) records the 5e rules
   in use, the house rules and each positional rule left out.
 - **Runtime interface.** Saves, traces and replay, the AI DM turn loop and its
@@ -43,7 +58,9 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   `src/data-runtime.ts` is the single registry that selects a runtime, and an
   ESLint rule stops shared modules from importing a pre-5e game module, so the
   5e runtime plugs in beside the old ones and #139 deletes them without
-  touching shared code.
+  touching shared code. The 5e runtime (`src/runtime-5e.ts`, over the encounter
+  engine in `src/encounter-5e.ts`) implements that interface and is obtained
+  from the registry.
 
 **Removal pending (#139).** Hollow Beacon, Stonebridge, the browser's `--legacy`
 single save slot, the CLI command-mode adventures (the chapel, the Stolen Signet,

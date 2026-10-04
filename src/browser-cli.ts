@@ -13,7 +13,7 @@ const LEGACY_VERSIONS = BROWSER_RELEASES.filter(
 const USAGE = `Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--characters <library.json>] [--save <path>] [--artwork <manifest.json>] [--legacy | --5e]
 Create or choose a saved Fighter, then select an adventure. Default library: characters.json; its adventures are saved in the adjacent character-adventures directory and continue when you rerun the same command.
 --legacy uses only the --save slot: it starts Hollow Beacon v${BROWSER_START_VERSION}; existing v${LEGACY_VERSIONS[0]}-v${LEGACY_VERSIONS.at(-1)} slots continue unchanged.
---5e (temporary, until 5e is the only mode) creates and reads 5e Fighters in their own library, by default characters-5e.json; adventures are not playable there yet. Only --seed and --characters apply.
+--5e (temporary, until 5e is the only mode) creates 5e Fighters in their own library, by default characters-5e.json, and takes them into 5e adventures saved in the adjacent characters-5e-adventures directory. Only --seed and --characters apply.
 Set OPENAI_API_KEY in the environment before launch.`;
 
 async function main(): Promise<void> {
@@ -65,6 +65,7 @@ async function main(): Promise<void> {
           values.get("--characters") ?? "characters-5e.json",
         ),
         seed,
+        apiKey: process.env.OPENAI_API_KEY ?? "",
       })
     : await startBrowserServer({
         contentVersion: BROWSER_START_VERSION,

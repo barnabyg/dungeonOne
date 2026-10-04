@@ -1,8 +1,11 @@
 /**
- * The 5e character library (format version 2).
+ * The 5e character library (format version 3).
  *
  * It holds saved 5e Fighters and at most one pending creation: the dice of a
- * Fighter being created. The dice are written before anyone sees them and are
+ * Fighter being created. Each character record names its adventure session
+ * while one is in progress, and is marked defeated once a session ends in
+ * defeat; a defeated character cannot start another adventure. Sessions are
+ * saved in the `<library>-adventures` directory beside the library. The dice are written before anyone sees them and are
  * returned unchanged until a character is saved from them, so reloading,
  * restarting, backing out of creation or deleting a character never rolls
  * again (ADR 0005).
@@ -12,7 +15,7 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { basename, dirname, extname, join } from "node:path";
 import { writeFileAtomically } from "./atomic-file.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { acquireFileLock } from "./file-lock.js";
@@ -29,7 +32,7 @@ import {
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 2;
+export const FIFTH_LIBRARY_FORMAT = 3;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -39,9 +42,15 @@ export type PendingCreation = Readonly<{
   dice: RolledDice;
 }>;
 
+export type ActiveSession = Readonly<{ id: string; adventureId: string }>;
+
 export type FifthCharacterRecord = Readonly<{
   sheet: FighterSheet;
   revision: number;
+  /** The adventure session in progress, if any. */
+  session?: ActiveSession;
+  /** Set when a session ends in defeat (0 HP is instant defeat). */
+  defeated?: true;
 }>;
 
 export type FifthLibraryData = {
@@ -49,9 +58,13 @@ export type FifthLibraryData = {
   formatVersion: typeof FIFTH_LIBRARY_FORMAT;
   revision: string;
   creationsStarted: number;
+  /** Adventure sessions started; numbers each session's dice stream. */
+  sessionsStarted: number;
   pendingCreation?: PendingCreation;
   characters: FifthCharacterRecord[];
 };
+
+const SESSION_ID = /^[a-f0-9]{32}$/;
 
 function missing(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
@@ -89,6 +102,7 @@ export class FifthCharacterLibrary {
           formatVersion: FIFTH_LIBRARY_FORMAT,
           revision: "0".repeat(32),
           creationsStarted: 0,
+          sessionsStarted: 0,
           characters: [],
         };
       }
@@ -117,6 +131,12 @@ export class FifthCharacterLibrary {
         "a pre-5e character library (format version 1)",
       );
     }
+    if (version === 2) {
+      throw moveAside(
+        this.path,
+        "a 5e character library from an earlier build (format version 2)",
+      );
+    }
     if (version !== FIFTH_LIBRARY_FORMAT) {
       throw moveAside(
         this.path,
@@ -125,12 +145,15 @@ export class FifthCharacterLibrary {
     }
     const keys = Object.keys(library).sort().join(",");
     if (
-      (keys !== "characters,creationsStarted,formatVersion,kind,revision" &&
+      (keys !==
+        "characters,creationsStarted,formatVersion,kind,revision,sessionsStarted" &&
         keys !==
-          "characters,creationsStarted,formatVersion,kind,pendingCreation,revision") ||
+          "characters,creationsStarted,formatVersion,kind,pendingCreation,revision,sessionsStarted") ||
       !/^[a-f0-9]{32}$/.test(library.revision) ||
       !Number.isSafeInteger(library.creationsStarted) ||
       library.creationsStarted < 0 ||
+      !Number.isSafeInteger(library.sessionsStarted) ||
+      library.sessionsStarted < 0 ||
       !Array.isArray(library.characters) ||
       library.characters.length > MAX_CHARACTERS
     ) {
@@ -149,13 +172,26 @@ export class FifthCharacterLibrary {
       validateDice(pending.dice);
     }
     const ids = new Set<string>();
+    const sessions = new Set<string>();
     library.characters = library.characters.map((record) => {
+      const session = record?.session as unknown;
       if (
         record === null ||
         typeof record !== "object" ||
-        Object.keys(record).sort().join(",") !== "revision,sheet" ||
+        !Object.keys(record).every((key) =>
+          ["revision", "sheet", "session", "defeated"].includes(key),
+        ) ||
         !Number.isSafeInteger(record.revision) ||
-        record.revision < 1
+        record.revision < 1 ||
+        ("defeated" in record && record.defeated !== true) ||
+        ("session" in record &&
+          (record.defeated === true ||
+            session === null ||
+            typeof session !== "object" ||
+            Object.keys(session).sort().join(",") !== "adventureId,id" ||
+            !SESSION_ID.test(record.session!.id) ||
+            typeof record.session!.adventureId !== "string" ||
+            sessions.has(record.session!.id)))
       ) {
         throw new Error("Invalid character record.");
       }
@@ -164,7 +200,22 @@ export class FifthCharacterLibrary {
         throw new Error("Invalid character record: duplicate identity.");
       }
       ids.add(sheet.id);
-      return { sheet, revision: record.revision };
+      if (record.session !== undefined) {
+        sessions.add(record.session.id);
+      }
+      return {
+        sheet,
+        revision: record.revision,
+        ...(record.session === undefined
+          ? {}
+          : {
+              session: {
+                id: record.session.id,
+                adventureId: record.session.adventureId,
+              },
+            }),
+        ...(record.defeated === true ? { defeated: true as const } : {}),
+      };
     });
     return library;
   }
@@ -260,6 +311,92 @@ export class FifthCharacterLibrary {
     });
   }
 
+  /** Where the adventure session `id` is saved. */
+  sessionPath(id: string): string {
+    if (!SESSION_ID.test(id)) {
+      throw new Error("Invalid adventure session id.");
+    }
+    const name = basename(this.path, extname(this.path));
+    return join(dirname(this.path), `${name}-adventures`, `${id}.json`);
+  }
+
+  /**
+   * The index of the character record that may start an adventure. Throws
+   * the player-facing reason when it cannot.
+   */
+  startable(data: FifthLibraryData, characterId: string): number {
+    const index = data.characters.findIndex(
+      ({ sheet }) => sheet.id === characterId,
+    );
+    const record = data.characters[index];
+    if (record === undefined) {
+      throw new Error("There is no such character in the library.");
+    }
+    if (record.defeated === true) {
+      throw new Error(
+        `${record.sheet.name} was defeated and cannot start another adventure.`,
+      );
+    }
+    if (record.session !== undefined) {
+      throw new Error(`${record.sheet.name} is already on an adventure.`);
+    }
+    return index;
+  }
+
+  /**
+   * Records that `characterId` is playing `session`, the library's session
+   * `number` (always the next one). Fails unless the library is still at
+   * `revision` and the character may start an adventure.
+   */
+  async attachSession(
+    characterId: string,
+    session: ActiveSession,
+    number: number,
+    revision: string,
+  ): Promise<FifthLibraryData> {
+    return this.update(revision, (data) => {
+      const index = this.startable(data, characterId);
+      if (number !== data.sessionsStarted + 1 || !SESSION_ID.test(session.id)) {
+        throw new Error("Invalid adventure session.");
+      }
+      data.sessionsStarted = number;
+      const record = data.characters[index]!;
+      data.characters[index] = {
+        ...record,
+        revision: record.revision + 1,
+        session: { id: session.id, adventureId: session.adventureId },
+      };
+    });
+  }
+
+  /**
+   * Ends `characterId`'s session `sessionId`: the character is free again
+   * after a victory, and is defeated at 0 HP after a defeat. Writes nothing
+   * when the record no longer names that session, so repeating it is safe.
+   */
+  async settleSession(
+    characterId: string,
+    sessionId: string,
+    outcome: "victory" | "defeat",
+  ): Promise<FifthLibraryData> {
+    return this.update(undefined, (data) => {
+      const index = data.characters.findIndex(
+        ({ sheet, session }) =>
+          sheet.id === characterId && session?.id === sessionId,
+      );
+      const record = data.characters[index];
+      if (record === undefined) {
+        return false;
+      }
+      data.characters[index] = {
+        sheet: outcome === "defeat" ? { ...record.sheet, hp: 0 } : record.sheet,
+        revision: record.revision + 1,
+        ...(outcome === "defeat" ? { defeated: true as const } : {}),
+      };
+      return true;
+    });
+  }
+
   /**
    * Permanently removes one character. `confirmName` must equal the stored
    * name exactly, case and spaces included. Every other character and the
@@ -280,6 +417,11 @@ export class FifthCharacterLibrary {
       if (record.sheet.name !== confirmName) {
         throw new Error(
           "Type the character's name exactly to delete it; nothing was deleted.",
+        );
+      }
+      if (record.session !== undefined) {
+        throw new Error(
+          `${record.sheet.name} is on an adventure. Finish it before deleting the character; nothing was deleted.`,
         );
       }
       data.characters.splice(data.characters.indexOf(record), 1);

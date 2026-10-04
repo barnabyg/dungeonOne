@@ -76,6 +76,22 @@ _Avoid_: Save (which means a saved file), Resistance roll
 A named use of an ability, such as Athletics (Strength) or Perception (Wisdom). A skill check adds that ability's modifier, and the proficiency bonus if the character is proficient in the skill.
 _Avoid_: Ability check (when a skill is meant), Talent
 
+**Encounter**:
+A fight between two sides, the party and its opponents, each holding one or more combatants. It ends when one side is entirely defeated.
+_Avoid_: Battle, Combat (when one fight is meant)
+
+**Combatant**:
+One creature in an encounter, with its own hit points, armour class, attack and initiative roll. The player character is one; each opponent is another.
+_Avoid_: Monster (for the player character), Unit
+
+**Initiative**:
+The d20 + initiative bonus each combatant rolls when an encounter begins; higher totals act first, ties going to the higher Dexterity and then a seeded roll-off.
+_Avoid_: Turn order (the result, not the roll)
+
+**Defeated character**:
+A character whose adventure session ended at 0 HP. It stays in the library but cannot start another adventure; there are no death saving throws.
+_Avoid_: Dead character, Unconscious
+
 **Difficulty**:
 An adventure module's declared challenge for its recommended level range: Easy, Medium or Hard. The balance gate checks that the module is neither more lethal nor easier than it declares. Not to be confused with the Difficulty Class (DC) of a single check.
 _Avoid_: Challenge rating (a monster's, not a module's), DC

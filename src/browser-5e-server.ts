@@ -3,14 +3,33 @@
  *
  * It serves the 5e character library: start or resume a creation, preview the
  * player's placement and choices, save a level 1 Fighter, read its sheet and
- * delete it.
+ * delete it. A saved Fighter can take on a built-in adventure module, where
+ * the player fights by clicking an attack or by typing to the AI DM. Each
+ * session is saved after every action and continues after a reload or a
+ * restart.
  * A library in another format is refused before the server listens.
  */
 import { createServer } from "node:http";
 import {
+  loadBuiltInFifthAdventures,
+  type FifthAdventure,
+} from "./adventure-5e.js";
+import {
   FifthCharacterLibrary,
   type FifthLibraryData,
 } from "./character-library-5e.js";
+import { DM_TURN_LIMITS, runDmTurn, type DmModel } from "./dm-turn.js";
+import {
+  createOpenAiDmModel,
+  OPENAI_DM_DEFAULT_MODEL,
+} from "./openai-dm-model.js";
+
+import {
+  FifthSession,
+  startFifthAdventure,
+  type HistoryCard,
+  type HistoryEntry,
+} from "./session-5e.js";
 import {
   ABILITIES,
   buildFighter,
@@ -36,6 +55,10 @@ import {
 export type FifthBrowserOptions = Readonly<{
   libraryPath: string;
   seed: number;
+  /** For the AI DM; typed messages are refused without it. */
+  apiKey?: string;
+  /** Replaces the OpenAI DM, for tests. */
+  dmModel?: DmModel;
 }>;
 
 /**
@@ -49,10 +72,45 @@ function playerMessage(error: unknown, fallback: string): string {
     : fallback;
 }
 
-function libraryView(data: FifthLibraryData) {
+function adventureView(adventure: FifthAdventure) {
+  return {
+    id: adventure.id,
+    title: adventure.title,
+    objective: adventure.objective,
+    difficulty: adventure.difficulty,
+    recommendedLevels: adventure.recommendedLevels,
+  };
+}
+
+function sessionView(session: FifthSession) {
+  const { state, runtime, adventure } = session;
+  const ending = adventure.endings.find(({ id }) => id === state.endingId);
+  const room = adventure.rooms.find(({ id }) => id === state.roomId)!;
+  return {
+    id: session.id,
+    characterId: session.character.id,
+    sequence: session.transitions.length,
+    adventure: adventureView(adventure),
+    room: { name: room.name, description: room.description },
+    status: state.status,
+    ...(ending === undefined
+      ? {}
+      : {
+          ending: { kind: ending.kind, title: ending.title, text: ending.text },
+        }),
+    ...runtime.projectFight(state),
+    history: session.history,
+  };
+}
+
+function libraryView(
+  data: FifthLibraryData,
+  adventures: readonly FifthAdventure[],
+) {
   const pending = data.pendingCreation;
   return {
     revision: data.revision,
+    adventures: adventures.map(adventureView),
     abilities: ABILITIES,
     skills: Object.entries(FIGHTER_SKILLS).map(([id, skill]) => ({
       id,
@@ -74,9 +132,11 @@ function libraryView(data: FifthLibraryData) {
             })),
           },
         }),
-    characters: data.characters.map(({ sheet }) => ({
+    characters: data.characters.map(({ sheet, session, defeated }) => ({
       sheet,
       profile: fighterProfile(sheet),
+      ...(session === undefined ? {} : { session }),
+      defeated: defeated === true,
     })),
   };
 }
@@ -105,8 +165,16 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     throw new Error("Seed must be an integer from 0 to 4294967295.");
   }
   const library = new FifthCharacterLibrary(options.libraryPath, options.seed);
-  // Refuse an old or invalid library before listening.
+  // Refuse an old or invalid library, or a broken module, before listening.
   await library.read();
+  const adventures = await loadBuiltInFifthAdventures();
+  const apiKey = options.apiKey?.trim() ?? "";
+  const model: DmModel | undefined =
+    options.dmModel ??
+    (apiKey.length === 0
+      ? undefined
+      : createOpenAiDmModel({ apiKey, model: OPENAI_DM_DEFAULT_MODEL }));
+  const view = (data: FifthLibraryData) => libraryView(data, adventures);
   // The file lock fails rather than waits, so this server's own changes queue.
   let queue: Promise<unknown> = Promise.resolve();
   const serialized = <T>(work: () => Promise<T>): Promise<T> => {
@@ -115,14 +183,229 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     return next;
   };
 
+  // Loaded sessions, by id. A session whose save fails is dropped, so the
+  // next request reloads it from its file.
+  const sessions = new Map<string, FifthSession>();
+  const openSession = async (sessionId: unknown): Promise<FifthSession> => {
+    const record = (await library.read()).characters.find(
+      ({ session }) => session !== undefined && session.id === sessionId,
+    );
+    if (record === undefined || typeof sessionId !== "string") {
+      throw new Error("There is no such adventure in progress.");
+    }
+    let session = sessions.get(sessionId);
+    if (session === undefined) {
+      session = await FifthSession.load(
+        library.sessionPath(sessionId),
+        adventures,
+      );
+      if (session.character.id !== record.sheet.id) {
+        throw new Error("There is no such adventure in progress.");
+      }
+      sessions.set(sessionId, session);
+    }
+    return session;
+  };
+  const persist = async (session: FifthSession) => {
+    try {
+      await session.persist();
+    } catch (error) {
+      sessions.delete(session.id);
+      throw error;
+    }
+  };
+  /** The response to a session request: the library and the session. */
+  const respondWith = async (session: FifthSession) => ({
+    library: view(await library.read()),
+    session: sessionView(session),
+  });
+  /** Saves the session, then frees or defeats its character if it ended. */
+  const save = async (session: FifthSession) => {
+    await persist(session);
+    const status = session.state.status;
+    const data =
+      status === "victory" || status === "defeat"
+        ? await library.settleSession(session.character.id, session.id, status)
+        : await library.read();
+    if (status !== "playing") {
+      sessions.delete(session.id);
+    }
+    return { library: view(data), session: sessionView(session) };
+  };
+  const requireCurrent = (session: FifthSession, sequence: unknown) => {
+    if (sequence !== session.transitions.length) {
+      throw new Error(
+        "This adventure has moved on since the page last saw it; refresh before acting.",
+      );
+    }
+  };
+
   let url = "";
   const handlePost = async (path: string, body: Record<string, unknown>) => {
     switch (path) {
+      case "/api/5e/adventures/start": {
+        if (
+          !hasExactKeys(body, ["revision", "characterId", "adventureId"]) ||
+          typeof body.revision !== "string" ||
+          typeof body.characterId !== "string"
+        ) {
+          throw new Error("Invalid adventure request.");
+        }
+        const adventure = adventures.find(({ id }) => id === body.adventureId);
+        if (adventure === undefined) {
+          throw new Error("There is no such adventure.");
+        }
+        return serialized(async () => {
+          const session = await startFifthAdventure(
+            library,
+            options.seed,
+            body.characterId as string,
+            adventure,
+            body.revision as string,
+          );
+          if (session.state.status === "playing") {
+            sessions.set(session.id, session);
+          }
+          return respondWith(session);
+        });
+      }
+      case "/api/5e/session":
+        if (!hasExactKeys(body, ["sessionId"])) {
+          throw new Error("Invalid adventure request.");
+        }
+        return serialized(async () => {
+          const session = await openSession(body.sessionId);
+          // A session that ended before its character was settled (a crash
+          // between the two saves) is settled now.
+          return session.state.status === "playing"
+            ? respondWith(session)
+            : save(session);
+        });
+      case "/api/5e/session/attack":
+        if (
+          !hasExactKeys(body, [
+            "sessionId",
+            "sequence",
+            "actorId",
+            "targetId",
+          ]) ||
+          typeof body.actorId !== "string" ||
+          typeof body.targetId !== "string"
+        ) {
+          throw new Error("Invalid attack request.");
+        }
+        return serialized(async () => {
+          const session = await openSession(body.sessionId);
+          requireCurrent(session, body.sequence);
+          const { result, rolls } = session.act(
+            {
+              type: "attack",
+              actorId: body.actorId as string,
+              targetId: body.targetId as string,
+            },
+            "click",
+          );
+          if (result.rejection !== undefined) {
+            // Nothing changed and no die was drawn, so nothing is saved.
+            return {
+              ...(await respondWith(session)),
+              rejection: result.rejection.reason,
+            };
+          }
+          session.history.push({
+            reply: "",
+            cards: [session.card(result, rolls)],
+          });
+          return save(session);
+        });
+      case "/api/5e/session/message": {
+        if (
+          !hasExactKeys(body, ["sessionId", "sequence", "message"]) ||
+          typeof body.message !== "string"
+        ) {
+          throw new Error("Invalid message request.");
+        }
+        const message = body.message.trim();
+        if (
+          message.length === 0 ||
+          message.length > DM_TURN_LIMITS.maxPlayerInputCharacters
+        ) {
+          throw new Error(
+            `Write a message of 1–${DM_TURN_LIMITS.maxPlayerInputCharacters} characters.`,
+          );
+        }
+        if (model === undefined) {
+          throw new Error(
+            "The AI Dungeon Master needs OPENAI_API_KEY. Set it and restart, or use the attack buttons.",
+          );
+        }
+        return serialized(async () => {
+          const session = await openSession(body.sessionId);
+          requireCurrent(session, body.sequence);
+          const cards: HistoryCard[] = [];
+          const index = session.history.length;
+          const record = (reply: string) => {
+            const entry: HistoryEntry = {
+              player: message,
+              reply,
+              cards: [...cards],
+            };
+            session.history[index] = entry;
+          };
+          const result = await runDmTurn({
+            state: session.state,
+            playerInput: message,
+            transcript: session.history.slice(-4).flatMap((entry) => [
+              ...(entry.player === undefined
+                ? []
+                : [{ role: "player" as const, text: entry.player }]),
+              {
+                role: "dungeon-master" as const,
+                text:
+                  entry.reply || entry.cards.map(({ text }) => text).join("\n"),
+              },
+            ]),
+            random: {
+              roll() {
+                throw new Error("An AI DM turn draws dice only through tools.");
+              },
+            },
+            model,
+            runtime: session.runtime,
+            resultSurface: "browser-cards",
+            executeTool: async (_state, call) => {
+              const dispatched = session.dispatch(call);
+              if (dispatched.card !== undefined) {
+                cards.push(dispatched.card);
+                if (dispatched.card.kind === "result") {
+                  // Save the committed action, and settle the character if
+                  // it ended the fight, before the reply is written.
+                  record(
+                    "The reply was interrupted; the result is shown below.",
+                  );
+                  await persist(session);
+                  const status = session.state.status;
+                  if (status === "victory" || status === "defeat") {
+                    await library.settleSession(
+                      session.character.id,
+                      session.id,
+                      status,
+                    );
+                  }
+                }
+              }
+              return { result: dispatched.result, rolls: dispatched.rolls };
+            },
+          });
+          record(result.narration);
+          return save(session);
+        });
+      }
       case "/api/5e/creation":
         if (!hasExactKeys(body, [])) {
           throw new Error("Invalid character creation request.");
         }
-        return libraryView(await serialized(() => library.startCreation()));
+        return view(await serialized(() => library.startCreation()));
       case "/api/5e/creation/preview": {
         if (!hasExactKeys(body, CHOICE_KEYS)) {
           throw new Error("Invalid character creation request.");
@@ -150,7 +433,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         ) {
           throw new Error("Invalid character creation request.");
         }
-        return libraryView(
+        return view(
           await serialized(() =>
             library.create(
               (body.name as string).trim(),
@@ -168,7 +451,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         ) {
           throw new Error("Invalid character deletion request.");
         }
-        return libraryView(
+        return view(
           await serialized(() =>
             library.delete(
               body.characterId as string,
@@ -210,7 +493,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           json(response, 409, {
             error: playerMessage(
               error,
-              "Character storage could not be updated. Refresh and check local storage.",
+              "Local storage could not be updated. Refresh, and check that the library folder is writable.",
             ),
           });
         }
@@ -242,7 +525,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           break;
         case "/api/5e/library":
           try {
-            json(response, 200, libraryView(await library.read()));
+            json(response, 200, view(await library.read()));
           } catch (error) {
             json(response, 409, {
               error: playerMessage(
