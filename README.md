@@ -35,14 +35,18 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   5e library from an earlier build (format version 2), is refused at startup
   and left unchanged.
 - **Fighting in a 5e adventure.** A saved Fighter's sheet offers **Start** for
-  each built-in 5e adventure module, with its level range and difficulty. The
-  only one so far is _The Goblin in the Cellar_
-  (`adventures/5e/cellar-goblin.json`): one room, one SRD 5.2 Goblin Warrior.
-  Starting rolls initiative for every combatant; the encounter panel shows each
-  roll, the order, hit points, AC and whose turn it is. Attack with the
-  **Attack** button, or type to the AI Dungeon Master (this needs
+  each built-in 5e adventure module, with its level range and difficulty:
+  _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`), one SRD 5.2
+  Goblin Warrior, and _The Goblins in the Storeroom_
+  (`adventures/5e/goblin-storeroom.json`), a group fight against two Goblin
+  Minions and a Goblin Warrior. Starting rolls initiative for every combatant;
+  the encounter panel lists each combatant in initiative order with its roll,
+  hit points, AC, whether it is defeated and whose turn it is. Attack with the
+  **Attack** button for each living opponent, or type to the AI Dungeon Master
+  ("attack the second goblin"; it asks which one when a name fits several
+  opponents). Typing needs
   `OPENAI_API_KEY`; without it, typed messages are refused and the buttons
-  still work). The engine rolls every die and writes every attack's result.
+  still work. The engine rolls every die and writes every attack's result.
   The session is saved after every action in the
   `characters-5e-adventures` directory beside the library (format version 1),
   and reloading the page or restarting with the same command returns to the

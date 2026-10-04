@@ -2,7 +2,8 @@
  * The 5e adventure module format (format version 1) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms, the
- * encounters in them with inline SRD 5.2 stat blocks, and its endings. This
+ * encounters in them with inline SRD 5.2 stat blocks, and its endings. Each
+ * opponent in an encounter has its own name, so the player can target it. This
  * first version holds what a one-room fight needs; later tickets add
  * exploration, checks, treasure and XP, each bumping the format version.
  *
@@ -146,18 +147,31 @@ function list(value: unknown, where: string, max: number): unknown[] {
   return value;
 }
 
+/** The entries' keys; fails with `message` on the first repeated key. */
+function distinct<T>(
+  entries: readonly T[],
+  key: (entry: T) => string,
+  message: (entry: T) => string,
+): Set<string> {
+  const keys = new Set<string>();
+  for (const entry of entries) {
+    if (keys.has(key(entry))) {
+      fail(message(entry));
+    }
+    keys.add(key(entry));
+  }
+  return keys;
+}
+
 function unique<T extends { id: string }>(
   entries: readonly T[],
   where: string,
 ) {
-  const ids = new Set<string>();
-  for (const entry of entries) {
-    if (ids.has(entry.id)) {
-      fail(`duplicate ${where} id ${entry.id}.`);
-    }
-    ids.add(entry.id);
-  }
-  return ids;
+  return distinct(
+    entries,
+    ({ id: entryId }) => entryId,
+    ({ id: entryId }) => `duplicate ${where} id ${entryId}.`,
+  );
 }
 
 function statBlock(value: unknown, where: string): StatBlock {
@@ -324,6 +338,13 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         },
       );
       unique(opponents, `${where} opponent`);
+      // The player targets opponents by name, in any case.
+      distinct(
+        opponents,
+        ({ name }) => name.toLowerCase(),
+        ({ name }) =>
+          `${where} has two opponents named ${name}; give each a name the player can target.`,
+      );
       if (opponents.some(({ id: opponentId }) => opponentId === "pc")) {
         fail(`${where} opponent id pc is reserved for the player character.`);
       }
@@ -410,6 +431,7 @@ export async function loadFifthAdventure(
 /** The built-in 5e modules, by id, in the order the browser offers them. */
 export const FIFTH_ADVENTURE_FILES = {
   "cellar-goblin": "cellar-goblin.json",
+  "goblin-storeroom": "goblin-storeroom.json",
 } as const;
 export type FifthAdventureId = keyof typeof FIFTH_ADVENTURE_FILES;
 

@@ -283,3 +283,153 @@ test("sides may hold several combatants; opponents pick a target with a seeded d
     ["ally", "pc"],
   );
 });
+
+// One Fighter against two Goblin Warriors and a Goblin Boss.
+const boss = {
+  ...goblin("boss", "Goblin Boss"),
+  armorClass: 17,
+  hp: 21,
+  maxHp: 21,
+};
+const band = () => [
+  fighter,
+  goblin("goblin-1", "Goblin Warrior 1"),
+  goblin("goblin-2", "Goblin Warrior 2"),
+  boss,
+];
+
+test("1v3: initiative orders four combatants, rolling off only among exact ties", () => {
+  // pc 14 + 1 = 15; goblin-1 13 + 2 = 15 (Dex 15 beats 12); goblin-2 and the
+  // boss both 9 + 2 = 11 with Dex 15, so they roll off: boss 6 beats 3.
+  const random = dice(
+    [20, 14],
+    [20, 13],
+    [20, 9],
+    [20, 9],
+    [20, 3],
+    [20, 6],
+    [20, 1],
+  );
+  const { state, events } = startEncounter(band(), random);
+  assert.deepEqual(
+    state.order.map(({ combatantId, total, tieBreaks }) => [
+      combatantId,
+      total,
+      tieBreaks,
+    ]),
+    [
+      ["goblin-1", 15, []],
+      ["pc", 15, []],
+      ["boss", 11, [6]],
+      ["goblin-2", 11, [3]],
+    ],
+  );
+  assert.equal(events[0].type, "initiative");
+  // Goblin 1 acts first against the only party combatant, so no die picks
+  // its target; it misses on a natural 1.
+  const swing = events.find(({ type }) => type === "attack");
+  assert.equal(swing.actorId, "goblin-1");
+  assert.equal(swing.targetRoll, undefined);
+  assert.equal(currentCombatant(state).id, "pc");
+  assert.equal(random.remaining(), 0);
+});
+
+/** pc first, then goblin-1, goblin-2, boss; no dice left over. */
+const opening = () =>
+  startEncounter(band(), dice([20, 20], [20, 15], [20, 10], [20, 5])).state;
+
+test("1v3: the player may target any living opponent, listed in initiative order", () => {
+  const state = opening();
+  assert.deepEqual(
+    legalTargets(state, "pc").map(({ id }) => id),
+    ["goblin-1", "goblin-2", "boss"],
+  );
+  // The player hits the boss: 15 + 5 meets AC 17 for 4 + 3. Then each
+  // opponent swings in initiative order, all missing on a natural 1.
+  const result = attack(
+    state,
+    { actorId: "pc", targetId: "boss" },
+    dice([20, 15], [6, 4], [20, 1], [20, 1], [20, 1]),
+  );
+  assert.deepEqual(
+    result.events
+      .filter(({ type }) => type === "attack")
+      .map(({ actorId, targetId }) => [actorId, targetId]),
+    [
+      ["pc", "boss"],
+      ["goblin-1", "pc"],
+      ["goblin-2", "pc"],
+      ["boss", "pc"],
+    ],
+  );
+  const hp = Object.fromEntries(
+    result.state.combatants.map(({ id, hp: left }) => [id, left]),
+  );
+  assert.deepEqual(hp, { pc: 12, "goblin-1": 10, "goblin-2": 10, boss: 14 });
+  assert.equal(result.state.round, 2);
+  assert.equal(currentCombatant(result.state).id, "pc");
+});
+
+test("1v3: one opponent falls, skips its turns, and the fight goes on", () => {
+  // A critical hit fells Goblin 2 (2d6 6 + 6 + 3 = 15).
+  const result = attack(
+    opening(),
+    { actorId: "pc", targetId: "goblin-2" },
+    dice([20, 20], [6, 6], [6, 6], [20, 1], [20, 1]),
+  );
+  assert.deepEqual(
+    result.events.map(({ type, combatantId, actorId }) => [
+      type,
+      combatantId ?? actorId,
+    ]),
+    [
+      ["attack", "pc"],
+      ["defeated", "goblin-2"],
+      ["turn", "goblin-1"],
+      ["attack", "goblin-1"],
+      ["turn", "boss"],
+      ["attack", "boss"],
+      ["turn", "pc"],
+    ],
+  );
+  assert.equal(result.state.outcome, "ongoing");
+  assert.deepEqual(
+    legalTargets(result.state, "pc").map(({ id }) => id),
+    ["goblin-1", "boss"],
+  );
+  assert.match(
+    attack(result.state, { actorId: "pc", targetId: "goblin-2" }, dice())
+      .rejection.reason,
+    /^Goblin Warrior 2 is already defeated\.$/,
+  );
+});
+
+test("1v3: the fight ends in victory only when the last opponent falls", () => {
+  let state = opening();
+  const kill = (targetId) => {
+    // A critical hit for 15 fells a goblin; a second one fells the boss.
+    const result = attack(
+      state,
+      { actorId: "pc", targetId },
+      // Every opponent left misses on a natural 1.
+      dice([20, 20], [6, 6], [6, 6], [20, 1], [20, 1]),
+    );
+    state = result.state;
+    return result;
+  };
+  // Each kill leaves fewer opponents to swing (and miss) afterwards.
+  kill("goblin-1");
+  assert.equal(state.outcome, "ongoing");
+  kill("goblin-2");
+  assert.equal(state.outcome, "ongoing");
+  let result = kill("boss");
+  assert.equal(state.outcome, "ongoing");
+  assert.equal(state.combatants.find(({ id }) => id === "boss").hp, 6);
+  result = kill("boss");
+  assert.deepEqual(result.events.slice(-2), [
+    { type: "defeated", combatantId: "boss" },
+    { type: "ended", outcome: "victory" },
+  ]);
+  assert.equal(state.outcome, "victory");
+  assert.equal(currentCombatant(state), undefined);
+});

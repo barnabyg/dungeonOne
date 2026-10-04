@@ -118,3 +118,56 @@ test("a module in another format version is refused by name and left unchanged",
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("the group-fight module holds three goblins with distinct names", async () => {
+  const adventures = await loadBuiltInFifthAdventures();
+  assert.deepEqual(
+    adventures.map(({ id }) => id),
+    ["cellar-goblin", "goblin-storeroom"],
+  );
+  const group = adventures[1];
+  assert.equal(group.difficulty, "hard");
+  assert.deepEqual(
+    group.encounters[0].opponents.map(({ id, name, statBlock }) => [
+      id,
+      name,
+      statBlock.name,
+    ]),
+    [
+      ["minion-1", "Goblin Minion 1", "Goblin Minion"],
+      ["minion-2", "Goblin Minion 2", "Goblin Minion"],
+      ["warrior", "Goblin Warrior", "Goblin Warrior"],
+    ],
+  );
+});
+
+test("the validator rejects opponents in one encounter that share a name", () => {
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        changed((m) =>
+          m.encounters[0].opponents.push({
+            ...m.encounters[0].opponents[0],
+            id: "goblin-2",
+          }),
+        ),
+      ),
+    /encounter 1 has two opponents named Goblin Warrior; give each a name the player can target/,
+  );
+});
+
+test("opponent names differing only in case count as the same name", () => {
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        changed((m) =>
+          m.encounters[0].opponents.push({
+            ...m.encounters[0].opponents[0],
+            id: "goblin-2",
+            name: "goblin warrior",
+          }),
+        ),
+      ),
+    /encounter 1 has two opponents named goblin warrior;/,
+  );
+});
