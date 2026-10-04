@@ -445,8 +445,12 @@ const veteran = (overrides = {}) => ({
   ...fighter,
   hp: 5,
   attack: sap,
-  secondWind: { uses: 2, healing: { dice: 1, sides: 10, modifier: 2 } },
-  actionSurge: { uses: 1 },
+  secondWind: {
+    uses: 2,
+    max: 2,
+    healing: { dice: 1, sides: 10, modifier: 2 },
+  },
+  actionSurge: { uses: 1, max: 1 },
   ...overrides,
 });
 /** The veteran acts first against one goblin; no dice left over. */
@@ -576,7 +580,13 @@ test("Second Wind is refused without uses, at full health, or without the featur
   const none = dice();
   for (const [overrides, reason] of [
     [
-      { secondWind: { uses: 0, healing: { dice: 1, sides: 10, modifier: 2 } } },
+      {
+        secondWind: {
+          uses: 0,
+          max: 2,
+          healing: { dice: 1, sides: 10, modifier: 2 },
+        },
+      },
       "You have no uses of Second Wind left.",
     ],
     [{ hp: 12 }, "You are unhurt, so Second Wind would heal nothing."],

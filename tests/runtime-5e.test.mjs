@@ -524,11 +524,12 @@ test("the player's combatant brings Sap, Second Wind and, from level 2, Action S
   assert.equal(one.attack.mastery, "Sap");
   assert.deepEqual(one.secondWind, {
     uses: 2,
+    max: 2,
     healing: { dice: 1, sides: 10, modifier: 1 },
   });
   assert.equal(one.actionSurge, undefined);
   const two = playerCombatant(atXp(300));
-  assert.deepEqual(two.actionSurge, { uses: 1 });
+  assert.deepEqual(two.actionSurge, { uses: 1, max: 1 });
   assert.equal(two.secondWind.healing.modifier, 2);
   assert.equal(two.attack.criticalRange, 20);
 });
@@ -601,6 +602,10 @@ test("Second Wind, Action Surge and End turn are offered only when legal", () =>
     secondWind: { uses: 2, max: 2 },
     actionSurge: { uses: 1, max: 1 },
   });
+  assert.deepEqual(
+    veteran.runtime.projectCharacterStatus(veteran.state).resources,
+    ["Second Wind: 2 of 2 uses left", "Action Surge: 1 of 1 use left"],
+  );
 });
 
 test("Sap and disadvantage appear on the engine's card with both dice and the source", () => {

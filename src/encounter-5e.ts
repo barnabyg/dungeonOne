@@ -57,13 +57,15 @@ export type Combatant = Readonly<{
   dexterity: number;
   initiativeBonus: number;
   attack: Weapon;
-  /** Fighter features, with the uses left. */
-  secondWind?: Readonly<{
-    uses: number;
-    healing: Readonly<{ dice: number; sides: number; modifier: number }>;
-  }>;
-  actionSurge?: Readonly<{ uses: number }>;
+  /** Fighter features, with the uses left of their maximum. */
+  secondWind?: FeatureUses &
+    Readonly<{
+      healing: Readonly<{ dice: number; sides: number; modifier: number }>;
+    }>;
+  actionSurge?: FeatureUses;
 }>;
+
+export type FeatureUses = Readonly<{ uses: number; max: number }>;
 
 export type InitiativeRoll = Readonly<{
   combatantId: string;
@@ -570,7 +572,8 @@ export function act(
       if (refusal !== undefined) {
         return reject(refusal);
       }
-      const { uses, healing } = actor.secondWind!;
+      const wind = actor.secondWind!;
+      const { uses, healing } = wind;
       const rolls = Array.from({ length: healing.dice }, () =>
         random.roll(healing.sides),
       );
@@ -592,7 +595,7 @@ export function act(
             ? {
                 ...candidate,
                 hp: hpAfter,
-                secondWind: { uses: uses - 1, healing },
+                secondWind: { ...wind, uses: uses - 1 },
               }
             : candidate,
         ),
@@ -605,7 +608,8 @@ export function act(
       if (refusal !== undefined) {
         return reject(refusal);
       }
-      const uses = actor.actionSurge!.uses - 1;
+      const surge = actor.actionSurge!;
+      const uses = surge.uses - 1;
       events.push({
         type: "action-surge",
         combatantId: actor.id,
@@ -615,7 +619,7 @@ export function act(
         ...state,
         combatants: state.combatants.map((candidate) =>
           candidate.id === actor.id
-            ? { ...candidate, actionSurge: { uses } }
+            ? { ...candidate, actionSurge: { ...surge, uses } }
             : candidate,
         ),
         economy: { ...state.economy, actions: state.economy.actions + 1 },

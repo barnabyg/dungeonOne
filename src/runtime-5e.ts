@@ -31,6 +31,7 @@ import {
   type EncounterActionType,
   type EncounterEvent,
   type EncounterState,
+  type FeatureUses,
   type InitiativeRoll,
   type RollMode,
   type TurnEconomy,
@@ -151,10 +152,19 @@ export function playerCombatant(sheet: FighterSheet): Combatant {
       mastery: profile.attack.mastery,
     },
     // Uses start full: each adventure follows the between-adventure rest.
-    secondWind: profile.secondWind,
+    secondWind: {
+      uses: profile.secondWind.uses,
+      max: profile.secondWind.uses,
+      healing: profile.secondWind.healing,
+    },
     ...(profile.actionSurgeUses === 0
       ? {}
-      : { actionSurge: { uses: profile.actionSurgeUses } }),
+      : {
+          actionSurge: {
+            uses: profile.actionSurgeUses,
+            max: profile.actionSurgeUses,
+          },
+        }),
   };
 }
 
@@ -327,39 +337,44 @@ export type FightView = Readonly<{
   targets: readonly Readonly<{ id: string; name: string }>[];
 }>;
 
+/** "Second Wind: 1 of 2 uses left" for each feature the combatant has. */
+function featureUses(self: Combatant): string[] {
+  const text = (name: string, { uses, max }: FeatureUses) =>
+    `${name}: ${uses} of ${max} ${max === 1 ? "use" : "uses"} left`;
+  return [
+    ...(self.secondWind === undefined
+      ? []
+      : [text("Second Wind", self.secondWind)]),
+    ...(self.actionSurge === undefined
+      ? []
+      : [text("Action Surge", self.actionSurge)]),
+  ];
+}
+
 function projectFight(
   state: FifthState,
+  options: readonly EncounterActionType[],
   targets: readonly Combatant[],
-  sheet: FighterSheet,
 ): FightView {
   const encounter = state.encounter;
-  const options =
-    state.status === "playing" && encounter !== undefined
-      ? availableActions(encounter, PLAYER_ID)
-      : [];
   const self =
     encounter === undefined ? undefined : combatant(encounter, PLAYER_ID);
-  const profile = fighterProfile(sheet);
+  const uses = (feature: FeatureUses) => ({
+    uses: feature.uses,
+    max: feature.max,
+  });
   return {
-    ...(options.length === 0
+    ...(encounter === undefined || options.length === 0
       ? {}
-      : { turn: { ...encounter!.economy, options } }),
+      : { turn: { ...encounter.economy, options } }),
     ...(self?.secondWind === undefined
       ? {}
       : {
           features: {
-            secondWind: {
-              uses: self.secondWind.uses,
-              max: profile.secondWind.uses,
-            },
+            secondWind: uses(self.secondWind),
             ...(self.actionSurge === undefined
               ? {}
-              : {
-                  actionSurge: {
-                    uses: self.actionSurge.uses,
-                    max: profile.actionSurgeUses,
-                  },
-                }),
+              : { actionSurge: uses(self.actionSurge) }),
           },
         }),
     ...(encounter === undefined
@@ -599,14 +614,7 @@ export function createFifthRuntime(
       ],
       collectedItems: [],
       outcome: state.status,
-      resources: [
-        `Second Wind: ${self?.secondWind?.uses ?? profile.secondWind.uses} of ${profile.secondWind.uses} uses left`,
-        ...(profile.actionSurgeUses === 0
-          ? []
-          : [
-              `Action Surge: ${self?.actionSurge?.uses ?? profile.actionSurgeUses} of ${profile.actionSurgeUses} use left`,
-            ]),
-      ],
+      resources: featureUses(self ?? playerCombatant(sheet)),
       ...(turn === undefined ? {} : { combatTurn: turn.name }),
     };
   };
@@ -817,7 +825,8 @@ export function createFifthRuntime(
     projectCharacterStatus,
     projectDmScene,
     attackTargets,
-    projectFight: (state) => projectFight(state, attackTargets(state), sheet),
+    projectFight: (state) =>
+      projectFight(state, options(state), attackTargets(state)),
   };
   return runtime;
 }
