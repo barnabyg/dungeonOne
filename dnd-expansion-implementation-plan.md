@@ -1,6 +1,6 @@
 # D&D 5e Expansion — Implementation Plan (Increments 11–18)
 
-Status, 4 October 2026: proposal for review. Nothing here is ticketed. It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
+Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
 
 Baseline: `main` at `f68d221`.
 
@@ -84,6 +84,8 @@ These apply to every ticket. Repeat them in each ticket's "Shared implementation
 - **Licensing.** Use only SRD 5.2 rules, monsters, spells and items (CC-BY-4.0, attribution in the rules document and README). Confirm each name is in SRD 5.2 when ticketing.
 
 ## 4. Increment 11 — 5e foundation and first adventure
+
+Published as #125–#140, reworked into sixteen vertical slices before publication. The issues are the source of truth for scope and acceptance criteria; the slices below are the planning record. The proposal's index maps each issue to these slices, and later increments' "Blocked by" references to 11.x slices mean the matching issues.
 
 **Playable result:** a player rolls a 5e Fighter with 4d6-drop-lowest, makes real trade-offs, and plays a new level 1–2 adventure with group fights against a live AI DM. The adventure shows its difficulty and has passed the balance gate. Hollow Beacon, Stonebridge, `--legacy`, old characters and the old runtimes are gone.
 
