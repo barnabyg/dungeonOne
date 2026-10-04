@@ -19,7 +19,6 @@ import {
   type FifthLibraryData,
 } from "./character-library-5e.js";
 import { DM_TURN_LIMITS, runDmTurn, type DmModel } from "./dm-turn.js";
-import { currentCombatant } from "./encounter-5e.js";
 import {
   createOpenAiDmModel,
   OPENAI_DM_DEFAULT_MODEL,
@@ -85,7 +84,6 @@ function adventureView(adventure: FifthAdventure) {
 
 function sessionView(session: FifthSession) {
   const { state, runtime, adventure } = session;
-  const encounter = state.encounter;
   const ending = adventure.endings.find(({ id }) => id === state.endingId);
   const room = adventure.rooms.find(({ id }) => id === state.roomId)!;
   return {
@@ -100,36 +98,7 @@ function sessionView(session: FifthSession) {
       : {
           ending: { kind: ending.kind, title: ending.title, text: ending.text },
         }),
-    ...(encounter === undefined
-      ? {}
-      : {
-          encounter: {
-            round: encounter.round,
-            playerId: runtime.playerId,
-            currentTurn: currentCombatant(encounter)?.id ?? null,
-            combatants: encounter.order.map((roll) => {
-              const entrant = encounter.combatants.find(
-                ({ id }) => id === roll.combatantId,
-              )!;
-              return {
-                id: entrant.id,
-                name: entrant.name,
-                side: entrant.side,
-                hp: entrant.hp,
-                maxHp: entrant.maxHp,
-                armorClass: entrant.armorClass,
-                defeated: entrant.hp === 0,
-                initiative: {
-                  d20: roll.d20,
-                  bonus: roll.bonus,
-                  total: roll.total,
-                  tieBreaks: roll.tieBreaks,
-                },
-              };
-            }),
-          },
-        }),
-    targets: runtime.attackTargets(state).map(({ id, name }) => ({ id, name })),
+    ...runtime.projectFight(state),
     history: session.history,
   };
 }

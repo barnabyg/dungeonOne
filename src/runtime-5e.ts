@@ -26,6 +26,7 @@ import {
   type Combatant,
   type EncounterEvent,
   type EncounterState,
+  type InitiativeRoll,
 } from "./encounter-5e.js";
 import { fighterProfile, type FighterSheet } from "./fighter-5e.js";
 import type { RandomSource } from "./random.js";
@@ -193,8 +194,6 @@ export type FifthRuntime = Omit<
   Readonly<{
     adventure: FifthAdventure;
     sheet: FighterSheet;
-    /** The player character's combatant id. */
-    playerId: typeof PLAYER_ID;
     createSession(): FifthState;
     handleAction(
       state: FifthState,
@@ -211,7 +210,63 @@ export type FifthRuntime = Omit<
     projectDmScene(state: FifthState): DmScene;
     /** Living opponents the player may attack now; empty when it can't act. */
     attackTargets(state: FifthState): readonly Combatant[];
+    /** The player-safe fight for the browser's encounter panel. */
+    projectFight(state: FifthState): FightView;
   }>;
+
+/** Each combatant in initiative order with its roll, HP and AC. */
+export type FightView = Readonly<{
+  encounter?: Readonly<{
+    round: number;
+    playerId: string;
+    currentTurn: string | null;
+    combatants: readonly Readonly<{
+      id: string;
+      name: string;
+      side: Combatant["side"];
+      hp: number;
+      maxHp: number;
+      armorClass: number;
+      defeated: boolean;
+      initiative: Omit<InitiativeRoll, "combatantId">;
+    }>[];
+  }>;
+  targets: readonly Readonly<{ id: string; name: string }>[];
+}>;
+
+function projectFight(
+  state: FifthState,
+  targets: readonly Combatant[],
+): FightView {
+  const encounter = state.encounter;
+  return {
+    ...(encounter === undefined
+      ? {}
+      : {
+          encounter: {
+            round: encounter.round,
+            playerId: PLAYER_ID,
+            currentTurn: currentCombatant(encounter)?.id ?? null,
+            combatants: encounter.order.map(
+              ({ combatantId, d20, bonus, total, tieBreaks }) => {
+                const entrant = combatant(encounter, combatantId);
+                return {
+                  id: entrant.id,
+                  name: entrant.name,
+                  side: entrant.side,
+                  hp: entrant.hp,
+                  maxHp: entrant.maxHp,
+                  armorClass: entrant.armorClass,
+                  defeated: entrant.hp === 0,
+                  initiative: { d20, bonus, total, tieBreaks },
+                };
+              },
+            ),
+          },
+        }),
+    targets: targets.map(({ id, name }) => ({ id, name })),
+  };
+}
 
 export function createFifthRuntime(
   adventure: FifthAdventure,
@@ -540,7 +595,6 @@ export function createFifthRuntime(
     dmTraceFormatVersion: 6,
     adventure,
     sheet,
-    playerId: PLAYER_ID,
     createSession: () => ({
       status: "playing",
       adventureId: adventure.id,
@@ -577,6 +631,7 @@ export function createFifthRuntime(
     projectCharacterStatus,
     projectDmScene,
     attackTargets,
+    projectFight: (state) => projectFight(state, attackTargets(state)),
   };
   return runtime;
 }
