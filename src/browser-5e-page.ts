@@ -6,11 +6,12 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
 <body><a class="skip" href="#content">Skip to content</a>
-<header class="masthead"><span class="brand-mark" aria-hidden="true">◇</span><div><p class="eyebrow">DUNGEON ONE · 5E PREVIEW</p><h1>Characters</h1></div></header>
+<header class="masthead"><span class="brand-mark" aria-hidden="true">◇</span><div><p class="eyebrow">5E PREVIEW</p><h1>Dungeon One</h1></div></header>
 <main id="content" tabindex="-1">
+<nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
 <p id="feedback" role="status" aria-live="polite"></p>
 <section id="library" class="panel" aria-labelledby="library-title">
-<h2 id="library-title">Your Fighters</h2>
+<h2 id="library-title" tabindex="-1">Your Fighters</h2>
 <ul id="characters" class="list"></ul>
 <p id="no-characters" class="hint" hidden>No characters yet.</p>
 <button id="open-creation" type="button">Create a Fighter</button>
@@ -28,14 +29,14 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required>
 <section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><div id="preview-body"></div></section>
 <p id="creation-error" class="error" role="alert"></p>
-<div class="controls"><button id="save-character" type="submit">Save character</button><button id="close-creation" type="button" class="secondary">Back to characters</button></div>
+<div class="controls"><button id="save-character" type="submit">Save character</button><button id="close-creation" type="button" class="secondary">Cancel</button></div>
 </form>
 </section>
 <section id="sheet" class="panel" aria-labelledby="sheet-name" hidden>
 <h2 id="sheet-name" tabindex="-1"></h2>
 <div id="sheet-body"></div>
 <section id="sheet-adventures" aria-labelledby="sheet-adventures-title"><h3 id="sheet-adventures-title">Adventures</h3><div id="adventure-choices"></div><p id="start-error" class="error" role="alert"></p></section>
-<div class="controls"><button id="close-sheet" type="button" class="secondary">Back to characters</button><button id="delete-character" type="button" class="danger">Delete character</button></div>
+<div class="controls"><button id="delete-character" type="button" class="danger">Delete character</button></div>
 </section>
 <section id="adventure" class="panel" aria-labelledby="adventure-title" hidden>
 <p id="adventure-meta" class="eyebrow dark"></p>
@@ -56,7 +57,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h3>What happened</h3>
 <ol id="log" class="log" aria-live="polite"></ol>
 <p id="adventure-error" class="error" role="alert"></p>
-<form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><input id="message" maxlength="1000" autocomplete="off"><div class="controls"><button id="send-message" type="submit">Send</button><button id="close-adventure" type="button" class="secondary">Back to characters</button></div></form>
+<form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><input id="message" maxlength="1000" autocomplete="off"><div class="controls"><button id="send-message" type="submit">Send</button></div></form>
 </section>
 </main>
 <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-warning">
@@ -75,7 +76,7 @@ button,legend,label,.eyebrow,.hint,.error,#feedback,table,.stats,.features{font-
 .skip{position:absolute;top:-100px;left:12px;background:var(--paper);padding:10px;z-index:20}.skip:focus{top:12px}
 .masthead{max-width:860px;margin:auto;padding:16px;display:flex;align-items:center;gap:12px;color:#f7edda}.brand-mark{font-size:2rem;color:var(--gold)}.eyebrow{font-size:.62rem;letter-spacing:.18em;color:var(--gold);margin-bottom:6px}
 main{max-width:860px;margin:0 auto 24px;padding:0 16px}.panel{background:var(--paper);border:1px solid #81785e;border-radius:10px;padding:20px;margin-bottom:16px;min-width:0}
-#feedback{color:#f7edda;font-size:.85rem}#feedback:empty{display:none}.hint{font-size:.85rem;color:#615f50}.error{color:#883c2d;font-size:.85rem;font-weight:600}.error:empty{display:none}
+#feedback{color:#f7edda;font-size:.85rem}#breadcrumb ol{list-style:none;display:flex;flex-wrap:wrap;padding:0;margin:0 0 12px;font:.85rem system-ui,sans-serif;color:#f7edda;overflow-wrap:anywhere}#breadcrumb li+li::before{content:"›"/"";margin:0 8px;color:var(--gold)}#breadcrumb a{color:var(--gold)}#breadcrumb-list:empty{display:none}#feedback:empty{display:none}.hint{font-size:.85rem;color:#615f50}.error{color:#883c2d;font-size:.85rem;font-weight:600}.error:empty{display:none}
 .list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:8px}.list button{width:100%;text-align:left;background:#fffaf0;color:#292b27;border-color:var(--line);display:flex;flex-direction:column}.list button:hover{background:#efe5d0}.list strong{font:600 1rem Georgia,serif}.list span{font-size:.78rem;color:#615f50}
 .rolls{padding-left:0;list-style:none;display:grid;gap:6px;font-family:system-ui,sans-serif}.rolls li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.die{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid #8a7d5e;border-radius:6px;background:#fffaf0;font-weight:700}.die.dropped{opacity:.55;text-decoration:line-through;border-style:dashed}.total{font-weight:700;margin-left:6px}.roll-name{min-width:52px;font-size:.85rem}
 fieldset{border:1px solid var(--line);border-radius:8px;margin:0 0 14px;padding:12px;min-width:0}legend{font-weight:600;font-size:.9rem;padding:0 4px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 14px}.grid label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}select,input{font:1rem system-ui,sans-serif;padding:8px;border:1px solid #9b9b83;border-radius:6px;background:#fffaf0;color:#292b27;width:100%;min-width:0;margin-top:4px}label[for=character-name]{display:block;font-weight:600;font-size:.85rem}
@@ -121,9 +122,74 @@ async function request(path, body) {
   return value;
 }
 
-function show(id) {
+// Each view has its own history entry and URL: the library is the bare page,
+// the others a hash (#create, #character-<id>, #adventure-<id>), so a reload
+// or Back and Forward return to the view without the server routing them.
+let routeTicket = 0;
+
+/** Shows one view, titles the page and draws its breadcrumb under Characters. */
+function show(id, title, trail) {
   for (const panel of ["library", "creation", "sheet", "adventure"]) element(panel).hidden = panel !== id;
-  if (id !== "adventure" && location.hash) history.replaceState(null, "", location.pathname);
+  document.title = title + " · Dungeon One";
+  const items = [{ label: "Characters", hash: "" }, ...trail];
+  element("breadcrumb-list").replaceChildren(...items.map((item, index) => {
+    const entry = make("li");
+    if (index === items.length - 1) {
+      const current = make("span", item.label);
+      current.setAttribute("aria-current", "page");
+      entry.append(current);
+      return entry;
+    }
+    const link = make("a", item.label);
+    link.href = item.hash || location.pathname;
+    link.dataset.view = item.hash ? "sheet" : "library";
+    link.addEventListener("click", (event) => {
+      if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      go(item.hash);
+    });
+    entry.append(link);
+    return entry;
+  }));
+}
+
+/** Opens a view as a new history entry, or in place of the current one. */
+function go(hash, replace) {
+  const url = hash || location.pathname;
+  if (replace) history.replaceState(null, "", url);
+  else if (url !== location.pathname + location.hash) history.pushState(null, "", url);
+  route(true);
+}
+
+/** Shows the view the URL names; one that no longer exists falls back to the library. */
+function route(focus) {
+  const ticket = ++routeTicket;
+  feedback("");
+  if (element("delete-dialog").open) {
+    restoreFocusOnClose = false;
+    element("delete-dialog").close();
+  }
+  const hash = location.hash;
+  const character = /^#character-([a-f0-9]{32})$/.exec(hash);
+  const adventure = /^#adventure-([a-f0-9]{32})$/.exec(hash);
+  if (hash === "#create") openCreation(ticket);
+  else if (character) {
+    if (findEntry(character[1])) openSheet(character[1]); else lost("That character no longer exists.");
+  } else if (adventure) openAdventure(adventure[1], ticket);
+  else if (hash) lost("There is no such page.");
+  else showLibrary(focus);
+}
+
+function lost(message) {
+  history.replaceState(null, "", location.pathname);
+  showLibrary(true);
+  feedback(message);
+}
+
+function showLibrary(focus) {
+  renderLibrary();
+  show("library", "Characters", []);
+  if (focus) element("library-title").focus();
 }
 
 const characterStatus = (entry) => entry.defeated ? "Defeated" : entry.session ? "On an adventure" : "";
@@ -138,7 +204,7 @@ function renderLibrary() {
     button.type = "button";
     const status = characterStatus(entry);
     button.append(make("strong", sheet.name), make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass + (status ? " · " + status : "")));
-    button.addEventListener("click", () => openSheet(sheet.id));
+    button.addEventListener("click", () => go("#character-" + sheet.id));
     const item = make("li");
     item.append(button);
     return item;
@@ -206,7 +272,7 @@ function openSheet(id) {
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
   element("sheet-body").replaceChildren(summary, ...profileNodes(sheet.abilities, profile, sheet.hp), rolls);
   renderAdventureChoices(entry);
-  show("sheet");
+  show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
 }
 
@@ -222,7 +288,7 @@ function renderAdventureChoices(entry) {
     const button = make("button", "Continue " + title);
     button.type = "button";
     button.id = "continue-adventure";
-    button.addEventListener("click", () => openAdventure(entry.session.id));
+    button.addEventListener("click", () => go("#adventure-" + entry.session.id));
     choices.replaceChildren(button);
     return;
   }
@@ -249,31 +315,38 @@ async function startAdventure(characterId, adventureId, button) {
   try {
     const result = await request("/api/5e/adventures/start", { revision: library.revision, characterId, adventureId });
     library = result.library;
-    showAdventure(result.session);
+    session = result.session;
+    go("#adventure-" + session.id);
   } catch (error) {
     element("start-error").textContent = error.message;
     button.disabled = false;
   }
 }
 
-async function openAdventure(sessionId) {
+async function openAdventure(sessionId, ticket) {
+  if (!library.characters.some(({ session: active }) => active && active.id === sessionId)) {
+    // An adventure that just ended stays viewable until the page reloads.
+    if (session && session.id === sessionId) showAdventure(session);
+    else lost("That adventure is no longer in progress.");
+    return;
+  }
   try {
     const result = await request("/api/5e/session", { sessionId });
+    if (ticket !== routeTicket) return;
     library = result.library;
     showAdventure(result.session);
   } catch (error) {
-    element("start-error").textContent = error.message;
-    feedback(error.message);
+    if (ticket === routeTicket) lost(error.message);
   }
 }
 
 function showAdventure(value) {
   session = value;
-  feedback("");
   element("adventure-error").textContent = "";
   renderAdventure();
-  show("adventure");
-  history.replaceState(null, "", "#adventure-" + session.id);
+  const entry = findEntry(session.characterId);
+  const title = session.adventure.title;
+  show("adventure", title, [...(entry ? [{ label: entry.sheet.name, hash: "#character-" + entry.sheet.id }] : []), { label: title }]);
   element("adventure-title").focus();
 }
 
@@ -450,13 +523,6 @@ async function sendMessage(event) {
   element("message").focus();
 }
 
-function leaveAdventure() {
-  const characterId = session.characterId;
-  session = undefined;
-  renderLibrary();
-  if (findEntry(characterId)) openSheet(characterId); else backToLibrary();
-}
-
 function defaultChoices() {
   return {
     placement: Object.fromEntries(library.abilities.map((ability, index) => [ability, index])),
@@ -575,18 +641,18 @@ async function preview() {
   }
 }
 
-async function openCreation() {
+async function openCreation(ticket) {
   try {
     library = await request("/api/5e/creation", {});
   } catch (error) {
-    feedback(error.message);
+    if (ticket === routeTicket) lost(error.message);
     return;
   }
-  feedback("");
+  if (ticket !== routeTicket) return;
   choices = choices || defaultChoices();
   renderRolls();
   renderChoices();
-  show("creation");
+  show("creation", "Create a Fighter", [{ label: "Create a Fighter" }]);
   element("creation-title").focus();
   await preview();
 }
@@ -604,10 +670,10 @@ async function saveCharacter(event) {
     library = await request("/api/5e/characters", { revision: library.revision, name, ...choices });
     choices = undefined;
     element("character-name").value = "";
-    renderLibrary();
+    // The library appends the new character. Its sheet replaces the finished
+    // creation in the history, so Back cannot reopen it and roll new dice.
+    go("#character-" + library.characters[library.characters.length - 1].sheet.id, true);
     feedback(name + " is saved.");
-    // The library appends the new character.
-    openSheet(library.characters[library.characters.length - 1].sheet.id);
   } catch (error) {
     element("creation-error").textContent = error.message;
     element("save-character").disabled = false;
@@ -648,32 +714,28 @@ async function deleteCharacter(event) {
   }
   restoreFocusOnClose = false;
   element("delete-dialog").close();
-  backToLibrary();
+  go("", true);
   feedback(name + " was permanently deleted.");
 }
 
-function backToLibrary() {
-  renderLibrary();
-  show("library");
-  element("open-creation").focus();
-}
-
-element("open-creation").addEventListener("click", openCreation);
+element("open-creation").addEventListener("click", () => go("#create"));
 element("creation-form").addEventListener("submit", saveCharacter);
-element("close-creation").addEventListener("click", backToLibrary);
-element("close-sheet").addEventListener("click", backToLibrary);
+element("close-creation").addEventListener("click", () => go(""));
 element("delete-character").addEventListener("click", openDelete);
 element("delete-confirm-name").addEventListener("input", () => { element("confirm-delete").disabled = !nameMatches(); });
 element("delete-form").addEventListener("submit", deleteCharacter);
 element("cancel-delete").addEventListener("click", () => element("delete-dialog").close());
 element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose) element("delete-character").focus(); });
 element("message-form").addEventListener("submit", sendMessage);
-element("close-adventure").addEventListener("click", leaveAdventure);
+// The skip link moves focus without adding a history entry.
+document.querySelector(".skip").addEventListener("click", (event) => {
+  event.preventDefault();
+  element("content").focus();
+});
+window.addEventListener("popstate", () => { if (library) route(true); });
 request("/api/5e/library").then((value) => {
   library = value;
-  renderLibrary();
-  // A reload during an adventure returns to it.
-  const resumed = /^#adventure-([a-f0-9]{32})$/.exec(location.hash);
-  if (resumed && library.characters.some(({ session: active }) => active && active.id === resumed[1])) openAdventure(resumed[1]);
+  // A reload returns to the view the URL names.
+  route(false);
 }, (error) => feedback(error.message));
 `;
