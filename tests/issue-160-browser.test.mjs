@@ -224,7 +224,7 @@ for (const viewport of [
           text: "Sending…",
         });
         for (const button of await page
-          .locator("#session-actions button")
+          .locator("#session-actions button:visible")
           .all()) {
           assert.equal(await button.isDisabled(), true);
         }

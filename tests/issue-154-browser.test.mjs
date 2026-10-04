@@ -120,9 +120,10 @@ const layout = (page) =>
       .getBoundingClientRect();
     const dock = document.getElementById("session-dock");
     const dockRect = dock.getBoundingClientRect();
+    // Shown buttons only: the ending's (#158) is hidden while playing.
     const buttons = [
       ...document.querySelectorAll("#session-actions button, #send-message"),
-    ];
+    ].filter((button) => button.getClientRects().length > 0);
     const focused = document.activeElement;
     const focusRect = focused.getBoundingClientRect();
     const overlaps = (a, b) =>

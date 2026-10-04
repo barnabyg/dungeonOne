@@ -96,8 +96,13 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   defeated character's row is dimmed); a character on an adventure has
   **Continue** on its row, which reopens the adventure directly, while the
   rest of the row still opens the sheet.
+  When the adventure ends, its ending takes the place of the action buttons
+  and gets focus: Victory or Defeat in words and colour, its title and text,
+  for a defeat that it is permanent, and **Back to _name_'s sheet**. The
+  typing box is disabled with the reason, the history stays readable, and
+  reloading or going back shows the same ending.
 - **The 5e adventure screen.** It has fixed regions: the status strip, the
-  scene (the room, the fight and the ending), the action buttons, and the
+  scene (the room and the fight), the action buttons, and the
   conversation history ("What happened") with the box for typing to the
   Dungeon Master. On a wide window, status and scene sit on the left and the
   history on the right in its own scroll area, newest at the bottom, with the
