@@ -27,15 +27,21 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   (the default library is `characters-5e.json`; creation needs no OpenAI key).
   Choose **Create a Fighter**: the six 4d6-drop-lowest rolls are saved to the
   library before they are shown, so reloading, restarting or leaving the screen
-  shows the same dice. Place them on any abilities, choose the background
-  increase, two skills and a Fighting Style, check the derived numbers and save.
+  shows the same dice. One table, a row per ability, places the rolls (choosing
+  a placed roll swaps it) and the background increase (+2 and +1, or +1 to
+  three) and shows each score and modifier as you change them; then choose two
+  skills and a Fighting Style, check the derived numbers and save.
   Saved Fighters open as character sheets. **Delete character** on a sheet
   removes it permanently once you type its name exactly; a pending creation
   keeps its dice. The 5e library is format version 3; a pre-5e library, or a
   5e library from an earlier build (format version 2), is refused at startup
   and left unchanged.
-- **Starting a 5e adventure.** A saved Fighter's sheet offers **Start** for
-  each built-in 5e adventure module, with its level range and difficulty:
+- **Starting a 5e adventure.** A saved Fighter's sheet leads with its
+  adventures: **Start** for each built-in 5e adventure module (or **Continue**
+  for the one in progress), tagged with its level range and difficulty and
+  ordered by level range, then Easy, Medium, Hard. A line beside them warns
+  that a character at 0 HP is defeated for good, and a defeated character's
+  sheet says so at the top. The modules are:
   _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`), one SRD 5.2
   Goblin Warrior; _The Goblins in the Storeroom_
   (`adventures/5e/goblin-storeroom.json`), a group fight against two Goblin
@@ -71,12 +77,17 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   adventure: opening another character's adventure clears it. The engine rolls every die and writes
   every action's result.
   The session is saved after every action in the
-  `characters-5e-adventures` directory beside the library (format version 3),
+  `characters-5e-adventures` directory beside the library (format version 4;
+  a save from an earlier build is refused and left unchanged),
   and reloading the page or restarting with the same command returns to the
   adventure exactly as it was. Winning the fight that ends the adventure frees the character for another adventure;
   0 HP is instant defeat, and a defeated character cannot start another. A
   character on an adventure cannot be deleted until the adventure ends.
-- **The 5e adventure screen.** It has fixed regions: status (your HP), the
+  The library tags each character **On an adventure** or **Defeated** (a
+  defeated character's row is dimmed); a character on an adventure has
+  **Continue** on its row, which reopens the adventure directly, while the
+  rest of the row still opens the sheet.
+- **The 5e adventure screen.** It has fixed regions: the status strip, the
   scene (the room, the fight and the ending), the action buttons, and the
   conversation history ("What happened") with the box for typing to the
   Dungeon Master. On a wide window, status and scene sit on the left and the
@@ -84,7 +95,13 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   actions and the typing box beneath it, so an action and its result are on
   screen together. On a phone it is one column with the history, actions and
   typing box pinned to the bottom. The history follows new entries unless you
-  have scrolled up to read older ones.
+  have scrolled up to read older ones. The status strip shows your HP as
+  numbers and a bar with its health in words (Healthy, Bloodied at half or
+  fewer, Critical at a quarter or fewer, Defeated at 0), and a pip for each
+  Second Wind and Action Surge use; in a fight it adds the round, whose turn
+  it is, and pips for your Action (two after Action Surge), Bonus action and
+  Reaction, filled while unused. Screen readers hear each in words, such as
+  "HP 6 of 11" and "Bonus action: used".
 - **Moving between 5e views.** The character library, creation, each
   character sheet and each adventure have their own address and page title
   (such as "Brannoc Ironside · Dungeon One"), so the browser's Back and

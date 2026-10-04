@@ -7,7 +7,11 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { buildFighter, rollAbilitySet } from "../dist/fighter-5e.js";
+import {
+  buildFighter,
+  defaultPlacement,
+  rollAbilitySet,
+} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
@@ -23,16 +27,8 @@ const launch = () =>
 const [adventure, storeroom] = await loadBuiltInFifthAdventures();
 const ATTACK = { type: "attack", actorId: "pc", targetId: "goblin" };
 const END_TURN = { type: "end-turn", actorId: "pc" };
-// The creation screen's default choices.
+// The creation screen's default choices; the placement follows the dice.
 const DEFAULT_CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
@@ -44,12 +40,11 @@ function firstFighter(seed) {
     .update(`5e-ability-rolls:${seed}:1`)
     .digest()
     .readUInt32LE(0);
-  return buildFighter(
-    "a".repeat(32),
-    "Ada",
-    rollAbilitySet(createSeededRandom(stream)),
-    DEFAULT_CHOICES,
-  );
+  const dice = rollAbilitySet(createSeededRandom(stream));
+  return buildFighter("a".repeat(32), "Ada", dice, {
+    ...DEFAULT_CHOICES,
+    placement: defaultPlacement(dice),
+  });
 }
 
 /**
@@ -166,6 +161,13 @@ const panel = (page) =>
     turn: document.getElementById("turn").textContent,
     log: document.getElementById("log").textContent,
   }));
+
+/** What the status strip's resources say to a screen reader (#155). */
+const resources = (page) =>
+  page
+    .locator("#resources li .visually-hidden")
+    .allTextContents()
+    .then((words) => words.join("; "));
 
 const sessionFile = async (directory) => {
   const folder = join(directory, "characters-adventures");
@@ -846,9 +848,9 @@ test(
         JSON.stringify(await sessionFile(directory)),
         JSON.stringify(before),
       );
-      assert.match(
-        await page.locator("#economy").textContent(),
-        /^This turn: 1 action left, bonus action available, reaction available. Second Wind: 2 of 2 uses left./,
+      assert.equal(
+        await resources(page),
+        "Action: available; Bonus action: available; Reaction: available; Second Wind: 2 of 2 uses left",
       );
       let usedSecondWind = false;
       while (!(await page.locator("#ending").isVisible())) {
@@ -866,9 +868,9 @@ test(
           if (!usedSecondWind) {
             usedSecondWind = true;
             // The bonus action is spent; the action is not.
-            assert.match(
-              await page.locator("#economy").textContent(),
-              /^This turn: 1 action left, bonus action used, reaction available. Second Wind: 1 of 2 uses left./,
+            assert.equal(
+              await resources(page),
+              "Action: available; Bonus action: used; Reaction: available; Second Wind: 1 of 2 uses left",
             );
             assert.match(
               await page.locator("#log li").last().textContent(),
@@ -886,9 +888,9 @@ test(
             );
             await page.locator("#adventure").waitFor({ state: "visible" });
             assert.deepEqual(await panel(page), shown);
-            assert.match(
-              await page.locator("#economy").textContent(),
-              /bonus action used.*Second Wind: 1 of 2 uses left\./,
+            assert.equal(
+              await resources(page),
+              "Action: available; Bonus action: used; Reaction: available; Second Wind: 1 of 2 uses left",
             );
           }
         } else {
