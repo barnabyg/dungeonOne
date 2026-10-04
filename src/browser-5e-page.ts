@@ -57,8 +57,8 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </section>
 <section id="sheet" class="panel" aria-labelledby="sheet-name" hidden>
 <h2 id="sheet-name" tabindex="-1"></h2>
+<section id="sheet-adventures" aria-labelledby="sheet-adventures-title"><h3 id="sheet-adventures-title">Adventures</h3><p id="defeat-warning" class="hint"></p><div id="adventure-choices"></div><p id="start-error" class="error" role="alert"></p></section>
 <div id="sheet-body"></div>
-<section id="sheet-adventures" aria-labelledby="sheet-adventures-title"><h3 id="sheet-adventures-title">Adventures</h3><div id="adventure-choices"></div><p id="start-error" class="error" role="alert"></p></section>
 <div class="controls"><button id="delete-character" type="button" class="danger">Delete character</button></div>
 </section>
 <section id="adventure" class="panel" aria-labelledby="adventure-title" hidden>
@@ -133,7 +133,7 @@ fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margi
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
 dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
 .features{font-size:var(--text-sm);padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)}
-.eyebrow.dark{color:var(--color-gold-text)}.adventure-choice{border:1px solid var(--color-line);border-radius:var(--radius-md);padding:10px var(--space-3);margin-bottom:var(--space-2)}.adventure-choice p{margin-bottom:var(--space-2)}
+.eyebrow.dark{color:var(--color-gold-text)}#sheet-adventures h3{margin-top:0}#adventure-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2);margin-bottom:var(--space-3)}#adventure-choices>:not(.adventure-choice){grid-column:1/-1;justify-self:start;margin:0}.adventure-choice{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:10px var(--space-3)}.adventure-choice p{margin:0}.adventure-choice button{margin-top:auto}.tags{display:flex;flex-wrap:wrap;gap:var(--space-1)}.tag.level{color:var(--color-text-muted)}.tag.easy{color:var(--color-success)}.tag.medium{color:var(--color-warning)}.tag.hard{color:var(--color-danger)}.defeat-notice{color:var(--color-danger);font:600 var(--text-md) var(--font-sans)}
 #turn{font-family:var(--font-sans);font-weight:600}tr.current{background:var(--color-highlight)}tr.defeated td,tr.defeated th{color:var(--color-text-muted);font-weight:400}.tag{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:999px;font:600 var(--text-xs)/1.5 var(--font-sans);white-space:nowrap}
 .log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid var(--color-line);padding:var(--space-1) 10px}.log .player{font-weight:600}.card{background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:var(--space-2) 10px;margin-top:6px;white-space:pre-line}.card.rejection{border-color:var(--color-danger)}.card .dice{display:block;color:var(--color-text-muted);font-size:var(--text-xs);margin-top:var(--space-1)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
@@ -348,8 +348,12 @@ function openSheet(id) {
 function renderAdventureChoices(entry) {
   element("start-error").textContent = "";
   const choices = element("adventure-choices");
+  const warning = element("defeat-warning");
+  warning.textContent = "At 0 HP, " + entry.sheet.name + " is defeated for good and can never start another adventure.";
+  warning.hidden = entry.defeated;
+  // A defeated character's sheet leads with its defeat.
   if (entry.defeated) {
-    choices.replaceChildren(make("p", entry.sheet.name + " was defeated and cannot start another adventure.", "hint"));
+    choices.replaceChildren(make("p", entry.sheet.name + " was defeated and cannot start another adventure.", "defeat-notice"));
     return;
   }
   if (entry.session) {
@@ -361,15 +365,18 @@ function renderAdventureChoices(entry) {
     choices.replaceChildren(button);
     return;
   }
+  // The server lists the modules in offer order: level range, then difficulty.
   choices.replaceChildren(...library.adventures.map((adventure) => {
     const box = make("div", undefined, "adventure-choice");
-    box.append(make("strong", adventure.title), make("p", adventure.objective + " " + levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty) + ".", "hint"));
-    const button = make("button", "Start " + adventure.title);
+    const tags = make("p", undefined, "tags");
+    tags.append(make("span", levelText(adventure.recommendedLevels), "tag level"), make("span", titleCase(adventure.difficulty), "tag " + adventure.difficulty));
+    const button = make("button", "Start");
     button.type = "button";
     button.className = "start-adventure secondary";
+    button.setAttribute("aria-label", "Start " + adventure.title);
     button.dataset.adventure = adventure.id;
     button.addEventListener("click", () => startAdventure(entry.sheet.id, adventure.id, button));
-    box.append(button);
+    box.append(make("strong", adventure.title), tags, make("p", adventure.objective, "hint"), button);
     return box;
   }));
 }
