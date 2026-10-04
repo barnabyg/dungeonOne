@@ -305,10 +305,10 @@ for (const viewport of [
         await page.locator("#adventure").waitFor({ state: "visible" });
         await page.locator("#room button.explore").first().waitFor();
         await check(page, "room");
-        await page.locator("#close-adventure").click();
+        await page.locator('#breadcrumb a[data-view="sheet"]').click();
         await page.locator("#continue-adventure").waitFor();
         await check(page, "sheet with an adventure in progress");
-        await page.locator("#close-sheet").click();
+        await page.locator('#breadcrumb a[data-view="library"]').click();
         await page.locator("#characters button").first().waitFor();
         await check(page, "library");
 

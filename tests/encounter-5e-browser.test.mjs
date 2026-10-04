@@ -266,7 +266,7 @@ test(
       const after = JSON.parse(await readFile(libraryPath, "utf8"));
       assert.equal(after.characters[0].session, undefined);
       assert.equal(after.characters[0].defeated, undefined);
-      await page.locator("#close-adventure").click();
+      await page.locator(`#breadcrumb a[data-view="sheet"]`).click();
       await page.locator(".start-adventure").first().waitFor();
     } finally {
       await browser.close();
@@ -299,7 +299,7 @@ test(
       );
 
       // Deleting is refused while the adventure is in progress.
-      await page.locator("#close-adventure").click();
+      await page.locator(`#breadcrumb a[data-view="sheet"]`).click();
       await page.locator("#continue-adventure").waitFor();
       await page.locator("#delete-character").click();
       await page.locator("#delete-confirm-name").fill("Ada");
@@ -332,7 +332,7 @@ test(
       assert.equal(after.characters[0].defeated, true);
       assert.equal(after.characters[0].sheet.hp, 0);
 
-      await page.locator("#close-adventure").click();
+      await page.locator(`#breadcrumb a[data-view="sheet"]`).click();
       await page
         .locator("#adventure-choices")
         .filter({
