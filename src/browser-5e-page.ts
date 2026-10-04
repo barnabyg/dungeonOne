@@ -13,7 +13,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h2 id="library-title">Your Fighters</h2>
 <ul id="characters" class="list"></ul>
 <p id="no-characters" class="hint" hidden>No characters yet.</p>
-<button id="open-creation" type="button">Create a Fighter</button>
+<button id="open-creation" type="button" class="primary">Create a Fighter</button>
 </section>
 <section id="creation" class="panel" aria-labelledby="creation-title" hidden>
 <h2 id="creation-title" tabindex="-1">Create a Fighter</h2>
@@ -28,14 +28,14 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required>
 <section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><div id="preview-body"></div></section>
 <p id="creation-error" class="error" role="alert"></p>
-<div class="controls"><button id="save-character" type="submit">Save character</button><button id="close-creation" type="button" class="secondary">Back to characters</button></div>
+<div class="controls"><button id="save-character" type="submit" class="primary">Save character</button><button id="close-creation" type="button" class="quiet">Back to characters</button></div>
 </form>
 </section>
 <section id="sheet" class="panel" aria-labelledby="sheet-name" hidden>
 <h2 id="sheet-name" tabindex="-1"></h2>
 <div id="sheet-body"></div>
 <section id="sheet-adventures" aria-labelledby="sheet-adventures-title"><h3 id="sheet-adventures-title">Adventures</h3><div id="adventure-choices"></div><p id="start-error" class="error" role="alert"></p></section>
-<div class="controls"><button id="close-sheet" type="button" class="secondary">Back to characters</button><button id="delete-character" type="button" class="danger">Delete character</button></div>
+<div class="controls"><button id="close-sheet" type="button" class="quiet">Back to characters</button><button id="delete-character" type="button" class="danger">Delete character</button></div>
 </section>
 <section id="adventure" class="panel" aria-labelledby="adventure-title" hidden>
 <p id="adventure-meta" class="eyebrow dark"></p>
@@ -56,7 +56,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h3>What happened</h3>
 <ol id="log" class="log" aria-live="polite"></ol>
 <p id="adventure-error" class="error" role="alert"></p>
-<form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><input id="message" maxlength="1000" autocomplete="off"><div class="controls"><button id="send-message" type="submit">Send</button><button id="close-adventure" type="button" class="secondary">Back to characters</button></div></form>
+<form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><input id="message" maxlength="1000" autocomplete="off"><div class="controls"><button id="send-message" type="submit" class="primary">Send</button><button id="close-adventure" type="button" class="quiet">Back to characters</button></div></form>
 </section>
 </main>
 <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-warning">
@@ -65,32 +65,50 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <p id="delete-warning" class="hint">Deleting is permanent. There is no undo, archive or recycle bin. Your pending creation, if you have one, keeps its dice.</p>
 <label for="delete-confirm-name">Type <strong id="delete-name-hint"></strong> exactly to confirm</label><input id="delete-confirm-name" autocomplete="off" spellcheck="false">
 <p id="delete-error" class="error" role="alert"></p>
-<div class="controls"><button id="confirm-delete" type="submit" class="danger" disabled>Delete</button><button id="cancel-delete" type="button" class="secondary">Cancel</button></div>
+<div class="controls"><button id="confirm-delete" type="submit" class="primary danger" disabled>Delete</button><button id="cancel-delete" type="button" class="secondary">Cancel</button></div>
 </form>
 </dialog></body></html>`;
 
-export const FIFTH_BROWSER_CSS = `:root{color-scheme:light;font-family:Georgia,serif;color:#292b27;background:#151f23;font-size:17px;line-height:1.55;--ink:#263d3d;--gold:#d5b474;--line:#d4c9b5;--paper:#f7f0e1}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#304043,#151f23 75%);min-height:100dvh}h1,h2,h3,p{margin:0 0 12px}h1{font-size:1.4rem;line-height:1.1}h2{font-size:1.45rem;line-height:1.2}h3{font-size:1.05rem;margin-top:16px}
-button,legend,label,.eyebrow,.hint,.error,#feedback,table,.stats,.features{font-family:system-ui,sans-serif}button{font-size:.85rem;border:1px solid var(--ink);background:var(--ink);color:#fff9e9;padding:10px 14px;border-radius:6px;cursor:pointer;line-height:1.4}button:hover{background:#3a5451}button:disabled{opacity:.55;cursor:default}button.secondary{background:transparent;color:var(--ink);border-color:var(--line)}button.secondary:hover{background:#e8dec9}:focus-visible{outline:3px solid #bb762c;outline-offset:3px}[hidden]{display:none!important}
-.skip{position:absolute;top:-100px;left:12px;background:var(--paper);padding:10px;z-index:20}.skip:focus{top:12px}
-.masthead{max-width:860px;margin:auto;padding:16px;display:flex;align-items:center;gap:12px;color:#f7edda}.brand-mark{font-size:2rem;color:var(--gold)}.eyebrow{font-size:.62rem;letter-spacing:.18em;color:var(--gold);margin-bottom:6px}
-main{max-width:860px;margin:0 auto 24px;padding:0 16px}.panel{background:var(--paper);border:1px solid #81785e;border-radius:10px;padding:20px;margin-bottom:16px;min-width:0}
-#feedback{color:#f7edda;font-size:.85rem}#feedback:empty{display:none}.hint{font-size:.85rem;color:#615f50}.error{color:#883c2d;font-size:.85rem;font-weight:600}.error:empty{display:none}
-.list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:8px}.list button{width:100%;text-align:left;background:#fffaf0;color:#292b27;border-color:var(--line);display:flex;flex-direction:column}.list button:hover{background:#efe5d0}.list strong{font:600 1rem Georgia,serif}.list span{font-size:.78rem;color:#615f50}
-.rolls{padding-left:0;list-style:none;display:grid;gap:6px;font-family:system-ui,sans-serif}.rolls li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.die{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid #8a7d5e;border-radius:6px;background:#fffaf0;font-weight:700}.die.dropped{opacity:.55;text-decoration:line-through;border-style:dashed}.total{font-weight:700;margin-left:6px}.roll-name{min-width:52px;font-size:.85rem}
-fieldset{border:1px solid var(--line);border-radius:8px;margin:0 0 14px;padding:12px;min-width:0}legend{font-weight:600;font-size:.9rem;padding:0 4px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 14px}.grid label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}select,input{font:1rem system-ui,sans-serif;padding:8px;border:1px solid #9b9b83;border-radius:6px;background:#fffaf0;color:#292b27;width:100%;min-width:0;margin-top:4px}label[for=character-name]{display:block;font-weight:600;font-size:.85rem}
-.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:8px;align-items:flex-start;font-size:.85rem}.checks input{width:auto;padding:0;margin-top:4px;flex:none}.checks small{display:block;color:#615f50;font-weight:400}
-#preview{border-top:1px solid var(--line);margin-top:16px}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:4px}
-.table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:.85rem;width:100%;margin-bottom:12px}th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left}th{font-weight:600;color:#4b4a3c}
-button.danger{background:#883c2d;border-color:#883c2d}button.danger:hover{background:#9f4936}
-dialog{background:var(--paper);color:#292b27;border:1px solid #81785e;border-radius:10px;padding:20px;width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:.85rem;overflow-wrap:anywhere}
-.features{font-size:.85rem;padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.eyebrow.dark{color:#7a6331}.adventure-choice{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}.adventure-choice p{margin-bottom:8px}
-#turn{font-family:system-ui,sans-serif;font-weight:600}tr.current{background:#efe2c0}tr.defeated td,tr.defeated th{color:#8b8576;text-decoration:line-through}
-.log{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:8px;font-family:system-ui,sans-serif;font-size:.88rem}.log li{border-left:3px solid var(--line);padding:4px 10px}.log .player{font-weight:600}.card{background:#fffaf0;border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-top:6px;white-space:pre-line}.card.rejection{border-color:#883c2d}.card .dice{display:block;color:#615f50;font-size:.78rem;margin-top:4px}
-h4{font:600 .85rem system-ui,sans-serif;margin:12px 0 6px;color:#4b4a3c}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:system-ui,sans-serif;font-size:.85rem}.things li{border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:#fffaf0}.things li.none{border:0;background:none;padding:0;color:#615f50}.things p{margin:0}.things .discovery{color:#5b4a22;margin-top:4px}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
-#ending{border:2px solid var(--gold);border-radius:8px;padding:12px;margin:12px 0}#message-form label{display:block;font-weight:600;font-size:.85rem}
-@media(max-width:560px){#initiative th,#initiative td{padding:5px 3px}#initiative th:first-child,#initiative td:first-child{display:none}#initiative td{white-space:nowrap}#initiative .roll-off{display:block;white-space:normal;font-size:.78rem}.panel{padding:14px}.masthead{padding:12px 16px}h2{font-size:1.25rem}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
+// Design tokens (#152). Use these names rather than literal values:
+// - Colour: --color-ink (primary fill, secondary outline), --color-paper and
+//   --color-surface (backgrounds), --color-text, --color-text-muted (secondary
+//   text, also dimmed rows; 4.5:1 on every light background), --color-line
+//   (decorative dividers only), --color-control-border (input and card
+//   boundaries; 3:1), --color-focus (keyboard focus ring), and the semantic
+//   --color-danger, --color-success, --color-warning and --color-hp-healthy,
+//   -wounded, -critical and -down for status displays.
+// - Type: --font-serif, --font-sans and the scale --text-xs to --text-2xl;
+//   h1 uses 2xl, h2 xl, h3 lg and h4 sm, so headings shrink in order.
+// - Spacing: --space-1 (4px) to --space-6 (24px); radii --radius-sm/md/lg.
+// - Buttons: every button takes exactly one variant class. `primary` is the
+//   one main action of a region (library, creation form, sheet, room, fight,
+//   composer, delete dialog); `secondary` is an outlined peer action; `quiet`
+//   is a link-weight action such as going back; `danger` is an outlined
+//   destructive action, and `primary danger` confirms one in a dialog.
+// --ink, --gold, --line and --paper are older aliases of the colour tokens.
+export const FIFTH_BROWSER_CSS = `:root{color-scheme:light;--color-ink:#263d3d;--color-ink-hover:#3a5451;--color-on-ink:#fff9e9;--color-paper:#f7f0e1;--color-surface:#fffaf0;--color-surface-hover:#efe5d0;--color-highlight:#efe2c0;--color-text:#292b27;--color-text-label:#4b4a3c;--color-text-muted:#615f50;--color-line:#d4c9b5;--color-control-border:#7a7260;--color-panel-border:#81785e;--color-gold:#d5b474;--color-gold-text:#7a6331;--color-discovery:#5b4a22;--color-on-dark:#f7edda;--color-night:#151f23;--color-night-light:#304043;--color-focus:#9a5a1c;--color-danger:#883c2d;--color-danger-hover:#9f4936;--color-danger-soft:#f3e0d8;--color-success:#2f6b3a;--color-warning:#8a5a00;--color-hp-healthy:var(--color-success);--color-hp-wounded:var(--color-warning);--color-hp-critical:var(--color-danger);--color-hp-down:var(--color-text-muted);--font-serif:Georgia,serif;--font-sans:system-ui,sans-serif;--text-xs:.78rem;--text-sm:.85rem;--text-md:1rem;--text-lg:1.15rem;--text-xl:1.45rem;--text-2xl:1.75rem;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--radius-sm:6px;--radius-md:8px;--radius-lg:10px;--ink:var(--color-ink);--gold:var(--color-gold);--line:var(--color-line);--paper:var(--color-paper);font-family:var(--font-serif);color:var(--color-text);background:var(--color-night);font-size:17px;line-height:1.55}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,var(--color-night-light),var(--color-night) 75%);min-height:100dvh}h1,h2,h3,p{margin:0 0 var(--space-3)}h1{font-size:var(--text-2xl);line-height:1.1}h2{font-size:var(--text-xl);line-height:1.2}h3{font-size:var(--text-lg);margin-top:var(--space-4)}
+button,legend,label,.eyebrow,.hint,.error,#feedback,table,.stats,.features{font-family:var(--font-sans)}button{font-size:var(--text-sm);border:1px solid var(--color-ink);background:transparent;color:var(--color-ink);padding:10px 14px;border-radius:var(--radius-sm);cursor:pointer;line-height:1.4}button:disabled{opacity:.55;cursor:default}
+button.primary{background:var(--color-ink);border-color:var(--color-ink);color:var(--color-on-ink)}button.primary:hover:not(:disabled){background:var(--color-ink-hover)}button.secondary:hover:not(:disabled){background:var(--color-surface-hover)}button.quiet{border-color:transparent;text-decoration:underline;text-underline-offset:3px}button.quiet:hover:not(:disabled){background:var(--color-surface-hover)}button.danger{border-color:var(--color-danger);color:var(--color-danger)}button.danger:hover:not(:disabled){background:var(--color-danger-soft)}button.primary.danger{background:var(--color-danger);color:var(--color-on-ink)}button.primary.danger:hover:not(:disabled){background:var(--color-danger-hover)}
+:focus-visible{outline:3px solid var(--color-focus);outline-offset:3px}[tabindex="-1"]:focus{outline:none}[hidden]{display:none!important}
+.skip{position:absolute;top:-100px;left:12px;background:var(--color-paper);padding:10px;z-index:20}.skip:focus{top:12px}
+.masthead{max-width:860px;margin:auto;padding:var(--space-4);display:flex;align-items:center;gap:var(--space-3);color:var(--color-on-dark)}.brand-mark{font-size:2rem;color:var(--color-gold)}.eyebrow{font-size:.62rem;letter-spacing:.18em;color:var(--color-gold);margin-bottom:6px}
+main{max-width:860px;margin:0 auto var(--space-6);padding:0 var(--space-4)}.panel{background:var(--color-paper);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);margin-bottom:var(--space-4);min-width:0}
+#feedback{color:var(--color-on-dark);font-size:var(--text-sm)}#feedback:empty{display:none}.hint{font-size:var(--text-sm);color:var(--color-text-muted)}.error{color:var(--color-danger);font-size:var(--text-sm);font-weight:600}.error:empty{display:none}
+.list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.list button{width:100%;text-align:left;background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border);display:flex;flex-direction:column}.list button:hover{background:var(--color-surface-hover)}.list strong{font:600 var(--text-md) var(--font-serif)}.list span{font-size:var(--text-xs);color:var(--color-text-muted)}
+.rolls{padding-left:0;list-style:none;display:grid;gap:6px;font-family:var(--font-sans)}.rolls li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.die{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);font-weight:700}.die.dropped{color:var(--color-text-muted);text-decoration:line-through;border-style:dashed}.total{font-weight:700;margin-left:6px}.roll-name{min-width:52px;font-size:var(--text-sm)}
+fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margin:0 0 14px;padding:var(--space-3);min-width:0}legend{font-weight:600;font-size:.9rem;padding:0 var(--space-1)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2) 14px}.grid label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}select,input{font:var(--text-md) var(--font-sans);padding:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);width:100%;min-width:0;margin-top:var(--space-1)}label[for=character-name]{display:block;font-weight:600;font-size:var(--text-sm)}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-sm)}.checks input{width:auto;padding:0;margin-top:var(--space-1);flex:none;accent-color:var(--color-ink)}.checks small{display:block;color:var(--color-text-muted);font-weight:400}
+#preview{border-top:1px solid var(--color-line);margin-top:var(--space-4)}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:var(--space-1)}
+.table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:var(--text-sm);width:100%;margin-bottom:var(--space-3)}th,td{border-bottom:1px solid var(--color-line);padding:5px 6px;text-align:left}th{font-weight:600;color:var(--color-text-label)}
+dialog{background:var(--color-paper);color:var(--color-text);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:var(--text-sm);overflow-wrap:anywhere}
+.features{font-size:var(--text-sm);padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)}
+.eyebrow.dark{color:var(--color-gold-text)}.adventure-choice{border:1px solid var(--color-line);border-radius:var(--radius-md);padding:10px var(--space-3);margin-bottom:var(--space-2)}.adventure-choice p{margin-bottom:var(--space-2)}
+#turn{font-family:var(--font-sans);font-weight:600}tr.current{background:var(--color-highlight)}tr.defeated td,tr.defeated th{color:var(--color-text-muted);font-weight:400}.tag{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:999px;font:600 var(--text-xs)/1.5 var(--font-sans);white-space:nowrap}
+.log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid var(--color-line);padding:var(--space-1) 10px}.log .player{font-weight:600}.card{background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:var(--space-2) 10px;margin-top:6px;white-space:pre-line}.card.rejection{border-color:var(--color-danger)}.card .dice{display:block;color:var(--color-text-muted);font-size:var(--text-xs);margin-top:var(--space-1)}
+h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
+#ending{border:2px solid var(--color-gold);border-radius:var(--radius-md);padding:var(--space-3);margin:var(--space-3) 0}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
+@media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative th:first-child,#initiative td:first-child{display:none}#initiative td{white-space:nowrap}#initiative .roll-off{display:block;white-space:normal;font-size:var(--text-xs)}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -134,7 +152,7 @@ function renderLibrary() {
   const list = element("characters");
   list.replaceChildren(...library.characters.map((entry) => {
     const { sheet, profile } = entry;
-    const button = make("button");
+    const button = make("button", undefined, "secondary");
     button.type = "button";
     const status = characterStatus(entry);
     button.append(make("strong", sheet.name), make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass + (status ? " · " + status : "")));
@@ -219,7 +237,7 @@ function renderAdventureChoices(entry) {
   }
   if (entry.session) {
     const title = (library.adventures.find(({ id }) => id === entry.session.adventureId) || { title: "an adventure" }).title;
-    const button = make("button", "Continue " + title);
+    const button = make("button", "Continue " + title, "primary");
     button.type = "button";
     button.id = "continue-adventure";
     button.addEventListener("click", () => openAdventure(entry.session.id));
@@ -231,7 +249,7 @@ function renderAdventureChoices(entry) {
     box.append(make("strong", adventure.title), make("p", adventure.objective + " " + levelText(adventure.recommendedLevels) + " · " + titleCase(adventure.difficulty) + ".", "hint"));
     const button = make("button", "Start " + adventure.title);
     button.type = "button";
-    button.className = "start-adventure";
+    button.className = "start-adventure secondary";
     button.dataset.adventure = adventure.id;
     button.addEventListener("click", () => startAdventure(entry.sheet.id, adventure.id, button));
     box.append(button);
@@ -294,8 +312,9 @@ function renderAdventure() {
       const row = make("tr", undefined, (combatant.id === encounter.currentTurn ? "current" : "") + (combatant.defeated ? " defeated" : ""));
       row.dataset.combatant = combatant.id;
       if (combatant.id === encounter.currentTurn) row.setAttribute("aria-current", "true");
-      const name = make("th", combatant.name + (combatant.id === encounter.playerId ? " (you)" : "") + (combatant.defeated ? " (defeated)" : "") + (combatant.sapped ? " (sapped)" : ""));
+      const name = make("th", combatant.name + (combatant.id === encounter.playerId ? " (you)" : "") + (combatant.sapped ? " (sapped)" : ""));
       name.scope = "row";
+      if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
       const roll = combatant.initiative;
       const initiative = make("td", roll.d20 + " " + (roll.bonus >= 0 ? "+ " : "− ") + Math.abs(roll.bonus) + " = " + roll.total);
       if (roll.tieBreaks.length) initiative.append(make("span", " (roll-off " + roll.tieBreaks.join(", ") + ")", "roll-off"));
@@ -312,7 +331,8 @@ function renderAdventure() {
   element("attack-controls").replaceChildren(...session.targets.map((target) => {
     const button = make("button", "Attack " + target.name);
     button.type = "button";
-    button.className = "attack";
+    // One target makes attacking the fight's primary action; several are peers.
+    button.className = "attack " + (session.targets.length === 1 ? "primary" : "secondary");
     button.dataset.target = target.id;
     button.disabled = acting;
     button.addEventListener("click", () => attack(target.id));
@@ -324,7 +344,7 @@ function renderAdventure() {
   element("feature-controls").replaceChildren(...FEATURE_BUTTONS.filter(({ action }) => options.includes(action)).map(({ action, label }) => {
     const button = make("button", label + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : ""));
     button.type = "button";
-    button.className = action === "end-turn" ? "secondary" : "feature";
+    button.className = action === "end-turn" ? "secondary" : "feature secondary";
     button.dataset.action = action;
     button.disabled = acting;
     button.addEventListener("click", () => useFeature(action));
@@ -379,7 +399,7 @@ function renderRoom(room) {
       item.append(text);
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
       const buttons = list.actions.filter(([action]) => room.options[action].includes(entry.id)).map(([action, label]) => {
-        const button = make("button", label + entry.name, "explore");
+        const button = make("button", label + entry.name, "explore secondary");
         button.type = "button";
         button.dataset.action = action;
         button.dataset.target = entry.id;
