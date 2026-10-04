@@ -68,7 +68,7 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   every action's result.
   The session is saved after every action in the
   `characters-5e-adventures` directory beside the library (format version 4;
-  a save from an earlier build is refused and left unchanged),
+  a session saved by an earlier build is refused with a message naming the file),
   and reloading the page or restarting with the same command returns to the
   adventure exactly as it was. Winning the fight that ends the adventure frees the character for another adventure;
   0 HP is instant defeat, and a defeated character cannot start another. A
@@ -88,6 +88,15 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   it is, and pips for your Action (two after Action Surge), Bonus action and
   Reaction, filled while unused. Screen readers hear each in words, such as
   "HP 6 of 11" and "Bonus action: used".
+  Each kind of entry looks different: narration (the opening and entering a
+  room) is plain text, your own words are a bubble marked **You:**, the AI
+  DM's replies are marked **Dungeon Master**, and the engine's result cards
+  are boxed, with an **Action rejected** card tinted red. Each line of a
+  result card is followed by the rolls behind it, labelled by purpose, such
+  as "Attack: d20 12 + 5 = 17 against AC 13" with a Hit or Miss tag and
+  "Damage: d6 1 + 3 = 4 bludgeoning → Goblin Warrior 3/7 HP"; an attack at
+  disadvantage lists both d20s and marks the one not kept. The newest entry
+  is marked with a gold edge.
 - **Moving between 5e views.** The character library, creation, each
   character sheet and each adventure have their own address and page title
   (such as "Brannoc Ironside · Dungeon One"), so the browser's Back and
