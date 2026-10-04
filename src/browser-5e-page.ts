@@ -96,7 +96,7 @@ button.primary{background:var(--color-ink);border-color:var(--color-ink);color:v
 .masthead{max-width:860px;margin:auto;padding:var(--space-4);display:flex;align-items:center;gap:var(--space-3);color:var(--color-on-dark)}.brand-mark{font-size:2rem;color:var(--color-gold)}.eyebrow{font-size:.62rem;letter-spacing:.18em;color:var(--color-gold);margin-bottom:6px}
 main{max-width:860px;margin:0 auto var(--space-6);padding:0 var(--space-4)}.panel{background:var(--color-paper);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);margin-bottom:var(--space-4);min-width:0}
 #feedback{color:var(--color-on-dark);font-size:var(--text-sm)}#breadcrumb ol{list-style:none;display:flex;flex-wrap:wrap;padding:0;margin:0 0 var(--space-3);font:var(--text-sm) var(--font-sans);color:var(--color-on-dark);overflow-wrap:anywhere}#breadcrumb li+li::before{content:"›"/"";margin:0 var(--space-2);color:var(--color-gold)}#breadcrumb a{color:var(--color-gold)}#breadcrumb-list:empty{display:none}#feedback:empty{display:none}.hint{font-size:var(--text-sm);color:var(--color-text-muted)}.error{color:var(--color-danger);font-size:var(--text-sm);font-weight:600}.error:empty{display:none}
-.list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.list button{width:100%;text-align:left;background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border);display:flex;flex-direction:column}.list button:hover{background:var(--color-surface-hover)}.list strong{font:600 var(--text-md) var(--font-serif)}.list span{font-size:var(--text-xs);color:var(--color-text-muted)}
+.list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.character-row{display:flex;gap:var(--space-2)}.list button{background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border)}.list button:hover{background:var(--color-surface-hover)}.open-character{flex:1 1 0;min-width:0;text-align:left;display:flex;flex-direction:column}.continue-adventure{flex:0 0 auto}.character-name{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.list strong{font:600 var(--text-md) var(--font-serif);overflow-wrap:anywhere}.character-stats{font-size:var(--text-xs);color:var(--color-text-muted)}.character-row .tag{color:var(--color-ink)}.character-row.defeated .open-character{background:var(--color-paper);border-style:dashed}.character-row.defeated strong,.character-row.defeated .tag{color:var(--color-text-muted)}
 .rolls{padding-left:0;list-style:none;display:grid;gap:6px;font-family:var(--font-sans)}.rolls li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.die{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);font-weight:700}.die.dropped{color:var(--color-text-muted);text-decoration:line-through;border-style:dashed}.total{font-weight:700;margin-left:6px}.roll-name{min-width:52px;font-size:var(--text-sm)}
 fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margin:0 0 14px;padding:var(--space-3);min-width:0}legend{font-weight:600;font-size:.9rem;padding:0 var(--space-1)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2) 14px}.grid label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}select,input{font:var(--text-md) var(--font-sans);padding:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);width:100%;min-width:0;margin-top:var(--space-1)}label[for=character-name]{display:block;font-weight:600;font-size:var(--text-sm)}
 .checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-sm)}.checks input{width:auto;padding:0;margin-top:var(--space-1);flex:none;accent-color:var(--color-ink)}.checks small{display:block;color:var(--color-text-muted);font-weight:400}
@@ -211,20 +211,34 @@ function showLibrary(focus) {
 }
 
 const characterStatus = (entry) => entry.defeated ? "Defeated" : entry.session ? "On an adventure" : "";
+const adventureTitle = (adventureId) => (library.adventures.find(({ id }) => id === adventureId) || { title: "an adventure" }).title;
 
 function feedback(message) { element("feedback").textContent = message; }
 
+// Each row opens the character's sheet; a character with an adventure in
+// progress also has Continue beside it (never inside it), which opens the
+// adventure as its own history entry so Back returns to the library.
 function renderLibrary() {
   const list = element("characters");
   list.replaceChildren(...library.characters.map((entry) => {
     const { sheet, profile } = entry;
-    const button = make("button", undefined, "secondary");
+    const item = make("li", undefined, "character-row" + (entry.defeated ? " defeated" : ""));
+    const button = make("button", undefined, "open-character secondary");
     button.type = "button";
+    const heading = make("span", undefined, "character-name");
+    heading.append(make("strong", sheet.name));
     const status = characterStatus(entry);
-    button.append(make("strong", sheet.name), make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass + (status ? " · " + status : "")));
+    if (status) heading.append(" ", make("span", status, "tag"));
+    button.append(heading, make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass, "character-stats"));
     button.addEventListener("click", () => go("#character-" + sheet.id));
-    const item = make("li");
     item.append(button);
+    if (entry.session && !entry.defeated) {
+      const resume = make("button", "Continue", "continue-adventure secondary");
+      resume.type = "button";
+      resume.setAttribute("aria-label", "Continue " + sheet.name + "'s adventure, " + adventureTitle(entry.session.adventureId));
+      resume.addEventListener("click", () => go("#adventure-" + entry.session.id));
+      item.append(resume);
+    }
     return item;
   }));
   element("no-characters").hidden = library.characters.length > 0;

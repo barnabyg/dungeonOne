@@ -71,6 +71,10 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   adventure exactly as it was. Winning the fight that ends the adventure frees the character for another adventure;
   0 HP is instant defeat, and a defeated character cannot start another. A
   character on an adventure cannot be deleted until the adventure ends.
+  The library tags each character **On an adventure** or **Defeated** (a
+  defeated character's row is dimmed); a character on an adventure has
+  **Continue** on its row, which reopens the adventure directly, while the
+  rest of the row still opens the sheet.
 - **Moving between 5e views.** The character library, creation, each
   character sheet and each adventure have their own address and page title
   (such as "Brannoc Ironside · Dungeon One"), so the browser's Back and
