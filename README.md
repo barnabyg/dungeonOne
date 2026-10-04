@@ -126,7 +126,7 @@ policy](docs/acceptance/issue-93.md).
 - Node.js 24.21.0 LTS (pinned in `.nvmrc`; supported runtime line: Node.js 24.x)
 - npm 11.6.4 (pinned by `packageManager`)
 
-All development tools and the official OpenAI SDK are exact-version dependencies in `package.json` and `package-lock.json`. Installation and dependency auditing require registry access. Command play, help, invalid-argument handling, and trace replay do not require a network connection, AI credentials, or any external service. Live AI play and adventure generation require network access and an OpenAI API key.
+All development tools and the official OpenAI SDK are exact-version dependencies in `package.json` and `package-lock.json`. Installation and dependency auditing require registry access. Command play, help, invalid-argument handling, and trace replay do not require a network connection, AI credentials, or any external service. Live AI play and adventure generation require network access and an OpenAI API key. Command play and the adventure generator are removal pending (#139).
 
 ### Hollow Beacon in a desktop browser
 
@@ -1066,7 +1066,8 @@ standard error, exits nonzero, and does not change the game outcome.
 
 ## Session trace formats
 
-**Removal pending (#139):** this section describes the pre-5e game.
+**Removal pending (#139):** trace and replay are kept for 5e with a new
+throwaway format; the formats below belong to the pre-5e game.
 
 Ordinary built-in and explicit-file command and scripted-AI sessions export self-contained format `4` with the validated adventure snapshot and digest. Sessions recorded alongside a save export linked format-`5` segments as described above. Historical chapel command and scripted-AI sessions used trace format `3`. It carries the
 same authoritative action/call, event or rejection, draw, result, and resulting
@@ -1253,7 +1254,8 @@ inspected by stable reference and are listed by `get_character_status`.
 
 ## Scripted Dungeon Master
 
-**Removal pending (#139):** this section describes the pre-5e game.
+**Removal pending (#139):** scripted-DM testing is kept and rebuilt for the 5e
+tools; the cases below belong to the pre-5e game.
 
 `src/dm-turn.ts` provides the provider-neutral `DmModel` port and the versioned
 `stolen-signet-dm-v3` prompt. A turn receives untrusted player text, current

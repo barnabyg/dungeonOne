@@ -27,7 +27,7 @@ git branch -D <merged-branch>
 
 ## 5e transition and file formats
 
-The game is moving to 5e under [ADR 0005](docs/adr/0005-start-afresh-on-5e-and-suspend-compatibility.md). Use only SRD 5.2 names, rules and stat blocks. Hollow Beacon, Stonebridge, `--legacy`, the CLI command-mode adventures, the adventure generator and every old character, save and trace are removal pending (#139): don't extend them, and don't build 5e work on top of them.
+The game is moving to 5e under [ADR 0005](docs/adr/0005-start-afresh-on-5e-and-suspend-compatibility.md). Use only SRD 5.2 names, rules and stat blocks. Hollow Beacon, Stonebridge, `--legacy`, the CLI command-mode adventures, the adventure generator and every old character, character library, save and trace are removal pending (#139): don't extend them, and don't build 5e work on top of them.
 
 Until #137 makes 5e the browser's only mode, reach new 5e behaviour by launching the browser with the temporary `--5e` flag and its own `--characters` library path. Leave the default browser running the old game, so `main` stays playable at every commit.
 

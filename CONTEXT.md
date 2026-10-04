@@ -29,7 +29,7 @@ Earned character progress awarded for authored accomplishments and used to deter
 _Avoid_: Story milestones, Player score
 
 **Treasure**:
-Coin and items a character finds by examining something, or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion and earned once per character. It is never simply awarded.
+Silver and items a character finds by examining something, or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion and earned once per character. It is never simply awarded. Silver is the pre-5e currency; the 5e currency is not decided yet.
 _Avoid_: Reward XP, Drop
 
 **Adventure module**:
@@ -74,8 +74,8 @@ _Avoid_: Ability check (when a skill is meant), Talent
 
 **Difficulty**:
 An adventure module's declared challenge for its recommended level range: Easy, Medium or Hard. The balance gate checks that the module is neither more lethal nor easier than it declares. Not to be confused with the Difficulty Class (DC) of a single check.
-_Avoid_: Challenge rating, DC
+_Avoid_: Challenge rating (a monster's, not a module's), DC
 
 **Format version**:
-The single version number carried by a character library, adventure save, trace or adventure module file. Changing a format bumps it; until the owner declares a stable release, a loader refuses any other version with a message naming the file, and never migrates it.
+The single version number carried by a character library, adventure save, trace or adventure module file. Changing a format bumps it; until the owner declares a stable release, a loader refuses an older version with a message naming the file, and never migrates it.
 _Avoid_: Rules version, Content version, Schema version
