@@ -167,6 +167,13 @@ const panel = (page) =>
     log: document.getElementById("log").textContent,
   }));
 
+/** What the status strip's resources say to a screen reader (#155). */
+const resources = (page) =>
+  page
+    .locator("#resources li .visually-hidden")
+    .allTextContents()
+    .then((words) => words.join("; "));
+
 const sessionFile = async (directory) => {
   const folder = join(directory, "characters-adventures");
   const [name] = await readdir(folder);
@@ -846,9 +853,9 @@ test(
         JSON.stringify(await sessionFile(directory)),
         JSON.stringify(before),
       );
-      assert.match(
-        await page.locator("#economy").textContent(),
-        /^This turn: 1 action left, bonus action available, reaction available. Second Wind: 2 of 2 uses left./,
+      assert.equal(
+        await resources(page),
+        "Action: available; Bonus action: available; Reaction: available; Second Wind: 2 of 2 uses left",
       );
       let usedSecondWind = false;
       while (!(await page.locator("#ending").isVisible())) {
@@ -866,9 +873,9 @@ test(
           if (!usedSecondWind) {
             usedSecondWind = true;
             // The bonus action is spent; the action is not.
-            assert.match(
-              await page.locator("#economy").textContent(),
-              /^This turn: 1 action left, bonus action used, reaction available. Second Wind: 1 of 2 uses left./,
+            assert.equal(
+              await resources(page),
+              "Action: available; Bonus action: used; Reaction: available; Second Wind: 1 of 2 uses left",
             );
             assert.match(
               await page.locator("#log li").last().textContent(),
@@ -886,9 +893,9 @@ test(
             );
             await page.locator("#adventure").waitFor({ state: "visible" });
             assert.deepEqual(await panel(page), shown);
-            assert.match(
-              await page.locator("#economy").textContent(),
-              /bonus action used.*Second Wind: 1 of 2 uses left\./,
+            assert.equal(
+              await resources(page),
+              "Action: available; Bonus action: used; Reaction: available; Second Wind: 1 of 2 uses left",
             );
           }
         } else {

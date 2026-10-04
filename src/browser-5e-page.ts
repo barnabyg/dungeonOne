@@ -5,8 +5,10 @@
 //
 // Adventure session regions (#154). Later tickets fill these containers; keep
 // their ids and order so the layout holds:
-// - #session-status: the character's state (HP today; #155's HP bar and turn
-//   resources).
+// - #session-status: the status strip (#155): HP with its bar and health,
+//   the round and whose turn it is (#turn), and #resources, a pip for each
+//   turn resource and class feature use. It shows only what the session view
+//   projects.
 // - #session-scene: the room, the fight and the ending.
 // - #session-actions: the action buttons (#attack-controls, #feature-controls)
 //   and #adventure-error; #156's action bar goes here.
@@ -62,7 +64,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h2 id="adventure-title" tabindex="-1"></h2>
 <p id="adventure-objective" class="hint"></p>
 <div id="session-layout">
-<section id="session-status" aria-label="Status"><p id="character-hp" class="hint"></p></section>
+<section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="resources" class="resources"></ul></section>
 <div id="session-scene">
 <section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3><p id="room-description"></p>
 <h4 id="exits-title">Exits</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul>
@@ -71,8 +73,8 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul>
 </section>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
-<p id="turn" aria-live="polite"></p><p id="economy" class="hint"></p>
 <div class="table-wrap"><table id="initiative"><caption class="hint">Initiative order: each combatant rolled d20 + its initiative bonus.</caption><thead><tr><th scope="col">Turn</th><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
+<p id="feature-rule" class="hint"></p>
 </section>
 <section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title"></h3><p id="ending-text"></p></section>
 </div>
@@ -134,7 +136,9 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid var(--color-line);padding:var(--space-1) 10px}.log .player{font-weight:600}.card{background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:var(--space-2) 10px;margin-top:6px;white-space:pre-line}.card.rejection{border-color:var(--color-danger)}.card .dice{display:block;color:var(--color-text-muted);font-size:var(--text-xs);margin-top:var(--space-1)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{border:2px solid var(--color-gold);border-radius:var(--radius-md);padding:var(--space-3);margin:var(--space-3) 0}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
-#session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
+#session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
+#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}
+.resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
 #session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
@@ -411,8 +415,6 @@ function renderAdventure() {
   renderRoom(session.room);
   element("encounter").hidden = !encounter;
   if (encounter) {
-    const current = encounter.combatants.find(({ id }) => id === encounter.currentTurn);
-    element("turn").textContent = current ? "Round " + encounter.round + ": " + (current.id === encounter.playerId ? "your turn." : current.name + "'s turn.") : "The fight is over.";
     element("initiative-rows").replaceChildren(...encounter.combatants.map((combatant) => {
       const row = make("tr", undefined, (combatant.id === encounter.currentTurn ? "current" : "") + (combatant.defeated ? " defeated" : ""));
       row.dataset.combatant = combatant.id;
@@ -455,11 +457,8 @@ function renderAdventure() {
     button.addEventListener("click", () => useFeature(action));
     return button;
   }));
-  const turn = session.turn;
-  element("economy").textContent = [
-    turn ? "This turn: " + (turn.actions > 0 ? turn.actions + (turn.actions === 1 ? " action" : " actions") : "no action") + " left, bonus action " + (turn.bonusAction ? "available" : "used") + ", reaction " + (turn.reaction ? "available" : "used") + "." : "",
-    features ? "Second Wind: " + features.secondWind.uses + " of " + features.secondWind.max + " uses left." + (features.actionSurge ? " Action Surge: " + features.actionSurge.uses + " of " + features.actionSurge.max + " left." : "") + " " + ${JSON.stringify(FEATURE_USES_RULE)} : "",
-  ].filter(Boolean).join(" ");
+  element("feature-rule").textContent = features ? ${JSON.stringify(FEATURE_USES_RULE)} : "";
+  renderStatus();
   element("ending").hidden = !session.ending;
   if (session.ending) {
     element("ending-title").textContent = session.ending.title;
@@ -468,6 +467,53 @@ function renderAdventure() {
   element("message").disabled = !playing || acting;
   element("send-message").disabled = !playing || acting;
   renderHistory();
+}
+
+const HEALTH_LABELS = { healthy: "Healthy", bloodied: "Bloodied", critical: "Critical", down: "Defeated" };
+
+/** Text only screen readers hear, standing in for a compact visible form. */
+const spoken = (text) => make("span", text, "visually-hidden");
+const unspoken = (node) => {
+  node.setAttribute("aria-hidden", "true");
+  return node;
+};
+
+/** One resource: a short label and a pip per use, filled while left. */
+function resource(id, label, left, max, words) {
+  const item = make("li");
+  item.dataset.resource = id;
+  const pips = unspoken(make("span", undefined, "pips"));
+  for (let index = 0; index < max; index += 1) pips.append(make("span", undefined, index < left ? "pip full" : "pip"));
+  item.append(unspoken(make("span", label)), pips, spoken(words));
+  return item;
+}
+
+const usesLeft = (name, { uses, max }) => name + ": " + uses + " of " + max + (max === 1 ? " use" : " uses") + " left";
+
+// The status strip shows the session view as the server projects it: HP and
+// its health, the round and whose turn it is, and pips for what is left.
+function renderStatus() {
+  const { hp, maxHp, health } = session.room.character;
+  element("status-hp").dataset.health = health;
+  element("character-hp").replaceChildren(spoken("HP " + hp + " of " + maxHp + ","), unspoken(make("span", "HP " + hp + "/" + maxHp)), " ", make("span", HEALTH_LABELS[health], "tag"));
+  element("hp-fill").style.width = (maxHp > 0 ? (100 * hp) / maxHp : 0) + "%";
+  const { encounter, turn, features } = session;
+  const current = encounter && encounter.combatants.find(({ id }) => id === encounter.currentTurn);
+  element("turn").textContent = !encounter ? "" : current ? "Round " + encounter.round + ": " + (current.id === encounter.playerId ? "your turn." : current.name + "'s turn.") : "The fight is over.";
+  const items = [];
+  if (turn) {
+    const actions = turn.actions === 0 ? "used" : turn.maxActions === 1 ? "available" : turn.actions + " of " + turn.maxActions + " left";
+    items.push(
+      resource("action", "Action", turn.actions, turn.maxActions, "Action: " + actions),
+      resource("bonus-action", "Bonus", turn.bonusAction ? 1 : 0, 1, "Bonus action: " + (turn.bonusAction ? "available" : "used")),
+      resource("reaction", "Reaction", turn.reaction ? 1 : 0, 1, "Reaction: " + (turn.reaction ? "available" : "used")),
+    );
+  }
+  if (features) {
+    items.push(resource("second-wind", "Second Wind", features.secondWind.uses, features.secondWind.max, usesLeft("Second Wind", features.secondWind)));
+    if (features.actionSurge) items.push(resource("action-surge", "Action Surge", features.actionSurge.uses, features.actionSurge.max, usesLeft("Action Surge", features.actionSurge)));
+  }
+  element("resources").replaceChildren(...items);
 }
 
 function historyEntry(entry) {
@@ -511,7 +557,6 @@ const ROOM_LISTS = [
 function renderRoom(room) {
   element("room-title").textContent = room.name;
   element("room-description").textContent = room.description;
-  element("character-hp").textContent = "Your HP: " + room.character.hp + "/" + room.character.maxHp;
   for (const list of ROOM_LISTS) {
     const entries = room[list.key];
     element(list.id).replaceChildren(...(entries.length === 0 ? [make("li", "None.", "none")] : entries.map((entry) => {

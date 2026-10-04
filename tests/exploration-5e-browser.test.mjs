@@ -211,7 +211,7 @@ test(
       let shown = await screen(page);
       assert.equal(shown.encounterHidden, true);
       assert.match(shown.room, /^Foot of the Stair\n/);
-      assert.match(shown.status, /Your HP: (\d+)\/\1/);
+      assert.match(shown.status, /HP (\d+)\/\1 /);
       assert.match(shown.room, /Go to Alcove/);
       assert.match(shown.room, /Go to Rat-Gnawed Cellar/);
       assert.match(shown.room, /Examine Rusted Lantern/);
@@ -271,7 +271,7 @@ test(
         /The fight is over\./,
       );
       shown = await screen(page);
-      assert.match(shown.status, new RegExp(`Your HP: ${expected.hurt}/`));
+      assert.match(shown.status, new RegExp(`HP ${expected.hurt}/`));
       assert.match(shown.room, /Go to Smugglers' Den/);
 
       // Reload after the fight: the same screen, from the saved session.
@@ -288,7 +288,7 @@ test(
       assert.match(shown.room, /You carry\n+None\./);
       assert.match(
         shown.status,
-        new RegExp(`Your HP: ${expected.state.character.hp}/`),
+        new RegExp(`HP ${expected.state.character.hp}/`),
       );
 
       // Restart (even with another seed): the same screen.
