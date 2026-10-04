@@ -466,3 +466,45 @@ test(
     }
   },
 );
+
+test(
+  "a typed attack that ends the fight settles the character",
+  { timeout: 60000 },
+  async () => {
+    let seed = 0;
+    while (
+      simulate(seed).status !== "victory" ||
+      simulate(seed).attacks !== 1
+    ) {
+      seed++;
+    }
+    const directory = await mkdtemp(join(tmpdir(), "encounter-5e-typed-end-"));
+    const libraryPath = join(directory, "characters.json");
+    const server = await startFifthBrowserServer({
+      libraryPath,
+      seed,
+      dmModel: attackingDm(),
+    });
+    const browser = await launch();
+    const page = await browser.newPage();
+    page.setDefaultTimeout(5000);
+    try {
+      await createAndStart(page, server.url);
+      const file = await sessionFile(directory);
+      const turn = await post(page, "/api/5e/session/message", {
+        sessionId: file.id,
+        sequence: file.transitions.length,
+        message: "attack the goblin",
+      });
+      assert.equal(turn.status, 200);
+      assert.equal(turn.body.session.status, "victory");
+      const library = JSON.parse(await readFile(libraryPath, "utf8"));
+      assert.equal(library.characters[0].session, undefined);
+      assert.equal(turn.body.library.characters[0].session, undefined);
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

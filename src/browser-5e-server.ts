@@ -380,11 +380,20 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
               if (dispatched.card !== undefined) {
                 cards.push(dispatched.card);
                 if (dispatched.card.kind === "result") {
-                  // Save the committed action before the reply is written.
+                  // Save the committed action, and settle the character if
+                  // it ended the fight, before the reply is written.
                   record(
                     "The reply was interrupted; the result is shown below.",
                   );
                   await persist(session);
+                  const status = session.state.status;
+                  if (status === "victory" || status === "defeat") {
+                    await library.settleSession(
+                      session.character.id,
+                      session.id,
+                      status,
+                    );
+                  }
                 }
               }
               return { result: dispatched.result, rolls: dispatched.rolls };
