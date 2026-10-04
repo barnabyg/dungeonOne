@@ -13,13 +13,18 @@
 // - #session-history: the conversation history, #log, a live region in its own
 //   scroll area, newest at the bottom; it follows new entries only while the
 //   reader is at the bottom.
-// - #session-composer: #message-form.
+// - #session-composer: #message-form, and #dm-notice when typing to the AI DM
+//   is off (#161).
 // Actions, history and composer share #session-dock. DOM order (and so tab
 // order) is status, scene, actions, history, composer; the dock shows history
 // above actions and composer. From 900 x 560 px the session fills the window
 // in two columns (status and scene left, the dock right, each scrolling on its
 // own); narrower, it is one column with the dock sticky at the bottom.
 import { FEATURE_USES_RULE } from "./fighter-5e.js";
+
+/** The composer's notice when the server has no AI DM (#161). */
+export const FIFTH_DM_OFF_NOTICE =
+  "Typing to the Dungeon Master is off. Use the buttons.";
 
 export const FIFTH_BROWSER_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -80,7 +85,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div></section>
 <section id="session-history" aria-labelledby="history-title"><h3 id="history-title">What happened</h3>
 <ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></section>
-<div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div></form></div>
+<div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div><p id="dm-notice" class="hint" hidden>${FIFTH_DM_OFF_NOTICE}</p></form></div>
 </div>
 </div>
 </section>
@@ -136,7 +141,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #ending{border:2px solid var(--color-gold);border-radius:var(--radius-md);padding:var(--space-3);margin:var(--space-3) 0}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}
+#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1}#log{flex:1;max-height:none}}
 @media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative th:first-child,#initiative td:first-child{display:none}#initiative td{white-space:nowrap}#initiative .roll-off{display:block;white-space:normal;font-size:var(--text-xs)}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
@@ -390,6 +395,12 @@ async function openAdventure(sessionId, ticket) {
 
 function showAdventure(value) {
   session = value;
+  // A draft belongs to its adventure session: opening another one clears it.
+  const form = element("message-form");
+  if (form.dataset.session !== session.id) {
+    form.dataset.session = session.id;
+    element("message").value = "";
+  }
   element("adventure-error").textContent = "";
   renderAdventure();
   const entry = findEntry(session.characterId);
@@ -465,8 +476,13 @@ function renderAdventure() {
     element("ending-title").textContent = session.ending.title;
     element("ending-text").textContent = session.ending.text;
   }
-  element("message").disabled = !playing || acting;
-  element("send-message").disabled = !playing || acting;
+  // Without an AI DM the composer is off up front, with a notice saying so.
+  const typing = playing && session.dmAvailable;
+  element("message").disabled = !typing || acting;
+  element("send-message").disabled = !typing || acting;
+  element("dm-notice").hidden = !playing || session.dmAvailable;
+  if (element("dm-notice").hidden) element("message").removeAttribute("aria-describedby");
+  else element("message").setAttribute("aria-describedby", "dm-notice");
   renderHistory();
 }
 

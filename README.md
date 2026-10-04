@@ -63,8 +63,12 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   legal, with the uses left. Spent uses stay spent for the rest of the
   adventure; each adventure starts with all of them. The mace's Sap mastery gives a creature it hits
   disadvantage on its next attack, and the result card shows both dice and the
-  source. Typing needs `OPENAI_API_KEY`; without it, typed messages are
-  refused and the buttons still work. The engine rolls every die and writes
+  source. Typing needs `OPENAI_API_KEY`. Without it, the launcher's terminal
+  output says the AI Dungeon Master is off and how to turn it on, and the
+  adventure screen disables the message box up front with "Typing to the
+  Dungeon Master is off. Use the buttons."; the buttons still work and the
+  server still refuses typed messages. An unsent message belongs to its
+  adventure: opening another character's adventure clears it. The engine rolls every die and writes
   every action's result.
   The session is saved after every action in the
   `characters-5e-adventures` directory beside the library (format version 3),
