@@ -156,24 +156,14 @@ test(
         );
       }
 
-      // An illegal increase is explained and blocks saving.
-      await page.locator("#increase-dexterity").selectOption("1");
-      await page
-        .locator("#creation-error")
-        .filter({ hasText: "+2 and +1" })
-        .waitFor();
-      assert.equal(await page.locator("#save-character").isDisabled(), true);
-      await page.locator("#increase-dexterity").selectOption("0");
-      await page
-        .locator("#creation-error")
-        .filter({ hasText: /^$/ })
-        .waitFor({ state: "attached" });
-
+      // An illegal increase cannot be entered (#162). A skill error shows
+      // beside the skills and blocks saving.
       await page.locator("#skill-perception").uncheck();
       await page
-        .locator("#creation-error")
-        .filter({ hasText: "two different" })
+        .locator("#skills-error")
+        .filter({ hasText: "Choose two skills" })
         .waitFor();
+      assert.equal(await page.locator("#save-character").isDisabled(), true);
       await page.locator("#skill-survival").press("Space");
       await page.locator("#style-great-weapon-fighting").check();
 

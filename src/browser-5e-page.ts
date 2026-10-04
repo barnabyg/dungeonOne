@@ -2,6 +2,25 @@
 // creation screen, the character sheet and the adventure screen. Bundled into
 // dist so the extracted package serves the same interface. The script builds
 // every element with textContent, never HTML from data.
+//
+// Adventure session regions (#154). Later tickets fill these containers; keep
+// their ids and order so the layout holds:
+// - #session-status: the character's state (HP today; #155's HP bar and turn
+//   resources).
+// - #session-scene: the room, the fight and the ending.
+// - #session-actions: the action buttons (#attack-controls, #feature-controls)
+//   and #adventure-error; #156's action bar goes here.
+// - #session-history: the conversation history, #log, a live region in its own
+//   scroll area, newest at the bottom; it follows new entries only while the
+//   reader is at the bottom.
+// - #session-composer: #message-form.
+// Actions, history and composer share #session-dock. DOM order (and so tab
+// order) is status, scene, actions, history, composer; the dock shows history
+// above actions and composer. From 900 x 560 px the session fills the window
+// in two columns (status and scene left, the dock right, each scrolling on its
+// own); narrower, it is one column with the dock sticky at the bottom.
+import { FEATURE_USES_RULE } from "./fighter-5e.js";
+
 export const FIFTH_BROWSER_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
@@ -18,16 +37,20 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </section>
 <section id="creation" class="panel" aria-labelledby="creation-title" hidden>
 <h2 id="creation-title" tabindex="-1">Create a Fighter</h2>
-<p class="hint">Your six ability rolls are 4d6, dropping the lowest die. They were rolled once and saved before you saw them: reloading, restarting or leaving this screen shows the same dice, and there are no rerolls. Until you save, you can place the rolls on any abilities and change your other choices.</p>
+<p class="hint">Rolled once. No rerolls. Place the six rolls on your abilities in any order, then make your other choices.</p>
 <h3>Your rolls</h3>
 <ol id="rolls" class="rolls"></ol>
 <form id="creation-form" novalidate>
-<fieldset id="placement"><legend>Place the rolls</legend><p class="hint">Choosing a roll that is already placed swaps the two abilities.</p><div id="placement-fields" class="grid"></div></fieldset>
-<fieldset id="increase"><legend>Background ability increase</legend><p class="hint">Give +2 to one ability and +1 to another, or +1 to three. No score can exceed 20.</p><div id="increase-fields" class="grid"></div></fieldset>
-<fieldset id="skills"><legend>Two skill proficiencies</legend><div id="skill-fields" class="checks"></div></fieldset>
+<fieldset id="ability-scores" aria-describedby="ability-hint increase-error"><legend>Ability scores</legend>
+<p id="ability-hint" class="hint">Place one roll on each ability; choosing a roll that is already placed swaps the two. Your background then adds +2 and +1, or +1 to three abilities. To move a bonus, choose it on another ability. No score can exceed 20.</p>
+<fieldset id="increase-mode" class="choice-row"><legend>Background increase</legend><label><input type="radio" name="increase-mode" id="increase-mode-two" value="two"> +2 and +1</label><label><input type="radio" name="increase-mode" id="increase-mode-three" value="three"> +1 to three</label></fieldset>
+<div class="table-wrap"><table id="ability-table"><thead><tr><th scope="col">Ability</th><th scope="col">Roll</th><th scope="col">Back&shy;ground</th><th scope="col" class="num">Score</th><th scope="col" class="num">Modi&shy;fier</th></tr></thead><tbody id="ability-rows"></tbody></table></div>
+<p id="increase-error" class="error" role="alert"></p>
+</fieldset>
+<fieldset id="skills" aria-describedby="skills-error"><legend>Two skill proficiencies</legend><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
-<label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required>
-<section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><div id="preview-body"></div></section>
+<label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required aria-describedby="name-error"><p id="name-error" class="error" role="alert"></p>
+<section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><p id="preview-status" class="hint"></p><div id="preview-body"></div></section>
 <p id="creation-error" class="error" role="alert"></p>
 <div class="controls"><button id="save-character" type="submit" class="primary">Save character</button><button id="close-creation" type="button" class="secondary">Cancel</button></div>
 </form>
@@ -42,7 +65,10 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <p id="adventure-meta" class="eyebrow dark"></p>
 <h2 id="adventure-title" tabindex="-1"></h2>
 <p id="adventure-objective" class="hint"></p>
-<section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3><p id="room-description"></p><p id="character-hp" class="hint"></p>
+<div id="session-layout">
+<section id="session-status" aria-label="Status"><p id="character-hp" class="hint"></p></section>
+<div id="session-scene">
+<section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3><p id="room-description"></p>
 <h4 id="exits-title">Exits</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul>
 <h4 id="features-title">Features</h4><ul id="features" class="things" aria-labelledby="features-title"></ul>
 <h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul>
@@ -51,19 +77,22 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
 <p id="turn" aria-live="polite"></p><p id="economy" class="hint"></p>
 <div class="table-wrap"><table id="initiative"><caption class="hint">Initiative order: each combatant rolled d20 + its initiative bonus.</caption><thead><tr><th scope="col">Turn</th><th scope="col">Combatant</th><th scope="col">Initiative</th><th scope="col">HP</th><th scope="col">AC</th></tr></thead><tbody id="initiative-rows"></tbody></table></div>
-<div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div>
 </section>
 <section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title"></h3><p id="ending-text"></p></section>
-<h3>What happened</h3>
-<ol id="log" class="log" aria-live="polite"></ol>
-<p id="adventure-error" class="error" role="alert"></p>
-<form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><input id="message" maxlength="1000" autocomplete="off"><div class="controls"><button id="send-message" type="submit" class="primary">Send</button></div></form>
+</div>
+<div id="session-dock">
+<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div></section>
+<section id="session-history" aria-labelledby="history-title"><h3 id="history-title">What happened</h3>
+<ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></section>
+<div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div></form></div>
+</div>
+</div>
 </section>
 </main>
 <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-warning">
 <form id="delete-form" novalidate>
 <h2 id="delete-title">Delete <span id="delete-name"></span>?</h2>
-<p id="delete-warning" class="hint">Deleting is permanent. There is no undo, archive or recycle bin. Your pending creation, if you have one, keeps its dice.</p>
+<p id="delete-warning" class="hint">Deleting is permanent. There is no undo, archive or recycle bin.</p>
 <label for="delete-confirm-name">Type <strong id="delete-name-hint"></strong> exactly to confirm</label><input id="delete-confirm-name" autocomplete="off" spellcheck="false">
 <p id="delete-error" class="error" role="alert"></p>
 <div class="controls"><button id="confirm-delete" type="submit" class="primary danger" disabled>Delete</button><button id="cancel-delete" type="button" class="secondary">Cancel</button></div>
@@ -109,7 +138,15 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid var(--color-line);padding:var(--space-1) 10px}.log .player{font-weight:600}.card{background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:var(--space-2) 10px;margin-top:6px;white-space:pre-line}.card.rejection{border-color:var(--color-danger)}.card .dice{display:block;color:var(--color-text-muted);font-size:var(--text-xs);margin-top:var(--space-1)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{border:2px solid var(--color-gold);border-radius:var(--radius-md);padding:var(--space-3);margin:var(--space-3) 0}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
+#session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
+#session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
+#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}
+html{scroll-padding-bottom:var(--session-dock-height,0px)}
+@media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1}#log{flex:1;max-height:none}}
 @media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative th:first-child,#initiative td:first-child{display:none}#initiative td{white-space:nowrap}#initiative .roll-off{display:block;white-space:normal;font-size:var(--text-xs)}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
+.choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
+#ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}.short-name{display:none}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
+@media(max-width:560px){#ability-scores{padding:var(--space-2) var(--space-1)}#ability-table{font-size:var(--text-xs)}#ability-table th,#ability-table td{padding:var(--space-1) 2px}#ability-table select{font-size:var(--text-sm)}.short-name{display:inline}.long-name{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -380,6 +417,8 @@ function showAdventure(value) {
   const title = session.adventure.title;
   show("adventure", title, [...(entry ? [{ label: entry.sheet.name, hash: "#character-" + entry.sheet.id }] : []), { label: title }]);
   element("adventure-title").focus();
+  followHistory = true;
+  element("log").scrollTop = element("log").scrollHeight;
 }
 
 const diceText = (rolls) => "Dice: " + rolls.map(({ sides, value }) => "d" + sides + " " + value).join(", ");
@@ -440,7 +479,7 @@ function renderAdventure() {
   const turn = session.turn;
   element("economy").textContent = [
     turn ? "This turn: " + (turn.actions > 0 ? turn.actions + (turn.actions === 1 ? " action" : " actions") : "no action") + " left, bonus action " + (turn.bonusAction ? "available" : "used") + ", reaction " + (turn.reaction ? "available" : "used") + "." : "",
-    features ? "Second Wind: " + features.secondWind.uses + " of " + features.secondWind.max + " uses left." + (features.actionSurge ? " Action Surge: " + features.actionSurge.uses + " of " + features.actionSurge.max + " left." : "") + " Uses return after the adventure." : "",
+    features ? "Second Wind: " + features.secondWind.uses + " of " + features.secondWind.max + " uses left." + (features.actionSurge ? " Action Surge: " + features.actionSurge.uses + " of " + features.actionSurge.max + " left." : "") + " " + ${JSON.stringify(FEATURE_USES_RULE)} : "",
   ].filter(Boolean).join(" ");
   element("ending").hidden = !session.ending;
   if (session.ending) {
@@ -449,19 +488,37 @@ function renderAdventure() {
   }
   element("message").disabled = !playing || acting;
   element("send-message").disabled = !playing || acting;
-  element("log").replaceChildren(...session.history.map((entry) => {
-    const item = make("li");
-    if (entry.player !== undefined) item.append(make("p", "You: " + entry.player, "player"));
-    if (entry.reply && !entry.cards.some(({ text }) => text === entry.reply)) item.append(make("p", entry.reply, "reply"));
-    for (const card of entry.cards) {
-      const node = make("div", card.text, "card " + card.kind);
-      node.setAttribute("role", "note");
-      node.setAttribute("aria-label", card.kind === "result" ? "Resolved action" : "Action rejected");
-      if (card.rolls.length) node.append(make("span", diceText(card.rolls), "dice"));
-      item.append(node);
-    }
-    return item;
-  }));
+  renderHistory();
+}
+
+function historyEntry(entry) {
+  const item = make("li");
+  if (entry.player !== undefined) item.append(make("p", "You: " + entry.player, "player"));
+  if (entry.reply && !entry.cards.some(({ text }) => text === entry.reply)) item.append(make("p", entry.reply, "reply"));
+  for (const card of entry.cards) {
+    const node = make("div", card.text, "card " + card.kind);
+    node.setAttribute("role", "note");
+    node.setAttribute("aria-label", card.kind === "result" ? "Resolved action" : "Action rejected");
+    if (card.rolls.length) node.append(make("span", diceText(card.rolls), "dice"));
+    item.append(node);
+  }
+  return item;
+}
+
+// History only grows, so new entries are appended: the live region announces
+// just them. The log follows the newest entry only while the reader is at the
+// bottom; someone who scrolled up to read older entries stays where they are.
+// Only the reader's scrolling changes that, not the dock resizing around it.
+let followHistory = true;
+
+function renderHistory() {
+  const log = element("log");
+  if (log.dataset.session !== session.id || log.children.length > session.history.length) {
+    log.dataset.session = session.id;
+    log.replaceChildren();
+  }
+  log.append(...session.history.slice(log.children.length).map(historyEntry));
+  if (followHistory) log.scrollTop = log.scrollHeight;
 }
 
 // Each list's entries, with a button for each action the engine accepts now.
@@ -557,9 +614,29 @@ async function sendMessage(event) {
   element("message").focus();
 }
 
+// The creation's choices are sent to the server exactly as kept here; the
+// increase's shape ("two": +2 and +1, "three": +1 to three) is kept apart.
+let increaseMode = "two";
+
+/** Which ability each roll starts on: one replaceable rule. */
+function defaultPlacement() {
+  return Object.fromEntries(library.abilities.map((ability, index) => [ability, index]));
+}
+
+/**
+ * The increase on switching shape: abilities already given a bonus keep one,
+ * the larger first, then the rest of the table in order fill the shape.
+ */
+function defaultIncrease(mode, current) {
+  const given = library.abilities.filter((ability) => current[ability]).sort((a, b) => current[b] - current[a]);
+  const order = [...given, ...library.abilities.filter((ability) => !current[ability])];
+  return mode === "two" ? { [order[0]]: 2, [order[1]]: 1 } : Object.fromEntries(order.slice(0, 3).map((ability) => [ability, 1]));
+}
+
 function defaultChoices() {
+  increaseMode = "two";
   return {
-    placement: Object.fromEntries(library.abilities.map((ability, index) => [ability, index])),
+    placement: defaultPlacement(),
     increase: { strength: 2, constitution: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
@@ -587,48 +664,111 @@ function renderRolls() {
   }));
 }
 
-function renderChoices() {
+/** Redraws the ability table, keeps focus on the control just used and updates the preview. */
+function changeAbilities(focusId) {
+  renderAbilities();
+  if (focusId) element(focusId).focus();
+  refresh();
+}
+
+/** Gives one ability a value held by another, which takes this one's old value. */
+function swap(record, ability, chosen, empty) {
+  const other = library.abilities.find((candidate) => candidate !== ability && (record[candidate] ?? empty) === chosen);
+  const old = record[ability] ?? empty;
+  if (other) {
+    if (old === empty) delete record[other]; else record[other] = old;
+  }
+  if (chosen === empty) delete record[ability]; else record[ability] = chosen;
+}
+
+function rollSelect(ability) {
+  const select = make("select");
+  select.id = "place-" + ability;
+  select.setAttribute("aria-label", titleCase(ability) + " roll");
+  library.pendingCreation.rolls.forEach((roll, index) => {
+    const holder = library.abilities.find((candidate) => choices.placement[candidate] === index);
+    const option = make("option", roll.total + " (roll " + (index + 1) + ")" + (holder === ability ? "" : ", swaps with " + titleCase(holder)));
+    option.value = String(index);
+    select.append(option);
+  });
+  select.value = String(choices.placement[ability]);
+  select.addEventListener("change", () => {
+    swap(choices.placement, ability, Number(select.value));
+    changeAbilities(select.id);
+  });
+  return select;
+}
+
+// +2 and +1: each bonus moves by swapping, so the shape is always legal. A
+// bonus cannot be dropped to +0 here; choosing it on another ability moves it.
+function bonusSelect(ability) {
+  const select = make("select");
+  select.id = "increase-" + ability;
+  select.setAttribute("aria-label", titleCase(ability) + " background bonus");
+  const current = choices.increase[ability] || 0;
+  for (const amount of [0, 1, 2]) {
+    const holder = amount === 0 ? undefined : library.abilities.find((candidate) => choices.increase[candidate] === amount);
+    const option = make("option", "+" + amount + (amount === current || !holder ? "" : ", swaps with " + titleCase(holder)));
+    option.value = String(amount);
+    option.disabled = amount === 0 && current !== 0;
+    select.append(option);
+  }
+  select.value = String(current);
+  select.addEventListener("change", () => {
+    swap(choices.increase, ability, Number(select.value), 0);
+    changeAbilities(select.id);
+  });
+  return select;
+}
+
+// +1 to three: a tick per ability, and no fourth once three are ticked.
+function bonusCheck(ability) {
+  const label = make("label", undefined, "bonus-check");
+  const box = make("input");
+  box.type = "checkbox";
+  box.id = "increase-" + ability;
+  box.setAttribute("aria-label", titleCase(ability) + " background bonus");
+  box.checked = Boolean(choices.increase[ability]);
+  box.disabled = !box.checked && Object.keys(choices.increase).length >= 3;
+  box.addEventListener("change", () => {
+    if (box.checked) choices.increase[ability] = 1; else delete choices.increase[ability];
+    changeAbilities(box.id);
+  });
+  const text = make("span", "+1");
+  text.setAttribute("aria-hidden", "true");
+  label.append(box, text);
+  return label;
+}
+
+// Score and modifier are the sums the server applies; its preview stays the
+// authority for every derived number and for saving.
+function renderAbilities() {
   const rolls = library.pendingCreation.rolls;
-  element("placement-fields").replaceChildren(...library.abilities.map((ability) => {
-    const label = make("label", titleCase(ability));
-    const select = make("select");
-    select.id = "place-" + ability;
-    rolls.forEach((roll, index) => {
-      const option = make("option", "Roll " + (index + 1) + ": " + roll.total);
-      option.value = String(index);
-      select.append(option);
-    });
-    select.value = String(choices.placement[ability]);
-    select.addEventListener("change", () => {
-      const chosen = Number(select.value);
-      const other = library.abilities.find((candidate) => choices.placement[candidate] === chosen);
-      choices.placement[other] = choices.placement[ability];
-      choices.placement[ability] = chosen;
-      renderChoices();
-      element("place-" + ability).focus();
-      preview();
-    });
-    label.append(select);
-    return label;
+  element("increase-mode-" + increaseMode).checked = true;
+  element("ability-rows").replaceChildren(...library.abilities.map((ability) => {
+    const row = make("tr");
+    row.dataset.ability = ability;
+    // Phones show the sheet's three-letter abbreviation; the full name stays
+    // the row's accessible name.
+    const name = make("th");
+    name.scope = "row";
+    const short = make("span", ability.slice(0, 3).toUpperCase(), "short-name");
+    short.setAttribute("aria-hidden", "true");
+    name.append(make("span", titleCase(ability), "long-name"), short);
+    const roll = make("td");
+    roll.append(rollSelect(ability));
+    const bonus = make("td", undefined, "bonus");
+    bonus.append(increaseMode === "two" ? bonusSelect(ability) : bonusCheck(ability));
+    const score = rolls[choices.placement[ability]].total + (choices.increase[ability] || 0);
+    const scoreCell = make("td", score, "num score");
+    if (score >= 20) scoreCell.append(make("span", "max 20", "cap"));
+    row.append(name, roll, bonus, scoreCell, make("td", signed(Math.floor((score - 10) / 2)), "num modifier"));
+    return row;
   }));
-  element("increase-fields").replaceChildren(...library.abilities.map((ability) => {
-    const label = make("label", titleCase(ability));
-    const select = make("select");
-    select.id = "increase-" + ability;
-    for (const amount of [0, 1, 2]) {
-      const option = make("option", "+" + amount);
-      option.value = String(amount);
-      select.append(option);
-    }
-    select.value = String(choices.increase[ability] || 0);
-    select.addEventListener("change", () => {
-      const amount = Number(select.value);
-      if (amount === 0) delete choices.increase[ability]; else choices.increase[ability] = amount;
-      preview();
-    });
-    label.append(select);
-    return label;
-  }));
+}
+
+function renderChoices() {
+  renderAbilities();
   element("skill-fields").replaceChildren(...library.skills.map((skill) => {
     const label = make("label");
     const box = make("input");
@@ -637,7 +777,7 @@ function renderChoices() {
     box.checked = choices.skills.includes(skill.id);
     box.addEventListener("change", () => {
       choices.skills = library.skills.map(({ id }) => id).filter((id) => element("skill-" + id).checked);
-      preview();
+      refresh();
     });
     const text = make("span", skill.name);
     text.append(make("small", titleCase(skill.ability)));
@@ -651,12 +791,32 @@ function renderChoices() {
     radio.name = "fighting-style";
     radio.id = "style-" + style.id;
     radio.checked = choices.fightingStyle === style.id;
-    radio.addEventListener("change", () => { choices.fightingStyle = style.id; preview(); });
+    radio.addEventListener("change", () => { choices.fightingStyle = style.id; refresh(); });
     const text = make("span", style.name);
     text.append(make("small", style.text));
     label.append(radio, text);
     return label;
   }));
+}
+
+/**
+ * Shows each unfinished choice's error beside it. While one is unfinished the
+ * preview keeps its last numbers and saving waits; otherwise it updates.
+ */
+function refresh() {
+  const missing = 3 - Object.keys(choices.increase).length;
+  const errors = {
+    "increase-error": increaseMode === "three" && missing > 0 ? "Choose " + missing + " more " + (missing === 1 ? "ability" : "abilities") + " for +1." : "",
+    "skills-error": choices.skills.length === 2 ? "" : "Choose two skills; " + choices.skills.length + " chosen.",
+  };
+  for (const [id, message] of Object.entries(errors)) element(id).textContent = message;
+  if (Object.values(errors).some(Boolean)) {
+    previewRequest++;
+    element("save-character").disabled = true;
+    element("preview-status").textContent = element("preview-body").childElementCount ? "These numbers are from your last complete choices. Finish the choices marked above to update them." : "";
+    return Promise.resolve();
+  }
+  return preview();
 }
 
 async function preview() {
@@ -665,14 +825,21 @@ async function preview() {
     const result = await request("/api/5e/creation/preview", choices);
     if (ticket !== previewRequest) return;
     element("creation-error").textContent = "";
+    element("preview-status").textContent = "";
     element("preview-body").replaceChildren(...profileNodes(result.abilities, result.profile));
     element("save-character").disabled = false;
   } catch (error) {
+    // The server stays the authority: a choice it refuses blocks saving.
     if (ticket !== previewRequest) return;
     element("creation-error").textContent = error.message;
-    element("preview-body").replaceChildren(make("p", "Fix the choice above to see your numbers.", "hint"));
     element("save-character").disabled = true;
   }
+}
+
+function changeIncreaseMode(event) {
+  increaseMode = event.target.value;
+  choices.increase = defaultIncrease(increaseMode, choices.increase);
+  changeAbilities();
 }
 
 async function openCreation(ticket) {
@@ -688,17 +855,18 @@ async function openCreation(ticket) {
   renderChoices();
   show("creation", "Create a Fighter", [{ label: "Create a Fighter" }]);
   element("creation-title").focus();
-  await preview();
+  await refresh();
 }
 
 async function saveCharacter(event) {
   event.preventDefault();
   const name = element("character-name").value.trim();
   if (!name) {
-    element("creation-error").textContent = "Enter a name for your Fighter.";
+    element("name-error").textContent = "Enter a name for your Fighter.";
     element("character-name").focus();
     return;
   }
+  element("name-error").textContent = "";
   element("save-character").disabled = true;
   try {
     library = await request("/api/5e/characters", { revision: library.revision, name, ...choices });
@@ -709,7 +877,7 @@ async function saveCharacter(event) {
     go("#character-" + library.characters[library.characters.length - 1].sheet.id, true);
     feedback(name + " is saved.");
   } catch (error) {
-    element("creation-error").textContent = error.message;
+    element(/name/i.test(error.message) ? "name-error" : "creation-error").textContent = error.message;
     element("save-character").disabled = false;
   }
 }
@@ -755,6 +923,8 @@ async function deleteCharacter(event) {
 element("open-creation").addEventListener("click", () => go("#create"));
 element("creation-form").addEventListener("submit", saveCharacter);
 element("close-creation").addEventListener("click", () => go(""));
+for (const mode of ["two", "three"]) element("increase-mode-" + mode).addEventListener("change", changeIncreaseMode);
+element("character-name").addEventListener("input", () => { element("name-error").textContent = ""; });
 element("delete-character").addEventListener("click", openDelete);
 element("delete-confirm-name").addEventListener("input", () => { element("confirm-delete").disabled = !nameMatches(); });
 element("delete-form").addEventListener("submit", deleteCharacter);
@@ -766,6 +936,15 @@ document.querySelector(".skip").addEventListener("click", (event) => {
   event.preventDefault();
   element("content").focus();
 });
+element("log").addEventListener("scroll", () => {
+  const log = element("log");
+  followHistory = log.scrollHeight - log.scrollTop - log.clientHeight < 24;
+});
+// On a phone the dock is sticky: keep focused controls clear of it.
+new ResizeObserver(() => {
+  const dock = element("session-dock");
+  document.documentElement.style.setProperty("--session-dock-height", getComputedStyle(dock).position === "sticky" ? dock.offsetHeight + "px" : "0px");
+}).observe(element("session-dock"));
 window.addEventListener("popstate", () => { if (library) route(true); });
 request("/api/5e/library").then((value) => {
   library = value;
