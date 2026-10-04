@@ -111,15 +111,17 @@ test(
       );
       await page.locator("#delete-dialog").press("Escape");
 
-      // In a fight the uses line ends with the same rule.
+      // In a fight the same rule sits under the initiative table (#155).
       await page
         .locator('.start-adventure[data-adventure="cellar-goblin"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
-      const economy = await page.locator("#economy").textContent();
-      assert.match(economy, /Second Wind: 2 of 2 uses left\./);
-      assert.ok(economy.endsWith(` ${RULE}`), economy);
-      assert.doesNotMatch(economy, STALE);
+      const rule = await page.locator("#feature-rule").textContent();
+      assert.equal(rule, RULE);
+      assert.doesNotMatch(
+        await page.locator("#session-status").textContent(),
+        STALE,
+      );
     } finally {
       await browser.close();
       await server.close();

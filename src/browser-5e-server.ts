@@ -14,6 +14,7 @@
 import { createServer } from "node:http";
 import {
   loadBuiltInFifthAdventures,
+  orderFifthAdventures,
   type FifthAdventure,
 } from "./adventure-5e.js";
 import {
@@ -36,6 +37,7 @@ import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
 import {
   ABILITIES,
   buildFighter,
+  defaultPlacement,
   droppedDie,
   fighterProfile,
   FIGHTER_SKILLS,
@@ -53,6 +55,7 @@ import {
   FIFTH_BROWSER_CSS,
   FIFTH_BROWSER_HTML,
   FIFTH_BROWSER_SCRIPT,
+  FIFTH_DM_OFF_NOTICE,
 } from "./browser-5e-page.js";
 
 export type FifthBrowserOptions = Readonly<{
@@ -63,6 +66,14 @@ export type FifthBrowserOptions = Readonly<{
   /** Replaces the OpenAI DM, for tests. */
   dmModel?: DmModel;
 }>;
+
+/**
+ * The setup hint when there is no AI DM. It is for whoever launched the
+ * server, so it goes to the launcher's terminal output; the player reads
+ * FIFTH_DM_OFF_NOTICE instead.
+ */
+export const FIFTH_DM_SETUP_HINT =
+  "The AI Dungeon Master is off: OPENAI_API_KEY is not set. Players can still use the buttons; to let them type to the Dungeon Master, set OPENAI_API_KEY and restart.\n";
 
 /**
  * The rules, the library and request validation raise errors for the player
@@ -132,6 +143,7 @@ function libraryView(
               dropped: droppedDie(dice),
               total: keptTotal(dice),
             })),
+            defaultPlacement: defaultPlacement(pending.dice),
           },
         }),
     characters: data.characters.map(({ sheet, session, defeated }) => ({
@@ -185,7 +197,8 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     (apiKey.length === 0
       ? undefined
       : createOpenAiDmModel({ apiKey, model: OPENAI_DM_DEFAULT_MODEL }));
-  const view = (data: FifthLibraryData) => libraryView(data, adventures);
+  const offered = orderFifthAdventures(adventures);
+  const view = (data: FifthLibraryData) => libraryView(data, offered);
   // The file lock fails rather than waits, so this server's own changes queue.
   let queue: Promise<unknown> = Promise.resolve();
   const serialized = <T>(work: () => Promise<T>): Promise<T> => {
@@ -225,10 +238,16 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
       throw error;
     }
   };
+  const dmAvailable = model !== undefined;
+  /** The session view, with whether the player can type to the AI DM. */
+  const projectSession = (session: FifthSession) => ({
+    ...sessionView(session),
+    dmAvailable,
+  });
   /** The response to a session request: the library and the session. */
   const respondWith = async (session: FifthSession) => ({
     library: view(await library.read()),
-    session: sessionView(session),
+    session: projectSession(session),
   });
   /** Saves the session, then frees or defeats its character if it ended. */
   const save = async (session: FifthSession) => {
@@ -241,7 +260,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     if (status !== "playing") {
       sessions.delete(session.id);
     }
-    return { library: view(data), session: sessionView(session) };
+    return { library: view(data), session: projectSession(session) };
   };
   const requireCurrent = (session: FifthSession, sequence: unknown) => {
     if (sequence !== session.transitions.length) {
@@ -367,9 +386,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           );
         }
         if (model === undefined) {
-          throw new Error(
-            "The AI Dungeon Master needs OPENAI_API_KEY. Set it and restart, or use the buttons.",
-          );
+          throw new Error(FIFTH_DM_OFF_NOTICE);
         }
         return serialized(async () => {
           const session = await openSession(body.sessionId);
@@ -589,6 +606,8 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   url = `http://127.0.0.1:${address.port}`;
   return {
     url,
+    /** Whether players can type to the AI DM; false without a key. */
+    dmAvailable,
     async close(): Promise<void> {
       await queue;
       await new Promise<void>((resolve, reject) => {
