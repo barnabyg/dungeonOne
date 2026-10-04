@@ -43,12 +43,16 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h3>Your rolls</h3>
 <ol id="rolls" class="rolls"></ol>
 <form id="creation-form" novalidate>
-<fieldset id="placement"><legend>Place the rolls</legend><p class="hint">Choosing a roll that is already placed swaps the two abilities.</p><div id="placement-fields" class="grid"></div></fieldset>
-<fieldset id="increase"><legend>Background ability increase</legend><p class="hint">Give +2 to one ability and +1 to another, or +1 to three. No score can exceed 20.</p><div id="increase-fields" class="grid"></div></fieldset>
-<fieldset id="skills"><legend>Two skill proficiencies</legend><div id="skill-fields" class="checks"></div></fieldset>
+<fieldset id="ability-scores" aria-describedby="ability-hint increase-error"><legend>Ability scores</legend>
+<p id="ability-hint" class="hint">Place one roll on each ability; choosing a roll that is already placed swaps the two. Your background then adds +2 and +1, or +1 to three abilities. To move a bonus, choose it on another ability. No score can exceed 20.</p>
+<fieldset id="increase-mode" class="choice-row"><legend>Background increase</legend><label><input type="radio" name="increase-mode" id="increase-mode-two" value="two"> +2 and +1</label><label><input type="radio" name="increase-mode" id="increase-mode-three" value="three"> +1 to three</label></fieldset>
+<div class="table-wrap"><table id="ability-table"><thead><tr><th scope="col">Ability</th><th scope="col">Roll</th><th scope="col">Back&shy;ground</th><th scope="col" class="num">Score</th><th scope="col" class="num">Modi&shy;fier</th></tr></thead><tbody id="ability-rows"></tbody></table></div>
+<p id="increase-error" class="error" role="alert"></p>
+</fieldset>
+<fieldset id="skills" aria-describedby="skills-error"><legend>Two skill proficiencies</legend><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
-<label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required>
-<section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><div id="preview-body"></div></section>
+<label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required aria-describedby="name-error"><p id="name-error" class="error" role="alert"></p>
+<section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><p id="preview-status" class="hint"></p><div id="preview-body"></div></section>
 <p id="creation-error" class="error" role="alert"></p>
 <div class="controls"><button id="save-character" type="submit" class="primary">Save character</button><button id="close-creation" type="button" class="secondary">Cancel</button></div>
 </form>
@@ -123,7 +127,7 @@ button.primary{background:var(--color-ink);border-color:var(--color-ink);color:v
 .masthead{max-width:860px;margin:auto;padding:var(--space-4);display:flex;align-items:center;gap:var(--space-3);color:var(--color-on-dark)}.brand-mark{font-size:2rem;color:var(--color-gold)}.eyebrow{font-size:.62rem;letter-spacing:.18em;color:var(--color-gold);margin-bottom:6px}
 main{max-width:860px;margin:0 auto var(--space-6);padding:0 var(--space-4)}.panel{background:var(--color-paper);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);margin-bottom:var(--space-4);min-width:0}
 #feedback{color:var(--color-on-dark);font-size:var(--text-sm)}#breadcrumb ol{list-style:none;display:flex;flex-wrap:wrap;padding:0;margin:0 0 var(--space-3);font:var(--text-sm) var(--font-sans);color:var(--color-on-dark);overflow-wrap:anywhere}#breadcrumb li+li::before{content:"›"/"";margin:0 var(--space-2);color:var(--color-gold)}#breadcrumb a{color:var(--color-gold)}#breadcrumb-list:empty{display:none}#feedback:empty{display:none}.hint{font-size:var(--text-sm);color:var(--color-text-muted)}.error{color:var(--color-danger);font-size:var(--text-sm);font-weight:600}.error:empty{display:none}
-.list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.list button{width:100%;text-align:left;background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border);display:flex;flex-direction:column}.list button:hover{background:var(--color-surface-hover)}.list strong{font:600 var(--text-md) var(--font-serif)}.list span{font-size:var(--text-xs);color:var(--color-text-muted)}
+.list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.character-row{display:flex;gap:var(--space-2)}.list button{background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border)}.list button:hover{background:var(--color-surface-hover)}.open-character{flex:1 1 0;min-width:0;text-align:left;display:flex;flex-direction:column}.continue-adventure{flex:0 0 auto}.character-name{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.list strong{font:600 var(--text-md) var(--font-serif);overflow-wrap:anywhere}.character-stats{font-size:var(--text-xs);color:var(--color-text-muted)}.character-row .tag{color:var(--color-ink)}.character-row.defeated .open-character{background:var(--color-paper);border-style:dashed}.character-row.defeated strong,.character-row.defeated .tag{color:var(--color-text-muted)}
 .rolls{padding-left:0;list-style:none;display:grid;gap:6px;font-family:var(--font-sans)}.rolls li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.die{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);font-weight:700}.die.dropped{color:var(--color-text-muted);text-decoration:line-through;border-style:dashed}.total{font-weight:700;margin-left:6px}.roll-name{min-width:52px;font-size:var(--text-sm)}
 fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margin:0 0 14px;padding:var(--space-3);min-width:0}legend{font-weight:600;font-size:.9rem;padding:0 var(--space-1)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2) 14px}.grid label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}select,input{font:var(--text-md) var(--font-sans);padding:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);width:100%;min-width:0;margin-top:var(--space-1)}label[for=character-name]{display:block;font-weight:600;font-size:var(--text-sm)}
 .checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-sm)}.checks input{width:auto;padding:0;margin-top:var(--space-1);flex:none;accent-color:var(--color-ink)}.checks small{display:block;color:var(--color-text-muted);font-weight:400}
@@ -144,6 +148,9 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1}#log{flex:1;max-height:none}}
 @media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative th:first-child,#initiative td:first-child{display:none}#initiative td{white-space:nowrap}#initiative .roll-off{display:block;white-space:normal;font-size:var(--text-xs)}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
+.choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
+#ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}.short-name{display:none}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
+@media(max-width:560px){#ability-scores{padding:var(--space-2) var(--space-1)}#ability-table{font-size:var(--text-xs)}#ability-table th,#ability-table td{padding:var(--space-1) 2px}#ability-table select{font-size:var(--text-sm)}.short-name{display:inline}.long-name{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
 
 export const FIFTH_BROWSER_SCRIPT = String.raw`"use strict";
@@ -245,20 +252,34 @@ function showLibrary(focus) {
 }
 
 const characterStatus = (entry) => entry.defeated ? "Defeated" : entry.session ? "On an adventure" : "";
+const adventureTitle = (adventureId) => (library.adventures.find(({ id }) => id === adventureId) || { title: "an adventure" }).title;
 
 function feedback(message) { element("feedback").textContent = message; }
 
+// Each row opens the character's sheet; a character with an adventure in
+// progress also has Continue beside it (never inside it), which opens the
+// adventure as its own history entry so Back returns to the library.
 function renderLibrary() {
   const list = element("characters");
   list.replaceChildren(...library.characters.map((entry) => {
     const { sheet, profile } = entry;
-    const button = make("button", undefined, "secondary");
+    const item = make("li", undefined, "character-row" + (entry.defeated ? " defeated" : ""));
+    const button = make("button", undefined, "open-character secondary");
     button.type = "button";
+    const heading = make("span", undefined, "character-name");
+    heading.append(make("strong", sheet.name));
     const status = characterStatus(entry);
-    button.append(make("strong", sheet.name), make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass + (status ? " · " + status : "")));
+    if (status) heading.append(" ", make("span", status, "tag"));
+    button.append(heading, make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass, "character-stats"));
     button.addEventListener("click", () => go("#character-" + sheet.id));
-    const item = make("li");
     item.append(button);
+    if (entry.session && !entry.defeated) {
+      const resume = make("button", "Continue", "continue-adventure secondary");
+      resume.type = "button";
+      resume.setAttribute("aria-label", "Continue " + sheet.name + "'s adventure, " + adventureTitle(entry.session.adventureId));
+      resume.addEventListener("click", () => go("#adventure-" + entry.session.id));
+      item.append(resume);
+    }
     return item;
   }));
   element("no-characters").hidden = library.characters.length > 0;
@@ -638,9 +659,29 @@ async function sendMessage(event) {
   element("message").focus();
 }
 
+// The creation's choices are sent to the server exactly as kept here; the
+// increase's shape ("two": +2 and +1, "three": +1 to three) is kept apart.
+let increaseMode = "two";
+
+/** Which ability each roll starts on: one replaceable rule. */
+function defaultPlacement() {
+  return Object.fromEntries(library.abilities.map((ability, index) => [ability, index]));
+}
+
+/**
+ * The increase on switching shape: abilities already given a bonus keep one,
+ * the larger first, then the rest of the table in order fill the shape.
+ */
+function defaultIncrease(mode, current) {
+  const given = library.abilities.filter((ability) => current[ability]).sort((a, b) => current[b] - current[a]);
+  const order = [...given, ...library.abilities.filter((ability) => !current[ability])];
+  return mode === "two" ? { [order[0]]: 2, [order[1]]: 1 } : Object.fromEntries(order.slice(0, 3).map((ability) => [ability, 1]));
+}
+
 function defaultChoices() {
+  increaseMode = "two";
   return {
-    placement: Object.fromEntries(library.abilities.map((ability, index) => [ability, index])),
+    placement: defaultPlacement(),
     increase: { strength: 2, constitution: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
@@ -668,48 +709,111 @@ function renderRolls() {
   }));
 }
 
-function renderChoices() {
+/** Redraws the ability table, keeps focus on the control just used and updates the preview. */
+function changeAbilities(focusId) {
+  renderAbilities();
+  if (focusId) element(focusId).focus();
+  refresh();
+}
+
+/** Gives one ability a value held by another, which takes this one's old value. */
+function swap(record, ability, chosen, empty) {
+  const other = library.abilities.find((candidate) => candidate !== ability && (record[candidate] ?? empty) === chosen);
+  const old = record[ability] ?? empty;
+  if (other) {
+    if (old === empty) delete record[other]; else record[other] = old;
+  }
+  if (chosen === empty) delete record[ability]; else record[ability] = chosen;
+}
+
+function rollSelect(ability) {
+  const select = make("select");
+  select.id = "place-" + ability;
+  select.setAttribute("aria-label", titleCase(ability) + " roll");
+  library.pendingCreation.rolls.forEach((roll, index) => {
+    const holder = library.abilities.find((candidate) => choices.placement[candidate] === index);
+    const option = make("option", roll.total + " (roll " + (index + 1) + ")" + (holder === ability ? "" : ", swaps with " + titleCase(holder)));
+    option.value = String(index);
+    select.append(option);
+  });
+  select.value = String(choices.placement[ability]);
+  select.addEventListener("change", () => {
+    swap(choices.placement, ability, Number(select.value));
+    changeAbilities(select.id);
+  });
+  return select;
+}
+
+// +2 and +1: each bonus moves by swapping, so the shape is always legal. A
+// bonus cannot be dropped to +0 here; choosing it on another ability moves it.
+function bonusSelect(ability) {
+  const select = make("select");
+  select.id = "increase-" + ability;
+  select.setAttribute("aria-label", titleCase(ability) + " background bonus");
+  const current = choices.increase[ability] || 0;
+  for (const amount of [0, 1, 2]) {
+    const holder = amount === 0 ? undefined : library.abilities.find((candidate) => choices.increase[candidate] === amount);
+    const option = make("option", "+" + amount + (amount === current || !holder ? "" : ", swaps with " + titleCase(holder)));
+    option.value = String(amount);
+    option.disabled = amount === 0 && current !== 0;
+    select.append(option);
+  }
+  select.value = String(current);
+  select.addEventListener("change", () => {
+    swap(choices.increase, ability, Number(select.value), 0);
+    changeAbilities(select.id);
+  });
+  return select;
+}
+
+// +1 to three: a tick per ability, and no fourth once three are ticked.
+function bonusCheck(ability) {
+  const label = make("label", undefined, "bonus-check");
+  const box = make("input");
+  box.type = "checkbox";
+  box.id = "increase-" + ability;
+  box.setAttribute("aria-label", titleCase(ability) + " background bonus");
+  box.checked = Boolean(choices.increase[ability]);
+  box.disabled = !box.checked && Object.keys(choices.increase).length >= 3;
+  box.addEventListener("change", () => {
+    if (box.checked) choices.increase[ability] = 1; else delete choices.increase[ability];
+    changeAbilities(box.id);
+  });
+  const text = make("span", "+1");
+  text.setAttribute("aria-hidden", "true");
+  label.append(box, text);
+  return label;
+}
+
+// Score and modifier are the sums the server applies; its preview stays the
+// authority for every derived number and for saving.
+function renderAbilities() {
   const rolls = library.pendingCreation.rolls;
-  element("placement-fields").replaceChildren(...library.abilities.map((ability) => {
-    const label = make("label", titleCase(ability));
-    const select = make("select");
-    select.id = "place-" + ability;
-    rolls.forEach((roll, index) => {
-      const option = make("option", "Roll " + (index + 1) + ": " + roll.total);
-      option.value = String(index);
-      select.append(option);
-    });
-    select.value = String(choices.placement[ability]);
-    select.addEventListener("change", () => {
-      const chosen = Number(select.value);
-      const other = library.abilities.find((candidate) => choices.placement[candidate] === chosen);
-      choices.placement[other] = choices.placement[ability];
-      choices.placement[ability] = chosen;
-      renderChoices();
-      element("place-" + ability).focus();
-      preview();
-    });
-    label.append(select);
-    return label;
+  element("increase-mode-" + increaseMode).checked = true;
+  element("ability-rows").replaceChildren(...library.abilities.map((ability) => {
+    const row = make("tr");
+    row.dataset.ability = ability;
+    // Phones show the sheet's three-letter abbreviation; the full name stays
+    // the row's accessible name.
+    const name = make("th");
+    name.scope = "row";
+    const short = make("span", ability.slice(0, 3).toUpperCase(), "short-name");
+    short.setAttribute("aria-hidden", "true");
+    name.append(make("span", titleCase(ability), "long-name"), short);
+    const roll = make("td");
+    roll.append(rollSelect(ability));
+    const bonus = make("td", undefined, "bonus");
+    bonus.append(increaseMode === "two" ? bonusSelect(ability) : bonusCheck(ability));
+    const score = rolls[choices.placement[ability]].total + (choices.increase[ability] || 0);
+    const scoreCell = make("td", score, "num score");
+    if (score >= 20) scoreCell.append(make("span", "max 20", "cap"));
+    row.append(name, roll, bonus, scoreCell, make("td", signed(Math.floor((score - 10) / 2)), "num modifier"));
+    return row;
   }));
-  element("increase-fields").replaceChildren(...library.abilities.map((ability) => {
-    const label = make("label", titleCase(ability));
-    const select = make("select");
-    select.id = "increase-" + ability;
-    for (const amount of [0, 1, 2]) {
-      const option = make("option", "+" + amount);
-      option.value = String(amount);
-      select.append(option);
-    }
-    select.value = String(choices.increase[ability] || 0);
-    select.addEventListener("change", () => {
-      const amount = Number(select.value);
-      if (amount === 0) delete choices.increase[ability]; else choices.increase[ability] = amount;
-      preview();
-    });
-    label.append(select);
-    return label;
-  }));
+}
+
+function renderChoices() {
+  renderAbilities();
   element("skill-fields").replaceChildren(...library.skills.map((skill) => {
     const label = make("label");
     const box = make("input");
@@ -718,7 +822,7 @@ function renderChoices() {
     box.checked = choices.skills.includes(skill.id);
     box.addEventListener("change", () => {
       choices.skills = library.skills.map(({ id }) => id).filter((id) => element("skill-" + id).checked);
-      preview();
+      refresh();
     });
     const text = make("span", skill.name);
     text.append(make("small", titleCase(skill.ability)));
@@ -732,12 +836,32 @@ function renderChoices() {
     radio.name = "fighting-style";
     radio.id = "style-" + style.id;
     radio.checked = choices.fightingStyle === style.id;
-    radio.addEventListener("change", () => { choices.fightingStyle = style.id; preview(); });
+    radio.addEventListener("change", () => { choices.fightingStyle = style.id; refresh(); });
     const text = make("span", style.name);
     text.append(make("small", style.text));
     label.append(radio, text);
     return label;
   }));
+}
+
+/**
+ * Shows each unfinished choice's error beside it. While one is unfinished the
+ * preview keeps its last numbers and saving waits; otherwise it updates.
+ */
+function refresh() {
+  const missing = 3 - Object.keys(choices.increase).length;
+  const errors = {
+    "increase-error": increaseMode === "three" && missing > 0 ? "Choose " + missing + " more " + (missing === 1 ? "ability" : "abilities") + " for +1." : "",
+    "skills-error": choices.skills.length === 2 ? "" : "Choose two skills; " + choices.skills.length + " chosen.",
+  };
+  for (const [id, message] of Object.entries(errors)) element(id).textContent = message;
+  if (Object.values(errors).some(Boolean)) {
+    previewRequest++;
+    element("save-character").disabled = true;
+    element("preview-status").textContent = element("preview-body").childElementCount ? "These numbers are from your last complete choices. Finish the choices marked above to update them." : "";
+    return Promise.resolve();
+  }
+  return preview();
 }
 
 async function preview() {
@@ -746,14 +870,21 @@ async function preview() {
     const result = await request("/api/5e/creation/preview", choices);
     if (ticket !== previewRequest) return;
     element("creation-error").textContent = "";
+    element("preview-status").textContent = "";
     element("preview-body").replaceChildren(...profileNodes(result.abilities, result.profile));
     element("save-character").disabled = false;
   } catch (error) {
+    // The server stays the authority: a choice it refuses blocks saving.
     if (ticket !== previewRequest) return;
     element("creation-error").textContent = error.message;
-    element("preview-body").replaceChildren(make("p", "Fix the choice above to see your numbers.", "hint"));
     element("save-character").disabled = true;
   }
+}
+
+function changeIncreaseMode(event) {
+  increaseMode = event.target.value;
+  choices.increase = defaultIncrease(increaseMode, choices.increase);
+  changeAbilities();
 }
 
 async function openCreation(ticket) {
@@ -769,17 +900,18 @@ async function openCreation(ticket) {
   renderChoices();
   show("creation", "Create a Fighter", [{ label: "Create a Fighter" }]);
   element("creation-title").focus();
-  await preview();
+  await refresh();
 }
 
 async function saveCharacter(event) {
   event.preventDefault();
   const name = element("character-name").value.trim();
   if (!name) {
-    element("creation-error").textContent = "Enter a name for your Fighter.";
+    element("name-error").textContent = "Enter a name for your Fighter.";
     element("character-name").focus();
     return;
   }
+  element("name-error").textContent = "";
   element("save-character").disabled = true;
   try {
     library = await request("/api/5e/characters", { revision: library.revision, name, ...choices });
@@ -790,7 +922,7 @@ async function saveCharacter(event) {
     go("#character-" + library.characters[library.characters.length - 1].sheet.id, true);
     feedback(name + " is saved.");
   } catch (error) {
-    element("creation-error").textContent = error.message;
+    element(/name/i.test(error.message) ? "name-error" : "creation-error").textContent = error.message;
     element("save-character").disabled = false;
   }
 }
@@ -836,6 +968,8 @@ async function deleteCharacter(event) {
 element("open-creation").addEventListener("click", () => go("#create"));
 element("creation-form").addEventListener("submit", saveCharacter);
 element("close-creation").addEventListener("click", () => go(""));
+for (const mode of ["two", "three"]) element("increase-mode-" + mode).addEventListener("change", changeIncreaseMode);
+element("character-name").addEventListener("input", () => { element("name-error").textContent = ""; });
 element("delete-character").addEventListener("click", openDelete);
 element("delete-confirm-name").addEventListener("input", () => { element("confirm-delete").disabled = !nameMatches(); });
 element("delete-form").addEventListener("submit", deleteCharacter);

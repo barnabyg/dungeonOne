@@ -27,8 +27,10 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   (the default library is `characters-5e.json`; creation needs no OpenAI key).
   Choose **Create a Fighter**: the six 4d6-drop-lowest rolls are saved to the
   library before they are shown, so reloading, restarting or leaving the screen
-  shows the same dice. Place them on any abilities, choose the background
-  increase, two skills and a Fighting Style, check the derived numbers and save.
+  shows the same dice. One table, a row per ability, places the rolls (choosing
+  a placed roll swaps it) and the background increase (+2 and +1, or +1 to
+  three) and shows each score and modifier as you change them; then choose two
+  skills and a Fighting Style, check the derived numbers and save.
   Saved Fighters open as character sheets. **Delete character** on a sheet
   removes it permanently once you type its name exactly; a pending creation
   keeps its dice. The 5e library is format version 3; a pre-5e library, or a
@@ -73,6 +75,10 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   adventure exactly as it was. Winning the fight that ends the adventure frees the character for another adventure;
   0 HP is instant defeat, and a defeated character cannot start another. A
   character on an adventure cannot be deleted until the adventure ends.
+  The library tags each character **On an adventure** or **Defeated** (a
+  defeated character's row is dimmed); a character on an adventure has
+  **Continue** on its row, which reopens the adventure directly, while the
+  rest of the row still opens the sheet.
 - **The 5e adventure screen.** It has fixed regions: the status strip, the
   scene (the room, the fight and the ending), the action buttons, and the
   conversation history ("What happened") with the box for typing to the
