@@ -19,6 +19,8 @@
 // above actions and composer. From 900 x 560 px the session fills the window
 // in two columns (status and scene left, the dock right, each scrolling on its
 // own); narrower, it is one column with the dock sticky at the bottom.
+import { FEATURE_USES_RULE } from "./fighter-5e.js";
+
 export const FIFTH_BROWSER_HTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dungeon One</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
@@ -35,7 +37,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </section>
 <section id="creation" class="panel" aria-labelledby="creation-title" hidden>
 <h2 id="creation-title" tabindex="-1">Create a Fighter</h2>
-<p class="hint">Your six ability rolls are 4d6, dropping the lowest die. They were rolled once and saved before you saw them: reloading, restarting or leaving this screen shows the same dice, and there are no rerolls. Until you save, you can place the rolls on any abilities and change your other choices.</p>
+<p class="hint">Rolled once. No rerolls. Place the six rolls on your abilities in any order, then make your other choices.</p>
 <h3>Your rolls</h3>
 <ol id="rolls" class="rolls"></ol>
 <form id="creation-form" novalidate>
@@ -86,7 +88,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-warning">
 <form id="delete-form" novalidate>
 <h2 id="delete-title">Delete <span id="delete-name"></span>?</h2>
-<p id="delete-warning" class="hint">Deleting is permanent. There is no undo, archive or recycle bin. Your pending creation, if you have one, keeps its dice.</p>
+<p id="delete-warning" class="hint">Deleting is permanent. There is no undo, archive or recycle bin.</p>
 <label for="delete-confirm-name">Type <strong id="delete-name-hint"></strong> exactly to confirm</label><input id="delete-confirm-name" autocomplete="off" spellcheck="false">
 <p id="delete-error" class="error" role="alert"></p>
 <div class="controls"><button id="confirm-delete" type="submit" class="primary danger" disabled>Delete</button><button id="cancel-delete" type="button" class="secondary">Cancel</button></div>
@@ -456,7 +458,7 @@ function renderAdventure() {
   const turn = session.turn;
   element("economy").textContent = [
     turn ? "This turn: " + (turn.actions > 0 ? turn.actions + (turn.actions === 1 ? " action" : " actions") : "no action") + " left, bonus action " + (turn.bonusAction ? "available" : "used") + ", reaction " + (turn.reaction ? "available" : "used") + "." : "",
-    features ? "Second Wind: " + features.secondWind.uses + " of " + features.secondWind.max + " uses left." + (features.actionSurge ? " Action Surge: " + features.actionSurge.uses + " of " + features.actionSurge.max + " left." : "") + " Uses return after the adventure." : "",
+    features ? "Second Wind: " + features.secondWind.uses + " of " + features.secondWind.max + " uses left." + (features.actionSurge ? " Action Surge: " + features.actionSurge.uses + " of " + features.actionSurge.max + " left." : "") + " " + ${JSON.stringify(FEATURE_USES_RULE)} : "",
   ].filter(Boolean).join(" ");
   element("ending").hidden = !session.ending;
   if (session.ending) {
