@@ -79,6 +79,7 @@ These apply to every ticket. Repeat them in each ticket's "Shared implementation
 - **Found or given.** Treasure, gear and coin come from examining something, from a named giver, or from a transaction. They are never simply awarded.
 - **Balance gate.** An adventure is offered in the browser only if it passes qualification at its declared difficulty in `npm.cmd run verify`.
 - **No positions.** The game has no grid or map. 5e rules that need distance (opportunity attacks, reach, areas, movement speed, and weapon masteries such as Push) are left out or abstracted, and each omission is listed in the rules document. Ranged weapons are deferred to a later version.
+- **Temporary `--5e` flag.** Until the cutover in 11.10, new 5e behaviour is reached by launching the browser with a temporary `--5e` flag, using its own library path. The default browser keeps the old game working until then, so `main` stays playable throughout the series.
 - **Testing.** Each ticket has focused tests and its own commit. Critical journeys run browser → API → storage. Every increment's release ticket includes a player handoff in `docs/acceptance/`.
 - **Licensing.** Use only SRD 5.2 rules, monsters, spells and items (CC-BY-4.0, attribution in the rules document and README). Confirm each name is in SRD 5.2 when ticketing.
 
@@ -149,7 +150,7 @@ Then:
 
 The kit is fixed for now and uses only common-tier gear (12.1), because early levels are meant to be the most dangerous (owner principle): chain shirt, shield and mace (AC 15 + Dex up to 2 = 15–17, 1d6 + Str, Sap mastery). This deliberately departs from the 2024 Fighter's starting equipment (chain mail and greatsword). Kit choice comes in increment 12.
 
-The library uses a new format version. An old library file is refused with a clear message and left untouched.
+The library uses a new format version. An old library file is refused with a clear message and left untouched. The browser gains the 5e creation screen and sheet under the temporary `--5e` flag.
 
 **Acceptance criteria**
 
@@ -288,7 +289,7 @@ Ordinary enemies follow the early-levels-are-dangerous principle and must pass 1
 
 **What to build.** The browser creates, selects and plays only 5e characters and adventures:
 
-- the creation screen for 11.3;
+- the 5e flow becomes the default and the `--5e` flag is removed;
 - an encounter panel listing every combatant in initiative order with HP and turn, with per-target attack controls and Second Wind/Action Surge;
 - difficulty in the adventure picker.
 
@@ -321,7 +322,7 @@ Remove `--legacy` and the single save slot. Starting with an old library, save o
 - the generator (`generation*`, `progression-analysis`);
 - `adventures/*.json` except the new adventure;
 - `tests/issue-*.test.mjs`, other tests and fixtures for removed behaviour;
-- `docs/acceptance/` records for removed features, root `increment-*` plans and ticket proposals, `docs/chapel-canon.md`, `docs/browser-history.md` and `docs/migration-contract.md`.
+- `docs/acceptance/` records for removed features, the increment 1–10 plans and ticket proposals in the repository root, `docs/chapel-canon.md`, `docs/browser-history.md` and `docs/migration-contract.md`.
 
 Git history keeps everything.
 
