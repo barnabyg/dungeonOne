@@ -647,7 +647,26 @@ export async function loadFifthAdventure(
   }
 }
 
-/** The built-in 5e modules, by id, in the order the browser offers them. */
+/**
+ * The order the browser offers modules in: by recommended level range, lowest
+ * first, then by difficulty, easy to hard, then by id. Returns a new array.
+ */
+export function orderFifthAdventures<
+  T extends Pick<FifthAdventure, "id" | "recommendedLevels" | "difficulty">,
+>(adventures: readonly T[]): T[] {
+  return [...adventures].sort(
+    (a, b) =>
+      a.recommendedLevels.min - b.recommendedLevels.min ||
+      a.recommendedLevels.max - b.recommendedLevels.max ||
+      DIFFICULTIES.indexOf(a.difficulty) - DIFFICULTIES.indexOf(b.difficulty) ||
+      a.id.localeCompare(b.id),
+  );
+}
+
+/**
+ * The built-in 5e modules, by id. The browser offers them in
+ * `orderFifthAdventures` order.
+ */
 export const FIFTH_ADVENTURE_FILES = {
   "cellar-goblin": "cellar-goblin.json",
   "goblin-storeroom": "goblin-storeroom.json",

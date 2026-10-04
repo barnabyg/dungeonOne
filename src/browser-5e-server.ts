@@ -14,6 +14,7 @@
 import { createServer } from "node:http";
 import {
   loadBuiltInFifthAdventures,
+  orderFifthAdventures,
   type FifthAdventure,
 } from "./adventure-5e.js";
 import {
@@ -36,6 +37,7 @@ import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
 import {
   ABILITIES,
   buildFighter,
+  defaultPlacement,
   droppedDie,
   fighterProfile,
   FIGHTER_SKILLS,
@@ -132,6 +134,7 @@ function libraryView(
               dropped: droppedDie(dice),
               total: keptTotal(dice),
             })),
+            defaultPlacement: defaultPlacement(pending.dice),
           },
         }),
     characters: data.characters.map(({ sheet, session, defeated }) => ({
@@ -185,7 +188,8 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     (apiKey.length === 0
       ? undefined
       : createOpenAiDmModel({ apiKey, model: OPENAI_DM_DEFAULT_MODEL }));
-  const view = (data: FifthLibraryData) => libraryView(data, adventures);
+  const offered = orderFifthAdventures(adventures);
+  const view = (data: FifthLibraryData) => libraryView(data, offered);
   // The file lock fails rather than waits, so this server's own changes queue.
   let queue: Promise<unknown> = Promise.resolve();
   const serialized = <T>(work: () => Promise<T>): Promise<T> => {
