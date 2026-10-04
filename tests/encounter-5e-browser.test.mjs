@@ -326,7 +326,7 @@ test(
       );
       assert.match(
         await page.locator("#initiative-rows").textContent(),
-        /Ada \(you\) \(defeated\)\d+ [+−] \d+ = \d+0\//,
+        /Ada \(you\) Defeated\d+ [+−] \d+ = \d+0\//,
       );
       const after = JSON.parse(await readFile(libraryPath, "utf8"));
       assert.equal(after.characters[0].defeated, true);
@@ -694,7 +694,7 @@ test(
         ({ id }) => id === expected.firstFall.id,
       ).name;
       shown = await panel(page);
-      assert.ok(shown.rows.some((row) => row.includes(`${fallen} (defeated)`)));
+      assert.ok(shown.rows.some((row) => row.includes(`${fallen} Defeated`)));
       assert.match(shown.turn, /^Round \d+: your turn\.$/);
       assert.ok(!(await attackLabels()).includes(`Attack ${fallen}`));
       assert.ok(await fits(), "the panel still fits with a defeated row");
