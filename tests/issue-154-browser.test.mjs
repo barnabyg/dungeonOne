@@ -395,9 +395,15 @@ for (const viewport of [
         );
 
         // Back at the bottom, it follows again.
-        await page.locator("#log").evaluate((log) => {
-          log.scrollTop = log.scrollHeight;
-        });
+        // Wait for the scroll event: a player can't scroll and send in the
+        // same frame, and the page learns the position from that event.
+        await page.locator("#log").evaluate(
+          (log) =>
+            new Promise((resolve) => {
+              log.addEventListener("scroll", resolve, { once: true });
+              log.scrollTop = log.scrollHeight;
+            }),
+        );
         await say(page, "I catch my breath");
         await explore(page, "move", "den");
         await fightOn(page);
