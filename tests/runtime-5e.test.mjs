@@ -364,7 +364,7 @@ test("scripted DM: read tools return engine facts for the AI to voice", async ()
   assert.equal(output.status.maxHp, 12);
   assert.match(
     model.requests[0].scene.combatStatus,
-    /Round 1\. It is the player's turn\. Ada 12\/12 HP, Goblin Warrior 10\/10 HP\./,
+    /Round 1\. It is the player's turn\. Ada 12\/12 HP, Goblin Warrior 10\/10 HP\. The player has 1 action and a bonus action left this turn\.$/,
   );
 });
 

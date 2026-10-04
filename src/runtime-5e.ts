@@ -587,7 +587,7 @@ export function createFifthRuntime(
                 ),
                 ...(turn.id === PLAYER_ID
                   ? [
-                      `The player has ${encounter.economy.actions} action(s) and ${encounter.economy.bonusAction ? "a" : "no"} bonus action left this turn.`,
+                      `The player has ${encounter.economy.actions} ${encounter.economy.actions === 1 ? "action" : "actions"} and ${encounter.economy.bonusAction ? "a" : "no"} bonus action left this turn.`,
                     ]
                   : []),
               ].join(" "),
