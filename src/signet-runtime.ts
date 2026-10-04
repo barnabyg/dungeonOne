@@ -16,7 +16,7 @@ import type {
   RuntimeState,
   RuntimeResult,
   RuntimeToolResult,
-} from "./runtime-contract.js";
+} from "./legacy-runtime-contract.js";
 import type {
   DmScene,
   GameToolDefinition,

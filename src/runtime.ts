@@ -1,18 +1,9 @@
-// Historical replay selection remains isolated in historical-runtime.ts.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { loadAdventure } from "./adventure-loader.js";
 import { createDataRuntime } from "./data-runtime.js";
 import type { AdventureRuntime } from "./runtime-contract.js";
 export type { AdventureRuntime } from "./runtime-contract.js";
-export {
-  ADVENTURE_VERSION,
-  RULES_VERSION,
-  LEGACY_ADVENTURE_VERSION,
-  LEGACY_RULES_VERSION,
-  resolveHistoricalAdventure,
-  type ReplayRuntime,
-} from "./historical-runtime.js";
 
 export const DEFAULT_ADVENTURE_ID = "chapel";
 

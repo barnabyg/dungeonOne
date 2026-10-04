@@ -4,12 +4,6 @@ import type { AdventureDefinition } from "./adventure-loader.js";
 import { parseBoundedJson } from "./bounded-json.js";
 
 import { resolveAdventure, type AdventureRuntime } from "./runtime.js";
-export {
-  ADVENTURE_VERSION,
-  RULES_VERSION,
-  LEGACY_ADVENTURE_VERSION,
-  LEGACY_RULES_VERSION,
-} from "./runtime.js";
 
 import {
   type DmDiagnostic,
@@ -17,17 +11,24 @@ import {
   type DmTurnResult,
 } from "./dm-turn.js";
 import { RANDOM_ALGORITHM } from "./random.js";
-import type { Action } from "./session.js";
 
 import type {
+  RuntimeAction as Action,
   RuntimeState as SessionState,
   RuntimeResult as ActionResult,
   RuntimeEvent as Event,
   RuntimeRejection as Rejection,
 } from "./runtime-contract.js";
-export const TRACE_FORMAT_VERSION = 1;
-export const DM_TRACE_FORMAT_VERSION = 2;
-export const CHAPEL_TRACE_FORMAT_VERSION = 3;
+import {
+  CHAPEL_TRACE_FORMAT_VERSION,
+  DM_TRACE_FORMAT_VERSION,
+  TRACE_FORMAT_VERSION,
+} from "./trace-file.js";
+export {
+  CHAPEL_TRACE_FORMAT_VERSION,
+  DM_TRACE_FORMAT_VERSION,
+  TRACE_FORMAT_VERSION,
+} from "./trace-file.js";
 
 export type RollRecord = Readonly<{ sides: number; value: number }>;
 

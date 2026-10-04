@@ -25,7 +25,12 @@ import type {
   RuntimeState,
   RuntimeResult,
   RuntimeToolResult,
-} from "./runtime-contract.js";
+} from "./legacy-runtime-contract.js";
+import {
+  clueDomainEvents,
+  projectClueBrowserFacts,
+  projectClueSessionHistory,
+} from "./chapel-clues-records.js";
 import type { Action } from "./session.js";
 import type { RandomSource } from "./random.js";
 
@@ -3457,7 +3462,7 @@ export function createChapelCluesRuntime(
       : claimsEnabled && entry.check !== undefined
         ? `Social check: d20 ${entry.check.die} + modifier ${entry.check.modifier} = ${entry.check.total} vs DC ${entry.check.dc} — ${entry.check.result}. ${entry.text}`
         : entry.text;
-  return Object.freeze({
+  const runtime: AdventureRuntime = Object.freeze({
     id: definition.id,
     version: definition.contentVersion,
     rulesVersion: definition.rulesVersion,
@@ -3466,6 +3471,12 @@ export function createChapelCluesRuntime(
     dmTraceFormatVersion: 4,
     content,
     localStatusReads: true,
+    recordDomainEvents: clueDomainEvents,
+    // A wrapping runtime (the character runtime) overrides this so history
+    // uses its own content and scene.
+    projectDmHistory: (state, transitions, speakerId) =>
+      projectClueSessionHistory(runtime, state, transitions, speakerId),
+    projectBrowserFacts: projectClueBrowserFacts,
     renderDmNarration(call, result) {
       if (
         call.name === "follow" &&
@@ -4617,4 +4628,5 @@ export function createChapelCluesRuntime(
       };
     },
   });
+  return runtime;
 }

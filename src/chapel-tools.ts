@@ -25,7 +25,7 @@ import type {
   GameToolDefinition,
   ToolValidationErrorCode,
 } from "./game-tools.js";
-import type { RuntimeToolResult } from "./runtime-contract.js";
+import type { RuntimeToolResult } from "./legacy-runtime-contract.js";
 import type { Action } from "./session.js";
 
 export function projectChapelScene(

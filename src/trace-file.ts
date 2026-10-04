@@ -1,6 +1,10 @@
 import { open, type FileHandle } from "node:fs/promises";
 import { parseBoundedJson } from "./bounded-json.js";
 
+export const TRACE_FORMAT_VERSION = 1;
+export const DM_TRACE_FORMAT_VERSION = 2;
+export const CHAPEL_TRACE_FORMAT_VERSION = 3;
+
 const TRACE_BYTE_LIMIT = 16 * 1024 * 1024;
 
 // Keep enough significant digits to distinguish supported versions 1–5 even

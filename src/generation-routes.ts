@@ -6,7 +6,7 @@ import type {
   ClueCondition,
   ValidatedAdventure,
 } from "./adventure-loader.js";
-import { createDataRuntime } from "./data-runtime.js";
+import { createLegacyDataRuntime as createDataRuntime } from "./data-runtime.js";
 import { createSeededRandom } from "./random.js";
 import type { GameToolCall, GameToolDefinition } from "./game-tools.js";
 import type { ClueState } from "./chapel-clues-runtime.js";

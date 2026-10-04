@@ -7,6 +7,7 @@ import {
   isCharacterSchema,
   loadAdventure,
   type AdventureDefinition,
+  type ValidatedAdventure,
 } from "./adventure-loader.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { createDataRuntime } from "./data-runtime.js";
@@ -17,15 +18,16 @@ import {
 } from "./random.js";
 import type {
   AdventureRuntime,
+  DmHistory,
+  GameToolCall,
+  RuntimeAction,
+  RuntimeDomainEvent,
   RuntimeEvent,
   RuntimeState,
   RuntimeToolResult,
 } from "./runtime-contract.js";
-import type { Action } from "./session.js";
-import type { GameToolCall } from "./game-tools.js";
 import type { RollRecord } from "./trace.js";
-import type { ClueState, OfferResolution } from "./chapel-clues-runtime.js";
-import { projectDmHistory, type DmHistory } from "./dm-history.js";
+import { projectDmHistory } from "./dm-history.js";
 import {
   historyDigest,
   validateBrowserHistory,
@@ -39,7 +41,7 @@ type Transition = Readonly<{
   sequence: number;
   actionId: string;
   rawInput: string;
-  action: Action;
+  action: RuntimeAction;
   source?: "ai-tool";
   rolls: readonly RollRecord[];
   domainEvent: Readonly<{
@@ -48,7 +50,7 @@ type Transition = Readonly<{
     locationId?: string;
     actionType: string;
   }>;
-  domainEvents?: readonly DomainEvent[];
+  domainEvents?: readonly RuntimeDomainEvent[];
   stateDigest: string;
   randomPosition: number;
   randomState?: number;
@@ -86,23 +88,27 @@ function digest(value: unknown): string {
   return `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
 }
 
+// A runtime is saveable when it records domain events for its transitions.
 function requireSaveRuntime(runtime: AdventureRuntime): void {
   if (
-    ![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].includes(
-      runtime.content?.snapshot.schemaVersion ?? 0,
-    ) ||
+    runtime.recordDomainEvents === undefined ||
+    runtime.content === undefined ||
     runtime.engineVersion === undefined
   ) {
-    throw new Error("Saves require a schema-3 through schema-18 adventure.");
+    throw new Error(
+      "Saves require a runtime that records domain events (schema-3 through schema-18 adventures).",
+    );
   }
 }
 
 function eventFor(
-  action: Action,
+  action: RuntimeAction,
   actionId: string,
   state: RuntimeState,
 ): Transition["domainEvent"] {
-  return action.type === "move" && "locationId" in state
+  return action.type === "move" &&
+    "locationId" in state &&
+    typeof state.locationId === "string"
     ? {
         type: "actor-relocated",
         actionId,
@@ -112,364 +118,23 @@ function eventFor(
     : { type: "action-committed", actionId, actionType: action.type };
 }
 
-export type DomainEvent = Readonly<
-  | { type: "search-performed"; actionId: string; targetId: string }
-  | {
-      type: "discovery-granted";
-      actionId: string;
-      discoveryId: string;
-      locationId: string;
-    }
-  | { type: "milestone-recorded"; actionId: string; milestoneId: string }
-  | {
-      type: "clock-advanced";
-      actionId: string;
-      clockId: string;
-      from: number;
-      to: number;
-    }
-  | {
-      type: "clock-threshold-crossed";
-      actionId: string;
-      clockId: string;
-      at: number;
-    }
-  | {
-      type: "relationship-changed";
-      actionId: string;
-      targetId: string;
-      from: string;
-      to: string;
-      reason: string;
-    }
-  | {
-      type: "item-transferred";
-      actionId: string;
-      itemId: string;
-      from: "room";
-      to: "inventory";
-    }
-  | { type: "item-consumed"; actionId: string; itemId: string }
-  | {
-      type: "social-check-attempted";
-      actionId: string;
-      challengeId: string;
-      approach: string;
-      die: number;
-      result: "success" | "failure";
-    }
-  | {
-      type: "combat-started" | "combat-ended";
-      actionId: string;
-      opponentId: string;
-    }
-  | {
-      type: "initiative-rolled";
-      actionId: string;
-      combatantId: string;
-    }
-  | { type: "turn-started"; actionId: string; combatantId: string }
-  | { type: "encounter-effect"; actionId: string; effectId: string }
-  | {
-      type: "attack-resolved";
-      actionId: string;
-      attackerId: string;
-      targetId: string;
-      attackRoll: number;
-      outcome: "miss" | "hit" | "critical-hit";
-      damage?: number;
-      targetHp: number;
-    }
-  | {
-      type: "actor-defeated";
-      actionId: string;
-      actorId: string;
-      locationId: string;
-    }
-  | { type: "healing-item-used"; actionId: string; itemId: string }
-  | ({ type: "item-offered"; actionId: string } & OfferResolution)
-  | {
-      type: "passage-barricaded";
-      actionId: string;
-      profileId: string;
-      targetId: string;
-      resourceId: string;
-      blockedConnectionIds: readonly string[];
-    }
-  | {
-      type: "guard-distracted";
-      actionId: string;
-      profileId: string;
-      guardId: string;
-      resourceId: string;
-      connectionId: string;
-      expiresAt: number;
-      timeCost: number;
-      die: number;
-      modifier: number;
-      total: number;
-      dc: number;
-      result: "success" | "failure";
-    }
-  | {
-      type: "ally-deceived";
-      actionId: string;
-      profileId: string;
-      allyId: string;
-      claimId: string;
-      playerDie: number;
-      playerModifier: number;
-      playerTotal: number;
-      defenderDie: number;
-      defenderModifier: number;
-      defenderTotal: number;
-      result: "success" | "failure";
-    }
-  | {
-      type: "actor-relocated";
-      actionId: string;
-      actorId: string;
-      from: string;
-      to: string;
-    }
-  | { type: "action-committed"; actionId: string; actionType: string }
->;
-
-function clueState(state: RuntimeState): ClueState {
-  if (!("runtimeKind" in state) || state.runtimeKind !== "chapel-clues") {
-    throw new Error("Save transition has an unsupported runtime state.");
-  }
-  return state;
-}
-
 function eventsFor(
-  action: Action,
+  runtime: AdventureRuntime,
+  action: RuntimeAction,
   actionId: string,
-  beforeState: RuntimeState,
-  afterState: RuntimeState,
+  before: RuntimeState,
+  after: RuntimeState,
   resultEvents: readonly RuntimeEvent[],
   includeSettledEvents = true,
-): readonly DomainEvent[] {
-  const before = clueState(beforeState);
-  const after = clueState(afterState);
-  const events: DomainEvent[] = [];
-  for (const entry of includeSettledEvents ? resultEvents : []) {
-    if (entry.type === "attack-resolved") {
-      events.push({
-        type: "attack-resolved",
-        actionId,
-        attackerId: entry.attackerId,
-        targetId: entry.targetId,
-        attackRoll: entry.attackRoll,
-        outcome: entry.outcome,
-        ...(entry.damage === undefined ? {} : { damage: entry.damage }),
-        targetHp: entry.targetHp,
-      });
-      if (entry.targetHp === 0) {
-        events.push({
-          type: "actor-defeated",
-          actionId,
-          actorId: entry.targetId,
-          locationId: before.locationId,
-        });
-      }
-    } else if (entry.type === "clue") {
-      if (entry.operation === "offer" && entry.offer !== undefined) {
-        events.push({ type: "item-offered", actionId, ...entry.offer });
-      }
-      if (entry.operation === "deceive" && entry.deception !== undefined) {
-        events.push({
-          type: "ally-deceived",
-          actionId,
-          ...entry.deception,
-        });
-      }
-      if (entry.operation === "distract" && entry.distraction !== undefined) {
-        events.push({
-          type: "guard-distracted",
-          actionId,
-          ...entry.distraction,
-        });
-      }
-      if (
-        entry.operation === "adjudicate" &&
-        entry.adjudication !== undefined
-      ) {
-        events.push({
-          type: "passage-barricaded",
-          actionId,
-          ...entry.adjudication,
-        });
-      }
-      if (entry.operation === "clock-advanced" && entry.clock !== undefined) {
-        events.push({
-          type: "clock-advanced",
-          actionId,
-          clockId: entry.clock.id,
-          from: entry.clock.from,
-          to: entry.clock.to,
-        });
-      }
-      if (
-        entry.operation === "clock-threshold" &&
-        entry.clock?.threshold !== undefined
-      ) {
-        events.push({
-          type: "clock-threshold-crossed",
-          actionId,
-          clockId: entry.clock.id,
-          at: entry.clock.threshold,
-        });
-      }
-      if (entry.check !== undefined) {
-        events.push({
-          type: "social-check-attempted",
-          actionId,
-          challengeId: entry.check.challengeId,
-          approach: entry.check.approach,
-          die: entry.check.die,
-          result: entry.check.result,
-        });
-      }
-      if (
-        entry.operation === "combat-started" ||
-        entry.operation === "combat-ended"
-      ) {
-        events.push({
-          type: entry.operation,
-          actionId,
-          opponentId: entry.target ?? "fighter",
-        });
-      }
-      if (
-        entry.operation === "initiative-rolled" &&
-        entry.target !== undefined
-      ) {
-        events.push({
-          type: "initiative-rolled",
-          actionId,
-          combatantId: entry.target,
-        });
-      }
-      if (entry.operation === "turn-started" && entry.target !== undefined) {
-        events.push({
-          type: "turn-started",
-          actionId,
-          combatantId: entry.target,
-        });
-      }
-      if (
-        entry.operation === "encounter-effect" &&
-        entry.target !== undefined
-      ) {
-        events.push({
-          type: "encounter-effect",
-          actionId,
-          effectId: entry.target,
-        });
-      }
-      if (entry.operation === "use" && entry.target !== undefined) {
-        events.push({
-          type: "healing-item-used",
-          actionId,
-          itemId: entry.target,
-        });
-      }
-    }
-  }
-  const search = resultEvents.find(
-    (entry) => entry.type === "clue" && entry.operation === "search",
+): readonly RuntimeDomainEvent[] {
+  return runtime.recordDomainEvents!(
+    action,
+    actionId,
+    before,
+    after,
+    resultEvents,
+    includeSettledEvents,
   );
-  // A committed examine is a search: it changes state only by searching.
-  if (action.type === "search" || action.type === "examine") {
-    if (search?.type !== "clue" || search.target === undefined) {
-      throw new Error("Committed search has no resolved target.");
-    }
-    events.push({
-      type: "search-performed",
-      actionId,
-      targetId: search.target,
-    });
-  }
-  for (const discoveryId of after.discoveries) {
-    if (!before.discoveries.includes(discoveryId)) {
-      events.push({
-        type: "discovery-granted",
-        actionId,
-        discoveryId,
-        locationId:
-          after.discoveryLocations?.[discoveryId] ?? before.locationId,
-      });
-    }
-  }
-  for (const milestoneId of after.milestones) {
-    if (!before.milestones.includes(milestoneId)) {
-      events.push({ type: "milestone-recorded", actionId, milestoneId });
-    }
-  }
-  for (const [targetId, relationship] of Object.entries(
-    after.relationships ?? {},
-  )) {
-    const prior = before.relationships?.[targetId];
-    if (
-      prior !== undefined &&
-      (prior.tier !== relationship.tier || prior.reason !== relationship.reason)
-    ) {
-      events.push({
-        type: "relationship-changed",
-        actionId,
-        targetId,
-        from: prior.tier,
-        to: relationship.tier,
-        reason: relationship.reason,
-      });
-    }
-  }
-  for (const [itemId, position] of Object.entries(after.items ?? {})) {
-    const prior = before.items?.[itemId];
-    if (prior === "room" && position === "inventory") {
-      events.push({
-        type: "item-transferred",
-        actionId,
-        itemId,
-        from: "room",
-        to: "inventory",
-      });
-    } else if (prior === "inventory" && position === "consumed") {
-      events.push({ type: "item-consumed", actionId, itemId });
-    }
-  }
-  if (before.locationId !== after.locationId) {
-    events.push({
-      type: "actor-relocated",
-      actionId,
-      actorId: "player",
-      from: before.locationId,
-      to: after.locationId,
-    });
-  }
-  for (const [actorId, locationId] of Object.entries(
-    after.npcLocations ?? {},
-  )) {
-    const prior = before.npcLocations?.[actorId];
-    if (prior !== undefined && prior !== locationId) {
-      events.push({
-        type: "actor-relocated",
-        actionId,
-        actorId,
-        from: prior,
-        to: locationId,
-      });
-    }
-  }
-  if (events.length === 0) {
-    events.push({
-      type: "action-committed",
-      actionId,
-      actionType: action.type,
-    });
-  }
-  return events;
 }
 
 export class SaveSession {
@@ -515,9 +180,6 @@ export class SaveSession {
   private seeded: ReturnType<typeof createSeededRandom>;
 
   dmHistory(state: RuntimeState, speakerId?: string): DmHistory | undefined {
-    if (!("runtimeKind" in state) || state.runtimeKind !== "chapel-clues") {
-      return undefined;
-    }
     return projectDmHistory(this.runtime, state, this.transitions, speakerId);
   }
 
@@ -564,7 +226,17 @@ export class SaveSession {
     return session;
   }
 
-  static async load(path: string): Promise<SaveSession> {
+  /**
+   * Loads and replay-verifies a save. `createRuntime` selects the runtime for
+   * the embedded content; it defaults to the runtime registry.
+   */
+  static async load(
+    path: string,
+    createRuntime: (
+      content: ValidatedAdventure,
+      character?: CharacterSheet,
+    ) => AdventureRuntime = createDataRuntime,
+  ): Promise<SaveSession> {
     const recoveryPath = `${path}.recovery`;
     const recovering = await stat(recoveryPath).then(
       () => true,
@@ -631,7 +303,7 @@ export class SaveSession {
     if (save.formatVersion !== 4 && save.startingCharacter !== undefined) {
       throw new Error("Legacy save contains an unsupported character.");
     }
-    const runtime = createDataRuntime(
+    const runtime = createRuntime(
       loaded.adventure,
       save.formatVersion === 4
         ? validateCharacter(save.startingCharacter)
@@ -701,6 +373,7 @@ export class SaveSession {
         (save.formatVersion >= 2 &&
           !isDeepStrictEqual(
             eventsFor(
+              runtime,
               transition.action,
               transition.actionId,
               before,
@@ -724,6 +397,7 @@ export class SaveSession {
           ? {
               ...transition,
               domainEvents: eventsFor(
+                runtime,
                 transition.action,
                 transition.actionId,
                 before,
@@ -818,7 +492,7 @@ export class SaveSession {
 
   async commit(
     rawInput: string,
-    action: Action,
+    action: RuntimeAction,
     onRolls?: (rolls: readonly RollRecord[]) => void,
   ): Promise<ReturnType<AdventureRuntime["handleAction"]>> {
     if (this.transitions.length >= TRANSITION_LIMIT) {
@@ -855,7 +529,7 @@ export class SaveSession {
 
   private async record(
     rawInput: string,
-    action: Action,
+    action: RuntimeAction,
     afterState: RuntimeState,
     events: readonly RuntimeEvent[],
     rolls: readonly RollRecord[],
@@ -876,7 +550,14 @@ export class SaveSession {
       ...(source === undefined ? {} : { source }),
       rolls,
       domainEvent: eventFor(action, actionId, afterState),
-      domainEvents: eventsFor(action, actionId, before, afterState, events),
+      domainEvents: eventsFor(
+        this.runtime,
+        action,
+        actionId,
+        before,
+        afterState,
+        events,
+      ),
       stateDigest: digest(afterState),
       randomPosition: this.randomPosition,
       randomState: randomStateAt(this.seed, this.randomPosition),
