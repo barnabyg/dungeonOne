@@ -71,7 +71,7 @@ An adventure module is a set of rooms joined by two-way passages; there is no ma
 - **Potion of Healing.** Drinking one restores 2d4 + 2 HP, never above maximum HP, and uses it up. Outside a fight it is drunk at once; in a fight it takes the bonus action, so it competes with Second Wind. Administering it to another creature is not used, as the party is one character.
 - **Not during a fight.** Moving, examining and taking are refused until the fight is won. In a fight a character can only drink a potion or take the combat actions.
 
-The browser's room panel shows the room, the character's HP, the exits, the features with any discovery made, the visible items and the carried items, with **Go to**, **Examine**, **Take** and **Drink** buttons for exactly what the engine would accept now.
+The browser's status region shows the character's HP, and its room panel shows the room, the exits, the features with any discovery made, the visible items and the carried items, with **Go to**, **Examine**, **Take** and **Drink** buttons for exactly what the engine would accept now.
 
 ## Adventure modules
 
