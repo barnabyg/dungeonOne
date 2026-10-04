@@ -75,13 +75,12 @@ test(
 
       // Reload, then back out and reopen: the same dice.
       await page.reload();
+      assert.deepEqual(await shownRolls(page), shown);
+      await page.locator("#close-creation").click();
       await page
         .locator("#open-creation")
         .filter({ hasText: "Continue" })
         .click();
-      assert.deepEqual(await shownRolls(page), shown);
-      await page.locator("#close-creation").click();
-      await page.locator("#open-creation").click();
       assert.deepEqual(await shownRolls(page), shown);
 
       // Restart, even with another seed: the same dice.
@@ -235,7 +234,7 @@ test(
         await page.locator("#sheet-body").innerText(),
         new RegExp(`AC:\\s*${profile.armorClass}`),
       );
-      await page.locator("#close-sheet").click();
+      await page.locator(`#breadcrumb a[data-view="library"]`).click();
       await page.locator("#open-creation").click();
       assert.notDeepEqual(await shownRolls(page), shown);
     } finally {
@@ -409,7 +408,7 @@ test(
         await page.locator("#character-name").fill(name);
         await page.locator("#character-name").press("Enter");
         await page.locator("#sheet-name").filter({ hasText: name }).waitFor();
-        await page.locator("#close-sheet").click();
+        await page.locator(`#breadcrumb a[data-view="library"]`).click();
       }
       await page.locator("#open-creation").click();
       const pendingRolls = await shownRolls(page);
@@ -517,7 +516,7 @@ test(
         .filter({ hasText: "Bram" })
         .click();
       await page.locator("#sheet-name").filter({ hasText: "Bram" }).waitFor();
-      await page.locator("#close-sheet").click();
+      await page.locator(`#breadcrumb a[data-view="library"]`).click();
       await page
         .locator("#open-creation")
         .filter({ hasText: "Continue" })
