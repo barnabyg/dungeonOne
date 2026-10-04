@@ -12,6 +12,7 @@ import {
   ABILITIES,
   abilityModifier,
   buildFighter,
+  defaultPlacement,
   fighterProfile,
   keptTotal,
 } from "../dist/fighter-5e.js";
@@ -67,9 +68,7 @@ test(
       await openCreation(page, server.url);
       const dice = JSON.parse(await readFile(libraryPath, "utf8"))
         .pendingCreation.dice;
-      const placement = Object.fromEntries(
-        ABILITIES.map((ability, index) => [ability, index]),
-      );
+      const placement = { ...defaultPlacement(dice) };
       let increase = { strength: 2, constitution: 1 };
       assert.deepEqual(
         await shownScores(page),
@@ -95,17 +94,21 @@ test(
       const options = await strengthRoll
         .locator("option")
         .evaluateAll((nodes) => nodes.map((node) => node.textContent));
-      assert.equal(options[0], `${keptTotal(dice[0])} (roll 1)`);
+      const [held, wisdom] = [placement.strength, placement.wisdom];
       assert.equal(
-        options[4],
-        `${keptTotal(dice[4])} (roll 5), swaps with Wisdom`,
+        options[held],
+        `${keptTotal(dice[held])} (roll ${held + 1})`,
       );
-      await strengthRoll.selectOption("4");
-      placement.strength = 4;
-      placement.wisdom = 0;
+      assert.equal(
+        options[wisdom],
+        `${keptTotal(dice[wisdom])} (roll ${wisdom + 1}), swaps with Wisdom`,
+      );
+      await strengthRoll.selectOption(String(wisdom));
+      placement.strength = wisdom;
+      placement.wisdom = held;
       assert.equal(
         await page.getByRole("combobox", { name: "Wisdom roll" }).inputValue(),
-        "0",
+        String(held),
       );
       assert.equal(
         await page.evaluate(() => document.activeElement.id),

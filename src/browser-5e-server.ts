@@ -36,6 +36,7 @@ import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
 import {
   ABILITIES,
   buildFighter,
+  defaultPlacement,
   droppedDie,
   fighterProfile,
   FIGHTER_SKILLS,
@@ -132,6 +133,7 @@ function libraryView(
               dropped: droppedDie(dice),
               total: keptTotal(dice),
             })),
+            defaultPlacement: defaultPlacement(pending.dice),
           },
         }),
     characters: data.characters.map(({ sheet, session, defeated }) => ({
