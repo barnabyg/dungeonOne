@@ -464,11 +464,11 @@ test(
     page.setDefaultTimeout(5000);
     try {
       await createAndStart(page, server.url);
-      await page.locator("#message").fill("attack the goblin");
-      await page.locator("#send-message").click();
+      // #161: the composer is off up front, with a notice for the player.
+      assert.equal(await page.locator("#message").isDisabled(), true);
       await page
-        .locator("#adventure-error")
-        .filter({ hasText: "The AI Dungeon Master needs OPENAI_API_KEY" })
+        .locator("#dm-notice")
+        .filter({ hasText: "Typing to the Dungeon Master is off." })
         .waitFor();
       const before = await page.locator("#log li").count();
       await page.locator("#attack-controls button.attack").click();
