@@ -8,7 +8,13 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { CharacterLibrary } from "../dist/character-library.js";
-import { buildFighter, fighterProfile, keptTotal } from "../dist/fighter-5e.js";
+import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
+import {
+  buildFighter,
+  droppedDie,
+  fighterProfile,
+  keptTotal,
+} from "../dist/fighter-5e.js";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -373,3 +379,180 @@ test("the 5e server rejects other hosts and cross-origin posts", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+const CHOICES = {
+  placement: {
+    strength: 0,
+    dexterity: 1,
+    constitution: 2,
+    intelligence: 3,
+    wisdom: 4,
+    charisma: 5,
+  },
+  increase: { strength: 2, constitution: 1 },
+  skills: ["athletics", "perception"],
+  fightingStyle: "defense",
+};
+
+test(
+  "a character is deleted only by typing its name, and the pending dice survive",
+  { timeout: 60000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "fighter-5e-delete-"));
+    const libraryPath = join(directory, "characters.json");
+    const library = new FifthCharacterLibrary(libraryPath, 5);
+    for (const name of ["Ada", "Bram"]) {
+      await library.create(
+        name,
+        CHOICES,
+        (await library.startCreation()).revision,
+      );
+    }
+    const pending = (await library.startCreation()).pendingCreation;
+    let server = await startFifthBrowserServer({ libraryPath, seed: 5 });
+    const browser = await launch();
+    const page = await browser.newPage({
+      viewport: { width: 360, height: 740 },
+    });
+    page.setDefaultTimeout(5000);
+    const dialog = page.locator("#delete-dialog");
+    const openAdaDelete = async () => {
+      await page
+        .locator("#characters button")
+        .filter({ hasText: "Ada" })
+        .click();
+      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+      await page.locator("#delete-character").click();
+      await dialog.waitFor({ state: "visible" });
+    };
+    const focused = () => page.evaluate(() => document.activeElement.id);
+    try {
+      await page.goto(server.url);
+      await openAdaDelete();
+      assert.equal(await focused(), "delete-confirm-name");
+      assert.match(await dialog.innerText(), /permanent/i);
+      assert.match(await dialog.innerText(), /no undo/i);
+      assert.ok(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+        "no horizontal scroll at phone width",
+      );
+      const box = await dialog.boundingBox();
+      assert.ok(box.x >= 0 && box.x + box.width <= 360, "dialog fits");
+
+      // Only the exact name enables Delete.
+      const confirm = page.locator("#confirm-delete");
+      const input = page.locator("#delete-confirm-name");
+      assert.equal(await confirm.isDisabled(), true);
+      for (const wrong of ["ada", "Ada ", " Ada", "Ad"]) {
+        await input.fill(wrong);
+        assert.equal(await confirm.isDisabled(), true, `"${wrong}"`);
+      }
+      const before = await readFile(libraryPath);
+
+      // Escape cancels and returns focus to the Delete control.
+      await input.fill("Ada");
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "hidden" });
+      assert.equal(await focused(), "delete-character");
+      // Cancel does too, and reopening starts empty.
+      await page.keyboard.press("Enter");
+      await dialog.waitFor({ state: "visible" });
+      assert.equal(await input.inputValue(), "");
+      await page.locator("#cancel-delete").click();
+      await dialog.waitFor({ state: "hidden" });
+      assert.equal(await focused(), "delete-character");
+      assert.deepEqual(await readFile(libraryPath), before);
+
+      // Forged and replayed requests change nothing.
+      const { revision, characters } = await await page.evaluate(() =>
+        fetch("/api/5e/library").then((r) => r.json()),
+      );
+      const ada = characters.find(({ sheet }) => sheet.name === "Ada").sheet;
+      for (const body of [
+        { revision, characterId: ada.id, name: "ada" },
+        { revision, characterId: ada.id, name: "Ada", force: true },
+        { revision, characterId: ada.id },
+        { revision: "0".repeat(32), characterId: ada.id, name: "Ada" },
+        { revision, characterId: "f".repeat(32), name: "Ada" },
+      ]) {
+        const result = await post(page, "/api/5e/characters/delete", body);
+        assert.equal(result.status, 409, JSON.stringify(body));
+      }
+      assert.match(
+        (
+          await post(page, "/api/5e/characters/delete", {
+            revision: "0".repeat(32),
+            characterId: ada.id,
+            name: "Ada",
+          })
+        ).body.error,
+        /refresh before retrying/,
+      );
+      assert.deepEqual(await readFile(libraryPath), before);
+
+      // Delete for real from the keyboard.
+      await page.locator("#delete-character").focus();
+      await page.keyboard.press("Enter");
+      await input.fill("Ada");
+      await input.press("Enter");
+      await dialog.waitFor({ state: "hidden" });
+      await page.locator("#library").waitFor({ state: "visible" });
+      await page.locator("#feedback").filter({ hasText: "Ada" }).waitFor();
+      assert.deepEqual(
+        await page.locator("#characters strong").allInnerTexts(),
+        ["Bram"],
+      );
+      const replayed = await post(page, "/api/5e/characters/delete", {
+        revision,
+        characterId: ada.id,
+        name: "Ada",
+      });
+      assert.equal(replayed.status, 409);
+
+      // Reload and restart: Ada is gone, Bram intact, the same dice pending.
+      await page.reload();
+      await page.locator("#characters strong").first().waitFor();
+      assert.deepEqual(
+        await page.locator("#characters strong").allInnerTexts(),
+        ["Bram"],
+      );
+      await server.close();
+      server = await startFifthBrowserServer({ libraryPath, seed: 9 });
+      await page.goto(server.url);
+      await page
+        .locator("#characters button")
+        .filter({ hasText: "Bram" })
+        .click();
+      await page.locator("#sheet-name").filter({ hasText: "Bram" }).waitFor();
+      await page.locator("#close-sheet").click();
+      await page
+        .locator("#open-creation")
+        .filter({ hasText: "Continue" })
+        .click();
+      assert.deepEqual(
+        await shownRolls(page),
+        pending.dice.map(
+          (dice, index) =>
+            `Roll ${index + 1}: ${dice
+              .map(
+                (die, at) =>
+                  `${die}${at === droppedDie(dice) ? " dropped" : ""}`,
+              )
+              .join(", ")}, total ${keptTotal(dice)}`,
+        ),
+      );
+      const stored = JSON.parse(await readFile(libraryPath, "utf8"));
+      assert.deepEqual(stored.pendingCreation, pending);
+      assert.deepEqual(
+        stored.characters.map(({ sheet }) => sheet.name),
+        ["Bram"],
+      );
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

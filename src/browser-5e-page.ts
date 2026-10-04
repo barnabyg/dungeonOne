@@ -34,9 +34,18 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <section id="sheet" class="panel" aria-labelledby="sheet-name" hidden>
 <h2 id="sheet-name" tabindex="-1"></h2>
 <div id="sheet-body"></div>
-<button id="close-sheet" type="button" class="secondary">Back to characters</button>
+<div class="controls"><button id="close-sheet" type="button" class="secondary">Back to characters</button><button id="delete-character" type="button" class="danger">Delete character</button></div>
 </section>
-</main></body></html>`;
+</main>
+<dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-warning">
+<form id="delete-form" novalidate>
+<h2 id="delete-title">Delete <span id="delete-name"></span>?</h2>
+<p id="delete-warning" class="hint">Deleting is permanent. There is no undo, archive or recycle bin. Your pending creation, if you have one, keeps its dice.</p>
+<label for="delete-confirm-name">Type <strong id="delete-name-hint"></strong> exactly to confirm</label><input id="delete-confirm-name" autocomplete="off" spellcheck="false">
+<p id="delete-error" class="error" role="alert"></p>
+<div class="controls"><button id="confirm-delete" type="submit" class="danger" disabled>Delete</button><button id="cancel-delete" type="button" class="secondary">Cancel</button></div>
+</form>
+</dialog></body></html>`;
 
 export const FIFTH_BROWSER_CSS = `:root{color-scheme:light;font-family:Georgia,serif;color:#292b27;background:#151f23;font-size:17px;line-height:1.55;--ink:#263d3d;--gold:#d5b474;--line:#d4c9b5;--paper:#f7f0e1}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#304043,#151f23 75%);min-height:100dvh}h1,h2,h3,p{margin:0 0 12px}h1{font-size:1.4rem;line-height:1.1}h2{font-size:1.45rem;line-height:1.2}h3{font-size:1.05rem;margin-top:16px}
@@ -51,6 +60,8 @@ fieldset{border:1px solid var(--line);border-radius:8px;margin:0 0 14px;padding:
 .checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:8px;align-items:flex-start;font-size:.85rem}.checks input{width:auto;padding:0;margin-top:4px;flex:none}.checks small{display:block;color:#615f50;font-weight:400}
 #preview{border-top:1px solid var(--line);margin-top:16px}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:4px}
 .table-wrap{overflow-x:auto}table{border-collapse:collapse;font-size:.85rem;width:100%;margin-bottom:12px}th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left}th{font-weight:600;color:#4b4a3c}
+button.danger{background:#883c2d;border-color:#883c2d}button.danger:hover{background:#9f4936}
+dialog{background:var(--paper);color:#292b27;border:1px solid #81785e;border-radius:10px;padding:20px;width:min(480px,calc(100vw - 32px));max-width:none}dialog::backdrop{background:rgba(10,16,18,.7)}dialog label{display:block;font-weight:600;font-size:.85rem;overflow-wrap:anywhere}
 .features{font-size:.85rem;padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 @media(max-width:560px){.panel{padding:14px}.masthead{padding:12px 16px}h2{font-size:1.25rem}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
 @media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}`;
@@ -69,6 +80,8 @@ const damageText = (damage) => damage.dice + "d" + damage.sides + (damage.modifi
 let library;
 let choices;
 let previewRequest = 0;
+let shownSheetId;
+let deleted = false;
 
 async function request(path, body) {
   const response = await fetch(path, body === undefined ? {} : {
@@ -153,6 +166,7 @@ function openSheet(id) {
   const entry = library.characters.find(({ sheet }) => sheet.id === id);
   if (!entry) return;
   const { sheet, profile } = entry;
+  shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
   const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · Chain shirt, shield and mace", "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
@@ -318,6 +332,45 @@ async function saveCharacter(event) {
   }
 }
 
+function shownSheet() {
+  return library.characters.find(({ sheet }) => sheet.id === shownSheetId).sheet;
+}
+
+// Deleting needs the exact name typed; Escape, Cancel and closing change nothing.
+function openDelete() {
+  const { name } = shownSheet();
+  deleted = false;
+  element("delete-name").textContent = name;
+  element("delete-name-hint").textContent = name;
+  element("delete-confirm-name").value = "";
+  element("delete-error").textContent = "";
+  element("confirm-delete").disabled = true;
+  element("delete-dialog").showModal();
+  element("delete-confirm-name").focus();
+}
+
+function nameMatches() {
+  return element("delete-confirm-name").value === shownSheet().name;
+}
+
+async function deleteCharacter(event) {
+  event.preventDefault();
+  if (!nameMatches()) return;
+  const { id, name } = shownSheet();
+  element("confirm-delete").disabled = true;
+  try {
+    library = await request("/api/5e/characters/delete", { revision: library.revision, characterId: id, name });
+  } catch (error) {
+    element("delete-error").textContent = error.message;
+    element("confirm-delete").disabled = !nameMatches();
+    return;
+  }
+  deleted = true;
+  element("delete-dialog").close();
+  backToLibrary();
+  feedback(name + " was permanently deleted.");
+}
+
 function backToLibrary() {
   renderLibrary();
   show("library");
@@ -328,6 +381,11 @@ element("open-creation").addEventListener("click", openCreation);
 element("creation-form").addEventListener("submit", saveCharacter);
 element("close-creation").addEventListener("click", backToLibrary);
 element("close-sheet").addEventListener("click", backToLibrary);
+element("delete-character").addEventListener("click", openDelete);
+element("delete-confirm-name").addEventListener("input", () => { element("confirm-delete").disabled = !nameMatches(); });
+element("delete-form").addEventListener("submit", deleteCharacter);
+element("cancel-delete").addEventListener("click", () => element("delete-dialog").close());
+element("delete-dialog").addEventListener("close", () => { if (!deleted) element("delete-character").focus(); });
 request("/api/5e/library").then((value) => {
   library = value;
   renderLibrary();

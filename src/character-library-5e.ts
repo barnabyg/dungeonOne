@@ -4,7 +4,8 @@
  * It holds saved 5e Fighters and at most one pending creation: the dice of a
  * Fighter being created. The dice are written before anyone sees them and are
  * returned unchanged until a character is saved from them, so reloading,
- * restarting or backing out of creation never rolls again (ADR 0005).
+ * restarting, backing out of creation or deleting a character never rolls
+ * again (ADR 0005).
  *
  * A library in any other format version is refused with a message naming the
  * file, and left untouched.
@@ -256,6 +257,32 @@ export class FifthCharacterLibrary {
   async save(sheet: unknown, revision: string): Promise<FifthLibraryData> {
     return this.update(revision, (data) => {
       this.add(data, sheet);
+    });
+  }
+
+  /**
+   * Permanently removes one character. `confirmName` must equal the stored
+   * name exactly, case and spaces included. Every other character and the
+   * pending creation are left as they are, so deleting is never a reroll.
+   */
+  async delete(
+    characterId: string,
+    confirmName: string,
+    revision: string,
+  ): Promise<FifthLibraryData> {
+    return this.update(revision, (data) => {
+      const record = data.characters.find(
+        ({ sheet }) => sheet.id === characterId,
+      );
+      if (record === undefined) {
+        throw new Error("There is no such character in the library.");
+      }
+      if (record.sheet.name !== confirmName) {
+        throw new Error(
+          "Type the character's name exactly to delete it; nothing was deleted.",
+        );
+      }
+      data.characters.splice(data.characters.indexOf(record), 1);
     });
   }
 
