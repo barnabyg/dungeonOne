@@ -81,7 +81,7 @@ let library;
 let choices;
 let previewRequest = 0;
 let shownSheetId;
-let deleted = false;
+let restoreFocusOnClose = true;
 
 async function request(path, body) {
   const response = await fetch(path, body === undefined ? {} : {
@@ -162,8 +162,10 @@ function profileNodes(abilities, profile, hp) {
   return [stats, abilityTable(abilities, profile, "Ability scores and saving throws"), skills, make("h3", "Features"), features];
 }
 
+const findEntry = (id) => library.characters.find(({ sheet }) => sheet.id === id);
+
 function openSheet(id) {
-  const entry = library.characters.find(({ sheet }) => sheet.id === id);
+  const entry = findEntry(id);
   if (!entry) return;
   const { sheet, profile } = entry;
   shownSheetId = sheet.id;
@@ -332,14 +334,13 @@ async function saveCharacter(event) {
   }
 }
 
-function shownSheet() {
-  return library.characters.find(({ sheet }) => sheet.id === shownSheetId).sheet;
-}
+// The delete dialog opens only from a shown sheet, which is in the library.
+const shownSheet = () => findEntry(shownSheetId).sheet;
 
 // Deleting needs the exact name typed; Escape, Cancel and closing change nothing.
 function openDelete() {
   const { name } = shownSheet();
-  deleted = false;
+  restoreFocusOnClose = true;
   element("delete-name").textContent = name;
   element("delete-name-hint").textContent = name;
   element("delete-confirm-name").value = "";
@@ -365,7 +366,7 @@ async function deleteCharacter(event) {
     element("confirm-delete").disabled = !nameMatches();
     return;
   }
-  deleted = true;
+  restoreFocusOnClose = false;
   element("delete-dialog").close();
   backToLibrary();
   feedback(name + " was permanently deleted.");
@@ -385,7 +386,7 @@ element("delete-character").addEventListener("click", openDelete);
 element("delete-confirm-name").addEventListener("input", () => { element("confirm-delete").disabled = !nameMatches(); });
 element("delete-form").addEventListener("submit", deleteCharacter);
 element("cancel-delete").addEventListener("click", () => element("delete-dialog").close());
-element("delete-dialog").addEventListener("close", () => { if (!deleted) element("delete-character").focus(); });
+element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose) element("delete-character").focus(); });
 request("/api/5e/library").then((value) => {
   library = value;
   renderLibrary();

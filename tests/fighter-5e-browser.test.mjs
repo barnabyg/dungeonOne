@@ -8,13 +8,7 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { CharacterLibrary } from "../dist/character-library.js";
-import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
-import {
-  buildFighter,
-  droppedDie,
-  fighterProfile,
-  keptTotal,
-} from "../dist/fighter-5e.js";
+import { buildFighter, fighterProfile, keptTotal } from "../dist/fighter-5e.js";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -380,35 +374,12 @@ test("the 5e server rejects other hosts and cross-origin posts", async () => {
   }
 });
 
-const CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-};
-
 test(
   "a character is deleted only by typing its name, and the pending dice survive",
   { timeout: 60000 },
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "fighter-5e-delete-"));
     const libraryPath = join(directory, "characters.json");
-    const library = new FifthCharacterLibrary(libraryPath, 5);
-    for (const name of ["Ada", "Bram"]) {
-      await library.create(
-        name,
-        CHOICES,
-        (await library.startCreation()).revision,
-      );
-    }
-    const pending = (await library.startCreation()).pendingCreation;
     let server = await startFifthBrowserServer({ libraryPath, seed: 5 });
     const browser = await launch();
     const page = await browser.newPage({
@@ -427,7 +398,27 @@ test(
     };
     const focused = () => page.evaluate(() => document.activeElement.id);
     try {
+      // Save two characters and start a third creation, all in the page.
       await page.goto(server.url);
+      for (const name of ["Ada", "Bram"]) {
+        await page.locator("#open-creation").click();
+        await page
+          .locator("#preview-body")
+          .filter({ hasText: "AC:" })
+          .waitFor();
+        await page.locator("#character-name").fill(name);
+        await page.locator("#character-name").press("Enter");
+        await page.locator("#sheet-name").filter({ hasText: name }).waitFor();
+        await page.locator("#close-sheet").click();
+      }
+      await page.locator("#open-creation").click();
+      const pendingRolls = await shownRolls(page);
+      await page.locator("#close-creation").click();
+      const initial = JSON.parse(await readFile(libraryPath, "utf8"));
+      const { pendingCreation: pending } = initial;
+      const bram = JSON.stringify(initial.characters[1]);
+      assert.equal(initial.characters[1].sheet.name, "Bram");
+
       await openAdaDelete();
       assert.equal(await focused(), "delete-confirm-name");
       assert.match(await dialog.innerText(), /permanent/i);
@@ -466,7 +457,7 @@ test(
       assert.deepEqual(await readFile(libraryPath), before);
 
       // Forged and replayed requests change nothing.
-      const { revision, characters } = await await page.evaluate(() =>
+      const { revision, characters } = await page.evaluate(() =>
         fetch("/api/5e/library").then((r) => r.json()),
       );
       const ada = characters.find(({ sheet }) => sheet.name === "Ada").sheet;
@@ -531,23 +522,12 @@ test(
         .locator("#open-creation")
         .filter({ hasText: "Continue" })
         .click();
-      assert.deepEqual(
-        await shownRolls(page),
-        pending.dice.map(
-          (dice, index) =>
-            `Roll ${index + 1}: ${dice
-              .map(
-                (die, at) =>
-                  `${die}${at === droppedDie(dice) ? " dropped" : ""}`,
-              )
-              .join(", ")}, total ${keptTotal(dice)}`,
-        ),
-      );
+      assert.deepEqual(await shownRolls(page), pendingRolls);
       const stored = JSON.parse(await readFile(libraryPath, "utf8"));
       assert.deepEqual(stored.pendingCreation, pending);
       assert.deepEqual(
-        stored.characters.map(({ sheet }) => sheet.name),
-        ["Bram"],
+        stored.characters.map((record) => JSON.stringify(record)),
+        [bram],
       );
     } finally {
       await browser.close();
