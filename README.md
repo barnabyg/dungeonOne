@@ -27,8 +27,10 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   (the default library is `characters-5e.json`; creation needs no OpenAI key).
   Choose **Create a Fighter**: the six 4d6-drop-lowest rolls are saved to the
   library before they are shown, so reloading, restarting or leaving the screen
-  shows the same dice. Place them on any abilities, choose the background
-  increase, two skills and a Fighting Style, check the derived numbers and save.
+  shows the same dice. One table, a row per ability, places the rolls (choosing
+  a placed roll swaps it) and the background increase (+2 and +1, or +1 to
+  three) and shows each score and modifier as you change them; then choose two
+  skills and a Fighting Style, check the derived numbers and save.
   Saved Fighters open as character sheets. **Delete character** on a sheet
   removes it permanently once you type its name exactly; a pending creation
   keeps its dice. The 5e library is format version 3; a pre-5e library, or a
@@ -46,8 +48,8 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   Minions and a Goblin Warrior; and _The Smugglers' Cellar_
   (`adventures/5e/smugglers-cellar.json`), four rooms to explore with a Giant
   Rat, a Goblin Warrior and a Potion of Healing hidden in a chest.
-- **Exploring a 5e adventure.** The room panel shows the current room, your
-  HP, its exits, its features (with any discovery you have made), the items
+- **Exploring a 5e adventure.** The room panel shows the current room, its
+  exits, its features (with any discovery you have made), the items
   you can see and what you carry. **Go to**, **Examine**, **Take** and
   **Drink** buttons appear only while the engine would accept them, or you
   can type ("search the chest", "go to the alcove", "drink the potion").
@@ -64,7 +66,8 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   opponents). Each turn has an action, a bonus action and a reaction:
   **Second Wind** (a bonus action that heals 1d10 + level, offered when hurt),
   **Action Surge** (from level 2) and **End turn** appear while they are
-  legal, with the uses left. The mace's Sap mastery gives a creature it hits
+  legal, with the uses left. Spent uses stay spent for the rest of the
+  adventure; each adventure starts with all of them. The mace's Sap mastery gives a creature it hits
   disadvantage on its next attack, and the result card shows both dice and the
   source. Typing needs `OPENAI_API_KEY`; without it, typed messages are
   refused and the buttons still work. The engine rolls every die and writes
@@ -75,6 +78,19 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   adventure exactly as it was. Winning the fight that ends the adventure frees the character for another adventure;
   0 HP is instant defeat, and a defeated character cannot start another. A
   character on an adventure cannot be deleted until the adventure ends.
+  The library tags each character **On an adventure** or **Defeated** (a
+  defeated character's row is dimmed); a character on an adventure has
+  **Continue** on its row, which reopens the adventure directly, while the
+  rest of the row still opens the sheet.
+- **The 5e adventure screen.** It has fixed regions: status (your HP), the
+  scene (the room, the fight and the ending), the action buttons, and the
+  conversation history ("What happened") with the box for typing to the
+  Dungeon Master. On a wide window, status and scene sit on the left and the
+  history on the right in its own scroll area, newest at the bottom, with the
+  actions and the typing box beneath it, so an action and its result are on
+  screen together. On a phone it is one column with the history, actions and
+  typing box pinned to the bottom. The history follows new entries unless you
+  have scrolled up to read older ones.
 - **Moving between 5e views.** The character library, creation, each
   character sheet and each adventure have their own address and page title
   (such as "Brannoc Ironside · Dungeon One"), so the browser's Back and
