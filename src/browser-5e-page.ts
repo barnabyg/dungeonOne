@@ -624,7 +624,8 @@ function renderStatus() {
 // from its roll groups (#186), with the dice beside the roll they belong to;
 // screen readers get the line's engine text instead, and the card's Full text
 // disclosure shows it all. Other lines show their engine text, with any
-// healing roll beneath.
+// healing roll beneath. .log is position:relative so those visually hidden
+// spans stay inside its scroll area instead of stretching the page.
 const PART_LABELS = {
   narration: "Narration",
   player: "You said",
@@ -700,9 +701,10 @@ function historyCard(card) {
   const node = part("div", card.kind);
   for (const line of card.lines) {
     const block = make("div", undefined, "card-line");
-    const text = compactable(line) ? make("p") : make("p", line.text);
-    if (compactable(line)) text.append(spoken(line.text), compactLine(line));
-    block.append(text, ...line.rolls.filter(({ purpose }) => purpose === "healing").map(healingRoll));
+    const paragraph = make("p");
+    if (compactable(line)) paragraph.append(spoken(line.text), compactLine(line));
+    else paragraph.textContent = line.text;
+    block.append(paragraph, ...line.rolls.filter(({ purpose }) => purpose === "healing").map(healingRoll));
     node.append(block);
   }
   if (card.lines.some(compactable)) {

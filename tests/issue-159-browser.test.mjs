@@ -136,7 +136,7 @@ const entries = (page) =>
   );
 
 /** Each compact card line's visible text. */
-const compact = (page) =>
+const compactTexts = (page) =>
   page
     .locator("#log .compact")
     .evaluateAll((rows) => rows.map((row) => row.textContent));
@@ -202,7 +202,7 @@ for (const viewport of [
             tabIndex: "-1",
           },
         ]);
-        const [initiative] = await compact(page);
+        const [initiative] = await compactTexts(page);
         assert.match(
           initiative,
           /^Initiative: [^·]+ d20 \d+ [+−] \d+ = \d+( \(roll-off [\d, ]+\))?( · [^·]+ d20 \d+ [+−] \d+ = \d+( \(roll-off [\d, ]+\))?)+$/,
@@ -266,7 +266,7 @@ for (const viewport of [
         }
         // Each attack: actor and target, the outcome as a tag, the attack's
         // dice; a hit adds its damage and the target's HP after.
-        const attacks = (await compact(page)).filter((text) =>
+        const attacks = (await compactTexts(page)).filter((text) =>
           text.includes(" → "),
         );
         for (const row of attacks) {
