@@ -56,7 +56,7 @@
 // result; it is never saved. Confirmations go to
 // #feedback, a polite live region that show() moves under the current panel's
 // heading and route() clears on every navigation.
-import { FEATURE_USES_RULE } from "./fighter-5e.js";
+import { FEATURE_USES_RULE, FIGHTER_DEFAULT_CHOICES } from "./fighter-5e.js";
 
 /** The composer's notice when the server has no AI DM (#161). */
 export const FIFTH_DM_OFF_NOTICE =
@@ -1196,9 +1196,7 @@ function defaultChoices() {
   increaseMode = "two";
   return {
     placement: { ...library.pendingCreation.defaultPlacement },
-    increase: { strength: 2, constitution: 1 },
-    skills: ["athletics", "perception"],
-    fightingStyle: "defense",
+    ...structuredClone(${JSON.stringify(FIGHTER_DEFAULT_CHOICES)}),
   };
 }
 
