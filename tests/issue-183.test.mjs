@@ -128,7 +128,7 @@ test("every refusal the action bar shows has a code and the short reason for tha
   }
 });
 
-test("each short reason is shorter than any sentence it stands for (#183)", () => {
+test("every code is kebab-case and its short reason fits a button (#183)", () => {
   for (const [code, short] of Object.entries(SHORT_REASONS)) {
     assert.match(code, /^[a-z]+(-[a-z]+)*$/);
     assert.ok(short.length > 0 && short.length <= 20, `${code}: ${short}`);
