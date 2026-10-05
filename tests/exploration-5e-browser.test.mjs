@@ -292,6 +292,11 @@ test(
         await page.locator("#log li").last().textContent(),
         /You drink the Potion of Healing: \d \+ \d \+ 2 = \d+; you regain \d+ HP/,
       );
+      // Shown compactly (#186), with each die beside the healing.
+      assert.match(
+        await page.locator("#log li").last().locator(".compact").textContent(),
+        /^Ada heals \d+ \(d4 \d \+ d4 \d \+ 2\) → \d+\/\d+ HP$/,
+      );
       assert.doesNotMatch(shown.room, /You carry|None\./);
       assert.match(
         shown.status,

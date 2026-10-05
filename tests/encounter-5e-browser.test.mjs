@@ -877,6 +877,24 @@ test(
               await page.locator("#log li").last().textContent(),
               /^Ada uses Second Wind: \d+ \+ 1 = \d+; Ada regains \d+ HP and has \d+\/\d+ HP\. 1 use left\./,
             );
+            // Shown compactly (#186): the healing in bold, its die beside it.
+            assert.match(
+              await page
+                .locator("#log li")
+                .last()
+                .locator(".compact")
+                .first()
+                .textContent(),
+              /^Ada heals \d+ \(d10 \d+ \+ 1\) → \d+\/\d+ HP$/,
+            );
+            assert.equal(
+              await page
+                .locator("#log li")
+                .last()
+                .locator(".compact .roll.healing strong")
+                .count(),
+              1,
+            );
             // Reload and restart: the same spent use and the same panel.
             const shown = await panel(page);
             await server.close();

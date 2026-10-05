@@ -123,12 +123,17 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   Each kind of entry looks different: narration (the opening and entering a
   room) is plain text, your own words are a bubble marked **You:**, the AI
   DM's replies are marked **Dungeon Master**, and the engine's result cards
-  are boxed, with an **Action rejected** card tinted red. Each line of a
-  result card is followed by the rolls behind it, labelled by purpose, such
-  as "Attack: d20 12 + 5 = 17 against AC 13" with a Hit or Miss tag and
-  "Damage: d6 1 + 3 = 4 bludgeoning → Goblin Warrior 3/7 HP"; an attack at
-  disadvantage lists both d20s and marks the one not kept. The newest entry
-  is marked with a gold edge.
+  are boxed, with an **Action rejected** card tinted red. An attack shows
+  compactly, with each die beside its roll: "Ada → Goblin Warrior", a Hit,
+  Critical hit or Miss tag, "d20 12 + 5 = 17 vs AC 13", then for a hit the
+  damage in bold with its dice and the target's HP after, such as "**4**
+  bludgeoning (d6 1 + 3) → 3/7 HP". An attack at disadvantage lists both
+  d20s and strikes through the one not kept. Initiative shows each roll the
+  same way, and Second Wind or a potion as "Ada heals **8** (d10 7 + 1) →
+  12/12 HP". Screen readers hear the engine's own text for each line
+  instead, and **Full text** on the card shows it, with what the compact
+  form leaves out, such as the weapon and Second Wind's uses left. The
+  newest entry is marked with a gold edge.
   A typed message appears in the history at once, with "The Dungeon Master is
   thinking…" beneath it until the reply replaces it; that placeholder is never
   saved. While a request runs, the button that started it is marked busy

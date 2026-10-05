@@ -1,8 +1,11 @@
 // #159: each kind of conversation-history entry looks different and is
 // labelled, result cards show their rolls grouped beside the line they
 // belong to, the newest entry is marked and focusable, and a reload restores
-// the same rendering. A storeroom fight with Sap and typed messages to the
-// scripted DM, at desktop and phone widths.
+// the same rendering. #186: attack and initiative lines are compact, built
+// from their roll groups, with the engine text for screen readers and behind
+// a Full text disclosure; a card is no taller than its plain engine text. A
+// storeroom fight with Sap and typed messages to the scripted DM, at desktop
+// and phone widths.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
@@ -132,9 +135,10 @@ const entries = (page) =>
     })),
   );
 
-const rolls = (page) =>
+/** Each compact card line's visible text. */
+const compactTexts = (page) =>
   page
-    .locator("#log .roll")
+    .locator("#log .compact")
     .evaluateAll((rows) => rows.map((row) => row.textContent));
 
 for (const viewport of [
@@ -198,16 +202,12 @@ for (const viewport of [
             tabIndex: "-1",
           },
         ]);
-        for (const row of (await rolls(page)).filter((text) =>
-          text.startsWith("Initiative"),
-        )) {
-          assert.match(row, /^Initiative, .+: d20 \d+ [+−] \d+ = \d+/);
-        }
-        assert.ok(
-          (await rolls(page)).some((text) =>
-            /^Initiative, Ada: d20 \d+ [+−] \d+ = \d+/.test(text),
-          ),
+        const [initiative] = await compactTexts(page);
+        assert.match(
+          initiative,
+          /^Initiative: [^·]+ d20 \d+ [+−] \d+ = \d+( \(roll-off [\d, ]+\))?( · [^·]+ d20 \d+ [+−] \d+ = \d+( \(roll-off [\d, ]+\))?)+$/,
         );
+        assert.match(initiative, /(: | · )Ada d20 \d+ [+−] \d+ = \d+/);
 
         // A typed message the DM answers in words, then one it acts on.
         await say(page, "I size up the goblins");
@@ -241,10 +241,10 @@ for (const viewport of [
           await page
             .locator("#log > li")
             .nth(2)
-            .locator(".roll")
+            .locator(".compact")
             .first()
             .textContent(),
-          /^Attack: d20 \d+ \+ \d+ = \d+ against AC \d+ (Hit|Critical hit|Miss)$/,
+          /^Ada → .+ (Hit|Critical hit|Miss) d20 \d+ \+ \d+ = \d+ vs AC \d+/,
         );
 
         // Mid-fight, a reload renders the same history.
@@ -264,40 +264,106 @@ for (const viewport of [
             ).click(),
           );
         }
-        const rows = await rolls(page);
-        const attacks = rows.filter((text) => text.startsWith("Attack"));
+        // Each attack: actor and target, the outcome as a tag, the attack's
+        // dice; a hit adds its damage and the target's HP after.
+        const attacks = (await compactTexts(page)).filter((text) =>
+          text.includes(" → "),
+        );
         for (const row of attacks) {
           assert.match(
             row,
-            /^Attack(, disadvantage \(Sap\))?: d20 \d+( \(not kept\))?(, d20 \d+( \(not kept\))?)? \+ \d+ = \d+ against AC \d+ (Hit|Critical hit|Miss)$/,
+            /^[^·]+ → [^·]+ (Miss (target die d\d+ \d+ · )?(disadvantage \(Sap\) )?d20 \d+(, d20 \d+)? \+ \d+ = \d+ vs AC \d+|(Hit|Critical hit) (target die d\d+ \d+ · )?(disadvantage \(Sap\) )?d20 \d+(, d20 \d+)? \+ \d+ = \d+ vs AC \d+ · \d+ \w+ \(d\d+ \d+( \+ d\d+ \d+)*( [+−] \d+)?\) → \d+\/\d+ HP)$/,
           );
         }
-        // Sap: both d20s beside the attack, one of them not kept.
+        // Sap: both d20s beside the attack, one of them struck through.
         assert.ok(
           attacks.some((text) =>
-            /^Attack, disadvantage \(Sap\): d20 \d+( \(not kept\))?, d20 \d+( \(not kept\))? /.test(
-              text,
-            ),
+            /disadvantage \(Sap\) d20 \d+, d20 \d+ /.test(text),
           ),
           attacks.join("\n"),
         );
-        const damage = rows.filter((text) => text.startsWith("Damage"));
-        assert.ok(damage.length > 0);
-        for (const row of damage) {
-          assert.match(
-            row,
-            /^Damage: d\d+ \d+( \+ d\d+ \d+)* [+−] \d+ = \d+ \w+ → .+ \d+\/\d+ HP$/,
-          );
-        }
+        assert.ok(
+          (await page
+            .locator("#log .compact .roll.attack .roll-die.dropped")
+            .count()) > 0,
+        );
+        const hits = attacks.filter((text) => !/ Miss /.test(text));
+        assert.ok(hits.length > 0);
         // Damage is emphasised; the hit or miss is a tag.
         assert.equal(
-          await page.locator("#log .roll.damage strong").count(),
-          damage.length,
+          await page.locator("#log .compact .roll.damage strong").count(),
+          hits.length,
         );
         assert.equal(
-          await page.locator("#log .roll.attack .tag").count(),
+          await page.locator("#log .compact .tag").count(),
           attacks.length,
         );
+
+        // Screen readers get every line's engine text, not the compact form,
+        // and the Full text disclosure shows the card's engine text.
+        const spokenCards = await page.evaluate(() =>
+          [...document.querySelectorAll("#log .card.result")]
+            .filter((card) => card.querySelector(".compact"))
+            .map((card) => ({
+              hidden: [...card.querySelectorAll(".compact")].every(
+                (node) => node.getAttribute("aria-hidden") === "true",
+              ),
+              spoken: [...card.querySelectorAll(".card-line > p:first-child")]
+                .map((line) =>
+                  [...line.childNodes]
+                    .filter(
+                      (node) =>
+                        node.nodeType === Node.TEXT_NODE ||
+                        !node.matches("[aria-hidden], button"),
+                    )
+                    .map((node) => node.textContent)
+                    .join("")
+                    .trim(),
+                )
+                .join("\n"),
+              full: card.querySelector(".full-text").textContent,
+              fullHidden: card.querySelector(".full-text").hidden,
+            })),
+        );
+        assert.ok(spokenCards.length > 1);
+        for (const card of spokenCards) {
+          assert.deepEqual(card, {
+            hidden: true,
+            spoken: card.full,
+            full: card.full,
+            fullHidden: true,
+          });
+        }
+        const more = page.locator("#log .card-more").last();
+        assert.equal(await more.getAttribute("aria-expanded"), "false");
+        await more.click();
+        assert.equal(await more.getAttribute("aria-expanded"), "true");
+        assert.ok(
+          await page.locator("#log .card.result .full-text").last().isVisible(),
+        );
+        await more.click();
+        assert.equal(await more.getAttribute("aria-expanded"), "false");
+
+        // A card with an attack is no taller than its engine text alone, as
+        // cards were before #159.
+        const taller = await page.evaluate(() =>
+          [...document.querySelectorAll("#log .card.result")]
+            .filter((card) => card.querySelector(".compact .roll.attack"))
+            .map((card) => {
+              const probe = document.createElement("div");
+              probe.className = "card result";
+              const text = document.createElement("p");
+              text.style.whiteSpace = "pre-line";
+              text.textContent = card.querySelector(".full-text").textContent;
+              probe.append(text);
+              card.after(probe);
+              const heights = [card.offsetHeight, probe.offsetHeight];
+              probe.remove();
+              return heights;
+            })
+            .filter(([shown, plain]) => shown > plain + 1),
+        );
+        assert.deepEqual(taller, []);
 
         // Each kind looks different.
         const looks = await page.evaluate(() => {
