@@ -31,10 +31,12 @@ import {
 } from "./adventure-5e.js";
 import { FIFTH_DM_OFF_NOTICE } from "./browser-5e-page.js";
 import { startFifthBrowserServer } from "./browser-5e-server.js";
-import type {
-  DmModel,
-  DmModelResponse,
-  DmProviderResponse,
+import {
+  createDmCallBudget,
+  DM_TURN_LIMITS,
+  type DmModel,
+  type DmModelResponse,
+  type DmProviderResponse,
 } from "./dm-turn.js";
 import {
   FIFTH_PROMPT_VERSION,
@@ -43,12 +45,12 @@ import {
   type FifthAction,
 } from "./runtime-5e.js";
 import { FifthSession } from "./session-5e.js";
-import { TEST_FIGHTER } from "./test-fighter-5e.js";
+import { TEST_FIGHTER, TEST_FIGHTER_CHOICES } from "./test-fighter-5e.js";
 
 export const FIFTH_DM_EVALUATION_FORMAT = 1;
 export const FIFTH_DM_EVALUATION_ADVENTURE = "abandoned-delve";
-/** The most model responses one turn may take (DM_TURN_LIMITS). */
-export const RESPONSES_PER_RUN = 4;
+/** The most model responses one turn may take. */
+export const RESPONSES_PER_RUN = DM_TURN_LIMITS.maxModelResponses;
 
 export type FifthDmCaseKind =
   "interpretation" | "refusal" | "narration-fidelity";
@@ -743,6 +745,60 @@ export function evaluationCallBudget(
   return cases.length * repetitions * RESPONSES_PER_RUN;
 }
 
+export type DelveSessionView = Readonly<{
+  id: string;
+  sequence: number;
+  status: string;
+  dmAvailable: boolean;
+}>;
+
+/** POSTs `body` to a browser server's API as its own page would. */
+export async function postToServer<T>(
+  url: string,
+  path: string,
+  body: unknown,
+): Promise<Readonly<{ status: number; body: T }>> {
+  const response = await fetch(url + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: url },
+    body: JSON.stringify(body),
+  });
+  return { status: response.status, body: (await response.json()) as T };
+}
+
+/**
+ * Through a browser server's API, creates Ada from the library's rolled dice
+ * with the test Fighter's choices and starts her on the delve.
+ */
+export async function startDelveOverHttp(
+  url: string,
+): Promise<DelveSessionView> {
+  type Library = Readonly<{
+    revision: string;
+    characters: readonly Readonly<{ sheet: Readonly<{ id: string }> }>[];
+  }>;
+  const pending = (await postToServer<Library>(url, "/api/5e/creation", {}))
+    .body;
+  const library = (
+    await postToServer<Library>(url, "/api/5e/characters", {
+      revision: pending.revision,
+      name: "Ada",
+      ...TEST_FIGHTER_CHOICES,
+    })
+  ).body;
+  return (
+    await postToServer<{ session: DelveSessionView }>(
+      url,
+      "/api/5e/adventures/start",
+      {
+        revision: library.revision,
+        characterId: library.characters[0]!.sheet.id,
+        adventureId: FIFTH_DM_EVALUATION_ADVENTURE,
+      },
+    )
+  ).body.session;
+}
+
 /**
  * Starts a browser server with no AI DM and checks that a typed message is
  * refused with the player notice, changing nothing.
@@ -754,58 +810,23 @@ export async function checkDmOffRefusal(): Promise<boolean> {
     seed: 0,
     apiKey: "",
   });
-  type Library = Readonly<{
-    revision: string;
-    characters: readonly Readonly<{ sheet: Readonly<{ id: string }> }>[];
-  }>;
-  type SessionView = Readonly<{
-    id: string;
-    sequence: number;
-    dmAvailable: boolean;
-  }>;
-  const post = async <T>(path: string, body: unknown) => {
-    const response = await fetch(server.url + path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Origin: server.url },
-      body: JSON.stringify(body),
-    });
-    return { status: response.status, body: (await response.json()) as T };
-  };
   try {
-    const pending = (await post<Library>("/api/5e/creation", {})).body;
-    const library = (
-      await post<Library>("/api/5e/characters", {
-        revision: pending.revision,
-        name: "Ada",
-        placement: {
-          strength: 0,
-          dexterity: 1,
-          constitution: 2,
-          intelligence: 3,
-          wisdom: 4,
-          charisma: 5,
-        },
-        increase: { strength: 2, constitution: 1 },
-        skills: ["athletics", "perception"],
-        fightingStyle: "defense",
-      })
-    ).body;
-    const started = (
-      await post<{ session: SessionView }>("/api/5e/adventures/start", {
-        revision: library.revision,
-        characterId: library.characters[0]!.sheet.id,
-        adventureId: FIFTH_DM_EVALUATION_ADVENTURE,
-      })
-    ).body.session;
-    const refused = await post<{ error?: string }>("/api/5e/session/message", {
-      sessionId: started.id,
-      sequence: started.sequence,
-      message: "Go to the gate hall.",
-    });
-    const after = (
-      await post<{ session: SessionView }>("/api/5e/session", {
+    const started = await startDelveOverHttp(server.url);
+    const refused = await postToServer<{ error?: string }>(
+      server.url,
+      "/api/5e/session/message",
+      {
         sessionId: started.id,
-      })
+        sequence: started.sequence,
+        message: "Go to the gate hall.",
+      },
+    );
+    const after = (
+      await postToServer<{ session: DelveSessionView }>(
+        server.url,
+        "/api/5e/session",
+        { sessionId: started.id },
+      )
     ).body.session;
     return (
       refused.status === 409 &&
@@ -843,21 +864,16 @@ export async function runFifthDmEvaluation(options: {
   const adventure = (await loadBuiltInFifthAdventures()).find(
     ({ id }) => id === FIFTH_DM_EVALUATION_ADVENTURE,
   )!;
-  let providerCalls = 0;
+  const budget = createDmCallBudget(maxCalls);
   const runs: FifthDmRun[] = [];
   for (const sample of cases) {
     for (let repetition = 1; repetition <= options.repetitions; repetition++) {
-      const model = options.createModel(sample, repetition);
+      const model = budget.limit(options.createModel(sample, repetition));
       const responses: FifthDmRun["responses"][number][] = [];
       let failures = 0;
       const observed: DmModel = {
         ...(model.identity === undefined ? {} : { identity: model.identity }),
         async respond(request) {
-          if (providerCalls >= maxCalls) {
-            failures += 1;
-            throw new Error("The evaluation's call budget is spent.");
-          }
-          providerCalls += 1;
           const started = clock();
           try {
             const response = await model.respond(request);
@@ -994,7 +1010,7 @@ export async function runFifthDmEvaluation(options: {
     ],
     repetitions: options.repetitions,
     maxCalls,
-    providerCalls,
+    providerCalls: budget.calls(),
     dmOff,
     cases: cases.map(({ id, kind, playerInput }) => ({
       id,

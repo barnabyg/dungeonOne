@@ -13,7 +13,12 @@
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { OUTCOME_CLAIM } from "../dist/dm-evaluation-5e.js";
+import {
+  OUTCOME_CLAIM,
+  postToServer,
+  startDelveOverHttp,
+} from "../dist/dm-evaluation-5e.js";
+import { createDmCallBudget } from "../dist/dm-turn.js";
 import {
   createOpenAiDmModel,
   OPENAI_DM_DEFAULT_MODEL,
@@ -143,17 +148,15 @@ const report = {
   turns: [],
 };
 let calls = [];
+const budget = createDmCallBudget(maxProviderCalls);
+const limited = budget.limit(provider);
 const model = {
   identity: provider.identity,
   async respond(request) {
-    if (report.providerCalls >= maxProviderCalls) {
-      throw new Error("Qualification provider budget exhausted");
-    }
-    report.providerCalls += 1;
+    const response = await limited.respond(request);
     if (!report.promptVersions.includes(request.promptVersion)) {
       report.promptVersions.push(request.promptVersion);
     }
-    const response = await provider.respond(request);
     calls.push({
       phase: request.toolResults.length > 0 ? "narration" : "interpretation",
       offeredTools: request.tools.map(({ name }) => name),
@@ -173,46 +176,14 @@ const server = await startFifthBrowserServer({
   seed: 0,
   dmModel: model,
 });
-const post = async (path, body) => {
-  const response = await fetch(server.url + path, {
-    method: "POST",
-    headers: { Origin: server.url, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return { status: response.status, body: await response.json() };
-};
 try {
-  let library = (await post("/api/5e/creation", {})).body;
-  library = (
-    await post("/api/5e/characters", {
-      revision: library.revision,
-      name: "Ada",
-      placement: {
-        strength: 0,
-        dexterity: 1,
-        constitution: 2,
-        intelligence: 3,
-        wisdom: 4,
-        charisma: 5,
-      },
-      increase: { strength: 2, constitution: 1 },
-      skills: ["athletics", "perception"],
-      fightingStyle: "defense",
-    })
-  ).body;
-  let session = (
-    await post("/api/5e/adventures/start", {
-      revision: library.revision,
-      characterId: library.characters[0].sheet.id,
-      adventureId: "abandoned-delve",
-    })
-  ).body.session;
+  let session = await startDelveOverHttp(server.url);
   for (const turn of turns) {
     if (session.status !== "playing") {
       break;
     }
     calls = [];
-    const result = await post("/api/5e/session/message", {
+    const result = await postToServer(server.url, "/api/5e/session/message", {
       sessionId: session.id,
       sequence: session.sequence,
       message: turn.say,
@@ -241,6 +212,7 @@ try {
   report.finalStatus = session.status;
   report.finalRoom = session.room.name;
 } finally {
+  report.providerCalls = budget.calls();
   report.finishedAt = new Date().toISOString();
   await server.close();
   await writeFile(output, JSON.stringify(report, null, 2) + "\n");

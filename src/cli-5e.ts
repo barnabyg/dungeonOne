@@ -23,7 +23,7 @@ import {
   loadBuiltInFifthAdventures,
   type FifthAdventure,
 } from "./adventure-5e.js";
-import type { DmModel } from "./dm-turn.js";
+import { createDmCallBudget, type DmModel } from "./dm-turn.js";
 import {
   createOpenAiDmModel,
   OPENAI_DM_DEFAULT_MODEL,
@@ -252,24 +252,6 @@ function renderEnding(session: FifthSession): string {
   ].join("\n");
 }
 
-/** Caps a live model at `maxCalls` provider calls. */
-function budgeted(model: DmModel, maxCalls: number) {
-  let calls = 0;
-  return {
-    spent: () => calls >= maxCalls,
-    model: {
-      ...(model.identity === undefined ? {} : { identity: model.identity }),
-      async respond(request) {
-        if (calls >= maxCalls) {
-          throw new Error("The AI call budget is spent.");
-        }
-        calls += 1;
-        return model.respond(request);
-      },
-    } satisfies DmModel,
-  };
-}
-
 /** Input lines, queued so EOF is never missed while a turn is awaited. */
 function inputLines() {
   const terminal = Boolean(process.stdin.isTTY && process.stdout.isTTY);
@@ -319,7 +301,12 @@ async function play(
       `There is no adventure ${options.adventureId}. Adventures: ${adventures.map(({ id }) => id).join(", ")}.`,
     );
   }
-  let dm: ReturnType<typeof budgeted> | undefined;
+  let dm:
+    | Readonly<{
+        model: DmModel;
+        budget: ReturnType<typeof createDmCallBudget>;
+      }>
+    | undefined;
   const scriptPath = process.env.DUNGEON_ONE_TEST_DM_SCRIPT;
   if (scriptPath !== undefined && scriptPath.length > 0) {
     if (options.ai !== undefined) {
@@ -327,16 +314,20 @@ async function play(
         "--ai plays the live AI DM; unset DUNGEON_ONE_TEST_DM_SCRIPT to use it.",
       );
     }
-    dm = budgeted(await loadScriptedDmModel(scriptPath), Infinity);
+    const budget = createDmCallBudget(Infinity);
+    dm = { budget, model: budget.limit(await loadScriptedDmModel(scriptPath)) };
   } else if (options.ai !== undefined) {
     const apiKey = process.env.OPENAI_API_KEY?.trim() ?? "";
     if (apiKey.length === 0) {
       throw new UsageError("OPENAI_API_KEY is required for --ai.");
     }
-    dm = budgeted(
-      createOpenAiDmModel({ apiKey, model: options.ai.model }),
-      options.ai.maxCalls,
-    );
+    const budget = createDmCallBudget(options.ai.maxCalls);
+    dm = {
+      budget,
+      model: budget.limit(
+        createOpenAiDmModel({ apiKey, model: options.ai.model }),
+      ),
+    };
   }
 
   const write = (text: string) => process.stdout.write(`${text}\n`);
@@ -401,7 +392,7 @@ async function play(
         }
         continue;
       }
-      if (dm === undefined || dm.spent()) {
+      if (dm === undefined || dm.budget.spent()) {
         write(
           dm === undefined
             ? DM_OFF_NOTICE

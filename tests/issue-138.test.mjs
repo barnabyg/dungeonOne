@@ -480,3 +480,24 @@ test("the 5e CLI loads no pre-5e module", async () => {
     assert.ok(!modules.includes(old), `the CLI loads ${old}`);
   }
 });
+
+test("a DM call budget stops every model it limits once spent", async () => {
+  const { createDmCallBudget } = await import("../dist/dm-turn.js");
+  const budget = createDmCallBudget(2);
+  const asked = [];
+  const model = (name) =>
+    budget.limit({
+      async respond() {
+        asked.push(name);
+        return { text: name };
+      },
+    });
+  const first = model("a");
+  const second = model("b");
+  await first.respond({});
+  await second.respond({});
+  await assert.rejects(first.respond({}), /budget is spent/);
+  assert.deepEqual(asked, ["a", "b"]);
+  assert.equal(budget.calls(), 2);
+  assert.equal(budget.spent(), true);
+});

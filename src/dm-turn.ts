@@ -99,6 +99,31 @@ export type DmModel = Readonly<{
   respond(request: DmModelRequest): Promise<DmModelResponse>;
 }>;
 
+/**
+ * A provider call budget shared by every model it limits: once `maxCalls`
+ * responses have been asked for, a limited model throws instead of calling,
+ * which a DM turn reports as a model failure.
+ */
+export function createDmCallBudget(maxCalls: number) {
+  let calls = 0;
+  return {
+    calls: () => calls,
+    spent: () => calls >= maxCalls,
+    limit(model: DmModel): DmModel {
+      return {
+        ...(model.identity === undefined ? {} : { identity: model.identity }),
+        async respond(request) {
+          if (calls >= maxCalls) {
+            throw new Error("The AI call budget is spent.");
+          }
+          calls += 1;
+          return model.respond(request);
+        },
+      };
+    },
+  };
+}
+
 export const DM_INPUT_DIAGNOSTIC_CODES = [
   "empty-player-input",
   "overlong-player-input",
