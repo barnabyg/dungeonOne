@@ -17,7 +17,7 @@ import {
 } from "../dist/session-5e.js";
 
 const adventures = await loadBuiltInFifthAdventures();
-const [adventure] = adventures;
+const adventure = adventures.find(({ id }) => id === "cellar-goblin");
 const CHOICES = {
   placement: {
     strength: 0,

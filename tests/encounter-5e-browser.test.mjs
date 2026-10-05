@@ -24,7 +24,9 @@ const launch = () =>
       : { headless: true },
   );
 
-const [adventure, storeroom] = await loadBuiltInFifthAdventures();
+const builtIn = await loadBuiltInFifthAdventures();
+const adventure = builtIn.find(({ id }) => id === "cellar-goblin");
+const storeroom = builtIn.find(({ id }) => id === "goblin-storeroom");
 const ATTACK = { type: "attack", actorId: "pc", targetId: "goblin" };
 const END_TURN = { type: "end-turn", actorId: "pc" };
 // The creation screen's default choices; the placement follows the dice.

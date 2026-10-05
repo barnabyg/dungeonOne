@@ -17,7 +17,9 @@ import {
   renderFifthEvent,
 } from "../dist/runtime-5e.js";
 
-const [adventure] = await loadBuiltInFifthAdventures();
+const adventure = (await loadBuiltInFifthAdventures()).find(
+  ({ id }) => id === "cellar-goblin",
+);
 // The engine's targeting tests need three goblins: two numbered minions.
 const storeroom = await loadFifthAdventure("tests/fixtures/three-goblins.json");
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 17 with Defense, 12 HP, mace +5.

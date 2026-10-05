@@ -10,7 +10,9 @@ import {
 import { createFifthRuntime, healthOf } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT } from "../dist/session-5e.js";
 
-const [adventure] = await loadBuiltInFifthAdventures();
+const adventure = (await loadBuiltInFifthAdventures()).find(
+  ({ id }) => id === "cellar-goblin",
+);
 // Con 14 (+2): 12 HP at level 1.
 const sheet = buildFighter(
   "a".repeat(32),

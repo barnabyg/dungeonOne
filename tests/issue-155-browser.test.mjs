@@ -26,7 +26,9 @@ const launch = () =>
       : { headless: true },
   );
 
-const [cellar, storeroom] = await loadBuiltInFifthAdventures();
+const builtIn = await loadBuiltInFifthAdventures();
+const cellar = builtIn.find(({ id }) => id === "cellar-goblin");
+const storeroom = builtIn.find(({ id }) => id === "goblin-storeroom");
 const DEFAULT_CHOICES = {
   placement: {
     strength: 0,
