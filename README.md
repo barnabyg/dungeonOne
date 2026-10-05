@@ -46,7 +46,8 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   earlier build (format version 2 or 3), is refused at startup and left
   unchanged.
 - **Starting a 5e adventure.** A saved Fighter's sheet leads with its
-  adventures: **Start** for each built-in 5e adventure module that passes the
+  adventures: a card, with **Start** beside its title so every one is in view,
+  for each built-in 5e adventure module that passes the
   balance gate at its declared difficulty (or **Continue** for the one in
   progress), tagged with its level range and that difficulty and ordered by
   level range, then Easy, Medium, Hard. `npm.cmd run balance` shows each
