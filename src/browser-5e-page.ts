@@ -70,16 +70,14 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <section id="creation" class="panel" aria-labelledby="creation-title" hidden>
 <h2 id="creation-title" tabindex="-1">Create a Fighter</h2>
 <p class="hint">Rolled once. No rerolls. Place the six rolls on your abilities in any order, then make your other choices.</p>
-<h3>Your rolls</h3>
-<ol id="rolls" class="rolls"></ol>
 <form id="creation-form" novalidate>
 <fieldset id="ability-scores" aria-describedby="ability-hint increase-error"><legend>Ability scores</legend>
-<p id="ability-hint" class="hint">Place one roll on each ability; choosing a roll that is already placed swaps the two. Your background then adds +2 and +1, or +1 to three abilities. To move a bonus, choose it on another ability. No score can exceed 20.</p>
+<p id="ability-hint" class="hint">Place one roll on each ability; choosing a roll that is already placed swaps the two. Your background then adds +2 and +1, or +1 to three abilities. To move a bonus, choose it on another ability. No score can exceed <span id="score-cap"></span>.</p>
 <fieldset id="increase-mode" class="choice-row"><legend>Background increase</legend><label><input type="radio" name="increase-mode" id="increase-mode-two" value="two"> +2 and +1</label><label><input type="radio" name="increase-mode" id="increase-mode-three" value="three"> +1 to three</label></fieldset>
 <div class="table-wrap"><table id="ability-table"><thead><tr><th scope="col">Ability</th><th scope="col">Roll</th><th scope="col">Back&shy;ground</th><th scope="col" class="num">Score</th><th scope="col" class="num">Modi&shy;fier</th></tr></thead><tbody id="ability-rows"></tbody></table></div>
 <p id="increase-error" class="error" role="alert"></p>
 </fieldset>
-<fieldset id="skills" aria-describedby="skills-count skills-error"><legend>Two skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
+<fieldset id="skills" aria-describedby="skills-count skills-error"><legend id="skills-legend">Skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
 <label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required aria-describedby="name-error"><p id="name-error" class="error" role="alert"></p>
 <section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><p id="preview-status" class="hint"></p><div id="preview-body"></div></section>
@@ -163,7 +161,7 @@ button.primary{background:var(--color-ink);border-color:var(--color-ink);color:v
 main{max-width:860px;margin:0 auto var(--space-6);padding:0 var(--space-4)}.panel{background:var(--color-paper);border:1px solid var(--color-panel-border);border-radius:var(--radius-lg);padding:var(--space-5);margin-bottom:var(--space-4);min-width:0}
 #feedback{color:var(--color-text);font-size:var(--text-sm);background:var(--color-surface);border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3)}#breadcrumb ol{list-style:none;display:flex;flex-wrap:wrap;padding:0;margin:0 0 var(--space-3);font:var(--text-sm) var(--font-sans);color:var(--color-on-dark);overflow-wrap:anywhere}#breadcrumb li+li::before{content:"›"/"";margin:0 var(--space-2);color:var(--color-gold)}#breadcrumb a{color:var(--color-gold)}#breadcrumb-list:empty{display:none}#feedback:empty{display:none}.hint{font-size:var(--text-sm);color:var(--color-text-muted)}.error{color:var(--color-danger);font-size:var(--text-sm);font-weight:600}.error:empty{display:none}
 .list{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:var(--space-2)}.character-row{display:flex;gap:var(--space-2)}.list button{background:var(--color-surface);color:var(--color-text);border-color:var(--color-control-border)}.list button:hover{background:var(--color-surface-hover)}.open-character{flex:1 1 0;min-width:0;text-align:left;display:flex;flex-direction:column}.continue-adventure{flex:0 0 auto}.character-name{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.list strong{font:600 var(--text-md) var(--font-serif);overflow-wrap:anywhere}.character-stats{font-size:var(--text-xs);color:var(--color-text-muted)}.character-row .tag{color:var(--color-ink)}.character-row.defeated .open-character{background:var(--color-paper);border-style:dashed}.character-row.defeated strong,.character-row.defeated .tag{color:var(--color-text-muted)}
-.rolls{padding-left:0;list-style:none;display:grid;gap:6px;font-family:var(--font-sans)}.rolls li{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.die{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);font-weight:700}.die.dropped{color:var(--color-text-muted);text-decoration:line-through;border-style:dashed}.total{font-weight:700;margin-left:6px}.roll-name{min-width:52px;font-size:var(--text-sm)}
+.dice{display:flex;gap:3px;margin-top:var(--space-1)}.die{display:inline-grid;place-items:center;width:22px;height:22px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);font-weight:700;font-size:var(--text-xs)}.die.dropped{color:var(--color-text-muted);text-decoration:line-through;border-style:dashed}
 fieldset{border:1px solid var(--color-line);border-radius:var(--radius-md);margin:0 0 14px;padding:var(--space-3);min-width:0}legend{font-weight:600;font-size:.9rem;padding:0 var(--space-1)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2) 14px}.grid label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}select,input{font:var(--text-md) var(--font-sans);padding:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);width:100%;min-width:0;margin-top:var(--space-1)}label[for=character-name]{display:block;font-weight:600;font-size:var(--text-sm)}
 .checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}.checks label{display:flex;gap:var(--space-2);align-items:flex-start;font-size:var(--text-sm)}.checks input{width:auto;padding:0;margin-top:var(--space-1);flex:none;accent-color:var(--color-ink)}.checks small{display:block;color:var(--color-text-muted);font-weight:400}.checks input:disabled+span{color:var(--color-text-muted)}
 #preview{border-top:1px solid var(--color-line);margin-top:var(--space-4)}.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem;margin:0 0 10px;padding:0;list-style:none}.stats li strong{margin-left:var(--space-1)}
@@ -186,7 +184,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}.thing-actions{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2);max-width:100%;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label)}#explore-controls{column-gap:var(--space-4)}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1}#log{flex:1;max-height:none}}
-@media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative td{white-space:nowrap}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.die{width:28px;height:28px}}
+@media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative td{white-space:nowrap}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.dice{gap:2px}.die{width:18px;height:18px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}.short-name{display:none}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
 @media(max-width:560px){#ability-scores{padding:var(--space-2) var(--space-1)}#ability-table{font-size:var(--text-xs)}#ability-table th,#ability-table td{padding:var(--space-1) 2px}#ability-table select{font-size:var(--text-sm)}.short-name{display:inline}.long-name{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
@@ -916,6 +914,9 @@ async function sendMessage(event) {
 // The creation's choices are sent to the server exactly as kept here; the
 // increase's shape ("two": +2 and +1, "three": +1 to three) is kept apart.
 let increaseMode = "two";
+// The server projects every score, modifier, cap and the skill limit (#184).
+// This is its projection of the current choices, cleared when they change.
+let projection;
 
 
 /**
@@ -938,29 +939,9 @@ function defaultChoices() {
   };
 }
 
-function renderRolls() {
-  const rolls = library.pendingCreation.rolls;
-  element("rolls").replaceChildren(...rolls.map((roll, index) => {
-    const item = make("li");
-    item.setAttribute("aria-label", "Roll " + (index + 1) + ": " + roll.dice.map((die, position) => die + (position === roll.dropped ? " dropped" : "")).join(", ") + ", total " + roll.total);
-    const name = make("span", "Roll " + (index + 1), "roll-name");
-    name.setAttribute("aria-hidden", "true");
-    item.append(name);
-    roll.dice.forEach((die, position) => {
-      const node = make("span", die, "die" + (position === roll.dropped ? " dropped" : ""));
-      node.setAttribute("aria-hidden", "true");
-      if (position === roll.dropped) node.title = "Dropped";
-      item.append(node);
-    });
-    const total = make("span", "= " + roll.total, "total");
-    total.setAttribute("aria-hidden", "true");
-    item.append(total);
-    return item;
-  }));
-}
-
 /** Redraws the ability table, keeps focus on the control just used and updates the preview. */
 function changeAbilities(focusId) {
+  projection = undefined;
   renderAbilities();
   if (focusId) element(focusId).focus();
   refresh();
@@ -980,6 +961,7 @@ function rollSelect(ability) {
   const select = make("select");
   select.id = "place-" + ability;
   select.setAttribute("aria-label", titleCase(ability) + " roll");
+  select.setAttribute("aria-describedby", "dice-" + ability);
   library.pendingCreation.rolls.forEach((roll, index) => {
     const holder = library.abilities.find((candidate) => choices.placement[candidate] === index);
     const option = make("option", roll.total + " (roll " + (index + 1) + ")" + (holder === ability ? "" : ", swaps with " + titleCase(holder)));
@@ -1035,10 +1017,22 @@ function bonusCheck(ability) {
   return label;
 }
 
-// Score and modifier are the sums the server applies; its preview stays the
-// authority for every derived number and for saving.
+/** The four dice of the roll placed on an ability, the dropped one marked. */
+function placedDice(ability) {
+  const roll = library.pendingCreation.rolls[choices.placement[ability]];
+  const dice = make("span", undefined, "dice");
+  dice.id = "dice-" + ability;
+  dice.append(spoken("Dice " + roll.dice.map((die, position) => die + (position === roll.dropped ? " dropped" : "")).join(", ")));
+  roll.dice.forEach((die, position) => {
+    const node = make("span", die, "die" + (position === roll.dropped ? " dropped" : ""));
+    node.setAttribute("aria-hidden", "true");
+    if (position === roll.dropped) node.title = "Dropped";
+    dice.append(node);
+  });
+  return dice;
+}
+
 function renderAbilities() {
-  const rolls = library.pendingCreation.rolls;
   element("increase-mode-" + increaseMode).checked = true;
   element("ability-rows").replaceChildren(...library.abilities.map((ability) => {
     const row = make("tr");
@@ -1051,15 +1045,28 @@ function renderAbilities() {
     short.setAttribute("aria-hidden", "true");
     name.append(make("span", titleCase(ability), "long-name"), short);
     const roll = make("td");
-    roll.append(rollSelect(ability));
+    roll.append(rollSelect(ability), placedDice(ability));
     const bonus = make("td", undefined, "bonus");
     bonus.append(increaseMode === "two" ? bonusSelect(ability) : bonusCheck(ability));
-    const score = rolls[choices.placement[ability]].total + (choices.increase[ability] || 0);
-    const scoreCell = make("td", score, "num score");
-    if (score >= 20) scoreCell.append(make("span", "max 20", "cap"));
-    row.append(name, roll, bonus, scoreCell, make("td", signed(Math.floor((score - 10) / 2)), "num modifier"));
+    const score = make("td", undefined, "num score");
+    score.id = "score-" + ability;
+    const modifier = make("td", undefined, "num modifier");
+    modifier.id = "modifier-" + ability;
+    row.append(name, roll, bonus, score, modifier);
     return row;
   }));
+  renderScores();
+}
+
+/** Each row's score, cap and modifier as the server projected them; "…" until it has. */
+function renderScores() {
+  for (const ability of library.abilities) {
+    const row = projection && projection.rows.find((candidate) => candidate.ability === ability);
+    const score = element("score-" + ability);
+    score.replaceChildren(row ? String(row.score) : "…");
+    if (row && row.atCap) score.append(make("span", "max " + library.pendingCreation.rules.scoreCap, "cap"));
+    element("modifier-" + ability).textContent = row ? signed(row.modifier) : "…";
+  }
 }
 
 function renderChoices() {
@@ -1072,7 +1079,6 @@ function renderChoices() {
     box.checked = choices.skills.includes(skill.id);
     box.addEventListener("change", () => {
       choices.skills = library.skills.map(({ id }) => id).filter((id) => element("skill-" + id).checked);
-      limitSkills();
       refresh();
     });
     const text = make("span", skill.name);
@@ -1080,7 +1086,6 @@ function renderChoices() {
     label.append(box, text);
     return label;
   }));
-  limitSkills();
   element("style-fields").replaceChildren(...library.fightingStyles.map((style) => {
     const label = make("label");
     const radio = make("input");
@@ -1096,29 +1101,26 @@ function renderChoices() {
   }));
 }
 
-/** Two skills at most: once two are ticked the rest are disabled; the count is announced. */
-function limitSkills() {
-  for (const { id } of library.skills) element("skill-" + id).disabled = choices.skills.length >= 2 && !choices.skills.includes(id);
-  element("skills-count").textContent = choices.skills.length + " of 2 chosen";
+/** Once the server says the skills are full, the unticked rest are disabled; the count is announced. */
+function renderSkillLimit() {
+  const { chosen, limit, full } = projection.skills;
+  for (const { id } of library.skills) {
+    const box = element("skill-" + id);
+    box.disabled = full && !box.checked;
+  }
+  const count = chosen + " of " + limit + " chosen";
+  if (element("skills-count").textContent !== count) element("skills-count").textContent = count;
 }
 
 /**
- * Shows each unfinished choice's error beside it. While one is unfinished the
- * preview keeps its last numbers and saving waits; otherwise it updates.
+ * Asks the server to project the current choices. Saving waits for it. An
+ * unfinished choice's error shows beside it, and the preview keeps its last
+ * numbers until every choice is finished.
  */
 function refresh() {
-  const missing = 3 - Object.keys(choices.increase).length;
-  const errors = {
-    "increase-error": increaseMode === "three" && missing > 0 ? "Choose " + missing + " more " + (missing === 1 ? "ability" : "abilities") + " for +1." : "",
-    "skills-error": choices.skills.length === 2 ? "" : "Choose two skills; " + choices.skills.length + " chosen.",
-  };
-  for (const [id, message] of Object.entries(errors)) element(id).textContent = message;
-  if (Object.values(errors).some(Boolean)) {
-    previewRequest++;
-    element("save-character").disabled = true;
-    element("preview-status").textContent = element("preview-body").childElementCount ? "These numbers are from your last complete choices. Finish the choices marked above to update them." : "";
-    return Promise.resolve();
-  }
+  projection = undefined;
+  renderScores();
+  element("save-character").disabled = true;
   return preview();
 }
 
@@ -1127,15 +1129,23 @@ async function preview() {
   try {
     const result = await request("/api/5e/creation/preview", choices);
     if (ticket !== previewRequest) return;
+    projection = result;
+    renderScores();
+    renderSkillLimit();
+    element("increase-error").textContent = result.unfinished.increase || "";
+    element("skills-error").textContent = result.unfinished.skills || "";
     element("creation-error").textContent = "";
-    element("preview-status").textContent = "";
-    element("preview-body").replaceChildren(...profileNodes(result.abilities, result.profile));
-    element("save-character").disabled = isBusy(element("save-character"));
+    if (result.sheet) {
+      element("preview-status").textContent = "";
+      element("preview-body").replaceChildren(...profileNodes(result.sheet.abilities, result.sheet.profile));
+      element("save-character").disabled = isBusy(element("save-character"));
+    } else {
+      element("preview-status").textContent = element("preview-body").childElementCount ? "These numbers are from your last complete choices. Finish the choices marked above to update them." : "";
+    }
   } catch (error) {
     // The server stays the authority: a choice it refuses blocks saving.
     if (ticket !== previewRequest) return;
     element("creation-error").textContent = error.message;
-    element("save-character").disabled = true;
   }
 }
 
@@ -1159,7 +1169,10 @@ async function openCreation(ticket) {
   }
   if (ticket !== routeTicket) return;
   choices = choices || defaultChoices();
-  renderRolls();
+  projection = undefined;
+  const rules = library.pendingCreation.rules;
+  element("score-cap").textContent = rules.scoreCap;
+  element("skills-legend").textContent = "Skill proficiencies: choose " + rules.skillCount;
   renderChoices();
   show("creation", "Create a Fighter", [{ label: "Create a Fighter" }]);
   element("creation-title").focus();

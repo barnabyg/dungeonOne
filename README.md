@@ -28,8 +28,10 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   Choose **Create a Fighter**: the six 4d6-drop-lowest rolls are saved to the
   library before they are shown, so reloading, restarting or leaving the screen
   shows the same dice. One table, a row per ability, places the rolls (choosing
-  a placed roll swaps it) and the background increase (+2 and +1, or +1 to
-  three) and shows each score and modifier as you change them; then choose two
+  a placed roll swaps it, and each row shows its roll's four dice with the
+  dropped one struck through) and the background increase (+2 and +1, or +1 to
+  three) and shows each score and modifier, as the server works them out, as
+  you change them; then choose two
   skills and a Fighting Style, check the derived numbers and save.
   Saved Fighters open as character sheets. **Delete character** on a sheet
   removes it permanently once you type its name exactly; a pending creation
