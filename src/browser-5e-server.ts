@@ -9,10 +9,14 @@
  * with Force, Pick, Break or Unlock, deals with traps with Search and Disarm,
  * asks creatures about their topics with Talk, fights by
  * clicking an attack, Drink, Second Wind, Action Surge or End turn, or types
- * to the AI DM. The session view projects every action in the action bar with
- * whether the engine would accept it now and why not. Each
- * session is saved after every action and continues after a reload or a
- * restart. An ended session stays viewable, read-only, with its ending's kind.
+ * to the AI DM. In an exit room the player alone can choose Leave, ending the
+ * adventure with or without the treasure carried. The session view projects
+ * every action in the action bar with whether the engine would accept it now
+ * and why not. Each session is saved after every action and continues after
+ * a reload or a restart; an ended session settles its character in the
+ * library (crediting XP and treasure once), and stays viewable, read-only,
+ * with its ending's kind, what it earned and any level-up. A character's
+ * adventure in progress can be abandoned, crediting nothing.
  * A library in another format is refused before the server listens.
  */
 import { createServer } from "node:http";
@@ -33,6 +37,7 @@ import {
 
 import {
   FifthSession,
+  settleFifthSession,
   startFifthAdventure,
   type HistoryCard,
   type HistoryEntry,
@@ -48,7 +53,9 @@ import {
   FIGHTER_SKILLS,
   FIGHTING_STYLES,
   keptTotal,
+  levelUpChanges,
   projectCreation,
+  rewardFighter,
   type FighterChoices,
 } from "./fighter-5e.js";
 import {
@@ -102,9 +109,35 @@ function adventureView(adventure: FifthAdventure) {
   };
 }
 
+/**
+ * What a surviving ending earned, from the character as the session started:
+ * each XP award and the treasure kept, the XP and level after, and the
+ * level-up, if any. Settling credits exactly this.
+ */
+function rewardsView(session: FifthSession) {
+  const rewards = session.runtime.projectRewards(session.state);
+  if (rewards === undefined) {
+    return undefined;
+  }
+  const before = session.character;
+  const after = rewardFighter(before, rewards);
+  const levelUp = levelUpChanges(before, after);
+  return {
+    xp: rewards.xp.map(({ name, xp }) => ({ name, xp })),
+    treasure: rewards.treasure.map(({ name, description }) => ({
+      name,
+      description,
+    })),
+    totalXp: after.xp,
+    level: after.level,
+    ...(levelUp === undefined ? {} : { levelUp }),
+  };
+}
+
 function sessionView(session: FifthSession) {
   const { state, runtime, adventure } = session;
   const ending = adventure.endings.find(({ id }) => id === state.endingId);
+  const rewards = rewardsView(session);
   return {
     id: session.id,
     characterId: session.character.id,
@@ -115,7 +148,12 @@ function sessionView(session: FifthSession) {
     ...(ending === undefined
       ? {}
       : {
-          ending: { kind: ending.kind, title: ending.title, text: ending.text },
+          ending: {
+            kind: ending.kind,
+            title: ending.title,
+            text: ending.text,
+            ...(rewards === undefined ? {} : { rewards }),
+          },
         }),
     ...runtime.projectFight(state),
     actions: runtime.projectActions(state),
@@ -195,6 +233,7 @@ const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   search: (roomId) => ({ type: "search", roomId }),
   disarm: (trapId) => ({ type: "disarm", trapId }),
   talk: (topicId) => ({ type: "talk", topicId }),
+  leave: (roomId) => ({ type: "leave", roomId }),
 };
 
 export async function startFifthBrowserServer(options: FifthBrowserOptions) {
@@ -296,15 +335,14 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     library: view(await library.read()),
     session: projectSession(session),
   });
-  /** Saves the session, then frees or defeats its character if it ended. */
+  /**
+   * Saves the session, then settles its character if it ended: crediting
+   * what a victory or escape earned, or recording a defeat.
+   */
   const save = async (session: FifthSession) => {
     await persist(session);
-    const status = session.state.status;
-    const data =
-      status === "victory" || status === "defeat"
-        ? await library.settleSession(session.character.id, session.id, status)
-        : await library.read();
-    if (status !== "playing") {
+    const data = await settleFifthSession(library, session);
+    if (session.state.status !== "playing") {
       sessions.delete(session.id);
     }
     return { library: view(data), session: projectSession(session) };
@@ -363,6 +401,46 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             sessions.set(session.id, session);
           }
           return respondWith(session);
+        });
+      }
+      case "/api/5e/adventures/abandon": {
+        if (
+          !hasExactKeys(body, ["revision", "characterId"]) ||
+          typeof body.revision !== "string" ||
+          typeof body.characterId !== "string"
+        ) {
+          throw new Error("Invalid adventure request.");
+        }
+        return serialized(async () => {
+          const before = (await library.read()).characters.find(
+            ({ sheet }) => sheet.id === body.characterId,
+          );
+          // A session that ended before its character was settled (a crash
+          // between the two saves) has its ending recorded, never discarded.
+          let ended: FifthSession | undefined;
+          if (before?.session !== undefined) {
+            try {
+              const session = await openSession(before.session.id);
+              ended = session.state.status === "playing" ? undefined : session;
+            } catch {
+              // An unreadable session is exactly what abandoning is for.
+            }
+          }
+          if (ended !== undefined) {
+            await save(ended);
+            throw new Error(
+              `${before!.sheet.name}'s adventure had already ended; its ending is now recorded. Refresh to see it.`,
+            );
+          }
+          const data = await library.abandonSession(
+            body.characterId as string,
+            body.revision as string,
+          );
+          // The abandoned session takes no more actions.
+          if (before?.session !== undefined) {
+            sessions.delete(before.session.id);
+          }
+          return view(data);
         });
       }
       case "/api/5e/session":
@@ -486,14 +564,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
                     "The reply was interrupted; the result is shown below.",
                   );
                   await persist(session);
-                  const status = session.state.status;
-                  if (status === "victory" || status === "defeat") {
-                    await library.settleSession(
-                      session.character.id,
-                      session.id,
-                      status,
-                    );
-                  }
+                  await settleFifthSession(library, session);
                 }
               }
               return { result: dispatched.result, rolls: dispatched.rolls };

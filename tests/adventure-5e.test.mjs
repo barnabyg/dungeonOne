@@ -62,7 +62,7 @@ test("the validator rejects a missing ending", () => {
           m.endings = m.endings.filter(({ kind }) => kind !== "victory");
         }),
       ),
-    /missing a victory ending|unknown ending goblin-defeated/,
+    /missing a victory or escape ending/,
   );
   assert.throws(
     () => validateFifthAdventure(changed((m) => (m.endings = []))),
@@ -104,12 +104,12 @@ test("a module in another format version is refused by name and left unchanged",
   const directory = await mkdtemp(join(tmpdir(), "adventure-5e-"));
   try {
     const path = join(directory, "old.json");
-    const bytes = JSON.stringify({ ...fixture, formatVersion: 0 });
+    const bytes = JSON.stringify({ ...fixture, formatVersion: 3 });
     await writeFile(path, bytes);
     await assert.rejects(loadFifthAdventure(path), (error) => {
       assert.match(
         error.message,
-        /old\.json is a 5e adventure module in format version 0, not 3\. Move it aside/,
+        /old\.json is a 5e adventure module in format version 3, not 4\. Move it aside/,
       );
       return true;
     });
@@ -123,7 +123,14 @@ test("the group-fight module holds three goblins with distinct names", async () 
   const adventures = await loadBuiltInFifthAdventures();
   assert.deepEqual(
     adventures.map(({ id }) => id),
-    ["cellar-goblin", "goblin-storeroom", "smugglers-cellar", "warden-crypt"],
+    [
+      "cellar-goblin",
+      "goblin-storeroom",
+      "goblin-warren",
+      "robbers-barrow",
+      "smugglers-cellar",
+      "warden-crypt",
+    ],
   );
   const group = adventures[1];
   assert.equal(group.difficulty, "hard");
@@ -494,4 +501,142 @@ test("an ending only a trap names can still be reached", () => {
     passage(m, "hall-to-offerings").trap.defeatEndingId = "pierced";
   });
   assert.equal(validateFifthAdventure(trapOnly).endings.length, 3);
+});
+
+const barrow = JSON.parse(
+  await readFile(
+    new URL("../adventures/5e/robbers-barrow.json", import.meta.url),
+  ),
+);
+const barrowed = (change) => {
+  const copy = structuredClone(barrow);
+  change(copy);
+  return copy;
+};
+const endingOf = (m, kind) => m.endings.find((entry) => entry.kind === kind);
+
+test("the barrow fixture has an exit, hidden treasure and both escape endings with XP", async () => {
+  const adventure = (await loadBuiltInFifthAdventures()).find(
+    ({ id }) => id === "robbers-barrow",
+  );
+  assert.equal(adventure.rooms[0].exit, true);
+  const [torc] = adventure.rooms[1].items;
+  assert.equal(torc.kind, "treasure");
+  assert.equal(torc.hiddenIn, "stone-bier");
+  assert.deepEqual(
+    adventure.endings.map(({ kind, xp }) => [kind, xp]),
+    [
+      ["escape-with-loot", 250],
+      ["escape-without-loot", undefined],
+      ["defeat", undefined],
+    ],
+  );
+});
+
+test("an opponent may carry treasure, unless its fight ends the adventure", () => {
+  const adventure = validateFifthAdventure(barrow);
+  assert.equal(adventure.rooms[1].items[1].hiddenIn, "barrow-goblin");
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        barrowed((m) => {
+          m.endings.push({
+            id: "won",
+            kind: "victory",
+            title: "Won",
+            text: "The barrow is quiet.",
+          });
+          m.encounters[0].victoryEndingId = "won";
+        }),
+      ),
+    /carried by barrow-goblin, whose fight ends the adventure/,
+  );
+  // An opponent in another room's fight can't carry this room's item.
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        barrowed((m) => m.rooms[0].items.push(m.rooms[1].items.pop())),
+      ),
+    /hidden in unknown feature barrow-goblin/,
+  );
+  // Opponents share the targets' namespace.
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        barrowed((m) =>
+          m.rooms[0].features.push({
+            id: "barrow-goblin",
+            name: "Old Grave",
+            description: "A sunken grave.",
+          }),
+        ),
+      ),
+    /duplicate id barrow-goblin/,
+  );
+});
+
+test("the validator rejects treasure lying in the open", () => {
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        barrowed((m) => delete m.rooms[1].items[0].hiddenIn),
+      ),
+    /item 1 is treasure, so it must be hidden in a feature/,
+  );
+});
+
+test("the validator matches exits to escape endings", () => {
+  for (const [change, message] of [
+    [(m) => delete m.rooms[0].exit, /escape ending .* no room is an exit/],
+    [
+      (m) => (m.endings = m.endings.filter(({ kind }) => kind === "defeat")),
+      /missing a victory or escape ending/,
+    ],
+    [
+      (m) =>
+        (m.endings = m.endings.filter(
+          ({ kind }) => kind !== "escape-without-loot",
+        )),
+      /an exit needs an escape-without-loot ending/,
+    ],
+    [
+      (m) =>
+        m.endings.push({ ...endingOf(m, "escape-with-loot"), id: "twice" }),
+      /more than one escape-with-loot ending/,
+    ],
+    [(m) => (m.rooms[1].items = []), /escape-with-loot ending .* no treasure/],
+    [(m) => (m.rooms[0].exit = false), /exit must be true/],
+    [
+      (m) => {
+        delete m.rooms[0].exit;
+        m.rooms[1].exit = true;
+        m.passages[0].door = {
+          id: "barrow-door",
+          name: "Barrow Door",
+          description: "A slab of stone.",
+          state: "stuck",
+          force: { skill: "athletics", dc: 12 },
+        };
+      },
+      /every exit needs a check or passes a trap/,
+    ],
+    [(m) => (endingOf(m, "defeat").xp = 10), /a defeat ending awards no XP/],
+    [(m) => (endingOf(m, "escape-with-loot").xp = -1), /xp must be an integer/],
+    [(m) => (endingOf(m, "defeat").kind = "retreat"), /kind must be/],
+  ]) {
+    assert.throws(() => validateFifthAdventure(barrowed(change)), message);
+  }
+});
+
+test("an exit without treasure needs only the empty-handed escape", () => {
+  const adventure = validateFifthAdventure(
+    barrowed((m) => {
+      m.rooms[1].items = [];
+      m.endings = m.endings.filter(({ kind }) => kind !== "escape-with-loot");
+    }),
+  );
+  assert.deepEqual(
+    adventure.endings.map(({ kind }) => kind),
+    ["escape-without-loot", "defeat"],
+  );
 });

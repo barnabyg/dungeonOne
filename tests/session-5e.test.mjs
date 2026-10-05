@@ -96,7 +96,7 @@ test("starting an adventure saves the session with its fight begun, then links i
       await readFile(library.sessionPath(session.id), "utf8"),
     );
     assert.equal(file.kind, "dungeon-one-5e-session");
-    assert.equal(file.formatVersion, 6);
+    assert.equal(file.formatVersion, 7);
     assert.equal(file.random.seed, sessionSeed(3, 1));
     assert.deepEqual(file.transitions[0].action, { type: "begin" });
     // Every initiative die (and any opening goblin attack) is recorded.
@@ -180,7 +180,7 @@ test("a session save that does not replay exactly is refused", async () => {
     await tamper((file) => file.transitions.pop(), /Invalid adventure session/);
     await tamper(
       (file) => (file.formatVersion = 0),
-      /format version 0, not 6\..*Move it aside/,
+      /format version 0, not 7\..*Move it aside/,
     );
     await tamper(
       (file) => (file.adventure.id = "lost-mine"),

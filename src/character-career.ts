@@ -264,6 +264,10 @@ export class CharacterCareer {
       if (state.status === "playing") {
         return;
       }
+      // Only 5e adventures can be escaped; this career is pre-5e (#139).
+      if (state.status === "escaped") {
+        throw new Error("Pre-5e careers cannot record an escape.");
+      }
       const outcome = state.status === "quit" ? "abandoned" : state.status;
       if (session.runtime.projectCharacterResult === undefined) {
         throw new Error("Career sessions require a character runtime.");

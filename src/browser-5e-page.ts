@@ -18,14 +18,18 @@
 //   #attack-controls, #feature-controls (Drink in a fight, Second Wind, Action
 //   Surge, End turn) and #explore-controls (Go, Examine, Take, Drink, Force,
 //   Pick, Break, Unlock, Search, Disarm and Talk, grouped by target with the
-//   full name as each button's accessible name). It
+//   full name as each button's accessible name) and #leave-controls (Leave
+//   the adventure, in an exit room; #133). Leave asks first in #leave-confirm,
+//   just after the bar, in place of the button, never in a browser dialog. It
 //   shows every action the session view projects, an unavailable one disabled
 //   with its reason as visible text linked by aria-describedby. After an
 //   action, focus stays on the clicked control if it is still enabled, and
 //   otherwise moves to the newest history entry. When the adventure is over
-//   the bar is hidden and #ending (#158) takes its place: data-kind victory or
-//   defeat (in words, #ending-kind, and colour), the title and text, a defeat's
-//   permanence, and #ending-next back to the character sheet. Focus moves to
+//   the bar is hidden and #ending (#158) takes its place: data-kind victory,
+//   escape-with-loot, escape-without-loot or defeat (in words, #ending-kind,
+//   and colour), the title and text, a defeat's permanence, #ending-rewards
+//   (the XP and treasure a surviving ending earned, and a level-up card, #133)
+//   and #ending-next back to the character sheet. Focus moves to
 //   #ending-title when the ending appears or is opened again.
 // - #session-history: the conversation history, #log, a live region in its own
 //   scroll area, newest at the bottom; it follows new entries only while the
@@ -92,7 +96,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </section>
 <section id="sheet" class="panel" aria-labelledby="sheet-name" hidden>
 <h2 id="sheet-name" tabindex="-1"></h2>
-<section id="sheet-adventures" aria-labelledby="sheet-adventures-title"><h3 id="sheet-adventures-title">Adventures</h3><p id="defeat-warning" class="hint"></p><div id="adventure-choices"></div><p id="start-error" class="error" role="alert"></p></section>
+<section id="sheet-adventures" aria-labelledby="sheet-adventures-title"><h3 id="sheet-adventures-title">Adventures</h3><p id="defeat-warning" class="hint"></p><div id="adventure-choices"></div><div id="abandon-confirm" class="confirm" hidden><p id="abandon-question"></p><div class="controls"><button id="confirm-abandon" type="button" class="primary danger">Abandon adventure</button><button id="cancel-abandon" type="button" class="secondary">Keep going</button></div></div><p id="start-error" class="error" role="alert"></p></section>
 <div id="sheet-body"></div>
 <div class="controls"><button id="delete-character" type="button" class="danger">Delete character</button></div>
 </section>
@@ -122,7 +126,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </section>
 </div>
 <div id="session-dock">
-<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div><div id="explore-controls" class="controls"></div></div></section>
+<section id="session-actions" aria-label="Actions"><p id="adventure-error" class="error" role="alert"></p><section id="ending" aria-labelledby="ending-title" hidden><h3 id="ending-title" tabindex="-1"></h3><p id="ending-kind" class="tag"></p><p id="ending-text"></p><p id="ending-consequence"></p><div id="ending-rewards"></div><button id="ending-next" type="button" class="primary"></button></section><div id="action-bar"><div id="attack-controls" class="controls"></div><div id="feature-controls" class="controls"></div><div id="explore-controls" class="controls"></div><div id="leave-controls" class="controls"></div></div><div id="leave-confirm" class="confirm" hidden><p id="leave-question"></p><div class="controls"><button id="confirm-leave" type="button" class="primary">Leave now</button><button id="cancel-leave" type="button" class="secondary">Stay</button></div></div></section>
 <section id="session-history" aria-labelledby="history-title"><h3 id="history-title">What happened</h3>
 <ol id="log" class="log" aria-live="polite" aria-labelledby="history-title" tabindex="0"></ol></section>
 <div id="session-composer"><form id="message-form" novalidate><label for="message">Tell the Dungeon Master what you do</label><div class="composer-row"><input id="message" maxlength="1000" autocomplete="off"><button id="send-message" type="submit" class="primary">Send</button></div><p id="composer-reason" class="reason"></p><p id="dm-notice" class="hint" hidden>${FIFTH_DM_OFF_NOTICE}</p></form></div>
@@ -181,7 +185,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--space-2)}.card.has-more>*{grid-column:1/-1}.card.has-more>.card-line:first-child{grid-column:1}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{grid-column:2;grid-row:1;align-self:start;padding:0 2px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label)}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
-#ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
+#ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#ending .level-up p{margin:0}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
 #session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
@@ -189,7 +193,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}#action-bar button{display:inline-grid}#action-bar button>span,#action-bar button::after{grid-area:1/1}#action-bar button::after{content:attr(data-busy-label);visibility:hidden}#action-bar button[aria-busy=true]>span{visibility:hidden}#action-bar button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}.thing-actions{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2);max-width:100%;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label)}#explore-controls{column-gap:var(--space-4)}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
-@media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1}#log{flex:1;max-height:none}}
+@media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1;min-height:8rem}#log{flex:1;max-height:none}#session-dock{overflow-y:auto}}
 @media(max-width:560px){:root{--text-xl:1.25rem;--text-2xl:1.5rem}#initiative th,#initiative td{padding:5px 3px}#initiative td{white-space:nowrap}.panel{padding:14px}.masthead{padding:var(--space-3) var(--space-4)}.grid,.checks{grid-template-columns:1fr}.dice{gap:2px}.die{width:18px;height:18px}}
 .choice-row{border:0;padding:0;margin:0 0 var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-family:var(--font-sans);font-size:var(--text-sm)}.choice-row legend{float:left;width:100%;padding:0;margin-bottom:var(--space-1)}.choice-row label{display:flex;align-items:center;gap:6px}.choice-row input{width:auto;margin:0;accent-color:var(--color-ink)}
 #ability-table th,#ability-table td{vertical-align:middle;padding:var(--space-1)}#ability-table select{margin:0;padding:6px var(--space-1);min-width:5.5em}#ability-table .bonus select{min-width:3.2em}.short-name{display:none}#ability-table .num{text-align:right;font-variant-numeric:tabular-nums}#ability-table td.num{white-space:nowrap}#ability-table .score{font-weight:700}#ability-table .cap{display:block;font-weight:400;font-size:var(--text-xs);color:var(--color-text-muted)}.bonus-check{display:inline-flex;align-items:center;gap:6px}.bonus-check input{width:auto;margin:0;accent-color:var(--color-ink)}#preview-status:empty{display:none}
@@ -423,14 +427,34 @@ function openSheet(id) {
   element("sheet-name").textContent = sheet.name;
   const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · Chain shirt, shield and mace", "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
-  element("sheet-body").replaceChildren(summary, ...profileNodes(sheet.abilities, profile, sheet.hp), rolls);
+  element("sheet-body").replaceChildren(summary, ...profileNodes(sheet.abilities, profile, sheet.hp), ...treasureNodes(sheet.treasure), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
 }
 
+// Treasure kept from adventures (#133), each with its description.
+function treasureNodes(treasure) {
+  const heading = make("h3", "Treasure");
+  heading.id = "treasure-title";
+  if (treasure.length === 0) return [heading, make("p", "No treasure yet. Treasure found on an adventure is kept only by getting out alive.", "hint")];
+  const list = make("ul", undefined, "features");
+  list.id = "treasure";
+  list.setAttribute("aria-labelledby", "treasure-title");
+  list.append(...treasure.map(treasureItem));
+  return [heading, list];
+}
+
+/** One treasure as a list item: its name in bold, then its description. */
+function treasureItem(item) {
+  const entry = make("li");
+  entry.append(make("strong", item.name + ". "), document.createTextNode(item.description));
+  return entry;
+}
+
 function renderAdventureChoices(entry) {
   element("start-error").textContent = "";
+  element("abandon-confirm").hidden = true;
   const choices = element("adventure-choices");
   const warning = element("defeat-warning");
   warning.textContent = "At 0 HP, " + entry.sheet.name + " is defeated for good and can never start another adventure.";
@@ -446,7 +470,14 @@ function renderAdventureChoices(entry) {
     button.type = "button";
     button.id = "continue-adventure";
     button.addEventListener("click", () => go("#adventure-" + entry.session.id));
-    choices.replaceChildren(button);
+    // Abandoning asks first (#133), inside the sheet.
+    const abandon = make("button", "Abandon adventure", "danger");
+    abandon.type = "button";
+    abandon.id = "abandon-adventure";
+    abandon.addEventListener("click", () => openAbandon(entry, title));
+    const controls = make("div", undefined, "controls");
+    controls.append(button, abandon);
+    choices.replaceChildren(controls);
     return;
   }
   // The server lists the modules in offer order: level range, then difficulty.
@@ -465,8 +496,48 @@ function renderAdventureChoices(entry) {
   }));
 }
 
+let abandoning;
+
+function openAbandon(entry, title) {
+  abandoning = entry.sheet.id;
+  element("start-error").textContent = "";
+  element("abandon-question").textContent = "Abandon " + title + "? " + entry.sheet.name + " keeps nothing found on it and earns no XP from it, and it cannot be continued. Treasure and XP from earlier adventures are kept.";
+  element("adventure-choices").hidden = true;
+  element("abandon-confirm").hidden = false;
+  element("confirm-abandon").focus();
+}
+
+function closeAbandon() {
+  element("abandon-confirm").hidden = true;
+  element("adventure-choices").hidden = false;
+  const abandon = element("abandon-adventure");
+  if (abandon) abandon.focus();
+}
+
+async function abandonAdventure() {
+  const button = element("confirm-abandon");
+  if (isBusy(button)) return;
+  setBusy(button, "Abandoning…");
+  try {
+    const entry = findEntry(abandoning);
+    const title = adventureTitle(entry.session.adventureId);
+    library = await request("/api/5e/adventures/abandon", { revision: library.revision, characterId: abandoning });
+    element("abandon-confirm").hidden = true;
+    element("adventure-choices").hidden = false;
+    openSheet(abandoning);
+    feedback(entry.sheet.name + " abandoned " + title + ". Nothing found on it was kept.");
+  } catch (error) {
+    element("start-error").textContent = error.message;
+  } finally {
+    clearBusy(button);
+    button.disabled = false;
+  }
+}
+
 let session;
 let acting = false;
+// Whether Leave is asking for confirmation (#133).
+let confirmingLeave = false;
 
 const levelText = ({ min, max }) => min === max ? "Level " + min : "Levels " + min + "–" + max;
 
@@ -510,6 +581,7 @@ function showAdventure(value) {
   if (form.dataset.session !== session.id) {
     form.dataset.session = session.id;
     element("message").value = "";
+    confirmingLeave = false;
   }
   element("adventure-error").textContent = "";
   renderAdventure();
@@ -555,9 +627,12 @@ function renderComposer() {
   else element("message").removeAttribute("aria-describedby");
 }
 
+const ENDING_LABELS = { victory: "Victory", "escape-with-loot": "Escaped with loot", "escape-without-loot": "Escaped empty-handed", defeat: "Defeat" };
+
 // The ending (#158), in place of the action bar: its kind in words and
-// colour, its title and text, and one next step back to the character sheet.
-// A defeat says that it is permanent.
+// colour, its title and text, what a surviving ending earned with any
+// level-up (#133), and one next step back to the character sheet. A defeat
+// says that it is permanent.
 function renderEnding() {
   const { ending } = session;
   element("ending").hidden = !ending;
@@ -565,11 +640,48 @@ function renderEnding() {
   const entry = findEntry(session.characterId);
   const name = entry ? entry.sheet.name : "This character";
   element("ending").dataset.kind = ending.kind;
-  element("ending-kind").textContent = ending.kind === "victory" ? "Victory" : "Defeat";
+  element("ending-kind").textContent = ENDING_LABELS[ending.kind];
   element("ending-title").textContent = ending.title;
   element("ending-text").textContent = ending.text;
   element("ending-consequence").textContent = ending.kind === "defeat" ? "Defeat is permanent: " + name + " cannot start another adventure." : "";
+  element("ending-rewards").replaceChildren(...rewardNodes(ending.rewards, name));
   element("ending-next").textContent = entry ? "Back to " + name + "'s sheet" : "Back to your characters";
+}
+
+/** The XP and treasure a surviving ending earned, then any level-up card. */
+function rewardNodes(rewards, name) {
+  if (!rewards) return [];
+  const nodes = [];
+  const list = (id, title, items) => {
+    const heading = make("h4", title);
+    heading.id = id + "-title";
+    const entries = make("ul");
+    entries.id = id;
+    entries.setAttribute("aria-labelledby", heading.id);
+    entries.append(...items);
+    nodes.push(heading, entries);
+  };
+  if (rewards.xp.length === 0 && rewards.treasure.length === 0) {
+    nodes.push(make("p", "Nothing new earned: " + name + " already has everything this adventure gives."));
+  }
+  if (rewards.xp.length > 0) list("ending-xp", "Experience", rewards.xp.map((award) => make("li", award.name + ": +" + award.xp + " XP")));
+  if (rewards.treasure.length > 0) {
+    list("ending-treasure", "Treasure kept", rewards.treasure.map(treasureItem));
+  }
+  nodes.push(make("p", name + " has " + rewards.totalXp + " XP. A rest before the next adventure restores every hit point and feature use."));
+  const up = rewards.levelUp;
+  if (up) {
+    const card = make("section", undefined, "level-up");
+    card.id = "level-up";
+    const heading = make("h4", "Level up: " + name + " is now level " + up.to);
+    heading.id = "level-up-title";
+    card.setAttribute("aria-labelledby", heading.id);
+    // Names only: the sheet explains each feature, and the dock stays short.
+    const gains = make("p", "Hit points " + up.maxHp.before + " → " + up.maxHp.after + ". New: " + up.features.map((feature) => feature.name).join(", ") + ". See the sheet for what each does.");
+    card.append(heading, gains);
+    nodes.push(card);
+  }
+  return nodes;
 }
 
 const HEALTH_LABELS = { healthy: "Healthy", bloodied: "Bloodied", critical: "Critical", down: "Defeated" };
@@ -940,8 +1052,11 @@ const ACTIONS = {
   "second-wind": { label: "Second Wind", busy: "Using Second Wind", busyLabel: "Using Second Wind…" },
   "action-surge": { label: "Action Surge", busy: "Using Action Surge", busyLabel: "Using Action Surge…" },
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
+  leave: { label: "Leave the adventure", busy: "Leaving the adventure", busyLabel: "Leaving…" },
 };
-const busyName = ({ action, target }) => ACTIONS[action].busy + (target ? target.name : "") + "…";
+// Leave names the adventure, not the room it is taken from.
+const named = (action, target) => target && action !== "leave" ? target.name : "";
+const busyName = ({ action, target }) => ACTIONS[action].busy + named(action, target) + "…";
 const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
 const EXPLORING = ["move", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
 
@@ -952,11 +1067,11 @@ function renderActions() {
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
   const attacks = session.actions.filter(({ action }) => action === "attack").length;
   const left = (feature) => " (" + feature.uses + " of " + feature.max + " left)";
-  const groups = { attack: [], feature: [], explore: [] };
+  const groups = { attack: [], feature: [], explore: [], leave: [] };
   session.actions.forEach((option, index) => {
     const { action, target } = option;
-    const group = action === "attack" ? "attack" : EXPLORING.includes(action) || (action === "use" && !fighting) ? "explore" : "feature";
-    const label = ACTIONS[action].label + (target ? target.name : "") + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
+    const group = action === "attack" ? "attack" : action === "leave" ? "leave" : EXPLORING.includes(action) || (action === "use" && !fighting) ? "explore" : "feature";
+    const label = ACTIONS[action].label + named(action, target) + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
     const short = group === "explore";
     const button = make("button");
     button.append(make("span", short ? ACTIONS[action].short : label));
@@ -968,7 +1083,7 @@ function renderActions() {
     button.dataset.action = action;
     if (target) button.dataset.target = target.id;
     button.disabled = acting || !option.available;
-    button.addEventListener("click", () => perform(option));
+    button.addEventListener("click", () => action === "leave" ? openLeave() : perform(option));
     const wrap = make("span", undefined, "action");
     wrap.append(button);
     if (!option.available) {
@@ -993,6 +1108,37 @@ function renderActions() {
   element("attack-controls").replaceChildren(...groups.attack);
   element("feature-controls").replaceChildren(...groups.feature);
   element("explore-controls").replaceChildren(...groups.explore);
+  element("leave-controls").replaceChildren(...groups.leave);
+  // While Leave asks for confirmation, the question stands in its place.
+  const asking = confirmingLeave && groups.leave.length > 0;
+  element("leave-controls").hidden = asking;
+  element("leave-confirm").hidden = !asking;
+  element("leave-question").textContent = "Leave " + session.adventure.title + "? This ends the adventure here. Any treasure you carry out is yours to keep; you cannot come back to this adventure.";
+  element("confirm-leave").disabled = acting;
+  element("cancel-leave").disabled = acting;
+}
+
+function openLeave() {
+  confirmingLeave = true;
+  renderActions();
+  element("confirm-leave").focus();
+}
+
+function cancelLeave() {
+  confirmingLeave = false;
+  renderActions();
+  const leave = element("leave-controls").querySelector("button");
+  if (leave) leave.focus();
+}
+
+async function leaveAdventure() {
+  const option = session.actions.find(({ action }) => action === "leave");
+  if (!option) return;
+  await act("/api/5e/session/explore", { action: "leave", target: option.target.id }, "#confirm-leave", "Leaving…");
+  // A refused or failed request leaves the question open to try again.
+  if (session.ending) confirmingLeave = false;
+  renderActions();
+  element(session.ending ? "ending-title" : "confirm-leave").focus();
 }
 
 async function perform({ action, target }) {
@@ -1378,6 +1524,10 @@ element("cancel-delete").addEventListener("click", () => element("delete-dialog"
 element("delete-dialog").addEventListener("close", () => { if (restoreFocusOnClose) element("delete-character").focus(); });
 element("message-form").addEventListener("submit", sendMessage);
 element("ending-next").addEventListener("click", () => go(findEntry(session.characterId) ? "#character-" + session.characterId : ""));
+element("confirm-leave").addEventListener("click", leaveAdventure);
+element("cancel-leave").addEventListener("click", cancelLeave);
+element("confirm-abandon").addEventListener("click", abandonAdventure);
+element("cancel-abandon").addEventListener("click", closeAbandon);
 for (const name of Object.keys(disclosures)) {
   element(name + "-toggle").addEventListener("click", () => {
     disclosures[name] = !disclosures[name];

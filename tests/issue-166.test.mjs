@@ -22,7 +22,7 @@ const launch = () =>
   );
 
 const RULE =
-  "Spent uses stay spent for the rest of the adventure; each adventure starts with all of them.";
+  "Spent uses stay spent for the rest of the adventure; a rest between adventures restores them and every hit point.";
 const STALE = /short rest|long rest|return after the adventure/i;
 
 test("Second Wind and Action Surge state the rule that applies now (#166)", () => {

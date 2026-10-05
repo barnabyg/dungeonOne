@@ -1,0 +1,203 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 4,
+  "id": "goblin-warren",
+  "title": "The Goblin Warren",
+  "objective": "Fight through the goblin warren to the boss's hall, take its hoard, and get back out alive. Leave by the gate when you are ready.",
+  "recommendedLevels": {
+    "min": 2,
+    "max": 3
+  },
+  "difficulty": "medium",
+  "startRoomId": "warren-gate",
+  "rooms": [
+    {
+      "id": "warren-gate",
+      "name": "Warren Gate",
+      "description": "A rough tunnel mouth in a hillside, hung with bones and rags. Daylight is at your back.",
+      "exit": true,
+      "features": [
+        {
+          "id": "bone-charms",
+          "name": "Bone Charms",
+          "description": "Strings of small bones rattle across the tunnel mouth.",
+          "discovery": "Scratched on a thigh bone in goblin marks: a guard in the tunnel, the boss beyond."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "guard-tunnel",
+      "name": "Guard Tunnel",
+      "description": "A low tunnel lit by a smoking brazier, littered with gnawed bones.",
+      "encounterId": "tunnel-guards",
+      "features": [
+        {
+          "id": "smoking-brazier",
+          "name": "Smoking Brazier",
+          "description": "An iron brazier of greasy smoke, too hot to touch."
+        }
+      ],
+      "items": [
+        {
+          "id": "guard-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid on a cord.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "tunnel-guard"
+        }
+      ]
+    },
+    {
+      "id": "boss-hall",
+      "name": "Boss's Hall",
+      "description": "A wide cave heaped with stolen goods, with a throne of stacked crates at its far end.",
+      "encounterId": "boss-fight",
+      "features": [
+        {
+          "id": "crate-throne",
+          "name": "Crate Throne",
+          "description": "Crates stacked into a lopsided throne, draped with a moth-eaten cloak.",
+          "discovery": "Under the cloak is a sack, heavy and clinking."
+        }
+      ],
+      "items": [
+        {
+          "id": "stolen-coins",
+          "name": "Sack of Stolen Coins",
+          "description": "A sack of mixed coins taken from travellers on the road.",
+          "kind": "treasure",
+          "hiddenIn": "crate-throne"
+        },
+        {
+          "id": "boss-chain",
+          "name": "Silver Chain of Office",
+          "description": "A heavy silver chain the boss wore as a badge of rank.",
+          "kind": "treasure",
+          "hiddenIn": "goblin-boss"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "gate-to-tunnel",
+      "between": ["warren-gate", "guard-tunnel"],
+      "description": "The tunnel runs down into smoke."
+    },
+    {
+      "id": "tunnel-to-hall",
+      "between": ["guard-tunnel", "boss-hall"],
+      "description": "A wider passage opens into a hall."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "tunnel-guards",
+      "opponents": [
+        {
+          "id": "tunnel-guard",
+          "name": "Goblin Warrior",
+          "description": "A goblin guard, a vial swinging at its neck, leaps up from the brazier with its scimitar drawn.",
+          "statBlock": {
+            "name": "Goblin Warrior",
+            "size": "Small",
+            "type": "Fey (Goblinoid)",
+            "armorClass": 15,
+            "hitPoints": {
+              "average": 10,
+              "formula": "3d6"
+            },
+            "abilities": {
+              "strength": 8,
+              "dexterity": 15,
+              "constitution": 10,
+              "intelligence": 10,
+              "wisdom": 8,
+              "charisma": 8
+            },
+            "challengeRating": "1/4",
+            "xp": 50,
+            "attacks": [
+              {
+                "name": "Scimitar",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 2,
+                  "type": "slashing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-warren"
+    },
+    {
+      "id": "boss-fight",
+      "opponents": [
+        {
+          "id": "goblin-boss",
+          "name": "Goblin Boss",
+          "description": "The goblin boss rises from its crate throne, a silver chain at its neck.",
+          "statBlock": {
+            "name": "Goblin Boss",
+            "size": "Small",
+            "type": "Fey (Goblinoid)",
+            "armorClass": 17,
+            "hitPoints": {
+              "average": 21,
+              "formula": "6d6"
+            },
+            "abilities": {
+              "strength": 10,
+              "dexterity": 15,
+              "constitution": 10,
+              "intelligence": 10,
+              "wisdom": 8,
+              "charisma": 10
+            },
+            "challengeRating": "1",
+            "xp": 200,
+            "attacks": [
+              {
+                "name": "Scimitar",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 2,
+                  "type": "slashing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-warren"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-hoard",
+      "kind": "escape-with-loot",
+      "title": "Out with the hoard",
+      "text": "You climb out of the warren into the daylight, the boss's treasure on your back.",
+      "xp": 400
+    },
+    {
+      "id": "out-of-the-warren",
+      "kind": "escape-without-loot",
+      "title": "Out of the warren",
+      "text": "You climb out of the warren into the daylight with nothing to show for it."
+    },
+    {
+      "id": "fallen-in-the-warren",
+      "kind": "defeat",
+      "title": "Fallen in the warren",
+      "text": "You fall among the gnawed bones. Your adventuring ends here."
+    }
+  ]
+}

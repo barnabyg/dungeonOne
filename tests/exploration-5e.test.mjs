@@ -246,7 +246,8 @@ test("a fight without a victory ending is won and play goes on; the room stays c
     /Giant Rat is defeated\.\nThe fight is over\.$/,
   );
   assert.deepEqual(tools(won.state).move, ["stair-foot", "den"]);
-  assert.deepEqual(tools(won.state).examine, ["gnawed-sacks"]);
+  // The fallen rat can now be searched (#133).
+  assert.deepEqual(tools(won.state).examine, ["gnawed-sacks", "giant-rat"]);
   assert.equal(tools(won.state).attack, undefined);
 
   // Coming back starts no fight and draws no dice.

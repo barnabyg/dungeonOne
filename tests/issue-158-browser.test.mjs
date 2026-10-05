@@ -255,7 +255,15 @@ for (const viewport of [
           kind: "victory",
           title: "The cellar is clear",
           text: viewed.body.session.ending.text,
+          // A victory credits the fight's XP (#133).
+          rewards: {
+            xp: [{ name: "Defeated the Goblin Warrior", xp: 50 }],
+            treasure: [],
+            totalXp: 50,
+            level: 1,
+          },
         });
+        assert.equal(library.characters[0].sheet.xp, 50);
         assert.deepEqual(viewed.body.session.actions, []);
         const acted = await post(page, "/api/5e/session/action", {
           sessionId: file.id,

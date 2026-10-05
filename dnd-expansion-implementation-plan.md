@@ -76,7 +76,11 @@ These apply to every ticket. Repeat them in each ticket's "Shared implementation
 
 - **Throwaway formats.** Character library, save, trace and adventure files each carry one format version. A ticket that changes a format bumps it, and the loader refuses older files with a message naming the file and telling the player to move it aside. No compatibility shims, no migration, no per-increment rules versions. This applies until the owner declares a stable release.
 - **Engine authority.** The AI DM chooses only offered actions through bounded tools. Dice, targets, HP, saves, prices, spell slots and outcomes are engine-owned. Each new mechanic adds a tool or tool parameter and a rejection path the AI cannot narrate around.
-- **Found or given.** Treasure, gear and coin come from examining something, from a named giver, or from a transaction. They are never simply awarded.
+- **Found or given.** Treasure, gear and coin come from examining something (a feature, or a defeated enemy's body once its fight is won), from a named giver, or from a transaction. They are never simply awarded.
+- **Adventure rollback.** Everything that changes during an adventure (hit points, items and coin found, coin spent, gear bought, swapped or dropped, XP) lives only in the adventure session. What the character finds is usable at once in that adventure: coin looted from a goblin can buy a sword from a merchant further in. The character library changes only when the adventure ends, in one write:
+  - On surviving completion (a victory or an escape), the character keeps exactly what it holds at the end and is credited the XP it earned. Coin spent is gone, gear bought is kept, and this includes coin and gear the character brought into the adventure.
+  - On defeat or abandonment, the character is exactly as it was when the adventure started.
+  - "Earned once per character" applies to finding things and to XP awards (each find and each award happens once), never to holding them. Spending found coin does not make it findable again.
 - **Balance gate.** An adventure is offered in the browser only if it passes qualification at its declared difficulty in `npm.cmd run verify`.
 - **No positions.** The game has no grid or map. 5e rules that need distance (opportunity attacks, reach, areas, movement speed, and weapon masteries such as Push) are left out or abstracted, and each omission is listed in the rules document. Ranged weapons are deferred to a later version.
 - **Temporary `--5e` flag.** Until the cutover in 11.10, new 5e behaviour is reached by launching the browser with a temporary `--5e` flag, using its own library path. The default browser keeps the old game working until then, so `main` stays playable throughout the series.
@@ -392,19 +396,23 @@ Git history keeps everything.
 
 ### 12.3 Equip, swap and drop gear during an adventure
 
-**What to build.** Equip and unequip outside combat. Donning armour takes authored time. Drawing or swapping a weapon in combat uses the 5e object interaction. Found gear is an ordinary placed item, kept only on surviving completion.
+**What to build.** Equip and unequip outside combat. Donning armour takes authored time. Drawing or swapping a weapon in combat uses the 5e object interaction. Found gear is an ordinary placed item, kept only on surviving completion. The gear and coin the character owns come with it into the adventure, and follow the adventure rollback contract (section 3).
+
+This changes how an adventure is settled. Since #133, settling _adds_ the treasure carried out to the sheet. Once gear can be dropped, swapped or sold mid-adventure, settling must instead _replace_ the character's possessions with what it holds at the end. Keep the per-character ledger of finds and XP awards separate from what the character holds.
 
 **Acceptance criteria**
 
 - [ ] Swapping updates derived numbers immediately and on the sheet.
 - [ ] Abandonment or defeat restores the starting gear.
+- [ ] Gear dropped or left behind during a surviving adventure is gone afterwards; gear found and carried out is kept.
+- [ ] An interruption between the session and library writes never duplicates or loses gear.
 - [ ] The AI can't equip what isn't carried.
 
 **Blocked by:** 12.2.
 
 ### 12.4 Buy and sell between adventures
 
-**What to build.** A market in the character library for a resting character not in an adventure. It stocks the common tier, plus uncommon items from level 3 (open decision 3). Prices follow 12.1, and selling returns half price. Purchases are durable library transactions.
+**What to build.** A market in the character library for a resting character not in an adventure. It stocks the common tier, plus uncommon items from level 3 (open decision 3). Prices follow 12.1, and selling returns half price. Purchases are durable library transactions. The coin and gear a character owns go with it into its next adventure, where they can be spent or lost (section 3, adventure rollback).
 
 **Acceptance criteria**
 
@@ -416,13 +424,15 @@ Git history keeps everything.
 
 ### 12.5 Trade with merchants inside adventures
 
-**What to build.** Authored merchant NPCs have stock, prices and a time cost, through a `trade` tool. Purchases spend carried coin, and become permanent only on surviving completion.
+**What to build.** Authored merchant NPCs have stock, prices and a time cost, through a `trade` tool. Purchases spend carried coin (found in this adventure or brought into it), and become permanent only on surviving completion, as the adventure rollback contract (section 3) describes.
 
 **Acceptance criteria**
 
 - [ ] A merchant offers only authored stock. Stock and prices are engine-owned.
 - [ ] Trading costs authored time, so it interacts with deadline clocks.
-- [ ] Coin found earlier in the same adventure can be spent there.
+- [ ] Coin found earlier in the same adventure can be spent there: for example, 10 gp looted from a goblin's body buys a shortsword.
+- [ ] Browser → API → storage: buy with found coin, then escape, and the sheet shows the item bought and the change left; buy, then die or abandon, and the sheet shows the coin and gear the character started with.
+- [ ] Spending found coin never makes it findable again on a later visit.
 
 **Blocked by:** 12.3, 12.4.
 
@@ -495,14 +505,14 @@ Each level band has a treasure value budget per adventure. Decide whether +1 wea
 **Acceptance criteria**
 
 - [ ] The validator rejects treasure above the budget, or above the tier allowed, for the adventure's maximum recommended level.
-- [ ] Treasure keeps the found-or-given rule and the once-per-character ledger.
+- [ ] Treasure keeps the found-or-given rule and the once-per-character ledger of finds (section 3: the ledger records what was found, not what is still held).
 - [ ] Gems sell at the market (12.4) and in adventures (12.5).
 
 **Blocked by:** 12.4.
 
 ### 13.5 Leave monster loot to be found on remains
 
-**What to build.** A defeated monster's treasure type produces a loot list, authored or rolled at authoring time, that lies among its remains and is found with Examine. Rolling happens at authoring time, so the gate sees the exact value.
+**What to build.** A defeated monster's treasure type produces a loot list, authored or rolled at authoring time, that lies among its remains and is found with Examine. Rolling happens at authoring time, so the gate sees the exact value. #133 already lets an opponent carry authored items that are found by searching its body once its fight is won; this ticket generates those items from treasure types.
 
 **Acceptance criteria**
 
@@ -729,6 +739,15 @@ Needs an ADR: a fourth record, the **campaign**, separate from character, advent
 | Weapon and armour numbers | Cost and rarity follow effectiveness                                                                                                                             | 12.1                    |
 | Ranged weapons            | Deferred to a later version                                                                                                                                      | Section 3               |
 | Saves, rogue              | 5e six-ability saves; the 2024 Rogue with the Thief subclass                                                                                                     | 11.4, 15.4              |
+
+### Settled by the owner, 5 October 2026
+
+| Decision           | Outcome                                                                                                                                                                               | Where it applies      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| Enemy treasure     | Searching the body is the only way to get what a defeated enemy carried; defeating it gives nothing by itself                                                                         | #133, 13.5            |
+| Victory and escape | Both are surviving completion, so both keep the treasure carried                                                                                                                      | #133                  |
+| Adventure rollback | What is found is usable at once in the same adventure; on surviving completion the character keeps what it holds at the end, and on defeat or abandonment it is exactly as it started | Section 3, 12.3, 12.5 |
+| Level-up           | Credited automatically when the adventure is settled; the ending's level-up card and its one step back to the sheet are its confirmation                                              | #133                  |
 
 ### Open
 

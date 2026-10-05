@@ -8,8 +8,10 @@ import {
   fighterProfile,
   keptTotal,
   levelForXp,
+  levelUpChanges,
   nextLevelXp,
   proficiencyBonus,
+  rewardFighter,
   rollAbilitySet,
   validateFighter,
 } from "../dist/fighter-5e.js";
@@ -305,4 +307,95 @@ test("no score rises above 20", () => {
   const sheet = buildFighter(ID, "Ada", dice, CHOICES);
   assert.equal(sheet.abilities.strength, 20);
   assert.equal(abilityModifier(20), 5);
+});
+
+test("a new Fighter has no treasure and no XP awards", () => {
+  const sheet = fighter();
+  assert.deepEqual(sheet.treasure, []);
+  assert.deepEqual(sheet.xpAwards, []);
+});
+
+const TORC = {
+  id: "robbers-barrow/silver-torc",
+  name: "Silver Torc",
+  description: "A neck ring of twisted silver.",
+};
+const AWARDS = [
+  { id: "robbers-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
+  { id: "robbers-barrow/ending/out-with-the-torc", name: "Out", xp: 250 },
+];
+
+test("rewards credit XP and treasure once, level up at 300 XP and rest to full HP", () => {
+  const hurt = { ...fighter(), hp: 3 };
+  const rewarded = rewardFighter(hurt, { xp: AWARDS, treasure: [TORC] });
+  assert.equal(rewarded.xp, 300);
+  assert.equal(rewarded.level, 2);
+  assert.equal(rewarded.hp, fighterProfile(rewarded).maxHp);
+  assert.deepEqual(rewarded.treasure, [TORC]);
+  assert.deepEqual(
+    rewarded.xpAwards,
+    AWARDS.map(({ id }) => id),
+  );
+  // Crediting the same rewards again changes nothing.
+  assert.deepEqual(
+    rewardFighter(rewarded, { xp: AWARDS, treasure: [TORC] }),
+    rewarded,
+  );
+  // With nothing to credit, the rest still restores HP.
+  const rested = rewardFighter(hurt, { xp: [], treasure: [] });
+  assert.equal(rested.hp, fighterProfile(rested).maxHp);
+  assert.equal(rested.xp, 0);
+});
+
+test("the level-up changes name the new level, hit points and features", () => {
+  const before = fighter();
+  const after = rewardFighter(before, { xp: AWARDS, treasure: [] });
+  const changes = levelUpChanges(before, after);
+  assert.equal(changes.from, 1);
+  assert.equal(changes.to, 2);
+  assert.deepEqual(changes.maxHp, {
+    before: fighterProfile(before).maxHp,
+    after: fighterProfile(after).maxHp,
+  });
+  assert.deepEqual(
+    changes.features.map(({ name }) => name),
+    ["Action Surge", "Tactical Mind"],
+  );
+  assert.equal(levelUpChanges(before, before), undefined);
+});
+
+test("reaching 900 XP raises a level 2 Fighter to 3 with the Champion's features", () => {
+  const second = rewardFighter(fighter(), { xp: AWARDS, treasure: [] });
+  const third = rewardFighter(second, {
+    xp: [{ id: "warden-crypt/ending/crypt-cleared", name: "Crypt", xp: 600 }],
+    treasure: [],
+  });
+  assert.equal(third.level, 3);
+  assert.equal(third.hp, fighterProfile(third).maxHp);
+  const changes = levelUpChanges(second, third);
+  assert.equal(changes.from, 2);
+  assert.equal(changes.to, 3);
+  assert.deepEqual(
+    changes.features.map(({ name }) => name),
+    ["Champion: Improved Critical", "Champion: Remarkable Athlete"],
+  );
+});
+
+test("validation rejects malformed treasure and repeated awards", () => {
+  const sheet = fighter();
+  for (const change of [
+    { treasure: [{ ...TORC, value: 5 }] },
+    { treasure: [{ ...TORC, id: "torc" }] },
+    { treasure: [TORC, TORC] },
+    { treasure: "torc" },
+    { xpAwards: ["robbers-barrow/encounter/a", "robbers-barrow/encounter/a"] },
+    { xpAwards: ["goblin"] },
+  ]) {
+    assert.throws(() => validateFighter({ ...sheet, ...change }));
+  }
+  assert.deepEqual(
+    validateFighter({ ...sheet, treasure: [TORC], xpAwards: [AWARDS[0].id] })
+      .treasure,
+    [TORC],
+  );
 });

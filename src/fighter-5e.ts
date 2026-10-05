@@ -4,6 +4,9 @@
  * Pure rules: dice come only from the `RandomSource` passed in, and every
  * derived number (HP, AC, attack, saves, skills, features) is computed from a
  * validated sheet. `docs/character-rules.md` records these numbers.
+ *
+ * A sheet also keeps what the character has earned: the treasure it kept and
+ * the XP awards it was credited, each once (`rewardFighter`).
  */
 import type { RandomSource } from "./random.js";
 
@@ -66,7 +69,7 @@ export const FIGHTER_WEAPON_MASTERIES = ["mace"] as const;
  * arrive. The sheet, the creation preview and the fight all show these words.
  */
 export const FEATURE_USES_RULE =
-  "Spent uses stay spent for the rest of the adventure; each adventure starts with all of them.";
+  "Spent uses stay spent for the rest of the adventure; a rest between adventures restores them and every hit point.";
 
 /** No ability score can exceed this (4d6 keeps at most 18, +2 reaches 20). */
 export const ABILITY_SCORE_CAP = 20;
@@ -84,6 +87,33 @@ export type FighterChoices = Readonly<{
   fightingStyle: FightingStyle;
 }>;
 
+/**
+ * Treasure the character kept from an adventure. `id` is the adventure's id
+ * and the item's, as `adventure/item`, so each is earned once.
+ */
+export type TreasureRecord = Readonly<{
+  id: string;
+  name: string;
+  description: string;
+}>;
+
+/**
+ * One XP award: winning an encounter (`adventure/encounter/id`) or reaching
+ * an ending (`adventure/ending/id`). Each is credited once per character.
+ */
+export type XpAward = Readonly<{ id: string; name: string; xp: number }>;
+
+/** What a surviving adventure credits to the character. */
+export type Rewards = Readonly<{
+  xp: readonly XpAward[];
+  treasure: readonly TreasureRecord[];
+}>;
+
+const TREASURE_ID = /^[a-z][a-z0-9-]{0,47}\/[a-z][a-z0-9-]{0,47}$/;
+const AWARD_ID =
+  /^[a-z][a-z0-9-]{0,47}\/(encounter|ending)\/[a-z][a-z0-9-]{0,47}$/;
+const MAX_EARNED = 1000;
+
 export type FighterSheet = Readonly<{
   id: string;
   name: string;
@@ -100,6 +130,10 @@ export type FighterSheet = Readonly<{
   fightingStyle: FightingStyle;
   weaponMasteries: typeof FIGHTER_WEAPON_MASTERIES;
   equipment: typeof FIGHTER_EQUIPMENT;
+  /** Treasure kept from adventures, in the order it was earned. */
+  treasure: readonly TreasureRecord[];
+  /** The ids of the XP awards credited, so none is credited twice. */
+  xpAwards: readonly string[];
 }>;
 
 const SHEET_KEYS = [
@@ -116,6 +150,8 @@ const SHEET_KEYS = [
   "fightingStyle",
   "weaponMasteries",
   "equipment",
+  "treasure",
+  "xpAwards",
 ];
 
 export function abilityModifier(score: number): number {
@@ -296,6 +332,48 @@ function validateFightingStyle(value: unknown): FightingStyle {
   return value as FightingStyle;
 }
 
+function plainText(value: unknown, max: number): boolean {
+  return (
+    typeof value === "string" &&
+    value.trim() === value &&
+    value.length >= 1 &&
+    value.length <= max &&
+    !/[\p{Cc}\p{Cs}]/u.test(value)
+  );
+}
+
+function validateTreasure(value: unknown): readonly TreasureRecord[] {
+  if (
+    !Array.isArray(value) ||
+    value.length > MAX_EARNED ||
+    !value.every(
+      (entry) =>
+        isRecord(entry) &&
+        Object.keys(entry).sort().join(",") === "description,id,name" &&
+        typeof entry.id === "string" &&
+        TREASURE_ID.test(entry.id) &&
+        plainText(entry.name, 60) &&
+        plainText(entry.description, 2000),
+    ) ||
+    new Set(value.map(({ id }: TreasureRecord) => id)).size !== value.length
+  ) {
+    throw new Error("Invalid treasure.");
+  }
+  return value as TreasureRecord[];
+}
+
+function validateXpAwards(value: unknown): readonly string[] {
+  if (
+    !Array.isArray(value) ||
+    value.length > MAX_EARNED ||
+    !value.every((id) => typeof id === "string" && AWARD_ID.test(id)) ||
+    new Set(value).size !== value.length
+  ) {
+    throw new Error("Invalid XP awards.");
+  }
+  return value as string[];
+}
+
 function validateName(value: unknown): string {
   if (
     typeof value !== "string" ||
@@ -341,6 +419,8 @@ export function buildFighter(
     fightingStyle: validateFightingStyle(choices.fightingStyle),
     weaponMasteries: FIGHTER_WEAPON_MASTERIES,
     equipment: FIGHTER_EQUIPMENT,
+    treasure: [],
+    xpAwards: [],
   };
   return validateFighter({ ...base, hp: fighterProfile(base).maxHp });
 }
@@ -473,6 +553,8 @@ export function validateFighter(value: unknown): FighterSheet {
   if (JSON.stringify(sheet.equipment) !== JSON.stringify(FIGHTER_EQUIPMENT)) {
     throw new Error("Unsupported character equipment.");
   }
+  validateTreasure(sheet.treasure);
+  validateXpAwards(sheet.xpAwards);
   if (sheet.level !== levelForXp(sheet.xp)) {
     throw new Error("Character level differs from experience points.");
   }
@@ -642,5 +724,63 @@ export function fighterProfile(
     actionSurgeUses: level >= 2 ? 1 : 0,
     features,
     nextLevelXp: nextLevelXp(level),
+  };
+}
+
+/**
+ * The sheet after a surviving adventure: each XP award and treasure not
+ * credited before is added, the level follows the XP, and the rest between
+ * adventures restores every hit point. Crediting the same rewards again
+ * changes nothing.
+ */
+export function rewardFighter(
+  sheet: FighterSheet,
+  rewards: Rewards,
+): FighterSheet {
+  const awards = rewards.xp.filter(({ id }) => !sheet.xpAwards.includes(id));
+  const owned = new Set(sheet.treasure.map(({ id }) => id));
+  const treasure = rewards.treasure.filter(({ id }) => !owned.has(id));
+  const xp = sheet.xp + awards.reduce((sum, award) => sum + award.xp, 0);
+  const raised = { ...sheet, xp, level: levelForXp(xp) };
+  return validateFighter({
+    ...raised,
+    hp: fighterProfile(raised).maxHp,
+    treasure: [
+      ...sheet.treasure,
+      ...treasure.map(({ id, name, description }) => ({
+        id,
+        name,
+        description,
+      })),
+    ],
+    xpAwards: [...sheet.xpAwards, ...awards.map(({ id }) => id)],
+  });
+}
+
+/** What changed when a character went up a level, for the level-up card. */
+export type LevelUpChanges = Readonly<{
+  from: Level;
+  to: Level;
+  maxHp: Readonly<{ before: number; after: number }>;
+  /** The class features gained, in the sheet's order. */
+  features: readonly FighterFeature[];
+}>;
+
+/** The changes from `before` to `after`, or undefined if the level held. */
+export function levelUpChanges(
+  before: FighterSheet,
+  after: FighterSheet,
+): LevelUpChanges | undefined {
+  if (after.level === before.level) {
+    return undefined;
+  }
+  const was = fighterProfile(before);
+  const now = fighterProfile(after);
+  const known = new Set(was.features.map(({ id }) => id));
+  return {
+    from: before.level,
+    to: after.level,
+    maxHp: { before: was.maxHp, after: now.maxHp },
+    features: now.features.filter(({ id }) => !known.has(id)),
   };
 }

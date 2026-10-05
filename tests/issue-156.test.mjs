@@ -86,6 +86,8 @@ function engineAction({ action, target }) {
       return { type: "disarm", trapId: target.id };
     case "talk":
       return { type: "talk", topicId: target.id };
+    case "leave":
+      return { type: "leave", roomId: target.id };
     default:
       return { type: action, actorId: PLAYER };
   }

@@ -20,7 +20,9 @@ import type {
 import type { ValidatedAdventure } from "./adventure-loader.js";
 import type { RandomSource } from "./random.js";
 
-export type RuntimeStatus = "playing" | "victory" | "defeat" | "quit";
+/** `escaped`: the player chose to leave the adventure, alive (5e only). */
+export type RuntimeStatus =
+  "playing" | "victory" | "defeat" | "escaped" | "quit";
 
 /** Opaque, serialisable session state owned by one runtime. */
 export type RuntimeState = Readonly<{ status: RuntimeStatus }>;

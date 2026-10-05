@@ -1,5 +1,5 @@
 /**
- * A 5e adventure session and its save file (format version 6).
+ * A 5e adventure session and its save file (format version 7).
  *
  * The save holds the character as it started, the adventure module's digest,
  * the session's seed, every committed action with the dice it drew, the
@@ -18,7 +18,10 @@ import { isDeepStrictEqual } from "node:util";
 import { adventureDigest, type FifthAdventure } from "./adventure-5e.js";
 import { writeFileAtomically } from "./atomic-file.js";
 import { parseBoundedJson } from "./bounded-json.js";
-import type { FifthCharacterLibrary } from "./character-library-5e.js";
+import type {
+  FifthCharacterLibrary,
+  FifthLibraryData,
+} from "./character-library-5e.js";
 import { acquireFileLock } from "./file-lock.js";
 import { validateFighter, type FighterSheet } from "./fighter-5e.js";
 import { createSeededRandom, RANDOM_ALGORITHM } from "./random.js";
@@ -35,7 +38,7 @@ import {
   type ResultLine,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 6;
+export const FIFTH_SESSION_FORMAT = 7;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;
@@ -581,12 +584,32 @@ export async function startFifthAdventure(
     number,
     revision,
   );
-  if (session.state.status !== "playing") {
-    await library.settleSession(
-      characterId,
-      id,
-      session.state.status as "victory" | "defeat",
-    );
-  }
+  await settleFifthSession(library, session);
   return session;
+}
+
+/**
+ * Settles an ended session's character in the library: credits what a
+ * victory or an escape earned, or records a defeat. Call it after the
+ * session is saved. It changes nothing while the session is under way, or
+ * once the library no longer names the session (already settled or
+ * abandoned), so a retry after an interruption never credits twice.
+ */
+export async function settleFifthSession(
+  library: FifthCharacterLibrary,
+  session: FifthSession,
+): Promise<FifthLibraryData> {
+  const { status } = session.state;
+  if (status === "playing") {
+    return library.read();
+  }
+  if (status === "quit") {
+    throw new Error("A 5e adventure cannot be quit.");
+  }
+  return library.settleSession(
+    session.character.id,
+    session.id,
+    status,
+    session.runtime.projectRewards(session.state),
+  );
 }
