@@ -8,6 +8,7 @@ import {
   percentileCharacters,
   PLAY_STYLES,
   playAdventure,
+  qualifies,
   qualifyAdventure,
   renderBalanceResult,
   renderGateResult,
@@ -651,4 +652,11 @@ test("npm run balance reports the gate and fails when a module doesn't qualify",
   assert.equal(result.gate.ok, true);
   assert.equal(result.gate.verdict.qualified, true);
   assert.equal(result.gate.verdict.survival.runs, 20);
+});
+
+test("the browser's qualifies is the gate's verdict at the defaults", () => {
+  assert.equal(qualifies(SHIPPED["warden-crypt"]), true);
+  assert.equal(qualifies(GOBLIN_PAIR), false);
+  assert.equal(qualifies(declared(GOBLIN_PAIR, "hard")), true);
+  assert.equal(qualifies(GOBLIN_PAIR), false);
 });

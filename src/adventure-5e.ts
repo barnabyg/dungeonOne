@@ -1118,23 +1118,28 @@ export async function loadFifthAdventure(
 }
 
 /**
- * The order the browser offers modules in: by recommended level range, lowest
- * first, then by difficulty, easy to hard, then by id. Returns a new array.
+ * The modules the browser offers, in the order it offers them: only those
+ * `qualifies` accepts (the balance gate, #135), by recommended level range,
+ * lowest first, then by difficulty, easy to hard, then by id. Returns a new
+ * array.
  */
 export function orderFifthAdventures<
   T extends Pick<FifthAdventure, "id" | "recommendedLevels" | "difficulty">,
->(adventures: readonly T[]): T[] {
-  return [...adventures].sort(
-    (a, b) =>
-      a.recommendedLevels.min - b.recommendedLevels.min ||
-      a.recommendedLevels.max - b.recommendedLevels.max ||
-      DIFFICULTIES.indexOf(a.difficulty) - DIFFICULTIES.indexOf(b.difficulty) ||
-      a.id.localeCompare(b.id),
-  );
+>(adventures: readonly T[], qualifies: (adventure: T) => boolean): T[] {
+  return adventures
+    .filter(qualifies)
+    .sort(
+      (a, b) =>
+        a.recommendedLevels.min - b.recommendedLevels.min ||
+        a.recommendedLevels.max - b.recommendedLevels.max ||
+        DIFFICULTIES.indexOf(a.difficulty) -
+          DIFFICULTIES.indexOf(b.difficulty) ||
+        a.id.localeCompare(b.id),
+    );
 }
 
 /**
- * The built-in 5e modules, by id. The browser offers them in
+ * The built-in 5e modules, by id. The browser offers those that qualify, in
  * `orderFifthAdventures` order.
  */
 export const FIFTH_ADVENTURE_FILES = {

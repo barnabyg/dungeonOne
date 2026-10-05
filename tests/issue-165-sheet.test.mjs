@@ -32,7 +32,7 @@ test("modules are offered by level range, then easy, medium, hard", () => {
     module("d-wide", 1, 2, "easy"),
     module("e-easy", 1, 1, "easy"),
   ];
-  const ordered = orderFifthAdventures(given);
+  const ordered = orderFifthAdventures(given, () => true);
   assert.deepEqual(
     ordered.map(({ id }) => id),
     ["e-easy", "a-medium", "b-hard", "d-wide", "c-two"],
@@ -40,10 +40,32 @@ test("modules are offered by level range, then easy, medium, hard", () => {
   assert.equal(given[0].id, "b-hard", "the input is left unchanged");
 });
 
-async function withServer(work) {
+test("modules that don't qualify are left out before ordering (#135)", () => {
+  const given = [
+    module("b-hard", 1, 1, "hard"),
+    module("a-medium", 1, 1, "medium"),
+    module("e-easy", 1, 1, "easy"),
+  ];
+  const asked = [];
+  const ordered = orderFifthAdventures(given, (adventure) => {
+    asked.push(adventure.id);
+    return adventure.id !== "a-medium";
+  });
+  assert.deepEqual(
+    ordered.map(({ id }) => id),
+    ["e-easy", "b-hard"],
+  );
+  assert.deepEqual(asked, ["b-hard", "a-medium", "e-easy"]);
+});
+
+async function withServer(work, options = {}) {
   const directory = await mkdtemp(join(tmpdir(), "issue-165-"));
   const libraryPath = join(directory, "characters.json");
-  const server = await startFifthBrowserServer({ libraryPath, seed: 0 });
+  const server = await startFifthBrowserServer({
+    libraryPath,
+    seed: 0,
+    ...options,
+  });
   const browser = await launch();
   try {
     await work({ server, browser, libraryPath });
@@ -205,5 +227,47 @@ test(
         "no horizontal scroll at phone width",
       );
     });
+  },
+);
+
+test(
+  "a module that doesn't qualify is not offered, and starting it is refused (#135)",
+  { timeout: 60000 },
+  async () => {
+    await withServer(
+      async ({ server, browser, libraryPath }) => {
+        const page = await browser.newPage({
+          viewport: { width: 1280, height: 850 },
+        });
+        page.setDefaultTimeout(5000);
+        await create(page, server.url, "Ada");
+        const starts = await page
+          .locator(".start-adventure")
+          .evaluateAll((buttons) =>
+            buttons.map((button) => button.dataset.adventure),
+          );
+        assert.equal(starts.length, 5);
+        assert.ok(!starts.includes("goblin-warren"));
+        const library = JSON.parse(await readFile(libraryPath, "utf8"));
+        const refused = await page.evaluate(
+          async (body) => {
+            const response = await fetch("/api/5e/adventures/start", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            return { status: response.status, body: await response.json() };
+          },
+          {
+            revision: library.revision,
+            characterId: library.characters[0].sheet.id,
+            adventureId: "goblin-warren",
+          },
+        );
+        assert.equal(refused.status, 409);
+        assert.equal(refused.body.error, "There is no such adventure.");
+      },
+      { qualifies: ({ id }) => id !== "goblin-warren" },
+    );
   },
 );

@@ -1217,6 +1217,24 @@ export function gateAdventure(
   }
 }
 
+/** Each module gated so far, by its content: the verdict never changes. */
+const gated = new Map<string, boolean>();
+
+/**
+ * Whether `adventure` passes the gate at its declared difficulty with the
+ * default options, as the browser offers modules.
+ */
+export function qualifies(adventure: FifthAdventure): boolean {
+  const key = JSON.stringify(adventure);
+  let passed = gated.get(key);
+  if (passed === undefined) {
+    const result = gateAdventure(adventure);
+    passed = result.ok && result.verdict.qualified;
+    gated.set(key, passed);
+  }
+  return passed;
+}
+
 /**
  * The gate's verdict as plain text: whether the module qualifies at its
  * declared difficulty, then each check, naming the ordinary enemies over
