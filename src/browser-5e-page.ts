@@ -42,9 +42,13 @@
 //
 // Busy states (#160): while a request runs, the control that started it has
 // aria-busy (setBusy/clearBusy, with a label such as "Saving…") and cannot
-// start it again. A typed message shows at once with a client-only pending
-// "The Dungeon Master is thinking…" entry (data-pending) that renderHistory
-// replaces with the saved result; it is never saved. Confirmations go to
+// start it again. An action-bar button (#185) keeps its busy label in
+// data-busy-label, drawn over its hidden idle label in a space sized for the
+// wider of the two, so the bar never reflows; while busy, its accessible name
+// is the full busy name, such as "Attacking Goblin Warrior…". A typed
+// message shows at once with a client-only pending "The Dungeon Master is
+// thinking…" entry (data-pending) that renderHistory replaces with the saved
+// result; it is never saved. Confirmations go to
 // #feedback, a polite live region that show() moves under the current panel's
 // heading and route() clears on every navigation.
 import { FEATURE_USES_RULE } from "./fighter-5e.js";
@@ -180,7 +184,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}#action-bar button{display:inline-grid}#action-bar button>span,#action-bar button::after{grid-area:1/1}#action-bar button::after{content:attr(data-busy-label);visibility:hidden}#action-bar button[aria-busy=true]>span{visibility:hidden}#action-bar button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}.thing-actions{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2);max-width:100%;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label)}#explore-controls{column-gap:var(--space-4)}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1}#log{flex:1;max-height:none}}
@@ -218,11 +222,20 @@ async function request(path, body) {
   return value;
 }
 
-/** Marks the control that started a request busy, optionally relabelled. */
+/**
+ * Marks the control that started a request busy, optionally relabelled. An
+ * action-bar button already shows its own busy label, so the label becomes its
+ * accessible name instead.
+ */
 function setBusy(button, label) {
   if (!isBusy(button) && label) {
-    button.dataset.idleLabel = button.textContent;
-    button.textContent = label;
+    if (button.dataset.busyLabel !== undefined) {
+      button.dataset.idleAriaLabel = button.getAttribute("aria-label") ?? "";
+      button.setAttribute("aria-label", label);
+    } else {
+      button.dataset.idleLabel = button.textContent;
+      button.textContent = label;
+    }
   }
   button.setAttribute("aria-busy", "true");
   button.disabled = true;
@@ -233,6 +246,11 @@ function clearBusy(button) {
   if (button.dataset.idleLabel !== undefined) {
     button.textContent = button.dataset.idleLabel;
     delete button.dataset.idleLabel;
+  }
+  if (button.dataset.idleAriaLabel !== undefined) {
+    if (button.dataset.idleAriaLabel) button.setAttribute("aria-label", button.dataset.idleAriaLabel);
+    else button.removeAttribute("aria-label");
+    delete button.dataset.idleAriaLabel;
   }
   button.removeAttribute("aria-busy");
 }
@@ -824,10 +842,24 @@ async function act(path, body, control, busyLabel, pendingMessage) {
 // order. In a fight that is the character's whole toolkit; exploring, each
 // move, examination, take and drink. An action the engine would refuse stays
 // in place, disabled, with the engine's reason beside it.
-const ACTION_LABELS = { attack: "Attack ", use: "Drink ", move: "Go to ", examine: "Examine ", take: "Take ", "second-wind": "Second Wind", "action-surge": "Action Surge", "end-turn": "End turn" };
+// Each action's words. A label or busy name is followed by its target's name.
 // Exploring, each target's name is shown once beside its short verbs (#157);
 // each button's accessible name is still the full "Examine Iron-Bound Chest".
-const SHORT_VERBS = { move: "Go", examine: "Examine", take: "Take", use: "Drink" };
+// While its request runs (#185) a button shows its busy label ("Attacking…")
+// and is named in full ("Attacking Goblin Warrior…"). Each button is sized for
+// the wider of its labels, so a fight button's busy label must be no wider
+// than its idle one: the fight row has no width to spare at 375 px.
+const ACTIONS = {
+  attack: { label: "Attack ", busy: "Attacking ", busyLabel: "Attacking…" },
+  use: { label: "Drink ", short: "Drink", busy: "Drinking ", busyLabel: "Drinking…" },
+  move: { label: "Go to ", short: "Go", busy: "Going to ", busyLabel: "Going…" },
+  examine: { label: "Examine ", short: "Examine", busy: "Examining ", busyLabel: "Examining…" },
+  take: { label: "Take ", short: "Take", busy: "Taking ", busyLabel: "Taking…" },
+  "second-wind": { label: "Second Wind", busy: "Using Second Wind", busyLabel: "Using Second Wind…" },
+  "action-surge": { label: "Action Surge", busy: "Using Action Surge", busyLabel: "Using Action Surge…" },
+  "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
+};
+const busyName = ({ action, target }) => ACTIONS[action].busy + (target ? target.name : "") + "…";
 const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
 const EXPLORING = ["move", "examine", "take"];
 
@@ -842,9 +874,11 @@ function renderActions() {
   session.actions.forEach((option, index) => {
     const { action, target } = option;
     const group = action === "attack" ? "attack" : EXPLORING.includes(action) || (action === "use" && !fighting) ? "explore" : "feature";
-    const label = ACTION_LABELS[action] + (target ? target.name : "") + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
+    const label = ACTIONS[action].label + (target ? target.name : "") + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
     const short = group === "explore";
-    const button = make("button", short ? SHORT_VERBS[action] : label);
+    const button = make("button");
+    button.append(make("span", short ? ACTIONS[action].short : label));
+    button.dataset.busyLabel = ACTIONS[action].busyLabel;
     button.type = "button";
     if (short) button.setAttribute("aria-label", label);
     // One opponent makes attacking the fight's primary action; several are peers.
@@ -883,9 +917,10 @@ async function perform({ action, target }) {
   const targetId = target ? target.id : "";
   // The clicked control, found again after the bar re-renders, shows busy.
   const control = "#action-bar button[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])");
-  if (action === "attack") await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId }, control);
-  else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action }, control);
-  else await act("/api/5e/session/explore", { action, target: targetId }, control);
+  const busy = busyName({ action, target });
+  if (action === "attack") await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId }, control, busy);
+  else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action }, control, busy);
+  else await act("/api/5e/session/explore", { action, target: targetId }, control, busy);
   keepFocus(action, targetId);
 }
 
