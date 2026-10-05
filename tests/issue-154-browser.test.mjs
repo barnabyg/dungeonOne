@@ -2,56 +2,27 @@
 // the action buttons on screen together, at desktop and phone widths.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { buildFighter, rollAbilitySet } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
+import {
+  assertTogether,
+  explore,
+  fightOn,
+  firstFighter,
+  launch,
+  narratingDm,
+  say,
+} from "./fixtures/session-layout.mjs";
 
 const adventure = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "smugglers-cellar",
 );
-const DEFAULT_CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-};
-
-/** The first Fighter a browser on `seed` creates with the default choices. */
-function firstFighter(seed) {
-  const stream = createHash("sha256")
-    .update(`5e-ability-rolls:${seed}:1`)
-    .digest()
-    .readUInt32LE(0);
-  return buildFighter(
-    "a".repeat(32),
-    "Ada",
-    rollAbilitySet(createSeededRandom(stream)),
-    DEFAULT_CHOICES,
-  );
-}
 
 /** A seed where Ada wins the rat fight hurt, so she can drink the potion. */
 function findSeed() {
@@ -91,128 +62,6 @@ function findSeed() {
   }
   throw new Error("no seed where Ada wins the rat fight hurt");
 }
-
-/** A scripted AI DM that answers every message with narration. */
-const narratingDm = () => ({
-  async respond() {
-    return { text: "Dust drifts in the lamplight; nothing stirs." };
-  },
-});
-
-/**
- * Where the newest history entry, the action buttons and the focused control
- * sit: each must be inside the window, and the entry inside the log's
- * scroll area, without the player scrolling.
- */
-const layout = (page) =>
-  page.evaluate(() => {
-    const height = window.innerHeight;
-    const width = window.innerWidth;
-    const inWindow = (rect) =>
-      rect.width > 0 &&
-      rect.top >= -1 &&
-      rect.bottom <= height + 1 &&
-      rect.left >= -1 &&
-      rect.right <= width + 1;
-    const log = document.getElementById("log").getBoundingClientRect();
-    const newest = document
-      .querySelector("#log li:last-child")
-      .getBoundingClientRect();
-    const dock = document.getElementById("session-dock");
-    const dockRect = dock.getBoundingClientRect();
-    // Shown buttons only: the ending's (#158) is hidden while playing.
-    const buttons = [
-      ...document.querySelectorAll("#session-actions button, #send-message"),
-    ].filter((button) => button.getClientRects().length > 0);
-    const focused = document.activeElement;
-    const focusRect = focused.getBoundingClientRect();
-    const overlaps = (a, b) =>
-      a.left < b.right &&
-      b.left < a.right &&
-      a.top < b.bottom &&
-      b.top < a.bottom;
-    return {
-      geometry: JSON.stringify({
-        log,
-        newest,
-        height,
-        scrollY: window.scrollY,
-      }),
-      newestShown:
-        inWindow(log) &&
-        newest.bottom <= log.bottom + 1 &&
-        newest.bottom > log.top &&
-        newest.bottom - Math.max(newest.top, log.top) >= 16,
-      hiddenButtons: buttons
-        .filter((button) => !inWindow(button.getBoundingClientRect()))
-        .map((button) => button.textContent),
-      focus: focused.id || focused.textContent,
-      focusShown:
-        focused === document.body ||
-        focused.tagName !== "BUTTON" ||
-        (inWindow(focusRect) &&
-          (dock.contains(focused) || !overlaps(focusRect, dockRect))),
-    };
-  });
-
-const assertTogether = async (page, label) => {
-  const shown = await layout(page);
-  assert.equal(
-    shown.newestShown,
-    true,
-    `${label}: newest entry on screen ${shown.geometry}`,
-  );
-  assert.deepEqual(shown.hiddenButtons, [], `${label}: actions on screen`);
-  assert.equal(
-    shown.focusShown,
-    true,
-    `${label}: focused ${shown.focus} on screen`,
-  );
-};
-
-/** Runs one action by `click` and waits for its history entry. */
-async function act(page, label, click) {
-  const count = await page.locator("#log li").count();
-  await click();
-  await page.waitForFunction(
-    (seen) =>
-      document.querySelectorAll("#log li:not([data-pending])").length > seen,
-    count,
-  );
-  // The page moves focus once the action settles.
-  await page.evaluate(
-    () =>
-      new Promise((resolve) => {
-        requestAnimationFrame(resolve);
-      }),
-  );
-  await assertTogether(page, label);
-}
-
-const explore = (page, action, target) =>
-  act(page, `${action} ${target}`, () =>
-    page
-      .locator(
-        `#action-bar button[data-action="${action}"][data-target="${target}"]`,
-      )
-      .click(),
-  );
-
-const fightOn = (page) =>
-  act(page, "fight", async () => {
-    const attack = page.locator("#attack-controls button.attack:enabled");
-    await (
-      (await attack.count()) > 0
-        ? attack.first()
-        : page.locator('#feature-controls button[data-action="end-turn"]')
-    ).click();
-  });
-
-const say = (page, message) =>
-  act(page, `message "${message}"`, async () => {
-    await page.locator("#message").fill(message);
-    await page.locator("#message").press("Enter");
-  });
 
 /** The region of each Tab stop from the adventure title to the composer. */
 const tabRegions = async (page) => {
