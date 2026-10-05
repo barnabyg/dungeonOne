@@ -197,6 +197,25 @@ test("a loot run takes the treasure out and earns its XP", () => {
   assert.equal(run.treasure, 2);
 });
 
+test("carrying treasure through an exit, direct still fights through the rooms beyond", () => {
+  // The torc lies under the lintel by the way out instead of on the bier.
+  const torcAtTheDoor = variant("robbers-barrow", (module) => {
+    const [mouth, hall] = module.rooms;
+    const torc = hall.items.find(({ id }) => id === "silver-torc");
+    hall.items = hall.items.filter((item) => item !== torc);
+    mouth.items.push({ ...torc, hiddenIn: "scratched-lintel" });
+  });
+  const direct = play(torcAtTheDoor, "direct", 2);
+  assert.deepEqual(direct.roomIds, ["barrow-mouth", "burial-hall"]);
+  assert.equal(direct.treasure, 2);
+  // The hall's fight is optional now, so the other styles leave at once.
+  for (const style of ["cautious", "avoid-optional"]) {
+    const run = play(torcAtTheDoor, style, 2);
+    assert.deepEqual(run.roomIds, ["barrow-mouth"], style);
+    assert.equal(run.outcome, "escape-with-loot", style);
+  }
+});
+
 test("each fight records the hit points it cost and how many rounds it lasted", () => {
   const run = play(SHIPPED["cellar-goblin"], "direct", 5, MEDIAN);
   assert.equal(run.encounters.length, 1);

@@ -677,10 +677,6 @@ export function playAdventure(
       }
     }
     const goal = objectiveRooms();
-    const leave = offered(views, "leave")[0];
-    if (leave !== undefined && goal === exits) {
-      return leave;
-    }
     for (;;) {
       const position: Position = {
         roomId: state.roomId,
@@ -698,8 +694,10 @@ export function playAdventure(
         plan(position, aside, enterable(aside)) ??
         plan(position, goal, enterable(goal)) ??
         plan(position, exits, enterable(exits));
+      // Detours first; then, once the goal is a way out and it is reached,
+      // leave (if this room is no exit, nothing is left to do).
       if (path === undefined || path.length < 2) {
-        return leave;
+        return offered(views, "leave")[0];
       }
       const next = path[1]!;
       const move = offered(views, "move").find(
