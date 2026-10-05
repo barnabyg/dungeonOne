@@ -25,9 +25,9 @@ import type {
 import { acquireFileLock } from "./file-lock.js";
 import { validateFighter, type FighterSheet } from "./fighter-5e.js";
 import { createSeededRandom, RANDOM_ALGORITHM } from "./random.js";
-import { createFifthRuntime } from "./data-runtime.js";
 import type { GameToolCall } from "./runtime-contract.js";
 import {
+  createFifthRuntime,
   describeFifthResult,
   type FifthAction,
   type FifthEvent,

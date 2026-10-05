@@ -1,4 +1,4 @@
-// #136: The Abandoned Delve plays in the --5e browser through the action bar,
+// #136: The Abandoned Delve plays in the browser through the action bar,
 // keeping the newest history entry and the actions on screen after each
 // action (#154) at desktop and phone widths, with no horizontal scroll.
 import assert from "node:assert/strict";

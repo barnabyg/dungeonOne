@@ -109,7 +109,7 @@ _Pre-5e only._ Optional guidance based on what the player currently knows. Hints
 _Avoid_: Undiscovered clue, solution reveal
 
 **Save slot**:
-A single local record of an adventure session, including its authoritative game state and conversation history. It is saved automatically as play progresses. Each adventure session has its own save beside the character library, and the library remembers which one to continue. (Pre-5e only: the `--legacy` browser mode holds one session in a single `--save` file.)
+A single local record of an adventure session, including its authoritative game state and conversation history. It is saved automatically as play progresses. Each adventure session has its own save beside the character library, and the library remembers which one to continue. (Pre-5e only: the `--legacy` browser mode, removed in #137, held one session in a single `--save` file.)
 _Avoid_: Manual save point
 
 **Proficiency bonus**:

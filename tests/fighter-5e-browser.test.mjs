@@ -294,7 +294,7 @@ test(
   },
 );
 
-test("a pre-5e library is refused under --5e and left byte-identical", async () => {
+test("a pre-5e library is refused at launch and left byte-identical", async () => {
   const directory = await mkdtemp(join(tmpdir(), "fighter-5e-refusal-"));
   try {
     const libraryPath = join(directory, "characters.json");
@@ -307,14 +307,7 @@ test("a pre-5e library is refused under --5e and left byte-identical", async () 
     );
     const launched = spawnSync(
       process.execPath,
-      [
-        "dist/browser-cli.js",
-        "--5e",
-        "--seed",
-        "1",
-        "--characters",
-        libraryPath,
-      ],
+      ["dist/browser-cli.js", "--seed", "1", "--characters", libraryPath],
       { encoding: "utf8", timeout: 10000 },
     );
     assert.equal(launched.status, 2);

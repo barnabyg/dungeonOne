@@ -13,10 +13,13 @@ The game is moving to the 2024 fifth-edition rules in SRD 5.2
 group combat, a balance gate on each module's declared difficulty and a new
 dungeon-crawl adventure module, then removes the pre-5e game.
 
-- **Transition flag.** Until 5e becomes the browser's only mode (#137), 5e play
-  is reached by launching the browser with a temporary `--5e` flag and its own
-  `--characters` library path. The default browser keeps running the pre-5e
-  game, so `main` stays playable.
+- **5e only in the browser (#137).** `npm.cmd run browser` plays only the 5e
+  game. The temporary `--5e` flag is gone, and so are `--legacy`, its single
+  save slot (`--save`) and `--artwork`: each is refused with a message before
+  any file is read or written. Only `--seed` and `--characters` remain.
+  The default library is now `characters.json`; a library made under `--5e`
+  without `--characters` is in `characters-5e.json`, so pass
+  `--characters characters-5e.json` to keep playing it.
 - **Throwaway formats.** While 5e is in development, character library, save,
   trace and adventure module files each carry one format version. A change bumps
   it, and older files are refused with a message naming the file and asking you
@@ -28,9 +31,9 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   200 seeds, and reports survival, HP lost and rounds per fight, healing, XP,
   treasure and one-hit-kill chances. See
   [the rules document](docs/character-rules.md#balance-harness).
-- **Creating a 5e Fighter.** Launch with
-  `npm.cmd run browser -- --5e --seed 0 --characters .\.scratch\5e\characters.json`
-  (the default library is `characters-5e.json`; creation needs no OpenAI key).
+- **Creating a Fighter.** Launch with
+  `npm.cmd run browser -- --seed 0 --characters .\.scratch\5e\characters.json`
+  (the default library is `characters.json`; creation needs no OpenAI key).
   Choose **Create a Fighter**: the six 4d6-drop-lowest rolls are saved to the
   library before they are shown, so reloading, restarting or leaving the screen
   shows the same dice. One table, a row per ability, places the rolls (choosing
@@ -42,12 +45,14 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   Saved Fighters open as character sheets. **Delete character** on a sheet
   removes it permanently once you type its name exactly; a pending creation
   keeps its dice. The sheet lists the treasure the character has kept. The
-  5e library is format version 4; a pre-5e library, or a 5e library from an
-  earlier build (format version 2 or 3), is refused at startup and left
-  unchanged.
-- **Starting a 5e adventure.** A saved Fighter's sheet leads with its
+  library is format version 4; a pre-5e library (such as an old
+  `characters.json` at the default path), or a 5e library from an earlier
+  build (format version 2 or 3), is refused at startup with a message naming
+  the file and left unchanged. Move it aside, or choose another
+  `--characters` path.
+- **Starting an adventure.** A saved Fighter's sheet leads with its
   adventures: a card, with **Start** beside its title so every one is in view,
-  for each built-in 5e adventure module that passes the
+  for each built-in adventure module that passes the
   balance gate at its declared difficulty (or **Continue** for the one in
   progress), tagged with its level range and that difficulty and ordered by
   level range, then Easy, Medium, Hard. `npm.cmd run balance` shows each
@@ -75,7 +80,7 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   Warden's Crypt_ (`adventures/5e/warden-crypt.json`), six rooms with a stuck
   door, a locked door and its key, a dart trap, a bound smuggler to question
   and a Goblin Warrior in the tomb.
-- **Exploring a 5e adventure.** The room panel shows the current room, its
+- **Exploring an adventure.** The room panel shows the current room, its
   exits, its features (with any discovery you have made), the items
   you can see and what you carry, leaving out any list that is empty; in a
   fight these details fold away behind a **Room details** button. The
@@ -121,7 +126,7 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   **Abandon adventure** on the sheet of a character on an adventure gives it
   up, after asking: the character keeps its treasure and XP as they were at
   the start and can start another adventure.
-- **Fighting in a 5e adventure.** Starting a fight rolls initiative for every combatant;
+- **Fighting.** Starting a fight rolls initiative for every combatant;
   the encounter panel lists each combatant in initiative order with its roll,
   hit points, AC, whether it is defeated and whose turn it is. In a fight the
   action bar holds your whole toolkit: an **Attack** button for each living
@@ -147,8 +152,9 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   adventure: opening another character's adventure clears it. The engine rolls every die and writes
   every action's result.
   The session is saved after every action in the
-  `characters-5e-adventures` directory beside the library (format version 7;
-  a session saved by an earlier build is refused with a message naming the file),
+  `characters-adventures` directory beside the library, named after it
+  (format version 7; a session saved by an earlier build is refused with a
+  message naming the file),
   and reloading the page or restarting with the same command returns to the
   adventure exactly as it was. Winning the fight that ends the adventure, or
   leaving it, frees the character for another adventure;
@@ -165,7 +171,7 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   _name_'s sheet**. The
   typing box is disabled with the reason, the history stays readable, and
   reloading or going back shows the same ending.
-- **The 5e adventure screen.** It has fixed regions: the status strip, the
+- **The adventure screen.** It has fixed regions: the status strip, the
   scene (the room and the fight), the action buttons, and the
   conversation history ("What happened") with the box for typing to the
   Dungeon Master. On a wide window, status and scene sit on the left and the
@@ -201,7 +207,7 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   action button's **Attacking…** or **Examining…**, sized so the action bar
   never shifts) and nothing can be sent twice: every action and the typing
   box wait until it finishes.
-- **Moving between 5e views.** The character library, creation, each
+- **Moving between views.** The character library, creation, each
   character sheet and each adventure have their own address and page title
   (such as "Brannoc Ironside · Dungeon One"), so the browser's Back and
   Forward buttons move between them and reloading returns to the same view.
@@ -221,15 +227,18 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   ESLint rule stops shared modules from importing a pre-5e game module, so the
   5e runtime plugs in beside the old ones and #139 deletes them without
   touching shared code. The 5e runtime (`src/runtime-5e.ts`, over the encounter
-  engine in `src/encounter-5e.ts`) implements that interface and is obtained
-  from the registry.
+  engine in `src/encounter-5e.ts`) implements that interface. The 5e session
+  takes it from `src/runtime-5e.ts` directly, and the DM turn loop loads its
+  pre-5e default runtime only when called without one, so the browser loads
+  no pre-5e module (#137).
 
-**Removal pending (#139).** Hollow Beacon, Stonebridge, the browser's `--legacy`
-single save slot, the CLI command-mode adventures (the chapel, the Stolen Signet,
-crossroads and other fixtures), the adventure generator, and every existing
-character, library, save and trace are removed without migration. The rest of
-this README documents that pre-5e game as it still runs today; its compatibility
-statements no longer bind future builds. The README is rewritten for the 5e game
+**Removal pending (#139).** Hollow Beacon, Stonebridge, the CLI command-mode
+adventures (the chapel, the Stolen Signet, crossroads and other fixtures), the
+adventure generator, and every existing character, library, save and trace are
+removed without migration. The browser no longer launches the pre-5e game
+(#137), and its browser commands below are refused; the command-line adapter
+still runs it until #139. The rest of this README documents that game; its
+compatibility statements no longer bind future builds. The README is rewritten for the 5e game
 when the old game is removed. The command-line app (`npm.cmd start`) stays a
 testing adapter, not a player interface. Earlier handoffs such as
 [increment 4 acceptance](docs/acceptance/issue-53.md) and the
@@ -242,7 +251,8 @@ License, available at https://creativecommons.org/licenses/by/4.0/legalcode.
 
 ## Independent characters and leveled adventures
 
-**Removal pending (#139):** this section describes the pre-5e game.
+**Removal pending (#139):** this section describes the pre-5e game, which the
+browser no longer launches (#137).
 
 [Increment 10](increment-10-implementation-plan.md) adds an independent character
 library, character creation and selection before adventure selection, full sheets
@@ -329,7 +339,8 @@ All development tools and the official OpenAI SDK are exact-version dependencies
 
 ### Hollow Beacon in a desktop browser
 
-**Removal pending (#139):** this section describes the pre-5e game.
+**Removal pending (#139):** this section describes the pre-5e game, which the
+browser no longer launches (#137).
 
 The browser presents an illustrated current scene, a compact Fighter HP/day/
 caravan deadline strip, nearby people and objects, and the saved adventure.
@@ -409,8 +420,9 @@ The full character-mode Hollow Beacon v12 journey with a live AI Dungeon
 Master, its review and the opt-in `scripts/qualify-character-live.mjs` runner
 are in the [issue 94 qualification](docs/acceptance/issue-94.md).
 The unfamiliar-player handoff for Hollow Beacon v14 (player and host sheets,
-named journeys, and the `scripts/qualify-handoff.mjs` clean-checkout browser
-check) is in the [issue 95 qualification](docs/acceptance/issue-95.md).
+named journeys, and the clean-checkout browser check, removed with the
+launcher's pre-5e mode in #137) is in the
+[issue 95 qualification](docs/acceptance/issue-95.md).
 Full verification includes real browser/API/storage journeys using pinned
 Playwright: Windows requires installed Microsoft Edge; Linux/macOS require
 `npx playwright install chromium` (on Linux CI, use `--with-deps`). Browser

@@ -1,4 +1,4 @@
-// #152: one button hierarchy and WCAG contrast in the `--5e` browser.
+// #152: one button hierarchy and WCAG contrast in the 5e browser.
 // axe-core is not a dependency, so this measures the same contrast rules
 // from computed styles: text 4.5:1 (3:1 when large) and control boundaries
 // 3:1 (WCAG 1.4.11) on every screen, at desktop and phone widths.

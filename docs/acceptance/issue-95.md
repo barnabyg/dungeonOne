@@ -98,7 +98,7 @@ authority in its own process. Only the provider is scripted
 | Restarts mid-combat and at the Day 3 threshold | 0                 | Process kill **mid-combat** (sentry) and right after the **Day 3 threshold**; identical state, no call; threshold not replayed; finishes late                                                                                         |
 | Ridge fight across seeds                       | 0, 1, 2, 5, 9, 33 | **Multiple seeds** on a dice route: six different fights; each run ends in a defeat (no XP) or a late verified safe signal with 1,000 XP, and both outcomes occur                                                                     |
 | Every surviving journey above                  |                   | **Completion XP credited once**: one “1000 XP credited”, level 2; kill and relaunch into Review: identical view, no call, a further turn refused, XP still 1,000                                                                      |
-| Player handoff                                 | 0                 | [`scripts/qualify-handoff.mjs`](../../scripts/qualify-handoff.mjs) in a real browser (below)                                                                                                                                          |
+| Player handoff                                 | 0                 | `scripts/qualify-handoff.mjs` in a real browser (below)                                                                                                                                                                               |
 
 Existing tests cover the rest of the browser boundary and are unchanged:
 [`tests/issue-94.test.mjs`](../../tests/issue-94.test.mjs) (the full typed
@@ -110,9 +110,9 @@ continue with Inspect and Search). Since round 1 they all play v14.
 
 ## Clean checkout
 
-[`scripts/qualify-handoff.mjs`](../../scripts/qualify-handoff.mjs) follows the
-handoff in headless Edge and writes a receipt. It is also a test in
-canonical verification, so it can't drift from the shipped page.
+`scripts/qualify-handoff.mjs` followed the handoff in headless Edge and wrote
+a receipt, and ran as a test in canonical verification. #137 removed the
+script and its test, because the launcher no longer runs Hollow Beacon.
 
 1. The shipped launcher (`dist/browser-cli.js --seed 0 --characters <library>`)
    starts. The page creates Ada, checks “Recommended levels 1–2”, and starts
