@@ -226,6 +226,17 @@ export function defaultPlacement(dice: RolledDice): Placement {
   ) as Placement;
 }
 
+/**
+ * The choices other than placement that a fresh creation starts with: +2
+ * Strength and +1 Constitution, Athletics and Perception, and Defense. The
+ * creation page and the balance harness both start from these.
+ */
+export const FIGHTER_DEFAULT_CHOICES = {
+  increase: { strength: 2, constitution: 1 },
+  skills: ["athletics", "perception"],
+  fightingStyle: "defense",
+} as const satisfies Omit<FighterChoices, "placement">;
+
 function isRoll(value: unknown): value is AbilityRoll {
   return (
     Array.isArray(value) &&

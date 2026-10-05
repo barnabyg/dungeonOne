@@ -386,6 +386,27 @@ test("exploring, the bar holds each move, examination, take and drink; a potion 
   );
 });
 
+test("each entry in the bar gives back the action it stands for (#134)", () => {
+  const runtime = createFifthRuntime(smugglers, sheet);
+  const state = runtime.handleAction(runtime.createSession(), {
+    type: "begin",
+  }).state;
+  assert.deepEqual(runtime.projectActions(state).map(runtime.actionOf), [
+    { type: "move", destinationId: "alcove" },
+    { type: "move", destinationId: "rat-cellar" },
+    { type: "examine", targetId: "rusted-lantern" },
+  ]);
+  // An entry this runtime didn't project stands for nothing.
+  assert.equal(
+    runtime.actionOf({
+      action: "move",
+      target: { id: "alcove", name: "Alcove" },
+      available: true,
+    }),
+    undefined,
+  );
+});
+
 test("an ended adventure projects no actions (#156)", () => {
   const runtime = createFifthRuntime(cellarGoblin, sheet);
   const state = { ...runtime.createSession(), status: "victory" };
