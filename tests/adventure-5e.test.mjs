@@ -100,16 +100,43 @@ test("the validator rejects malformed modules", () => {
   }
 });
 
+test("an opponent may be marked as a boss, and is ordinary otherwise", async () => {
+  const boss = validateFifthAdventure(
+    changed((m) => (m.encounters[0].opponents[0].boss = true)),
+  );
+  assert.equal(boss.encounters[0].opponents[0].boss, true);
+  assert.equal(
+    "boss" in validateFifthAdventure(fixture).encounters[0].opponents[0],
+    false,
+  );
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        changed((m) => (m.encounters[0].opponents[0].boss = false)),
+      ),
+    /opponent 1 boss must be true, or left out/,
+  );
+  const warren = (await loadBuiltInFifthAdventures()).find(
+    ({ id }) => id === "goblin-warren",
+  );
+  assert.deepEqual(
+    warren.encounters.flatMap(({ opponents }) =>
+      opponents.flatMap(({ id, boss }) => (boss ? [id] : [])),
+    ),
+    ["goblin-boss"],
+  );
+});
+
 test("a module in another format version is refused by name and left unchanged", async () => {
   const directory = await mkdtemp(join(tmpdir(), "adventure-5e-"));
   try {
     const path = join(directory, "old.json");
-    const bytes = JSON.stringify({ ...fixture, formatVersion: 3 });
+    const bytes = JSON.stringify({ ...fixture, formatVersion: 4 });
     await writeFile(path, bytes);
     await assert.rejects(loadFifthAdventure(path), (error) => {
       assert.match(
         error.message,
-        /old\.json is a 5e adventure module in format version 3, not 4\. Move it aside/,
+        /old\.json is a 5e adventure module in format version 4, not 5\. Move it aside/,
       );
       return true;
     });

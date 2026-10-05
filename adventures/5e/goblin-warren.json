@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 4,
+  "formatVersion": 5,
   "id": "goblin-warren",
   "title": "The Goblin Warren",
   "objective": "Fight through the goblin warren to the boss's hall, take its hoard, and get back out alive. Leave by the gate when you are ready.",
@@ -142,6 +142,7 @@
           "id": "goblin-boss",
           "name": "Goblin Boss",
           "description": "The goblin boss rises from its crate throne, a silver chain at its neck.",
+          "boss": true,
           "statBlock": {
             "name": "Goblin Boss",
             "size": "Small",
