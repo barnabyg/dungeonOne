@@ -35,9 +35,10 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   save.
   Saved Fighters open as character sheets. **Delete character** on a sheet
   removes it permanently once you type its name exactly; a pending creation
-  keeps its dice. The 5e library is format version 3; a pre-5e library, or a
-  5e library from an earlier build (format version 2), is refused at startup
-  and left unchanged.
+  keeps its dice. The sheet lists the treasure the character has kept. The
+  5e library is format version 4; a pre-5e library, or a 5e library from an
+  earlier build (format version 2 or 3), is refused at startup and left
+  unchanged.
 - **Starting a 5e adventure.** A saved Fighter's sheet leads with its
   adventures: **Start** for each built-in 5e adventure module (or **Continue**
   for the one in progress), tagged with its level range and difficulty and
@@ -47,7 +48,9 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`), one SRD 5.2
   Goblin Warrior; _The Goblins in the Storeroom_
   (`adventures/5e/goblin-storeroom.json`), a group fight against two Goblin
-  Minions and a Goblin Warrior; _The Smugglers' Cellar_
+  Minions and a Goblin Warrior; _The Robbers' Barrow_
+  (`adventures/5e/robbers-barrow.json`), two rooms with a Goblin Warrior, a
+  Silver Torc hidden under the bier and a way out; _The Smugglers' Cellar_
   (`adventures/5e/smugglers-cellar.json`), four rooms to explore with a Giant
   Rat, a Goblin Warrior and a Potion of Healing hidden in a chest; and _The
   Warden's Crypt_ (`adventures/5e/warden-crypt.json`), six rooms with a stuck
@@ -78,6 +81,26 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   and you cannot leave, examine, take, search, talk or open a door until it
   is won. HP, feature
   uses and carried items last from fight to fight.
+- **Treasure, XP and leaving (#133).** Treasure is only found by examining
+  something, and is kept only if the character survives: it is credited when
+  the adventure ends in a victory or an escape, never on a defeat or when the
+  adventure is abandoned. In a room that is a way out (the Barrow Mouth) the
+  action bar has **Leave the adventure**; it asks first, in the panel, and
+  then ends the adventure as _Escaped with loot_ (carrying any treasure) or
+  _Escaped empty-handed_. Leaving is the player's choice alone: the AI
+  Dungeon Master has no tool for it. A surviving ending earns each won
+  fight's stat-block XP and any XP the ending itself awards (the barrow's
+  loot ending gives 250, so a first visit reaches level 2). Each treasure and
+  XP award is earned once per character, so playing an adventure again finds
+  no treasure already kept and earns nothing twice. The ending lists what was
+  earned and, on reaching a new level (300 XP for level 2, 900 for level 3), a
+  level-up card with the new hit points and features. A rest between
+  adventures restores every hit point and feature use. The library frees the
+  character and credits its rewards in one write, so an interruption between
+  saving the session and the library never loses or repeats them.
+  **Abandon adventure** on the sheet of a character on an adventure gives it
+  up, after asking: the character keeps its treasure and XP as they were at
+  the start and can start another adventure.
 - **Fighting in a 5e adventure.** Starting a fight rolls initiative for every combatant;
   the encounter panel lists each combatant in initiative order with its roll,
   hit points, AC, whether it is defeated and whose turn it is. In a fight the
@@ -94,7 +117,7 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   otherwise moves to the newest history entry (its result), so pressing
   Enter again repeats the action or does nothing; it never drinks a potion
   or leaves the room. Spent uses stay spent for the rest of the
-  adventure; each adventure starts with all of them. The mace's Sap mastery gives a creature it hits
+  adventure; a rest between adventures restores them and every hit point. The mace's Sap mastery gives a creature it hits
   disadvantage on its next attack, and the result card shows both dice and the
   source. Typing needs `OPENAI_API_KEY`. Without it, the launcher's terminal
   output says the AI Dungeon Master is off and how to turn it on, and the
@@ -104,10 +127,11 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   adventure: opening another character's adventure clears it. The engine rolls every die and writes
   every action's result.
   The session is saved after every action in the
-  `characters-5e-adventures` directory beside the library (format version 6;
+  `characters-5e-adventures` directory beside the library (format version 7;
   a session saved by an earlier build is refused with a message naming the file),
   and reloading the page or restarting with the same command returns to the
-  adventure exactly as it was. Winning the fight that ends the adventure frees the character for another adventure;
+  adventure exactly as it was. Winning the fight that ends the adventure, or
+  leaving it, frees the character for another adventure;
   0 HP is instant defeat, and a defeated character cannot start another. A
   character on an adventure cannot be deleted until the adventure ends.
   The library tags each character **On an adventure** or **Defeated** (a
@@ -115,8 +139,10 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   **Continue** on its row, which reopens the adventure directly, while the
   rest of the row still opens the sheet.
   When the adventure ends, its ending takes the place of the action buttons
-  and gets focus: Victory or Defeat in words and colour, its title and text,
-  for a defeat that it is permanent, and **Back to _name_'s sheet**. The
+  and gets focus: Victory, Escaped with loot, Escaped empty-handed or Defeat
+  in words and colour, its title and text, for a defeat that it is permanent,
+  for a victory or escape what it earned and any level-up, and **Back to
+  _name_'s sheet**. The
   typing box is disabled with the reason, the history stays readable, and
   reloading or going back shows the same ending.
 - **The 5e adventure screen.** It has fixed regions: the status strip, the

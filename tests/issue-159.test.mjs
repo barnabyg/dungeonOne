@@ -170,7 +170,7 @@ test("the session saves grouped rolls (format 5) and refuses format 3", async ()
       fighter(seed),
     );
     const file = JSON.parse(await readFile(path, "utf8"));
-    assert.equal(file.formatVersion, 6);
+    assert.equal(file.formatVersion, 7);
     const [card] = file.history[0].cards;
     assert.equal(card.kind, "result");
     assert.deepEqual(Object.keys(card).sort(), ["kind", "lines", "text"]);
@@ -198,7 +198,7 @@ test("the session saves grouped rolls (format 5) and refuses format 3", async ()
     await writeFile(path, JSON.stringify(older));
     await assert.rejects(
       FifthSession.load(path, adventures),
-      /format version 3, not 6\. This build cannot continue it\. Move it aside/,
+      /format version 3, not 7\. This build cannot continue it\. Move it aside/,
     );
     assert.deepEqual(JSON.parse(await readFile(path, "utf8")), older);
   } finally {

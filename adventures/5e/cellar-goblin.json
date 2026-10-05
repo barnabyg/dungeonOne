@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 3,
+  "formatVersion": 4,
   "id": "cellar-goblin",
   "title": "The Goblin in the Cellar",
   "objective": "Drive out the goblin that has taken over the inn's cellar.",

@@ -1,0 +1,120 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 4,
+  "id": "robbers-barrow",
+  "title": "The Robbers' Barrow",
+  "objective": "Find what the goblin robbers left in the old barrow, and get out alive. Leave by the way you came in when you are ready.",
+  "recommendedLevels": { "min": 1, "max": 1 },
+  "difficulty": "medium",
+  "startRoomId": "barrow-mouth",
+  "rooms": [
+    {
+      "id": "barrow-mouth",
+      "name": "Barrow Mouth",
+      "description": "A low doorway of fitted stones opens onto the hillside. Daylight reaches a few steps in and no further.",
+      "exit": true,
+      "features": [
+        {
+          "id": "scratched-lintel",
+          "name": "Scratched Lintel",
+          "description": "The stone over the doorway is scored with fresh knife marks.",
+          "discovery": "Someone has scratched a warning into the stone: \"Goblin on the bier. Silver underneath.\""
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "burial-hall",
+      "name": "Burial Hall",
+      "description": "A long, low hall of packed earth and old bones. A stone bier stands at the far end under a rotted cloth.",
+      "encounterId": "barrow-goblin",
+      "features": [
+        {
+          "id": "stone-bier",
+          "name": "Stone Bier",
+          "description": "A waist-high slab of grey stone, draped in cloth gone black with age.",
+          "discovery": "Beneath the rotted cloth lies a neck ring of twisted silver that the robbers missed."
+        }
+      ],
+      "items": [
+        {
+          "id": "silver-torc",
+          "name": "Silver Torc",
+          "description": "A neck ring of twisted silver, heavy and cold.",
+          "kind": "treasure",
+          "hiddenIn": "stone-bier"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "mouth-to-hall",
+      "between": ["barrow-mouth", "burial-hall"],
+      "description": "A short passage slopes down into the dark."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "barrow-goblin",
+      "opponents": [
+        {
+          "id": "barrow-goblin",
+          "name": "Goblin Warrior",
+          "description": "A goblin crouches on the bier, picking through the grave goods, and leaps down with its scimitar drawn.",
+          "statBlock": {
+            "name": "Goblin Warrior",
+            "size": "Small",
+            "type": "Fey (Goblinoid)",
+            "armorClass": 15,
+            "hitPoints": { "average": 10, "formula": "3d6" },
+            "abilities": {
+              "strength": 8,
+              "dexterity": 15,
+              "constitution": 10,
+              "intelligence": 10,
+              "wisdom": 8,
+              "charisma": 8
+            },
+            "challengeRating": "1/4",
+            "xp": 50,
+            "attacks": [
+              {
+                "name": "Scimitar",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 2,
+                  "type": "slashing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-barrow"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-torc",
+      "kind": "escape-with-loot",
+      "title": "Out with the silver",
+      "text": "You climb back into the daylight with the silver torc heavy in your pack.",
+      "xp": 250
+    },
+    {
+      "id": "out-empty-handed",
+      "kind": "escape-without-loot",
+      "title": "Out empty-handed",
+      "text": "You climb back into the daylight with nothing to show for the barrow but dust."
+    },
+    {
+      "id": "fallen-in-the-barrow",
+      "kind": "defeat",
+      "title": "Fallen in the barrow",
+      "text": "You fall among the old bones. Your adventuring ends here."
+    }
+  ]
+}

@@ -896,7 +896,7 @@ test("a session saves its checks' cards and remembered outcomes, and replays the
     }
     await session.persist();
     const file = JSON.parse(await readFile(path, "utf8"));
-    assert.equal(file.formatVersion, 6);
+    assert.equal(file.formatVersion, 7);
     const purposes = file.history.flatMap(({ cards }) =>
       cards.flatMap(({ lines }) =>
         lines.flatMap(({ rolls }) => rolls.map(({ purpose }) => purpose)),

@@ -1,11 +1,15 @@
 /**
- * The 5e character library (format version 3).
+ * The 5e character library (format version 4).
  *
  * It holds saved 5e Fighters and at most one pending creation: the dice of a
  * Fighter being created. Each character record names its adventure session
- * while one is in progress, and is marked defeated once a session ends in
- * defeat; a defeated character cannot start another adventure. Sessions are
- * saved in the `<library>-adventures` directory beside the library. The dice are written before anyone sees them and are
+ * while one is in progress. Settling an ended session frees the character in
+ * the same write that credits what it earned (a victory or an escape) or
+ * marks it defeated (a defeat), so a session is credited exactly once; a
+ * defeated character cannot start another adventure. Abandoning a session
+ * frees the character with nothing credited. Sessions are saved in the
+ * `<library>-adventures` directory beside the library. The dice are written
+ * before anyone sees them and are
  * returned unchanged until a character is saved from them, so reloading,
  * restarting, backing out of creation or deleting a character never rolls
  * again (ADR 0005).
@@ -23,16 +27,18 @@ import {
   ABILITIES,
   buildFighter,
   fighterProfile,
+  rewardFighter,
   rollAbilitySet,
   validateDice,
   validateFighter,
   type FighterChoices,
   type FighterSheet,
+  type Rewards,
   type RolledDice,
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 3;
+export const FIFTH_LIBRARY_FORMAT = 4;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -131,10 +137,10 @@ export class FifthCharacterLibrary {
         "a pre-5e character library (format version 1)",
       );
     }
-    if (version === 2) {
+    if (version === 2 || version === 3) {
       throw moveAside(
         this.path,
-        "a 5e character library from an earlier build (format version 2)",
+        `a 5e character library from an earlier build (format version ${version})`,
       );
     }
     if (version !== FIFTH_LIBRARY_FORMAT) {
@@ -370,14 +376,17 @@ export class FifthCharacterLibrary {
   }
 
   /**
-   * Ends `characterId`'s session `sessionId`: the character is free again
-   * after a victory, and is defeated at 0 HP after a defeat. Writes nothing
-   * when the record no longer names that session, so repeating it is safe.
+   * Ends `characterId`'s session `sessionId`. After a victory or an escape the
+   * character is credited `rewards` (each award and treasure once), rests to
+   * full health and is free again; after a defeat it is defeated at 0 HP and
+   * keeps nothing new. Writes nothing when the record no longer names that
+   * session, so repeating it is safe.
    */
   async settleSession(
     characterId: string,
     sessionId: string,
-    outcome: "victory" | "defeat",
+    outcome: "victory" | "escaped" | "defeat",
+    rewards: Rewards = { xp: [], treasure: [] },
   ): Promise<FifthLibraryData> {
     return this.update(undefined, (data) => {
       const index = data.characters.findIndex(
@@ -389,11 +398,41 @@ export class FifthCharacterLibrary {
         return false;
       }
       data.characters[index] = {
-        sheet: outcome === "defeat" ? { ...record.sheet, hp: 0 } : record.sheet,
+        sheet:
+          outcome === "defeat"
+            ? { ...record.sheet, hp: 0 }
+            : rewardFighter(record.sheet, rewards),
         revision: record.revision + 1,
         ...(outcome === "defeat" ? { defeated: true as const } : {}),
       };
       return true;
+    });
+  }
+
+  /**
+   * Gives up `characterId`'s adventure in progress: the character is free
+   * again, with its sheet (treasure, XP and health) as it was at the start.
+   * Its session file is left as it is, and nothing can settle it any more.
+   */
+  async abandonSession(
+    characterId: string,
+    revision: string,
+  ): Promise<FifthLibraryData> {
+    return this.update(revision, (data) => {
+      const index = data.characters.findIndex(
+        ({ sheet }) => sheet.id === characterId,
+      );
+      const record = data.characters[index];
+      if (record === undefined) {
+        throw new Error("There is no such character in the library.");
+      }
+      if (record.session === undefined) {
+        throw new Error(`${record.sheet.name} is not on an adventure.`);
+      }
+      data.characters[index] = {
+        sheet: record.sheet,
+        revision: record.revision + 1,
+      };
     });
   }
 
@@ -439,8 +478,11 @@ export class FifthCharacterLibrary {
 
   private add(data: FifthLibraryData, value: unknown): void {
     const sheet = validateFighter(value);
-    if (sheet.level !== 1 || sheet.xp !== 0) {
+    if (sheet.level !== 1 || sheet.xp !== 0 || sheet.xpAwards.length > 0) {
       throw new Error("New characters start at level 1 with 0 XP.");
+    }
+    if (sheet.treasure.length > 0) {
+      throw new Error("New characters start with no treasure.");
     }
     if (sheet.hp !== fighterProfile(sheet).maxHp) {
       throw new Error("New characters start at full health.");

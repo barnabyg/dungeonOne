@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 3) and its validator.
+ * The 5e adventure module format (format version 4) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -9,7 +9,11 @@
  * found and disarmed by checks or sprung by going through, with a saving
  * throw against its damage. A creature's topics may need a check. Each
  * opponent in an encounter has its own name, so the player can target it.
- * Later tickets add treasure and XP, each bumping the format version.
+ * Treasure is an item hidden in a feature, so it is only ever found by
+ * examining. A room may be an exit, where the player can choose to leave: the
+ * adventure then ends in its escape-with-loot ending when the character
+ * carries treasure, and its escape-without-loot ending otherwise. A victory
+ * or escape ending may award XP, on top of each won encounter's stat-block XP.
  *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
@@ -27,7 +31,7 @@ import {
   type FighterSkill,
 } from "./fighter-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 3;
+export const FIFTH_ADVENTURE_FORMAT = 4;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -80,12 +84,13 @@ export type FifthFeature = Readonly<{
 }>;
 
 /**
- * What each kind of item does: the SRD 5.2 Potion of Healing heals, and a key
- * opens the locked doors that name it.
+ * What each kind of item does: the SRD 5.2 Potion of Healing heals, a key
+ * opens the locked doors that name it, and treasure is kept on surviving.
  */
 export const ITEM_KINDS = {
   "potion-of-healing": { healing: { dice: 2, sides: 4, modifier: 2 } },
   key: {},
+  treasure: {},
 } as const;
 export type ItemKind = keyof typeof ITEM_KINDS;
 
@@ -123,6 +128,8 @@ export type FifthRoom = Readonly<{
   description: string;
   /** The fight that begins when the character enters. */
   encounterId?: string;
+  /** The character may leave the adventure from here. */
+  exit?: true;
   features: readonly FifthFeature[];
   items: readonly FifthItem[];
   creatures: readonly FifthCreature[];
@@ -175,11 +182,21 @@ export type FifthPassage = Readonly<{
   trap?: FifthTrap;
 }>;
 
+export const ENDING_KINDS = [
+  "victory",
+  "escape-with-loot",
+  "escape-without-loot",
+  "defeat",
+] as const;
+export type EndingKind = (typeof ENDING_KINDS)[number];
+
 export type FifthEnding = Readonly<{
   id: string;
-  kind: "victory" | "defeat";
+  kind: EndingKind;
   title: string;
   text: string;
+  /** XP for reaching this ending; never on a defeat. */
+  xp?: number;
 }>;
 
 export type FifthAdventure = Readonly<{
@@ -440,24 +457,37 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
     fail("difficulty must be easy, medium or hard.");
   }
   const endings = list(module.endings, "endings", 20).map((entry, index) => {
-    const ending = exactKeys(
+    const where = `ending ${index + 1}`;
+    const ending = knownKeys(
       entry,
       ["id", "kind", "title", "text"],
-      `ending ${index + 1}`,
+      ["xp"],
+      where,
     );
-    if (ending.kind !== "victory" && ending.kind !== "defeat") {
-      fail(`ending ${index + 1} kind must be victory or defeat.`);
+    if (!(ENDING_KINDS as readonly unknown[]).includes(ending.kind)) {
+      fail(`${where} kind must be ${ENDING_KINDS.join(", ")}.`);
+    }
+    if (ending.kind === "defeat" && ending.xp !== undefined) {
+      fail(`${where}: a defeat ending awards no XP.`);
     }
     return {
-      id: id(ending.id, `ending ${index + 1} id`),
-      kind: ending.kind,
-      title: text(ending.title, `ending ${index + 1} title`, 80),
-      text: text(ending.text, `ending ${index + 1} text`),
-    } as FifthEnding;
+      id: id(ending.id, `${where} id`),
+      kind: ending.kind as EndingKind,
+      title: text(ending.title, `${where} title`, 80),
+      text: text(ending.text, `${where} text`),
+      ...(ending.xp === undefined
+        ? {}
+        : { xp: integer(ending.xp, `${where} xp`, 1, 10000) }),
+    };
   });
   unique(endings, "ending");
-  if (!endings.some(({ kind }) => kind === "victory")) {
-    fail("missing a victory ending.");
+  if (!endings.some(({ kind }) => kind !== "defeat")) {
+    fail("missing a victory or escape ending.");
+  }
+  for (const kind of ["escape-with-loot", "escape-without-loot"] as const) {
+    if (endings.filter((ending) => ending.kind === kind).length > 1) {
+      fail(`more than one ${kind} ending.`);
+    }
   }
   const ending = (
     endingId: unknown,
@@ -531,9 +561,12 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
     const room = knownKeys(
       entry,
       ["id", "name", "description", "features", "items"],
-      ["encounterId", "creatures"],
+      ["encounterId", "creatures", "exit"],
       where,
     );
+    if (room.exit !== undefined && room.exit !== true) {
+      fail(`${where} exit must be true, or left out.`);
+    }
     if (
       room.encounterId !== undefined &&
       !encounterIds.has(room.encounterId as string)
@@ -578,6 +611,9 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
           fail(
             `${at} kind must be one of ${Object.keys(ITEM_KINDS).join(", ")}.`,
           );
+        }
+        if (item.kind === "treasure" && item.hiddenIn === undefined) {
+          fail(`${at} is treasure, so it must be hidden in a feature.`);
         }
         if (item.hiddenIn !== undefined) {
           const holder = features.find(
@@ -666,6 +702,7 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
       ...(room.encounterId === undefined
         ? {}
         : { encounterId: room.encounterId as string }),
+      ...(room.exit === true ? { exit: true as const } : {}),
       features,
       items,
       creatures,
@@ -946,9 +983,47 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
       );
     }
   }
-  // Every ending must be reachable: an encounter or a trap names it.
-  for (const { id: endingId } of endings) {
+  // Leaving from an exit reaches the escape endings: with loot only when
+  // there is treasure to carry out. Like an essential room, some exit must
+  // be reachable without a check or a trap.
+  const hasExit = rooms.some(({ exit }) => exit === true);
+  if (
+    hasExit &&
+    !rooms.some(({ id: roomId, exit }) => exit && free.has(roomId))
+  ) {
+    fail(
+      "every exit needs a check or passes a trap; one must be free to reach.",
+    );
+  }
+  const hasTreasure = rooms.some(({ items }) =>
+    items.some(({ kind }) => kind === "treasure"),
+  );
+  const escapes = new Set(endings.map(({ kind }) => kind));
+  if (hasExit && !escapes.has("escape-without-loot")) {
+    fail("an exit needs an escape-without-loot ending.");
+  }
+  if (hasExit && hasTreasure && !escapes.has("escape-with-loot")) {
+    fail("an exit with treasure to find needs an escape-with-loot ending.");
+  }
+  for (const { id: endingId, kind } of endings) {
+    if (kind === "escape-with-loot" || kind === "escape-without-loot") {
+      if (!hasExit) {
+        fail(
+          `escape ending ${endingId} cannot be reached: no room is an exit.`,
+        );
+      }
+      if (kind === "escape-with-loot" && !hasTreasure) {
+        fail(
+          `escape-with-loot ending ${endingId} cannot be reached: there is no treasure.`,
+        );
+      }
+    }
+  }
+  // Every other ending must be reachable: an encounter or a trap names it.
+  for (const { id: endingId, kind } of endings) {
     if (
+      kind !== "escape-with-loot" &&
+      kind !== "escape-without-loot" &&
       !encounters.some(
         ({ victoryEndingId, defeatEndingId }) =>
           victoryEndingId === endingId || defeatEndingId === endingId,
@@ -1034,6 +1109,7 @@ export function orderFifthAdventures<
 export const FIFTH_ADVENTURE_FILES = {
   "cellar-goblin": "cellar-goblin.json",
   "goblin-storeroom": "goblin-storeroom.json",
+  "robbers-barrow": "robbers-barrow.json",
   "smugglers-cellar": "smugglers-cellar.json",
   "warden-crypt": "warden-crypt.json",
 } as const;

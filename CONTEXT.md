@@ -33,8 +33,28 @@ Earned character progress awarded for authored accomplishments and used to deter
 _Avoid_: Story milestones, Player score
 
 **Treasure**:
-Silver and items a character finds by examining something, or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion and earned once per character. It is never simply awarded. Silver is the pre-5e currency; the 5e currency is not decided yet.
+Silver and items a character finds by examining something, or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion and earned once per character. It is never simply awarded. Silver is the pre-5e currency; the 5e currency is not decided yet, so 5e treasure is named items with no value.
 _Avoid_: Reward XP, Drop
+
+**Pending treasure**:
+Treasure the character carries during an adventure but has not kept yet. A victory or an escape keeps it; a defeat or abandonment discards it.
+_Avoid_: Loot (when kept treasure is meant), Inventory
+
+**XP award**:
+One source of experience points a character can earn once: winning an encounter (its opponents' stat-block XP) or reaching an ending that awards XP. Awards are credited only on surviving completion.
+_Avoid_: Milestone, Score
+
+**Exit**:
+A room the character can leave the adventure from. Leaving is the player's final choice, never the AI DM's.
+_Avoid_: Exit (when a passage between rooms is meant), Retreat
+
+**Escape**:
+An ending the player chooses by leaving from an exit: with loot when the character carries treasure, without it otherwise. Like a victory, it is surviving completion.
+_Avoid_: Retreat, Flee (which a fled monster does), Quit
+
+**Abandonment**:
+Giving up an adventure in progress from the character sheet. The character keeps its treasure and XP as they were when the adventure started, and can start another.
+_Avoid_: Escape, Quit
 
 **Adventure module**:
 A playable scenario defining its setting, encounters, challenges, rewards, and intended characters.
