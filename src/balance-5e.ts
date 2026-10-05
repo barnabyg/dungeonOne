@@ -14,13 +14,11 @@ import type {
   StatBlock,
 } from "./adventure-5e.js";
 import {
-  ABILITIES,
   abilityModifier,
   buildFighter,
   defaultPlacement,
   FIGHTER_DEFAULT_CHOICES,
   fighterProfile,
-  keptTotal,
   rollAbilitySet,
   validateFighter,
   type FighterSheet,
@@ -57,15 +55,8 @@ export function fighterAtLevel(dice: RolledDice, level: Level): FighterSheet {
 
 /** The sum of a default creation's six ability modifiers. */
 function totalModifier(dice: RolledDice): number {
-  const placement = defaultPlacement(dice);
-  const increase: Readonly<Partial<Record<string, number>>> =
-    FIGHTER_DEFAULT_CHOICES.increase;
-  return ABILITIES.reduce(
-    (sum, ability) =>
-      sum +
-      abilityModifier(
-        keptTotal(dice[placement[ability]]!) + (increase[ability] ?? 0),
-      ),
+  return Object.values(fighterAtLevel(dice, 1).abilities).reduce(
+    (sum, score) => sum + abilityModifier(score),
     0,
   );
 }
@@ -84,6 +75,12 @@ export type PercentileCharacter = Readonly<{
   totalModifier: number;
 }>;
 
+/** Each sample rolled so far, ranked, by size and seed: the same every time. */
+const rankedSamples = new Map<
+  string,
+  readonly Omit<PercentileCharacter, "percentile">[]
+>();
+
 /**
  * Rolls `sampleSize` creations from `sampleSeed` and returns the creation at
  * each percentile, ranked by total ability modifier. Creations with the same
@@ -94,11 +91,16 @@ export function percentileCharacters({
   sampleSize = 10_000,
   sampleSeed = 134,
 }: CharacterSample): readonly PercentileCharacter[] {
-  const random = createSeededRandom(sampleSeed);
-  const ranked = Array.from({ length: sampleSize }, () => {
-    const dice = rollAbilitySet(random);
-    return { dice, totalModifier: totalModifier(dice) };
-  }).sort((a, b) => a.totalModifier - b.totalModifier);
+  const key = `${sampleSize}:${sampleSeed}`;
+  let ranked = rankedSamples.get(key);
+  if (ranked === undefined) {
+    const random = createSeededRandom(sampleSeed);
+    ranked = Array.from({ length: sampleSize }, () => {
+      const dice = rollAbilitySet(random);
+      return { dice, totalModifier: totalModifier(dice) };
+    }).sort((a, b) => a.totalModifier - b.totalModifier);
+    rankedSamples.set(key, ranked);
+  }
   return percentiles.map((percentile) => {
     if (!(percentile >= 0 && percentile <= 100)) {
       throw new Error("A percentile must be from 0 to 100.");
