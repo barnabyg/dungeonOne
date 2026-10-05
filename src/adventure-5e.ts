@@ -1143,6 +1143,7 @@ export function orderFifthAdventures<
  * `orderFifthAdventures` order.
  */
 export const FIFTH_ADVENTURE_FILES = {
+  "abandoned-delve": "abandoned-delve.json",
   "cellar-goblin": "cellar-goblin.json",
   "goblin-storeroom": "goblin-storeroom.json",
   "goblin-warren": "goblin-warren.json",

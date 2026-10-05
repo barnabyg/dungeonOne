@@ -21,8 +21,9 @@ const changed = (change) => {
 };
 
 test("the built-in fixture is a valid one-room module with a declared level range and difficulty", async () => {
-  const [adventure] = await loadBuiltInFifthAdventures();
-  assert.equal(adventure.id, "cellar-goblin");
+  const adventure = (await loadBuiltInFifthAdventures()).find(
+    ({ id }) => id === "cellar-goblin",
+  );
   assert.deepEqual(adventure.recommendedLevels, { min: 1, max: 1 });
   assert.equal(adventure.difficulty, "hard");
   assert.equal(adventure.rooms.length, 1);
@@ -151,6 +152,7 @@ test("the group-fight module holds two goblins with distinct names", async () =>
   assert.deepEqual(
     adventures.map(({ id }) => id),
     [
+      "abandoned-delve",
       "cellar-goblin",
       "goblin-storeroom",
       "goblin-warren",
@@ -159,7 +161,7 @@ test("the group-fight module holds two goblins with distinct names", async () =>
       "warden-crypt",
     ],
   );
-  const group = adventures[1];
+  const group = adventures.find(({ id }) => id === "goblin-storeroom");
   assert.equal(group.difficulty, "medium");
   assert.deepEqual(group.recommendedLevels, { min: 2, max: 2 });
   assert.deepEqual(

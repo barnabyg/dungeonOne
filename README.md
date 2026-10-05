@@ -46,13 +46,20 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   earlier build (format version 2 or 3), is refused at startup and left
   unchanged.
 - **Starting a 5e adventure.** A saved Fighter's sheet leads with its
-  adventures: **Start** for each built-in 5e adventure module that passes the
+  adventures: a card, with **Start** beside its title so every one is in view,
+  for each built-in 5e adventure module that passes the
   balance gate at its declared difficulty (or **Continue** for the one in
   progress), tagged with its level range and that difficulty and ordered by
   level range, then Easy, Medium, Hard. `npm.cmd run balance` shows each
   module's verdict. A line beside them warns
   that a character at 0 HP is defeated for good, and a defeated character's
   sheet says so at the top. The modules are:
+  _The Abandoned Delve_ (`adventures/5e/abandoned-delve.json`, levels 1–2),
+  ten rooms under a ruined keep: a Zombie guards the way in, two Skeletons
+  the barracks, a Giant Spider an optional crypt and a Ghoul the vault, with
+  a stuck door, a trapped stair, a goblin to question, treasure hidden in
+  features and on bodies, and a second exit beside the vault where you choose
+  to climb out or push on;
   _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`), one SRD 5.2
   Goblin Warrior; _The Goblins in the Storeroom_
   (`adventures/5e/goblin-storeroom.json`, level 2), a group fight against a
@@ -86,13 +93,13 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   trap has **Disarm**. Going through an armed trap springs it: a saving throw
   for half damage. **Talk** asks a creature about one of its topics; some
   need a check. Each check is rolled once: its button then stays disabled
-  with the reason ("Already tried", "Already open", "Already searched",
-  "Already asked"), so retyping never rerolls it. The history shows each
-  check and saving throw with its die, ability modifier, proficiency, DC and
-  a Success or Failure tag. Entering a room with a fight begins it,
-  and you cannot leave, examine, take, search, talk or open a door until it
-  is won. HP, feature
-  uses and carried items last from fight to fight.
+  with the reason ("Already tried", "Already searched", "Already asked"), so
+  retyping never rerolls it. Once a door is open its buttons go. The history
+  shows each check and saving throw with its die, ability modifier,
+  proficiency, DC and a Success or Failure tag. Entering a room with a fight
+  begins it, and you cannot leave, examine, take, search, talk or open a door
+  until it is won. HP, feature uses and carried items last from fight to
+  fight.
 - **Treasure, XP and leaving (#133).** Treasure is only found by examining
   something: a feature, or the body of an opponent once its fight is won
   (searching the body is the only way to get what it carried), and is kept only if the character survives: it is credited when

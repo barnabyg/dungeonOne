@@ -2165,17 +2165,20 @@ export function createFifthRuntime(
       ...exits(state).map((exit) =>
         view("move", { type: "move", destinationId: exit.id }, exit),
       ),
-      ...doorsHere(state).flatMap((door) => [
-        ...DOOR_CHECKS.filter((approach) => door[approach] !== undefined).map(
-          (approach) =>
-            view(approach, { type: approach, doorId: door.id }, door),
-        ),
-        // Unlock is shown only while the door's key is carried.
-        ...(door.keyItemId !== undefined &&
-        state.inventory.includes(door.keyItemId)
-          ? [view("unlock", { type: "unlock", doorId: door.id }, door)]
-          : []),
-      ]),
+      // An open door has nothing left to try, so it shows no approaches.
+      ...doorsHere(state)
+        .filter((door) => !isOpen(state, door))
+        .flatMap((door) => [
+          ...DOOR_CHECKS.filter((approach) => door[approach] !== undefined).map(
+            (approach) =>
+              view(approach, { type: approach, doorId: door.id }, door),
+          ),
+          // Unlock is shown only while the door's key is carried.
+          ...(door.keyItemId !== undefined &&
+          state.inventory.includes(door.keyItemId)
+            ? [view("unlock", { type: "unlock", doorId: door.id }, door)]
+            : []),
+        ]),
       // In a module with traps every room can be searched, so a Search button
       // never tells which rooms have one.
       ...(hasTraps

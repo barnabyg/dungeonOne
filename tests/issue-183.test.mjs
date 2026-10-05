@@ -188,7 +188,7 @@ test("the encounter engine codes its refusals beside the sentence (#183)", () =>
 });
 
 test("a refused AI DM tool call still hands the AI DM the sentence, not the code (#183)", () => {
-  const adventure = adventures[0];
+  const adventure = adventures.find(({ id }) => id === "cellar-goblin");
   const runtime = createFifthRuntime(adventure, sheet);
   const random = createSeededRandom(2);
   const begun = runtime.handleAction(
