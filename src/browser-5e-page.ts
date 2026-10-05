@@ -16,8 +16,9 @@
 //   #initiative-toggle once the fight is over.
 // - #session-actions: #adventure-error and the action bar (#156), #action-bar:
 //   #attack-controls, #feature-controls (Drink in a fight, Second Wind, Action
-//   Surge, End turn) and #explore-controls (Go, Examine, Take, Drink, grouped
-//   by target with the full name as each button's accessible name). It
+//   Surge, End turn) and #explore-controls (Go, Examine, Take, Drink, Force,
+//   Pick, Break, Unlock, Search, Disarm and Talk, grouped by target with the
+//   full name as each button's accessible name). It
 //   shows every action the session view projects, an unavailable one disabled
 //   with its reason as visible text linked by aria-describedby. After an
 //   action, focus stays on the clicked control if it is still enabled, and
@@ -107,6 +108,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <div id="room-details"><p id="room-description"></p>
 <div id="exits-group"><h4 id="exits-title">Exits</h4><ul id="exits" class="things" aria-labelledby="exits-title"></ul></div>
 <div id="features-group"><h4 id="features-title">Features</h4><ul id="features" class="things" aria-labelledby="features-title"></ul></div>
+<div id="creatures-group"><h4 id="creatures-title">Creatures</h4><ul id="creatures" class="things" aria-labelledby="creatures-title"></ul></div>
 <div id="room-items-group"><h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul></div>
 <p id="room-empty" class="hint" hidden>There is nothing else here.</p>
 <div id="inventory-group"><h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul></div>
@@ -177,7 +179,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log{position:relative;list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li.newest:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}.log .reply.pending{color:var(--color-text-muted);font-style:italic}
 .log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
-.log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--space-2)}.card.has-more>*{grid-column:1/-1}.card.has-more>.card-line:first-child{grid-column:1}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{grid-column:2;grid-row:1;align-self:start;padding:0 2px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label)}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}
+.log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--space-2)}.card.has-more>*{grid-column:1/-1}.card.has-more>.card-line:first-child{grid-column:1}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{grid-column:2;grid-row:1;align-self:start;padding:0 2px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label)}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
@@ -620,7 +622,8 @@ function renderStatus() {
 // Each kind of history entry looks different and is labelled (#159):
 // narration (the opening and entering a room) is unboxed, the player's words
 // are a bubble, AI DM replies are attributed, and result and rejection cards
-// are boxed. A line with rolls (an attack, initiative or healing) shows a
+// are boxed. A line with rolls (an attack, initiative, healing, a check or
+// saving throw (#132) with its DC and outcome, or a trap's damage) shows a
 // compact form built from its roll groups (#186), with the dice beside the
 // roll they belong to; screen readers get the line's engine text instead, and
 // the card's Full text disclosure shows it all, with what the compact form
@@ -642,7 +645,7 @@ function part(tag, kind, text) {
   return node;
 }
 
-const OUTCOME_TAGS = { hit: "Hit", critical: "Critical hit", miss: "Miss" };
+const OUTCOME_TAGS = { hit: "Hit", critical: "Critical hit", miss: "Miss", success: "Success", failure: "Failure" };
 const withSign = (value) => (value >= 0 ? " + " : " − ") + Math.abs(value);
 
 /** A roll's dice as chips, an unkept d20 struck through. */
@@ -657,7 +660,7 @@ const hpChange = (group, label) => [
   make("strong", group.total),
   label + " (",
   ...diceChips(group, " + "),
-  (group.modifier === 0 ? "" : withSign(group.modifier)) + ") → " + group.hpAfter + "/" + group.maxHp + " HP",
+  (group.modifier === 0 ? "" : withSign(group.modifier)) + (group.halved ? ", halved" : "") + ") → " + group.hpAfter + "/" + group.maxHp + " HP",
 ];
 
 /** One compact roll, such as "d20 12 + 5 = 17 vs AC 15" or "7 slashing (d6 4 + 3) → 0/7 HP". */
@@ -679,6 +682,10 @@ function compactRoll(group) {
     case "healing":
       node.append(...hpChange(group, ""));
       break;
+    case "check":
+    case "save":
+      node.append(group.mode ? group.mode + " " : "", ...diceChips(group, ", "), withSign(group.modifier) + (group.proficiency ? " + " + group.proficiency + " prof" : "") + " = " + group.total + " vs DC " + group.dc);
+      break;
   }
   return node;
 }
@@ -692,6 +699,12 @@ function compactLine(line) {
     line.rolls.forEach((group, index) => node.append(index > 0 ? " · " : " ", compactRoll(group)));
   } else if (line.rolls[0].purpose === "healing") {
     node.append(make("span", line.rolls[0].roller, "who"), " heals ", compactRoll(line.rolls[0]));
+  } else if (line.rolls[0].purpose === "check" || line.rolls[0].purpose === "save") {
+    // A check or saving throw (#132): its label, outcome and roll against the DC.
+    const check = line.rolls[0];
+    node.append(make("span", check.roller, "who"), " ", make("span", check.label, "roll-label"), " ", make("span", OUTCOME_TAGS[check.outcome], "tag " + check.outcome), " ", compactRoll(check));
+  } else if (line.rolls[0].purpose === "damage") {
+    node.append(make("span", line.rolls[0].roller + " → " + line.rolls[0].target, "who"), " ", compactRoll(line.rolls[0]));
   } else {
     node.append(make("span", "Initiative: ", "roll-label"));
     line.rolls.forEach((group, index) => node.append(...(index > 0 ? [" · "] : []), compactRoll(group)));
@@ -799,9 +812,12 @@ function showPending(message) {
 const ROOM_LISTS = [
   { id: "exits", key: "exits" },
   { id: "features", key: "features" },
+  { id: "creatures", key: "creatures" },
   { id: "room-items", key: "items" },
   { id: "inventory", key: "inventory" },
 ];
+
+const TRAP_STATES = { armed: "found, armed", disarmed: "disarmed", sprung: "sprung" };
 
 // Disclosures (#157): in a fight the room's details collapse behind
 // #room-toggle, and once the fight is over the initiative table collapses
@@ -831,10 +847,16 @@ function renderRoom(room, fighting) {
       text.append(make("strong", entry.name), document.createTextNode(" — " + entry.description));
       item.append(text);
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
+      // An exit's door and found trap (#132), and what each topic drew from a creature.
+      if (entry.door) item.append(make("p", entry.door.name + ": " + (entry.door.open ? "open" : "shut") + ". " + entry.door.description, "door"));
+      if (entry.trap) item.append(make("p", entry.trap.name + ": " + TRAP_STATES[entry.trap.state] + ". " + entry.trap.description, "trap"));
+      for (const topic of entry.topics || []) {
+        if (topic.said) item.append(make("p", "About " + topic.name + ": " + topic.said, "discovery"));
+      }
       return item;
     }));
   }
-  element("room-empty").hidden = room.exits.length + room.features.length + room.items.length > 0;
+  element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0;
   disclose("room", fighting);
 }
 
@@ -908,13 +930,20 @@ const ACTIONS = {
   move: { label: "Go to ", short: "Go", busy: "Going to ", busyLabel: "Going…" },
   examine: { label: "Examine ", short: "Examine", busy: "Examining ", busyLabel: "Examining…" },
   take: { label: "Take ", short: "Take", busy: "Taking ", busyLabel: "Taking…" },
+  force: { label: "Force ", short: "Force", busy: "Forcing ", busyLabel: "Forcing…" },
+  pick: { label: "Pick ", short: "Pick", busy: "Picking ", busyLabel: "Picking…" },
+  break: { label: "Break ", short: "Break", busy: "Breaking ", busyLabel: "Breaking…" },
+  unlock: { label: "Unlock ", short: "Unlock", busy: "Unlocking ", busyLabel: "Unlocking…" },
+  search: { label: "Search ", short: "Search", busy: "Searching ", busyLabel: "Searching…" },
+  disarm: { label: "Disarm ", short: "Disarm", busy: "Disarming ", busyLabel: "Disarming…" },
+  talk: { label: "Talk to ", short: "Talk", busy: "Talking to ", busyLabel: "Talking…" },
   "second-wind": { label: "Second Wind", busy: "Using Second Wind", busyLabel: "Using Second Wind…" },
   "action-surge": { label: "Action Surge", busy: "Using Action Surge", busyLabel: "Using Action Surge…" },
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
 };
 const busyName = ({ action, target }) => ACTIONS[action].busy + (target ? target.name : "") + "…";
 const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
-const EXPLORING = ["move", "examine", "take"];
+const EXPLORING = ["move", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
 
 function renderActions() {
   // The ending (#158) takes the bar's place; an ended adventure projects no actions.

@@ -1,0 +1,239 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 3,
+  "id": "warden-crypt",
+  "title": "The Warden's Crypt",
+  "objective": "Get past the crypt's doors and traps and put an end to whatever guards the warden's tomb.",
+  "recommendedLevels": { "min": 1, "max": 1 },
+  "difficulty": "medium",
+  "startRoomId": "crypt-stair",
+  "rooms": [
+    {
+      "id": "crypt-stair",
+      "name": "Crypt Stair",
+      "description": "Narrow steps end at a damp landing. A passage leads on into the dark, and a swollen wooden door stands shut in the side wall.",
+      "features": [
+        {
+          "id": "carved-warning",
+          "name": "Carved Warning",
+          "description": "Words are cut into the stone above the passage.",
+          "discovery": "The words read: \"The warden keeps the tomb. Mind the offerings.\""
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "flooded-cell",
+      "name": "Flooded Cell",
+      "description": "Ankle-deep water fills a small cell. A shelf runs along the back wall above the waterline.",
+      "features": [
+        {
+          "id": "wall-shelf",
+          "name": "Wall Shelf",
+          "description": "A stone shelf, slick with damp.",
+          "discovery": "Behind a cracked jar on the shelf sits a stoppered vial of red liquid."
+        }
+      ],
+      "items": [
+        {
+          "id": "cell-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "wall-shelf"
+        }
+      ]
+    },
+    {
+      "id": "hall",
+      "name": "Hall of Niches",
+      "description": "Burial niches line a long hall. Archways lead off to either side, and an iron door is set in the far wall beside the way to the tomb.",
+      "features": [],
+      "items": [],
+      "creatures": [
+        {
+          "id": "smuggler",
+          "name": "Bound Smuggler",
+          "description": "A smuggler sits bound and gagged against a niche. When you pull the gag free they spit and glare at you.",
+          "topics": [
+            {
+              "id": "warden",
+              "name": "the warden",
+              "reply": "\"A goblin took the tomb for its own. It robbed me and left me tied here. Go and see for yourself.\""
+            },
+            {
+              "id": "key-whereabouts",
+              "name": "the iron key",
+              "check": { "skill": "persuasion", "dc": 12 },
+              "reply": "\"The key to the iron door? In the offering bowl, past the archway. Mind the wire across it.\"",
+              "failure": "\"Untie me first, then we'll talk about keys.\" The smuggler turns away."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "offering-room",
+      "name": "Offering Room",
+      "description": "A low chamber with a stone altar. Mouldering offerings are heaped around a bronze bowl.",
+      "features": [
+        {
+          "id": "offering-bowl",
+          "name": "Offering Bowl",
+          "description": "A bronze bowl heaped with dead flowers and old coins.",
+          "discovery": "Under the flowers lies a heavy iron key."
+        }
+      ],
+      "items": [
+        {
+          "id": "iron-key",
+          "name": "Iron Key",
+          "description": "A heavy iron key, its bow shaped like a closed eye.",
+          "kind": "key",
+          "hiddenIn": "offering-bowl"
+        }
+      ]
+    },
+    {
+      "id": "strongroom",
+      "name": "Strongroom",
+      "description": "A cramped vault behind the iron door. Shelves of rotten ledgers line the walls.",
+      "features": [
+        {
+          "id": "strongbox",
+          "name": "Strongbox",
+          "description": "An iron strongbox bolted to the floor, its lid ajar.",
+          "discovery": "Inside the strongbox, wrapped in oilcloth, is a stoppered vial of red liquid."
+        }
+      ],
+      "items": [
+        {
+          "id": "strongroom-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "strongbox"
+        }
+      ]
+    },
+    {
+      "id": "tomb",
+      "name": "Warden's Tomb",
+      "description": "A domed tomb with a stone sarcophagus at its heart. Someone has made a nest of stolen blankets beside it.",
+      "encounterId": "tomb-goblin",
+      "features": [],
+      "items": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "stair-to-cell",
+      "between": ["crypt-stair", "flooded-cell"],
+      "description": "The swollen wooden door.",
+      "door": {
+        "id": "swollen-door",
+        "name": "Swollen Door",
+        "description": "The wood has swollen tight in its frame.",
+        "state": "stuck",
+        "force": { "skill": "athletics", "dc": 13 }
+      }
+    },
+    {
+      "id": "stair-to-hall",
+      "between": ["crypt-stair", "hall"],
+      "description": "The passage into the dark."
+    },
+    {
+      "id": "hall-to-tomb",
+      "between": ["hall", "tomb"],
+      "description": "A wide arch carved with the warden's seal."
+    },
+    {
+      "id": "hall-to-offerings",
+      "between": ["hall", "offering-room"],
+      "description": "A narrow archway.",
+      "trap": {
+        "id": "dart-trap",
+        "name": "Dart Trap",
+        "description": "A tripwire is strung low across the archway, wired to holes in the wall.",
+        "find": { "skill": "perception", "dc": 13 },
+        "disarm": { "ability": "dexterity", "dc": 12 },
+        "trigger": "A wire snaps underfoot and darts hiss from the wall.",
+        "save": { "ability": "dexterity", "dc": 12 },
+        "damage": { "dice": 2, "sides": 4, "modifier": 0, "type": "piercing" },
+        "defeatEndingId": "fallen-in-the-crypt"
+      }
+    },
+    {
+      "id": "hall-to-strongroom",
+      "between": ["hall", "strongroom"],
+      "description": "The iron door.",
+      "door": {
+        "id": "iron-door",
+        "name": "Iron Door",
+        "description": "A heavy iron door with a keyhole shaped like an eye.",
+        "state": "locked",
+        "keyItemId": "iron-key",
+        "pick": { "ability": "dexterity", "dc": 15 },
+        "break": { "skill": "athletics", "dc": 18 }
+      }
+    }
+  ],
+  "encounters": [
+    {
+      "id": "tomb-goblin",
+      "opponents": [
+        {
+          "id": "goblin",
+          "name": "Goblin Warrior",
+          "description": "A goblin warrior springs up from the blankets, scimitar in hand.",
+          "statBlock": {
+            "name": "Goblin Warrior",
+            "size": "Small",
+            "type": "Fey (Goblinoid)",
+            "armorClass": 15,
+            "hitPoints": { "average": 10, "formula": "3d6" },
+            "abilities": {
+              "strength": 8,
+              "dexterity": 15,
+              "constitution": 10,
+              "intelligence": 10,
+              "wisdom": 8,
+              "charisma": 8
+            },
+            "challengeRating": "1/4",
+            "xp": 50,
+            "attacks": [
+              {
+                "name": "Scimitar",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 2,
+                  "type": "slashing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "victoryEndingId": "crypt-cleared",
+      "defeatEndingId": "fallen-in-the-crypt"
+    }
+  ],
+  "endings": [
+    {
+      "id": "crypt-cleared",
+      "kind": "victory",
+      "title": "The tomb is quiet",
+      "text": "The goblin falls across the sarcophagus. The warden's tomb is quiet again."
+    },
+    {
+      "id": "fallen-in-the-crypt",
+      "kind": "defeat",
+      "title": "Fallen in the crypt",
+      "text": "You fall on the crypt's cold stones. Your adventuring ends here."
+    }
+  ]
+}

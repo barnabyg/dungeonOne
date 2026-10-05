@@ -47,9 +47,12 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`), one SRD 5.2
   Goblin Warrior; _The Goblins in the Storeroom_
   (`adventures/5e/goblin-storeroom.json`), a group fight against two Goblin
-  Minions and a Goblin Warrior; and _The Smugglers' Cellar_
+  Minions and a Goblin Warrior; _The Smugglers' Cellar_
   (`adventures/5e/smugglers-cellar.json`), four rooms to explore with a Giant
-  Rat, a Goblin Warrior and a Potion of Healing hidden in a chest.
+  Rat, a Goblin Warrior and a Potion of Healing hidden in a chest; and _The
+  Warden's Crypt_ (`adventures/5e/warden-crypt.json`), six rooms with a stuck
+  door, a locked door and its key, a dart trap, a bound smuggler to question
+  and a Goblin Warrior in the tomb.
 - **Exploring a 5e adventure.** The room panel shows the current room, its
   exits, its features (with any discovery you have made), the items
   you can see and what you carry, leaving out any list that is empty; in a
@@ -61,8 +64,19 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   type ("search the chest", "go to the alcove", "drink the potion").
   Examining a feature makes its discovery and can reveal a hidden item. A
   Potion of Healing restores 2d4 + 2 HP, never above your maximum; in a
-  fight it takes your bonus action. Entering a room with a fight begins it,
-  and you cannot leave, examine or take anything until it is won. HP, feature
+  fight it takes your bonus action. A shut door blocks its exit until you
+  **Force** it (stuck), or **Pick**, **Break** or **Unlock** it (locked;
+  Unlock appears while you carry its key). In a module with traps every room
+  has **Search**, a Perception check that finds traps on its exits; a found
+  trap has **Disarm**. Going through an armed trap springs it: a saving throw
+  for half damage. **Talk** asks a creature about one of its topics; some
+  need a check. Each check is rolled once: its button then stays disabled
+  with the reason ("Already tried", "Already open", "Already searched",
+  "Already asked"), so retyping never rerolls it. The history shows each
+  check and saving throw with its die, ability modifier, proficiency, DC and
+  a Success or Failure tag. Entering a room with a fight begins it,
+  and you cannot leave, examine, take, search, talk or open a door until it
+  is won. HP, feature
   uses and carried items last from fight to fight.
 - **Fighting in a 5e adventure.** Starting a fight rolls initiative for every combatant;
   the encounter panel lists each combatant in initiative order with its roll,
@@ -90,7 +104,7 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   adventure: opening another character's adventure clears it. The engine rolls every die and writes
   every action's result.
   The session is saved after every action in the
-  `characters-5e-adventures` directory beside the library (format version 5;
+  `characters-5e-adventures` directory beside the library (format version 6;
   a session saved by an earlier build is refused with a message naming the file),
   and reloading the page or restarting with the same command returns to the
   adventure exactly as it was. Winning the fight that ends the adventure frees the character for another adventure;

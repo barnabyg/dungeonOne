@@ -252,7 +252,15 @@ export type GameToolName =
   | "get_character_status";
 
 /** Tools only the 5e runtime offers; kept apart from the pre-5e tool set. */
-export type FifthToolName = "second_wind" | "action_surge" | "end_turn";
+export type FifthToolName =
+  | "second_wind"
+  | "action_surge"
+  | "end_turn"
+  | "force_door"
+  | "pick_lock"
+  | "break_door"
+  | "unlock"
+  | "disarm";
 
 /** A bounded tool the AI DM may call; the runtime offers only legal ones. */
 export type GameToolDefinition = Readonly<{

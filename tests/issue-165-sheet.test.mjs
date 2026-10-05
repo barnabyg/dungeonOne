@@ -81,7 +81,7 @@ test("the server projects the modules in offer order", async () => {
     const { adventures } = await response.json();
     assert.deepEqual(
       adventures.map(({ id }) => id),
-      ["cellar-goblin", "smugglers-cellar", "goblin-storeroom"],
+      ["cellar-goblin", "smugglers-cellar", "warden-crypt", "goblin-storeroom"],
     );
   });
 });
@@ -107,6 +107,7 @@ test(
       );
       assert.deepEqual(cards, [
         { tags: ["Level 1", "Easy"], button: "Start" },
+        { tags: ["Level 1", "Medium"], button: "Start" },
         { tags: ["Level 1", "Medium"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },
       ]);
