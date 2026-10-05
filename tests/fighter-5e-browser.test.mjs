@@ -160,7 +160,7 @@ test(
       await page.locator("#skill-perception").uncheck();
       await page
         .locator("#skills-error")
-        .filter({ hasText: "Choose two skills" })
+        .filter({ hasText: "Choose 2 skills" })
         .waitFor();
       assert.equal(await page.locator("#save-character").isDisabled(), true);
       await page.locator("#skill-survival").press("Space");

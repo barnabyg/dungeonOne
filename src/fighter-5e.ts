@@ -120,7 +120,7 @@ const SHEET_KEYS = [
 
 export function abilityModifier(score: number): number {
   if (!Number.isInteger(score) || score < 3 || score > ABILITY_SCORE_CAP) {
-    throw new Error("Invalid ability score (3–20).");
+    throw new Error(`Invalid ability score (3–${ABILITY_SCORE_CAP}).`);
   }
   return Math.floor((score - 10) / 2);
 }
@@ -209,18 +209,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-/**
- * How many more +1s an increase needs, by its amounts sorted highest first:
- * none for a complete +2 and +1 or +1 to three, more for a +1 to three still
- * being ticked.
- */
-const INCREASE_MISSING: Readonly<Record<string, number>> = {
-  "2,1": 0,
-  "1,1,1": 0,
-  "1,1": 1,
-  "1": 2,
-  "": 3,
-};
+const INVALID_INCREASE =
+  "Invalid background increase: choose +2 and +1 for two abilities, or +1 for three.";
 
 /** An increase that is complete or a +1 to three being ticked, and how many +1s it lacks. */
 function validatePartialIncrease(value: unknown): {
@@ -235,18 +225,14 @@ function validatePartialIncrease(value: unknown): {
   ) {
     throw new Error("Invalid background increase.");
   }
-  const amounts = Object.values(value)
-    .map(Number)
-    .sort((a, b) => b - a)
-    .join(",");
-  const missing = INCREASE_MISSING[amounts];
-  if (
-    !Object.values(value).every((amount) => amount === 1 || amount === 2) ||
-    missing === undefined
-  ) {
-    throw new Error(
-      "Invalid background increase: choose +2 and +1 for two abilities, or +1 for three.",
-    );
+  const amounts = Object.values(value);
+  const twos = amounts.filter((amount) => amount === 2).length;
+  const ones = amounts.filter((amount) => amount === 1).length;
+  // +2 and +1 is complete; +1s alone may still be being ticked, up to three.
+  const missing =
+    twos === 1 && ones === 1 ? 0 : twos === 0 && ones <= 3 ? 3 - ones : -1;
+  if (twos + ones !== amounts.length || missing < 0) {
+    throw new Error(INVALID_INCREASE);
   }
   return { increase: { ...(value as BackgroundIncrease) }, missing };
 }
@@ -254,9 +240,7 @@ function validatePartialIncrease(value: unknown): {
 function validateIncrease(value: unknown): BackgroundIncrease {
   const { increase, missing } = validatePartialIncrease(value);
   if (missing > 0) {
-    throw new Error(
-      "Invalid background increase: choose +2 and +1 for two abilities, or +1 for three.",
-    );
+    throw new Error(INVALID_INCREASE);
   }
   return increase;
 }
@@ -288,7 +272,9 @@ function validatePartialSkills(value: unknown): readonly FighterSkill[] {
         typeof skill === "string" && Object.hasOwn(FIGHTER_SKILLS, skill),
     )
   ) {
-    throw new Error("Choose two different Fighter skill proficiencies.");
+    throw new Error(
+      `Choose ${FIGHTER_SKILL_COUNT} different Fighter skill proficiencies.`,
+    );
   }
   return [...(value as FighterSkill[])];
 }
@@ -296,7 +282,9 @@ function validatePartialSkills(value: unknown): readonly FighterSkill[] {
 function validateSkills(value: unknown): readonly FighterSkill[] {
   const skills = validatePartialSkills(value);
   if (skills.length !== FIGHTER_SKILL_COUNT) {
-    throw new Error("Choose two different Fighter skill proficiencies.");
+    throw new Error(
+      `Choose ${FIGHTER_SKILL_COUNT} different Fighter skill proficiencies.`,
+    );
   }
   return skills;
 }
@@ -410,7 +398,9 @@ export function projectCreation(
         }),
     ...(skills.length === FIGHTER_SKILL_COUNT
       ? {}
-      : { skills: `Choose two skills; ${skills.length} chosen.` }),
+      : {
+          skills: `Choose ${FIGHTER_SKILL_COUNT} skills; ${skills.length} chosen.`,
+        }),
   };
   const projection = {
     rows,

@@ -282,7 +282,7 @@ test(
       await page.locator("#skill-perception").uncheck();
       await page
         .locator("#skills #skills-error")
-        .filter({ hasText: "two" })
+        .filter({ hasText: "Choose 2 skills" })
         .waitFor();
       assert.match(await page.locator("#preview-body").innerText(), /AC:/);
       assert.equal(await page.locator("#save-character").isDisabled(), true);

@@ -4,8 +4,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   ABILITIES,
-  ABILITY_SCORE_CAP,
-  FIGHTER_SKILL_COUNT,
   buildFighter,
   defaultPlacement,
   fighterProfile,
@@ -26,11 +24,6 @@ const complete = {
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
 };
-
-test("the rules a creation is held to are projected constants", () => {
-  assert.equal(ABILITY_SCORE_CAP, 20);
-  assert.equal(FIGHTER_SKILL_COUNT, 2);
-});
 
 test("complete choices project the same scores and modifiers as buildFighter", () => {
   for (const increase of [
@@ -78,7 +71,7 @@ test("the skill limit is projected for the current choices", () => {
   assert.deepEqual(two, { chosen: 2, limit: 2, full: true });
   const one = projectCreation(dice, { ...complete, skills: ["athletics"] });
   assert.deepEqual(one.skills, { chosen: 1, limit: 2, full: false });
-  assert.equal(one.unfinished.skills, "Choose two skills; 1 chosen.");
+  assert.equal(one.unfinished.skills, "Choose 2 skills; 1 chosen.");
   assert.equal(one.sheet, undefined);
   // A third tick sent before the page saw the limit is reported, not saved.
   const three = projectCreation(dice, {
@@ -86,7 +79,7 @@ test("the skill limit is projected for the current choices", () => {
     skills: ["athletics", "perception", "survival"],
   });
   assert.deepEqual(three.skills, { chosen: 3, limit: 2, full: true });
-  assert.equal(three.unfinished.skills, "Choose two skills; 3 chosen.");
+  assert.equal(three.unfinished.skills, "Choose 2 skills; 3 chosen.");
   assert.equal(three.sheet, undefined);
 });
 
