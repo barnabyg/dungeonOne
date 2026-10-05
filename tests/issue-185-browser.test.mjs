@@ -61,9 +61,10 @@ const bar = (page) =>
 
 /**
  * Clicks the action button `selector` with its request to `path` held, checks
- * the busy state, then releases it and checks the label and focus afterwards.
+ * the busy state, then releases it and checks where focus went: "stays" on
+ * the button (whose label has returned), or "newest" history entry.
  */
-async function holdAction(page, selector, path, shows, name) {
+async function holdAction(page, selector, path, shows, name, focusTo) {
   const button = page.locator(selector);
   // Scrolled first, so the click's own scrolling doesn't move the bar.
   await button.scrollIntoViewIfNeeded();
@@ -72,6 +73,12 @@ async function holdAction(page, selector, path, shows, name) {
     (await button.getAttribute("data-action")) +
     ":" +
     ((await button.getAttribute("data-target")) || "");
+  const before = idle.find((entry) => entry.key === key);
+  // The hidden busy label is not part of the idle accessible name.
+  assert.equal(
+    await page.getByRole("button", { name: before.name, exact: true }).count(),
+    1,
+  );
   const count = await page.locator("#log > li").count();
   const release = await holdRequests(page, path);
   await button.click();
@@ -114,18 +121,16 @@ async function holdAction(page, selector, path, shows, name) {
     const active = document.activeElement;
     return active.matches("#log > li.newest")
       ? "newest"
-      : active.id === "ending-title"
-        ? "ending"
-        : active.dataset.action + ":" + (active.dataset.target || "");
+      : active.dataset.action + ":" + (active.dataset.target || "");
   });
-  if (after && !after.disabled) {
-    assert.equal(after.busy, null);
-    assert.equal(after.shows, idle.find((entry) => entry.key === key).shows);
-    assert.equal(after.name, idle.find((entry) => entry.key === key).name);
+  if (focusTo === "stays") {
+    assert.deepEqual(
+      { ...after, box: undefined },
+      { ...before, box: undefined },
+    );
     assert.equal(focus, key);
-  } else if (await page.locator("#ending").isVisible()) {
-    assert.equal(focus, "ending");
   } else {
+    assert.ok(!after || after.disabled, `${key} is gone or disabled`);
     assert.equal(focus, "newest");
   }
 }
@@ -168,6 +173,7 @@ for (const viewport of [
           "/api/5e/session/explore",
           "Examining…",
           "Examining Rusted Lantern…",
+          "stays",
         );
         await holdAction(
           page,
@@ -175,9 +181,18 @@ for (const viewport of [
           "/api/5e/session/explore",
           "Going…",
           "Going to Rat-Gnawed Cellar…",
+          "newest",
         );
 
-        // Fighting: the attack, then End turn, a control without a target.
+        // Fighting: End turn, a control without a target, then the attack.
+        await holdAction(
+          page,
+          '#feature-controls button[data-action="end-turn"]',
+          "/api/5e/session/action",
+          "Ending turn…",
+          "Ending turn…",
+          "stays",
+        );
         const attack = page.locator("#attack-controls button.attack").first();
         await attack.waitFor();
         const target = await attack.getAttribute("data-target");
@@ -188,17 +203,8 @@ for (const viewport of [
           "/api/5e/session/attack",
           "Attacking…",
           `Attacking ${opponent}…`,
+          "newest",
         );
-        const endTurn = '#feature-controls button[data-action="end-turn"]';
-        if (await page.locator(`${endTurn}:enabled`).count()) {
-          await holdAction(
-            page,
-            endTurn,
-            "/api/5e/session/action",
-            "Ending turn…",
-            "Ending turn…",
-          );
-        }
       } finally {
         await browser.close();
         await server.close();
