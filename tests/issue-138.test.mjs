@@ -391,6 +391,18 @@ test("the 5e DM evaluation calls the provider only with --live and a key", () =>
 test("the live qualification runs only with --live and a key, and its dry run flags overclaims", () =>
   withDirectory(async (directory) => {
     const env = { ...process.env, OPENAI_API_KEY: "" };
+    for (const args of [
+      ["--dry-run", "--live"],
+      ["--dry-run", "--max-calls", "0"],
+      ["--dry-run", "--max-calls"],
+      ["--dry-run", "report.json"],
+    ]) {
+      const refused = spawnSync(process.execPath, [qualify, ...args], {
+        encoding: "utf8",
+        env,
+      });
+      assert.equal(refused.status, 2, args.join(" "));
+    }
     const bare = spawnSync(process.execPath, [qualify], {
       encoding: "utf8",
       env,
@@ -406,7 +418,7 @@ test("the live qualification runs only with --live and a key, and its dry run fl
     const output = join(directory, "report.json");
     const dry = spawnSync(
       process.execPath,
-      [qualify, "--dry-run", output, "5"],
+      [qualify, "--dry-run", "--output", output, "--max-calls", "5"],
       {
         encoding: "utf8",
         env,

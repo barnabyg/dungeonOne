@@ -49,7 +49,7 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   (`src/dm-evaluation-5e.ts`), within a stated call budget
   (`--max-calls`, by default four per case and repetition), and checks that a
   server without an AI DM refuses typed messages with the player notice.
-  `node scripts/qualify-delve-live.mjs --live` plays typed turns through the
+  `node scripts/qualify-delve-live.mjs --live` (with `--max-calls`, default 40) plays typed turns through the
   browser server for review (`--dry-run` checks the harness offline). The
   pre-5e routes (`npm.cmd start`) stay until #139.
 - **Creating a Fighter.** Launch with

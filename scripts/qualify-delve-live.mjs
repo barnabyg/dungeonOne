@@ -6,8 +6,8 @@
 // a turn that committed nothing is flagged for review when it claims an
 // outcome. Provider calls are hard-capped; credentials and prompts are never
 // recorded.
-// Usage: node scripts/qualify-delve-live.mjs --live [report.json] [maxCalls]
-//        node scripts/qualify-delve-live.mjs --dry-run [report.json]
+// Usage: node scripts/qualify-delve-live.mjs --live|--dry-run
+//          [--output <report.json>] [--max-calls <count>]
 // --live needs OPENAI_API_KEY. --dry-run substitutes a provider that always
 // overclaims, to check the harness itself without credentials or calls.
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
@@ -20,23 +20,48 @@ import {
 } from "../dist/openai-dm-model.js";
 
 const USAGE =
-  "Usage: node scripts/qualify-delve-live.mjs --live|--dry-run [report.json] [maxCalls]";
-const dryRun = process.argv.includes("--dry-run");
-const live = process.argv.includes("--live");
-const args = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
-if (dryRun === live) {
+  "Usage: node scripts/qualify-delve-live.mjs --live|--dry-run [--output <report.json>] [--max-calls <count>]";
+const usage = () => {
   process.stderr.write(`${USAGE}\n`);
   process.exit(2);
+};
+const options = {
+  output: ".verify-artifacts/issue-138-live.json",
+  maxCalls: "40",
+};
+let mode;
+const args = process.argv.slice(2);
+for (let index = 0; index < args.length; index += 1) {
+  const argument = args[index];
+  if (argument === "--live" || argument === "--dry-run") {
+    if (mode !== undefined) {
+      usage();
+    }
+    mode = argument;
+  } else if (argument === "--output" || argument === "--max-calls") {
+    const value = args[++index];
+    if (value === undefined || value.startsWith("--")) {
+      usage();
+    }
+    options[argument === "--output" ? "output" : "maxCalls"] = value;
+  } else {
+    usage();
+  }
 }
-if (live && !process.env.OPENAI_API_KEY?.trim()) {
+const dryRun = mode === "--dry-run";
+if (mode === undefined) {
+  usage();
+}
+if (!dryRun && !process.env.OPENAI_API_KEY?.trim()) {
   process.stderr.write("OPENAI_API_KEY is required for --live.\n");
   process.exit(2);
 }
-const output = resolve(args[0] ?? ".verify-artifacts/issue-138-live.json");
-const maxProviderCalls = Number(args[1] ?? 40);
-if (!Number.isInteger(maxProviderCalls) || maxProviderCalls < 1) {
-  process.stderr.write(`${USAGE}\n`);
-  process.exit(2);
+const output = resolve(options.output);
+const maxProviderCalls = /^\d+$/u.test(options.maxCalls)
+  ? Number(options.maxCalls)
+  : 0;
+if (maxProviderCalls < 1) {
+  usage();
 }
 
 /**
