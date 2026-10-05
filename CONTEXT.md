@@ -37,7 +37,7 @@ Silver and items a character finds by examining something (such as a chest, or a
 _Avoid_: Reward XP, Drop
 
 **Pending treasure**:
-Treasure the character carries during an adventure but has not kept yet. A victory or an escape keeps it; a defeat or abandonment discards it.
+Treasure the character carries during an adventure but has not kept yet. It can be used in that adventure at once (and, once coin and merchants exist, spent there). A victory or an escape keeps what the character holds at the end; a defeat or abandonment rolls the character back to how it started, as if the adventure never happened.
 _Avoid_: Loot (when kept treasure is meant), Inventory
 
 **XP award**:
