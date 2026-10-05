@@ -646,13 +646,8 @@ test(
       await createAndStart(page, server.url, "goblin-storeroom");
       // Every combatant in initiative order, readable at phone width.
       let shown = await panel(page);
-      assert.equal(shown.rows.length, 4);
-      for (const name of [
-        "Ada (you)",
-        "Goblin Minion 1",
-        "Goblin Minion 2",
-        "Goblin Warrior",
-      ]) {
+      assert.equal(shown.rows.length, 3);
+      for (const name of ["Ada (you)", "Goblin Minion", "Goblin Warrior"]) {
         assert.equal(shown.rows.filter((row) => row.includes(name)).length, 1);
       }
       assert.ok(await fits(), "the panel fits at phone width");
@@ -661,7 +656,7 @@ test(
         await attackLabels(),
         shown.rows
           .filter((row) => !row.includes("Ada (you)"))
-          .map((row) => `Attack ${/Goblin (Minion \d|Warrior)/.exec(row)[0]}`),
+          .map((row) => `Attack ${/Goblin (Minion|Warrior)/.exec(row)[0]}`),
       );
 
       // An ambiguous message is answered with a question and changes nothing.

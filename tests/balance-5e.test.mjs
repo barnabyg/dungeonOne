@@ -608,3 +608,13 @@ test("a module the harness can't play fails the gate with a named reason", () =>
     `The Goblin Pair (goblin-pair) does not qualify: step-limit. ${result.failure.message}`,
   );
 });
+
+test("every shipped module qualifies at its declared difficulty", () => {
+  for (const adventure of Object.values(SHIPPED)) {
+    const result = gateAdventure(adventure);
+    assert.ok(
+      result.ok && result.verdict.qualified,
+      renderGateResult(adventure, result),
+    );
+  }
+});

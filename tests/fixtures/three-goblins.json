@@ -1,20 +1,20 @@
 {
   "kind": "dungeon-one-5e-adventure",
   "formatVersion": 5,
-  "id": "goblin-storeroom",
-  "title": "The Goblins in the Storeroom",
+  "id": "three-goblins",
+  "title": "Three Goblins",
   "objective": "Clear the goblin band out of the mill storeroom.",
   "recommendedLevels": {
-    "min": 2,
-    "max": 2
+    "min": 1,
+    "max": 1
   },
-  "difficulty": "medium",
+  "difficulty": "hard",
   "startRoomId": "storeroom",
   "rooms": [
     {
       "id": "storeroom",
       "name": "Mill Storeroom",
-      "description": "Flour sacks are slit open across the floor, and the air is white with dust. Two goblins look up from their plunder.",
+      "description": "Flour sacks are slit open across the floor, and the air is white with dust. Three goblins look up from their plunder.",
       "encounterId": "goblin-band",
       "features": [],
       "items": []
@@ -26,9 +26,46 @@
       "id": "goblin-band",
       "opponents": [
         {
-          "id": "minion",
-          "name": "Goblin Minion",
+          "id": "minion-1",
+          "name": "Goblin Minion 1",
           "description": "A wiry goblin minion licks flour from its dagger.",
+          "statBlock": {
+            "name": "Goblin Minion",
+            "size": "Small",
+            "type": "Fey (Goblinoid)",
+            "armorClass": 12,
+            "hitPoints": {
+              "average": 7,
+              "formula": "2d6"
+            },
+            "abilities": {
+              "strength": 8,
+              "dexterity": 15,
+              "constitution": 10,
+              "intelligence": 10,
+              "wisdom": 8,
+              "charisma": 8
+            },
+            "challengeRating": "1/8",
+            "xp": 25,
+            "attacks": [
+              {
+                "name": "Dagger",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 4,
+                  "modifier": 2,
+                  "type": "piercing"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "minion-2",
+          "name": "Goblin Minion 2",
+          "description": "A second minion, missing an ear, edges along the sacks with its dagger out.",
           "statBlock": {
             "name": "Goblin Minion",
             "size": "Small",
@@ -65,7 +102,7 @@
         {
           "id": "warrior",
           "name": "Goblin Warrior",
-          "description": "Behind it a goblin warrior in patched leather barks orders and draws its scimitar.",
+          "description": "Behind them a goblin warrior in patched leather barks orders and draws its scimitar.",
           "statBlock": {
             "name": "Goblin Warrior",
             "size": "Small",

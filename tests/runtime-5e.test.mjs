@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
+import {
+  loadBuiltInFifthAdventures,
+  loadFifthAdventure,
+} from "../dist/adventure-5e.js";
 import { runDmTurn } from "../dist/dm-turn.js";
 import {
   buildFighter,
@@ -14,7 +17,9 @@ import {
   renderFifthEvent,
 } from "../dist/runtime-5e.js";
 
-const [adventure, storeroom] = await loadBuiltInFifthAdventures();
+const [adventure] = await loadBuiltInFifthAdventures();
+// The engine's targeting tests need three goblins: two numbered minions.
+const storeroom = await loadFifthAdventure("tests/fixtures/three-goblins.json");
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 17 with Defense, 12 HP, mace +5.
 const sheet = buildFighter(
   "a".repeat(32),

@@ -24,7 +24,7 @@ test("the built-in fixture is a valid one-room module with a declared level rang
   const [adventure] = await loadBuiltInFifthAdventures();
   assert.equal(adventure.id, "cellar-goblin");
   assert.deepEqual(adventure.recommendedLevels, { min: 1, max: 1 });
-  assert.equal(adventure.difficulty, "easy");
+  assert.equal(adventure.difficulty, "hard");
   assert.equal(adventure.rooms.length, 1);
   const [opponent] = adventure.encounters[0].opponents;
   // SRD 5.2 Goblin Warrior.
@@ -146,7 +146,7 @@ test("a module in another format version is refused by name and left unchanged",
   }
 });
 
-test("the group-fight module holds three goblins with distinct names", async () => {
+test("the group-fight module holds two goblins with distinct names", async () => {
   const adventures = await loadBuiltInFifthAdventures();
   assert.deepEqual(
     adventures.map(({ id }) => id),
@@ -160,7 +160,8 @@ test("the group-fight module holds three goblins with distinct names", async () 
     ],
   );
   const group = adventures[1];
-  assert.equal(group.difficulty, "hard");
+  assert.equal(group.difficulty, "medium");
+  assert.deepEqual(group.recommendedLevels, { min: 2, max: 2 });
   assert.deepEqual(
     group.encounters[0].opponents.map(({ id, name, statBlock }) => [
       id,
@@ -168,8 +169,7 @@ test("the group-fight module holds three goblins with distinct names", async () 
       statBlock.name,
     ]),
     [
-      ["minion-1", "Goblin Minion 1", "Goblin Minion"],
-      ["minion-2", "Goblin Minion 2", "Goblin Minion"],
+      ["minion", "Goblin Minion", "Goblin Minion"],
       ["warrior", "Goblin Warrior", "Goblin Warrior"],
     ],
   );

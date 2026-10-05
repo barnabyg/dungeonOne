@@ -53,8 +53,8 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   sheet says so at the top. The modules are:
   _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`), one SRD 5.2
   Goblin Warrior; _The Goblins in the Storeroom_
-  (`adventures/5e/goblin-storeroom.json`), a group fight against two Goblin
-  Minions and a Goblin Warrior; _The Goblin Warren_
+  (`adventures/5e/goblin-storeroom.json`, level 2), a group fight against a
+  Goblin Minion and a Goblin Warrior; _The Goblin Warren_
   (`adventures/5e/goblin-warren.json`, levels 2–3), a Goblin Warrior carrying
   a potion, then the SRD 5.2 Goblin Boss and its hoard, and a way out (its
   400 XP loot ending, with the fights' 250, takes a level 2 character from the

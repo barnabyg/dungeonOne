@@ -74,7 +74,7 @@ for (const viewport of [
       await writeFile(
         script,
         JSON.stringify([
-          { text: "Three goblins crouch among the crates, blades out." },
+          { text: "Two goblins crouch among the crates, blades out." },
         ]),
       );
       const scripted = await loadScriptedDmModel(script);
@@ -249,7 +249,7 @@ for (const viewport of [
         const reply = page.locator("#log > li").last();
         assert.equal(
           await reply.textContent(),
-          "You: I size up the goblinsThree goblins crouch among the crates, blades out.",
+          "You: I size up the goblinsTwo goblins crouch among the crates, blades out.",
         );
         assert.equal(
           await reply.evaluate((item) => item.classList.contains("newest")),

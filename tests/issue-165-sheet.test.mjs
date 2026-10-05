@@ -82,10 +82,10 @@ test("the server projects the modules in offer order", async () => {
     assert.deepEqual(
       adventures.map(({ id }) => id),
       [
+        "warden-crypt",
         "cellar-goblin",
         "robbers-barrow",
         "smugglers-cellar",
-        "warden-crypt",
         "goblin-storeroom",
         "goblin-warren",
       ],
@@ -113,12 +113,12 @@ test(
         })),
       );
       assert.deepEqual(cards, [
-        { tags: ["Level 1", "Easy"], button: "Start" },
-        { tags: ["Level 1", "Medium"], button: "Start" },
-        { tags: ["Level 1", "Medium"], button: "Start" },
         { tags: ["Level 1", "Medium"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },
-        { tags: ["Levels 2–3", "Medium"], button: "Start" },
+        { tags: ["Level 1", "Hard"], button: "Start" },
+        { tags: ["Level 1", "Hard"], button: "Start" },
+        { tags: ["Level 2", "Medium"], button: "Start" },
+        { tags: ["Levels 2–3", "Hard"], button: "Start" },
       ]);
       const start = page.getByRole("button", {
         name: "Start The Smugglers' Cellar",
