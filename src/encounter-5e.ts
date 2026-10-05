@@ -194,7 +194,29 @@ export type PotionEvent = Readonly<{
   maxHp: number;
 }>;
 
-export type EncounterRejection = Readonly<{ reason: string }>;
+/**
+ * Why the encounter engine refuses an action. Callers branch on `code`, which
+ * stays stable; `reason` is the sentence the player and the AI DM read.
+ */
+export type EncounterRefusalCode =
+  | "fight-over"
+  | "no-combatant"
+  | "not-your-turn"
+  | "no-target"
+  | "same-side"
+  | "already-defeated"
+  | "action-used"
+  | "bonus-action-used"
+  | "no-second-wind"
+  | "no-action-surge"
+  | "no-potion"
+  | "no-uses-left"
+  | "full-hp";
+
+export type EncounterRejection = Readonly<{
+  code: EncounterRefusalCode;
+  reason: string;
+}>;
 
 export type EncounterResult =
   | Readonly<{
@@ -265,21 +287,31 @@ export function rollD20(
   };
 }
 
+const refused = (
+  code: EncounterRefusalCode,
+  reason: string,
+): EncounterRejection => ({ code, reason });
+
+const BONUS_ACTION_USED = refused(
+  "bonus-action-used",
+  "You have already used your bonus action this turn.",
+);
+
 function secondWindRefusal(
   state: EncounterState,
   actor: Combatant,
-): string | undefined {
+): EncounterRejection | undefined {
   if (actor.secondWind === undefined) {
-    return "You don't have Second Wind.";
+    return refused("no-second-wind", "You don't have Second Wind.");
   }
   if (actor.secondWind.uses === 0) {
-    return "You have no uses of Second Wind left.";
+    return refused("no-uses-left", "You have no uses of Second Wind left.");
   }
   if (!state.economy.bonusAction) {
-    return "You have already used your bonus action this turn.";
+    return BONUS_ACTION_USED;
   }
   return actor.hp >= actor.maxHp
-    ? "You are unhurt, so Second Wind would heal nothing."
+    ? refused("full-hp", "You are unhurt, so Second Wind would heal nothing.")
     : undefined;
 }
 
@@ -318,28 +350,28 @@ function potionRefusal(
   state: EncounterState,
   actor: Combatant,
   itemId?: string,
-): string | undefined {
+): EncounterRejection | undefined {
   if (
     !(actor.potions ?? []).some(
       ({ id }) => itemId === undefined || id === itemId,
     )
   ) {
-    return "You don't have that potion.";
+    return refused("no-potion", "You don't have that potion.");
   }
   if (!state.economy.bonusAction) {
-    return "You have already used your bonus action this turn.";
+    return BONUS_ACTION_USED;
   }
   return actor.hp >= actor.maxHp
-    ? "You are unhurt, so the potion would heal nothing."
+    ? refused("full-hp", "You are unhurt, so the potion would heal nothing.")
     : undefined;
 }
 
-function actionSurgeRefusal(actor: Combatant): string | undefined {
+function actionSurgeRefusal(actor: Combatant): EncounterRejection | undefined {
   if (actor.actionSurge === undefined) {
-    return "You don't have Action Surge.";
+    return refused("no-action-surge", "You don't have Action Surge.");
   }
   return actor.actionSurge.uses === 0
-    ? "You have no uses of Action Surge left."
+    ? refused("no-uses-left", "You have no uses of Action Surge left.")
     : undefined;
 }
 
@@ -608,20 +640,23 @@ export function act(
   action: EncounterAction,
   random: Roller,
 ): EncounterResult {
-  const reject = (reason: string): EncounterResult => ({
-    state,
-    rejection: { reason },
-  });
+  const reject = (
+    code: EncounterRefusalCode,
+    reason: string,
+  ): EncounterResult => ({ state, rejection: refused(code, reason) });
   if (state.outcome !== "ongoing") {
-    return reject("The fight is over.");
+    return reject("fight-over", "The fight is over.");
   }
   const actor = state.combatants.find(({ id }) => id === action.actorId);
   const current = currentCombatant(state)!;
   if (actor === undefined) {
-    return reject("There is no such combatant in this fight.");
+    return reject("no-combatant", "There is no such combatant in this fight.");
   }
   if (actor.id !== current.id) {
-    return reject(`It is ${current.name}'s turn, not ${actor.name}'s.`);
+    return reject(
+      "not-your-turn",
+      `It is ${current.name}'s turn, not ${actor.name}'s.`,
+    );
   }
   const events: EncounterEvent[] = [];
   let next: EncounterState;
@@ -629,16 +664,22 @@ export function act(
     case "attack": {
       const target = state.combatants.find(({ id }) => id === action.targetId);
       if (target === undefined) {
-        return reject("There is no such opponent here to attack.");
+        return reject("no-target", "There is no such opponent here to attack.");
       }
       if (target.side === actor.side) {
-        return reject(`${target.name} is on your side.`);
+        return reject("same-side", `${target.name} is on your side.`);
       }
       if (isDefeated(target)) {
-        return reject(`${target.name} is already defeated.`);
+        return reject(
+          "already-defeated",
+          `${target.name} is already defeated.`,
+        );
       }
       if (state.economy.actions === 0) {
-        return reject("You have already used your action this turn.");
+        return reject(
+          "action-used",
+          "You have already used your action this turn.",
+        );
       }
       const resolved = resolveAttack(state, actor, target, random, undefined);
       events.push(...resolved.events);
@@ -651,7 +692,7 @@ export function act(
     case "second-wind": {
       const refusal = secondWindRefusal(state, actor);
       if (refusal !== undefined) {
-        return reject(refusal);
+        return { state, rejection: refusal };
       }
       const wind = actor.secondWind!;
       const { uses, healing } = wind;
@@ -687,7 +728,7 @@ export function act(
     case "action-surge": {
       const refusal = actionSurgeRefusal(actor);
       if (refusal !== undefined) {
-        return reject(refusal);
+        return { state, rejection: refusal };
       }
       const surge = actor.actionSurge!;
       const uses = surge.uses - 1;
@@ -714,7 +755,7 @@ export function act(
     case "drink-potion": {
       const refusal = potionRefusal(state, actor, action.itemId);
       if (refusal !== undefined) {
-        return reject(refusal);
+        return { state, rejection: refusal };
       }
       const potion = actor.potions!.find(({ id }) => id === action.itemId)!;
       const drunk = drinkPotion(
