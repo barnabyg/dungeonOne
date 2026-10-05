@@ -382,7 +382,7 @@ test("the default run qualifies every shipped module within its time budget", ()
     assert.ok(result.report.cells.every(({ runs }) => runs === 200));
   }
   const seconds = (performance.now() - started) / 1000;
-  // #134 records the budget: the default run must stay well inside verify.
+  // docs/character-rules.md records the budget: well inside verify.
   assert.ok(seconds < 30, `the default run took ${seconds.toFixed(1)} s`);
 });
 

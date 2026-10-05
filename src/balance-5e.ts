@@ -351,7 +351,7 @@ function exitRooms(adventure: FifthAdventure): ReadonlySet<string> {
   );
 }
 
-/** The adventure's objective: a victory if it has one, or else loot. */
+/** The adventure's objective: a victory if it has one, or else treasure carried out. */
 function objectiveOf(adventure: FifthAdventure): Objective {
   return victoryRooms(adventure).size > 0
     ? "victory"
@@ -656,14 +656,14 @@ export function playAdventure(
         .find(({ id }) => id === room.encounterId)
         ?.opponents.map(({ id }) => id) ?? []),
     ]);
-    const loot =
+    const find =
       offered(views, "examine").find(
         ({ target }) =>
           searchable.has(target!.id) &&
           !state.examinedFeatureIds.includes(target!.id),
       ) ?? offered(views, "take")[0];
-    if (loot !== undefined) {
-      return loot;
+    if (find !== undefined) {
+      return find;
     }
     const potion = offered(views, "use")[0];
     if (potion !== undefined && low(state.character.hp)) {
