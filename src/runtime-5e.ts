@@ -1023,6 +1023,40 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "not-an-exit": "No way out here",
 };
 
+/** The action an action-bar entry stands for, as the browser sends it. */
+export function actionOf(view: ActionView): FifthAction {
+  const id = view.target?.id ?? "";
+  switch (view.action) {
+    case "attack":
+      return { type: "attack", actorId: PLAYER_ID, targetId: id };
+    case "second-wind":
+    case "action-surge":
+    case "end-turn":
+      return { type: view.action, actorId: PLAYER_ID };
+    case "use":
+      return { type: "use-item", itemId: id };
+    case "take":
+      return { type: "take", itemId: id };
+    case "move":
+      return { type: "move", destinationId: id };
+    case "examine":
+      return { type: "examine", targetId: id };
+    case "force":
+    case "pick":
+    case "break":
+    case "unlock":
+      return { type: view.action, doorId: id };
+    case "search":
+      return { type: "search", roomId: id };
+    case "disarm":
+      return { type: "disarm", trapId: id };
+    case "talk":
+      return { type: "talk", topicId: id };
+    case "leave":
+      return { type: "leave", roomId: id };
+  }
+}
+
 /** Thrown by the dry-run roller: the engine accepted the action and rolls. */
 class WouldRoll extends Error {}
 const DRY_RUN = {
