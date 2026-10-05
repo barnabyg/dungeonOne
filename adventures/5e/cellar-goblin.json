@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 4,
+  "formatVersion": 5,
   "id": "cellar-goblin",
   "title": "The Goblin in the Cellar",
   "objective": "Drive out the goblin that has taken over the inn's cellar.",
@@ -8,7 +8,7 @@
     "min": 1,
     "max": 1
   },
-  "difficulty": "easy",
+  "difficulty": "hard",
   "startRoomId": "cellar",
   "rooms": [
     {

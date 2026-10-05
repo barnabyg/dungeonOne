@@ -46,15 +46,17 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   earlier build (format version 2 or 3), is refused at startup and left
   unchanged.
 - **Starting a 5e adventure.** A saved Fighter's sheet leads with its
-  adventures: **Start** for each built-in 5e adventure module (or **Continue**
-  for the one in progress), tagged with its level range and difficulty and
-  ordered by level range, then Easy, Medium, Hard. A line beside them warns
+  adventures: **Start** for each built-in 5e adventure module that passes the
+  balance gate at its declared difficulty (or **Continue** for the one in
+  progress), tagged with its level range and that difficulty and ordered by
+  level range, then Easy, Medium, Hard. `npm.cmd run balance` shows each
+  module's verdict. A line beside them warns
   that a character at 0 HP is defeated for good, and a defeated character's
   sheet says so at the top. The modules are:
   _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`), one SRD 5.2
   Goblin Warrior; _The Goblins in the Storeroom_
-  (`adventures/5e/goblin-storeroom.json`), a group fight against two Goblin
-  Minions and a Goblin Warrior; _The Goblin Warren_
+  (`adventures/5e/goblin-storeroom.json`, level 2), a group fight against a
+  Goblin Minion and a Goblin Warrior; _The Goblin Warren_
   (`adventures/5e/goblin-warren.json`, levels 2–3), a Goblin Warrior carrying
   a potion, then the SRD 5.2 Goblin Boss and its hoard, and a way out (its
   400 XP loot ending, with the fights' 250, takes a level 2 character from the

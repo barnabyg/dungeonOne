@@ -1,21 +1,21 @@
 {
   "kind": "dungeon-one-5e-adventure",
   "formatVersion": 5,
-  "id": "goblin-storeroom",
-  "title": "The Goblins in the Storeroom",
-  "objective": "Clear the goblin band out of the mill storeroom.",
+  "id": "goblin-pair",
+  "title": "The Goblin Pair",
+  "objective": "Drive two goblin warriors out of the woodshed.",
   "recommendedLevels": {
     "min": 2,
     "max": 2
   },
   "difficulty": "medium",
-  "startRoomId": "storeroom",
+  "startRoomId": "woodshed",
   "rooms": [
     {
-      "id": "storeroom",
-      "name": "Mill Storeroom",
-      "description": "Flour sacks are slit open across the floor, and the air is white with dust. Two goblins look up from their plunder.",
-      "encounterId": "goblin-band",
+      "id": "woodshed",
+      "name": "Woodshed",
+      "description": "Two goblin warriors look up from the kindling.",
+      "encounterId": "goblin-pair",
       "features": [],
       "items": []
     }
@@ -23,20 +23,20 @@
   "passages": [],
   "encounters": [
     {
-      "id": "goblin-band",
+      "id": "goblin-pair",
       "opponents": [
         {
-          "id": "minion",
-          "name": "Goblin Minion",
-          "description": "A wiry goblin minion licks flour from its dagger.",
+          "id": "warrior-1",
+          "name": "Goblin Warrior 1",
+          "description": "A goblin warrior with a notched scimitar.",
           "statBlock": {
-            "name": "Goblin Minion",
+            "name": "Goblin Warrior",
             "size": "Small",
             "type": "Fey (Goblinoid)",
-            "armorClass": 12,
+            "armorClass": 15,
             "hitPoints": {
-              "average": 7,
-              "formula": "2d6"
+              "average": 10,
+              "formula": "3d6"
             },
             "abilities": {
               "strength": 8,
@@ -46,26 +46,26 @@
               "wisdom": 8,
               "charisma": 8
             },
-            "challengeRating": "1/8",
-            "xp": 25,
+            "challengeRating": "1/4",
+            "xp": 50,
             "attacks": [
               {
-                "name": "Dagger",
+                "name": "Scimitar",
                 "bonus": 4,
                 "damage": {
                   "dice": 1,
-                  "sides": 4,
+                  "sides": 6,
                   "modifier": 2,
-                  "type": "piercing"
+                  "type": "slashing"
                 }
               }
             ]
           }
         },
         {
-          "id": "warrior",
-          "name": "Goblin Warrior",
-          "description": "Behind it a goblin warrior in patched leather barks orders and draws its scimitar.",
+          "id": "warrior-2",
+          "name": "Goblin Warrior 2",
+          "description": "A second goblin warrior, grinning.",
           "statBlock": {
             "name": "Goblin Warrior",
             "size": "Small",
@@ -100,22 +100,22 @@
           }
         }
       ],
-      "victoryEndingId": "storeroom-cleared",
-      "defeatEndingId": "fallen-in-the-flour"
+      "victoryEndingId": "shed-cleared",
+      "defeatEndingId": "fallen-in-the-shed"
     }
   ],
   "endings": [
     {
-      "id": "storeroom-cleared",
+      "id": "shed-cleared",
       "kind": "victory",
-      "title": "The storeroom is clear",
-      "text": "The last goblin drops among the torn sacks. The miller can count what is left of the harvest."
+      "title": "The woodshed is clear",
+      "text": "Both goblins lie among the kindling."
     },
     {
-      "id": "fallen-in-the-flour",
+      "id": "fallen-in-the-shed",
       "kind": "defeat",
-      "title": "Fallen in the flour",
-      "text": "You fall among the flour sacks. Your adventuring ends here."
+      "title": "Fallen in the woodshed",
+      "text": "You fall among the kindling. Your adventuring ends here."
     }
   ]
 }

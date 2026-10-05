@@ -253,13 +253,13 @@ Characters are sampled from the real 4d6-drop-lowest distribution, placed sensib
 
 Owner principle: early levels are when a character is most vulnerable, and the game must not make them easy. A level-1 Fighter has no access to heavy weapons such as a greatsword (starting gear is common tier only; see 11.3 and 12.2).
 
-**Too easy.** The owner's definition: the strongest character can kill an average enemy in one hit. Proposed measure, to be settled in this ticket (open decision 1):
+**Too easy.** The owner's definition: the strongest character can kill an average enemy in one hit. Settled measure (#135; open decision 1):
 
-- Take the strongest sampled character (11.7 percentile) at the maximum recommended level and the adventure's ordinary enemies (not bosses).
-- For each, compute the chance that a single attack reduces the enemy from full HP to 0, counting hit chance, crits, Fighting Style and masteries.
-- Fail if that chance exceeds a per-difficulty cap for most ordinary enemies.
+- Take the strongest sampled character (the 95th percentile) at the maximum recommended level and the adventure's ordinary enemies: every opponent not marked `boss: true`.
+- For each, compute the chance that a single attack reduces the enemy from full HP to 0, counting hit chance, crits, Fighting Style and masteries. Per attack, not per turn.
+- Fail if more than half the ordinary enemies exceed the cap: Easy 50%, Medium 40%, Hard 30%.
 
-Completing the adventure must also not award more XP than takes a character past the maximum recommended level + 1.
+Completing the adventure must also not award more XP than takes a character past the maximum recommended level + 1. The check starts the character one XP short of the level above the maximum.
 
 The browser's adventure picker shows the difficulty.
 
@@ -731,7 +731,7 @@ Needs an ADR: a fourth record, the **campaign**, separate from character, advent
 | Ability generation        | 4d6-drop-lowest; roll once, place freely, no rerolls and no safety net. The goal is friction against gaming creation, not prevention; revisit if it doesn't work | 11.3                    |
 | Background increase       | 2024 +2/+1 (or +1/+1/+1) ability increase only; no other background features                                                                                     | 11.3                    |
 | Balance thresholds        | Declared difficulty per adventure: Easy ≥ 95%, Medium ≥ 85%, Hard ≥ 75% survival, held as a parameter                                                            | 11.8                    |
-| Too easy                  | One-hit kills (or a high chance of them) of average enemies; exact measure settled in 11.8                                                                       | 11.8                    |
+| Too easy                  | One-hit kills (or a high chance of them) of average enemies; exact measure settled in 11.8 (see 5 October)                                                       | 11.8                    |
 | Early levels              | The most dangerous stage of a character, never easy. No heavy weapons such as a greatsword at level 1; starting gear is common tier only                         | 11.3, 11.8, 12.2        |
 | 0 HP                      | Instant defeat for the player character; no death saving throws                                                                                                  | 11.4                    |
 | First adventure           | Stock D&D dungeon crawl: enter an abandoned dungeon, explore, find loot, get out alive                                                                           | 11.9                    |
@@ -742,22 +742,23 @@ Needs an ADR: a fourth record, the **campaign**, separate from character, advent
 
 ### Settled by the owner, 5 October 2026
 
-| Decision           | Outcome                                                                                                                                                                               | Where it applies      |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| Enemy treasure     | Searching the body is the only way to get what a defeated enemy carried; defeating it gives nothing by itself                                                                         | #133, 13.5            |
-| Victory and escape | Both are surviving completion, so both keep the treasure carried                                                                                                                      | #133                  |
-| Adventure rollback | What is found is usable at once in the same adventure; on surviving completion the character keeps what it holds at the end, and on defeat or abandonment it is exactly as it started | Section 3, 12.3, 12.5 |
-| Level-up           | Credited automatically when the adventure is settled; the ending's level-up card and its one step back to the sheet are its confirmation                                              | #133                  |
+| Decision               | Outcome                                                                                                                                                                                                                  | Where it applies      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| Enemy treasure         | Searching the body is the only way to get what a defeated enemy carried; defeating it gives nothing by itself                                                                                                            | #133, 13.5            |
+| Victory and escape     | Both are surviving completion, so both keep the treasure carried                                                                                                                                                         | #133                  |
+| Adventure rollback     | What is found is usable at once in the same adventure; on surviving completion the character keeps what it holds at the end, and on defeat or abandonment it is exactly as it started                                    | Section 3, 12.3, 12.5 |
+| Level-up               | Credited automatically when the adventure is settled; the ending's level-up card and its one step back to the sheet are its confirmation                                                                                 | #133                  |
+| Ordinary enemy         | Any opponent a module doesn't mark `boss: true`; bosses are exempt from the one-hit-kill cap                                                                                                                             | #135                  |
+| One-hit-kill cap       | Easy 50%, Medium 40%, Hard 30%: the chance one attack from the strongest character at the maximum recommended level kills the enemy from full HP. A module fails when more than half its ordinary enemies exceed the cap | #135                  |
+| Per attack or per turn | Per attack; Action Surge (and later Extra Attack) is not counted                                                                                                                                                         | #135                  |
+| Weakest and strongest  | The 5th and 95th percentiles of the 4d6-drop-lowest sample by total ability modifier                                                                                                                                     | #134, #135            |
+| Shipped modules        | Keep the thresholds; declare each module at the difficulty it passes (four become Hard). The Storeroom moves to level 2 with a Goblin Minion and a Goblin Warrior, declared Medium                                       | #135                  |
 
 ### Open
 
-Number 1 is settled while working ticket 11.8; the rest can wait until their increment.
+Number 1 was settled while working ticket 11.8 (#135; see the 5 October decisions); the rest can wait until their increment.
 
-1. **"Too easy" measure details:**
-   - what counts as an ordinary enemy;
-   - the per-difficulty one-hit-kill cap;
-   - whether to measure per attack or per turn (Action Surge now, Extra Attack later);
-   - the character percentiles used as "weakest" and "strongest" (11.7).
+1. ~~**"Too easy" measure details**~~: settled. The XP limit's reading is #135's, for the owner to confirm: all the XP a module offers must not take a character one XP short of the level above the maximum past the maximum + 1 (SRD 5.2 XP table).
 2. **Currency:** 5e copper/silver/gold, stored as copper internally and shown in mixed denominations (recommended).
 3. **Starting equipment:** common-tier kits only, or starting coin to buy from the common tier. Also, when uncommon and rare items appear in markets.
 4. **XP and loot for fled or surrendered monsters.**

@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 4) and its validator.
+ * The 5e adventure module format (format version 5) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -32,7 +32,7 @@ import {
   type FighterSkill,
 } from "./fighter-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 4;
+export const FIFTH_ADVENTURE_FORMAT = 5;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -66,6 +66,11 @@ export type FifthOpponent = Readonly<{
   name: string;
   description: string;
   statBlock: StatBlock;
+  /**
+   * A boss is exempt from the balance gate's one-hit-kill cap; every other
+   * opponent is ordinary.
+   */
+  boss?: true;
 }>;
 
 export type FifthEncounter = Readonly<{
@@ -520,16 +525,21 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
       const opponents = list(encounter.opponents, `${where} opponents`, 8).map(
         (raw, number) => {
           const at = `${where} opponent ${number + 1}`;
-          const opponent = exactKeys(
+          const opponent = knownKeys(
             raw,
             ["id", "name", "description", "statBlock"],
+            ["boss"],
             at,
           );
+          if (opponent.boss !== undefined && opponent.boss !== true) {
+            fail(`${at} boss must be true, or left out.`);
+          }
           return {
             id: id(opponent.id, `${at} id`),
             name: text(opponent.name, `${at} name`, 60),
             description: text(opponent.description, `${at} description`),
             statBlock: statBlock(opponent.statBlock, `${at} statBlock`),
+            ...(opponent.boss === true ? { boss: true as const } : {}),
           };
         },
       );
@@ -1108,23 +1118,28 @@ export async function loadFifthAdventure(
 }
 
 /**
- * The order the browser offers modules in: by recommended level range, lowest
- * first, then by difficulty, easy to hard, then by id. Returns a new array.
+ * The modules the browser offers, in the order it offers them: only those
+ * `qualifies` accepts (the balance gate, #135), by recommended level range,
+ * lowest first, then by difficulty, easy to hard, then by id. Returns a new
+ * array.
  */
 export function orderFifthAdventures<
   T extends Pick<FifthAdventure, "id" | "recommendedLevels" | "difficulty">,
->(adventures: readonly T[]): T[] {
-  return [...adventures].sort(
-    (a, b) =>
-      a.recommendedLevels.min - b.recommendedLevels.min ||
-      a.recommendedLevels.max - b.recommendedLevels.max ||
-      DIFFICULTIES.indexOf(a.difficulty) - DIFFICULTIES.indexOf(b.difficulty) ||
-      a.id.localeCompare(b.id),
-  );
+>(adventures: readonly T[], qualifies: (adventure: T) => boolean): T[] {
+  return adventures
+    .filter(qualifies)
+    .sort(
+      (a, b) =>
+        a.recommendedLevels.min - b.recommendedLevels.min ||
+        a.recommendedLevels.max - b.recommendedLevels.max ||
+        DIFFICULTIES.indexOf(a.difficulty) -
+          DIFFICULTIES.indexOf(b.difficulty) ||
+        a.id.localeCompare(b.id),
+    );
 }
 
 /**
- * The built-in 5e modules, by id. The browser offers them in
+ * The built-in 5e modules, by id. The browser offers those that qualify, in
  * `orderFifthAdventures` order.
  */
 export const FIFTH_ADVENTURE_FILES = {

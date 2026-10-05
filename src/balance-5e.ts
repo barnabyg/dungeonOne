@@ -1,6 +1,7 @@
 /**
  * The 5e balance harness: plays an adventure module through the real runtime
- * and reports how dangerous it is.
+ * and reports how dangerous it is, and gates a module on its declared
+ * difficulty (`gateAdventure`).
  *
  * Characters are sampled from the 4d6-drop-lowest distribution and placed
  * with the creation defaults (`defaultPlacement`, `FIGHTER_DEFAULT_CHOICES`),
@@ -8,6 +9,7 @@
  * "strong" are percentiles of that sample by total ability modifier.
  */
 import type {
+  Difficulty,
   EndingKind,
   FifthAdventure,
   FifthPassage,
@@ -999,4 +1001,266 @@ export function renderBalanceResult(
     );
   }
   return lines.join("\n");
+}
+
+/** What a declared difficulty demands of a module. */
+export type DifficultyThresholds = Readonly<{
+  /** The least share of cautious runs the weakest character must survive. */
+  survival: number;
+  /** The most chance one attack may have of killing an ordinary enemy. */
+  oneHitKillCap: number;
+}>;
+
+/** The gate's parameter table, recorded in docs/character-rules.md. */
+export const DIFFICULTY_THRESHOLDS: Readonly<
+  Record<Difficulty, DifficultyThresholds>
+> = {
+  easy: { survival: 0.95, oneHitKillCap: 0.5 },
+  medium: { survival: 0.85, oneHitKillCap: 0.4 },
+  hard: { survival: 0.75, oneHitKillCap: 0.3 },
+};
+
+/** The weakest and strongest sampled characters, as percentiles. */
+export const WEAKEST_PERCENTILE = 5;
+export const STRONGEST_PERCENTILE = 95;
+/** The style the weakest character plays the survival check in. */
+export const GATE_STYLE: PlayStyle = "cautious";
+
+/**
+ * The SRD 5.2 XP needed for levels 1–5. Characters stop at level 3; levels 4
+ * and 5 are here only so the XP check can tell how far XP would carry one.
+ */
+const SRD_LEVEL_XP = [0, 300, 900, 2700, 6500] as const;
+
+function srdLevelForXp(xp: number): number {
+  return SRD_LEVEL_XP.filter((needed) => xp >= needed).length;
+}
+
+/** The share of runs the weakest character survives, against the threshold. */
+export type SurvivalCheck = Readonly<{
+  ok: boolean;
+  level: number;
+  percentile: number;
+  style: PlayStyle;
+  runs: number;
+  rate: number;
+  required: number;
+}>;
+
+/** How often one attack kills each ordinary enemy, against the cap. */
+export type OneHitKillCheck = Readonly<{
+  ok: boolean;
+  level: number;
+  percentile: number;
+  cap: number;
+  /** Each ordinary opponent, with its one-hit-kill chance. */
+  enemies: readonly Readonly<{
+    encounterId: string;
+    opponentId: string;
+    name: string;
+    chance: number;
+  }>[];
+  /** The ordinary enemies over the cap; more than half of them fails. */
+  overCap: OneHitKillCheck["enemies"];
+}>;
+
+/**
+ * Whether every XP award the module offers keeps a character within the
+ * maximum recommended level + 1, starting one XP short of the level above
+ * the maximum.
+ */
+export type XpCheck = Readonly<{
+  ok: boolean;
+  /** Every encounter's XP and the most any ending awards. */
+  available: number;
+  startXp: number;
+  endLevel: number;
+  levelLimit: number;
+}>;
+
+export type GateVerdict = Readonly<{
+  adventureId: string;
+  difficulty: Difficulty;
+  qualified: boolean;
+  survival: SurvivalCheck;
+  oneHitKill: OneHitKillCheck;
+  xp: XpCheck;
+}>;
+
+export type GateResult =
+  | Readonly<{ ok: true; verdict: GateVerdict }>
+  | Readonly<{
+      ok: false;
+      failure: Readonly<{ code: BalanceFailureCode; message: string }>;
+    }>;
+
+export type GateOptions = Pick<
+  BalanceOptions,
+  "seeds" | "sampleSize" | "sampleSeed" | "stepLimit"
+>;
+
+/**
+ * Checks `adventure` against its declared difficulty
+ * (`DIFFICULTY_THRESHOLDS`):
+ * - too deadly: the weakest character at the minimum recommended level,
+ *   playing cautious, must survive at least the difficulty's share of runs;
+ * - too easy: for the strongest character at the maximum recommended level,
+ *   no more than half the ordinary (non-boss) enemies may be killed by one
+ *   attack from full HP more often than the difficulty's cap;
+ * - XP: all the XP the module offers must not take a character one XP short
+ *   of the level above the maximum past the maximum + 1.
+ * A module the harness can't play fails with a named reason, as in
+ * `qualifyAdventure`. The same options always give the same verdict.
+ */
+export function gateAdventure(
+  adventure: FifthAdventure,
+  {
+    seeds = Array.from({ length: DEFAULT_SEED_COUNT }, (_, seed) => seed),
+    sampleSize,
+    sampleSeed,
+    stepLimit,
+  }: GateOptions = {},
+): GateResult {
+  const thresholds = DIFFICULTY_THRESHOLDS[adventure.difficulty];
+  const { min, max } = adventure.recommendedLevels;
+  try {
+    const [weakest, strongest] = percentileCharacters({
+      percentiles: [WEAKEST_PERCENTILE, STRONGEST_PERCENTILE],
+      ...(sampleSize === undefined ? {} : { sampleSize }),
+      ...(sampleSeed === undefined ? {} : { sampleSeed }),
+    });
+    const runtime = createFifthRuntime(
+      adventure,
+      fighterAtLevel(weakest!.dice, min as Level),
+    );
+    const runs = seeds.map((seed) =>
+      playAdventure(runtime, GATE_STYLE, seed, {
+        ...(stepLimit === undefined ? {} : { stepLimit }),
+      }),
+    );
+    const rate =
+      runs.filter(({ outcome }) => outcome !== "defeat").length / runs.length;
+    const survival: SurvivalCheck = {
+      ok: rate >= thresholds.survival,
+      level: min,
+      percentile: WEAKEST_PERCENTILE,
+      style: GATE_STYLE,
+      runs: runs.length,
+      rate,
+      required: thresholds.survival,
+    };
+
+    const strong = fighterAtLevel(strongest!.dice, max as Level);
+    const enemies = adventure.encounters.flatMap(
+      ({ id: encounterId, opponents }) =>
+        opponents.flatMap(({ id, name, statBlock, boss }) =>
+          boss === true
+            ? []
+            : [
+                {
+                  encounterId,
+                  opponentId: id,
+                  name,
+                  chance: oneHitKillChance(strong, statBlock),
+                },
+              ],
+        ),
+    );
+    const overCap = enemies.filter(
+      ({ chance }) => chance > thresholds.oneHitKillCap,
+    );
+    const oneHitKill: OneHitKillCheck = {
+      ok: overCap.length * 2 <= enemies.length,
+      level: max,
+      percentile: STRONGEST_PERCENTILE,
+      cap: thresholds.oneHitKillCap,
+      enemies,
+      overCap,
+    };
+
+    const available =
+      adventure.encounters.reduce(
+        (sum, { opponents }) =>
+          sum +
+          opponents.reduce((total, { statBlock }) => total + statBlock.xp, 0),
+        0,
+      ) + Math.max(0, ...adventure.endings.map(({ xp }) => xp ?? 0));
+    const startXp = SRD_LEVEL_XP[max]! - 1;
+    const endLevel = srdLevelForXp(startXp + available);
+    const xp: XpCheck = {
+      ok: endLevel <= max + 1,
+      available,
+      startXp,
+      endLevel,
+      levelLimit: max + 1,
+    };
+
+    return {
+      ok: true,
+      verdict: {
+        adventureId: adventure.id,
+        difficulty: adventure.difficulty,
+        qualified: survival.ok && oneHitKill.ok && xp.ok,
+        survival,
+        oneHitKill,
+        xp,
+      },
+    };
+  } catch (error) {
+    if (error instanceof BalanceError) {
+      return {
+        ok: false,
+        failure: { code: error.code, message: error.message },
+      };
+    }
+    throw error;
+  }
+}
+
+/** Each module gated so far, by its content: the verdict never changes. */
+const gated = new Map<string, boolean>();
+
+/**
+ * Whether `adventure` passes the gate at its declared difficulty with the
+ * default options, as the browser offers modules.
+ */
+export function passesGate(adventure: FifthAdventure): boolean {
+  const key = JSON.stringify(adventure);
+  let passed = gated.get(key);
+  if (passed === undefined) {
+    const result = gateAdventure(adventure);
+    passed = result.ok && result.verdict.qualified;
+    gated.set(key, passed);
+  }
+  return passed;
+}
+
+/**
+ * The gate's verdict as plain text: whether the module qualifies at its
+ * declared difficulty, then each check, naming the ordinary enemies over
+ * the one-hit-kill cap.
+ */
+export function renderGateResult(
+  adventure: Pick<FifthAdventure, "id" | "title">,
+  result: GateResult,
+): string {
+  const name = `${adventure.title} (${adventure.id})`;
+  if (!result.ok) {
+    return `${name} does not qualify: ${result.failure.code}. ${result.failure.message}`;
+  }
+  const { verdict } = result;
+  const { survival, oneHitKill, xp } = verdict;
+  const mark = (ok: boolean) => (ok ? "pass" : "FAIL");
+  const over = oneHitKill.overCap;
+  return [
+    `${name} ${verdict.qualified ? "qualifies" : "does not qualify"} as ${verdict.difficulty}.`,
+    `  Too deadly, ${mark(survival.ok)}: the level ${survival.level}, ${survival.percentile}th percentile character playing ${survival.style} survived ${percent(survival.rate)} of ${survival.runs} runs; ${verdict.difficulty} needs ${percent(survival.required)}.`,
+    `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile character kills ` +
+      (over.length === 0
+        ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`
+        : `${over.length} of ${oneHitKill.enemies.length} ordinary enemies with one attack more than ${percent(oneHitKill.cap)} of the time: ${over
+            .map(({ name: enemy, chance }) => `${enemy} ${percent(chance)}`)
+            .join(", ")}.${oneHitKill.ok ? "" : " No more than half may be."}`),
+    `  XP, ${mark(xp.ok)}: its ${xp.available} XP takes a character from ${xp.startXp} XP to level ${xp.endLevel}; the limit is level ${xp.levelLimit}.`,
+  ].join("\n");
 }

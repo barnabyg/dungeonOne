@@ -43,6 +43,7 @@ import {
   type HistoryEntry,
 } from "./session-5e.js";
 import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
+import { passesGate } from "./balance-5e.js";
 import {
   ABILITIES,
   ABILITY_SCORE_CAP,
@@ -78,6 +79,11 @@ export type FifthBrowserOptions = Readonly<{
   apiKey?: string;
   /** Replaces the OpenAI DM, for tests. */
   dmModel?: DmModel;
+  /**
+   * Which modules are offered; the balance gate at each module's declared
+   * difficulty unless replaced, for tests.
+   */
+  qualifies?: (adventure: FifthAdventure) => boolean;
 }>;
 
 /**
@@ -254,7 +260,12 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     (apiKey.length === 0
       ? undefined
       : createOpenAiDmModel({ apiKey, model: OPENAI_DM_DEFAULT_MODEL }));
-  const offered = orderFifthAdventures(adventures);
+  // Only modules that qualify at their declared difficulty are offered or
+  // can be started; a session already under way plays on.
+  const offered = orderFifthAdventures(
+    adventures,
+    options.qualifies ?? passesGate,
+  );
   const view = (data: FifthLibraryData) => libraryView(data, offered);
   // The file lock fails rather than waits, so this server's own changes queue.
   let queue: Promise<unknown> = Promise.resolve();
@@ -385,7 +396,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         ) {
           throw new Error("Invalid adventure request.");
         }
-        const adventure = adventures.find(({ id }) => id === body.adventureId);
+        const adventure = offered.find(({ id }) => id === body.adventureId);
         if (adventure === undefined) {
           throw new Error("There is no such adventure.");
         }

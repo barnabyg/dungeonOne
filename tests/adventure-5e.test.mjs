@@ -24,7 +24,7 @@ test("the built-in fixture is a valid one-room module with a declared level rang
   const [adventure] = await loadBuiltInFifthAdventures();
   assert.equal(adventure.id, "cellar-goblin");
   assert.deepEqual(adventure.recommendedLevels, { min: 1, max: 1 });
-  assert.equal(adventure.difficulty, "easy");
+  assert.equal(adventure.difficulty, "hard");
   assert.equal(adventure.rooms.length, 1);
   const [opponent] = adventure.encounters[0].opponents;
   // SRD 5.2 Goblin Warrior.
@@ -100,16 +100,43 @@ test("the validator rejects malformed modules", () => {
   }
 });
 
+test("an opponent may be marked as a boss, and is ordinary otherwise", async () => {
+  const boss = validateFifthAdventure(
+    changed((m) => (m.encounters[0].opponents[0].boss = true)),
+  );
+  assert.equal(boss.encounters[0].opponents[0].boss, true);
+  assert.equal(
+    "boss" in validateFifthAdventure(fixture).encounters[0].opponents[0],
+    false,
+  );
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        changed((m) => (m.encounters[0].opponents[0].boss = false)),
+      ),
+    /opponent 1 boss must be true, or left out/,
+  );
+  const warren = (await loadBuiltInFifthAdventures()).find(
+    ({ id }) => id === "goblin-warren",
+  );
+  assert.deepEqual(
+    warren.encounters.flatMap(({ opponents }) =>
+      opponents.flatMap(({ id, boss }) => (boss ? [id] : [])),
+    ),
+    ["goblin-boss"],
+  );
+});
+
 test("a module in another format version is refused by name and left unchanged", async () => {
   const directory = await mkdtemp(join(tmpdir(), "adventure-5e-"));
   try {
     const path = join(directory, "old.json");
-    const bytes = JSON.stringify({ ...fixture, formatVersion: 3 });
+    const bytes = JSON.stringify({ ...fixture, formatVersion: 4 });
     await writeFile(path, bytes);
     await assert.rejects(loadFifthAdventure(path), (error) => {
       assert.match(
         error.message,
-        /old\.json is a 5e adventure module in format version 3, not 4\. Move it aside/,
+        /old\.json is a 5e adventure module in format version 4, not 5\. Move it aside/,
       );
       return true;
     });
@@ -119,7 +146,7 @@ test("a module in another format version is refused by name and left unchanged",
   }
 });
 
-test("the group-fight module holds three goblins with distinct names", async () => {
+test("the group-fight module holds two goblins with distinct names", async () => {
   const adventures = await loadBuiltInFifthAdventures();
   assert.deepEqual(
     adventures.map(({ id }) => id),
@@ -133,7 +160,8 @@ test("the group-fight module holds three goblins with distinct names", async () 
     ],
   );
   const group = adventures[1];
-  assert.equal(group.difficulty, "hard");
+  assert.equal(group.difficulty, "medium");
+  assert.deepEqual(group.recommendedLevels, { min: 2, max: 2 });
   assert.deepEqual(
     group.encounters[0].opponents.map(({ id, name, statBlock }) => [
       id,
@@ -141,8 +169,7 @@ test("the group-fight module holds three goblins with distinct names", async () 
       statBlock.name,
     ]),
     [
-      ["minion-1", "Goblin Minion 1", "Goblin Minion"],
-      ["minion-2", "Goblin Minion 2", "Goblin Minion"],
+      ["minion", "Goblin Minion", "Goblin Minion"],
       ["warrior", "Goblin Warrior", "Goblin Warrior"],
     ],
   );

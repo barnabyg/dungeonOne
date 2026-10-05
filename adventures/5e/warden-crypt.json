@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 4,
+  "formatVersion": 5,
   "id": "warden-crypt",
   "title": "The Warden's Crypt",
   "objective": "Get past the crypt's doors and traps and put an end to whatever guards the warden's tomb.",
