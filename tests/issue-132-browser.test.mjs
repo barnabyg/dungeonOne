@@ -208,12 +208,12 @@ async function play(seed, check) {
       ),
     );
     shown = await screen(page);
-    assert.match(
-      shown.actions,
-      expected.forced
-        ? /Force Swollen Door Already open/
-        : /Force Swollen Door Already tried/,
-    );
+    // An opened door's Force button goes; a failed one says it was tried.
+    if (expected.forced) {
+      assert.doesNotMatch(shown.actions, /Force Swollen Door/);
+    } else {
+      assert.match(shown.actions, /Force Swollen Door Already tried/);
+    }
     assert.match(
       shown.actions,
       expected.forced ? /Go to Flooded Cell\n/ : /Go to Flooded Cell Door shut/,

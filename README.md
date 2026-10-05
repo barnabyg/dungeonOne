@@ -86,8 +86,8 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   trap has **Disarm**. Going through an armed trap springs it: a saving throw
   for half damage. **Talk** asks a creature about one of its topics; some
   need a check. Each check is rolled once: its button then stays disabled
-  with the reason ("Already tried", "Already open", "Already searched",
-  "Already asked"), so retyping never rerolls it. The history shows each
+  with the reason ("Already tried", "Already searched", "Already asked"), so
+  retyping never rerolls it. Once a door is open its buttons go. The history shows each
   check and saving throw with its die, ability modifier, proficiency, DC and
   a Success or Failure tag. Entering a room with a fight begins it,
   and you cannot leave, examine, take, search, talk or open a door until it

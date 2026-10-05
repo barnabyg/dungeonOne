@@ -278,7 +278,8 @@ test("a passed check opens the door for good", () => {
   assert.deepEqual(opened.openedDoorIds, ["swollen-door"]);
   const actions = assertAgrees(runtime, opened);
   assert.equal(find(actions, "move", "flooded-cell").available, true);
-  assert.equal(find(actions, "force", "swollen-door").reason, "Already open");
+  // An open door offers no way to open it (#136).
+  assert.equal(find(actions, "force", "swollen-door"), undefined);
   refuses(
     runtime,
     opened,
@@ -371,8 +372,8 @@ test("a locked door is picked or broken by checks, or opened with its key", () =
     "You unlock the Iron Door with the Iron Key.",
   );
   assert.equal(
-    find(assertAgrees(runtime, unlocked.state), "unlock", "iron-door").reason,
-    "Already open",
+    find(assertAgrees(runtime, unlocked.state), "unlock", "iron-door"),
+    undefined,
   );
 });
 
