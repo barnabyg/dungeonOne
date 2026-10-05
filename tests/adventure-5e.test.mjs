@@ -109,7 +109,7 @@ test("a module in another format version is refused by name and left unchanged",
     await assert.rejects(loadFifthAdventure(path), (error) => {
       assert.match(
         error.message,
-        /old\.json is a 5e adventure module in format version 0, not 2\. Move it aside/,
+        /old\.json is a 5e adventure module in format version 0, not 3\. Move it aside/,
       );
       return true;
     });
@@ -123,7 +123,7 @@ test("the group-fight module holds three goblins with distinct names", async () 
   const adventures = await loadBuiltInFifthAdventures();
   assert.deepEqual(
     adventures.map(({ id }) => id),
-    ["cellar-goblin", "goblin-storeroom", "smugglers-cellar"],
+    ["cellar-goblin", "goblin-storeroom", "smugglers-cellar", "warden-crypt"],
   );
   const group = adventures[1];
   assert.equal(group.difficulty, "hard");
@@ -265,7 +265,7 @@ test("the validator rejects unknown references in rooms, passages and items", ()
     ],
     [
       (m) => (room(m, "den").features[0].id = "iron-chest"),
-      /duplicate feature or item id iron-chest/,
+      /duplicate id iron-chest/,
     ],
     [
       (m) =>
@@ -298,4 +298,200 @@ test("the validator rejects an ending no encounter can reach", () => {
       ),
     /ending cellar-cleared cannot be reached/,
   );
+});
+
+const crypt = JSON.parse(
+  await readFile(
+    new URL("../adventures/5e/warden-crypt.json", import.meta.url),
+  ),
+);
+const crypted = (change) => {
+  const copy = structuredClone(crypt);
+  change(copy);
+  return copy;
+};
+const passage = (m, id) => m.passages.find((entry) => entry.id === id);
+
+test("the crypt fixture has a stuck door, a locked door with a key, a trap and a talkable creature", async () => {
+  const adventure = (await loadBuiltInFifthAdventures()).find(
+    ({ id }) => id === "warden-crypt",
+  );
+  assert.deepEqual(validateFifthAdventure(crypt), adventure);
+  assert.deepEqual(passage(adventure, "stair-to-cell").door, {
+    id: "swollen-door",
+    name: "Swollen Door",
+    description: "The wood has swollen tight in its frame.",
+    state: "stuck",
+    force: { skill: "athletics", dc: 13 },
+  });
+  const iron = passage(adventure, "hall-to-strongroom").door;
+  assert.equal(iron.state, "locked");
+  assert.equal(iron.keyItemId, "iron-key");
+  assert.deepEqual(iron.pick, { ability: "dexterity", dc: 15 });
+  const trap = passage(adventure, "hall-to-offerings").trap;
+  assert.deepEqual(trap.save, { ability: "dexterity", dc: 12 });
+  assert.equal(trap.defeatEndingId, "fallen-in-the-crypt");
+  const [smuggler] = room(adventure, "hall").creatures;
+  assert.deepEqual(
+    smuggler.topics.map(({ id, check }) => [id, check]),
+    [
+      ["warden", undefined],
+      ["key-whereabouts", { skill: "persuasion", dc: 12 }],
+    ],
+  );
+  // A room without creatures has none.
+  assert.deepEqual(room(adventure, "tomb").creatures, []);
+});
+
+test("the validator rejects a check or trap that guards the only route to an essential room", () => {
+  for (const [change, message] of [
+    [
+      (m) =>
+        (passage(m, "hall-to-tomb").door = {
+          id: "tomb-door",
+          name: "Tomb Door",
+          description: "Stuck fast.",
+          state: "stuck",
+          force: { skill: "athletics", dc: 10 },
+        }),
+      /room tomb is essential, but every route to it needs a check or passes a trap \(tomb-door\)/,
+    ],
+    [
+      (m) =>
+        (passage(m, "hall-to-tomb").trap = structuredClone(
+          passage(m, "hall-to-offerings").trap,
+        )) && (passage(m, "hall-to-tomb").trap.id = "tomb-trap"),
+      /room tomb is essential.*\(tomb-trap\)/,
+    ],
+    [
+      // The only key lies past the dart trap.
+      (m) =>
+        (passage(m, "hall-to-tomb").door = {
+          id: "tomb-door",
+          name: "Tomb Door",
+          description: "Locked.",
+          state: "locked",
+          keyItemId: "iron-key",
+        }),
+      /room tomb is essential.*\(tomb-door\)/,
+    ],
+  ]) {
+    assert.throws(() => validateFifthAdventure(crypted(change)), message);
+  }
+  // A locked door is no obstacle when its key can be reached freely.
+  const freeKey = crypted((m) => {
+    passage(m, "hall-to-tomb").door = {
+      id: "tomb-door",
+      name: "Tomb Door",
+      description: "Locked.",
+      state: "locked",
+      keyItemId: "stair-key",
+    };
+    room(m, "crypt-stair").items.push({
+      id: "stair-key",
+      name: "Stair Key",
+      description: "A small key.",
+      kind: "key",
+      hiddenIn: "carved-warning",
+    });
+  });
+  assert.equal(
+    validateFifthAdventure(freeKey).passages[2].door.keyItemId,
+    "stair-key",
+  );
+});
+
+test("the validator rejects malformed doors, traps and creatures", () => {
+  for (const [change, message] of [
+    [
+      (m) =>
+        (passage(m, "stair-to-cell").door.pick = {
+          ability: "dexterity",
+          dc: 10,
+        }),
+      /a stuck door is opened only by force/,
+    ],
+    [
+      (m) => delete passage(m, "stair-to-cell").door.force,
+      /a stuck door needs force/,
+    ],
+    [
+      (m) => {
+        const door = passage(m, "hall-to-strongroom").door;
+        delete door.pick;
+        delete door.break;
+        delete door.keyItemId;
+      },
+      /a locked door needs a key, pick or break/,
+    ],
+    [
+      (m) =>
+        (passage(m, "hall-to-strongroom").door.force = {
+          skill: "athletics",
+          dc: 10,
+        }),
+      /a locked door is not forced/,
+    ],
+    [
+      (m) => (passage(m, "hall-to-strongroom").door.keyItemId = "cell-potion"),
+      /key cell-potion is not a key/,
+    ],
+    [
+      (m) => (passage(m, "hall-to-strongroom").door.keyItemId = "skeleton"),
+      /unknown key skeleton/,
+    ],
+    [
+      (m) =>
+        (passage(m, "stair-to-cell").door.force = { skill: "stealth", dc: 10 }),
+      /skill must be one of/,
+    ],
+    [
+      (m) =>
+        (passage(m, "stair-to-cell").door.force = {
+          skill: "athletics",
+          dc: 31,
+        }),
+      /dc must be an integer from 5 to 30/,
+    ],
+    [
+      (m) =>
+        (passage(m, "hall-to-offerings").trap.defeatEndingId = "crypt-cleared"),
+      /not a defeat ending/,
+    ],
+    [
+      (m) => (passage(m, "hall-to-offerings").trap.save.ability = "luck"),
+      /save ability must be an ability/,
+    ],
+    [
+      (m) => delete room(m, "hall").creatures[0].topics[1].failure,
+      /topic key-whereabouts has a check but no failure/,
+    ],
+    [
+      (m) => (room(m, "hall").creatures[0].topics[1].id = "warden"),
+      /duplicate id warden/,
+    ],
+    [
+      (m) => (passage(m, "hall-to-offerings").trap.id = "offering-bowl"),
+      /duplicate id offering-bowl/,
+    ],
+    [
+      (m) => (passage(m, "stair-to-cell").door.name = "iron door"),
+      /two doors named iron door/i,
+    ],
+  ]) {
+    assert.throws(() => validateFifthAdventure(crypted(change)), message);
+  }
+});
+
+test("an ending only a trap names can still be reached", () => {
+  const trapOnly = crypted((m) => {
+    m.endings.push({
+      id: "pierced",
+      kind: "defeat",
+      title: "Pierced",
+      text: "The darts find you.",
+    });
+    passage(m, "hall-to-offerings").trap.defeatEndingId = "pierced";
+  });
+  assert.equal(validateFifthAdventure(trapOnly).endings.length, 3);
 });

@@ -1,5 +1,5 @@
 /**
- * A 5e adventure session and its save file (format version 5).
+ * A 5e adventure session and its save file (format version 6).
  *
  * The save holds the character as it started, the adventure module's digest,
  * the session's seed, every committed action with the dice it drew, the
@@ -35,7 +35,7 @@ import {
   type ResultLine,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 5;
+export const FIFTH_SESSION_FORMAT = 6;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;
@@ -147,13 +147,25 @@ function validHistory(value: unknown): value is HistoryEntry[] {
   );
 }
 
-const ROLL_PURPOSES = ["initiative", "target", "attack", "damage", "healing"];
+const ROLL_PURPOSES = [
+  "initiative",
+  "target",
+  "attack",
+  "damage",
+  "healing",
+  "check",
+  "save",
+];
 const OPTIONAL_GROUP_KEYS = [
   "target",
   "rollOff",
   "mode",
   "armorClass",
+  "label",
+  "proficiency",
+  "dc",
   "outcome",
+  "halved",
   "damageType",
   "hpAfter",
   "maxHp",
@@ -195,8 +207,14 @@ function validRollGroup(value: unknown): boolean {
     optional(value.mode, label) &&
     optional(value.armorClass, integer) &&
     optional(value.outcome, (outcome) =>
-      ["hit", "critical", "miss"].includes(String(outcome)),
+      ["hit", "critical", "miss", "success", "failure"].includes(
+        String(outcome),
+      ),
     ) &&
+    optional(value.label, label) &&
+    optional(value.proficiency, integer) &&
+    optional(value.dc, integer) &&
+    optional(value.halved, (halved) => halved === true) &&
     optional(value.damageType, label) &&
     optional(value.hpAfter, integer) &&
     optional(value.maxHp, integer)

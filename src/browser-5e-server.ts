@@ -5,7 +5,9 @@
  * player's placement and choices (every score, modifier, cap and the skill
  * limit, so the page computes none), save a level 1 Fighter, read its sheet and
  * delete it. A saved Fighter can take on a built-in adventure module, where
- * the player explores by clicking Go to, Examine, Take or Drink, fights by
+ * the player explores by clicking Go to, Examine, Take or Drink, opens doors
+ * with Force, Pick, Break or Unlock, deals with traps with Search and Disarm,
+ * asks creatures about their topics with Talk, fights by
  * clicking an attack, Drink, Second Wind, Action Surge or End turn, or types
  * to the AI DM. The session view projects every action in the action bar with
  * whether the engine would accept it now and why not. Each
@@ -186,6 +188,13 @@ const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   examine: (targetId) => ({ type: "examine", targetId }),
   take: (itemId) => ({ type: "take", itemId }),
   use: (itemId) => ({ type: "use-item", itemId }),
+  force: (doorId) => ({ type: "force", doorId }),
+  pick: (doorId) => ({ type: "pick", doorId }),
+  break: (doorId) => ({ type: "break", doorId }),
+  unlock: (doorId) => ({ type: "unlock", doorId }),
+  search: (roomId) => ({ type: "search", roomId }),
+  disarm: (trapId) => ({ type: "disarm", trapId }),
+  talk: (topicId) => ({ type: "talk", topicId }),
 };
 
 export async function startFifthBrowserServer(options: FifthBrowserOptions) {

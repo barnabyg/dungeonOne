@@ -52,6 +52,22 @@ _Avoid_: Object (too broad), Item (an item can be taken)
 The authored fact a character learns by first examining a feature, which may reveal an item hidden in it. The engine decides it; the AI DM cannot invent one.
 _Avoid_: Clue (pre-5e), Journal entry
 
+**Door**:
+A barrier in a passage between two rooms, stuck or locked. A stuck door is forced open with a check; a locked one opens with its key, or is picked or broken open with a check. Once open it stays open.
+_Avoid_: Gate, Exit (the way itself)
+
+**Trap**:
+A hidden danger in a passage. Searching a room may find it, and a found trap may be disarmed; going through an armed trap springs it once, with a saving throw against its damage.
+_Avoid_: Hazard
+
+**Ability check**:
+A d20 roll plus one ability's modifier, and the proficiency bonus when the check uses a skill the character is proficient in, against an authored DC. Each check is rolled once and its outcome remembered, so asking again never rerolls it.
+_Avoid_: Skill roll, Test
+
+**Topic**:
+Something a creature can be asked about, with its authored answer. Some need a check, with an answer for success and one for failure. The AI DM offers only these topics.
+_Avoid_: Subject (pre-5e), Question
+
 **Adventure session**:
 One character's particular playthrough of an adventure module, with its own events, world state, and conversation history.
 _Avoid_: Character, Adventure module

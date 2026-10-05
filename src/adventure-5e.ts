@@ -1,12 +1,15 @@
 /**
- * The 5e adventure module format (format version 2) and its validator.
+ * The 5e adventure module format (format version 3) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
- * passages between them, the features to examine and items to take in each
- * room, the encounters with inline SRD 5.2 stat blocks, and its endings. Each
+ * passages between them, the features to examine, items to take and creatures
+ * to talk to in each room, the encounters with inline SRD 5.2 stat blocks, and
+ * its endings. A passage may have a door, stuck (forced open by a check) or
+ * locked (opened by its key, or picked or broken open by a check), and a trap,
+ * found and disarmed by checks or sprung by going through, with a saving
+ * throw against its damage. A creature's topics may need a check. Each
  * opponent in an encounter has its own name, so the player can target it.
- * Later tickets add checks, doors, traps, treasure and XP, each bumping the
- * format version.
+ * Later tickets add treasure and XP, each bumping the format version.
  *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
@@ -15,9 +18,16 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
-import { ABILITIES, type Abilities } from "./fighter-5e.js";
+import type { CheckSpec } from "./checks-5e.js";
+import {
+  ABILITIES,
+  FIGHTER_SKILLS,
+  type Abilities,
+  type Ability,
+  type FighterSkill,
+} from "./fighter-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 2;
+export const FIFTH_ADVENTURE_FORMAT = 3;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -69,9 +79,13 @@ export type FifthFeature = Readonly<{
   discovery?: string;
 }>;
 
-/** What each kind of item does; only the SRD 5.2 Potion of Healing so far. */
+/**
+ * What each kind of item does: the SRD 5.2 Potion of Healing heals, and a key
+ * opens the locked doors that name it.
+ */
 export const ITEM_KINDS = {
   "potion-of-healing": { healing: { dice: 2, sides: 4, modifier: 2 } },
+  key: {},
 } as const;
 export type ItemKind = keyof typeof ITEM_KINDS;
 
@@ -84,6 +98,25 @@ export type FifthItem = Readonly<{
   hiddenIn?: string;
 }>;
 
+/** Something to ask a creature about; a check, if any, decides its answer. */
+export type FifthTopic = Readonly<{
+  id: string;
+  name: string;
+  /** What the creature says, after a passed check when there is one. */
+  reply: string;
+  check?: CheckSpec;
+  /** What it says after a failed check; present exactly with `check`. */
+  failure?: string;
+}>;
+
+/** A creature the character can talk to, about its authored topics only. */
+export type FifthCreature = Readonly<{
+  id: string;
+  name: string;
+  description: string;
+  topics: readonly FifthTopic[];
+}>;
+
 export type FifthRoom = Readonly<{
   id: string;
   name: string;
@@ -92,6 +125,45 @@ export type FifthRoom = Readonly<{
   encounterId?: string;
   features: readonly FifthFeature[];
   items: readonly FifthItem[];
+  creatures: readonly FifthCreature[];
+}>;
+
+/**
+ * A shut door in a passage. A stuck door is forced open; a locked one opens
+ * with its key, or is picked or broken open. Each check is tried once.
+ */
+export type FifthDoor = Readonly<{
+  id: string;
+  name: string;
+  description: string;
+  state: "stuck" | "locked";
+  force?: CheckSpec;
+  pick?: CheckSpec;
+  break?: CheckSpec;
+  keyItemId?: string;
+}>;
+
+/**
+ * A hidden trap in a passage: found by a check (searching either room),
+ * disarmed by a check once found, or sprung by going through while armed,
+ * with a saving throw for half damage.
+ */
+export type FifthTrap = Readonly<{
+  id: string;
+  name: string;
+  description: string;
+  find: CheckSpec;
+  disarm: CheckSpec;
+  trigger: string;
+  save: Readonly<{ ability: Ability; dc: number }>;
+  damage: Readonly<{
+    dice: number;
+    sides: number;
+    modifier: number;
+    type: string;
+  }>;
+  /** Where the adventure ends if the trap's damage drops the character. */
+  defeatEndingId: string;
 }>;
 
 /** A two-way way between two rooms. */
@@ -99,6 +171,8 @@ export type FifthPassage = Readonly<{
   id: string;
   between: readonly [string, string];
   description: string;
+  door?: FifthDoor;
+  trap?: FifthTrap;
 }>;
 
 export type FifthEnding = Readonly<{
@@ -299,6 +373,34 @@ function statBlock(value: unknown, where: string): StatBlock {
   };
 }
 
+function ability(value: unknown, where: string): Ability {
+  if (!(ABILITIES as readonly unknown[]).includes(value)) {
+    fail(`${where} must be an ability.`);
+  }
+  return value as Ability;
+}
+
+/** An authored check: `{ skill, dc }` or `{ ability, dc }`. */
+function check(value: unknown, where: string): CheckSpec {
+  const raw =
+    isRecord(value) && "skill" in value
+      ? exactKeys(value, ["skill", "dc"], where)
+      : exactKeys(value, ["ability", "dc"], where);
+  const dc = integer(raw.dc, `${where} dc`, 5, 30);
+  if ("skill" in raw) {
+    if (
+      typeof raw.skill !== "string" ||
+      !Object.hasOwn(FIGHTER_SKILLS, raw.skill)
+    ) {
+      fail(
+        `${where} skill must be one of ${Object.keys(FIGHTER_SKILLS).join(", ")}.`,
+      );
+    }
+    return { skill: raw.skill as FighterSkill, dc };
+  }
+  return { ability: ability(raw.ability, `${where} ability`), dc };
+}
+
 /** Validates a decoded module, rejecting unknown references and missing endings. */
 export function validateFifthAdventure(value: unknown): FifthAdventure {
   if (!isRecord(value) || value.kind !== "dungeon-one-5e-adventure") {
@@ -429,7 +531,7 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
     const room = knownKeys(
       entry,
       ["id", "name", "description", "features", "items"],
-      ["encounterId"],
+      ["encounterId", "creatures"],
       where,
     );
     if (
@@ -503,6 +605,60 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         };
       },
     );
+    const creatures = (
+      room.creatures === undefined
+        ? []
+        : list(room.creatures, `${where} creatures`, 6, 0)
+    ).map((raw, number) => {
+      const at = `${where} creature ${number + 1}`;
+      const creature = exactKeys(
+        raw,
+        ["id", "name", "description", "topics"],
+        at,
+      );
+      const topics = list(creature.topics, `${at} topics`, 12).map(
+        (rawTopic, index) => {
+          const on = `${at} topic ${index + 1}`;
+          const topic = knownKeys(
+            rawTopic,
+            ["id", "name", "reply"],
+            ["check", "failure"],
+            on,
+          );
+          const topicId = id(topic.id, `${on} id`);
+          if ((topic.check === undefined) !== (topic.failure === undefined)) {
+            fail(
+              topic.check === undefined
+                ? `topic ${topicId} has a failure but no check.`
+                : `topic ${topicId} has a check but no failure.`,
+            );
+          }
+          return {
+            id: topicId,
+            name: text(topic.name, `${on} name`, 60),
+            reply: text(topic.reply, `${on} reply`),
+            ...(topic.check === undefined
+              ? {}
+              : {
+                  check: check(topic.check, `${on} check`),
+                  failure: text(topic.failure, `${on} failure`),
+                }),
+          };
+        },
+      );
+      // The player asks about topics by name, in any case.
+      distinct(
+        topics,
+        ({ name }) => name.toLowerCase(),
+        ({ name }) => `${at} has two topics named ${name}.`,
+      );
+      return {
+        id: id(creature.id, `${at} id`),
+        name: text(creature.name, `${at} name`, 60),
+        description: text(creature.description, `${at} description`),
+        topics,
+      };
+    });
     return {
       id: id(room.id, `${where} id`),
       name: text(room.name, `${where} name`, 80),
@@ -512,17 +668,13 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         : { encounterId: room.encounterId as string }),
       features,
       items,
+      creatures,
     };
   });
   const roomIds = unique(rooms, "room");
   if (!roomIds.has(module.startRoomId as string)) {
     fail(`startRoomId names unknown room ${String(module.startRoomId)}.`);
   }
-  // Features and items share one namespace: the player examines either.
-  unique(
-    rooms.flatMap(({ features, items }) => [...features, ...items]),
-    "feature or item",
-  );
   const placed = rooms.flatMap(({ encounterId }) =>
     encounterId === undefined ? [] : [encounterId],
   );
@@ -536,10 +688,112 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
       fail(`encounter ${encounterId} is in no room.`);
     }
   }
+  const door = (value: unknown, where: string): FifthDoor => {
+    const raw = knownKeys(
+      value,
+      ["id", "name", "description", "state"],
+      ["force", "pick", "break", "keyItemId"],
+      where,
+    );
+    const doorId = id(raw.id, `${where} id`);
+    const checks = {
+      ...(raw.force === undefined
+        ? {}
+        : { force: check(raw.force, `${where} force`) }),
+      ...(raw.pick === undefined
+        ? {}
+        : { pick: check(raw.pick, `${where} pick`) }),
+      ...(raw.break === undefined
+        ? {}
+        : { break: check(raw.break, `${where} break`) }),
+    };
+    if (raw.state === "stuck") {
+      if (
+        checks.pick !== undefined ||
+        checks.break !== undefined ||
+        raw.keyItemId !== undefined
+      ) {
+        fail(`door ${doorId}: a stuck door is opened only by force.`);
+      }
+      if (checks.force === undefined) {
+        fail(`door ${doorId}: a stuck door needs force.`);
+      }
+    } else if (raw.state === "locked") {
+      if (checks.force !== undefined) {
+        fail(`door ${doorId}: a locked door is not forced; pick or break it.`);
+      }
+      if (
+        checks.pick === undefined &&
+        checks.break === undefined &&
+        raw.keyItemId === undefined
+      ) {
+        fail(`door ${doorId}: a locked door needs a key, pick or break.`);
+      }
+    } else {
+      fail(`${where} state must be stuck or locked.`);
+    }
+    return {
+      id: doorId,
+      name: text(raw.name, `${where} name`, 60),
+      description: text(raw.description, `${where} description`),
+      state: raw.state,
+      ...checks,
+      ...(raw.keyItemId === undefined
+        ? {}
+        : { keyItemId: id(raw.keyItemId, `${where} keyItemId`) }),
+    };
+  };
+  const trap = (value: unknown, where: string): FifthTrap => {
+    const raw = exactKeys(
+      value,
+      [
+        "id",
+        "name",
+        "description",
+        "find",
+        "disarm",
+        "trigger",
+        "save",
+        "damage",
+        "defeatEndingId",
+      ],
+      where,
+    );
+    const save = exactKeys(raw.save, ["ability", "dc"], `${where} save`);
+    const damage = exactKeys(
+      raw.damage,
+      ["dice", "sides", "modifier", "type"],
+      `${where} damage`,
+    );
+    return {
+      id: id(raw.id, `${where} id`),
+      name: text(raw.name, `${where} name`, 60),
+      description: text(raw.description, `${where} description`),
+      find: check(raw.find, `${where} find`),
+      disarm: check(raw.disarm, `${where} disarm`),
+      trigger: text(raw.trigger, `${where} trigger`),
+      save: {
+        ability: ability(save.ability, `${where} save ability`),
+        dc: integer(save.dc, `${where} save dc`, 5, 30),
+      },
+      damage: {
+        dice: integer(damage.dice, `${where} damage dice`, 1, 10),
+        sides: integer(damage.sides, `${where} damage sides`, 2, 12),
+        modifier: integer(damage.modifier, `${where} damage modifier`, -5, 20),
+        type: text(damage.type, `${where} damage type`, 30),
+      },
+      defeatEndingId: ending(raw.defeatEndingId, "defeat", where),
+    };
+  };
   const passages = list(module.passages, "passages", 100, 0).map(
     (entry, index) => {
       const where = `passage ${index + 1}`;
-      const passage = exactKeys(entry, ["id", "between", "description"], where);
+      const passage = knownKeys(
+        entry,
+        ["id", "between", "description"],
+        ["door", "trap"],
+        where,
+      );
       if (!Array.isArray(passage.between) || passage.between.length !== 2) {
         fail(`${where} between must name two rooms.`);
       }
@@ -556,10 +810,56 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         id: id(passage.id, `${where} id`),
         between: [from as string, to as string] as const,
         description: text(passage.description, `${where} description`, 200),
+        ...(passage.door === undefined
+          ? {}
+          : { door: door(passage.door, `${where} door`) }),
+        ...(passage.trap === undefined
+          ? {}
+          : { trap: trap(passage.trap, `${where} trap`) }),
       };
     },
   );
   unique(passages, "passage");
+  // Features, items, doors, traps, creatures and topics share one namespace:
+  // each is an action's target.
+  distinct(
+    [
+      ...rooms.flatMap(({ features, items, creatures }) => [
+        ...features,
+        ...items,
+        ...creatures,
+        ...creatures.flatMap(({ topics }) => topics),
+      ]),
+      ...passages.flatMap(({ door: shut, trap: armed }) => [
+        ...(shut === undefined ? [] : [shut]),
+        ...(armed === undefined ? [] : [armed]),
+      ]),
+    ],
+    ({ id: thingId }) => thingId,
+    ({ id: thingId }) => `duplicate id ${thingId}.`,
+  );
+  // The player names doors, in any case.
+  distinct(
+    passages.flatMap(({ door: shut }) => (shut === undefined ? [] : [shut])),
+    ({ name }) => name.toLowerCase(),
+    ({ name }) => `two doors named ${name}.`,
+  );
+  const itemRooms = new Map(
+    rooms.flatMap(({ id: roomId, items }) =>
+      items.map((item) => [item.id, { item, roomId }] as const),
+    ),
+  );
+  for (const { door: shut } of passages) {
+    if (shut?.keyItemId !== undefined) {
+      const key = itemRooms.get(shut.keyItemId)?.item;
+      if (key === undefined) {
+        fail(`door ${shut.id} names unknown key ${shut.keyItemId}.`);
+      }
+      if (key.kind !== "key") {
+        fail(`door ${shut.id}'s key ${key.id} is not a key.`);
+      }
+    }
+  }
   distinct(
     passages,
     ({ between }) => [...between].sort().join(" "),
@@ -585,15 +885,79 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
       );
     }
   }
-  // Every ending must be reachable: an encounter names it.
+  // An essential room (one whose fight wins the adventure) must be reachable
+  // without a check or a trap. A locked door counts as open when its key can
+  // be reached that way.
+  const free = new Set([module.startRoomId as string]);
+  const passable = ({ door: shut, trap: armed }: FifthPassage) =>
+    armed === undefined &&
+    (shut === undefined ||
+      (shut.keyItemId !== undefined &&
+        free.has(itemRooms.get(shut.keyItemId)!.roomId)));
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const entry of passages) {
+      const [from, to] = entry.between;
+      if (free.has(from) !== free.has(to) && passable(entry)) {
+        free.add(from).add(to);
+        grew = true;
+      }
+    }
+  }
+  const winning = new Set(
+    encounters.flatMap(({ id: encounterId, victoryEndingId }) =>
+      victoryEndingId === undefined ? [] : [encounterId],
+    ),
+  );
+  for (const { id: roomId, encounterId } of rooms) {
+    if (
+      encounterId !== undefined &&
+      winning.has(encounterId) &&
+      !free.has(roomId)
+    ) {
+      // The rooms the essential one joins without passing the free rooms;
+      // the guards are on the passages from the free rooms into them.
+      const beyond = new Set([roomId]);
+      for (let grew = true; grew;) {
+        grew = false;
+        for (const { between } of passages) {
+          const [from, to] = between;
+          if (
+            !free.has(from) &&
+            !free.has(to) &&
+            beyond.has(from) !== beyond.has(to)
+          ) {
+            beyond.add(from).add(to);
+            grew = true;
+          }
+        }
+      }
+      const guards = passages.flatMap((entry) => {
+        const [from, to] = entry.between;
+        return (free.has(from) && beyond.has(to)) ||
+          (free.has(to) && beyond.has(from))
+          ? [entry.door?.id, entry.trap?.id].filter(
+              (guard): guard is string => guard !== undefined,
+            )
+          : [];
+      });
+      fail(
+        `room ${roomId} is essential, but every route to it needs a check or passes a trap (${guards.join(", ")}).`,
+      );
+    }
+  }
+  // Every ending must be reachable: an encounter or a trap names it.
   for (const { id: endingId } of endings) {
     if (
       !encounters.some(
         ({ victoryEndingId, defeatEndingId }) =>
           victoryEndingId === endingId || defeatEndingId === endingId,
-      )
+      ) &&
+      !passages.some(({ trap: armed }) => armed?.defeatEndingId === endingId)
     ) {
-      fail(`ending ${endingId} cannot be reached: no encounter names it.`);
+      fail(
+        `ending ${endingId} cannot be reached: no encounter or trap names it.`,
+      );
     }
   }
   return {
@@ -671,6 +1035,7 @@ export const FIFTH_ADVENTURE_FILES = {
   "cellar-goblin": "cellar-goblin.json",
   "goblin-storeroom": "goblin-storeroom.json",
   "smugglers-cellar": "smugglers-cellar.json",
+  "warden-crypt": "warden-crypt.json",
 } as const;
 export type FifthAdventureId = keyof typeof FIFTH_ADVENTURE_FILES;
 
