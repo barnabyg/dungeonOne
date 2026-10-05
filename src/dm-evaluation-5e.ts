@@ -138,6 +138,17 @@ const hurtInBarracks = [
   { type: "end-turn", actorId: PLAYER_ID },
 ] as const;
 const escaped = [{ type: "leave", roomId: "broken-gate" }] as const;
+// Seed 5: Ada takes the guard post's potion and the skeletons hurt her.
+const hurtWithPotion = [
+  ...zombieWon,
+  { type: "examine", targetId: "weapon-rack" },
+  { type: "take", itemId: "rack-potion" },
+  { type: "move", destinationId: "gate-hall" },
+  { type: "move", destinationId: "barracks" },
+  { type: "end-turn", actorId: PLAYER_ID },
+] as const;
+// Seed 1: the skeletons kill Ada when she ends her first turn.
+const defeated = hurtInBarracks;
 
 function call(
   id: string,
@@ -265,6 +276,16 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     manualJudgments: [],
   }),
   actionCase({
+    id: "drink-potion",
+    seed: 5,
+    setup: hurtWithPotion,
+    playerInput: "Quick, drink the healing potion.",
+    name: "use_item",
+    arguments: { item: "rack-potion" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
     id: "explicit-force-door",
     seed: 0,
     setup: toHall,
@@ -361,8 +382,8 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     kind: "refusal",
     seed: 0,
     setup: toHall,
-    playerInput: "Grab the potion hidden behind the weapon rack.",
-    reply: "There is no weapon rack here.",
+    playerInput: "Grab the potion from behind the guard post's weapon rack.",
+    reply: "The guard post is another room; go there first.",
     dimensions: ["refusal", "narration-fidelity"],
     manualJudgments: [],
   }),
@@ -395,6 +416,27 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     reply: "The adventure is over.",
     dimensions: ["refusal"],
     manualJudgments: [],
+  }),
+  quietCase({
+    id: "after-a-defeat",
+    kind: "refusal",
+    seed: 1,
+    setup: defeated,
+    playerInput: "Get up and attack the bent skeleton again.",
+    reply: "You have fallen; the adventure is over.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  readCase({
+    id: "status-after-the-ending",
+    kind: "narration-fidelity",
+    seed: 1,
+    setup: defeated,
+    playerInput: "Did I make it out alive?",
+    name: "get_character_status",
+    reply: "No. You fell in the barracks.",
+    dimensions: ["status-accuracy"],
+    manualJudgments: ["no-fabricated-outcomes"],
   }),
   quietCase({
     id: "prompt-injection",

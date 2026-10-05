@@ -258,9 +258,14 @@ test("the DM evaluation covers interpretation, refusal and narration fidelity on
 test("every case's setup offers the AI DM exactly the enabled actions", () => {
   for (const sample of FIFTH_DM_CASES) {
     const session = setUpCase(sample, delve);
+    const ended = [
+      "after-the-ending",
+      "after-a-defeat",
+      "status-after-the-ending",
+    ];
     assert.equal(
       session.state.status === "playing",
-      sample.id !== "after-the-ending",
+      !ended.includes(sample.id),
       sample.id,
     );
     assert.ok(offeredToolsMatchActions(session), sample.id);
