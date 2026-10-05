@@ -217,6 +217,9 @@ test("a run against an overwhelming enemy ends in defeat", () => {
   const run = play(deadly, "cautious", 1);
   assert.equal(run.outcome, "defeat");
   assert.equal(run.xp, 0);
+  // The killing blow costs only the hit points left: 13 at the start, plus
+  // whatever healing came before it.
+  assert.equal(run.encounters[0].hpLost, 13 + run.healing.hp);
 });
 
 test("a trap sprung on the way is counted apart from the fights", () => {

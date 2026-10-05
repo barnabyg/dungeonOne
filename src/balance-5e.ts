@@ -464,7 +464,7 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
 /** One fight in a run. */
 export type FightRecord = Readonly<{
   id: string;
-  /** Damage the character took in the fight, before any healing. */
+  /** Hit points the character lost in the fight, before any healing. */
   hpLost: number;
   rounds: number;
   outcome: "victory" | "defeat";
@@ -477,7 +477,7 @@ export type RunRecord = Readonly<{
   roomIds: readonly string[];
   encounters: readonly FightRecord[];
   healing: Readonly<{ secondWinds: number; potions: number; hp: number }>;
-  /** Damage taken from traps sprung, outside the fights. */
+  /** Hit points lost to traps sprung, outside the fights. */
   trapDamage: number;
   /** What a surviving ending credited: XP and how many treasures. */
   xp: number;
@@ -517,6 +517,8 @@ export function playAdventure(
   let fight: { id: string; hpLost: number } | undefined;
   const healing = { secondWinds: 0, potions: 0, hp: 0 };
   let trapDamage = 0;
+  /** The character's hit points, so a blow costs only what was left. */
+  let hp = state.character.hp;
   const blocked: string[] = [];
   let actions = 0;
 
@@ -544,20 +546,24 @@ export function playAdventure(
           fight = { id: roomById.get(state.roomId)!.encounterId!, hpLost: 0 };
           break;
         case "attack":
-          if (event.targetId === PLAYER_ID && fight !== undefined) {
-            fight.hpLost += event.damage;
+          if (event.targetId === PLAYER_ID) {
+            fight!.hpLost += hp - event.hpAfter;
+            hp = event.hpAfter;
           }
           break;
         case "second-wind":
           healing.secondWinds += 1;
           healing.hp += event.healing;
+          hp = event.hpAfter;
           break;
         case "trap-damage":
-          trapDamage += event.damage;
+          trapDamage += hp - event.hpAfter;
+          hp = event.hpAfter;
           break;
         case "potion":
           healing.potions += 1;
           healing.hp += event.healing;
+          hp = event.hpAfter;
           break;
         case "ended":
           fights.push({
