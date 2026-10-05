@@ -7,8 +7,10 @@ import {
   PLAY_STYLES,
   playAdventure,
   qualifyAdventure,
+  renderBalanceResult,
   requiredPath,
 } from "../dist/balance-5e.js";
+import { main, parseArguments } from "../scripts/balance-5e.mjs";
 import {
   loadBuiltInFifthAdventures,
   validateFifthAdventure,
@@ -342,4 +344,71 @@ test("the default run qualifies every shipped module within its time budget", ()
   const seconds = (performance.now() - started) / 1000;
   // #134 records the budget: the default run must stay well inside verify.
   assert.ok(seconds < 30, `the default run took ${seconds.toFixed(1)} s`);
+});
+
+test("the report reads as text, and a failure names its reason", () => {
+  const cellar = SHIPPED["cellar-goblin"];
+  const text = renderBalanceResult(
+    cellar,
+    qualifyAdventure(cellar, { seeds: [0, 1], styles: ["cautious"] }),
+  );
+  assert.match(
+    text,
+    /^The Goblin in the Cellar \(cellar-goblin\)\nObjective: victory, through cellar$/mu,
+  );
+  assert.match(
+    text,
+    /Level 1, 5th percentile character\. One-hit kill: Goblin Warrior \d+\.\d%/u,
+  );
+  assert.match(text, /cautious: survived \d+\.\d%, completed \d+\.\d% of 2;/u);
+  assert.match(text, /cellar-goblin: fought in 2, lost \d+\.\d%/u);
+  assert.equal(
+    renderBalanceResult(cellar, {
+      ok: false,
+      failure: { code: "step-limit", message: "A run never ended." },
+    }),
+    "The Goblin in the Cellar (cellar-goblin) fails: step-limit. A run never ended.",
+  );
+});
+
+test("npm run balance qualifies the modules it is given", async () => {
+  let written = "";
+  const code = await main(
+    [
+      "--seeds",
+      "3",
+      "--styles",
+      "direct",
+      "--json",
+      "adventures/5e/cellar-goblin.json",
+    ],
+    { write: (text) => (written += text) },
+  );
+  assert.equal(code, 0);
+  const [result] = JSON.parse(written);
+  assert.equal(result.adventureId, "cellar-goblin");
+  assert.equal(result.ok, true);
+  assert.deepEqual(
+    result.report.cells.map(({ percentile, style, runs }) => [
+      percentile,
+      style,
+      runs,
+    ]),
+    [
+      [5, "direct", 3],
+      [95, "direct", 3],
+    ],
+  );
+  assert.deepEqual(
+    parseArguments(["--percentiles", "10,50"]).percentiles,
+    [10, 50],
+  );
+  for (const bad of [
+    ["--seeds", "0"],
+    ["--styles", "reckless"],
+    ["--fast"],
+    ["--seeds"],
+  ]) {
+    assert.throws(() => parseArguments(bad), /Usage: npm run balance/u);
+  }
 });

@@ -943,3 +943,51 @@ export function qualifyAdventure(
     throw error;
   }
 }
+
+const percent = (share: number) => `${(share * 100).toFixed(1)}%`;
+const decimal = (value: number) => value.toFixed(1);
+
+/**
+ * A plain-text report: the objective and required rooms, then for each
+ * level and character percentile the one-hit-kill chances and a line per
+ * style, each followed by its fights.
+ */
+export function renderBalanceResult(
+  adventure: Pick<FifthAdventure, "id" | "title">,
+  result: BalanceResult,
+): string {
+  if (!result.ok) {
+    return `${adventure.title} (${adventure.id}) fails: ${result.failure.code}. ${result.failure.message}`;
+  }
+  const { report } = result;
+  const lines = [
+    `${adventure.title} (${report.adventureId})`,
+    `Objective: ${report.objective}, through ${report.requiredRoomIds.join(" > ")}`,
+  ];
+  for (const cell of report.cells) {
+    const first = report.cells.find(
+      ({ level, percentile }) =>
+        level === cell.level && percentile === cell.percentile,
+    );
+    if (first === cell) {
+      lines.push(
+        "",
+        `Level ${cell.level}, ${cell.percentile}th percentile character. One-hit kill: ${cell.oneHitKill
+          .map(({ name, chance }) => `${name} ${percent(chance)}`)
+          .join(", ")}`,
+      );
+    }
+    lines.push(
+      `  ${cell.style}: survived ${percent(cell.survivalRate)}, completed ${percent(cell.completionRate)} of ${cell.runs}; ` +
+        `XP ${decimal(cell.meanXp)}, treasure ${decimal(cell.meanTreasure)}; ` +
+        `healed ${decimal(cell.healing.meanHp)} HP (Second Wind ${decimal(cell.healing.meanSecondWinds)}, potions ${decimal(cell.healing.meanPotions)}); ` +
+        `trap damage ${decimal(cell.meanTrapDamage)}`,
+      ...cell.encounters.map(
+        (fight) =>
+          `    ${fight.id}: fought in ${fight.runs}, lost ${percent(fight.defeatRate)}, ` +
+          `${decimal(fight.meanHpLost)} HP lost, ${decimal(fight.meanRounds)} rounds`,
+      ),
+    );
+  }
+  return lines.join("\n");
+}

@@ -22,6 +22,12 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   it, and older files are refused with a message naming the file and asking you
   to move it aside. Nothing is migrated or deleted, and no compatibility is
   promised until the owner declares a stable release.
+- **Balance harness.** `npm.cmd run balance` plays each built-in 5e module
+  (or the module files named after it) through the real runtime with weak and
+  strong rolled Fighters at every recommended level, in three play styles over
+  200 seeds, and reports survival, HP lost and rounds per fight, healing, XP,
+  treasure and one-hit-kill chances. See
+  [the rules document](docs/character-rules.md#balance-harness).
 - **Creating a 5e Fighter.** Launch with
   `npm.cmd run browser -- --5e --seed 0 --characters .\.scratch\5e\characters.json`
   (the default library is `characters-5e.json`; creation needs no OpenAI key).
