@@ -1060,8 +1060,8 @@ export type OneHitKillCheck = Readonly<{
     name: string;
     chance: number;
   }>[];
-  /** The names of the ordinary enemies over the cap; more than half fails. */
-  overCap: readonly string[];
+  /** The ordinary enemies over the cap; more than half of them fails. */
+  overCap: OneHitKillCheck["enemies"];
 }>;
 
 /**
@@ -1166,8 +1166,8 @@ export function gateAdventure(
               ],
         ),
     );
-    const overCap = enemies.flatMap(({ name, chance }) =>
-      chance > thresholds.oneHitKillCap ? [name] : [],
+    const overCap = enemies.filter(
+      ({ chance }) => chance > thresholds.oneHitKillCap,
     );
     const oneHitKill: OneHitKillCheck = {
       ok: overCap.length * 2 <= enemies.length,
@@ -1224,7 +1224,7 @@ const gated = new Map<string, boolean>();
  * Whether `adventure` passes the gate at its declared difficulty with the
  * default options, as the browser offers modules.
  */
-export function qualifies(adventure: FifthAdventure): boolean {
+export function passesGate(adventure: FifthAdventure): boolean {
   const key = JSON.stringify(adventure);
   let passed = gated.get(key);
   if (passed === undefined) {
@@ -1251,9 +1251,7 @@ export function renderGateResult(
   const { verdict } = result;
   const { survival, oneHitKill, xp } = verdict;
   const mark = (ok: boolean) => (ok ? "pass" : "FAIL");
-  const over = oneHitKill.enemies.filter(
-    ({ chance }) => chance > oneHitKill.cap,
-  );
+  const over = oneHitKill.overCap;
   return [
     `${name} ${verdict.qualified ? "qualifies" : "does not qualify"} as ${verdict.difficulty}.`,
     `  Too deadly, ${mark(survival.ok)}: the level ${survival.level}, ${survival.percentile}th percentile character playing ${survival.style} survived ${percent(survival.rate)} of ${survival.runs} runs; ${verdict.difficulty} needs ${percent(survival.required)}.`,

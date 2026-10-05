@@ -8,7 +8,7 @@ import {
   percentileCharacters,
   PLAY_STYLES,
   playAdventure,
-  qualifies,
+  passesGate,
   qualifyAdventure,
   renderBalanceResult,
   renderGateResult,
@@ -522,10 +522,10 @@ test("a module whose ordinary enemies a strong level-1 Fighter usually one-shots
       oneHitKill.cap,
       DIFFICULTY_THRESHOLDS[difficulty].oneHitKillCap,
     );
-    assert.deepEqual(oneHitKill.overCap, [
-      "Goblin Minion 1",
-      "Goblin Minion 2",
-    ]);
+    assert.deepEqual(
+      oneHitKill.overCap.map(({ name }) => name),
+      ["Goblin Minion 1", "Goblin Minion 2"],
+    );
     for (const { chance } of oneHitKill.enemies) {
       assert.ok(chance > 0.5, `usually one-shot: ${chance}`);
     }
@@ -562,7 +562,10 @@ test("bosses are exempt from the one-hit-kill cap, and half the ordinary enemies
   // One minion of two over the cap is half, not most.
   const smugglers = gateAdventure(declared(SHIPPED["smugglers-cellar"], "hard"))
     .verdict.oneHitKill;
-  assert.deepEqual(smugglers.overCap, ["Giant Rat"]);
+  assert.deepEqual(
+    smugglers.overCap.map(({ name }) => name),
+    ["Giant Rat"],
+  );
   assert.equal(smugglers.enemies.length, 2);
   assert.equal(smugglers.ok, true);
 });
@@ -654,9 +657,9 @@ test("npm run balance reports the gate and fails when a module doesn't qualify",
   assert.equal(result.gate.verdict.survival.runs, 20);
 });
 
-test("the browser's qualifies is the gate's verdict at the defaults", () => {
-  assert.equal(qualifies(SHIPPED["warden-crypt"]), true);
-  assert.equal(qualifies(GOBLIN_PAIR), false);
-  assert.equal(qualifies(declared(GOBLIN_PAIR, "hard")), true);
-  assert.equal(qualifies(GOBLIN_PAIR), false);
+test("passesGate is the gate's verdict at the defaults, as the browser offers modules", () => {
+  assert.equal(passesGate(SHIPPED["warden-crypt"]), true);
+  assert.equal(passesGate(GOBLIN_PAIR), false);
+  assert.equal(passesGate(declared(GOBLIN_PAIR, "hard")), true);
+  assert.equal(passesGate(GOBLIN_PAIR), false);
 });

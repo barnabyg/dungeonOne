@@ -43,7 +43,7 @@ import {
   type HistoryEntry,
 } from "./session-5e.js";
 import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
-import { qualifies } from "./balance-5e.js";
+import { passesGate } from "./balance-5e.js";
 import {
   ABILITIES,
   ABILITY_SCORE_CAP,
@@ -264,7 +264,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   // can be started; a session already under way plays on.
   const offered = orderFifthAdventures(
     adventures,
-    options.qualifies ?? qualifies,
+    options.qualifies ?? passesGate,
   );
   const view = (data: FifthLibraryData) => libraryView(data, offered);
   // The file lock fails rather than waits, so this server's own changes queue.

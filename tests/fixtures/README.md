@@ -42,3 +42,8 @@ _The Goblin Pair_ (two Goblin Warriors, level 2) is too deadly for medium and
 passes as hard. _The Minion Yard_ (two Goblin Minions in turn, level 1) is
 safe enough for medium, but a strong level-1 Fighter usually kills each
 minion with one attack, so it fails as too easy at every difficulty.
+
+`three-goblins.json` is _The Goblins in the Storeroom_ as it was before #135
+(two numbered Goblin Minions and a Goblin Warrior, level 1). The shipped module
+no longer qualifies with three goblins, so `tests/runtime-5e.test.mjs` keeps
+its multi-target and ordinal targeting tests on this copy.
