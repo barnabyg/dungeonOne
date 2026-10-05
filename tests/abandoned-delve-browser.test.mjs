@@ -13,13 +13,28 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import {
   assertTogether,
-  explore,
+  explore as exploreOnly,
   fightOn,
   firstFighter,
   launch,
   narratingDm,
   say,
 } from "./fixtures/session-layout.mjs";
+
+/** The page never scrolls sideways. */
+const assertNoSideScroll = async (page, label) =>
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+    `${label}: no horizontal scroll`,
+  );
+
+/** Runs one action bar action with the #154 check, then the scroll check. */
+const explore = async (page, action, target) => {
+  await exploreOnly(page, action, target);
+  await assertNoSideScroll(page, `${action} ${target}`);
+};
 
 const delve = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "abandoned-delve",
@@ -32,7 +47,7 @@ const TO_THE_FIGHT = [
   ["force", "swollen-door"],
   ["move", "storeroom"],
   // The potion stays in its barrel: each carried item adds a row to the
-  // phone action bar, and a full one overflows it (follow-up to #136).
+  // phone action bar, and a full one overflows it (#198).
   ["examine", "old-barrel"],
   ["move", "gate-hall"],
   ["move", "guard-post"],

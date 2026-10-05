@@ -89,7 +89,7 @@
     {
       "id": "storeroom",
       "name": "Storeroom",
-      "description": "A dry storeroom of split barrels and empty shelves.",
+      "description": "A dry storeroom of split barrels and empty shelves. One old barrel is still sealed.",
       "features": [
         {
           "id": "old-barrel",
