@@ -68,6 +68,11 @@ export const FIGHTER_WEAPON_MASTERIES = ["mace"] as const;
 export const FEATURE_USES_RULE =
   "Spent uses stay spent for the rest of the adventure; each adventure starts with all of them.";
 
+/** No ability score can exceed this (4d6 keeps at most 18, +2 reaches 20). */
+export const ABILITY_SCORE_CAP = 20;
+/** How many Fighter skill proficiencies a creation chooses. */
+export const FIGHTER_SKILL_COUNT = 2;
+
 export type BackgroundIncrease = Readonly<Partial<Record<Ability, 1 | 2>>>;
 export type Placement = Readonly<Record<Ability, number>>;
 
@@ -114,8 +119,8 @@ const SHEET_KEYS = [
 ];
 
 export function abilityModifier(score: number): number {
-  if (!Number.isInteger(score) || score < 3 || score > 20) {
-    throw new Error("Invalid ability score (3–20).");
+  if (!Number.isInteger(score) || score < 3 || score > ABILITY_SCORE_CAP) {
+    throw new Error(`Invalid ability score (3–${ABILITY_SCORE_CAP}).`);
   }
   return Math.floor((score - 10) / 2);
 }
@@ -204,7 +209,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function validateIncrease(value: unknown): BackgroundIncrease {
+const INVALID_INCREASE =
+  "Invalid background increase: choose +2 and +1 for two abilities, or +1 for three.";
+
+/** An increase that is complete or a +1 to three being ticked, and how many +1s it lacks. */
+function validatePartialIncrease(value: unknown): {
+  increase: BackgroundIncrease;
+  missing: number;
+} {
   if (
     !isRecord(value) ||
     !Object.keys(value).every((key) =>
@@ -213,19 +225,24 @@ function validateIncrease(value: unknown): BackgroundIncrease {
   ) {
     throw new Error("Invalid background increase.");
   }
-  const amounts = Object.values(value)
-    .map(Number)
-    .sort((a, b) => b - a)
-    .join(",");
-  if (
-    !Object.values(value).every((amount) => amount === 1 || amount === 2) ||
-    (amounts !== "2,1" && amounts !== "1,1,1")
-  ) {
-    throw new Error(
-      "Invalid background increase: choose +2 and +1 for two abilities, or +1 for three.",
-    );
+  const amounts = Object.values(value);
+  const twos = amounts.filter((amount) => amount === 2).length;
+  const ones = amounts.filter((amount) => amount === 1).length;
+  // +2 and +1 is complete; +1s alone may still be being ticked, up to three.
+  const missing =
+    twos === 1 && ones === 1 ? 0 : twos === 0 && ones <= 3 ? 3 - ones : -1;
+  if (twos + ones !== amounts.length || missing < 0) {
+    throw new Error(INVALID_INCREASE);
   }
-  return { ...(value as BackgroundIncrease) };
+  return { increase: { ...(value as BackgroundIncrease) }, missing };
+}
+
+function validateIncrease(value: unknown): BackgroundIncrease {
+  const { increase, missing } = validatePartialIncrease(value);
+  if (missing > 0) {
+    throw new Error(INVALID_INCREASE);
+  }
+  return increase;
 }
 
 function validatePlacement(value: unknown): Placement {
@@ -245,19 +262,31 @@ function validatePlacement(value: unknown): Placement {
   return value as Placement;
 }
 
-function validateSkills(value: unknown): readonly FighterSkill[] {
+/** Different Fighter skills, however many are ticked so far. */
+function validatePartialSkills(value: unknown): readonly FighterSkill[] {
   if (
     !Array.isArray(value) ||
-    value.length !== 2 ||
-    new Set(value).size !== 2 ||
+    new Set(value).size !== value.length ||
     !value.every(
       (skill) =>
         typeof skill === "string" && Object.hasOwn(FIGHTER_SKILLS, skill),
     )
   ) {
-    throw new Error("Choose two different Fighter skill proficiencies.");
+    throw new Error(
+      `Choose ${FIGHTER_SKILL_COUNT} different Fighter skill proficiencies.`,
+    );
   }
   return [...(value as FighterSkill[])];
+}
+
+function validateSkills(value: unknown): readonly FighterSkill[] {
+  const skills = validatePartialSkills(value);
+  if (skills.length !== FIGHTER_SKILL_COUNT) {
+    throw new Error(
+      `Choose ${FIGHTER_SKILL_COUNT} different Fighter skill proficiencies.`,
+    );
+  }
+  return skills;
 }
 
 function validateFightingStyle(value: unknown): FightingStyle {
@@ -314,6 +343,82 @@ export function buildFighter(
     equipment: FIGHTER_EQUIPMENT,
   };
   return validateFighter({ ...base, hp: fighterProfile(base).maxHp });
+}
+
+export type CreationRow = Readonly<{
+  ability: Ability;
+  score: number;
+  modifier: number;
+  /** Whether the score has reached ABILITY_SCORE_CAP. */
+  atCap: boolean;
+}>;
+
+/** What the creation screen shows for the choices made so far. */
+export type CreationProjection = Readonly<{
+  /** One row per ability, in ABILITIES order. */
+  rows: readonly CreationRow[];
+  /** Skills ticked, the limit, and whether no more can be ticked. */
+  skills: Readonly<{ chosen: number; limit: number; full: boolean }>;
+  /** Why a choice is not finished yet, keyed by the choice; empty when saving can go ahead. */
+  unfinished: Readonly<{ increase?: string; skills?: string }>;
+  /** The sheet's scores and profile, present only when nothing is unfinished. */
+  sheet?: Readonly<{ abilities: Abilities; profile: FighterProfile }>;
+}>;
+
+/**
+ * Projects a creation's choices for the page: every row's score, modifier
+ * and cap, and the skill limit, even while the +1 to three or the skills are
+ * still being ticked. Choices no page could send are refused as by
+ * `buildFighter`, whose sheet is included once every choice is complete.
+ */
+export function projectCreation(
+  dice: RolledDice,
+  choices: FighterChoices,
+): CreationProjection {
+  const rolled = validateDice(dice);
+  const placement = validatePlacement(choices.placement);
+  const { increase, missing } = validatePartialIncrease(choices.increase);
+  const skills = validatePartialSkills(choices.skills);
+  validateFightingStyle(choices.fightingStyle);
+  const rows = ABILITIES.map((ability) => {
+    const score =
+      keptTotal(rolled[placement[ability]]!) + (increase[ability] ?? 0);
+    return {
+      ability,
+      score,
+      modifier: abilityModifier(score),
+      atCap: score >= ABILITY_SCORE_CAP,
+    };
+  });
+  const unfinished = {
+    ...(missing === 0
+      ? {}
+      : {
+          increase: `Choose ${missing} more ${missing === 1 ? "ability" : "abilities"} for +1.`,
+        }),
+    ...(skills.length === FIGHTER_SKILL_COUNT
+      ? {}
+      : {
+          skills: `Choose ${FIGHTER_SKILL_COUNT} skills; ${skills.length} chosen.`,
+        }),
+  };
+  const projection = {
+    rows,
+    skills: {
+      chosen: skills.length,
+      limit: FIGHTER_SKILL_COUNT,
+      full: skills.length >= FIGHTER_SKILL_COUNT,
+    },
+    unfinished,
+  };
+  if (Object.keys(unfinished).length > 0) {
+    return projection;
+  }
+  const sheet = buildFighter("0".repeat(32), "Preview", rolled, choices);
+  return {
+    ...projection,
+    sheet: { abilities: sheet.abilities, profile: fighterProfile(sheet) },
+  };
 }
 
 export function validateFighter(value: unknown): FighterSheet {

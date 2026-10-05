@@ -1,8 +1,9 @@
 /**
  * The browser server behind the temporary `--5e` flag (until #137).
  *
- * It serves the 5e character library: start or resume a creation, preview the
- * player's placement and choices, save a level 1 Fighter, read its sheet and
+ * It serves the 5e character library: start or resume a creation, project the
+ * player's placement and choices (every score, modifier, cap and the skill
+ * limit, so the page computes none), save a level 1 Fighter, read its sheet and
  * delete it. A saved Fighter can take on a built-in adventure module, where
  * the player explores by clicking Go to, Examine, Take or Drink, fights by
  * clicking an attack, Drink, Second Wind, Action Surge or End turn, or types
@@ -37,13 +38,15 @@ import {
 import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
 import {
   ABILITIES,
-  buildFighter,
+  ABILITY_SCORE_CAP,
   defaultPlacement,
   droppedDie,
   fighterProfile,
+  FIGHTER_SKILL_COUNT,
   FIGHTER_SKILLS,
   FIGHTING_STYLES,
   keptTotal,
+  projectCreation,
   type FighterChoices,
 } from "./fighter-5e.js";
 import {
@@ -146,6 +149,10 @@ function libraryView(
               total: keptTotal(dice),
             })),
             defaultPlacement: defaultPlacement(pending.dice),
+            rules: {
+              scoreCap: ABILITY_SCORE_CAP,
+              skillCount: FIGHTER_SKILL_COUNT,
+            },
           },
         }),
     characters: data.characters.map(({ sheet, session, defeated }) => ({
@@ -500,16 +507,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         if (pending === undefined) {
           throw new Error("There is no pending creation to preview.");
         }
-        const sheet = buildFighter(
-          "0".repeat(32),
-          "Preview",
-          pending.dice,
-          choicesFrom(body),
-        );
-        return {
-          abilities: sheet.abilities,
-          profile: fighterProfile(sheet),
-        };
+        return projectCreation(pending.dice, choicesFrom(body));
       }
       case "/api/5e/characters":
         if (

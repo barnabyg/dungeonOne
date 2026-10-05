@@ -28,9 +28,19 @@ const launch = () =>
 const title = (ability) => ability.charAt(0).toUpperCase() + ability.slice(1);
 const signed = (value) => (value >= 0 ? "+" : "") + value;
 
-/** Each row's [score, modifier] as shown, in table order. */
-const shownScores = (page) =>
-  page
+/**
+ * Each row's [score, modifier] as shown, in table order, once the server's
+ * projection of the latest change has filled every row (#184).
+ */
+const shownScores = async (page) => {
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll("#ability-rows .score").length === 6 &&
+      ![...document.querySelectorAll("#ability-rows .num")].some(
+        (cell) => cell.textContent === "…",
+      ),
+  );
+  return page
     .locator("#ability-rows tr")
     .evaluateAll((rows) =>
       rows.map((row) => [
@@ -38,6 +48,7 @@ const shownScores = (page) =>
         row.querySelector(".modifier").textContent,
       ]),
     );
+};
 
 const expectedScores = (dice, placement, increase) =>
   ABILITIES.map((ability) => {
@@ -271,7 +282,7 @@ test(
       await page.locator("#skill-perception").uncheck();
       await page
         .locator("#skills #skills-error")
-        .filter({ hasText: "two" })
+        .filter({ hasText: "Choose 2 skills" })
         .waitFor();
       assert.match(await page.locator("#preview-body").innerText(), /AC:/);
       assert.equal(await page.locator("#save-character").isDisabled(), true);
