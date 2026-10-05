@@ -174,10 +174,10 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .features{font-size:var(--text-sm);padding-left:18px}.features li{margin:6px 0}.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)}
 .eyebrow.dark{color:var(--color-gold-text)}#sheet-adventures h3{margin-top:0}#adventure-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--space-2);margin-bottom:var(--space-3)}#adventure-choices>:not(.adventure-choice){grid-column:1/-1;justify-self:start;margin:0}.adventure-choice{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);border:1px solid var(--color-control-border);border-radius:var(--radius-md);background:var(--color-surface);padding:10px var(--space-3)}.adventure-choice p{margin:0}.adventure-choice button{margin-top:auto}.tags{display:flex;flex-wrap:wrap;gap:var(--space-1)}.tag.level{color:var(--color-text-muted)}.tag.easy{color:var(--color-success)}.tag.medium{color:var(--color-warning)}.tag.hard{color:var(--color-danger)}.defeat-notice{color:var(--color-danger);font:600 var(--text-md) var(--font-sans)}
 #turn{font-family:var(--font-sans);font-weight:600}tr.current{background:var(--color-highlight)}tr.defeated td,tr.defeated th{color:var(--color-text-muted);font-weight:400}.tag{display:inline-block;padding:0 6px;border:1px solid currentColor;border-radius:999px;font:600 var(--text-xs)/1.5 var(--font-sans);white-space:nowrap}
-.log{list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li.newest:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}.log .reply.pending{color:var(--color-text-muted);font-style:italic}
+.log{position:relative;list-style:none;padding:0;margin:0 0 var(--space-3);display:grid;gap:var(--space-2);font-family:var(--font-sans);font-size:.88rem}.log li{border-left:3px solid transparent;padding:var(--space-1) 10px}.log li.newest{border-left-color:var(--color-gold)}.log li.newest:focus{outline:3px solid var(--color-focus);outline-offset:1px}.log p{margin:0}.log .reply.pending{color:var(--color-text-muted);font-style:italic}
 .log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
-.card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}.card-line+.card-line{margin-top:var(--space-1)}
-.log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}
+.card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
+.log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--space-2)}.card.has-more>*{grid-column:1/-1}.card.has-more>.card-line:first-child{grid-column:1}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{grid-column:2;grid-row:1;align-self:start;padding:0 2px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label)}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
@@ -620,7 +620,11 @@ function renderStatus() {
 // Each kind of history entry looks different and is labelled (#159):
 // narration (the opening and entering a room) is unboxed, the player's words
 // are a bubble, AI DM replies are attributed, and result and rejection cards
-// are boxed, each line of engine text followed by the rolls behind it.
+// are boxed. A line with an attack or initiative shows a compact form built
+// from its roll groups (#186), with the dice beside the roll they belong to;
+// screen readers get the line's engine text instead, and the card's Full text
+// disclosure shows it all. Other lines show their engine text, with any
+// healing roll beneath.
 const PART_LABELS = {
   narration: "Narration",
   player: "You said",
@@ -637,41 +641,83 @@ function part(tag, kind, text) {
 }
 
 const OUTCOME_TAGS = { hit: "Hit", critical: "Critical hit", miss: "Miss" };
-const ROLL_LABELS = { initiative: "Initiative", target: "Target die", attack: "Attack", damage: "Damage", healing: "Healing" };
 const withSign = (value) => (value >= 0 ? " + " : " − ") + Math.abs(value);
 
-/** One roll beside the line it belongs to, such as "Damage: d6 1 + 3 = 4". */
-function rollGroup(group) {
-  const { purpose } = group;
-  const row = make("p", undefined, "roll " + purpose);
-  const label = ROLL_LABELS[purpose] + (purpose === "initiative" || purpose === "target" ? ", " + group.roller : "") + (group.mode ? ", " + group.mode : "");
-  row.append(make("span", label + ": ", "roll-label"));
-  // An attack rolled with two d20s lists both; damage and healing dice add up.
-  group.dice.forEach((die, index) => {
-    if (index > 0) row.append(purpose === "attack" ? ", " : " + ");
-    row.append(make("span", "d" + die.sides + " " + die.value, "roll-die" + (die.dropped ? " dropped" : "")));
-    if (die.dropped) row.append(" (not kept)");
-  });
-  if (purpose === "target") {
-    row.append(" → " + group.target);
-    return row;
-  }
-  if (group.modifier !== 0 || purpose === "initiative" || purpose === "attack") row.append(withSign(group.modifier));
-  row.append(" = ", purpose === "damage" || purpose === "healing" ? make("strong", group.total) : String(group.total));
-  if (group.rollOff) row.append(" (roll-off " + group.rollOff.join(", ") + ")");
-  if (purpose === "attack") row.append(" against AC " + group.armorClass + " ", make("span", OUTCOME_TAGS[group.outcome], "tag " + group.outcome));
-  if (group.damageType) row.append(" " + group.damageType);
-  if (group.hpAfter !== undefined) row.append(" → " + (group.target || group.roller) + " " + group.hpAfter + "/" + group.maxHp + " HP");
+/** A roll's dice as chips, an unkept d20 struck through. */
+const diceChips = (group, separator) =>
+  group.dice.flatMap((die, index) => [
+    ...(index > 0 ? [separator] : []),
+    make("span", "d" + die.sides + " " + die.value, "roll-die" + (die.dropped ? " dropped" : "")),
+  ]);
+
+/** A healing roll beneath its line, such as "Healing: d10 7 + 1 = 8 → Ada 12/12 HP". */
+function healingRoll(group) {
+  const row = make("p", undefined, "roll healing");
+  row.append(make("span", "Healing: ", "roll-label"), ...diceChips(group, " + "));
+  if (group.modifier !== 0) row.append(withSign(group.modifier));
+  row.append(" = ", make("strong", group.total), " → " + group.roller + " " + group.hpAfter + "/" + group.maxHp + " HP");
   return row;
 }
+
+/** One compact roll, such as "d20 12 + 5 = 17 vs AC 15" or "7 slashing (d6 4 + 3) → 0/7 HP". */
+function compactRoll(group) {
+  const node = make("span", undefined, "roll " + group.purpose);
+  switch (group.purpose) {
+    case "initiative":
+      node.append(group.roller + " ", ...diceChips(group), withSign(group.modifier) + " = " + group.total + (group.rollOff ? " (roll-off " + group.rollOff.join(", ") + ")" : ""));
+      break;
+    case "target":
+      node.append("target die ", ...diceChips(group));
+      break;
+    case "attack":
+      node.append(group.mode ? group.mode + " " : "", ...diceChips(group, ", "), withSign(group.modifier) + " = " + group.total + " vs AC " + group.armorClass);
+      break;
+    case "damage":
+      node.append(make("strong", group.total), " " + group.damageType + " (", ...diceChips(group, " + "), (group.modifier === 0 ? "" : withSign(group.modifier)) + ") → " + group.hpAfter + "/" + group.maxHp + " HP");
+      break;
+  }
+  return node;
+}
+
+/** An attack or initiative line built from its roll groups. */
+function compactLine(line) {
+  const node = unspoken(make("span", undefined, "compact"));
+  const attack = line.rolls.find((group) => group.purpose === "attack");
+  if (attack) {
+    node.append(make("span", attack.roller + " → " + attack.target, "who"), " ", make("span", OUTCOME_TAGS[attack.outcome], "tag " + attack.outcome));
+    line.rolls.forEach((group, index) => node.append(index > 0 ? " · " : " ", compactRoll(group)));
+  } else {
+    node.append(make("span", "Initiative: ", "roll-label"));
+    line.rolls.forEach((group, index) => node.append(...(index > 0 ? [" · "] : []), compactRoll(group)));
+  }
+  return node;
+}
+
+const compactable = (line) => line.rolls.some(({ purpose }) => purpose === "attack" || purpose === "initiative");
 
 function historyCard(card) {
   if (card.kind === "narration") return part("p", "narration", card.text);
   const node = part("div", card.kind);
   for (const line of card.lines) {
     const block = make("div", undefined, "card-line");
-    block.append(make("p", line.text), ...line.rolls.map(rollGroup));
+    const text = compactable(line) ? make("p") : make("p", line.text);
+    if (compactable(line)) text.append(spoken(line.text), compactLine(line));
+    block.append(text, ...line.rolls.filter(({ purpose }) => purpose === "healing").map(healingRoll));
     node.append(block);
+  }
+  if (card.lines.some(compactable)) {
+    // The toggle sits beside the first line, so it costs no line of its own.
+    const full = make("p", card.text, "full-text");
+    full.hidden = true;
+    const more = make("button", "Full text", "card-more quiet");
+    more.type = "button";
+    more.setAttribute("aria-expanded", "false");
+    more.addEventListener("click", () => {
+      full.hidden = !full.hidden;
+      more.setAttribute("aria-expanded", String(!full.hidden));
+    });
+    node.classList.add("has-more");
+    node.append(more, full);
   }
   return node;
 }
