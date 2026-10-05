@@ -132,9 +132,10 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   A typed message appears in the history at once, with "The Dungeon Master is
   thinking…" beneath it until the reply replaces it; that placeholder is never
   saved. While a request runs, the button that started it is marked busy
-  (such as **Opening…**, **Saving…**, **Starting…** or **Sending…**) and
-  nothing can be sent twice: every action and the typing box wait until it
-  finishes.
+  (such as **Opening…**, **Saving…**, **Starting…**, **Sending…**, or an
+  action button's **Attacking…** or **Examining…**, sized so the action bar
+  never shifts) and nothing can be sent twice: every action and the typing
+  box wait until it finishes.
 - **Moving between 5e views.** The character library, creation, each
   character sheet and each adventure have their own address and page title
   (such as "Brannoc Ironside · Dungeon One"), so the browser's Back and

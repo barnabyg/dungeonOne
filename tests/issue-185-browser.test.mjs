@@ -1,0 +1,209 @@
+// #185: while an action-bar request runs, the clicked button shows a busy
+// label ("Examining…") and is named in full ("Examining Rusted Lantern…"),
+// every other action is disabled, and the bar does not move. Afterwards the
+// label returns and the #156 focus rule holds. Each request is held with a
+// Playwright route so the busy state is observed deterministically.
+import assert from "node:assert/strict";
+import test from "node:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { chromium } from "playwright";
+import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+
+// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
+const launch = () =>
+  chromium.launch(
+    process.platform === "win32"
+      ? { channel: "msedge", headless: true }
+      : { headless: true },
+  );
+
+/** Holds the page's next POST to `path` until the returned function is called. */
+async function holdRequests(page, path) {
+  let open;
+  const held = new Promise((resolve) => {
+    open = resolve;
+  });
+  await page.route(
+    `**${path}`,
+    async (route) => {
+      await held;
+      await route.continue();
+    },
+    { times: 1 },
+  );
+  return open;
+}
+
+/** Every action button: its place, state and what it shows and is named. */
+const bar = (page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll("#action-bar button")].map((button) => {
+      const { x, y, width, height } = button.getBoundingClientRect();
+      const label = button.querySelector("span");
+      const busy = getComputedStyle(button, "::after");
+      return {
+        key: button.dataset.action + ":" + (button.dataset.target || ""),
+        box: [x, y, width, height].map(Math.round),
+        disabled: button.disabled,
+        busy: button.getAttribute("aria-busy"),
+        name: button.getAttribute("aria-label") || label.textContent,
+        shows:
+          getComputedStyle(label).visibility === "visible"
+            ? label.textContent
+            : busy.visibility === "visible"
+              ? JSON.parse(busy.content)
+              : "",
+      };
+    }),
+  );
+
+/**
+ * Clicks the action button `selector` with its request to `path` held, checks
+ * the busy state, then releases it and checks the label and focus afterwards.
+ */
+async function holdAction(page, selector, path, shows, name) {
+  const button = page.locator(selector);
+  // Scrolled first, so the click's own scrolling doesn't move the bar.
+  await button.scrollIntoViewIfNeeded();
+  const idle = await bar(page);
+  const key =
+    (await button.getAttribute("data-action")) +
+    ":" +
+    ((await button.getAttribute("data-target")) || "");
+  const count = await page.locator("#log > li").count();
+  const release = await holdRequests(page, path);
+  await button.click();
+  await page
+    .locator(`${selector}[aria-busy="true"]`)
+    .waitFor({ state: "attached" });
+
+  const busy = await bar(page);
+  const clicked = busy.find((entry) => entry.key === key);
+  assert.deepEqual(
+    { busy: clicked.busy, disabled: clicked.disabled, shows: clicked.shows },
+    { busy: "true", disabled: true, shows },
+  );
+  assert.equal(clicked.name, name);
+  assert.equal(
+    await page.getByRole("button", { name, exact: true }).count(),
+    1,
+  );
+  for (const entry of busy) {
+    assert.equal(entry.disabled, true, `${entry.key} is disabled`);
+  }
+  // Nothing in the bar moves or resizes while the label shows.
+  assert.deepEqual(
+    busy.map(({ key, box }) => ({ key, box })),
+    idle.map(({ key, box }) => ({ key, box })),
+  );
+
+  release();
+  await page.waitForFunction(
+    (seen) => document.querySelectorAll("#log > li").length > seen,
+    count,
+  );
+  await page.waitForFunction(
+    () => !document.querySelector("#session-actions [aria-busy]"),
+  );
+  const after = (await bar(page)).find((entry) => entry.key === key);
+  // #156: focus stays on the clicked control while it is enabled, and
+  // otherwise moves to the newest history entry.
+  const focus = await page.evaluate(() => {
+    const active = document.activeElement;
+    return active.matches("#log > li.newest")
+      ? "newest"
+      : active.id === "ending-title"
+        ? "ending"
+        : active.dataset.action + ":" + (active.dataset.target || "");
+  });
+  if (after && !after.disabled) {
+    assert.equal(after.busy, null);
+    assert.equal(after.shows, idle.find((entry) => entry.key === key).shows);
+    assert.equal(after.name, idle.find((entry) => entry.key === key).name);
+    assert.equal(focus, key);
+  } else if (await page.locator("#ending").isVisible()) {
+    assert.equal(focus, "ending");
+  } else {
+    assert.equal(focus, "newest");
+  }
+}
+
+for (const viewport of [
+  { width: 1280, height: 850 },
+  { width: 375, height: 812 },
+]) {
+  test(
+    `action buttons show a busy label without moving the bar (${viewport.width}px)`,
+    { timeout: 120000 },
+    async () => {
+      const directory = await mkdtemp(join(tmpdir(), "issue-185-"));
+      const server = await startFifthBrowserServer({
+        libraryPath: join(directory, "characters.json"),
+        seed: 0,
+      });
+      const browser = await launch();
+      const page = await browser.newPage({ viewport });
+      page.setDefaultTimeout(5000);
+      try {
+        await page.goto(server.url);
+        await page.locator("#open-creation").click();
+        await page
+          .locator("#preview-body")
+          .filter({ hasText: "AC:" })
+          .waitFor();
+        await page.locator("#character-name").fill("Ada");
+        await page.locator("#save-character").click();
+        await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+        await page
+          .locator('.start-adventure[data-adventure="smugglers-cellar"]')
+          .click();
+        await page.locator("#log > li").first().waitFor();
+
+        // Exploring: a short verb shows its own busy verb.
+        await holdAction(
+          page,
+          '#explore-controls button[data-action="examine"][data-target="rusted-lantern"]',
+          "/api/5e/session/explore",
+          "Examining…",
+          "Examining Rusted Lantern…",
+        );
+        await holdAction(
+          page,
+          '#explore-controls button[data-action="move"][data-target="rat-cellar"]',
+          "/api/5e/session/explore",
+          "Going…",
+          "Going to Rat-Gnawed Cellar…",
+        );
+
+        // Fighting: the attack, then End turn, a control without a target.
+        const attack = page.locator("#attack-controls button.attack").first();
+        await attack.waitFor();
+        const target = await attack.getAttribute("data-target");
+        const opponent = (await attack.textContent()).replace(/^Attack /, "");
+        await holdAction(
+          page,
+          `#attack-controls button[data-target="${target}"]`,
+          "/api/5e/session/attack",
+          "Attacking…",
+          `Attacking ${opponent}…`,
+        );
+        const endTurn = '#feature-controls button[data-action="end-turn"]';
+        if (await page.locator(`${endTurn}:enabled`).count()) {
+          await holdAction(
+            page,
+            endTurn,
+            "/api/5e/session/action",
+            "Ending turn…",
+            "Ending turn…",
+          );
+        }
+      } finally {
+        await browser.close();
+        await server.close();
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
+}
