@@ -334,7 +334,7 @@ test(
         .waitFor();
       assert.equal(
         await page.locator(".start-adventure").count(),
-        5,
+        6,
         "Ada can start an adventure again",
       );
       record = await ada(libraryPath);

@@ -126,6 +126,7 @@ test("the group-fight module holds three goblins with distinct names", async () 
     [
       "cellar-goblin",
       "goblin-storeroom",
+      "goblin-warren",
       "robbers-barrow",
       "smugglers-cellar",
       "warden-crypt",

@@ -1130,6 +1130,7 @@ export function orderFifthAdventures<
 export const FIFTH_ADVENTURE_FILES = {
   "cellar-goblin": "cellar-goblin.json",
   "goblin-storeroom": "goblin-storeroom.json",
+  "goblin-warren": "goblin-warren.json",
   "robbers-barrow": "robbers-barrow.json",
   "smugglers-cellar": "smugglers-cellar.json",
   "warden-crypt": "warden-crypt.json",

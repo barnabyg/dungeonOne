@@ -48,7 +48,11 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`), one SRD 5.2
   Goblin Warrior; _The Goblins in the Storeroom_
   (`adventures/5e/goblin-storeroom.json`), a group fight against two Goblin
-  Minions and a Goblin Warrior; _The Robbers' Barrow_
+  Minions and a Goblin Warrior; _The Goblin Warren_
+  (`adventures/5e/goblin-warren.json`, levels 2–3), a Goblin Warrior carrying
+  a potion, then the SRD 5.2 Goblin Boss and its hoard, and a way out (its
+  400 XP loot ending, with the fights' 250, takes a level 2 character from the
+  barrow to level 3); _The Robbers' Barrow_
   (`adventures/5e/robbers-barrow.json`), two rooms with a Goblin Warrior carrying
   a Pouch of Old Coins, a Silver Torc hidden under the bier and a way out; _The Smugglers' Cellar_
   (`adventures/5e/smugglers-cellar.json`), four rooms to explore with a Giant

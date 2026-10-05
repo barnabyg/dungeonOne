@@ -9,6 +9,7 @@ import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import {
   buildFighter,
   fighterProfile,
+  levelUpChanges,
   rewardFighter,
 } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
@@ -314,6 +315,95 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
   }
   assert.equal(state.status, "defeat");
   assert.equal(runtime.projectRewards(state), undefined);
+});
+
+test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin warren with its hoard", () => {
+  const warren = adventures.find(({ id }) => id === "goblin-warren");
+  assert.deepEqual(warren.recommendedLevels, { min: 2, max: 3 });
+  // The barrow's 300 XP makes Ada level 2.
+  const veteran = rewardFighter(sheet, {
+    xp: [
+      { id: "robbers-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
+      { id: "robbers-barrow/ending/out-with-the-torc", name: "Out", xp: 250 },
+    ],
+    treasure: [],
+  });
+  assert.equal(veteran.level, 2);
+  const runtime = createFifthRuntime(warren, veteran);
+  const fightThrough = (state, random) => {
+    while (state.encounter?.outcome === "ongoing") {
+      const [target] = runtime.attackTargets(state);
+      state = runtime.handleAction(
+        state,
+        target === undefined
+          ? { type: "end-turn", actorId: "pc" }
+          : { type: "attack", actorId: "pc", targetId: target.id },
+        random,
+      ).state;
+    }
+    return state;
+  };
+  const run = (seed) => {
+    const random = createSeededRandom(seed);
+    const act = (state, action) => {
+      const result = runtime.handleAction(state, action, random);
+      assert.equal(result.rejection, undefined, result.rejection?.reason);
+      return result.state;
+    };
+    let state = act(runtime.createSession(), { type: "begin" });
+    state = fightThrough(
+      act(state, { type: "move", destinationId: "guard-tunnel" }),
+      random,
+    );
+    if (state.status !== "playing") {
+      return undefined;
+    }
+    state = fightThrough(
+      act(state, { type: "move", destinationId: "boss-hall" }),
+      random,
+    );
+    if (state.status !== "playing") {
+      return undefined;
+    }
+    for (const action of [
+      { type: "examine", targetId: "crate-throne" },
+      { type: "take", itemId: "stolen-coins" },
+      { type: "examine", targetId: "goblin-boss" },
+      { type: "take", itemId: "boss-chain" },
+      { type: "move", destinationId: "guard-tunnel" },
+      { type: "move", destinationId: "warren-gate" },
+      { type: "leave", roomId: "warren-gate" },
+    ]) {
+      state = act(state, action);
+    }
+    return state;
+  };
+  let out;
+  for (let seed = 0; out === undefined; seed++) {
+    assert.ok(seed < 2000, "no seed wins both warren fights");
+    out = run(seed);
+  }
+  assert.equal(out.endingId, "out-with-the-hoard");
+  const rewards = runtime.projectRewards(out);
+  assert.deepEqual(
+    rewards.xp.map(({ name, xp }) => [name, xp]),
+    [
+      ["Defeated the Goblin Warrior", 50],
+      ["Defeated the Goblin Boss", 200],
+      ["Out with the hoard", 400],
+    ],
+  );
+  assert.deepEqual(
+    rewards.treasure.map(({ name }) => name),
+    ["Sack of Stolen Coins", "Silver Chain of Office"],
+  );
+  const champion = rewardFighter(veteran, rewards);
+  assert.equal(champion.xp, 950);
+  assert.equal(champion.level, 3);
+  assert.deepEqual(
+    levelUpChanges(veteran, champion).features.map(({ name }) => name),
+    ["Champion: Improved Critical", "Champion: Remarkable Athlete"],
+  );
 });
 
 // Engine → storage: the library and the session saves.
