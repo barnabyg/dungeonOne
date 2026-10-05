@@ -364,6 +364,23 @@ test("the level-up changes name the new level, hit points and features", () => {
   assert.equal(levelUpChanges(before, before), undefined);
 });
 
+test("reaching 900 XP raises a level 2 Fighter to 3 with the Champion's features", () => {
+  const second = rewardFighter(fighter(), { xp: AWARDS, treasure: [] });
+  const third = rewardFighter(second, {
+    xp: [{ id: "warden-crypt/ending/crypt-cleared", name: "Crypt", xp: 600 }],
+    treasure: [],
+  });
+  assert.equal(third.level, 3);
+  assert.equal(third.hp, fighterProfile(third).maxHp);
+  const changes = levelUpChanges(second, third);
+  assert.equal(changes.from, 2);
+  assert.equal(changes.to, 3);
+  assert.deepEqual(
+    changes.features.map(({ name }) => name),
+    ["Champion: Improved Critical", "Champion: Remarkable Athlete"],
+  );
+});
+
 test("validation rejects malformed treasure and repeated awards", () => {
   const sheet = fighter();
   for (const change of [

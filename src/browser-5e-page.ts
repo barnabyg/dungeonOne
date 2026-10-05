@@ -441,12 +441,15 @@ function treasureNodes(treasure) {
   const list = make("ul", undefined, "features");
   list.id = "treasure";
   list.setAttribute("aria-labelledby", "treasure-title");
-  for (const item of treasure) {
-    const entry = make("li");
-    entry.append(make("strong", item.name + ". "), document.createTextNode(item.description));
-    list.append(entry);
-  }
+  list.append(...treasure.map(treasureItem));
   return [heading, list];
+}
+
+/** One treasure as a list item: its name in bold, then its description. */
+function treasureItem(item) {
+  const entry = make("li");
+  entry.append(make("strong", item.name + ". "), document.createTextNode(item.description));
+  return entry;
 }
 
 function renderAdventureChoices(entry) {
@@ -624,7 +627,7 @@ function renderComposer() {
   else element("message").removeAttribute("aria-describedby");
 }
 
-const ENDING_KINDS = { victory: "Victory", "escape-with-loot": "Escaped with loot", "escape-without-loot": "Escaped empty-handed", defeat: "Defeat" };
+const ENDING_LABELS = { victory: "Victory", "escape-with-loot": "Escaped with loot", "escape-without-loot": "Escaped empty-handed", defeat: "Defeat" };
 
 // The ending (#158), in place of the action bar: its kind in words and
 // colour, its title and text, what a surviving ending earned with any
@@ -637,7 +640,7 @@ function renderEnding() {
   const entry = findEntry(session.characterId);
   const name = entry ? entry.sheet.name : "This character";
   element("ending").dataset.kind = ending.kind;
-  element("ending-kind").textContent = ENDING_KINDS[ending.kind];
+  element("ending-kind").textContent = ENDING_LABELS[ending.kind];
   element("ending-title").textContent = ending.title;
   element("ending-text").textContent = ending.text;
   element("ending-consequence").textContent = ending.kind === "defeat" ? "Defeat is permanent: " + name + " cannot start another adventure." : "";
@@ -663,11 +666,7 @@ function rewardNodes(rewards, name) {
   }
   if (rewards.xp.length > 0) list("ending-xp", "Experience", rewards.xp.map((award) => make("li", award.name + ": +" + award.xp + " XP")));
   if (rewards.treasure.length > 0) {
-    list("ending-treasure", "Treasure kept", rewards.treasure.map((item) => {
-      const entry = make("li");
-      entry.append(make("strong", item.name + ". "), document.createTextNode(item.description));
-      return entry;
-    }));
+    list("ending-treasure", "Treasure kept", rewards.treasure.map(treasureItem));
   }
   nodes.push(make("p", name + " has " + rewards.totalXp + " XP. A rest before the next adventure restores every hit point and feature use."));
   const up = rewards.levelUp;
@@ -1114,7 +1113,7 @@ function renderActions() {
   const asking = confirmingLeave && groups.leave.length > 0;
   element("leave-controls").hidden = asking;
   element("leave-confirm").hidden = !asking;
-  element("leave-question").textContent = "Leave " + session.adventure.title + "? This ends the adventure here: you keep the treasure you carry out and earn this ending's XP, but you cannot come back to it.";
+  element("leave-question").textContent = "Leave " + session.adventure.title + "? This ends the adventure here. Any treasure you carry out is yours to keep; you cannot come back to this adventure.";
   element("confirm-leave").disabled = acting;
   element("cancel-leave").disabled = acting;
 }

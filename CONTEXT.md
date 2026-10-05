@@ -44,12 +44,12 @@ _Avoid_: Loot (when kept treasure is meant), Inventory
 One source of experience points a character can earn once: winning an encounter (its opponents' stat-block XP) or reaching an ending that awards XP. Awards are credited only on surviving completion.
 _Avoid_: Milestone, Score
 
-**Exit**:
-A room the character can leave the adventure from. Leaving is the player's final choice, never the AI DM's.
-_Avoid_: Exit (when a passage between rooms is meant), Retreat
+**Exit room**:
+A room the character can leave the adventure from. Leaving is the player's final choice, never the AI DM's. Not to be confused with a room's exits, the passages out of it.
+_Avoid_: Exit (alone, which means a passage out of a room), Retreat
 
 **Escape**:
-An ending the player chooses by leaving from an exit: with loot when the character carries treasure, without it otherwise. Like a victory, it is surviving completion.
+An ending the player chooses by leaving from an exit room: with loot when the character carries treasure, without it otherwise. Like a victory, it is surviving completion.
 _Avoid_: Retreat, Flee (which a fled monster does), Quit
 
 **Abandonment**:
