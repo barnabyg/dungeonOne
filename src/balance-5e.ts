@@ -30,7 +30,6 @@ import {
 import { createSeededRandom } from "./random.js";
 import { combatant } from "./encounter-5e.js";
 import {
-  actionOf,
   createFifthRuntime,
   PLAYER_ID,
   playerCombatant,
@@ -740,7 +739,7 @@ export function playAdventure(
         `${adventure.id}: a ${style} run was stranded in ${state.roomId}.`,
       );
     }
-    apply(actionOf(choice));
+    apply(runtime.actionOf(choice)!);
   }
   const ending = adventure.endings.find(({ id }) => id === state.endingId)!;
   const rewards = runtime.projectRewards(state);

@@ -1023,40 +1023,6 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "not-an-exit": "No way out here",
 };
 
-/** The action an action-bar entry stands for, as the browser sends it. */
-export function actionOf(view: ActionView): FifthAction {
-  const id = view.target?.id ?? "";
-  switch (view.action) {
-    case "attack":
-      return { type: "attack", actorId: PLAYER_ID, targetId: id };
-    case "second-wind":
-    case "action-surge":
-    case "end-turn":
-      return { type: view.action, actorId: PLAYER_ID };
-    case "use":
-      return { type: "use-item", itemId: id };
-    case "take":
-      return { type: "take", itemId: id };
-    case "move":
-      return { type: "move", destinationId: id };
-    case "examine":
-      return { type: "examine", targetId: id };
-    case "force":
-    case "pick":
-    case "break":
-    case "unlock":
-      return { type: view.action, doorId: id };
-    case "search":
-      return { type: "search", roomId: id };
-    case "disarm":
-      return { type: "disarm", trapId: id };
-    case "talk":
-      return { type: "talk", topicId: id };
-    case "leave":
-      return { type: "leave", roomId: id };
-  }
-}
-
 /** Thrown by the dry-run roller: the engine accepted the action and rolls. */
 class WouldRoll extends Error {}
 const DRY_RUN = {
@@ -1123,6 +1089,11 @@ export type FifthRuntime = Omit<
      * adventure is under way or after a defeat.
      */
     projectRewards(state: FifthState): Rewards | undefined;
+    /**
+     * The action an entry of `projectActions` stands for: the one its
+     * projection dry-ran. Undefined for an entry this runtime didn't project.
+     */
+    actionOf(view: ActionView): FifthAction | undefined;
   }>;
 
 /**
@@ -2140,6 +2111,9 @@ export function createFifthRuntime(
     }
   };
 
+  /** The action each projected entry dry-ran, for `actionOf`. */
+  const projectedActions = new WeakMap<ActionView, FifthAction>();
+
   /** Dry-runs every action the character might take now; see `refusal`. */
   const dryRunActions = (state: FifthState): readonly ActionView[] => {
     if (state.status !== "playing") {
@@ -2151,7 +2125,7 @@ export function createFifthRuntime(
       target?: Readonly<{ id: string; name: string }>,
     ): ActionView => {
       const refused = refusal(state, action);
-      return {
+      const entry: ActionView = {
         action: kind,
         ...(target === undefined
           ? {}
@@ -2161,6 +2135,8 @@ export function createFifthRuntime(
           ? {}
           : { reason: SHORT_REASONS[refused.code] }),
       };
+      projectedActions.set(entry, action);
+      return entry;
     };
     const use = (item: FifthItem) =>
       view("use", { type: "use-item", itemId: item.id }, item);
@@ -2814,6 +2790,7 @@ export function createFifthRuntime(
       projectFight(state, self(state), options(state), attackTargets(state)),
     projectRoom,
     projectActions,
+    actionOf: (view) => projectedActions.get(view),
     projectRewards,
   };
   return runtime;
