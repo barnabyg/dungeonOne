@@ -28,6 +28,7 @@ import {
   describeFifthResult,
   type FifthAction,
   type FifthEvent,
+  type FifthRejection,
   type FifthResult,
   type FifthRuntime,
   type FifthState,
@@ -309,7 +310,10 @@ export class FifthSession {
           ? {}
           : {
               card: this.card(
-                { state: before, rejection: engine.rejection },
+                {
+                  state: before,
+                  rejection: engine.rejection as FifthRejection,
+                },
                 rolls,
               ),
             }),

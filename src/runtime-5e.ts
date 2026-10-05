@@ -41,6 +41,7 @@ import {
   type EncounterAction,
   type EncounterActionType,
   type EncounterEvent,
+  type EncounterRefusalCode,
   type EncounterState,
   type FeatureUses,
   type InitiativeRoll,
@@ -178,6 +179,28 @@ export type FifthEvent =
       text: string;
     }>;
 
+/**
+ * Why the engine refuses an action. Code branches on `code`, which stays
+ * stable; `reason` is the sentence rejection cards and the AI DM show.
+ */
+export type FifthRefusalCode =
+  | EncounterRefusalCode
+  | "adventure-over"
+  | "unknown-action"
+  | "fight-begun"
+  | "no-fight"
+  | "fighting"
+  | "no-exit"
+  | "nothing-to-examine"
+  | "already-carried"
+  | "no-item"
+  | "not-carried";
+
+export type FifthRejection = Readonly<{
+  code: FifthRefusalCode;
+  reason: string;
+}>;
+
 export type FifthResult =
   | Readonly<{
       state: FifthState;
@@ -186,7 +209,7 @@ export type FifthResult =
     }>
   | Readonly<{
       state: FifthState;
-      rejection: Readonly<{ reason: string }>;
+      rejection: FifthRejection;
       events?: never;
     }>;
 
@@ -679,14 +702,34 @@ export type ActionView = Readonly<{
   reason?: string;
 }>;
 
-/** The engine's refusals, shortened for a disabled button. */
-const SHORT_REASONS: Readonly<Record<string, string>> = {
-  "You have already used your action this turn.": "Action used",
-  "You have already used your bonus action this turn.": "Bonus action used",
-  "You are unhurt, so Second Wind would heal nothing.": "Full HP",
-  "You are unhurt, so the potion would heal nothing.": "Full HP",
-  "You have no uses of Second Wind left.": "No uses left",
-  "You have no uses of Action Surge left.": "No uses left",
+/**
+ * Each refusal, shortened for a disabled button. Keyed by code, so every
+ * code must have one and rewording a sentence leaves the button alone.
+ */
+export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
+  "fight-over": "Fight over",
+  "no-combatant": "Not in this fight",
+  "not-your-turn": "Not your turn",
+  "no-target": "No such target",
+  "same-side": "On your side",
+  "already-defeated": "Already defeated",
+  "action-used": "Action used",
+  "bonus-action-used": "Bonus action used",
+  "no-second-wind": "No Second Wind",
+  "no-action-surge": "No Action Surge",
+  "no-potion": "No potion",
+  "no-uses-left": "No uses left",
+  "full-hp": "Full HP",
+  "adventure-over": "Adventure over",
+  "unknown-action": "Unknown action",
+  "fight-begun": "Fight begun",
+  "no-fight": "No fight here",
+  fighting: "In a fight",
+  "no-exit": "No way there",
+  "nothing-to-examine": "Nothing to examine",
+  "already-carried": "Already carried",
+  "no-item": "Not here",
+  "not-carried": "Not carried",
 };
 
 /** Thrown by the dry-run roller: the engine accepted the action and rolls. */
@@ -1055,10 +1098,10 @@ export function createFifthRuntime(
     state: FifthState,
     action: EncounterAction,
     random: Pick<RandomSource, "roll"> | undefined,
-    reject: (reason: string) => FifthResult,
+    reject: (code: FifthRefusalCode, reason: string) => FifthResult,
   ): FifthResult => {
     if (state.encounter === undefined) {
-      return reject("There is no fight here.");
+      return reject("no-fight", "There is no fight here.");
     }
     const result = act(
       state.encounter,
@@ -1071,7 +1114,7 @@ export function createFifthRuntime(
       },
     );
     if (result.rejection !== undefined) {
-      return reject(result.rejection.reason);
+      return { state, rejection: result.rejection };
     }
     return settle(state, result.state, result.events);
   };
@@ -1091,21 +1134,24 @@ export function createFifthRuntime(
     requested: FifthAction,
     random?: Pick<RandomSource, "roll">,
   ): FifthResult => {
-    const reject = (reason: string): FifthResult => ({
+    const reject = (code: FifthRefusalCode, reason: string): FifthResult => ({
       state,
-      rejection: { reason },
+      rejection: { code, reason },
     });
     if (state.status !== "playing") {
-      return reject("The adventure is over.");
+      return reject("adventure-over", "The adventure is over.");
     }
     const action = checked(requested);
     if (action === undefined) {
-      return reject("That is not an action this adventure understands.");
+      return reject(
+        "unknown-action",
+        "That is not an action this adventure understands.",
+      );
     }
     switch (action.type) {
       case "begin":
         if (state.encounter !== undefined) {
-          return reject("The fight has already begun.");
+          return reject("fight-begun", "The fight has already begun.");
         }
         return enter(state, random, []);
       case "attack":
@@ -1115,11 +1161,14 @@ export function createFifthRuntime(
         return fightAction(state, action, random, reject);
       case "move": {
         if (fighting(state)) {
-          return reject("You can't leave in the middle of a fight.");
+          return reject(
+            "fighting",
+            "You can't leave in the middle of a fight.",
+          );
         }
         const exit = exits(state).find(({ id }) => id === action.destinationId);
         if (exit === undefined) {
-          return reject("There is no way from here to there.");
+          return reject("no-exit", "There is no way from here to there.");
         }
         const destination = roomById(exit.id);
         // The fight stays behind: an ended adventure cannot move.
@@ -1143,7 +1192,7 @@ export function createFifthRuntime(
       }
       case "examine": {
         if (fighting(state)) {
-          return reject("Not while you are fighting.");
+          return reject("fighting", "Not while you are fighting.");
         }
         const feature = room(state).features.find(
           ({ id }) => id === action.targetId,
@@ -1180,7 +1229,10 @@ export function createFifthRuntime(
           ({ id }) => id === action.targetId,
         );
         if (item === undefined) {
-          return reject("There is nothing like that here to examine.");
+          return reject(
+            "nothing-to-examine",
+            "There is nothing like that here to examine.",
+          );
         }
         return {
           state,
@@ -1197,14 +1249,17 @@ export function createFifthRuntime(
       }
       case "take": {
         if (fighting(state)) {
-          return reject("You can pick that up once the fight is over.");
+          return reject(
+            "fighting",
+            "You can pick that up once the fight is over.",
+          );
         }
         if (state.inventory.includes(action.itemId)) {
-          return reject("You already have that.");
+          return reject("already-carried", "You already have that.");
         }
         const item = roomItems(state).find(({ id }) => id === action.itemId);
         if (item === undefined) {
-          return reject("There is no such item here to take.");
+          return reject("no-item", "There is no such item here to take.");
         }
         return {
           state: { ...state, inventory: [...state.inventory, item.id] },
@@ -1213,7 +1268,7 @@ export function createFifthRuntime(
       }
       case "use-item": {
         if (!state.inventory.includes(action.itemId)) {
-          return reject("You don't have that.");
+          return reject("not-carried", "You don't have that.");
         }
         if (fighting(state)) {
           return fightAction(
@@ -1224,7 +1279,10 @@ export function createFifthRuntime(
           );
         }
         if (state.character.hp >= maxHp) {
-          return reject("You are unhurt, so the potion would heal nothing.");
+          return reject(
+            "full-hp",
+            "You are unhurt, so the potion would heal nothing.",
+          );
         }
         if (random === undefined) {
           throw new Error("Drinking a potion needs dice.");
@@ -1258,10 +1316,10 @@ export function createFifthRuntime(
   const refusal = (
     state: FifthState,
     action: FifthAction,
-  ): string | undefined => {
+  ): FifthRejection | undefined => {
     probe.dryRun?.(action);
     try {
-      return handleAction(state, action, DRY_RUN).rejection?.reason;
+      return handleAction(state, action, DRY_RUN).rejection;
     } catch (error) {
       if (error instanceof WouldRoll) {
         return undefined;
@@ -1280,16 +1338,16 @@ export function createFifthRuntime(
       action: FifthAction,
       target?: Readonly<{ id: string; name: string }>,
     ): ActionView => {
-      const reason = refusal(state, action);
+      const refused = refusal(state, action);
       return {
         action: kind,
         ...(target === undefined
           ? {}
           : { target: { id: target.id, name: target.name } }),
-        available: reason === undefined,
-        ...(reason === undefined
+        available: refused === undefined,
+        ...(refused === undefined
           ? {}
-          : { reason: SHORT_REASONS[reason] ?? reason }),
+          : { reason: SHORT_REASONS[refused.code] }),
       };
     };
     const use = (item: FifthItem) =>
@@ -1642,7 +1700,11 @@ export function createFifthRuntime(
         engineResult: { rejection: result.rejection },
         modelOutput: {
           ok: false,
-          error: { code: "action-rejected", rejection: result.rejection },
+          // The AI DM reads the sentence; the code is for the action bar.
+          error: {
+            code: "action-rejected",
+            rejection: { reason: result.rejection.reason },
+          },
           scene,
         },
       };
@@ -1723,7 +1785,7 @@ export function createFifthRuntime(
                 }
               : {
                   state: result.state as FifthState,
-                  rejection: result.engineResult.rejection,
+                  rejection: result.engineResult.rejection as FifthRejection,
                 },
           )
         : undefined;

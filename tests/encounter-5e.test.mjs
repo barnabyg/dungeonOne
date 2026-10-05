@@ -234,7 +234,7 @@ test("the player character at 0 HP is defeated at once, with no death saves", ()
   );
   assert.deepEqual(after, {
     state,
-    rejection: { reason: "The fight is over." },
+    rejection: { code: "fight-over", reason: "The fight is over." },
   });
 });
 
@@ -516,7 +516,10 @@ test("turn economy: an attack spends the action; the turn stays open while optio
     ),
     {
       state: missed.state,
-      rejection: { reason: "You have already used your action this turn." },
+      rejection: {
+        code: "action-used",
+        reason: "You have already used your action this turn.",
+      },
     },
   );
   // Ending the turn hands over to the goblin, which misses on a 1.
@@ -586,7 +589,7 @@ test("Second Wind: a bonus action heals 1d10 + level, up to the maximum, and spe
 
 test("Second Wind is refused without uses, at full health, or without the feature", () => {
   const none = dice();
-  for (const [overrides, reason] of [
+  for (const [overrides, code, reason] of [
     [
       {
         secondWind: {
@@ -595,15 +598,24 @@ test("Second Wind is refused without uses, at full health, or without the featur
           healing: { dice: 1, sides: 10, modifier: 2 },
         },
       },
+      "no-uses-left",
       "You have no uses of Second Wind left.",
     ],
-    [{ hp: 12 }, "You are unhurt, so Second Wind would heal nothing."],
-    [{ secondWind: undefined }, "You don't have Second Wind."],
+    [
+      { hp: 12 },
+      "full-hp",
+      "You are unhurt, so Second Wind would heal nothing.",
+    ],
+    [
+      { secondWind: undefined },
+      "no-second-wind",
+      "You don't have Second Wind.",
+    ],
   ]) {
     const state = veteranFirst(overrides);
     assert.deepEqual(act(state, { type: "second-wind", actorId: "pc" }, none), {
       state,
-      rejection: { reason },
+      rejection: { code, reason },
     });
     assert.ok(!availableActions(state, "pc").includes("second-wind"));
   }
