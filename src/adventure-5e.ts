@@ -9,8 +9,9 @@
  * found and disarmed by checks or sprung by going through, with a saving
  * throw against its damage. A creature's topics may need a check. Each
  * opponent in an encounter has its own name, so the player can target it.
- * Treasure is an item hidden in a feature, so it is only ever found by
- * examining. A room may be an exit, where the player can choose to leave: the
+ * Treasure is an item hidden in a feature or carried by an opponent, so it
+ * is only ever found by examining: the feature, or the opponent's body once
+ * its fight is won. A room may be an exit, where the player can choose to leave: the
  * adventure then ends in its escape-with-loot ending when the character
  * carries treasure, and its escape-without-loot ending otherwise. A victory
  * or escape ending may award XP, on top of each won encounter's stat-block XP.
@@ -94,12 +95,16 @@ export const ITEM_KINDS = {
 } as const;
 export type ItemKind = keyof typeof ITEM_KINDS;
 
-/** An item placed in a room; one hidden in a feature is found by examining it. */
+/**
+ * An item placed in a room. One hidden in a feature is found by examining it;
+ * one carried by an opponent, by searching its body once the fight is won.
+ */
 export type FifthItem = Readonly<{
   id: string;
   name: string;
   description: string;
   kind: ItemKind;
+  /** The feature it is hidden in, or the opponent carrying it. */
   hiddenIn?: string;
 }>;
 
@@ -613,9 +618,24 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
           );
         }
         if (item.kind === "treasure" && item.hiddenIn === undefined) {
-          fail(`${at} is treasure, so it must be hidden in a feature.`);
+          fail(
+            `${at} is treasure, so it must be hidden in a feature or carried by an opponent.`,
+          );
         }
-        if (item.hiddenIn !== undefined) {
+        // An opponent of this room's fight may carry it: searching its body
+        // once the fight is won finds it.
+        const fight = encounters.find(
+          ({ id: encounterId }) => encounterId === room.encounterId,
+        );
+        const carrier = fight?.opponents.find(
+          ({ id: opponentId }) => opponentId === item.hiddenIn,
+        );
+        if (carrier !== undefined && fight!.victoryEndingId !== undefined) {
+          fail(
+            `${at} is carried by ${carrier.id}, whose fight ends the adventure, so its body can never be searched.`,
+          );
+        }
+        if (item.hiddenIn !== undefined && carrier === undefined) {
           const holder = features.find(
             ({ id: featureId }) => featureId === item.hiddenIn,
           );
@@ -857,10 +877,11 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
     },
   );
   unique(passages, "passage");
-  // Features, items, doors, traps, creatures and topics share one namespace:
-  // each is an action's target.
+  // Features, items, doors, traps, creatures, topics and the opponents whose
+  // bodies can be searched share one namespace: each is an action's target.
   distinct(
     [
+      ...encounters.flatMap(({ opponents }) => opponents),
       ...rooms.flatMap(({ features, items, creatures }) => [
         ...features,
         ...items,

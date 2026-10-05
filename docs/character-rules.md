@@ -30,7 +30,7 @@ Every character is a Fighter created at level 1 with 0 XP, using the fixed kit b
 
 Level 3 is the highest supported level; XP above 900 is kept.
 
-**Earning XP and treasure (#133).** XP is credited only when an adventure ends with the character alive, in a victory or an escape. It comes from each encounter won (the sum of its opponents' stat-block XP) and from any XP the ending awards. Treasure is an item found by examining a feature and carried out alive. Each XP award and each treasure is earned once per character: treasure already kept is not there to find on a later visit. The level follows the XP at once, and the level-up card names the new hit points and features. A defeat or an abandoned adventure credits nothing.
+**Earning XP and treasure (#133).** XP is credited only when an adventure ends with the character alive, in a victory or an escape. It comes from each encounter won (the sum of its opponents' stat-block XP) and from any XP the ending awards. Treasure is an item found by examining a feature, or by searching an opponent's body once its fight is won, and carried out alive. Each XP award and each treasure is earned once per character: treasure already kept is not there to find on a later visit. The level follows the XP at once, and the level-up card names the new hit points and features. A defeat or an abandoned adventure credits nothing.
 
 **Rest between adventures.** A rest between adventures restores every hit point and every Second Wind and Action Surge use, so each adventure starts at full health with all uses.
 

@@ -153,6 +153,77 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
   });
 });
 
+test("a fallen opponent's treasure is found only by searching its body once the fight is won", () => {
+  const runtime = createFifthRuntime(barrow, sheet);
+  const SEARCH = { type: "examine", targetId: "barrow-goblin" };
+  // Not before the fight, and not during it.
+  const begun = play(runtime, [{ type: "begin" }]);
+  assert.equal(
+    runtime.handleAction(begun, SEARCH).rejection.code,
+    "nothing-to-examine",
+  );
+  const fighting = play(runtime, WIN_THE_HALL.slice(0, 2), dice(20, 1));
+  assert.equal(
+    runtime.handleAction(fighting, SEARCH).rejection.code,
+    "fighting",
+  );
+  const won = play(runtime, WIN_THE_HALL, WIN_DICE());
+  // Winning drops nothing: the pouch is still on the body.
+  assert.deepEqual(won.inventory, []);
+  assert.deepEqual(runtime.projectRoom(won).items, []);
+  assert.deepEqual(
+    runtime
+      .projectActions(won)
+      .filter(({ action }) => action === "examine")
+      .map(({ target }) => target.name),
+    ["Stone Bier", "Goblin Warrior's body"],
+  );
+  const searched = runtime.handleAction(won, SEARCH);
+  assert.deepEqual(searched.events, [
+    {
+      type: "examined",
+      targetId: "barrow-goblin",
+      name: "Goblin Warrior's body",
+      description: "It lies where it fell.",
+      found: ["Pouch of Old Coins"],
+    },
+  ]);
+  const body = runtime
+    .projectRoom(searched.state)
+    .features.find(({ id }) => id === "barrow-goblin");
+  assert.equal(body.discovery, "Pouch of Old Coins");
+  // Searching again finds nothing new; the pouch must still be taken.
+  assert.deepEqual(
+    runtime.handleAction(searched.state, SEARCH).events[0].found,
+    [],
+  );
+  const out = play(
+    runtime,
+    [
+      ...WIN_THE_HALL,
+      SEARCH,
+      { type: "take", itemId: "coin-pouch" },
+      { type: "move", destinationId: "barrow-mouth" },
+      LEAVE,
+    ],
+    WIN_DICE(),
+  );
+  assert.equal(out.endingId, "out-with-the-torc");
+  assert.deepEqual(
+    runtime.projectRewards(out).treasure.map(({ id }) => id),
+    ["robbers-barrow/coin-pouch"],
+  );
+  // Once kept, the body holds nothing of value.
+  const veteran = rewardFighter(sheet, runtime.projectRewards(out));
+  const again = createFifthRuntime(barrow, veteran);
+  const empty = again.handleAction(
+    play(again, WIN_THE_HALL, WIN_DICE()),
+    SEARCH,
+  );
+  assert.equal(empty.events[0].discovery, "Nothing of value.");
+  assert.deepEqual(empty.events[0].found, []);
+});
+
 test("treasure and XP already earned are not found or awarded again", () => {
   const first = createFifthRuntime(barrow, sheet);
   const out = play(first, [...WIN_THE_HALL, ...LOOT, LEAVE], WIN_DICE());

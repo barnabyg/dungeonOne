@@ -532,6 +532,48 @@ test("the barrow fixture has an exit, hidden treasure and both escape endings wi
   );
 });
 
+test("an opponent may carry treasure, unless its fight ends the adventure", () => {
+  const adventure = validateFifthAdventure(barrow);
+  assert.equal(adventure.rooms[1].items[1].hiddenIn, "barrow-goblin");
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        barrowed((m) => {
+          m.endings.push({
+            id: "won",
+            kind: "victory",
+            title: "Won",
+            text: "The barrow is quiet.",
+          });
+          m.encounters[0].victoryEndingId = "won";
+        }),
+      ),
+    /carried by barrow-goblin, whose fight ends the adventure/,
+  );
+  // An opponent in another room's fight can't carry this room's item.
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        barrowed((m) => m.rooms[0].items.push(m.rooms[1].items.pop())),
+      ),
+    /hidden in unknown feature barrow-goblin/,
+  );
+  // Opponents share the targets' namespace.
+  assert.throws(
+    () =>
+      validateFifthAdventure(
+        barrowed((m) =>
+          m.rooms[0].features.push({
+            id: "barrow-goblin",
+            name: "Old Grave",
+            description: "A sunken grave.",
+          }),
+        ),
+      ),
+    /duplicate id barrow-goblin/,
+  );
+});
+
 test("the validator rejects treasure lying in the open", () => {
   assert.throws(
     () =>

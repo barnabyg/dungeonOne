@@ -49,8 +49,8 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   Goblin Warrior; _The Goblins in the Storeroom_
   (`adventures/5e/goblin-storeroom.json`), a group fight against two Goblin
   Minions and a Goblin Warrior; _The Robbers' Barrow_
-  (`adventures/5e/robbers-barrow.json`), two rooms with a Goblin Warrior, a
-  Silver Torc hidden under the bier and a way out; _The Smugglers' Cellar_
+  (`adventures/5e/robbers-barrow.json`), two rooms with a Goblin Warrior carrying
+  a Pouch of Old Coins, a Silver Torc hidden under the bier and a way out; _The Smugglers' Cellar_
   (`adventures/5e/smugglers-cellar.json`), four rooms to explore with a Giant
   Rat, a Goblin Warrior and a Potion of Healing hidden in a chest; and _The
   Warden's Crypt_ (`adventures/5e/warden-crypt.json`), six rooms with a stuck
@@ -82,7 +82,8 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   is won. HP, feature
   uses and carried items last from fight to fight.
 - **Treasure, XP and leaving (#133).** Treasure is only found by examining
-  something, and is kept only if the character survives: it is credited when
+  something: a feature, or the body of an opponent once its fight is won
+  (searching the body is the only way to get what it carried), and is kept only if the character survives: it is credited when
   the adventure ends in a victory or an escape, never on a defeat or when the
   adventure is abandoned. In a room that is a way out (the Barrow Mouth) the
   action bar has **Leave the adventure**; it asks first, in the panel, and

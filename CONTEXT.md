@@ -33,7 +33,7 @@ Earned character progress awarded for authored accomplishments and used to deter
 _Avoid_: Story milestones, Player score
 
 **Treasure**:
-Silver and items a character finds by examining something, or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion and earned once per character. It is never simply awarded. Silver is the pre-5e currency; the 5e currency is not decided yet, so 5e treasure is named items with no value.
+Silver and items a character finds by examining something (such as a chest, or a defeated enemy's body), or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion and earned once per character. It is never simply awarded. Silver is the pre-5e currency; the 5e currency is not decided yet, so 5e treasure is named items with no value.
 _Avoid_: Reward XP, Drop
 
 **Pending treasure**:

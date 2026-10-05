@@ -43,6 +43,13 @@
           "description": "A neck ring of twisted silver, heavy and cold.",
           "kind": "treasure",
           "hiddenIn": "stone-bier"
+        },
+        {
+          "id": "coin-pouch",
+          "name": "Pouch of Old Coins",
+          "description": "A greasy leather pouch of tarnished coins, robbed from the barrow's dead.",
+          "kind": "treasure",
+          "hiddenIn": "barrow-goblin"
         }
       ]
     }
@@ -101,7 +108,7 @@
       "id": "out-with-the-torc",
       "kind": "escape-with-loot",
       "title": "Out with the silver",
-      "text": "You climb back into the daylight with the silver torc heavy in your pack.",
+      "text": "You climb back into the daylight with the barrow's treasure heavy in your pack.",
       "xp": 250
     },
     {
