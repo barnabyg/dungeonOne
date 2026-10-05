@@ -31,6 +31,27 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   200 seeds, and reports survival, HP lost and rounds per fight, healing, XP,
   treasure and one-hit-kill chances. See
   [the rules document](docs/character-rules.md#balance-harness).
+- **5e command-line test routes (#138).** `npm.cmd run cli` is a testing and
+  regression adapter, not the player's game. It plays a built-in 5e module
+  (The Abandoned Delve by default; `--adventure <id>` picks another) with Ada,
+  a fixed level-1 Fighter, from `--seed`. Each turn it lists the browser's
+  action bar, numbered, with each disabled action's reason; type a number to
+  take one. Other text goes to the AI DM, which is off by default (typed
+  messages are refused). Set `DUNGEON_ONE_TEST_DM_SCRIPT` to a JSON array of
+  model responses for a scripted DM, or pass `--ai` with `OPENAI_API_KEY` for
+  the live one, which makes at most `--max-calls` provider calls (default 30).
+  `--trace <path>` records the run after every turn (5e trace format version
+  1), and `--replay <path>` replays it, checking every turn's state, dice,
+  dice-stream position, cards (each line and its grouped rolls) and reply;
+  it names the first turn that differs. `npm.cmd run eval:dm -- --model
+<model-id> --campaign abandoned-delve` evaluates the live AI DM on the
+  delve's interpretation, refusal and narration-fidelity cases
+  (`src/dm-evaluation-5e.ts`), within a stated call budget
+  (`--max-calls`, by default four per case and repetition), and checks that a
+  server without an AI DM refuses typed messages with the player notice.
+  `node scripts/qualify-delve-live.mjs --live` plays typed turns through the
+  browser server for review (`--dry-run` checks the harness offline). The
+  pre-5e routes (`npm.cmd start`) stay until #139.
 - **Creating a Fighter.** Launch with
   `npm.cmd run browser -- --seed 0 --characters .\.scratch\5e\characters.json`
   (the default library is `characters.json`; creation needs no OpenAI key).

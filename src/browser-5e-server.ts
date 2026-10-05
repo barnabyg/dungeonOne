@@ -29,7 +29,7 @@ import {
   FifthCharacterLibrary,
   type FifthLibraryData,
 } from "./character-library-5e.js";
-import { DM_TURN_LIMITS, runDmTurn, type DmModel } from "./dm-turn.js";
+import { DM_TURN_LIMITS, type DmModel } from "./dm-turn.js";
 import {
   createOpenAiDmModel,
   OPENAI_DM_DEFAULT_MODEL,
@@ -39,8 +39,6 @@ import {
   FifthSession,
   settleFifthSession,
   startFifthAdventure,
-  type HistoryCard,
-  type HistoryEntry,
 } from "./session-5e.js";
 import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
 import { passesGate } from "./balance-5e.js";
@@ -533,55 +531,12 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         return serialized(async () => {
           const session = await openSession(body.sessionId);
           requireCurrent(session, body.sequence);
-          const cards: HistoryCard[] = [];
-          const index = session.history.length;
-          const record = (reply: string) => {
-            const entry: HistoryEntry = {
-              player: message,
-              reply,
-              cards: [...cards],
-            };
-            session.history[index] = entry;
-          };
-          const result = await runDmTurn({
-            state: session.state,
-            playerInput: message,
-            transcript: session.history.slice(-4).flatMap((entry) => [
-              ...(entry.player === undefined
-                ? []
-                : [{ role: "player" as const, text: entry.player }]),
-              {
-                role: "dungeon-master" as const,
-                text:
-                  entry.reply || entry.cards.map(({ text }) => text).join("\n"),
-              },
-            ]),
-            random: {
-              roll() {
-                throw new Error("An AI DM turn draws dice only through tools.");
-              },
-            },
-            model,
-            runtime: session.runtime,
-            resultSurface: "browser-cards",
-            executeTool: async (_state, call) => {
-              const dispatched = session.dispatch(call);
-              if (dispatched.card !== undefined) {
-                cards.push(dispatched.card);
-                if (dispatched.card.kind !== "rejection") {
-                  // Save the committed action, and settle the character if
-                  // it ended the fight, before the reply is written.
-                  record(
-                    "The reply was interrupted; the result is shown below.",
-                  );
-                  await persist(session);
-                  await settleFifthSession(library, session);
-                }
-              }
-              return { result: dispatched.result, rolls: dispatched.rolls };
-            },
+          // Save each committed action, and settle the character if it
+          // ended the fight, before the reply is written.
+          await session.converse(message, model, async () => {
+            await persist(session);
+            await settleFifthSession(library, session);
           });
-          record(result.narration);
           return save(session);
         });
       }

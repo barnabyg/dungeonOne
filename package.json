@@ -11,6 +11,7 @@
     "build": "tsc -p tsconfig.build.json",
     "balance": "npm run build && node scripts/balance-5e.mjs",
     "browser": "node dist/browser-cli.js",
+    "cli": "node dist/cli-5e.js",
     "check:package": "node scripts/package-checks.mjs",
     "check:security": "node scripts/security-checks.mjs",
     "eval:dm": "npm run build && node scripts/eval-dm.mjs",
