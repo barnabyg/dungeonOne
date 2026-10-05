@@ -157,7 +157,7 @@ export function oneHitKillChance(
 
 /** Why the harness can't qualify a module: a named reason, never a pass. */
 export type BalanceFailureCode =
-  "unreachable-objective" | "unsupported-action" | "step-limit";
+  "unreachable-objective" | "unsupported-action" | "step-limit" | "stranded";
 
 export class BalanceError extends Error {
   constructor(
@@ -470,9 +470,9 @@ export type FightRecord = Readonly<{
   outcome: "victory" | "defeat";
 }>;
 
-/** One playthrough. `stranded` means alive with no way on and no way out. */
+/** One playthrough, to its ending. */
 export type RunRecord = Readonly<{
-  outcome: EndingKind | "stranded";
+  outcome: EndingKind;
   /** Rooms in the order first entered. */
   roomIds: readonly string[];
   encounters: readonly FightRecord[];
@@ -488,8 +488,9 @@ export type RunRecord = Readonly<{
 /**
  * Plays one run of `runtime`'s adventure in `style` with dice from `seed`,
  * starting as a browser session does, with `begin`. Throws a `BalanceError`
- * when the runtime offers an action no style can play or the run takes more
- * than `stepLimit` actions.
+ * when the runtime offers an action no style can play, the run takes more
+ * than `stepLimit` actions, or it is stranded: alive, with no action left
+ * that leads on or out.
  */
 export function playAdventure(
   runtime: FifthRuntime,
@@ -734,14 +735,17 @@ export function playAdventure(
     const fighting = state.encounter?.outcome === "ongoing";
     const choice = fighting ? fightChoice(views) : exploreChoice(views);
     if (choice === undefined) {
-      break;
+      throw new BalanceError(
+        "stranded",
+        `${adventure.id}: a ${style} run was stranded in ${state.roomId}.`,
+      );
     }
     apply(actionOf(choice));
   }
-  const ending = adventure.endings.find(({ id }) => id === state.endingId);
+  const ending = adventure.endings.find(({ id }) => id === state.endingId)!;
   const rewards = runtime.projectRewards(state);
   return {
-    outcome: ending?.kind ?? "stranded",
+    outcome: ending.kind,
     roomIds,
     encounters: fights,
     healing,

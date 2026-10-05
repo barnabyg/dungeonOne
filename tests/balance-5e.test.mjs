@@ -271,6 +271,24 @@ test("an action the harness can't play fails the run with a named reason", () =>
   });
 });
 
+test("a run left with no way on and no way out fails with a named reason", () => {
+  const runtime = createFifthRuntime(
+    SHIPPED["smugglers-cellar"],
+    fighterAtLevel(STRONG_DICE, 1),
+  );
+  // As if the stair foot's ways out needed something no style does.
+  const walled = {
+    ...runtime,
+    projectActions: (state) =>
+      runtime.projectActions(state).filter(({ action }) => action !== "move"),
+  };
+  assert.throws(() => playAdventure(walled, "cautious", 1), {
+    name: "BalanceError",
+    code: "stranded",
+    message: /smugglers-cellar: a cautious run was stranded in stair-foot/u,
+  });
+});
+
 const FEW_SEEDS = Array.from({ length: 20 }, (_, seed) => seed);
 
 test("a report has metrics for each level, character percentile and style", () => {
