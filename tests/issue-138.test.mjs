@@ -199,7 +199,7 @@ test("the scripted DM route plays typed messages, and their trace replays exactl
     assert.match(result.stderr, /diverged at turn 3/);
   }));
 
-test("the live route needs --ai and OPENAI_API_KEY, and keeps to its call budget", () =>
+test("the live route needs --ai and OPENAI_API_KEY, and never plays a script instead", () =>
   withDirectory(async (directory) => {
     const noKey = run(["--ai", "--seed", "0"], ["quit"]);
     assert.equal(noKey.status, 2);
@@ -219,22 +219,15 @@ test("the live route needs --ai and OPENAI_API_KEY, and keeps to its call budget
       /at most --max-calls provider calls \(default 30\)/,
     );
 
-    // With a budget of one call, the second message is refused before the
-    // model is asked.
+    // A scripted DM never stands in for the live one.
     const script = join(directory, "dm.json");
-    await writeFile(
-      script,
-      JSON.stringify([{ text: "Hello." }, { text: "Again." }]),
-    );
-    const budgeted = run(
-      ["--ai", "--max-calls", "1", "--seed", "0"],
-      ["Hello?", "Anyone?"],
-      { DUNGEON_ONE_TEST_DM_SCRIPT: script },
-    );
-    assert.equal(budgeted.status, 0, budgeted.stderr);
-    assert.match(budgeted.stdout, /DM: Hello\./);
-    assert.match(budgeted.stdout, /The AI call budget is spent\./);
-    assert.doesNotMatch(budgeted.stdout, /Again\./);
+    await writeFile(script, JSON.stringify([{ text: "Hello." }]));
+    const mixed = run(["--ai", "--seed", "0"], ["Hello?"], {
+      OPENAI_API_KEY: "sk-test",
+      DUNGEON_ONE_TEST_DM_SCRIPT: script,
+    });
+    assert.equal(mixed.status, 2);
+    assert.match(mixed.stderr, /unset DUNGEON_ONE_TEST_DM_SCRIPT/);
   }));
 
 test("the DM evaluation covers interpretation, refusal and narration fidelity on the dungeon", () => {

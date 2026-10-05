@@ -322,10 +322,12 @@ async function play(
   let dm: ReturnType<typeof budgeted> | undefined;
   const scriptPath = process.env.DUNGEON_ONE_TEST_DM_SCRIPT;
   if (scriptPath !== undefined && scriptPath.length > 0) {
-    dm = budgeted(
-      await loadScriptedDmModel(scriptPath),
-      options.ai?.maxCalls ?? Infinity,
-    );
+    if (options.ai !== undefined) {
+      throw new UsageError(
+        "--ai plays the live AI DM; unset DUNGEON_ONE_TEST_DM_SCRIPT to use it.",
+      );
+    }
+    dm = budgeted(await loadScriptedDmModel(scriptPath), Infinity);
   } else if (options.ai !== undefined) {
     const apiKey = process.env.OPENAI_API_KEY?.trim() ?? "";
     if (apiKey.length === 0) {
