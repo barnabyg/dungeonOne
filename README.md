@@ -129,9 +129,11 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   damage in bold with its dice and the target's HP after, such as "**4**
   bludgeoning (d6 1 + 3) → 3/7 HP". An attack at disadvantage lists both
   d20s and strikes through the one not kept. Initiative shows each roll the
-  same way, and a healing roll sits beneath its line. Screen readers hear
-  the engine's own text for each line instead, and **Full text** on the card
-  shows it. The newest entry is marked with a gold edge.
+  same way, and Second Wind or a potion as "Ada heals **8** (d10 7 + 1) →
+  12/12 HP". Screen readers hear the engine's own text for each line
+  instead, and **Full text** on the card shows it, with what the compact
+  form leaves out, such as the weapon and Second Wind's uses left. The
+  newest entry is marked with a gold edge.
   A typed message appears in the history at once, with "The Dungeon Master is
   thinking…" beneath it until the reply replaces it; that placeholder is never
   saved. While a request runs, the button that started it is marked busy

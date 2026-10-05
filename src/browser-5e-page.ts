@@ -620,11 +620,12 @@ function renderStatus() {
 // Each kind of history entry looks different and is labelled (#159):
 // narration (the opening and entering a room) is unboxed, the player's words
 // are a bubble, AI DM replies are attributed, and result and rejection cards
-// are boxed. A line with an attack or initiative shows a compact form built
-// from its roll groups (#186), with the dice beside the roll they belong to;
-// screen readers get the line's engine text instead, and the card's Full text
-// disclosure shows it all. Other lines show their engine text, with any
-// healing roll beneath. .log is position:relative so those visually hidden
+// are boxed. A line with rolls (an attack, initiative or healing) shows a
+// compact form built from its roll groups (#186), with the dice beside the
+// roll they belong to; screen readers get the line's engine text instead, and
+// the card's Full text disclosure shows it all, with what the compact form
+// leaves out (the weapon, Second Wind's uses left). Other lines show their
+// engine text. .log is position:relative so those visually hidden
 // spans stay inside its scroll area instead of stretching the page.
 const PART_LABELS = {
   narration: "Narration",
@@ -651,14 +652,13 @@ const diceChips = (group, separator) =>
     make("span", "d" + die.sides + " " + die.value, "roll-die" + (die.dropped ? " dropped" : "")),
   ]);
 
-/** A healing roll beneath its line, such as "Healing: d10 7 + 1 = 8 → Ada 12/12 HP". */
-function healingRoll(group) {
-  const row = make("p", undefined, "roll healing");
-  row.append(make("span", "Healing: ", "roll-label"), ...diceChips(group, " + "));
-  if (group.modifier !== 0) row.append(withSign(group.modifier));
-  row.append(" = ", make("strong", group.total), " → " + group.roller + " " + group.hpAfter + "/" + group.maxHp + " HP");
-  return row;
-}
+/** Damage or healing: the total in bold, its dice, and the HP after, such as "7 slashing (d6 4 + 3) → 0/7 HP". */
+const hpChange = (group, label) => [
+  make("strong", group.total),
+  label + " (",
+  ...diceChips(group, " + "),
+  (group.modifier === 0 ? "" : withSign(group.modifier)) + ") → " + group.hpAfter + "/" + group.maxHp + " HP",
+];
 
 /** One compact roll, such as "d20 12 + 5 = 17 vs AC 15" or "7 slashing (d6 4 + 3) → 0/7 HP". */
 function compactRoll(group) {
@@ -674,19 +674,24 @@ function compactRoll(group) {
       node.append(group.mode ? group.mode + " " : "", ...diceChips(group, ", "), withSign(group.modifier) + " = " + group.total + " vs AC " + group.armorClass);
       break;
     case "damage":
-      node.append(make("strong", group.total), " " + group.damageType + " (", ...diceChips(group, " + "), (group.modifier === 0 ? "" : withSign(group.modifier)) + ") → " + group.hpAfter + "/" + group.maxHp + " HP");
+      node.append(...hpChange(group, " " + group.damageType));
+      break;
+    case "healing":
+      node.append(...hpChange(group, ""));
       break;
   }
   return node;
 }
 
-/** An attack or initiative line built from its roll groups. */
+/** An attack, initiative or healing line built from its roll groups. */
 function compactLine(line) {
   const node = unspoken(make("span", undefined, "compact"));
   const attack = line.rolls.find((group) => group.purpose === "attack");
   if (attack) {
     node.append(make("span", attack.roller + " → " + attack.target, "who"), " ", make("span", OUTCOME_TAGS[attack.outcome], "tag " + attack.outcome));
     line.rolls.forEach((group, index) => node.append(index > 0 ? " · " : " ", compactRoll(group)));
+  } else if (line.rolls[0].purpose === "healing") {
+    node.append(make("span", line.rolls[0].roller, "who"), " heals ", compactRoll(line.rolls[0]));
   } else {
     node.append(make("span", "Initiative: ", "roll-label"));
     line.rolls.forEach((group, index) => node.append(...(index > 0 ? [" · "] : []), compactRoll(group)));
@@ -694,7 +699,7 @@ function compactLine(line) {
   return node;
 }
 
-const compactable = (line) => line.rolls.some(({ purpose }) => purpose === "attack" || purpose === "initiative");
+const compactable = (line) => line.rolls.length > 0;
 
 function historyCard(card) {
   if (card.kind === "narration") return part("p", "narration", card.text);
@@ -704,7 +709,7 @@ function historyCard(card) {
     const paragraph = make("p");
     if (compactable(line)) paragraph.append(spoken(line.text), compactLine(line));
     else paragraph.textContent = line.text;
-    block.append(paragraph, ...line.rolls.filter(({ purpose }) => purpose === "healing").map(healingRoll));
+    block.append(paragraph);
     node.append(block);
   }
   if (card.lines.some(compactable)) {
