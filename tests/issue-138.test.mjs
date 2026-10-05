@@ -364,6 +364,30 @@ test("a server without an AI DM refuses typed messages with the player notice", 
   assert.equal(await checkDmOffRefusal(), true);
 });
 
+test("the 5e DM evaluation calls the provider only with --live and a key", () => {
+  const evalDm = fileURLToPath(
+    new URL("../scripts/eval-dm.mjs", import.meta.url),
+  );
+  const evaluate = (args, key = "") =>
+    spawnSync(process.execPath, [evalDm, "--model", "m", ...args], {
+      encoding: "utf8",
+      env: { ...process.env, OPENAI_API_KEY: key },
+    });
+  for (const args of [
+    ["--campaign", "abandoned-delve"],
+    ["--live"],
+    ["--campaign", "abandoned-delve", "--live", "--live"],
+    ["--campaign", "abandoned-delve", "--live", "--max-calls", "0"],
+  ]) {
+    const result = evaluate(args, "sk-test");
+    assert.equal(result.status, 2, args.join(" "));
+    assert.match(result.stderr, /only with --live/);
+  }
+  const noKey = evaluate(["--campaign", "abandoned-delve", "--live"]);
+  assert.equal(noKey.status, 2);
+  assert.match(noKey.stderr, /OPENAI_API_KEY is required/);
+});
+
 test("the live qualification runs only with --live and a key, and its dry run flags overclaims", () =>
   withDirectory(async (directory) => {
     const env = { ...process.env, OPENAI_API_KEY: "" };

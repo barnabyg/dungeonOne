@@ -11,7 +11,9 @@ import { createOpenAiDmModel } from "../dist/openai-dm-model.js";
 
 const USAGE = [
   "Usage: npm run eval:dm -- --model <model-id> [--campaign data-chapel|historical|abandoned-delve]",
-  "       [--repetitions <count>] [--judgments <path>] [--output <path>] [--max-calls <count>]",
+  "       [--repetitions <count>] [--judgments <path>] [--output <path>]",
+  "       The abandoned-delve campaign calls the live provider only with --live,",
+  "       within --max-calls provider calls (default: four per case and repetition).",
 ].join(" ");
 
 function argumentValue(args, index) {
@@ -27,6 +29,10 @@ function parseArguments(args) {
   const seen = new Set();
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
+    if (argument === "--live" && parsed.live !== true) {
+      parsed.live = true;
+      continue;
+    }
     let name;
     let value;
     if (argument?.startsWith("--") === true && argument.includes("=")) {
@@ -69,6 +75,7 @@ function parseArguments(args) {
       (parsed.campaign !== "abandoned-delve" ||
         !Number.isInteger(parsed.maxCalls) ||
         parsed.maxCalls < 1)) ||
+    (parsed.campaign === "abandoned-delve") !== (parsed.live === true) ||
     !Number.isInteger(parsed.repetitions) ||
     parsed.repetitions < 3
   ) {

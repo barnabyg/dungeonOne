@@ -44,7 +44,7 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   1), and `--replay <path>` replays it, checking every turn's state, dice,
   dice-stream position, cards (each line and its grouped rolls) and reply;
   it names the first turn that differs. `npm.cmd run eval:dm -- --model
-<model-id> --campaign abandoned-delve` evaluates the live AI DM on the
+<model-id> --campaign abandoned-delve --live` evaluates the live AI DM on the
   delve's interpretation, refusal and narration-fidelity cases
   (`src/dm-evaluation-5e.ts`), within a stated call budget
   (`--max-calls`, by default four per case and repetition), and checks that a
