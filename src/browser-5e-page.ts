@@ -845,18 +845,19 @@ async function act(path, body, control, busyLabel, pendingMessage) {
 // Each action's words. A label or busy name is followed by its target's name.
 // Exploring, each target's name is shown once beside its short verbs (#157);
 // each button's accessible name is still the full "Examine Iron-Bound Chest".
-// While its request runs (#185) a button with a target shows its busy verb
-// ("Attacking…"), one without shows its busy name ("Ending turn…"), and each
-// is named in full ("Attacking Goblin Warrior…").
+// While its request runs (#185) a button shows its busy label ("Attacking…")
+// and is named in full ("Attacking Goblin Warrior…"). Each button is sized for
+// the wider of its labels, so a fight button's busy label must be no wider
+// than its idle one: the fight row has no width to spare at 375 px.
 const ACTIONS = {
-  attack: { label: "Attack ", busy: "Attacking ", busyVerb: "Attacking…" },
-  use: { label: "Drink ", short: "Drink", busy: "Drinking ", busyVerb: "Drinking…" },
-  move: { label: "Go to ", short: "Go", busy: "Going to ", busyVerb: "Going…" },
-  examine: { label: "Examine ", short: "Examine", busy: "Examining ", busyVerb: "Examining…" },
-  take: { label: "Take ", short: "Take", busy: "Taking ", busyVerb: "Taking…" },
-  "second-wind": { label: "Second Wind", busy: "Using Second Wind" },
-  "action-surge": { label: "Action Surge", busy: "Using Action Surge" },
-  "end-turn": { label: "End turn", busy: "Ending turn" },
+  attack: { label: "Attack ", busy: "Attacking ", busyLabel: "Attacking…" },
+  use: { label: "Drink ", short: "Drink", busy: "Drinking ", busyLabel: "Drinking…" },
+  move: { label: "Go to ", short: "Go", busy: "Going to ", busyLabel: "Going…" },
+  examine: { label: "Examine ", short: "Examine", busy: "Examining ", busyLabel: "Examining…" },
+  take: { label: "Take ", short: "Take", busy: "Taking ", busyLabel: "Taking…" },
+  "second-wind": { label: "Second Wind", busy: "Using Second Wind", busyLabel: "Using Second Wind…" },
+  "action-surge": { label: "Action Surge", busy: "Using Action Surge", busyLabel: "Using Action Surge…" },
+  "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
 };
 const busyName = ({ action, target }) => ACTIONS[action].busy + (target ? target.name : "") + "…";
 const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
@@ -877,7 +878,7 @@ function renderActions() {
     const short = group === "explore";
     const button = make("button");
     button.append(make("span", short ? ACTIONS[action].short : label));
-    button.dataset.busyLabel = target ? ACTIONS[action].busyVerb : busyName(option);
+    button.dataset.busyLabel = ACTIONS[action].busyLabel;
     button.type = "button";
     if (short) button.setAttribute("aria-label", label);
     // One opponent makes attacking the fight's primary action; several are peers.

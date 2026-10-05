@@ -184,12 +184,35 @@ for (const viewport of [
           "newest",
         );
 
-        // Fighting: End turn, a control without a target, then the attack.
+        // Fighting: no button is widened by its busy label, since the fight
+        // row has no width to spare at 375 px (the same in any font).
+        await page.locator("#attack-controls button").first().waitFor();
+        assert.deepEqual(
+          await page.evaluate(() =>
+            [
+              ...document.querySelectorAll(
+                "#attack-controls button, #feature-controls button",
+              ),
+            ]
+              .map((button) => {
+                const busy = button.dataset.busyLabel;
+                const width = button.getBoundingClientRect().width;
+                button.dataset.busyLabel = "";
+                const idle = button.getBoundingClientRect().width;
+                button.dataset.busyLabel = busy;
+                return width > idle ? busy : "";
+              })
+              .filter(Boolean),
+          ),
+          [],
+        );
+
+        // End turn, a control without a target, then the attack.
         await holdAction(
           page,
           '#feature-controls button[data-action="end-turn"]',
           "/api/5e/session/action",
-          "Ending turn…",
+          "Ending",
           "Ending turn…",
           "stays",
         );
