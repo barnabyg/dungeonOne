@@ -1,0 +1,141 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 5,
+  "id": "minion-yard",
+  "title": "The Minion Yard",
+  "objective": "Chase the goblin minions out of the farmyard.",
+  "recommendedLevels": {
+    "min": 1,
+    "max": 1
+  },
+  "difficulty": "medium",
+  "startRoomId": "gate",
+  "rooms": [
+    {
+      "id": "gate",
+      "name": "Farm Gate",
+      "description": "A goblin minion lounges on the gate.",
+      "encounterId": "gate-minion",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "yard",
+      "name": "Farmyard",
+      "description": "Another goblin minion chases the hens.",
+      "encounterId": "yard-minion",
+      "features": [],
+      "items": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "gate-to-yard",
+      "between": ["gate", "yard"],
+      "description": "A muddy track runs into the yard."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "gate-minion",
+      "opponents": [
+        {
+          "id": "gate-minion",
+          "name": "Goblin Minion 1",
+          "description": "A goblin minion with a dagger.",
+          "statBlock": {
+            "name": "Goblin Minion",
+            "size": "Small",
+            "type": "Fey (Goblinoid)",
+            "armorClass": 12,
+            "hitPoints": {
+              "average": 7,
+              "formula": "2d6"
+            },
+            "abilities": {
+              "strength": 8,
+              "dexterity": 15,
+              "constitution": 10,
+              "intelligence": 10,
+              "wisdom": 8,
+              "charisma": 8
+            },
+            "challengeRating": "1/8",
+            "xp": 25,
+            "attacks": [
+              {
+                "name": "Dagger",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 4,
+                  "modifier": 2,
+                  "type": "piercing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-mud"
+    },
+    {
+      "id": "yard-minion",
+      "opponents": [
+        {
+          "id": "yard-minion",
+          "name": "Goblin Minion 2",
+          "description": "A goblin minion with feathers in its hair.",
+          "statBlock": {
+            "name": "Goblin Minion",
+            "size": "Small",
+            "type": "Fey (Goblinoid)",
+            "armorClass": 12,
+            "hitPoints": {
+              "average": 7,
+              "formula": "2d6"
+            },
+            "abilities": {
+              "strength": 8,
+              "dexterity": 15,
+              "constitution": 10,
+              "intelligence": 10,
+              "wisdom": 8,
+              "charisma": 8
+            },
+            "challengeRating": "1/8",
+            "xp": 25,
+            "attacks": [
+              {
+                "name": "Dagger",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 4,
+                  "modifier": 2,
+                  "type": "piercing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "victoryEndingId": "yard-cleared",
+      "defeatEndingId": "fallen-in-the-mud"
+    }
+  ],
+  "endings": [
+    {
+      "id": "yard-cleared",
+      "kind": "victory",
+      "title": "The yard is clear",
+      "text": "The hens settle."
+    },
+    {
+      "id": "fallen-in-the-mud",
+      "kind": "defeat",
+      "title": "Fallen in the mud",
+      "text": "You fall in the mud. Your adventuring ends here."
+    }
+  ]
+}

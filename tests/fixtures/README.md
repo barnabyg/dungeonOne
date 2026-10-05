@@ -33,3 +33,12 @@ local controls. JSON is unmodified; terminal output omits only the path-dependen
 
 Do not recapture these files after a refactor. Historical tuples and the future
 semantic parity contract are listed in `docs/migration-contract.md`.
+
+## Difficulty gate fixtures (issue 135)
+
+`gate-goblin-pair.json` and `gate-minion-yard.json` are 5e adventure modules
+for `tests/balance-5e.test.mjs`, built from the SRD 5.2 goblin stat blocks.
+_The Goblin Pair_ (two Goblin Warriors, level 2) is too deadly for medium and
+passes as hard. _The Minion Yard_ (two Goblin Minions in turn, level 1) is
+safe enough for medium, but a strong level-1 Fighter usually kills each
+minion with one attack, so it fails as too easy at every difficulty.

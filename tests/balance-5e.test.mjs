@@ -1,18 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  DIFFICULTY_THRESHOLDS,
   fighterAtLevel,
+  gateAdventure,
   oneHitKillChance,
   percentileCharacters,
   PLAY_STYLES,
   playAdventure,
   qualifyAdventure,
   renderBalanceResult,
+  renderGateResult,
   requiredPath,
 } from "../dist/balance-5e.js";
 import { main, parseArguments } from "../scripts/balance-5e.mjs";
 import {
   loadBuiltInFifthAdventures,
+  loadFifthAdventure,
   validateFifthAdventure,
 } from "../dist/adventure-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
@@ -451,4 +455,156 @@ test("npm run balance qualifies the modules it is given", async () => {
   ]) {
     assert.throws(() => parseArguments(bad), /Usage: npm run balance/u);
   }
+});
+
+test("the difficulty thresholds are the settled parameter table", () => {
+  assert.deepEqual(DIFFICULTY_THRESHOLDS, {
+    easy: { survival: 0.95, oneHitKillCap: 0.5 },
+    medium: { survival: 0.85, oneHitKillCap: 0.4 },
+    hard: { survival: 0.75, oneHitKillCap: 0.3 },
+  });
+});
+
+const GOBLIN_PAIR = await loadFifthAdventure(
+  "tests/fixtures/gate-goblin-pair.json",
+);
+const MINION_YARD = await loadFifthAdventure(
+  "tests/fixtures/gate-minion-yard.json",
+);
+const declared = (adventure, difficulty) =>
+  validateFifthAdventure({ ...adventure, difficulty });
+
+test("a module too deadly for its difficulty is rejected, and passes declared one step harder", () => {
+  const medium = gateAdventure(GOBLIN_PAIR);
+  assert.equal(medium.ok, true);
+  const { verdict } = medium;
+  assert.equal(verdict.difficulty, "medium");
+  assert.equal(verdict.qualified, false);
+  assert.equal(verdict.survival.ok, false);
+  assert.deepEqual(
+    [
+      verdict.survival.level,
+      verdict.survival.percentile,
+      verdict.survival.style,
+    ],
+    [2, 5, "cautious"],
+  );
+  assert.equal(verdict.survival.runs, 200);
+  assert.ok(
+    verdict.survival.rate >= 0.75 && verdict.survival.rate < 0.85,
+    `survived ${verdict.survival.rate}`,
+  );
+  assert.equal(verdict.oneHitKill.ok, true);
+  assert.equal(verdict.xp.ok, true);
+  assert.match(
+    renderGateResult(GOBLIN_PAIR, medium),
+    /^The Goblin Pair \(goblin-pair\) does not qualify as medium\.\n {2}Too deadly, FAIL: the level 2, 5th percentile character playing cautious survived \d+\.\d% of 200 runs; medium needs 85\.0%\.$/mu,
+  );
+
+  const hard = gateAdventure(declared(GOBLIN_PAIR, "hard"));
+  assert.equal(hard.verdict.qualified, true);
+  assert.equal(hard.verdict.survival.rate, verdict.survival.rate);
+  assert.match(
+    renderGateResult(GOBLIN_PAIR, hard),
+    /^The Goblin Pair \(goblin-pair\) qualifies as hard\.$/mu,
+  );
+});
+
+test("a module whose ordinary enemies a strong level-1 Fighter usually one-shots is rejected, naming them", () => {
+  for (const difficulty of ["easy", "medium", "hard"]) {
+    const result = gateAdventure(declared(MINION_YARD, difficulty));
+    const { oneHitKill } = result.verdict;
+    assert.equal(result.verdict.qualified, false, difficulty);
+    assert.equal(oneHitKill.ok, false, difficulty);
+    assert.deepEqual([oneHitKill.level, oneHitKill.percentile], [1, 95]);
+    assert.equal(
+      oneHitKill.cap,
+      DIFFICULTY_THRESHOLDS[difficulty].oneHitKillCap,
+    );
+    assert.deepEqual(oneHitKill.overCap, [
+      "Goblin Minion 1",
+      "Goblin Minion 2",
+    ]);
+    for (const { chance } of oneHitKill.enemies) {
+      assert.ok(chance > 0.5, `usually one-shot: ${chance}`);
+    }
+  }
+  const medium = gateAdventure(MINION_YARD);
+  assert.equal(medium.verdict.survival.ok, true);
+  assert.match(
+    renderGateResult(MINION_YARD, medium),
+    /^ {2}Too easy, FAIL: the level 1, 95th percentile character kills 2 of 2 ordinary enemies with one attack more than 40\.0% of the time: Goblin Minion 1 \d+\.\d%, Goblin Minion 2 \d+\.\d%\. No more than half may be\.$/mu,
+  );
+});
+
+test("bosses are exempt from the one-hit-kill cap, and half the ordinary enemies may exceed it", () => {
+  const withBoss = (bosses) =>
+    validateFifthAdventure({
+      ...MINION_YARD,
+      encounters: MINION_YARD.encounters.map((encounter) => ({
+        ...encounter,
+        opponents: encounter.opponents.map((opponent) =>
+          bosses.includes(opponent.id) ? { ...opponent, boss: true } : opponent,
+        ),
+      })),
+    });
+  const oneBoss = gateAdventure(withBoss(["gate-minion"])).verdict.oneHitKill;
+  assert.deepEqual(
+    oneBoss.enemies.map(({ opponentId }) => opponentId),
+    ["yard-minion"],
+  );
+  assert.equal(oneBoss.ok, false);
+  const allBosses = gateAdventure(withBoss(["gate-minion", "yard-minion"]));
+  assert.deepEqual(allBosses.verdict.oneHitKill.enemies, []);
+  assert.equal(allBosses.verdict.oneHitKill.ok, true);
+  assert.equal(allBosses.verdict.qualified, true);
+  // One minion of two over the cap is half, not most.
+  const smugglers = gateAdventure(declared(SHIPPED["smugglers-cellar"], "hard"))
+    .verdict.oneHitKill;
+  assert.deepEqual(smugglers.overCap, ["Giant Rat"]);
+  assert.equal(smugglers.enemies.length, 2);
+  assert.equal(smugglers.ok, true);
+});
+
+test("a module whose XP could carry a character past its maximum level + 1 is rejected", () => {
+  // Level 2 at most: from 899 XP, 100 XP reaches level 3; 1,801 more reach 4.
+  const rich = (xp) =>
+    validateFifthAdventure({
+      ...GOBLIN_PAIR,
+      difficulty: "hard",
+      endings: GOBLIN_PAIR.endings.map((ending) =>
+        ending.kind === "victory" ? { ...ending, xp } : ending,
+      ),
+    });
+  const within = gateAdventure(rich(1700)).verdict.xp;
+  assert.deepEqual(within, {
+    ok: true,
+    available: 1800,
+    startXp: 899,
+    endLevel: 3,
+    levelLimit: 3,
+  });
+  const over = gateAdventure(rich(1701));
+  assert.deepEqual(over.verdict.xp, {
+    ok: false,
+    available: 1801,
+    startXp: 899,
+    endLevel: 4,
+    levelLimit: 3,
+  });
+  assert.equal(over.verdict.qualified, false);
+  assert.match(
+    renderGateResult(GOBLIN_PAIR, over),
+    /^ {2}XP, FAIL: its 1801 XP takes a character from 899 XP to level 4; the limit is level 3\.$/mu,
+  );
+});
+
+test("a module the harness can't play fails the gate with a named reason", () => {
+  const result = gateAdventure(GOBLIN_PAIR, { stepLimit: 1 });
+  assert.equal(result.ok, false);
+  assert.equal(result.failure.code, "step-limit");
+  assert.equal(
+    renderGateResult(GOBLIN_PAIR, result),
+    `The Goblin Pair (goblin-pair) does not qualify: step-limit. ${result.failure.message}`,
+  );
 });

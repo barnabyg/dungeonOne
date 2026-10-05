@@ -1,0 +1,121 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 5,
+  "id": "goblin-pair",
+  "title": "The Goblin Pair",
+  "objective": "Drive two goblin warriors out of the woodshed.",
+  "recommendedLevels": {
+    "min": 2,
+    "max": 2
+  },
+  "difficulty": "medium",
+  "startRoomId": "woodshed",
+  "rooms": [
+    {
+      "id": "woodshed",
+      "name": "Woodshed",
+      "description": "Two goblin warriors look up from the kindling.",
+      "encounterId": "goblin-pair",
+      "features": [],
+      "items": []
+    }
+  ],
+  "passages": [],
+  "encounters": [
+    {
+      "id": "goblin-pair",
+      "opponents": [
+        {
+          "id": "warrior-1",
+          "name": "Goblin Warrior 1",
+          "description": "A goblin warrior with a notched scimitar.",
+          "statBlock": {
+            "name": "Goblin Warrior",
+            "size": "Small",
+            "type": "Fey (Goblinoid)",
+            "armorClass": 15,
+            "hitPoints": {
+              "average": 10,
+              "formula": "3d6"
+            },
+            "abilities": {
+              "strength": 8,
+              "dexterity": 15,
+              "constitution": 10,
+              "intelligence": 10,
+              "wisdom": 8,
+              "charisma": 8
+            },
+            "challengeRating": "1/4",
+            "xp": 50,
+            "attacks": [
+              {
+                "name": "Scimitar",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 2,
+                  "type": "slashing"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "warrior-2",
+          "name": "Goblin Warrior 2",
+          "description": "A second goblin warrior, grinning.",
+          "statBlock": {
+            "name": "Goblin Warrior",
+            "size": "Small",
+            "type": "Fey (Goblinoid)",
+            "armorClass": 15,
+            "hitPoints": {
+              "average": 10,
+              "formula": "3d6"
+            },
+            "abilities": {
+              "strength": 8,
+              "dexterity": 15,
+              "constitution": 10,
+              "intelligence": 10,
+              "wisdom": 8,
+              "charisma": 8
+            },
+            "challengeRating": "1/4",
+            "xp": 50,
+            "attacks": [
+              {
+                "name": "Scimitar",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 2,
+                  "type": "slashing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "victoryEndingId": "shed-cleared",
+      "defeatEndingId": "fallen-in-the-shed"
+    }
+  ],
+  "endings": [
+    {
+      "id": "shed-cleared",
+      "kind": "victory",
+      "title": "The woodshed is clear",
+      "text": "Both goblins lie among the kindling."
+    },
+    {
+      "id": "fallen-in-the-shed",
+      "kind": "defeat",
+      "title": "Fallen in the woodshed",
+      "text": "You fall among the kindling. Your adventuring ends here."
+    }
+  ]
+}
