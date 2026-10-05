@@ -257,35 +257,6 @@ test("exclusive initial save creation also protects a different adventure in an 
     );
   }));
 
-test("missing configuration leaves no save and reports a clear setup error", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "dungeon-issue-96-"));
-  const savePath = join(directory, "slot.json");
-  try {
-    const result = spawnSync(
-      process.execPath,
-      [
-        fileURLToPath(new URL("../dist/browser-cli.js", import.meta.url)),
-        "--legacy",
-        "--seed",
-        "0",
-        "--save",
-        savePath,
-      ],
-      {
-        encoding: "utf8",
-        env: { ...process.env, OPENAI_API_KEY: "" },
-        timeout: 5000,
-      },
-    );
-    assert.equal(result.status, 2);
-    assert.match(result.stderr, /OPENAI_API_KEY.*before starting/);
-    assert.equal(result.stdout, "");
-    await assert.rejects(readFile(savePath), { code: "ENOENT" });
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-});
-
 test("a failed browser opener leaves an already printed usable URL", async () => {
   let output = "";
   await announceBrowser(

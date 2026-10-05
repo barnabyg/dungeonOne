@@ -34,7 +34,7 @@ export async function announceBrowser(
   open: (url: string) => Promise<void> = openPlayerBrowser,
 ): Promise<void> {
   write(
-    `Hollow Beacon: ${url}\nKeep this launcher running. Press Ctrl+C to stop; your save slot remains available.\n`,
+    `Dungeon One: ${url}\nKeep this launcher running. Press Ctrl+C to stop; your characters and adventures are saved.\n`,
   );
   try {
     await open(url);

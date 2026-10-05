@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { fork, spawn } from "node:child_process";
+import { fork } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -223,96 +223,6 @@ test("the release policy lists each bundled tuple, its browser mode and what new
   ]);
   assert.equal(BROWSER_START_VERSION, "11");
 });
-
-test("the default launcher continues a character adventure when the same command is rerun", async () =>
-  withDirectory(async (directory) => {
-    const careerDirectory = join(directory, "increment-8-continuity");
-    const libraryPath = join(careerDirectory, "characters.json");
-    const launch = async (seed) => {
-      const child = spawn(
-        process.execPath,
-        [
-          fixture("issue-93-launcher.mjs"),
-          "--seed",
-          seed,
-          "--characters",
-          libraryPath,
-        ],
-        {
-          // The default --save path is relative; keep it inside the test.
-          cwd: directory,
-          env: { ...process.env, OPENAI_API_KEY: "test-credential" },
-          stdio: ["ignore", "pipe", "pipe"],
-          windowsHide: true,
-        },
-      );
-      let output = "";
-      const url = await new Promise((resolve, reject) => {
-        child.stdout.on("data", (chunk) => {
-          output += chunk;
-          const match = /Hollow Beacon: (http:\/\/127\.0\.0\.1:\d+)\n/.exec(
-            output,
-          );
-          if (match) {
-            resolve(match[1]);
-          }
-        });
-        child.stderr.on("data", (chunk) => {
-          output += chunk;
-        });
-        child.once("exit", () => reject(new Error(output)));
-      });
-      assert.match(output, /Press Ctrl\+C to stop; your save slot remains/);
-      return {
-        url,
-        async stop() {
-          const exited = new Promise((resolve) => {
-            child.once("exit", resolve);
-          });
-          child.kill("SIGINT");
-          await exited;
-        },
-      };
-    };
-    let launcher = await launch("0");
-    try {
-      const empty = await state(launcher);
-      assert.equal(empty.slot, "empty");
-      assert.equal(empty.careerMode, true);
-      // Single-slot start and replacement belong to --legacy.
-      assert.equal((await post(launcher, "/api/start")).status, 409);
-      const view = await startCharacterAdventure(launcher);
-      // Local baseline hints are ready as soon as the adventure starts.
-      assert.equal(view.hints.status, "ready");
-      assert.equal(view.title, "Hollow Beacon: A Fighter’s Warning");
-      assert.equal(view.seed, 0);
-      assert.match(view.characterLabel, /^Ada · Fighter level 1$/);
-      const { data, path } = await sessionFiles(careerDirectory);
-      const session = await SaveSession.load(path(data.selectedSessionId));
-      assert.equal(session.runtime.version, "15");
-      const bytes = [
-        await readFile(libraryPath, "utf8"),
-        await readFile(path(data.selectedSessionId), "utf8"),
-      ];
-      await launcher.stop();
-
-      launcher = await launch("0");
-      assert.deepEqual(await state(launcher), view);
-      await launcher.stop();
-      // A different requested seed only applies to a future adventure start.
-      launcher = await launch("7");
-      assert.deepEqual(await state(launcher), { ...view, newGameSeed: 7 });
-      assert.deepEqual(
-        [
-          await readFile(libraryPath, "utf8"),
-          await readFile(path(data.selectedSessionId), "utf8"),
-        ],
-        bytes,
-      );
-    } finally {
-      await launcher.stop();
-    }
-  }));
 
 test("a character combat and clock checkpoint survives a process kill without repeating an action or RNG draw", async () =>
   withDirectory(async (directory) => {

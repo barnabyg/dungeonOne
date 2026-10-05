@@ -2,22 +2,26 @@ import { randomBytes } from "node:crypto";
 import { resolve } from "node:path";
 import { resolveStartupSeed } from "./random.js";
 import { announceBrowser } from "./browser-launch.js";
-import { startBrowserServer } from "./browser-server.js";
 import {
   FIFTH_DM_SETUP_HINT,
   startFifthBrowserServer,
 } from "./browser-5e-server.js";
-import { BROWSER_RELEASES, BROWSER_START_VERSION } from "./browser-releases.js";
 
-const LEGACY_VERSIONS = BROWSER_RELEASES.filter(
-  ({ mode }) => mode === "single-slot",
-).map(({ version }) => version);
+const USAGE = `Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--characters <library.json>]
+Create or choose a saved 5e Fighter, then take it into an adventure. Default library: characters.json; its adventures are saved in the adjacent characters-adventures directory and continue when you rerun the same command.
+Set OPENAI_API_KEY in the environment before launch to let players type to the Dungeon Master; without it the buttons still work.`;
 
-const USAGE = `Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--characters <library.json>] [--save <path>] [--artwork <manifest.json>] [--legacy | --5e]
-Create or choose a saved Fighter, then select an adventure. Default library: characters.json; its adventures are saved in the adjacent character-adventures directory and continue when you rerun the same command.
---legacy uses only the --save slot: it starts Hollow Beacon v${BROWSER_START_VERSION}; existing v${LEGACY_VERSIONS[0]}-v${LEGACY_VERSIONS.at(-1)} slots continue unchanged.
---5e (temporary, until 5e is the only mode) creates 5e Fighters in their own library, by default characters-5e.json, and takes them into 5e adventures saved in the adjacent characters-5e-adventures directory. Only --seed and --characters apply.
-Set OPENAI_API_KEY in the environment before launch; under --5e, without it the buttons still work and typing to the Dungeon Master is off.`;
+/** Flags from before 5e became the only mode, and why each is refused. */
+const REMOVED_FLAGS: Readonly<Record<string, string>> = {
+  "--legacy":
+    "--legacy has been removed: the pre-5e game, with its single save slot, no longer runs in the browser.",
+  "--5e":
+    "--5e is no longer needed: 5e is the browser's only mode. Launch without it.",
+  "--save":
+    "--save has been removed with the pre-5e game's single save slot. Characters and their adventures live in the --characters library.",
+  "--artwork":
+    "--artwork has been removed with the pre-5e game, which was the only one to use it.",
+};
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -25,24 +29,22 @@ async function main(): Promise<void> {
     process.stdout.write(`${USAGE}\n`);
     return;
   }
+  // A removed flag is refused before anything is read, wherever it appears.
+  for (const argument of args) {
+    const name = argument.split("=", 1)[0]!;
+    const reason = REMOVED_FLAGS[name];
+    if (reason !== undefined) {
+      throw new Error(`${reason} Nothing was read or changed.\n${USAGE}`);
+    }
+  }
   const values = new Map<string, string>();
   for (let index = 0; index < args.length; index++) {
     const argument = args[index]!;
-    if (
-      (argument === "--legacy" || argument === "--5e") &&
-      !values.has(argument)
-    ) {
-      values.set(argument, "true");
-      continue;
-    }
     const equals = argument.indexOf("=");
     const name = equals < 0 ? argument : argument.slice(0, equals);
     const value = equals < 0 ? args[++index] : argument.slice(equals + 1);
     if (
-      (name !== "--seed" &&
-        name !== "--save" &&
-        name !== "--artwork" &&
-        name !== "--characters") ||
+      (name !== "--seed" && name !== "--characters") ||
       values.has(name) ||
       !value ||
       value.startsWith("--")
@@ -56,38 +58,11 @@ async function main(): Promise<void> {
     seedValue === undefined ? [] : ["--seed", seedValue],
     () => randomBytes(4).readUInt32LE(0),
   );
-  if (
-    values.has("--5e") &&
-    ["--legacy", "--save", "--artwork"].some((name) => values.has(name))
-  ) {
-    throw new Error(USAGE);
-  }
-  const server = values.has("--5e")
-    ? await startFifthBrowserServer({
-        libraryPath: resolve(
-          values.get("--characters") ?? "characters-5e.json",
-        ),
-        seed,
-        apiKey: process.env.OPENAI_API_KEY ?? "",
-      })
-    : await startBrowserServer({
-        contentVersion: BROWSER_START_VERSION,
-        ...(values.has("--legacy")
-          ? {}
-          : {
-              libraryPath: resolve(
-                values.get("--characters") ?? "characters.json",
-              ),
-            }),
-        seed,
-        savePath: resolve(
-          values.get("--save") ?? "hollow-beacon-browser-save.json",
-        ),
-        apiKey: process.env.OPENAI_API_KEY ?? "",
-        ...(values.has("--artwork")
-          ? { artworkPath: resolve(values.get("--artwork")!) }
-          : {}),
-      });
+  const server = await startFifthBrowserServer({
+    libraryPath: resolve(values.get("--characters") ?? "characters.json"),
+    seed,
+    apiKey: process.env.OPENAI_API_KEY ?? "",
+  });
   const stop = () => {
     void server.close().catch(() => {
       process.exitCode = 1;
@@ -95,7 +70,7 @@ async function main(): Promise<void> {
   };
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
-  if ("dmAvailable" in server && !server.dmAvailable) {
+  if (!server.dmAvailable) {
     process.stdout.write(FIFTH_DM_SETUP_HINT);
   }
   await announceBrowser(server.url, (message) => {

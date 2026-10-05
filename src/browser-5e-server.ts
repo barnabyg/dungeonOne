@@ -1,5 +1,5 @@
 /**
- * The browser server behind the temporary `--5e` flag (until #137).
+ * The browser server: 5e is the browser's only mode (#137).
  *
  * It serves the 5e character library: start or resume a creation, project the
  * player's placement and choices (every score, modifier, cap and the skill

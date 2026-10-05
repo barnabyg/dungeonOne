@@ -1,6 +1,5 @@
 import { stripVTControlCharacters } from "node:util";
 
-import { resolveAdventure } from "./runtime.js";
 import type { RandomSource } from "./random.js";
 import type {
   AdventureRuntime,
@@ -434,7 +433,10 @@ export async function runDmTurn(
     resultSurface?: "mechanics" | "browser-cards";
   }>,
 ): Promise<DmTurnResult> {
-  const runtime = input.runtime ?? resolveAdventure();
+  // The pre-5e default (#139 removes it) loads only when no runtime is given,
+  // so the 5e browser, which always passes one, never loads the old runtimes.
+  const runtime =
+    input.runtime ?? (await import("./runtime.js")).resolveAdventure();
   const playerInput = normalizeDmText(input.playerInput);
   const transcript = boundTranscript(input.transcript);
   const diagnostics: DmDiagnostic[] = [];

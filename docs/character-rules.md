@@ -1,6 +1,6 @@
 # 5e rules
 
-Dungeon One is moving to the 2024 fifth-edition rules in SRD 5.2 ([ADR 0005](adr/0005-start-afresh-on-5e-and-suspend-compatibility.md)). This section is the rules document for the new game. It is filled in as the increment 11 tickets land: character creation with #127, combat with #128–#130, exploration and items with #131, and checks, traps and talk with #132. Until #137, 5e play is reached only through the browser's temporary `--5e` flag.
+Dungeon One is moving to the 2024 fifth-edition rules in SRD 5.2 ([ADR 0005](adr/0005-start-afresh-on-5e-and-suspend-compatibility.md)). This section is the rules document for the new game. It is filled in as the increment 11 tickets land: character creation with #127, combat with #128–#130, exploration and items with #131, and checks, traps and talk with #132. Since #137, 5e is the browser's only mode.
 
 This work includes material from the System Reference Document 5.2 ("SRD 5.2") by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.
 
