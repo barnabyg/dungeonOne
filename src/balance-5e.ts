@@ -580,7 +580,7 @@ export function playAdventure(
     }
   };
 
-  const low = (hp: number) => hp <= maxHp * HEAL_BELOW[style];
+  const low = (hp: number) => hp < maxHp * HEAL_BELOW[style];
   const offered = (views: readonly ActionView[], kind: ActionKind) =>
     views.filter(({ action }) => action === kind);
 
