@@ -739,8 +739,8 @@ export type FifthRuntime = Omit<
      * Action Surge from level 2, and End turn); exploring, each move,
      * examination, take and drink; when the adventure is over, nothing.
      * Each says whether the engine would accept it now, and why not. It
-     * dry-runs `handleAction` once per state, so it relies on the promises
-     * in that function's doc: it is pure, and it refuses before any die.
+     * dry-runs `handleAction` once per state; see the promises in that
+     * function's doc.
      */
     projectActions(state: FifthState): readonly ActionView[];
   }>;
@@ -847,7 +847,7 @@ function projectFight(
   };
 }
 
-/** Hooks for tests to observe the runtime's internal work. */
+/** A test hook that observes the runtime's internal work. */
 export type FifthRuntimeProbe = Readonly<{
   /** Called each time the projection dry-runs an action. */
   dryRun?: (action: FifthAction) => void;
@@ -1080,8 +1080,9 @@ export function createFifthRuntime(
    * Applies one action to the state, or refuses it with a reason.
    *
    * `projectActions` relies on two promises, so keep them:
-   * - It is pure: it never changes `state` and depends only on `state`,
-   *   `requested` and the dice it draws from `random`.
+   * - It is pure: it never changes `state`, and for this runtime's adventure
+   *   and sheet it depends only on `state`, `requested` and the dice it
+   *   draws from `random`.
    * - Every refusal comes before the first die is drawn. A check made after
    *   a roll would let the projection show an action the engine refuses.
    */
@@ -1251,8 +1252,8 @@ export function createFifthRuntime(
   /**
    * Asks the engine whether it would accept `action` now, without drawing
    * dice: the reason it refuses, or undefined when it accepts. An accepted
-   * action stops at its first die, so nothing is rolled or changed. This
-   * holds only because `handleAction` is pure and refuses before rolling.
+   * action stops at its first die, so nothing is rolled or changed. See
+   * `handleAction` for the promises this relies on.
    */
   const refusal = (
     state: FifthState,
