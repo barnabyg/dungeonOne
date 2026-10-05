@@ -108,6 +108,7 @@ test("the server projects the modules in offer order", async () => {
         "cellar-goblin",
         "robbers-barrow",
         "smugglers-cellar",
+        "abandoned-delve",
         "goblin-storeroom",
         "goblin-warren",
       ],
@@ -139,6 +140,7 @@ test(
         { tags: ["Level 1", "Hard"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },
+        { tags: ["Levels 1–2", "Hard"], button: "Start" },
         { tags: ["Level 2", "Medium"], button: "Start" },
         { tags: ["Levels 2–3", "Hard"], button: "Start" },
       ]);
@@ -246,7 +248,7 @@ test(
           .evaluateAll((buttons) =>
             buttons.map((button) => button.dataset.adventure),
           );
-        assert.equal(starts.length, 5);
+        assert.equal(starts.length, 6);
         assert.ok(!starts.includes("goblin-warren"));
         const library = JSON.parse(await readFile(libraryPath, "utf8"));
         const refused = await page.evaluate(

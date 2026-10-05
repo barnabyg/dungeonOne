@@ -5,7 +5,10 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
+import {
+  FIFTH_ADVENTURE_FILES,
+  loadBuiltInFifthAdventures,
+} from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
@@ -334,7 +337,7 @@ test(
         .waitFor();
       assert.equal(
         await page.locator(".start-adventure").count(),
-        6,
+        Object.keys(FIFTH_ADVENTURE_FILES).length,
         "Ada can start an adventure again",
       );
       record = await ada(libraryPath);

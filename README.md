@@ -54,6 +54,12 @@ dungeon-crawl adventure module, then removes the pre-5e game.
   module's verdict. A line beside them warns
   that a character at 0 HP is defeated for good, and a defeated character's
   sheet says so at the top. The modules are:
+  _The Abandoned Delve_ (`adventures/5e/abandoned-delve.json`, levels 1–2),
+  ten rooms under a ruined keep: a Zombie guards the way in, two Skeletons
+  the barracks, a Giant Spider an optional crypt and a Ghoul the vault, with
+  a stuck door, a trapped stair, a goblin to question, treasure hidden in
+  features and on bodies, and a second exit beside the vault where you choose
+  to climb out or push on;
   _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`), one SRD 5.2
   Goblin Warrior; _The Goblins in the Storeroom_
   (`adventures/5e/goblin-storeroom.json`, level 2), a group fight against a

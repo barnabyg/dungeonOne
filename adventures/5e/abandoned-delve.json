@@ -1,0 +1,575 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 5,
+  "id": "abandoned-delve",
+  "title": "The Abandoned Delve",
+  "objective": "Loot the old dungeon under the ruined keep and get out alive, by the gate or the shaft.",
+  "recommendedLevels": {
+    "min": 1,
+    "max": 2
+  },
+  "difficulty": "hard",
+  "startRoomId": "broken-gate",
+  "rooms": [
+    {
+      "id": "broken-gate",
+      "name": "Broken Gate",
+      "description": "A cracked stair runs down from the ruined keep to a gate hanging off its hinges. Daylight is at your back. Someone has chalked marks on the gatepost.",
+      "exit": true,
+      "features": [
+        {
+          "id": "chalk-marks",
+          "name": "Chalk Marks",
+          "description": "Faded chalk marks left by an earlier treasure-hunter.",
+          "discovery": "The marks read: \"Dead man in the guard post. Wire on the shrine stair. Key on the altar opens the vault. Webs: keep out.\""
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "gate-hall",
+      "name": "Gate Hall",
+      "description": "A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post.",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "guard-post",
+      "name": "Guard Post",
+      "description": "A cramped guard room with a weapon rack and an overturned table. A dead guard still stands its post, a purse at its belt. A narrow way leads on to an old well.",
+      "encounterId": "guard-zombie",
+      "features": [
+        {
+          "id": "weapon-rack",
+          "name": "Weapon Rack",
+          "description": "A rack of rusted spears.",
+          "discovery": "Tucked behind the spears is a stoppered vial of red liquid."
+        }
+      ],
+      "items": [
+        {
+          "id": "rack-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "weapon-rack"
+        },
+        {
+          "id": "guard-purse",
+          "name": "Guard's Purse",
+          "description": "A leather purse of old silver coins.",
+          "kind": "treasure",
+          "hiddenIn": "zombie"
+        }
+      ]
+    },
+    {
+      "id": "barracks",
+      "name": "Barracks",
+      "description": "Rows of collapsed bunks. Two skeletons in rusted mail stand guard here still, beside a footlocker at the end of the room.",
+      "encounterId": "barracks-skeletons",
+      "features": [
+        {
+          "id": "footlocker",
+          "name": "Footlocker",
+          "description": "An iron-bound footlocker, its lid rusted half open.",
+          "discovery": "Wrapped in a mouldy cloak is a dagger hilt chased with silver."
+        }
+      ],
+      "items": [
+        {
+          "id": "dagger-hilt",
+          "name": "Dagger Hilt",
+          "description": "A dagger hilt chased with silver, its blade long gone.",
+          "kind": "treasure",
+          "hiddenIn": "footlocker"
+        }
+      ]
+    },
+    {
+      "id": "storeroom",
+      "name": "Storeroom",
+      "description": "A dry storeroom of split barrels and empty shelves.",
+      "features": [
+        {
+          "id": "old-barrel",
+          "name": "Old Barrel",
+          "description": "One barrel is still sealed.",
+          "discovery": "Packed in straw inside the barrel is a stoppered vial of red liquid."
+        }
+      ],
+      "items": [
+        {
+          "id": "barrel-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "old-barrel"
+        }
+      ]
+    },
+    {
+      "id": "dry-well",
+      "name": "Dry Well",
+      "description": "A round chamber around a dry well. A goblin is stuck at the bottom and calls up to you. A stair leads down to a shrine, and a webbed passage to a crypt.",
+      "features": [],
+      "items": [],
+      "creatures": [
+        {
+          "id": "goblin",
+          "name": "Goblin",
+          "description": "A scrawny goblin wedged at the bottom of the well, too frightened of the dead to climb out.",
+          "topics": [
+            {
+              "id": "the-vault",
+              "name": "the vault",
+              "reply": "\"The dead never left. Bones in the barracks, a big spider in the crypt, and a dead thing in the vault past the shaft. The vault key? On the altar in the shrine.\""
+            },
+            {
+              "id": "the-stair",
+              "name": "the stair",
+              "check": {
+                "skill": "persuasion",
+                "dc": 12
+              },
+              "reply": "\"Fine, fine. There's a loose step on the shrine stair. Step on it and the stair drops you. Look before you walk.\"",
+              "failure": "\"Get me out first, then I'll tell you things.\" The goblin sulks."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shrine",
+      "name": "Shrine",
+      "description": "A small shrine at the foot of the stair. Silver candlesticks stand on a stone altar. A passage runs on to a shaft of daylight.",
+      "features": [
+        {
+          "id": "altar",
+          "name": "Altar",
+          "description": "A stone altar with two tarnished silver candlesticks.",
+          "discovery": "Behind the candlesticks lies a heavy bronze key."
+        }
+      ],
+      "items": [
+        {
+          "id": "bronze-key",
+          "name": "Bronze Key",
+          "description": "A heavy bronze key stamped with a lord's crest.",
+          "kind": "key",
+          "hiddenIn": "altar"
+        },
+        {
+          "id": "candlesticks",
+          "name": "Candlesticks",
+          "description": "A pair of tarnished silver candlesticks.",
+          "kind": "treasure",
+          "hiddenIn": "altar"
+        }
+      ]
+    },
+    {
+      "id": "web-crypt",
+      "name": "Web Crypt",
+      "description": "Thick webs fill a low crypt. A cocooned body hangs in the middle, and something large shifts in the dark above it.",
+      "encounterId": "crypt-spider",
+      "features": [
+        {
+          "id": "cocoon",
+          "name": "Cocoon",
+          "description": "A body wrapped in web, hanging from the ceiling.",
+          "discovery": "On the dead treasure-hunter's hand is a gold ring."
+        }
+      ],
+      "items": [
+        {
+          "id": "gold-ring",
+          "name": "Gold Ring",
+          "description": "A heavy gold ring set with a red stone.",
+          "kind": "treasure",
+          "hiddenIn": "cocoon"
+        }
+      ]
+    },
+    {
+      "id": "shaft-bottom",
+      "name": "Shaft Bottom",
+      "description": "The bottom of a collapsed shaft, lit by daylight far above. A knotted rope hangs down: you could climb out with what you carry. Beside it a bronze door leads to the vault.",
+      "exit": true,
+      "features": [
+        {
+          "id": "knotted-rope",
+          "name": "Knotted Rope",
+          "description": "A knotted rope, tied off somewhere far above.",
+          "discovery": "The rope is sound. It would take your weight to the surface."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "vault",
+      "name": "Vault",
+      "description": "The lord's vault: a stone room with an iron chest against the far wall. Something that was once a man crouches over it.",
+      "encounterId": "vault-ghoul",
+      "features": [
+        {
+          "id": "iron-chest",
+          "name": "Iron Chest",
+          "description": "A great iron chest, its lid broken open.",
+          "discovery": "The chest is still half full of old gold coins."
+        }
+      ],
+      "items": [
+        {
+          "id": "coin-chest",
+          "name": "Gold Coins",
+          "description": "Handfuls of old gold coins stamped with a forgotten lord's face.",
+          "kind": "treasure",
+          "hiddenIn": "iron-chest"
+        },
+        {
+          "id": "jewelled-goblet",
+          "name": "Goblet",
+          "description": "A jewelled gold goblet the ghoul clutched to its chest.",
+          "kind": "treasure",
+          "hiddenIn": "ghoul"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "gate-to-hall",
+      "between": ["broken-gate", "gate-hall"],
+      "description": "Through the broken gate."
+    },
+    {
+      "id": "hall-to-guard-post",
+      "between": ["gate-hall", "guard-post"],
+      "description": "A short passage to the guard post."
+    },
+    {
+      "id": "hall-to-barracks",
+      "between": ["gate-hall", "barracks"],
+      "description": "An arch. Bones clatter beyond it."
+    },
+    {
+      "id": "hall-to-storeroom",
+      "between": ["gate-hall", "storeroom"],
+      "description": "The swollen door.",
+      "door": {
+        "id": "swollen-door",
+        "name": "Swollen Door",
+        "description": "The damp wood has swollen tight in its frame.",
+        "state": "stuck",
+        "force": {
+          "skill": "athletics",
+          "dc": 12
+        }
+      }
+    },
+    {
+      "id": "guard-post-to-well",
+      "between": ["guard-post", "dry-well"],
+      "description": "A narrow way to the well."
+    },
+    {
+      "id": "well-to-shrine",
+      "between": ["dry-well", "shrine"],
+      "description": "A worn stair down to the shrine.",
+      "trap": {
+        "id": "loose-step",
+        "name": "Loose Step",
+        "description": "One step is set loose over a drop, wired to give way.",
+        "find": {
+          "skill": "perception",
+          "dc": 13
+        },
+        "disarm": {
+          "ability": "dexterity",
+          "dc": 12
+        },
+        "trigger": "A step gives way and the stair drops you down onto broken stone.",
+        "save": {
+          "ability": "dexterity",
+          "dc": 12
+        },
+        "damage": {
+          "dice": 2,
+          "sides": 6,
+          "modifier": 0,
+          "type": "bludgeoning"
+        },
+        "defeatEndingId": "lost-in-the-delve"
+      }
+    },
+    {
+      "id": "well-to-crypt",
+      "between": ["dry-well", "web-crypt"],
+      "description": "A passage choked with webs. Something big lives in there."
+    },
+    {
+      "id": "shrine-to-shaft",
+      "between": ["shrine", "shaft-bottom"],
+      "description": "A passage toward daylight."
+    },
+    {
+      "id": "crypt-to-shaft",
+      "between": ["web-crypt", "shaft-bottom"],
+      "description": "A gap torn through the webs."
+    },
+    {
+      "id": "shaft-to-vault",
+      "between": ["shaft-bottom", "vault"],
+      "description": "The bronze vault door.",
+      "door": {
+        "id": "vault-door",
+        "name": "Vault Door",
+        "description": "A bronze door stamped with a lord's crest, locked fast.",
+        "state": "locked",
+        "keyItemId": "bronze-key",
+        "pick": {
+          "ability": "dexterity",
+          "dc": 15
+        },
+        "break": {
+          "skill": "athletics",
+          "dc": 17
+        }
+      }
+    }
+  ],
+  "encounters": [
+    {
+      "id": "guard-zombie",
+      "opponents": [
+        {
+          "id": "zombie",
+          "name": "Zombie",
+          "description": "The dead guard turns, jaw hanging, and shambles at you.",
+          "statBlock": {
+            "name": "Zombie",
+            "size": "Medium",
+            "type": "Undead",
+            "armorClass": 8,
+            "hitPoints": {
+              "average": 15,
+              "formula": "2d8 + 6"
+            },
+            "abilities": {
+              "strength": 13,
+              "dexterity": 6,
+              "constitution": 16,
+              "intelligence": 3,
+              "wisdom": 6,
+              "charisma": 5
+            },
+            "challengeRating": "1/4",
+            "xp": 50,
+            "attacks": [
+              {
+                "name": "Slam",
+                "bonus": 3,
+                "damage": {
+                  "dice": 1,
+                  "sides": 8,
+                  "modifier": 1,
+                  "type": "bludgeoning"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "lost-in-the-delve"
+    },
+    {
+      "id": "barracks-skeletons",
+      "opponents": [
+        {
+          "id": "skeleton-sergeant",
+          "name": "Tall Skeleton",
+          "description": "A tall skeleton in rusted mail raises a shortsword.",
+          "statBlock": {
+            "name": "Skeleton",
+            "size": "Medium",
+            "type": "Undead",
+            "armorClass": 14,
+            "hitPoints": {
+              "average": 13,
+              "formula": "2d8 + 4"
+            },
+            "abilities": {
+              "strength": 10,
+              "dexterity": 16,
+              "constitution": 15,
+              "intelligence": 6,
+              "wisdom": 8,
+              "charisma": 5
+            },
+            "challengeRating": "1/4",
+            "xp": 50,
+            "attacks": [
+              {
+                "name": "Shortsword",
+                "bonus": 5,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 3,
+                  "type": "piercing"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "skeleton-guard",
+          "name": "Bent Skeleton",
+          "description": "A bent skeleton clatters up from a bunk beside it.",
+          "statBlock": {
+            "name": "Skeleton",
+            "size": "Medium",
+            "type": "Undead",
+            "armorClass": 14,
+            "hitPoints": {
+              "average": 13,
+              "formula": "2d8 + 4"
+            },
+            "abilities": {
+              "strength": 10,
+              "dexterity": 16,
+              "constitution": 15,
+              "intelligence": 6,
+              "wisdom": 8,
+              "charisma": 5
+            },
+            "challengeRating": "1/4",
+            "xp": 50,
+            "attacks": [
+              {
+                "name": "Shortsword",
+                "bonus": 5,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 3,
+                  "type": "piercing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "lost-in-the-delve"
+    },
+    {
+      "id": "crypt-spider",
+      "opponents": [
+        {
+          "id": "giant-spider",
+          "name": "Giant Spider",
+          "description": "A spider the size of a pony drops from the webs, fangs dripping.",
+          "statBlock": {
+            "name": "Giant Spider",
+            "size": "Large",
+            "type": "Beast",
+            "armorClass": 14,
+            "hitPoints": {
+              "average": 26,
+              "formula": "4d10 + 4"
+            },
+            "abilities": {
+              "strength": 14,
+              "dexterity": 16,
+              "constitution": 12,
+              "intelligence": 2,
+              "wisdom": 11,
+              "charisma": 4
+            },
+            "challengeRating": "1",
+            "xp": 200,
+            "attacks": [
+              {
+                "name": "Bite",
+                "bonus": 5,
+                "damage": {
+                  "dice": 1,
+                  "sides": 8,
+                  "modifier": 3,
+                  "type": "piercing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "lost-in-the-delve"
+    },
+    {
+      "id": "vault-ghoul",
+      "opponents": [
+        {
+          "id": "ghoul",
+          "name": "Ghoul",
+          "description": "The ghoul looks up from the chest, a jewelled goblet in its claws, and springs.",
+          "boss": true,
+          "statBlock": {
+            "name": "Ghoul",
+            "size": "Medium",
+            "type": "Undead",
+            "armorClass": 12,
+            "hitPoints": {
+              "average": 22,
+              "formula": "5d8"
+            },
+            "abilities": {
+              "strength": 13,
+              "dexterity": 15,
+              "constitution": 10,
+              "intelligence": 7,
+              "wisdom": 10,
+              "charisma": 6
+            },
+            "challengeRating": "1",
+            "xp": 200,
+            "attacks": [
+              {
+                "name": "Bite",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 2,
+                  "type": "piercing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "lost-in-the-delve"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-loot",
+      "kind": "escape-with-loot",
+      "title": "Out with the loot",
+      "text": "You climb back into the daylight with the dungeon's treasure on your back.",
+      "xp": 200
+    },
+    {
+      "id": "out-empty-handed",
+      "kind": "escape-without-loot",
+      "title": "Out empty-handed",
+      "text": "You climb back into the daylight alive, with nothing to show for it."
+    },
+    {
+      "id": "lost-in-the-delve",
+      "kind": "defeat",
+      "title": "Lost in the delve",
+      "text": "You fall in the dark under the ruined keep, and the dead keep you. Your adventuring ends here."
+    }
+  ]
+}

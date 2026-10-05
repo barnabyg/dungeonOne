@@ -152,6 +152,7 @@ test("the group-fight module holds two goblins with distinct names", async () =>
   assert.deepEqual(
     adventures.map(({ id }) => id),
     [
+      "abandoned-delve",
       "cellar-goblin",
       "goblin-storeroom",
       "goblin-warren",
