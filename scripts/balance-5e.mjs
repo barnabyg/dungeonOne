@@ -7,9 +7,11 @@ import {
 import {
   DEFAULT_PERCENTILES,
   DEFAULT_SEED_COUNT,
+  gateAdventure,
   PLAY_STYLES,
   qualifyAdventure,
   renderBalanceResult,
+  renderGateResult,
 } from "../dist/balance-5e.js";
 
 const USAGE = [
@@ -73,7 +75,11 @@ export function parseArguments(args) {
   return parsed;
 }
 
-/** Qualifies each module; the exit code is 1 if any fails with a named reason. */
+/**
+ * Qualifies each module and gates it on its declared difficulty, over the
+ * same seeds; the exit code is 1 if any fails with a named reason or does
+ * not qualify.
+ */
 export async function main(args, output = process.stdout) {
   const options = parseArguments(args);
   const adventures =
@@ -88,24 +94,33 @@ export async function main(args, output = process.stdout) {
   const results = adventures.map((adventure) => ({
     adventure,
     result: qualifyAdventure(adventure, qualification),
+    gate: gateAdventure(adventure, { seeds: qualification.seeds }),
   }));
   output.write(
     options.json
       ? `${JSON.stringify(
-          results.map(({ adventure, result }) => ({
+          results.map(({ adventure, result, gate }) => ({
             adventureId: adventure.id,
             ...result,
+            gate,
           })),
           null,
           2,
         )}\n`
       : `${results
-          .map(({ adventure, result }) =>
-            renderBalanceResult(adventure, result),
+          .map(
+            ({ adventure, result, gate }) =>
+              `${renderBalanceResult(adventure, result)}
+
+${renderGateResult(adventure, gate)}`,
           )
           .join("\n\n")}\n`,
   );
-  return results.every(({ result }) => result.ok) ? 0 : 1;
+  return results.every(
+    ({ result, gate }) => result.ok && gate.ok && gate.verdict.qualified,
+  )
+    ? 0
+    : 1;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

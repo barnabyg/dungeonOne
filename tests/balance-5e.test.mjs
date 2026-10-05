@@ -618,3 +618,37 @@ test("every shipped module qualifies at its declared difficulty", () => {
     );
   }
 });
+
+test("npm run balance reports the gate and fails when a module doesn't qualify", async () => {
+  let written = "";
+  const write = { write: (text) => (written += text) };
+  assert.equal(
+    await main(
+      [
+        "--seeds",
+        "20",
+        "--styles",
+        "cautious",
+        "tests/fixtures/gate-goblin-pair.json",
+      ],
+      write,
+    ),
+    1,
+  );
+  assert.match(
+    written,
+    /^The Goblin Pair \(goblin-pair\) does not qualify as medium\.$/mu,
+  );
+  written = "";
+  assert.equal(
+    await main(
+      ["--seeds", "20", "--json", "adventures/5e/warden-crypt.json"],
+      write,
+    ),
+    0,
+  );
+  const [result] = JSON.parse(written);
+  assert.equal(result.gate.ok, true);
+  assert.equal(result.gate.verdict.qualified, true);
+  assert.equal(result.gate.verdict.survival.runs, 20);
+});

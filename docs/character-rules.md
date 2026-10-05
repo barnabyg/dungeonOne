@@ -101,7 +101,7 @@ The built-in fixture `adventures/5e/cellar-goblin.json`, _The Goblin in the Cell
 
 ## Balance harness
 
-`src/balance-5e.ts` plays any 5e module through the real runtime and measures how dangerous it is. `npm.cmd run balance` reports on every built-in module, or on the module files named after it; `--seeds <count>`, `--percentiles <p,p>`, `--styles <style,style>` and `--json` change the run.
+`src/balance-5e.ts` plays any 5e module through the real runtime and measures how dangerous it is. `npm.cmd run balance` reports on every built-in module, or on the module files named after it, then gives the balance gate's verdict on each over the same seeds, and exits with code 1 if any module fails with a named reason or does not qualify; `--seeds <count>`, `--percentiles <p,p>`, `--styles <style,style>` and `--json` change the run.
 
 - **Characters.** 10,000 creations are rolled with 4d6-drop-lowest from a fixed seed and placed as a fresh creation starts: `defaultPlacement`, +2 Strength and +1 Constitution, Athletics and Perception, and Defense (`FIGHTER_DEFAULT_CHOICES`). They are ranked by the sum of their six ability modifiers; the weak and strong characters are the 5th and 95th percentiles. Each plays at every recommended level, at full health with that level's XP.
 - **Objective and required path.** A module's objective is its victory if it has one, or else getting out with treasure. The required path is the rooms on the route to it through the fewest fights, then the fewest moves: to the victory fight, or to the nearest treasure and out by the nearest exit. A key a key-only door needs is fetched on the way. Every other room is optional, and so is its fight.
@@ -109,6 +109,22 @@ The built-in fixture `adventures/5e/cellar-goblin.json`, _The Goblin in the Cell
 - **Metrics,** per level, percentile and style: survival and completion rates, each ending's count, for each fight its HP lost, rounds and defeat rate, Second Winds, potions and HP healed, trap damage, XP and treasure earned, and each opponent's chance of dying to one attack from full HP (hit chance and critical hits counted, from the character's own attack; Sap, the only mastery, affects only the target's next attack, and Defense only AC, so neither changes it).
 - **Failures.** A module the harness can't play fails with a named reason instead of passing: `unsupported-action` (the runtime offers an action no style knows), `step-limit` (a run takes more than 2,000 actions), `stranded` (a run is left alive with no action that leads on or out; a module that needs something no style does, such as talking, ends this way) or `unreachable-objective`.
 - **Budget.** The default run, seeds 0–199 with every style and both percentiles, qualifies all six built-in modules in about 6 seconds as part of `npm.cmd test`; the test fails above 30 seconds. The same seeds always give the same report.
+
+## Balance gate
+
+A module is offered in the browser only if it qualifies at its declared difficulty (`gateAdventure` in `src/balance-5e.ts`), and `npm.cmd run verify` fails if a built-in module doesn't. The gate uses the harness's characters and seeds 0–199, and checks three things:
+
+| Difficulty | Required-path survival | One-hit-kill cap |
+| ---------- | ---------------------- | ---------------- |
+| Easy       | ≥ 95%                  | 50%              |
+| Medium     | ≥ 85%                  | 40%              |
+| Hard       | ≥ 75%                  | 30%              |
+
+- **Too deadly.** The weakest character, the 5th percentile, at the minimum recommended level and playing _cautious_, must survive at least the difficulty's share of runs.
+- **Too easy.** Early levels are a character's most vulnerable, so they must never be easy. An ordinary enemy is any opponent not marked `boss: true` in the module. For the strongest character, the 95th percentile, at the maximum recommended level, the gate takes each ordinary enemy's chance of dying to one attack from full HP (hit chance, critical hits, Fighting Style and masteries counted, as in the harness). More than half of the ordinary enemies over the difficulty's cap fails the module. The measure is per attack, not per turn: Action Surge's second attack, and later Extra Attack, are not counted. A module with no ordinary enemies passes.
+- **XP.** All the XP a module offers (every encounter's stat-block XP and the most any ending awards) must not take a character past the maximum recommended level + 1. The character starts one XP short of the level above the maximum, the worst case, and the SRD 5.2 XP table counts levels 4 and 5 for this check even though characters stop at level 3.
+
+A module the harness can't play fails the gate with the harness's named reason. The verdict names each check, whether it passed and, for too easy, the enemies over the cap.
 
 ## House rules
 
