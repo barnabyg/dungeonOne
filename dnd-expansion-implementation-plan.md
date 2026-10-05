@@ -752,13 +752,14 @@ Needs an ADR: a fourth record, the **campaign**, separate from character, advent
 | One-hit-kill cap       | Easy 50%, Medium 40%, Hard 30%: the chance one attack from the strongest character at the maximum recommended level kills the enemy from full HP. A module fails when more than half its ordinary enemies exceed the cap | #135                  |
 | Per attack or per turn | Per attack; Action Surge (and later Extra Attack) is not counted                                                                                                                                                         | #135                  |
 | Weakest and strongest  | The 5th and 95th percentiles of the 4d6-drop-lowest sample by total ability modifier                                                                                                                                     | #134, #135            |
+| XP limit               | All the XP a module offers (every encounter and the most any ending awards) must not take a character one XP short of the level above the maximum past the maximum + 1, by the SRD 5.2 XP table                          | #135                  |
 | Shipped modules        | Keep the thresholds; declare each module at the difficulty it passes (four become Hard). The Storeroom moves to level 2 with a Goblin Minion and a Goblin Warrior, declared Medium                                       | #135                  |
 
 ### Open
 
 Number 1 was settled while working ticket 11.8 (#135; see the 5 October decisions); the rest can wait until their increment.
 
-1. ~~**"Too easy" measure details**~~: settled. The XP limit's reading is #135's, for the owner to confirm: all the XP a module offers must not take a character one XP short of the level above the maximum past the maximum + 1 (SRD 5.2 XP table).
+1. ~~**"Too easy" measure details**~~: settled, with the XP limit.
 2. **Currency:** 5e copper/silver/gold, stored as copper internally and shown in mixed denominations (recommended).
 3. **Starting equipment:** common-tier kits only, or starting coin to buy from the common tier. Also, when uncommon and rare items appear in markets.
 4. **XP and loot for fled or surrendered monsters.**
