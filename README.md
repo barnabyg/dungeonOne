@@ -268,13 +268,26 @@ shows your gear after the adventure. Like treasure, gear is kept only on
 getting out alive: what you dropped or left behind is gone, and a defeat or an
 abandoned adventure leaves you with exactly the gear you started with.
 
+### Merchants
+
+Some adventures have a merchant. Outside a fight in its room, its entry under
+**Creatures** lists its wares with their prices, each with **Buy**, says how
+many minutes each trade takes, and shows what it pays for your gear: half the
+price. **Sell** is on each piece of gear under **You carry**; selling gear you
+are wearing or holding asks first, inside that entry. Coin found earlier in
+the same adventure can be spent at once. Too little coin, a full pack or your
+last weapon refuses the trade, and the button says why. The AI Dungeon Master
+trades only what the merchant offers, at the engine's prices, and never sells
+equipped gear for you. Trades are kept only on getting out alive: a defeat or
+an abandoned adventure leaves your coin and gear as they were at the start.
+
 ### Treasure, coin, XP and leaving
 
 Treasure and coin are found only by examining something: a feature, or the
 body of an opponent once its fight is won. Coin is copper, silver and gold
 pieces, kept as one purse and shown in mixed denominations (for example
 "3 gp 4 sp"); taking it puts it in the purse at once, shown under **You
-carry**. There is nothing to spend it on yet. Both are kept only if the
+carry**, and spent with merchants. Both are kept only if the
 character survives: an adventure starts holding the character's equipment,
 stowed gear, treasure and purse, and a victory or an escape replaces them with what the
 character holds at the end. A defeat

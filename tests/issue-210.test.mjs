@@ -477,6 +477,11 @@ test("selling pays half price; equipped gear is sold only once confirmed", () =>
         "You are wearing the leather armour. Confirm the sale from its entry under You carry to sell it.",
     },
   );
+  // The panel shows what the merchant pays for each kind carried.
+  assert.deepEqual(runtime.projectRoom(start.state).creatures[0].buys, [
+    { id: "leather", name: "Leather armour", price: "5 gp" },
+    { id: "mace", name: "Mace", price: "2 gp 5 sp" },
+  ]);
   const sold = accept(runtime, start.state, sell("leather", true));
   assert.equal(
     renderFifthResult(sold),

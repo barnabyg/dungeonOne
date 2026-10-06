@@ -1260,6 +1260,8 @@ export type RoomView = Readonly<{
     Readonly<{
       topics: readonly Readonly<{ id: string; name: string; said?: string }>[];
       wares?: readonly Readonly<{ id: ItemId; name: string; price: string }>[];
+      /** What it pays for each kind of gear the character carries. */
+      buys?: readonly Readonly<{ id: ItemId; name: string; price: string }>[];
       tradeMinutes?: number;
     }>)[];
   items: readonly Named[];
@@ -3156,6 +3158,16 @@ export function createFifthRuntime(
           ? {}
           : {
               wares: wares(creature.merchant),
+              buys: [
+                ...new Set([
+                  ...state.possessions.equipment,
+                  ...state.possessions.stowed,
+                ]),
+              ].map((id) => ({
+                id,
+                name: itemName(id),
+                price: formatCoins(salePrice(id)),
+              })),
               tradeMinutes: creature.merchant.minutes,
             }),
       })),
