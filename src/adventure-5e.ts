@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 7) and its validator.
+ * The 5e adventure module format (format version 8) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -7,7 +7,10 @@
  * its endings. A passage may have a door, stuck (forced open by a check) or
  * locked (opened by its key, or picked or broken open by a check), and a trap,
  * found and disarmed by checks or sprung by going through, with a saving
- * throw against its damage. A creature's topics may need a check. Each
+ * throw against its damage. A creature's topics may need a check, and a
+ * creature may be a merchant, with catalogue gear in stock and the minutes
+ * each trade takes. A merchant stocks common gear, and uncommon gear only in
+ * a module for level 3 and up; no merchant sells rare gear. Each
  * opponent in an encounter has its own name, so the player can target it.
  * Treasure, coin and gear are items hidden in a feature or carried by an
  * opponent, so they are only ever found by examining: the feature, or the
@@ -28,6 +31,7 @@ import type { CheckSpec } from "./checks-5e.js";
 import {
   COIN_VALUES,
   isItemId,
+  itemTier,
   type Coin,
   type Coins,
   type ItemId,
@@ -40,7 +44,7 @@ import {
   type FighterSkill,
 } from "./fighter-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 7;
+export const FIFTH_ADVENTURE_FORMAT = 8;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -153,13 +157,30 @@ export type FifthTopic = Readonly<{
   failure?: string;
 }>;
 
-/** A creature the character can talk to, about its authored topics only. */
+/**
+ * What a merchant sells, any number of each, at catalogue prices, and the
+ * minutes each purchase or sale takes. It buys any catalogue gear at half
+ * price.
+ */
+export type FifthMerchant = Readonly<{
+  stock: readonly ItemId[];
+  minutes: number;
+}>;
+
+/**
+ * A creature the character can talk to, about its authored topics only, and
+ * trade with when it is a merchant.
+ */
 export type FifthCreature = Readonly<{
   id: string;
   name: string;
   description: string;
   topics: readonly FifthTopic[];
+  merchant?: FifthMerchant;
 }>;
+
+/** The most minutes one trade may take. */
+const MAX_TRADE_MINUTES = 60;
 
 export type FifthRoom = Readonly<{
   id: string;
@@ -567,6 +588,38 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
     }
     return found.id;
   };
+  /** A merchant's stock, limited by tier for the module's levels. */
+  const merchant = (value: unknown, where: string): FifthMerchant => {
+    const raw = exactKeys(value, ["stock", "minutes"], where);
+    const stock = list(raw.stock, `${where} stock`, 12).map((entry, index) => {
+      if (!isItemId(entry)) {
+        fail(
+          `${where} stock ${index + 1} must be a catalogue weapon or armour.`,
+        );
+      }
+      const tier = itemTier(entry);
+      if (tier === "rare") {
+        fail(
+          `${where} stocks the rare ${entry}, but no merchant sells rare gear.`,
+        );
+      }
+      if (tier === "uncommon" && min < 3) {
+        fail(
+          `${where} stocks the uncommon ${entry}, but uncommon gear is sold only in modules for level 3 and up.`,
+        );
+      }
+      return entry;
+    });
+    distinct(
+      stock,
+      (entry) => entry,
+      (entry) => `${where} stocks ${entry} twice.`,
+    );
+    return {
+      stock,
+      minutes: integer(raw.minutes, `${where} minutes`, 1, MAX_TRADE_MINUTES),
+    };
+  };
   const encounters = list(module.encounters, "encounters", 20).map(
     (entry, index) => {
       const where = `encounter ${index + 1}`;
@@ -752,9 +805,10 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         : list(room.creatures, `${where} creatures`, 6, 0)
     ).map((raw, number) => {
       const at = `${where} creature ${number + 1}`;
-      const creature = exactKeys(
+      const creature = knownKeys(
         raw,
         ["id", "name", "description", "topics"],
+        ["merchant"],
         at,
       );
       const topics = list(creature.topics, `${at} topics`, 12).map(
@@ -798,8 +852,14 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         name: text(creature.name, `${at} name`, 60),
         description: text(creature.description, `${at} description`),
         topics,
+        ...(creature.merchant === undefined
+          ? {}
+          : { merchant: merchant(creature.merchant, `${at} merchant`) }),
       };
     });
+    if (creatures.filter((creature) => creature.merchant).length > 1) {
+      fail(`${where} has two merchants; one is enough.`);
+    }
     return {
       id: id(room.id, `${where} id`),
       name: text(room.name, `${where} name`, 80),

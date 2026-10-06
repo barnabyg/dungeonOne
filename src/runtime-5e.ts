@@ -27,9 +27,14 @@
  * before are not there to find again. `projectSettlement` gives how a surviving ending
  * settles the character: what it holds at the end, and what it earned.
  *
+ * Outside a fight, where a merchant is, the character buys what it stocks at
+ * catalogue prices and sells catalogue gear for half; each trade takes the
+ * merchant's authored minutes. Equipped gear is sold only when the sale says
+ * so (the browser asks the player first).
+ *
  * The AI DM reads with `look` and `get_character_status`, and acts with
  * `move`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
- * `break_door`, `unlock`, `search`, `disarm`, `talk`, `attack`,
+ * `break_door`, `unlock`, `search`, `disarm`, `talk`, `trade`, `attack`,
  * `light_attack`, `second_wind`, `action_surge` and `end_turn`. Each is offered only while the engine would
  * accept it, listing only what is visible and legal: the tools come from the
  * same projection (`projectActions`) as the browser's action bar, which asks
@@ -45,6 +50,7 @@ import {
   type FifthAdventure,
   type FifthCreature,
   type FifthDoor,
+  type FifthMerchant,
   type FifthEnding,
   type FifthItem,
   type FifthPassage,
@@ -76,6 +82,7 @@ import {
 } from "./encounter-5e.js";
 import {
   ARMOUR,
+  buyItem,
   coinsInCopper,
   DONNING_MINUTES,
   dropItem,
@@ -85,7 +92,10 @@ import {
   isItemId,
   isWeaponId,
   itemName,
+  itemPrice,
   MAX_STOWED,
+  salePrice,
+  sellItem,
   swapWeapon,
   unequipItem,
   WEAPONS,
@@ -93,6 +103,7 @@ import {
   type AttackProfile,
   type GearRefusalCode,
   type ItemId,
+  type TradeRefusalCode,
   type WeaponData,
 } from "./equipment-5e.js";
 import {
@@ -118,7 +129,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v8";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v9";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -186,6 +197,13 @@ export type FifthAction =
   | Readonly<{ type: "talk"; topicId: string }>
   /** A change to the character's own gear, named by its catalogue id. */
   | Readonly<{ type: GearAction; itemId: string }>
+  /** Buying from the merchant here, by catalogue id. */
+  | Readonly<{ type: "buy"; itemId: string }>
+  /**
+   * Selling to the merchant here, by catalogue id: a stowed one, or with
+   * `equipped`, confirmed by the player, the one equipped.
+   */
+  | Readonly<{ type: "sell"; itemId: string; equipped?: true }>
   /** The player's final choice to leave from an exit room. */
   | Readonly<{ type: "leave"; roomId: string }>;
 
@@ -297,6 +315,16 @@ const TARGET_TOOLS = {
     parameter: "item",
     action: (itemId: string): FifthAction => ({ type: "drop", itemId }),
   },
+  trade: {
+    parameter: "offer",
+    action: (offer: string): FifthAction => {
+      const [deal, itemId] = offer.split(":", 2);
+      // Never equipped gear: the player confirms that sale in the panel.
+      return deal === "sell"
+        ? { type: "sell", itemId: itemId ?? "" }
+        : { type: "buy", itemId: deal === "buy" ? (itemId ?? "") : offer };
+    },
+  },
 } as const satisfies Partial<
   Record<GameToolName | FifthToolName, { parameter: string; action: unknown }>
 >;
@@ -335,6 +363,7 @@ export type FifthEvent =
       stowed?: true;
     }>
   | GearEvent
+  | TradeEvent
   /** A check or saving throw the character made. */
   | Readonly<{ type: "check"; roll: CheckRoll }>
   | Readonly<{
@@ -428,6 +457,29 @@ export type GearEvent = Readonly<{
 }>;
 
 /**
+ * A purchase or sale, with the minutes it took and the purse after it. A
+ * sale of equipped gear also gives the minutes doffing it (body armour) and
+ * the AC and attacks it leaves the character with.
+ */
+export type TradeEvent = Readonly<{
+  type: "traded";
+  deal: "buy" | "sell";
+  item: ItemId;
+  merchant: string;
+  /** Copper paid, or received. */
+  price: number;
+  /** Copper in the purse afterwards. */
+  purse: number;
+  minutes: number;
+  equipped?: Readonly<{
+    doff: number;
+    armorClass: number;
+    attack: ShownAttack;
+    lightAttack?: ShownAttack;
+  }>;
+}>;
+
+/**
  * Why the engine refuses an action. Code branches on `code`, which stays
  * stable; `reason` is the sentence rejection cards and the AI DM show.
  */
@@ -460,6 +512,9 @@ export type FifthRefusalCode =
   | "already-asked"
   | "not-an-exit"
   | "carrying-full"
+  | "no-merchant"
+  | "not-stocked"
+  | TradeRefusalCode
   | GearRefusalCode;
 
 export type FifthRejection = Readonly<{
@@ -488,6 +543,8 @@ Act only through the offered tools, and only with the ids each tool lists. To go
 Leaving the adventure is the player's own final choice, made with the Leave button in an exit room; you have no tool for it. If the player asks to leave, tell them to use that button when they are ready, without calling a tool.
 
 Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
+
+Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
 The character's own gear (its catalogue weapons, armour and shield) is named by its id. To put on armour or a shield, or take a second light weapon in the other hand, call equip; to take armour or a shield off or put a second weapon away, call unequip; to wield a different carried weapon in place of the ones held, call swap_weapon; to leave carried gear behind, call drop. Gear found is taken with take, like any item. The engine decides what the character can hold, how long armour takes to don and what the change does to its AC and attacks.
 
@@ -662,8 +719,53 @@ function doorText(
   }
 }
 
+/** The minutes body armour takes to don and doff; none for others. */
+function timing(item: ItemId): Readonly<{ don: number; doff: number }> {
+  return isArmourId(item) && item !== "shield"
+    ? DONNING_MINUTES[
+        (ARMOUR[item] as ArmourData).category as "light" | "medium" | "heavy"
+      ]
+    : { don: 0, doff: 0 };
+}
+
+function shown(attack: AttackProfile): ShownAttack {
+  return {
+    weapon: attack.weapon,
+    bonus: attack.bonus,
+    damage: attack.damage,
+    grip: attack.grip,
+    disadvantage: attack.disadvantage,
+  };
+}
+
 function minutes(count: number): string {
   return `${count} ${count === 1 ? "minute" : "minutes"}`;
+}
+
+function tradeText(event: TradeEvent): string {
+  const item = itemName(event.item).toLowerCase();
+  const price = formatCoins(event.price);
+  const purse =
+    event.purse === 0
+      ? "Your purse is empty."
+      : `Purse: ${formatCoins(event.purse)}.`;
+  const taken = `The trade takes ${minutes(event.minutes)}. ${purse}`;
+  if (event.deal === "buy") {
+    return `You buy the ${item} from the ${event.merchant} for ${price} and stow it. ${taken}`;
+  }
+  const { equipped } = event;
+  if (equipped === undefined) {
+    return `You sell the ${item} to the ${event.merchant} for ${price}. ${taken}`;
+  }
+  const off =
+    equipped.doff > 0
+      ? `You spend ${minutes(equipped.doff)} doffing the ${item} and sell it`
+      : `You ${isWeaponId(event.item) ? "put away" : "unstrap"} the ${item} and sell it`;
+  const light =
+    equipped.lightAttack === undefined
+      ? ""
+      : `; ${shownAttackText(equipped.lightAttack)} (extra attack)`;
+  return `${off} to the ${event.merchant} for ${price}. ${taken} AC ${equipped.armorClass}; ${shownAttackText(equipped.attack)}${light}.`;
 }
 
 /** "Longsword +5 to hit, 1d10 + 3 slashing (two-handed)". */
@@ -799,6 +901,8 @@ export function renderFifthEvent(
           : `You take the ${event.name}.`;
     case "gear":
       return gearText(event);
+    case "traded":
+      return tradeText(event);
     case "check":
       return checkText(event.roll);
     case "door":
@@ -1148,10 +1252,15 @@ export type RoomView = Readonly<{
       trap?: Named & Readonly<{ state: "armed" | "disarmed" | "sprung" }>;
     }>)[];
   features: readonly (Named & Readonly<{ discovery?: string }>)[];
-  /** Creatures to talk to, with what each topic drew from them so far. */
+  /**
+   * Creatures to talk to, with what each topic drew from them so far, and
+   * for a merchant its wares at their prices and the minutes a trade takes.
+   */
   creatures: readonly (Named &
     Readonly<{
       topics: readonly Readonly<{ id: string; name: string; said?: string }>[];
+      wares?: readonly Readonly<{ id: ItemId; name: string; price: string }>[];
+      tradeMinutes?: number;
     }>)[];
   items: readonly Named[];
   inventory: readonly Named[];
@@ -1193,6 +1302,10 @@ export type ActionKind =
   | "disarm"
   | "talk"
   | GearAction
+  | "buy"
+  | "sell"
+  /** Selling equipped gear, which the browser asks the player to confirm. */
+  | "sell-equipped"
   | "leave";
 
 /**
@@ -1264,6 +1377,10 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "not-equipped": "Not equipped",
   "last-weapon": "Last weapon",
   "still-equipped": "Equipped",
+  "no-merchant": "No merchant here",
+  "not-stocked": "Not for sale",
+  "too-little-coin": "Too little coin",
+  "sale-unconfirmed": "Confirm first",
 };
 
 /** Thrown by the dry-run roller: the engine accepted the action and rolls. */
@@ -1318,7 +1435,8 @@ export type FifthRuntime = Omit<
      * Action Surge from level 2, and End turn); exploring, each move, each
      * way to open each door on an exit (Unlock only with its key carried),
      * searching the room, disarming each trap found, each examination, each
-     * topic to talk about, take and drink, and Leave in an exit room; when
+     * topic to talk about, take and drink, the character's gear changes,
+     * Buy and Sell where a merchant is, and Leave in an exit room; when
      * the adventure is over, nothing. A door opened, a check tried or a topic asked stays listed,
      * disabled with its reason.
      * Each says whether the engine would accept it now, and why not. It
@@ -1567,6 +1685,12 @@ export function createFifthRuntime(
     !state.disarmedTrapIds.includes(trapId) &&
     !state.sprungTrapIds.includes(trapId);
   const creaturesHere = (state: FifthState) => room(state).creatures;
+  /** The merchant in the character's room, if there is one. */
+  const merchantHere = (state: FifthState) =>
+    creaturesHere(state).find(
+      (creature): creature is FifthCreature & { merchant: FifthMerchant } =>
+        creature.merchant !== undefined,
+    );
   /** What a creature said about a topic, once asked. */
   const said = (
     state: FifthState,
@@ -1891,9 +2015,21 @@ export function createFifthRuntime(
       case "equip":
       case "unequip":
       case "swap":
-      case "drop": {
+      case "drop":
+      case "buy": {
         const itemId = field("itemId");
         return itemId === undefined ? undefined : { type: action.type, itemId };
+      }
+      case "sell": {
+        const itemId = field("itemId");
+        return itemId === undefined ||
+          (action.equipped !== undefined && action.equipped !== true)
+          ? undefined
+          : {
+              type: "sell",
+              itemId,
+              ...(action.equipped === true ? { equipped: true as const } : {}),
+            };
       }
       default:
         return undefined;
@@ -2442,21 +2578,6 @@ export function createFifthRuntime(
             : {}),
         };
         const profile = fighterProfile(sheetOf(next));
-        /** The minutes body armour takes to don and doff; none for others. */
-        const timing = (item: ItemId) =>
-          isArmourId(item) && item !== "shield"
-            ? DONNING_MINUTES[
-                (ARMOUR[item] as ArmourData).category as
-                  "light" | "medium" | "heavy"
-              ]
-            : { don: 0, doff: 0 };
-        const shown = (attack: AttackProfile): ShownAttack => ({
-          weapon: attack.weapon,
-          bonus: attack.bonus,
-          damage: attack.damage,
-          grip: attack.grip,
-          disadvantage: attack.disadvantage,
-        });
         const event: GearEvent = {
           type: "gear",
           change: action.type,
@@ -2507,6 +2628,65 @@ export function createFifthRuntime(
           return { state, rejection: result.rejection };
         }
         return settle(next, result.state, [event, ...result.events]);
+      }
+      case "buy":
+      case "sell": {
+        if (fighting(state)) {
+          return reject("fighting", "Not while you are fighting.");
+        }
+        const trader = merchantHere(state);
+        if (trader === undefined) {
+          return reject("no-merchant", "There is no one here to trade with.");
+        }
+        const id = action.itemId;
+        if (
+          action.type === "buy" &&
+          !(isItemId(id) && trader.merchant.stock.includes(id))
+        ) {
+          return reject("not-stocked", `The ${trader.name} doesn't sell that.`);
+        }
+        if (!isItemId(id)) {
+          return reject("not-carried", "You don't carry that.");
+        }
+        const holding = {
+          equipment: state.possessions.equipment,
+          stowed: state.possessions.stowed,
+          purse: state.possessions.purse,
+        };
+        const trade =
+          action.type === "buy"
+            ? buyItem(holding, id)
+            : sellItem(holding, id, action.equipped === true);
+        if (trade.refusal !== undefined) {
+          return reject(trade.refusal.code, trade.refusal.reason);
+        }
+        const next: FifthState = {
+          ...state,
+          possessions: { ...state.possessions, ...trade.holding },
+        };
+        const profile = fighterProfile(sheetOf(next));
+        const event: TradeEvent = {
+          type: "traded",
+          deal: action.type,
+          item: id,
+          merchant: trader.name,
+          price: trade.price,
+          purse: trade.holding.purse,
+          minutes: trader.merchant.minutes,
+          ...((trade.replaced ?? []).length === 0
+            ? {}
+            : {
+                equipped: {
+                  doff: timing(id).doff,
+                  armorClass: profile.armorClass,
+                  attack: shown(profile.attack),
+                  ...(profile.lightAttack === undefined
+                    ? {}
+                    : { lightAttack: shown(profile.lightAttack) }),
+                },
+              }),
+        };
+        return { state: next, events: [event] };
       }
       case "leave": {
         if (fighting(state)) {
@@ -2626,6 +2806,33 @@ export function createFifthRuntime(
           ]),
       ];
     };
+    /**
+     * Where a merchant is: Buy on each item it stocks, Sell on each kind of
+     * stowed gear, and Sell (confirmed by the player) on each kind equipped.
+     */
+    const tradeViews = (): readonly ActionView[] => {
+      const trader = merchantHere(state);
+      if (trader === undefined) {
+        return [];
+      }
+      const item = (id: ItemId) => ({ id, name: itemName(id) });
+      const { equipment, stowed } = state.possessions;
+      return [
+        ...trader.merchant.stock.map((id) =>
+          view("buy", { type: "buy", itemId: id }, item(id)),
+        ),
+        ...[...new Set(stowed)].map((id) =>
+          view("sell", { type: "sell", itemId: id }, item(id)),
+        ),
+        ...[...new Set(equipment)].map((id) =>
+          view(
+            "sell-equipped",
+            { type: "sell", itemId: id, equipped: true },
+            item(id),
+          ),
+        ),
+      ];
+    };
     if (fighting(state)) {
       const pc = combatant(state.encounter!, PLAYER_ID);
       const feature = (kind: "second-wind" | "action-surge" | "end-turn") =>
@@ -2702,6 +2909,7 @@ export function createFifthRuntime(
         view("take", { type: "take", itemId: item.id }, item),
       ),
       ...gearViews(),
+      ...tradeViews(),
       // The final choice comes last, and only where there is a way out.
       ...(here.exit === true
         ? [view("leave", { type: "leave", roomId: here.id }, here)]
@@ -2760,6 +2968,14 @@ export function createFifthRuntime(
     description,
   });
 
+  /** A merchant's stock, each with its price. */
+  const wares = (merchant: FifthMerchant) =>
+    merchant.stock.map((id) => ({
+      id,
+      name: itemName(id),
+      price: formatCoins(itemPrice(id)),
+    }));
+
   const projectDmScene = (state: FifthState): DmScene => {
     const current = room(state);
     const encounter = state.encounter;
@@ -2810,13 +3026,23 @@ export function createFifthRuntime(
                 }),
           }),
         ),
-        npcs: creaturesHere(state).map(({ id, name, description, topics }) => ({
-          id,
-          name,
-          condition: "living" as const,
-          description,
-          subjects: topics.map((topic) => ({ id: topic.id, name: topic.name })),
-        })),
+        npcs: creaturesHere(state).map(
+          ({ id, name, description, topics, merchant }) => ({
+            id,
+            name,
+            condition: "living" as const,
+            description:
+              merchant === undefined
+                ? description
+                : `${description} Sells: ${wares(merchant)
+                    .map((ware) => `${ware.name} (${ware.price})`)
+                    .join(", ")}.`,
+            subjects: topics.map((topic) => ({
+              id: topic.id,
+              name: topic.name,
+            })),
+          }),
+        ),
       },
       combatStatus:
         encounter === undefined
@@ -2926,6 +3152,12 @@ export function createFifthRuntime(
             ...(words === undefined ? {} : { said: words }),
           };
         }),
+        ...(creature.merchant === undefined
+          ? {}
+          : {
+              wares: wares(creature.merchant),
+              tradeMinutes: creature.merchant.minutes,
+            }),
       })),
       items: [...roomItems(state).map(named), ...droppedHere(state)],
       inventory: carried(state).map(named),
@@ -3122,6 +3354,21 @@ export function createFifthRuntime(
         "The id of the carried item to drop.",
       ),
       ...targetTool(
+        "trade",
+        "Trade with the merchant here: the engine sets each price, takes or pays the coin, and says how long the trade takes. Offers:",
+        [
+          ...choices("buy").map(({ id, name }) => ({
+            id: `buy:${id}`,
+            name: `buy the ${name.toLowerCase()} for ${formatCoins(itemPrice(id as ItemId))}`,
+          })),
+          ...choices("sell").map(({ id, name }) => ({
+            id: `sell:${id}`,
+            name: `sell the ${name.toLowerCase()} for ${formatCoins(salePrice(id as ItemId))}`,
+          })),
+        ],
+        "The offer: buy: or sell: and the item's id.",
+      ),
+      ...targetTool(
         "attack",
         "Attack one opponent with the character's weapon on the character's turn. The engine rolls the attack and damage. Targets:",
         choices("attack"),
@@ -3274,7 +3521,7 @@ export function createFifthRuntime(
     rulesVersion: FIFTH_RULES_VERSION,
     promptVersion: FIFTH_PROMPT_VERSION,
     systemPrompt: FIFTH_DM_SYSTEM_PROMPT,
-    toolSchemaVersion: "5e-tools-v5",
+    toolSchemaVersion: "5e-tools-v6",
     readToolNames: ["look", "get_character_status"],
     mutationToolNames: MUTATION_TOOLS,
     adventure,

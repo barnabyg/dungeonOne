@@ -37,7 +37,7 @@ Items a character finds by examining something (such as a chest, or a defeated e
 _Avoid_: Reward XP, Drop
 
 **Coin**:
-SRD 5.2 copper, silver and gold pieces (1 gp = 10 sp = 100 cp). A module hides coin, like treasure, in a feature or on an opponent's body, and the engine decides how much; taking it empties it into the purse at once. It is found once per character, recorded in the ledger like a treasure. It has no use yet beyond being kept.
+SRD 5.2 copper, silver and gold pieces (1 gp = 10 sp = 100 cp). A module hides coin, like treasure, in a feature or on an opponent's body, and the engine decides how much; taking it empties it into the purse at once. It is found once per character, recorded in the ledger like a treasure. It is spent with merchants.
 _Avoid_: Gold (for coin in general), Money
 
 **Purse**:
@@ -76,6 +76,14 @@ _Avoid_: Proficiency (Fighters are proficient with every weapon), Weapon skill
 The SRD 5.2 Light property's one extra attack with a second light weapon after attacking with a light weapon on the same turn; a bonus action unless Nick makes it part of the Attack action.
 _Avoid_: Extra Attack (the level-5 Fighter feature), Off-hand attack
 
+**Merchant**:
+A creature in a module that trades: it sells the catalogue gear it stocks at catalogue prices and buys carried gear at half price. Each trade takes its authored minutes. Merchants exist only inside adventures.
+_Avoid_: Shop, Market (there is none between adventures), Vendor
+
+**Trade**:
+Buying from or selling to a merchant, outside a fight in its room. Stock and prices are the engine's; selling equipped gear needs the player's confirmation in the panel. Trades are part of the adventure: settling a victory or an escape keeps their result, and a defeat or abandonment undoes them.
+_Avoid_: Purchase (for selling too), Haggle
+
 **Ledger**:
 The record on a character of each treasure, coin and gear it has found and each XP award it has been credited, so that each is earned once. It is kept apart from the possessions and only grows: losing an item never takes its find away.
 _Avoid_: History, Achievements
@@ -85,7 +93,7 @@ Ending an adventure in the character library, once. After a victory or an escape
 _Avoid_: Crediting (which suggests adding), Rewarding
 
 **Pending treasure**:
-Treasure and coin the character carries during an adventure but has not kept yet. It can be used in that adventure at once (and, once merchants exist, spent there). Settling a victory or an escape replaces the character's possessions with what it holds at the end, pending treasure included; a defeat or abandonment rolls the character back to how it started, as if the adventure never happened.
+Treasure and coin the character carries during an adventure but has not kept yet. It can be used in that adventure at once, and coin spent there with a merchant. Settling a victory or an escape replaces the character's possessions with what it holds at the end, pending treasure included; a defeat or abandonment rolls the character back to how it started, as if the adventure never happened.
 _Avoid_: Loot (when kept treasure is meant), Inventory
 
 **XP award**:
