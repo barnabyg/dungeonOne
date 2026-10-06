@@ -126,7 +126,8 @@ change them. Then choose two skills, a Fighting Style, a starting kit and
 three weapon masteries, check the derived numbers and save. The kits are a
 little common gear each, worth about the same: _Mace and leather_, _Two
 daggers and leather_, or _Club, dagger and leather_. Each kit shows the AC,
-attack and damage it gives your scores before you choose. Better gear is found
+attack and damage it gives your scores before you choose, and each Fighting
+Style is tagged with whether it applies to the kit chosen. Better gear is found
 in adventures. A pending creation keeps its dice even if a character is
 deleted. Creation needs no OpenAI key.
 

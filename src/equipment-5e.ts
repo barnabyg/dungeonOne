@@ -540,6 +540,11 @@ export type AttackProfile = Readonly<{
   mastery?: UsedMastery;
   /** Sources of disadvantage on every attack with it: a heavy weapon below Strength 13. */
   disadvantage: readonly string[];
+  /**
+   * Great Weapon Fighting: a 1 or 2 on a damage die counts as 3. Present only
+   * with that style and a two-handed weapon or a versatile one in two hands.
+   */
+  greatWeaponFighting?: true;
 }>;
 
 /** Everything a character's equipment gives it in a fight. */
@@ -549,7 +554,8 @@ export type EquipmentProfile = Readonly<{
   attack: AttackProfile;
   /**
    * The Light property's extra attack with the second light weapon: no
-   * ability modifier on its damage unless that is negative.
+   * ability modifier on its damage unless that is negative, or with
+   * Two-Weapon Fighting.
    */
   lightAttack?: AttackProfile;
   /** Armour worn below its Strength requirement: speed -10 ft (no effect without positions). */
@@ -558,13 +564,21 @@ export type EquipmentProfile = Readonly<{
   stealthDisadvantage: boolean;
 }>;
 
+/** The SRD 5.2 Fighting Style feats a Fighter can take. */
+export type FightingStyleId =
+  "defense" | "great-weapon-fighting" | "two-weapon-fighting";
+
 export type EquipmentContext = Readonly<{
   modifiers: AbilityModifiers;
   strengthScore: number;
   proficiency: number;
   masteries: readonly WeaponId[];
-  /** Defense: +1 AC while wearing armour. */
-  defense: boolean;
+  /**
+   * Defense: +1 AC while wearing armour. Great Weapon Fighting: 1s and 2s on
+   * damage dice count as 3 with a weapon in two hands. Two-Weapon Fighting:
+   * the Light extra attack adds the ability modifier.
+   */
+  fightingStyle?: FightingStyleId;
   criticalRange: 19 | 20;
 }>;
 
@@ -594,8 +608,12 @@ function attackWith(
     damage: {
       dice: dice.dice,
       sides: dice.sides,
-      // The Light extra attack adds the modifier only when it is negative.
-      modifier: extra ? Math.min(0, modifier) : modifier,
+      // The Light extra attack adds the modifier only when it is negative,
+      // or with Two-Weapon Fighting.
+      modifier:
+        extra && context.fightingStyle !== "two-weapon-fighting"
+          ? Math.min(0, modifier)
+          : modifier,
       type: weapon.damageType,
     },
     criticalRange: context.criticalRange,
@@ -609,6 +627,10 @@ function attackWith(
       weapon.properties.includes("heavy") && context.strengthScore < 13
         ? ["Heavy"]
         : [],
+    ...(context.fightingStyle === "great-weapon-fighting" &&
+    grip === "two-handed"
+      ? { greatWeaponFighting: true as const }
+      : {}),
   };
 }
 
@@ -618,8 +640,9 @@ function attackWith(
  * none), +2 for a shield, +1 for Defense while wearing body armour; the main
  * weapon's attack (finesse uses the higher of Strength and Dexterity, a
  * versatile weapon held in two hands its larger die, a heavy weapon below
- * Strength 13 has disadvantage); and the Light extra attack when a second
- * light weapon is held. A mastery applies only to a weapon the character has
+ * Strength 13 has disadvantage, and Great Weapon Fighting marks a weapon in
+ * two hands); and the Light extra attack when a second light weapon is held
+ * (with its ability modifier under Two-Weapon Fighting). A mastery applies only to a weapon the character has
  * mastered and is holding.
  */
 export function equipmentProfile(
@@ -640,7 +663,7 @@ export function equipmentProfile(
   const armorClass =
     body +
     (loadout.shield ? ARMOUR.shield.armorClass : 0) +
-    (context.defense && armour !== undefined ? 1 : 0);
+    (context.fightingStyle === "defense" && armour !== undefined ? 1 : 0);
   return {
     loadout,
     armorClass,

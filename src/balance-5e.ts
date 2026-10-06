@@ -23,9 +23,11 @@ import {
   defaultPlacement,
   FIGHTER_DEFAULT_CHOICES,
   fighterProfile,
+  FIGHTING_STYLES,
   rollAbilitySet,
   validateFighter,
   type FighterSheet,
+  type FightingStyle,
   type Level,
   type RolledDice,
 } from "./fighter-5e.js";
@@ -135,8 +137,10 @@ export function percentileCharacters({
  * hit points to 0: a natural 1 misses, a roll in the critical range hits and
  * doubles the damage dice, and any other roll hits when it meets the enemy's
  * AC. The attack is the one the runtime gives the character, so Fighting
- * Style, level and masteries are counted: a weapon's own disadvantage (Heavy)
- * and Graze's damage on a miss. Advantage from a previous hit (Vex) is not.
+ * Style, level and masteries are counted: Great Weapon Fighting's 1s and 2s
+ * counted as 3, a weapon's own disadvantage (Heavy) and Graze's damage on a
+ * miss. Advantage from a previous hit (Vex) is not, nor is the Light extra
+ * attack (the only attack Two-Weapon Fighting changes): it is a second one.
  */
 export function oneHitKillChance(
   sheet: FighterSheet,
@@ -152,9 +156,12 @@ export function oneHitKillChance(
       const next = new Map<number, number>();
       for (const [total, chance] of totals) {
         for (let face = 1; face <= attack.damage.sides; face++) {
+          // Great Weapon Fighting counts a 1 or 2 as 3.
+          const counted =
+            attack.greatWeaponFighting === true ? Math.max(3, face) : face;
           next.set(
-            total + face,
-            (next.get(total + face) ?? 0) + chance / attack.damage.sides,
+            total + counted,
+            (next.get(total + counted) ?? 0) + chance / attack.damage.sides,
           );
         }
       }
@@ -1117,7 +1124,8 @@ export type OneHitKillCheck = Readonly<{
   /**
    * Each ordinary opponent, with its one-hit-kill chance from the kit, or
    * the weapon the module places (`gear`, wielded with that kit's armour),
-   * that kills it most often.
+   * and the Fighting Style that kill it most often. On a tie the earlier
+   * kit, then the default style, is kept.
    */
   enemies: readonly Readonly<{
     encounterId: string;
@@ -1126,6 +1134,7 @@ export type OneHitKillCheck = Readonly<{
     chance: number;
     kit: KitId;
     gear?: WeaponId;
+    fightingStyle: FightingStyle;
   }>[];
   /** The ordinary enemies over the cap; more than half of them fails. */
   overCap: OneHitKillCheck["enemies"];
@@ -1173,7 +1182,8 @@ export type GateOptions = Pick<
  *   least the difficulty's share of runs with every starting kit at every
  *   recommended level;
  * - too easy: for the strongest character at the maximum recommended level,
- *   with the kit or placed weapon strongest against each enemy, no more than half the
+ *   with the kit or placed weapon, and the Fighting Style, strongest against
+ *   each enemy, no more than half the
  *   ordinary (non-boss) enemies may be killed by one attack from full HP more
  *   often than the difficulty's cap;
  * - XP: all the XP the module offers must not take a character one XP short
@@ -1247,7 +1257,7 @@ export function gateAdventure(
         ),
       ),
     ];
-    const strong = [
+    const armed = [
       ...KITS.map((kit) => ({
         kit,
         sheet: fighterAtLevel(strongest!.dice, max as Level, kit),
@@ -1270,6 +1280,20 @@ export function gateAdventure(
         };
       }),
     ];
+    // Each of those with every Fighting Style, the default first.
+    const styles = [
+      FIGHTER_DEFAULT_CHOICES.fightingStyle,
+      ...(Object.keys(FIGHTING_STYLES) as FightingStyle[]).filter(
+        (style) => style !== FIGHTER_DEFAULT_CHOICES.fightingStyle,
+      ),
+    ];
+    const strong = armed.flatMap((entry) =>
+      styles.map((fightingStyle) => ({
+        ...entry,
+        fightingStyle,
+        sheet: validateFighter({ ...entry.sheet, fightingStyle }),
+      })),
+    );
     const enemies = adventure.encounters.flatMap(
       ({ id: encounterId, opponents }) =>
         opponents.flatMap(({ id, name, statBlock, boss }) =>

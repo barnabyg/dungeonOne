@@ -15,13 +15,12 @@ import {
   WEAPONS,
 } from "../dist/equipment-5e.js";
 
-/** Strength +3 (16), Dexterity +1, no masteries, no Defense. */
+/** Strength +3 (16), Dexterity +1, no masteries, no Fighting Style. */
 const CONTEXT = {
   modifiers: { strength: 3, dexterity: 1 },
   strengthScore: 16,
   proficiency: 2,
   masteries: [],
-  defense: false,
   criticalRange: 20,
 };
 const profile = (equipment, context = {}) =>
@@ -248,9 +247,15 @@ test("armour class follows each armour's base and Dexterity cap, the shield and 
       equipment.join(),
     );
   }
-  assert.equal(profile(["leather", "mace"], { defense: true }).armorClass, 13);
+  assert.equal(
+    profile(["leather", "mace"], { fightingStyle: "defense" }).armorClass,
+    13,
+  );
   // Defense needs armour; a shield alone is not armour.
-  assert.equal(profile(["shield", "mace"], { defense: true }).armorClass, 13);
+  assert.equal(
+    profile(["shield", "mace"], { fightingStyle: "defense" }).armorClass,
+    13,
+  );
 });
 
 test("heavy armour below its Strength is noted, and a heavy weapon below 13 has disadvantage", () => {

@@ -28,6 +28,8 @@ import {
   STARTING_KITS,
   WEAPONS,
   type AttackProfile,
+  type EquipmentProfile,
+  type FightingStyleId,
   type ItemId,
   type KitId,
   type WeaponId,
@@ -63,7 +65,7 @@ export const FIGHTER_SKILLS = {
 } as const satisfies Record<string, { name: string; ability: Ability }>;
 export type FighterSkill = keyof typeof FIGHTER_SKILLS;
 
-/** SRD 5.2 Fighting Style feats, without Archery (ranged weapons are deferred). */
+/** SRD 5.2 Fighting Style feats, without Archery: it needs ranged weapons (#225). */
 export const FIGHTING_STYLES = {
   defense: {
     name: "Defense",
@@ -71,14 +73,65 @@ export const FIGHTING_STYLES = {
   },
   "great-weapon-fighting": {
     name: "Great Weapon Fighting",
-    text: "Treat 1s and 2s on damage dice as 3s with a two-handed or versatile weapon held in two hands. Not used yet: it has no effect.",
+    text: "Treat 1s and 2s on damage dice as 3s with a two-handed weapon, or a versatile one held in two hands.",
   },
   "two-weapon-fighting": {
     name: "Two-Weapon Fighting",
-    text: "Add your ability modifier to the damage of the extra attack from two light weapons. Not used yet: it has no effect.",
+    text: "Add your ability modifier to the damage of the extra attack from two light weapons.",
   },
-} as const;
+} as const satisfies Record<FightingStyleId, { name: string; text: string }>;
 export type FightingStyle = keyof typeof FIGHTING_STYLES;
+
+/** Whether a Fighting Style does anything with the gear held, and why. */
+export type FightingStyleUse = Readonly<{
+  id: FightingStyle;
+  name: string;
+  applies: boolean;
+  /** Such as "Applies: you wear armour." */
+  note: string;
+}>;
+
+/** Whether `style` applies with the equipment `gear` was derived from. */
+export function fightingStyleUse(
+  style: FightingStyle,
+  gear: EquipmentProfile,
+): FightingStyleUse {
+  const weapon = gear.attack.weapon.toLowerCase();
+  const use = (applies: boolean, note: string): FightingStyleUse => ({
+    id: style,
+    name: FIGHTING_STYLES[style].name,
+    applies,
+    note,
+  });
+  switch (style) {
+    case "defense":
+      return gear.loadout.armour === undefined
+        ? use(false, "No effect without armour.")
+        : use(true, "Applies: you wear armour.");
+    case "great-weapon-fighting": {
+      if (gear.attack.greatWeaponFighting === true) {
+        return use(true, `Applies: the ${weapon} is held in two hands.`);
+      }
+      const versatile = (
+        WEAPONS[gear.loadout.mainHand].properties as readonly string[]
+      ).includes("versatile");
+      return use(
+        false,
+        `No effect with the ${weapon}${versatile ? " in one hand" : ""}: it needs a two-handed weapon, or a versatile one held in two hands.`,
+      );
+    }
+    case "two-weapon-fighting":
+      return gear.lightAttack === undefined
+        ? use(
+            false,
+            `No effect with the ${weapon}: it needs two light weapons.`,
+          )
+        : use(
+            true,
+            `Applies: the extra attack with the second ${gear.lightAttack.weapon.toLowerCase()} adds your ability modifier.`,
+          );
+  }
+}
 
 /**
  * How Second Wind and Action Surge uses recover until in-adventure rests
@@ -577,6 +630,8 @@ export type CreationProjection = Readonly<{
    * Style and the masteries ticked so far.
    */
   kits: readonly KitPreview[];
+  /** Every Fighting Style, and whether it applies with the kit chosen. */
+  fightingStyles: readonly FightingStyleUse[];
   /** Why a choice is not finished yet, keyed by the choice; empty when saving can go ahead. */
   unfinished: Readonly<{
     increase?: string;
@@ -602,7 +657,7 @@ export function projectCreation(
   const { increase, missing } = validatePartialIncrease(choices.increase);
   const skills = validatePartialSkills(choices.skills);
   const fightingStyle = validateFightingStyle(choices.fightingStyle);
-  validateKit(choices.kit);
+  const kitChosen = validateKit(choices.kit);
   const masteries = validatePartialMasteries(choices.masteries);
   const rows = ABILITIES.map((ability) => {
     const score =
@@ -633,9 +688,8 @@ export function projectCreation(
   };
   const score = (ability: Ability) =>
     rows.find((row) => row.ability === ability)!.score;
-  const kits = KIT_IDS.map((id) => {
-    const kit = STARTING_KITS[id];
-    const derived = equipmentProfile(kit.equipment, {
+  const derive = (id: KitId, style: FightingStyle) =>
+    equipmentProfile(STARTING_KITS[id].equipment, {
       modifiers: {
         strength: abilityModifier(score("strength")),
         dexterity: abilityModifier(score("dexterity")),
@@ -643,9 +697,12 @@ export function projectCreation(
       strengthScore: score("strength"),
       proficiency: proficiencyBonus(1),
       masteries,
-      defense: fightingStyle === "defense",
+      fightingStyle: style,
       criticalRange: 20,
     });
+  const kits = KIT_IDS.map((id) => {
+    const kit = STARTING_KITS[id];
+    const derived = derive(id, fightingStyle);
     return {
       id,
       name: kit.name,
@@ -672,6 +729,9 @@ export function projectCreation(
       full: masteries.length >= FIGHTER_MASTERY_COUNT,
     },
     kits,
+    fightingStyles: (Object.keys(FIGHTING_STYLES) as FightingStyle[]).map(
+      (style) => fightingStyleUse(style, derive(kitChosen, style)),
+    ),
     unfinished,
   };
   if (Object.keys(unfinished).length > 0) {
@@ -792,6 +852,8 @@ export type FighterProfile = Readonly<{
   attack: AttackProfile;
   /** The Light property's extra attack with a second light weapon. */
   lightAttack?: AttackProfile;
+  /** Whether the Fighting Style applies with what it has equipped. */
+  fightingStyle: FightingStyleUse;
   /** Armour worn below its Strength requirement (speed -10 ft, not used without positions). */
   strengthShortfall?: Readonly<{ armour: string; strength: number }>;
   secondWind: Readonly<{
@@ -831,14 +893,15 @@ export function fighterProfile(
     strengthScore: sheet.abilities.strength,
     proficiency,
     masteries: sheet.weaponMasteries,
-    defense: sheet.fightingStyle === "defense",
+    fightingStyle: sheet.fightingStyle,
     criticalRange: level >= 3 ? 19 : 20,
   });
+  const styleUse = fightingStyleUse(sheet.fightingStyle, gear);
   const features: FighterFeature[] = [
     {
       id: "fighting-style",
       name: `Fighting Style: ${style.name}`,
-      text: style.text,
+      text: `${style.text} ${styleUse.note}`,
     },
     {
       id: "second-wind",
@@ -922,6 +985,7 @@ export function fighterProfile(
     ...(gear.lightAttack === undefined
       ? {}
       : { lightAttack: gear.lightAttack }),
+    fightingStyle: styleUse,
     ...(gear.strengthShortfall === undefined
       ? {}
       : { strengthShortfall: gear.strengthShortfall }),
