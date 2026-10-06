@@ -923,8 +923,15 @@ function focusNewestEntry() {
 // History only grows, so new entries are appended: the live region announces
 // just them. The log follows the newest entry only while the reader is at the
 // bottom; someone who scrolled up to read older entries stays where they are.
-// Only the reader's scrolling changes that, not the dock resizing around it.
+// Only the reader's scrolling decides that, not the dock resizing around it;
+// while following, a resized log is scrolled back to its newest entry (#221).
 let followHistory = true;
+
+/** Scrolls the log to its newest entry while the reader follows it. */
+function followNewest() {
+  const log = element("log");
+  if (followHistory) log.scrollTop = log.scrollHeight;
+}
 
 function renderHistory() {
   const log = element("log");
@@ -935,7 +942,7 @@ function renderHistory() {
   }
   log.append(...session.history.slice(log.children.length).map(historyEntry));
   markNewest(log);
-  if (followHistory) log.scrollTop = log.scrollHeight;
+  followNewest();
 }
 
 /** Shows a typed message at once, with the Dungeon Master's reply pending. */
@@ -948,7 +955,7 @@ function showPending(message) {
   item.append(waiting);
   log.append(item);
   markNewest(log);
-  if (followHistory) log.scrollTop = log.scrollHeight;
+  followNewest();
 }
 
 // Each list's entries; their actions are in the action bar, except a carried
@@ -1656,6 +1663,9 @@ element("log").addEventListener("scroll", () => {
   const log = element("log");
   followHistory = log.scrollHeight - log.scrollTop - log.clientHeight < 24;
 });
+// When the dock around the log changes, as the Leave question opens or closes,
+// the log changes size: a following reader stays on the newest entry (#221).
+new ResizeObserver(followNewest).observe(element("log"));
 // On a phone the dock is sticky: keep focused controls clear of it.
 new ResizeObserver(() => {
   const dock = element("session-dock");
