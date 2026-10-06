@@ -357,11 +357,12 @@ These are for development, not play.
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.
 - **Live release run.** `node scripts/qualify-release-live.mjs --live` (with
-  `--max-calls`, default 160, and `--seed`, default 99) plays the whole of The
-  Abandoned Delve through the browser server, typing every step to the AI DM
+  `--max-calls`, default 160) plays the whole of The Abandoned Delve (seed 99
+  by default), or with `--adventure tinkers-toll` The Tinker's Toll with its
+  trades (seed 0), through the browser server, typing every step to the AI DM
   and pressing a step's button only when the DM's turn left it undone, and
-  writes a turn-by-turn report (`src/release-run-5e.ts`); `--dry-run` checks
-  the harness offline.
+  writes a turn-by-turn report (`src/release-run-5e.ts`); `--seed` changes the
+  seed and `--dry-run` checks the harness offline.
 - **AI smoke test.** `npm.cmd run smoke:ai -- --model <model-id>` asks the live
   AI DM one question through the command-line adapter and fails unless it gets a
   usable reply.

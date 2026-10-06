@@ -1,11 +1,20 @@
 // #211: The Tinker's Toll, the increment 12 release module, with the
 // content the owner approved: a tinker who trades, a shield and coin found
 // in the reeds after the wolf, and the bandits' purse and seal at the tower.
-// It qualifies at its declared difficulty and the browser offers it.
+// It qualifies at its declared difficulty, and the release run plays it
+// through the browser server, buying and selling with coin it finds.
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { gateAdventure, renderGateResult } from "../dist/balance-5e.js";
+import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { startAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
+import { playReleaseRun, TOLL_FULL_ROUTE } from "../dist/release-run-5e.js";
 
 const toll = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "tinkers-toll",
@@ -84,4 +93,98 @@ test("The Tinker's Toll qualifies at its declared difficulty", () => {
     result.ok && result.verdict.qualified,
     renderGateResult(toll, result),
   );
+});
+
+/** A seed on which Ada, with the mace kit, clears the toll and walks out. */
+const RELEASE_SEED = 0;
+
+const narrating = {
+  async respond() {
+    return { text: "The road waits." };
+  },
+};
+
+test("the release run clears the toll, trades with the tinker and walks out, through the server to the library file", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "issue-211-"));
+  const libraryPath = join(directory, "characters.json");
+  const server = await startFifthBrowserServer({
+    libraryPath,
+    seed: RELEASE_SEED,
+    dmModel: narrating,
+  });
+  try {
+    const { session, turns } = await playReleaseRun({
+      url: server.url,
+      session: await startAdventureOverHttp(server.url, "tinkers-toll"),
+      route: TOLL_FULL_ROUTE,
+    });
+    assert.equal(session.status, "escaped");
+    assert.equal(session.ending.kind, "escape-with-loot");
+    assert.deepEqual(
+      turns.filter(({ skipped }) => skipped !== undefined),
+      [],
+    );
+    assert.equal(new Set(turns.map(({ room }) => room)).size, 4);
+    // Both fights: the wolf (50 XP), the bandits (25 each), and the ending.
+    assert.equal(session.ending.rewards.totalXp, 300);
+    assert.equal(session.ending.rewards.level, 2);
+    assert.deepEqual(
+      session.ending.rewards.treasure.map(({ name }) => name),
+      ["Silver Toll Seal"],
+    );
+    // 3 gp 5 sp and 12 gp found, 10 gp on the shortsword, 2 gp 5 sp for
+    // the mace: the purse and the gear the sheet keeps.
+    const [ada] = JSON.parse(await readFile(libraryPath, "utf8")).characters;
+    assert.equal(ada.session, undefined);
+    assert.equal(ada.sheet.purse, 800);
+    assert.deepEqual(ada.sheet.equipment, ["leather", "shield", "shortsword"]);
+    assert.deepEqual(ada.sheet.stowed, []);
+    assert.equal(ada.sheet.xp, 300);
+  } finally {
+    await server.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("the live release script plays the toll with --adventure tinkers-toll, and refuses an unknown module", async () => {
+  const script = fileURLToPath(
+    new URL("../scripts/qualify-release-live.mjs", import.meta.url),
+  );
+  const env = { ...process.env, OPENAI_API_KEY: "" };
+  const unknown = spawnSync(
+    process.execPath,
+    [script, "--dry-run", "--adventure", "nowhere"],
+    { encoding: "utf8", env },
+  );
+  assert.equal(unknown.status, 2);
+  assert.match(unknown.stderr, /\[--adventure <id>\]/);
+
+  const directory = await mkdtemp(join(tmpdir(), "issue-211-script-"));
+  try {
+    const output = join(directory, "report.json");
+    const result = spawnSync(
+      process.execPath,
+      [
+        script,
+        "--dry-run",
+        "--adventure",
+        "tinkers-toll",
+        "--output",
+        output,
+        "--max-calls",
+        "10",
+      ],
+      { encoding: "utf8", env, timeout: 60000 },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(await readFile(output, "utf8"));
+    assert.equal(report.issue, 211);
+    assert.equal(report.adventureId, "tinkers-toll");
+    assert.equal(report.seed, RELEASE_SEED);
+    assert.equal(report.providerCalls, 10);
+    assert.equal(report.ending.kind, "escape-with-loot");
+    assert.equal(report.summary.roomsVisited, 4);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
