@@ -817,11 +817,6 @@ export function validateFighter(value: unknown): FighterSheet {
   if (!Number.isSafeInteger(sheet.purse) || sheet.purse < 0) {
     throw new Error("Invalid purse.");
   }
-  // Weight, not a count, bounds what a sheet carries (#224).
-  const { weight, capacity } = fighterCarrying(sheet);
-  if (weight > capacity) {
-    throw new Error("The character carries more than its Strength allows.");
-  }
   validateIds(sheet.finds, TREASURE_ID, "Invalid finds.");
   validateIds(sheet.xpAwards, AWARD_ID, "Invalid XP awards.");
   if (sheet.level !== levelForXp(sheet.xp)) {

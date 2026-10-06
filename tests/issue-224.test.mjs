@@ -161,26 +161,23 @@ test("buying what would take the character over capacity is refused, saying why"
   assert.equal(loadWeight({ ...bought.holding, other: 11 }), 45);
 });
 
-test("a sheet carries no more than its Strength allows, and no count limits its gear", () => {
+test("no count limits a sheet's gear, and a sheet over capacity still loads", () => {
   const strong = fighter(0);
   assert.equal(strong.abilities.strength, 16);
   // 21 daggers were over #209's 20-item stopgap; they weigh 21 lb.
   validateFighter({ ...strong, stowed: Array(21).fill("dagger") });
-  const weak = fighter(5);
+  // Under #209 a Strength 3 character could carry chain mail it can't now:
+  // the sheet stays valid, so its library still loads, and only taking more
+  // is refused.
+  const weak = { ...fighter(5), stowed: ["chain-mail"] };
   assert.equal(weak.abilities.strength, 3);
-  // 14 lb worn and held, 31 lb stowed: 45 lb, the most Strength 3 allows.
-  validateFighter({
-    ...weak,
-    stowed: ["chain-shirt", ...Array(11).fill("dagger")],
-  });
-  assert.throws(
-    () =>
-      validateFighter({
-        ...weak,
-        stowed: ["chain-shirt", ...Array(11).fill("dagger")],
-        purse: 1,
-      }),
-    /The character carries more than its Strength allows\./,
+  validateFighter(weak);
+  assert.deepEqual(fighterCarrying(weak), { weight: 69, capacity: 45 });
+  const runtime = createFifthRuntime(barrow, weak);
+  assert.equal(
+    runtime.handleAction(play(runtime, FIND).state, take("lintel-pouch"))
+      .rejection.code,
+    "too-heavy",
   );
 });
 
