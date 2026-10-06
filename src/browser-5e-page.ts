@@ -1278,7 +1278,7 @@ function saleQuestion(target) {
   const held = session.room.gear.worn.some(({ id }) => id === target.id) ? "you are wearing" : "you are holding";
   const box = make("div", undefined, "confirm");
   box.id = "sale-confirm";
-  const question = make("p", "Sell the " + target.name.toLowerCase() + " " + held + " to the " + merchant.name + " for " + price + "?");
+  const question = make("p", "Sell the " + target.name.toLowerCase() + " " + held + " to " + merchant.name + " for " + price + "?");
   question.id = "sale-question";
   const confirm = make("button", "Sell it", "primary danger");
   confirm.id = "confirm-sale";

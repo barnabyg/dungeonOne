@@ -324,7 +324,7 @@ test("10 gp looted from the goblin's body buys a shortsword, in the trade's auth
   ]);
   assert.equal(
     renderFifthResult(bought),
-    "You buy the shortsword from the Pedlar for 10 gp and stow it. The trade takes 10 minutes. Your purse is empty.",
+    "You buy the shortsword from Pedlar for 10 gp and stow it. The trade takes 10 minutes. Your purse is empty.",
   );
   assert.equal(bought.state.possessions.purse, 0);
   assert.deepEqual(bought.state.possessions.stowed, ["shortsword"]);
@@ -422,7 +422,7 @@ test("the AI DM trades only through the trade tool's offers, and cannot set a pr
   assert.equal(bought.state.possessions.purse, 800);
   assert.equal(
     runtime.renderDmNarration({ name: "trade" }, bought),
-    "You buy the dagger from the Pedlar for 2 gp and stow it. The trade takes 10 minutes. Purse: 8 gp.",
+    "You buy the dagger from Pedlar for 2 gp and stow it. The trade takes 10 minutes. Purse: 8 gp.",
   );
   // The stowed dagger can now be sold through the tool too.
   assert.ok(
@@ -493,14 +493,14 @@ test("selling pays half price; equipped gear is sold only once confirmed", () =>
   const sold = accept(runtime, start.state, sell("leather", true));
   assert.equal(
     renderFifthResult(sold),
-    "You spend 1 minute doffing the leather armour and sell it to the Pedlar for 5 gp. The trade takes 10 minutes. Purse: 5 gp. AC 11; Mace +5 to hit, 1d6 + 3 bludgeoning.",
+    "You spend 1 minute doffing the leather armour and sell it to Pedlar for 5 gp. The trade takes 10 minutes. Purse: 5 gp. AC 11; Mace +5 to hit, 1d6 + 3 bludgeoning.",
   );
   assert.deepEqual(sold.state.possessions.equipment, ["mace"]);
   const bought = accept(runtime, sold.state, buy("dagger"));
   const resold = accept(runtime, bought.state, sell("dagger"));
   assert.equal(
     renderFifthResult(resold),
-    "You sell the dagger to the Pedlar for 1 gp. The trade takes 10 minutes. Purse: 4 gp.",
+    "You sell the dagger to Pedlar for 1 gp. The trade takes 10 minutes. Purse: 4 gp.",
   );
   assert.deepEqual(resold.state.possessions.stowed, []);
 });

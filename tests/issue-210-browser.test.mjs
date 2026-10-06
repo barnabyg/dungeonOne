@@ -147,7 +147,7 @@ test(
       await click(page, "buy", "shortsword");
       assert.equal(
         await newest(page),
-        "You buy the shortsword from the Pedlar for 10 gp and stow it. The trade takes 10 minutes. Your purse is empty.",
+        "You buy the shortsword from Pedlar for 10 gp and stow it. The trade takes 10 minutes. Your purse is empty.",
       );
       await click(page, "swap", "shortsword");
       // The mace, now stowed, sells at once for half its price.
@@ -158,7 +158,7 @@ test(
       await click(page, "sell", "mace");
       assert.equal(
         await newest(page),
-        "You sell the mace to the Pedlar for 2 gp 5 sp. The trade takes 10 minutes. Purse: 2 gp 5 sp.",
+        "You sell the mace to Pedlar for 2 gp 5 sp. The trade takes 10 minutes. Purse: 2 gp 5 sp.",
       );
 
       // Selling worn armour asks first, inside its "You carry" entry.
@@ -169,7 +169,7 @@ test(
       assert.equal(await page.locator("#sale-confirm").isVisible(), true);
       assert.equal(
         await page.locator("#sale-question").textContent(),
-        "Sell the leather armour you are wearing to the Pedlar for 5 gp?",
+        "Sell the leather armour you are wearing to Pedlar for 5 gp?",
       );
       assert.equal(
         await page.evaluate(() => document.activeElement?.id),
@@ -190,7 +190,7 @@ test(
       );
       assert.match(
         await newest(page),
-        /^You spend 1 minute doffing the leather armour and sell it to the Pedlar for 5 gp\. The trade takes 10 minutes\. Purse: 7 gp 5 sp\. AC \d+; Shortsword /,
+        /^You spend 1 minute doffing the leather armour and sell it to Pedlar for 5 gp\. The trade takes 10 minutes\. Purse: 7 gp 5 sp\. AC \d+; Shortsword /,
       );
       assert.equal(await page.locator("#sale-confirm").count(), 0);
       assert.equal(

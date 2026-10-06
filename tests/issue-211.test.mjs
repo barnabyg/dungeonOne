@@ -125,6 +125,17 @@ test("the release run clears the toll, trades with the tinker and walks out, thr
       [],
     );
     assert.equal(new Set(turns.map(({ room }) => room)).size, 4);
+    // The tinker is named as the engine names any creature, without "the".
+    const card = (intent) =>
+      turns.find((turn) => turn.intent === intent).cards.at(-1).text;
+    assert.match(
+      card("buy shortsword"),
+      /^You buy the shortsword from Merrow the Tinker for 10 gp and stow it\. /u,
+    );
+    assert.match(
+      card("sell mace"),
+      /^You sell the mace to Merrow the Tinker for 2 gp 5 sp\. /u,
+    );
     // Both fights: the wolf (50 XP), the bandits (25 each), and the ending.
     assert.equal(session.ending.rewards.totalXp, 300);
     assert.equal(session.ending.rewards.level, 2);

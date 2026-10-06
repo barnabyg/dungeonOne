@@ -752,11 +752,11 @@ function tradeText(event: TradeEvent): string {
       : `Purse: ${formatCoins(event.purse)}.`;
   const taken = `The trade takes ${minutes(event.minutes)}. ${purse}`;
   if (event.deal === "buy") {
-    return `You buy the ${item} from the ${event.merchant} for ${price} and stow it. ${taken}`;
+    return `You buy the ${item} from ${event.merchant} for ${price} and stow it. ${taken}`;
   }
   const { equipped } = event;
   if (equipped === undefined) {
-    return `You sell the ${item} to the ${event.merchant} for ${price}. ${taken}`;
+    return `You sell the ${item} to ${event.merchant} for ${price}. ${taken}`;
   }
   const off =
     equipped.doff > 0
@@ -766,7 +766,7 @@ function tradeText(event: TradeEvent): string {
     equipped.lightAttack === undefined
       ? ""
       : `; ${shownAttackText(equipped.lightAttack)} (extra attack)`;
-  return `${off} to the ${event.merchant} for ${price}. ${taken} AC ${equipped.armorClass}; ${shownAttackText(equipped.attack)}${light}.`;
+  return `${off} to ${event.merchant} for ${price}. ${taken} AC ${equipped.armorClass}; ${shownAttackText(equipped.attack)}${light}.`;
 }
 
 /** "Longsword +5 to hit, 1d10 + 3 slashing (two-handed)". */
