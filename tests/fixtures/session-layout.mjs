@@ -91,15 +91,8 @@ export const layout = (page) =>
         newest.bottom <= log.bottom + 1 &&
         newest.bottom > log.top &&
         newest.bottom - Math.max(newest.top, log.top) >= 16,
-      // A button in a list that scrolls inside the dock (#209) is reached
-      // by scrolling that list, so the list must be on screen.
       hiddenButtons: buttons
-        .filter((button) => {
-          const list = button.closest("#explore-controls");
-          const scrolls =
-            list !== null && list.scrollHeight > list.clientHeight;
-          return !inWindow((scrolls ? list : button).getBoundingClientRect());
-        })
+        .filter((button) => !inWindow(button.getBoundingClientRect()))
         .map((button) => button.textContent),
       focus: focused.id || focused.textContent,
       focusShown:
