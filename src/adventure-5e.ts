@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 6) and its validator.
+ * The 5e adventure module format (format version 7) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -9,10 +9,10 @@
  * found and disarmed by checks or sprung by going through, with a saving
  * throw against its damage. A creature's topics may need a check. Each
  * opponent in an encounter has its own name, so the player can target it.
- * Treasure and coin are items hidden in a feature or carried by an opponent,
- * so they are only ever found by examining: the feature, or the opponent's
- * body once its fight is won. Coin is authored in gold, silver and copper
- * pieces. A room may be an exit, where the player can choose to leave: the
+ * Treasure, coin and gear are items hidden in a feature or carried by an
+ * opponent, so they are only ever found by examining: the feature, or the
+ * opponent's body once its fight is won. Coin is authored in gold, silver and
+ * copper pieces; gear names a catalogue weapon, armour or shield. A room may be an exit, where the player can choose to leave: the
  * adventure then ends in its escape-with-loot ending when the character
  * carries treasure or found coin, and its escape-without-loot ending otherwise. A victory
  * or escape ending may award XP, on top of each won encounter's stat-block XP.
@@ -25,7 +25,13 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
 import type { CheckSpec } from "./checks-5e.js";
-import { COIN_VALUES, type Coin, type Coins } from "./equipment-5e.js";
+import {
+  COIN_VALUES,
+  isItemId,
+  type Coin,
+  type Coins,
+  type ItemId,
+} from "./equipment-5e.js";
 import {
   ABILITIES,
   FIGHTER_SKILLS,
@@ -34,7 +40,7 @@ import {
   type FighterSkill,
 } from "./fighter-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 6;
+export const FIFTH_ADVENTURE_FORMAT = 7;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -93,18 +99,29 @@ export type FifthFeature = Readonly<{
 
 /**
  * What each kind of item does: the SRD 5.2 Potion of Healing heals, a key
- * opens the locked doors that name it, treasure is kept on surviving, and
- * coin goes into the purse as it is taken.
+ * opens the locked doors that name it, treasure is kept on surviving, coin
+ * goes into the purse as it is taken, and gear (a catalogue weapon, armour or
+ * shield) is stowed as it is taken, ready to equip.
  */
 export const ITEM_KINDS = {
   "potion-of-healing": { healing: { dice: 2, sides: 4, modifier: 2 } },
   key: {},
   treasure: {},
   coin: {},
+  gear: {},
 } as const;
 export type ItemKind = keyof typeof ITEM_KINDS;
 /** The kinds that are found once per character: never there to find again. */
-export const FOUND_ONCE_KINDS: readonly ItemKind[] = ["treasure", "coin"];
+export const FOUND_ONCE_KINDS: readonly ItemKind[] = [
+  "treasure",
+  "coin",
+  "gear",
+];
+/**
+ * The kinds that are loot: carrying treasure, or coin found here, out of an
+ * exit is escaping with loot. Gear is equipment, not loot.
+ */
+export const LOOT_KINDS: readonly ItemKind[] = ["treasure", "coin"];
 /** The most of each coin one item may hold. */
 const MAX_COINS = 100000;
 
@@ -119,6 +136,8 @@ export type FifthItem = Readonly<{
   kind: ItemKind;
   /** How much coin it holds; present exactly on coin. */
   coins?: Coins;
+  /** The catalogue weapon, armour or shield it is; present exactly on gear. */
+  gear?: ItemId;
   /** The feature it is hidden in, or the opponent carrying it. */
   hiddenIn?: string;
 }>;
@@ -654,7 +673,7 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         const item = knownKeys(
           raw,
           ["id", "name", "description", "kind"],
-          ["coins", "hiddenIn"],
+          ["coins", "gear", "hiddenIn"],
           at,
         );
         if (!Object.hasOwn(ITEM_KINDS, item.kind as string)) {
@@ -675,6 +694,14 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         }
         if (item.kind !== "coin" && item.coins !== undefined) {
           fail(`${at} has coins, but only coin has coins.`);
+        }
+        if (item.kind === "gear" && !isItemId(item.gear)) {
+          fail(
+            `${at} is gear, so it needs gear: a catalogue weapon or armour.`,
+          );
+        }
+        if (item.kind !== "gear" && item.gear !== undefined) {
+          fail(`${at} has gear, but only gear has gear.`);
         }
         // An opponent of this room's fight may carry it: searching its body
         // once the fight is won finds it.
@@ -712,6 +739,7 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
           ...(item.coins === undefined
             ? {}
             : { coins: coins(item.coins, `${at} coins`) }),
+          ...(item.gear === undefined ? {} : { gear: item.gear as ItemId }),
           ...(item.hiddenIn === undefined
             ? {}
             : { hiddenIn: item.hiddenIn as string }),
@@ -950,7 +978,13 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         ...(armed === undefined ? [] : [armed]),
       ]),
     ],
-    ({ id: thingId }) => thingId,
+    ({ id: thingId }) => {
+      // Catalogue ids name the character's own gear in its actions.
+      if (isItemId(thingId)) {
+        fail(`id ${thingId} names catalogue gear; choose another.`);
+      }
+      return thingId;
+    },
     ({ id: thingId }) => `duplicate id ${thingId}.`,
   );
   // The player names doors, in any case.
@@ -1074,7 +1108,7 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
     );
   }
   const hasTreasure = rooms.some(({ items }) =>
-    items.some(({ kind }) => FOUND_ONCE_KINDS.includes(kind)),
+    items.some(({ kind }) => LOOT_KINDS.includes(kind)),
   );
   const escapes = new Set(endings.map(({ kind }) => kind));
   if (hasExit && !escapes.has("escape-without-loot")) {

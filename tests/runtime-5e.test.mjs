@@ -588,6 +588,7 @@ test("Second Wind, Action Surge and End turn are offered only when legal", () =>
     maxActions: 1,
     bonusAction: true,
     reaction: true,
+    interaction: true,
     lightAttack: "unready",
     options: ["attack", "second-wind", "end-turn"],
   });

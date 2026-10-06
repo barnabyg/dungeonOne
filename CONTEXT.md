@@ -45,12 +45,24 @@ The coin a character holds, one of its possessions, kept as a number of copper p
 _Avoid_: Wallet, Gold, Balance
 
 **Possessions**:
-What a character holds: its equipment, its treasure and its purse. An adventure starts holding them, and they change only there. Settling a victory or an escape replaces them with what the character holds at the end.
+What a character holds: its equipment, its stowed gear, its treasure and its purse. An adventure starts holding them, and they change only there. Settling a victory or an escape replaces them with what the character holds at the end.
 _Avoid_: Inventory (the items carried in one adventure), Loot
 
 **Equipment**:
 The weapons and armour a character has equipped, armour first and then the weapon it attacks with and any second light weapon. Its armour class and attacks are derived from it.
 _Avoid_: Gear list, Loadout (the derived reading of it, in code)
+
+**Stowed gear**:
+Catalogue weapons, armour and shields a character carries but has not equipped. Gear found is stowed as it is taken; equipping, unequipping, wielding and dropping move gear between the equipment, the stowed gear and the room.
+_Avoid_: Pack, Backpack, Inventory (the module items carried in one adventure)
+
+**Gear**:
+A catalogue weapon, armour or shield. A module places gear as an item hidden in a feature or on an opponent, found once per character like treasure; it is equipment, not loot, so carrying it out is not escaping with loot.
+_Avoid_: Loot, Treasure (which has no catalogue numbers)
+
+**Object interaction**:
+The one free interaction a combatant has each turn (SRD 5.2). Drawing, stowing or swapping a weapon in a fight uses it; a second weapon change that turn is refused.
+_Avoid_: Free action, Utilize (the action a second interaction would take)
 
 **Starting kit**:
 One of the named sets of common-tier equipment a player chooses from at creation, of equal value within 3 gp. There is no starting coin.
@@ -65,7 +77,7 @@ The SRD 5.2 Light property's one extra attack with a second light weapon after a
 _Avoid_: Extra Attack (the level-5 Fighter feature), Off-hand attack
 
 **Ledger**:
-The record on a character of each treasure and coin it has found and each XP award it has been credited, so that each is earned once. It is kept apart from the possessions and only grows: losing an item never takes its find away.
+The record on a character of each treasure, coin and gear it has found and each XP award it has been credited, so that each is earned once. It is kept apart from the possessions and only grows: losing an item never takes its find away.
 _Avoid_: History, Achievements
 
 **Settling**:

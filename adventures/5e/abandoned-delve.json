@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 6,
+  "formatVersion": 7,
   "id": "abandoned-delve",
   "title": "The Abandoned Delve",
   "objective": "Loot the old dungeon under the ruined keep and get out alive, by the gate or the shaft.",
@@ -43,7 +43,7 @@
           "id": "weapon-rack",
           "name": "Weapon Rack",
           "description": "A rack of rusted spears.",
-          "discovery": "Tucked behind the spears is a stoppered vial of red liquid."
+          "discovery": "Tucked behind the spears are a stoppered vial of red liquid, a guard's longsword and a dented shield."
         }
       ],
       "items": [
@@ -55,11 +55,29 @@
           "hiddenIn": "weapon-rack"
         },
         {
+          "id": "rack-longsword",
+          "name": "Guard's Longsword",
+          "description": "A plain longsword in a cracked scabbard, its edge still keen.",
+          "kind": "gear",
+          "gear": "longsword",
+          "hiddenIn": "weapon-rack"
+        },
+        {
+          "id": "rack-shield",
+          "name": "Dented Shield",
+          "description": "A wooden shield rimmed with iron, dented but sound.",
+          "kind": "gear",
+          "gear": "shield",
+          "hiddenIn": "weapon-rack"
+        },
+        {
           "id": "guard-purse",
           "name": "Guard's Purse",
           "description": "A leather purse of old silver coins.",
           "kind": "coin",
-          "coins": { "sp": 18 },
+          "coins": {
+            "sp": 18
+          },
           "hiddenIn": "zombie"
         }
       ]
@@ -226,7 +244,9 @@
           "name": "Gold Coins",
           "description": "Handfuls of old gold coins stamped with a forgotten lord's face.",
           "kind": "coin",
-          "coins": { "gp": 40 },
+          "coins": {
+            "gp": 40
+          },
           "hiddenIn": "iron-chest"
         },
         {

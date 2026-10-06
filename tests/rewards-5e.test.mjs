@@ -114,10 +114,16 @@ test("leaving from an exit without treasure ends the adventure empty-handed", ()
     },
   ]);
   assert.deepEqual(runtime.projectSettlement(result.state), {
-    possessions: { equipment: ["leather", "mace"], treasure: [], purse: 0 },
+    possessions: {
+      equipment: ["leather", "mace"],
+      stowed: [],
+      treasure: [],
+      purse: 0,
+    },
     xp: [],
     finds: [],
     coin: [],
+    gear: [],
   });
   assert.deepEqual(runtime.projectActions(result.state), []);
 });
@@ -143,6 +149,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
   assert.deepEqual(runtime.projectSettlement(out), {
     possessions: {
       equipment: ["leather", "mace"],
+      stowed: [],
       treasure: [torc],
       purse: 0,
     },
@@ -160,6 +167,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
     ],
     finds: [torc],
     coin: [],
+    gear: [],
   });
 });
 
@@ -306,7 +314,12 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
   );
   assert.equal(won.status, "victory");
   assert.deepEqual(runtime.projectSettlement(won), {
-    possessions: { equipment: ["leather", "mace"], treasure: [], purse: 0 },
+    possessions: {
+      equipment: ["leather", "mace"],
+      stowed: [],
+      treasure: [],
+      purse: 0,
+    },
     xp: [
       {
         id: "cellar-goblin/encounter/cellar-goblin",
@@ -316,6 +329,7 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
     ],
     finds: [],
     coin: [],
+    gear: [],
   });
   const begun = play(runtime, [{ type: "begin" }], dice(20, 1));
   assert.equal(runtime.projectSettlement(begun), undefined);
@@ -337,13 +351,19 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin w
   assert.deepEqual(warren.recommendedLevels, { min: 2, max: 3 });
   // The barrow's 300 XP makes Ada level 2.
   const veteran = settleFighter(sheet, {
-    possessions: { equipment: sheet.equipment, treasure: [], purse: 0 },
+    possessions: {
+      equipment: sheet.equipment,
+      stowed: [],
+      treasure: [],
+      purse: 0,
+    },
     xp: [
       { id: "robbers-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
       { id: "robbers-barrow/ending/out-with-the-torc", name: "Out", xp: 250 },
     ],
     finds: [],
     coin: [],
+    gear: [],
   });
   assert.equal(veteran.level, 2);
   const runtime = createFifthRuntime(warren, veteran);
@@ -681,6 +701,7 @@ test("an adventure starts holding the character's equipment and kept treasure (#
   const runtime = createFifthRuntime(cellar, veteran);
   assert.deepEqual(runtime.createSession().possessions, {
     equipment: ["leather", "mace"],
+    stowed: [],
     treasure: veteran.treasure,
     purse: 0,
   });

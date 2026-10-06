@@ -83,6 +83,11 @@ function engineAction({ action, target }) {
       return { type: "examine", targetId: target.id };
     case "take":
       return { type: "take", itemId: target.id };
+    case "equip":
+    case "unequip":
+    case "swap":
+    case "drop":
+      return { type: action, itemId: target.id };
     case "force":
     case "pick":
     case "break":
@@ -137,6 +142,10 @@ function assertAgrees(runtime, state) {
     ["move", "move"],
     ["examine", "examine"],
     ["take", "take"],
+    ["equip", "equip"],
+    ["unequip", "unequip"],
+    ["swap_weapon", "swap"],
+    ["drop", "drop"],
   ]) {
     const offered = tools.get(tool);
     const ids = enabled(kind);

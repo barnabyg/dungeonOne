@@ -88,6 +88,8 @@ export type CharacterStatus = Readonly<{
   hp: number;
   maxHp: number;
   equipment: readonly Readonly<{ id: string; name: string }>[];
+  /** Gear carried but not equipped, for a runtime with catalogue gear. */
+  stowed?: readonly Readonly<{ id: string; name: string }>[];
   collectedItems: readonly Readonly<{
     id: string;
     name: string;
@@ -112,7 +114,7 @@ export type GameToolName =
   | "talk"
   | "attack";
 
-/** The AI DM's tools for 5e class features, doors and traps. */
+/** The AI DM's tools for 5e class features, doors, traps and gear. */
 export type FifthToolName =
   | "second_wind"
   | "action_surge"
@@ -122,7 +124,11 @@ export type FifthToolName =
   | "pick_lock"
   | "break_door"
   | "unlock"
-  | "disarm";
+  | "disarm"
+  | "equip"
+  | "unequip"
+  | "swap_weapon"
+  | "drop";
 
 /** A bounded tool the AI DM may call; the runtime offers only legal ones. */
 export type GameToolDefinition = Readonly<{

@@ -107,7 +107,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h2 id="adventure-title" tabindex="-1"></h2>
 <p id="adventure-objective" class="hint"></p>
 <div id="session-layout">
-<section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="resources" class="resources"></ul></section>
+<section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="resources" class="resources"></ul><p id="gear-numbers"></p></section>
 <div id="session-scene">
 <section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3>
 <button id="room-toggle" type="button" class="quiet disclosure" aria-expanded="false" aria-controls="room-details" hidden>Room details</button>
@@ -189,7 +189,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#ending .level-up p{margin:0}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
-#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}
+#gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
 #session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}#action-bar button{display:inline-grid}#action-bar button>span,#action-bar button::after{grid-area:1/1}#action-bar button::after{content:attr(data-busy-label);visibility:hidden}#action-bar button[aria-busy=true]>span{visibility:hidden}#action-bar button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
@@ -430,10 +430,10 @@ const findEntry = (id) => library.characters.find(({ sheet }) => sheet.id === id
 function openSheet(id) {
   const entry = findEntry(id);
   if (!entry) return;
-  const { sheet, profile, purse } = entry;
+  const { sheet, profile, purse, stowed } = entry;
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
-  const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", "), "hint");
+  const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
   element("sheet-body").replaceChildren(summary, ...profileNodes(sheet.abilities, profile, sheet.hp), ...treasureNodes(sheet.treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
@@ -622,6 +622,7 @@ function renderAdventure() {
   renderRoom(session.room, fighting);
   element("encounter").hidden = !encounter;
   if (encounter) renderInitiative(encounter, fighting);
+  renderGear(session.room.gear);
   renderActions();
   element("feature-rule").textContent = session.features ? ${JSON.stringify(FEATURE_USES_RULE)} : "";
   renderStatus();
@@ -979,7 +980,8 @@ function renderRoom(room, fighting) {
   element("room-title").textContent = room.name;
   element("room-description").textContent = room.description;
   for (const list of ROOM_LISTS) {
-    const entries = room[list.key];
+    // Stowed gear is carried too (#209).
+    const entries = list.key === "inventory" ? [...room.inventory, ...room.gear.stowed.map(({ id, name }) => ({ id, name, description: "Carried, not equipped." }))] : room[list.key];
     element(list.id + "-group").hidden = entries.length === 0;
     element(list.id).replaceChildren(...entries.map((entry) => {
       const item = make("li");
@@ -1003,6 +1005,14 @@ function renderRoom(room, fighting) {
   if (room.purse) element("inventory-group").hidden = false;
   element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0;
   disclose("room", fighting);
+}
+
+// The character's AC and attacks from its gear as it stands (#209), in the
+// status strip so a swap in a fight shows at once. Stowed gear is listed
+// with what the character carries.
+function renderGear(gear) {
+  const worn = gear.worn.map(({ name }) => name.toLowerCase()).join(", ");
+  element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + ".";
 }
 
 const rollText = (roll) => "d20 " + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
@@ -1087,6 +1097,10 @@ const ACTIONS = {
   search: { label: "Search ", short: "Search", busy: "Searching ", busyLabel: "Searching…" },
   disarm: { label: "Disarm ", short: "Disarm", busy: "Disarming ", busyLabel: "Disarming…" },
   talk: { label: "Talk to ", short: "Talk", busy: "Talking to ", busyLabel: "Talking…" },
+  equip: { label: "Equip ", short: "Equip", busy: "Equipping ", busyLabel: "Equipping…" },
+  unequip: { label: "Unequip ", short: "Unequip", busy: "Stowing ", busyLabel: "Stowing…" },
+  swap: { label: "Wield ", short: "Wield", busy: "Wielding ", busyLabel: "Wielding…" },
+  drop: { label: "Drop ", short: "Drop", busy: "Dropping ", busyLabel: "Dropping…" },
   "second-wind": { label: "Second Wind", busy: "Using Second Wind", busyLabel: "Using Second Wind…" },
   "action-surge": { label: "Action Surge", busy: "Using Action Surge", busyLabel: "Using Action Surge…" },
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
@@ -1096,6 +1110,7 @@ const ACTIONS = {
 const named = (action, target) => target && action !== "leave" ? target.name : "";
 const busyName = ({ action, target }) => ACTIONS[action].busy + named(action, target) + "…";
 const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
+const GEAR = ["equip", "unequip", "swap", "drop"];
 const EXPLORING = ["move", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
 
 function renderActions() {
@@ -1106,12 +1121,13 @@ function renderActions() {
   const attacks = session.actions.filter(({ action }) => action === "attack").length;
   const ATTACKS = ["attack", "light-attack"];
   const left = (feature) => " (" + feature.uses + " of " + feature.max + " left)";
-  const groups = { attack: [], feature: [], explore: [], leave: [] };
+  const groups = { attack: [], feature: [], explore: [], gear: [], leave: [] };
   session.actions.forEach((option, index) => {
     const { action, target } = option;
-    const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : EXPLORING.includes(action) || (action === "use" && !fighting) ? "explore" : "feature";
+    // Gear changes take their own rows, after exploring's (#209).
+    const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : GEAR.includes(action) ? "gear" : EXPLORING.includes(action) || (action === "use" && !fighting) ? "explore" : "feature";
     const label = ACTIONS[action].label + named(action, target) + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
-    const short = group === "explore";
+    const short = group === "explore" || group === "gear";
     const button = make("button");
     button.append(make("span", short ? ACTIONS[action].short : label));
     button.dataset.busyLabel = ACTIONS[action].busyLabel;
@@ -1135,18 +1151,18 @@ function renderActions() {
       groups[group].push(wrap);
       return;
     }
-    let thing = groups.explore.find((node) => node.dataset.target === target.id);
+    let thing = groups[group].find((node) => node.dataset.target === target.id);
     if (!thing) {
       thing = make("span", undefined, "thing-actions");
       thing.dataset.target = target.id;
       thing.append(unspoken(make("span", target.name, "thing-name")), make("span", undefined, "thing-verbs"));
-      groups.explore.push(thing);
+      groups[group].push(thing);
     }
     thing.lastChild.append(wrap);
   });
   element("attack-controls").replaceChildren(...groups.attack);
   element("feature-controls").replaceChildren(...groups.feature);
-  element("explore-controls").replaceChildren(...groups.explore);
+  element("explore-controls").replaceChildren(...groups.explore, ...groups.gear);
   element("leave-controls").replaceChildren(...groups.leave);
   // While Leave asks for confirmation, the question stands in its place.
   const asking = confirmingLeave && groups.leave.length > 0;

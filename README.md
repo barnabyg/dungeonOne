@@ -248,6 +248,21 @@ the actions the bar shows enabled. HP, feature uses and carried items last from
 fight to fight; a rest between adventures restores them. A character at 0 HP is
 defeated at once and for good.
 
+### Gear
+
+Better weapons and armour are found the same way as treasure, by examining a
+feature or a fallen opponent's body: **Take** stows what you find. Once you
+carry stowed gear, the action bar gives each piece a row: **Equip** puts on
+armour (the result says how many minutes donning took), straps on a shield or
+takes a second light weapon in your other hand; **Unequip** takes it off again;
+**Wield** swaps the weapon you hold for a stowed one; **Drop** leaves stowed
+gear in the room, where **Take** picks it back up. In a fight you can only
+swap or draw a weapon, once a turn, with your object interaction. Your AC and
+attack update at once in the status strip and the result card, and the sheet
+shows your gear after the adventure. Like treasure, gear is kept only on
+getting out alive: what you dropped or left behind is gone, and a defeat or an
+abandoned adventure leaves you with exactly the gear you started with.
+
 ### Treasure, coin, XP and leaving
 
 Treasure and coin are found only by examining something: a feature, or the
@@ -256,7 +271,7 @@ pieces, kept as one purse and shown in mixed denominations (for example
 "3 gp 4 sp"); taking it puts it in the purse at once, shown under **You
 carry**. There is nothing to spend it on yet. Both are kept only if the
 character survives: an adventure starts holding the character's equipment,
-treasure and purse, and a victory or an escape replaces them with what the
+stowed gear, treasure and purse, and a victory or an escape replaces them with what the
 character holds at the end. A defeat
 or an abandoned adventure leaves the character as it started. In a room that is a way out, the action bar has
 **Leave the adventure**; it asks first, then ends the adventure as _Escaped with
@@ -274,14 +289,14 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 7.
+- The character library (`characters.json` by default) is format version 8.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 10.
+  `characters-adventures` directory beside the library, in format version 11.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 6.
+- Adventure modules (`adventures/5e/*.json`) are format version 7.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from

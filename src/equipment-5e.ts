@@ -169,6 +169,24 @@ export type ArmourId = keyof typeof ARMOUR;
 
 export type ItemId = WeaponId | ArmourId;
 
+/**
+ * SRD 5.2: the minutes body armour takes to don and to doff, by category. A
+ * shield takes the Utilize action either way.
+ */
+export const DONNING_MINUTES = {
+  light: { don: 1, doff: 1 },
+  medium: { don: 5, doff: 1 },
+  heavy: { don: 10, doff: 5 },
+} as const;
+
+/** The most stowed items a character carries. */
+export const MAX_STOWED = 20;
+
+/** Whether `value` names a catalogue weapon, armour or the shield. */
+export function isItemId(value: unknown): value is ItemId {
+  return typeof value === "string" && (isWeaponId(value) || isArmourId(value));
+}
+
 /** Whether `id` names a catalogue weapon. */
 export function isWeaponId(id: string): id is WeaponId {
   return Object.hasOwn(WEAPONS, id);
@@ -302,6 +320,193 @@ export function readLoadout(equipment: readonly string[]): Loadout {
       main.properties.includes("two-handed") ||
       (main.properties.includes("versatile") && !shield && !offHand),
   };
+}
+
+/**
+ * The catalogue gear a character carries: what it has equipped (armour, then
+ * the weapon it attacks with and any second light weapon) and what it has
+ * stowed, carried but not equipped.
+ */
+export type Gear = Readonly<{
+  equipment: readonly ItemId[];
+  stowed: readonly ItemId[];
+}>;
+
+/** Why a change of gear is refused; `reason` is the sentence players read. */
+export type GearRefusalCode =
+  | "not-carried"
+  | "not-a-weapon"
+  | "already-held"
+  | "two-handed"
+  | "hands-full"
+  | "not-light"
+  | "not-equipped"
+  | "last-weapon"
+  | "still-equipped";
+
+export type GearChange =
+  | Readonly<{
+      gear: Gear;
+      /** What the change took off or put away to make room, if anything. */
+      replaced: readonly ItemId[];
+      refusal?: never;
+    }>
+  | Readonly<{
+      refusal: Readonly<{ code: GearRefusalCode; reason: string }>;
+      gear?: never;
+    }>;
+
+const lower = (id: ItemId) => itemName(id).toLowerCase();
+const refuse = (code: GearRefusalCode, reason: string): GearChange => ({
+  refusal: { code, reason },
+});
+
+/** `list` without its first `id`. */
+function withoutOne(list: readonly ItemId[], id: ItemId): ItemId[] {
+  const index = list.indexOf(id);
+  return index === -1 ? [...list] : list.filter((_, at) => at !== index);
+}
+
+/** Equipment in the sheet's order: body armour, shield, then weapons. */
+function ordered(equipment: readonly ItemId[]): ItemId[] {
+  const rank = (id: ItemId) => (isWeaponId(id) ? 2 : id === "shield" ? 1 : 0);
+  return [...equipment]
+    .map((id, index) => ({ id, index }))
+    .sort((a, b) => rank(a.id) - rank(b.id) || a.index - b.index)
+    .map(({ id }) => id);
+}
+
+function changed(
+  equipment: readonly ItemId[],
+  stowed: readonly ItemId[],
+  replaced: readonly ItemId[] = [],
+): GearChange {
+  const gear = { equipment: ordered(equipment), stowed: [...stowed] };
+  readLoadout(gear.equipment);
+  return { gear, replaced: [...replaced] };
+}
+
+/** The weapons held, the one attacked with first. */
+const heldWeapons = (gear: Gear) => gear.equipment.filter(isWeaponId);
+
+/** Why a weapon can't be held with what else is equipped, if it can't. */
+function twoHandedRefusal(gear: Gear, id: WeaponId): GearChange | undefined {
+  return (WEAPONS[id] as WeaponData).properties.includes("two-handed") &&
+    gear.equipment.includes("shield")
+    ? refuse(
+        "two-handed",
+        `The ${lower(id)} needs both hands, and your shield is on your arm.`,
+      )
+    : undefined;
+}
+
+/**
+ * Wields a stowed weapon in place of the weapons held, which are stowed. A
+ * two-handed weapon can't be wielded with a shield.
+ */
+export function swapWeapon(gear: Gear, id: ItemId): GearChange {
+  if (!gear.stowed.includes(id)) {
+    return gear.equipment.includes(id) && isWeaponId(id)
+      ? refuse("already-held", `You already hold the ${lower(id)}.`)
+      : refuse("not-carried", `You don't carry a ${lower(id)} to wield.`);
+  }
+  if (!isWeaponId(id)) {
+    return refuse("not-a-weapon", `The ${lower(id)} is not a weapon.`);
+  }
+  const blocked = twoHandedRefusal(gear, id);
+  if (blocked !== undefined) {
+    return blocked;
+  }
+  const held = heldWeapons(gear);
+  return changed(
+    [...gear.equipment.filter((item) => !isWeaponId(item)), id],
+    [...withoutOne(gear.stowed, id), ...held],
+    held,
+  );
+}
+
+/**
+ * Equips a stowed item: body armour (the armour worn is stowed), a shield,
+ * or a second light weapon beside a light weapon held, for the Light extra
+ * attack. Any other weapon is swapped in with `swapWeapon`. A shield and a
+ * second weapon each need a free hand.
+ */
+export function equipItem(gear: Gear, id: ItemId): GearChange {
+  if (!gear.stowed.includes(id)) {
+    return gear.equipment.includes(id)
+      ? refuse("already-held", `You already have the ${lower(id)} equipped.`)
+      : refuse("not-carried", `You don't carry a ${lower(id)} to equip.`);
+  }
+  const stowed = withoutOne(gear.stowed, id);
+  const held = heldWeapons(gear);
+  const main = held[0]!;
+  if (isWeaponId(id)) {
+    if (gear.equipment.includes("shield") || held.length > 1) {
+      return refuse(
+        "hands-full",
+        `Your hands are full: unequip the ${gear.equipment.includes("shield") ? "shield" : lower(held[1]!)} first, or swap to wield the ${lower(id)} instead.`,
+      );
+    }
+    const light = (weapon: WeaponId) =>
+      (WEAPONS[weapon] as WeaponData).properties.includes("light");
+    if (!light(main) || !light(id)) {
+      return refuse(
+        "not-light",
+        `A second weapon must be light, and so must the ${lower(main)}: swap to wield the ${lower(id)} instead.`,
+      );
+    }
+    return changed([...gear.equipment, id], stowed);
+  }
+  if (id === "shield") {
+    if ((WEAPONS[main] as WeaponData).properties.includes("two-handed")) {
+      return refuse(
+        "two-handed",
+        `The ${lower(main)} needs both hands: there is no hand for a shield.`,
+      );
+    }
+    if (held.length > 1) {
+      return refuse(
+        "hands-full",
+        `Your hands are full: unequip the ${lower(held[1]!)} first.`,
+      );
+    }
+    return changed([...gear.equipment, id], stowed);
+  }
+  const worn: ItemId[] = gear.equipment.filter(
+    (item) => isArmourId(item) && item !== "shield",
+  );
+  return changed(
+    [...gear.equipment.filter((item) => !worn.includes(item)), id],
+    [...stowed, ...worn],
+    worn,
+  );
+}
+
+/**
+ * Stows an equipped item. The last weapon held stays: swap to another
+ * instead. Stowing the weapon attacked with leaves the second in hand.
+ */
+export function unequipItem(gear: Gear, id: ItemId): GearChange {
+  if (!gear.equipment.includes(id)) {
+    return refuse("not-equipped", `You don't have a ${lower(id)} equipped.`);
+  }
+  if (isWeaponId(id) && heldWeapons(gear).length === 1) {
+    return refuse(
+      "last-weapon",
+      "You would have no weapon in hand: swap to the weapon you want instead.",
+    );
+  }
+  return changed(withoutOne(gear.equipment, id), [...gear.stowed, id]);
+}
+
+/** Drops a stowed item. Equipped gear is unequipped first. */
+export function dropItem(gear: Gear, id: ItemId): GearChange {
+  if (!gear.stowed.includes(id)) {
+    return gear.equipment.includes(id)
+      ? refuse("still-equipped", `Unequip the ${lower(id)} before you drop it.`)
+      : refuse("not-carried", `You don't carry a ${lower(id)}.`);
+  }
+  return changed(gear.equipment, withoutOne(gear.stowed, id));
 }
 
 export type AbilityModifiers = Readonly<{

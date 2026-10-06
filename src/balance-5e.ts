@@ -10,7 +10,7 @@
  * ability modifier.
  */
 import {
-  FOUND_ONCE_KINDS,
+  LOOT_KINDS,
   type Difficulty,
   type EndingKind,
   type FifthAdventure,
@@ -30,7 +30,13 @@ import {
   type RolledDice,
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
-import { KIT_IDS, type KitId } from "./equipment-5e.js";
+import {
+  isWeaponId,
+  KIT_IDS,
+  STARTING_KITS,
+  type KitId,
+  type WeaponId,
+} from "./equipment-5e.js";
 import { combatant } from "./encounter-5e.js";
 import {
   createFifthRuntime,
@@ -369,7 +375,7 @@ function victoryRooms(adventure: FifthAdventure): ReadonlySet<string> {
 function lootRooms(adventure: FifthAdventure): ReadonlySet<string> {
   return new Set(
     adventure.rooms.flatMap(({ id, items }) =>
-      items.some(({ kind }) => FOUND_ONCE_KINDS.includes(kind)) ? [id] : [],
+      items.some(({ kind }) => LOOT_KINDS.includes(kind)) ? [id] : [],
     ),
   );
 }
@@ -489,6 +495,11 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   disarm: true,
   // Talking changes nothing the harness measures, so no style talks.
   talk: true,
+  // Gear changes are never needed to get through, so no style makes one.
+  equip: true,
+  unequip: true,
+  swap: true,
+  drop: true,
   leave: true,
 };
 
@@ -661,7 +672,7 @@ export function playAdventure(
     }
     const unfound = new Set(
       [...items.values()].flatMap(({ item, roomId }) =>
-        FOUND_ONCE_KINDS.includes(item.kind) &&
+        LOOT_KINDS.includes(item.kind) &&
         !state.inventory.includes(item.id) &&
         !state.usedItemIds.includes(item.id)
           ? [roomId]
@@ -1104,8 +1115,9 @@ export type OneHitKillCheck = Readonly<{
   percentile: number;
   cap: number;
   /**
-   * Each ordinary opponent, with its one-hit-kill chance from the kit that
-   * kills it most often.
+   * Each ordinary opponent, with its one-hit-kill chance from the kit, or
+   * the weapon the module places (`gear`, wielded with that kit's armour),
+   * that kills it most often.
    */
   enemies: readonly Readonly<{
     encounterId: string;
@@ -1113,6 +1125,7 @@ export type OneHitKillCheck = Readonly<{
     name: string;
     chance: number;
     kit: KitId;
+    gear?: WeaponId;
   }>[];
   /** The ordinary enemies over the cap; more than half of them fails. */
   overCap: OneHitKillCheck["enemies"];
@@ -1160,7 +1173,7 @@ export type GateOptions = Pick<
  *   least the difficulty's share of runs with every starting kit at every
  *   recommended level;
  * - too easy: for the strongest character at the maximum recommended level,
- *   with the kit strongest against each enemy, no more than half the
+ *   with the kit or placed weapon strongest against each enemy, no more than half the
  *   ordinary (non-boss) enemies may be killed by one attack from full HP more
  *   often than the difficulty's cap;
  * - XP: all the XP the module offers must not take a character one XP short
@@ -1224,10 +1237,39 @@ export function gateAdventure(
       required: thresholds.survival,
     };
 
-    const strong = KITS.map((kit) => ({
-      kit,
-      sheet: fighterAtLevel(strongest!.dice, max as Level, kit),
-    }));
+    // Every kit, and every weapon the module places wielded instead.
+    const placed = [
+      ...new Set(
+        adventure.rooms.flatMap(({ items }) =>
+          items.flatMap(({ gear }) =>
+            gear !== undefined && isWeaponId(gear) ? [gear] : [],
+          ),
+        ),
+      ),
+    ];
+    const strong = [
+      ...KITS.map((kit) => ({
+        kit,
+        sheet: fighterAtLevel(strongest!.dice, max as Level, kit),
+      })),
+      ...placed.map((gear) => {
+        const kit = FIGHTER_DEFAULT_CHOICES.kit;
+        const sheet = fighterAtLevel(strongest!.dice, max as Level, kit);
+        return {
+          kit,
+          gear,
+          sheet: validateFighter({
+            ...sheet,
+            equipment: [
+              ...STARTING_KITS[kit].equipment.filter(
+                (item) => !isWeaponId(item),
+              ),
+              gear,
+            ],
+          }),
+        };
+      }),
+    ];
     const enemies = adventure.encounters.flatMap(
       ({ id: encounterId, opponents }) =>
         opponents.flatMap(({ id, name, statBlock, boss }) =>
@@ -1235,12 +1277,13 @@ export function gateAdventure(
             ? []
             : [
                 strong
-                  .map(({ kit, sheet }) => ({
+                  .map(({ kit, sheet, ...found }) => ({
                     encounterId,
                     opponentId: id,
                     name,
                     chance: oneHitKillChance(sheet, statBlock),
                     kit,
+                    ...found,
                   }))
                   .reduce((best, entry) =>
                     entry.chance > best.chance ? entry : best,
@@ -1346,8 +1389,8 @@ export function renderGateResult(
         ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`
         : `${over.length} of ${oneHitKill.enemies.length} ordinary enemies with one attack more than ${percent(oneHitKill.cap)} of the time: ${over
             .map(
-              ({ name: enemy, chance, kit }) =>
-                `${enemy} ${percent(chance)} (${kit})`,
+              ({ name: enemy, chance, kit, gear }) =>
+                `${enemy} ${percent(chance)} (${gear === undefined ? kit : `found ${gear}`})`,
             )
             .join(", ")}.${oneHitKill.ok ? "" : " No more than half may be."}`),
     `  XP, ${mark(xp.ok)}: its ${xp.available} XP takes a character from ${xp.startXp} XP to level ${xp.endLevel}; the limit is level ${xp.levelLimit}.`,

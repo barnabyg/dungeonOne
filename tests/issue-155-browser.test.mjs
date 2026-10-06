@@ -276,6 +276,7 @@ for (const viewport of [
           maxActions: 1,
           bonusAction: true,
           reaction: true,
+          interaction: true,
           lightAttack: "unready",
         });
         shown = await status(page);
@@ -321,6 +322,7 @@ for (const viewport of [
           maxActions: 1,
           bonusAction: false,
           reaction: true,
+          interaction: true,
           lightAttack: "unready",
         });
         assert.equal(file.state.character.secondWindUses, 0);

@@ -20,7 +20,8 @@
  *   combatant's turn lasts until it ends it or nothing it could do is left:
  *   an attack takes the action, Second Wind the bonus action, and Action
  *   Surge adds an action. Drinking a potion takes the bonus action (SRD 5.2).
- *   Nothing uses a reaction yet.
+ *   Nothing uses a reaction yet. Drawing, stowing or swapping a weapon uses
+ *   the turn's one object interaction; it takes no action.
  * - Light property: after an attack with a light weapon, a combatant holding
  *   a second light weapon may make one extra attack with it that turn, as a
  *   bonus action, or as part of the Attack action with the Nick mastery.
@@ -134,6 +135,11 @@ export type TurnEconomy = Readonly<{
   /** Reset each turn; nothing uses a reaction yet. */
   reaction: boolean;
   /**
+   * The turn's object interaction, which draws, stows or swaps a weapon. A
+   * second weapon interaction in one turn is refused.
+   */
+  interaction: boolean;
+  /**
    * The Light property's extra attack: `ready` once the combatant has
    * attacked with a light weapon this turn, `used` once made.
    */
@@ -145,6 +151,7 @@ const FRESH_TURN: TurnEconomy = {
   maxActions: 1,
   bonusAction: true,
   reaction: true,
+  interaction: true,
   lightAttack: "unready",
 };
 
@@ -176,7 +183,17 @@ export type EncounterAction =
       type: "second-wind" | "action-surge" | "end-turn";
       actorId: string;
     }>
-  | Readonly<{ type: "drink-potion"; actorId: string; itemId: string }>;
+  | Readonly<{ type: "drink-potion"; actorId: string; itemId: string }>
+  /**
+   * Draws, stows or swaps a weapon with the turn's object interaction: the
+   * combatant attacks with `attack`, and `lightAttack` if any, from now on.
+   */
+  | Readonly<{
+      type: "interact";
+      actorId: string;
+      attack: Weapon;
+      lightAttack?: Weapon;
+    }>;
 
 export type AttackEvent = Readonly<{
   type: "attack";
@@ -258,7 +275,8 @@ export type EncounterRefusalCode =
   | "no-action-surge"
   | "no-potion"
   | "no-uses-left"
-  | "full-hp";
+  | "full-hp"
+  | "interaction-used";
 
 export type EncounterRejection = Readonly<{
   code: EncounterRefusalCode;
@@ -930,6 +948,32 @@ export function act(
             : candidate,
         ),
         economy: { ...state.economy, bonusAction: false },
+      };
+      break;
+    }
+    case "interact": {
+      if (!state.economy.interaction) {
+        return reject(
+          "interaction-used",
+          "You have already drawn or stowed a weapon this turn.",
+        );
+      }
+      const { lightAttack: _old, ...rest } = actor;
+      void _old;
+      next = {
+        ...state,
+        combatants: state.combatants.map((candidate) =>
+          candidate.id === actor.id
+            ? {
+                ...rest,
+                attack: action.attack,
+                ...(action.lightAttack === undefined
+                  ? {}
+                  : { lightAttack: action.lightAttack }),
+              }
+            : candidate,
+        ),
+        economy: { ...state.economy, interaction: false },
       };
       break;
     }
