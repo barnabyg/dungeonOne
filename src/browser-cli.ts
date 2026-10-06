@@ -11,10 +11,8 @@ const USAGE = `Usage: npm.cmd run browser -- [--seed <0-4294967295>] [--characte
 Create or choose a saved 5e Fighter, then take it into an adventure. Default library: characters.json; its adventures are saved in the adjacent characters-adventures directory and continue when you rerun the same command.
 Set OPENAI_API_KEY in the environment before launch to let players type to the Dungeon Master; without it the buttons still work.`;
 
-/** Flags from before 5e became the only mode, and why each is refused. */
+/** Transitional flags from before 5e became the only mode, and why each is refused. */
 const REMOVED_FLAGS: Readonly<Record<string, string>> = {
-  "--legacy":
-    "--legacy has been removed: the pre-5e game, with its single save slot, no longer runs in the browser.",
   "--5e":
     "--5e is no longer needed: 5e is the browser's only mode. Launch without it.",
   "--save":

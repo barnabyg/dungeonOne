@@ -1,7 +1,7 @@
 // #137: 5e is the browser's only mode. The default launch serves the 5e
-// library; --legacy, --5e, --save and --artwork are refused with a message;
-// an old library or adventure file is refused and left byte-identical; and
-// the launcher loads no pre-5e module.
+// library; the transitional --5e, --save and --artwork flags are refused with
+// a message and any other unknown flag with the usage; and
+// an old library or adventure file is refused and left byte-identical.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -74,7 +74,7 @@ test("the default launch serves the 5e library at characters.json and prints the
         launched.output(),
         /Keep this launcher running\. Press Ctrl\+C to stop; your characters and adventures are saved\./,
       );
-      assert.doesNotMatch(launched.output(), /Hollow Beacon|save slot/);
+      assert.doesNotMatch(launched.output(), /save slot/);
       const page = await (await fetch(launched.url)).text();
       assert.doesNotMatch(page, /5E PREVIEW/);
       const created = await post(launched.url, "/api/5e/creation", {});
@@ -104,28 +104,26 @@ test("an OpenAI key turns the AI DM hint off", async () =>
     }
   }));
 
-test("the removed flags are refused with a message and nothing is read or written", async () =>
+test("transitional flags are refused with a message, older ones as unknown, and nothing is read or written", async () =>
   withDirectory(async (directory) => {
-    // Old files at the old defaults stay exactly as they were.
-    const oldSave = join(directory, "hollow-beacon-browser-save.json");
+    // An old file at an old default path stays exactly as it was.
+    const oldSave = join(directory, "browser-save.json");
     await writeFile(oldSave, '{"old":"slot"}');
     for (const [args, message] of [
-      [["--legacy"], /--legacy has been removed.*pre-5e game/s],
       [["--5e", "--seed", "0"], /--5e is no longer needed.*only mode/s],
       [["--seed", "0", "--5e"], /--5e is no longer needed/],
       [["--save", oldSave], /--save has been removed/],
       [["--artwork", "art.json"], /--artwork has been removed/],
+      // The pre-5e game's own flag is an ordinary unknown option (#139).
+      [["--legacy"], /^Usage: npm[.]cmd run browser/],
     ]) {
       const result = run(directory, args);
       assert.equal(result.status, 2, args.join(" "));
       assert.match(result.stderr, message, args.join(" "));
-      assert.match(result.stderr, /Nothing was read or changed\./);
-      assert.match(result.stderr, /Usage: npm\.cmd run browser/);
+      assert.match(result.stderr, /Usage: npm[.]cmd run browser/);
       assert.equal(result.stdout, "");
     }
-    assert.deepEqual(await readdir(directory), [
-      "hollow-beacon-browser-save.json",
-    ]);
+    assert.deepEqual(await readdir(directory), ["browser-save.json"]);
     assert.equal(await readFile(oldSave, "utf8"), '{"old":"slot"}');
   }));
 
