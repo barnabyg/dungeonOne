@@ -1,8 +1,10 @@
 /**
- * The 5e bestiary (format version 1): the shared monsters adventure modules
+ * The 5e bestiary (format version 2): the shared monsters adventure modules
  * fight, each an SRD 5.2 stat block (or a house one derived from it) under an
  * id. A module's opponent names a bestiary monster by id, or authors a
- * one-off stat block inline. Later tickets extend the bestiary with traits,
+ * one-off stat block inline. A stat block may list traits (Pack Tactics) and
+ * give an attack a rider: extra damage on a hit and a condition, after a
+ * saving throw if it names one. Later tickets extend the bestiary with
  * resistances, morale and treasure types.
  *
  * Validation names the first problem it finds. A bestiary in any other format
@@ -11,9 +13,12 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
-import { ABILITIES, type Abilities } from "./fighter-5e.js";
+import type { AttackRider, ConditionKind } from "./encounter-5e.js";
+import { ABILITIES, type Abilities, type Ability } from "./fighter-5e.js";
 import {
+  distinct,
   exactKeys,
+  knownKeys,
   integer,
   id,
   isRecord,
@@ -24,7 +29,16 @@ import {
   fail,
 } from "./json-shape.js";
 
-export const FIFTH_BESTIARY_FORMAT = 1;
+export const FIFTH_BESTIARY_FORMAT = 2;
+
+/** The monster traits the engine applies. */
+export const MONSTER_TRAITS = ["Pack Tactics"] as const;
+export type MonsterTrait = (typeof MONSTER_TRAITS)[number];
+
+const CONDITION_KINDS: readonly ConditionKind[] = ["poisoned", "prone"];
+
+/** The most turns a rider's condition lasts: 10 turns is 1 minute. */
+const MAX_CONDITION_TURNS = 10;
 
 export type StatBlockAttack = Readonly<{
   name: string;
@@ -35,6 +49,8 @@ export type StatBlockAttack = Readonly<{
     modifier: number;
     type: string;
   }>;
+  /** What a hit does besides its damage. */
+  rider?: AttackRider;
 }>;
 
 /** The parts of an SRD 5.2 stat block the engine uses. */
@@ -49,6 +65,7 @@ export type StatBlock = Readonly<{
   xp: number;
   /** Melee attacks only: ranged weapons are deferred. */
   attacks: readonly StatBlockAttack[];
+  traits?: readonly MonsterTrait[];
 }>;
 
 /**
@@ -68,9 +85,93 @@ export type FifthBestiary = Readonly<{
   monsters: readonly FifthMonster[];
 }>;
 
+function damage(value: unknown, where: string): StatBlockAttack["damage"] {
+  const raw = exactKeys(value, ["dice", "sides", "modifier", "type"], where);
+  return {
+    dice: integer(raw.dice, `${where} dice`, 1, 10),
+    sides: integer(raw.sides, `${where} sides`, 2, 12),
+    modifier: integer(raw.modifier, `${where} modifier`, -5, 20),
+    type: text(raw.type, `${where} type`, 30),
+  };
+}
+
+function rider(value: unknown, where: string): AttackRider {
+  const raw = knownKeys(value, [], ["damage", "condition"], where);
+  if (raw.damage === undefined && raw.condition === undefined) {
+    fail(`${where} must give damage, a condition or both.`);
+  }
+  const extra =
+    raw.damage === undefined
+      ? {}
+      : { damage: damage(raw.damage, `${where} damage`) };
+  if (raw.condition === undefined) {
+    return extra;
+  }
+  const at = `${where} condition`;
+  const condition = knownKeys(
+    raw.condition,
+    ["kind"],
+    ["save", "turns", "repeatSave"],
+    at,
+  );
+  if (!CONDITION_KINDS.includes(condition.kind as ConditionKind)) {
+    fail(`${at} kind must be one of ${CONDITION_KINDS.join(", ")}.`);
+  }
+  const kind = condition.kind as ConditionKind;
+  const save =
+    condition.save === undefined
+      ? undefined
+      : exactKeys(condition.save, ["ability", "dc"], `${at} save`);
+  if (save !== undefined && !ABILITIES.includes(save.ability as Ability)) {
+    fail(`${at} save ability must be one of ${ABILITIES.join(", ")}.`);
+  }
+  if (condition.repeatSave !== undefined && condition.repeatSave !== true) {
+    fail(`${at} repeatSave must be true, or left out.`);
+  }
+  if (condition.repeatSave === true && save === undefined) {
+    fail(`${at} repeats a save, so it must name one.`);
+  }
+  if (
+    kind === "prone" &&
+    (condition.turns !== undefined || condition.repeatSave !== undefined)
+  ) {
+    fail(
+      `${at} is prone, which ends when the target gets up on its next turn; give it no turns or repeatSave.`,
+    );
+  }
+  if (kind !== "prone" && condition.turns === undefined) {
+    fail(`${at} must say how many of the target's turns it lasts.`);
+  }
+  return {
+    ...extra,
+    condition: {
+      kind,
+      ...(save === undefined
+        ? {}
+        : {
+            save: {
+              ability: save.ability as Ability,
+              dc: integer(save.dc, `${at} save dc`, 5, 30),
+            },
+          }),
+      ...(condition.turns === undefined
+        ? {}
+        : {
+            turns: integer(
+              condition.turns,
+              `${at} turns`,
+              1,
+              MAX_CONDITION_TURNS,
+            ),
+          }),
+      ...(condition.repeatSave === true ? { repeatSave: true as const } : {}),
+    },
+  };
+}
+
 /** Checks a stat block's shape; a problem throws a `ShapeError`. */
 export function statBlock(value: unknown, where: string): StatBlock {
-  const block = exactKeys(
+  const block = knownKeys(
     value,
     [
       "name",
@@ -83,6 +184,7 @@ export function statBlock(value: unknown, where: string): StatBlock {
       "xp",
       "attacks",
     ],
+    ["traits"],
     where,
   );
   const hitPoints = exactKeys(
@@ -97,24 +199,42 @@ export function statBlock(value: unknown, where: string): StatBlock {
   const attacks = list(block.attacks, `${where} attacks`, 4).map(
     (entry, index) => {
       const at = `${where} attack ${index + 1}`;
-      const attack = exactKeys(entry, ["name", "bonus", "damage"], at);
-      const damage = exactKeys(
-        attack.damage,
-        ["dice", "sides", "modifier", "type"],
-        `${at} damage`,
+      const attack = knownKeys(
+        entry,
+        ["name", "bonus", "damage"],
+        ["rider"],
+        at,
       );
       return {
         name: text(attack.name, `${at} name`, 60),
         bonus: integer(attack.bonus, `${at} bonus`, -5, 20),
-        damage: {
-          dice: integer(damage.dice, `${at} damage dice`, 1, 10),
-          sides: integer(damage.sides, `${at} damage sides`, 2, 12),
-          modifier: integer(damage.modifier, `${at} damage modifier`, -5, 20),
-          type: text(damage.type, `${at} damage type`, 30),
-        },
+        damage: damage(attack.damage, `${at} damage`),
+        ...(attack.rider === undefined
+          ? {}
+          : { rider: rider(attack.rider, `${at} rider`) }),
       };
     },
   );
+  const traits =
+    block.traits === undefined
+      ? undefined
+      : list(block.traits, `${where} traits`, MONSTER_TRAITS.length).map(
+          (trait, index) => {
+            if (!MONSTER_TRAITS.includes(trait as MonsterTrait)) {
+              fail(
+                `${where} trait ${index + 1} must be one of ${MONSTER_TRAITS.join(", ")}.`,
+              );
+            }
+            return trait as MonsterTrait;
+          },
+        );
+  if (traits !== undefined) {
+    distinct(
+      traits,
+      (trait) => trait,
+      (trait) => `${where} lists ${trait} twice.`,
+    );
+  }
   if (
     typeof block.challengeRating !== "string" ||
     !/^(0|1\/8|1\/4|1\/2|[1-9]|[12][0-9]|30)$/.test(block.challengeRating)
@@ -134,6 +254,7 @@ export function statBlock(value: unknown, where: string): StatBlock {
     challengeRating: block.challengeRating,
     xp: integer(block.xp, `${where} xp`, 0, 155000),
     attacks,
+    ...(traits === undefined ? {} : { traits }),
   };
 }
 

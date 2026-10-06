@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-bestiary",
-  "formatVersion": 1,
+  "formatVersion": 2,
   "monsters": [
     {
       "id": "zombie",
@@ -105,6 +105,23 @@
               "sides": 8,
               "modifier": 3,
               "type": "piercing"
+            },
+            "rider": {
+              "damage": {
+                "dice": 1,
+                "sides": 6,
+                "modifier": 0,
+                "type": "poison"
+              },
+              "condition": {
+                "kind": "poisoned",
+                "save": {
+                  "ability": "constitution",
+                  "dc": 11
+                },
+                "turns": 10,
+                "repeatSave": true
+              }
             }
           }
         ]
@@ -285,9 +302,19 @@
               "sides": 6,
               "modifier": 2,
               "type": "piercing"
+            },
+            "rider": {
+              "condition": {
+                "kind": "prone",
+                "save": {
+                  "ability": "strength",
+                  "dc": 11
+                }
+              }
             }
           }
-        ]
+        ],
+        "traits": ["Pack Tactics"]
       }
     },
     {
@@ -324,6 +351,43 @@
             }
           }
         ]
+      }
+    },
+    {
+      "id": "giant-rat",
+      "description": "A rat the size of a dog, yellow teeth bared, never far from the rest of its pack.",
+      "statBlock": {
+        "name": "Giant Rat",
+        "size": "Small",
+        "type": "Beast",
+        "armorClass": 13,
+        "hitPoints": {
+          "average": 7,
+          "formula": "2d6"
+        },
+        "abilities": {
+          "strength": 7,
+          "dexterity": 16,
+          "constitution": 11,
+          "intelligence": 2,
+          "wisdom": 10,
+          "charisma": 4
+        },
+        "challengeRating": "1/8",
+        "xp": 25,
+        "attacks": [
+          {
+            "name": "Bite",
+            "bonus": 5,
+            "damage": {
+              "dice": 1,
+              "sides": 4,
+              "modifier": 3,
+              "type": "piercing"
+            }
+          }
+        ],
+        "traits": ["Pack Tactics"]
       }
     }
   ]

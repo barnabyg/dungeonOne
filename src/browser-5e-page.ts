@@ -5,7 +5,8 @@
 // Adventure session regions (#154). Later tickets fill these containers; keep
 // their ids and order so the layout holds:
 // - #session-status: the status strip (#155): HP with its bar and health,
-//   the round and whose turn it is (#turn), and #resources, a pip for each
+//   the round and whose turn it is (#turn), the character's conditions in a
+//   fight (#conditions, #232), and #resources, a pip for each
 //   turn resource and class feature use. It shows only what the session view
 //   projects.
 // - #session-scene: the room and the fight. The room lists only
@@ -114,7 +115,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h2 id="adventure-title" tabindex="-1"></h2>
 <p id="adventure-objective" class="hint"></p>
 <div id="session-layout">
-<section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="resources" class="resources"></ul><p id="gear-numbers"></p></section>
+<section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="conditions" class="conditions" aria-label="Conditions"></ul><ul id="resources" class="resources"></ul><p id="gear-numbers"></p></section>
 <div id="session-scene">
 <section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3>
 <button id="room-toggle" type="button" class="quiet disclosure" aria-expanded="false" aria-controls="room-details" hidden>Room details</button>
@@ -196,7 +197,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#inventory .action{width:8.5em}#inventory .action button{width:100%}.things .wares{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}.things .wares li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);border:0;padding:0;background:none}.things .wares .controls{margin-top:0}.wares .action{width:8.5em}.wares .action button{width:100%}#sale-confirm{margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#ending .level-up p{margin:0}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
-#gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}
+#gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
 #session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares) button{display:inline-grid}:is(#action-bar,#inventory,.wares) button>span,:is(#action-bar,#inventory,.wares) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
@@ -762,6 +763,15 @@ function renderStatus() {
   const { encounter, turn, features } = session;
   const current = encounter && encounter.combatants.find(({ id }) => id === encounter.currentTurn);
   element("turn").textContent = !encounter ? "" : current ? "Round " + encounter.round + ": " + (current.id === encounter.playerId ? "your turn." : current.name + "'s turn.") : "The fight is over.";
+  // The character's conditions in the fight (#232), each a tag with its
+  // source and how it ends for screen readers.
+  const self = encounter && encounter.combatants.find(({ id }) => id === encounter.playerId);
+  element("conditions").replaceChildren(...(self ? self.conditions : []).map((condition) => {
+    const item = make("li");
+    item.dataset.condition = condition.kind;
+    item.append(conditionTag(condition));
+    return item;
+  }));
   const items = [];
   if (turn) {
     const actions = turn.actions === 0 ? "used" : turn.maxActions === 1 ? "available" : turn.actions + " of " + turn.maxActions + " left";
@@ -823,7 +833,8 @@ const hpChange = (group, label) => [
   make("strong", group.total),
   label + " (",
   ...diceChips(group, " + "),
-  (group.modifier === 0 ? "" : withSign(group.modifier)) + (group.halved ? ", halved" : "") + ") → " + group.hpAfter + "/" + group.maxHp + " HP",
+  // A hit's weapon damage before a rider's extra damage (#232) leaves the HP to the rider's.
+  (group.modifier === 0 ? "" : withSign(group.modifier)) + (group.halved ? ", halved" : "") + ")" + (group.hpAfter === undefined ? "" : " → " + group.hpAfter + "/" + group.maxHp + " HP"),
 ];
 
 /** One compact roll, such as "d20 12 + 5 = 17 vs AC 15" or "7 slashing (d6 4 + 3) → 0/7 HP". */
@@ -1085,7 +1096,14 @@ function renderGear(gear) {
 }
 
 const rollText = (roll) => "d20 " + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
-const combatantName = (encounter, combatant) => combatant.name + (combatant.id === encounter.playerId ? " (you)" : "");
+/** A condition (#232) as a tag, such as "Prone", with its source and how it ends spoken. */
+const conditionTag = (condition) => {
+  const tag = make("span", condition.name, "tag condition");
+  tag.dataset.condition = condition.kind;
+  tag.append(spoken(": " + condition.text));
+  return tag;
+};
+const combatantName = (encounter, combatant) =>combatant.name + (combatant.id === encounter.playerId ? " (you)" : "");
 
 // The initiative table shows each total; the current turn's row is
 // highlighted and its name tagged. The rolls behind the totals are on demand.
@@ -1097,6 +1115,7 @@ function renderInitiative(encounter, fighting) {
     if (current) row.setAttribute("aria-current", "true");
     const name = make("th", combatantName(encounter, combatant) + (combatant.sapped ? " (sapped)" : ""));
     name.scope = "row";
+    for (const condition of combatant.conditions) name.append(" ", conditionTag(condition));
     if (current) name.append(" ", make("span", "Now", "tag now"));
     if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
     row.append(name, make("td", combatant.initiative.total), make("td", combatant.hp + "/" + combatant.maxHp), make("td", combatant.armorClass));

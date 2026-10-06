@@ -35,9 +35,22 @@
  *   rules, never from an action.
  * - Great Weapon Fighting: a weapon marked with it counts each 1 or 2 on a
  *   damage die as 3. The event keeps the dice as rolled.
+ * - Conditions (`CONDITION_RULES`): a monster attack's rider may deal extra
+ *   damage of its own type on a hit (its dice doubled by a critical hit) and
+ *   give the target a condition, after a saving throw if it names one. A
+ *   condition lasts a number of the target's turns, rolling a repeat save at
+ *   the end of each if it allows one; the same condition again replaces it.
+ *   Poisoned gives disadvantage on attack rolls (and ability checks); prone
+ *   gives disadvantage on its own attacks and advantage to attacks against
+ *   it. Without positions every attacker is within 5 feet, and a prone
+ *   combatant spends its next turn getting up: it stays prone until that
+ *   turn ends. Every condition ends when the fight does.
+ * - Pack Tactics: a combatant with it has advantage on its attacks while an
+ *   ally on its side is alive and able to act.
  *
  * The state allows any number of combatants per side.
  */
+import type { Ability } from "./fighter-5e.js";
 import type { RandomSource } from "./random.js";
 
 export type Side = "party" | "opponents";
@@ -47,6 +60,65 @@ export type Damage = Readonly<{
   sides: number;
   modifier: number;
   type: string;
+}>;
+
+/** The conditions the engine applies. */
+export type ConditionKind = "poisoned" | "prone";
+
+/** What each condition does to its combatant's rolls and to attacks on it. */
+export const CONDITION_RULES: Readonly<
+  Record<
+    ConditionKind,
+    Readonly<{
+      name: string;
+      /** Its own attack rolls. */
+      attacks?: "disadvantage";
+      /** Attack rolls against it. */
+      attacked?: "advantage";
+      /** Its ability checks; no check is rolled in a fight yet. */
+      checks?: "disadvantage";
+    }>
+  >
+> = {
+  poisoned: {
+    name: "Poisoned",
+    attacks: "disadvantage",
+    checks: "disadvantage",
+  },
+  prone: { name: "Prone", attacks: "disadvantage", attacked: "advantage" },
+};
+
+/** A saving throw: the ability and its DC. */
+export type SaveSpec = Readonly<{ ability: Ability; dc: number }>;
+
+/**
+ * What a hit with a monster's attack does besides its damage: extra damage
+ * of its own type, and a condition, avoided by a successful save if it names
+ * one. A prone target always gets up on its next turn; any other condition
+ * lasts `turns` of the target's turns, and with `repeatSave` the target
+ * repeats the save at the end of each.
+ */
+export type AttackRider = Readonly<{
+  damage?: Damage;
+  condition?: Readonly<{
+    kind: ConditionKind;
+    save?: SaveSpec;
+    turns?: number;
+    repeatSave?: true;
+  }>;
+}>;
+
+/** A condition on a combatant, what gave it and how it ends. */
+export type Condition = Readonly<{
+  kind: ConditionKind;
+  targetId: string;
+  sourceId: string;
+  /** The attack that gave it. */
+  source: string;
+  /** Ends of the target's turns left before it ends by itself. */
+  turnsLeft: number;
+  /** The save the target repeats at the end of each of its turns. */
+  save?: SaveSpec;
 }>;
 
 /** The weapon masteries the engine applies. */
@@ -63,6 +135,8 @@ export type Weapon = Readonly<{
   disadvantage?: readonly string[];
   /** Great Weapon Fighting: each 1 or 2 on a damage die counts as 3. */
   greatWeaponFighting?: true;
+  /** What a hit does besides its damage. */
+  rider?: AttackRider;
 }>;
 
 export type Combatant = Readonly<{
@@ -75,6 +149,8 @@ export type Combatant = Readonly<{
   /** The Dexterity score, which breaks initiative ties. */
   dexterity: number;
   initiativeBonus: number;
+  /** Its saving throw bonus for each ability. */
+  saves: Readonly<Record<Ability, number>>;
   attack: Weapon;
   /** A second light weapon, for the Light property's extra attack. */
   lightAttack?: Weapon;
@@ -83,6 +159,8 @@ export type Combatant = Readonly<{
   actionSurge?: FeatureUses;
   /** Healing potions the combatant carries, which it can drink. */
   potions?: readonly Potion[];
+  /** Advantage on its attacks while an ally is alive and able to act. */
+  packTactics?: true;
 }>;
 
 export type Healing = Readonly<{
@@ -128,6 +206,8 @@ export type EncounterState = Readonly<{
     sourceId: string;
     round: number;
   }>[];
+  /** The conditions on living combatants. */
+  conditions: readonly Condition[];
 }>;
 
 export type TurnEconomy = Readonly<{
@@ -226,6 +306,28 @@ export type AttackEvent = Readonly<{
   graze?: true;
   /** Great Weapon Fighting counted each 1 or 2 in `damageRolls` as 3. */
   greatWeaponFighting?: true;
+  /** A hit's extra damage from the attack's rider, also taken by `hpAfter`. */
+  rider?: Readonly<{
+    damageRolls: readonly number[];
+    damageModifier: number;
+    damage: number;
+    damageType: string;
+  }>;
+}>;
+
+/** A saving throw against a condition, on a hit or at the end of a turn. */
+export type SaveEvent = Readonly<{
+  type: "save";
+  combatantId: string;
+  ability: Ability;
+  d20: number;
+  bonus: number;
+  total: number;
+  dc: number;
+  success: boolean;
+  condition: ConditionKind;
+  /** A repeat save at the end of the combatant's turn. */
+  repeat: boolean;
 }>;
 
 export type EncounterEvent =
@@ -234,6 +336,24 @@ export type EncounterEvent =
   | AttackEvent
   | Readonly<{ type: "sapped"; targetId: string; sourceId: string }>
   | Readonly<{ type: "vexed"; targetId: string; sourceId: string }>
+  | SaveEvent
+  | Readonly<{
+      type: "condition";
+      combatantId: string;
+      kind: ConditionKind;
+      sourceId: string;
+      source: string;
+      turns: number;
+      /** The save it repeats at the end of each of its turns. */
+      save?: SaveSpec;
+    }>
+  | Readonly<{
+      type: "condition-ended";
+      combatantId: string;
+      kind: ConditionKind;
+      /** A repeat save, its turns running out, standing up, or the fight ending. */
+      reason: "saved" | "expired" | "stood" | "fight-over";
+    }>
   | Readonly<{
       type: "second-wind";
       combatantId: string;
@@ -589,6 +709,168 @@ export function countedDamageDie(
   return greatWeaponFighting === true ? Math.max(3, value) : value;
 }
 
+/**
+ * Alive and able to act, for Pack Tactics: no condition in play stops a
+ * living combatant acting yet.
+ */
+function ableToAct(entrant: Combatant): boolean {
+  return !isDefeated(entrant);
+}
+
+/** The names of `entrantId`'s conditions with `effect` on attack rolls. */
+function conditionSources(
+  state: EncounterState,
+  entrantId: string,
+  effect: "attacks" | "attacked",
+): string[] {
+  return [
+    ...new Set(
+      state.conditions
+        .filter(
+          ({ targetId, kind }) =>
+            targetId === entrantId &&
+            CONDITION_RULES[kind][effect] !== undefined,
+        )
+        .map(({ kind }) => CONDITION_RULES[kind].name),
+    ),
+  ];
+}
+
+/** Rolls `entrant`'s saving throw against a condition. */
+function rollSave(
+  entrant: Combatant,
+  save: SaveSpec,
+  condition: ConditionKind,
+  repeat: boolean,
+  random: Roller,
+): SaveEvent {
+  const { d20 } = rollD20(random, [], []);
+  const bonus = entrant.saves[save.ability];
+  const total = d20 + bonus;
+  return {
+    type: "save",
+    combatantId: entrant.id,
+    ability: save.ability,
+    d20,
+    bonus,
+    total,
+    dc: save.dc,
+    success: total >= save.dc,
+    condition,
+    repeat,
+  };
+}
+
+/**
+ * A hit's rider condition: the target saves if the rider names a save, and
+ * on a failure (or with no save) has the condition, replacing any of the
+ * same kind.
+ */
+function applyRiderCondition(
+  state: EncounterState,
+  actor: Combatant,
+  target: Combatant,
+  weapon: Weapon,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  const condition = weapon.rider?.condition;
+  if (condition === undefined) {
+    return state;
+  }
+  if (condition.save !== undefined) {
+    const save = rollSave(
+      target,
+      condition.save,
+      condition.kind,
+      false,
+      random,
+    );
+    events.push(save);
+    if (save.success) {
+      return state;
+    }
+  }
+  const turns = condition.kind === "prone" ? 1 : (condition.turns ?? 1);
+  const repeat =
+    condition.repeatSave === true && condition.save !== undefined
+      ? { save: condition.save }
+      : {};
+  events.push({
+    type: "condition",
+    combatantId: target.id,
+    kind: condition.kind,
+    sourceId: actor.id,
+    source: weapon.name,
+    turns,
+    ...repeat,
+  });
+  return {
+    ...state,
+    conditions: [
+      ...state.conditions.filter(
+        ({ targetId, kind }) =>
+          targetId !== target.id || kind !== condition.kind,
+      ),
+      {
+        kind: condition.kind,
+        targetId: target.id,
+        sourceId: actor.id,
+        source: weapon.name,
+        turnsLeft: turns,
+        ...repeat,
+      },
+    ],
+  };
+}
+
+/**
+ * The end of `entrant`'s turn: it repeats the save against each condition
+ * that allows one, and a condition whose turns have run out ends (a prone
+ * combatant stands up).
+ */
+function endTurn(
+  state: EncounterState,
+  entrant: Combatant,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  const conditions: Condition[] = [];
+  for (const condition of state.conditions) {
+    if (condition.targetId !== entrant.id) {
+      conditions.push(condition);
+      continue;
+    }
+    const ended = (reason: "saved" | "expired" | "stood") =>
+      events.push({
+        type: "condition-ended",
+        combatantId: entrant.id,
+        kind: condition.kind,
+        reason,
+      });
+    if (condition.save !== undefined) {
+      const save = rollSave(
+        entrant,
+        condition.save,
+        condition.kind,
+        true,
+        random,
+      );
+      events.push(save);
+      if (save.success) {
+        ended("saved");
+        continue;
+      }
+    }
+    if (condition.turnsLeft <= 1) {
+      ended(condition.kind === "prone" ? "stood" : "expired");
+      continue;
+    }
+    conditions.push({ ...condition, turnsLeft: condition.turnsLeft - 1 });
+  }
+  return { ...state, conditions };
+}
+
 function resolveAttack(
   state: EncounterState,
   actor: Combatant,
@@ -602,10 +884,27 @@ function resolveAttack(
   const vexing = state.vexed.some(
     ({ sourceId, targetId }) => sourceId === actor.id && targetId === target.id,
   );
-  const { d20, mode } = rollD20(random, vexing ? ["Vex"] : [], [
-    ...(sapped ? ["Sap"] : []),
-    ...(weapon.disadvantage ?? []),
-  ]);
+  const packTactics =
+    actor.packTactics === true &&
+    state.combatants.some(
+      (ally) =>
+        ally.side === actor.side && ally.id !== actor.id && ableToAct(ally),
+    );
+  const { d20, mode } = rollD20(
+    random,
+    [
+      ...(vexing ? ["Vex"] : []),
+      ...(packTactics ? ["Pack Tactics"] : []),
+      ...conditionSources(state, target.id, "attacked").map(
+        (name) => `target ${name.toLowerCase()}`,
+      ),
+    ],
+    [
+      ...(sapped ? ["Sap"] : []),
+      ...(weapon.disadvantage ?? []),
+      ...conditionSources(state, actor.id, "attacks"),
+    ],
+  );
   const critical = d20 >= weapon.criticalRange;
   const total = d20 + weapon.bonus;
   const hit = d20 !== 1 && (critical || total >= target.armorClass);
@@ -631,7 +930,27 @@ function resolveAttack(
     : graze
       ? weapon.damage.modifier
       : 0;
-  const hpAfter = Math.max(0, target.hp - damage);
+  // A hit's rider deals its extra damage, its dice doubled by a critical.
+  const extra = hit ? weapon.rider?.damage : undefined;
+  const rider =
+    extra === undefined
+      ? undefined
+      : (() => {
+          const rolls = Array.from(
+            { length: extra.dice * (critical ? 2 : 1) },
+            () => random.roll(extra.sides),
+          );
+          return {
+            damageRolls: rolls,
+            damageModifier: extra.modifier,
+            damage: Math.max(
+              0,
+              rolls.reduce((sum, value) => sum + value, 0) + extra.modifier,
+            ),
+            damageType: extra.type,
+          };
+        })();
+  const hpAfter = Math.max(0, target.hp - damage - (rider?.damage ?? 0));
   const events: EncounterEvent[] = [
     {
       type: "attack",
@@ -656,6 +975,7 @@ function resolveAttack(
       ...(hit && weapon.greatWeaponFighting === true
         ? { greatWeaponFighting: true as const }
         : {}),
+      ...(rider === undefined ? {} : { rider }),
     },
   ];
   // The attack spends any disadvantage Sap gave the attacker, and any
@@ -671,8 +991,15 @@ function resolveAttack(
         sourceId !== actor.id || targetId !== target.id,
     ),
   };
-  if (hpAfter === 0 && target.hp > 0) {
+  const defeated = hpAfter === 0 && target.hp > 0;
+  if (defeated) {
     events.push({ type: "defeated", combatantId: target.id });
+    next = {
+      ...next,
+      conditions: next.conditions.filter(
+        ({ targetId }) => targetId !== target.id,
+      ),
+    };
   } else if (hit && weapon.mastery === "Sap") {
     next = {
       ...next,
@@ -692,13 +1019,24 @@ function resolveAttack(
     };
     events.push({ type: "vexed", targetId: target.id, sourceId: actor.id });
   }
+  if (hit && !defeated) {
+    next = applyRiderCondition(next, actor, target, weapon, random, events);
+  }
   const outcome = sideDefeated(next, "opponents")
     ? "victory"
     : sideDefeated(next, "party")
       ? "defeat"
       : "ongoing";
   if (outcome !== "ongoing") {
-    next = { ...next, outcome };
+    for (const { targetId, kind } of next.conditions) {
+      events.push({
+        type: "condition-ended",
+        combatantId: targetId,
+        kind,
+        reason: "fight-over",
+      });
+    }
+    next = { ...next, outcome, conditions: [] };
     events.push({ type: "ended", outcome });
   }
   return { state: next, events };
@@ -718,6 +1056,10 @@ function advance(
   let first = startWithCurrent;
   while (next.outcome === "ongoing") {
     if (!first) {
+      const ending = combatant(next, next.order[next.turn]!.combatantId);
+      if (!isDefeated(ending)) {
+        next = endTurn(next, ending, random, events);
+      }
       const turn = (next.turn + 1) % next.order.length;
       next = { ...next, turn, round: next.round + (turn === 0 ? 1 : 0) };
     }
@@ -773,6 +1115,7 @@ export function startEncounter(
       economy: FRESH_TURN,
       sapped: [],
       vexed: [],
+      conditions: [],
     },
     random,
     events,
