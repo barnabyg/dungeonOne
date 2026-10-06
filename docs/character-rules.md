@@ -60,6 +60,7 @@ Level 3 is the highest supported level; XP above 900 is kept.
   - _Archery_ is not offered: it gives +2 to hit with ranged weapons, and the game has none yet. It will be added with them (#225).
 
   The creation screen tags each style "Applies with this kit" or "No effect with this kit" for the kit chosen, with a note saying why; the sheet says, near the top, whether the character's style applies with what it has equipped now, and the Fighting Style feature repeats the note.
+
 - **Second Wind:** a bonus action to regain 1d10 + Fighter level HP, never above maximum HP; 2 uses. Spent uses stay spent for the rest of the adventure; a rest between adventures restores them and every hit point.
 - **Weapon Mastery:** three kinds of weapon, chosen at creation (see Starting kit). Of the SRD masteries, Graze, Nick, Sap, Topple and Vex work without positions; Cleave, Push and Slow are omitted, and no catalogue weapon has Cleave, Push or Topple yet.
 - **Action Surge (level 2):** one additional action on your turn, except Magic; 1 use. Spent uses stay spent for the rest of the adventure; a rest between adventures restores them and every hit point.
@@ -70,27 +71,36 @@ Level 3 is the highest supported level; XP above 900 is kept.
 
 `src/equipment-5e.ts` holds the SRD 5.2 catalogue and the one rules module that derives AC and attacks from what a character has equipped (#207). Prices are stored in copper (1 sp = 10 cp, 1 gp = 100 cp) and shown in mixed coins. Cost and rarity follow effectiveness: within each table, no item is both cheaper and strictly better than another, and a test checks it. Each item's tier limits where it can appear: starting kits hold common items only. Damage type is recorded for monster resistances (13.2).
 
-| Weapon     | Price | Damage          | Properties        | Mastery        | Tier     |
-| ---------- | ----- | --------------- | ----------------- | -------------- | -------- |
-| Club       | 1 sp  | 1d4 bludgeoning | light             | Slow (omitted) | common   |
-| Dagger     | 2 gp  | 1d4 piercing    | finesse, light    | Nick           | common   |
-| Mace       | 5 gp  | 1d6 bludgeoning | —                 | Sap            | common   |
-| Shortsword | 10 gp | 1d6 piercing    | finesse, light    | Vex            | common   |
-| Longsword  | 15 gp | 1d8 slashing    | versatile (1d10)  | Sap            | uncommon |
-| Greatsword | 50 gp | 2d6 slashing    | heavy, two-handed | Graze          | uncommon |
+| Weapon     | Price | Weight | Damage          | Properties        | Mastery        | Tier     |
+| ---------- | ----- | ------ | --------------- | ----------------- | -------------- | -------- |
+| Club       | 1 sp  | 2 lb   | 1d4 bludgeoning | light             | Slow (omitted) | common   |
+| Dagger     | 2 gp  | 1 lb   | 1d4 piercing    | finesse, light    | Nick           | common   |
+| Mace       | 5 gp  | 4 lb   | 1d6 bludgeoning | —                 | Sap            | common   |
+| Shortsword | 10 gp | 2 lb   | 1d6 piercing    | finesse, light    | Vex            | common   |
+| Longsword  | 15 gp | 3 lb   | 1d8 slashing    | versatile (1d10)  | Sap            | uncommon |
+| Greatsword | 50 gp | 6 lb   | 2d6 slashing    | heavy, two-handed | Graze          | uncommon |
 
-| Armour         | Price    | AC               | Notes                               | Tier     |
-| -------------- | -------- | ---------------- | ----------------------------------- | -------- |
-| Leather armour | 10 gp    | 11 + Dex         | light                               | common   |
-| Chain shirt    | 50 gp    | 13 + Dex (max 2) | medium                              | common   |
-| Chain mail     | 75 gp    | 16               | heavy, Str 13, stealth disadvantage | uncommon |
-| Plate armour   | 1,500 gp | 18               | heavy, Str 15, stealth disadvantage | rare     |
-| Shield         | 10 gp    | +2               | one hand                            | common   |
+| Armour         | Price    | Weight | AC               | Notes                               | Tier     |
+| -------------- | -------- | ------ | ---------------- | ----------------------------------- | -------- |
+| Leather armour | 10 gp    | 10 lb  | 11 + Dex         | light                               | common   |
+| Chain shirt    | 50 gp    | 20 lb  | 13 + Dex (max 2) | medium                              | common   |
+| Chain mail     | 75 gp    | 55 lb  | 16               | heavy, Str 13, stealth disadvantage | uncommon |
+| Plate armour   | 1,500 gp | 65 lb  | 18               | heavy, Str 15, stealth disadvantage | rare     |
+| Shield         | 10 gp    | 6 lb   | +2               | one hand                            | common   |
 
 - **Armour class:** body armour's AC plus the Dexterity modifier up to its cap (heavy armour adds none, not even a penalty), or 10 + Dexterity with none; +2 with a shield; +1 with Defense while wearing body armour (a shield alone is not armour).
 - **Attacks:** the first weapon listed is the one attacked with. A finesse weapon uses the higher of the Strength and Dexterity modifiers, for both the attack and its damage; others use Strength. A versatile weapon uses its larger die when nothing else is held, and its one-handed die with a shield or a second weapon.
 - **Hands:** a two-handed weapon refuses a shield or a second weapon; a second weapon is held only for the light-weapon extra attack, so both must be light, and refuses a shield.
 - **Strength requirements:** heavy armour below its Strength score costs 10 feet of speed in SRD 5.2; without positions the profile records the shortfall and nothing else changes. A heavy weapon below Strength 13 attacks with disadvantage.
+
+## Carrying capacity (#224)
+
+SRD 5.2 sets a Small or Medium creature's carrying capacity at its Strength score × 15 lb. Its only stated consequence is a Speed of 5 feet while dragging, lifting or pushing more, which does nothing without positions, so the owner chose (6 October 2026) that the engine **refuses** whatever would take a character over capacity.
+
+- **What weighs.** Every catalogue item weighs its SRD 5.2 weight (the tables above), equipped or stowed. Coin weighs 50 coins to the pound (SRD 5.2); the purse is held in copper and carried as the fewest coins worth that much, largest first, as it is shown, so 1 gp 2 sp 3 cp is 6 coins. Module items weigh a default by kind, so modules author no weights: a Potion of Healing ½ lb (SRD 5.2), a key nothing (SRD 5.2 weighs none; one comes with its lock), and treasure 1 lb each (SRD 5.2 weighs none), including the treasure a character has kept. Coin and gear found become purse and gear as they are taken.
+- **Refused.** Taking gear, coin, treasure or any item, taking back dropped gear, and buying (#210) are each refused when the weight carried afterwards would exceed capacity, with the engine's reply naming the item's weight, the weight carried and the capacity ("The Chain Mail weighs 55 lb, and you carry 23 lb of the 75 lb your Strength allows: drop something first."). The button reads "Too heavy", and the AI DM's `take` tool lists only what fits; asked anyway, it reads the same reply. Dropping, equipping and selling are never refused for weight: a sale's coin always weighs less than the gear sold.
+- **Shown.** The sheet and the creation preview show "Carrying: 14 of 135 lb"; during an adventure "You carry" ends with the weight carried and the capacity, which change at once with each take, drop, purchase or sale. `get_character_status` gives the AI DM the same.
+- **Sheets.** A sheet carrying more than its capacity is invalid. No count limits stowed gear any more: #209's 20-item stopgap is gone. Every starting kit weighs at most 13 lb, under the 45 lb of the lowest possible Strength, 3.
 
 ## Changing gear (#209)
 
@@ -104,7 +114,7 @@ A character carries its equipment and its **stowed** gear: catalogue weapons, ar
 - **Drop** (outside a fight): stowed gear only; equipped gear is unequipped first. Dropped gear lies in the room as an item, and **Take** picks it back up.
 - **In a fight.** Drawing a second light weapon (Equip) or swapping the weapon held (Wield) uses the turn's one object interaction and no action; swapping from two weapons to one is one interaction. The bar and the AI DM offer only these two in a fight, so the fight's options stay short. A second weapon change in the same turn is refused ("Interaction used"). SRD 5.2 also lets a weapon be equipped or unequipped as part of each attack, and a second object interaction take the Utilize action; both are abstracted into this one interaction per turn. Armour and shields can't be changed and nothing can be dropped until the fight is over.
 - **Strength.** Equipping heavy armour below its Strength requirement is allowed; the result and the status strip say the speed drops by 10 feet, which has no effect without positions.
-- **Carrying.** A character carries at most 20 stowed items. There is no encumbrance yet: this count is a stopgap until carrying capacity by weight (#224).
+- **Carrying.** What a character carries is limited by weight, not by count; see [Carrying capacity](#carrying-capacity-224).
 - **"You carry".** Outside a fight the character's gear is acted on from the room panel's "You carry" list, like carried items (#198), not from the action bar. The list starts with what it wears ("Worn."), the weapons in hand ("In hand.") and its stowed gear ("Carried, not equipped."), each kind once with a count: Unequip on armour, a shield and a second weapon; Wield on a stowed weapon; Equip on stowed armour, a shield or a light weapon; Drop on stowed gear. In a fight the action bar offers only Wield and Equip on stowed weapons, beside the turn's other options, as it does Drink. The AI DM's `equip`, `unequip`, `swap_weapon` and `drop` tools are offered from the same projection, and the engine writes each refusal.
 - **Keeping it.** A victory or an escape replaces the character's possessions, stowed gear included, with what it holds at the end, so gear dropped or left behind is gone and gear found and carried out is kept. A defeat or abandonment leaves the character exactly as it started.
 
@@ -114,7 +124,7 @@ A module may make a creature a **merchant**, with a stock of catalogue gear and 
 
 - **Prices.** A merchant sells each item it stocks, any number of times, at its catalogue price (the tables above). It buys any catalogue gear the character carries for **half its price, rounded down to the copper** (a 1 sp club sells for 5 cp). Prices and stock are the engine's: the AI DM's `trade` tool names only an offer the engine lists (`buy:` an item stocked, or `sell:` stowed gear), with no price. Treasure has no price and is not bought or sold.
 - **Stock tiers.** A merchant stocks common gear always and uncommon gear only in a module whose lowest recommended level is 3 or more; no merchant sells rare gear in increment 12. The module validator enforces this.
-- **Buying.** The purse pays and the item is stowed. Too little coin is refused with the engine's reply naming the price and the purse ("Too little coin" on the button), as is a purchase past the 20 stowed items.
+- **Buying.** The purse pays and the item is stowed. Too little coin is refused with the engine's reply naming the price and the purse ("Too little coin" on the button), and so is a purchase that would take the character over its carrying capacity once the coin is paid ("Too heavy", #224).
 - **Selling.** Stowed gear sells at once. Equipped gear sells only once the player confirms it in the panel: the engine refuses an unconfirmed sale of gear that is only equipped, and the AI DM has no offer for it. Body armour sold is doffed first (its doffing minutes are reported); the last weapon held is never sold. The result ends with the new AC and attacks.
 - **Time.** Each purchase or sale takes the merchant's authored minutes (1–60), which the result reports. There are no deadline clocks in the 5e game yet; when they return they will count this time, as they will donning time.
 - **Coin found here.** Coin found earlier in the same adventure is in the purse at once and can be spent there. Spending it does not make it findable again: the ledger records the find, not the coin.
@@ -220,7 +230,7 @@ A module the harness can't play fails the gate with the harness's named reason. 
 - A character holds a second weapon only for the light-weapon extra attack, so both weapons must be light. Two weapons and a shield, or a two-handed weapon with a shield or a second weapon, are refused.
 - A character always holds a weapon: its last one can be swapped but not unequipped, as unarmed strikes are not modelled.
 - In a fight, one weapon change per turn, with the object interaction; armour and shields change only outside a fight.
-- A character carries at most 20 stowed items; there is no encumbrance.
+- A character carries up to its Strength × 15 lb; taking or buying more is refused rather than slowing it, as there are no positions.
 - Armour's stealth disadvantage is recorded for later Stealth checks (15.1); nothing rolls Stealth yet.
 - Morale and reaction rolls are planned for later increments.
 
