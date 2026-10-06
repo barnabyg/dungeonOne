@@ -1,0 +1,291 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 8,
+  "id": "tinkers-toll",
+  "title": "The Tinker's Toll",
+  "objective": "Bandits hold the old toll tower above the ford, and a tinker's cart is stuck on the near bank. Clear the road or take what you can, and get back to the shrine alive.",
+  "recommendedLevels": {
+    "min": 1,
+    "max": 1
+  },
+  "difficulty": "hard",
+  "startRoomId": "wayside-shrine",
+  "rooms": [
+    {
+      "id": "wayside-shrine",
+      "name": "Wayside Shrine",
+      "description": "A moss-grown shrine stands where the road dips toward the river. Travellers leave coins here for a safe crossing. The road runs on to a cart pulled up on the verge.",
+      "exit": true,
+      "features": [
+        {
+          "id": "offering-bowl",
+          "name": "Offering Bowl",
+          "description": "A shallow stone bowl at the shrine's foot, green with moss.",
+          "discovery": "The bowl is empty but for moss and dead leaves. Someone has taken the offerings, and wet boot prints lead down toward the ford."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "tinkers-cart",
+      "name": "Tinker's Cart",
+      "description": "A painted cart sits on the verge with its mule unhitched, hung with pots, blades and a dented shield. The road runs on down to the ford.",
+      "features": [],
+      "items": [],
+      "creatures": [
+        {
+          "id": "merrow",
+          "name": "Merrow the Tinker",
+          "description": "A wiry old tinker sits on the cart's tail, sharpening a knife and watching the ford.",
+          "topics": [
+            {
+              "id": "the-tower",
+              "name": "the tower",
+              "reply": "\"Two bandits took the old toll tower last week. They want a gold piece a wheel to cross, and I haven't got it.\""
+            },
+            {
+              "id": "the-ford",
+              "name": "the ford",
+              "reply": "\"There's a wolf at the ford, gone thin and bold. A traveller tried to cross three nights back. His shield's still out in the reeds, I'd wager.\""
+            }
+          ],
+          "merchant": {
+            "stock": ["dagger", "shortsword", "shield", "chain-shirt"],
+            "minutes": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "ford",
+      "name": "Ford",
+      "description": "The road runs into a shallow, stony ford, thick with reeds on either bank. A track climbs from the far bank to the toll tower.",
+      "encounterId": "ford-wolf",
+      "features": [
+        {
+          "id": "reeds",
+          "name": "Reeds",
+          "description": "Tall reeds, trampled flat in a ring near the water's edge.",
+          "discovery": "Among the broken reeds lie a traveller's shield, scored by teeth but sound, and a sodden purse."
+        }
+      ],
+      "items": [
+        {
+          "id": "reed-shield",
+          "name": "Traveller's Shield",
+          "description": "A round wooden shield rimmed with iron, its paint scored by teeth.",
+          "kind": "gear",
+          "gear": "shield",
+          "hiddenIn": "reeds"
+        },
+        {
+          "id": "traveller-purse",
+          "name": "Traveller's Purse",
+          "description": "A sodden leather purse, still holding a few coins.",
+          "kind": "coin",
+          "coins": {
+            "gp": 3,
+            "sp": 5
+          },
+          "hiddenIn": "reeds"
+        }
+      ]
+    },
+    {
+      "id": "toll-tower",
+      "name": "Toll Tower",
+      "description": "A squat stone tower with a chain across the road. A cookfire smokes inside, and a strongbox sits under the stair.",
+      "encounterId": "tower-bandits",
+      "features": [
+        {
+          "id": "strongbox",
+          "name": "Strongbox",
+          "description": "An iron-bound box, its lock long since broken.",
+          "discovery": "Inside, wrapped in a rag, is the old toll keeper's seal of office, cast in silver."
+        }
+      ],
+      "items": [
+        {
+          "id": "toll-seal",
+          "name": "Silver Toll Seal",
+          "description": "A heavy silver seal stamped with the old toll keeper's mark.",
+          "kind": "treasure",
+          "hiddenIn": "strongbox"
+        },
+        {
+          "id": "bandit-purse",
+          "name": "Bandit's Purse",
+          "description": "A leather purse heavy with the bandits' tolls.",
+          "kind": "coin",
+          "coins": {
+            "gp": 12
+          },
+          "hiddenIn": "scarred-bandit"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "shrine-to-cart",
+      "between": ["wayside-shrine", "tinkers-cart"],
+      "description": "The road runs a short way down to the cart."
+    },
+    {
+      "id": "cart-to-ford",
+      "between": ["tinkers-cart", "ford"],
+      "description": "The road slopes down through the reeds to the water."
+    },
+    {
+      "id": "ford-to-tower",
+      "between": ["ford", "toll-tower"],
+      "description": "A rutted track climbs from the far bank to the tower."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "ford-wolf",
+      "opponents": [
+        {
+          "id": "ford-wolf",
+          "name": "Wolf",
+          "description": "A gaunt grey wolf rises out of the reeds, hackles up, and comes at you through the shallows.",
+          "statBlock": {
+            "name": "Wolf",
+            "size": "Medium",
+            "type": "Beast",
+            "armorClass": 12,
+            "hitPoints": {
+              "average": 11,
+              "formula": "2d8 + 2"
+            },
+            "abilities": {
+              "strength": 14,
+              "dexterity": 15,
+              "constitution": 12,
+              "intelligence": 3,
+              "wisdom": 12,
+              "charisma": 6
+            },
+            "challengeRating": "1/4",
+            "xp": 50,
+            "attacks": [
+              {
+                "name": "Bite",
+                "bonus": 4,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 2,
+                  "type": "piercing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "lost-on-the-road"
+    },
+    {
+      "id": "tower-bandits",
+      "opponents": [
+        {
+          "id": "scarred-bandit",
+          "name": "Scarred Bandit",
+          "description": "A scarred bandit kicks over a stool and draws a scimitar.",
+          "statBlock": {
+            "name": "Bandit",
+            "size": "Medium",
+            "type": "Humanoid",
+            "armorClass": 12,
+            "hitPoints": {
+              "average": 11,
+              "formula": "2d8 + 2"
+            },
+            "abilities": {
+              "strength": 11,
+              "dexterity": 12,
+              "constitution": 12,
+              "intelligence": 10,
+              "wisdom": 10,
+              "charisma": 10
+            },
+            "challengeRating": "1/8",
+            "xp": 25,
+            "attacks": [
+              {
+                "name": "Scimitar",
+                "bonus": 3,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 1,
+                  "type": "slashing"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "young-bandit",
+          "name": "Young Bandit",
+          "description": "A young bandit scrambles down the stair, blade in hand.",
+          "statBlock": {
+            "name": "Bandit",
+            "size": "Medium",
+            "type": "Humanoid",
+            "armorClass": 12,
+            "hitPoints": {
+              "average": 11,
+              "formula": "2d8 + 2"
+            },
+            "abilities": {
+              "strength": 11,
+              "dexterity": 12,
+              "constitution": 12,
+              "intelligence": 10,
+              "wisdom": 10,
+              "charisma": 10
+            },
+            "challengeRating": "1/8",
+            "xp": 25,
+            "attacks": [
+              {
+                "name": "Scimitar",
+                "bonus": 3,
+                "damage": {
+                  "dice": 1,
+                  "sides": 6,
+                  "modifier": 1,
+                  "type": "slashing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "lost-on-the-road"
+    }
+  ],
+  "endings": [
+    {
+      "id": "back-with-the-takings",
+      "kind": "escape-with-loot",
+      "title": "Back with the takings",
+      "text": "You climb back to the shrine with the road's takings in your pack, and the river murmuring behind you.",
+      "xp": 200
+    },
+    {
+      "id": "back-empty-handed",
+      "kind": "escape-without-loot",
+      "title": "Back empty-handed",
+      "text": "You climb back to the shrine with nothing to show for the road but wet boots."
+    },
+    {
+      "id": "lost-on-the-road",
+      "kind": "defeat",
+      "title": "Lost on the road",
+      "text": "You fall by the river. Your adventuring ends here."
+    }
+  ]
+}

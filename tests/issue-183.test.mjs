@@ -59,7 +59,8 @@ const PLAYER = "pc";
 function engineAction({ action, target }) {
   switch (action) {
     case "attack":
-      return { type: "attack", actorId: PLAYER, targetId: target.id };
+    case "light-attack":
+      return { type: action, actorId: PLAYER, targetId: target.id };
     case "use":
       return { type: "use-item", itemId: target.id };
     case "move":
@@ -68,6 +69,28 @@ function engineAction({ action, target }) {
       return { type: "examine", targetId: target.id };
     case "take":
       return { type: "take", itemId: target.id };
+    case "equip":
+    case "unequip":
+    case "swap":
+    case "drop":
+    case "buy":
+    case "sell":
+      return { type: action, itemId: target.id };
+    case "sell-equipped":
+      return { type: "sell", itemId: target.id, equipped: true };
+    case "force":
+    case "pick":
+    case "break":
+    case "unlock":
+      return { type: action, doorId: target.id };
+    case "search":
+      return { type: "search", roomId: target.id };
+    case "disarm":
+      return { type: "disarm", trapId: target.id };
+    case "talk":
+      return { type: "talk", topicId: target.id };
+    case "leave":
+      return { type: "leave", roomId: target.id };
     default:
       return { type: action, actorId: PLAYER };
   }
