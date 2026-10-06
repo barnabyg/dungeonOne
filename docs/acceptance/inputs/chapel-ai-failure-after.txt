@@ -1,6 +1,0 @@
-Search the missing-person notice.
-journal
-status
-inventory
-help
-quit

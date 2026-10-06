@@ -1,6 +1,6 @@
 # Save characters independently of adventure sessions
 
-> **Superseded by [ADR 0005](0005-start-afresh-on-5e-and-suspend-compatibility.md)** where they conflict: existing characters and saves are removal pending (#139) without migration. The independent character library and once-only career handoff carry over to 5e characters.
+> **Superseded by [ADR 0005](0005-start-afresh-on-5e-and-suspend-compatibility.md)** where they conflict: existing characters and saves were removed in #139 without migration. The independent character library and once-only career handoff carry over to 5e characters.
 
 The project owner confirmed on 2 October 2026 that a character sheet should be saved independently of a game, like a tabletop character brought to different adventure modules. Keep characters in a persistent character library, with creation and selection before adventure startup; a character remains saved even when no game exists or adventure selection is canceled.
 

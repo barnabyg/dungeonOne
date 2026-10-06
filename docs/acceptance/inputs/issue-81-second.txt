@@ -1,3 +1,0 @@
-move watch-yard
-talk iona response ask
-resolve hold-beacon

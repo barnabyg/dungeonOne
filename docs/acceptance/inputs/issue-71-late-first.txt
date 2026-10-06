@@ -1,6 +1,0 @@
-talk guard insult ask
-take restorative-tonic
-attack scout
-talk neri rescue ask
-search route-register
-move square
