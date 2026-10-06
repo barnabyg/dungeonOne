@@ -61,7 +61,7 @@ and 15 with the defaults already chosen. Reloading the page showed the same
 dice. The implementer couldn't click through the rest by hand (the app's
 browser pane was off-screen), so the owner scenarios below cover that.
 
-**Bounded live AI run.** The budget was stated before the run: at most 160
+**Bounded live AI run.** The budget was stated in the implementer's session before the run started: at most 160
 provider calls on `gpt-5.6-luna` (the default), seed 99, the whole delve.
 Command:
 
@@ -78,12 +78,15 @@ replies, but no credentials or prompts. Result:
 | ------------------------------ | ---------------------------------------- |
 | Ending                         | _Out with the loot_, 750 XP, level 1 → 2 |
 | Turns / typed to the AI DM     | 59 / 58 (Leave is button-only by design) |
-| Typed steps the DM carried out | 58 of 58; no button fallbacks needed     |
+| Typed steps the DM carried out | 58 of 58; none needed its button         |
 | Steps skipped                  | 0; all 10 rooms visited                  |
 | Provider calls                 | 58 of at most 160                        |
 | Tokens                         | 120,536 input, 1,481 output              |
 | Replies claiming an outcome    | 0 flagged on uncommitted turns           |
 | Prompt version                 | `5e-dm-v6`                               |
+
+The report's `summary.fallbacks` is 1: it counts the button-only Leave,
+which the AI DM has no tool for, as a button press.
 
 The run's character was made with the test Fighter's choices, with the rolls
 placed in roll order. Its sheet is not the one the owner gets by accepting the
@@ -105,7 +108,9 @@ npm.cmd ci
 npm.cmd run build
 ```
 
-Each scenario uses its own fresh library under `.scratch\release-140\`. The
+Scenarios 1–3 share one library, and each later scenario has its own, all
+under `.scratch\release-140\`. To retry a scenario, move its folder aside
+(or rename the path in every command) and start from its first step. The
 dice are seeded, so the results below hold only if you take **exactly** the
 listed actions, in order. Anything else that rolls dice (an extra check,
 attack, Second Wind or potion) changes every roll after it. Moving between
@@ -156,7 +161,7 @@ and Forward back to the adventure. On each view, the library, creation, the
 sheet and the adventure, also reload. Expect each view to have its own address
 and page title (such as "Ada · Dungeon One"), and Back, Forward and reload to
 return to the same view. Cancelling creation keeps the rolled dice for next
-time. Nothing you do in this scenario rolls dice except **Start**.
+time. Nothing in this scenario changes the dice.
 
 ### 3. The delve: disabled reasons, a group fight, restart mid-fight, Continue, Out with the loot, level-up
 
@@ -164,8 +169,9 @@ Continue scenario 2's adventure (same command). At the Broken Gate the composer
 is disabled with "Typing to the Dungeon Master is off. Use the buttons." Use
 the action bar:
 
-1. **Examine** Chalk Marks, **Go** Gate Hall. Expect **Go** Storeroom disabled
-   with the reason "Door shut".
+1. **Examine** Chalk Marks. Examine stays enabled, so focus stays on its
+   button. Pressing Enter reads the marks again and rolls nothing. Then **Go**
+   Gate Hall, and expect **Go** Storeroom disabled with the reason "Door shut".
 2. **Force** Swollen Door: "Athletics check: d20 6 + 4 + 2 proficiency = 12
    against DC 12. Success." **Go** Storeroom, **Examine** Old Barrel, **Take**
    Potion of Healing. Expect **Drink** disabled with "Full HP".
