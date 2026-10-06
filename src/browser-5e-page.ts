@@ -1059,7 +1059,7 @@ function renderRoom(room, fighting) {
           return line;
         }));
         item.append(wares);
-        if (entry.buys.length) item.append(make("p", "Pays half price: " + entry.buys.map(({ name, price }) => name + " " + price).join(", ") + ".", "trade"));
+        if (entry.salePrices.length) item.append(make("p", "Pays half price: " + entry.salePrices.map(({ name, price }) => name + " " + price).join(", ") + ".", "trade"));
       }
       return item;
     }));
@@ -1273,8 +1273,8 @@ function renderActions() {
 
 // The question an equipped item's Sell asks first, inside its entry (#210).
 function saleQuestion(target) {
-  const merchant = session.room.creatures.find(({ buys }) => buys);
-  const price = merchant.buys.find(({ id }) => id === target.id).price;
+  const merchant = session.room.creatures.find(({ salePrices }) => salePrices);
+  const price = merchant.salePrices.find(({ id }) => id === target.id).price;
   const held = session.room.gear.worn.some(({ id }) => id === target.id) ? "you are wearing" : "you are holding";
   const box = make("div", undefined, "confirm");
   box.id = "sale-confirm";
