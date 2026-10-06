@@ -184,7 +184,10 @@ is.
 
 **The action bar** holds every action the engine offers now, with a **Go**,
 **Examine**, **Take**, **Drink**, **Attack** or other button (a screen reader
-hears the full "Examine Rusted Lantern"). An action the engine would refuse now
+hears the full "Examine Rusted Lantern"). Outside a fight, what you carry is
+acted on from its entry in the room panel's **You carry** list instead, with
+its own **Examine** and, for a potion, **Drink**, so a full pack never crowds
+the bar. An action the engine would refuse now
 stays in place, disabled, with the reason beside it, such as "Full HP",
 "Action used", "Bonus action used", "No uses left", "Already tried", "Already
 searched" or "Already asked". After you use an action, focus stays on its

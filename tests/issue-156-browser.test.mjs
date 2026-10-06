@@ -161,12 +161,12 @@ async function enterAction(page) {
   );
 }
 
-/** Tabs to an action from the adventure title and presses Enter. */
+/** Tabs to an action (in the bar or the inventory) from the adventure title and presses Enter. */
 async function keyboardAction(page, action, target) {
   await page.locator("#adventure-title").focus();
   await tabTo(
     page,
-    `#action-bar button[data-action="${action}"][data-target="${target}"]`,
+    `button.act[data-action="${action}"][data-target="${target}"]`,
   );
   await enterAction(page);
 }
@@ -278,10 +278,11 @@ for (const viewport of [
         await keyboardAction(page, "examine", "iron-chest");
         await keyboardAction(page, "take", "healing-potion");
         assert.equal((await focused(page)).newest, true);
-        // At full HP the potion stays in the bar, disabled, with the reason.
+        // At full HP the potion's Drink stays on its inventory entry (#198),
+        // disabled, with the reason.
         await assertReason(
           page,
-          '#explore-controls button[data-action="use"][data-target="healing-potion"]',
+          '#inventory button[data-action="use"][data-target="healing-potion"]',
           "Full HP",
         );
         await keyboardAction(page, "move", "stair-foot");

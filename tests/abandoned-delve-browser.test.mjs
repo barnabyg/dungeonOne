@@ -1,6 +1,7 @@
 // #136: The Abandoned Delve plays in the browser through the action bar,
 // keeping the newest history entry and the actions on screen after each
-// action (#154) at desktop and phone widths, with no horizontal scroll.
+// action (#154) at desktop and phone widths, with no horizontal scroll. The
+// Leave question opening and closing keeps that too (#221).
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -30,6 +31,15 @@ const assertNoSideScroll = async (page, label) =>
     `${label}: no horizontal scroll`,
   );
 
+/** Waits for the page to lay out and react to resizing. */
+const nextFrame = (page) =>
+  page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      }),
+  );
+
 /** Runs one action bar action with the #154 check, then the scroll check. */
 const explore = async (page, action, target) => {
   await exploreOnly(page, action, target);
@@ -46,9 +56,8 @@ const TO_THE_FIGHT = [
   ["move", "gate-hall"],
   ["force", "swollen-door"],
   ["move", "storeroom"],
-  // The potion stays in its barrel: each carried item adds a row to the
-  // phone action bar, and a full one overflows it (#198).
   ["examine", "old-barrel"],
+  ["take", "barrel-potion"],
   ["move", "gate-hall"],
   ["move", "guard-post"],
 ];
@@ -151,6 +160,39 @@ for (const viewport of [
         for (const [action, target] of AFTER_THE_FIGHT) {
           await explore(page, action, target);
         }
+
+        // #221: the Leave question opening or closing keeps the newest
+        // entry in view while the reader follows the log.
+        await page.locator("#leave-controls button").click();
+        await nextFrame(page);
+        await assertTogether(page, "leave question");
+        await page.locator("#cancel-leave").click();
+        await nextFrame(page);
+        await assertTogether(page, "stay");
+
+        // A reader who scrolled up keeps their place either way.
+        const scrolledUpTop = await page.evaluate(() => {
+          const log = document.getElementById("log");
+          log.scrollTop = Math.floor((log.scrollHeight - log.clientHeight) / 2);
+          return log.scrollTop;
+        });
+        assert.ok(
+          scrolledUpTop > 24,
+          `the log scrolls well clear of its bottom (${scrolledUpTop}px down)`,
+        );
+        await nextFrame(page);
+        const scrollTop = () =>
+          page.evaluate(() => document.getElementById("log").scrollTop);
+        await page.locator("#leave-controls button").click();
+        await nextFrame(page);
+        assert.equal(
+          await scrollTop(),
+          scrolledUpTop,
+          "place kept as Leave asks",
+        );
+        await page.locator("#cancel-leave").click();
+        await nextFrame(page);
+        assert.equal(await scrollTop(), scrolledUpTop, "place kept after Stay");
 
         await page.locator("#leave-controls button").click();
         await page.locator("#confirm-leave").click();

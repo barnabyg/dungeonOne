@@ -21,10 +21,13 @@
 //   the adventure, in an exit room; #133). Leave asks first in #leave-confirm,
 //   just after the bar, in place of the button, never in a browser dialog. It
 //   shows every action the session view projects, an unavailable one disabled
-//   with its reason as visible text linked by aria-describedby. After an
-//   action, focus stays on the clicked control if it is still enabled, and
-//   otherwise moves to the newest history entry. When the adventure is over
-//   the bar is hidden and #ending (#158) takes its place: data-kind victory,
+//   with its reason as visible text linked by aria-describedby. Outside a
+//   fight, what the character carries is acted on from the room panel's
+//   #inventory, not the bar (#198): each carried item's Examine and Drink sit
+//   on its entry, so a laden character's bar stays short enough for a phone.
+//   After an action, focus stays on the clicked control if it is still
+//   enabled, and otherwise moves to the newest history entry. When the
+//   adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
 //   escape-with-loot, escape-without-loot or defeat (in words, #ending-kind,
 //   and colour), the title and text, a defeat's permanence, #ending-rewards
 //   (the XP, treasure and coin a surviving ending earned, #ending-coin, and a
@@ -186,13 +189,13 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .log .narration{font:italic var(--text-md) var(--font-serif)}.log .player{width:fit-content;max-width:90%;margin-left:auto;background:var(--color-highlight);border-radius:var(--radius-md) var(--radius-md) 0 var(--radius-md);padding:6px 10px}.log .reply{margin-top:6px;padding-left:10px;border-left:2px solid var(--color-ink)}.log .reply::before,.card.rejection::before{display:block;font-size:var(--text-xs);font-weight:600;color:var(--color-text-label)}.log .reply::before{content:"Dungeon Master"/""}
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}
-h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}.things button{padding:6px 10px}#character-hp{font-weight:600}
+h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#inventory .action{width:8.5em}#inventory .action button{width:100%}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#ending .level-up p{margin:0}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}#action-bar button{display:inline-grid}#action-bar button>span,#action-bar button::after{grid-area:1/1}#action-bar button::after{content:attr(data-busy-label);visibility:hidden}#action-bar button[aria-busy=true]>span{visibility:hidden}#action-bar button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory) button{display:inline-grid}:is(#action-bar,#inventory) button>span,:is(#action-bar,#inventory) button::after{grid-area:1/1}:is(#action-bar,#inventory) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media not all and (min-width:900px) and (min-height:560px){#explore-controls{max-height:34dvh;overflow-y:auto;overscroll-behavior:contain;padding-right:var(--space-1)}}
@@ -922,8 +925,15 @@ function focusNewestEntry() {
 // History only grows, so new entries are appended: the live region announces
 // just them. The log follows the newest entry only while the reader is at the
 // bottom; someone who scrolled up to read older entries stays where they are.
-// Only the reader's scrolling changes that, not the dock resizing around it.
+// Only the reader's scrolling decides that, not the dock resizing around it;
+// while following, a resized log is scrolled back to its newest entry (#221).
 let followHistory = true;
+
+/** Scrolls the log to its newest entry while the reader follows it. */
+function followNewest() {
+  const log = element("log");
+  if (followHistory) log.scrollTop = log.scrollHeight;
+}
 
 function renderHistory() {
   const log = element("log");
@@ -934,7 +944,7 @@ function renderHistory() {
   }
   log.append(...session.history.slice(log.children.length).map(historyEntry));
   markNewest(log);
-  if (followHistory) log.scrollTop = log.scrollHeight;
+  followNewest();
 }
 
 /** Shows a typed message at once, with the Dungeon Master's reply pending. */
@@ -947,11 +957,13 @@ function showPending(message) {
   item.append(waiting);
   log.append(item);
   markNewest(log);
-  if (followHistory) log.scrollTop = log.scrollHeight;
+  followNewest();
 }
 
-// Each list's entries; their actions are in the action bar. An empty list is
-// left out, and a room with no exits, features or items says so in one line.
+// Each list's entries; their actions are in the action bar, except a carried
+// item's, which renderActions puts on its #inventory entry (#198). An empty
+// list is left out, and a room with no exits, features or items says so in
+// one line.
 const ROOM_LISTS = [
   { id: "exits", key: "exits" },
   { id: "features", key: "features" },
@@ -1124,13 +1136,15 @@ function renderActions() {
   const attacks = session.actions.filter(({ action }) => action === "attack").length;
   const ATTACKS = ["attack", "light-attack"];
   const left = (feature) => " (" + feature.uses + " of " + feature.max + " left)";
-  const groups = { attack: [], feature: [], explore: [], gear: [], leave: [] };
+  const groups = { attack: [], feature: [], explore: [], gear: [], leave: [], carried: [] };
+  const carried = new Set(session.room.inventory.map(({ id }) => id));
   session.actions.forEach((option, index) => {
     const { action, target } = option;
+    const exploring = EXPLORING.includes(action) || (action === "use" && !fighting);
     // Gear changes take their own rows, after exploring's (#209).
-    const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : GEAR.includes(action) ? "gear" : EXPLORING.includes(action) || (action === "use" && !fighting) ? "explore" : "feature";
+    const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : GEAR.includes(action) ? "gear" : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
     const label = ACTIONS[action].label + named(action, target) + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
-    const short = group === "explore" || group === "gear";
+    const short = group === "explore" || group === "gear" || group === "carried";
     const button = make("button");
     button.append(make("span", short ? ACTIONS[action].short : label));
     button.dataset.busyLabel = ACTIONS[action].busyLabel;
@@ -1138,6 +1152,8 @@ function renderActions() {
     if (short) button.setAttribute("aria-label", label);
     // One opponent makes attacking the fight's primary action; several are peers.
     button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + " secondary";
+    // "act" marks an action control, in the bar or on a carried item.
+    button.classList.add("act");
     button.dataset.action = action;
     if (target) button.dataset.target = target.id;
     button.disabled = acting || !option.available;
@@ -1149,6 +1165,11 @@ function renderActions() {
       reason.id = "action-reason-" + index;
       button.setAttribute("aria-describedby", reason.id);
       wrap.append(reason);
+    }
+    if (group === "carried") {
+      wrap.dataset.target = target.id;
+      groups.carried.push(wrap);
+      return;
     }
     if (!short) {
       groups[group].push(wrap);
@@ -1167,6 +1188,13 @@ function renderActions() {
   element("feature-controls").replaceChildren(...groups.feature);
   element("explore-controls").replaceChildren(...groups.explore, ...groups.gear);
   element("leave-controls").replaceChildren(...groups.leave);
+  // A carried item's verbs go on its entry in the room panel's list (#198).
+  for (const entry of element("inventory").children) {
+    const verbs = groups.carried.filter((wrap) => wrap.dataset.target === entry.dataset.id);
+    const controls = entry.querySelector(".controls") || entry.appendChild(make("div", undefined, "controls"));
+    controls.replaceChildren(...verbs);
+    controls.hidden = verbs.length === 0;
+  }
   // While Leave asks for confirmation, the question stands in its place.
   const asking = confirmingLeave && groups.leave.length > 0;
   element("leave-controls").hidden = asking;
@@ -1202,7 +1230,7 @@ async function leaveAdventure() {
 async function perform({ action, target }) {
   const targetId = target ? target.id : "";
   // The clicked control, found again after the bar re-renders, shows busy.
-  const control = "#action-bar button[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])");
+  const control = "button.act[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])");
   const busy = busyName({ action, target });
   if (action === "attack" || action === "light-attack") await act("/api/5e/session/" + action, { actorId: session.encounter.playerId, targetId }, control, busy);
   else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action }, control, busy);
@@ -1219,7 +1247,7 @@ function keepFocus(action, targetId) {
     element("ending-title").focus();
     return;
   }
-  const same = [...element("action-bar").querySelectorAll("button")].find((button) => button.dataset.action === action && (button.dataset.target || "") === targetId);
+  const same = [...document.querySelectorAll("button.act")].find((button) => button.dataset.action === action && (button.dataset.target || "") === targetId);
   if (same && !same.disabled) same.focus();
   else focusNewestEntry();
 }
@@ -1654,6 +1682,9 @@ element("log").addEventListener("scroll", () => {
   const log = element("log");
   followHistory = log.scrollHeight - log.scrollTop - log.clientHeight < 24;
 });
+// When the dock around the log changes, as the Leave question opens or closes,
+// the log changes size: a following reader stays on the newest entry (#221).
+new ResizeObserver(followNewest).observe(element("log"));
 // On a phone the dock is sticky: keep focused controls clear of it.
 new ResizeObserver(() => {
   const dock = element("session-dock");
