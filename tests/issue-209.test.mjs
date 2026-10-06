@@ -175,6 +175,17 @@ test("equipping refuses a shield with a two-handed weapon, full hands and heavy 
     equipItem(gear(["leather", "mace"]), "shield").refusal.code,
     "not-carried",
   );
+  // A two-handed weapon is refused for the shield, not for full hands, so the
+  // refusal never points to a swap that would be refused too.
+  assert.deepEqual(
+    equipItem(gear(["leather", "shield", "mace"], ["greatsword"]), "greatsword")
+      .refusal,
+    {
+      code: "two-handed",
+      reason:
+        "The greatsword needs both hands, and your shield is on your arm.",
+    },
+  );
 });
 
 test("unequipping stows armour, a shield or a second weapon, but never the last weapon", () => {

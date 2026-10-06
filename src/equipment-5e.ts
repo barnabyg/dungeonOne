@@ -441,6 +441,10 @@ export function equipItem(gear: Gear, id: ItemId): GearChange {
   const held = heldWeapons(gear);
   const main = held[0]!;
   if (isWeaponId(id)) {
+    const blocked = twoHandedRefusal(gear, id);
+    if (blocked !== undefined) {
+      return blocked;
+    }
     if (gear.equipment.includes("shield") || held.length > 1) {
       return refuse(
         "hands-full",
