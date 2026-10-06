@@ -1103,7 +1103,7 @@ const conditionTag = (condition) => {
   tag.append(spoken(": " + condition.text));
   return tag;
 };
-const combatantName = (encounter, combatant) =>combatant.name + (combatant.id === encounter.playerId ? " (you)" : "");
+const combatantName = (encounter, combatant) => combatant.name + (combatant.id === encounter.playerId ? " (you)" : "");
 
 // The initiative table shows each total; the current turn's row is
 // highlighted and its name tagged. The rolls behind the totals are on demand.
