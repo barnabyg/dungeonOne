@@ -107,6 +107,7 @@ test("the server projects the modules in offer order", async () => {
         "cellar-goblin",
         "robbers-barrow",
         "smugglers-cellar",
+        "tinkers-toll",
         "warden-crypt",
         "abandoned-delve",
         "goblin-storeroom",
@@ -136,6 +137,7 @@ test(
         })),
       );
       assert.deepEqual(cards, [
+        { tags: ["Level 1", "Hard"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },
@@ -248,7 +250,7 @@ test(
           .evaluateAll((buttons) =>
             buttons.map((button) => button.dataset.adventure),
           );
-        assert.equal(starts.length, 6);
+        assert.equal(starts.length, 7);
         assert.ok(!starts.includes("goblin-warren"));
         const library = JSON.parse(await readFile(libraryPath, "utf8"));
         const refused = await page.evaluate(

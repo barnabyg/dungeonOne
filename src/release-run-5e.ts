@@ -1,8 +1,10 @@
 /**
- * The #140 release run: The Abandoned Delve played from start to an ending
- * through a browser server's API, every turn typed to the AI DM as a player
- * would. It visits every room, fights every encounter, loots every treasure
- * and coin and climbs out.
+ * The release runs: a module played from start to an ending through a
+ * browser server's API, every turn typed to the AI DM as a player would.
+ * The #140 run visits every room of The Abandoned Delve, fights every
+ * encounter, loots every treasure and coin and climbs out. The #211 run
+ * clears The Tinker's Toll, equips the shield it finds, buys and wields a
+ * shortsword with the coin it finds, sells its mace and walks out.
  *
  * Each route step names the action-bar action it wants and the words a
  * player would type for it. When the AI DM's turn leaves that action still
@@ -212,6 +214,91 @@ export const DELVE_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
   { action: "leave", target: "shaft-bottom" },
 ]);
 
+/**
+ * The Tinker's Toll, in play order: the wolf at the ford, the shield and
+ * purse in its reeds, the bandits at the tower and their purse, then back to
+ * the tinker to trade before leaving by the shrine.
+ */
+export const TOLL_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
+  {
+    action: "examine",
+    target: "offering-bowl",
+    say: "Look in the offering bowl.",
+  },
+  {
+    action: "move",
+    target: "tinkers-cart",
+    say: "Walk down the road to the cart.",
+  },
+  {
+    action: "talk",
+    target: "the-tower",
+    say: "Ask the tinker about the toll tower.",
+  },
+  {
+    action: "talk",
+    target: "the-ford",
+    say: "Ask the tinker about the ford.",
+  },
+  { action: "move", target: "ford", say: "Head down to the ford." },
+  { action: "examine", target: "reeds", say: "Search the trampled reeds." },
+  {
+    action: "take",
+    target: "reed-shield",
+    say: "Pick up the traveller's shield.",
+  },
+  {
+    action: "take",
+    target: "traveller-purse",
+    say: "Take the sodden purse.",
+  },
+  {
+    action: "equip",
+    target: "shield",
+    say: "Strap the shield onto my arm.",
+  },
+  {
+    action: "move",
+    target: "toll-tower",
+    say: "Climb the track to the toll tower.",
+  },
+  {
+    action: "examine",
+    target: "strongbox",
+    say: "Open the strongbox under the stair.",
+  },
+  { action: "take", target: "toll-seal", say: "Take the silver seal." },
+  {
+    action: "examine",
+    target: "scarred-bandit",
+    say: "Search the scarred bandit's body.",
+  },
+  { action: "take", target: "bandit-purse", say: "Take the bandit's purse." },
+  { action: "move", target: "ford", say: "Go back down to the ford." },
+  {
+    action: "move",
+    target: "tinkers-cart",
+    say: "Go back up to the tinker's cart.",
+  },
+  {
+    action: "buy",
+    target: "shortsword",
+    say: "Buy a shortsword from the tinker.",
+  },
+  {
+    action: "swap",
+    target: "shortsword",
+    say: "Draw the shortsword and put the mace away.",
+  },
+  { action: "sell", target: "mace", say: "Sell my mace to the tinker." },
+  {
+    action: "move",
+    target: "wayside-shrine",
+    say: "Walk back up to the shrine.",
+  },
+  { action: "leave", target: "wayside-shrine" },
+]);
+
 /** Whether the action bar is a fight's: it always offers End turn. */
 const inFight = (view: ReleaseSessionView): boolean =>
   view.actions.some(({ action }) => action === "end-turn");
@@ -269,8 +356,9 @@ const findAction = (view: ReleaseSessionView, step: ReleaseStep) =>
 /**
  * Whether `step` is done in `after`: a move is done in its destination; an
  * examination (which stays offered, to read again) once the room shows what
- * it found; anything else once its action is no longer available in the
- * room it was taken in. A fight step is done by any committed action.
+ * it found; a trade (whose Buy stays offered while coin lasts) once the purse
+ * changed; anything else once its action is no longer available in the room
+ * it was taken in. A fight step is done by any committed action.
  */
 function stepDone(
   before: ReleaseSessionView,
@@ -288,6 +376,9 @@ function stepDone(
     return after.room.features.some(
       ({ id, discovery }) => id === step.target && discovery !== undefined,
     );
+  }
+  if (step.action === "buy" || step.action === "sell") {
+    return after.room.purse !== before.room.purse;
   }
   return (
     after.status !== "playing" ||

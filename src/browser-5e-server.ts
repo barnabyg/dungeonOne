@@ -128,8 +128,9 @@ function adventureView(adventure: FifthAdventure) {
 
 /**
  * What a surviving ending earned, from the character as the session started:
- * each XP award, the treasure and coin found, the XP and level after, and
- * the level-up, if any. Settling credits exactly this.
+ * each XP award, the treasure and coin found, the purse kept when coin was
+ * found or the purse changed (coin found may have been spent), the XP and
+ * level after, and the level-up, if any. Settling credits exactly this.
  */
 function rewardsView(session: FifthSession) {
   const settlement = session.runtime.projectSettlement(session.state);
@@ -152,6 +153,9 @@ function rewardsView(session: FifthSession) {
             settlement.coin.reduce((sum, { copper }) => sum + copper, 0),
           ),
         }),
+    ...(settlement.coin.length === 0 && after.purse === before.purse
+      ? {}
+      : { purse: after.purse === 0 ? "empty" : formatCoins(after.purse) }),
     totalXp: after.xp,
     level: after.level,
     ...(levelUp === undefined ? {} : { levelUp }),

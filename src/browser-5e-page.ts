@@ -707,10 +707,11 @@ function rewardNodes(rewards, name) {
   if (rewards.treasure.length > 0) {
     list("ending-treasure", "Treasure kept", rewards.treasure.map(treasureItem));
   }
-  if (rewards.coin) {
-    const coin = make("p", "Coin kept: " + rewards.coin);
-    coin.id = "ending-coin";
-    nodes.push(coin);
+  // Coin found may have been spent; the purse is what is kept.
+  if (rewards.purse) {
+    const purse = make("p", (rewards.coin ? "Coin found: " + rewards.coin + ". " : "") + "Purse: " + rewards.purse + ".");
+    purse.id = "ending-coin";
+    nodes.push(purse);
   }
   nodes.push(make("p", name + " has " + rewards.totalXp + " XP. A rest before the next adventure restores every hit point and feature use."));
   const up = rewards.levelUp;
@@ -1278,7 +1279,7 @@ function saleQuestion(target) {
   const held = session.room.gear.worn.some(({ id }) => id === target.id) ? "you are wearing" : "you are holding";
   const box = make("div", undefined, "confirm");
   box.id = "sale-confirm";
-  const question = make("p", "Sell the " + target.name.toLowerCase() + " " + held + " to the " + merchant.name + " for " + price + "?");
+  const question = make("p", "Sell the " + target.name.toLowerCase() + " " + held + " to " + merchant.name + " for " + price + "?");
   question.id = "sale-question";
   const confirm = make("button", "Sell it", "primary danger");
   confirm.id = "confirm-sale";

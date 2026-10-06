@@ -254,7 +254,7 @@ test(
       assert.match(ending, /Out with the silver: \+250 XP/);
       assert.match(ending, /Treasure kept\n+Silver Torc\. A neck ring/);
       assert.doesNotMatch(ending, /Pouch of Old Coins/);
-      assert.match(ending, /Coin kept: 2 gp 5 sp/);
+      assert.match(ending, /Coin found: 2 gp 5 sp\. Purse: 2 gp 5 sp\./);
       assert.match(ending, /Ada has 300 XP\./);
       assert.match(ending, /Level up: Ada is now level 2/);
       assert.match(

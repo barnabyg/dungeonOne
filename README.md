@@ -128,7 +128,7 @@ little common gear each, worth about the same: _Mace and leather_, _Two
 daggers and leather_, or _Club, dagger and leather_. Each kit shows the AC,
 attack and damage it gives your scores before you choose, and each Fighting
 Style is tagged with whether it applies to the kit chosen. Better gear is found
-in adventures. A pending creation keeps its dice even if a character is
+or bought in adventures. A pending creation keeps its dice even if a character is
 deleted. Creation needs no OpenAI key.
 
 ### Adventure modules
@@ -151,6 +151,10 @@ deleted. Creation needs no OpenAI key.
   hidden under the bier and a way out.
 - _The Smugglers' Cellar_ (`adventures/5e/smugglers-cellar.json`): four rooms
   with a Goblin Warrior and a Potion of Healing hidden in a chest.
+- _The Tinker's Toll_ (`adventures/5e/tinkers-toll.json`): four rooms on a
+  river road. Merrow the tinker trades dagger, shortsword, shield and chain
+  shirt from the cart; a Wolf guards the ford, where a shield and a purse lie
+  in the reeds, and two Bandits hold the toll tower with their takings.
 - _The Warden's Crypt_ (`adventures/5e/warden-crypt.json`): six rooms with a
   stuck door, a locked door and its key, a dart trap, a bound smuggler to
   question and the warden risen as a Zombie in the tomb.
@@ -301,7 +305,8 @@ itself awards. Each treasure, coin find and XP award is earned once per
 character, so playing an adventure again earns nothing twice. When the adventure ends, its
 ending takes the place of the action buttons and gets focus: Victory, Escaped
 with loot, Escaped empty-handed or Defeat, its title and text, what it earned
-and any level-up (300 XP for level 2, 900 for level 3) with the new hit points
+(with the coin found and the purse kept, which differ once coin is spent) and
+any level-up (300 XP for level 2, 900 for level 3) with the new hit points
 and features, and **Back to _name_'s sheet**. The typing box is disabled with the
 reason, the history stays readable, and reloading shows the same ending.
 
@@ -353,11 +358,12 @@ These are for development, not play.
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.
 - **Live release run.** `node scripts/qualify-release-live.mjs --live` (with
-  `--max-calls`, default 160, and `--seed`, default 99) plays the whole of The
-  Abandoned Delve through the browser server, typing every step to the AI DM
+  `--max-calls`, default 160) plays the whole of The Abandoned Delve (seed 99
+  by default), or with `--adventure tinkers-toll` The Tinker's Toll with its
+  trades (seed 0), through the browser server, typing every step to the AI DM
   and pressing a step's button only when the DM's turn left it undone, and
-  writes a turn-by-turn report (`src/release-run-5e.ts`); `--dry-run` checks
-  the harness offline.
+  writes a turn-by-turn report (`src/release-run-5e.ts`); `--seed` changes the
+  seed and `--dry-run` checks the harness offline.
 - **AI smoke test.** `npm.cmd run smoke:ai -- --model <model-id>` asks the live
   AI DM one question through the command-line adapter and fails unless it gets a
   usable reply.

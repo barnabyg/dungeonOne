@@ -28,6 +28,7 @@ import { isDeepStrictEqual } from "node:util";
 import {
   loadBuiltInFifthAdventures,
   type FifthAdventure,
+  type FifthAdventureId,
 } from "./adventure-5e.js";
 import { FIFTH_DM_OFF_NOTICE } from "./browser-5e-page.js";
 import { startFifthBrowserServer } from "./browser-5e-server.js";
@@ -781,8 +782,17 @@ export async function postToServer<T>(
  * Through a browser server's API, creates Ada from the library's rolled dice
  * with the test Fighter's choices and starts her on the delve.
  */
-export async function startDelveOverHttp(
+export function startDelveOverHttp(url: string): Promise<DelveSessionView> {
+  return startAdventureOverHttp(url, FIFTH_DM_EVALUATION_ADVENTURE);
+}
+
+/**
+ * Through a browser server's API, creates Ada from the library's rolled dice
+ * with the test Fighter's choices and starts her on `adventureId`.
+ */
+export async function startAdventureOverHttp(
   url: string,
+  adventureId: FifthAdventureId,
 ): Promise<DelveSessionView> {
   type Library = Readonly<{
     revision: string;
@@ -804,7 +814,7 @@ export async function startDelveOverHttp(
       {
         revision: library.revision,
         characterId: library.characters[0]!.sheet.id,
-        adventureId: FIFTH_DM_EVALUATION_ADVENTURE,
+        adventureId,
       },
     )
   ).body.session;

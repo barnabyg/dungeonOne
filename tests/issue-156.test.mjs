@@ -74,7 +74,8 @@ const PLAYER = "pc";
 function engineAction({ action, target }) {
   switch (action) {
     case "attack":
-      return { type: "attack", actorId: PLAYER, targetId: target.id };
+    case "light-attack":
+      return { type: action, actorId: PLAYER, targetId: target.id };
     case "use":
       return { type: "use-item", itemId: target.id };
     case "move":
@@ -87,7 +88,11 @@ function engineAction({ action, target }) {
     case "unequip":
     case "swap":
     case "drop":
+    case "buy":
+    case "sell":
       return { type: action, itemId: target.id };
+    case "sell-equipped":
+      return { type: "sell", itemId: target.id, equipped: true };
     case "force":
     case "pick":
     case "break":

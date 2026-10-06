@@ -1292,6 +1292,7 @@ export const FIFTH_ADVENTURE_FILES = {
   "goblin-warren": "goblin-warren.json",
   "robbers-barrow": "robbers-barrow.json",
   "smugglers-cellar": "smugglers-cellar.json",
+  "tinkers-toll": "tinkers-toll.json",
   "warden-crypt": "warden-crypt.json",
 } as const;
 export type FifthAdventureId = keyof typeof FIFTH_ADVENTURE_FILES;
