@@ -2532,7 +2532,11 @@ export function createFifthRuntime(
               usedItemIds: [...state.usedItemIds, item.id],
             },
             `The ${item.name}`,
-            coinCount(coin) / COINS_PER_POUND,
+            // What the purse gains: it is carried as the fewest coins, so
+            // this is not always the coins found.
+            (coinCount(state.possessions.purse + coin) -
+              coinCount(state.possessions.purse)) /
+              COINS_PER_POUND,
             { type: "taken", itemId: item.id, name: item.name, coin },
           );
         }
