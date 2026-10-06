@@ -1,6 +1,6 @@
 # D&D 5e Expansion — Implementation Plan (Increments 11–18)
 
-Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
+Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. Update, 6 October 2026: increment 12 is published as GitHub issues #206–#211 (see the [increment 12 ticket proposal](increment-12-ticket-proposal.md)). It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
 
 Baseline: `main` at `f68d221`.
 
@@ -353,6 +353,8 @@ Git history keeps everything.
 ## 5. Increment 12 — Equipment and economy
 
 **Playable result:** a new character picks a starting kit, finds or buys better gear, and sells what they don't need. Better gear costs more and is rarer.
+
+**Ticketed** as GitHub issues #206–#211 on 6 October 2026; see the [increment 12 ticket proposal](increment-12-ticket-proposal.md). The issues are the source of truth. The breakdown differs from the slices below: settlement is reworked first, 12.1 is folded into 12.2, coin gets its own slice, and 12.4 is dropped (decision 8).
 
 ### 12.1 Price weapons and armour by cost and rarity
 
@@ -755,18 +757,26 @@ Needs an ADR: a fourth record, the **campaign**, separate from character, advent
 | XP limit               | All the XP a module offers (every encounter and the most any ending awards) must not take a character one XP short of the level above the maximum past the maximum + 1, by the SRD 5.2 XP table                          | #135                  |
 | Shipped modules        | Keep the thresholds; declare each module at the difficulty it passes (four become Hard). The Storeroom moves to level 2 with a Goblin Minion and a Goblin Warrior, declared Medium                                       | #135                  |
 
+### Settled by the owner, 6 October 2026
+
+| Decision           | Outcome                                                                                                                                      | Where it applies |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Currency           | 5e copper, silver and gold, stored as copper and shown in mixed denominations                                                                | #208, #210       |
+| Starting equipment | Named common-tier kits only; no starting coin. Merchants stock common items always, uncommon from level 3, and no rare items in increment 12 | #207, #210       |
+| Market location    | In-adventure merchants only; no library market between adventures (12.4 dropped, its half-price selling moves to #210)                       | #210             |
+
 ### Open
 
-Number 1 was settled while working ticket 11.8 (#135; see the 5 October decisions); the rest can wait until their increment.
+Number 1 was settled while working ticket 11.8 (#135; see the 5 October decisions), and numbers 2, 3 and 8 when increment 12 was ticketed (see the 6 October decisions); the rest can wait until their increment.
 
 1. ~~**"Too easy" measure details**~~: settled, with the XP limit.
-2. **Currency:** 5e copper/silver/gold, stored as copper internally and shown in mixed denominations (recommended).
-3. **Starting equipment:** common-tier kits only, or starting coin to buy from the common tier. Also, when uncommon and rare items appear in markets.
+2. ~~**Currency**~~: settled, copper/silver/gold stored as copper.
+3. ~~**Starting equipment**~~: settled, common-tier kits only.
 4. **XP and loot for fled or surrendered monsters.**
 5. **+1 gear:** treasure in increment 13, or wait for magic in 16.
 6. **Content strategy:** hand-author every adventure, or build a 5e generator before 14.5.
 7. **Companions:** engine-controlled hirelings or a player-controlled party of library characters.
-8. **Market location:** the plan does both (12.4 library market, 12.5 in-adventure merchants). Confirm, or drop one.
+8. ~~**Market location**~~: settled, in-adventure merchants only.
 9. **Long-term level cap** after 5.
 
 ## 11. Out of scope
