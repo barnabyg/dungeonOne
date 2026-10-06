@@ -99,7 +99,7 @@ test("selling an equipped item needs it to be confirmed as equipped", () => {
   assert.deepEqual(sellItem(holding(["leather", "mace"]), "leather").refusal, {
     code: "sale-unconfirmed",
     reason:
-      "You are wearing the leather armour. Confirm the sale from its entry under You carry to sell it.",
+      "You are wearing the leather armour. Selling it needs your confirmation.",
   });
   assert.deepEqual(sellItem(holding(["leather", "mace"]), "leather", true), {
     holding: holding(["mace"], [], 500),
@@ -402,6 +402,14 @@ test("the AI DM trades only through the trade tool's offers, and cannot set a pr
     call('{"offer":"buy:shortsword","price":1}').modelOutput.error.code,
     "invalid-arguments",
   );
+  // An offer without buy: or sell: is no trade, even naming stocked gear.
+  for (const offer of ["shortsword", "steal:shortsword", ""]) {
+    assert.equal(
+      call(JSON.stringify({ offer })).engineResult.rejection.code,
+      "not-stocked",
+      offer,
+    );
+  }
   const refused = call('{"offer":"buy:longsword"}');
   assert.equal(refused.state, looted);
   assert.deepEqual(refused.engineResult, {
@@ -474,7 +482,7 @@ test("selling pays half price; equipped gear is sold only once confirmed", () =>
     {
       code: "sale-unconfirmed",
       reason:
-        "You are wearing the leather armour. Confirm the sale from its entry under You carry to sell it.",
+        "You are wearing the leather armour. Selling it needs your confirmation.",
     },
   );
   // The panel shows what the merchant pays for each kind carried.

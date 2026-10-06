@@ -766,7 +766,8 @@ export type TradeRefusalCode =
   | "too-little-coin"
   | "carrying-full"
   | "sale-unconfirmed"
-  | Extract<GearRefusalCode, "not-carried" | "not-equipped" | "last-weapon">;
+  /** Selling equipped gear unequips it first, which may refuse. */
+  | GearRefusalCode;
 
 export type Trade =
   | Readonly<{
@@ -855,18 +856,13 @@ export function sellItem(
     return {
       refusal: {
         code: "sale-unconfirmed",
-        reason: `You are ${isWeaponId(id) ? "holding" : "wearing"} the ${lower(id)}. Confirm the sale from its entry under You carry to sell it.`,
+        reason: `You are ${isWeaponId(id) ? "holding" : "wearing"} the ${lower(id)}. Selling it needs your confirmation.`,
       },
     };
   }
   const change = unequipItem(holding, id);
   if (change.refusal !== undefined) {
-    return {
-      refusal: change.refusal as Readonly<{
-        code: TradeRefusalCode;
-        reason: string;
-      }>,
-    };
+    return { refusal: change.refusal };
   }
   return sold(change.gear, [id]);
 }

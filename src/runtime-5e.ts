@@ -318,11 +318,12 @@ const TARGET_TOOLS = {
   trade: {
     parameter: "offer",
     action: (offer: string): FifthAction => {
-      const [deal, itemId] = offer.split(":", 2);
+      const [deal, itemId = ""] = offer.split(":", 2);
       // Never equipped gear: the player confirms that sale in the panel.
+      // Anything but buy: or sell: is a purchase of nothing, refused.
       return deal === "sell"
-        ? { type: "sell", itemId: itemId ?? "" }
-        : { type: "buy", itemId: deal === "buy" ? (itemId ?? "") : offer };
+        ? { type: "sell", itemId }
+        : { type: "buy", itemId: deal === "buy" ? itemId : "" };
     },
   },
 } as const satisfies Partial<
