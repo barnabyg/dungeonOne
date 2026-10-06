@@ -709,9 +709,9 @@ function rewardNodes(rewards, name) {
   }
   // Coin found may have been spent; the purse is what is kept.
   if (rewards.purse) {
-    const coin = make("p", (rewards.coin ? "Coin found: " + rewards.coin + ". " : "") + "Purse: " + rewards.purse + ".");
-    coin.id = "ending-coin";
-    nodes.push(coin);
+    const purse = make("p", (rewards.coin ? "Coin found: " + rewards.coin + ". " : "") + "Purse: " + rewards.purse + ".");
+    purse.id = "ending-coin";
+    nodes.push(purse);
   }
   nodes.push(make("p", name + " has " + rewards.totalXp + " XP. A rest before the next adventure restores every hit point and feature use."));
   const up = rewards.levelUp;
