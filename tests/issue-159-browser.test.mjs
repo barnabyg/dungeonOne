@@ -65,7 +65,8 @@ function firstFighter(seed) {
  * The storeroom fight on `seed`, played as the test plays it: a typed
  * attack on the first target, then clicks on the first target, or End turn
  * once the action is spent. The first target, whether a sapped opponent
- * attacked, how many attacks the opening made and how often Ada missed.
+ * attacked, how many attacks the opening made and how often Ada missed with
+ * her turn still going (the card ends "It is still your turn").
  */
 function simulate(seed) {
   const runtime = createFifthRuntime(storeroom, firstFighter(seed));
@@ -92,10 +93,15 @@ function simulate(seed) {
         : { type: "attack", actorId: "pc", targetId: targets[0].id },
       random,
     );
-    misses += result.events.filter(
-      (event) =>
-        event.type === "attack" && event.actorId === "pc" && !event.hit,
-    ).length;
+    if (
+      result.state.status === "playing" &&
+      result.events.at(-1)?.type !== "turn"
+    ) {
+      misses += result.events.filter(
+        (event) =>
+          event.type === "attack" && event.actorId === "pc" && !event.hit,
+      ).length;
+    }
     sapped ||= result.events.some(
       (event) =>
         event.type === "attack" && event.mode?.disadvantage.includes("Sap"),
@@ -108,20 +114,30 @@ function simulate(seed) {
 
 let seed = 0;
 let expected = simulate(seed);
-// Ada acts first, so the opening card holds only initiative, and never
-// misses. A compact card for an opening attack, or for Ada's miss with its
-// "still your turn" line, can be a line taller than its engine text at
-// phone width; that layout gap is tracked apart from this test.
+// An opponent attacks in the opening card, after initiative, and Ada misses
+// at least once, with her "still your turn" line: both cards were once a line
+// taller than their engine text (#196).
 while (
   !expected.sapped ||
   expected.first === undefined ||
   expected.steps < 3 ||
-  expected.openingAttacks > 0 ||
-  expected.misses > 0
+  expected.openingAttacks === 0 ||
+  expected.misses === 0
 ) {
   expected = simulate(++seed);
-  assert.ok(seed < 5000, "no storeroom fight with a sapped attack");
+  assert.ok(seed < 5000, "no storeroom fight with both card shapes");
 }
+
+// Fonts and letter spacings the height check is repeated in, as CI's
+// fallback fonts are wider than Windows' (#196).
+const FONTS = [
+  ["", "0"],
+  ["", "0.06em"],
+  ["Arial", "0"],
+  ["Arial", "0.06em"],
+  ["Arial", "0.09em"],
+  ["Verdana", "0"],
+];
 
 /** Waits for the history to gain an entry after `run`. */
 async function added(page, run) {
@@ -224,9 +240,9 @@ for (const viewport of [
         const [initiative] = await compactTexts(page);
         assert.match(
           initiative,
-          /^Initiative: [^·]+ d20 \d+ [+−] \d+ = \d+( \(roll-off [\d, ]+\))?( · [^·]+ d20 \d+ [+−] \d+ = \d+( \(roll-off [\d, ]+\))?)+$/,
+          /^Initiative: [^·]+ \d+ [+−] \d+ = \d+( \(roll-off [\d, ]+\))?( · [^·]+ \d+ [+−] \d+ = \d+( \(roll-off [\d, ]+\))?)+$/,
         );
-        assert.match(initiative, /(: | · )Ada d20 \d+ [+−] \d+ = \d+/);
+        assert.match(initiative, /(: | · )Ada \d+ [+−] \d+ = \d+/);
 
         // A typed message the DM answers in words, then one it acts on.
         await say(page, "I size up the goblins");
@@ -345,6 +361,18 @@ for (const viewport of [
             })),
         );
         assert.ok(spokenCards.length > 1);
+        // Both shapes from #196: an opponent's attack in the opening card, and
+        // Ada's miss followed by her "still your turn" line.
+        assert.match(
+          spokenCards[0].full,
+          /\n.+ attacks Ada with .+\. Miss\.\n/,
+        );
+        assert.ok(
+          spokenCards.some(({ full }) =>
+            /^Ada attacks .+\. Miss\.\nIt is still your turn/m.test(full),
+          ),
+          spokenCards.map(({ full }) => full).join("\n\n"),
+        );
         for (const card of spokenCards) {
           assert.deepEqual(card, {
             hidden: true,
@@ -364,11 +392,17 @@ for (const viewport of [
         assert.equal(await more.getAttribute("aria-expanded"), "false");
 
         // A card with an attack is no taller than its engine text alone, as
-        // cards were before #159.
-        const taller = await page.evaluate(() =>
-          [...document.querySelectorAll("#log .card.result")]
-            .filter((card) => card.querySelector(".compact .roll.attack"))
-            .map((card) => {
+        // cards were before #159, with slack for CI's wider fonts (#196).
+        const taller = await page.evaluate((fonts) => {
+          const log = document.querySelector("#log");
+          const found = [];
+          for (const [family, spacing] of fonts) {
+            log.style.fontFamily = family;
+            log.style.letterSpacing = spacing;
+            for (const card of log.querySelectorAll(".card.result")) {
+              if (!card.querySelector(".compact .roll.attack")) {
+                continue;
+              }
               const probe = document.createElement("div");
               probe.className = "card result";
               const text = document.createElement("p");
@@ -376,12 +410,22 @@ for (const viewport of [
               text.textContent = card.querySelector(".full-text").textContent;
               probe.append(text);
               card.after(probe);
-              const heights = [card.offsetHeight, probe.offsetHeight];
+              if (card.offsetHeight > probe.offsetHeight + 1) {
+                found.push([
+                  family,
+                  spacing,
+                  card.offsetHeight,
+                  probe.offsetHeight,
+                  text.textContent,
+                ]);
+              }
               probe.remove();
-              return heights;
-            })
-            .filter(([shown, plain]) => shown > plain + 1),
-        );
+            }
+          }
+          log.style.fontFamily = "";
+          log.style.letterSpacing = "";
+          return found;
+        }, FONTS);
         assert.deepEqual(taller, []);
 
         // Each kind looks different.
