@@ -2,12 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { request } from "node:http";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { CharacterLibrary } from "../dist/character-library.js";
 import {
   ABILITIES,
   buildFighter,
@@ -15,6 +14,14 @@ import {
   fighterProfile,
   keptTotal,
 } from "../dist/fighter-5e.js";
+
+// A pre-5e character library, as the deleted pre-5e game wrote it (#139).
+const PRE_5E_LIBRARY = JSON.stringify({
+  kind: "dungeon-one-characters",
+  formatVersion: 1,
+  revision: "0".repeat(32),
+  characters: [{ id: "a".repeat(32), name: "Ada" }],
+});
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -298,8 +305,7 @@ test("a pre-5e library is refused at launch and left byte-identical", async () =
   const directory = await mkdtemp(join(tmpdir(), "fighter-5e-refusal-"));
   try {
     const libraryPath = join(directory, "characters.json");
-    const old = new CharacterLibrary(libraryPath);
-    await old.create("Ada", "balanced", (await old.read()).revision);
+    await writeFile(libraryPath, PRE_5E_LIBRARY);
     const before = await readFile(libraryPath);
     await assert.rejects(
       startFifthBrowserServer({ libraryPath, seed: 1 }),

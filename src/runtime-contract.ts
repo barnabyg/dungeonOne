@@ -11,13 +11,6 @@
  * Runtime state is engine-owned JSON. Shared code reads only its `status`,
  * persists it, compares it and hands it back to the runtime that produced it.
  */
-import type {
-  Ability,
-  CharacterSheet,
-  characterProfile,
-  TreasureItem,
-} from "./character-rules.js";
-import type { ValidatedAdventure } from "./adventure-loader.js";
 import type { RandomSource } from "./random.js";
 
 /** `escaped`: the player chose to leave the adventure, alive (5e only). */
@@ -204,15 +197,7 @@ export type DmScene = Readonly<{
 }>;
 
 export type CharacterStatus = Readonly<{
-  sheet?: CharacterSheet;
   pendingXp?: number;
-  /** Treasure found this adventure; only for characters who can keep it. */
-  pendingTreasure?: Readonly<{
-    silver: number;
-    items: readonly TreasureItem[];
-  }>;
-  modifiers?: Readonly<Record<Ability, number>>;
-  profile?: ReturnType<typeof characterProfile>;
   hp: number;
   maxHp: number;
   equipment: readonly Readonly<{ id: string; name: string }>[];
@@ -367,10 +352,8 @@ export type AdventureRuntime = Readonly<{
   toolSchemaVersion: string;
   readToolNames: readonly string[];
   mutationToolNames: readonly string[];
-  startingCharacter?: CharacterSheet;
   commandTraceFormatVersion: 1 | 3 | 4 | 6;
   dmTraceFormatVersion: 2 | 3 | 4 | 6;
-  content?: ValidatedAdventure;
   engineVersion?: string;
   localStatusReads?: boolean;
   /** Create a fresh session. */
@@ -420,14 +403,6 @@ export type AdventureRuntime = Readonly<{
     transitions: readonly RecordedTransition[],
     speakerId?: string,
   ): DmHistory | undefined;
-  /**
-   * The unvalidated character sheet a finished session hands back to the
-   * career, given the sheet the character started with.
-   */
-  projectCharacterResult?(
-    state: RuntimeState,
-    startingSheet: CharacterSheet,
-  ): unknown;
   /** Browser presentation facts; undefined when the state has none. */
   projectBrowserFacts?(state: RuntimeState): BrowserFacts | undefined;
 }>;

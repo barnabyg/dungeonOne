@@ -10,6 +10,7 @@ test("eval command confines custom reports to the ignored report directory", () 
       path.join(process.cwd(), "scripts", "eval-dm.mjs"),
       "--model",
       "test-model",
+      "--live",
       "--output",
       "README.md",
     ],

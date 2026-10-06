@@ -438,7 +438,7 @@ export async function runDmTurn(
     transcript: readonly DmTranscriptEntry[];
     random: Pick<RandomSource, "roll">;
     model: DmModel;
-    runtime?: AdventureRuntime;
+    runtime: AdventureRuntime;
     executeTool?: (
       state: SessionState,
       call: DmToolCall,
@@ -458,10 +458,7 @@ export async function runDmTurn(
     resultSurface?: "mechanics" | "browser-cards";
   }>,
 ): Promise<DmTurnResult> {
-  // The pre-5e default (#139 removes it) loads only when no runtime is given,
-  // so the 5e browser, which always passes one, never loads the old runtimes.
-  const runtime =
-    input.runtime ?? (await import("./runtime.js")).resolveAdventure();
+  const runtime = input.runtime;
   const playerInput = normalizeDmText(input.playerInput);
   const transcript = boundTranscript(input.transcript);
   const diagnostics: DmDiagnostic[] = [];

@@ -4,8 +4,15 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
-import { CharacterLibrary } from "../dist/character-library.js";
 import { buildFighter, keptTotal } from "../dist/fighter-5e.js";
+
+// A pre-5e character library, as the deleted pre-5e game wrote it (#139).
+const PRE_5E_LIBRARY = JSON.stringify({
+  kind: "dungeon-one-characters",
+  formatVersion: 1,
+  revision: "0".repeat(32),
+  characters: [{ id: "a".repeat(32), name: "Ada" }],
+});
 
 const IN_ORDER = {
   strength: 0,
@@ -144,8 +151,7 @@ test("the library accepts only level 1, 0 XP sheets made from the pending dice",
 test("a pre-5e library is refused by name and left byte-identical", async () => {
   await withDirectory(async (directory) => {
     const path = join(directory, "characters.json");
-    const old = new CharacterLibrary(path);
-    await old.create("Ada", "balanced", (await old.read()).revision);
+    await writeFile(path, PRE_5E_LIBRARY);
     const before = await readFile(path);
     const library = new FifthCharacterLibrary(path, 7);
     const refusal = new RegExp(

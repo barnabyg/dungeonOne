@@ -1,12 +1,5 @@
 import { spawnSync } from "node:child_process";
-import {
-  cpSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -44,7 +37,6 @@ function run(args, capture = false) {
 
 rmSync("dist", { force: true, recursive: true });
 run(["run", "build"]);
-const { loadAdventure } = await import("../dist/adventure-loader.js");
 
 const packageManifest = JSON.parse(readFileSync("package.json", "utf8"));
 const lockfile = JSON.parse(readFileSync("package-lock.json", "utf8"));
@@ -64,69 +56,6 @@ const packOutput = run(["pack", "--dry-run", "--json"], true);
 const [manifest] = JSON.parse(packOutput);
 const packagedFiles = new Set(manifest.files.map((entry) => entry.path));
 
-const authoredAssets = [
-  "adventures/chapel-clues.json",
-  "adventures/generation-example.json",
-  "adventures/stolen-signet.json",
-  "adventures/signet-exploration.json",
-  "adventures/tide-observatory.json",
-  "adventures/remembering-guard.json",
-  "adventures/deadline-rescue.json",
-  "adventures/barricaded-crossroads.json",
-  "adventures/day-raider-crossroads.json",
-  "adventures/deceptive-crossroads.json",
-  "adventures/bribed-crossroads.json",
-  "adventures/hollow-beacon.json",
-  "adventures/hollow-beacon-journey.json",
-  "adventures/hollow-beacon-watch.json",
-  "adventures/hollow-beacon-refugees.json",
-  "adventures/hollow-beacon-trust.json",
-  "adventures/hollow-beacon-threat.json",
-  "adventures/hollow-beacon-recovery.json",
-  "adventures/hollow-beacon-component.json",
-  "adventures/hollow-beacon-confrontation.json",
-  "schema/adventure-v1.schema.json",
-  "schema/adventure-v2.schema.json",
-  "schema/adventure-v3.schema.json",
-  "schema/adventure-v4.schema.json",
-  "schema/adventure-v5.schema.json",
-  "schema/adventure-v6.schema.json",
-  "schema/adventure-v7.schema.json",
-  "schema/adventure-v8.schema.json",
-  "schema/adventure-v9.schema.json",
-  "schema/adventure-v10.schema.json",
-  "schema/adventure-v11.schema.json",
-  "schema/adventure-v12.schema.json",
-  "schema/adventure-v13.schema.json",
-  "schema/adventure-v14.schema.json",
-  "schema/adventure-v15.schema.json",
-  "schema/adventure-v16.schema.json",
-  "adventures/hollow-beacon-finale.json",
-  "adventures/hollow-beacon-characters.json",
-  "adventures/hollow-beacon-examine.json",
-  "adventures/hollow-beacon-story.json",
-  "adventures/stonebridge-characters.json",
-  "adventures/hollow-beacon-loot.json",
-  "adventures/stonebridge-loot.json",
-  "schema/adventure-v17.schema.json",
-  "schema/adventure-v18.schema.json",
-];
-
-for (const adventure of authoredAssets.filter((asset) =>
-  asset.startsWith("adventures/"),
-)) {
-  const result = loadAdventure(readFileSync(adventure));
-  if (!result.ok) {
-    throw new Error(
-      `Package validation failed: invalid ${adventure}: ${JSON.stringify(result.diagnostics)}`,
-    );
-  }
-}
-for (const schema of authoredAssets.filter((asset) =>
-  asset.startsWith("schema/"),
-)) {
-  JSON.parse(readFileSync(schema, "utf8"));
-}
 // 5e adventure modules: the browser loads them at startup.
 const { FIFTH_ADVENTURE_FILES, loadFifthAdventure } =
   await import("../dist/adventure-5e.js");
@@ -138,17 +67,11 @@ for (const adventure of fifthAdventures) {
 }
 
 for (const required of [
-  "dist/cli.js",
   "dist/cli-5e.js",
   "dist/browser-cli.js",
-  "dist/browser-server.js",
-  "dist/browser-page.js",
   "dist/browser-launch.js",
   "dist/openai-dm-model.js",
-  "dist/session.js",
-  "dist/signet-runtime.js",
   "dist/browser-5e-server.js",
-  ...authoredAssets,
   ...fifthAdventures,
   "package.json",
   "README.md",
@@ -187,39 +110,18 @@ try {
       recursive: true,
     },
   );
-  const cli = path.join(installed, "dist", "cli.js");
-  const { CharacterCareer } = await import(
-    pathToFileURL(path.join(installed, "dist", "character-career.js")).href
-  );
-  const { SaveSession } = await import(
-    pathToFileURL(path.join(installed, "dist", "save.js")).href
-  );
-  const career = new CharacterCareer(path.join(caller, "characters.json"));
-  const library = await career.library.create(
-    "Package Fighter",
-    "balanced",
-    (await career.library.read()).revision,
-  );
-  const sessionPath = await career.start(
-    library.characters[0].sheet.id,
-    "stonebridge",
-    library.revision,
-    42,
-    true,
-  );
   // The browser server loads its adventure modules from the installed package.
   const { startFifthBrowserServer } = await import(
     pathToFileURL(path.join(installed, "dist", "browser-5e-server.js")).href
   );
   const fifthServer = await startFifthBrowserServer({
-    libraryPath: path.join(caller, "characters-5e.json"),
+    libraryPath: path.join(caller, "characters.json"),
     seed: 42,
   });
   await fifthServer.close();
-  const characterSession = await SaveSession.load(sessionPath);
-  if (characterSession.runtime.startingCharacter?.name !== "Package Fighter") {
-    throw new Error("Extracted package character initialization failed.");
-  }
+  // The CLI test adapter plays and replays a built-in module from the
+  // installed package, run from another directory.
+  const cli = path.join(installed, "dist", "cli-5e.js");
   const runExtracted = (args, input = "") => {
     const result = spawnSync(process.execPath, [cli, ...args], {
       cwd: caller,
@@ -232,48 +134,12 @@ try {
     }
     return result.stdout;
   };
-  const external = path.join(caller, "external chapel.json");
-  writeFileSync(
-    external,
-    readFileSync(path.join(installed, "adventures", "chapel-clues.json")),
-  );
-  const validated = JSON.parse(
-    runExtracted(["--validate-adventure", "external chapel.json"]),
-  );
-  if (!validated.ok) {
-    throw new Error("Extracted package external validation failed.");
+  const trace = path.join(caller, "delve trace.json");
+  runExtracted(["--seed", "0", "--trace", trace], "1\nquit\n");
+  if (JSON.parse(readFileSync(trace, "utf8")).kind !== "dungeon-one-5e-trace") {
+    throw new Error("Extracted package did not write a 5e trace.");
   }
-  for (const selector of [
-    [],
-    ["--adventure", "chapel"],
-    ["--adventure", "stolen-signet"],
-  ]) {
-    const trace = path.join(
-      caller,
-      `trace ${selector.at(-1) ?? "default"}.json`,
-    );
-    runExtracted(
-      [...selector, "--seed", "0", "--trace", trace],
-      "look\nquit\n",
-    );
-    if (JSON.parse(readFileSync(trace, "utf8")).formatVersion !== 4) {
-      throw new Error("Extracted built-in did not export format 4.");
-    }
-    runExtracted(["--replay", trace]);
-  }
-  const externalTrace = path.join(caller, "external trace.json");
-  runExtracted(
-    [
-      "--adventure-file",
-      "external chapel.json",
-      "--seed",
-      "0",
-      "--trace",
-      externalTrace,
-    ],
-    "look\nquit\n",
-  );
-  runExtracted(["--replay", externalTrace]);
+  runExtracted(["--replay", trace]);
 } finally {
   rmSync(temporary, { recursive: true, force: true });
 }

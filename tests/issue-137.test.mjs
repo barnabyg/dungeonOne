@@ -11,10 +11,17 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { FIFTH_DM_SETUP_HINT } from "../dist/browser-5e-server.js";
-import { CharacterLibrary } from "../dist/character-library.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { startFifthAdventure } from "../dist/session-5e.js";
 import { launchDefault } from "./fixtures/default-launch.mjs";
+
+// A pre-5e character library, as the deleted pre-5e game wrote it (#139).
+const PRE_5E_LIBRARY = JSON.stringify({
+  kind: "dungeon-one-characters",
+  formatVersion: 1,
+  revision: "0".repeat(32),
+  characters: [{ id: "a".repeat(32), name: "Ada" }],
+});
 
 const cli = fileURLToPath(new URL("../dist/browser-cli.js", import.meta.url));
 
@@ -137,8 +144,7 @@ test("help describes only the 5e browser", () => {
 test("a pre-5e library at the default path is refused at launch and left byte-identical", async () =>
   withDirectory(async (directory) => {
     const libraryPath = join(directory, "characters.json");
-    const old = new CharacterLibrary(libraryPath);
-    await old.create("Ada", "balanced", (await old.read()).revision);
+    await writeFile(libraryPath, PRE_5E_LIBRARY);
     const before = await readFile(libraryPath);
     const result = run(directory, ["--seed", "0"]);
     assert.equal(result.status, 2);
@@ -196,75 +202,3 @@ test("an adventure saved in an older format is refused when opened and left byte
     assert.deepEqual(await readFile(sessionPath), before);
     assert.deepEqual(await readFile(libraryPath), libraryBefore);
   }));
-
-/**
- * Every module the built launcher loads at startup, by file name: static
- * imports, re-exports and bare imports. A dynamic import() loads only when it
- * runs, so it is not followed.
- */
-async function loaded(entry) {
-  const seen = new Set();
-  const pending = [entry];
-  while (pending.length > 0) {
-    const file = pending.pop();
-    if (seen.has(file)) {
-      continue;
-    }
-    seen.add(file);
-    const source = await readFile(file, "utf8");
-    for (const [, specifier] of source.matchAll(
-      /(?:\bfrom|^import)\s*["'](\.{1,2}\/[^"']+)["']/gm,
-    )) {
-      pending.push(resolve(dirname(file), specifier));
-    }
-  }
-  return [...seen].map((file) => file.slice(dirname(entry).length + 1));
-}
-
-// Until #139 deletes it, the pre-5e game is only a dynamic import away (the
-// DM turn loop's default runtime), which the browser never takes: it always
-// passes the 5e session's runtime.
-test("the browser launcher loads no pre-5e module", async () => {
-  const modules = await loaded(cli);
-  assert.ok(modules.includes("browser-5e-server.js"));
-  assert.ok(modules.includes("runtime-5e.js"));
-  for (const old of [
-    // The old browser, its library, save slot and career.
-    "browser-server.js",
-    "browser-page.js",
-    "browser-releases.js",
-    "browser-artwork.js",
-    "browser-actions.js",
-    "browser-hints.js",
-    "browser-history.js",
-    "browser-information.js",
-    "character-library.js",
-    "character-career.js",
-    "save.js",
-    // The runtime registry, which loads every pre-5e runtime.
-    "data-runtime.js",
-    "runtime.js",
-    "adventure-loader.js",
-    // The pre-5e runtimes and game modules (OLD_GAME_MODULES).
-    "adventure.js",
-    "chapel.js",
-    "chapel-clues-records.js",
-    "chapel-clues-runtime.js",
-    "chapel-tools.js",
-    "character-runtime.js",
-    "cli.js",
-    "combat.js",
-    "exploration-runtime.js",
-    "game-tools.js",
-    "generation.js",
-    "historical-runtime.js",
-    "legacy-replay.js",
-    "legacy-runtime-contract.js",
-    "parser.js",
-    "presenter.js",
-    "session.js",
-    "signet-runtime.js",
-  ]) {
-    assert.ok(!modules.includes(old), `the launcher loads ${old}`);
-  }
-});

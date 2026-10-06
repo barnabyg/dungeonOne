@@ -1,11 +1,11 @@
 // Runs the shipped browser launcher (`npm.cmd run browser`) as a player
-// would, through issue-93-launcher.mjs so no desktop window opens. Resolves
+// would, through quiet-launcher.mjs so no desktop window opens. Resolves
 // once it prints its URL; `stop` presses Ctrl+C and waits for it to exit.
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const launcher = fileURLToPath(
-  new URL("./issue-93-launcher.mjs", import.meta.url),
+  new URL("./quiet-launcher.mjs", import.meta.url),
 );
 
 /**

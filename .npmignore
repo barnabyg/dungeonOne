@@ -3,8 +3,5 @@
 !README.md
 !package.json
 !adventures/
-!adventures/*.json
 !adventures/5e/
 !adventures/5e/*.json
-!schema/
-!schema/*.json

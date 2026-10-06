@@ -372,16 +372,17 @@ test("the 5e DM evaluation calls the provider only with --live and a key", () =>
       env: { ...process.env, OPENAI_API_KEY: key },
     });
   for (const args of [
-    ["--campaign", "abandoned-delve"],
-    ["--live"],
-    ["--campaign", "abandoned-delve", "--live", "--live"],
-    ["--campaign", "abandoned-delve", "--live", "--max-calls", "0"],
+    [],
+    ["--live", "--live"],
+    ["--live", "--max-calls", "0"],
+    // The pre-5e campaigns, and the option that chose them, are gone (#139).
+    ["--live", "--campaign", "abandoned-delve"],
   ]) {
     const result = evaluate(args, "sk-test");
     assert.equal(result.status, 2, args.join(" "));
     assert.match(result.stderr, /only with --live/);
   }
-  const noKey = evaluate(["--campaign", "abandoned-delve", "--live"]);
+  const noKey = evaluate(["--live"]);
   assert.equal(noKey.status, 2);
   assert.match(noKey.stderr, /OPENAI_API_KEY is required/);
 });
