@@ -296,7 +296,7 @@ reason, the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 8.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 11.
+  `characters-adventures` directory beside the library, in format version 12.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or

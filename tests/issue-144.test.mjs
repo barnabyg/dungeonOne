@@ -24,6 +24,8 @@ import {
   describeFifthResult,
   playerCombatant,
 } from "../dist/runtime-5e.js";
+import { FIFTH_SESSION_FORMAT } from "../dist/session-5e.js";
+import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import {
   armouryBarrow as barrow,
   barrowFile,
@@ -439,4 +441,9 @@ test("the gate's one-hit-kill measure takes the Fighting Style that kills most o
   const armed = enemy(barrow);
   assert.equal(armed.gear, "greatsword");
   assert.equal(armed.fightingStyle, "great-weapon-fighting");
+});
+
+test("saves and traces move to new format versions: their attacks and dice carry Great Weapon Fighting", () => {
+  assert.equal(FIFTH_SESSION_FORMAT, 12);
+  assert.equal(FIFTH_TRACE_FORMAT, 6);
 });
