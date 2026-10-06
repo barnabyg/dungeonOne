@@ -1615,7 +1615,7 @@ function conditionsOf(
       const turns = `${condition.turnsLeft} ${condition.turnsLeft === 1 ? "turn" : "turns"} left`;
       const ends =
         condition.kind === "prone"
-          ? "gets up at the end of its next turn"
+          ? `gets up at the end of ${currentCombatant(encounter)?.id === combatantId ? "this" : "its next"} turn`
           : condition.save === undefined
             ? turns
             : `DC ${condition.save.dc} ${titleCase(condition.save.ability)} save at the end of each of its turns, up to ${turns}`;

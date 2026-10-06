@@ -155,8 +155,8 @@ test(
         /Ada is knocked prone by Wolf's Bite: disadvantage on its attack rolls, and advantage on attack rolls against it, until it gets up at the end of its next turn\./,
       );
       const prone = {
-        table: ["Prone: Wolf's Bite; gets up at the end of its next turn"],
-        strip: ["Prone: Wolf's Bite; gets up at the end of its next turn"],
+        table: ["Prone: Wolf's Bite; gets up at the end of this turn"],
+        strip: ["Prone: Wolf's Bite; gets up at the end of this turn"],
       };
       assert.deepEqual(await shown(page), prone);
       assert.ok(await page.locator("#conditions .tag.condition").isVisible());
