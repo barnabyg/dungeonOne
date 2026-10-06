@@ -1,12 +1,19 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { dmEvaluationExitCode, runDmEvaluation } from "../dist/dm-evaluator.js";
+import { runDmEvaluation } from "../dist/dm-evaluator.js";
+import {
+  evaluationCallBudget,
+  FIFTH_DM_CASES,
+  runFifthDmEvaluation,
+} from "../dist/dm-evaluation-5e.js";
 import { createOpenAiDmModel } from "../dist/openai-dm-model.js";
 
 const USAGE = [
-  "Usage: npm run eval:dm -- --model <model-id> [--campaign data-chapel|historical]",
+  "Usage: npm run eval:dm -- --model <model-id> [--campaign data-chapel|historical|abandoned-delve]",
   "       [--repetitions <count>] [--judgments <path>] [--output <path>]",
+  "       The abandoned-delve campaign calls the live provider only with --live,",
+  "       within --max-calls provider calls (default: four per case and repetition).",
 ].join(" ");
 
 function argumentValue(args, index) {
@@ -22,6 +29,10 @@ function parseArguments(args) {
   const seen = new Set();
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
+    if (argument === "--live" && parsed.live !== true) {
+      parsed.live = true;
+      continue;
+    }
     let name;
     let value;
     if (argument?.startsWith("--") === true && argument.includes("=")) {
@@ -48,6 +59,8 @@ function parseArguments(args) {
       parsed.judgmentsPath = value;
     } else if (name === "--output") {
       parsed.outputPath = value;
+    } else if (name === "--max-calls") {
+      parsed.maxCalls = Number(value);
     } else {
       throw new Error(USAGE);
     }
@@ -55,7 +68,14 @@ function parseArguments(args) {
   if (
     parsed.model === undefined ||
     parsed.model.startsWith("--") ||
-    !["data-chapel", "historical"].includes(parsed.campaign) ||
+    !["data-chapel", "historical", "abandoned-delve"].includes(
+      parsed.campaign,
+    ) ||
+    (parsed.maxCalls !== undefined &&
+      (parsed.campaign !== "abandoned-delve" ||
+        !Number.isInteger(parsed.maxCalls) ||
+        parsed.maxCalls < 1)) ||
+    (parsed.campaign === "abandoned-delve") !== (parsed.live === true) ||
     !Number.isInteger(parsed.repetitions) ||
     parsed.repetitions < 3
   ) {
@@ -119,18 +139,34 @@ try {
 
 const outputPath = configuration.outputPath;
 try {
-  const report = await runDmEvaluation({
-    requestedModel: configuration.model,
-    campaign: configuration.campaign,
-    repetitions: configuration.repetitions,
-    ...(manualJudgments === undefined ? {} : { manualJudgments }),
-    createModel() {
-      return createOpenAiDmModel({
-        apiKey: process.env.OPENAI_API_KEY,
-        model: configuration.model,
-      });
-    },
-  });
+  const live = (model) =>
+    createOpenAiDmModel({ apiKey: process.env.OPENAI_API_KEY, model });
+  let report;
+  if (configuration.campaign === "abandoned-delve") {
+    // Every case, every repetition, at most four model responses each.
+    const maxCalls =
+      configuration.maxCalls ?? evaluationCallBudget(configuration.repetitions);
+    process.stdout.write(
+      `Evaluating ${FIFTH_DM_CASES.length} cases × ${configuration.repetitions} repetitions on ${configuration.model}, at most ${maxCalls} provider calls.\n`,
+    );
+    report = await runFifthDmEvaluation({
+      requestedModel: configuration.model,
+      repetitions: configuration.repetitions,
+      maxCalls,
+      ...(manualJudgments === undefined ? {} : { manualJudgments }),
+      createModel: () => live(configuration.model),
+    });
+  } else {
+    report = await runDmEvaluation({
+      requestedModel: configuration.model,
+      campaign: configuration.campaign,
+      repetitions: configuration.repetitions,
+      ...(manualJudgments === undefined ? {} : { manualJudgments }),
+      createModel() {
+        return live(configuration.model);
+      },
+    });
+  }
   await mkdir(path.dirname(outputPath), { recursive: true });
   await writeFile(
     outputPath,
@@ -140,7 +176,7 @@ try {
   process.stdout.write(
     `DM evaluation ${report.passed ? "passed" : "failed"}; report: ${outputPath}\n`,
   );
-  process.exitCode = dmEvaluationExitCode(report);
+  process.exitCode = report.passed ? 0 : 1;
 } catch {
   process.stderr.write("DM evaluation could not produce a report.\n");
   process.exitCode = 1;

@@ -22,6 +22,7 @@ import type {
   FifthCharacterLibrary,
   FifthLibraryData,
 } from "./character-library-5e.js";
+import { runDmTurn, type DmModel, type DmTurnResult } from "./dm-turn.js";
 import { acquireFileLock } from "./file-lock.js";
 import { validateFighter, type FighterSheet } from "./fighter-5e.js";
 import { createSeededRandom, RANDOM_ALGORITHM } from "./random.js";
@@ -230,7 +231,8 @@ export class FifthSession {
   private position = 0;
   private drawn: RollRecord[] = [];
   private constructor(
-    readonly path: string,
+    /** The save file; undefined for a session kept only in memory. */
+    readonly path: string | undefined,
     readonly id: string,
     readonly seed: number,
     adventure: FifthAdventure,
@@ -352,6 +354,61 @@ export class FifthSession {
     };
   }
 
+  /**
+   * Hands the player's typed `message` to the AI DM for one turn, as the
+   * browser does: the DM sees the last four exchanges, acts only through
+   * offered tools and draws dice only through them. The exchange is recorded
+   * in the history as it goes, each engine card as it resolves, and
+   * `onCommit` runs after each committed action, before the reply is
+   * written, so a caller can save it.
+   */
+  async converse(
+    message: string,
+    model: DmModel,
+    onCommit: () => Promise<void> = async () => undefined,
+  ): Promise<Readonly<{ entry: HistoryEntry; turn: DmTurnResult }>> {
+    const cards: HistoryCard[] = [];
+    const index = this.history.length;
+    const record = (reply: string): HistoryEntry => {
+      const entry: HistoryEntry = { player: message, reply, cards: [...cards] };
+      this.history[index] = entry;
+      return entry;
+    };
+    const turn = await runDmTurn({
+      state: this.state,
+      playerInput: message,
+      transcript: this.history.slice(-4).flatMap((entry) => [
+        ...(entry.player === undefined
+          ? []
+          : [{ role: "player" as const, text: entry.player }]),
+        {
+          role: "dungeon-master" as const,
+          text: entry.reply || entry.cards.map(({ text }) => text).join("\n"),
+        },
+      ]),
+      random: {
+        roll() {
+          throw new Error("An AI DM turn draws dice only through tools.");
+        },
+      },
+      model,
+      runtime: this.runtime,
+      resultSurface: "browser-cards",
+      executeTool: async (_state, call) => {
+        const dispatched = this.dispatch(call);
+        if (dispatched.card !== undefined) {
+          cards.push(dispatched.card);
+          if (dispatched.card.kind !== "rejection") {
+            record("The reply was interrupted; the result is shown below.");
+            await onCommit();
+          }
+        }
+        return { result: dispatched.result, rolls: dispatched.rolls };
+      },
+    });
+    return { entry: record(turn.narration), turn };
+  }
+
   /** The engine-authored card for a resolved action and the dice it drew. */
   card(result: FifthResult, rolls: readonly RollRecord[]): HistoryCard {
     const lines = describeFifthResult(result, rolls, this.character.name);
@@ -369,6 +426,9 @@ export class FifthSession {
 
   /** Saves the session atomically under its file lock. */
   async persist(): Promise<void> {
+    if (this.path === undefined) {
+      throw new Error("This adventure session is kept only in memory.");
+    }
     const file: SessionFile = {
       kind: "dungeon-one-5e-session",
       formatVersion: FIFTH_SESSION_FORMAT,
@@ -414,6 +474,36 @@ export class FifthSession {
     adventure: FifthAdventure,
     character: FighterSheet,
   ): Promise<FifthSession> {
+    const session = FifthSession.start(path, id, seed, adventure, character);
+    await session.persist();
+    return session;
+  }
+
+  /**
+   * Begins a session kept only in memory, exactly as `create` begins a saved
+   * one: for the command-line adapter and trace replay.
+   */
+  static begin(
+    seed: number,
+    adventure: FifthAdventure,
+    character: FighterSheet,
+  ): FifthSession {
+    return FifthSession.start(
+      undefined,
+      randomBytes(16).toString("hex"),
+      seed,
+      adventure,
+      character,
+    );
+  }
+
+  private static start(
+    path: string | undefined,
+    id: string,
+    seed: number,
+    adventure: FifthAdventure,
+    character: FighterSheet,
+  ): FifthSession {
     const session = new FifthSession(
       path,
       id,
@@ -440,7 +530,6 @@ export class FifthSession {
       // A quiet start room begins with nothing to show.
       cards: result.events.length === 0 ? [] : [session.card(result, rolls)],
     });
-    await session.persist();
     return session;
   }
 

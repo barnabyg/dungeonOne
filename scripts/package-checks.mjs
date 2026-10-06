@@ -139,6 +139,7 @@ for (const adventure of fifthAdventures) {
 
 for (const required of [
   "dist/cli.js",
+  "dist/cli-5e.js",
   "dist/browser-cli.js",
   "dist/browser-server.js",
   "dist/browser-page.js",
