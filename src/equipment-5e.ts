@@ -786,11 +786,12 @@ export const COINS_PER_POUND = 50;
 export const POUNDS_PER_STRENGTH = 15;
 
 /**
- * SRD 5.2 weighs no treasure, so each carried treasure weighs a pound. Its
- * Potion of Healing weighs half a pound; a key weighs nothing, as it comes
- * with its lock. A module item's weight comes from its kind (#224).
+ * SRD 5.2 weighs no treasure, so each carried treasure weighs a pound. A
+ * module item's weight comes from its kind (#224); a key weighs nothing, as
+ * SRD 5.2 weighs none (one comes with its lock).
  */
 export const TREASURE_WEIGHT = 1;
+/** SRD 5.2: a Potion of Healing weighs half a pound. */
 export const POTION_WEIGHT = 0.5;
 
 /**
