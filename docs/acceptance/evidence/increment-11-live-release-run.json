@@ -1,0 +1,1868 @@
+{
+  "issue": 140,
+  "mode": "live",
+  "adventureId": "abandoned-delve",
+  "runDirectory": ".verify-artifacts\\issue-140-live-gsOQp8",
+  "requestedModel": "gpt-5.6-luna",
+  "startedAt": "2026-10-06T09:39:59.690Z",
+  "seed": 99,
+  "maxProviderCalls": 160,
+  "providerCalls": 58,
+  "usage": {
+    "inputTokens": 120536,
+    "outputTokens": 1481,
+    "totalTokens": 122017
+  },
+  "promptVersions": [
+    "5e-dm-v6"
+  ],
+  "summary": {
+    "turns": 59,
+    "typed": 58,
+    "committed": 58,
+    "matched": 58,
+    "fallbacks": 1,
+    "skipped": 0,
+    "reviewClaims": 0,
+    "roomsVisited": 10
+  },
+  "turns": [
+    {
+      "phase": "explore",
+      "room": "broken-gate",
+      "intent": "examine chalk-marks",
+      "message": "Read the chalk marks on the gatepost.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Chalk Marks: Faded chalk marks left by an earlier treasure-hunter. The marks read: \"Dead man in the guard post. Wire on the shrine stair. Key on the altar opens the vault. Webs: keep out.\"",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Chalk Marks: Faded chalk marks left by an earlier treasure-hunter. The marks read: \"Dead man in the guard post. Wire on the shrine stair. Key on the altar opens the vault. Webs: keep out.\""
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"chalk-marks\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "broken-gate",
+      "intent": "move gate-hall",
+      "message": "Head through the gate into the hall.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Gate Hall. A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Gate Hall. A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"gate-hall\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "gate-hall",
+      "intent": "force swollen-door",
+      "message": "Put my shoulder to the swollen door and force it.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Athletics check: d20 20 + 5 + 2 proficiency = 27 against DC 12. Success.\nYou force the Swollen Door open.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Athletics check: d20 20 + 5 + 2 proficiency = 27 against DC 12. Success.\nYou force the Swollen Door open."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "force_door",
+              "argumentsJson": "{\"door\":\"swollen-door\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "gate-hall",
+      "intent": "move storeroom",
+      "message": "Go into the storeroom.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Storeroom. A dry storeroom of split barrels and empty shelves. One old barrel is still sealed.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Storeroom. A dry storeroom of split barrels and empty shelves. One old barrel is still sealed."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"storeroom\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "storeroom",
+      "intent": "examine old-barrel",
+      "message": "Open the sealed barrel and look inside.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Old Barrel: One barrel is still sealed. Packed in straw inside the barrel is a stoppered vial of red liquid. You find the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Old Barrel: One barrel is still sealed. Packed in straw inside the barrel is a stoppered vial of red liquid. You find the Potion of Healing."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"old-barrel\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "storeroom",
+      "intent": "take barrel-potion",
+      "message": "Take the potion out of the barrel.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Potion of Healing."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"barrel-potion\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "storeroom",
+      "intent": "move gate-hall",
+      "message": "Back out to the gate hall.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Gate Hall. A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Gate Hall. A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"gate-hall\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "gate-hall",
+      "intent": "move guard-post",
+      "message": "Go to the guard post.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Guard Post. A cramped guard room with a weapon rack and an overturned table. A dead guard still stands its post, a purse at its belt. A narrow way leads on to an old well. The dead guard turns, jaw hanging, and shambles at you.\nInitiative: Ada 16 + 1 = 17; Zombie 9 − 2 = 7.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You enter the Guard Post. A cramped guard room with a weapon rack and an overturned table. A dead guard still stands its post, a purse at its belt. A narrow way leads on to an old well. The dead guard turns, jaw hanging, and shambles at you.\nInitiative: Ada 16 + 1 = 17; Zombie 9 − 2 = 7.\nIt is your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"guard-post\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "guard-post",
+      "intent": "attack zombie",
+      "message": "Attack the Zombie.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Zombie with Mace: 6 + 7 = 13 against AC 8. Hit. Damage 3 + 5 = 8 bludgeoning; Zombie has 7/15 HP.\nZombie is sapped: disadvantage on its next attack roll before Ada's next turn.\nZombie attacks Ada with Slam, at disadvantage (Sap): 13 and 3, keeping 3; 3 + 3 = 6 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Zombie with Mace: 6 + 7 = 13 against AC 8. Hit. Damage 3 + 5 = 8 bludgeoning; Zombie has 7/15 HP.\nZombie is sapped: disadvantage on its next attack roll before Ada's next turn.\nZombie attacks Ada with Slam, at disadvantage (Sap): 13 and 3, keeping 3; 3 + 3 = 6 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"zombie\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "guard-post",
+      "intent": "attack zombie",
+      "message": "Attack the Zombie.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Zombie with Mace: 1 + 7 = 8 against AC 8. Miss.\nZombie attacks Ada with Slam: 1 + 3 = 4 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Zombie with Mace: 1 + 7 = 8 against AC 8. Miss.\nZombie attacks Ada with Slam: 1 + 3 = 4 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"zombie\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "guard-post",
+      "intent": "attack zombie",
+      "message": "Attack the Zombie.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Zombie with Mace: 20 + 7 = 27 against AC 8. Critical hit! Damage 6 + 1 + 5 = 12 bludgeoning; Zombie has 0/15 HP.\nZombie is defeated.\nThe fight is over.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Zombie with Mace: 20 + 7 = 27 against AC 8. Critical hit! Damage 6 + 1 + 5 = 12 bludgeoning; Zombie has 0/15 HP.\nZombie is defeated.\nThe fight is over."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"zombie\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "guard-post",
+      "intent": "examine weapon-rack",
+      "message": "Search the weapon rack.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Weapon Rack: A rack of rusted spears. Tucked behind the spears is a stoppered vial of red liquid. You find the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Weapon Rack: A rack of rusted spears. Tucked behind the spears is a stoppered vial of red liquid. You find the Potion of Healing."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"weapon-rack\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "guard-post",
+      "intent": "take rack-potion",
+      "message": "Grab the vial from behind the spears.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Potion of Healing."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"rack-potion\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "guard-post",
+      "intent": "examine zombie",
+      "message": "Search the zombie's body.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Zombie's body: It lies where it fell. You find the Guard's Purse.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Zombie's body: It lies where it fell. You find the Guard's Purse."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"zombie\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "guard-post",
+      "intent": "take guard-purse",
+      "message": "Take the guard's purse.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Guard's Purse.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Guard's Purse."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"guard-purse\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "guard-post",
+      "intent": "move gate-hall",
+      "message": "Return to the gate hall.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Gate Hall. A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Gate Hall. A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"gate-hall\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "gate-hall",
+      "intent": "move barracks",
+      "message": "Go through the arch into the barracks.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Barracks. Rows of collapsed bunks. Two skeletons in rusted mail stand guard here still, beside a footlocker at the end of the room. A tall skeleton in rusted mail raises a shortsword. A bent skeleton clatters up from a bunk beside it.\nInitiative: Tall Skeleton 11 + 3 = 14; Bent Skeleton 8 + 3 = 11; Ada 9 + 1 = 10.\nTall Skeleton attacks Ada with Shortsword: 3 + 5 = 8 against AC 17. Miss.\nBent Skeleton attacks Ada with Shortsword: 1 + 5 = 6 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You enter the Barracks. Rows of collapsed bunks. Two skeletons in rusted mail stand guard here still, beside a footlocker at the end of the room. A tall skeleton in rusted mail raises a shortsword. A bent skeleton clatters up from a bunk beside it.\nInitiative: Tall Skeleton 11 + 3 = 14; Bent Skeleton 8 + 3 = 11; Ada 9 + 1 = 10.\nTall Skeleton attacks Ada with Shortsword: 3 + 5 = 8 against AC 17. Miss.\nBent Skeleton attacks Ada with Shortsword: 1 + 5 = 6 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"barracks\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "barracks",
+      "intent": "attack skeleton-sergeant",
+      "message": "Attack the Tall Skeleton.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Tall Skeleton with Mace: 16 + 7 = 23 against AC 14. Hit. Damage 5 + 5 = 10 bludgeoning; Tall Skeleton has 3/13 HP.\nTall Skeleton is sapped: disadvantage on its next attack roll before Ada's next turn.\nTall Skeleton attacks Ada with Shortsword, at disadvantage (Sap): 4 and 14, keeping 4; 4 + 5 = 9 against AC 17. Miss.\nBent Skeleton attacks Ada with Shortsword: 6 + 5 = 11 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Tall Skeleton with Mace: 16 + 7 = 23 against AC 14. Hit. Damage 5 + 5 = 10 bludgeoning; Tall Skeleton has 3/13 HP.\nTall Skeleton is sapped: disadvantage on its next attack roll before Ada's next turn.\nTall Skeleton attacks Ada with Shortsword, at disadvantage (Sap): 4 and 14, keeping 4; 4 + 5 = 9 against AC 17. Miss.\nBent Skeleton attacks Ada with Shortsword: 6 + 5 = 11 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"skeleton-sergeant\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "barracks",
+      "intent": "attack skeleton-sergeant",
+      "message": "Attack the Tall Skeleton.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Tall Skeleton with Mace: 13 + 7 = 20 against AC 14. Hit. Damage 4 + 5 = 9 bludgeoning; Tall Skeleton has 0/13 HP.\nTall Skeleton is defeated.\nBent Skeleton attacks Ada with Shortsword: 7 + 5 = 12 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Tall Skeleton with Mace: 13 + 7 = 20 against AC 14. Hit. Damage 4 + 5 = 9 bludgeoning; Tall Skeleton has 0/13 HP.\nTall Skeleton is defeated.\nBent Skeleton attacks Ada with Shortsword: 7 + 5 = 12 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"skeleton-sergeant\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "barracks",
+      "intent": "attack skeleton-guard",
+      "message": "Attack the Bent Skeleton.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Bent Skeleton with Mace: 9 + 7 = 16 against AC 14. Hit. Damage 4 + 5 = 9 bludgeoning; Bent Skeleton has 4/13 HP.\nBent Skeleton is sapped: disadvantage on its next attack roll before Ada's next turn.\nBent Skeleton attacks Ada with Shortsword, at disadvantage (Sap): 10 and 3, keeping 3; 3 + 5 = 8 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Bent Skeleton with Mace: 9 + 7 = 16 against AC 14. Hit. Damage 4 + 5 = 9 bludgeoning; Bent Skeleton has 4/13 HP.\nBent Skeleton is sapped: disadvantage on its next attack roll before Ada's next turn.\nBent Skeleton attacks Ada with Shortsword, at disadvantage (Sap): 10 and 3, keeping 3; 3 + 5 = 8 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"skeleton-guard\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "barracks",
+      "intent": "attack skeleton-guard",
+      "message": "Attack the Bent Skeleton.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Bent Skeleton with Mace: 15 + 7 = 22 against AC 14. Hit. Damage 4 + 5 = 9 bludgeoning; Bent Skeleton has 0/13 HP.\nBent Skeleton is defeated.\nThe fight is over.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Bent Skeleton with Mace: 15 + 7 = 22 against AC 14. Hit. Damage 4 + 5 = 9 bludgeoning; Bent Skeleton has 0/13 HP.\nBent Skeleton is defeated.\nThe fight is over."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"skeleton-guard\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "barracks",
+      "intent": "examine footlocker",
+      "message": "Rummage through the footlocker.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Footlocker: An iron-bound footlocker, its lid rusted half open. Wrapped in a mouldy cloak is a dagger hilt chased with silver. You find the Dagger Hilt.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Footlocker: An iron-bound footlocker, its lid rusted half open. Wrapped in a mouldy cloak is a dagger hilt chased with silver. You find the Dagger Hilt."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"footlocker\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "barracks",
+      "intent": "take dagger-hilt",
+      "message": "Take the dagger hilt.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Dagger Hilt.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Dagger Hilt."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"dagger-hilt\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "barracks",
+      "intent": "move gate-hall",
+      "message": "Head back to the gate hall.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Gate Hall. A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Gate Hall. A long hall of fallen banners. A swollen door stands shut in one wall, bones clatter somewhere behind the barracks arch, and a passage leads to the guard post."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"gate-hall\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "gate-hall",
+      "intent": "move guard-post",
+      "message": "Go to the guard post.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Guard Post. A cramped guard room with a weapon rack and an overturned table. A dead guard still stands its post, a purse at its belt. A narrow way leads on to an old well.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Guard Post. A cramped guard room with a weapon rack and an overturned table. A dead guard still stands its post, a purse at its belt. A narrow way leads on to an old well."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"guard-post\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "guard-post",
+      "intent": "move dry-well",
+      "message": "Squeeze through the narrow way to the well.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Dry Well. A round chamber around a dry well. A goblin is stuck at the bottom and calls up to you. A stair leads down to a shrine, and a webbed passage to a crypt.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Dry Well. A round chamber around a dry well. A goblin is stuck at the bottom and calls up to you. A stair leads down to a shrine, and a webbed passage to a crypt."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"dry-well\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "dry-well",
+      "intent": "talk the-vault",
+      "message": "Ask the goblin what it knows about the vault.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Goblin: \"The dead never left. Bones in the barracks, a big spider in the crypt, and a dead thing in the vault past the shaft. The vault key? On the altar in the shrine.\"",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Goblin: \"The dead never left. Bones in the barracks, a big spider in the crypt, and a dead thing in the vault past the shaft. The vault key? On the altar in the shrine.\""
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "talk",
+              "argumentsJson": "{\"topic\":\"the-vault\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "dry-well",
+      "intent": "talk the-stair",
+      "message": "Talk the goblin into telling me about the stair.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Persuasion check: d20 3 + 0 = 3 against DC 12. Failure.\nGoblin: \"Get me out first, then I'll tell you things.\" The goblin sulks.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Persuasion check: d20 3 + 0 = 3 against DC 12. Failure.\nGoblin: \"Get me out first, then I'll tell you things.\" The goblin sulks."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "talk",
+              "argumentsJson": "{\"topic\":\"the-stair\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "dry-well",
+      "intent": "search dry-well",
+      "message": "Check the stair down for traps before I use it.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Perception check: d20 11 + 3 + 2 proficiency = 16 against DC 13. Success.\nYou find a Loose Step on the way to the Shrine: One step is set loose over a drop, wired to give way.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Perception check: d20 11 + 3 + 2 proficiency = 16 against DC 13. Success.\nYou find a Loose Step on the way to the Shrine: One step is set loose over a drop, wired to give way."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "search",
+              "argumentsJson": "{\"room\":\"dry-well\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "dry-well",
+      "intent": "disarm loose-step",
+      "message": "Disarm the loose step.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Dexterity check: d20 2 + 1 = 3 against DC 12. Failure.\nYou can't work out how to disarm the Loose Step.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Dexterity check: d20 2 + 1 = 3 against DC 12. Failure.\nYou can't work out how to disarm the Loose Step."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "disarm",
+              "argumentsJson": "{\"trap\":\"loose-step\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "dry-well",
+      "intent": "move shrine",
+      "message": "Go down the stair to the shrine.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Loose Step: A step gives way and the stair drops you down onto broken stone.\nDexterity saving throw: d20 4 + 1 = 5 against DC 12. Failure.\nThe Loose Step deals 6 + 5 = 11 bludgeoning; you have 3/14 HP.\nYou enter the Shrine. A small shrine at the foot of the stair. Silver candlesticks stand on a stone altar. A passage runs on to a shaft of daylight.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Loose Step: A step gives way and the stair drops you down onto broken stone.\nDexterity saving throw: d20 4 + 1 = 5 against DC 12. Failure.\nThe Loose Step deals 6 + 5 = 11 bludgeoning; you have 3/14 HP.\nYou enter the Shrine. A small shrine at the foot of the stair. Silver candlesticks stand on a stone altar. A passage runs on to a shaft of daylight."
+        }
+      ],
+      "hp": 3,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"shrine\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "shrine",
+      "intent": "examine altar",
+      "message": "Look over the altar.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Altar: A stone altar with two tarnished silver candlesticks. Behind the candlesticks lies a heavy bronze key. You find the Bronze Key and Candlesticks.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Altar: A stone altar with two tarnished silver candlesticks. Behind the candlesticks lies a heavy bronze key. You find the Bronze Key and Candlesticks."
+        }
+      ],
+      "hp": 3,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"altar\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "shrine",
+      "intent": "take bronze-key",
+      "message": "Take the bronze key.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Bronze Key.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Bronze Key."
+        }
+      ],
+      "hp": 3,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"bronze-key\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "shrine",
+      "intent": "take candlesticks",
+      "message": "Take the silver candlesticks too.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Candlesticks.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Candlesticks."
+        }
+      ],
+      "hp": 3,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"candlesticks\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "shrine",
+      "intent": "move shaft-bottom",
+      "message": "Follow the passage toward daylight.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Shaft Bottom. The bottom of a collapsed shaft, lit by daylight far above. A knotted rope hangs down: you could climb out with what you carry. Beside it a bronze door leads to the vault.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Shaft Bottom. The bottom of a collapsed shaft, lit by daylight far above. A knotted rope hangs down: you could climb out with what you carry. Beside it a bronze door leads to the vault."
+        }
+      ],
+      "hp": 3,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"shaft-bottom\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "shaft-bottom",
+      "intent": "examine knotted-rope",
+      "message": "Test the knotted rope.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Knotted Rope: A knotted rope, tied off somewhere far above. The rope is sound. It would take your weight to the surface.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Knotted Rope: A knotted rope, tied off somewhere far above. The rope is sound. It would take your weight to the surface."
+        }
+      ],
+      "hp": 3,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"knotted-rope\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "shaft-bottom",
+      "intent": "move web-crypt",
+      "message": "Push through the webs into the crypt.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Web Crypt. Thick webs fill a low crypt. A cocooned body hangs in the middle, and something large shifts in the dark above it. A spider the size of a pony drops from the webs, fangs dripping.\nInitiative: Giant Spider 7 + 3 = 10; Ada 8 + 1 = 9.\nGiant Spider attacks Ada with Bite: 3 + 5 = 8 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You enter the Web Crypt. Thick webs fill a low crypt. A cocooned body hangs in the middle, and something large shifts in the dark above it. A spider the size of a pony drops from the webs, fangs dripping.\nInitiative: Giant Spider 7 + 3 = 10; Ada 8 + 1 = 9.\nGiant Spider attacks Ada with Bite: 3 + 5 = 8 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 3,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"web-crypt\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "web-crypt",
+      "intent": "second-wind",
+      "message": "Catch my breath with Second Wind.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada uses Second Wind: 8 + 1 = 9; Ada regains 9 HP and has 12/14 HP. 1 use left.\nIt is still your turn: you can attack or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada uses Second Wind: 8 + 1 = 9; Ada regains 9 HP and has 12/14 HP. 1 use left.\nIt is still your turn: you can attack or end your turn."
+        }
+      ],
+      "hp": 12,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "second_wind",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "web-crypt",
+      "intent": "attack giant-spider",
+      "message": "Attack the Giant Spider.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Giant Spider with Mace: 19 + 7 = 26 against AC 14. Hit. Damage 3 + 5 = 8 bludgeoning; Giant Spider has 18/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 2 and 9, keeping 2; 2 + 5 = 7 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Giant Spider with Mace: 19 + 7 = 26 against AC 14. Hit. Damage 3 + 5 = 8 bludgeoning; Giant Spider has 18/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 2 and 9, keeping 2; 2 + 5 = 7 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 12,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"giant-spider\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "web-crypt",
+      "intent": "attack giant-spider",
+      "message": "Attack the Giant Spider.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Giant Spider with Mace: 4 + 7 = 11 against AC 14. Miss.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Giant Spider with Mace: 4 + 7 = 11 against AC 14. Miss.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 12,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"giant-spider\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "web-crypt",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nGiant Spider attacks Ada with Bite: 1 + 5 = 6 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nGiant Spider attacks Ada with Bite: 1 + 5 = 6 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 12,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "web-crypt",
+      "intent": "attack giant-spider",
+      "message": "Attack the Giant Spider.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Giant Spider with Mace: 10 + 7 = 17 against AC 14. Hit. Damage 5 + 5 = 10 bludgeoning; Giant Spider has 8/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Giant Spider with Mace: 10 + 7 = 17 against AC 14. Hit. Damage 5 + 5 = 10 bludgeoning; Giant Spider has 8/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 12,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"giant-spider\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "web-crypt",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 16 and 17, keeping 16; 16 + 5 = 21 against AC 17. Hit. Damage 2 + 3 = 5 piercing; Ada has 7/14 HP.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 16 and 17, keeping 16; 16 + 5 = 21 against AC 17. Hit. Damage 2 + 3 = 5 piercing; Ada has 7/14 HP.\nIt is your turn."
+        }
+      ],
+      "hp": 7,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "web-crypt",
+      "intent": "second-wind",
+      "message": "Catch my breath with Second Wind.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada uses Second Wind: 8 + 1 = 9; Ada regains 7 HP and has 14/14 HP. 0 uses left.\nIt is still your turn: you can attack or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada uses Second Wind: 8 + 1 = 9; Ada regains 7 HP and has 14/14 HP. 0 uses left.\nIt is still your turn: you can attack or end your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "second_wind",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "web-crypt",
+      "intent": "attack giant-spider",
+      "message": "Attack the Giant Spider.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Giant Spider with Mace: 11 + 7 = 18 against AC 14. Hit. Damage 3 + 5 = 8 bludgeoning; Giant Spider has 0/26 HP.\nGiant Spider is defeated.\nThe fight is over.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Giant Spider with Mace: 11 + 7 = 18 against AC 14. Hit. Damage 3 + 5 = 8 bludgeoning; Giant Spider has 0/26 HP.\nGiant Spider is defeated.\nThe fight is over."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"giant-spider\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "web-crypt",
+      "intent": "examine cocoon",
+      "message": "Cut open the hanging cocoon.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Cocoon: A body wrapped in web, hanging from the ceiling. On the dead treasure-hunter's hand is a gold ring. You find the Gold Ring.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Cocoon: A body wrapped in web, hanging from the ceiling. On the dead treasure-hunter's hand is a gold ring. You find the Gold Ring."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"cocoon\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "web-crypt",
+      "intent": "take gold-ring",
+      "message": "Take the gold ring.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Gold Ring.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Gold Ring."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"gold-ring\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "web-crypt",
+      "intent": "move shaft-bottom",
+      "message": "Go back to the bottom of the shaft.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Shaft Bottom. The bottom of a collapsed shaft, lit by daylight far above. A knotted rope hangs down: you could climb out with what you carry. Beside it a bronze door leads to the vault.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Shaft Bottom. The bottom of a collapsed shaft, lit by daylight far above. A knotted rope hangs down: you could climb out with what you carry. Beside it a bronze door leads to the vault."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"shaft-bottom\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "shaft-bottom",
+      "intent": "unlock vault-door",
+      "message": "Unlock the vault door with the bronze key.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You unlock the Vault Door with the Bronze Key.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You unlock the Vault Door with the Bronze Key."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "unlock",
+              "argumentsJson": "{\"door\":\"vault-door\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "shaft-bottom",
+      "intent": "move vault",
+      "message": "Go into the vault.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Vault. The lord's vault: a stone room with an iron chest against the far wall. Something that was once a man crouches over it. The ghoul looks up from the chest, a jewelled goblet in its claws, and springs.\nInitiative: Ghoul 17 + 2 = 19; Ada 13 + 1 = 14.\nGhoul attacks Ada with Bite: 6 + 4 = 10 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You enter the Vault. The lord's vault: a stone room with an iron chest against the far wall. Something that was once a man crouches over it. The ghoul looks up from the chest, a jewelled goblet in its claws, and springs.\nInitiative: Ghoul 17 + 2 = 19; Ada 13 + 1 = 14.\nGhoul attacks Ada with Bite: 6 + 4 = 10 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"vault\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "vault",
+      "intent": "attack ghoul",
+      "message": "Attack the Ghoul.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Ghoul with Mace: 16 + 7 = 23 against AC 12. Hit. Damage 4 + 5 = 9 bludgeoning; Ghoul has 13/22 HP.\nGhoul is sapped: disadvantage on its next attack roll before Ada's next turn.\nGhoul attacks Ada with Bite, at disadvantage (Sap): 5 and 17, keeping 5; 5 + 4 = 9 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Ghoul with Mace: 16 + 7 = 23 against AC 12. Hit. Damage 4 + 5 = 9 bludgeoning; Ghoul has 13/22 HP.\nGhoul is sapped: disadvantage on its next attack roll before Ada's next turn.\nGhoul attacks Ada with Bite, at disadvantage (Sap): 5 and 17, keeping 5; 5 + 4 = 9 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"ghoul\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "vault",
+      "intent": "attack ghoul",
+      "message": "Attack the Ghoul.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Ghoul with Mace: 6 + 7 = 13 against AC 12. Hit. Damage 6 + 5 = 11 bludgeoning; Ghoul has 2/22 HP.\nGhoul is sapped: disadvantage on its next attack roll before Ada's next turn.\nGhoul attacks Ada with Bite, at disadvantage (Sap): 8 and 13, keeping 8; 8 + 4 = 12 against AC 17. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Ghoul with Mace: 6 + 7 = 13 against AC 12. Hit. Damage 6 + 5 = 11 bludgeoning; Ghoul has 2/22 HP.\nGhoul is sapped: disadvantage on its next attack roll before Ada's next turn.\nGhoul attacks Ada with Bite, at disadvantage (Sap): 8 and 13, keeping 8; 8 + 4 = 12 against AC 17. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"ghoul\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "vault",
+      "intent": "attack ghoul",
+      "message": "Attack the Ghoul.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Ghoul with Mace: 14 + 7 = 21 against AC 12. Hit. Damage 2 + 5 = 7 bludgeoning; Ghoul has 0/22 HP.\nGhoul is defeated.\nThe fight is over.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Ghoul with Mace: 14 + 7 = 21 against AC 12. Hit. Damage 2 + 5 = 7 bludgeoning; Ghoul has 0/22 HP.\nGhoul is defeated.\nThe fight is over."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"ghoul\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "vault",
+      "intent": "examine iron-chest",
+      "message": "Look in the iron chest.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Iron Chest: A great iron chest, its lid broken open. The chest is still half full of old gold coins. You find the Gold Coins.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Iron Chest: A great iron chest, its lid broken open. The chest is still half full of old gold coins. You find the Gold Coins."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"iron-chest\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "vault",
+      "intent": "take coin-chest",
+      "message": "Scoop up the gold coins.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Gold Coins.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Gold Coins."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"coin-chest\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "vault",
+      "intent": "examine ghoul",
+      "message": "Search the ghoul's body.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ghoul's body: It lies where it fell. You find the Goblet.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ghoul's body: It lies where it fell. You find the Goblet."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"ghoul\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "vault",
+      "intent": "take jewelled-goblet",
+      "message": "Take the jewelled goblet.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Goblet.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Goblet."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"jewelled-goblet\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "vault",
+      "intent": "move shaft-bottom",
+      "message": "Back to the shaft and the rope.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Shaft Bottom. The bottom of a collapsed shaft, lit by daylight far above. A knotted rope hangs down: you could climb out with what you carry. Beside it a bronze door leads to the vault.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Shaft Bottom. The bottom of a collapsed shaft, lit by daylight far above. A knotted rope hangs down: you could climb out with what you carry. Beside it a bronze door leads to the vault."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"shaft-bottom\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "shaft-bottom",
+      "intent": "leave shaft-bottom",
+      "committed": false,
+      "matched": false,
+      "fallback": true,
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Out with the loot. You climb back into the daylight with the dungeon's treasure on your back."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": []
+    }
+  ],
+  "finalStatus": "escaped",
+  "finalRoom": "Shaft Bottom",
+  "ending": {
+    "kind": "escape-with-loot",
+    "title": "Out with the loot",
+    "text": "You climb back into the daylight with the dungeon's treasure on your back.",
+    "rewards": {
+      "xp": [
+        {
+          "name": "Defeated the Zombie",
+          "xp": 50
+        },
+        {
+          "name": "Defeated Tall Skeleton and Bent Skeleton",
+          "xp": 100
+        },
+        {
+          "name": "Defeated the Giant Spider",
+          "xp": 200
+        },
+        {
+          "name": "Defeated the Ghoul",
+          "xp": 200
+        },
+        {
+          "name": "Out with the loot",
+          "xp": 200
+        }
+      ],
+      "treasure": [
+        {
+          "name": "Guard's Purse",
+          "description": "A leather purse of old silver coins."
+        },
+        {
+          "name": "Dagger Hilt",
+          "description": "A dagger hilt chased with silver, its blade long gone."
+        },
+        {
+          "name": "Candlesticks",
+          "description": "A pair of tarnished silver candlesticks."
+        },
+        {
+          "name": "Gold Ring",
+          "description": "A heavy gold ring set with a red stone."
+        },
+        {
+          "name": "Gold Coins",
+          "description": "Handfuls of old gold coins stamped with a forgotten lord's face."
+        },
+        {
+          "name": "Goblet",
+          "description": "A jewelled gold goblet the ghoul clutched to its chest."
+        }
+      ],
+      "totalXp": 750,
+      "level": 2,
+      "levelUp": {
+        "from": 1,
+        "to": 2,
+        "maxHp": {
+          "before": 14,
+          "after": 24
+        },
+        "features": [
+          {
+            "id": "action-surge",
+            "name": "Action Surge",
+            "text": "Take one additional action on your turn, except Magic. 1 use. Spent uses stay spent for the rest of the adventure; a rest between adventures restores them and every hit point."
+          },
+          {
+            "id": "tactical-mind",
+            "name": "Tactical Mind",
+            "text": "When you fail an ability check, spend a use of Second Wind to add 1d10 to it instead of healing; the use is kept if the check still fails."
+          }
+        ]
+      }
+    }
+  },
+  "finishedAt": "2026-10-06T09:41:22.477Z"
+}

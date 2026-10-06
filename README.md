@@ -12,7 +12,8 @@ actions the engine offers, and never invents an outcome.
 The [rules document](docs/character-rules.md) records the 5e rules in use, the
 house rules and each rule left out because the game has no map. The
 [5e expansion plan](dnd-expansion-implementation-plan.md) describes the work
-ahead.
+ahead, and the [increment 11 handoff](docs/acceptance/increment-11-release.md)
+records how the 5e release was qualified, with manual test scenarios.
 
 ## Requirements
 
@@ -288,6 +289,12 @@ These are for development, not play.
 - **Live delve qualification.** `node scripts/qualify-delve-live.mjs --live`
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.
+- **Live release run.** `node scripts/qualify-release-live.mjs --live` (with
+  `--max-calls`, default 160, and `--seed`, default 99) plays the whole of The
+  Abandoned Delve through the browser server, typing every step to the AI DM
+  and pressing a step's button only when the DM's turn left it undone, and
+  writes a turn-by-turn report (`src/release-run-5e.ts`); `--dry-run` checks
+  the harness offline.
 - **AI smoke test.** `npm.cmd run smoke:ai -- --model <model-id>` asks the live
   AI DM one question through the command-line adapter and fails unless it gets a
   usable reply.
