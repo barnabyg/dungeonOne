@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { fighterProfile } from "../dist/fighter-5e.js";
 import { armouryBarrow } from "./fixtures/armoury-barrow.mjs";
-import { launch } from "./fixtures/session-layout.mjs";
+import { assertTogether, launch } from "./fixtures/session-layout.mjs";
 
 /** Clicks an action button and waits for its result card. */
 async function click(page, action, target) {
@@ -147,6 +147,62 @@ test(
       assert.deepEqual(sheet.equipment, ["leather", "longsword"]);
       assert.deepEqual(sheet.stowed, []);
       assert.deepEqual(sheet.finds, ["robbers-barrow/lintel-longsword"]);
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "on a phone, a long list of gear rows scrolls inside the dock and the history keeps its place",
+  { timeout: 120000 },
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "issue-209-browser-"));
+    const server = await startFifthBrowserServer({
+      libraryPath: join(directory, "characters.json"),
+      seed: 0,
+      adventures: [armouryBarrow],
+      qualifies: () => true,
+    });
+    const browser = await launch();
+    const page = await browser.newPage({
+      viewport: { width: 375, height: 812 },
+    });
+    page.setDefaultTimeout(5000);
+    try {
+      await page.goto(server.url);
+      await page.locator("#open-creation").click();
+      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
+      await page.locator("#character-name").fill("Ada");
+      await page.locator("#save-character").click();
+      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+      await page
+        .locator('.start-adventure[data-adventure="robbers-barrow"]')
+        .click();
+      await page.locator("#adventure").waitFor({ state: "visible" });
+      const list = page.locator("#explore-controls");
+      const scrolls = () =>
+        list.evaluate((node) => node.scrollHeight > node.clientHeight);
+      assert.equal(await scrolls(), false);
+
+      await click(page, "examine", "scratched-lintel");
+      for (const item of ["longsword", "shield", "greatsword", "mail"]) {
+        await click(page, "take", `lintel-${item}`);
+        await assertTogether(page, `take ${item}`);
+      }
+      // Leather, then a row per stowed piece: more than a third of the window.
+      assert.equal(await scrolls(), true);
+      const last = list.locator("button").last();
+      assert.equal(await last.getAttribute("aria-label"), "Drop Chain mail");
+      await last.scrollIntoViewIfNeeded();
+      await click(page, "drop", "chain-mail");
+      await assertTogether(page, "drop chain mail");
+      assert.equal(
+        await newest(page),
+        "You drop the chain mail. It stays here.",
+      );
     } finally {
       await browser.close();
       await server.close();
