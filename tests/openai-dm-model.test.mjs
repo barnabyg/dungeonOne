@@ -1,47 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getGameToolDefinitions } from "../dist/game-tools.js";
+import { runDmTurn } from "../dist/dm-turn.js";
 import {
   OPENAI_DM_DEFAULT_TIMEOUT_MS,
   OpenAiDmError,
   createOpenAiDmModel,
 } from "../dist/openai-dm-model.js";
-import { playGame } from "../dist/play.js";
-import { STOLEN_SIGNET_RUNTIME } from "../dist/historical-runtime.js";
-import { createSession } from "../dist/session.js";
+import { counterRuntime } from "./fixtures/counter-runtime.mjs";
+
+const runtime = counterRuntime();
 
 function request(overrides = {}) {
-  const state = createSession();
+  const state = runtime.createSession();
   return {
-    promptVersion: "stolen-signet-dm-v3",
+    promptVersion: runtime.promptVersion,
     systemPrompt: "Dungeon master instructions",
-    playerInput: "Open the door",
+    playerInput: "Advance the counter",
     transcript: [],
-    scene: {
-      adventure: {
-        title: "The Stolen Signet",
-        objective: "Recover the signet.",
-      },
-      location: {
-        id: "entrance",
-        name: "Entrance",
-        description: "A ruined entrance.",
-      },
-      features: [],
-      items: [],
-      opponents: [],
-      exits: [],
-      outcome: "playing",
-    },
-    characterStatus: {
-      hp: 20,
-      maxHp: 20,
-      equipment: [],
-      collectedItems: [],
-      outcome: "playing",
-    },
-    tools: getGameToolDefinitions(state),
+    scene: runtime.projectDmScene(state),
+    characterStatus: runtime.projectCharacterStatus(state),
+    tools: runtime.getGameToolDefinitions(state),
     toolResults: [],
     ...overrides,
   };
@@ -70,8 +49,8 @@ test("Responses adapter sends stateless strict calls and normalizes provider out
     id: "item_1",
     type: "function_call",
     call_id: "call_1",
-    name: "open",
-    arguments: '{"door_id":"entrance-door"}',
+    name: "advance",
+    arguments: "{}",
     status: "completed",
   };
   const responses = [
@@ -86,7 +65,7 @@ test("Responses adapter sends stateless strict calls and normalizes provider out
           content: [
             {
               type: "output_text",
-              text: "The door opens.",
+              text: "The counter clicks forward.",
               annotations: [],
             },
           ],
@@ -114,8 +93,8 @@ test("Responses adapter sends stateless strict calls and normalizes provider out
     toolCalls: [
       {
         id: "call_1",
-        name: "open",
-        argumentsJson: '{"door_id":"entrance-door"}',
+        name: "advance",
+        argumentsJson: "{}",
       },
     ],
     provider: {
@@ -138,15 +117,15 @@ test("Responses adapter sends stateless strict calls and normalizes provider out
         {
           call: {
             id: "call_1",
-            name: "open",
-            argumentsJson: '{"door_id":"entrance-door"}',
+            name: "advance",
+            argumentsJson: "{}",
           },
-          output: { ok: true, events: [{ type: "door-opened" }] },
+          output: { ok: true, events: [{ type: "advanced", by: 4 }] },
         },
       ],
     }),
   );
-  assert.equal(second.text, "The door opens.");
+  assert.equal(second.text, "The counter clicks forward.");
   assert.equal(second.provider.responseId, "resp_2");
   assert.ok(requests[1].body.input.includes(reasoning));
   assert.ok(requests[1].body.input.includes(functionCall));
@@ -155,7 +134,7 @@ test("Responses adapter sends stateless strict calls and normalizes provider out
   );
   assert.equal(outputs.length, 1);
   assert.equal(outputs[0].call_id, "call_1");
-  assert.match(outputs[0].output, /door-opened/);
+  assert.match(outputs[0].output, /advanced/);
   assert.doesNotMatch(JSON.stringify(second), /opaque-provider-state/);
 
   responses.push(
@@ -373,17 +352,17 @@ test("Responses adapter classifies provider failures and bounds request time", a
   });
 });
 
-test("terminal recovers after adapter failures before and after one committed action", async () => {
+test("a DM turn recovers after adapter failures before and after one committed action", async () => {
   const providerSecret = "provider-secret-should-not-escape";
   const responses = [
     { status: 401, message: providerSecret },
     completedResponse([
       {
-        id: "item_open",
+        id: "item_advance",
         type: "function_call",
-        call_id: "call_open",
-        name: "open",
-        arguments: '{"door_id":"entrance-door"}',
+        call_id: "call_advance",
+        name: "advance",
+        arguments: "{}",
         status: "completed",
       },
     ]),
@@ -411,11 +390,7 @@ test("terminal recovers after adapter failures before and after one committed ac
       responses: {
         async create() {
           const response = responses.shift();
-          if (
-            response instanceof Error ||
-            response?.status === 401 ||
-            response?.status === 503
-          ) {
+          if (response?.status === 401 || response?.status === 503) {
             throw response;
           }
           return response;
@@ -423,45 +398,29 @@ test("terminal recovers after adapter failures before and after one committed ac
       },
     },
   });
-  let output = "";
-  let closed = false;
-  const lines = {
-    close() {
-      closed = true;
-    },
-    prompt() {},
-    async *[Symbol.asyncIterator]() {
-      for (const line of [
-        "Try once",
-        "Open the door",
-        "Can I continue?",
-        "quit",
-      ]) {
-        if (closed) {
-          return;
-        }
-        yield line;
-      }
-    },
-  };
+  const turn = (state, playerInput) =>
+    runDmTurn({
+      runtime,
+      state,
+      playerInput,
+      transcript: [],
+      random: { roll: () => 4 },
+      model,
+    });
 
-  await playGame(
-    { seed: 0, dmModel: model, runtime: STOLEN_SIGNET_RUNTIME },
-    {
-      lines,
-      terminal: true,
-      write(text) {
-        output += text;
-      },
-    },
-  );
+  const before = await turn(runtime.createSession(), "Try once");
+  assert.deepEqual(before.state, runtime.createSession());
+  assert.match(before.narration, /couldn't complete that request safely/i);
 
-  assert.equal(
-    (output.match(/couldn't complete that request safely/gi) ?? []).length,
-    1,
+  const after = await turn(before.state, "Advance the counter");
+  assert.deepEqual(after.state, { status: "playing", count: 4 });
+  assert.deepEqual(after.mechanics, ["Advanced by 4; the counter reads 4."]);
+  assert.match(after.narration, /No further action was executed/i);
+
+  const recovered = await turn(after.state, "Can I continue?");
+  assert.equal(recovered.narration, "You can continue after the interruption.");
+  assert.doesNotMatch(
+    JSON.stringify([before, after, recovered]),
+    new RegExp(providerSecret),
   );
-  assert.match(output, /You open the wooden door/i);
-  assert.match(output, /No further action was executed/i);
-  assert.match(output, /You can continue after the interruption/i);
-  assert.doesNotMatch(output, new RegExp(providerSecret));
 });
