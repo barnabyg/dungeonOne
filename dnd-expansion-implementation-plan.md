@@ -1,6 +1,6 @@
 # D&D 5e Expansion — Implementation Plan (Increments 11–18)
 
-Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. Update, 6 October 2026: increment 12 is published as GitHub issues #206–#211 (see the [increment 12 ticket proposal](increment-12-ticket-proposal.md)), and is done: #211 released _The Tinker's Toll_ with a merchant and found gear, with the [increment 12 player handoff](docs/acceptance/increment-12-release.md). It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
+Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. Update, 6 October 2026: increment 12 is published as GitHub issues #206–#211 (see the [increment 12 ticket proposal](increment-12-ticket-proposal.md)), and is done: #211 released _The Tinker's Toll_ with a merchant and found gear, with the [increment 12 player handoff](docs/acceptance/increment-12-release.md). Increment 13 is published as GitHub issues #231–#241 (see the [increment 13 ticket proposal](increment-13-ticket-proposal.md)). It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
 
 Baseline: `main` at `f68d221`.
 
@@ -452,6 +452,8 @@ This changes how an adventure is settled. Since #133, settling _adds_ the treasu
 
 **Playable result:** encounters use varied classic monsters with real differences (poison, undead, fleeing goblins). Treasure scales with level and includes gems, potions and gear.
 
+**Ticketed** as GitHub issues #231–#241 on 6 October 2026; see the [increment 13 ticket proposal](increment-13-ticket-proposal.md). The issues are the source of truth. The breakdown differs from the slices below: a gameplay-neutral bestiary move comes first, conditions arrive with the monsters that inflict them, an encounter estimator and surrender get their own tickets, and frightened, restrained and unconscious are dropped.
+
 ### 13.1 Add 5e conditions
 
 **What to build.** The SRD conditions needed by the first monsters: poisoned, paralysed, frightened, prone, restrained, unconscious. Each has a duration, its source, and the save that ends it. Their effects on attacks, saves and actions are engine-enforced. Conditions show in the panel and on the sheet.
@@ -769,16 +771,20 @@ Needs an ADR: a fourth record, the **campaign**, separate from character, advent
 | Kit contents       | Start nearly empty-handed: leather armour and simple weapons, no shield (mace; two daggers; club and dagger), of equal value within 3 gp                                                                                                                                                                          | #207             |
 | Release module     | _The Tinker's Toll_: premise, four-room map, merchant stock (dagger, shortsword, shield, chain shirt) and gear placement (a shield in the ford's reeds) approved before writing. Its first coin moved from the start room to the reeds, so the gate's cautious run must fight for loot; declared Hard, not Medium | #211             |
 | Shipped modules    | Adapt the level-1 modules the leaner kits fail: the Smugglers' Cellar loses its rat, the Warden's Crypt's guard becomes a Zombie (Hard), the Goblin Warren gains a potion. Modules should offer basic gear to find                                                                                                | #207, #209, #211 |
+| Fled monsters      | A monster that flees gives no XP, and its loot leaves with it                                                                                                                                                                                                                                                     | #237, #238       |
+| +1 gear            | Waits for magic in increment 16                                                                                                                                                                                                                                                                                   | #239             |
+| Conditions         | Only poisoned, prone and paralysed in increment 13; frightened, restrained and unconscious wait until a monster needs them                                                                                                                                                                                        | #232, #234       |
+| Monster names      | Need not match SRD 5.2 exactly; SRD 5.2 stat blocks where they exist, original house stat blocks otherwise                                                                                                                                                                                                        | #235             |
 
 ### Open
 
-Number 1 was settled while working ticket 11.8 (#135; see the 5 October decisions), and numbers 2, 3 and 8 when increment 12 was ticketed (see the 6 October decisions); the rest can wait until their increment.
+Number 1 was settled while working ticket 11.8 (#135; see the 5 October decisions), numbers 2, 3 and 8 when increment 12 was ticketed, and numbers 4 and 5 when increment 13 was ticketed (see the 6 October decisions); the rest can wait until their increment.
 
 1. ~~**"Too easy" measure details**~~: settled, with the XP limit.
 2. ~~**Currency**~~: settled, copper/silver/gold stored as copper.
 3. ~~**Starting equipment**~~: settled, common-tier kits only.
-4. **XP and loot for fled or surrendered monsters.**
-5. **+1 gear:** treasure in increment 13, or wait for magic in 16.
+4. ~~**XP and loot for fled or surrendered monsters**~~: settled, no XP and the loot leaves with it.
+5. ~~**+1 gear**~~: settled, waits for magic in increment 16.
 6. **Content strategy:** hand-author every adventure, or build a 5e generator before 14.5.
 7. **Companions:** engine-controlled hirelings or a player-controlled party of library characters.
 8. ~~**Market location**~~: settled, in-adventure merchants only.
