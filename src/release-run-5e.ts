@@ -2,7 +2,7 @@
  * The #140 release run: The Abandoned Delve played from start to an ending
  * through a browser server's API, every turn typed to the AI DM as a player
  * would. It visits every room, fights every encounter, loots every treasure
- * and climbs out.
+ * and coin and climbs out.
  *
  * Each route step names the action-bar action it wants and the words a
  * player would type for it. When the AI DM's turn leaves that action still
@@ -42,6 +42,7 @@ export type ReleaseSessionView = Readonly<{
       totalXp: number;
       level: number;
       treasure: readonly Readonly<{ name: string }>[];
+      coin?: string;
     }>;
   }>;
   history: readonly Readonly<{

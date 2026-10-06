@@ -137,7 +137,7 @@ test("a module in another format version is refused by name and left unchanged",
     await assert.rejects(loadFifthAdventure(path), (error) => {
       assert.match(
         error.message,
-        /old\.json is a 5e adventure module in format version 4, not 5\. Move it aside/,
+        /old\.json is a 5e adventure module in format version 4, not 6\. Move it aside/,
       );
       return true;
     });

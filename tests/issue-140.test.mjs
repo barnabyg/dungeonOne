@@ -70,21 +70,17 @@ test("the release run clears every room of the delve and climbs out with the loo
     assert.equal(session.ending.rewards.level, 2);
     assert.deepEqual(
       session.ending.rewards.treasure.map(({ name }) => name).sort(),
-      [
-        "Candlesticks",
-        "Dagger Hilt",
-        "Goblet",
-        "Gold Coins",
-        "Gold Ring",
-        "Guard's Purse",
-      ],
+      ["Candlesticks", "Dagger Hilt", "Goblet", "Gold Ring"],
     );
+    // The guard's purse (18 sp) and the vault's gold (40 gp) are coin.
+    assert.equal(session.ending.rewards.coin, "41 gp 8 sp");
     // The library on disk credits them and frees Ada.
     const library = JSON.parse(await readFile(libraryPath, "utf8"));
     const [ada] = library.characters;
     assert.equal(ada.sheet.level, 2);
     assert.equal(ada.sheet.xp, 750);
     assert.equal(ada.session, undefined);
+    assert.equal(ada.sheet.purse, 4180);
   }));
 
 test("a step the DM's turn did is not pressed again; one it left undone is", () =>

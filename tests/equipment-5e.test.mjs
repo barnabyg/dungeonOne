@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   ARMOUR,
   equipmentProfile,
-  formatPrice,
+  formatCoins,
   isKitId,
   itemTier,
   KIT_VALUE_TOLERANCE,
@@ -402,7 +402,7 @@ test("kits hold only common-tier items, are legal loadouts and are of equal valu
     for (const other of kits) {
       assert.ok(
         Math.abs(kitPrice(kit) - kitPrice(other)) <= KIT_VALUE_TOLERANCE,
-        `${kit} and ${other} differ in value by more than ${formatPrice(KIT_VALUE_TOLERANCE)}`,
+        `${kit} and ${other} differ in value by more than ${formatCoins(KIT_VALUE_TOLERANCE)}`,
       );
     }
   }
@@ -414,9 +414,9 @@ test("kits hold only common-tier items, are legal loadouts and are of equal valu
 });
 
 test("prices show as mixed coins", () => {
-  assert.equal(formatPrice(1210), "12 gp 1 sp");
-  assert.equal(formatPrice(10), "1 sp");
-  assert.equal(formatPrice(150000), "1500 gp");
-  assert.equal(formatPrice(7), "7 cp");
-  assert.equal(formatPrice(0), "0 cp");
+  assert.equal(formatCoins(1210), "12 gp 1 sp");
+  assert.equal(formatCoins(10), "1 sp");
+  assert.equal(formatCoins(150000), "1500 gp");
+  assert.equal(formatCoins(7), "7 cp");
+  assert.equal(formatCoins(0), "0 cp");
 });

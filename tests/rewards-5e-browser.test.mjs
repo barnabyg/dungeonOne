@@ -170,6 +170,10 @@ test(
         await page.locator("#sheet-body").innerText(),
         /Treasure\n+No treasure yet\./,
       );
+      assert.match(
+        await page.locator("#sheet-body").innerText(),
+        /Purse\n+No coin yet\./,
+      );
       await page
         .locator('.start-adventure[data-adventure="robbers-barrow"]')
         .click();
@@ -213,7 +217,18 @@ test(
         await page.locator("#room").innerText(),
         /Goblin Warrior's body — It lies where it fell\.\s+You found: Pouch of Old Coins/,
       );
+      assert.equal(await page.locator("#purse").isVisible(), false);
       await explore(page, "take", "coin-pouch");
+      // The coin is in the purse at once, beside what Ada carries (#208).
+      assert.equal(
+        await page.locator("#log li").last().innerText(),
+        "You take the Pouch of Old Coins and put 2 gp 5 sp in your purse.",
+      );
+      assert.equal(
+        await page.locator("#purse").textContent(),
+        "Purse: 2 gp 5 sp",
+      );
+      assert.equal(await page.locator("#purse").isVisible(), true);
       await explore(page, "move", "barrow-mouth");
       await leave(page);
 
@@ -237,10 +252,9 @@ test(
       const ending = await page.locator("#ending").innerText();
       assert.match(ending, /Defeated the Goblin Warrior: \+50 XP/);
       assert.match(ending, /Out with the silver: \+250 XP/);
-      assert.match(
-        ending,
-        /Treasure kept\n+Silver Torc\. A neck ring.*\nPouch of Old Coins\. A greasy/s,
-      );
+      assert.match(ending, /Treasure kept\n+Silver Torc\. A neck ring/);
+      assert.doesNotMatch(ending, /Pouch of Old Coins/);
+      assert.match(ending, /Coin kept: 2 gp 5 sp/);
       assert.match(ending, /Ada has 300 XP\./);
       assert.match(ending, /Level up: Ada is now level 2/);
       assert.match(
@@ -282,8 +296,9 @@ test(
       assert.equal(record.sheet.level, 2);
       assert.deepEqual(
         record.sheet.treasure.map(({ name }) => name),
-        ["Silver Torc", "Pouch of Old Coins"],
+        ["Silver Torc"],
       );
+      assert.equal(record.sheet.purse, 250);
       assert.deepEqual(record.sheet.finds, [
         "robbers-barrow/silver-torc",
         "robbers-barrow/coin-pouch",
@@ -294,8 +309,9 @@ test(
       const sheet = await page.locator("#sheet-body").innerText();
       assert.match(sheet, /^Level 2 Fighter · 300 XP \(level 3 at 900\)/);
       assert.match(sheet, /Treasure\n+Silver Torc\. A neck ring/);
+      assert.match(sheet, /Purse\n+2 gp 5 sp/);
 
-      // The same adventure again: no torc to find, and nothing earned.
+      // The same adventure again: no torc or coin to find, and nothing earned.
       await page
         .locator('.start-adventure[data-adventure="robbers-barrow"]')
         .click();
@@ -303,9 +319,15 @@ test(
       await explore(page, "move", "burial-hall");
       await fight(page);
       await explore(page, "examine", "stone-bier");
+      await explore(page, "examine", "barrow-goblin");
       assert.equal(
         await page.locator('#action-bar button[data-action="take"]').count(),
         0,
+      );
+      // The purse Ada brought is still hers.
+      assert.equal(
+        await page.locator("#purse").textContent(),
+        "Purse: 2 gp 5 sp",
       );
       await explore(page, "move", "barrow-mouth");
       await leave(page);
@@ -319,7 +341,8 @@ test(
       );
       record = await ada(libraryPath);
       assert.equal(record.sheet.xp, 300);
-      assert.equal(record.sheet.treasure.length, 2);
+      assert.equal(record.sheet.treasure.length, 1);
+      assert.equal(record.sheet.purse, 250);
 
       // Abandoning, from the sheet, keeps everything as it was.
       const before = record.sheet;

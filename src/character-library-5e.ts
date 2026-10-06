@@ -1,5 +1,5 @@
 /**
- * The 5e character library (format version 5).
+ * The 5e character library (format version 7).
  *
  * It holds saved 5e Fighters and at most one pending creation: the dice of a
  * Fighter being created. Each character record names its adventure session
@@ -39,7 +39,7 @@ import {
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 6;
+export const FIFTH_LIBRARY_FORMAT = 7;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -138,7 +138,13 @@ export class FifthCharacterLibrary {
         "a pre-5e character library (format version 1)",
       );
     }
-    if (version === 2 || version === 3 || version === 4 || version === 5) {
+    if (
+      version === 2 ||
+      version === 3 ||
+      version === 4 ||
+      version === 5 ||
+      version === 6
+    ) {
       throw moveAside(
         this.path,
         `a 5e character library from an earlier build (format version ${version})`,
@@ -489,8 +495,12 @@ export class FifthCharacterLibrary {
     if (sheet.level !== 1 || sheet.xp !== 0 || sheet.xpAwards.length > 0) {
       throw new Error("New characters start at level 1 with 0 XP.");
     }
-    if (sheet.treasure.length > 0 || sheet.finds.length > 0) {
-      throw new Error("New characters start with no treasure.");
+    if (
+      sheet.treasure.length > 0 ||
+      sheet.finds.length > 0 ||
+      sheet.purse > 0
+    ) {
+      throw new Error("New characters start with no treasure or coin.");
     }
     if (sheet.hp !== fighterProfile(sheet).maxHp) {
       throw new Error("New characters start at full health.");

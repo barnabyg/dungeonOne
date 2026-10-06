@@ -10,11 +10,11 @@
  * asks creatures about their topics with Talk, fights by
  * clicking an attack, Drink, Second Wind, Action Surge or End turn, or types
  * to the AI DM. In an exit room the player alone can choose Leave, ending the
- * adventure with or without the treasure carried. The session view projects
+ * adventure with or without the loot carried (treasure, or coin found). The session view projects
  * every action in the action bar with whether the engine would accept it now
  * and why not. Each session is saved after every action and continues after
  * a reload or a restart; an ended session settles its character in the
- * library (crediting XP and treasure once), and stays viewable, read-only,
+ * library (crediting XP, treasure and coin once), and stays viewable, read-only,
  * with its ending's kind, what it earned and any level-up. A character's
  * adventure in progress can be abandoned, crediting nothing.
  * A library in another format is refused before the server listens.
@@ -44,6 +44,7 @@ import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
 import { passesGate } from "./balance-5e.js";
 import {
   FIGHTER_MASTERY_COUNT,
+  formatCoins,
   KIT_IDS,
   MASTERIES,
   MASTERY_WEAPONS,
@@ -125,8 +126,8 @@ function adventureView(adventure: FifthAdventure) {
 
 /**
  * What a surviving ending earned, from the character as the session started:
- * each XP award and the treasure found, the XP and level after, and the
- * level-up, if any. Settling credits exactly this.
+ * each XP award, the treasure and coin found, the XP and level after, and
+ * the level-up, if any. Settling credits exactly this.
  */
 function rewardsView(session: FifthSession) {
   const settlement = session.runtime.projectSettlement(session.state);
@@ -142,6 +143,13 @@ function rewardsView(session: FifthSession) {
       name,
       description,
     })),
+    ...(settlement.coin.length === 0
+      ? {}
+      : {
+          coin: formatCoins(
+            settlement.coin.reduce((sum, { copper }) => sum + copper, 0),
+          ),
+        }),
     totalXp: after.xp,
     level: after.level,
     ...(levelUp === undefined ? {} : { levelUp }),
@@ -223,6 +231,7 @@ function libraryView(
     characters: data.characters.map(({ sheet, session, defeated }) => ({
       sheet,
       profile: fighterProfile(sheet),
+      purse: formatCoins(sheet.purse),
       ...(session === undefined ? {} : { session }),
       defeated: defeated === true,
     })),

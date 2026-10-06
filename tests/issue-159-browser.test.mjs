@@ -486,7 +486,7 @@ for (const viewport of [
             "utf8",
           ),
         );
-        assert.equal(file.formatVersion, 9);
+        assert.equal(file.formatVersion, 10);
         assert.ok(
           file.history.some(({ cards }) =>
             cards.some(({ lines }) =>

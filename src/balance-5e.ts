@@ -9,12 +9,13 @@
  * starting kit. "Weak" and "strong" are percentiles of that sample by total
  * ability modifier.
  */
-import type {
-  Difficulty,
-  EndingKind,
-  FifthAdventure,
-  FifthPassage,
-  StatBlock,
+import {
+  FOUND_ONCE_KINDS,
+  type Difficulty,
+  type EndingKind,
+  type FifthAdventure,
+  type FifthPassage,
+  type StatBlock,
 } from "./adventure-5e.js";
 import {
   abilityModifier,
@@ -364,10 +365,11 @@ function victoryRooms(adventure: FifthAdventure): ReadonlySet<string> {
   );
 }
 
-function treasureRooms(adventure: FifthAdventure): ReadonlySet<string> {
+/** The rooms with loot to find: treasure or coin. */
+function lootRooms(adventure: FifthAdventure): ReadonlySet<string> {
   return new Set(
     adventure.rooms.flatMap(({ id, items }) =>
-      items.some(({ kind }) => kind === "treasure") ? [id] : [],
+      items.some(({ kind }) => FOUND_ONCE_KINDS.includes(kind)) ? [id] : [],
     ),
   );
 }
@@ -378,11 +380,11 @@ function exitRooms(adventure: FifthAdventure): ReadonlySet<string> {
   );
 }
 
-/** The adventure's objective: a victory if it has one, or else treasure carried out. */
+/** The adventure's objective: a victory if it has one, or else loot carried out. */
 function objectiveOf(adventure: FifthAdventure): Objective {
   return victoryRooms(adventure).size > 0
     ? "victory"
-    : treasureRooms(adventure).size > 0
+    : lootRooms(adventure).size > 0
       ? "escape-with-loot"
       : "escape-without-loot";
 }
@@ -390,7 +392,7 @@ function objectiveOf(adventure: FifthAdventure): Objective {
 /**
  * The adventure's objective and the rooms a character must go through to
  * reach it, in the order first entered: to the victory fight; or to the
- * treasure behind the fewest fights and then out by the nearest exit; or
+ * loot behind the fewest fights and then out by the nearest exit; or
  * just out. Keys that open the way are fetched on the way. Every other room
  * is optional, and so is every fight in one.
  */
@@ -404,7 +406,7 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
     objective === "victory"
       ? [victoryRooms(adventure)]
       : objective === "escape-with-loot"
-        ? [treasureRooms(adventure), exitRooms(adventure)]
+        ? [lootRooms(adventure), exitRooms(adventure)]
         : [exitRooms(adventure)];
   let position: Position = {
     roomId: adventure.startRoomId,
@@ -508,7 +510,7 @@ export type RunRecord = Readonly<{
   healing: Readonly<{ secondWinds: number; potions: number; hp: number }>;
   /** Hit points lost to traps sprung, outside the fights. */
   trapDamage: number;
-  /** What a surviving ending credited: XP and how many treasures. */
+  /** What a surviving ending credited: XP and how many finds of treasure or coin. */
   xp: number;
   treasure: number;
   actions: number;
@@ -648,8 +650,10 @@ export function playAdventure(
     );
   };
 
-  const carriesTreasure = () =>
-    state.inventory.some((id) => items.get(id)!.item.kind === "treasure");
+  /** Whether the character carries loot: treasure, or coin found here. */
+  const carriesLoot = () =>
+    state.inventory.some((id) => items.get(id)!.item.kind === "treasure") ||
+    state.usedItemIds.some((id) => items.get(id)!.item.kind === "coin");
   /** Where the objective lies from here. */
   const objectiveRooms = (): ReadonlySet<string> => {
     if (objective === "victory") {
@@ -657,13 +661,15 @@ export function playAdventure(
     }
     const unfound = new Set(
       [...items.values()].flatMap(({ item, roomId }) =>
-        item.kind === "treasure" && !state.inventory.includes(item.id)
+        FOUND_ONCE_KINDS.includes(item.kind) &&
+        !state.inventory.includes(item.id) &&
+        !state.usedItemIds.includes(item.id)
           ? [roomId]
           : [],
       ),
     );
     return objective === "escape-with-loot" &&
-      !carriesTreasure() &&
+      !carriesLoot() &&
       unfound.size > 0
       ? unfound
       : exits;
@@ -789,7 +795,10 @@ export function playAdventure(
     healing,
     trapDamage,
     xp: settlement?.xp.reduce((sum, { xp }) => sum + xp, 0) ?? 0,
-    treasure: settlement?.finds.length ?? 0,
+    treasure:
+      settlement === undefined
+        ? 0
+        : settlement.finds.length + settlement.coin.length,
     actions,
   };
 }

@@ -40,7 +40,7 @@ test("a pending creation is saved before it is returned and never changes", asyn
     assert.equal((await library.read()).pendingCreation, undefined);
     const started = await library.startCreation();
     const stored = JSON.parse(await readFile(path, "utf8"));
-    assert.equal(stored.formatVersion, 6);
+    assert.equal(stored.formatVersion, 7);
     assert.deepEqual(stored.pendingCreation, started.pendingCreation);
     assert.equal(started.pendingCreation.dice.length, 6);
     const bytes = await readFile(path);

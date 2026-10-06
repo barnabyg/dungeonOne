@@ -233,6 +233,7 @@ function renderView(session: FifthSession): string {
     ...(room.inventory.length === 0
       ? []
       : [`Carrying: ${room.inventory.map(({ name }) => name).join(", ")}`]),
+    ...(room.purse === undefined ? [] : [`Purse: ${room.purse}`]),
     "Actions:",
     ...actions.map(
       ({ action, target, available, reason }, index) =>
