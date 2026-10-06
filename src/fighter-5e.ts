@@ -389,26 +389,19 @@ function validateTreasure(value: unknown): readonly TreasureRecord[] {
   return value as TreasureRecord[];
 }
 
-function validateFinds(value: unknown): readonly string[] {
+/** A list of distinct ids, each matching `pattern`. */
+function validateIds(
+  value: unknown,
+  pattern: RegExp,
+  message: string,
+): readonly string[] {
   if (
     !Array.isArray(value) ||
     value.length > MAX_EARNED ||
-    !value.every((id) => typeof id === "string" && TREASURE_ID.test(id)) ||
+    !value.every((id) => typeof id === "string" && pattern.test(id)) ||
     new Set(value).size !== value.length
   ) {
-    throw new Error("Invalid finds.");
-  }
-  return value as string[];
-}
-
-function validateXpAwards(value: unknown): readonly string[] {
-  if (
-    !Array.isArray(value) ||
-    value.length > MAX_EARNED ||
-    !value.every((id) => typeof id === "string" && AWARD_ID.test(id)) ||
-    new Set(value).size !== value.length
-  ) {
-    throw new Error("Invalid XP awards.");
+    throw new Error(message);
   }
   return value as string[];
 }
@@ -594,8 +587,8 @@ export function validateFighter(value: unknown): FighterSheet {
     throw new Error("Unsupported character equipment.");
   }
   validateTreasure(sheet.treasure);
-  validateFinds(sheet.finds);
-  validateXpAwards(sheet.xpAwards);
+  validateIds(sheet.finds, TREASURE_ID, "Invalid finds.");
+  validateIds(sheet.xpAwards, AWARD_ID, "Invalid XP awards.");
   if (sheet.level !== levelForXp(sheet.xp)) {
     throw new Error("Character level differs from experience points.");
   }
