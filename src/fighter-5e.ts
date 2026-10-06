@@ -13,19 +13,21 @@
  * earned after the item is gone.
  */
 import {
+  carryingCapacity,
   equipmentProfile,
   FIGHTER_MASTERY_COUNT,
   formatCoins,
   isItemId,
   isKitId,
-  MAX_STOWED,
   itemName,
   KIT_IDS,
   kitPrice,
+  loadWeight,
   MASTERIES,
   MASTERY_WEAPONS,
   readLoadout,
   STARTING_KITS,
+  TREASURE_WEIGHT,
   WEAPONS,
   type AttackProfile,
   type EquipmentProfile,
@@ -638,8 +640,15 @@ export type CreationProjection = Readonly<{
     skills?: string;
     masteries?: string;
   }>;
-  /** The sheet's scores and profile, present only when nothing is unfinished. */
-  sheet?: Readonly<{ abilities: Abilities; profile: FighterProfile }>;
+  /**
+   * The sheet's scores, profile and the weight its kit makes it carry,
+   * present only when nothing is unfinished.
+   */
+  sheet?: Readonly<{
+    abilities: Abilities;
+    profile: FighterProfile;
+    carrying: Carrying;
+  }>;
 }>;
 
 /**
@@ -740,7 +749,11 @@ export function projectCreation(
   const sheet = buildFighter("0".repeat(32), "Preview", rolled, choices);
   return {
     ...projection,
-    sheet: { abilities: sheet.abilities, profile: fighterProfile(sheet) },
+    sheet: {
+      abilities: sheet.abilities,
+      profile: fighterProfile(sheet),
+      carrying: fighterCarrying(sheet),
+    },
   };
 }
 
@@ -797,16 +810,17 @@ export function validateFighter(value: unknown): FighterSheet {
   } catch {
     throw new Error("Unsupported character equipment.");
   }
-  if (
-    !Array.isArray(sheet.stowed) ||
-    sheet.stowed.length > MAX_STOWED ||
-    !sheet.stowed.every(isItemId)
-  ) {
+  if (!Array.isArray(sheet.stowed) || !sheet.stowed.every(isItemId)) {
     throw new Error("Invalid stowed gear.");
   }
   validateTreasure(sheet.treasure);
   if (!Number.isSafeInteger(sheet.purse) || sheet.purse < 0) {
     throw new Error("Invalid purse.");
+  }
+  // Weight, not a count, bounds what a sheet carries (#224).
+  const { weight, capacity } = fighterCarrying(sheet);
+  if (weight > capacity) {
+    throw new Error("The character carries more than its Strength allows.");
   }
   validateIds(sheet.finds, TREASURE_ID, "Invalid finds.");
   validateIds(sheet.xpAwards, AWARD_ID, "Invalid XP awards.");
@@ -1003,6 +1017,30 @@ export function possessionsOf(sheet: FighterSheet): Possessions {
     stowed: sheet.stowed,
     treasure: sheet.treasure,
     purse: sheet.purse,
+  };
+}
+
+/** The weight a character carries and the most it can, in pounds. */
+export type Carrying = Readonly<{ weight: number; capacity: number }>;
+
+/**
+ * What a sheet carries between adventures: its gear, its treasure and its
+ * purse, against its Strength score × 15 lb (#224).
+ */
+export function fighterCarrying(
+  sheet: Pick<
+    FighterSheet,
+    "abilities" | "equipment" | "stowed" | "treasure" | "purse"
+  >,
+): Carrying {
+  return {
+    weight: loadWeight({
+      equipment: sheet.equipment,
+      stowed: sheet.stowed,
+      purse: sheet.purse,
+      other: sheet.treasure.length * TREASURE_WEIGHT,
+    }),
+    capacity: carryingCapacity(sheet.abilities.strength),
   };
 }
 

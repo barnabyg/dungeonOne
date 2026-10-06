@@ -83,20 +83,27 @@ import {
 import {
   ARMOUR,
   buyItem,
+  carryingCapacity,
+  coinCount,
+  COINS_PER_POUND,
   coinsInCopper,
   DONNING_MINUTES,
   dropItem,
   equipItem,
   formatCoins,
+  formatWeight,
   isArmourId,
   isItemId,
   isWeaponId,
   itemName,
   itemPrice,
-  MAX_STOWED,
+  itemWeight,
+  loadWeight,
   salePrice,
   sellItem,
   swapWeapon,
+  tooHeavyReason,
+  TREASURE_WEIGHT,
   unequipItem,
   WEAPONS,
   type ArmourData,
@@ -108,6 +115,7 @@ import {
 } from "./equipment-5e.js";
 import {
   fighterProfile,
+  type Carrying,
   type FighterSheet,
   possessionsOf,
   type Possessions,
@@ -512,7 +520,6 @@ export type FifthRefusalCode =
   | "no-topic"
   | "already-asked"
   | "not-an-exit"
-  | "carrying-full"
   | "no-merchant"
   | "not-stocked"
   | TradeRefusalCode
@@ -588,7 +595,8 @@ export function startingResources(sheet: FighterSheet): CharacterResources {
 
 /** A carried item as a potion the engine can drink, if it is one. */
 export function potionOf(item: FifthItem): Potion | undefined {
-  const kind: { healing?: Potion["healing"] } = ITEM_KINDS[item.kind];
+  const kind: { healing?: Potion["healing"]; weight: number } =
+    ITEM_KINDS[item.kind];
   return kind.healing === undefined
     ? undefined
     : { id: item.id, name: item.name, healing: kind.healing };
@@ -1285,6 +1293,8 @@ export type RoomView = Readonly<{
     strengthShortfall?: Readonly<{ armour: string; strength: number }>;
   }>;
   character: Readonly<{ hp: number; maxHp: number; health: Health }>;
+  /** Everything the character carries and the most it can, in pounds (#224). */
+  carrying: Carrying;
   options: Readonly<{
     move: readonly string[];
     examine: readonly string[];
@@ -1375,7 +1385,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "already-asked": "Already asked",
   "not-an-exit": "No way out here",
   "interaction-used": "Interaction used",
-  "carrying-full": "Can't carry more",
+  "too-heavy": "Too heavy",
   "not-a-weapon": "Not a weapon",
   "already-held": "Already equipped",
   "two-handed": "Needs both hands",
@@ -1711,6 +1721,22 @@ export function createFifthRuntime(
   const hasTraps = adventure.passages.some(({ trap }) => trap !== undefined);
   const potions = (state: FifthState): readonly FifthItem[] =>
     carried(state).filter((item) => potionOf(item) !== undefined);
+
+  const capacity = carryingCapacity(sheet.abilities.strength);
+  /** What the character carries besides its gear and purse, in pounds. */
+  const otherWeight = (state: FifthState): number =>
+    carried(state).reduce(
+      (sum, item) => sum + ITEM_KINDS[item.kind].weight,
+      state.possessions.treasure.length * TREASURE_WEIGHT,
+    );
+  /** Everything the character carries now, in pounds (#224). */
+  const weightOf = (state: FifthState): number =>
+    loadWeight({
+      equipment: state.possessions.equipment,
+      stowed: state.possessions.stowed,
+      purse: state.possessions.purse,
+      other: otherWeight(state),
+    });
 
   /** The sheet with the gear the character holds now. */
   const sheetOf = (state: FifthState): FighterSheet => ({
@@ -2430,11 +2456,6 @@ export function createFifthRuntime(
         if (state.inventory.includes(action.itemId)) {
           return reject("already-carried", "You already have that.");
         }
-        const full = () =>
-          reject(
-            "carrying-full",
-            `You carry ${MAX_STOWED} pieces of gear already; drop something first.`,
-          );
         const stow = (from: FifthState, gear: ItemId): FifthState => ({
           ...from,
           possessions: {
@@ -2442,6 +2463,22 @@ export function createFifthRuntime(
             stowed: [...from.possessions.stowed, gear],
           },
         });
+        /**
+         * Takes `what` (`weight` lb), giving `next`, unless that would put the
+         * character over its capacity (#224).
+         */
+        const taken = (
+          next: FifthState,
+          what: string,
+          weight: number,
+          event: FifthEvent,
+        ): FifthResult =>
+          weightOf(next) > capacity
+            ? reject(
+                "too-heavy",
+                tooHeavyReason(what, weight, weightOf(state), capacity),
+              )
+            : { state: next, events: [event] };
         if (action.itemId.startsWith(DROPPED)) {
           const index = state.dropped.findIndex(
             ({ roomId, item }) =>
@@ -2450,49 +2487,43 @@ export function createFifthRuntime(
           if (index === -1) {
             return reject("no-item", "There is no such item here to take.");
           }
-          if (state.possessions.stowed.length >= MAX_STOWED) {
-            return full();
-          }
           const gear = state.dropped[index]!.item;
-          return {
-            state: {
+          return taken(
+            {
               ...stow(state, gear),
               dropped: state.dropped.filter((_, at) => at !== index),
             },
-            events: [
-              {
-                type: "taken",
-                itemId: action.itemId,
-                name: itemName(gear),
-                stowed: true,
-              },
-            ],
-          };
+            `The ${itemName(gear).toLowerCase()}`,
+            itemWeight(gear),
+            {
+              type: "taken",
+              itemId: action.itemId,
+              name: itemName(gear),
+              stowed: true,
+            },
+          );
         }
         const item = roomItems(state).find(({ id }) => id === action.itemId);
         if (item === undefined) {
           return reject("no-item", "There is no such item here to take.");
         }
         if (item.gear !== undefined) {
-          if (state.possessions.stowed.length >= MAX_STOWED) {
-            return full();
-          }
           // Found gear is stowed, ready to equip, and found once.
-          return {
-            state: {
+          return taken(
+            {
               ...stow(state, item.gear),
               usedItemIds: [...state.usedItemIds, item.id],
             },
-            events: [
-              { type: "taken", itemId: item.id, name: item.name, stowed: true },
-            ],
-          };
+            `The ${item.name}`,
+            itemWeight(item.gear),
+            { type: "taken", itemId: item.id, name: item.name, stowed: true },
+          );
         }
         if (item.coins !== undefined) {
           // The engine decides how much: the authored amount, into the purse.
           const coin = coinsInCopper(item.coins);
-          return {
-            state: {
+          return taken(
+            {
               ...state,
               possessions: {
                 ...state.possessions,
@@ -2500,13 +2531,17 @@ export function createFifthRuntime(
               },
               usedItemIds: [...state.usedItemIds, item.id],
             },
-            events: [{ type: "taken", itemId: item.id, name: item.name, coin }],
-          };
+            `The ${item.name}`,
+            coinCount(coin) / COINS_PER_POUND,
+            { type: "taken", itemId: item.id, name: item.name, coin },
+          );
         }
-        return {
-          state: { ...state, inventory: [...state.inventory, item.id] },
-          events: [{ type: "taken", itemId: item.id, name: item.name }],
-        };
+        return taken(
+          { ...state, inventory: [...state.inventory, item.id] },
+          `The ${item.name}`,
+          ITEM_KINDS[item.kind].weight,
+          { type: "taken", itemId: item.id, name: item.name },
+        );
       }
       case "use-item": {
         if (!state.inventory.includes(action.itemId)) {
@@ -2662,7 +2697,7 @@ export function createFifthRuntime(
         };
         const trade =
           action.type === "buy"
-            ? buyItem(holding, id)
+            ? buyItem(holding, id, { capacity, other: otherWeight(state) })
             : sellItem(holding, id, action.equipped === true);
         if (trade.refusal !== undefined) {
           return reject(trade.refusal.code, trade.refusal.reason);
@@ -3106,6 +3141,7 @@ export function createFifthRuntime(
       })),
       collectedItems: carried(state).map(named),
       purse: formatCoins(state.possessions.purse),
+      carrying: `${formatWeight(weightOf(state))} of the ${formatWeight(capacity)} its Strength allows`,
       outcome: state.status,
       resources: featureUses(self(state)),
       ...(turn === undefined ? {} : { combatTurn: turn.name }),
@@ -3204,6 +3240,7 @@ export function createFifthRuntime(
         maxHp,
         health: healthOf(state.character.hp, maxHp),
       },
+      carrying: { weight: weightOf(state), capacity },
       options: {
         move: ids(accepted(state, "move")),
         examine: ids(accepted(state, "examine")),

@@ -32,6 +32,8 @@ import {
   COIN_VALUES,
   isItemId,
   itemTier,
+  POTION_WEIGHT,
+  TREASURE_WEIGHT,
   type Coin,
   type Coins,
   type ItemId,
@@ -105,14 +107,19 @@ export type FifthFeature = Readonly<{
  * What each kind of item does: the SRD 5.2 Potion of Healing heals, a key
  * opens the locked doors that name it, treasure is kept on surviving, coin
  * goes into the purse as it is taken, and gear (a catalogue weapon, armour or
- * shield) is stowed as it is taken, ready to equip.
+ * shield) is stowed as it is taken, ready to equip. A carried item weighs
+ * its kind's `weight` in pounds (#224); coin and gear weigh what the purse
+ * and the gear they become weigh.
  */
 export const ITEM_KINDS = {
-  "potion-of-healing": { healing: { dice: 2, sides: 4, modifier: 2 } },
-  key: {},
-  treasure: {},
-  coin: {},
-  gear: {},
+  "potion-of-healing": {
+    healing: { dice: 2, sides: 4, modifier: 2 },
+    weight: POTION_WEIGHT,
+  },
+  key: { weight: 0 },
+  treasure: { weight: TREASURE_WEIGHT },
+  coin: { weight: 0 },
+  gear: { weight: 0 },
 } as const;
 export type ItemKind = keyof typeof ITEM_KINDS;
 /** The kinds that are found once per character: never there to find again. */

@@ -6,6 +6,7 @@ import {
   ABILITIES,
   buildFighter,
   defaultPlacement,
+  fighterCarrying,
   fighterProfile,
   projectCreation,
 } from "../dist/fighter-5e.js";
@@ -50,6 +51,7 @@ test("complete choices project the same scores and modifiers as buildFighter", (
     assert.deepEqual(projection.sheet, {
       abilities: sheet.abilities,
       profile,
+      carrying: fighterCarrying(sheet),
     });
   }
 });

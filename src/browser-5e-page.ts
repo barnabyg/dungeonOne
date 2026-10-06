@@ -124,7 +124,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <div id="creatures-group"><h4 id="creatures-title">Creatures</h4><ul id="creatures" class="things" aria-labelledby="creatures-title"></ul></div>
 <div id="room-items-group"><h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul></div>
 <p id="room-empty" class="hint" hidden>There is nothing else here.</p>
-<div id="inventory-group"><h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul><p id="purse"></p></div>
+<div id="inventory-group"><h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul><p id="purse"></p><p id="carrying"></p></div>
 </div>
 </section>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
@@ -407,11 +407,13 @@ function attackText(attack) {
   return signed(attack.bonus) + " to hit, " + damageText(attack.damage) + " " + attack.damage.type + (attack.mastery ? ", " + attack.mastery : "") + attack.disadvantage.map((source) => ", disadvantage (" + source + ")").join("") + (attack.criticalRange === 19 ? ", critical on 19–20" : "");
 }
 
-function profileNodes(abilities, profile, hp) {
+function profileNodes(abilities, profile, hp, carrying) {
   const stats = make("ul", undefined, "stats");
   const entries = [
     ["HP", (hp === undefined ? profile.maxHp : hp) + "/" + profile.maxHp],
     ["AC", profile.armorClass],
+    // The engine weighs what is carried against Strength × 15 lb (#224).
+    ["Carrying", carrying.weight + " of " + carrying.capacity + " lb"],
     ["Initiative", signed(profile.initiative)],
     ["Proficiency bonus", signed(profile.proficiencyBonus)],
     [profile.attack.weapon, attackText(profile.attack)],
@@ -445,12 +447,12 @@ const findEntry = (id) => library.characters.find(({ sheet }) => sheet.id === id
 function openSheet(id) {
   const entry = findEntry(id);
   if (!entry) return;
-  const { sheet, profile, purse, stowed } = entry;
+  const { sheet, profile, purse, stowed, carrying } = entry;
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
   const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
-  element("sheet-body").replaceChildren(summary, styleUseNode(profile.fightingStyle), ...profileNodes(sheet.abilities, profile, sheet.hp), ...treasureNodes(sheet.treasure), ...purseNodes(sheet.purse, purse), rolls);
+  element("sheet-body").replaceChildren(summary, styleUseNode(profile.fightingStyle), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...treasureNodes(sheet.treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
@@ -1069,6 +1071,7 @@ function renderRoom(room, fighting) {
   element("purse").textContent = room.purse ? "Purse: " + room.purse : "";
   element("purse").hidden = !room.purse;
   if (room.purse) element("inventory-group").hidden = false;
+  element("carrying").textContent = "Carrying " + room.carrying.weight + " lb of the " + room.carrying.capacity + " lb your Strength allows.";
   element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0;
   disclose("room", fighting);
 }
@@ -1670,7 +1673,7 @@ async function preview() {
     element("creation-error").textContent = "";
     if (result.sheet) {
       element("preview-status").textContent = "";
-      element("preview-body").replaceChildren(...profileNodes(result.sheet.abilities, result.sheet.profile));
+      element("preview-body").replaceChildren(...profileNodes(result.sheet.abilities, result.sheet.profile, undefined, result.sheet.carrying));
       element("save-character").disabled = isBusy(element("save-character"));
     } else {
       element("preview-status").textContent = element("preview-body").childElementCount ? "These numbers are from your last complete choices. Finish the choices marked above to update them." : "";
