@@ -31,18 +31,33 @@ play and the opt-in live evaluations.
 
 ## Playing
 
+From the repository root in PowerShell, or by double-clicking `run.bat`:
+
+```powershell
+.\run
+```
+
+`run.bat` installs dependencies when `node_modules` is missing, builds, and
+launches the game; it is the same as running these by hand:
+
 ```powershell
 npm.cmd install
 npm.cmd run build
 npm.cmd run browser
 ```
 
+It does not reinstall on later runs, so after pulling a dependency change run
+`npm.cmd install` once yourself. If a step fails, it stops before launching and
+reports the step's exit code.
+
 The launcher prints the game's local address and opens it in your browser.
 Keep it running; press Ctrl+C to stop. Characters and adventures are saved as
-you play, and rerunning the same command continues where you left off. Options:
+you play, and rerunning the same command continues where you left off. Options,
+which `run.bat` passes through to the launcher:
 
 - `--characters <library.json>` chooses the character library (default
-  `characters.json` in the current directory). Each character's adventures are
+  `characters.json` in the current directory; `run.bat` always runs from the
+  repository root). Each character's adventures are
   saved in the `characters-adventures` directory beside it, named after the
   library.
 - `--seed <0-4294967295>` fixes the startup seed, for repeatable dice when
@@ -51,14 +66,14 @@ you play, and rerunning the same command continues where you left off. Options:
 For example, to play in a fresh library with repeatable dice:
 
 ```powershell
-npm.cmd run browser -- --seed 0 --characters .\.scratch\play\characters.json
+.\run --seed 0 --characters .\.scratch\play\characters.json
 ```
 
 To let players type to the Dungeon Master, set the key before launch:
 
 ```powershell
 $env:OPENAI_API_KEY = "<your key>"
-npm.cmd run browser
+.\run
 ```
 
 Without a key, the launcher says the AI Dungeon Master is off and how to turn
