@@ -139,8 +139,7 @@ try {
   const maxCalls =
     configuration.maxCalls ?? evaluationCallBudget(configuration.repetitions);
   process.stdout.write(
-    `Evaluating ${FIFTH_DM_CASES.length} cases × ${configuration.repetitions} repetitions on ${configuration.model}, at most ${maxCalls} provider calls.
-`,
+    `Evaluating ${FIFTH_DM_CASES.length} cases × ${configuration.repetitions} repetitions on ${configuration.model}, at most ${maxCalls} provider calls.\n`,
   );
   const report = await runFifthDmEvaluation({
     requestedModel: configuration.model,
