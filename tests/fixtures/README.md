@@ -40,3 +40,10 @@ through `quiet-launcher.mjs`, which stops it opening a desktop browser window.
 `session-layout.mjs` launches the browser and builds the fighters the 5e
 journeys use to check that the newest history entry and the action buttons
 are on screen together (#154).
+
+## Bestiary (issue 231)
+
+`bestiary.mjs` loads the built-in bestiary and binds the adventure validator to
+it as `validateModule`, for tests that validate a shipped module's JSON, or a
+changed copy of it, directly. The other module fixtures author their stat
+blocks inline, so they also cover one-off inline opponents.

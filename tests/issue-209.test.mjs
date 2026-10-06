@@ -9,7 +9,6 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { validateFifthAdventure } from "../dist/adventure-5e.js";
 import { gateAdventure } from "../dist/balance-5e.js";
 import {
   dropItem,
@@ -36,6 +35,7 @@ import {
   barrowFile,
   room,
 } from "./fixtures/armoury-barrow.mjs";
+import { validateModule } from "./fixtures/bestiary.mjs";
 
 const ROLLS = [
   [6, 6, 4, 1],
@@ -562,7 +562,7 @@ test("abandonment and defeat restore the starting gear exactly", async () => {
 });
 
 test("the balance gate's one-hit-kill measure uses the strongest gear the module places", () => {
-  const plain = validateFifthAdventure(barrowFile);
+  const plain = validateModule(barrowFile);
   const enemy = (adventure) => {
     const result = gateAdventure(adventure, { seeds: [0] });
     assert.equal(result.ok, true);
@@ -580,7 +580,7 @@ test("the validator places gear only as a catalogue item, and keeps catalogue id
   const broken = (change) => {
     const copy = structuredClone(armoury);
     change(room(copy, "barrow-mouth").items[0]);
-    return () => validateFifthAdventure(copy);
+    return () => validateModule(copy);
   };
   assert.throws(
     broken((item) => (item.gear = "halberd")),

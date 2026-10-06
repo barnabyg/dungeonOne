@@ -85,7 +85,9 @@ export async function main(args, output = process.stdout) {
   const adventures =
     options.paths.length === 0
       ? await loadBuiltInFifthAdventures()
-      : await Promise.all(options.paths.map(loadFifthAdventure));
+      : await Promise.all(
+          options.paths.map((path) => loadFifthAdventure(path)),
+        );
   const qualification = {
     seeds: Array.from({ length: options.seeds }, (_, seed) => seed),
     percentiles: options.percentiles,

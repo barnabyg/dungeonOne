@@ -3,10 +3,7 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  loadBuiltInFifthAdventures,
-  validateFifthAdventure,
-} from "../dist/adventure-5e.js";
+import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
@@ -15,6 +12,7 @@ import {
   sessionSeed,
   startFifthAdventure,
 } from "../dist/session-5e.js";
+import { validateModule } from "./fixtures/bestiary.mjs";
 
 const adventures = await loadBuiltInFifthAdventures();
 const adventure = adventures.find(({ id }) => id === "cellar-goblin");
@@ -203,7 +201,7 @@ test("a session save that does not replay exactly is refused", async () => {
       (file) => (file.adventure.id = "lost-mine"),
       /does not have.*Move it aside/,
     );
-    const changed = validateFifthAdventure({
+    const changed = validateModule({
       ...structuredClone(adventure),
       title: "The Goblin in the Wine Cellar",
     });

@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 8,
+  "formatVersion": 9,
   "id": "abandoned-delve",
   "title": "The Abandoned Delve",
   "objective": "Loot the old dungeon under the ruined keep and get out alive, by the gate or the shaft.",
@@ -363,40 +363,8 @@
       "opponents": [
         {
           "id": "zombie",
-          "name": "Zombie",
-          "description": "The dead guard turns, jaw hanging, and shambles at you.",
-          "statBlock": {
-            "name": "Zombie",
-            "size": "Medium",
-            "type": "Undead",
-            "armorClass": 8,
-            "hitPoints": {
-              "average": 15,
-              "formula": "2d8 + 6"
-            },
-            "abilities": {
-              "strength": 13,
-              "dexterity": 6,
-              "constitution": 16,
-              "intelligence": 3,
-              "wisdom": 6,
-              "charisma": 5
-            },
-            "challengeRating": "1/4",
-            "xp": 50,
-            "attacks": [
-              {
-                "name": "Slam",
-                "bonus": 3,
-                "damage": {
-                  "dice": 1,
-                  "sides": 8,
-                  "modifier": 1,
-                  "type": "bludgeoning"
-                }
-              }
-            ]
-          }
+          "monster": "zombie",
+          "description": "The dead guard turns, jaw hanging, and shambles at you."
         }
       ],
       "defeatEndingId": "lost-in-the-delve"
@@ -406,77 +374,15 @@
       "opponents": [
         {
           "id": "skeleton-sergeant",
+          "monster": "skeleton",
           "name": "Tall Skeleton",
-          "description": "A tall skeleton in rusted mail raises a shortsword.",
-          "statBlock": {
-            "name": "Skeleton",
-            "size": "Medium",
-            "type": "Undead",
-            "armorClass": 14,
-            "hitPoints": {
-              "average": 13,
-              "formula": "2d8 + 4"
-            },
-            "abilities": {
-              "strength": 10,
-              "dexterity": 16,
-              "constitution": 15,
-              "intelligence": 6,
-              "wisdom": 8,
-              "charisma": 5
-            },
-            "challengeRating": "1/4",
-            "xp": 50,
-            "attacks": [
-              {
-                "name": "Shortsword",
-                "bonus": 5,
-                "damage": {
-                  "dice": 1,
-                  "sides": 6,
-                  "modifier": 3,
-                  "type": "piercing"
-                }
-              }
-            ]
-          }
+          "description": "A tall skeleton in rusted mail raises a shortsword."
         },
         {
           "id": "skeleton-guard",
+          "monster": "skeleton",
           "name": "Bent Skeleton",
-          "description": "A bent skeleton clatters up from a bunk beside it.",
-          "statBlock": {
-            "name": "Skeleton",
-            "size": "Medium",
-            "type": "Undead",
-            "armorClass": 14,
-            "hitPoints": {
-              "average": 13,
-              "formula": "2d8 + 4"
-            },
-            "abilities": {
-              "strength": 10,
-              "dexterity": 16,
-              "constitution": 15,
-              "intelligence": 6,
-              "wisdom": 8,
-              "charisma": 5
-            },
-            "challengeRating": "1/4",
-            "xp": 50,
-            "attacks": [
-              {
-                "name": "Shortsword",
-                "bonus": 5,
-                "damage": {
-                  "dice": 1,
-                  "sides": 6,
-                  "modifier": 3,
-                  "type": "piercing"
-                }
-              }
-            ]
-          }
+          "description": "A bent skeleton clatters up from a bunk beside it."
         }
       ],
       "defeatEndingId": "lost-in-the-delve"
@@ -486,40 +392,8 @@
       "opponents": [
         {
           "id": "giant-spider",
-          "name": "Giant Spider",
-          "description": "A spider the size of a pony drops from the webs, fangs dripping.",
-          "statBlock": {
-            "name": "Giant Spider",
-            "size": "Large",
-            "type": "Beast",
-            "armorClass": 14,
-            "hitPoints": {
-              "average": 26,
-              "formula": "4d10 + 4"
-            },
-            "abilities": {
-              "strength": 14,
-              "dexterity": 16,
-              "constitution": 12,
-              "intelligence": 2,
-              "wisdom": 11,
-              "charisma": 4
-            },
-            "challengeRating": "1",
-            "xp": 200,
-            "attacks": [
-              {
-                "name": "Bite",
-                "bonus": 5,
-                "damage": {
-                  "dice": 1,
-                  "sides": 8,
-                  "modifier": 3,
-                  "type": "piercing"
-                }
-              }
-            ]
-          }
+          "monster": "giant-spider",
+          "description": "A spider the size of a pony drops from the webs, fangs dripping."
         }
       ],
       "defeatEndingId": "lost-in-the-delve"
@@ -529,41 +403,9 @@
       "opponents": [
         {
           "id": "ghoul",
-          "name": "Ghoul",
+          "monster": "ghoul",
           "description": "The ghoul looks up from the chest, a jewelled goblet in its claws, and springs.",
-          "boss": true,
-          "statBlock": {
-            "name": "Ghoul",
-            "size": "Medium",
-            "type": "Undead",
-            "armorClass": 12,
-            "hitPoints": {
-              "average": 22,
-              "formula": "5d8"
-            },
-            "abilities": {
-              "strength": 13,
-              "dexterity": 15,
-              "constitution": 10,
-              "intelligence": 7,
-              "wisdom": 10,
-              "charisma": 6
-            },
-            "challengeRating": "1",
-            "xp": 200,
-            "attacks": [
-              {
-                "name": "Bite",
-                "bonus": 4,
-                "damage": {
-                  "dice": 1,
-                  "sides": 6,
-                  "modifier": 2,
-                  "type": "piercing"
-                }
-              }
-            ]
-          }
+          "boss": true
         }
       ],
       "defeatEndingId": "lost-in-the-delve"

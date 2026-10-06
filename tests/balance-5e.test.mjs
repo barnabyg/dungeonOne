@@ -18,9 +18,9 @@ import { main, parseArguments } from "../scripts/balance-5e.mjs";
 import {
   loadBuiltInFifthAdventures,
   loadFifthAdventure,
-  validateFifthAdventure,
 } from "../dist/adventure-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
+import { validateModule } from "./fixtures/bestiary.mjs";
 
 const STRONG_DICE = [
   [6, 6, 6, 1],
@@ -141,7 +141,7 @@ const MEDIAN = percentileCharacters({ percentiles: [50] })[0].dice;
 function variant(id, change) {
   const copy = structuredClone(SHIPPED[id]);
   change(copy);
-  return validateFifthAdventure(copy);
+  return validateModule(copy);
 }
 
 /** The smugglers' cellar with a giant rat in the optional alcove too. */
@@ -157,7 +157,7 @@ const RAT_IN_ALCOVE = (() => {
     })),
   });
   module.rooms.find(({ id }) => id === "alcove").encounterId = "alcove-rat";
-  return validateFifthAdventure(module);
+  return validateModule(module);
 })();
 
 function play(adventure, style, seed, dice = STRONG_DICE, level = 1) {
@@ -483,7 +483,7 @@ const MINION_YARD = await loadFifthAdventure(
   "tests/fixtures/gate-minion-yard.json",
 );
 const declared = (adventure, difficulty) =>
-  validateFifthAdventure({ ...adventure, difficulty });
+  validateModule({ ...adventure, difficulty });
 
 test("a module too deadly for its difficulty is rejected, and passes declared one step harder", () => {
   const medium = gateAdventure(GOBLIN_PAIR);
@@ -550,7 +550,7 @@ test("a module whose ordinary enemies a strong level-1 Fighter usually one-shots
 
 test("bosses are exempt from the one-hit-kill cap, and half the ordinary enemies may exceed it", () => {
   const withBoss = (bosses) =>
-    validateFifthAdventure({
+    validateModule({
       ...MINION_YARD,
       encounters: MINION_YARD.encounters.map((encounter) => ({
         ...encounter,
@@ -583,7 +583,7 @@ test("bosses are exempt from the one-hit-kill cap, and half the ordinary enemies
 test("a module whose XP could carry a character past its maximum level + 1 is rejected", () => {
   // Level 2 at most: from 899 XP, 100 XP reaches level 3; 1,801 more reach 4.
   const rich = (xp) =>
-    validateFifthAdventure({
+    validateModule({
       ...GOBLIN_PAIR,
       recommendedLevels: { min: 2, max: 2 },
       difficulty: "hard",

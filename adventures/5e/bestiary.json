@@ -1,0 +1,330 @@
+{
+  "kind": "dungeon-one-5e-bestiary",
+  "formatVersion": 1,
+  "monsters": [
+    {
+      "id": "zombie",
+      "description": "A shambling corpse, jaw hanging, that will not stay down.",
+      "statBlock": {
+        "name": "Zombie",
+        "size": "Medium",
+        "type": "Undead",
+        "armorClass": 8,
+        "hitPoints": {
+          "average": 15,
+          "formula": "2d8 + 6"
+        },
+        "abilities": {
+          "strength": 13,
+          "dexterity": 6,
+          "constitution": 16,
+          "intelligence": 3,
+          "wisdom": 6,
+          "charisma": 5
+        },
+        "challengeRating": "1/4",
+        "xp": 50,
+        "attacks": [
+          {
+            "name": "Slam",
+            "bonus": 3,
+            "damage": {
+              "dice": 1,
+              "sides": 8,
+              "modifier": 1,
+              "type": "bludgeoning"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "skeleton",
+      "description": "A skeleton in rusted mail, raising a shortsword.",
+      "statBlock": {
+        "name": "Skeleton",
+        "size": "Medium",
+        "type": "Undead",
+        "armorClass": 14,
+        "hitPoints": {
+          "average": 13,
+          "formula": "2d8 + 4"
+        },
+        "abilities": {
+          "strength": 10,
+          "dexterity": 16,
+          "constitution": 15,
+          "intelligence": 6,
+          "wisdom": 8,
+          "charisma": 5
+        },
+        "challengeRating": "1/4",
+        "xp": 50,
+        "attacks": [
+          {
+            "name": "Shortsword",
+            "bonus": 5,
+            "damage": {
+              "dice": 1,
+              "sides": 6,
+              "modifier": 3,
+              "type": "piercing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "giant-spider",
+      "description": "A spider the size of a pony, fangs glistening.",
+      "statBlock": {
+        "name": "Giant Spider",
+        "size": "Large",
+        "type": "Beast",
+        "armorClass": 14,
+        "hitPoints": {
+          "average": 26,
+          "formula": "4d10 + 4"
+        },
+        "abilities": {
+          "strength": 14,
+          "dexterity": 16,
+          "constitution": 12,
+          "intelligence": 2,
+          "wisdom": 11,
+          "charisma": 4
+        },
+        "challengeRating": "1",
+        "xp": 200,
+        "attacks": [
+          {
+            "name": "Bite",
+            "bonus": 5,
+            "damage": {
+              "dice": 1,
+              "sides": 8,
+              "modifier": 3,
+              "type": "piercing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ghoul",
+      "description": "A grey-skinned corpse-eater with long, filthy claws.",
+      "statBlock": {
+        "name": "Ghoul",
+        "size": "Medium",
+        "type": "Undead",
+        "armorClass": 12,
+        "hitPoints": {
+          "average": 22,
+          "formula": "5d8"
+        },
+        "abilities": {
+          "strength": 13,
+          "dexterity": 15,
+          "constitution": 10,
+          "intelligence": 7,
+          "wisdom": 10,
+          "charisma": 6
+        },
+        "challengeRating": "1",
+        "xp": 200,
+        "attacks": [
+          {
+            "name": "Bite",
+            "bonus": 4,
+            "damage": {
+              "dice": 1,
+              "sides": 6,
+              "modifier": 2,
+              "type": "piercing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "goblin-minion",
+      "description": "A scrawny goblin with a dagger, braver in a crowd.",
+      "statBlock": {
+        "name": "Goblin Minion",
+        "size": "Small",
+        "type": "Fey (Goblinoid)",
+        "armorClass": 12,
+        "hitPoints": {
+          "average": 7,
+          "formula": "2d6"
+        },
+        "abilities": {
+          "strength": 8,
+          "dexterity": 15,
+          "constitution": 10,
+          "intelligence": 10,
+          "wisdom": 8,
+          "charisma": 8
+        },
+        "challengeRating": "1/8",
+        "xp": 25,
+        "attacks": [
+          {
+            "name": "Dagger",
+            "bonus": 4,
+            "damage": {
+              "dice": 1,
+              "sides": 4,
+              "modifier": 2,
+              "type": "piercing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "goblin-warrior",
+      "description": "A wiry goblin in scraps of leather, scimitar drawn.",
+      "statBlock": {
+        "name": "Goblin Warrior",
+        "size": "Small",
+        "type": "Fey (Goblinoid)",
+        "armorClass": 15,
+        "hitPoints": {
+          "average": 10,
+          "formula": "3d6"
+        },
+        "abilities": {
+          "strength": 8,
+          "dexterity": 15,
+          "constitution": 10,
+          "intelligence": 10,
+          "wisdom": 8,
+          "charisma": 8
+        },
+        "challengeRating": "1/4",
+        "xp": 50,
+        "attacks": [
+          {
+            "name": "Scimitar",
+            "bonus": 4,
+            "damage": {
+              "dice": 1,
+              "sides": 6,
+              "modifier": 2,
+              "type": "slashing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "goblin-boss",
+      "description": "A scarred goblin in a battered helm, used to being obeyed.",
+      "statBlock": {
+        "name": "Goblin Boss",
+        "size": "Small",
+        "type": "Fey (Goblinoid)",
+        "armorClass": 17,
+        "hitPoints": {
+          "average": 21,
+          "formula": "6d6"
+        },
+        "abilities": {
+          "strength": 10,
+          "dexterity": 15,
+          "constitution": 10,
+          "intelligence": 10,
+          "wisdom": 8,
+          "charisma": 10
+        },
+        "challengeRating": "1",
+        "xp": 200,
+        "attacks": [
+          {
+            "name": "Scimitar",
+            "bonus": 4,
+            "damage": {
+              "dice": 1,
+              "sides": 6,
+              "modifier": 2,
+              "type": "slashing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "wolf",
+      "description": "A lean grey wolf, hackles up, circling.",
+      "statBlock": {
+        "name": "Wolf",
+        "size": "Medium",
+        "type": "Beast",
+        "armorClass": 12,
+        "hitPoints": {
+          "average": 11,
+          "formula": "2d8 + 2"
+        },
+        "abilities": {
+          "strength": 14,
+          "dexterity": 15,
+          "constitution": 12,
+          "intelligence": 3,
+          "wisdom": 12,
+          "charisma": 6
+        },
+        "challengeRating": "1/4",
+        "xp": 50,
+        "attacks": [
+          {
+            "name": "Bite",
+            "bonus": 4,
+            "damage": {
+              "dice": 1,
+              "sides": 6,
+              "modifier": 2,
+              "type": "piercing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "bandit",
+      "description": "A desperate outlaw with a scimitar and nothing to lose.",
+      "statBlock": {
+        "name": "Bandit",
+        "size": "Medium",
+        "type": "Humanoid",
+        "armorClass": 12,
+        "hitPoints": {
+          "average": 11,
+          "formula": "2d8 + 2"
+        },
+        "abilities": {
+          "strength": 11,
+          "dexterity": 12,
+          "constitution": 12,
+          "intelligence": 10,
+          "wisdom": 10,
+          "charisma": 10
+        },
+        "challengeRating": "1/8",
+        "xp": 25,
+        "attacks": [
+          {
+            "name": "Scimitar",
+            "bonus": 3,
+            "damage": {
+              "dice": 1,
+              "sides": 6,
+              "modifier": 1,
+              "type": "slashing"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

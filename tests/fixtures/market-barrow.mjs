@@ -2,8 +2,8 @@
 // shortsword, a shield and a dagger and takes ten minutes over each trade.
 // The goblin's pouch holds 10 gp, the shortsword's price, so coin looted
 // from its body buys it.
-import { validateFifthAdventure } from "../../dist/adventure-5e.js";
 import { barrowFile, room } from "./armoury-barrow.mjs";
+import { validateModule } from "./bestiary.mjs";
 
 export const PEDLAR = {
   id: "pedlar",
@@ -26,4 +26,4 @@ room(marketFile, "burial-hall").items.find(
   ({ id }) => id === "coin-pouch",
 ).coins = { gp: 10 };
 
-export const marketBarrow = validateFifthAdventure(marketFile);
+export const marketBarrow = validateModule(marketFile);

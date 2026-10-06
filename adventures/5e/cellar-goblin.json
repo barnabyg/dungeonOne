@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 8,
+  "formatVersion": 9,
   "id": "cellar-goblin",
   "title": "The Goblin in the Cellar",
   "objective": "Drive out the goblin that has taken over the inn's cellar.",
@@ -27,40 +27,8 @@
       "opponents": [
         {
           "id": "goblin",
-          "name": "Goblin Warrior",
-          "description": "A small, sharp-toothed goblin in scraps of leather, scimitar already drawn.",
-          "statBlock": {
-            "name": "Goblin Warrior",
-            "size": "Small",
-            "type": "Fey (Goblinoid)",
-            "armorClass": 15,
-            "hitPoints": {
-              "average": 10,
-              "formula": "3d6"
-            },
-            "abilities": {
-              "strength": 8,
-              "dexterity": 15,
-              "constitution": 10,
-              "intelligence": 10,
-              "wisdom": 8,
-              "charisma": 8
-            },
-            "challengeRating": "1/4",
-            "xp": 50,
-            "attacks": [
-              {
-                "name": "Scimitar",
-                "bonus": 4,
-                "damage": {
-                  "dice": 1,
-                  "sides": 6,
-                  "modifier": 2,
-                  "type": "slashing"
-                }
-              }
-            ]
-          }
+          "monster": "goblin-warrior",
+          "description": "A small, sharp-toothed goblin in scraps of leather, scimitar already drawn."
         }
       ],
       "victoryEndingId": "goblin-defeated",

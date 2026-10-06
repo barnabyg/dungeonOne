@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 8,
+  "formatVersion": 9,
   "id": "warden-crypt",
   "title": "The Warden's Crypt",
   "objective": "Get past the crypt's doors and traps and put an end to whatever guards the warden's tomb.",
@@ -214,40 +214,8 @@
       "opponents": [
         {
           "id": "risen-warden",
-          "name": "Zombie",
-          "description": "The dead warden hauls itself out of the sarcophagus, grave-cloth trailing.",
-          "statBlock": {
-            "name": "Zombie",
-            "size": "Medium",
-            "type": "Undead",
-            "armorClass": 8,
-            "hitPoints": {
-              "average": 15,
-              "formula": "2d8 + 6"
-            },
-            "abilities": {
-              "strength": 13,
-              "dexterity": 6,
-              "constitution": 16,
-              "intelligence": 3,
-              "wisdom": 6,
-              "charisma": 5
-            },
-            "challengeRating": "1/4",
-            "xp": 50,
-            "attacks": [
-              {
-                "name": "Slam",
-                "bonus": 3,
-                "damage": {
-                  "dice": 1,
-                  "sides": 8,
-                  "modifier": 1,
-                  "type": "bludgeoning"
-                }
-              }
-            ]
-          }
+          "monster": "zombie",
+          "description": "The dead warden hauls itself out of the sarcophagus, grave-cloth trailing."
         }
       ],
       "victoryEndingId": "crypt-cleared",

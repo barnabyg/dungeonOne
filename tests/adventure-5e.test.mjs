@@ -6,8 +6,8 @@ import { join } from "node:path";
 import {
   loadBuiltInFifthAdventures,
   loadFifthAdventure,
-  validateFifthAdventure,
 } from "../dist/adventure-5e.js";
+import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
 
 const fixture = JSON.parse(
   await readFile(
@@ -18,6 +18,19 @@ const changed = (change) => {
   const copy = structuredClone(fixture);
   change(copy);
   return copy;
+};
+/** Authors the cellar goblin's bestiary stat block inline, and returns it. */
+const inline = (m) => {
+  const [goblin] = m.encounters[0].opponents;
+  m.encounters[0].opponents[0] = {
+    id: goblin.id,
+    name: "Goblin Warrior",
+    description: goblin.description,
+    statBlock: structuredClone(
+      bestiary.monsters.find(({ id }) => id === "goblin-warrior").statBlock,
+    ),
+  };
+  return m.encounters[0].opponents[0].statBlock;
 };
 
 test("the built-in fixture is a valid one-room module with a declared level range and difficulty", async () => {
@@ -34,7 +47,7 @@ test("the built-in fixture is a valid one-room module with a declared level rang
     average: 10,
     formula: "3d6",
   });
-  assert.deepEqual(validateFifthAdventure(fixture), adventure);
+  assert.deepEqual(validateModule(fixture), adventure);
 });
 
 test("the validator rejects unknown references", () => {
@@ -51,14 +64,14 @@ test("the validator rejects unknown references", () => {
       /not a victory ending/,
     ],
   ]) {
-    assert.throws(() => validateFifthAdventure(changed(change)), message);
+    assert.throws(() => validateModule(changed(change)), message);
   }
 });
 
 test("the validator rejects a missing ending", () => {
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         changed((m) => {
           m.endings = m.endings.filter(({ kind }) => kind !== "victory");
         }),
@@ -66,7 +79,7 @@ test("the validator rejects a missing ending", () => {
     /missing a victory or escape ending/,
   );
   assert.throws(
-    () => validateFifthAdventure(changed((m) => (m.endings = []))),
+    () => validateModule(changed((m) => (m.endings = []))),
     /endings must list/,
   );
 });
@@ -84,35 +97,26 @@ test("the validator rejects malformed modules", () => {
       /duplicate room id cellar/,
     ],
     [(m) => (m.encounters[0].opponents[0].id = "pc"), /reserved/],
-    [
-      (m) => (m.encounters[0].opponents[0].statBlock.armorClass = "15"),
-      /armorClass/,
-    ],
-    [
-      (m) => (m.encounters[0].opponents[0].statBlock.attacks = []),
-      /attacks must list/,
-    ],
-    [
-      (m) => (m.encounters[0].opponents[0].statBlock.challengeRating = "1/3"),
-      /challengeRating/,
-    ],
+    [(m) => (inline(m).armorClass = "15"), /armorClass/],
+    [(m) => (inline(m).attacks = []), /attacks must list/],
+    [(m) => (inline(m).challengeRating = "1/3"), /challengeRating/],
   ]) {
-    assert.throws(() => validateFifthAdventure(changed(change)), message);
+    assert.throws(() => validateModule(changed(change)), message);
   }
 });
 
 test("an opponent may be marked as a boss, and is ordinary otherwise", async () => {
-  const boss = validateFifthAdventure(
+  const boss = validateModule(
     changed((m) => (m.encounters[0].opponents[0].boss = true)),
   );
   assert.equal(boss.encounters[0].opponents[0].boss, true);
   assert.equal(
-    "boss" in validateFifthAdventure(fixture).encounters[0].opponents[0],
+    "boss" in validateModule(fixture).encounters[0].opponents[0],
     false,
   );
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         changed((m) => (m.encounters[0].opponents[0].boss = false)),
       ),
     /opponent 1 boss must be true, or left out/,
@@ -137,7 +141,7 @@ test("a module in another format version is refused by name and left unchanged",
     await assert.rejects(loadFifthAdventure(path), (error) => {
       assert.match(
         error.message,
-        /old\.json is a 5e adventure module in format version 4, not 8\. Move it aside/,
+        /old\.json is a 5e adventure module in format version 4, not 9\. Move it aside/,
       );
       return true;
     });
@@ -181,7 +185,7 @@ test("the group-fight module holds two goblins with distinct names", async () =>
 test("the validator rejects opponents in one encounter that share a name", () => {
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         changed((m) =>
           m.encounters[0].opponents.push({
             ...m.encounters[0].opponents[0],
@@ -196,7 +200,7 @@ test("the validator rejects opponents in one encounter that share a name", () =>
 test("opponent names differing only in case count as the same name", () => {
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         changed((m) =>
           m.encounters[0].opponents.push({
             ...m.encounters[0].opponents[0],
@@ -221,7 +225,7 @@ const room = (module, id) => module.rooms.find((entry) => entry.id === id);
 
 test("the multi-room fixture has passages, features with discoveries and a hidden potion", () => {
   // The Smugglers' Cellar as it was before #207, with its Giant Rat fight.
-  const adventure = validateFifthAdventure(smugglers);
+  const adventure = validateModule(smugglers);
   assert.deepEqual(
     adventure.rooms.map(({ id }) => id),
     ["stair-foot", "alcove", "rat-cellar", "den"],
@@ -238,7 +242,7 @@ test("the multi-room fixture has passages, features with discoveries and a hidde
 test("the validator rejects unreachable rooms", () => {
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         explored((m) => {
           m.passages = m.passages.filter(({ id }) => id !== "cellar-to-den");
         }),
@@ -247,7 +251,7 @@ test("the validator rejects unreachable rooms", () => {
   );
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         explored((m) => {
           m.rooms.push({
             id: "vault",
@@ -319,16 +323,14 @@ test("the validator rejects unknown references in rooms, passages and items", ()
     ],
     [(m) => (room(m, "alcove").secret = true), /room 2 must have/],
   ]) {
-    assert.throws(() => validateFifthAdventure(explored(change)), message);
+    assert.throws(() => validateModule(explored(change)), message);
   }
 });
 
 test("the validator rejects an ending no encounter can reach", () => {
   assert.throws(
     () =>
-      validateFifthAdventure(
-        explored((m) => delete m.encounters[1].victoryEndingId),
-      ),
+      validateModule(explored((m) => delete m.encounters[1].victoryEndingId)),
     /ending cellar-cleared cannot be reached/,
   );
 });
@@ -349,7 +351,7 @@ test("the crypt fixture has a stuck door, a locked door with a key, a trap and a
   const adventure = (await loadBuiltInFifthAdventures()).find(
     ({ id }) => id === "warden-crypt",
   );
-  assert.deepEqual(validateFifthAdventure(crypt), adventure);
+  assert.deepEqual(validateModule(crypt), adventure);
   assert.deepEqual(passage(adventure, "stair-to-cell").door, {
     id: "swollen-door",
     name: "Swollen Door",
@@ -409,7 +411,7 @@ test("the validator rejects a check or trap that guards the only route to an ess
       /room tomb is essential.*\(tomb-door\)/,
     ],
   ]) {
-    assert.throws(() => validateFifthAdventure(crypted(change)), message);
+    assert.throws(() => validateModule(crypted(change)), message);
   }
   // A locked door is no obstacle when its key can be reached freely.
   const freeKey = crypted((m) => {
@@ -428,10 +430,7 @@ test("the validator rejects a check or trap that guards the only route to an ess
       hiddenIn: "carved-warning",
     });
   });
-  assert.equal(
-    validateFifthAdventure(freeKey).passages[2].door.keyItemId,
-    "stair-key",
-  );
+  assert.equal(validateModule(freeKey).passages[2].door.keyItemId, "stair-key");
 });
 
 test("the validator rejects malformed doors, traps and creatures", () => {
@@ -512,7 +511,7 @@ test("the validator rejects malformed doors, traps and creatures", () => {
       /two doors named iron door/i,
     ],
   ]) {
-    assert.throws(() => validateFifthAdventure(crypted(change)), message);
+    assert.throws(() => validateModule(crypted(change)), message);
   }
 });
 
@@ -526,7 +525,7 @@ test("an ending only a trap names can still be reached", () => {
     });
     passage(m, "hall-to-offerings").trap.defeatEndingId = "pierced";
   });
-  assert.equal(validateFifthAdventure(trapOnly).endings.length, 3);
+  assert.equal(validateModule(trapOnly).endings.length, 3);
 });
 
 const barrow = JSON.parse(
@@ -560,11 +559,11 @@ test("the barrow fixture has an exit, hidden treasure and both escape endings wi
 });
 
 test("an opponent may carry treasure, unless its fight ends the adventure", () => {
-  const adventure = validateFifthAdventure(barrow);
+  const adventure = validateModule(barrow);
   assert.equal(adventure.rooms[1].items[1].hiddenIn, "barrow-goblin");
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         barrowed((m) => {
           m.endings.push({
             id: "won",
@@ -580,7 +579,7 @@ test("an opponent may carry treasure, unless its fight ends the adventure", () =
   // An opponent in another room's fight can't carry this room's item.
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         barrowed((m) => m.rooms[0].items.push(m.rooms[1].items.pop())),
       ),
     /hidden in unknown feature barrow-goblin/,
@@ -588,7 +587,7 @@ test("an opponent may carry treasure, unless its fight ends the adventure", () =
   // Opponents share the targets' namespace.
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         barrowed((m) =>
           m.rooms[0].features.push({
             id: "barrow-goblin",
@@ -603,10 +602,7 @@ test("an opponent may carry treasure, unless its fight ends the adventure", () =
 
 test("the validator rejects treasure lying in the open", () => {
   assert.throws(
-    () =>
-      validateFifthAdventure(
-        barrowed((m) => delete m.rooms[1].items[0].hiddenIn),
-      ),
+    () => validateModule(barrowed((m) => delete m.rooms[1].items[0].hiddenIn)),
     /item 1 is treasure, so it must be hidden in a feature/,
   );
 });
@@ -650,12 +646,12 @@ test("the validator matches exits to escape endings", () => {
     [(m) => (endingOf(m, "escape-with-loot").xp = -1), /xp must be an integer/],
     [(m) => (endingOf(m, "defeat").kind = "retreat"), /kind must be/],
   ]) {
-    assert.throws(() => validateFifthAdventure(barrowed(change)), message);
+    assert.throws(() => validateModule(barrowed(change)), message);
   }
 });
 
 test("an exit without treasure needs only the empty-handed escape", () => {
-  const adventure = validateFifthAdventure(
+  const adventure = validateModule(
     barrowed((m) => {
       m.rooms[1].items = [];
       m.endings = m.endings.filter(({ kind }) => kind !== "escape-with-loot");

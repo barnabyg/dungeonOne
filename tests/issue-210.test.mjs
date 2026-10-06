@@ -8,7 +8,6 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { validateFifthAdventure } from "../dist/adventure-5e.js";
 import { gateAdventure } from "../dist/balance-5e.js";
 import { buyItem, salePrice, sellItem } from "../dist/equipment-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
@@ -24,6 +23,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
 import { room } from "./fixtures/armoury-barrow.mjs";
 import { marketBarrow, marketFile, PEDLAR } from "./fixtures/market-barrow.mjs";
+import { validateModule } from "./fixtures/bestiary.mjs";
 
 const holding = (equipment, stowed = [], purse = 0) => ({
   equipment,
@@ -147,18 +147,18 @@ function withPedlar(change) {
 }
 
 test("a module's creature may be a merchant with authored stock and minutes per trade", () => {
-  assert.equal(marketBarrow.formatVersion, 8);
+  assert.equal(marketBarrow.formatVersion, 9);
   assert.deepEqual(room(marketBarrow, "barrow-mouth").creatures[0].merchant, {
     stock: ["shortsword", "shield", "dagger"],
     minutes: 10,
   });
   assert.throws(
     () =>
-      validateFifthAdventure({
+      validateModule({
         ...structuredClone(marketFile),
         formatVersion: 7,
       }),
-    /format version 7 is not 8/,
+    /format version 7 is not 9/,
   );
 });
 
@@ -180,20 +180,20 @@ test("a merchant stocks only distinct catalogue gear and takes 1–60 minutes a 
     ],
   ];
   for (const [change, message] of cases) {
-    assert.throws(() => validateFifthAdventure(withPedlar(change)), message);
+    assert.throws(() => validateModule(withPedlar(change)), message);
   }
 });
 
 test("a merchant stocks common gear always, uncommon only for level 3 and up, and never rare", () => {
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         withPedlar((pedlar) => pedlar.merchant.stock.push("longsword")),
       ),
     /stocks the uncommon longsword, but uncommon gear is sold only in modules for level 3 and up/,
   );
   const levelThree = (stock) =>
-    validateFifthAdventure(
+    validateModule(
       withPedlar((pedlar, module) => {
         pedlar.merchant.stock.push(stock);
         module.recommendedLevels = { min: 3, max: 3 };
@@ -209,7 +209,7 @@ test("a merchant stocks common gear always, uncommon only for level 3 and up, an
 test("a room has at most one merchant", () => {
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         withPedlar((pedlar, module) =>
           room(module, "barrow-mouth").creatures.push({
             ...structuredClone(PEDLAR),
@@ -662,7 +662,7 @@ test("abandonment and defeat undo every trade: the coin and gear the character s
 
 test("the balance gate's one-hit-kill measure tries each weapon a merchant sells", () => {
   const stocking = (stock) =>
-    validateFifthAdventure(
+    validateModule(
       withPedlar((pedlar, module) => {
         pedlar.merchant.stock = [stock];
         module.recommendedLevels = { min: 3, max: 3 };

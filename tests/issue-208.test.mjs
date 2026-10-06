@@ -10,7 +10,6 @@ import { join } from "node:path";
 import {
   loadBuiltInFifthAdventures,
   loadFifthAdventure,
-  validateFifthAdventure,
 } from "../dist/adventure-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { formatCoins } from "../dist/equipment-5e.js";
@@ -27,6 +26,7 @@ import {
   settleFifthSession,
   startFifthAdventure,
 } from "../dist/session-5e.js";
+import { validateModule } from "./fixtures/bestiary.mjs";
 
 const adventures = await loadBuiltInFifthAdventures();
 const barrow = adventures.find(({ id }) => id === "robbers-barrow");
@@ -128,14 +128,11 @@ test("the barrow's goblin carries coin, authored in gold and silver", () => {
 
 test("the validator rejects coin that is not hidden in a feature or carried by an opponent", () => {
   assert.throws(
-    () => validateFifthAdventure(changed((m) => delete pouchOf(m).hiddenIn)),
+    () => validateModule(changed((m) => delete pouchOf(m).hiddenIn)),
     /room 2 item 2 is coin, so it must be hidden in a feature or carried by an opponent\./,
   );
   assert.throws(
-    () =>
-      validateFifthAdventure(
-        changed((m) => (pouchOf(m).hiddenIn = "the-floor")),
-      ),
+    () => validateModule(changed((m) => (pouchOf(m).hiddenIn = "the-floor"))),
     /hidden in unknown feature the-floor/,
   );
 });
@@ -153,7 +150,7 @@ test("the validator rejects coin without an amount, and an amount on anything el
     [(m) => (pouchOf(m).coins = { sp: 1.5 }), /coins sp must be an integer/],
     [(m) => (pouchOf(m).kind = "treasure"), /only coin has coins/],
   ]) {
-    assert.throws(() => validateFifthAdventure(changed(change)), message);
+    assert.throws(() => validateModule(changed(change)), message);
   }
 });
 
@@ -161,10 +158,10 @@ test("coin alone is loot: an exit with only coin to find needs its escape-with-l
   const coinOnly = changed((m) => {
     hall(m).items = hall(m).items.filter(({ kind }) => kind === "coin");
   });
-  assert.doesNotThrow(() => validateFifthAdventure(coinOnly));
+  assert.doesNotThrow(() => validateModule(coinOnly));
   assert.throws(
     () =>
-      validateFifthAdventure(
+      validateModule(
         changed((m) => {
           hall(m).items = hall(m).items.filter(({ kind }) => kind === "coin");
           m.endings = m.endings.filter(
@@ -184,7 +181,7 @@ test("an older module file is refused with a message naming the file", async () 
     await writeFile(path, bytes);
     await assert.rejects(
       loadFifthAdventure(path),
-      /older-barrow\.json is a 5e adventure module in format version 5, not 8\. Move it aside/,
+      /older-barrow\.json is a 5e adventure module in format version 5, not 9\. Move it aside/,
     );
     assert.equal(await readFile(path, "utf8"), bytes);
   } finally {
