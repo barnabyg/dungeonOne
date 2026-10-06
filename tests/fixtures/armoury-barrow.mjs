@@ -2,7 +2,7 @@
 // found by examining the lintel before any fight: a longsword, a shield, a
 // greatsword and chain mail, or the longsword alone.
 import { readFile } from "node:fs/promises";
-import { validateFifthAdventure } from "../../dist/adventure-5e.js";
+import { validateModule } from "./bestiary.mjs";
 
 export const barrowFile = JSON.parse(
   await readFile(
@@ -32,7 +32,7 @@ room(armoury, "barrow-mouth").items.push(
   placed("lintel-mail", "Chain Mail", "chain-mail"),
 );
 
-export const armouryBarrow = validateFifthAdventure(armoury);
+export const armouryBarrow = validateModule(armoury);
 
 /**
  * The barrow with only the longsword behind the lintel: four revealed items
@@ -40,4 +40,4 @@ export const armouryBarrow = validateFifthAdventure(armoury);
  */
 const swordOnly = structuredClone(barrowFile);
 room(swordOnly, "barrow-mouth").items.push(LONGSWORD);
-export const longswordBarrow = validateFifthAdventure(swordOnly);
+export const longswordBarrow = validateModule(swordOnly);

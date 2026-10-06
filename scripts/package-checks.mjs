@@ -56,14 +56,19 @@ const packOutput = run(["pack", "--dry-run", "--json"], true);
 const [manifest] = JSON.parse(packOutput);
 const packagedFiles = new Set(manifest.files.map((entry) => entry.path));
 
-// 5e adventure modules: the browser loads them at startup.
+// 5e adventure modules and the bestiary they name: the browser loads them
+// at startup.
 const { FIFTH_ADVENTURE_FILES, loadFifthAdventure } =
   await import("../dist/adventure-5e.js");
+const { FIFTH_BESTIARY_FILE, loadFifthBestiary } =
+  await import("../dist/bestiary-5e.js");
+const fifthBestiary = `adventures/5e/${FIFTH_BESTIARY_FILE}`;
+const bestiary = await loadFifthBestiary(fifthBestiary);
 const fifthAdventures = Object.values(FIFTH_ADVENTURE_FILES).map(
   (file) => `adventures/5e/${file}`,
 );
 for (const adventure of fifthAdventures) {
-  await loadFifthAdventure(adventure);
+  await loadFifthAdventure(adventure, bestiary);
 }
 
 for (const required of [
@@ -73,6 +78,7 @@ for (const required of [
   "dist/openai-dm-model.js",
   "dist/browser-5e-server.js",
   ...fifthAdventures,
+  fifthBestiary,
   "package.json",
   "README.md",
 ]) {

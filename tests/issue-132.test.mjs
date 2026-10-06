@@ -4,10 +4,7 @@
 // the same actions and cannot invent results.
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  loadBuiltInFifthAdventures,
-  validateFifthAdventure,
-} from "../dist/adventure-5e.js";
+import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { runDmTurn } from "../dist/dm-turn.js";
 import { buildFighter } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
@@ -16,6 +13,7 @@ import {
   describeFifthResult,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
+import { validateModule } from "./fixtures/bestiary.mjs";
 
 const crypt = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "warden-crypt",
@@ -511,7 +509,7 @@ test("an armed trap springs on the way through: a saving throw against its damag
 });
 
 test("a trap's saving throw adds proficiency in the Fighter's saves", () => {
-  const constitution = validateFifthAdventure({
+  const constitution = validateModule({
     ...structuredClone(crypt),
     passages: crypt.passages.map((entry) =>
       entry.trap === undefined
@@ -535,7 +533,7 @@ test("a trap's saving throw adds proficiency in the Fighter's saves", () => {
 });
 
 test("a trap that drops the character to 0 HP ends the adventure in its defeat", () => {
-  const deadly = validateFifthAdventure({
+  const deadly = validateModule({
     ...structuredClone(crypt),
     passages: crypt.passages.map((entry) =>
       entry.trap === undefined

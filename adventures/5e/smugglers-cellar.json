@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 8,
+  "formatVersion": 9,
   "id": "smugglers-cellar",
   "title": "The Smugglers' Cellar",
   "objective": "Find out what has moved into the old smugglers' cellar, and clear it out.",
@@ -99,40 +99,8 @@
       "opponents": [
         {
           "id": "goblin",
-          "name": "Goblin Warrior",
-          "description": "A goblin warrior kicks back its stool and draws a scimitar.",
-          "statBlock": {
-            "name": "Goblin Warrior",
-            "size": "Small",
-            "type": "Fey (Goblinoid)",
-            "armorClass": 15,
-            "hitPoints": {
-              "average": 10,
-              "formula": "3d6"
-            },
-            "abilities": {
-              "strength": 8,
-              "dexterity": 15,
-              "constitution": 10,
-              "intelligence": 10,
-              "wisdom": 8,
-              "charisma": 8
-            },
-            "challengeRating": "1/4",
-            "xp": 50,
-            "attacks": [
-              {
-                "name": "Scimitar",
-                "bonus": 4,
-                "damage": {
-                  "dice": 1,
-                  "sides": 6,
-                  "modifier": 2,
-                  "type": "slashing"
-                }
-              }
-            ]
-          }
+          "monster": "goblin-warrior",
+          "description": "A goblin warrior kicks back its stool and draws a scimitar."
         }
       ],
       "victoryEndingId": "cellar-cleared",

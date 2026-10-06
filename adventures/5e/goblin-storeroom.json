@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 8,
+  "formatVersion": 9,
   "id": "goblin-storeroom",
   "title": "The Goblins in the Storeroom",
   "objective": "Clear the goblin band out of the mill storeroom.",
@@ -27,77 +27,13 @@
       "opponents": [
         {
           "id": "minion",
-          "name": "Goblin Minion",
-          "description": "A wiry goblin minion licks flour from its dagger.",
-          "statBlock": {
-            "name": "Goblin Minion",
-            "size": "Small",
-            "type": "Fey (Goblinoid)",
-            "armorClass": 12,
-            "hitPoints": {
-              "average": 7,
-              "formula": "2d6"
-            },
-            "abilities": {
-              "strength": 8,
-              "dexterity": 15,
-              "constitution": 10,
-              "intelligence": 10,
-              "wisdom": 8,
-              "charisma": 8
-            },
-            "challengeRating": "1/8",
-            "xp": 25,
-            "attacks": [
-              {
-                "name": "Dagger",
-                "bonus": 4,
-                "damage": {
-                  "dice": 1,
-                  "sides": 4,
-                  "modifier": 2,
-                  "type": "piercing"
-                }
-              }
-            ]
-          }
+          "monster": "goblin-minion",
+          "description": "A wiry goblin minion licks flour from its dagger."
         },
         {
           "id": "warrior",
-          "name": "Goblin Warrior",
-          "description": "Behind it a goblin warrior in patched leather barks orders and draws its scimitar.",
-          "statBlock": {
-            "name": "Goblin Warrior",
-            "size": "Small",
-            "type": "Fey (Goblinoid)",
-            "armorClass": 15,
-            "hitPoints": {
-              "average": 10,
-              "formula": "3d6"
-            },
-            "abilities": {
-              "strength": 8,
-              "dexterity": 15,
-              "constitution": 10,
-              "intelligence": 10,
-              "wisdom": 8,
-              "charisma": 8
-            },
-            "challengeRating": "1/4",
-            "xp": 50,
-            "attacks": [
-              {
-                "name": "Scimitar",
-                "bonus": 4,
-                "damage": {
-                  "dice": 1,
-                  "sides": 6,
-                  "modifier": 2,
-                  "type": "slashing"
-                }
-              }
-            ]
-          }
+          "monster": "goblin-warrior",
+          "description": "Behind it a goblin warrior in patched leather barks orders and draws its scimitar."
         }
       ],
       "victoryEndingId": "storeroom-cleared",

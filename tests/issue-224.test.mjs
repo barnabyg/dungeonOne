@@ -18,7 +18,7 @@ import {
   STARTING_KITS,
   WEAPONS,
 } from "../dist/equipment-5e.js";
-import { ITEM_KINDS, validateFifthAdventure } from "../dist/adventure-5e.js";
+import { ITEM_KINDS } from "../dist/adventure-5e.js";
 import {
   buildFighter,
   fighterCarrying,
@@ -26,6 +26,7 @@ import {
 } from "../dist/fighter-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { armoury, room } from "./fixtures/armoury-barrow.mjs";
+import { validateModule } from "./fixtures/bestiary.mjs";
 
 const ROLLS = [
   [6, 6, 4, 1],
@@ -215,7 +216,7 @@ room(laden, "barrow-mouth").items.push(
     hiddenIn: "scratched-lintel",
   },
 );
-const barrow = validateFifthAdventure(laden);
+const barrow = validateModule(laden);
 const FIND = [
   { type: "begin" },
   { type: "examine", targetId: "scratched-lintel" },

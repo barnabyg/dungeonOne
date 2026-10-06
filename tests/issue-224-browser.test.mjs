@@ -8,12 +8,12 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { validateFifthAdventure } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
 import { buildFighter, validateFighter } from "../dist/fighter-5e.js";
 import { barrowFile, room } from "./fixtures/armoury-barrow.mjs";
 import { assertTogether, launch } from "./fixtures/session-layout.mjs";
+import { validateModule } from "./fixtures/bestiary.mjs";
 
 const mailed = structuredClone(barrowFile);
 room(mailed, "barrow-mouth").items.push({
@@ -24,7 +24,7 @@ room(mailed, "barrow-mouth").items.push({
   gear: "chain-mail",
   hiddenIn: "scratched-lintel",
 });
-const barrow = validateFifthAdventure(mailed);
+const barrow = validateModule(mailed);
 
 // Str 5 (75 lb): leather and mace (14 lb), and a shield and dagger stowed (7 lb).
 const sheet = validateFighter({

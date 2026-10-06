@@ -1,10 +1,12 @@
 /**
- * The 5e adventure module format (format version 8) and its validator.
+ * The 5e adventure module format (format version 9) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
- * to talk to in each room, the encounters with inline SRD 5.2 stat blocks, and
- * its endings. A passage may have a door, stuck (forced open by a check) or
+ * to talk to in each room, the encounters, and its endings. Each opponent in
+ * an encounter names a monster in the bestiary (`bestiary-5e.ts`), optionally
+ * with its own name and description, or authors a one-off SRD 5.2 stat block
+ * inline. A passage may have a door, stuck (forced open by a check) or
  * locked (opened by its key, or picked or broken open by a check), and a trap,
  * found and disarmed by checks or sprung by going through, with a saving
  * throw against its damage. A creature's topics may need a check, and a
@@ -41,39 +43,34 @@ import {
 import {
   ABILITIES,
   FIGHTER_SKILLS,
-  type Abilities,
   type Ability,
   type FighterSkill,
 } from "./fighter-5e.js";
+import {
+  distinct,
+  exactKeys,
+  fail,
+  id,
+  integer,
+  isRecord,
+  knownKeys,
+  list,
+  ShapeError,
+  text,
+  unique,
+} from "./json-shape.js";
+import {
+  loadBuiltInFifthBestiary,
+  statBlock,
+  type FifthBestiary,
+  type StatBlock,
+} from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 8;
+export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
+
+export const FIFTH_ADVENTURE_FORMAT = 9;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
-
-export type StatBlockAttack = Readonly<{
-  name: string;
-  bonus: number;
-  damage: Readonly<{
-    dice: number;
-    sides: number;
-    modifier: number;
-    type: string;
-  }>;
-}>;
-
-/** The parts of an SRD 5.2 stat block the engine uses. */
-export type StatBlock = Readonly<{
-  name: string;
-  size: string;
-  type: string;
-  armorClass: number;
-  hitPoints: Readonly<{ average: number; formula: string }>;
-  abilities: Abilities;
-  challengeRating: string;
-  xp: number;
-  /** Melee attacks only: ranged weapons are deferred. */
-  attacks: readonly StatBlockAttack[];
-}>;
 
 export type FifthOpponent = Readonly<{
   id: string;
@@ -281,66 +278,6 @@ export type FifthAdventure = Readonly<{
   endings: readonly FifthEnding[];
 }>;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function fail(message: string): never {
-  throw new Error(`Invalid adventure module: ${message}`);
-}
-
-function exactKeys(
-  value: unknown,
-  keys: readonly string[],
-  where: string,
-): Record<string, unknown> {
-  if (
-    !isRecord(value) ||
-    Object.keys(value).sort().join(",") !== [...keys].sort().join(",")
-  ) {
-    fail(`${where} must have exactly ${keys.join(", ")}.`);
-  }
-  return value;
-}
-
-function text(value: unknown, where: string, max = 2000): string {
-  if (
-    typeof value !== "string" ||
-    value.trim() !== value ||
-    value.length < 1 ||
-    value.length > max ||
-    /[\p{Cc}\p{Cs}]/u.test(value)
-  ) {
-    fail(`${where} must be text of 1–${max} characters.`);
-  }
-  return value;
-}
-
-function id(value: unknown, where: string): string {
-  if (typeof value !== "string" || !/^[a-z][a-z0-9-]{0,47}$/.test(value)) {
-    fail(`${where} must be a lowercase id.`);
-  }
-  return value;
-}
-
-function integer(value: unknown, where: string, min: number, max: number) {
-  if (
-    !Number.isInteger(value) ||
-    (value as number) < min ||
-    (value as number) > max
-  ) {
-    fail(`${where} must be an integer from ${min} to ${max}.`);
-  }
-  return value as number;
-}
-
-function list(value: unknown, where: string, max: number, min = 1): unknown[] {
-  if (!Array.isArray(value) || value.length < min || value.length > max) {
-    fail(`${where} must list ${min}–${max} entries.`);
-  }
-  return value;
-}
-
 /** An amount of coin: some gold, silver or copper pieces, at least one. */
 function coins(value: unknown, where: string): Coins {
   const denominations = Object.keys(COIN_VALUES) as Coin[];
@@ -364,122 +301,6 @@ function coins(value: unknown, where: string): Coins {
       amount[coin] === undefined ? [] : [[coin, amount[coin] as number]],
     ),
   );
-}
-
-/** Like `exactKeys`, but the `optional` keys may be left out. */
-function knownKeys(
-  value: unknown,
-  required: readonly string[],
-  optional: readonly string[],
-  where: string,
-): Record<string, unknown> {
-  if (
-    !isRecord(value) ||
-    !required.every((key) => key in value) ||
-    !Object.keys(value).every(
-      (key) => required.includes(key) || optional.includes(key),
-    )
-  ) {
-    fail(
-      `${where} must have ${required.join(", ")}${optional.length === 0 ? "" : ` and may have ${optional.join(", ")}`}, and nothing else.`,
-    );
-  }
-  return value;
-}
-
-/** The entries' keys; fails with `message` on the first repeated key. */
-function distinct<T>(
-  entries: readonly T[],
-  key: (entry: T) => string,
-  message: (entry: T) => string,
-): Set<string> {
-  const keys = new Set<string>();
-  for (const entry of entries) {
-    if (keys.has(key(entry))) {
-      fail(message(entry));
-    }
-    keys.add(key(entry));
-  }
-  return keys;
-}
-
-function unique<T extends { id: string }>(
-  entries: readonly T[],
-  where: string,
-) {
-  return distinct(
-    entries,
-    ({ id: entryId }) => entryId,
-    ({ id: entryId }) => `duplicate ${where} id ${entryId}.`,
-  );
-}
-
-function statBlock(value: unknown, where: string): StatBlock {
-  const block = exactKeys(
-    value,
-    [
-      "name",
-      "size",
-      "type",
-      "armorClass",
-      "hitPoints",
-      "abilities",
-      "challengeRating",
-      "xp",
-      "attacks",
-    ],
-    where,
-  );
-  const hitPoints = exactKeys(
-    block.hitPoints,
-    ["average", "formula"],
-    `${where} hitPoints`,
-  );
-  const abilities = exactKeys(block.abilities, ABILITIES, `${where} abilities`);
-  for (const ability of ABILITIES) {
-    integer(abilities[ability], `${where} ${ability}`, 1, 30);
-  }
-  const attacks = list(block.attacks, `${where} attacks`, 4).map(
-    (entry, index) => {
-      const at = `${where} attack ${index + 1}`;
-      const attack = exactKeys(entry, ["name", "bonus", "damage"], at);
-      const damage = exactKeys(
-        attack.damage,
-        ["dice", "sides", "modifier", "type"],
-        `${at} damage`,
-      );
-      return {
-        name: text(attack.name, `${at} name`, 60),
-        bonus: integer(attack.bonus, `${at} bonus`, -5, 20),
-        damage: {
-          dice: integer(damage.dice, `${at} damage dice`, 1, 10),
-          sides: integer(damage.sides, `${at} damage sides`, 2, 12),
-          modifier: integer(damage.modifier, `${at} damage modifier`, -5, 20),
-          type: text(damage.type, `${at} damage type`, 30),
-        },
-      };
-    },
-  );
-  if (
-    typeof block.challengeRating !== "string" ||
-    !/^(0|1\/8|1\/4|1\/2|[1-9]|[12][0-9]|30)$/.test(block.challengeRating)
-  ) {
-    fail(`${where} challengeRating must be an SRD challenge rating.`);
-  }
-  return {
-    name: text(block.name, `${where} name`, 60),
-    size: text(block.size, `${where} size`, 20),
-    type: text(block.type, `${where} type`, 60),
-    armorClass: integer(block.armorClass, `${where} armorClass`, 1, 30),
-    hitPoints: {
-      average: integer(hitPoints.average, `${where} hitPoints average`, 1, 999),
-      formula: text(hitPoints.formula, `${where} hitPoints formula`, 30),
-    },
-    abilities: abilities as Abilities,
-    challengeRating: block.challengeRating,
-    xp: integer(block.xp, `${where} xp`, 0, 155000),
-    attacks,
-  };
 }
 
 function ability(value: unknown, where: string): Ability {
@@ -510,8 +331,30 @@ function check(value: unknown, where: string): CheckSpec {
   return { ability: ability(raw.ability, `${where} ability`), dc };
 }
 
-/** Validates a decoded module, rejecting unknown references and missing endings. */
-export function validateFifthAdventure(value: unknown): FifthAdventure {
+/**
+ * Validates a decoded module against the bestiary its opponents name,
+ * rejecting unknown references and missing endings. Each opponent that names
+ * a bestiary monster gets that monster's stat block, and its name and
+ * description unless the module gives its own.
+ */
+export function validateFifthAdventure(
+  value: unknown,
+  bestiary: FifthBestiary,
+): FifthAdventure {
+  try {
+    return validateModule(value, bestiary);
+  } catch (error) {
+    if (error instanceof ShapeError) {
+      throw new Error(`Invalid adventure module: ${error.message}`);
+    }
+    throw error;
+  }
+}
+
+function validateModule(
+  value: unknown,
+  bestiary: FifthBestiary,
+): FifthAdventure {
   if (!isRecord(value) || value.kind !== "dungeon-one-5e-adventure") {
     fail("not a 5e adventure module.");
   }
@@ -538,6 +381,7 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
     ],
     "the module",
   );
+  const moduleId = id(module.id, "id");
   const levels = exactKeys(
     module.recommendedLevels,
     ["min", "max"],
@@ -639,21 +483,60 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
       const opponents = list(encounter.opponents, `${where} opponents`, 8).map(
         (raw, number) => {
           const at = `${where} opponent ${number + 1}`;
-          const opponent = knownKeys(
-            raw,
-            ["id", "name", "description", "statBlock"],
-            ["boss"],
-            at,
-          );
+          if (isRecord(raw) && "monster" in raw && "statBlock" in raw) {
+            fail(
+              `${at} names bestiary monster ${String(raw.monster)} and has an inline statBlock; give only one.`,
+            );
+          }
+          const opponent =
+            isRecord(raw) && "monster" in raw
+              ? knownKeys(
+                  raw,
+                  ["id", "monster"],
+                  ["name", "description", "boss"],
+                  at,
+                )
+              : knownKeys(
+                  raw,
+                  ["id", "name", "description", "statBlock"],
+                  ["boss"],
+                  at,
+                );
           if (opponent.boss !== undefined && opponent.boss !== true) {
             fail(`${at} boss must be true, or left out.`);
           }
+          const opponentId = id(opponent.id, `${at} id`);
+          const boss = opponent.boss === true ? { boss: true as const } : {};
+          if (opponent.monster === undefined) {
+            return {
+              id: opponentId,
+              name: text(opponent.name, `${at} name`, 60),
+              description: text(opponent.description, `${at} description`),
+              statBlock: statBlock(opponent.statBlock, `${at} statBlock`),
+              ...boss,
+            };
+          }
+          const monsterId = id(opponent.monster, `${at} monster`);
+          const monster = bestiary.monsters.find(
+            ({ id: entryId }) => entryId === monsterId,
+          );
+          if (monster === undefined) {
+            fail(
+              `module ${moduleId} ${at} (${opponentId}) names bestiary monster ${monsterId}, which is not in the bestiary.`,
+            );
+          }
           return {
-            id: id(opponent.id, `${at} id`),
-            name: text(opponent.name, `${at} name`, 60),
-            description: text(opponent.description, `${at} description`),
-            statBlock: statBlock(opponent.statBlock, `${at} statBlock`),
-            ...(opponent.boss === true ? { boss: true as const } : {}),
+            id: opponentId,
+            name:
+              opponent.name === undefined
+                ? monster.statBlock.name
+                : text(opponent.name, `${at} name`, 60),
+            description:
+              opponent.description === undefined
+                ? monster.description
+                : text(opponent.description, `${at} description`),
+            statBlock: monster.statBlock,
+            ...boss,
           };
         },
       );
@@ -1219,7 +1102,7 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
   return {
     kind: "dungeon-one-5e-adventure",
     formatVersion: FIFTH_ADVENTURE_FORMAT,
-    id: id(module.id, "id"),
+    id: moduleId,
     title: text(module.title, "title", 80),
     objective: text(module.objective, "objective", 400),
     recommendedLevels: { min, max },
@@ -1241,9 +1124,13 @@ export function statBlockInitiative(block: StatBlock): number {
   return Math.floor((block.abilities.dexterity - 10) / 2);
 }
 
-/** Reads and validates a module file; problems name the file. */
+/**
+ * Reads and validates a module file against a bestiary, the built-in one by
+ * default; problems name the file.
+ */
 export async function loadFifthAdventure(
   path: string,
+  bestiary?: FifthBestiary,
 ): Promise<FifthAdventure> {
   let decoded: unknown;
   try {
@@ -1260,8 +1147,9 @@ export async function loadFifthAdventure(
       `${path} is a 5e adventure module in format version ${String(decoded.formatVersion)}, not ${FIFTH_ADVENTURE_FORMAT}. Move it aside; the file has not been changed.`,
     );
   }
+  const monsters = bestiary ?? (await loadBuiltInFifthBestiary());
   try {
-    return validateFifthAdventure(decoded);
+    return validateFifthAdventure(decoded, monsters);
   } catch (error) {
     throw new Error(`${path}: ${(error as Error).message}`);
   }
@@ -1307,10 +1195,12 @@ export type FifthAdventureId = keyof typeof FIFTH_ADVENTURE_FILES;
 export async function loadBuiltInFifthAdventures(): Promise<
   readonly FifthAdventure[]
 > {
+  const bestiary = await loadBuiltInFifthBestiary();
   return Promise.all(
     Object.entries(FIFTH_ADVENTURE_FILES).map(async ([expected, file]) => {
       const adventure = await loadFifthAdventure(
         fileURLToPath(new URL(`../adventures/5e/${file}`, import.meta.url)),
+        bestiary,
       );
       if (adventure.id !== expected) {
         throw new Error(`adventures/5e/${file} must have id ${expected}.`);

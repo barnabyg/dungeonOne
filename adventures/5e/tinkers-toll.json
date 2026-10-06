@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 8,
+  "formatVersion": 9,
   "id": "tinkers-toll",
   "title": "The Tinker's Toll",
   "objective": "Bandits hold the old toll tower above the ford, and a tinker's cart is stuck on the near bank. Clear the road or take what you can, and get back to the shrine alive.",
@@ -148,40 +148,8 @@
       "opponents": [
         {
           "id": "ford-wolf",
-          "name": "Wolf",
-          "description": "A gaunt grey wolf rises out of the reeds, hackles up, and comes at you through the shallows.",
-          "statBlock": {
-            "name": "Wolf",
-            "size": "Medium",
-            "type": "Beast",
-            "armorClass": 12,
-            "hitPoints": {
-              "average": 11,
-              "formula": "2d8 + 2"
-            },
-            "abilities": {
-              "strength": 14,
-              "dexterity": 15,
-              "constitution": 12,
-              "intelligence": 3,
-              "wisdom": 12,
-              "charisma": 6
-            },
-            "challengeRating": "1/4",
-            "xp": 50,
-            "attacks": [
-              {
-                "name": "Bite",
-                "bonus": 4,
-                "damage": {
-                  "dice": 1,
-                  "sides": 6,
-                  "modifier": 2,
-                  "type": "piercing"
-                }
-              }
-            ]
-          }
+          "monster": "wolf",
+          "description": "A gaunt grey wolf rises out of the reeds, hackles up, and comes at you through the shallows."
         }
       ],
       "defeatEndingId": "lost-on-the-road"
@@ -191,77 +159,15 @@
       "opponents": [
         {
           "id": "scarred-bandit",
+          "monster": "bandit",
           "name": "Scarred Bandit",
-          "description": "A scarred bandit kicks over a stool and draws a scimitar.",
-          "statBlock": {
-            "name": "Bandit",
-            "size": "Medium",
-            "type": "Humanoid",
-            "armorClass": 12,
-            "hitPoints": {
-              "average": 11,
-              "formula": "2d8 + 2"
-            },
-            "abilities": {
-              "strength": 11,
-              "dexterity": 12,
-              "constitution": 12,
-              "intelligence": 10,
-              "wisdom": 10,
-              "charisma": 10
-            },
-            "challengeRating": "1/8",
-            "xp": 25,
-            "attacks": [
-              {
-                "name": "Scimitar",
-                "bonus": 3,
-                "damage": {
-                  "dice": 1,
-                  "sides": 6,
-                  "modifier": 1,
-                  "type": "slashing"
-                }
-              }
-            ]
-          }
+          "description": "A scarred bandit kicks over a stool and draws a scimitar."
         },
         {
           "id": "young-bandit",
+          "monster": "bandit",
           "name": "Young Bandit",
-          "description": "A young bandit scrambles down the stair, blade in hand.",
-          "statBlock": {
-            "name": "Bandit",
-            "size": "Medium",
-            "type": "Humanoid",
-            "armorClass": 12,
-            "hitPoints": {
-              "average": 11,
-              "formula": "2d8 + 2"
-            },
-            "abilities": {
-              "strength": 11,
-              "dexterity": 12,
-              "constitution": 12,
-              "intelligence": 10,
-              "wisdom": 10,
-              "charisma": 10
-            },
-            "challengeRating": "1/8",
-            "xp": 25,
-            "attacks": [
-              {
-                "name": "Scimitar",
-                "bonus": 3,
-                "damage": {
-                  "dice": 1,
-                  "sides": 6,
-                  "modifier": 1,
-                  "type": "slashing"
-                }
-              }
-            ]
-          }
+          "description": "A young bandit scrambles down the stair, blade in hand."
         }
       ],
       "defeatEndingId": "lost-on-the-road"

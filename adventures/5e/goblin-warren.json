@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 8,
+  "formatVersion": 9,
   "id": "goblin-warren",
   "title": "The Goblin Warren",
   "objective": "Fight through the goblin warren to the boss's hall, take its hoard, and get back out alive. Leave by the gate when you are ready.",
@@ -106,40 +106,8 @@
       "opponents": [
         {
           "id": "tunnel-guard",
-          "name": "Goblin Warrior",
-          "description": "A goblin guard, a vial swinging at its neck, leaps up from the brazier with its scimitar drawn.",
-          "statBlock": {
-            "name": "Goblin Warrior",
-            "size": "Small",
-            "type": "Fey (Goblinoid)",
-            "armorClass": 15,
-            "hitPoints": {
-              "average": 10,
-              "formula": "3d6"
-            },
-            "abilities": {
-              "strength": 8,
-              "dexterity": 15,
-              "constitution": 10,
-              "intelligence": 10,
-              "wisdom": 8,
-              "charisma": 8
-            },
-            "challengeRating": "1/4",
-            "xp": 50,
-            "attacks": [
-              {
-                "name": "Scimitar",
-                "bonus": 4,
-                "damage": {
-                  "dice": 1,
-                  "sides": 6,
-                  "modifier": 2,
-                  "type": "slashing"
-                }
-              }
-            ]
-          }
+          "monster": "goblin-warrior",
+          "description": "A goblin guard, a vial swinging at its neck, leaps up from the brazier with its scimitar drawn."
         }
       ],
       "defeatEndingId": "fallen-in-the-warren"
@@ -149,41 +117,9 @@
       "opponents": [
         {
           "id": "goblin-boss",
-          "name": "Goblin Boss",
+          "monster": "goblin-boss",
           "description": "The goblin boss rises from its crate throne, a silver chain at its neck.",
-          "boss": true,
-          "statBlock": {
-            "name": "Goblin Boss",
-            "size": "Small",
-            "type": "Fey (Goblinoid)",
-            "armorClass": 17,
-            "hitPoints": {
-              "average": 21,
-              "formula": "6d6"
-            },
-            "abilities": {
-              "strength": 10,
-              "dexterity": 15,
-              "constitution": 10,
-              "intelligence": 10,
-              "wisdom": 8,
-              "charisma": 10
-            },
-            "challengeRating": "1",
-            "xp": 200,
-            "attacks": [
-              {
-                "name": "Scimitar",
-                "bonus": 4,
-                "damage": {
-                  "dice": 1,
-                  "sides": 6,
-                  "modifier": 2,
-                  "type": "slashing"
-                }
-              }
-            ]
-          }
+          "boss": true
         }
       ],
       "defeatEndingId": "fallen-in-the-warren"

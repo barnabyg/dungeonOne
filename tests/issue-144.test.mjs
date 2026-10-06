@@ -6,10 +6,7 @@
 // gate's one-hit-kill measure counts it.
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  loadBuiltInFifthAdventures,
-  validateFifthAdventure,
-} from "../dist/adventure-5e.js";
+import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { gateAdventure, oneHitKillChance } from "../dist/balance-5e.js";
 import { act, startEncounter } from "../dist/encounter-5e.js";
 import { equipmentProfile } from "../dist/equipment-5e.js";
@@ -30,6 +27,7 @@ import {
   armouryBarrow as barrow,
   barrowFile,
 } from "./fixtures/armoury-barrow.mjs";
+import { validateModule } from "./fixtures/bestiary.mjs";
 
 /** Returns the queued [sides, value] pairs in order, checking each die's sides. */
 function dice(...queue) {
@@ -435,7 +433,7 @@ test("the gate's one-hit-kill measure takes the Fighting Style that kills most o
     return result.verdict.oneHitKill.enemies[0];
   };
   // Every kit is one-handed: no style beats Defense, the default.
-  const plain = enemy(validateFifthAdventure(barrowFile));
+  const plain = enemy(validateModule(barrowFile));
   assert.equal(plain.fightingStyle, "defense");
   // The barrow's greatsword is two-handed: Great Weapon Fighting counts.
   const armed = enemy(barrow);

@@ -180,6 +180,14 @@ _Avoid_: Battle, Combat (when one fight is meant)
 One creature in an encounter, with its own hit points, armour class, attack and initiative roll. The player character is one; each opponent is another.
 _Avoid_: Monster (for the player character), Unit
 
+**Monster**:
+A kind of creature characters fight, defined once in the bestiary by its stat block (SRD 5.2, or a house block derived from one) and a default description. An opponent is a monster placed in an encounter, under the monster's name or one the module gives it ("Tall Skeleton"); whether it is a boss belongs to the opponent, not the monster.
+_Avoid_: Enemy (an opponent, in a fight), Creature (one the character can talk to)
+
+**Bestiary**:
+The shared collection of monsters adventure modules name by id, in its own file with its own format version. A module may still author a one-off stat block inline for an opponent that no other module needs.
+_Avoid_: Monster manual, Stat block library
+
 **Initiative**:
 The d20 + initiative bonus each combatant rolls when an encounter begins; higher totals act first, ties going to the higher Dexterity and then a seeded roll-off.
 _Avoid_: Turn order (the result, not the roll)
@@ -197,5 +205,5 @@ An opponent a module doesn't mark as a boss. The balance gate's one-hit-kill cap
 _Avoid_: Average enemy, Minion (a stat block's name)
 
 **Format version**:
-The single version number carried by a character library, adventure save, trace or adventure module file. Changing a format bumps it; until the owner declares a stable release, a loader refuses an older version with a message naming the file, and never migrates it.
+The single version number carried by a character library, adventure save, trace, adventure module or bestiary file. Changing a format bumps it; until the owner declares a stable release, a loader refuses an older version with a message naming the file, and never migrates it.
 _Avoid_: Rules version, Content version, Schema version

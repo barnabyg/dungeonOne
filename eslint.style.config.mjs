@@ -10,6 +10,7 @@ const SHARED_MODULES = [
   "browser-launch",
   "dm-turn",
   "file-lock",
+  "json-shape",
   "openai-dm-model",
   "random",
   "runtime-contract",
