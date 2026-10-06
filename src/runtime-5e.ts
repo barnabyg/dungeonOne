@@ -55,10 +55,12 @@ import {
   act,
   availableActions,
   combatant,
+  countedDamageDie,
   currentCombatant,
   drinkPotion,
   legalTargets,
   startEncounter,
+  type AttackEvent,
   type Combatant,
   type EncounterAction,
   type EncounterActionType,
@@ -545,6 +547,9 @@ function weaponOf(attack: AttackProfile): Weapon {
     ...(attack.disadvantage.length === 0
       ? {}
       : { disadvantage: attack.disadvantage }),
+    ...(attack.greatWeaponFighting === true
+      ? { greatWeaponFighting: true as const }
+      : {}),
   };
 }
 
@@ -667,6 +672,18 @@ function shownAttackText(attack: ShownAttack): string {
   return `${attack.weapon} ${attack.bonus >= 0 ? "+" : "−"}${Math.abs(attack.bonus)} to hit, ${dice}d${sides}${modifier === 0 ? "" : ` ${signed(modifier)}`} ${type}${attack.grip === "two-handed" ? " (two-handed)" : ""}${attack.disadvantage.length === 0 ? "" : ` (disadvantage: ${attack.disadvantage.join(", ")})`}`;
 }
 
+/** "2 (counts as 3, Great Weapon Fighting) + 7": an attack's damage dice. */
+function damageDice(event: AttackEvent): string {
+  return event.damageRolls
+    .map((value) => {
+      const counted = countedDamageDie(value, event.greatWeaponFighting);
+      return counted === value
+        ? `${value}`
+        : `${value} (counts as ${counted}, Great Weapon Fighting)`;
+    })
+    .join(" + ");
+}
+
 function gearText(event: GearEvent): string {
   const lower = (id: ItemId) => itemName(id).toLowerCase();
   const item = lower(event.item);
@@ -736,7 +753,7 @@ export function renderFifthEvent(
       if (!event.hit) {
         return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. Miss.${event.graze === true ? ` Graze: ${event.damage} ${event.damageType} damage; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.` : ""}`;
       }
-      return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. ${event.critical ? "Critical hit!" : "Hit."} Damage ${event.damageRolls.join(" + ")} ${signed(event.damageModifier)} = ${event.damage} ${event.damageType}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.`;
+      return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. ${event.critical ? "Critical hit!" : "Hit."} Damage ${damageDice(event)} ${signed(event.damageModifier)} = ${event.damage} ${event.damageType}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.`;
     }
     case "sapped":
       return `${name(event.targetId)} is sapped: disadvantage on its next attack roll before ${name(event.sourceId)}'s next turn.`;
@@ -852,6 +869,8 @@ export type ShownDie = Readonly<{
   sides: number;
   value: number;
   dropped?: true;
+  /** Great Weapon Fighting counted this 1 or 2 as 3. */
+  countsAs?: 3;
 }>;
 
 /**
@@ -1025,7 +1044,12 @@ export function describeFifthResult(
             purpose: "damage",
             roller: name(event.actorId),
             target: name(event.targetId),
-            dice: take(event.damageRolls),
+            dice: take(event.damageRolls).map((die) =>
+              countedDamageDie(die.value, event.greatWeaponFighting) !==
+              die.value
+                ? { ...die, countsAs: 3 as const }
+                : die,
+            ),
             modifier: event.damageModifier,
             total: event.damage,
             damageType: event.damageType,

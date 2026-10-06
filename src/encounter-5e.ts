@@ -33,6 +33,8 @@
  *   modifier, if above 0. A heavy weapon wielded below Strength 13 attacks
  *   with disadvantage. Advantage and disadvantage come only from such engine
  *   rules, never from an action.
+ * - Great Weapon Fighting: a weapon marked with it counts each 1 or 2 on a
+ *   damage die as 3. The event keeps the dice as rolled.
  *
  * The state allows any number of combatants per side.
  */
@@ -59,6 +61,8 @@ export type Weapon = Readonly<{
   mastery?: Mastery;
   /** Sources of disadvantage on every attack with it, such as "Heavy". */
   disadvantage?: readonly string[];
+  /** Great Weapon Fighting: each 1 or 2 on a damage die counts as 3. */
+  greatWeaponFighting?: true;
 }>;
 
 export type Combatant = Readonly<{
@@ -210,6 +214,7 @@ export type AttackEvent = Readonly<{
   mode?: RollMode;
   /** The opponent die that chose this target, when there was a choice. */
   targetRoll?: number;
+  /** The damage dice as rolled. */
   damageRolls: readonly number[];
   damageModifier: number;
   damage: number;
@@ -219,6 +224,8 @@ export type AttackEvent = Readonly<{
   light?: true;
   /** A miss that still dealt `damage` through the Graze mastery. */
   graze?: true;
+  /** Great Weapon Fighting counted each 1 or 2 in `damageRolls` as 3. */
+  greatWeaponFighting?: true;
 }>;
 
 export type EncounterEvent =
@@ -571,6 +578,17 @@ function sideDefeated(state: EncounterState, side: Side): boolean {
     .every(isDefeated);
 }
 
+/**
+ * What a damage die counts as: with Great Weapon Fighting a 1 or 2 counts as
+ * 3, otherwise the value rolled.
+ */
+export function countedDamageDie(
+  value: number,
+  greatWeaponFighting: boolean | undefined,
+): number {
+  return greatWeaponFighting === true ? Math.max(3, value) : value;
+}
+
 function resolveAttack(
   state: EncounterState,
   actor: Combatant,
@@ -604,8 +622,11 @@ function resolveAttack(
   const damage = hit
     ? Math.max(
         0,
-        damageRolls.reduce((sum, value) => sum + value, 0) +
-          weapon.damage.modifier,
+        damageRolls.reduce(
+          (sum, value) =>
+            sum + countedDamageDie(value, weapon.greatWeaponFighting),
+          0,
+        ) + weapon.damage.modifier,
       )
     : graze
       ? weapon.damage.modifier
@@ -632,6 +653,9 @@ function resolveAttack(
       hpAfter,
       ...(light ? { light: true as const } : {}),
       ...(graze ? { graze: true as const } : {}),
+      ...(hit && weapon.greatWeaponFighting === true
+        ? { greatWeaponFighting: true as const }
+        : {}),
     },
   ];
   // The attack spends any disadvantage Sap gave the attacker, and any
