@@ -36,7 +36,7 @@ const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the bestiary holds the nine shipped monsters", () => {
+test("the bestiary holds the nine shipped monsters and the Giant Rat (#232)", () => {
   assert.equal(bestiary.formatVersion, FIFTH_BESTIARY_FORMAT);
   assert.deepEqual(
     bestiary.monsters.map(({ id, statBlock }) => [id, statBlock.name]),
@@ -50,6 +50,7 @@ test("the bestiary holds the nine shipped monsters", () => {
       ["goblin-boss", "Goblin Boss"],
       ["wolf", "Wolf"],
       ["bandit", "Bandit"],
+      ["giant-rat", "Giant Rat"],
     ],
   );
 });
@@ -132,10 +133,8 @@ test("a one-off inline stat block still validates and plays", async () => {
     ({ statBlock }) => statBlock.name === "Giant Rat",
   );
   assert.ok(giantRat);
-  assert.equal(
-    bestiary.monsters.some(({ statBlock }) => statBlock.name === "Giant Rat"),
-    false,
-  );
+  // The fixture's own rat, not the bestiary's, which has Pack Tactics.
+  assert.equal(giantRat.statBlock.traits, undefined);
   const runtime = createFifthRuntime(rat, TEST_FIGHTER);
   const random = createSeededRandom(0);
   const begun = runtime.handleAction(
@@ -165,7 +164,10 @@ test("a one-off inline stat block still validates and plays", async () => {
 });
 
 test("the bestiary validator names its first problem", () => {
-  const file = { kind: "dungeon-one-5e-bestiary", formatVersion: 1 };
+  const file = {
+    kind: "dungeon-one-5e-bestiary",
+    formatVersion: FIFTH_BESTIARY_FORMAT,
+  };
   const goblin = monster("goblin-warrior");
   assert.throws(
     () =>
@@ -198,7 +200,7 @@ test("a bestiary in another format version is refused by name and left unchanged
     await assert.rejects(loadFifthBestiary(path), (error) => {
       assert.match(
         error.message,
-        /old-bestiary\.json is a 5e bestiary in format version 0, not 1\. Move it aside; the file has not been changed\./,
+        /old-bestiary\.json is a 5e bestiary in format version 0, not 2\. Move it aside; the file has not been changed\./,
       );
       return true;
     });

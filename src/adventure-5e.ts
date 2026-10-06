@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 9) and its validator.
+ * The 5e adventure module format (format version 10) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -68,7 +68,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 9;
+export const FIFTH_ADVENTURE_FORMAT = 10;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -1120,8 +1120,21 @@ export function adventureDigest(adventure: FifthAdventure): string {
   return `sha256:${createHash("sha256").update(JSON.stringify(adventure)).digest("hex")}`;
 }
 
+/** An ability score's modifier; a monster's score may be 1–30. */
+const statBlockModifier = (score: number) => Math.floor((score - 10) / 2);
+
 export function statBlockInitiative(block: StatBlock): number {
-  return Math.floor((block.abilities.dexterity - 10) / 2);
+  return statBlockModifier(block.abilities.dexterity);
+}
+
+/** A monster's saving throws: each ability's modifier (no proficiencies). */
+export function statBlockSaves(block: StatBlock): Record<Ability, number> {
+  return Object.fromEntries(
+    ABILITIES.map((ability) => [
+      ability,
+      statBlockModifier(block.abilities[ability]),
+    ]),
+  ) as Record<Ability, number>;
 }
 
 /**

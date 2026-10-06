@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 9,
+  "formatVersion": 10,
   "id": "minion-yard",
   "title": "The Minion Yard",
   "objective": "Chase the goblin minions out of the farmyard.",
