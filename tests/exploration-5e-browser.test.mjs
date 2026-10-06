@@ -137,8 +137,9 @@ const screen = (page) =>
   page.evaluate(() => ({
     status: document.getElementById("session-status").innerText,
     room: document.getElementById("room").innerText,
-    // Each action's accessible name, and the reason it is unavailable (#157).
-    actions: [...document.querySelectorAll("#action-bar button")]
+    // Each action's accessible name, and the reason it is unavailable (#157),
+    // in the action bar and on carried items (#198).
+    actions: [...document.querySelectorAll("button.act")]
       .map((button) => {
         const reason = button.getAttribute("aria-describedby");
         return (
@@ -158,9 +159,7 @@ const screen = (page) =>
 async function explore(page, action, target) {
   const count = await page.locator("#log li").count();
   await page
-    .locator(
-      `#action-bar button[data-action="${action}"][data-target="${target}"]`,
-    )
+    .locator(`button.act[data-action="${action}"][data-target="${target}"]`)
     .click();
   await page.waitForFunction(
     (seen) => document.querySelectorAll("#log li").length > seen,
