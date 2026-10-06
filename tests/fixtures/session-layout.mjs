@@ -137,12 +137,11 @@ export async function act(page, label, click) {
   await assertTogether(page, label);
 }
 
+// An action on a target: in the action bar, or on a carried item (#198).
 export const explore = (page, action, target) =>
   act(page, `${action} ${target}`, () =>
     page
-      .locator(
-        `#action-bar button[data-action="${action}"][data-target="${target}"]`,
-      )
+      .locator(`button.act[data-action="${action}"][data-target="${target}"]`)
       .click(),
   );
 
