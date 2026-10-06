@@ -525,57 +525,77 @@ test("the bestiary validator refuses malformed riders and traits", () => {
   );
 });
 
-test("the balance gate plays the Wolf's knockdown and Pack Tactics", async () => {
+/** The Goblin in the Cellar's file, with `opponents` in place of the goblin. */
+const cellarFile = JSON.parse(
+  await readFile(
+    new URL("../adventures/5e/cellar-goblin.json", import.meta.url),
+    "utf8",
+  ),
+);
+const cellarWith = (opponents) =>
+  validateModule({
+    ...cellarFile,
+    encounters: [
+      {
+        id: "cellar-goblin",
+        opponents,
+        victoryEndingId: "goblin-defeated",
+        defeatEndingId: "fallen-in-the-cellar",
+      },
+    ],
+  });
+
+/** The Goblin in the Cellar with the bestiary's Giant Spider in its place. */
+const spiderCellar = cellarWith([{ id: "spider", monster: "giant-spider" }]);
+
+/** A module with `change` made to each opponent's stat block. */
+function changed(adventure, change) {
+  const copy = structuredClone(adventure);
+  for (const encounter of copy.encounters) {
+    for (const opponent of encounter.opponents) {
+      const statBlock = { ...opponent.statBlock };
+      change(statBlock);
+      opponent.statBlock = statBlock;
+    }
+  }
+  return copy;
+}
+const withoutRiders = (block) => {
+  block.attacks = block.attacks.map(({ name, bonus, damage }) => ({
+    name,
+    bonus,
+    damage,
+  }));
+};
+const withoutTraits = (block) => {
+  delete block.traits;
+};
+
+/** The gate's weakest survival rate playing `adventure`. */
+function survival(adventure) {
+  const result = gateAdventure(adventure);
+  assert.ok(result.ok, adventure.id);
+  return result.verdict.survival.rate;
+}
+
+test("the balance gate plays the riders and Pack Tactics", async () => {
+  // The Tinker's Toll's lone Wolf: its knockdown makes it deadlier.
   const toll = (await loadBuiltInFifthAdventures()).find(
     ({ id }) => id === "tinkers-toll",
   );
-  const tame = structuredClone(toll);
-  for (const encounter of tame.encounters) {
-    encounter.opponents = encounter.opponents.map((opponent) => {
-      if (opponent.statBlock.name !== "Wolf") {
-        return opponent;
-      }
-      const { traits, ...statBlock } = opponent.statBlock;
-      assert.deepEqual(traits, ["Pack Tactics"]);
-      return {
-        ...opponent,
-        statBlock: {
-          ...statBlock,
-          attacks: statBlock.attacks.map((attack) => {
-            const plain = { ...attack };
-            delete plain.rider;
-            return plain;
-          }),
-        },
-      };
-    });
-  }
-  const shipped = gateAdventure(toll);
-  const without = gateAdventure(tame);
-  assert.ok(shipped.ok && shipped.verdict.qualified);
-  assert.ok(without.ok);
+  const gated = gateAdventure(toll);
+  assert.ok(gated.ok && gated.verdict.qualified);
+  assert.ok(survival(toll) < survival(changed(toll, withoutRiders)));
+  // The Giant Spider's poison makes it deadlier.
   assert.ok(
-    shipped.verdict.survival.rate < without.verdict.survival.rate,
-    `${shipped.verdict.survival.rate} < ${without.verdict.survival.rate}`,
+    survival(spiderCellar) < survival(changed(spiderCellar, withoutRiders)),
   );
-});
-
-/** The Goblin in the Cellar with the bestiary's Giant Spider in its place. */
-const spiderCellar = validateModule({
-  ...JSON.parse(
-    await readFile(
-      new URL("../adventures/5e/cellar-goblin.json", import.meta.url),
-      "utf8",
-    ),
-  ),
-  encounters: [
-    {
-      id: "cellar-goblin",
-      opponents: [{ id: "spider", monster: "giant-spider" }],
-      victoryEndingId: "goblin-defeated",
-      defeatEndingId: "fallen-in-the-cellar",
-    },
-  ],
+  // Two Wolves with Pack Tactics are deadlier than two without.
+  const pack = cellarWith([
+    { id: "wolf-1", monster: "wolf", name: "Wolf 1" },
+    { id: "wolf-2", monster: "wolf", name: "Wolf 2" },
+  ]);
+  assert.ok(survival(pack) < survival(changed(pack, withoutTraits)));
 });
 
 const CHOICES = {
