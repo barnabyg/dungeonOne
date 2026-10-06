@@ -73,6 +73,11 @@ test(
       await page.locator("#open-creation").click();
       await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
       assert.equal(await page.locator("#kit-mace").isChecked(), true);
+      // Each kit's numbers for these rolls, before choosing one.
+      assert.match(
+        await text(page.locator("#kits")),
+        /Mace and leather\nLeather armour, Mace \(15 gp\)\. AC 13; Mace \+6 to hit, 1d6 \+ 4 bludgeoning, Sap\.\nTwo daggers and leather\nLeather armour, Dagger, Dagger \(14 gp\)\. AC 13; Dagger \+6 to hit, 1d4 \+ 4 piercing; then Dagger \+6 to hit, 1d4 piercing, Nick as an extra attack\.\nClub, dagger and leather\nLeather armour, Club, Dagger \(12 gp 1 sp\)\. AC 13; Club \+6 to hit, 1d4 \+ 4 bludgeoning; then Dagger \+6 to hit, 1d4 piercing, Nick as an extra attack\./u,
+      );
       await page.locator("#character-name").fill("Ada");
       await page.locator("#save-character").click();
       await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
@@ -93,6 +98,8 @@ test(
         await text(merrow(page)),
         /Each trade takes 10 minutes\.\nDagger — 2 gp\nBuy\nToo little coin\nShortsword — 10 gp[\s\S]*Chain shirt — 50 gp\nBuy\nToo little coin\nPays half price: Leather armour 5 gp, Mace 2 gp 5 sp\./u,
       );
+      await click(page, "talk", "the-ford");
+      assert.match(await newest(page), /His shield's still out in the reeds/);
 
       await click(page, "move", "ford");
       assert.match(
@@ -100,6 +107,12 @@ test(
         /Initiative: Wolf 11 \+ 2 = 13; Ada 12 \+ 1 = 13\./,
       );
       await fight(page);
+      const wolfFight = await text(page.locator("#log"));
+      assert.match(wolfFight, /Wolf has 6\/11 HP\.[^]*Wolf is sapped/u);
+      assert.match(
+        wolfFight,
+        /Wolf attacks Ada with Bite, at disadvantage \(Sap\)[^\n]*Miss\./u,
+      );
       assert.match(await newest(page), /Wolf has 0\/11 HP\./);
       await click(page, "examine", "reeds");
       await click(page, "take", "reed-shield");
@@ -116,6 +129,10 @@ test(
 
       await click(page, "move", "tinkers-cart");
       assert.match(await text(ware(page, "shortsword")), /Too little coin/);
+      assert.match(
+        await text(merrow(page)),
+        /Pays half price: Leather armour 5 gp, Shield 5 gp, Mace 2 gp 5 sp\./,
+      );
       await click(page, "buy", "dagger");
       assert.equal(
         await newest(page),
@@ -135,6 +152,15 @@ test(
         "You stow the mace and wield the dagger, using your object interaction. AC 15; Dagger +6 to hit, 1d4 + 4 piercing.\nIt is still your turn: you can attack or end your turn.",
       );
       await fight(page);
+      const towerFight = await text(page.locator("#log"));
+      for (const line of [
+        /Young Bandit has 4\/11 HP\./,
+        /Scarred Bandit attacks Ada with Scimitar: 13 \+ 3 = 16 against AC 15\. Hit\. Damage 3 \+ 1 = 4 slashing; Ada has 9\/13 HP\./,
+        /Scarred Bandit has 5\/11 HP\.[^]*It is still your turn: you can use Second Wind or end your turn\./u,
+        /Ada ends the turn\.\nScarred Bandit attacks Ada with Scimitar: 3 \+ 3 = 6 against AC 15\. Miss\./u,
+      ]) {
+        assert.match(towerFight, line);
+      }
       assert.match(await newest(page), /Scarred Bandit is defeated\./);
       assert.match(
         await text(page.locator("#room")),
@@ -154,7 +180,15 @@ test(
       assert.match(await text(ware(page, "chain-shirt")), /Too little coin/);
       await click(page, "buy", "shortsword");
       await click(page, "swap", "shortsword");
+      assert.equal(
+        await newest(page),
+        "You stow the dagger and wield the shortsword. AC 15; Shortsword +6 to hit, 1d6 + 4 piercing.",
+      );
       await click(page, "sell", "mace");
+      assert.equal(
+        await newest(page),
+        "You sell the mace to Merrow the Tinker for 2 gp 5 sp. The trade takes 10 minutes. Purse: 6 gp.",
+      );
       await click(page, "sell", "dagger");
       assert.equal(
         await newest(page),
@@ -171,10 +205,11 @@ test(
         ending,
         /Defeated the Wolf: \+50 XP\nDefeated Scarred Bandit and Young Bandit: \+50 XP\nBack with the takings: \+200 XP/,
       );
+      assert.match(ending, /Treasure kept\nSilver Toll Seal\./);
       assert.match(ending, /Coin found: 15 gp 5 sp\. Purse: 7 gp\./);
       assert.match(
         ending,
-        /Level up: Ada is now level 2\nHit points 13 → 22\./,
+        /Level up: Ada is now level 2\nHit points 13 → 22\. New: Action Surge, Tactical Mind\./,
       );
 
       // Storage and the sheet hold the purchases and the change.
@@ -194,6 +229,8 @@ test(
         sheet,
         /^Level 2 Fighter · 300 XP \(level 3 at 900\) · Leather armour, Shield, Shortsword\n[\s\S]*HP: 22\/22\nAC: 15\n/u,
       );
+      assert.match(sheet, /Shortsword: \+6 to hit, 1d6 \+ 4 piercing, Vex/);
+      assert.match(sheet, /Treasure\nSilver Toll Seal\./);
       assert.match(sheet, /Purse\n7 gp\n/);
 
       // Buying and dropping gear, then abandoning, changes nothing.
@@ -212,6 +249,10 @@ test(
         /Items here\nShield — You dropped it here\.\nYou carry\nLeather armour — Worn\.\n[\s\S]*Shortsword — In hand\.\n[\s\S]*Dagger — Carried, not equipped\./u,
       );
       await page.locator('#breadcrumb a[data-view="sheet"]').click();
+      // Keep going closes the question; the second Abandon confirms it.
+      await page.locator("#abandon-adventure").click();
+      await page.locator("#cancel-abandon").click();
+      assert.equal(await page.locator("#abandon-confirm").isHidden(), true);
       await page.locator("#abandon-adventure").click();
       await page.locator("#confirm-abandon").click();
       await page
