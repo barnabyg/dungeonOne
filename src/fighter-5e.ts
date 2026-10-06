@@ -5,17 +5,20 @@
  * derived number (HP, AC, attack, saves, skills, features) is computed from a
  * validated sheet. `docs/character-rules.md` records these numbers.
  *
- * A sheet keeps what the character holds (its equipment, treasure and purse)
- * apart from its ledger of what it has earned: each treasure or coin found and
- * each XP award credited, once. Settling a surviving adventure (`settleFighter`) replaces
- * the possessions with what the character holds at the end and adds to the
- * ledger, so a find stays earned after the item is gone.
+ * A sheet keeps what the character holds (its equipment, stowed gear,
+ * treasure and purse) apart from its ledger of what it has earned: each
+ * treasure, coin or gear found and each XP award credited, once. Settling a
+ * surviving adventure (`settleFighter`) replaces the possessions with what
+ * the character holds at the end and adds to the ledger, so a find stays
+ * earned after the item is gone.
  */
 import {
   equipmentProfile,
   FIGHTER_MASTERY_COUNT,
   formatCoins,
+  isItemId,
   isKitId,
+  MAX_STOWED,
   itemName,
   KIT_IDS,
   kitPrice,
@@ -120,10 +123,12 @@ export type TreasureRecord = Readonly<{
  */
 export type XpAward = Readonly<{ id: string; name: string; xp: number }>;
 
-/** What a character holds: its equipment, its treasure and its purse. */
+/** What a character holds: its equipment, its stowed gear, its treasure and its purse. */
 export type Possessions = Readonly<{
   /** What it has equipped: armour, then the weapon it attacks with, then any second weapon. */
   equipment: readonly ItemId[];
+  /** Catalogue gear it carries but has not equipped. */
+  stowed: readonly ItemId[];
   treasure: readonly TreasureRecord[];
   /** Its coin, in copper. */
   purse: number;
@@ -145,6 +150,11 @@ export type Settlement = Readonly<{
   finds: readonly TreasureRecord[];
   /** The coin found in this adventure and carried out in the purse. */
   coin: readonly CoinFind[];
+  /**
+   * The ids (`adventure/item`) of the gear found in this adventure, kept or
+   * not: each is found once.
+   */
+  gear: readonly string[];
 }>;
 
 const TREASURE_ID = /^[a-z][a-z0-9-]{0,47}\/[a-z][a-z0-9-]{0,47}$/;
@@ -170,11 +180,13 @@ export type FighterSheet = Readonly<{
   weaponMasteries: readonly WeaponId[];
   /** What it has equipped; see `Possessions`. */
   equipment: readonly ItemId[];
+  /** The catalogue gear it carries but has not equipped. */
+  stowed: readonly ItemId[];
   /** The treasure the character holds. */
   treasure: readonly TreasureRecord[];
   /** The coin the character holds, in copper. */
   purse: number;
-  /** The ids of the treasure and coin found, so none is found twice. */
+  /** The ids of the treasure, coin and gear found, so none is found twice. */
   finds: readonly string[];
   /** The ids of the XP awards credited, so none is credited twice. */
   xpAwards: readonly string[];
@@ -194,6 +206,7 @@ const SHEET_KEYS = [
   "fightingStyle",
   "weaponMasteries",
   "equipment",
+  "stowed",
   "treasure",
   "purse",
   "finds",
@@ -519,6 +532,7 @@ export function buildFighter(
     fightingStyle: validateFightingStyle(choices.fightingStyle),
     weaponMasteries: validateMasteries(choices.masteries),
     equipment: STARTING_KITS[validateKit(choices.kit)].equipment,
+    stowed: [],
     treasure: [],
     purse: 0,
     finds: [],
@@ -723,6 +737,13 @@ export function validateFighter(value: unknown): FighterSheet {
   } catch {
     throw new Error("Unsupported character equipment.");
   }
+  if (
+    !Array.isArray(sheet.stowed) ||
+    sheet.stowed.length > MAX_STOWED ||
+    !sheet.stowed.every(isItemId)
+  ) {
+    throw new Error("Invalid stowed gear.");
+  }
   validateTreasure(sheet.treasure);
   if (!Number.isSafeInteger(sheet.purse) || sheet.purse < 0) {
     throw new Error("Invalid purse.");
@@ -915,6 +936,7 @@ export function fighterProfile(
 export function possessionsOf(sheet: FighterSheet): Possessions {
   return {
     equipment: sheet.equipment,
+    stowed: sheet.stowed,
     treasure: sheet.treasure,
     purse: sheet.purse,
   };
@@ -932,15 +954,19 @@ export function settleFighter(
   settlement: Settlement,
 ): FighterSheet {
   const awards = settlement.xp.filter(({ id }) => !sheet.xpAwards.includes(id));
-  const finds = [...settlement.finds, ...settlement.coin]
-    .map(({ id }) => id)
-    .filter((id) => !sheet.finds.includes(id));
+  const finds = [
+    ...[...settlement.finds, ...settlement.coin].map(({ id }) => id),
+    ...settlement.gear,
+  ].filter(
+    (id, index, all) => !sheet.finds.includes(id) && all.indexOf(id) === index,
+  );
   const xp = sheet.xp + awards.reduce((sum, award) => sum + award.xp, 0);
   const raised = { ...sheet, xp, level: levelForXp(xp) };
   return validateFighter({
     ...raised,
     hp: fighterProfile(raised).maxHp,
     equipment: settlement.possessions.equipment,
+    stowed: settlement.possessions.stowed,
     treasure: settlement.possessions.treasure.map(
       ({ id, name, description }) => ({ id, name, description }),
     ),

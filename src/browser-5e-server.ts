@@ -5,7 +5,8 @@
  * player's placement and choices (every score, modifier, cap and the skill
  * limit, so the page computes none), save a level 1 Fighter, read its sheet and
  * delete it. A saved Fighter can take on a built-in adventure module, where
- * the player explores by clicking Go to, Examine, Take or Drink, opens doors
+ * the player explores by clicking Go to, Examine, Take or Drink, equips,
+ * unequips, wields or drops gear, opens doors
  * with Force, Pick, Break or Unlock, deals with traps with Search and Disarm,
  * asks creatures about their topics with Talk, fights by
  * clicking an attack, Drink, Second Wind, Action Surge or End turn, or types
@@ -45,6 +46,7 @@ import { passesGate } from "./balance-5e.js";
 import {
   FIGHTER_MASTERY_COUNT,
   formatCoins,
+  itemName,
   KIT_IDS,
   MASTERIES,
   MASTERY_WEAPONS,
@@ -232,6 +234,7 @@ function libraryView(
       sheet,
       profile: fighterProfile(sheet),
       purse: formatCoins(sheet.purse),
+      stowed: sheet.stowed.map(itemName),
       ...(session === undefined ? {} : { session }),
       defeated: defeated === true,
     })),
@@ -277,6 +280,10 @@ const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   disarm: (trapId) => ({ type: "disarm", trapId }),
   talk: (topicId) => ({ type: "talk", topicId }),
   leave: (roomId) => ({ type: "leave", roomId }),
+  equip: (itemId) => ({ type: "equip", itemId }),
+  unequip: (itemId) => ({ type: "unequip", itemId }),
+  swap: (itemId) => ({ type: "swap", itemId }),
+  drop: (itemId) => ({ type: "drop", itemId }),
 };
 
 export async function startFifthBrowserServer(options: FifthBrowserOptions) {

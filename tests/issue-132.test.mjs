@@ -99,6 +99,11 @@ function engineAction({ action, target }) {
       return { type: "examine", targetId: target.id };
     case "take":
       return { type: "take", itemId: target.id };
+    case "equip":
+    case "unequip":
+    case "swap":
+    case "drop":
+      return { type: action, itemId: target.id };
     case "force":
     case "pick":
     case "break":
@@ -128,6 +133,10 @@ const TOOLS = [
   ["search", "search"],
   ["disarm", "disarm"],
   ["talk", "talk"],
+  ["equip", "equip"],
+  ["unequip", "unequip"],
+  ["swap_weapon", "swap"],
+  ["drop", "drop"],
 ];
 
 /**
@@ -215,6 +224,12 @@ test("the crypt stair offers the stuck door's Force, a Search and no way through
     {
       action: "examine",
       target: { id: "carved-warning", name: "Carved Warning" },
+      available: true,
+    },
+    // The character's own armour (#209).
+    {
+      action: "unequip",
+      target: { id: "leather", name: "Leather armour" },
       available: true,
     },
   ]);
@@ -902,7 +917,7 @@ test("a session saves its checks' cards and remembered outcomes, and replays the
     }
     await session.persist();
     const file = JSON.parse(await readFile(path, "utf8"));
-    assert.equal(file.formatVersion, 10);
+    assert.equal(file.formatVersion, 11);
     const purposes = file.history.flatMap(({ cards }) =>
       cards.flatMap(({ lines }) =>
         lines.flatMap(({ rolls }) => rolls.map(({ purpose }) => purpose)),

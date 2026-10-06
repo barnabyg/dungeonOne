@@ -83,6 +83,11 @@ function engineAction({ action, target }) {
       return { type: "examine", targetId: target.id };
     case "take":
       return { type: "take", itemId: target.id };
+    case "equip":
+    case "unequip":
+    case "swap":
+    case "drop":
+      return { type: action, itemId: target.id };
     case "force":
     case "pick":
     case "break":
@@ -137,6 +142,10 @@ function assertAgrees(runtime, state) {
     ["move", "move"],
     ["examine", "examine"],
     ["take", "take"],
+    ["equip", "equip"],
+    ["unequip", "unequip"],
+    ["swap_weapon", "swap"],
+    ["drop", "drop"],
   ]) {
     const offered = tools.get(tool);
     const ids = enabled(kind);
@@ -356,6 +365,7 @@ test("exploring, the bar holds each move, examination, take and drink; a potion 
       ["move", "alcove", true],
       ["move", "rat-cellar", true],
       ["examine", "rusted-lantern", true],
+      ["unequip", "leather", true],
     ],
   );
   for (const action of [
@@ -374,6 +384,7 @@ test("exploring, the bar holds each move, examination, take and drink; a potion 
       ["examine", "iron-chest"],
       ["take", "healing-potion"],
       ["examine", "healing-potion"],
+      ["unequip", "leather"],
     ],
   );
   state = runtime.handleAction(state, {
@@ -403,6 +414,7 @@ test("each entry in the bar gives back the action it stands for (#134)", () => {
     { type: "move", destinationId: "alcove" },
     { type: "move", destinationId: "rat-cellar" },
     { type: "examine", targetId: "rusted-lantern" },
+    { type: "unequip", itemId: "leather" },
   ]);
   // An entry this runtime didn't project stands for nothing.
   assert.equal(

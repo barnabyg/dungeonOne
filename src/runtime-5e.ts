@@ -40,6 +40,7 @@
 import {
   FOUND_ONCE_KINDS,
   ITEM_KINDS,
+  LOOT_KINDS,
   statBlockInitiative,
   type FifthAdventure,
   type FifthCreature,
@@ -72,10 +73,25 @@ import {
   type Weapon,
 } from "./encounter-5e.js";
 import {
+  ARMOUR,
   coinsInCopper,
+  DONNING_MINUTES,
+  dropItem,
+  equipItem,
   formatCoins,
+  isArmourId,
+  isItemId,
+  isWeaponId,
   itemName,
+  MAX_STOWED,
+  swapWeapon,
+  unequipItem,
+  WEAPONS,
+  type ArmourData,
   type AttackProfile,
+  type GearRefusalCode,
+  type ItemId,
+  type WeaponData,
 } from "./equipment-5e.js";
 import {
   fighterProfile,
@@ -100,7 +116,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v7";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v8";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -141,6 +157,8 @@ export type FifthState = Readonly<{
   sprungTrapIds: readonly string[];
   /** Topics talked about, whatever the creature answered. */
   talkedTopicIds: readonly string[];
+  /** Gear the character dropped, in the room it lies in, in order. */
+  dropped: readonly Readonly<{ roomId: string; item: ItemId }>[];
   /** The fight in this room, under way or just won. */
   encounter?: EncounterState;
   endingId?: string;
@@ -164,8 +182,22 @@ export type FifthAction =
   | Readonly<{ type: "search"; roomId: string }>
   | Readonly<{ type: "disarm"; trapId: string }>
   | Readonly<{ type: "talk"; topicId: string }>
+  /** A change to the character's own gear, named by its catalogue id. */
+  | Readonly<{ type: GearAction; itemId: string }>
   /** The player's final choice to leave from an exit room. */
   | Readonly<{ type: "leave"; roomId: string }>;
+
+/** The changes a character makes to its own gear. */
+export type GearAction = "equip" | "unequip" | "swap" | "drop";
+const GEAR_CHANGES = {
+  equip: equipItem,
+  unequip: unequipItem,
+  swap: swapWeapon,
+  drop: dropItem,
+} as const;
+
+/** The id a dropped item is taken back by: `dropped:` and its catalogue id. */
+const DROPPED = "dropped:";
 
 /** The ways to open a door: three checks, and a key. */
 export type DoorApproach = "force" | "pick" | "break" | "unlock";
@@ -247,6 +279,22 @@ const TARGET_TOOLS = {
     parameter: "topic",
     action: (topicId: string): FifthAction => ({ type: "talk", topicId }),
   },
+  equip: {
+    parameter: "item",
+    action: (itemId: string): FifthAction => ({ type: "equip", itemId }),
+  },
+  unequip: {
+    parameter: "item",
+    action: (itemId: string): FifthAction => ({ type: "unequip", itemId }),
+  },
+  swap_weapon: {
+    parameter: "weapon",
+    action: (itemId: string): FifthAction => ({ type: "swap", itemId }),
+  },
+  drop: {
+    parameter: "item",
+    action: (itemId: string): FifthAction => ({ type: "drop", itemId }),
+  },
 } as const satisfies Partial<
   Record<GameToolName | FifthToolName, { parameter: string; action: unknown }>
 >;
@@ -281,7 +329,10 @@ export type FifthEvent =
       name: string;
       /** The copper it put in the purse, when it is coin. */
       coin?: number;
+      /** Gear, which is stowed as it is taken. */
+      stowed?: true;
     }>
+  | GearEvent
   /** A check or saving throw the character made. */
   | Readonly<{ type: "check"; roll: CheckRoll }>
   | Readonly<{
@@ -345,6 +396,35 @@ export type FifthEvent =
       text: string;
     }>;
 
+/** One attack as a gear change shows it. */
+export type ShownAttack = Readonly<{
+  weapon: string;
+  bonus: number;
+  damage: AttackProfile["damage"];
+  grip: AttackProfile["grip"];
+  disadvantage: readonly string[];
+}>;
+
+/**
+ * A change to the character's gear, with the minutes it took (donning and
+ * doffing armour) and the AC and attacks it leaves the character with.
+ */
+export type GearEvent = Readonly<{
+  type: "gear";
+  change: GearAction;
+  item: ItemId;
+  /** What was taken off or put away to make room. */
+  replaced: readonly ItemId[];
+  /** Minutes doffing what was replaced, then donning or doffing the item. */
+  minutes: Readonly<{ doff: number; don: number }>;
+  /** In a fight: the change used the turn's object interaction. */
+  interaction?: true;
+  strengthShortfall?: Readonly<{ armour: string; strength: number }>;
+  armorClass: number;
+  attack: ShownAttack;
+  lightAttack?: ShownAttack;
+}>;
+
 /**
  * Why the engine refuses an action. Code branches on `code`, which stays
  * stable; `reason` is the sentence rejection cards and the AI DM show.
@@ -376,7 +456,9 @@ export type FifthRefusalCode =
   | "trap-sprung"
   | "no-topic"
   | "already-asked"
-  | "not-an-exit";
+  | "not-an-exit"
+  | "carrying-full"
+  | GearRefusalCode;
 
 export type FifthRejection = Readonly<{
   code: FifthRefusalCode;
@@ -405,7 +487,9 @@ Leaving the adventure is the player's own final choice, made with the Leave butt
 
 Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
 
-A turn in a fight has one action (an attack), one bonus action and one reaction. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; when they end or pass their turn, call end_turn. Drinking a potion in a fight takes the bonus action. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, healing and extra actions come only from the engine's rules; a player cannot gain them by asking. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, what they carry, or whether they won or lost.
+The character's own gear (its catalogue weapons, armour and shield) is named by its id. To put on armour or a shield, or take a second light weapon in the other hand, call equip; to take armour or a shield off or put a second weapon away, call unequip; to wield a different carried weapon in place of the ones held, call swap_weapon; to leave carried gear behind, call drop. Gear found is taken with take, like any item. The engine decides what the character can hold, how long armour takes to don and what the change does to its AC and attacks.
+
+A turn in a fight has one action (an attack), one bonus action and one reaction. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; when they end or pass their turn, call end_turn. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, healing and extra actions come only from the engine's rules; a player cannot gain them by asking. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, what they carry, or whether they won or lost.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -573,6 +657,56 @@ function doorText(
   }
 }
 
+function minutes(count: number): string {
+  return `${count} ${count === 1 ? "minute" : "minutes"}`;
+}
+
+/** "Longsword +5 to hit, 1d10 + 3 slashing (two-handed)". */
+function shownAttackText(attack: ShownAttack): string {
+  const { dice, sides, modifier, type } = attack.damage;
+  return `${attack.weapon} ${attack.bonus >= 0 ? "+" : "−"}${Math.abs(attack.bonus)} to hit, ${dice}d${sides}${modifier === 0 ? "" : ` ${signed(modifier)}`} ${type}${attack.grip === "two-handed" ? " (two-handed)" : ""}${attack.disadvantage.length === 0 ? "" : ` (disadvantage: ${attack.disadvantage.join(", ")})`}`;
+}
+
+function gearText(event: GearEvent): string {
+  const lower = (id: ItemId) => itemName(id).toLowerCase();
+  const item = lower(event.item);
+  const using = event.interaction ? ", using your object interaction" : "";
+  const body = isArmourId(event.item) && event.item !== "shield";
+  let done: string;
+  switch (event.change) {
+    case "swap":
+      done = `You stow the ${listed(event.replaced.map(lower), "and")} and wield the ${item}${using}.`;
+      break;
+    case "equip":
+      done = isWeaponId(event.item)
+        ? `You draw the ${item} in your other hand${using}.`
+        : !body
+          ? `You strap the ${item} to your arm.`
+          : event.replaced.length === 0
+            ? `You spend ${minutes(event.minutes.don)} donning the ${item}.`
+            : `You spend ${minutes(event.minutes.doff)} doffing the ${listed(event.replaced.map(lower), "and")} and ${minutes(event.minutes.don)} donning the ${item}.`;
+      break;
+    case "unequip":
+      done = isWeaponId(event.item)
+        ? `You stow the ${item}${using}.`
+        : body
+          ? `You spend ${minutes(event.minutes.doff)} doffing the ${item} and stow it.`
+          : `You unstrap the ${item} and stow it.`;
+      break;
+    case "drop":
+      return `You drop the ${item}. It stays here.`;
+  }
+  const shortfall =
+    event.strengthShortfall === undefined || event.change !== "equip"
+      ? ""
+      : ` Your Strength is below the ${event.strengthShortfall.armour.toLowerCase()}'s ${event.strengthShortfall.strength}: your speed drops by 10 feet, which has no effect without positions.`;
+  const light =
+    event.lightAttack === undefined
+      ? ""
+      : `; ${shownAttackText(event.lightAttack)} (extra attack)`;
+  return `${done}${shortfall} AC ${event.armorClass}; ${shownAttackText(event.attack)}${light}.`;
+}
+
 export function renderFifthEvent(
   state: FifthState,
   event: FifthEvent,
@@ -641,9 +775,13 @@ export function renderFifthEvent(
           : [`You find the ${listed(event.found, "and")}.`]),
       ].join(" ");
     case "taken":
-      return event.coin === undefined
-        ? `You take the ${event.name}.`
-        : `You take the ${event.name} and put ${formatCoins(event.coin)} in your purse.`;
+      return event.coin !== undefined
+        ? `You take the ${event.name} and put ${formatCoins(event.coin)} in your purse.`
+        : event.stowed
+          ? `You take the ${event.name} and stow it.`
+          : `You take the ${event.name}.`;
+    case "gear":
+      return gearText(event);
     case "check":
       return checkText(event.roll);
     case "door":
@@ -995,6 +1133,17 @@ export type RoomView = Readonly<{
   inventory: readonly Named[];
   /** The coin the character holds, in mixed denominations, if it has any. */
   purse?: string;
+  /** The character's gear as it stands, and the AC and attacks it gives. */
+  gear: Readonly<{
+    /** The armour and shield worn. */
+    worn: readonly Readonly<{ id: string; name: string }>[];
+    /** Catalogue gear carried but not equipped. */
+    stowed: readonly Readonly<{ id: string; name: string }>[];
+    armorClass: number;
+    attack: AttackProfile;
+    lightAttack?: AttackProfile;
+    strengthShortfall?: Readonly<{ armour: string; strength: number }>;
+  }>;
   character: Readonly<{ hp: number; maxHp: number; health: Health }>;
   options: Readonly<{
     move: readonly string[];
@@ -1019,6 +1168,7 @@ export type ActionKind =
   | "search"
   | "disarm"
   | "talk"
+  | GearAction
   | "leave";
 
 /**
@@ -1080,6 +1230,16 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "no-topic": "No such topic",
   "already-asked": "Already asked",
   "not-an-exit": "No way out here",
+  "interaction-used": "Interaction used",
+  "carrying-full": "Can't carry more",
+  "not-a-weapon": "Not a weapon",
+  "already-held": "Already equipped",
+  "two-handed": "Needs both hands",
+  "hands-full": "Hands full",
+  "not-light": "Not light",
+  "not-equipped": "Not equipped",
+  "last-weapon": "Last weapon",
+  "still-equipped": "Equipped",
 };
 
 /** Thrown by the dry-run roller: the engine accepted the action and rolls. */
@@ -1397,11 +1557,33 @@ export function createFifthRuntime(
   const potions = (state: FifthState): readonly FifthItem[] =>
     carried(state).filter((item) => potionOf(item) !== undefined);
 
+  /** The sheet with the gear the character holds now. */
+  const sheetOf = (state: FifthState): FighterSheet => ({
+    ...sheet,
+    equipment: state.possessions.equipment,
+    stowed: state.possessions.stowed,
+  });
+  /** Gear the character dropped in this room, one entry per kind of item. */
+  const droppedHere = (state: FifthState): readonly Named[] => {
+    const counts = new Map<ItemId, number>();
+    for (const { roomId, item } of state.dropped) {
+      if (roomId === state.roomId) {
+        counts.set(item, (counts.get(item) ?? 0) + 1);
+      }
+    }
+    return [...counts].map(([item, count]) => ({
+      id: `${DROPPED}${item}`,
+      name: count === 1 ? itemName(item) : `${itemName(item)} (${count})`,
+      description:
+        count === 1 ? "You dropped it here." : "You dropped them here.",
+    }));
+  };
+
   /** The character as a combatant: in the fight, or as it stands now. */
   const self = (state: FifthState): Combatant =>
     fighting(state)
       ? combatant(state.encounter!, PLAYER_ID)
-      : playerCombatant(sheet, state.character);
+      : playerCombatant(sheetOf(state), state.character);
 
   const opponents = (state: FifthState): readonly Combatant[] =>
     (encounterOf(state)?.opponents ?? []).map(({ id, name, statBlock }) => {
@@ -1510,7 +1692,7 @@ export function createFifthRuntime(
     const started = startEncounter(
       [
         playerCombatant(
-          sheet,
+          sheetOf(state),
           state.character,
           potions(state).map((item) => potionOf(item)!),
         ),
@@ -1681,6 +1863,13 @@ export function createFifthRuntime(
       case "leave": {
         const roomId = field("roomId");
         return roomId === undefined ? undefined : { type: "leave", roomId };
+      }
+      case "equip":
+      case "unequip":
+      case "swap":
+      case "drop": {
+        const itemId = field("itemId");
+        return itemId === undefined ? undefined : { type: action.type, itemId };
       }
       default:
         return undefined;
@@ -2074,9 +2263,63 @@ export function createFifthRuntime(
         if (state.inventory.includes(action.itemId)) {
           return reject("already-carried", "You already have that.");
         }
+        const full = () =>
+          reject(
+            "carrying-full",
+            `You carry ${MAX_STOWED} pieces of gear already; drop something first.`,
+          );
+        const stow = (from: FifthState, gear: ItemId): FifthState => ({
+          ...from,
+          possessions: {
+            ...from.possessions,
+            stowed: [...from.possessions.stowed, gear],
+          },
+        });
+        if (action.itemId.startsWith(DROPPED)) {
+          const index = state.dropped.findIndex(
+            ({ roomId, item }) =>
+              roomId === state.roomId && `${DROPPED}${item}` === action.itemId,
+          );
+          if (index === -1) {
+            return reject("no-item", "There is no such item here to take.");
+          }
+          if (state.possessions.stowed.length >= MAX_STOWED) {
+            return full();
+          }
+          const gear = state.dropped[index]!.item;
+          return {
+            state: {
+              ...stow(state, gear),
+              dropped: state.dropped.filter((_, at) => at !== index),
+            },
+            events: [
+              {
+                type: "taken",
+                itemId: action.itemId,
+                name: itemName(gear),
+                stowed: true,
+              },
+            ],
+          };
+        }
         const item = roomItems(state).find(({ id }) => id === action.itemId);
         if (item === undefined) {
           return reject("no-item", "There is no such item here to take.");
+        }
+        if (item.gear !== undefined) {
+          if (state.possessions.stowed.length >= MAX_STOWED) {
+            return full();
+          }
+          // Found gear is stowed, ready to equip, and found once.
+          return {
+            state: {
+              ...stow(state, item.gear),
+              usedItemIds: [...state.usedItemIds, item.id],
+            },
+            events: [
+              { type: "taken", itemId: item.id, name: item.name, stowed: true },
+            ],
+          };
         }
         if (item.coins !== undefined) {
           // The engine decides how much: the authored amount, into the purse.
@@ -2139,6 +2382,108 @@ export function createFifthRuntime(
           events: [drunk],
         };
       }
+      case "equip":
+      case "unequip":
+      case "swap":
+      case "drop": {
+        const id = action.itemId;
+        if (!isItemId(id)) {
+          return reject("not-carried", "You don't carry that.");
+        }
+        if (fighting(state) && (action.type === "drop" || !isWeaponId(id))) {
+          return reject(
+            "fighting",
+            action.type === "drop"
+              ? "Not while you are fighting."
+              : "There is no time to change armour or a shield in the middle of a fight.",
+          );
+        }
+        const change = GEAR_CHANGES[action.type](
+          {
+            equipment: state.possessions.equipment,
+            stowed: state.possessions.stowed,
+          },
+          id,
+        );
+        if (change.refusal !== undefined) {
+          return reject(change.refusal.code, change.refusal.reason);
+        }
+        const next: FifthState = {
+          ...state,
+          possessions: { ...state.possessions, ...change.gear },
+          ...(action.type === "drop"
+            ? {
+                dropped: [...state.dropped, { roomId: state.roomId, item: id }],
+              }
+            : {}),
+        };
+        const profile = fighterProfile(sheetOf(next));
+        /** The minutes body armour takes to don and doff; none for others. */
+        const timing = (item: ItemId) =>
+          isArmourId(item) && item !== "shield"
+            ? DONNING_MINUTES[
+                (ARMOUR[item] as ArmourData).category as
+                  "light" | "medium" | "heavy"
+              ]
+            : { don: 0, doff: 0 };
+        const shown = (attack: AttackProfile): ShownAttack => ({
+          weapon: attack.weapon,
+          bonus: attack.bonus,
+          damage: attack.damage,
+          grip: attack.grip,
+          disadvantage: attack.disadvantage,
+        });
+        const event: GearEvent = {
+          type: "gear",
+          change: action.type,
+          item: id,
+          replaced: change.replaced,
+          minutes: {
+            doff:
+              action.type === "unequip"
+                ? timing(id).doff
+                : change.replaced.reduce(
+                    (sum, item) => sum + timing(item).doff,
+                    0,
+                  ),
+            don: action.type === "equip" ? timing(id).don : 0,
+          },
+          ...(fighting(state) ? { interaction: true as const } : {}),
+          ...(profile.strengthShortfall === undefined
+            ? {}
+            : { strengthShortfall: profile.strengthShortfall }),
+          armorClass: profile.armorClass,
+          attack: shown(profile.attack),
+          ...(profile.lightAttack === undefined
+            ? {}
+            : { lightAttack: shown(profile.lightAttack) }),
+        };
+        if (!fighting(state)) {
+          return { state: next, events: [event] };
+        }
+        // The fight's combatant attacks with the new weapons from now on.
+        const armed = playerCombatant(sheetOf(next));
+        const result = act(
+          state.encounter!,
+          {
+            type: "interact",
+            actorId: PLAYER_ID,
+            attack: armed.attack,
+            ...(armed.lightAttack === undefined
+              ? {}
+              : { lightAttack: armed.lightAttack }),
+          },
+          random ?? {
+            roll() {
+              throw new Error("Acting needs dice.");
+            },
+          },
+        );
+        if (result.rejection !== undefined) {
+          return { state, rejection: result.rejection };
+        }
+        return settle(next, result.state, [event, ...result.events]);
+      }
       case "leave": {
         if (fighting(state)) {
           return reject(
@@ -2154,7 +2499,7 @@ export function createFifthRuntime(
         }
         // Carrying any treasure, or coin found here, out is escaping with loot.
         const kind =
-          carried(state).some((item) => item.kind === "treasure") ||
+          carried(state).some((item) => LOOT_KINDS.includes(item.kind)) ||
           coinFound(state).length > 0
             ? "escape-with-loot"
             : "escape-without-loot";
@@ -2229,6 +2574,34 @@ export function createFifthRuntime(
       view("use", { type: "use-item", itemId: item.id }, item);
     const examine = (target: Named) =>
       view("examine", { type: "examine", targetId: target.id }, target);
+    /**
+     * The character's own gear: Unequip on armour, a shield and a second
+     * weapon; Wield on a stowed weapon, Equip on stowed armour, a shield or a
+     * light weapon; Drop on stowed gear. In a fight, only Wield and Equip on stowed weapons. The
+     * engine accepts the others too, but the bar stays short.
+     */
+    const gearViews = (fight = false): readonly ActionView[] => {
+      const item = (id: ItemId) => ({ id, name: itemName(id) });
+      const gear = (kind: GearAction, id: ItemId) =>
+        view(kind, { type: kind, itemId: id }, item(id));
+      const { equipment, stowed } = state.possessions;
+      const held = equipment.filter(isWeaponId);
+      return [
+        ...(fight ? [] : [...new Set(equipment)])
+          .filter((id) => !isWeaponId(id) || held.length > 1)
+          .map((id) => gear("unequip", id)),
+        ...[...new Set(stowed)]
+          .filter((id) => !fight || isWeaponId(id))
+          .flatMap((id) => [
+            ...(isWeaponId(id) ? [gear("swap", id)] : []),
+            ...(!isWeaponId(id) ||
+            (WEAPONS[id] as WeaponData).properties.includes("light")
+              ? [gear("equip", id)]
+              : []),
+            ...(fight ? [] : [gear("drop", id)]),
+          ]),
+      ];
+    };
     if (fighting(state)) {
       const pc = combatant(state.encounter!, PLAYER_ID);
       const feature = (kind: "second-wind" | "action-surge" | "end-turn") =>
@@ -2249,6 +2622,7 @@ export function createFifthRuntime(
         ...potions(state).map(use),
         ...(pc.secondWind === undefined ? [] : [feature("second-wind")]),
         ...(pc.actionSurge === undefined ? [] : [feature("action-surge")]),
+        ...gearViews(true),
         feature("end-turn"),
       ];
     }
@@ -2300,6 +2674,10 @@ export function createFifthRuntime(
           ? [examine(item)]
           : [use(item), examine(item)],
       ),
+      ...droppedHere(state).map((item) =>
+        view("take", { type: "take", itemId: item.id }, item),
+      ),
+      ...gearViews(),
       // The final choice comes last, and only where there is a way out.
       ...(here.exit === true
         ? [view("leave", { type: "leave", roomId: here.id }, here)]
@@ -2384,7 +2762,7 @@ export function createFifthRuntime(
                 : `${description} Discovered: ${discovery}`,
           }),
         ),
-        items: roomItems(state).map(named),
+        items: [...roomItems(state).map(named), ...droppedHere(state)],
         opponents: (encounter?.combatants ?? opponents(state))
           .filter(({ side }) => side === "opponents")
           .map(({ id, name, hp }) => ({
@@ -2464,6 +2842,10 @@ export function createFifthRuntime(
         id,
         name: itemName(id),
       })),
+      stowed: state.possessions.stowed.map((id) => ({
+        id,
+        name: itemName(id),
+      })),
       collectedItems: carried(state).map(named),
       purse: formatCoins(state.possessions.purse),
       outcome: state.status,
@@ -2521,11 +2903,29 @@ export function createFifthRuntime(
           };
         }),
       })),
-      items: roomItems(state).map(named),
+      items: [...roomItems(state).map(named), ...droppedHere(state)],
       inventory: carried(state).map(named),
       ...(state.possessions.purse === 0
         ? {}
         : { purse: formatCoins(state.possessions.purse) }),
+      gear: (() => {
+        const profile = fighterProfile(sheetOf(state));
+        const item = (id: ItemId) => ({ id, name: itemName(id) });
+        return {
+          worn: state.possessions.equipment
+            .filter((id) => !isWeaponId(id))
+            .map(item),
+          stowed: state.possessions.stowed.map(item),
+          armorClass: profile.armorClass,
+          attack: profile.attack,
+          ...(profile.lightAttack === undefined
+            ? {}
+            : { lightAttack: profile.lightAttack }),
+          ...(profile.strengthShortfall === undefined
+            ? {}
+            : { strengthShortfall: profile.strengthShortfall }),
+        };
+      })(),
       character: {
         hp: state.character.hp,
         maxHp,
@@ -2603,7 +3003,7 @@ export function createFifthRuntime(
         type: "function",
         name: "get_character_status",
         description:
-          "Read the character's hit points, equipment, carried items, purse and whether the adventure is won or lost.",
+          "Read the character's hit points, equipment, stowed gear, carried items, purse and whether the adventure is won or lost.",
         strict: true,
         parameters: EMPTY_PARAMETERS,
       },
@@ -2672,6 +3072,30 @@ export function createFifthRuntime(
         "Ask a creature about one of its topics; the engine rolls any check and gives the creature's words. Topics:",
         choices("talk"),
         "The id of the topic to ask about.",
+      ),
+      ...targetTool(
+        "equip",
+        "Equip carried gear: put on armour (the engine says how long donning takes), strap on a shield, or take a second light weapon in the other hand. In a fight, only a weapon, with the turn's object interaction. Items:",
+        choices("equip"),
+        "The id of the carried item to equip.",
+      ),
+      ...targetTool(
+        "unequip",
+        "Take off armour or a shield, or put away a second weapon; the character keeps carrying it. Items:",
+        choices("unequip"),
+        "The id of the equipped item to unequip.",
+      ),
+      ...targetTool(
+        "swap_weapon",
+        "Wield a carried weapon in place of the weapons held, which are put away. In a fight it takes the turn's object interaction. Weapons:",
+        choices("swap"),
+        "The id of the carried weapon to wield.",
+      ),
+      ...targetTool(
+        "drop",
+        "Drop carried gear that is not equipped; it stays in this room. Items:",
+        choices("drop"),
+        "The id of the carried item to drop.",
       ),
       ...targetTool(
         "attack",
@@ -2812,6 +3236,11 @@ export function createFifthRuntime(
         id: treasureId(item),
         copper: coinsInCopper(item.coins!),
       })),
+      gear: state.usedItemIds
+        .map((id) => items.get(id)!)
+        .filter((item) => item.kind === "gear")
+        .map(treasureId)
+        .filter((id) => !found.has(id)),
     };
   };
 
@@ -2821,7 +3250,7 @@ export function createFifthRuntime(
     rulesVersion: FIFTH_RULES_VERSION,
     promptVersion: FIFTH_PROMPT_VERSION,
     systemPrompt: FIFTH_DM_SYSTEM_PROMPT,
-    toolSchemaVersion: "5e-tools-v4",
+    toolSchemaVersion: "5e-tools-v5",
     readToolNames: ["look", "get_character_status"],
     mutationToolNames: MUTATION_TOOLS,
     adventure,
@@ -2842,6 +3271,7 @@ export function createFifthRuntime(
       disarmedTrapIds: [],
       sprungTrapIds: [],
       talkedTopicIds: [],
+      dropped: [],
     }),
     handleAction,
     renderResult: (result: RuntimeResult) =>

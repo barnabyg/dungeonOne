@@ -404,12 +404,14 @@ const AWARDS = [
 const settlement = (xp, finds = [], treasure = finds) => ({
   possessions: {
     equipment: ["chain-shirt", "shield", "mace"],
+    stowed: [],
     treasure,
     purse: 0,
   },
   xp,
   finds,
   coin: [],
+  gear: [],
 });
 
 test("settling credits XP and finds once, keeps what is held, levels up at 300 XP and rests to full HP", () => {

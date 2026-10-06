@@ -487,6 +487,7 @@ test("turn economy: an attack spends the action; the turn stays open while optio
     maxActions: 1,
     bonusAction: true,
     reaction: true,
+    interaction: true,
     lightAttack: "unready",
   });
   assert.deepEqual(availableActions(state, "pc"), [
@@ -539,6 +540,7 @@ test("turn economy: an attack spends the action; the turn stays open while optio
     maxActions: 1,
     bonusAction: true,
     reaction: true,
+    interaction: true,
     lightAttack: "unready",
   });
   assert.match(

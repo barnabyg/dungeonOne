@@ -513,6 +513,10 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   search: "search",
   disarm: "disarm",
   talk: "talk",
+  equip: "equip",
+  unequip: "unequip",
+  swap: "swap_weapon",
+  drop: "drop",
   leave: undefined,
 };
 const READ_TOOLS = ["look", "get_character_status"];

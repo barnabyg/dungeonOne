@@ -240,10 +240,15 @@ for (const viewport of [
         await page.locator("#adventure").waitFor({ state: "visible" });
         await page.locator("#log li").first().waitFor();
 
-        // Exploring actions live in the action region, not the room panel.
-        assert.equal(
-          await page.locator("#room button:not(#room-toggle)").count(),
-          0,
+        // Exploring actions live in the action region, not the room panel;
+        // only the character's own gear is acted on there (#198, #209).
+        assert.deepEqual(
+          await page
+            .locator("#room button:not(#room-toggle)")
+            .evaluateAll((buttons) =>
+              buttons.map((button) => button.getAttribute("aria-label")),
+            ),
+          ["Unequip Leather armour"],
         );
         assert.deepEqual(
           await page

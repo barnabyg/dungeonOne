@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 6,
+  "formatVersion": 7,
   "id": "abandoned-delve",
   "title": "The Abandoned Delve",
   "objective": "Loot the old dungeon under the ruined keep and get out alive, by the gate or the shaft.",
@@ -96,7 +96,7 @@
           "id": "old-barrel",
           "name": "Old Barrel",
           "description": "One barrel is still sealed.",
-          "discovery": "Packed in straw inside the barrel is a stoppered vial of red liquid."
+          "discovery": "Packed in straw inside the barrel are a stoppered vial of red liquid, an oiled longsword and a shield."
         }
       ],
       "items": [
@@ -105,6 +105,22 @@
           "name": "Potion of Healing",
           "description": "A stoppered vial of red liquid that glimmers when shaken.",
           "kind": "potion-of-healing",
+          "hiddenIn": "old-barrel"
+        },
+        {
+          "id": "barrel-longsword",
+          "name": "Oiled Longsword",
+          "description": "A plain longsword wrapped in oilcloth, its edge still keen.",
+          "kind": "gear",
+          "gear": "longsword",
+          "hiddenIn": "old-barrel"
+        },
+        {
+          "id": "barrel-shield",
+          "name": "Storeroom Shield",
+          "description": "A wooden shield rimmed with iron, packed away and never used.",
+          "kind": "gear",
+          "gear": "shield",
           "hiddenIn": "old-barrel"
         }
       ]
