@@ -23,11 +23,13 @@ export async function launchDefault(cwd, args, apiKey = "") {
   const exited = new Promise((resolve) => {
     child.once("exit", resolve);
   });
+  // Startup gates every built-in module (about 4 s idle); under the full
+  // parallel suite it has taken 14 s, so 15 s left no margin.
   const url = await new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       child.kill();
-      reject(new Error(`No URL within 15 s:\n${output}`));
-    }, 15000);
+      reject(new Error(`No URL within 30 s:\n${output}`));
+    }, 30000);
     child.once("exit", () => clearTimeout(timer));
     child.stdout.on("data", (chunk) => {
       output += chunk;
