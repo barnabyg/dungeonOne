@@ -12,7 +12,8 @@ actions the engine offers, and never invents an outcome.
 The [rules document](docs/character-rules.md) records the 5e rules in use, the
 house rules and each rule left out because the game has no map. The
 [5e expansion plan](dnd-expansion-implementation-plan.md) describes the work
-ahead.
+ahead, and the [increment 11 handoff](docs/acceptance/increment-11-release.md)
+records how the 5e release was qualified, with manual test scenarios.
 
 ## Requirements
 
