@@ -402,9 +402,14 @@ const AWARDS = [
 ];
 /** A settlement holding the starting equipment, `treasure` and nothing else. */
 const settlement = (xp, finds = [], treasure = finds) => ({
-  possessions: { equipment: ["chain-shirt", "shield", "mace"], treasure },
+  possessions: {
+    equipment: ["chain-shirt", "shield", "mace"],
+    treasure,
+    purse: 0,
+  },
   xp,
   finds,
+  coin: [],
 });
 
 test("settling credits XP and finds once, keeps what is held, levels up at 300 XP and rests to full HP", () => {

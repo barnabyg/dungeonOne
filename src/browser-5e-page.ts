@@ -27,7 +27,8 @@
 //   the bar is hidden and #ending (#158) takes its place: data-kind victory,
 //   escape-with-loot, escape-without-loot or defeat (in words, #ending-kind,
 //   and colour), the title and text, a defeat's permanence, #ending-rewards
-//   (the XP and treasure a surviving ending earned, and a level-up card, #133)
+//   (the XP, treasure and coin a surviving ending earned, #ending-coin, and a
+//   level-up card, #133, #208)
 //   and #ending-next back to the character sheet. Focus moves to
 //   #ending-title when the ending appears or is opened again.
 // - #session-history: the conversation history, #log, a live region in its own
@@ -116,7 +117,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <div id="creatures-group"><h4 id="creatures-title">Creatures</h4><ul id="creatures" class="things" aria-labelledby="creatures-title"></ul></div>
 <div id="room-items-group"><h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul></div>
 <p id="room-empty" class="hint" hidden>There is nothing else here.</p>
-<div id="inventory-group"><h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul></div>
+<div id="inventory-group"><h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul><p id="purse"></p></div>
 </div>
 </section>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
@@ -429,12 +430,12 @@ const findEntry = (id) => library.characters.find(({ sheet }) => sheet.id === id
 function openSheet(id) {
   const entry = findEntry(id);
   if (!entry) return;
-  const { sheet, profile } = entry;
+  const { sheet, profile, purse } = entry;
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
   const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", "), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
-  element("sheet-body").replaceChildren(summary, ...profileNodes(sheet.abilities, profile, sheet.hp), ...treasureNodes(sheet.treasure), rolls);
+  element("sheet-body").replaceChildren(summary, ...profileNodes(sheet.abilities, profile, sheet.hp), ...treasureNodes(sheet.treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
@@ -450,6 +451,15 @@ function treasureNodes(treasure) {
   list.setAttribute("aria-labelledby", "treasure-title");
   list.append(...treasure.map(treasureItem));
   return [heading, list];
+}
+
+// The coin kept from adventures (#208), in mixed denominations.
+function purseNodes(copper, text) {
+  const heading = make("h3", "Purse");
+  heading.id = "purse-title";
+  const amount = copper === 0 ? make("p", "No coin yet. Coin found on an adventure is kept only by getting out alive.", "hint") : make("p", text);
+  amount.id = "sheet-purse";
+  return [heading, amount];
 }
 
 /** One treasure as a list item: its name in bold, then its description. */
@@ -511,7 +521,7 @@ let abandoning;
 function openAbandon(entry, title) {
   abandoning = entry.sheet.id;
   element("start-error").textContent = "";
-  element("abandon-question").textContent = "Abandon " + title + "? " + entry.sheet.name + " keeps nothing found on it and earns no XP from it, and it cannot be continued. Treasure and XP from earlier adventures are kept.";
+  element("abandon-question").textContent = "Abandon " + title + "? " + entry.sheet.name + " keeps nothing found on it and earns no XP from it, and it cannot be continued. Treasure, coin and XP from earlier adventures are kept.";
   element("adventure-choices").hidden = true;
   element("abandon-confirm").hidden = false;
   element("confirm-abandon").focus();
@@ -658,7 +668,7 @@ function renderEnding() {
   element("ending-next").textContent = entry ? "Back to " + name + "'s sheet" : "Back to your characters";
 }
 
-/** The XP and treasure a surviving ending earned, then any level-up card. */
+/** The XP, treasure and coin a surviving ending earned, then any level-up card. */
 function rewardNodes(rewards, name) {
   if (!rewards) return [];
   const nodes = [];
@@ -671,12 +681,17 @@ function rewardNodes(rewards, name) {
     entries.append(...items);
     nodes.push(heading, entries);
   };
-  if (rewards.xp.length === 0 && rewards.treasure.length === 0) {
+  if (rewards.xp.length === 0 && rewards.treasure.length === 0 && !rewards.coin) {
     nodes.push(make("p", "Nothing new earned: " + name + " already has everything this adventure gives."));
   }
   if (rewards.xp.length > 0) list("ending-xp", "Experience", rewards.xp.map((award) => make("li", award.name + ": +" + award.xp + " XP")));
   if (rewards.treasure.length > 0) {
     list("ending-treasure", "Treasure kept", rewards.treasure.map(treasureItem));
+  }
+  if (rewards.coin) {
+    const coin = make("p", "Coin kept: " + rewards.coin);
+    coin.id = "ending-coin";
+    nodes.push(coin);
   }
   nodes.push(make("p", name + " has " + rewards.totalXp + " XP. A rest before the next adventure restores every hit point and feature use."));
   const up = rewards.levelUp;
@@ -982,6 +997,10 @@ function renderRoom(room, fighting) {
       return item;
     }));
   }
+  // The purse shows with what the character carries, once it holds coin.
+  element("purse").textContent = room.purse ? "Purse: " + room.purse : "";
+  element("purse").hidden = !room.purse;
+  if (room.purse) element("inventory-group").hidden = false;
   element("room-empty").hidden = room.exits.length + room.features.length + room.creatures.length + room.items.length > 0;
   disclose("room", fighting);
 }
@@ -1133,7 +1152,7 @@ function renderActions() {
   const asking = confirmingLeave && groups.leave.length > 0;
   element("leave-controls").hidden = asking;
   element("leave-confirm").hidden = !asking;
-  element("leave-question").textContent = "Leave " + session.adventure.title + "? This ends the adventure here. Any treasure you carry out is yours to keep; you cannot come back to this adventure.";
+  element("leave-question").textContent = "Leave " + session.adventure.title + "? This ends the adventure here. Any treasure or coin you carry out is yours to keep; you cannot come back to this adventure.";
   element("confirm-leave").disabled = acting;
   element("cancel-leave").disabled = acting;
 }

@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 5,
+  "formatVersion": 6,
   "id": "abandoned-delve",
   "title": "The Abandoned Delve",
   "objective": "Loot the old dungeon under the ruined keep and get out alive, by the gate or the shaft.",
@@ -58,7 +58,8 @@
           "id": "guard-purse",
           "name": "Guard's Purse",
           "description": "A leather purse of old silver coins.",
-          "kind": "treasure",
+          "kind": "coin",
+          "coins": { "sp": 18 },
           "hiddenIn": "zombie"
         }
       ]
@@ -224,7 +225,8 @@
           "id": "coin-chest",
           "name": "Gold Coins",
           "description": "Handfuls of old gold coins stamped with a forgotten lord's face.",
-          "kind": "treasure",
+          "kind": "coin",
+          "coins": { "gp": 40 },
           "hiddenIn": "iron-chest"
         },
         {

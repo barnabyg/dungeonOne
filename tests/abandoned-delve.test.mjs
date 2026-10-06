@@ -59,8 +59,11 @@ const passage = (from, to) =>
   delve.passages.find(
     ({ between }) => between.includes(from) && between.includes(to),
   );
+/** The loot in a room: treasure and coin. */
 const treasureIn = (roomId) =>
-  room(roomId).items.filter(({ kind }) => kind === "treasure");
+  room(roomId).items.filter(
+    ({ kind }) => kind === "treasure" || kind === "coin",
+  );
 
 test("the delve is a 10-room crawl for levels 1–2, declared hard", () => {
   assert.equal(delve.title, "The Abandoned Delve");
@@ -102,11 +105,14 @@ test("it holds a group fight, an avoidable fight, a trap, a stuck and a locked d
   );
 });
 
-test("every treasure is found by examining, and the richest lies past the late choice", () => {
-  const treasures = delve.rooms.flatMap(({ items }) =>
-    items.filter(({ kind }) => kind === "treasure"),
-  );
+test("every treasure and coin is found by examining, and the richest lies past the late choice", () => {
+  const treasures = delve.rooms.flatMap(({ id }) => treasureIn(id));
   assert.equal(treasures.length, 6);
+  // The guard's purse and the vault's chest are coin (#208).
+  assert.deepEqual(
+    treasures.filter(({ kind }) => kind === "coin").map(({ coins }) => coins),
+    [{ sp: 18 }, { gp: 40 }],
+  );
   assert.ok(treasures.every(({ hiddenIn }) => hiddenIn !== undefined));
   // The shaft bottom is an exit beside the vault: leave, or push on.
   assert.equal(room("shaft-bottom").exit, true);
@@ -239,8 +245,10 @@ test("scripted DM: pushing on to the vault and climbing the shaft escapes with a
         delve.rooms.flatMap(({ items }) => items).find((item) => item.id === id)
           .kind === "treasure",
     ),
-    ["guard-purse", "candlesticks", "jewelled-goblet", "coin-chest"],
+    ["candlesticks", "jewelled-goblet"],
   );
+  // The guard's purse and the chest's gold went into the purse.
+  assert.equal(state.possessions.purse, 180 + 4000);
   assert.deepEqual(state.clearedEncounterIds, ["guard-zombie", "vault-ghoul"]);
   // The fights' XP and the ending's.
   assert.equal(

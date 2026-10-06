@@ -500,8 +500,22 @@ export function isKitId(value: unknown): value is KitId {
   return typeof value === "string" && Object.hasOwn(STARTING_KITS, value);
 }
 
-/** A price in copper as mixed coins, largest first: "12 gp 1 sp". */
-export function formatPrice(copper: number): string {
+/** SRD 5.2 coins by value in copper. Purses are held in copper. */
+export const COIN_VALUES = { gp: 100, sp: 10, cp: 1 } as const;
+export type Coin = keyof typeof COIN_VALUES;
+/** An authored amount of coin, by denomination. */
+export type Coins = Readonly<Partial<Record<Coin, number>>>;
+
+/** An amount of coin in copper. */
+export function coinsInCopper(coins: Coins): number {
+  return (Object.keys(COIN_VALUES) as Coin[]).reduce(
+    (sum, coin) => sum + (coins[coin] ?? 0) * COIN_VALUES[coin],
+    0,
+  );
+}
+
+/** An amount in copper (a price or a purse) as mixed coins, largest first: "12 gp 1 sp". */
+export function formatCoins(copper: number): string {
   const gold = Math.floor(copper / 100);
   const silver = Math.floor((copper % 100) / 10);
   const parts = [

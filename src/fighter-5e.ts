@@ -5,16 +5,16 @@
  * derived number (HP, AC, attack, saves, skills, features) is computed from a
  * validated sheet. `docs/character-rules.md` records these numbers.
  *
- * A sheet keeps what the character holds (its equipment and treasure) apart
- * from its ledger of what it has earned: each treasure found and each XP award
- * credited, once. Settling a surviving adventure (`settleFighter`) replaces
+ * A sheet keeps what the character holds (its equipment, treasure and purse)
+ * apart from its ledger of what it has earned: each treasure or coin found and
+ * each XP award credited, once. Settling a surviving adventure (`settleFighter`) replaces
  * the possessions with what the character holds at the end and adds to the
  * ledger, so a find stays earned after the item is gone.
  */
 import {
   equipmentProfile,
   FIGHTER_MASTERY_COUNT,
-  formatPrice,
+  formatCoins,
   isKitId,
   itemName,
   KIT_IDS,
@@ -120,12 +120,20 @@ export type TreasureRecord = Readonly<{
  */
 export type XpAward = Readonly<{ id: string; name: string; xp: number }>;
 
-/** What a character holds: its equipment and its treasure. */
+/** What a character holds: its equipment, its treasure and its purse. */
 export type Possessions = Readonly<{
   /** What it has equipped: armour, then the weapon it attacks with, then any second weapon. */
   equipment: readonly ItemId[];
   treasure: readonly TreasureRecord[];
+  /** Its coin, in copper. */
+  purse: number;
 }>;
+
+/**
+ * Coin found in an adventure. `id` is `adventure/item`, like a treasure's,
+ * so each is found once.
+ */
+export type CoinFind = Readonly<{ id: string; copper: number }>;
 
 /** How a surviving adventure settles the character. */
 export type Settlement = Readonly<{
@@ -135,6 +143,8 @@ export type Settlement = Readonly<{
   xp: readonly XpAward[];
   /** The treasure found in this adventure and carried out, not found before. */
   finds: readonly TreasureRecord[];
+  /** The coin found in this adventure and carried out in the purse. */
+  coin: readonly CoinFind[];
 }>;
 
 const TREASURE_ID = /^[a-z][a-z0-9-]{0,47}\/[a-z][a-z0-9-]{0,47}$/;
@@ -162,7 +172,9 @@ export type FighterSheet = Readonly<{
   equipment: readonly ItemId[];
   /** The treasure the character holds. */
   treasure: readonly TreasureRecord[];
-  /** The ids of the treasure found, so none is found twice. */
+  /** The coin the character holds, in copper. */
+  purse: number;
+  /** The ids of the treasure and coin found, so none is found twice. */
   finds: readonly string[];
   /** The ids of the XP awards credited, so none is credited twice. */
   xpAwards: readonly string[];
@@ -183,6 +195,7 @@ const SHEET_KEYS = [
   "weaponMasteries",
   "equipment",
   "treasure",
+  "purse",
   "finds",
   "xpAwards",
 ];
@@ -507,6 +520,7 @@ export function buildFighter(
     weaponMasteries: validateMasteries(choices.masteries),
     equipment: STARTING_KITS[validateKit(choices.kit)].equipment,
     treasure: [],
+    purse: 0,
     finds: [],
     xpAwards: [],
   };
@@ -622,7 +636,7 @@ export function projectCreation(
       id,
       name: kit.name,
       price: kitPrice(id),
-      value: formatPrice(kitPrice(id)),
+      value: formatCoins(kitPrice(id)),
       items: kit.equipment.map(itemName),
       armorClass: derived.armorClass,
       attack: derived.attack,
@@ -710,6 +724,9 @@ export function validateFighter(value: unknown): FighterSheet {
     throw new Error("Unsupported character equipment.");
   }
   validateTreasure(sheet.treasure);
+  if (!Number.isSafeInteger(sheet.purse) || sheet.purse < 0) {
+    throw new Error("Invalid purse.");
+  }
   validateIds(sheet.finds, TREASURE_ID, "Invalid finds.");
   validateIds(sheet.xpAwards, AWARD_ID, "Invalid XP awards.");
   if (sheet.level !== levelForXp(sheet.xp)) {
@@ -896,7 +913,11 @@ export function fighterProfile(
 
 /** What the character holds, as an adventure starts with it. */
 export function possessionsOf(sheet: FighterSheet): Possessions {
-  return { equipment: sheet.equipment, treasure: sheet.treasure };
+  return {
+    equipment: sheet.equipment,
+    treasure: sheet.treasure,
+    purse: sheet.purse,
+  };
 }
 
 /**
@@ -911,7 +932,7 @@ export function settleFighter(
   settlement: Settlement,
 ): FighterSheet {
   const awards = settlement.xp.filter(({ id }) => !sheet.xpAwards.includes(id));
-  const finds = settlement.finds
+  const finds = [...settlement.finds, ...settlement.coin]
     .map(({ id }) => id)
     .filter((id) => !sheet.finds.includes(id));
   const xp = sheet.xp + awards.reduce((sum, award) => sum + award.xp, 0);
@@ -923,6 +944,7 @@ export function settleFighter(
     treasure: settlement.possessions.treasure.map(
       ({ id, name, description }) => ({ id, name, description }),
     ),
+    purse: settlement.possessions.purse,
     finds: [...sheet.finds, ...finds],
     xpAwards: [...sheet.xpAwards, ...awards.map(({ id }) => id)],
   });

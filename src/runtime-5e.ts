@@ -7,8 +7,8 @@
  * included) is drawn by an action and recorded with it. Outside a fight the
  * player moves between rooms, examines features and items (making their
  * discoveries and finding hidden items), searches the bodies of opponents
- * whose fight was won (finding what they carried), takes items and drinks
- * potions.
+ * whose fight was won (finding what they carried), takes items (coin goes
+ * straight into the purse) and drinks potions.
  * Entering a room with a fight not yet won begins it at once. Outside a fight
  * the player also forces, picks, breaks or unlocks doors, searches a room for
  * traps on its exits, disarms a found trap and talks to creatures about their
@@ -19,11 +19,12 @@
  * victory either ends it (when the encounter names a victory ending) or lets
  * the player explore on. Hit points, Fighter feature uses and carried items
  * last from fight to fight. In an exit room the player may choose to leave,
- * ending the adventure with or without the treasure it carries; leaving is
+ * ending the adventure with or without the loot it carries (treasure, or
+ * coin found here); leaving is
  * the player's own choice, so it is an action-bar action and never an AI DM
  * tool. The session starts holding the character's possessions (its
- * equipment and treasure); treasure the character has found before is not
- * there to find again. `projectSettlement` gives how a surviving ending
+ * equipment, treasure and purse); treasure and coin the character has found
+ * before are not there to find again. `projectSettlement` gives how a surviving ending
  * settles the character: what it holds at the end, and what it earned.
  *
  * The AI DM reads with `look` and `get_character_status`, and acts with
@@ -37,6 +38,7 @@
  * damage, advantage, discoveries, items or outcomes of its own.
  */
 import {
+  FOUND_ONCE_KINDS,
   ITEM_KINDS,
   statBlockInitiative,
   type FifthAdventure,
@@ -69,7 +71,12 @@ import {
   type TurnEconomy,
   type Weapon,
 } from "./encounter-5e.js";
-import { itemName, type AttackProfile } from "./equipment-5e.js";
+import {
+  coinsInCopper,
+  formatCoins,
+  itemName,
+  type AttackProfile,
+} from "./equipment-5e.js";
 import {
   fighterProfile,
   type FighterSheet,
@@ -109,11 +116,14 @@ export type FifthState = Readonly<{
   adventureId: string;
   roomId: string;
   character: CharacterResources;
-  /** What the character brought into the adventure and still holds. */
+  /**
+   * What the character holds: what it brought into the adventure and still
+   * holds, with the coin found here in its purse.
+   */
   possessions: Possessions;
   /** Carried item ids, in the order they were taken. */
   inventory: readonly string[];
-  /** Items used up, such as drunk potions. */
+  /** Items used up: drunk potions, and coin emptied into the purse. */
   usedItemIds: readonly string[];
   examinedFeatureIds: readonly string[];
   /** Encounters won, including one whose victory ended the adventure. */
@@ -265,7 +275,13 @@ export type FifthEvent =
       /** Items found by this examination, by name. */
       found: readonly string[];
     }>
-  | Readonly<{ type: "taken"; itemId: string; name: string }>
+  | Readonly<{
+      type: "taken";
+      itemId: string;
+      name: string;
+      /** The copper it put in the purse, when it is coin. */
+      coin?: number;
+    }>
   /** A check or saving throw the character made. */
   | Readonly<{ type: "check"; roll: CheckRoll }>
   | Readonly<{
@@ -625,7 +641,9 @@ export function renderFifthEvent(
           : [`You find the ${listed(event.found, "and")}.`]),
       ].join(" ");
     case "taken":
-      return `You take the ${event.name}.`;
+      return event.coin === undefined
+        ? `You take the ${event.name}.`
+        : `You take the ${event.name} and put ${formatCoins(event.coin)} in your purse.`;
     case "check":
       return checkText(event.roll);
     case "door":
@@ -975,6 +993,8 @@ export type RoomView = Readonly<{
     }>)[];
   items: readonly Named[];
   inventory: readonly Named[];
+  /** The coin the character holds, in mixed denominations, if it has any. */
+  purse?: string;
   character: Readonly<{ hp: number; maxHp: number; health: Health }>;
   options: Readonly<{
     move: readonly string[];
@@ -1125,9 +1145,9 @@ export type FifthRuntime = Omit<
     /**
      * How the adventure settles the character once it has ended with the
      * character alive (a victory or an escape): what it holds at the end
-     * (its possessions and the treasure carried out), which replaces what it
-     * held before; the XP awards for each encounter won and the ending
-     * reached; and the treasure found. Awards and finds already earned by
+     * (its possessions, the treasure carried out and the coin in its purse),
+     * which replaces what it held before; the XP awards for each encounter
+     * won and the ending reached; and the treasure and coin found. Awards and finds already earned by
      * this sheet are left out. Undefined while the adventure is under way or
      * after a defeat.
      */
@@ -1265,12 +1285,17 @@ export function createFifthRuntime(
   );
   const fighting = (state: FifthState) =>
     state.encounter !== undefined && state.encounter.outcome === "ongoing";
-  /** The id a treasure is found under, so each is found once. */
+  /** The id a treasure or coin is found under, so each is found once. */
   const treasureId = (item: FifthItem) => `${adventure.id}/${item.id}`;
   const found = new Set(sheet.finds);
-  /** Treasure the character found before is not there to find again. */
+  /** Treasure and coin the character found before are not there to find again. */
   const present = (item: FifthItem) =>
-    item.kind !== "treasure" || !found.has(treasureId(item));
+    !FOUND_ONCE_KINDS.includes(item.kind) || !found.has(treasureId(item));
+  /** The coin found in this adventure, emptied into the purse. */
+  const coinFound = (state: FifthState): readonly FifthItem[] =>
+    state.usedItemIds
+      .map((id) => items.get(id)!)
+      .filter((item) => item.kind === "coin");
 
   /**
    * The bodies of the room's opponents once their fight is won: each can be
@@ -2053,6 +2078,21 @@ export function createFifthRuntime(
         if (item === undefined) {
           return reject("no-item", "There is no such item here to take.");
         }
+        if (item.coins !== undefined) {
+          // The engine decides how much: the authored amount, into the purse.
+          const coin = coinsInCopper(item.coins);
+          return {
+            state: {
+              ...state,
+              possessions: {
+                ...state.possessions,
+                purse: state.possessions.purse + coin,
+              },
+              usedItemIds: [...state.usedItemIds, item.id],
+            },
+            events: [{ type: "taken", itemId: item.id, name: item.name, coin }],
+          };
+        }
         return {
           state: { ...state, inventory: [...state.inventory, item.id] },
           events: [{ type: "taken", itemId: item.id, name: item.name }],
@@ -2112,10 +2152,12 @@ export function createFifthRuntime(
         if (room(state).exit !== true) {
           return reject("not-an-exit", "There is no way out of here.");
         }
-        // Carrying any treasure out is escaping with loot.
-        const kind = carried(state).some((item) => item.kind === "treasure")
-          ? "escape-with-loot"
-          : "escape-without-loot";
+        // Carrying any treasure, or coin found here, out is escaping with loot.
+        const kind =
+          carried(state).some((item) => item.kind === "treasure") ||
+          coinFound(state).length > 0
+            ? "escape-with-loot"
+            : "escape-without-loot";
         const ending = adventure.endings.find(
           (candidate) => candidate.kind === kind,
         )!;
@@ -2423,6 +2465,7 @@ export function createFifthRuntime(
         name: itemName(id),
       })),
       collectedItems: carried(state).map(named),
+      purse: formatCoins(state.possessions.purse),
       outcome: state.status,
       resources: featureUses(self(state)),
       ...(turn === undefined ? {} : { combatTurn: turn.name }),
@@ -2480,6 +2523,9 @@ export function createFifthRuntime(
       })),
       items: roomItems(state).map(named),
       inventory: carried(state).map(named),
+      ...(state.possessions.purse === 0
+        ? {}
+        : { purse: formatCoins(state.possessions.purse) }),
       character: {
         hp: state.character.hp,
         maxHp,
@@ -2557,7 +2603,7 @@ export function createFifthRuntime(
         type: "function",
         name: "get_character_status",
         description:
-          "Read the character's hit points, equipment, carried items and whether the adventure is won or lost.",
+          "Read the character's hit points, equipment, carried items, purse and whether the adventure is won or lost.",
         strict: true,
         parameters: EMPTY_PARAMETERS,
       },
@@ -2762,6 +2808,10 @@ export function createFifthRuntime(
       },
       xp: awards.filter(({ id, xp }) => xp > 0 && !sheet.xpAwards.includes(id)),
       finds: finds.filter(({ id }) => !found.has(id)),
+      coin: coinFound(state).map((item) => ({
+        id: treasureId(item),
+        copper: coinsInCopper(item.coins!),
+      })),
     };
   };
 

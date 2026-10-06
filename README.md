@@ -100,8 +100,8 @@ adventure** or **Defeated** (a defeated character's row is dimmed); a character
 on an adventure has **Continue** on its row, which reopens the adventure
 directly, while the rest of the row opens the sheet.
 
-A character sheet shows the Fighter's abilities, skills, hit points, features
-and the treasure it has kept. It leads with its adventures: a card for each
+A character sheet shows the Fighter's abilities, skills, hit points, features,
+the treasure it has kept and its purse. It leads with its adventures: a card for each
 built-in module that passes the balance gate at its declared difficulty, with
 **Start** beside its title (or **Continue** for the one in progress), tagged
 with its level range and difficulty and ordered by level range, then Easy,
@@ -111,8 +111,8 @@ good, and a defeated character's sheet says so at the top.
 **Delete character** removes a character permanently once you type its name
 exactly. A character on an adventure cannot be deleted until the adventure
 ends. **Abandon adventure** gives up the adventure in progress, after asking:
-the character keeps its treasure and XP as they were at the start and can start
-another.
+the character keeps its treasure, purse and XP as they were at the start and
+can start another.
 
 ### Creating a Fighter
 
@@ -135,8 +135,8 @@ deleted. Creation needs no OpenAI key.
 - _The Abandoned Delve_ (`adventures/5e/abandoned-delve.json`, levels 1–2): ten
   rooms under a ruined keep. A Zombie guards the way in, two Skeletons the
   barracks, a Giant Spider an optional crypt and a Ghoul the vault, with a
-  stuck door, a trapped stair, a goblin to question, treasure hidden in
-  features and on bodies, and a second exit beside the vault where you choose
+  stuck door, a trapped stair, a goblin to question, treasure and coin hidden
+  in features and on bodies, and a second exit beside the vault where you choose
   to climb out or push on.
 - _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`): one SRD 5.2
   Goblin Warrior.
@@ -146,8 +146,8 @@ deleted. Creation needs no OpenAI key.
   potion among the charms at the gate, a Goblin Warrior carrying another, then
   the SRD 5.2 Goblin Boss and its hoard, and a way out.
 - _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`): two rooms with a
-  Goblin Warrior carrying a Pouch of Old Coins, a Silver Torc hidden under the
-  bier and a way out.
+  Goblin Warrior carrying a Pouch of Old Coins (2 gp 5 sp), a Silver Torc
+  hidden under the bier and a way out.
 - _The Smugglers' Cellar_ (`adventures/5e/smugglers-cellar.json`): four rooms
   with a Goblin Warrior and a Potion of Healing hidden in a chest.
 - _The Warden's Crypt_ (`adventures/5e/warden-crypt.json`): six rooms with a
@@ -248,20 +248,24 @@ the actions the bar shows enabled. HP, feature uses and carried items last from
 fight to fight; a rest between adventures restores them. A character at 0 HP is
 defeated at once and for good.
 
-### Treasure, XP and leaving
+### Treasure, coin, XP and leaving
 
-Treasure is found only by examining something: a feature, or the body of an
-opponent once its fight is won. It is kept only if the character survives: an
-adventure starts holding the character's equipment and treasure, and a victory
-or an escape replaces them with what the character holds at the end. A defeat
+Treasure and coin are found only by examining something: a feature, or the
+body of an opponent once its fight is won. Coin is copper, silver and gold
+pieces, kept as one purse and shown in mixed denominations (for example
+"3 gp 4 sp"); taking it puts it in the purse at once, shown under **You
+carry**. There is nothing to spend it on yet. Both are kept only if the
+character survives: an adventure starts holding the character's equipment,
+treasure and purse, and a victory or an escape replaces them with what the
+character holds at the end. A defeat
 or an abandoned adventure leaves the character as it started. In a room that is a way out, the action bar has
 **Leave the adventure**; it asks first, then ends the adventure as _Escaped with
-loot_ or _Escaped empty-handed_. Leaving is the player's choice alone: the AI
+loot_ (carrying treasure, or coin found there) or _Escaped empty-handed_. Leaving is the player's choice alone: the AI
 Dungeon Master has no tool for it.
 
 A surviving ending earns each won fight's stat-block XP and any XP the ending
-itself awards. Each treasure and XP award is earned once per character, so
-playing an adventure again earns nothing twice. When the adventure ends, its
+itself awards. Each treasure, coin find and XP award is earned once per
+character, so playing an adventure again earns nothing twice. When the adventure ends, its
 ending takes the place of the action buttons and gets focus: Victory, Escaped
 with loot, Escaped empty-handed or Defeat, its title and text, what it earned
 and any level-up (300 XP for level 2, 900 for level 3) with the new hit points
@@ -270,14 +274,14 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 6.
+- The character library (`characters.json` by default) is format version 7.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 9.
+  `characters-adventures` directory beside the library, in format version 10.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 5.
+- Adventure modules (`adventures/5e/*.json`) are format version 6.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from

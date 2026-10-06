@@ -93,6 +93,8 @@ export type CharacterStatus = Readonly<{
     name: string;
     description?: string;
   }>[];
+  /** The coin the character holds, in mixed denominations ("0 cp" when empty), for a runtime with a purse. */
+  purse?: string;
   outcome: RuntimeStatus;
   combatTurn?: string;
   resources?: readonly string[];

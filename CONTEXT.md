@@ -9,7 +9,7 @@ The human who chooses a character and controls its actions during an adventure.
 _Avoid_: Character, Fighter
 
 **Character**:
-A persistent adventurer with an identity, class, ability scores, equipment, carried treasure, and earned career progress that can be brought to different adventures.
+A persistent adventurer with an identity, class, ability scores, equipment, carried treasure, a purse of coin, and earned career progress that can be brought to different adventures.
 _Avoid_: Player, Adventure save
 
 **Character sheet**:
@@ -33,11 +33,19 @@ Earned character progress awarded for authored accomplishments and used to deter
 _Avoid_: Story milestones, Player score
 
 **Treasure**:
-Items a character finds by examining something (such as a chest, or a defeated enemy's body), or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion. It is never simply awarded. Each treasure is found once per character: the character's ledger records it as a find, and it is never there to find again, even after the character no longer holds it. Treasure the character holds is one of its possessions. Treasure is named items with no value until coin exists.
+Items a character finds by examining something (such as a chest, or a defeated enemy's body), or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion. It is never simply awarded. Each treasure is found once per character: the character's ledger records it as a find, and it is never there to find again, even after the character no longer holds it. Treasure the character holds is one of its possessions. Treasure is named items with no price; coin found the same way is not treasure but goes into the purse.
 _Avoid_: Reward XP, Drop
 
+**Coin**:
+SRD 5.2 copper, silver and gold pieces (1 gp = 10 sp = 100 cp). A module hides coin, like treasure, in a feature or on an opponent's body, and the engine decides how much; taking it empties it into the purse at once. It is found once per character, recorded in the ledger like a treasure. It has no use yet beyond being kept.
+_Avoid_: Gold (for coin in general), Money
+
+**Purse**:
+The coin a character holds, one of its possessions, kept as a number of copper pieces and always shown in mixed denominations, largest first ("3 gp 4 sp"). A new character's purse is empty: there is no starting coin.
+_Avoid_: Wallet, Gold, Balance
+
 **Possessions**:
-What a character holds: its equipment and its treasure. An adventure starts holding them, and they change only there. Settling a victory or an escape replaces them with what the character holds at the end.
+What a character holds: its equipment, its treasure and its purse. An adventure starts holding them, and they change only there. Settling a victory or an escape replaces them with what the character holds at the end.
 _Avoid_: Inventory (the items carried in one adventure), Loot
 
 **Equipment**:
@@ -57,7 +65,7 @@ The SRD 5.2 Light property's one extra attack with a second light weapon after a
 _Avoid_: Extra Attack (the level-5 Fighter feature), Off-hand attack
 
 **Ledger**:
-The record on a character of each treasure it has found and each XP award it has been credited, so that each is earned once. It is kept apart from the possessions and only grows: losing an item never takes its find away.
+The record on a character of each treasure and coin it has found and each XP award it has been credited, so that each is earned once. It is kept apart from the possessions and only grows: losing an item never takes its find away.
 _Avoid_: History, Achievements
 
 **Settling**:
@@ -65,7 +73,7 @@ Ending an adventure in the character library, once. After a victory or an escape
 _Avoid_: Crediting (which suggests adding), Rewarding
 
 **Pending treasure**:
-Treasure the character carries during an adventure but has not kept yet. It can be used in that adventure at once (and, once coin and merchants exist, spent there). Settling a victory or an escape replaces the character's possessions with what it holds at the end, pending treasure included; a defeat or abandonment rolls the character back to how it started, as if the adventure never happened.
+Treasure and coin the character carries during an adventure but has not kept yet. It can be used in that adventure at once (and, once merchants exist, spent there). Settling a victory or an escape replaces the character's possessions with what it holds at the end, pending treasure included; a defeat or abandonment rolls the character back to how it started, as if the adventure never happened.
 _Avoid_: Loot (when kept treasure is meant), Inventory
 
 **XP award**:
@@ -77,7 +85,7 @@ A room the character can leave the adventure from. Leaving is the player's final
 _Avoid_: Exit (alone, which means a passage out of a room), Retreat
 
 **Escape**:
-An ending the player chooses by leaving from an exit room: with loot when the character carries treasure, without it otherwise. Like a victory, it is surviving completion.
+An ending the player chooses by leaving from an exit room: with loot when the character carries treasure or coin found in that adventure, without it otherwise. Like a victory, it is surviving completion.
 _Avoid_: Retreat, Flee (which a fled monster does), Quit
 
 **Abandonment**:

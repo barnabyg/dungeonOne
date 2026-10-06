@@ -114,9 +114,10 @@ test("leaving from an exit without treasure ends the adventure empty-handed", ()
     },
   ]);
   assert.deepEqual(runtime.projectSettlement(result.state), {
-    possessions: { equipment: ["leather", "mace"], treasure: [] },
+    possessions: { equipment: ["leather", "mace"], treasure: [], purse: 0 },
     xp: [],
     finds: [],
+    coin: [],
   });
   assert.deepEqual(runtime.projectActions(result.state), []);
 });
@@ -143,6 +144,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
     possessions: {
       equipment: ["leather", "mace"],
       treasure: [torc],
+      purse: 0,
     },
     xp: [
       {
@@ -157,6 +159,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
       },
     ],
     finds: [torc],
+    coin: [],
   });
 });
 
@@ -217,7 +220,7 @@ test("a fallen opponent's treasure is found only by searching its body once the 
   );
   assert.equal(out.endingId, "out-with-the-torc");
   assert.deepEqual(
-    runtime.projectSettlement(out).finds.map(({ id }) => id),
+    runtime.projectSettlement(out).coin.map(({ id }) => id),
     ["robbers-barrow/coin-pouch"],
   );
   // Once kept, the body holds nothing of value.
@@ -303,7 +306,7 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
   );
   assert.equal(won.status, "victory");
   assert.deepEqual(runtime.projectSettlement(won), {
-    possessions: { equipment: ["leather", "mace"], treasure: [] },
+    possessions: { equipment: ["leather", "mace"], treasure: [], purse: 0 },
     xp: [
       {
         id: "cellar-goblin/encounter/cellar-goblin",
@@ -312,6 +315,7 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
       },
     ],
     finds: [],
+    coin: [],
   });
   const begun = play(runtime, [{ type: "begin" }], dice(20, 1));
   assert.equal(runtime.projectSettlement(begun), undefined);
@@ -333,12 +337,13 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin w
   assert.deepEqual(warren.recommendedLevels, { min: 2, max: 3 });
   // The barrow's 300 XP makes Ada level 2.
   const veteran = settleFighter(sheet, {
-    possessions: { equipment: sheet.equipment, treasure: [] },
+    possessions: { equipment: sheet.equipment, treasure: [], purse: 0 },
     xp: [
       { id: "robbers-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
       { id: "robbers-barrow/ending/out-with-the-torc", name: "Out", xp: 250 },
     ],
     finds: [],
+    coin: [],
   });
   assert.equal(veteran.level, 2);
   const runtime = createFifthRuntime(warren, veteran);
@@ -407,8 +412,13 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin w
   );
   assert.deepEqual(
     rewards.finds.map(({ name }) => name),
-    ["Sack of Stolen Coins", "Silver Chain of Office"],
+    ["Silver Chain of Office"],
   );
+  // The sack of stolen coins (9 gp 6 sp) goes into the purse.
+  assert.deepEqual(rewards.coin, [
+    { id: "goblin-warren/stolen-coins", copper: 960 },
+  ]);
+  assert.equal(rewards.possessions.purse, 960);
   const champion = settleFighter(veteran, rewards);
   assert.equal(champion.xp, 950);
   assert.equal(champion.level, 3);
@@ -672,6 +682,7 @@ test("an adventure starts holding the character's equipment and kept treasure (#
   assert.deepEqual(runtime.createSession().possessions, {
     equipment: ["leather", "mace"],
     treasure: veteran.treasure,
+    purse: 0,
   });
 });
 
@@ -712,7 +723,7 @@ test("settling replaces possessions: an item gone from the holdings is gone, one
   assert.deepEqual(kept.finds, [TORC_ID]);
 });
 
-test("a surviving ending keeps treasure brought in beside treasure found (#206)", () => {
+test("a surviving ending keeps treasure brought in beside coin found (#206, #208)", () => {
   const veteran = torcBearer();
   const runtime = createFifthRuntime(barrow, veteran);
   const out = play(
@@ -728,14 +739,15 @@ test("a surviving ending keeps treasure brought in beside treasure found (#206)"
   );
   const settlement = runtime.projectSettlement(out);
   assert.deepEqual(
-    settlement.finds.map(({ id }) => id),
+    settlement.coin.map(({ id }) => id),
     ["robbers-barrow/coin-pouch"],
   );
   const after = settleFighter(veteran, settlement);
   assert.deepEqual(
     after.treasure.map(({ id }) => id),
-    [TORC_ID, "robbers-barrow/coin-pouch"],
+    [TORC_ID],
   );
+  assert.equal(after.purse, 250);
   assert.deepEqual(after.finds, [TORC_ID, "robbers-barrow/coin-pouch"]);
   // Settling the same ending again changes nothing.
   assert.deepEqual(settleFighter(after, settlement), after);

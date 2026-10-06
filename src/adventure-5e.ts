@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 5) and its validator.
+ * The 5e adventure module format (format version 6) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -9,11 +9,12 @@
  * found and disarmed by checks or sprung by going through, with a saving
  * throw against its damage. A creature's topics may need a check. Each
  * opponent in an encounter has its own name, so the player can target it.
- * Treasure is an item hidden in a feature or carried by an opponent, so it
- * is only ever found by examining: the feature, or the opponent's body once
- * its fight is won. A room may be an exit, where the player can choose to leave: the
+ * Treasure and coin are items hidden in a feature or carried by an opponent,
+ * so they are only ever found by examining: the feature, or the opponent's
+ * body once its fight is won. Coin is authored in gold, silver and copper
+ * pieces. A room may be an exit, where the player can choose to leave: the
  * adventure then ends in its escape-with-loot ending when the character
- * carries treasure, and its escape-without-loot ending otherwise. A victory
+ * carries treasure or found coin, and its escape-without-loot ending otherwise. A victory
  * or escape ending may award XP, on top of each won encounter's stat-block XP.
  *
  * Validation names the first problem it finds. A module in any other format
@@ -24,6 +25,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
 import type { CheckSpec } from "./checks-5e.js";
+import { COIN_VALUES, type Coin, type Coins } from "./equipment-5e.js";
 import {
   ABILITIES,
   FIGHTER_SKILLS,
@@ -32,7 +34,7 @@ import {
   type FighterSkill,
 } from "./fighter-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 5;
+export const FIFTH_ADVENTURE_FORMAT = 6;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -91,14 +93,20 @@ export type FifthFeature = Readonly<{
 
 /**
  * What each kind of item does: the SRD 5.2 Potion of Healing heals, a key
- * opens the locked doors that name it, and treasure is kept on surviving.
+ * opens the locked doors that name it, treasure is kept on surviving, and
+ * coin goes into the purse as it is taken.
  */
 export const ITEM_KINDS = {
   "potion-of-healing": { healing: { dice: 2, sides: 4, modifier: 2 } },
   key: {},
   treasure: {},
+  coin: {},
 } as const;
 export type ItemKind = keyof typeof ITEM_KINDS;
+/** The kinds that are found once per character: never there to find again. */
+export const FOUND_ONCE_KINDS: readonly ItemKind[] = ["treasure", "coin"];
+/** The most of each coin one item may hold. */
+const MAX_COINS = 100000;
 
 /**
  * An item placed in a room. One hidden in a feature is found by examining it;
@@ -109,6 +117,8 @@ export type FifthItem = Readonly<{
   name: string;
   description: string;
   kind: ItemKind;
+  /** How much coin it holds; present exactly on coin. */
+  coins?: Coins;
   /** The feature it is hidden in, or the opponent carrying it. */
   hiddenIn?: string;
 }>;
@@ -282,6 +292,31 @@ function list(value: unknown, where: string, max: number, min = 1): unknown[] {
     fail(`${where} must list ${min}–${max} entries.`);
   }
   return value;
+}
+
+/** An amount of coin: some gold, silver or copper pieces, at least one. */
+function coins(value: unknown, where: string): Coins {
+  const denominations = Object.keys(COIN_VALUES) as Coin[];
+  if (
+    !isRecord(value) ||
+    !Object.keys(value).every((key) => denominations.includes(key as Coin))
+  ) {
+    fail(`${where} may have only ${denominations.join(", ")}.`);
+  }
+  const amount = value;
+  for (const coin of denominations) {
+    if (amount[coin] !== undefined) {
+      integer(amount[coin], `${where} ${coin}`, 0, MAX_COINS);
+    }
+  }
+  if (!denominations.some((coin) => ((amount[coin] as number) ?? 0) > 0)) {
+    fail(`${where} must hold at least one coin.`);
+  }
+  return Object.fromEntries(
+    denominations.flatMap((coin) =>
+      amount[coin] === undefined ? [] : [[coin, amount[coin] as number]],
+    ),
+  );
 }
 
 /** Like `exactKeys`, but the `optional` keys may be left out. */
@@ -619,7 +654,7 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
         const item = knownKeys(
           raw,
           ["id", "name", "description", "kind"],
-          ["hiddenIn"],
+          ["coins", "hiddenIn"],
           at,
         );
         if (!Object.hasOwn(ITEM_KINDS, item.kind as string)) {
@@ -627,10 +662,19 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
             `${at} kind must be one of ${Object.keys(ITEM_KINDS).join(", ")}.`,
           );
         }
-        if (item.kind === "treasure" && item.hiddenIn === undefined) {
+        if (
+          FOUND_ONCE_KINDS.includes(item.kind as ItemKind) &&
+          item.hiddenIn === undefined
+        ) {
           fail(
-            `${at} is treasure, so it must be hidden in a feature or carried by an opponent.`,
+            `${at} is ${String(item.kind)}, so it must be hidden in a feature or carried by an opponent.`,
           );
+        }
+        if (item.kind === "coin" && item.coins === undefined) {
+          fail(`${at} is coin, so it needs coins.`);
+        }
+        if (item.kind !== "coin" && item.coins !== undefined) {
+          fail(`${at} has coins, but only coin has coins.`);
         }
         // An opponent of this room's fight may carry it: searching its body
         // once the fight is won finds it.
@@ -665,6 +709,9 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
           name: text(item.name, `${at} name`, 60),
           description: text(item.description, `${at} description`),
           kind: item.kind as ItemKind,
+          ...(item.coins === undefined
+            ? {}
+            : { coins: coins(item.coins, `${at} coins`) }),
           ...(item.hiddenIn === undefined
             ? {}
             : { hiddenIn: item.hiddenIn as string }),
@@ -1027,14 +1074,16 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
     );
   }
   const hasTreasure = rooms.some(({ items }) =>
-    items.some(({ kind }) => kind === "treasure"),
+    items.some(({ kind }) => FOUND_ONCE_KINDS.includes(kind)),
   );
   const escapes = new Set(endings.map(({ kind }) => kind));
   if (hasExit && !escapes.has("escape-without-loot")) {
     fail("an exit needs an escape-without-loot ending.");
   }
   if (hasExit && hasTreasure && !escapes.has("escape-with-loot")) {
-    fail("an exit with treasure to find needs an escape-with-loot ending.");
+    fail(
+      "an exit with treasure or coin to find needs an escape-with-loot ending.",
+    );
   }
   for (const { id: endingId, kind } of endings) {
     if (kind === "escape-with-loot" || kind === "escape-without-loot") {
@@ -1045,7 +1094,7 @@ export function validateFifthAdventure(value: unknown): FifthAdventure {
       }
       if (kind === "escape-with-loot" && !hasTreasure) {
         fail(
-          `escape-with-loot ending ${endingId} cannot be reached: there is no treasure.`,
+          `escape-with-loot ending ${endingId} cannot be reached: there is no treasure or coin.`,
         );
       }
     }
