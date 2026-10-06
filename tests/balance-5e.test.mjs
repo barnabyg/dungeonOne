@@ -380,15 +380,21 @@ test("a run that never ends fails qualification with a named reason", () => {
 });
 
 test("the default run qualifies every shipped module within its time budget", () => {
-  const started = performance.now();
+  // CPU time, not elapsed time: this file runs in its own process, so other
+  // test files running alongside it cannot push it over the budget.
+  const started = process.cpuUsage();
   for (const adventure of Object.values(SHIPPED)) {
     const result = qualifyAdventure(adventure);
     assert.equal(result.ok, true, adventure.id);
     assert.ok(result.report.cells.every(({ runs }) => runs === 200));
   }
-  const seconds = (performance.now() - started) / 1000;
+  const { user, system } = process.cpuUsage(started);
+  const seconds = (user + system) / 1_000_000;
   // docs/character-rules.md records the budget: well inside verify.
-  assert.ok(seconds < 30, `the default run took ${seconds.toFixed(1)} s`);
+  assert.ok(
+    seconds < 30,
+    `the default run took ${seconds.toFixed(1)} s of CPU`,
+  );
 });
 
 test("the report reads as text, and a failure names its reason", () => {
