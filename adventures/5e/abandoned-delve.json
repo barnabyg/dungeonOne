@@ -75,9 +75,7 @@
           "name": "Guard's Purse",
           "description": "A leather purse of old silver coins.",
           "kind": "coin",
-          "coins": {
-            "sp": 18
-          },
+          "coins": { "sp": 18 },
           "hiddenIn": "zombie"
         }
       ]
@@ -244,9 +242,7 @@
           "name": "Gold Coins",
           "description": "Handfuls of old gold coins stamped with a forgotten lord's face.",
           "kind": "coin",
-          "coins": {
-            "gp": 40
-          },
+          "coins": { "gp": 40 },
           "hiddenIn": "iron-chest"
         },
         {
