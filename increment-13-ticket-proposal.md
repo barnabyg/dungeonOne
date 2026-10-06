@@ -22,7 +22,7 @@ Settled on 6 October 2026 (plan section 10):
 - **Fled monsters (open decision 4):** no XP, and their loot leaves with them.
 - **+1 gear (open decision 5):** waits for magic in increment 16.
 - **Conditions:** only poisoned, prone and paralysed in this increment.
-- **Monster names and types:** need not match SRD 5.2 exactly. Stat blocks come from SRD 5.2 where one exists, and are original house stat blocks otherwise; never copied from a non-SRD book.
+- **Monster names and types:** need not match SRD 5.2 exactly. Stat blocks come from SRD 5.2 (CC-BY-4.0) where one exists. Otherwise they are derived house versions with their own numbers and wording; a copyright-protected stat block is never copied exactly.
 
 ## Shared implementation contract
 
@@ -33,7 +33,7 @@ Every published issue repeats this contract:
 - **Found or given:** treasure, gear and coin are found, given or traded, never simply awarded.
 - **Adventure rollback:** surviving completion keeps what the character holds at the end; defeat or abandonment restores the start.
 - **Balance gate:** a shipped module that a ticket's monster changes push out of its difficulty is adapted or re-declared in that ticket.
-- **No positions**, **common-tier starting gear** and **SRD 5.2 or original stat blocks**.
+- **No positions**, **common-tier starting gear** and **SRD 5.2 or derived stat blocks, never exact copies of protected ones**.
 - **Testing:** commit per ticket, browser → API → storage for critical journeys, `npm.cmd run verify` with zero warnings before pushing.
 
 ## Publication index
