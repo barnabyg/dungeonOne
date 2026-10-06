@@ -28,6 +28,7 @@ import { isDeepStrictEqual } from "node:util";
 import {
   loadBuiltInFifthAdventures,
   type FifthAdventure,
+  type FifthAdventureId,
 } from "./adventure-5e.js";
 import { FIFTH_DM_OFF_NOTICE } from "./browser-5e-page.js";
 import { startFifthBrowserServer } from "./browser-5e-server.js";
@@ -791,7 +792,7 @@ export function startDelveOverHttp(url: string): Promise<DelveSessionView> {
  */
 export async function startAdventureOverHttp(
   url: string,
-  adventureId: string,
+  adventureId: FifthAdventureId,
 ): Promise<DelveSessionView> {
   type Library = Readonly<{
     revision: string;
