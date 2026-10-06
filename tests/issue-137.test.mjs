@@ -14,14 +14,7 @@ import { FIFTH_DM_SETUP_HINT } from "../dist/browser-5e-server.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { startFifthAdventure } from "../dist/session-5e.js";
 import { launchDefault } from "./fixtures/default-launch.mjs";
-
-// A pre-5e character library, as the deleted pre-5e game wrote it (#139).
-const PRE_5E_LIBRARY = JSON.stringify({
-  kind: "dungeon-one-characters",
-  formatVersion: 1,
-  revision: "0".repeat(32),
-  characters: [{ id: "a".repeat(32), name: "Ada" }],
-});
+import { PRE_5E_LIBRARY } from "./fixtures/pre-5e-library.mjs";
 
 const cli = fileURLToPath(new URL("../dist/browser-cli.js", import.meta.url));
 

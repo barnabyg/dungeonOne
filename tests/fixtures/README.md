@@ -7,6 +7,12 @@ counter that a d6 advances and that wins at three. The DM turn loop, OpenAI
 adapter and runtime contract tests use it to exercise shared infrastructure
 without depending on the 5e runtime.
 
+## Pre-5e library
+
+`pre-5e-library.mjs` is a character library in the pre-5e game's format
+(version 1). The 5e library and launcher tests check that it is refused by name
+and left byte-identical.
+
 ## Difficulty gate fixtures (issue 135)
 
 `gate-goblin-pair.json` and `gate-minion-yard.json` are 5e adventure modules
