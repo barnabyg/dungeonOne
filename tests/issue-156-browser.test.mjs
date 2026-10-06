@@ -251,7 +251,12 @@ for (const viewport of [
             .evaluateAll((buttons) =>
               buttons.map((button) => button.getAttribute("aria-label")),
             ),
-          ["Go to Alcove", "Go to Rat-Gnawed Cellar", "Examine Rusted Lantern"],
+          [
+            "Go to Alcove",
+            "Go to Rat-Gnawed Cellar",
+            "Examine Rusted Lantern",
+            "Unequip Leather armour",
+          ],
         );
 
         // Examining keeps focus on Examine: it is still enabled.

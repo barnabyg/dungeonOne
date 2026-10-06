@@ -2575,10 +2575,9 @@ export function createFifthRuntime(
     const examine = (target: Named) =>
       view("examine", { type: "examine", targetId: target.id }, target);
     /**
-     * The character's own gear, once it carries stowed gear to change to:
-     * Unequip on armour, a shield and a second weapon; Wield on a stowed
-     * weapon, Equip on stowed armour, a shield or a light weapon; Drop on
-     * stowed gear. In a fight, only Wield and Equip on stowed weapons. The
+     * The character's own gear: Unequip on armour, a shield and a second
+     * weapon; Wield on a stowed weapon, Equip on stowed armour, a shield or a
+     * light weapon; Drop on stowed gear. In a fight, only Wield and Equip on stowed weapons. The
      * engine accepts the others too, but the bar stays short.
      */
     const gearViews = (fight = false): readonly ActionView[] => {
@@ -2586,9 +2585,6 @@ export function createFifthRuntime(
       const gear = (kind: GearAction, id: ItemId) =>
         view(kind, { type: kind, itemId: id }, item(id));
       const { equipment, stowed } = state.possessions;
-      if (stowed.length === 0) {
-        return [];
-      }
       const held = equipment.filter(isWeaponId);
       return [
         ...(fight ? [] : [...new Set(equipment)])

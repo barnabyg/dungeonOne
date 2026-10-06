@@ -226,6 +226,12 @@ test("the crypt stair offers the stuck door's Force, a Search and no way through
       target: { id: "carved-warning", name: "Carved Warning" },
       available: true,
     },
+    // The character's own armour (#209).
+    {
+      action: "unequip",
+      target: { id: "leather", name: "Leather armour" },
+      available: true,
+    },
   ]);
   assert.match(
     refuses(

@@ -304,7 +304,12 @@ test(
           .evaluateAll((things) =>
             things.map((thing) => thing.innerText.replace(/\s+/g, " ")),
           ),
-        ["Alcove Go", "Rat-Gnawed Cellar Go", "Rusted Lantern Examine"],
+        [
+          "Alcove Go",
+          "Rat-Gnawed Cellar Go",
+          "Rusted Lantern Examine",
+          "Leather armour Unequip",
+        ],
       );
       const examine = page.getByRole("button", {
         name: "Examine Rusted Lantern",

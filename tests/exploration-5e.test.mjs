@@ -125,6 +125,7 @@ test("a quiet start room begins without dice and offers only what is visible", (
     get_character_status: [],
     move: ["alcove", "rat-cellar"],
     examine: ["rusted-lantern"],
+    unequip: ["leather"],
   });
   const room = runtime.projectRoom(result.state);
   assert.deepEqual(

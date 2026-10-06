@@ -251,8 +251,8 @@ defeated at once and for good.
 ### Gear
 
 Better weapons and armour are found the same way as treasure, by examining a
-feature or a fallen opponent's body: **Take** stows what you find. Once you
-carry stowed gear, the action bar gives each piece a row: **Equip** puts on
+feature or a fallen opponent's body: **Take** stows what you find. The action
+bar gives each piece of your gear a row: **Equip** puts on
 armour (the result says how many minutes donning took), straps on a shield or
 takes a second light weapon in your other hand; **Unequip** takes it off again;
 **Wield** swaps the weapon you hold for a stowed one; **Drop** leaves stowed

@@ -76,8 +76,14 @@ const bar = (page) =>
  */
 async function holdAction(page, selector, path, shows, name, focusTo) {
   const button = page.locator(selector);
-  // Scrolled first, so the click's own scrolling doesn't move the bar.
+  // Scrolled first, so the click's own scrolling doesn't move the bar: to the
+  // page's end, where the dock rests below the scene. Playwright scrolls a
+  // control in the sticky dock as if the page's scroll padding (the dock's
+  // height) hid it, which a real click never does.
   await button.scrollIntoViewIfNeeded();
+  await page.evaluate(() =>
+    window.scrollTo(0, document.documentElement.scrollHeight),
+  );
   const idle = await bar(page);
   const key =
     (await button.getAttribute("data-action")) +
