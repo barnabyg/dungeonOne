@@ -192,6 +192,14 @@ _Avoid_: Monster manual, Stat block library
 A state the engine puts on a combatant in a fight, such as poisoned or prone, with what gave it, how many of the combatant's turns it lasts and the save that ends it. Conditions change rolls (advantage and disadvantage) and end with the fight; the AI DM can only report them.
 _Avoid_: Status effect, Debuff
 
+**Rider**:
+What a hit with a monster's attack does besides its damage: extra damage of its own type, and a condition, avoided by a successful saving throw if the rider names one.
+_Avoid_: On-hit effect, Proc
+
+**Trait**:
+A rule a monster's stat block carries beyond its attacks, such as Pack Tactics (advantage on its attacks while an ally is alive and able to act).
+_Avoid_: Ability (an ability score), Feature (the character's)
+
 **Initiative**:
 The d20 + initiative bonus each combatant rolls when an encounter begins; higher totals act first, ties going to the higher Dexterity and then a seeded roll-off.
 _Avoid_: Turn order (the result, not the roll)
