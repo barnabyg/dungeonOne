@@ -5,8 +5,8 @@
   "title": "The Goblin Pair",
   "objective": "Drive two goblin warriors out of the woodshed.",
   "recommendedLevels": {
-    "min": 2,
-    "max": 2
+    "min": 3,
+    "max": 3
   },
   "difficulty": "medium",
   "startRoomId": "woodshed",

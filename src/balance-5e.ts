@@ -5,8 +5,9 @@
  *
  * Characters are sampled from the 4d6-drop-lowest distribution and placed
  * with the creation defaults (`defaultPlacement`, `FIGHTER_DEFAULT_CHOICES`),
- * so the harness plays the characters a player gets by default. "Weak" and
- * "strong" are percentiles of that sample by total ability modifier.
+ * so the harness plays the characters a player gets by default, with each
+ * starting kit. "Weak" and "strong" are percentiles of that sample by total
+ * ability modifier.
  */
 import type {
   Difficulty,
@@ -28,6 +29,7 @@ import {
   type RolledDice,
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
+import { KIT_IDS, type KitId } from "./equipment-5e.js";
 import { combatant } from "./encounter-5e.js";
 import {
   createFifthRuntime,
@@ -42,14 +44,22 @@ import {
 /** The XP a character needs to reach each level. */
 const LEVEL_XP: Readonly<Record<Level, number>> = { 1: 0, 2: 300, 3: 900 };
 
+/** Every starting kit, as creation offers them. */
+export const KITS = KIT_IDS;
+
 /**
  * A level-`level` Fighter from one creation's dice, placed and chosen as a
- * fresh creation starts, at full health.
+ * fresh creation starts but with `kit`, at full health.
  */
-export function fighterAtLevel(dice: RolledDice, level: Level): FighterSheet {
+export function fighterAtLevel(
+  dice: RolledDice,
+  level: Level,
+  kit: KitId = FIGHTER_DEFAULT_CHOICES.kit,
+): FighterSheet {
   const created = buildFighter("0".repeat(32), "Balance", dice, {
     ...FIGHTER_DEFAULT_CHOICES,
     placement: defaultPlacement(dice),
+    kit,
   });
   const raised = { ...created, level, xp: LEVEL_XP[level] };
   return validateFighter({ ...raised, hp: fighterProfile(raised).maxHp });
@@ -114,11 +124,12 @@ export function percentileCharacters({
 }
 
 /**
- * The chance that one attack by `sheet`'s character, without advantage or
- * disadvantage, takes `enemy` from full hit points to 0: a natural 1 misses,
- * a roll in the critical range hits and doubles the damage dice, and any
- * other roll hits when it meets the enemy's AC. The attack is the one the
- * runtime gives the character, so Fighting Style and level are counted.
+ * The chance that one attack by `sheet`'s character takes `enemy` from full
+ * hit points to 0: a natural 1 misses, a roll in the critical range hits and
+ * doubles the damage dice, and any other roll hits when it meets the enemy's
+ * AC. The attack is the one the runtime gives the character, so Fighting
+ * Style, level and masteries are counted: a weapon's own disadvantage (Heavy)
+ * and Graze's damage on a miss. Advantage from a previous hit (Vex) is not.
  */
 export function oneHitKillChance(
   sheet: FighterSheet,
@@ -147,12 +158,26 @@ export function oneHitKillChance(
       0,
     );
   };
+  /** P(the kept d20 is `d20`), with disadvantage keeping the lower of two. */
+  const rolled = (d20: number) =>
+    (attack.disadvantage ?? []).length === 0
+      ? 1 / 20
+      : ((21 - d20) ** 2 - (20 - d20) ** 2) / 400;
+  // Graze: a miss deals the damage modifier, if above 0.
+  const grazeKills =
+    attack.mastery === "Graze" &&
+    attack.damage.modifier > 0 &&
+    attack.damage.modifier >= hp
+      ? 1
+      : 0;
   let chance = 0;
-  for (let d20 = 2; d20 <= 20; d20++) {
-    if (d20 >= attack.criticalRange) {
-      chance += kills(attack.damage.dice * 2) / 20;
-    } else if (d20 + attack.bonus >= enemy.armorClass) {
-      chance += kills(attack.damage.dice) / 20;
+  for (let d20 = 1; d20 <= 20; d20++) {
+    if (d20 !== 1 && d20 >= attack.criticalRange) {
+      chance += kills(attack.damage.dice * 2) * rolled(d20);
+    } else if (d20 !== 1 && d20 + attack.bonus >= enemy.armorClass) {
+      chance += kills(attack.damage.dice) * rolled(d20);
+    } else {
+      chance += grazeKills * rolled(d20);
     }
   }
   return chance;
@@ -446,6 +471,7 @@ const HEAL_BELOW: Readonly<Record<PlayStyle, number>> = {
  */
 const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   attack: true,
+  "light-attack": true,
   use: true,
   "second-wind": true,
   "action-surge": true,
@@ -606,8 +632,17 @@ export function playAdventure(
           : best,
       undefined,
     );
+    // The Light extra attack follows an attack, on the weakest opponent too.
+    const light = offered(views, "light-attack").reduce<ActionView | undefined>(
+      (best, view) =>
+        best === undefined || hpOf(view.target!.id) < hpOf(best.target!.id)
+          ? view
+          : best,
+      undefined,
+    );
     return (
       attack ??
+      light ??
       offered(views, "action-surge")[0] ??
       offered(views, "end-turn")[0]!
     );
@@ -1036,7 +1071,11 @@ function srdLevelForXp(xp: number): number {
   return SRD_LEVEL_XP.filter((needed) => xp >= needed).length;
 }
 
-/** The share of runs the weakest character survives, against the threshold. */
+/**
+ * The share of runs the weakest character survives with each kit at each
+ * recommended level, against the threshold. `rate`, `kit` and `level` are
+ * the kit and level it survives least with.
+ */
 export type SurvivalCheck = Readonly<{
   ok: boolean;
   level: number;
@@ -1044,6 +1083,8 @@ export type SurvivalCheck = Readonly<{
   style: PlayStyle;
   runs: number;
   rate: number;
+  kit: KitId;
+  kits: readonly Readonly<{ kit: KitId; level: number; rate: number }>[];
   required: number;
 }>;
 
@@ -1053,12 +1094,16 @@ export type OneHitKillCheck = Readonly<{
   level: number;
   percentile: number;
   cap: number;
-  /** Each ordinary opponent, with its one-hit-kill chance. */
+  /**
+   * Each ordinary opponent, with its one-hit-kill chance from the kit that
+   * kills it most often.
+   */
   enemies: readonly Readonly<{
     encounterId: string;
     opponentId: string;
     name: string;
     chance: number;
+    kit: KitId;
   }>[];
   /** The ordinary enemies over the cap; more than half of them fails. */
   overCap: OneHitKillCheck["enemies"];
@@ -1102,11 +1147,13 @@ export type GateOptions = Pick<
 /**
  * Checks `adventure` against its declared difficulty
  * (`DIFFICULTY_THRESHOLDS`):
- * - too deadly: the weakest character at the minimum recommended level,
- *   playing cautious, must survive at least the difficulty's share of runs;
+ * - too deadly: the weakest character, playing cautious, must survive at
+ *   least the difficulty's share of runs with every starting kit at every
+ *   recommended level;
  * - too easy: for the strongest character at the maximum recommended level,
- *   no more than half the ordinary (non-boss) enemies may be killed by one
- *   attack from full HP more often than the difficulty's cap;
+ *   with the kit strongest against each enemy, no more than half the
+ *   ordinary (non-boss) enemies may be killed by one attack from full HP more
+ *   often than the difficulty's cap;
  * - XP: all the XP the module offers must not take a character one XP short
  *   of the level above the maximum past the maximum + 1.
  * A module the harness can't play fails with a named reason, as in
@@ -1129,40 +1176,66 @@ export function gateAdventure(
       ...(sampleSize === undefined ? {} : { sampleSize }),
       ...(sampleSeed === undefined ? {} : { sampleSeed }),
     });
-    const runtime = createFifthRuntime(
-      adventure,
-      fighterAtLevel(weakest!.dice, min as Level),
+    const levels = Array.from(
+      { length: max - min + 1 },
+      (_, index) => (min + index) as Level,
     );
-    const runs = seeds.map((seed) =>
-      playAdventure(runtime, GATE_STYLE, seed, {
-        ...(stepLimit === undefined ? {} : { stepLimit }),
+    const kits = levels.flatMap((level) =>
+      KITS.map((kit) => {
+        const runtime = createFifthRuntime(
+          adventure,
+          fighterAtLevel(weakest!.dice, level, kit),
+        );
+        const runs = seeds.map((seed) =>
+          playAdventure(runtime, GATE_STYLE, seed, {
+            ...(stepLimit === undefined ? {} : { stepLimit }),
+          }),
+        );
+        return {
+          kit,
+          level,
+          rate:
+            runs.filter(({ outcome }) => outcome !== "defeat").length /
+            runs.length,
+        };
       }),
     );
-    const rate =
-      runs.filter(({ outcome }) => outcome !== "defeat").length / runs.length;
+    const weakestKit = kits.reduce((worst, entry) =>
+      entry.rate < worst.rate ? entry : worst,
+    );
     const survival: SurvivalCheck = {
-      ok: rate >= thresholds.survival,
-      level: min,
+      ok: weakestKit.rate >= thresholds.survival,
+      level: weakestKit.level,
       percentile: WEAKEST_PERCENTILE,
       style: GATE_STYLE,
-      runs: runs.length,
-      rate,
+      runs: seeds.length,
+      rate: weakestKit.rate,
+      kit: weakestKit.kit,
+      kits,
       required: thresholds.survival,
     };
 
-    const strong = fighterAtLevel(strongest!.dice, max as Level);
+    const strong = KITS.map((kit) => ({
+      kit,
+      sheet: fighterAtLevel(strongest!.dice, max as Level, kit),
+    }));
     const enemies = adventure.encounters.flatMap(
       ({ id: encounterId, opponents }) =>
         opponents.flatMap(({ id, name, statBlock, boss }) =>
           boss === true
             ? []
             : [
-                {
-                  encounterId,
-                  opponentId: id,
-                  name,
-                  chance: oneHitKillChance(strong, statBlock),
-                },
+                strong
+                  .map(({ kit, sheet }) => ({
+                    encounterId,
+                    opponentId: id,
+                    name,
+                    chance: oneHitKillChance(sheet, statBlock),
+                    kit,
+                  }))
+                  .reduce((best, entry) =>
+                    entry.chance > best.chance ? entry : best,
+                  ),
               ],
         ),
     );
@@ -1254,12 +1327,19 @@ export function renderGateResult(
   const over = oneHitKill.overCap;
   return [
     `${name} ${verdict.qualified ? "qualifies" : "does not qualify"} as ${verdict.difficulty}.`,
-    `  Too deadly, ${mark(survival.ok)}: the level ${survival.level}, ${survival.percentile}th percentile character playing ${survival.style} survived ${percent(survival.rate)} of ${survival.runs} runs; ${verdict.difficulty} needs ${percent(survival.required)}.`,
+    `  Too deadly, ${mark(survival.ok)}: the level ${survival.level}, ${survival.percentile}th percentile character playing ${survival.style} survived ${percent(survival.rate)} of ${survival.runs} runs with its weakest kit, ${survival.kit} (${survival.kits
+      .map(({ kit, level, rate }) => `${kit} level ${level} ${percent(rate)}`)
+      .join(
+        ", ",
+      )}); ${verdict.difficulty} needs ${percent(survival.required)}.`,
     `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile character kills ` +
       (over.length === 0
         ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`
         : `${over.length} of ${oneHitKill.enemies.length} ordinary enemies with one attack more than ${percent(oneHitKill.cap)} of the time: ${over
-            .map(({ name: enemy, chance }) => `${enemy} ${percent(chance)}`)
+            .map(
+              ({ name: enemy, chance, kit }) =>
+                `${enemy} ${percent(chance)} (${kit})`,
+            )
             .join(", ")}.${oneHitKill.ok ? "" : " No more than half may be."}`),
     `  XP, ${mark(xp.ok)}: its ${xp.available} XP takes a character from ${xp.startXp} XP to level ${xp.endLevel}; the limit is level ${xp.levelLimit}.`,
   ].join("\n");

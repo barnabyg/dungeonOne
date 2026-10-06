@@ -30,6 +30,8 @@ const CHOICES = {
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 };
 const ATTACK = { type: "attack", actorId: "pc", targetId: "goblin" };
 const END_TURN = { type: "end-turn", actorId: "pc" };
@@ -96,7 +98,7 @@ test("starting an adventure saves the session with its fight begun, then links i
       await readFile(library.sessionPath(session.id), "utf8"),
     );
     assert.equal(file.kind, "dungeon-one-5e-session");
-    assert.equal(file.formatVersion, 8);
+    assert.equal(file.formatVersion, 9);
     assert.equal(file.random.seed, sessionSeed(3, 1));
     assert.deepEqual(file.transitions[0].action, { type: "begin" });
     // Every initiative die (and any opening goblin attack) is recorded.
@@ -180,13 +182,13 @@ test("a session save that does not replay exactly is refused", async () => {
     await tamper((file) => file.transitions.pop(), /Invalid adventure session/);
     await tamper(
       (file) => (file.formatVersion = 0),
-      /format version 0, not 8\..*Move it aside/,
+      /format version 0, not 9\..*Move it aside/,
     );
-    // A save from before replace-on-settle (#206), named by its path.
+    // A save from before starting kits (#207), named by its path.
     await tamper(
-      (file) => (file.formatVersion = 7),
+      (file) => (file.formatVersion = 8),
       new RegExp(
-        `${path.replaceAll("\\", "\\\\")} is an adventure session in format version 7, not 8\\..*Move it aside`,
+        `${path.replaceAll("\\", "\\\\")} is an adventure session in format version 8, not 9\\..*Move it aside`,
       ),
     );
     // The session holds the character's possessions from the start.

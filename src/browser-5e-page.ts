@@ -87,6 +87,8 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </fieldset>
 <fieldset id="skills" aria-describedby="skills-count skills-error"><legend id="skills-legend">Skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
+<fieldset id="kits" aria-describedby="kits-hint"><legend>Starting kit</legend><p id="kits-hint" class="hint">Common gear only, each worth about the same. Better gear is found or bought in adventures.</p><div id="kit-fields" class="checks"></div></fieldset>
+<fieldset id="masteries" aria-describedby="masteries-count masteries-error"><legend id="masteries-legend">Weapon Mastery</legend><p class="hint">A mastery works only while you wield that weapon.</p><p id="masteries-count" class="hint" role="status"></p><div id="mastery-fields" class="checks"></div><p id="masteries-error" class="error" role="alert"></p></fieldset>
 <label for="character-name">Name</label><input id="character-name" maxlength="40" autocomplete="off" required aria-describedby="name-error"><p id="name-error" class="error" role="alert"></p>
 <section id="preview" aria-labelledby="preview-title" aria-live="polite"><h3 id="preview-title">Before you save</h3><p id="preview-status" class="hint"></p><div id="preview-body"></div></section>
 <p id="creation-error" class="error" role="alert"></p>
@@ -392,6 +394,11 @@ function abilityTable(abilities, profile, caption) {
   return wrap;
 }
 
+/** "+5 to hit, 1d6 + 3 bludgeoning, Sap" for one weapon attack. */
+function attackText(attack) {
+  return signed(attack.bonus) + " to hit, " + damageText(attack.damage) + " " + attack.damage.type + (attack.mastery ? ", " + attack.mastery : "") + attack.disadvantage.map((source) => ", disadvantage (" + source + ")").join("") + (attack.criticalRange === 19 ? ", critical on 19–20" : "");
+}
+
 function profileNodes(abilities, profile, hp) {
   const stats = make("ul", undefined, "stats");
   const entries = [
@@ -399,7 +406,8 @@ function profileNodes(abilities, profile, hp) {
     ["AC", profile.armorClass],
     ["Initiative", signed(profile.initiative)],
     ["Proficiency bonus", signed(profile.proficiencyBonus)],
-    ["Mace", signed(profile.attack.bonus) + " to hit, " + damageText(profile.attack.damage) + " " + profile.attack.damage.type + ", " + profile.attack.mastery + (profile.attack.criticalRange === 19 ? ", critical on 19–20" : "")],
+    [profile.attack.weapon, attackText(profile.attack)],
+    ...(profile.lightAttack ? [[profile.lightAttack.weapon + " (extra attack)", attackText(profile.lightAttack)]] : []),
   ];
   for (const [label, value] of entries) {
     const item = make("li", label + ": ");
@@ -424,7 +432,7 @@ function openSheet(id) {
   const { sheet, profile } = entry;
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
-  const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · Chain shirt, shield and mace", "hint");
+  const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", "), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
   element("sheet-body").replaceChildren(summary, ...profileNodes(sheet.abilities, profile, sheet.hp), ...treasureNodes(sheet.treasure), rolls);
   renderAdventureChoices(entry);
@@ -1044,6 +1052,7 @@ async function act(path, body, control, busyLabel, pendingMessage) {
 // than its idle one: the fight row has no width to spare at 375 px.
 const ACTIONS = {
   attack: { label: "Attack ", busy: "Attacking ", busyLabel: "Attacking…" },
+  "light-attack": { label: "Extra attack ", busy: "Extra attack on ", busyLabel: "Attacking…" },
   use: { label: "Drink ", short: "Drink", busy: "Drinking ", busyLabel: "Drinking…" },
   move: { label: "Go to ", short: "Go", busy: "Going to ", busyLabel: "Going…" },
   examine: { label: "Examine ", short: "Examine", busy: "Examining ", busyLabel: "Examining…" },
@@ -1072,11 +1081,12 @@ function renderActions() {
   const { encounter, features } = session;
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
   const attacks = session.actions.filter(({ action }) => action === "attack").length;
+  const ATTACKS = ["attack", "light-attack"];
   const left = (feature) => " (" + feature.uses + " of " + feature.max + " left)";
   const groups = { attack: [], feature: [], explore: [], leave: [] };
   session.actions.forEach((option, index) => {
     const { action, target } = option;
-    const group = action === "attack" ? "attack" : action === "leave" ? "leave" : EXPLORING.includes(action) || (action === "use" && !fighting) ? "explore" : "feature";
+    const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : EXPLORING.includes(action) || (action === "use" && !fighting) ? "explore" : "feature";
     const label = ACTIONS[action].label + named(action, target) + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
     const short = group === "explore";
     const button = make("button");
@@ -1085,7 +1095,7 @@ function renderActions() {
     button.type = "button";
     if (short) button.setAttribute("aria-label", label);
     // One opponent makes attacking the fight's primary action; several are peers.
-    button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "end-turn" ? "secondary" : group + " secondary";
+    button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + " secondary";
     button.dataset.action = action;
     if (target) button.dataset.target = target.id;
     button.disabled = acting || !option.available;
@@ -1152,7 +1162,7 @@ async function perform({ action, target }) {
   // The clicked control, found again after the bar re-renders, shows busy.
   const control = "#action-bar button[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])");
   const busy = busyName({ action, target });
-  if (action === "attack") await act("/api/5e/session/attack", { actorId: session.encounter.playerId, targetId }, control, busy);
+  if (action === "attack" || action === "light-attack") await act("/api/5e/session/" + action, { actorId: session.encounter.playerId, targetId }, control, busy);
   else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action }, control, busy);
   else await act("/api/5e/session/explore", { action, target: targetId }, control, busy);
   keepFocus(action, targetId);
@@ -1366,6 +1376,57 @@ function renderChoices() {
     label.append(radio, text);
     return label;
   }));
+  element("kit-fields").replaceChildren(...library.kits.map((kit) => {
+    const label = make("label");
+    const radio = make("input");
+    radio.type = "radio";
+    radio.name = "kit";
+    radio.id = "kit-" + kit.id;
+    radio.checked = choices.kit === kit.id;
+    radio.addEventListener("change", () => { choices.kit = kit.id; refresh(); });
+    const text = make("span", kit.name);
+    const numbers = make("small", "…");
+    numbers.id = "kit-numbers-" + kit.id;
+    text.append(numbers);
+    label.append(radio, text);
+    return label;
+  }));
+  element("mastery-fields").replaceChildren(...library.masteryWeapons.map((weapon) => {
+    const label = make("label");
+    const box = make("input");
+    box.type = "checkbox";
+    box.id = "mastery-" + weapon.id;
+    box.checked = choices.masteries.includes(weapon.id);
+    box.addEventListener("change", () => {
+      choices.masteries = library.masteryWeapons.map(({ id }) => id).filter((id) => element("mastery-" + id).checked);
+      refresh();
+    });
+    const text = make("span", weapon.name + " (" + weapon.mastery + ")");
+    text.append(make("small", weapon.text));
+    label.append(box, text);
+    return label;
+  }));
+}
+
+/** Each kit's items and value, with the AC and attacks the server projected for it. */
+function renderKits() {
+  for (const kit of library.kits) {
+    const shown = projection && projection.kits.find(({ id }) => id === kit.id);
+    element("kit-numbers-" + kit.id).textContent = shown
+      ? shown.items.join(", ") + " (" + shown.value + "). AC " + shown.armorClass + "; " + shown.attack.weapon + " " + attackText(shown.attack) + (shown.lightAttack ? "; then " + shown.lightAttack.weapon + " " + attackText(shown.lightAttack) + " as an extra attack" : "") + "."
+      : "…";
+  }
+}
+
+/** Like the skills: once the masteries are full, the unticked rest are disabled. */
+function renderMasteryLimit() {
+  const { chosen, limit, full } = projection.masteries;
+  for (const { id } of library.masteryWeapons) {
+    const box = element("mastery-" + id);
+    box.disabled = full && !box.checked;
+  }
+  const count = chosen + " of " + limit + " chosen";
+  if (element("masteries-count").textContent !== count) element("masteries-count").textContent = count;
 }
 
 /** Once the server says the skills are full, the unticked rest are disabled; the count is announced. */
@@ -1399,8 +1460,11 @@ async function preview() {
     projection = result;
     renderScores();
     renderSkillLimit();
+    renderMasteryLimit();
+    renderKits();
     element("increase-error").textContent = result.unfinished.increase || "";
     element("skills-error").textContent = result.unfinished.skills || "";
+    element("masteries-error").textContent = result.unfinished.masteries || "";
     element("creation-error").textContent = "";
     if (result.sheet) {
       element("preview-status").textContent = "";
@@ -1440,6 +1504,7 @@ async function openCreation(ticket) {
   const rules = library.pendingCreation.rules;
   element("score-cap").textContent = rules.scoreCap;
   element("skills-legend").textContent = "Skill proficiencies: choose " + rules.skillCount;
+  element("masteries-legend").textContent = "Weapon Mastery: choose " + rules.masteryCount;
   renderChoices();
   show("creation", "Create a Fighter", [{ label: "Create a Fighter" }]);
   element("creation-title").focus();

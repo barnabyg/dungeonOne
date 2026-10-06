@@ -5,7 +5,7 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
+import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
@@ -20,9 +20,12 @@ import {
   say,
 } from "./fixtures/session-layout.mjs";
 
-const adventure = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "smugglers-cellar",
+// The Smugglers' Cellar as it was before #207, with its Giant Rat fight; the
+// server offers it in place of the built-in modules.
+const adventure = await loadFifthAdventure(
+  "tests/fixtures/smugglers-with-rat.json",
 );
+const FIXTURE_MODULES = { adventures: [adventure], qualifies: () => true };
 
 /** A seed where Ada wins the rat fight hurt, so she can drink the potion. */
 function findSeed() {
@@ -133,6 +136,7 @@ for (const viewport of [
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-154-"));
       const server = await startFifthBrowserServer({
+        ...FIXTURE_MODULES,
         libraryPath: join(directory, "characters.json"),
         seed,
         dmModel: narratingDm(),

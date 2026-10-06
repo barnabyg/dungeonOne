@@ -43,6 +43,14 @@ import {
 import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
 import { passesGate } from "./balance-5e.js";
 import {
+  FIGHTER_MASTERY_COUNT,
+  KIT_IDS,
+  MASTERIES,
+  MASTERY_WEAPONS,
+  STARTING_KITS,
+  WEAPONS,
+} from "./equipment-5e.js";
+import {
   ABILITIES,
   ABILITY_SCORE_CAP,
   defaultPlacement,
@@ -82,6 +90,8 @@ export type FifthBrowserOptions = Readonly<{
    * difficulty unless replaced, for tests.
    */
   qualifies?: (adventure: FifthAdventure) => boolean;
+  /** The modules to offer in place of the built-in ones, for tests. */
+  adventures?: readonly FifthAdventure[];
 }>;
 
 /**
@@ -182,6 +192,16 @@ function libraryView(
       id,
       ...style,
     })),
+    kits: KIT_IDS.map((id) => ({
+      id,
+      name: STARTING_KITS[id].name,
+    })),
+    masteryWeapons: MASTERY_WEAPONS.map((id) => ({
+      id,
+      name: WEAPONS[id].name,
+      mastery: WEAPONS[id].mastery,
+      text: MASTERIES[WEAPONS[id].mastery].text,
+    })),
     ...(pending === undefined
       ? {}
       : {
@@ -196,6 +216,7 @@ function libraryView(
             rules: {
               scoreCap: ABILITY_SCORE_CAP,
               skillCount: FIGHTER_SKILL_COUNT,
+              masteryCount: FIGHTER_MASTERY_COUNT,
             },
           },
         }),
@@ -214,6 +235,8 @@ function choicesFrom(body: Record<string, unknown>): FighterChoices {
     increase: body.increase as FighterChoices["increase"],
     skills: body.skills as FighterChoices["skills"],
     fightingStyle: body.fightingStyle as FighterChoices["fightingStyle"],
+    kit: body.kit as FighterChoices["kit"],
+    masteries: body.masteries as FighterChoices["masteries"],
   };
 }
 
@@ -221,7 +244,14 @@ function hasExactKeys(body: Record<string, unknown>, keys: string[]): boolean {
   return Object.keys(body).sort().join(",") === [...keys].sort().join(",");
 }
 
-const CHOICE_KEYS = ["placement", "increase", "skills", "fightingStyle"];
+const CHOICE_KEYS = [
+  "placement",
+  "increase",
+  "skills",
+  "fightingStyle",
+  "kit",
+  "masteries",
+];
 /** The clicked actions that take no target. */
 const CLICK_ACTIONS = ["second-wind", "action-surge", "end-turn"] as const;
 /** The clicked exploring actions, and the action each makes from its target. */
@@ -251,7 +281,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
   const library = new FifthCharacterLibrary(options.libraryPath, options.seed);
   // Refuse an old or invalid library, or a broken module, before listening.
   await library.read();
-  const adventures = await loadBuiltInFifthAdventures();
+  const adventures = options.adventures ?? (await loadBuiltInFifthAdventures());
   const apiKey = options.apiKey?.trim() ?? "";
   const model: DmModel | undefined =
     options.dmModel ??
@@ -471,6 +501,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             : save(session);
         });
       case "/api/5e/session/attack":
+      case "/api/5e/session/light-attack":
         if (
           !hasExactKeys(body, [
             "sessionId",
@@ -484,7 +515,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           throw new Error("Invalid attack request.");
         }
         return click(body, {
-          type: "attack",
+          type: path.endsWith("/light-attack") ? "light-attack" : "attack",
           actorId: body.actorId,
           targetId: body.targetId,
         });

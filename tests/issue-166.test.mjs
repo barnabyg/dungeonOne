@@ -50,6 +50,8 @@ test("Second Wind and Action Surge state the rule that applies now (#166)", () =
       increase: { strength: 2, constitution: 1 },
       skills: ["athletics", "perception"],
       fightingStyle: "defense",
+      kit: "mace",
+      masteries: ["dagger", "mace", "shortsword"],
     },
   );
   const raised = { ...sheet, level: levelForXp(300), xp: 300 };

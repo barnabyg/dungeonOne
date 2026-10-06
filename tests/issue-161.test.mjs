@@ -56,6 +56,8 @@ async function startOverApi(url) {
       increase: { strength: 2, constitution: 1 },
       skills: ["athletics", "perception"],
       fightingStyle: "defense",
+      kit: "mace",
+      masteries: ["dagger", "mace", "shortsword"],
     })
   ).body;
   const started = await api(url, "/api/5e/adventures/start", {

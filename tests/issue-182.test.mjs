@@ -39,6 +39,8 @@ const sheet = buildFighter(
     increase: { constitution: 2, intelligence: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
+    kit: "mace",
+    masteries: ["dagger", "mace", "shortsword"],
   },
 );
 

@@ -21,9 +21,14 @@ export const TEST_FIGHTER_CHOICES: FighterChoices = {
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 };
 
-/** Ada: Str 17 (+3), Dex 14 (+2), Con 15 (+2); Athletics and Perception. */
+/**
+ * Ada: Str 17 (+3), Dex 14 (+2), Con 15 (+2); Athletics and Perception; the
+ * mace and leather kit (AC 14 with Defense).
+ */
 export const TEST_FIGHTER: FighterSheet = buildFighter(
   "a".repeat(32),
   "Ada",

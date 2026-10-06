@@ -21,10 +21,18 @@
           "id": "bone-charms",
           "name": "Bone Charms",
           "description": "Strings of small bones rattle across the tunnel mouth.",
-          "discovery": "Scratched on a thigh bone in goblin marks: a guard in the tunnel, the boss beyond."
+          "discovery": "Scratched on a thigh bone in goblin marks: a guard in the tunnel, the boss beyond. A stoppered vial hangs among the charms."
         }
       ],
-      "items": []
+      "items": [
+        {
+          "id": "gate-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "bone-charms"
+        }
+      ]
     },
     {
       "id": "guard-tunnel",

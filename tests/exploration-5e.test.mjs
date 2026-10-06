@@ -3,15 +3,18 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
+import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import { runDmTurn } from "../dist/dm-turn.js";
 import { buildFighter } from "../dist/fighter-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 
-const adventures = await loadBuiltInFifthAdventures();
-const adventure = adventures.find(({ id }) => id === "smugglers-cellar");
-// Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 17 with Defense, 12 HP, mace +5.
+// The Smugglers' Cellar as it was before #207, with its Giant Rat fight.
+const adventure = await loadFifthAdventure(
+  "tests/fixtures/smugglers-with-rat.json",
+);
+const adventures = [adventure];
+// Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 13 in leather with Defense, 12 HP, mace +5.
 const sheet = buildFighter(
   "a".repeat(32),
   "Ada",
@@ -35,6 +38,8 @@ const sheet = buildFighter(
     increase: { constitution: 2, intelligence: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
+    kit: "mace",
+    masteries: ["dagger", "mace", "shortsword"],
   },
 );
 const runtime = createFifthRuntime(adventure, sheet);
@@ -206,7 +211,7 @@ test("entering a room with a fight begins it, and nothing but fighting is offere
   const entered = bitten(withPotion());
   assert.match(
     runtime.renderResult(entered),
-    /^You enter the Rat-Gnawed Cellar\. .* A rat the size of a dog rears up from the sacks, teeth bared\.\nInitiative: Giant Rat 18 \+ 3 = 21; Ada 2 \+ 1 = 3\.\nGiant Rat attacks Ada with Bite: 15 \+ 5 = 20 against AC 17\. Hit\. Damage 4 \+ 3 = 7 piercing; Ada has 5\/12 HP\.\nIt is your turn\.$/s,
+    /^You enter the Rat-Gnawed Cellar\. .* A rat the size of a dog rears up from the sacks, teeth bared\.\nInitiative: Giant Rat 18 \+ 3 = 21; Ada 2 \+ 1 = 3\.\nGiant Rat attacks Ada with Bite: 15 \+ 5 = 20 against AC 13. Hit\. Damage 4 \+ 3 = 7 piercing; Ada has 5\/12 HP\.\nIt is your turn\.$/s,
   );
   const state = entered.state;
   assert.equal(state.character.hp, 5);

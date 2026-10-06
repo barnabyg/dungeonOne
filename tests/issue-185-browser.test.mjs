@@ -9,7 +9,17 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
+import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+
+// The Smugglers' Cellar as it was before #207, with its Giant Rat fight; the
+// server offers it in place of the built-in modules.
+const FIXTURE_MODULES = {
+  adventures: [
+    await loadFifthAdventure("tests/fixtures/smugglers-with-rat.json"),
+  ],
+  qualifies: () => true,
+};
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -145,6 +155,7 @@ for (const viewport of [
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-185-"));
       const server = await startFifthBrowserServer({
+        ...FIXTURE_MODULES,
         libraryPath: join(directory, "characters.json"),
         seed: 0,
       });
@@ -157,6 +168,12 @@ for (const viewport of [
         await page
           .locator("#preview-body")
           .filter({ hasText: "AC:" })
+          .waitFor();
+        // Two daggers, so the fight row has the extra attack too (#207).
+        await page.locator("#kit-two-daggers").check();
+        await page
+          .locator("#preview-body")
+          .filter({ hasText: "Dagger (extra attack)" })
           .waitFor();
         await page.locator("#character-name").fill("Ada");
         await page.locator("#save-character").click();
@@ -216,13 +233,15 @@ for (const viewport of [
           "Ending turn…",
           "stays",
         );
-        const attack = page.locator("#attack-controls button.attack").first();
+        const attack = page
+          .locator('#attack-controls button[data-action="attack"]')
+          .first();
         await attack.waitFor();
         const target = await attack.getAttribute("data-target");
         const opponent = (await attack.textContent()).replace(/^Attack /, "");
         await holdAction(
           page,
-          `#attack-controls button[data-target="${target}"]`,
+          `#attack-controls button[data-action="attack"][data-target="${target}"]`,
           "/api/5e/session/attack",
           "Attacking…",
           `Attacking ${opponent}…`,

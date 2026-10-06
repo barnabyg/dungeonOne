@@ -104,10 +104,10 @@ test("the server projects the modules in offer order", async () => {
     assert.deepEqual(
       adventures.map(({ id }) => id),
       [
-        "warden-crypt",
         "cellar-goblin",
         "robbers-barrow",
         "smugglers-cellar",
+        "warden-crypt",
         "abandoned-delve",
         "goblin-storeroom",
         "goblin-warren",
@@ -136,7 +136,7 @@ test(
         })),
       );
       assert.deepEqual(cards, [
-        { tags: ["Level 1", "Medium"], button: "Start" },
+        { tags: ["Level 1", "Hard"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },

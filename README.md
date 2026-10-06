@@ -107,8 +107,12 @@ shows the same dice; there are no rerolls. One table, a row per ability, places
 the rolls (choosing a placed roll swaps it, and each row shows its roll's four
 dice with the dropped one struck through) and the background increase (+2 and
 +1, or +1 to three). Each score and modifier updates from the server as you
-change them. Then choose two skills and a Fighting Style, check the derived
-numbers and save. A pending creation keeps its dice even if a character is
+change them. Then choose two skills, a Fighting Style, a starting kit and
+three weapon masteries, check the derived numbers and save. The kits are a
+little common gear each, worth about the same: _Mace and leather_, _Two
+daggers and leather_, or _Club, dagger and leather_. Each kit shows the AC,
+attack and damage it gives your scores before you choose. Better gear is found
+in adventures. A pending creation keeps its dice even if a character is
 deleted. Creation needs no OpenAI key.
 
 ### Adventure modules
@@ -124,16 +128,16 @@ deleted. Creation needs no OpenAI key.
 - _The Goblins in the Storeroom_ (`adventures/5e/goblin-storeroom.json`,
   level 2): a group fight against a Goblin Minion and a Goblin Warrior.
 - _The Goblin Warren_ (`adventures/5e/goblin-warren.json`, levels 2–3): a
-  Goblin Warrior carrying a potion, then the SRD 5.2 Goblin Boss and its hoard,
-  and a way out.
+  potion among the charms at the gate, a Goblin Warrior carrying another, then
+  the SRD 5.2 Goblin Boss and its hoard, and a way out.
 - _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`): two rooms with a
   Goblin Warrior carrying a Pouch of Old Coins, a Silver Torc hidden under the
   bier and a way out.
 - _The Smugglers' Cellar_ (`adventures/5e/smugglers-cellar.json`): four rooms
-  with a Giant Rat, a Goblin Warrior and a Potion of Healing hidden in a chest.
+  with a Goblin Warrior and a Potion of Healing hidden in a chest.
 - _The Warden's Crypt_ (`adventures/5e/warden-crypt.json`): six rooms with a
   stuck door, a locked door and its key, a dart trap, a bound smuggler to
-  question and a Goblin Warrior in the tomb.
+  question and the warden risen as a Zombie in the tomb.
 
 A sheet offers only the modules that pass the balance gate; `npm.cmd run
 balance` shows each module's verdict.
@@ -217,10 +221,13 @@ Entering a room with a fight begins it: every combatant rolls initiative, and
 you cannot leave, examine, take, search, talk or open a door until it is won.
 Each turn has an action, a bonus action and a reaction. In a fight the action
 bar holds your whole toolkit: an **Attack** button for each living opponent,
-**Drink** for each potion you carry, **Second Wind** (a bonus action that heals
-1d10 + level), **Action Surge** (from level 2) and **End turn**, with the uses
-left. The mace's Sap mastery gives a creature it hits disadvantage on its next
-attack. You can also type to the Dungeon Master ("attack the second goblin");
+**Extra attack** for each with two light weapons (after an attack, with the
+second weapon), **Drink** for each potion you carry, **Second Wind** (a bonus
+action that heals 1d10 + level), **Action Surge** (from level 2) and **End
+turn**, with the uses left. A mastered weapon's mastery works while you wield
+it: Sap gives a creature it hits disadvantage on its next attack, Vex gives you
+advantage on your next attack against it, Graze deals damage even on a miss,
+and Nick makes the extra attack without spending your bonus action. You can also type to the Dungeon Master ("attack the second goblin");
 it asks which one when a name fits several opponents, and it is offered only
 the actions the bar shows enabled. HP, feature uses and carried items last from
 fight to fight; a rest between adventures restores them. A character at 0 HP is
@@ -248,9 +255,9 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 5.
+- The character library (`characters.json` by default) is format version 6.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 8.
+  `characters-adventures` directory beside the library, in format version 9.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
@@ -306,7 +313,8 @@ These are for development, not play.
 ## Architecture
 
 - `src/runtime-5e.ts` is the 5e runtime, over the encounter engine in
-  `src/encounter-5e.ts`, the Fighter rules in `src/fighter-5e.ts` and checks in
+  `src/encounter-5e.ts`, the Fighter rules in `src/fighter-5e.ts`, weapons,
+  armour and kits in `src/equipment-5e.ts`, and checks in
   `src/checks-5e.ts`. It implements the generic interface in
   `src/runtime-contract.ts`: create a session, project the player-safe scene and
   status, offer tools, and resolve an action.

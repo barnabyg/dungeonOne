@@ -46,6 +46,8 @@ const sheet = buildFighter(
     increase: { constitution: 2, intelligence: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
+    kit: "mace",
+    masteries: ["dagger", "mace", "shortsword"],
   },
 );
 
@@ -577,7 +579,7 @@ test("talking: a free topic draws no dice; a topic with a check rolls once; each
   assert.deepEqual(random.drawn, []);
   assert.equal(
     renderFifthResult(told),
-    'Bound Smuggler: "A goblin took the tomb for its own. It robbed me and left me tied here. Go and see for yourself."',
+    'Bound Smuggler: "I lifted the sarcophagus lid and the warden climbed out after me. My partners left me tied here. Go and see for yourself."',
   );
   assert.equal(
     find(assertAgrees(runtime, told.state), "talk", "warden").reason,
@@ -620,7 +622,7 @@ test("talking: a free topic draws no dice; a topic with a check rolls once; each
         {
           id: "warden",
           name: "the warden",
-          said: '"A goblin took the tomb for its own. It robbed me and left me tied here. Go and see for yourself."',
+          said: '"I lifted the sarcophagus lid and the warden climbed out after me. My partners left me tied here. Go and see for yourself."',
         },
         {
           id: "key-whereabouts",
@@ -858,7 +860,10 @@ test("scripted DM: the talk tool offers only the creature's topics", async () =>
     "Ask the smuggler about the warden.",
     scripted(call("talk", { topic: "warden" })),
   );
-  assert.match(result.narration, /^Bound Smuggler: "A goblin took the tomb/);
+  assert.match(
+    result.narration,
+    /^Bound Smuggler: "I lifted the sarcophagus lid/,
+  );
   const invented = await turn(
     runtime,
     hall,
@@ -897,7 +902,7 @@ test("a session saves its checks' cards and remembered outcomes, and replays the
     }
     await session.persist();
     const file = JSON.parse(await readFile(path, "utf8"));
-    assert.equal(file.formatVersion, 8);
+    assert.equal(file.formatVersion, 9);
     const purposes = file.history.flatMap(({ cards }) =>
       cards.flatMap(({ lines }) =>
         lines.flatMap(({ rolls }) => rolls.map(({ purpose }) => purpose)),

@@ -107,8 +107,13 @@ const SHIPPED = Object.fromEntries(
   ]),
 );
 
+// The Smugglers' Cellar as it was before #207, with its Giant Rat fight.
+const SMUGGLERS = await loadFifthAdventure(
+  "tests/fixtures/smugglers-with-rat.json",
+);
+
 test("the required path leads to a victory, or else out with treasure, through the fewest fights", () => {
-  assert.deepEqual(requiredPath(SHIPPED["smugglers-cellar"]), {
+  assert.deepEqual(requiredPath(SMUGGLERS), {
     objective: "victory",
     roomIds: ["stair-foot", "rat-cellar", "den"],
   });
@@ -140,7 +145,8 @@ function variant(id, change) {
 }
 
 /** The smugglers' cellar with a giant rat in the optional alcove too. */
-const RAT_IN_ALCOVE = variant("smugglers-cellar", (module) => {
+const RAT_IN_ALCOVE = (() => {
+  const module = structuredClone(SMUGGLERS);
   const rat = module.encounters.find(({ id }) => id === "cellar-rat");
   module.encounters.push({
     ...structuredClone(rat),
@@ -151,7 +157,8 @@ const RAT_IN_ALCOVE = variant("smugglers-cellar", (module) => {
     })),
   });
   module.rooms.find(({ id }) => id === "alcove").encounterId = "alcove-rat";
-});
+  return validateFifthAdventure(module);
+})();
 
 function play(adventure, style, seed, dice = STRONG_DICE, level = 1) {
   return playAdventure(
@@ -171,7 +178,7 @@ test("a run is the same for the same seed", () => {
 });
 
 test("avoid-optional keeps to the required rooms; cautious and direct look into quiet optional rooms", () => {
-  const cellar = SHIPPED["smugglers-cellar"];
+  const cellar = SMUGGLERS;
   const avoiding = play(cellar, "avoid-optional", 1);
   assert.equal(avoiding.outcome, "victory");
   assert.deepEqual(avoiding.roomIds, ["stair-foot", "rat-cellar", "den"]);
@@ -277,10 +284,7 @@ test("an action the harness can't play fails the run with a named reason", () =>
 });
 
 test("a run left with no way on and no way out fails with a named reason", () => {
-  const runtime = createFifthRuntime(
-    SHIPPED["smugglers-cellar"],
-    fighterAtLevel(STRONG_DICE, 1),
-  );
+  const runtime = createFifthRuntime(SMUGGLERS, fighterAtLevel(STRONG_DICE, 1));
   // As if the stair foot's ways out needed something no style does.
   const walled = {
     ...runtime,
@@ -370,7 +374,7 @@ test("the same seeds give the same report", () => {
 });
 
 test("a run that never ends fails qualification with a named reason", () => {
-  const result = qualifyAdventure(SHIPPED["smugglers-cellar"], {
+  const result = qualifyAdventure(SMUGGLERS, {
     seeds: FEW_SEEDS,
     stepLimit: 3,
   });
@@ -494,7 +498,7 @@ test("a module too deadly for its difficulty is rejected, and passes declared on
       verdict.survival.percentile,
       verdict.survival.style,
     ],
-    [2, 5, "cautious"],
+    [3, 5, "cautious"],
   );
   assert.equal(verdict.survival.runs, 200);
   assert.ok(
@@ -505,7 +509,7 @@ test("a module too deadly for its difficulty is rejected, and passes declared on
   assert.equal(verdict.xp.ok, true);
   assert.match(
     renderGateResult(GOBLIN_PAIR, medium),
-    /^The Goblin Pair \(goblin-pair\) does not qualify as medium\.\n {2}Too deadly, FAIL: the level 2, 5th percentile character playing cautious survived \d+\.\d% of 200 runs; medium needs 85\.0%\.$/mu,
+    /^The Goblin Pair \(goblin-pair\) does not qualify as medium\.\n {2}Too deadly, FAIL: the level 3, 5th percentile character playing cautious survived \d+\.\d% of 200 runs with its weakest kit, mace \(mace level 3 \d+\.\d%, two-daggers level 3 \d+\.\d%, club-and-dagger level 3 \d+\.\d%\); medium needs 85\.0%\.$/mu,
   );
 
   const hard = gateAdventure(declared(GOBLIN_PAIR, "hard"));
@@ -540,7 +544,7 @@ test("a module whose ordinary enemies a strong level-1 Fighter usually one-shots
   assert.equal(medium.verdict.survival.ok, true);
   assert.match(
     renderGateResult(MINION_YARD, medium),
-    /^ {2}Too easy, FAIL: the level 1, 95th percentile character kills 2 of 2 ordinary enemies with one attack more than 40\.0% of the time: Goblin Minion 1 \d+\.\d%, Goblin Minion 2 \d+\.\d%\. No more than half may be\.$/mu,
+    /^ {2}Too easy, FAIL: the level 1, 95th percentile character kills 2 of 2 ordinary enemies with one attack more than 40\.0% of the time: Goblin Minion 1 \d+\.\d% \(mace\), Goblin Minion 2 \d+\.\d% \(mace\)\. No more than half may be\.$/mu,
   );
 });
 
@@ -566,8 +570,8 @@ test("bosses are exempt from the one-hit-kill cap, and half the ordinary enemies
   assert.equal(allBosses.verdict.oneHitKill.ok, true);
   assert.equal(allBosses.verdict.qualified, true);
   // One minion of two over the cap is half, not most.
-  const smugglers = gateAdventure(declared(SHIPPED["smugglers-cellar"], "hard"))
-    .verdict.oneHitKill;
+  const smugglers = gateAdventure(declared(SMUGGLERS, "hard")).verdict
+    .oneHitKill;
   assert.deepEqual(
     smugglers.overCap.map(({ name }) => name),
     ["Giant Rat"],
@@ -581,6 +585,7 @@ test("a module whose XP could carry a character past its maximum level + 1 is re
   const rich = (xp) =>
     validateFifthAdventure({
       ...GOBLIN_PAIR,
+      recommendedLevels: { min: 2, max: 2 },
       difficulty: "hard",
       endings: GOBLIN_PAIR.endings.map((ending) =>
         ending.kind === "victory" ? { ...ending, xp } : ending,

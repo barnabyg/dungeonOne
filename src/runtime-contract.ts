@@ -114,6 +114,7 @@ export type GameToolName =
 export type FifthToolName =
   | "second_wind"
   | "action_surge"
+  | "light_attack"
   | "end_turn"
   | "force_door"
   | "pick_lock"

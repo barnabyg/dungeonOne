@@ -4,10 +4,7 @@
   "id": "smugglers-cellar",
   "title": "The Smugglers' Cellar",
   "objective": "Find out what has moved into the old smugglers' cellar, and clear it out.",
-  "recommendedLevels": {
-    "min": 1,
-    "max": 1
-  },
+  "recommendedLevels": { "min": 1, "max": 1 },
   "difficulty": "hard",
   "startRoomId": "stair-foot",
   "rooms": [
@@ -20,7 +17,7 @@
           "id": "rusted-lantern",
           "name": "Rusted Lantern",
           "description": "A rusted lantern hangs from a hook by the stair, its glass cracked.",
-          "discovery": "Scratched into the lantern's base: \"Rats gone. Boss in the den.\""
+          "discovery": "Scratched into the lantern's base: \"Rats in the cellar. Boss in the den.\""
         }
       ],
       "items": []
@@ -51,6 +48,7 @@
       "id": "rat-cellar",
       "name": "Rat-Gnawed Cellar",
       "description": "Grain sacks slump against the walls, chewed open. Droppings cover the floor.",
+      "encounterId": "cellar-rat",
       "features": [
         {
           "id": "gnawed-sacks",
@@ -95,6 +93,46 @@
   ],
   "encounters": [
     {
+      "id": "cellar-rat",
+      "opponents": [
+        {
+          "id": "giant-rat",
+          "name": "Giant Rat",
+          "description": "A rat the size of a dog rears up from the sacks, teeth bared.",
+          "statBlock": {
+            "name": "Giant Rat",
+            "size": "Small",
+            "type": "Beast",
+            "armorClass": 13,
+            "hitPoints": { "average": 7, "formula": "2d6" },
+            "abilities": {
+              "strength": 7,
+              "dexterity": 16,
+              "constitution": 11,
+              "intelligence": 2,
+              "wisdom": 10,
+              "charisma": 4
+            },
+            "challengeRating": "1/8",
+            "xp": 25,
+            "attacks": [
+              {
+                "name": "Bite",
+                "bonus": 5,
+                "damage": {
+                  "dice": 1,
+                  "sides": 4,
+                  "modifier": 3,
+                  "type": "piercing"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-cellar"
+    },
+    {
       "id": "den-goblin",
       "opponents": [
         {
@@ -106,10 +144,7 @@
             "size": "Small",
             "type": "Fey (Goblinoid)",
             "armorClass": 15,
-            "hitPoints": {
-              "average": 10,
-              "formula": "3d6"
-            },
+            "hitPoints": { "average": 10, "formula": "3d6" },
             "abilities": {
               "strength": 8,
               "dexterity": 15,

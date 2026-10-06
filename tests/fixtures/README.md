@@ -17,8 +17,8 @@ and left byte-identical.
 
 `gate-goblin-pair.json` and `gate-minion-yard.json` are 5e adventure modules
 for `tests/balance-5e.test.mjs`, built from the SRD 5.2 goblin stat blocks.
-_The Goblin Pair_ (two Goblin Warriors, level 2) is too deadly for medium and
-passes as hard. _The Minion Yard_ (two Goblin Minions in turn, level 1) is
+_The Goblin Pair_ (two Goblin Warriors, level 3 since the leather starting
+kits of #207) is too deadly for medium and passes as hard. _The Minion Yard_ (two Goblin Minions in turn, level 1) is
 safe enough for medium, but a strong level-1 Fighter usually kills each
 minion with one attack, so it fails as too easy at every difficulty.
 
@@ -26,6 +26,12 @@ minion with one attack, so it fails as too easy at every difficulty.
 (two numbered Goblin Minions and a Goblin Warrior, level 1). The shipped module
 no longer qualifies with three goblins, so `tests/runtime-5e.test.mjs` keeps
 its multi-target and ordinal targeting tests on this copy.
+
+`smugglers-with-rat.json` is _The Smugglers' Cellar_ as it was before #207,
+with its Giant Rat fight. The shipped module lost the rat so that it still
+qualifies with the leather starting kits; the exploration, action-bar and
+balance tests keep their fight-that-leaves-the-adventure-going cases on this
+copy.
 
 ## Browser launch
 

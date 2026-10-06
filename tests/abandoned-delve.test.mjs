@@ -26,6 +26,8 @@ const CHOICES = {
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 };
 
 // Str 17 (+3), Dex 14 (+2), Con 15 (+2): a sturdy level-1 Fighter.

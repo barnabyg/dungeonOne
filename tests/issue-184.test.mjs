@@ -23,6 +23,8 @@ const complete = {
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 };
 
 test("complete choices project the same scores and modifiers as buildFighter", () => {

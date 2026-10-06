@@ -5,7 +5,7 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
+import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
@@ -24,14 +24,19 @@ const launch = () =>
       : { headless: true },
   );
 
-const adventure = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "smugglers-cellar",
+// The Smugglers' Cellar as it was before #207, with its Giant Rat fight; the
+// server offers it in place of the built-in modules.
+const adventure = await loadFifthAdventure(
+  "tests/fixtures/smugglers-with-rat.json",
 );
+const FIXTURE_MODULES = { adventures: [adventure], qualifies: () => true };
 // The creation screen's default choices; the placement follows the dice.
 const DEFAULT_CHOICES = {
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 };
 
 /** The first Fighter a browser on `seed` creates with the default choices. */
@@ -193,6 +198,7 @@ test(
     const directory = await mkdtemp(join(tmpdir(), "exploration-5e-"));
     const libraryPath = join(directory, "characters.json");
     let server = await startFifthBrowserServer({
+      ...FIXTURE_MODULES,
       libraryPath,
       seed,
       dmModel: examiningDm(),
@@ -306,6 +312,7 @@ test(
       // Restart (even with another seed): the same screen.
       await server.close();
       server = await startFifthBrowserServer({
+        ...FIXTURE_MODULES,
         libraryPath,
         seed: seed + 1,
         dmModel: examiningDm(),

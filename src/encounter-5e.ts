@@ -21,9 +21,17 @@
  *   an attack takes the action, Second Wind the bonus action, and Action
  *   Surge adds an action. Drinking a potion takes the bonus action (SRD 5.2).
  *   Nothing uses a reaction yet.
- * - A hit with a Sap weapon gives the target disadvantage on its next attack
- *   roll before the start of the attacker's next turn. Advantage and
- *   disadvantage come only from such engine rules, never from an action.
+ * - Light property: after an attack with a light weapon, a combatant holding
+ *   a second light weapon may make one extra attack with it that turn, as a
+ *   bonus action, or as part of the Attack action with the Nick mastery.
+ * - Weapon masteries: a hit with a Sap weapon gives the target disadvantage
+ *   on its next attack roll before the start of the attacker's next turn; a
+ *   hit that deals damage with a Vex weapon gives the attacker advantage on
+ *   its next attack roll against that target before the end of its next
+ *   turn; a miss with a Graze weapon still deals damage equal to the damage
+ *   modifier, if above 0. A heavy weapon wielded below Strength 13 attacks
+ *   with disadvantage. Advantage and disadvantage come only from such engine
+ *   rules, never from an action.
  *
  * The state allows any number of combatants per side.
  */
@@ -38,13 +46,18 @@ export type Damage = Readonly<{
   type: string;
 }>;
 
+/** The weapon masteries the engine applies. */
+export type Mastery = "Graze" | "Nick" | "Sap" | "Vex";
+
 export type Weapon = Readonly<{
   name: string;
   bonus: number;
   damage: Damage;
   criticalRange: 19 | 20;
-  /** The weapon mastery its wielder uses; only Sap so far. */
-  mastery?: "Sap";
+  /** The weapon mastery its wielder uses, if it has mastered the weapon. */
+  mastery?: Mastery;
+  /** Sources of disadvantage on every attack with it, such as "Heavy". */
+  disadvantage?: readonly string[];
 }>;
 
 export type Combatant = Readonly<{
@@ -58,6 +71,8 @@ export type Combatant = Readonly<{
   dexterity: number;
   initiativeBonus: number;
   attack: Weapon;
+  /** A second light weapon, for the Light property's extra attack. */
+  lightAttack?: Weapon;
   /** Fighter features, with the uses left of their maximum. */
   secondWind?: FeatureUses & Readonly<{ healing: Healing }>;
   actionSurge?: FeatureUses;
@@ -99,6 +114,15 @@ export type EncounterState = Readonly<{
   economy: TurnEconomy;
   /** Combatants with disadvantage on their next attack, and who sapped them. */
   sapped: readonly Readonly<{ targetId: string; sourceId: string }>[];
+  /**
+   * Who has advantage on its next attack against whom, from Vex, and the
+   * round it was given: it lasts to the end of the source's next turn.
+   */
+  vexed: readonly Readonly<{
+    targetId: string;
+    sourceId: string;
+    round: number;
+  }>[];
 }>;
 
 export type TurnEconomy = Readonly<{
@@ -109,6 +133,11 @@ export type TurnEconomy = Readonly<{
   bonusAction: boolean;
   /** Reset each turn; nothing uses a reaction yet. */
   reaction: boolean;
+  /**
+   * The Light property's extra attack: `ready` once the combatant has
+   * attacked with a light weapon this turn, `used` once made.
+   */
+  lightAttack: "unready" | "ready" | "used";
 }>;
 
 const FRESH_TURN: TurnEconomy = {
@@ -116,6 +145,7 @@ const FRESH_TURN: TurnEconomy = {
   maxActions: 1,
   bonusAction: true,
   reaction: true,
+  lightAttack: "unready",
 };
 
 /**
@@ -129,10 +159,19 @@ export type RollMode = Readonly<{
 }>;
 
 export type EncounterActionType =
-  "attack" | "second-wind" | "action-surge" | "drink-potion" | "end-turn";
+  | "attack"
+  | "light-attack"
+  | "second-wind"
+  | "action-surge"
+  | "drink-potion"
+  | "end-turn";
 
 export type EncounterAction =
-  | Readonly<{ type: "attack"; actorId: string; targetId: string }>
+  | Readonly<{
+      type: "attack" | "light-attack";
+      actorId: string;
+      targetId: string;
+    }>
   | Readonly<{
       type: "second-wind" | "action-surge" | "end-turn";
       actorId: string;
@@ -159,6 +198,10 @@ export type AttackEvent = Readonly<{
   damage: number;
   damageType: string;
   hpAfter: number;
+  /** The Light property's extra attack. */
+  light?: true;
+  /** A miss that still dealt `damage` through the Graze mastery. */
+  graze?: true;
 }>;
 
 export type EncounterEvent =
@@ -166,6 +209,7 @@ export type EncounterEvent =
   | Readonly<{ type: "turn"; combatantId: string; round: number }>
   | AttackEvent
   | Readonly<{ type: "sapped"; targetId: string; sourceId: string }>
+  | Readonly<{ type: "vexed"; targetId: string; sourceId: string }>
   | Readonly<{
       type: "second-wind";
       combatantId: string;
@@ -207,6 +251,9 @@ export type EncounterRefusalCode =
   | "already-defeated"
   | "action-used"
   | "bonus-action-used"
+  | "no-light-weapon"
+  | "no-light-attack"
+  | "light-attack-used"
   | "no-second-wind"
   | "no-action-surge"
   | "no-potion"
@@ -366,6 +413,31 @@ function potionRefusal(
     : undefined;
 }
 
+/** Why the Light property's extra attack can't be made now, whatever the target. */
+function lightAttackRefusal(
+  state: EncounterState,
+  actor: Combatant,
+): EncounterRejection | undefined {
+  if (actor.lightAttack === undefined) {
+    return refused("no-light-weapon", "You don't hold two light weapons.");
+  }
+  if (state.economy.lightAttack === "used") {
+    return refused(
+      "light-attack-used",
+      "You have already made the extra attack with your second light weapon this turn.",
+    );
+  }
+  if (state.economy.lightAttack === "unready") {
+    return refused(
+      "no-light-attack",
+      "The extra attack with your second light weapon follows an attack with a light weapon this turn.",
+    );
+  }
+  return actor.lightAttack.mastery !== "Nick" && !state.economy.bonusAction
+    ? BONUS_ACTION_USED
+    : undefined;
+}
+
 function actionSurgeRefusal(actor: Combatant): EncounterRejection | undefined {
   if (actor.actionSurge === undefined) {
     return refused("no-action-surge", "You don't have Action Surge.");
@@ -386,6 +458,9 @@ export function availableActions(
   }
   return [
     ...(state.economy.actions > 0 ? (["attack"] as const) : []),
+    ...(lightAttackRefusal(state, actor) === undefined
+      ? (["light-attack"] as const)
+      : []),
     ...(secondWindRefusal(state, actor) === undefined
       ? (["second-wind"] as const)
       : []),
@@ -484,10 +559,17 @@ function resolveAttack(
   target: Combatant,
   random: Roller,
   targetRoll: number | undefined,
+  light = false,
 ): { state: EncounterState; events: EncounterEvent[] } {
-  const weapon = actor.attack;
+  const weapon = light ? actor.lightAttack! : actor.attack;
   const sapped = state.sapped.some(({ targetId }) => targetId === actor.id);
-  const { d20, mode } = rollD20(random, [], sapped ? ["Sap"] : []);
+  const vexing = state.vexed.some(
+    ({ sourceId, targetId }) => sourceId === actor.id && targetId === target.id,
+  );
+  const { d20, mode } = rollD20(random, vexing ? ["Vex"] : [], [
+    ...(sapped ? ["Sap"] : []),
+    ...(weapon.disadvantage ?? []),
+  ]);
   const critical = d20 >= weapon.criticalRange;
   const total = d20 + weapon.bonus;
   const hit = d20 !== 1 && (critical || total >= target.armorClass);
@@ -498,13 +580,18 @@ function resolveAttack(
       damageRolls.push(random.roll(weapon.damage.sides));
     }
   }
+  // Graze: a miss still deals the damage modifier, if above 0.
+  const graze =
+    !hit && weapon.mastery === "Graze" && weapon.damage.modifier > 0;
   const damage = hit
     ? Math.max(
         0,
         damageRolls.reduce((sum, value) => sum + value, 0) +
           weapon.damage.modifier,
       )
-    : 0;
+    : graze
+      ? weapon.damage.modifier
+      : 0;
   const hpAfter = Math.max(0, target.hp - damage);
   const events: EncounterEvent[] = [
     {
@@ -525,15 +612,22 @@ function resolveAttack(
       damage,
       damageType: weapon.damage.type,
       hpAfter,
+      ...(light ? { light: true as const } : {}),
+      ...(graze ? { graze: true as const } : {}),
     },
   ];
-  // The attack spends any disadvantage Sap gave the attacker.
+  // The attack spends any disadvantage Sap gave the attacker, and any
+  // advantage Vex gave it against this target.
   let next: EncounterState = {
     ...state,
     combatants: state.combatants.map((candidate) =>
       candidate.id === target.id ? { ...candidate, hp: hpAfter } : candidate,
     ),
     sapped: state.sapped.filter(({ targetId }) => targetId !== actor.id),
+    vexed: state.vexed.filter(
+      ({ sourceId, targetId }) =>
+        sourceId !== actor.id || targetId !== target.id,
+    ),
   };
   if (hpAfter === 0 && target.hp > 0) {
     events.push({ type: "defeated", combatantId: target.id });
@@ -546,6 +640,15 @@ function resolveAttack(
       ],
     };
     events.push({ type: "sapped", targetId: target.id, sourceId: actor.id });
+  } else if (hit && damage > 0 && weapon.mastery === "Vex") {
+    next = {
+      ...next,
+      vexed: [
+        ...next.vexed,
+        { targetId: target.id, sourceId: actor.id, round: state.round },
+      ],
+    };
+    events.push({ type: "vexed", targetId: target.id, sourceId: actor.id });
   }
   const outcome = sideDefeated(next, "opponents")
     ? "victory"
@@ -581,11 +684,16 @@ function advance(
     if (isDefeated(actor)) {
       continue;
     }
-    // A turn starts afresh, and ends any Sap this combatant gave.
+    // A turn starts afresh, and ends any Sap this combatant gave and any
+    // Vex it gave before its last turn.
+    const round = next.round;
     next = {
       ...next,
       economy: FRESH_TURN,
       sapped: next.sapped.filter(({ sourceId }) => sourceId !== actor.id),
+      vexed: next.vexed.filter(
+        (vex) => vex.sourceId !== actor.id || round < vex.round + 2,
+      ),
     };
     events.push({ type: "turn", combatantId: actor.id, round: next.round });
     if (actor.side === "party") {
@@ -622,6 +730,7 @@ export function startEncounter(
       outcome: "ongoing",
       economy: FRESH_TURN,
       sapped: [],
+      vexed: [],
     },
     random,
     events,
@@ -660,20 +769,24 @@ export function act(
   }
   const events: EncounterEvent[] = [];
   let next: EncounterState;
+  /** The opponent an attack is aimed at, or why it can't be. */
+  const targetOf = (targetId: string): Combatant | EncounterRejection => {
+    const target = state.combatants.find(({ id }) => id === targetId);
+    if (target === undefined) {
+      return refused("no-target", "There is no such opponent here to attack.");
+    }
+    if (target.side === actor.side) {
+      return refused("same-side", `${target.name} is on your side.`);
+    }
+    return isDefeated(target)
+      ? refused("already-defeated", `${target.name} is already defeated.`)
+      : target;
+  };
   switch (action.type) {
     case "attack": {
-      const target = state.combatants.find(({ id }) => id === action.targetId);
-      if (target === undefined) {
-        return reject("no-target", "There is no such opponent here to attack.");
-      }
-      if (target.side === actor.side) {
-        return reject("same-side", `${target.name} is on your side.`);
-      }
-      if (isDefeated(target)) {
-        return reject(
-          "already-defeated",
-          `${target.name} is already defeated.`,
-        );
+      const target = targetOf(action.targetId);
+      if ("code" in target) {
+        return { state, rejection: target };
       }
       if (state.economy.actions === 0) {
         return reject(
@@ -685,7 +798,46 @@ export function act(
       events.push(...resolved.events);
       next = {
         ...resolved.state,
-        economy: { ...state.economy, actions: state.economy.actions - 1 },
+        economy: {
+          ...state.economy,
+          actions: state.economy.actions - 1,
+          // Holding two light weapons, every attack is with a light one.
+          lightAttack:
+            actor.lightAttack !== undefined &&
+            state.economy.lightAttack === "unready"
+              ? "ready"
+              : state.economy.lightAttack,
+        },
+      };
+      break;
+    }
+    case "light-attack": {
+      const target = targetOf(action.targetId);
+      if ("code" in target) {
+        return { state, rejection: target };
+      }
+      const refusal = lightAttackRefusal(state, actor);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      const resolved = resolveAttack(
+        state,
+        actor,
+        target,
+        random,
+        undefined,
+        true,
+      );
+      events.push(...resolved.events);
+      next = {
+        ...resolved.state,
+        economy: {
+          ...state.economy,
+          lightAttack: "used",
+          // Nick makes it part of the Attack action, sparing the bonus action.
+          bonusAction:
+            actor.lightAttack!.mastery === "Nick" && state.economy.bonusAction,
+        },
       };
       break;
     }

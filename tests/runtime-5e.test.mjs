@@ -22,7 +22,7 @@ const adventure = (await loadBuiltInFifthAdventures()).find(
 );
 // The engine's targeting tests need three goblins: two numbered minions.
 const storeroom = await loadFifthAdventure("tests/fixtures/three-goblins.json");
-// Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 17 with Defense, 12 HP, mace +5.
+// Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 13 in leather with Defense, 12 HP, mace +5.
 const sheet = buildFighter(
   "a".repeat(32),
   "Ada",
@@ -46,6 +46,8 @@ const sheet = buildFighter(
     increase: { constitution: 2, intelligence: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
+    kit: "mace",
+    masteries: ["dagger", "mace", "shortsword"],
   },
 );
 
@@ -111,10 +113,10 @@ test("begin rolls initiative for every combatant and records the dice", () => {
       ["pc", 4, 5],
     ],
   );
-  // The goblin acted first: 12 + 4 = 16 misses AC 17.
+  // The goblin acted first: 12 + 4 = 16 hits AC 13 for 2 + 2.
   assert.deepEqual(
     random.drawn.map(({ value }) => value),
-    [4, 17, 12],
+    [4, 17, 12, 2],
   );
   assert.match(
     runtime.renderResult(result),
@@ -122,7 +124,7 @@ test("begin rolls initiative for every combatant and records the dice", () => {
   );
   assert.match(
     runtime.renderResult(result),
-    /12 \+ 4 = 16 against AC 17\. Miss\.\nIt is your turn\.$/,
+    /12 \+ 4 = 16 against AC 13\. Hit\. Damage 2 \+ 2 = 4 slashing; Ada has 8\/12 HP\.\nIt is your turn\.$/,
   );
 });
 
@@ -208,7 +210,7 @@ test("scripted DM: a typed attack resolves through the engine, which writes the 
   );
   assert.equal(
     result.narration,
-    "Ada attacks Goblin Warrior with Mace: 10 + 5 = 15 against AC 15. Hit. Damage 4 + 3 = 7 bludgeoning; Goblin Warrior has 3/10 HP.\nGoblin Warrior is sapped: disadvantage on its next attack roll before Ada's next turn.\nGoblin Warrior attacks Ada with Scimitar, at disadvantage (Sap): 1 and 1, keeping 1; 1 + 4 = 5 against AC 17. Miss.\nIt is your turn.",
+    "Ada attacks Goblin Warrior with Mace: 10 + 5 = 15 against AC 15. Hit. Damage 4 + 3 = 7 bludgeoning; Goblin Warrior has 3/10 HP.\nGoblin Warrior is sapped: disadvantage on its next attack roll before Ada's next turn.\nGoblin Warrior attacks Ada with Scimitar, at disadvantage (Sap): 1 and 1, keeping 1; 1 + 4 = 5 against AC 13. Miss.\nIt is your turn.",
   );
   assert.deepEqual(result.toolResults[0].rolls, [
     { sides: 20, value: 10 },
@@ -586,6 +588,7 @@ test("Second Wind, Action Surge and End turn are offered only when legal", () =>
     maxActions: 1,
     bonusAction: true,
     reaction: true,
+    lightAttack: "unready",
     options: ["attack", "second-wind", "end-turn"],
   });
   assert.deepEqual(wounded.runtime.projectFight(wounded.state).features, {
@@ -625,7 +628,7 @@ test("Sap and disadvantage appear on the engine's card with both dice and the so
     [
       "Ada attacks Goblin Warrior with Mace: 12 + 5 = 17 against AC 15. Hit. Damage 2 + 3 = 5 bludgeoning; Goblin Warrior has 5/10 HP.",
       "Goblin Warrior is sapped: disadvantage on its next attack roll before Ada's next turn.",
-      "Goblin Warrior attacks Ada with Scimitar, at disadvantage (Sap): 18 and 6, keeping 6; 6 + 4 = 10 against AC 17. Miss.",
+      "Goblin Warrior attacks Ada with Scimitar, at disadvantage (Sap): 18 and 6, keeping 6; 6 + 4 = 10 against AC 13. Miss.",
       "It is your turn.",
     ].join("\n"),
   );
@@ -750,7 +753,7 @@ test("scripted DM: end_turn hands the turn to the opponents", async () => {
   });
   assert.equal(
     result.narration,
-    "Ada ends the turn.\nGoblin Warrior attacks Ada with Scimitar: 1 + 4 = 5 against AC 17. Miss.\nIt is your turn.",
+    "Ada ends the turn.\nGoblin Warrior attacks Ada with Scimitar: 1 + 4 = 5 against AC 13. Miss.\nIt is your turn.",
   );
   assert.equal(result.state.encounter.round, 2);
 });

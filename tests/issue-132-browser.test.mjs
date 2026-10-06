@@ -43,6 +43,8 @@ function firstFighter(seed) {
     increase: { strength: 2, constitution: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
+    kit: "mace",
+    masteries: ["dagger", "mace", "shortsword"],
     placement: defaultPlacement(dice),
   });
 }
@@ -223,7 +225,7 @@ async function play(seed, check) {
     await click(page, "talk", "warden");
     assert.match(
       await lastEntry(page).textContent(),
-      /Bound Smuggler: "A goblin took the tomb/,
+      /Bound Smuggler: "I lifted the sarcophagus lid/,
     );
     // Typed: the AI DM's talk tool, whose check the engine rolls.
     await page
@@ -242,7 +244,7 @@ async function play(seed, check) {
       shown.actions,
       /Talk to Bound Smuggler about the iron key Already asked/,
     );
-    assert.match(shown.room, /About the warden: "A goblin took the tomb/);
+    assert.match(shown.room, /About the warden: "I lifted the sarcophagus lid/);
 
     await click(page, "search", "hall");
     const [searchLine] = await compact(page);
