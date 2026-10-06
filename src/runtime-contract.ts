@@ -1,19 +1,17 @@
 /**
  * The generic runtime interface.
  *
- * Shared infrastructure (saves, traces and replay, the AI DM turn loop and its
- * history, the browser server and the character career handoff) depends only
- * on this module. Each runtime implements `AdventureRuntime`, and
- * `data-runtime.ts` is the single registry that selects one. A lint rule keeps
- * shared modules from importing a runtime directly, so a runtime can be added
- * or deleted without touching shared code.
+ * The AI DM turn loop and the model adapters depend only on this module, and
+ * take the runtime they drive as an argument. The 5e runtime (runtime-5e.ts)
+ * implements `AdventureRuntime`; the tests also drive a minimal counter
+ * runtime. A lint rule keeps shared modules from importing the 5e game.
  *
  * Runtime state is engine-owned JSON. Shared code reads only its `status`,
  * persists it, compares it and hands it back to the runtime that produced it.
  */
 import type { RandomSource } from "./random.js";
 
-/** `escaped`: the player chose to leave the adventure, alive (5e only). */
+/** `escaped`: the player chose to leave the adventure, alive. */
 export type RuntimeStatus =
   "playing" | "victory" | "defeat" | "escaped" | "quit";
 
@@ -39,82 +37,6 @@ export type RuntimeResult =
       events?: never;
     }>;
 
-/** A save-verified, runtime-authored fact about one committed transition. */
-export type RuntimeDomainEvent = Readonly<{ type: string; actionId: string }>;
-
-/** A committed transition as saves record it. */
-export type RecordedTransition = Readonly<{
-  sequence: number;
-  action?: RuntimeAction;
-  domainEvents?: readonly RuntimeDomainEvent[];
-}>;
-
-export type DmHistoryFact = Readonly<{
-  sequence: number;
-  type: string;
-  subjectId: string;
-  detail?: string;
-  cause?: string;
-}>;
-
-/** A player-visible, bounded account of earlier play for the AI DM. */
-export type DmHistory = Readonly<{
-  locationId: string;
-  speakerId?: string;
-  facts: readonly DmHistoryFact[];
-}>;
-
-export type DmJournal = Readonly<{
-  quest: Readonly<{
-    id: string;
-    title: string;
-    status: "active" | "resolved";
-    milestones: readonly string[];
-  }>;
-  discoveries: readonly Readonly<{
-    id: string;
-    title: string;
-    classification: "observation" | "testimony" | "belief";
-    source: Readonly<{
-      type: "feature" | "npc";
-      id: string;
-      name: string;
-      locationId: string;
-    }>;
-    summary: string;
-    actionableLead?: string;
-  }>[];
-  actionableLeads: readonly string[];
-  /** A runtime-specific resolution record, shown as given. */
-  resolution?: Readonly<{ id: string }>;
-  ending?:
-    | Readonly<{
-        id: string;
-        fate: string;
-        casualties: readonly string[];
-        consequences: readonly string[];
-        narration: string;
-      }>
-    | undefined;
-}>;
-
-/** An engine-authored conversation result the AI DM may voice. */
-export type DmConversation = Readonly<{
-  speakerId: string;
-  speakerName: string;
-  topicId: string;
-  topicName: string;
-  approach: string;
-  attitude: string;
-  voice: string;
-  approvedFacts: readonly Readonly<{ id: string; statement: string }>[];
-  authoredReply: string;
-  speakerHistory: readonly string[];
-  allowedClosings?: readonly ("none" | "check-carefully")[];
-  /** Show the authored reply as written, without composing one (#95). */
-  authoredOnly?: true;
-}>;
-
 /** The player-safe scene: everything the AI DM and the browser may see. */
 export type DmScene = Readonly<{
   title: string;
@@ -133,11 +55,6 @@ export type DmScene = Readonly<{
       id: string;
       name: string;
       description: string;
-      /** Where a pre-5e item lies; 5e items are simply in the room. */
-      placement?: Readonly<{
-        featureId: string;
-        description: string;
-      }>;
     }>[];
     opponents: readonly Readonly<{
       id: string;
@@ -147,13 +64,11 @@ export type DmScene = Readonly<{
     npcs?: readonly Readonly<{
       id: string;
       name: string;
-      condition: "living" | "dead";
+      condition: "living";
       description?: string;
       subjects: readonly Readonly<{
         id: string;
         name: string;
-        intent?: "claim" | "correction";
-        stakes?: string;
       }>[];
     }>[];
     exits: readonly Readonly<{
@@ -166,38 +81,10 @@ export type DmScene = Readonly<{
       }>;
     }>[];
   }>;
-  combat?: Readonly<
-    | { opponentId: string; currentTurn: string }
-    | { opponentCombatantId: string; currentTurn: string }
-  >;
-  journal?: DmJournal;
-  suggestions?: readonly string[];
-  combatChoices?: readonly Readonly<{
-    featureId: string;
-    label: string;
-    stakes: string;
-  }>[];
-  recoveryChoices?: readonly Readonly<{
-    featureId: string;
-    label: string;
-    stakes: string;
-  }>[];
-  itemUseChoices?: readonly Readonly<{
-    itemId: string;
-    featureId: string;
-    label: string;
-    stakes: string;
-  }>[];
   combatStatus?: string;
-  endingChoices?: readonly Readonly<{
-    id: string;
-    label: string;
-    stakes: string;
-  }>[];
 }>;
 
 export type CharacterStatus = Readonly<{
-  pendingXp?: number;
   hp: number;
   maxHp: number;
   equipment: readonly Readonly<{ id: string; name: string }>[];
@@ -208,37 +95,22 @@ export type CharacterStatus = Readonly<{
   }>[];
   outcome: RuntimeStatus;
   combatTurn?: string;
-  conditions?: readonly string[];
   resources?: readonly string[];
 }>;
 
+/** The AI DM's tools for reading the scene and acting in it. */
 export type GameToolName =
-  | "check_ability"
   | "look"
+  | "get_character_status"
   | "move"
-  | "follow"
-  | "inspect"
-  | "search"
   | "examine"
-  | "talk"
-  | "open"
+  | "search"
   | "take"
-  | "place_item"
   | "use_item"
-  | "recover"
-  | "brace"
-  | "attack"
-  | "resolve_quest"
-  | "wait"
-  | "adjudicate"
-  | "distract"
-  | "deceive"
-  | "offer"
-  | "leave"
-  | "get_journal"
-  | "get_character_status";
+  | "talk"
+  | "attack";
 
-/** Tools only the 5e runtime offers; kept apart from the pre-5e tool set. */
+/** The AI DM's tools for 5e class features, doors and traps. */
 export type FifthToolName =
   | "second_wind"
   | "action_surge"
@@ -313,8 +185,6 @@ export type RuntimeToolResult = Readonly<{
         ok: true;
         scene?: DmScene;
         status?: CharacterStatus;
-        journal?: DmJournal;
-        conversation?: DmConversation;
         events?: readonly RuntimeEvent[];
         inspection?: DmInspection;
       }>
@@ -327,35 +197,15 @@ export type RuntimeToolResult = Readonly<{
       }>;
 }>;
 
-/** Browser-only, player-safe facts the AI DM scene leaves out. */
-export type BrowserFacts = Readonly<{
-  monsterHealth: Readonly<
-    Record<string, Readonly<{ hp: number; maxHp: number }>>
-  >;
-  npcHealth: Readonly<Record<string, Readonly<{ hp: number; maxHp: number }>>>;
-  consumedItemIds: readonly string[];
-}>;
-
-export type PlayerClock = Readonly<{
-  id: string;
-  name: string;
-  unit: "day" | "tick";
-  value: number;
-}>;
-
 export type AdventureRuntime = Readonly<{
   id: string;
   version: string;
   rulesVersion: string;
   promptVersion: string;
-  systemPrompt?: string;
+  systemPrompt: string;
   toolSchemaVersion: string;
   readToolNames: readonly string[];
   mutationToolNames: readonly string[];
-  commandTraceFormatVersion: 1 | 3 | 4 | 6;
-  dmTraceFormatVersion: 2 | 3 | 4 | 6;
-  engineVersion?: string;
-  localStatusReads?: boolean;
   /** Create a fresh session. */
   createSession(): RuntimeState;
   /** Resolve one action. Dice come only from `random`. */
@@ -364,10 +214,7 @@ export type AdventureRuntime = Readonly<{
     action: RuntimeAction,
     random?: Pick<RandomSource, "roll">,
   ): RuntimeResult;
-  parseCommand(input: string): RuntimeAction;
-  renderIntroduction(): string;
   renderResult(result: RuntimeResult): string;
-  renderStateSummary?(state: RuntimeState): string;
   renderDmNarration?(
     call: GameToolCall,
     result: RuntimeToolResult,
@@ -383,26 +230,4 @@ export type AdventureRuntime = Readonly<{
   getGameToolDefinitions(state: RuntimeState): readonly GameToolDefinition[];
   projectCharacterStatus(state: RuntimeState): CharacterStatus;
   projectDmScene(state: RuntimeState): DmScene;
-  projectPlayerClocks?(state: RuntimeState): readonly PlayerClock[];
-  /**
-   * Save support: the domain events one committed transition records. A
-   * runtime without it cannot be saved. Format-2 saves did not record settled
-   * combat events, so replaying them passes `includeSettledEvents: false`.
-   */
-  recordDomainEvents?(
-    action: RuntimeAction,
-    actionId: string,
-    before: RuntimeState,
-    after: RuntimeState,
-    events: readonly RuntimeEvent[],
-    includeSettledEvents: boolean,
-  ): readonly RuntimeDomainEvent[];
-  /** The player-visible history of save-verified transitions. */
-  projectDmHistory?(
-    state: RuntimeState,
-    transitions: readonly RecordedTransition[],
-    speakerId?: string,
-  ): DmHistory | undefined;
-  /** Browser presentation facts; undefined when the state has none. */
-  projectBrowserFacts?(state: RuntimeState): BrowserFacts | undefined;
 }>;

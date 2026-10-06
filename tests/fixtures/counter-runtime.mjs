@@ -170,12 +170,8 @@ export function counterRuntime(overrides = {}) {
     toolSchemaVersion: "counter-tools-v1",
     readToolNames: READ_TOOLS,
     mutationToolNames: MUTATION_TOOLS,
-    commandTraceFormatVersion: 6,
-    dmTraceFormatVersion: 6,
     createSession: () => ({ status: "playing", count: 0 }),
     handleAction,
-    parseCommand: (input) => ({ type: input.trim() }),
-    renderIntroduction: () => "A counter.",
     renderResult,
     dispatchGameTool,
     getGameToolDefinitions: (state) => [
