@@ -41,8 +41,9 @@ results).
 ## Automated evidence
 
 - `npm.cmd run verify` passes with zero warnings: formatting, lint, types,
-  static analysis, tests, audit, secret scan and package checks. See
-  _Implementer evidence_ for the commits and the clean clone.
+  static analysis, tests, audit, secret scan and package checks, on a clean
+  clone of `a63b2e0` (see _Implementer evidence_). CI reruns it on the PR's
+  final commit.
 - **Balance gate.** _The Tinker's Toll_ qualifies as Hard. The weakest
   character playing cautiously survives 85.5% of 200 runs with its weakest
   kit; Hard needs 75%. No ordinary enemy is killed by one attack more than
@@ -71,9 +72,16 @@ results).
 
 ## Implementer evidence
 
-**Clean clone.** Recorded below once run: `git clone` of the branch into an
-empty directory, then `npm.cmd ci`, `npm.cmd run build`, `npm.cmd run verify`
-and a launch.
+**Clean clone.** On Windows 11, Node.js 24.13.0 and npm 11.6.4, the
+implementer ran `git clone` of the branch at `a63b2e0` into an empty
+directory, then `npm.cmd ci` (0 vulnerabilities), `npm.cmd run build` and
+`npm.cmd run verify`. All passed, and verify ended "Verification passed with
+zero warnings." From that clone, `npm.cmd run browser -- --seed 0 --characters
+.\.scratch\release-211\check\characters.json` without a key printed that the
+AI Dungeon Master is off, the local address and the Ctrl+C hint. It served the
+page (HTTP 200), and offered all eight modules, _The Tinker's Toll_ among the
+level-1 ones. The scenario 1–3 clicks were run by the browser test above, not
+by hand.
 
 **Bounded live AI run.** The budget was stated in the implementer's session
 before the run started: at most 80 provider calls on `gpt-5.6-luna` (the
