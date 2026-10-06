@@ -171,21 +171,28 @@ for (const viewport of [
         await assertTogether(page, "stay");
 
         // A reader who scrolled up keeps their place either way.
-        const place = await page.evaluate(() => {
+        const scrolledUpTop = await page.evaluate(() => {
           const log = document.getElementById("log");
           log.scrollTop = Math.floor((log.scrollHeight - log.clientHeight) / 2);
           return log.scrollTop;
         });
-        assert.ok(place > 24, `the log scrolls (${place}px up from the top)`);
+        assert.ok(
+          scrolledUpTop > 24,
+          `the log scrolls well clear of its bottom (${scrolledUpTop}px down)`,
+        );
         await nextFrame(page);
         const scrollTop = () =>
           page.evaluate(() => document.getElementById("log").scrollTop);
         await page.locator("#leave-controls button").click();
         await nextFrame(page);
-        assert.equal(await scrollTop(), place, "place kept as Leave asks");
+        assert.equal(
+          await scrollTop(),
+          scrolledUpTop,
+          "place kept as Leave asks",
+        );
         await page.locator("#cancel-leave").click();
         await nextFrame(page);
-        assert.equal(await scrollTop(), place, "place kept after Stay");
+        assert.equal(await scrollTop(), scrolledUpTop, "place kept after Stay");
 
         await page.locator("#leave-controls button").click();
         await page.locator("#confirm-leave").click();
