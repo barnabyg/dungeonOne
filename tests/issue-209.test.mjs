@@ -18,7 +18,11 @@ import {
   unequipItem,
 } from "../dist/equipment-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
-import { buildFighter, settleFighter } from "../dist/fighter-5e.js";
+import {
+  buildFighter,
+  settleFighter,
+  validateFighter,
+} from "../dist/fighter-5e.js";
 import {
   FifthSession,
   settleFifthSession,
@@ -593,5 +597,37 @@ test("the validator places gear only as a catalogue item, and keeps catalogue id
   assert.throws(
     broken((item) => (item.id = "longsword")),
     /id longsword names catalogue gear; choose another\./,
+  );
+});
+
+test("a character carries at most 20 stowed items, found or dropped", () => {
+  const laden = validateFighter({ ...ada, stowed: Array(20).fill("dagger") });
+  assert.throws(
+    () => validateFighter({ ...ada, stowed: Array(21).fill("dagger") }),
+    /Invalid stowed gear\./,
+  );
+  assert.throws(
+    () => validateFighter({ ...ada, stowed: ["halberd"] }),
+    /Invalid stowed gear\./,
+  );
+  const runtime = createFifthRuntime(barrow, laden);
+  const full = {
+    code: "carrying-full",
+    reason: "You carry 20 pieces of gear already; drop something first.",
+  };
+  const found = play(runtime, FIND);
+  assert.deepEqual(
+    runtime.handleAction(found.state, take("lintel-longsword")).rejection,
+    full,
+  );
+  // Taking dropped gear back is refused too once the limit is reached.
+  const swapped = play(runtime, [
+    ...FIND,
+    { type: "drop", itemId: "dagger" },
+    take("lintel-longsword"),
+  ]);
+  assert.deepEqual(
+    runtime.handleAction(swapped.state, take("dropped:dagger")).rejection,
+    full,
   );
 });

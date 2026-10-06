@@ -457,7 +457,7 @@ export type FifthRefusalCode =
   | "no-topic"
   | "already-asked"
   | "not-an-exit"
-  | "pack-full"
+  | "carrying-full"
   | GearRefusalCode;
 
 export type FifthRejection = Readonly<{
@@ -1231,7 +1231,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "already-asked": "Already asked",
   "not-an-exit": "No way out here",
   "interaction-used": "Interaction used",
-  "pack-full": "Can't carry more",
+  "carrying-full": "Can't carry more",
   "not-a-weapon": "Not a weapon",
   "already-held": "Already equipped",
   "two-handed": "Needs both hands",
@@ -2265,7 +2265,7 @@ export function createFifthRuntime(
         }
         const full = () =>
           reject(
-            "pack-full",
+            "carrying-full",
             `You carry ${MAX_STOWED} pieces of gear already; drop something first.`,
           );
         const stow = (from: FifthState, gear: ItemId): FifthState => ({
