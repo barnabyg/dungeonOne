@@ -284,6 +284,10 @@ const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   unequip: (itemId) => ({ type: "unequip", itemId }),
   swap: (itemId) => ({ type: "swap", itemId }),
   drop: (itemId) => ({ type: "drop", itemId }),
+  buy: (itemId) => ({ type: "buy", itemId }),
+  sell: (itemId) => ({ type: "sell", itemId }),
+  // Sent only once the player has confirmed the sale in the panel.
+  "sell-equipped": (itemId) => ({ type: "sell", itemId, equipped: true }),
 };
 
 export async function startFifthBrowserServer(options: FifthBrowserOptions) {

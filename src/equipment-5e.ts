@@ -757,3 +757,112 @@ export function formatCoins(copper: number): string {
   ];
   return parts.length === 0 ? "0 cp" : parts.join(" ");
 }
+
+/** What a character holds that it can trade: its gear and its purse, in copper. */
+export type Holding = Gear & Readonly<{ purse: number }>;
+
+/** Why a trade is refused; `reason` is the sentence players read. */
+export type TradeRefusalCode =
+  | "too-little-coin"
+  | "carrying-full"
+  | "sale-unconfirmed"
+  /** Selling equipped gear unequips it first, which may refuse. */
+  | GearRefusalCode;
+
+export type Trade =
+  | Readonly<{
+      holding: Holding;
+      /** The copper paid for a purchase, or received for a sale. */
+      price: number;
+      /** A sale only: the equipped item it took off first, if any. */
+      replaced?: readonly ItemId[];
+      refusal?: never;
+    }>
+  | Readonly<{
+      refusal: Readonly<{ code: TradeRefusalCode; reason: string }>;
+      holding?: never;
+    }>;
+
+/** What a merchant pays for an item: half its price, rounded down. */
+export function salePrice(id: ItemId): number {
+  return Math.floor(itemPrice(id) / 2);
+}
+
+/**
+ * Buys an item at its catalogue price: the purse pays, and the item is
+ * stowed. Refused with too little coin or no room to carry it.
+ */
+export function buyItem(holding: Holding, id: ItemId): Trade {
+  const price = itemPrice(id);
+  if (holding.purse < price) {
+    return {
+      refusal: {
+        code: "too-little-coin",
+        reason: `The ${lower(id)} costs ${formatCoins(price)}, and your purse ${holding.purse === 0 ? "is empty" : `holds only ${formatCoins(holding.purse)}`}.`,
+      },
+    };
+  }
+  if (holding.stowed.length >= MAX_STOWED) {
+    return {
+      refusal: {
+        code: "carrying-full",
+        reason: `You carry ${MAX_STOWED} pieces of gear already; sell or drop something first.`,
+      },
+    };
+  }
+  return {
+    holding: {
+      equipment: [...holding.equipment],
+      stowed: [...holding.stowed, id],
+      purse: holding.purse - price,
+    },
+    price,
+  };
+}
+
+/**
+ * Sells an item for half its price. A stowed copy is sold unless `equipped`
+ * confirms selling the one equipped, which is taken off first; selling what
+ * is only equipped needs that confirmation. The last weapon held is never
+ * sold.
+ */
+export function sellItem(
+  holding: Holding,
+  id: ItemId,
+  equipped = false,
+): Trade {
+  const price = salePrice(id);
+  const sold = (gear: Gear, replaced: readonly ItemId[]): Trade => ({
+    holding: {
+      equipment: [...gear.equipment],
+      stowed: withoutOne(gear.stowed, id),
+      purse: holding.purse + price,
+    },
+    price,
+    replaced: [...replaced],
+  });
+  if (!equipped) {
+    if (holding.stowed.includes(id)) {
+      return sold(holding, []);
+    }
+    if (!holding.equipment.includes(id)) {
+      return {
+        refusal: {
+          code: "not-carried",
+          reason: `You don't carry a ${lower(id)}.`,
+        },
+      };
+    }
+    return {
+      refusal: {
+        code: "sale-unconfirmed",
+        reason: `You are ${isWeaponId(id) ? "holding" : "wearing"} the ${lower(id)}. Selling it needs your confirmation.`,
+      },
+    };
+  }
+  const change = unequipItem(holding, id);
+  if (change.refusal !== undefined) {
+    return { refusal: change.refusal };
+  }
+  return sold(change.gear, [id]);
+}

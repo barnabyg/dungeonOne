@@ -517,6 +517,10 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   unequip: "unequip",
   swap: "swap_weapon",
   drop: "drop",
+  buy: "trade",
+  sell: "trade",
+  // Selling equipped gear is confirmed by the player in the panel.
+  "sell-equipped": undefined,
   leave: undefined,
 };
 const READ_TOOLS = ["look", "get_character_status"];
@@ -547,7 +551,9 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
     .map(({ action, target }) =>
       ["second-wind", "action-surge", "end-turn"].includes(action)
         ? TOOL_OF[action]!
-        : `${TOOL_OF[action]!}:${target!.id}`,
+        : action === "buy" || action === "sell"
+          ? `trade:${action}:${target!.id}`
+          : `${TOOL_OF[action]!}:${target!.id}`,
     )
     .sort();
   return isDeepStrictEqual(offered, [...new Set(enabled)]);

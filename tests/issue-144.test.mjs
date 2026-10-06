@@ -444,6 +444,6 @@ test("the gate's one-hit-kill measure takes the Fighting Style that kills most o
 });
 
 test("saves and traces move to new format versions: their attacks and dice carry Great Weapon Fighting", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 12);
-  assert.equal(FIFTH_TRACE_FORMAT, 6);
+  assert.ok(FIFTH_SESSION_FORMAT >= 12);
+  assert.ok(FIFTH_TRACE_FORMAT >= 6);
 });

@@ -505,6 +505,10 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   unequip: true,
   swap: true,
   drop: true,
+  // Trading only spends what the character found, so no style trades.
+  buy: true,
+  sell: true,
+  "sell-equipped": true,
   leave: true,
 };
 
@@ -1121,7 +1125,8 @@ export type OneHitKillCheck = Readonly<{
   cap: number;
   /**
    * Each ordinary opponent, with its one-hit-kill chance from the kit, or
-   * the weapon the module places (`gear`, wielded with that kit's armour),
+   * the weapon the module places or a merchant sells (`gear`, wielded with
+   * that kit's armour),
    * and the Fighting Style that kill it most often. On a tie the earlier
    * kit, then the default style, is kept.
    */
@@ -1245,13 +1250,15 @@ export function gateAdventure(
       required: thresholds.survival,
     };
 
-    // Every kit, and every weapon the module places wielded instead.
+    // Every kit, and every weapon the module places or a merchant sells
+    // wielded instead.
     const placed = [
       ...new Set(
-        adventure.rooms.flatMap(({ items }) =>
-          items.flatMap(({ gear }) =>
-            gear !== undefined && isWeaponId(gear) ? [gear] : [],
-          ),
+        adventure.rooms.flatMap(({ items, creatures }) =>
+          [
+            ...items.flatMap(({ gear }) => (gear === undefined ? [] : [gear])),
+            ...creatures.flatMap(({ merchant }) => merchant?.stock ?? []),
+          ].filter(isWeaponId),
         ),
       ),
     ];

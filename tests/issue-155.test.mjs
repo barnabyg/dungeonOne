@@ -132,6 +132,6 @@ test("the turn view counts the actions this turn: two after Action Surge (#155)"
   assert.equal(runtime.projectFight(missed).turn.maxActions, 2);
 });
 
-test("adventure saves are in format version 12 (#155, #132, #133, #206, #207, #208, #209, #144)", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 12);
+test("adventure saves are in format version 13 (#155, #132, #133, #206, #207, #208, #209, #144, #210)", () => {
+  assert.equal(FIFTH_SESSION_FORMAT, 13);
 });

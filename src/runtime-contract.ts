@@ -128,7 +128,8 @@ export type FifthToolName =
   | "equip"
   | "unequip"
   | "swap_weapon"
-  | "drop";
+  | "drop"
+  | "trade";
 
 /** A bounded tool the AI DM may call; the runtime offers only legal ones. */
 export type GameToolDefinition = Readonly<{
