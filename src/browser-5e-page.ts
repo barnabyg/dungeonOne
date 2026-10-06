@@ -923,7 +923,8 @@ function focusNewestEntry() {
 // History only grows, so new entries are appended: the live region announces
 // just them. The log follows the newest entry only while the reader is at the
 // bottom; someone who scrolled up to read older entries stays where they are.
-// Only the reader's scrolling changes that, not the dock resizing around it.
+// Only the reader's scrolling changes that, not the dock resizing around it;
+// while following, a resized log is scrolled back to its newest entry.
 let followHistory = true;
 
 function renderHistory() {
@@ -1656,6 +1657,12 @@ element("log").addEventListener("scroll", () => {
   const log = element("log");
   followHistory = log.scrollHeight - log.scrollTop - log.clientHeight < 24;
 });
+// When the dock around the log changes, as the Leave question opens or closes,
+// the log changes size: a following reader stays on the newest entry (#221).
+new ResizeObserver(() => {
+  const log = element("log");
+  if (followHistory) log.scrollTop = log.scrollHeight;
+}).observe(element("log"));
 // On a phone the dock is sticky: keep focused controls clear of it.
 new ResizeObserver(() => {
   const dock = element("session-dock");
