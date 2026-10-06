@@ -54,7 +54,7 @@ import {
   keptTotal,
   levelUpChanges,
   projectCreation,
-  rewardFighter,
+  settleFighter,
   type FighterChoices,
 } from "./fighter-5e.js";
 import {
@@ -115,20 +115,20 @@ function adventureView(adventure: FifthAdventure) {
 
 /**
  * What a surviving ending earned, from the character as the session started:
- * each XP award and the treasure kept, the XP and level after, and the
+ * each XP award and the treasure found, the XP and level after, and the
  * level-up, if any. Settling credits exactly this.
  */
 function rewardsView(session: FifthSession) {
-  const rewards = session.runtime.projectRewards(session.state);
-  if (rewards === undefined) {
+  const settlement = session.runtime.projectSettlement(session.state);
+  if (settlement === undefined) {
     return undefined;
   }
   const before = session.character;
-  const after = rewardFighter(before, rewards);
+  const after = settleFighter(before, settlement);
   const levelUp = levelUpChanges(before, after);
   return {
-    xp: rewards.xp.map(({ name, xp }) => ({ name, xp })),
-    treasure: rewards.treasure.map(({ name, description }) => ({
+    xp: settlement.xp.map(({ name, xp }) => ({ name, xp })),
+    treasure: settlement.finds.map(({ name, description }) => ({
       name,
       description,
     })),
@@ -345,8 +345,8 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
     session: projectSession(session),
   });
   /**
-   * Saves the session, then settles its character if it ended: crediting
-   * what a victory or escape earned, or recording a defeat.
+   * Saves the session, then settles its character if it ended: keeping what
+   * it holds after a victory or escape, or recording a defeat.
    */
   const save = async (session: FifthSession) => {
     await persist(session);

@@ -33,11 +33,23 @@ Earned character progress awarded for authored accomplishments and used to deter
 _Avoid_: Story milestones, Player score
 
 **Treasure**:
-Items a character finds by examining something (such as a chest, or a defeated enemy's body), or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion and earned once per character. It is never simply awarded. The currency is not decided yet, so treasure is named items with no value.
+Items a character finds by examining something (such as a chest, or a defeated enemy's body), or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion. It is never simply awarded. Each treasure is found once per character: the character's ledger records it as a find, and it is never there to find again, even after the character no longer holds it. Treasure the character holds is one of its possessions. Treasure is named items with no value until coin exists.
 _Avoid_: Reward XP, Drop
 
+**Possessions**:
+What a character holds: its equipment and its treasure. An adventure starts holding them, and they change only there. Settling a victory or an escape replaces them with what the character holds at the end.
+_Avoid_: Inventory (the items carried in one adventure), Loot
+
+**Ledger**:
+The record on a character of each treasure it has found and each XP award it has been credited, so that each is earned once. It is kept apart from the possessions and only grows: losing an item never takes its find away.
+_Avoid_: History, Achievements
+
+**Settling**:
+Ending an adventure in the character library, once. After a victory or an escape the character's possessions are replaced with what it holds at the end, its new finds and XP awards are added to its ledger, and it rests to full health. After a defeat it is marked defeated at 0 HP with its possessions and ledger as they were at the start.
+_Avoid_: Crediting (which suggests adding), Rewarding
+
 **Pending treasure**:
-Treasure the character carries during an adventure but has not kept yet. It can be used in that adventure at once (and, once coin and merchants exist, spent there). A victory or an escape keeps what the character holds at the end; a defeat or abandonment rolls the character back to how it started, as if the adventure never happened.
+Treasure the character carries during an adventure but has not kept yet. It can be used in that adventure at once (and, once coin and merchants exist, spent there). Settling a victory or an escape replaces the character's possessions with what it holds at the end, pending treasure included; a defeat or abandonment rolls the character back to how it started, as if the adventure never happened.
 _Avoid_: Loot (when kept treasure is meant), Inventory
 
 **XP award**:
@@ -53,7 +65,7 @@ An ending the player chooses by leaving from an exit room: with loot when the ch
 _Avoid_: Retreat, Flee (which a fled monster does), Quit
 
 **Abandonment**:
-Giving up an adventure in progress from the character sheet. The character keeps its treasure and XP as they were when the adventure started, and can start another.
+Giving up an adventure in progress from the character sheet. The character's possessions, ledger and XP stay as they were when the adventure started, and it can start another.
 _Avoid_: Escape, Quit
 
 **Adventure module**:

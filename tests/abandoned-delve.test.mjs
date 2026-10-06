@@ -242,7 +242,7 @@ test("scripted DM: pushing on to the vault and climbing the shaft escapes with a
   assert.deepEqual(state.clearedEncounterIds, ["guard-zombie", "vault-ghoul"]);
   // The fights' XP and the ending's.
   assert.equal(
-    runtime.projectRewards(state).xp.reduce((sum, { xp }) => sum + xp, 0),
+    runtime.projectSettlement(state).xp.reduce((sum, { xp }) => sum + xp, 0),
     50 + 200 + 200,
   );
 });

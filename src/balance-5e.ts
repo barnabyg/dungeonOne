@@ -746,15 +746,15 @@ export function playAdventure(
     apply(runtime.actionOf(choice)!);
   }
   const ending = adventure.endings.find(({ id }) => id === state.endingId)!;
-  const rewards = runtime.projectRewards(state);
+  const settlement = runtime.projectSettlement(state);
   return {
     outcome: ending.kind,
     roomIds,
     encounters: fights,
     healing,
     trapDamage,
-    xp: rewards?.xp.reduce((sum, { xp }) => sum + xp, 0) ?? 0,
-    treasure: rewards?.treasure.length ?? 0,
+    xp: settlement?.xp.reduce((sum, { xp }) => sum + xp, 0) ?? 0,
+    treasure: settlement?.finds.length ?? 0,
     actions,
   };
 }

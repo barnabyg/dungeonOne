@@ -11,7 +11,7 @@ import {
   levelUpChanges,
   nextLevelXp,
   proficiencyBonus,
-  rewardFighter,
+  settleFighter,
   rollAbilitySet,
   validateFighter,
 } from "../dist/fighter-5e.js";
@@ -309,9 +309,10 @@ test("no score rises above 20", () => {
   assert.equal(abilityModifier(20), 5);
 });
 
-test("a new Fighter has no treasure and no XP awards", () => {
+test("a new Fighter has no treasure, no finds and no XP awards", () => {
   const sheet = fighter();
   assert.deepEqual(sheet.treasure, []);
+  assert.deepEqual(sheet.finds, []);
   assert.deepEqual(sheet.xpAwards, []);
 });
 
@@ -324,32 +325,43 @@ const AWARDS = [
   { id: "robbers-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
   { id: "robbers-barrow/ending/out-with-the-torc", name: "Out", xp: 250 },
 ];
+/** A settlement holding the starting equipment, `treasure` and nothing else. */
+const settlement = (xp, finds = [], treasure = finds) => ({
+  possessions: { equipment: ["chain-shirt", "shield", "mace"], treasure },
+  xp,
+  finds,
+});
 
-test("rewards credit XP and treasure once, level up at 300 XP and rest to full HP", () => {
+test("settling credits XP and finds once, keeps what is held, levels up at 300 XP and rests to full HP", () => {
   const hurt = { ...fighter(), hp: 3 };
-  const rewarded = rewardFighter(hurt, { xp: AWARDS, treasure: [TORC] });
+  const rewarded = settleFighter(hurt, settlement(AWARDS, [TORC]));
   assert.equal(rewarded.xp, 300);
   assert.equal(rewarded.level, 2);
   assert.equal(rewarded.hp, fighterProfile(rewarded).maxHp);
   assert.deepEqual(rewarded.treasure, [TORC]);
+  assert.deepEqual(rewarded.finds, [TORC.id]);
   assert.deepEqual(
     rewarded.xpAwards,
     AWARDS.map(({ id }) => id),
   );
-  // Crediting the same rewards again changes nothing.
+  // Settling the same adventure again changes nothing.
   assert.deepEqual(
-    rewardFighter(rewarded, { xp: AWARDS, treasure: [TORC] }),
+    settleFighter(rewarded, settlement(AWARDS, [TORC])),
     rewarded,
   );
   // With nothing to credit, the rest still restores HP.
-  const rested = rewardFighter(hurt, { xp: [], treasure: [] });
+  const rested = settleFighter(hurt, settlement([]));
   assert.equal(rested.hp, fighterProfile(rested).maxHp);
   assert.equal(rested.xp, 0);
+  // What is no longer held is gone, but stays found.
+  const parted = settleFighter(rewarded, settlement([], [], []));
+  assert.deepEqual(parted.treasure, []);
+  assert.deepEqual(parted.finds, [TORC.id]);
 });
 
 test("the level-up changes name the new level, hit points and features", () => {
   const before = fighter();
-  const after = rewardFighter(before, { xp: AWARDS, treasure: [] });
+  const after = settleFighter(before, settlement(AWARDS));
   const changes = levelUpChanges(before, after);
   assert.equal(changes.from, 1);
   assert.equal(changes.to, 2);
@@ -365,11 +377,13 @@ test("the level-up changes name the new level, hit points and features", () => {
 });
 
 test("reaching 900 XP raises a level 2 Fighter to 3 with the Champion's features", () => {
-  const second = rewardFighter(fighter(), { xp: AWARDS, treasure: [] });
-  const third = rewardFighter(second, {
-    xp: [{ id: "warden-crypt/ending/crypt-cleared", name: "Crypt", xp: 600 }],
-    treasure: [],
-  });
+  const second = settleFighter(fighter(), settlement(AWARDS));
+  const third = settleFighter(
+    second,
+    settlement([
+      { id: "warden-crypt/ending/crypt-cleared", name: "Crypt", xp: 600 },
+    ]),
+  );
   assert.equal(third.level, 3);
   assert.equal(third.hp, fighterProfile(third).maxHp);
   const changes = levelUpChanges(second, third);
@@ -390,6 +404,9 @@ test("validation rejects malformed treasure and repeated awards", () => {
     { treasure: "torc" },
     { xpAwards: ["robbers-barrow/encounter/a", "robbers-barrow/encounter/a"] },
     { xpAwards: ["goblin"] },
+    { finds: [TORC.id, TORC.id] },
+    { finds: ["torc"] },
+    { finds: undefined },
   ]) {
     assert.throws(() => validateFighter({ ...sheet, ...change }));
   }

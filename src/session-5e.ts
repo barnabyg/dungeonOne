@@ -1,5 +1,5 @@
 /**
- * A 5e adventure session and its save file (format version 7).
+ * A 5e adventure session and its save file (format version 8).
  *
  * The save holds the character as it started, the adventure module's digest,
  * the session's seed, every committed action with the dice it drew, the
@@ -39,7 +39,7 @@ import {
   type ResultLine,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 7;
+export const FIFTH_SESSION_FORMAT = 8;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;
@@ -678,11 +678,12 @@ export async function startFifthAdventure(
 }
 
 /**
- * Settles an ended session's character in the library: credits what a
- * victory or an escape earned, or records a defeat. Call it after the
- * session is saved. It changes nothing while the session is under way, or
- * once the library no longer names the session (already settled or
- * abandoned), so a retry after an interruption never credits twice.
+ * Settles an ended session's character in the library: after a victory or an
+ * escape the character holds what the session held at the end and is
+ * credited what it earned; after a defeat it is recorded defeated. Call it
+ * after the session is saved. It changes nothing while the session is under
+ * way, or once the library no longer names the session (already settled or
+ * abandoned), so a retry after an interruption never settles twice.
  */
 export async function settleFifthSession(
   library: FifthCharacterLibrary,
@@ -699,6 +700,6 @@ export async function settleFifthSession(
     session.character.id,
     session.id,
     status,
-    session.runtime.projectRewards(session.state),
+    session.runtime.projectSettlement(session.state),
   );
 }

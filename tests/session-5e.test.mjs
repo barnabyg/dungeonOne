@@ -96,7 +96,7 @@ test("starting an adventure saves the session with its fight begun, then links i
       await readFile(library.sessionPath(session.id), "utf8"),
     );
     assert.equal(file.kind, "dungeon-one-5e-session");
-    assert.equal(file.formatVersion, 7);
+    assert.equal(file.formatVersion, 8);
     assert.equal(file.random.seed, sessionSeed(3, 1));
     assert.deepEqual(file.transitions[0].action, { type: "begin" });
     // Every initiative die (and any opening goblin attack) is recorded.
@@ -180,7 +180,22 @@ test("a session save that does not replay exactly is refused", async () => {
     await tamper((file) => file.transitions.pop(), /Invalid adventure session/);
     await tamper(
       (file) => (file.formatVersion = 0),
-      /format version 0, not 7\..*Move it aside/,
+      /format version 0, not 8\..*Move it aside/,
+    );
+    // A save from before replace-on-settle (#206), named by its path.
+    await tamper(
+      (file) => (file.formatVersion = 7),
+      new RegExp(
+        `${path.replaceAll("\\", "\\\\")} is an adventure session in format version 7, not 8\\..*Move it aside`,
+      ),
+    );
+    // The session holds the character's possessions from the start.
+    await tamper(
+      (file) =>
+        (file.state.possessions.treasure = [
+          { id: "a/b", name: "B", description: "B." },
+        ]),
+      /Invalid adventure session/,
     );
     await tamper(
       (file) => (file.adventure.id = "lost-mine"),
@@ -242,7 +257,12 @@ test("victory frees the character for another adventure", async () => {
     while (session.state.status === "playing") {
       session.act(step(session.runtime, session.state), "click");
     }
-    const data = await library.settleSession(sheet.id, session.id, "victory");
+    const data = await library.settleSession(
+      sheet.id,
+      session.id,
+      "victory",
+      session.runtime.projectSettlement(session.state),
+    );
     assert.equal(data.characters[0].defeated, undefined);
     assert.equal(data.characters[0].session, undefined);
     assert.equal(data.characters[0].sheet.hp, sheet.hp);
@@ -281,6 +301,7 @@ test("deletion is refused, with no write, while the character is on an adventure
       sheet.id,
       session.id,
       session.state.status,
+      session.runtime.projectSettlement(session.state),
     );
     const deleted = await library.delete(sheet.id, "Ada", settled.revision);
     assert.deepEqual(deleted.characters, []);
