@@ -707,8 +707,9 @@ function rewardNodes(rewards, name) {
   if (rewards.treasure.length > 0) {
     list("ending-treasure", "Treasure kept", rewards.treasure.map(treasureItem));
   }
-  if (rewards.coin) {
-    const coin = make("p", "Coin kept: " + rewards.coin);
+  // Coin found may have been spent; the purse is what is kept.
+  if (rewards.purse) {
+    const coin = make("p", (rewards.coin ? "Coin found: " + rewards.coin + ". " : "") + "Purse: " + rewards.purse + ".");
     coin.id = "ending-coin";
     nodes.push(coin);
   }

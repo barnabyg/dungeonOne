@@ -145,6 +145,8 @@ test("the release run clears the toll, trades with the tinker and walks out, thr
     );
     // 3 gp 5 sp and 12 gp found, 10 gp on the shortsword, 2 gp 5 sp for
     // the mace: the purse and the gear the sheet keeps.
+    assert.equal(session.ending.rewards.coin, "15 gp 5 sp");
+    assert.equal(session.ending.rewards.purse, "8 gp");
     const [ada] = JSON.parse(await readFile(libraryPath, "utf8")).characters;
     assert.equal(ada.session, undefined);
     assert.equal(ada.sheet.purse, 800);

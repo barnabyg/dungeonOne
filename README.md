@@ -305,7 +305,8 @@ itself awards. Each treasure, coin find and XP award is earned once per
 character, so playing an adventure again earns nothing twice. When the adventure ends, its
 ending takes the place of the action buttons and gets focus: Victory, Escaped
 with loot, Escaped empty-handed or Defeat, its title and text, what it earned
-and any level-up (300 XP for level 2, 900 for level 3) with the new hit points
+(with the coin found and the purse kept, which differ once coin is spent) and
+any level-up (300 XP for level 2, 900 for level 3) with the new hit points
 and features, and **Back to _name_'s sheet**. The typing box is disabled with the
 reason, the history stays readable, and reloading shows the same ending.
 
