@@ -43,7 +43,7 @@
           "id": "weapon-rack",
           "name": "Weapon Rack",
           "description": "A rack of rusted spears.",
-          "discovery": "Tucked behind the spears are a stoppered vial of red liquid, a guard's longsword and a dented shield."
+          "discovery": "Tucked behind the spears is a stoppered vial of red liquid."
         }
       ],
       "items": [
@@ -52,22 +52,6 @@
           "name": "Potion of Healing",
           "description": "A stoppered vial of red liquid that glimmers when shaken.",
           "kind": "potion-of-healing",
-          "hiddenIn": "weapon-rack"
-        },
-        {
-          "id": "rack-longsword",
-          "name": "Guard's Longsword",
-          "description": "A plain longsword in a cracked scabbard, its edge still keen.",
-          "kind": "gear",
-          "gear": "longsword",
-          "hiddenIn": "weapon-rack"
-        },
-        {
-          "id": "rack-shield",
-          "name": "Dented Shield",
-          "description": "A wooden shield rimmed with iron, dented but sound.",
-          "kind": "gear",
-          "gear": "shield",
           "hiddenIn": "weapon-rack"
         },
         {
@@ -112,7 +96,7 @@
           "id": "old-barrel",
           "name": "Old Barrel",
           "description": "One barrel is still sealed.",
-          "discovery": "Packed in straw inside the barrel is a stoppered vial of red liquid."
+          "discovery": "Packed in straw inside the barrel are a stoppered vial of red liquid, an oiled longsword and a shield."
         }
       ],
       "items": [
@@ -121,6 +105,22 @@
           "name": "Potion of Healing",
           "description": "A stoppered vial of red liquid that glimmers when shaken.",
           "kind": "potion-of-healing",
+          "hiddenIn": "old-barrel"
+        },
+        {
+          "id": "barrel-longsword",
+          "name": "Oiled Longsword",
+          "description": "A plain longsword wrapped in oilcloth, its edge still keen.",
+          "kind": "gear",
+          "gear": "longsword",
+          "hiddenIn": "old-barrel"
+        },
+        {
+          "id": "barrel-shield",
+          "name": "Storeroom Shield",
+          "description": "A wooden shield rimmed with iron, packed away and never used.",
+          "kind": "gear",
+          "gear": "shield",
           "hiddenIn": "old-barrel"
         }
       ]
