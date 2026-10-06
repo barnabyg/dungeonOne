@@ -39,7 +39,7 @@ import {
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 5;
+export const FIFTH_LIBRARY_FORMAT = 6;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -138,7 +138,7 @@ export class FifthCharacterLibrary {
         "a pre-5e character library (format version 1)",
       );
     }
-    if (version === 2 || version === 3 || version === 4) {
+    if (version === 2 || version === 3 || version === 4 || version === 5) {
       throw moveAside(
         this.path,
         `a 5e character library from an earlier build (format version ${version})`,

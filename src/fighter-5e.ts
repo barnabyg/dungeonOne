@@ -11,6 +11,24 @@
  * the possessions with what the character holds at the end and adds to the
  * ledger, so a find stays earned after the item is gone.
  */
+import {
+  equipmentProfile,
+  FIGHTER_MASTERY_COUNT,
+  formatPrice,
+  isKitId,
+  itemName,
+  KIT_IDS,
+  kitPrice,
+  MASTERIES,
+  MASTERY_WEAPONS,
+  readLoadout,
+  STARTING_KITS,
+  WEAPONS,
+  type AttackProfile,
+  type ItemId,
+  type KitId,
+  type WeaponId,
+} from "./equipment-5e.js";
 import type { RandomSource } from "./random.js";
 
 export const ABILITIES = [
@@ -50,23 +68,15 @@ export const FIGHTING_STYLES = {
   },
   "great-weapon-fighting": {
     name: "Great Weapon Fighting",
-    text: "Treat 1s and 2s on damage dice as 3s with a two-handed or versatile weapon held in two hands. No effect with a mace and shield.",
+    text: "Treat 1s and 2s on damage dice as 3s with a two-handed or versatile weapon held in two hands. Not used yet: it has no effect.",
   },
   "two-weapon-fighting": {
     name: "Two-Weapon Fighting",
-    text: "Add your ability modifier to the damage of the extra attack from two light weapons. No effect with a mace and shield.",
+    text: "Add your ability modifier to the damage of the extra attack from two light weapons. Not used yet: it has no effect.",
   },
 } as const;
 export type FightingStyle = keyof typeof FIGHTING_STYLES;
 
-/** The fixed common-tier kit: chain shirt, shield and mace. */
-export const FIGHTER_EQUIPMENT = ["chain-shirt", "shield", "mace"] as const;
-/**
- * The mace is the only weapon, so Sap is the only mastery for now. Graze,
- * Nick, Topple and Vex also work without positions; Cleave, Push and Slow do
- * not and are omitted.
- */
-export const FIGHTER_WEAPON_MASTERIES = ["mace"] as const;
 /**
  * How Second Wind and Action Surge uses recover until in-adventure rests
  * arrive. The sheet, the creation preview and the fight all show these words.
@@ -88,6 +98,10 @@ export type FighterChoices = Readonly<{
   increase: BackgroundIncrease;
   skills: readonly FighterSkill[];
   fightingStyle: FightingStyle;
+  /** The starting kit, from `STARTING_KITS`. */
+  kit: KitId;
+  /** The kinds of weapon mastered, from `MASTERY_WEAPONS`. */
+  masteries: readonly WeaponId[];
 }>;
 
 /**
@@ -108,7 +122,8 @@ export type XpAward = Readonly<{ id: string; name: string; xp: number }>;
 
 /** What a character holds: its equipment and its treasure. */
 export type Possessions = Readonly<{
-  equipment: typeof FIGHTER_EQUIPMENT;
+  /** What it has equipped: armour, then the weapon it attacks with, then any second weapon. */
+  equipment: readonly ItemId[];
   treasure: readonly TreasureRecord[];
 }>;
 
@@ -141,8 +156,10 @@ export type FighterSheet = Readonly<{
   abilities: Abilities;
   skills: readonly FighterSkill[];
   fightingStyle: FightingStyle;
-  weaponMasteries: typeof FIGHTER_WEAPON_MASTERIES;
-  equipment: typeof FIGHTER_EQUIPMENT;
+  /** The kinds of weapon whose mastery it can use. */
+  weaponMasteries: readonly WeaponId[];
+  /** What it has equipped; see `Possessions`. */
+  equipment: readonly ItemId[];
   /** The treasure the character holds. */
   treasure: readonly TreasureRecord[];
   /** The ids of the treasure found, so none is found twice. */
@@ -211,8 +228,8 @@ export function keptTotal(roll: AbilityRoll): number {
 
 /**
  * The order a fresh creation fills the abilities, highest roll first:
- * Strength for the mace, Constitution for hit points, Dexterity for AC (the
- * chain shirt counts up to +2) and initiative, Wisdom for Perception and
+ * Strength for the weapon, Constitution for hit points, Dexterity for AC
+ * (leather counts all of it) and initiative, Wisdom for Perception and
  * Wisdom saves, then Charisma and Intelligence. `docs/character-rules.md`
  * records it.
  */
@@ -244,13 +261,17 @@ export function defaultPlacement(dice: RolledDice): Placement {
 
 /**
  * The choices other than placement that a fresh creation starts with: +2
- * Strength and +1 Constitution, Athletics and Perception, and Defense. The
- * creation page and the balance harness both start from these.
+ * Strength and +1 Constitution, Athletics and Perception, Defense, the mace
+ * kit, and mastery of the dagger, mace and shortsword (every kit weapon whose
+ * mastery is used). The creation page and the balance harness both start
+ * from these.
  */
 export const FIGHTER_DEFAULT_CHOICES = {
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 } as const satisfies Omit<FighterChoices, "placement">;
 
 function isRoll(value: unknown): value is AbilityRoll {
@@ -359,6 +380,40 @@ function validateFightingStyle(value: unknown): FightingStyle {
   return value as FightingStyle;
 }
 
+function validateKit(value: unknown): KitId {
+  if (!isKitId(value)) {
+    throw new Error("Choose one of the starting kits.");
+  }
+  return value;
+}
+
+const MASTERY_CHOICE = `Choose ${FIGHTER_MASTERY_COUNT} different kinds of weapon to master.`;
+
+/** Different weapons whose mastery is used, however many are ticked so far. */
+function validatePartialMasteries(value: unknown): readonly WeaponId[] {
+  if (
+    !Array.isArray(value) ||
+    value.length > FIGHTER_MASTERY_COUNT ||
+    new Set(value).size !== value.length ||
+    !value.every(
+      (id) =>
+        typeof id === "string" &&
+        (MASTERY_WEAPONS as readonly string[]).includes(id),
+    )
+  ) {
+    throw new Error(MASTERY_CHOICE);
+  }
+  return [...(value as WeaponId[])];
+}
+
+function validateMasteries(value: unknown): readonly WeaponId[] {
+  const masteries = validatePartialMasteries(value);
+  if (masteries.length !== FIGHTER_MASTERY_COUNT) {
+    throw new Error(MASTERY_CHOICE);
+  }
+  return masteries;
+}
+
 function plainText(value: unknown, max: number): boolean {
   return (
     typeof value === "string" &&
@@ -449,8 +504,8 @@ export function buildFighter(
     ) as Abilities,
     skills: validateSkills(choices.skills),
     fightingStyle: validateFightingStyle(choices.fightingStyle),
-    weaponMasteries: FIGHTER_WEAPON_MASTERIES,
-    equipment: FIGHTER_EQUIPMENT,
+    weaponMasteries: validateMasteries(choices.masteries),
+    equipment: STARTING_KITS[validateKit(choices.kit)].equipment,
     treasure: [],
     finds: [],
     xpAwards: [],
@@ -466,14 +521,40 @@ export type CreationRow = Readonly<{
   atCap: boolean;
 }>;
 
+/** One starting kit as the creation screen offers it, with the numbers it gives. */
+export type KitPreview = Readonly<{
+  id: KitId;
+  name: string;
+  /** In copper pieces. */
+  price: number;
+  /** The price in mixed coins, such as "12 gp 1 sp". */
+  value: string;
+  /** The items, by name, in the kit's order. */
+  items: readonly string[];
+  armorClass: number;
+  attack: AttackProfile;
+  lightAttack?: AttackProfile;
+}>;
+
 /** What the creation screen shows for the choices made so far. */
 export type CreationProjection = Readonly<{
   /** One row per ability, in ABILITIES order. */
   rows: readonly CreationRow[];
   /** Skills ticked, the limit, and whether no more can be ticked. */
   skills: Readonly<{ chosen: number; limit: number; full: boolean }>;
+  /** Masteries ticked, the limit, and whether no more can be ticked. */
+  masteries: Readonly<{ chosen: number; limit: number; full: boolean }>;
+  /**
+   * Every starting kit with the AC and attacks it gives these scores, Fighting
+   * Style and the masteries ticked so far.
+   */
+  kits: readonly KitPreview[];
   /** Why a choice is not finished yet, keyed by the choice; empty when saving can go ahead. */
-  unfinished: Readonly<{ increase?: string; skills?: string }>;
+  unfinished: Readonly<{
+    increase?: string;
+    skills?: string;
+    masteries?: string;
+  }>;
   /** The sheet's scores and profile, present only when nothing is unfinished. */
   sheet?: Readonly<{ abilities: Abilities; profile: FighterProfile }>;
 }>;
@@ -492,7 +573,9 @@ export function projectCreation(
   const placement = validatePlacement(choices.placement);
   const { increase, missing } = validatePartialIncrease(choices.increase);
   const skills = validatePartialSkills(choices.skills);
-  validateFightingStyle(choices.fightingStyle);
+  const fightingStyle = validateFightingStyle(choices.fightingStyle);
+  validateKit(choices.kit);
+  const masteries = validatePartialMasteries(choices.masteries);
   const rows = ABILITIES.map((ability) => {
     const score =
       keptTotal(rolled[placement[ability]]!) + (increase[ability] ?? 0);
@@ -514,7 +597,40 @@ export function projectCreation(
       : {
           skills: `Choose ${FIGHTER_SKILL_COUNT} skills; ${skills.length} chosen.`,
         }),
+    ...(masteries.length === FIGHTER_MASTERY_COUNT
+      ? {}
+      : {
+          masteries: `Choose ${FIGHTER_MASTERY_COUNT} weapon masteries; ${masteries.length} chosen.`,
+        }),
   };
+  const score = (ability: Ability) =>
+    rows.find((row) => row.ability === ability)!.score;
+  const kits = KIT_IDS.map((id) => {
+    const kit = STARTING_KITS[id];
+    const derived = equipmentProfile(kit.equipment, {
+      modifiers: {
+        strength: abilityModifier(score("strength")),
+        dexterity: abilityModifier(score("dexterity")),
+      },
+      strengthScore: score("strength"),
+      proficiency: proficiencyBonus(1),
+      masteries,
+      defense: fightingStyle === "defense",
+      criticalRange: 20,
+    });
+    return {
+      id,
+      name: kit.name,
+      price: kitPrice(id),
+      value: formatPrice(kitPrice(id)),
+      items: kit.equipment.map(itemName),
+      armorClass: derived.armorClass,
+      attack: derived.attack,
+      ...(derived.lightAttack === undefined
+        ? {}
+        : { lightAttack: derived.lightAttack }),
+    };
+  });
   const projection = {
     rows,
     skills: {
@@ -522,6 +638,12 @@ export function projectCreation(
       limit: FIGHTER_SKILL_COUNT,
       full: skills.length >= FIGHTER_SKILL_COUNT,
     },
+    masteries: {
+      chosen: masteries.length,
+      limit: FIGHTER_MASTERY_COUNT,
+      full: masteries.length >= FIGHTER_MASTERY_COUNT,
+    },
+    kits,
     unfinished,
   };
   if (Object.keys(unfinished).length > 0) {
@@ -577,13 +699,14 @@ export function validateFighter(value: unknown): FighterSheet {
   }
   validateSkills(sheet.skills);
   validateFightingStyle(sheet.fightingStyle);
-  if (
-    JSON.stringify(sheet.weaponMasteries) !==
-    JSON.stringify(FIGHTER_WEAPON_MASTERIES)
-  ) {
+  try {
+    validateMasteries(sheet.weaponMasteries);
+  } catch {
     throw new Error("Unsupported weapon mastery.");
   }
-  if (JSON.stringify(sheet.equipment) !== JSON.stringify(FIGHTER_EQUIPMENT)) {
+  try {
+    readLoadout(sheet.equipment);
+  } catch {
     throw new Error("Unsupported character equipment.");
   }
   validateTreasure(sheet.treasure);
@@ -625,18 +748,14 @@ export type FighterProfile = Readonly<{
     bonus: number;
     proficient: boolean;
   }>[];
-  attack: Readonly<{
-    weapon: "Mace";
-    bonus: number;
-    damage: Readonly<{
-      dice: 1;
-      sides: 6;
-      modifier: number;
-      type: "bludgeoning";
-    }>;
-    mastery: "Sap";
-    criticalRange: 19 | 20;
-  }>;
+  /** What it has equipped, by name, in the sheet's order. */
+  equipment: readonly Readonly<{ id: ItemId; name: string }>[];
+  /** The attack with the weapon it holds first. */
+  attack: AttackProfile;
+  /** The Light property's extra attack with a second light weapon. */
+  lightAttack?: AttackProfile;
+  /** Armour worn below its Strength requirement (speed -10 ft, not used without positions). */
+  strengthShortfall?: Readonly<{ armour: string; strength: number }>;
   secondWind: Readonly<{
     uses: number;
     healing: Readonly<{ dice: 1; sides: 10; modifier: number }>;
@@ -648,9 +767,17 @@ export type FighterProfile = Readonly<{
 
 const SAVE_PROFICIENCIES: readonly Ability[] = ["strength", "constitution"];
 
-/** Every number derived from a sheet's scores, level, kit and choices. */
+/** Every number derived from a sheet's scores, level, equipment and choices. */
 export function fighterProfile(
-  sheet: Pick<FighterSheet, "abilities" | "level" | "skills" | "fightingStyle">,
+  sheet: Pick<
+    FighterSheet,
+    | "abilities"
+    | "level"
+    | "skills"
+    | "fightingStyle"
+    | "equipment"
+    | "weaponMasteries"
+  >,
 ): FighterProfile {
   const level = sheet.level;
   const proficiency = proficiencyBonus(level);
@@ -661,6 +788,14 @@ export function fighterProfile(
     ]),
   ) as Record<Ability, number>;
   const style = FIGHTING_STYLES[sheet.fightingStyle];
+  const gear = equipmentProfile(sheet.equipment, {
+    modifiers,
+    strengthScore: sheet.abilities.strength,
+    proficiency,
+    masteries: sheet.weaponMasteries,
+    defense: sheet.fightingStyle === "defense",
+    criticalRange: level >= 3 ? 19 : 20,
+  });
   const features: FighterFeature[] = [
     {
       id: "fighting-style",
@@ -674,8 +809,15 @@ export function fighterProfile(
     },
     {
       id: "weapon-mastery",
-      name: "Weapon Mastery: Sap",
-      text: "A creature hit by your mace has disadvantage on its next attack roll before the start of your next turn.",
+      name: `Weapon Mastery: ${sheet.weaponMasteries
+        .map((id) => WEAPONS[id].name)
+        .join(", ")}`,
+      text: `${sheet.weaponMasteries
+        .map((id) => {
+          const mastery = WEAPONS[id].mastery;
+          return `${WEAPONS[id].name} (${mastery}): ${MASTERIES[mastery].text}`;
+        })
+        .join(" ")} A mastery applies only while you wield that weapon.`,
     },
   ];
   if (level >= 2) {
@@ -711,12 +853,8 @@ export function fighterProfile(
     proficiencyBonus: proficiency,
     maxHp:
       10 + modifiers.constitution + (level - 1) * (6 + modifiers.constitution),
-    // Chain shirt 13 + Dex (max 2), shield +2, Defense +1 in armour.
-    armorClass:
-      13 +
-      Math.min(2, modifiers.dexterity) +
-      2 +
-      (sheet.fightingStyle === "defense" ? 1 : 0),
+    armorClass: gear.armorClass,
+    equipment: sheet.equipment.map((id) => ({ id, name: itemName(id) })),
     initiative: modifiers.dexterity,
     modifiers,
     savingThrows: Object.fromEntries(
@@ -742,18 +880,13 @@ export function fighterProfile(
         proficient,
       };
     }),
-    attack: {
-      weapon: "Mace",
-      bonus: modifiers.strength + proficiency,
-      damage: {
-        dice: 1,
-        sides: 6,
-        modifier: modifiers.strength,
-        type: "bludgeoning",
-      },
-      mastery: "Sap",
-      criticalRange: level >= 3 ? 19 : 20,
-    },
+    attack: gear.attack,
+    ...(gear.lightAttack === undefined
+      ? {}
+      : { lightAttack: gear.lightAttack }),
+    ...(gear.strengthShortfall === undefined
+      ? {}
+      : { strengthShortfall: gear.strengthShortfall }),
     secondWind: { uses: 2, healing: { dice: 1, sides: 10, modifier: level } },
     actionSurgeUses: level >= 2 ? 1 : 0,
     features,

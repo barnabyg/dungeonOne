@@ -43,6 +43,8 @@ const DEFAULT_CHOICES = {
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 };
 
 /** The first Fighter a browser on `seed` creates with the default choices. */

@@ -15,7 +15,11 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { buildFighter, rollAbilitySet } from "../dist/fighter-5e.js";
+import {
+  buildFighter,
+  defaultPlacement,
+  rollAbilitySet,
+} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { loadScriptedDmModel } from "../dist/scripted-dm-model.js";
@@ -33,18 +37,13 @@ const storeroom = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "goblin-storeroom",
 );
 const END_TURN = { type: "end-turn", actorId: "pc" };
+// The creation screen's default choices; the placement follows the dice.
 const DEFAULT_CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 };
 
 /** The first Fighter a browser on `seed` creates with the default choices. */
@@ -53,12 +52,11 @@ function firstFighter(seed) {
     .update(`5e-ability-rolls:${seed}:1`)
     .digest()
     .readUInt32LE(0);
-  return buildFighter(
-    "a".repeat(32),
-    "Ada",
-    rollAbilitySet(createSeededRandom(stream)),
-    DEFAULT_CHOICES,
-  );
+  const dice = rollAbilitySet(createSeededRandom(stream));
+  return buildFighter("a".repeat(32), "Ada", dice, {
+    ...DEFAULT_CHOICES,
+    placement: defaultPlacement(dice),
+  });
 }
 
 /**
@@ -488,7 +486,7 @@ for (const viewport of [
             "utf8",
           ),
         );
-        assert.equal(file.formatVersion, 8);
+        assert.equal(file.formatVersion, 9);
         assert.ok(
           file.history.some(({ cards }) =>
             cards.some(({ lines }) =>

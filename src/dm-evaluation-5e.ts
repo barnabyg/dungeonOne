@@ -269,7 +269,7 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
   }),
   actionCase({
     id: "synonym-second-wind",
-    seed: 2,
+    seed: 3,
     setup: hurtInBarracks,
     playerInput: "I need to catch my breath.",
     name: "second_wind",
@@ -330,7 +330,7 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
   readCase({
     id: "status-health",
     kind: "interpretation",
-    seed: 2,
+    seed: 3,
     setup: hurtInBarracks,
     playerInput: "How badly am I hurt?",
     name: "get_character_status",
@@ -501,6 +501,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   use: "use_item",
   "second-wind": "second_wind",
   "action-surge": "action_surge",
+  "light-attack": "light_attack",
   "end-turn": "end_turn",
   move: "move",
   examine: "examine",

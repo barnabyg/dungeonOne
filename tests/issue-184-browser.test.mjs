@@ -259,6 +259,8 @@ for (const [width, height, seed] of [
           increase: { dexterity: 1, constitution: 1, wisdom: 1 },
           skills: ["athletics", "survival"],
           fightingStyle: "defense",
+          kit: "mace",
+          masteries: ["dagger", "mace", "shortsword"],
         };
         const expected = buildFighter("0".repeat(32), "Preview", dice, choices);
         assert.deepEqual(projection.sheet.abilities, expected.abilities);

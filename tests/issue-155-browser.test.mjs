@@ -41,6 +41,8 @@ const DEFAULT_CHOICES = {
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 };
 
 /** The first Fighter a browser on `seed` creates with the default choices. */
@@ -274,6 +276,7 @@ for (const viewport of [
           maxActions: 1,
           bonusAction: true,
           reaction: true,
+          lightAttack: "unready",
         });
         shown = await status(page);
         await reload();
@@ -318,6 +321,7 @@ for (const viewport of [
           maxActions: 1,
           bonusAction: false,
           reaction: true,
+          lightAttack: "unready",
         });
         assert.equal(file.state.character.secondWindUses, 0);
         shown = await status(page);

@@ -39,7 +39,7 @@ import {
   type ResultLine,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 8;
+export const FIFTH_SESSION_FORMAT = 9;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;

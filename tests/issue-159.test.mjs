@@ -30,6 +30,8 @@ const CHOICES = {
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 };
 const END_TURN = { type: "end-turn", actorId: "pc" };
 
@@ -170,7 +172,7 @@ test("the session saves grouped rolls (format 5) and refuses format 3", async ()
       fighter(seed),
     );
     const file = JSON.parse(await readFile(path, "utf8"));
-    assert.equal(file.formatVersion, 8);
+    assert.equal(file.formatVersion, 9);
     const [card] = file.history[0].cards;
     assert.equal(card.kind, "result");
     assert.deepEqual(Object.keys(card).sort(), ["kind", "lines", "text"]);
@@ -198,7 +200,7 @@ test("the session saves grouped rolls (format 5) and refuses format 3", async ()
     await writeFile(path, JSON.stringify(older));
     await assert.rejects(
       FifthSession.load(path, adventures),
-      /format version 3, not 8\. This build cannot continue it\. Move it aside/,
+      /format version 3, not 9. This build cannot continue it\. Move it aside/,
     );
     assert.deepEqual(JSON.parse(await readFile(path, "utf8")), older);
   } finally {

@@ -43,6 +43,8 @@ function firstFighter(seed) {
     increase: { strength: 2, constitution: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
+    kit: "mace",
+    masteries: ["dagger", "mace", "shortsword"],
     placement: defaultPlacement(dice),
   });
 }

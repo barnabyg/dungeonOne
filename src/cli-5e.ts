@@ -59,6 +59,7 @@ const DM_OFF_NOTICE =
 /** The browser's button labels, so both offer the same choices. */
 const LABELS: Readonly<Record<ActionView["action"], string>> = {
   attack: "Attack ",
+  "light-attack": "Extra attack ",
   use: "Drink ",
   move: "Go to ",
   examine: "Examine ",

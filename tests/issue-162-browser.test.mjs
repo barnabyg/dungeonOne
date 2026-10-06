@@ -192,6 +192,8 @@ test(
         increase,
         skills: ["athletics", "perception"],
         fightingStyle: "defense",
+        kit: "mace",
+        masteries: ["dagger", "mace", "shortsword"],
       };
       const expected = buildFighter("0".repeat(32), "Preview", dice, choices);
       const profile = fighterProfile(expected);

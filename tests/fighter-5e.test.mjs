@@ -40,6 +40,8 @@ const CHOICES = {
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 };
 const fighter = (choices = {}) =>
   buildFighter(ID, "Ada", DICE, { ...CHOICES, ...choices });
@@ -116,7 +118,8 @@ test("placement and the background increase set the six scores", () => {
   assert.deepEqual(sheet.abilityRolls.strength, DICE[0]);
   assert.equal(sheet.level, 1);
   assert.equal(sheet.xp, 0);
-  assert.deepEqual(sheet.equipment, ["chain-shirt", "shield", "mace"]);
+  assert.deepEqual(sheet.equipment, ["leather", "mace"]);
+  assert.deepEqual(sheet.weaponMasteries, ["dagger", "mace", "shortsword"]);
   // "Amazing Strength, but Charisma 7": any roll may go anywhere.
   const swapped = fighter({
     placement: { ...IN_ORDER, strength: 5, charisma: 0 },
@@ -133,21 +136,26 @@ test("the level 1 Fighter has 5e numbers from its kit and choices", () => {
   // 10 + Con 14 (+2).
   assert.equal(profile.maxHp, 12);
   assert.equal(fighter().hp, 12);
-  // Chain shirt 13 + Dex (+2, max 2) + shield 2 + Defense 1.
-  assert.equal(profile.armorClass, 18);
+  // Leather 11 + Dex (+2) + Defense 1.
+  assert.equal(profile.armorClass, 14);
   assert.equal(
     fighterProfile(fighter({ fightingStyle: "great-weapon-fighting" }))
       .armorClass,
-    17,
+    13,
   );
   assert.equal(profile.initiative, 2);
   assert.deepEqual(profile.attack, {
+    weaponId: "mace",
     weapon: "Mace",
+    ability: "strength",
+    grip: "one-handed",
     bonus: 5,
     damage: { dice: 1, sides: 6, modifier: 3, type: "bludgeoning" },
-    mastery: "Sap",
     criticalRange: 20,
+    mastery: "Sap",
+    disadvantage: [],
   });
+  assert.equal(profile.lightAttack, undefined);
   assert.deepEqual(
     Object.fromEntries(
       ABILITIES.map((ability) => [ability, profile.savingThrows[ability]]),
@@ -199,7 +207,7 @@ test("Dexterity below 10 lowers armour class; a weak Strength weakens the mace",
   assert.equal(weak.abilities.dexterity, 10);
   assert.equal(weak.abilities.strength, 8);
   const profile = fighterProfile(weak);
-  assert.equal(profile.armorClass, 16);
+  assert.equal(profile.armorClass, 12);
   assert.equal(profile.attack.bonus, 1);
   assert.equal(profile.attack.damage.modifier, -1);
   const clumsy = fighter({
@@ -207,7 +215,66 @@ test("Dexterity below 10 lowers armour class; a weak Strength weakens the mace",
     increase: { strength: 2, wisdom: 1 },
   });
   assert.equal(clumsy.abilities.dexterity, 8);
-  assert.equal(fighterProfile(clumsy).armorClass, 15);
+  assert.equal(fighterProfile(clumsy).armorClass, 11);
+});
+
+test("each kit gives its own AC and attacks; masteries apply only to weapons held", () => {
+  const rows = [
+    // kit, equipment, AC, attack, light attack
+    ["mace", ["leather", "mace"], 14, "Mace +5 1d6+3 Sap", undefined],
+    [
+      "two-daggers",
+      ["leather", "dagger", "dagger"],
+      14,
+      "Dagger +5 1d4+3 -",
+      "Dagger +5 1d4+0 Nick",
+    ],
+    [
+      "club-and-dagger",
+      ["leather", "club", "dagger"],
+      14,
+      "Club +5 1d4+3 -",
+      "Dagger +5 1d4+0 Nick",
+    ],
+  ];
+  const text = (attack) =>
+    attack === undefined
+      ? undefined
+      : `${attack.weapon} +${attack.bonus} ${attack.damage.dice}d${attack.damage.sides}+${attack.damage.modifier} ${attack.mastery ?? "-"}`;
+  for (const [kit, equipment, armorClass, attack, light] of rows) {
+    const sheet = fighter({ kit });
+    const profile = fighterProfile(sheet);
+    assert.deepEqual(sheet.equipment, equipment, kit);
+    assert.equal(profile.armorClass, armorClass, kit);
+    assert.equal(text(profile.attack), attack, kit);
+    assert.equal(text(profile.lightAttack), light, kit);
+  }
+  // Without the dagger's mastery, the daggers have no Nick.
+  const unmastered = fighterProfile(
+    fighter({
+      kit: "two-daggers",
+      masteries: ["mace", "shortsword", "greatsword"],
+    }),
+  );
+  assert.equal(unmastered.attack.mastery, undefined);
+  assert.equal(unmastered.lightAttack.mastery, undefined);
+  assert.equal(
+    unmastered.features.find(({ id }) => id === "weapon-mastery").name,
+    "Weapon Mastery: Mace, Shortsword, Greatsword",
+  );
+});
+
+test("creation refuses an unknown kit and anything but three different masteries", () => {
+  assert.throws(() => fighter({ kit: "plate" }), /starting kits/);
+  for (const masteries of [
+    ["dagger", "mace"],
+    ["dagger", "mace", "mace"],
+    ["dagger", "mace", "club"],
+    ["dagger", "mace", "shortsword", "longsword"],
+    "dagger",
+  ]) {
+    assert.throws(() => fighter({ masteries }), /weapon/, String(masteries));
+  }
 });
 
 test("levels 2 and 3 add hit points, Action Surge, Tactical Mind and Champion", () => {
@@ -276,7 +343,15 @@ test("validation rejects malformed sheets and illegal choices", () => {
     { ...sheet, equipment: ["chain-mail", "shield", "greatsword"] },
     /equipment/,
   );
+  rejects({ ...sheet, equipment: ["leather", "sling"] }, /equipment/);
   rejects({ ...sheet, weaponMasteries: ["greatsword"] }, /mastery/);
+  rejects({ ...sheet, weaponMasteries: ["club", "mace", "dagger"] }, /mastery/);
+  // Gear found later is any legal loadout, not only a kit.
+  assert.deepEqual(
+    validateFighter({ ...sheet, equipment: ["chain-mail", "longsword"] })
+      .equipment,
+    ["chain-mail", "longsword"],
+  );
   rejects({ ...sheet, level: 2 }, /level/);
   rejects({ ...sheet, hp: 13 }, /health/);
   rejects({ ...sheet, hp: -1 }, /health/);

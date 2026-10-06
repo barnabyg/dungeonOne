@@ -28,8 +28,8 @@
  *
  * The AI DM reads with `look` and `get_character_status`, and acts with
  * `move`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
- * `break_door`, `unlock`, `search`, `disarm`, `talk`, `attack`, `second_wind`,
- * `action_surge` and `end_turn`. Each is offered only while the engine would
+ * `break_door`, `unlock`, `search`, `disarm`, `talk`, `attack`,
+ * `light_attack`, `second_wind`, `action_surge` and `end_turn`. Each is offered only while the engine would
  * accept it, listing only what is visible and legal: the tools come from the
  * same projection (`projectActions`) as the browser's action bar, which asks
  * the engine about each action. The engine authors the
@@ -67,7 +67,9 @@ import {
   type Potion,
   type RollMode,
   type TurnEconomy,
+  type Weapon,
 } from "./encounter-5e.js";
+import { itemName, type AttackProfile } from "./equipment-5e.js";
 import {
   fighterProfile,
   type FighterSheet,
@@ -91,7 +93,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v6";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v7";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -136,7 +138,11 @@ export type FifthState = Readonly<{
 
 export type FifthAction =
   | Readonly<{ type: "begin" }>
-  | Readonly<{ type: "attack"; actorId: string; targetId: string }>
+  | Readonly<{
+      type: "attack" | "light-attack";
+      actorId: string;
+      targetId: string;
+    }>
   | Readonly<{
       type: "second-wind" | "action-surge" | "end-turn";
       actorId: string;
@@ -172,6 +178,14 @@ const TARGET_TOOLS = {
     parameter: "target",
     action: (targetId: string): FifthAction => ({
       type: "attack",
+      actorId: PLAYER_ID,
+      targetId,
+    }),
+  },
+  light_attack: {
+    parameter: "target",
+    action: (targetId: string): FifthAction => ({
+      type: "light-attack",
       actorId: PLAYER_ID,
       targetId,
     }),
@@ -375,7 +389,7 @@ Leaving the adventure is the player's own final choice, made with the Leave butt
 
 Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
 
-A turn in a fight has one action (an attack), one bonus action and one reaction. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; when they end or pass their turn, call end_turn. Drinking a potion in a fight takes the bonus action. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, healing and extra actions come only from the engine's rules; a player cannot gain them by asking. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, what they carry, or whether they won or lost.
+A turn in a fight has one action (an attack), one bonus action and one reaction. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; when they end or pass their turn, call end_turn. Drinking a potion in a fight takes the bonus action. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, healing and extra actions come only from the engine's rules; a player cannot gain them by asking. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, what they carry, or whether they won or lost.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -420,6 +434,20 @@ export function potionOf(item: FifthItem): Potion | undefined {
     : { id: item.id, name: item.name, healing: kind.healing };
 }
 
+/** An attack from the character's equipment, as the encounter engine makes it. */
+function weaponOf(attack: AttackProfile): Weapon {
+  return {
+    name: attack.weapon,
+    bonus: attack.bonus,
+    damage: attack.damage,
+    criticalRange: attack.criticalRange,
+    ...(attack.mastery === undefined ? {} : { mastery: attack.mastery }),
+    ...(attack.disadvantage.length === 0
+      ? {}
+      : { disadvantage: attack.disadvantage }),
+  };
+}
+
 /**
  * The player character as a combatant, from a validated sheet, with what it
  * has left (by default, everything) and the potions it carries.
@@ -439,13 +467,10 @@ export function playerCombatant(
     maxHp: profile.maxHp,
     dexterity: sheet.abilities.dexterity,
     initiativeBonus: profile.initiative,
-    attack: {
-      name: profile.attack.weapon,
-      bonus: profile.attack.bonus,
-      damage: profile.attack.damage,
-      criticalRange: profile.attack.criticalRange,
-      mastery: profile.attack.mastery,
-    },
+    attack: weaponOf(profile.attack),
+    ...(profile.lightAttack === undefined
+      ? {}
+      : { lightAttack: weaponOf(profile.lightAttack) }),
     // Uses start full: each adventure follows the between-adventure rest.
     secondWind: {
       uses: resources.secondWindUses,
@@ -466,6 +491,7 @@ export function playerCombatant(
 
 const OPTION_TEXT: Record<EncounterActionType, string> = {
   attack: "attack",
+  "light-attack": "make the extra attack with your second light weapon",
   "second-wind": "use Second Wind",
   "action-surge": "use Action Surge",
   "drink-potion": "drink a potion",
@@ -555,14 +581,17 @@ export function renderFifthEvent(
       const mode =
         event.mode === undefined ? ":" : modeText(event.mode, event.d20);
       const roll = `${event.d20} ${signed(event.bonus)} = ${event.total} against AC ${event.armorClass}`;
-      if (!event.hit) {
-        return `${name(event.actorId)} attacks ${name(event.targetId)} with ${event.weapon}${chosen}${mode} ${roll}. Miss.`;
-      }
+      const weapon = `${event.weapon}${event.light === true ? " (extra attack)" : ""}`;
       const target = combatant(state.encounter!, event.targetId);
-      return `${name(event.actorId)} attacks ${name(event.targetId)} with ${event.weapon}${chosen}${mode} ${roll}. ${event.critical ? "Critical hit!" : "Hit."} Damage ${event.damageRolls.join(" + ")} ${signed(event.damageModifier)} = ${event.damage} ${event.damageType}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.`;
+      if (!event.hit) {
+        return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. Miss.${event.graze === true ? ` Graze: ${event.damage} ${event.damageType} damage; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.` : ""}`;
+      }
+      return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. ${event.critical ? "Critical hit!" : "Hit."} Damage ${event.damageRolls.join(" + ")} ${signed(event.damageModifier)} = ${event.damage} ${event.damageType}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.`;
     }
     case "sapped":
       return `${name(event.targetId)} is sapped: disadvantage on its next attack roll before ${name(event.sourceId)}'s next turn.`;
+    case "vexed":
+      return `${name(event.targetId)} is vexed: ${name(event.sourceId)} has advantage on the next attack roll against it before the end of ${name(event.sourceId)}'s next turn.`;
     case "second-wind": {
       const self = combatant(state.encounter!, event.combatantId);
       return `${self.name} uses Second Wind: ${event.roll} ${signed(event.modifier)} = ${event.roll + event.modifier}; ${self.name} regains ${event.healing} HP and has ${event.hpAfter}/${self.maxHp} HP. ${uses(event.usesLeft)}.`;
@@ -835,7 +864,7 @@ export function describeFifthResult(
           armorClass: event.armorClass,
           outcome: !event.hit ? "miss" : event.critical ? "critical" : "hit",
         });
-        if (event.hit) {
+        if (event.hit || event.graze === true) {
           shown.push({
             purpose: "damage",
             roller: name(event.actorId),
@@ -958,6 +987,7 @@ export type RoomView = Readonly<{
 /** A kind of action in the browser's action bar. */
 export type ActionKind =
   | "attack"
+  | "light-attack"
   | "use"
   | "second-wind"
   | "action-surge"
@@ -996,6 +1026,9 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "already-defeated": "Already defeated",
   "action-used": "Action used",
   "bonus-action-used": "Bonus action used",
+  "no-light-weapon": "No second weapon",
+  "no-light-attack": "Attack first",
+  "light-attack-used": "Extra attack used",
   "no-second-wind": "No Second Wind",
   "no-action-surge": "No Action Surge",
   "no-potion": "No potion",
@@ -1031,9 +1064,11 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
 
 /** Thrown by the dry-run roller: the engine accepted the action and rolls. */
 class WouldRoll extends Error {}
+/** One instance, thrown every time: building an Error per dry run is slow. */
+const WOULD_ROLL = new WouldRoll("A dry run draws no dice.");
 const DRY_RUN = {
   roll(): number {
-    throw new WouldRoll("A dry run draws no dice.");
+    throw WOULD_ROLL;
   },
 };
 
@@ -1569,11 +1604,12 @@ export function createFifthRuntime(
     switch (action.type) {
       case "begin":
         return { type: "begin" };
-      case "attack": {
+      case "attack":
+      case "light-attack": {
         const targetId = field("targetId");
         return actorId === undefined || targetId === undefined
           ? undefined
-          : { type: "attack", actorId, targetId };
+          : { type: action.type, actorId, targetId };
       }
       case "second-wind":
       case "action-surge":
@@ -1688,6 +1724,7 @@ export function createFifthRuntime(
         }
         return enter(state, random, []);
       case "attack":
+      case "light-attack":
       case "second-wind":
       case "action-surge":
       case "end-turn":
@@ -2154,14 +2191,19 @@ export function createFifthRuntime(
       const pc = combatant(state.encounter!, PLAYER_ID);
       const feature = (kind: "second-wind" | "action-surge" | "end-turn") =>
         view(kind, { type: kind, actorId: PLAYER_ID });
-      return [
-        ...legalTargets(state.encounter!, PLAYER_ID).map((target) =>
+      const targets = legalTargets(state.encounter!, PLAYER_ID);
+      const attack = (kind: "attack" | "light-attack") =>
+        targets.map((target) =>
           view(
-            "attack",
-            { type: "attack", actorId: PLAYER_ID, targetId: target.id },
+            kind,
+            { type: kind, actorId: PLAYER_ID, targetId: target.id },
             target,
           ),
-        ),
+        );
+      return [
+        ...attack("attack"),
+        // Offered only to a character holding two light weapons.
+        ...(pc.lightAttack === undefined ? [] : attack("light-attack")),
         ...potions(state).map(use),
         ...(pc.secondWind === undefined ? [] : [feature("second-wind")]),
         ...(pc.actionSurge === undefined ? [] : [feature("action-surge")]),
@@ -2355,6 +2397,10 @@ export function createFifthRuntime(
                   ({ targetId }) =>
                     `${combatant(encounter, targetId).name} is sapped.`,
                 ),
+                ...encounter.vexed.map(
+                  ({ targetId }) =>
+                    `${combatant(encounter, targetId).name} is vexed.`,
+                ),
                 ...(turn.id === PLAYER_ID
                   ? [
                       `The player has ${encounter.economy.actions} ${encounter.economy.actions === 1 ? "action" : "actions"} and ${encounter.economy.bonusAction ? "a" : "no"} bonus action left this turn.`,
@@ -2372,11 +2418,10 @@ export function createFifthRuntime(
     return {
       hp: state.character.hp,
       maxHp,
-      equipment: [
-        { id: "chain-shirt", name: "Chain shirt" },
-        { id: "shield", name: "Shield" },
-        { id: "mace", name: "Mace" },
-      ],
+      equipment: state.possessions.equipment.map((id) => ({
+        id,
+        name: itemName(id),
+      })),
       collectedItems: carried(state).map(named),
       outcome: state.status,
       resources: featureUses(self(state)),
@@ -2586,6 +2631,12 @@ export function createFifthRuntime(
         "attack",
         "Attack one opponent with the character's weapon on the character's turn. The engine rolls the attack and damage. Targets:",
         choices("attack"),
+        "The id of the opponent to attack.",
+      ),
+      ...targetTool(
+        "light_attack",
+        "Make the extra attack with the character's second light weapon, after an attack this turn. The engine rolls the attack and damage. Targets:",
+        choices("light-attack"),
         "The id of the opponent to attack.",
       ),
       ...features,

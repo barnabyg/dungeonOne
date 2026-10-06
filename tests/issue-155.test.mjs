@@ -37,6 +37,8 @@ const sheet = buildFighter(
     increase: { constitution: 2, intelligence: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
+    kit: "mace",
+    masteries: ["dagger", "mace", "shortsword"],
   },
 );
 
@@ -130,6 +132,6 @@ test("the turn view counts the actions this turn: two after Action Surge (#155)"
   assert.equal(runtime.projectFight(missed).turn.maxActions, 2);
 });
 
-test("adventure saves are in format version 8 (#155, #132, #133, #206)", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 8);
+test("adventure saves are in format version 9 (#155, #132, #133, #206, #207)", () => {
+  assert.equal(FIFTH_SESSION_FORMAT, 9);
 });

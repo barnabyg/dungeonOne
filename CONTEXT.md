@@ -40,6 +40,22 @@ _Avoid_: Reward XP, Drop
 What a character holds: its equipment and its treasure. An adventure starts holding them, and they change only there. Settling a victory or an escape replaces them with what the character holds at the end.
 _Avoid_: Inventory (the items carried in one adventure), Loot
 
+**Equipment**:
+The weapons and armour a character has equipped, armour first and then the weapon it attacks with and any second light weapon. Its armour class and attacks are derived from it.
+_Avoid_: Gear list, Loadout (the derived reading of it, in code)
+
+**Starting kit**:
+One of the named sets of common-tier equipment a player chooses from at creation, of equal value within 3 gp. There is no starting coin.
+_Avoid_: Starting gear package, Class equipment
+
+**Weapon mastery**:
+A Fighter's mastery of a kind of weapon, chosen at creation (three at levels 1–3). The weapon's mastery property (Sap, Vex, Graze or Nick) applies only while the character wields that weapon.
+_Avoid_: Proficiency (Fighters are proficient with every weapon), Weapon skill
+
+**Extra attack (light weapon)**:
+The SRD 5.2 Light property's one extra attack with a second light weapon after attacking with a light weapon on the same turn; a bonus action unless Nick makes it part of the Attack action.
+_Avoid_: Extra Attack (the level-5 Fighter feature), Off-hand attack
+
 **Ledger**:
 The record on a character of each treasure it has found and each XP award it has been credited, so that each is earned once. It is kept apart from the possessions and only grows: losing an item never takes its find away.
 _Avoid_: History, Achievements

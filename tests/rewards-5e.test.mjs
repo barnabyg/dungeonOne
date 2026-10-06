@@ -48,6 +48,8 @@ const sheet = buildFighter(
     increase: { constitution: 2, intelligence: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
+    kit: "mace",
+    masteries: ["dagger", "mace", "shortsword"],
   },
 );
 
@@ -112,7 +114,7 @@ test("leaving from an exit without treasure ends the adventure empty-handed", ()
     },
   ]);
   assert.deepEqual(runtime.projectSettlement(result.state), {
-    possessions: { equipment: ["chain-shirt", "shield", "mace"], treasure: [] },
+    possessions: { equipment: ["leather", "mace"], treasure: [] },
     xp: [],
     finds: [],
   });
@@ -139,7 +141,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
   };
   assert.deepEqual(runtime.projectSettlement(out), {
     possessions: {
-      equipment: ["chain-shirt", "shield", "mace"],
+      equipment: ["leather", "mace"],
       treasure: [torc],
     },
     xp: [
@@ -301,7 +303,7 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
   );
   assert.equal(won.status, "victory");
   assert.deepEqual(runtime.projectSettlement(won), {
-    possessions: { equipment: ["chain-shirt", "shield", "mace"], treasure: [] },
+    possessions: { equipment: ["leather", "mace"], treasure: [] },
     xp: [
       {
         id: "cellar-goblin/encounter/cellar-goblin",
@@ -440,6 +442,8 @@ async function withLibrary(run) {
         increase: { strength: 2, constitution: 1 },
         skills: ["athletics", "perception"],
         fightingStyle: "defense",
+        kit: "mace",
+        masteries: ["dagger", "mace", "shortsword"],
       },
       started.revision,
     );
@@ -666,7 +670,7 @@ test("an adventure starts holding the character's equipment and kept treasure (#
   assert.deepEqual(veteran.finds, [TORC_ID]);
   const runtime = createFifthRuntime(cellar, veteran);
   assert.deepEqual(runtime.createSession().possessions, {
-    equipment: ["chain-shirt", "shield", "mace"],
+    equipment: ["leather", "mace"],
     treasure: veteran.treasure,
   });
 });

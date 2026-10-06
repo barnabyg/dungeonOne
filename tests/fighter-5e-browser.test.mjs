@@ -121,6 +121,8 @@ test(
         increase: { strength: 2, constitution: 1 },
         skills: ["athletics", "perception"],
         fightingStyle: "defense",
+        kit: "mace",
+        masteries: ["dagger", "mace", "shortsword"],
         level: 3,
       });
       assert.equal(forged.status, 409);
@@ -165,12 +167,27 @@ test(
       assert.equal(await page.locator("#save-character").isDisabled(), true);
       await page.locator("#skill-survival").press("Space");
       await page.locator("#style-great-weapon-fighting").check();
+      await page.locator("#kit-two-daggers").check();
+      // A fourth mastery can't be ticked until one is cleared (#207).
+      assert.equal(
+        await page.locator("#mastery-greatsword").isDisabled(),
+        true,
+      );
+      await page.locator("#mastery-mace").uncheck();
+      await page
+        .locator("#masteries-error")
+        .filter({ hasText: "Choose 3 weapon masteries; 2 chosen." })
+        .waitFor();
+      assert.equal(await page.locator("#save-character").isDisabled(), true);
+      await page.locator("#mastery-greatsword").check();
 
       const choices = {
         placement,
         increase: { strength: 2, constitution: 1 },
         skills: ["athletics", "survival"],
         fightingStyle: "great-weapon-fighting",
+        kit: "two-daggers",
+        masteries: ["dagger", "shortsword", "greatsword"],
       };
       const expected = buildFighter("0".repeat(32), "Preview", dice, choices);
       const profile = fighterProfile(expected);
@@ -181,6 +198,7 @@ test(
           hasText: new RegExp(`HP:\\s*${profile.maxHp}/${profile.maxHp}`),
         })
         .filter({ hasText: "Survival" })
+        .filter({ hasText: "Greatsword" })
         .waitFor();
       const text = await preview.innerText();
       assert.match(text, /Proficiency bonus:\s*\+2/);
@@ -191,8 +209,11 @@ test(
         ),
       );
       assert.match(text, /Second Wind/);
-      assert.match(text, /Weapon Mastery: Sap/);
-      assert.match(text, /1d6/);
+      assert.match(text, /Weapon Mastery: Dagger, Shortsword, Greatsword/);
+      assert.match(
+        text,
+        /Dagger \(extra attack\):\s*[+-]\d+ to hit, 1d4 piercing, Nick/,
+      );
 
       // Save with Enter from the name field.
       await page.locator("#character-name").fill("Ada");

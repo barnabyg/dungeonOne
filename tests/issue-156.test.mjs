@@ -3,7 +3,10 @@
 // exactly the actions the bar shows enabled.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
+import {
+  loadBuiltInFifthAdventures,
+  loadFifthAdventure,
+} from "../dist/adventure-5e.js";
 import {
   buildFighter,
   fighterProfile,
@@ -15,7 +18,10 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 
 const adventures = await loadBuiltInFifthAdventures();
 const cellarGoblin = adventures.find(({ id }) => id === "cellar-goblin");
-const smugglers = adventures.find(({ id }) => id === "smugglers-cellar");
+// The Smugglers' Cellar as it was before #207, with its Giant Rat fight.
+const smugglers = await loadFifthAdventure(
+  "tests/fixtures/smugglers-with-rat.json",
+);
 
 // Con 14 (+2): 12 HP at level 1.
 const sheet = buildFighter(
@@ -41,6 +47,8 @@ const sheet = buildFighter(
     increase: { constitution: 2, intelligence: 1 },
     skills: ["athletics", "perception"],
     fightingStyle: "defense",
+    kit: "mace",
+    masteries: ["dagger", "mace", "shortsword"],
   },
 );
 

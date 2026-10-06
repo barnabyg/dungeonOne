@@ -209,9 +209,7 @@ test("opponent names differing only in case count as the same name", () => {
 });
 
 const smugglers = JSON.parse(
-  await readFile(
-    new URL("../adventures/5e/smugglers-cellar.json", import.meta.url),
-  ),
+  await readFile(new URL("fixtures/smugglers-with-rat.json", import.meta.url)),
 );
 const explored = (change) => {
   const copy = structuredClone(smugglers);
@@ -220,11 +218,9 @@ const explored = (change) => {
 };
 const room = (module, id) => module.rooms.find((entry) => entry.id === id);
 
-test("the multi-room fixture has passages, features with discoveries and a hidden potion", async () => {
-  const adventure = (await loadBuiltInFifthAdventures()).find(
-    ({ id }) => id === "smugglers-cellar",
-  );
-  assert.deepEqual(validateFifthAdventure(smugglers), adventure);
+test("the multi-room fixture has passages, features with discoveries and a hidden potion", () => {
+  // The Smugglers' Cellar as it was before #207, with its Giant Rat fight.
+  const adventure = validateFifthAdventure(smugglers);
   assert.deepEqual(
     adventure.rooms.map(({ id }) => id),
     ["stair-foot", "alcove", "rat-cellar", "den"],

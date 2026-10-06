@@ -759,11 +759,13 @@ Needs an ADR: a fourth record, the **campaign**, separate from character, advent
 
 ### Settled by the owner, 6 October 2026
 
-| Decision           | Outcome                                                                                                                                      | Where it applies |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| Currency           | 5e copper, silver and gold, stored as copper and shown in mixed denominations                                                                | #208, #210       |
-| Starting equipment | Named common-tier kits only; no starting coin. Merchants stock common items always, uncommon from level 3, and no rare items in increment 12 | #207, #210       |
-| Market location    | In-adventure merchants only; no library market between adventures (12.4 dropped, its half-price selling moves to #210)                       | #210             |
+| Decision           | Outcome                                                                                                                                                                                                            | Where it applies |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
+| Currency           | 5e copper, silver and gold, stored as copper and shown in mixed denominations                                                                                                                                      | #208, #210       |
+| Starting equipment | Named common-tier kits only; no starting coin. Merchants stock common items always, uncommon from level 3, and no rare items in increment 12                                                                       | #207, #210       |
+| Market location    | In-adventure merchants only; no library market between adventures (12.4 dropped, its half-price selling moves to #210)                                                                                             | #210             |
+| Kit contents       | Start nearly empty-handed: leather armour and simple weapons, no shield (mace; two daggers; club and dagger), of equal value within 3 gp                                                                           | #207             |
+| Shipped modules    | Adapt the level-1 modules the leaner kits fail: the Smugglers' Cellar loses its rat, the Warden's Crypt's guard becomes a Zombie (Hard), the Goblin Warren gains a potion. Modules should offer basic gear to find | #207, #209, #211 |
 
 ### Open
 

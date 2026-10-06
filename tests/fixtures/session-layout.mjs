@@ -3,7 +3,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { chromium } from "playwright";
-import { buildFighter, rollAbilitySet } from "../../dist/fighter-5e.js";
+import {
+  buildFighter,
+  defaultPlacement,
+  rollAbilitySet,
+} from "../../dist/fighter-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
@@ -14,18 +18,13 @@ export const launch = () =>
       : { headless: true },
   );
 
+// The creation screen's default choices; the placement follows the dice.
 const DEFAULT_CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
   increase: { strength: 2, constitution: 1 },
   skills: ["athletics", "perception"],
   fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
 };
 
 /** The first Fighter a browser on `seed` creates with the default choices. */
@@ -34,12 +33,11 @@ export function firstFighter(seed) {
     .update(`5e-ability-rolls:${seed}:1`)
     .digest()
     .readUInt32LE(0);
-  return buildFighter(
-    "a".repeat(32),
-    "Ada",
-    rollAbilitySet(createSeededRandom(stream)),
-    DEFAULT_CHOICES,
-  );
+  const dice = rollAbilitySet(createSeededRandom(stream));
+  return buildFighter("a".repeat(32), "Ada", dice, {
+    ...DEFAULT_CHOICES,
+    placement: defaultPlacement(dice),
+  });
 }
 
 /** A scripted AI DM that answers every message with narration. */
