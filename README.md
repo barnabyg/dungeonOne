@@ -288,6 +288,12 @@ These are for development, not play.
 - **Live delve qualification.** `node scripts/qualify-delve-live.mjs --live`
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.
+- **Live release run.** `node scripts/qualify-release-live.mjs --live` (with
+  `--max-calls`, default 160, and `--seed`, default 99) plays the whole of The
+  Abandoned Delve through the browser server, typing every step to the AI DM
+  and pressing a step's button only when the DM's turn left it undone, and
+  writes a turn-by-turn report (`src/release-run-5e.ts`); `--dry-run` checks
+  the harness offline.
 - **AI smoke test.** `npm.cmd run smoke:ai -- --model <model-id>` asks the live
   AI DM one question through the command-line adapter and fails unless it gets a
   usable reply.
