@@ -483,31 +483,26 @@ function validateModule(
       const opponents = list(encounter.opponents, `${where} opponents`, 8).map(
         (raw, number) => {
           const at = `${where} opponent ${number + 1}`;
-          if (isRecord(raw) && "monster" in raw && "statBlock" in raw) {
-            fail(
-              `${at} names bestiary monster ${String(raw.monster)} and has an inline statBlock; give only one.`,
-            );
-          }
-          const opponent =
-            isRecord(raw) && "monster" in raw
-              ? knownKeys(
-                  raw,
-                  ["id", "monster"],
-                  ["name", "description", "boss"],
-                  at,
-                )
-              : knownKeys(
-                  raw,
-                  ["id", "name", "description", "statBlock"],
-                  ["boss"],
-                  at,
-                );
+          const reference = isRecord(raw) && "monster" in raw;
+          const opponent = reference
+            ? knownKeys(
+                raw,
+                ["id", "monster"],
+                ["name", "description", "boss", "statBlock"],
+                at,
+              )
+            : knownKeys(
+                raw,
+                ["id", "name", "description", "statBlock"],
+                ["boss"],
+                at,
+              );
           if (opponent.boss !== undefined && opponent.boss !== true) {
             fail(`${at} boss must be true, or left out.`);
           }
           const opponentId = id(opponent.id, `${at} id`);
           const boss = opponent.boss === true ? { boss: true as const } : {};
-          if (opponent.monster === undefined) {
+          if (!reference) {
             return {
               id: opponentId,
               name: text(opponent.name, `${at} name`, 60),
@@ -517,6 +512,11 @@ function validateModule(
             };
           }
           const monsterId = id(opponent.monster, `${at} monster`);
+          if (opponent.statBlock !== undefined) {
+            fail(
+              `module ${moduleId} ${at} (${opponentId}) names bestiary monster ${monsterId} and has an inline statBlock; give only one.`,
+            );
+          }
           const monster = bestiary.monsters.find(
             ({ id: entryId }) => entryId === monsterId,
           );

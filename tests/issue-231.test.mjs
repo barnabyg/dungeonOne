@@ -114,7 +114,7 @@ test("the validator rejects an unknown monster, and an opponent with both a mons
   );
   assert.throws(
     () => validateModule(both),
-    /encounter 1 opponent 1 names bestiary monster goblin-warrior and has an inline statBlock; give only one\./,
+    /module cellar-goblin encounter 1 opponent 1 \(goblin\) names bestiary monster goblin-warrior and has an inline statBlock; give only one\./,
   );
   const neither = structuredClone(moduleFiles["cellar-goblin"]);
   delete opponents(neither)[0].monster;
