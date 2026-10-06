@@ -55,6 +55,7 @@ import {
   act,
   availableActions,
   combatant,
+  countedDamageDie,
   currentCombatant,
   drinkPotion,
   legalTargets,
@@ -674,11 +675,12 @@ function shownAttackText(attack: ShownAttack): string {
 /** "2 (counts as 3, Great Weapon Fighting) + 7": an attack's damage dice. */
 function damageDice(event: AttackEvent): string {
   return event.damageRolls
-    .map((value) =>
-      event.greatWeaponFighting === true && value < 3
-        ? `${value} (counts as 3, Great Weapon Fighting)`
-        : `${value}`,
-    )
+    .map((value) => {
+      const counted = countedDamageDie(value, event.greatWeaponFighting);
+      return counted === value
+        ? `${value}`
+        : `${value} (counts as ${counted}, Great Weapon Fighting)`;
+    })
     .join(" + ");
 }
 
@@ -1043,7 +1045,8 @@ export function describeFifthResult(
             roller: name(event.actorId),
             target: name(event.targetId),
             dice: take(event.damageRolls).map((die) =>
-              event.greatWeaponFighting === true && die.value < 3
+              countedDamageDie(die.value, event.greatWeaponFighting) !==
+              die.value
                 ? { ...die, countsAs: 3 as const }
                 : die,
             ),

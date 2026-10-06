@@ -578,6 +578,17 @@ function sideDefeated(state: EncounterState, side: Side): boolean {
     .every(isDefeated);
 }
 
+/**
+ * What a damage die counts as: with Great Weapon Fighting a 1 or 2 counts as
+ * 3, otherwise the value rolled.
+ */
+export function countedDamageDie(
+  value: number,
+  greatWeaponFighting: boolean | undefined,
+): number {
+  return greatWeaponFighting === true ? Math.max(3, value) : value;
+}
+
 function resolveAttack(
   state: EncounterState,
   actor: Combatant,
@@ -608,13 +619,14 @@ function resolveAttack(
   // Graze: a miss still deals the damage modifier, if above 0.
   const graze =
     !hit && weapon.mastery === "Graze" && weapon.damage.modifier > 0;
-  const counted = (value: number) =>
-    weapon.greatWeaponFighting === true ? Math.max(3, value) : value;
   const damage = hit
     ? Math.max(
         0,
-        damageRolls.reduce((sum, value) => sum + counted(value), 0) +
-          weapon.damage.modifier,
+        damageRolls.reduce(
+          (sum, value) =>
+            sum + countedDamageDie(value, weapon.greatWeaponFighting),
+          0,
+        ) + weapon.damage.modifier,
       )
     : graze
       ? weapon.damage.modifier

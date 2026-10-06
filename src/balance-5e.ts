@@ -39,7 +39,7 @@ import {
   type KitId,
   type WeaponId,
 } from "./equipment-5e.js";
-import { combatant } from "./encounter-5e.js";
+import { combatant, countedDamageDie } from "./encounter-5e.js";
 import {
   createFifthRuntime,
   PLAYER_ID,
@@ -156,9 +156,7 @@ export function oneHitKillChance(
       const next = new Map<number, number>();
       for (const [total, chance] of totals) {
         for (let face = 1; face <= attack.damage.sides; face++) {
-          // Great Weapon Fighting counts a 1 or 2 as 3.
-          const counted =
-            attack.greatWeaponFighting === true ? Math.max(3, face) : face;
+          const counted = countedDamageDie(face, attack.greatWeaponFighting);
           next.set(
             total + counted,
             (next.get(total + counted) ?? 0) + chance / attack.damage.sides,
