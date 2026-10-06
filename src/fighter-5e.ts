@@ -5,8 +5,11 @@
  * derived number (HP, AC, attack, saves, skills, features) is computed from a
  * validated sheet. `docs/character-rules.md` records these numbers.
  *
- * A sheet also keeps what the character has earned: the treasure it kept and
- * the XP awards it was credited, each once (`rewardFighter`).
+ * A sheet keeps what the character holds (its equipment and treasure) apart
+ * from its ledger of what it has earned: each treasure found and each XP award
+ * credited, once. Settling a surviving adventure (`settleFighter`) replaces
+ * the possessions with what the character holds at the end and adds to the
+ * ledger, so a find stays earned after the item is gone.
  */
 import type { RandomSource } from "./random.js";
 
@@ -88,8 +91,8 @@ export type FighterChoices = Readonly<{
 }>;
 
 /**
- * Treasure the character kept from an adventure. `id` is the adventure's id
- * and the item's, as `adventure/item`, so each is earned once.
+ * A treasure found in an adventure. `id` is the adventure's id and the item's,
+ * as `adventure/item`, so each is found once.
  */
 export type TreasureRecord = Readonly<{
   id: string;
@@ -103,10 +106,20 @@ export type TreasureRecord = Readonly<{
  */
 export type XpAward = Readonly<{ id: string; name: string; xp: number }>;
 
-/** What a surviving adventure credits to the character. */
-export type Rewards = Readonly<{
-  xp: readonly XpAward[];
+/** What a character holds: its equipment and its treasure. */
+export type Possessions = Readonly<{
+  equipment: typeof FIGHTER_EQUIPMENT;
   treasure: readonly TreasureRecord[];
+}>;
+
+/** How a surviving adventure settles the character. */
+export type Settlement = Readonly<{
+  /** What the character holds at the end; it replaces its possessions. */
+  possessions: Possessions;
+  /** The XP awards not credited before. */
+  xp: readonly XpAward[];
+  /** The treasure found in this adventure and carried out, not found before. */
+  finds: readonly TreasureRecord[];
 }>;
 
 const TREASURE_ID = /^[a-z][a-z0-9-]{0,47}\/[a-z][a-z0-9-]{0,47}$/;
@@ -130,8 +143,10 @@ export type FighterSheet = Readonly<{
   fightingStyle: FightingStyle;
   weaponMasteries: typeof FIGHTER_WEAPON_MASTERIES;
   equipment: typeof FIGHTER_EQUIPMENT;
-  /** Treasure kept from adventures, in the order it was earned. */
+  /** The treasure the character holds. */
   treasure: readonly TreasureRecord[];
+  /** The ids of the treasure found, so none is found twice. */
+  finds: readonly string[];
   /** The ids of the XP awards credited, so none is credited twice. */
   xpAwards: readonly string[];
 }>;
@@ -151,6 +166,7 @@ const SHEET_KEYS = [
   "weaponMasteries",
   "equipment",
   "treasure",
+  "finds",
   "xpAwards",
 ];
 
@@ -373,14 +389,19 @@ function validateTreasure(value: unknown): readonly TreasureRecord[] {
   return value as TreasureRecord[];
 }
 
-function validateXpAwards(value: unknown): readonly string[] {
+/** A list of distinct ids, each matching `pattern`. */
+function validateIds(
+  value: unknown,
+  pattern: RegExp,
+  message: string,
+): readonly string[] {
   if (
     !Array.isArray(value) ||
     value.length > MAX_EARNED ||
-    !value.every((id) => typeof id === "string" && AWARD_ID.test(id)) ||
+    !value.every((id) => typeof id === "string" && pattern.test(id)) ||
     new Set(value).size !== value.length
   ) {
-    throw new Error("Invalid XP awards.");
+    throw new Error(message);
   }
   return value as string[];
 }
@@ -431,6 +452,7 @@ export function buildFighter(
     weaponMasteries: FIGHTER_WEAPON_MASTERIES,
     equipment: FIGHTER_EQUIPMENT,
     treasure: [],
+    finds: [],
     xpAwards: [],
   };
   return validateFighter({ ...base, hp: fighterProfile(base).maxHp });
@@ -565,7 +587,8 @@ export function validateFighter(value: unknown): FighterSheet {
     throw new Error("Unsupported character equipment.");
   }
   validateTreasure(sheet.treasure);
-  validateXpAwards(sheet.xpAwards);
+  validateIds(sheet.finds, TREASURE_ID, "Invalid finds.");
+  validateIds(sheet.xpAwards, AWARD_ID, "Invalid XP awards.");
   if (sheet.level !== levelForXp(sheet.xp)) {
     throw new Error("Character level differs from experience points.");
   }
@@ -738,32 +761,36 @@ export function fighterProfile(
   };
 }
 
+/** What the character holds, as an adventure starts with it. */
+export function possessionsOf(sheet: FighterSheet): Possessions {
+  return { equipment: sheet.equipment, treasure: sheet.treasure };
+}
+
 /**
- * The sheet after a surviving adventure: each XP award and treasure not
- * credited before is added, the level follows the XP, and the rest between
- * adventures restores every hit point. Crediting the same rewards again
- * changes nothing.
+ * The sheet after a surviving adventure: its possessions are replaced with
+ * what it held at the end, each find and XP award not earned before is added
+ * to the ledger, the level follows the XP, and the rest between adventures
+ * restores every hit point. Settling the same adventure again changes
+ * nothing.
  */
-export function rewardFighter(
+export function settleFighter(
   sheet: FighterSheet,
-  rewards: Rewards,
+  settlement: Settlement,
 ): FighterSheet {
-  const awards = rewards.xp.filter(({ id }) => !sheet.xpAwards.includes(id));
-  const owned = new Set(sheet.treasure.map(({ id }) => id));
-  const treasure = rewards.treasure.filter(({ id }) => !owned.has(id));
+  const awards = settlement.xp.filter(({ id }) => !sheet.xpAwards.includes(id));
+  const finds = settlement.finds
+    .map(({ id }) => id)
+    .filter((id) => !sheet.finds.includes(id));
   const xp = sheet.xp + awards.reduce((sum, award) => sum + award.xp, 0);
   const raised = { ...sheet, xp, level: levelForXp(xp) };
   return validateFighter({
     ...raised,
     hp: fighterProfile(raised).maxHp,
-    treasure: [
-      ...sheet.treasure,
-      ...treasure.map(({ id, name, description }) => ({
-        id,
-        name,
-        description,
-      })),
-    ],
+    equipment: settlement.possessions.equipment,
+    treasure: settlement.possessions.treasure.map(
+      ({ id, name, description }) => ({ id, name, description }),
+    ),
+    finds: [...sheet.finds, ...finds],
     xpAwards: [...sheet.xpAwards, ...awards.map(({ id }) => id)],
   });
 }

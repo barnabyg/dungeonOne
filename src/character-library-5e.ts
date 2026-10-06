@@ -1,11 +1,12 @@
 /**
- * The 5e character library (format version 4).
+ * The 5e character library (format version 5).
  *
  * It holds saved 5e Fighters and at most one pending creation: the dice of a
  * Fighter being created. Each character record names its adventure session
  * while one is in progress. Settling an ended session frees the character in
- * the same write that credits what it earned (a victory or an escape) or
- * marks it defeated (a defeat), so a session is credited exactly once; a
+ * the same write that settles it (a victory or an escape: its possessions
+ * become what it held at the end, and what it earned is credited) or marks it
+ * defeated (a defeat), so a session is settled exactly once; a
  * defeated character cannot start another adventure. Abandoning a session
  * frees the character with nothing credited. Sessions are saved in the
  * `<library>-adventures` directory beside the library. The dice are written
@@ -27,18 +28,18 @@ import {
   ABILITIES,
   buildFighter,
   fighterProfile,
-  rewardFighter,
   rollAbilitySet,
+  settleFighter,
   validateDice,
   validateFighter,
   type FighterChoices,
   type FighterSheet,
-  type Rewards,
   type RolledDice,
+  type Settlement,
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 4;
+export const FIFTH_LIBRARY_FORMAT = 5;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -137,7 +138,7 @@ export class FifthCharacterLibrary {
         "a pre-5e character library (format version 1)",
       );
     }
-    if (version === 2 || version === 3) {
+    if (version === 2 || version === 3 || version === 4) {
       throw moveAside(
         this.path,
         `a 5e character library from an earlier build (format version ${version})`,
@@ -377,17 +378,23 @@ export class FifthCharacterLibrary {
 
   /**
    * Ends `characterId`'s session `sessionId`. After a victory or an escape the
-   * character is credited `rewards` (each award and treasure once), rests to
-   * full health and is free again; after a defeat it is defeated at 0 HP and
-   * keeps nothing new. Writes nothing when the record no longer names that
-   * session, so repeating it is safe.
+   * character is settled by `settlement` (its possessions replaced with what
+   * it held at the end, each find and award credited once), rests to full
+   * health and is free again; after a defeat it is defeated at 0 HP and keeps
+   * nothing new. Writes nothing when the record no longer names that session,
+   * so repeating it is safe.
    */
   async settleSession(
     characterId: string,
     sessionId: string,
     outcome: "victory" | "escaped" | "defeat",
-    rewards: Rewards = { xp: [], treasure: [] },
+    settlement?: Settlement,
   ): Promise<FifthLibraryData> {
+    if (outcome !== "defeat" && settlement === undefined) {
+      throw new Error(
+        "Settling a victory or an escape needs what the character holds at the end.",
+      );
+    }
     return this.update(undefined, (data) => {
       const index = data.characters.findIndex(
         ({ sheet, session }) =>
@@ -401,7 +408,7 @@ export class FifthCharacterLibrary {
         sheet:
           outcome === "defeat"
             ? { ...record.sheet, hp: 0 }
-            : rewardFighter(record.sheet, rewards),
+            : settleFighter(record.sheet, settlement!),
         revision: record.revision + 1,
         ...(outcome === "defeat" ? { defeated: true as const } : {}),
       };
@@ -411,7 +418,8 @@ export class FifthCharacterLibrary {
 
   /**
    * Gives up `characterId`'s adventure in progress: the character is free
-   * again, with its sheet (treasure, XP and health) as it was at the start.
+   * again, with its sheet (possessions, finds, XP and health) as it was at
+   * the start.
    * Its session file is left as it is, and nothing can settle it any more.
    */
   async abandonSession(
@@ -481,7 +489,7 @@ export class FifthCharacterLibrary {
     if (sheet.level !== 1 || sheet.xp !== 0 || sheet.xpAwards.length > 0) {
       throw new Error("New characters start at level 1 with 0 XP.");
     }
-    if (sheet.treasure.length > 0) {
+    if (sheet.treasure.length > 0 || sheet.finds.length > 0) {
       throw new Error("New characters start with no treasure.");
     }
     if (sheet.hp !== fighterProfile(sheet).maxHp) {

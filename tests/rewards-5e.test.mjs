@@ -10,7 +10,7 @@ import {
   buildFighter,
   fighterProfile,
   levelUpChanges,
-  rewardFighter,
+  settleFighter,
 } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
@@ -111,9 +111,10 @@ test("leaving from an exit without treasure ends the adventure empty-handed", ()
       text: "You climb back into the daylight with nothing to show for the barrow but dust.",
     },
   ]);
-  assert.deepEqual(runtime.projectRewards(result.state), {
+  assert.deepEqual(runtime.projectSettlement(result.state), {
+    possessions: { equipment: ["chain-shirt", "shield", "mace"], treasure: [] },
     xp: [],
-    treasure: [],
+    finds: [],
   });
   assert.deepEqual(runtime.projectActions(result.state), []);
 });
@@ -131,7 +132,16 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
   const out = play(runtime, [...WIN_THE_HALL, ...LOOT, LEAVE], WIN_DICE());
   assert.equal(out.status, "escaped");
   assert.equal(out.endingId, "out-with-the-torc");
-  assert.deepEqual(runtime.projectRewards(out), {
+  const torc = {
+    id: "robbers-barrow/silver-torc",
+    name: "Silver Torc",
+    description: "A neck ring of twisted silver, heavy and cold.",
+  };
+  assert.deepEqual(runtime.projectSettlement(out), {
+    possessions: {
+      equipment: ["chain-shirt", "shield", "mace"],
+      treasure: [torc],
+    },
     xp: [
       {
         id: "robbers-barrow/encounter/barrow-goblin",
@@ -144,13 +154,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
         xp: 250,
       },
     ],
-    treasure: [
-      {
-        id: "robbers-barrow/silver-torc",
-        name: "Silver Torc",
-        description: "A neck ring of twisted silver, heavy and cold.",
-      },
-    ],
+    finds: [torc],
   });
 });
 
@@ -211,11 +215,11 @@ test("a fallen opponent's treasure is found only by searching its body once the 
   );
   assert.equal(out.endingId, "out-with-the-torc");
   assert.deepEqual(
-    runtime.projectRewards(out).treasure.map(({ id }) => id),
+    runtime.projectSettlement(out).finds.map(({ id }) => id),
     ["robbers-barrow/coin-pouch"],
   );
   // Once kept, the body holds nothing of value.
-  const veteran = rewardFighter(sheet, runtime.projectRewards(out));
+  const veteran = settleFighter(sheet, runtime.projectSettlement(out));
   const again = createFifthRuntime(barrow, veteran);
   const empty = again.handleAction(
     play(again, WIN_THE_HALL, WIN_DICE()),
@@ -228,7 +232,7 @@ test("a fallen opponent's treasure is found only by searching its body once the 
 test("treasure and XP already earned are not found or awarded again", () => {
   const first = createFifthRuntime(barrow, sheet);
   const out = play(first, [...WIN_THE_HALL, ...LOOT, LEAVE], WIN_DICE());
-  const veteran = rewardFighter(sheet, first.projectRewards(out));
+  const veteran = settleFighter(sheet, first.projectSettlement(out));
   const runtime = createFifthRuntime(barrow, veteran);
   const won = play(runtime, WIN_THE_HALL, WIN_DICE());
   const examined = runtime.handleAction(won, LOOT[0]);
@@ -244,7 +248,11 @@ test("treasure and XP already earned are not found or awarded again", () => {
     WIN_DICE(),
   );
   assert.equal(again.endingId, "out-empty-handed");
-  assert.deepEqual(runtime.projectRewards(again), { xp: [], treasure: [] });
+  const settled = runtime.projectSettlement(again);
+  assert.deepEqual(settled.xp, []);
+  assert.deepEqual(settled.finds, []);
+  // The torc it already holds is still held.
+  assert.deepEqual(settled.possessions.treasure, veteran.treasure);
 });
 
 test("the AI DM is never offered leaving, and cannot call it", () => {
@@ -292,7 +300,8 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
     dice(20, 1, 20, 6, 6),
   );
   assert.equal(won.status, "victory");
-  assert.deepEqual(runtime.projectRewards(won), {
+  assert.deepEqual(runtime.projectSettlement(won), {
+    possessions: { equipment: ["chain-shirt", "shield", "mace"], treasure: [] },
     xp: [
       {
         id: "cellar-goblin/encounter/cellar-goblin",
@@ -300,10 +309,10 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
         xp: 50,
       },
     ],
-    treasure: [],
+    finds: [],
   });
   const begun = play(runtime, [{ type: "begin" }], dice(20, 1));
-  assert.equal(runtime.projectRewards(begun), undefined);
+  assert.equal(runtime.projectSettlement(begun), undefined);
   // The goblin wins initiative and hits until Ada drops.
   let state = play(runtime, [{ type: "begin" }], dice(1, 20, 20, 6, 6));
   while (state.status === "playing") {
@@ -314,19 +323,20 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
     ).state;
   }
   assert.equal(state.status, "defeat");
-  assert.equal(runtime.projectRewards(state), undefined);
+  assert.equal(runtime.projectSettlement(state), undefined);
 });
 
 test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin warren with its hoard", () => {
   const warren = adventures.find(({ id }) => id === "goblin-warren");
   assert.deepEqual(warren.recommendedLevels, { min: 2, max: 3 });
   // The barrow's 300 XP makes Ada level 2.
-  const veteran = rewardFighter(sheet, {
+  const veteran = settleFighter(sheet, {
+    possessions: { equipment: sheet.equipment, treasure: [] },
     xp: [
       { id: "robbers-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
       { id: "robbers-barrow/ending/out-with-the-torc", name: "Out", xp: 250 },
     ],
-    treasure: [],
+    finds: [],
   });
   assert.equal(veteran.level, 2);
   const runtime = createFifthRuntime(warren, veteran);
@@ -384,7 +394,7 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin w
     out = run(seed);
   }
   assert.equal(out.endingId, "out-with-the-hoard");
-  const rewards = runtime.projectRewards(out);
+  const rewards = runtime.projectSettlement(out);
   assert.deepEqual(
     rewards.xp.map(({ name, xp }) => [name, xp]),
     [
@@ -394,10 +404,10 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin w
     ],
   );
   assert.deepEqual(
-    rewards.treasure.map(({ name }) => name),
+    rewards.finds.map(({ name }) => name),
     ["Sack of Stolen Coins", "Silver Chain of Office"],
   );
-  const champion = rewardFighter(veteran, rewards);
+  const champion = settleFighter(veteran, rewards);
   assert.equal(champion.xp, 950);
   assert.equal(champion.level, 3);
   assert.deepEqual(
@@ -631,5 +641,171 @@ test("abandoning an escape that was never settled records it instead; an unreada
     } finally {
       await server.close();
     }
+  });
+});
+
+// Replace-on-settle (#206): the session holds the character's possessions,
+// and a surviving ending replaces them with what it holds at the end.
+
+const TORC_ID = "robbers-barrow/silver-torc";
+const GEM = {
+  id: "warden-crypt/river-pearl",
+  name: "River Pearl",
+  description: "A grey pearl the size of a thumbnail.",
+};
+
+/** Ada after escaping the barrow with the torc. */
+function torcBearer() {
+  const first = createFifthRuntime(barrow, sheet);
+  const out = play(first, [...WIN_THE_HALL, ...LOOT, LEAVE], WIN_DICE());
+  return settleFighter(sheet, first.projectSettlement(out));
+}
+
+test("an adventure starts holding the character's equipment and kept treasure (#206)", () => {
+  const veteran = torcBearer();
+  assert.deepEqual(veteran.finds, [TORC_ID]);
+  const runtime = createFifthRuntime(cellar, veteran);
+  assert.deepEqual(runtime.createSession().possessions, {
+    equipment: ["chain-shirt", "shield", "mace"],
+    treasure: veteran.treasure,
+  });
+});
+
+test("settling replaces possessions: an item gone from the holdings is gone, one added is kept, and finds stay earned (#206)", () => {
+  const veteran = torcBearer();
+  const runtime = createFifthRuntime(barrow, veteran);
+  const begun = play(runtime, [{ type: "begin" }]);
+  const holding = (treasure) => ({
+    ...begun,
+    possessions: { ...begun.possessions, treasure },
+  });
+
+  const without = runtime.handleAction(holding([]), LEAVE).state;
+  const lost = settleFighter(veteran, runtime.projectSettlement(without));
+  assert.deepEqual(lost.treasure, []);
+  assert.deepEqual(lost.finds, [TORC_ID]);
+  assert.equal(lost.xp, veteran.xp);
+  // The torc was found once, so it is not there to find again.
+  const again = createFifthRuntime(barrow, lost);
+  const examined = again.handleAction(
+    play(again, WIN_THE_HALL, WIN_DICE()),
+    LOOT[0],
+  );
+  assert.deepEqual(examined.events[0].found, []);
+
+  const added = runtime.handleAction(
+    holding([...begun.possessions.treasure, GEM]),
+    LEAVE,
+  ).state;
+  const settlement = runtime.projectSettlement(added);
+  // Holding something is not finding it: nothing new is earned or shown.
+  assert.deepEqual(settlement.finds, []);
+  const kept = settleFighter(veteran, settlement);
+  assert.deepEqual(
+    kept.treasure.map(({ id }) => id),
+    [TORC_ID, GEM.id],
+  );
+  assert.deepEqual(kept.finds, [TORC_ID]);
+});
+
+test("a surviving ending keeps treasure brought in beside treasure found (#206)", () => {
+  const veteran = torcBearer();
+  const runtime = createFifthRuntime(barrow, veteran);
+  const out = play(
+    runtime,
+    [
+      ...WIN_THE_HALL,
+      { type: "examine", targetId: "barrow-goblin" },
+      { type: "take", itemId: "coin-pouch" },
+      { type: "move", destinationId: "barrow-mouth" },
+      LEAVE,
+    ],
+    WIN_DICE(),
+  );
+  const settlement = runtime.projectSettlement(out);
+  assert.deepEqual(
+    settlement.finds.map(({ id }) => id),
+    ["robbers-barrow/coin-pouch"],
+  );
+  const after = settleFighter(veteran, settlement);
+  assert.deepEqual(
+    after.treasure.map(({ id }) => id),
+    [TORC_ID, "robbers-barrow/coin-pouch"],
+  );
+  assert.deepEqual(after.finds, [TORC_ID, "robbers-barrow/coin-pouch"]);
+  // Settling the same ending again changes nothing.
+  assert.deepEqual(settleFighter(after, settlement), after);
+});
+
+/** Escapes the barrow with the torc and settles it. */
+async function escapeWithTheTorc(library, characterId) {
+  const session = await lootTheBarrow(library, characterId, 1);
+  session.act(LEAVE, "click");
+  await session.persist();
+  await settleFifthSession(library, session);
+  return (await library.read()).characters[0].sheet;
+}
+
+test("defeat and abandonment leave a veteran's possessions, ledger and XP as at the start (#206)", async () => {
+  await withLibrary(async (library, characterId) => {
+    const before = await escapeWithTheTorc(library, characterId);
+    assert.deepEqual(before.finds, [TORC_ID]);
+
+    const abandoned = await lootTheBarrow(library, characterId, 2);
+    abandoned.state = {
+      ...abandoned.state,
+      possessions: { ...abandoned.state.possessions, treasure: [] },
+    };
+    await abandoned.persist();
+    const data = await library.abandonSession(
+      characterId,
+      (await library.read()).revision,
+    );
+    assert.deepEqual(data.characters[0].sheet, before);
+
+    const fallen = await lootTheBarrow(library, characterId, 3);
+    fallen.state = {
+      ...fallen.state,
+      possessions: { ...fallen.state.possessions, treasure: [GEM] },
+      status: "defeat",
+      endingId: "fallen-in-the-barrow",
+    };
+    await settleFifthSession(library, fallen);
+    const record = (await library.read()).characters[0];
+    assert.equal(record.defeated, true);
+    assert.deepEqual(record.sheet, { ...before, hp: 0 });
+  });
+});
+
+test("an interruption between the session and library writes never duplicates or loses possessions (#206)", async () => {
+  await withLibrary(async (library, characterId) => {
+    const before = await escapeWithTheTorc(library, characterId);
+    const session = await lootTheBarrow(library, characterId, 2);
+    assert.deepEqual(session.state.possessions.treasure, before.treasure);
+    session.act(LEAVE, "click");
+    await session.persist();
+    // A crash here: the session has ended, the library still names it.
+    assert.equal((await library.read()).characters[0].session.id, session.id);
+    const reloaded = await FifthSession.load(session.path, adventures);
+    assert.deepEqual(reloaded.state.possessions, session.state.possessions);
+    await settleFifthSession(library, reloaded);
+    await settleFifthSession(library, reloaded);
+    await settleFifthSession(library, session);
+    const after = (await library.read()).characters[0].sheet;
+    assert.deepEqual(after.treasure, before.treasure);
+    assert.deepEqual(after.finds, before.finds);
+    assert.equal(after.xp, before.xp);
+  });
+});
+
+test("a surviving ending cannot be settled without what the character holds (#206)", async () => {
+  await withLibrary(async (library, characterId) => {
+    const session = await lootTheBarrow(library, characterId, 1);
+    const bytes = await readFile(library.path);
+    await assert.rejects(
+      library.settleSession(characterId, session.id, "escaped"),
+      /needs what the character holds/,
+    );
+    assert.deepEqual(await readFile(library.path), bytes);
   });
 });

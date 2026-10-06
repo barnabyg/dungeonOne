@@ -38,7 +38,7 @@ test("a pending creation is saved before it is returned and never changes", asyn
     assert.equal((await library.read()).pendingCreation, undefined);
     const started = await library.startCreation();
     const stored = JSON.parse(await readFile(path, "utf8"));
-    assert.equal(stored.formatVersion, 4);
+    assert.equal(stored.formatVersion, 5);
     assert.deepEqual(stored.pendingCreation, started.pendingCreation);
     assert.equal(started.pendingCreation.dice.length, 6);
     const bytes = await readFile(path);
@@ -173,6 +173,23 @@ test("a pre-5e library is refused by name and left byte-identical", async () => 
       /5e character library from an earlier build \(format version 2\).*Move it aside/,
     );
     assert.equal(await readFile(path, "utf8"), earlier);
+    // A library from before replace-on-settle (#206).
+    const added = JSON.stringify({
+      kind: "dungeon-one-characters",
+      formatVersion: 4,
+      revision: "0".repeat(32),
+      creationsStarted: 0,
+      sessionsStarted: 0,
+      characters: [],
+    });
+    await writeFile(path, added);
+    await assert.rejects(
+      library.read(),
+      new RegExp(
+        `${path.replaceAll("\\", "\\\\")} is a 5e character library from an earlier build \\(format version 4\\).*Move it aside`,
+      ),
+    );
+    assert.equal(await readFile(path, "utf8"), added);
     await writeFile(path, "{");
     await assert.rejects(library.read(), /Invalid character library/);
   });

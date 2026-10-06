@@ -229,9 +229,10 @@ defeated at once and for good.
 ### Treasure, XP and leaving
 
 Treasure is found only by examining something: a feature, or the body of an
-opponent once its fight is won. It is kept only if the character survives: it is
-credited when the adventure ends in a victory or an escape, never on a defeat or
-when the adventure is abandoned. In a room that is a way out, the action bar has
+opponent once its fight is won. It is kept only if the character survives: an
+adventure starts holding the character's equipment and treasure, and a victory
+or an escape replaces them with what the character holds at the end. A defeat
+or an abandoned adventure leaves the character as it started. In a room that is a way out, the action bar has
 **Leave the adventure**; it asks first, then ends the adventure as _Escaped with
 loot_ or _Escaped empty-handed_. Leaving is the player's choice alone: the AI
 Dungeon Master has no tool for it.
@@ -247,12 +248,13 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 4.
+- The character library (`characters.json` by default) is format version 5.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 7.
+  `characters-adventures` directory beside the library, in format version 8.
   Reloading the page or restarting with the same command returns to the
-  adventure exactly as it was. The library frees the character and credits its
-  rewards in one write, so an interruption never loses or repeats them.
+  adventure exactly as it was. The library frees the character and settles it
+  in one write, so an interruption never loses or repeats what it holds or
+  earned.
 - Adventure modules (`adventures/5e/*.json`) are format version 5.
 
 While the game is in development these formats are throwaway: a change bumps a

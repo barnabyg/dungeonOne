@@ -13,7 +13,7 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
   defaultPlacement,
-  rewardFighter,
+  settleFighter,
   rollAbilitySet,
 } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
@@ -88,9 +88,9 @@ function findSeed() {
     if (first === undefined) {
       continue;
     }
-    const veteran = rewardFighter(
+    const veteran = settleFighter(
       firstFighter(seed),
-      first.runtime.projectRewards(first.state),
+      first.runtime.projectSettlement(first.state),
     );
     if (simulate(veteran, seed, 2) !== undefined) {
       return seed;
@@ -282,6 +282,10 @@ test(
         record.sheet.treasure.map(({ name }) => name),
         ["Silver Torc", "Pouch of Old Coins"],
       );
+      assert.deepEqual(record.sheet.finds, [
+        "robbers-barrow/silver-torc",
+        "robbers-barrow/coin-pouch",
+      ]);
 
       await page.locator("#ending-next").click();
       await page.locator("#sheet").waitFor({ state: "visible" });

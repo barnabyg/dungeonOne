@@ -21,8 +21,10 @@
  * last from fight to fight. In an exit room the player may choose to leave,
  * ending the adventure with or without the treasure it carries; leaving is
  * the player's own choice, so it is an action-bar action and never an AI DM
- * tool. Treasure the character already kept from this adventure is not there
- * to find again, and `projectRewards` gives what a surviving ending credits.
+ * tool. The session starts holding the character's possessions (its
+ * equipment and treasure); treasure the character has found before is not
+ * there to find again. `projectSettlement` gives how a surviving ending
+ * settles the character: what it holds at the end, and what it earned.
  *
  * The AI DM reads with `look` and `get_character_status`, and acts with
  * `move`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
@@ -69,7 +71,9 @@ import {
 import {
   fighterProfile,
   type FighterSheet,
-  type Rewards,
+  possessionsOf,
+  type Possessions,
+  type Settlement,
   type XpAward,
 } from "./fighter-5e.js";
 import type { RandomSource } from "./random.js";
@@ -103,6 +107,8 @@ export type FifthState = Readonly<{
   adventureId: string;
   roomId: string;
   character: CharacterResources;
+  /** What the character brought into the adventure and still holds. */
+  possessions: Possessions;
   /** Carried item ids, in the order they were taken. */
   inventory: readonly string[];
   /** Items used up, such as drunk potions. */
@@ -1082,13 +1088,15 @@ export type FifthRuntime = Omit<
      */
     projectActions(state: FifthState): readonly ActionView[];
     /**
-     * What the adventure credits the character once it has ended with the
-     * character alive (a victory or an escape): the XP awards for each
-     * encounter won and the ending reached, and the treasure carried out,
-     * leaving out any already credited to this sheet. Undefined while the
-     * adventure is under way or after a defeat.
+     * How the adventure settles the character once it has ended with the
+     * character alive (a victory or an escape): what it holds at the end
+     * (its possessions and the treasure carried out), which replaces what it
+     * held before; the XP awards for each encounter won and the ending
+     * reached; and the treasure found. Awards and finds already earned by
+     * this sheet are left out. Undefined while the adventure is under way or
+     * after a defeat.
      */
-    projectRewards(state: FifthState): Rewards | undefined;
+    projectSettlement(state: FifthState): Settlement | undefined;
     /**
      * The action an entry of `projectActions` stands for: the one its
      * projection dry-ran. Undefined for an entry this runtime didn't project.
@@ -1222,12 +1230,12 @@ export function createFifthRuntime(
   );
   const fighting = (state: FifthState) =>
     state.encounter !== undefined && state.encounter.outcome === "ongoing";
-  /** The id a treasure is kept under, so each is earned once. */
+  /** The id a treasure is found under, so each is found once. */
   const treasureId = (item: FifthItem) => `${adventure.id}/${item.id}`;
-  const kept = new Set(sheet.treasure.map(({ id }) => id));
-  /** Treasure the character already kept is not there to find again. */
+  const found = new Set(sheet.finds);
+  /** Treasure the character found before is not there to find again. */
   const present = (item: FifthItem) =>
-    item.kind !== "treasure" || !kept.has(treasureId(item));
+    item.kind !== "treasure" || !found.has(treasureId(item));
 
   /**
    * The bodies of the room's opponents once their fight is won: each can be
@@ -2659,7 +2667,7 @@ export function createFifthRuntime(
     };
   };
 
-  const projectRewards = (state: FifthState): Rewards | undefined => {
+  const projectSettlement = (state: FifthState): Settlement | undefined => {
     if (state.status !== "victory" && state.status !== "escaped") {
       return undefined;
     }
@@ -2689,15 +2697,20 @@ export function createFifthRuntime(
             },
           ]),
     ];
+    const finds = carried(state)
+      .filter((item) => item.kind === "treasure")
+      .map((item) => ({
+        id: treasureId(item),
+        name: item.name,
+        description: item.description,
+      }));
     return {
+      possessions: {
+        ...state.possessions,
+        treasure: [...state.possessions.treasure, ...finds],
+      },
       xp: awards.filter(({ id, xp }) => xp > 0 && !sheet.xpAwards.includes(id)),
-      treasure: carried(state)
-        .filter((item) => item.kind === "treasure")
-        .map((item) => ({
-          id: treasureId(item),
-          name: item.name,
-          description: item.description,
-        })),
+      finds: finds.filter(({ id }) => !found.has(id)),
     };
   };
 
@@ -2717,6 +2730,7 @@ export function createFifthRuntime(
       adventureId: adventure.id,
       roomId: adventure.startRoomId,
       character: startingResources(sheet),
+      possessions: possessionsOf(sheet),
       inventory: [],
       usedItemIds: [],
       examinedFeatureIds: [],
@@ -2758,7 +2772,7 @@ export function createFifthRuntime(
     projectRoom,
     projectActions,
     actionOf: (view) => projectedActions.get(view),
-    projectRewards,
+    projectSettlement,
   };
   return runtime;
 }
