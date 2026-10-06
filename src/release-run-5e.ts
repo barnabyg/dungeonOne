@@ -212,8 +212,19 @@ export const DELVE_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
 ]);
 
 /** Whether the action bar is a fight's: it always offers End turn. */
-export const inFight = (view: ReleaseSessionView): boolean =>
+const inFight = (view: ReleaseSessionView): boolean =>
   view.actions.some(({ action }) => action === "end-turn");
+
+type FightKind = "attack" | "use" | "second-wind" | "action-surge" | "end-turn";
+
+/** What a player types for each fight action, given its target's name. */
+const FIGHT_WORDS: Readonly<Record<FightKind, (name: string) => string>> = {
+  attack: (name) => `Attack the ${name}.`,
+  use: (name) => `Drink the ${name}.`,
+  "second-wind": () => "Catch my breath with Second Wind.",
+  "action-surge": () => "Use Action Surge.",
+  "end-turn": () => "End my turn.",
+};
 
 /**
  * The fight action to take now: at half HP or less, Second Wind or else a
@@ -222,8 +233,12 @@ export const inFight = (view: ReleaseSessionView): boolean =>
  * else is left.
  */
 export function chooseFightStep(view: ReleaseSessionView): ReleaseStep {
-  const offered = (kind: ActionKind) =>
-    view.actions.find(({ action, available }) => action === kind && available);
+  const offered = (kind: FightKind) => {
+    const found = view.actions.find(
+      ({ action, available }) => action === kind && available,
+    );
+    return found === undefined ? undefined : { kind, target: found.target };
+  };
   const { hp, maxHp } = view.room.character;
   const heal =
     hp * 2 <= maxHp ? (offered("second-wind") ?? offered("use")) : undefined;
@@ -232,20 +247,17 @@ export function chooseFightStep(view: ReleaseSessionView): ReleaseStep {
   if (chosen === undefined) {
     throw new Error("The fight offers no action.");
   }
-  const target = chosen.target;
-  const say: Partial<Record<ActionKind, string>> = {
-    attack: `Attack the ${target?.name}.`,
-    use: `Drink the ${target?.name}.`,
-    "second-wind": "Catch my breath with Second Wind.",
-    "action-surge": "Use Action Surge.",
-    "end-turn": "End my turn.",
-  };
+  const { kind, target } = chosen;
   return {
-    action: chosen.action,
+    action: kind,
     ...(target === undefined ? {} : { target: target.id }),
-    say: say[chosen.action]!,
+    say: FIGHT_WORDS[kind](target?.name ?? ""),
   };
 }
+
+/** The engine's cards in `view`'s newest history entry. */
+const newestCards = (view: ReleaseSessionView): ReleaseTurn["cards"] =>
+  view.history.at(-1)!.cards.map(({ kind, text }) => ({ kind, text }));
 
 const findAction = (view: ReleaseSessionView, step: ReleaseStep) =>
   view.actions.find(
@@ -374,9 +386,8 @@ export async function playReleaseRun(options: {
             message: step.say,
           });
     if (typed !== current) {
-      const entry = typed.history.at(-1)!;
-      reply = entry.reply;
-      cards = entry.cards.map(({ kind, text }) => ({ kind, text }));
+      reply = typed.history.at(-1)!.reply;
+      cards = newestCards(typed);
     }
     const committed = typed.sequence > current.sequence;
     const matched =
@@ -387,12 +398,7 @@ export async function playReleaseRun(options: {
       findAction(typed, step)?.available === true;
     const after = fallback ? await click(url, typed, step) : typed;
     if (fallback) {
-      cards = [
-        ...cards,
-        ...after.history
-          .at(-1)!
-          .cards.map(({ kind, text }) => ({ kind, text })),
-      ];
+      cards = [...cards, ...newestCards(after)];
     }
     record({
       phase,
