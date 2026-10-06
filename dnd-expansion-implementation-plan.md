@@ -1,6 +1,6 @@
 # D&D 5e Expansion — Implementation Plan (Increments 11–18)
 
-Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. Update, 6 October 2026: increment 12 is published as GitHub issues #206–#211 (see the [increment 12 ticket proposal](increment-12-ticket-proposal.md)). It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
+Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. Update, 6 October 2026: increment 12 is published as GitHub issues #206–#211 (see the [increment 12 ticket proposal](increment-12-ticket-proposal.md)), and is done: #211 released _The Tinker's Toll_ with a merchant and found gear, with the [increment 12 player handoff](docs/acceptance/increment-12-release.md). It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
 
 Baseline: `main` at `f68d221`.
 
@@ -355,6 +355,8 @@ Git history keeps everything.
 **Playable result:** a new character picks a starting kit, finds or buys better gear, and sells what they don't need. Better gear costs more and is rarer.
 
 **Ticketed** as GitHub issues #206–#211 on 6 October 2026; see the [increment 12 ticket proposal](increment-12-ticket-proposal.md). The issues are the source of truth. The breakdown differs from the slices below: settlement is reworked first, 12.1 is folded into 12.2, coin gets its own slice, and 12.4 is dropped (decision 8).
+
+**Done** on 6 October 2026 with #211, which released _The Tinker's Toll_ (level 1, Hard: a tinker who trades common gear, a shield and coin found after a wolf fight, and two bandits at a toll tower) and wrote the [increment 12 player handoff](docs/acceptance/increment-12-release.md), with one bounded live AI run.
 
 ### 12.1 Price weapons and armour by cost and rarity
 
@@ -759,13 +761,14 @@ Needs an ADR: a fourth record, the **campaign**, separate from character, advent
 
 ### Settled by the owner, 6 October 2026
 
-| Decision           | Outcome                                                                                                                                                                                                            | Where it applies |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| Currency           | 5e copper, silver and gold, stored as copper and shown in mixed denominations                                                                                                                                      | #208, #210       |
-| Starting equipment | Named common-tier kits only; no starting coin. Merchants stock common items always, uncommon from level 3, and no rare items in increment 12                                                                       | #207, #210       |
-| Market location    | In-adventure merchants only; no library market between adventures (12.4 dropped, its half-price selling moves to #210)                                                                                             | #210             |
-| Kit contents       | Start nearly empty-handed: leather armour and simple weapons, no shield (mace; two daggers; club and dagger), of equal value within 3 gp                                                                           | #207             |
-| Shipped modules    | Adapt the level-1 modules the leaner kits fail: the Smugglers' Cellar loses its rat, the Warden's Crypt's guard becomes a Zombie (Hard), the Goblin Warren gains a potion. Modules should offer basic gear to find | #207, #209, #211 |
+| Decision           | Outcome                                                                                                                                                                                                                                                                                                           | Where it applies |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Currency           | 5e copper, silver and gold, stored as copper and shown in mixed denominations                                                                                                                                                                                                                                     | #208, #210       |
+| Starting equipment | Named common-tier kits only; no starting coin. Merchants stock common items always, uncommon from level 3, and no rare items in increment 12                                                                                                                                                                      | #207, #210       |
+| Market location    | In-adventure merchants only; no library market between adventures (12.4 dropped, its half-price selling moves to #210)                                                                                                                                                                                            | #210             |
+| Kit contents       | Start nearly empty-handed: leather armour and simple weapons, no shield (mace; two daggers; club and dagger), of equal value within 3 gp                                                                                                                                                                          | #207             |
+| Release module     | _The Tinker's Toll_: premise, four-room map, merchant stock (dagger, shortsword, shield, chain shirt) and gear placement (a shield in the ford's reeds) approved before writing. Its first coin moved from the start room to the reeds, so the gate's cautious run must fight for loot; declared Hard, not Medium | #211             |
+| Shipped modules    | Adapt the level-1 modules the leaner kits fail: the Smugglers' Cellar loses its rat, the Warden's Crypt's guard becomes a Zombie (Hard), the Goblin Warren gains a potion. Modules should offer basic gear to find                                                                                                | #207, #209, #211 |
 
 ### Open
 
