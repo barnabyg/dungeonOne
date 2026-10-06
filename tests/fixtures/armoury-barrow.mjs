@@ -1,6 +1,6 @@
-// The Robbers' Barrow with gear hidden behind the lintel at its mouth (#209):
-// a longsword, a shield, a greatsword and chain mail, found by examining the
-// lintel before any fight.
+// The Robbers' Barrow with gear hidden behind the lintel at its mouth (#209),
+// found by examining the lintel before any fight: a longsword, a shield, a
+// greatsword and chain mail, or the longsword alone.
 import { readFile } from "node:fs/promises";
 import { validateFifthAdventure } from "../../dist/adventure-5e.js";
 
@@ -22,12 +22,22 @@ const placed = (id, name, gear) => ({
   hiddenIn: "scratched-lintel",
 });
 
+const LONGSWORD = placed("lintel-longsword", "Longsword", "longsword");
+
 export const armoury = structuredClone(barrowFile);
 room(armoury, "barrow-mouth").items.push(
-  placed("lintel-longsword", "Longsword", "longsword"),
+  LONGSWORD,
   placed("lintel-shield", "Shield", "shield"),
   placed("lintel-greatsword", "Greatsword", "greatsword"),
   placed("lintel-mail", "Chain Mail", "chain-mail"),
 );
 
 export const armouryBarrow = validateFifthAdventure(armoury);
+
+/**
+ * The barrow with only the longsword behind the lintel: four revealed items
+ * at once would overflow the phone action bar (#198).
+ */
+const swordOnly = structuredClone(barrowFile);
+room(swordOnly, "barrow-mouth").items.push(LONGSWORD);
+export const longswordBarrow = validateFifthAdventure(swordOnly);

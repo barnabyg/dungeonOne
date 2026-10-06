@@ -24,7 +24,9 @@
 //   with its reason as visible text linked by aria-describedby. Outside a
 //   fight, what the character carries is acted on from the room panel's
 //   #inventory, not the bar (#198): each carried item's Examine and Drink sit
-//   on its entry, so a laden character's bar stays short enough for a phone.
+//   on its entry, and the character's own gear heads the list with its
+//   Unequip, Wield, Equip and Drop (#209), so a laden character's bar stays
+//   short enough for a phone.
 //   After an action, focus stays on the clicked control if it is still
 //   enabled, and otherwise moves to the newest history entry. When the
 //   adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
@@ -988,16 +990,34 @@ function disclose(name, shown) {
   element(toggle.getAttribute("aria-controls")).hidden = shown && !disclosures[name];
 }
 
+// The character's own gear heads what it carries (#209): what it wears, the
+// weapons in hand, then its stowed gear, each kind once with a count. Each
+// entry's slot says which verbs go on it: Unequip on what is equipped,
+// Wield, Equip and Drop on what is stowed.
+function gearEntries(gear) {
+  const counted = (items, slot, describe) => {
+    const counts = new Map();
+    for (const { id, name } of items) counts.set(id, { name, count: (counts.get(id)?.count ?? 0) + 1 });
+    return [...counts].map(([id, { name, count }]) => ({ id, slot, name: count === 1 ? name : name + " (" + count + ")", description: describe(count) }));
+  };
+  const held = [gear.attack, ...(gear.lightAttack ? [gear.lightAttack] : [])].map(({ weaponId, weapon }) => ({ id: weaponId, name: weapon }));
+  return [
+    ...counted(gear.worn, "equipped", () => "Worn."),
+    ...counted(held, "equipped", () => "In hand."),
+    ...counted(gear.stowed, "stowed", () => "Carried, not equipped."),
+  ];
+}
+
 function renderRoom(room, fighting) {
   element("room-title").textContent = room.name;
   element("room-description").textContent = room.description;
   for (const list of ROOM_LISTS) {
-    // Stowed gear is carried too (#209).
-    const entries = list.key === "inventory" ? [...room.inventory, ...room.gear.stowed.map(({ id, name }) => ({ id, name, description: "Carried, not equipped." }))] : room[list.key];
+    const entries = list.key === "inventory" ? [...gearEntries(room.gear), ...room.inventory] : room[list.key];
     element(list.id + "-group").hidden = entries.length === 0;
     element(list.id).replaceChildren(...entries.map((entry) => {
       const item = make("li");
       item.dataset.id = entry.id;
+      if (entry.slot) item.dataset.slot = entry.slot;
       const text = make("p");
       text.append(make("strong", entry.name), document.createTextNode(" — " + entry.description));
       item.append(text);
@@ -1133,15 +1153,16 @@ function renderActions() {
   const attacks = session.actions.filter(({ action }) => action === "attack").length;
   const ATTACKS = ["attack", "light-attack"];
   const left = (feature) => " (" + feature.uses + " of " + feature.max + " left)";
-  const groups = { attack: [], feature: [], explore: [], gear: [], leave: [], carried: [] };
+  const groups = { attack: [], feature: [], explore: [], leave: [], carried: [] };
   const carried = new Set(session.room.inventory.map(({ id }) => id));
   session.actions.forEach((option, index) => {
     const { action, target } = option;
     const exploring = EXPLORING.includes(action) || (action === "use" && !fighting);
-    // Gear changes take their own rows, after exploring's (#209).
-    const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : GEAR.includes(action) ? "gear" : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
+    // Gear changes go on the gear's entry in "You carry" (#209), or in a
+    // fight with the turn's other options, as Drink does.
+    const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
     const label = ACTIONS[action].label + named(action, target) + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
-    const short = group === "explore" || group === "gear" || group === "carried";
+    const short = group === "explore" || group === "carried";
     const button = make("button");
     button.append(make("span", short ? ACTIONS[action].short : label));
     button.dataset.busyLabel = ACTIONS[action].busyLabel;
@@ -1165,6 +1186,7 @@ function renderActions() {
     }
     if (group === "carried") {
       wrap.dataset.target = target.id;
+      if (GEAR.includes(action)) wrap.dataset.slot = action === "unequip" ? "equipped" : "stowed";
       groups.carried.push(wrap);
       return;
     }
@@ -1183,11 +1205,11 @@ function renderActions() {
   });
   element("attack-controls").replaceChildren(...groups.attack);
   element("feature-controls").replaceChildren(...groups.feature);
-  element("explore-controls").replaceChildren(...groups.explore, ...groups.gear);
+  element("explore-controls").replaceChildren(...groups.explore);
   element("leave-controls").replaceChildren(...groups.leave);
   // A carried item's verbs go on its entry in the room panel's list (#198).
   for (const entry of element("inventory").children) {
-    const verbs = groups.carried.filter((wrap) => wrap.dataset.target === entry.dataset.id);
+    const verbs = groups.carried.filter((wrap) => wrap.dataset.target === entry.dataset.id && wrap.dataset.slot === entry.dataset.slot);
     const controls = entry.querySelector(".controls") || entry.appendChild(make("div", undefined, "controls"));
     controls.replaceChildren(...verbs);
     controls.hidden = verbs.length === 0;

@@ -260,7 +260,8 @@ test(
       shown = await screen(page);
       assert.match(
         shown.room,
-        /You carry\n+Potion of Healing — A stoppered vial/,
+        // After Ada's own gear (#209).
+        /You carry\n[\s\S]*Potion of Healing — A stoppered vial/,
       );
       assert.doesNotMatch(shown.room, /Items here|None\./);
       // Full health: Drink is disabled, with the reason.
@@ -302,7 +303,9 @@ test(
         await page.locator("#log li").last().locator(".compact").textContent(),
         /^Ada heals \d+ \(d4 \d \+ d4 \d \+ 2\) → \d+\/\d+ HP$/,
       );
-      assert.doesNotMatch(shown.room, /You carry|None\./);
+      // The potion is gone; "You carry" keeps only Ada's own gear (#209).
+      assert.doesNotMatch(shown.room, /Potion of Healing —|None\./);
+      assert.match(shown.room, /You carry\n+Leather armour — Worn\./);
       assert.match(
         shown.status,
         new RegExp(`HP ${expected.state.character.hp}/`),

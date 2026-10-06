@@ -171,7 +171,11 @@ for (const viewport of [
           "There is nothing else here.",
         );
         assert.equal(await page.locator("#room-empty").isVisible(), true);
-        assert.equal(await page.locator("#room h4:visible").count(), 0);
+        // Only what the character carries: its own gear (#209).
+        assert.deepEqual(
+          await page.locator("#room h4:visible").allTextContents(),
+          ["You carry"],
+        );
         // Re-rendering after an action keeps the player's choice.
         await clickNext(page);
         assert.equal(await page.locator("#room-details").isVisible(), true);
@@ -293,7 +297,8 @@ test(
       // out: the stair has exits and a feature, but no items.
       assert.equal(await page.locator("#room-toggle").isVisible(), false);
       assert.equal(await page.locator("#room-items-group").isVisible(), false);
-      assert.equal(await page.locator("#inventory-group").isVisible(), false);
+      // What Ada carries is always listed: her own gear (#209).
+      assert.equal(await page.locator("#inventory-group").isVisible(), true);
       assert.equal(await page.locator("#room-empty").isVisible(), false);
       assert.doesNotMatch(await page.locator("#room").innerText(), /None\./);
 
@@ -304,12 +309,7 @@ test(
           .evaluateAll((things) =>
             things.map((thing) => thing.innerText.replace(/\s+/g, " ")),
           ),
-        [
-          "Alcove Go",
-          "Rat-Gnawed Cellar Go",
-          "Rusted Lantern Examine",
-          "Leather armour Unequip",
-        ],
+        ["Alcove Go", "Rat-Gnawed Cellar Go", "Rusted Lantern Examine"],
       );
       const examine = page.getByRole("button", {
         name: "Examine Rusted Lantern",

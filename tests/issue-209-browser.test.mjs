@@ -9,23 +9,41 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { fighterProfile } from "../dist/fighter-5e.js";
-import { armouryBarrow } from "./fixtures/armoury-barrow.mjs";
-import { launch } from "./fixtures/session-layout.mjs";
+import { longswordBarrow } from "./fixtures/armoury-barrow.mjs";
+import { assertTogether, launch } from "./fixtures/session-layout.mjs";
 
-/** Clicks an action button and waits for its result card. */
+/**
+ * Clicks an action control, in the bar or on a carried entry, and waits for
+ * its result card.
+ */
 async function click(page, action, target) {
   const count = await page.locator("#log li").count();
   const button = page.locator(
-    `#action-bar button[data-action="${action}"][data-target="${target}"]`,
+    `button.act[data-action="${action}"][data-target="${target}"]`,
   );
   await button.click();
   await page.waitForFunction(
     (seen) => document.querySelectorAll("#log li").length > seen,
     count,
   );
+  // #154: the newest entry and the actions stay on screen together.
+  await assertTogether(page, `${action} ${target}`);
 }
 
 const newest = (page) => page.locator("#log li").last().innerText();
+
+/** Each "You carry" entry's text, and the verbs on it. */
+const carried = (page) =>
+  page
+    .locator("#inventory > li")
+    .evaluateAll((entries) =>
+      entries.map((entry) => [
+        entry.querySelector("p").textContent,
+        [...entry.querySelectorAll("button")].map((button) =>
+          button.getAttribute("aria-label"),
+        ),
+      ]),
+    );
 
 test(
   "find a longsword, wield it, drop the mace and escape: the sheet keeps the longsword",
@@ -36,7 +54,7 @@ test(
     const server = await startFifthBrowserServer({
       libraryPath,
       seed: 0,
-      adventures: [armouryBarrow],
+      adventures: [longswordBarrow],
       qualifies: () => true,
     });
     const browser = await launch();
@@ -65,26 +83,31 @@ test(
         await page.locator("#gear-numbers").textContent(),
         new RegExp(`^AC ${before.armorClass} \\(leather armour\\) · Mace `),
       );
-      assert.equal(await page.locator("#inventory-group").isHidden(), true);
+      // Ada's own gear heads what she carries, acted on from there (#198).
+      assert.deepEqual(await carried(page), [
+        ["Leather armour — Worn.", ["Unequip Leather armour"]],
+        ["Mace — In hand.", []],
+      ]);
 
       await click(page, "examine", "scratched-lintel");
       await click(page, "take", "lintel-longsword");
       assert.equal(await newest(page), "You take the Longsword and stow it.");
-      // Stowed gear is listed with what Ada carries.
+      assert.deepEqual(await carried(page), [
+        ["Leather armour — Worn.", ["Unequip Leather armour"]],
+        ["Mace — In hand.", []],
+        [
+          "Longsword — Carried, not equipped.",
+          ["Wield Longsword", "Drop Longsword"],
+        ],
+      ]);
+      // No gear verb is in the action bar outside a fight.
       assert.equal(
-        await page.locator("#inventory").innerText(),
-        "Longsword — Carried, not equipped.",
-      );
-      // Gear changes take their own rows, after exploring's.
-      assert.deepEqual(
-        (
-          await page
-            .locator("#explore-controls button")
-            .evaluateAll((buttons) =>
-              buttons.map((button) => button.getAttribute("aria-label")),
-            )
-        ).slice(-3),
-        ["Unequip Leather armour", "Wield Longsword", "Drop Longsword"],
+        await page
+          .locator(
+            "#action-bar button:is([data-action=equip], [data-action=unequip], [data-action=swap], [data-action=drop])",
+          )
+          .count(),
+        0,
       );
 
       // Wielding it changes the attack and damage on the page at once.
@@ -106,10 +129,11 @@ test(
       );
       // Ada has no longsword mastery, so no Sap.
       assert.match(numbers, /1d10 [+−] \d+ slashing, two-handed\.$/);
-      assert.equal(
-        await page.locator("#inventory").innerText(),
-        "Mace — Carried, not equipped.",
-      );
+      assert.deepEqual(await carried(page), [
+        ["Leather armour — Worn.", ["Unequip Leather armour"]],
+        ["Longsword — In hand.", []],
+        ["Mace — Carried, not equipped.", ["Wield Mace", "Drop Mace"]],
+      ]);
 
       // The mace dropped lies here, with Take to pick it back up.
       await click(page, "drop", "mace");
@@ -126,7 +150,10 @@ test(
           .isEnabled(),
         true,
       );
-      assert.equal(await page.locator("#inventory-group").isHidden(), true);
+      assert.deepEqual(await carried(page), [
+        ["Leather armour — Worn.", ["Unequip Leather armour"]],
+        ["Longsword — In hand.", []],
+      ]);
 
       await page.locator("#leave-controls button").click();
       await page.locator("#confirm-leave").click();
