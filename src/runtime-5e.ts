@@ -2701,23 +2701,6 @@ export function createFifthRuntime(
     };
   };
 
-  /** Command words for the CLI test adapter, and the action each makes. */
-  const COMMANDS: Record<string, (id: string) => FifthAction> = {
-    attack: (targetId) => ({ type: "attack", actorId: PLAYER_ID, targetId }),
-    move: (destinationId) => ({ type: "move", destinationId }),
-    examine: (targetId) => ({ type: "examine", targetId }),
-    take: (itemId) => ({ type: "take", itemId }),
-    use: (itemId) => ({ type: "use-item", itemId }),
-    force: (doorId) => ({ type: "force", doorId }),
-    pick: (doorId) => ({ type: "pick", doorId }),
-    break: (doorId) => ({ type: "break", doorId }),
-    unlock: (doorId) => ({ type: "unlock", doorId }),
-    search: (roomId) => ({ type: "search", roomId }),
-    disarm: (trapId) => ({ type: "disarm", trapId }),
-    talk: (topicId) => ({ type: "talk", topicId }),
-    leave: (roomId) => ({ type: "leave", roomId }),
-  };
-
   const runtime: FifthRuntime = {
     id: adventure.id,
     version: String(adventure.formatVersion),
@@ -2727,9 +2710,6 @@ export function createFifthRuntime(
     toolSchemaVersion: "5e-tools-v4",
     readToolNames: ["look", "get_character_status"],
     mutationToolNames: MUTATION_TOOLS,
-    // 5e sessions keep their own save (session-5e.ts) and no trace yet.
-    commandTraceFormatVersion: 6,
-    dmTraceFormatVersion: 6,
     adventure,
     sheet,
     createSession: () => ({
@@ -2749,22 +2729,6 @@ export function createFifthRuntime(
       talkedTopicIds: [],
     }),
     handleAction,
-    parseCommand(input) {
-      const [verb = "", target, ...rest] = input.trim().split(/\s+/u);
-      const command = Object.hasOwn(COMMANDS, verb)
-        ? COMMANDS[verb]
-        : undefined;
-      if (command !== undefined && target !== undefined && rest.length === 0) {
-        return command(target);
-      }
-      const feature = Object.values(FEATURE_TOOLS).find(
-        (type) => type === verb,
-      );
-      return feature !== undefined && target === undefined
-        ? { type: feature, actorId: PLAYER_ID }
-        : { type: "unknown" };
-    },
-    renderIntroduction: () => `${adventure.title}\n${adventure.objective}`,
     renderResult: (result: RuntimeResult) =>
       renderFifthResult(result as FifthResult),
     renderDmNarration(call, result) {

@@ -1,37 +1,20 @@
 import tseslint from "typescript-eslint";
 
-// Pre-5e game modules (#126): the old runtimes and their adapters, plus the
-// old-game tooling built on them (CLI command mode, generator, DM evaluator).
-// #138 rebuilds the CLI and #139 deletes the rest. Shared infrastructure must
-// reach a runtime only through runtime-contract.ts and the registry,
-// data-runtime.ts, so these modules can be deleted without touching it.
-const OLD_GAME_MODULES = [
-  "adventure",
-  "chapel",
-  "chapel-clues-records",
-  "chapel-clues-runtime",
-  "chapel-tools",
-  "character-runtime",
-  "cli",
-  "combat",
-  "data-dm-cases",
-  "dm-evaluator",
-  "dm-interpretation-cases",
-  "exploration-runtime",
-  "game-tools",
-  "generation",
-  "generation-continuity",
-  "generation-readiness",
-  "generation-routes",
-  "historical-runtime",
-  "legacy-replay",
-  "legacy-runtime-contract",
-  "parser",
-  "presenter",
-  "session",
-  "signet-runtime",
+// Shared infrastructure that must stay independent of the 5e game, so it can
+// be tested with any runtime: it reaches a runtime only through
+// runtime-contract.ts, as an argument.
+const SHARED_MODULES = [
+  "atomic-file",
+  "bounded-json",
+  "browser-http",
+  "browser-launch",
+  "dm-turn",
+  "file-lock",
+  "openai-dm-model",
+  "random",
+  "runtime-contract",
+  "scripted-dm-model",
 ];
-const RUNTIME_REGISTRY = "data-runtime";
 
 export default tseslint.config(
   {
@@ -51,19 +34,18 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/**/*.ts"],
-    ignores: [...OLD_GAME_MODULES, RUNTIME_REGISTRY].map(
-      (name) => `src/${name}.ts`,
-    ),
+    files: SHARED_MODULES.map((name) => `src/${name}.ts`),
     rules: {
       "no-restricted-imports": [
         "error",
         {
-          paths: OLD_GAME_MODULES.map((name) => ({
-            name: `./${name}.js`,
-            message:
-              "Shared infrastructure must not import a pre-5e game module. Use runtime-contract.ts, and obtain runtimes from data-runtime.ts.",
-          })),
+          patterns: [
+            {
+              group: ["./*-5e.js"],
+              message:
+                "Shared infrastructure must not import the 5e game. Take the runtime as an AdventureRuntime from runtime-contract.ts.",
+            },
+          ],
         },
       ],
     },

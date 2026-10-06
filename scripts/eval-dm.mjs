@@ -1,7 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { runDmEvaluation } from "../dist/dm-evaluator.js";
 import {
   evaluationCallBudget,
   FIFTH_DM_CASES,
@@ -10,10 +9,12 @@ import {
 import { createOpenAiDmModel } from "../dist/openai-dm-model.js";
 
 const USAGE = [
-  "Usage: npm run eval:dm -- --model <model-id> [--campaign data-chapel|historical|abandoned-delve]",
+  "Usage: npm run eval:dm -- --model <model-id> --live",
   "       [--repetitions <count>] [--judgments <path>] [--output <path>]",
-  "       The abandoned-delve campaign calls the live provider only with --live,",
-  "       within --max-calls provider calls (default: four per case and repetition).",
+  "       [--max-calls <count>]",
+  "       Runs the abandoned-delve cases. It calls the live provider",
+  "       only with --live, within --max-calls provider calls",
+  "       (default: four per case and repetition).",
 ].join(" ");
 
 function argumentValue(args, index) {
@@ -25,7 +26,7 @@ function argumentValue(args, index) {
 }
 
 function parseArguments(args) {
-  const parsed = { repetitions: 3, campaign: "data-chapel" };
+  const parsed = { repetitions: 3 };
   const seen = new Set();
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
@@ -53,8 +54,6 @@ function parseArguments(args) {
       parsed.model = value;
     } else if (name === "--repetitions") {
       parsed.repetitions = Number(value);
-    } else if (name === "--campaign") {
-      parsed.campaign = value;
     } else if (name === "--judgments") {
       parsed.judgmentsPath = value;
     } else if (name === "--output") {
@@ -68,14 +67,9 @@ function parseArguments(args) {
   if (
     parsed.model === undefined ||
     parsed.model.startsWith("--") ||
-    !["data-chapel", "historical", "abandoned-delve"].includes(
-      parsed.campaign,
-    ) ||
     (parsed.maxCalls !== undefined &&
-      (parsed.campaign !== "abandoned-delve" ||
-        !Number.isInteger(parsed.maxCalls) ||
-        parsed.maxCalls < 1)) ||
-    (parsed.campaign === "abandoned-delve") !== (parsed.live === true) ||
+      (!Number.isInteger(parsed.maxCalls) || parsed.maxCalls < 1)) ||
+    parsed.live !== true ||
     !Number.isInteger(parsed.repetitions) ||
     parsed.repetitions < 3
   ) {
@@ -141,32 +135,19 @@ const outputPath = configuration.outputPath;
 try {
   const live = (model) =>
     createOpenAiDmModel({ apiKey: process.env.OPENAI_API_KEY, model });
-  let report;
-  if (configuration.campaign === "abandoned-delve") {
-    // Every case, every repetition, at most four model responses each.
-    const maxCalls =
-      configuration.maxCalls ?? evaluationCallBudget(configuration.repetitions);
-    process.stdout.write(
-      `Evaluating ${FIFTH_DM_CASES.length} cases × ${configuration.repetitions} repetitions on ${configuration.model}, at most ${maxCalls} provider calls.\n`,
-    );
-    report = await runFifthDmEvaluation({
-      requestedModel: configuration.model,
-      repetitions: configuration.repetitions,
-      maxCalls,
-      ...(manualJudgments === undefined ? {} : { manualJudgments }),
-      createModel: () => live(configuration.model),
-    });
-  } else {
-    report = await runDmEvaluation({
-      requestedModel: configuration.model,
-      campaign: configuration.campaign,
-      repetitions: configuration.repetitions,
-      ...(manualJudgments === undefined ? {} : { manualJudgments }),
-      createModel() {
-        return live(configuration.model);
-      },
-    });
-  }
+  // Every case, every repetition, at most four model responses each.
+  const maxCalls =
+    configuration.maxCalls ?? evaluationCallBudget(configuration.repetitions);
+  process.stdout.write(
+    `Evaluating ${FIFTH_DM_CASES.length} cases × ${configuration.repetitions} repetitions on ${configuration.model}, at most ${maxCalls} provider calls.\n`,
+  );
+  const report = await runFifthDmEvaluation({
+    requestedModel: configuration.model,
+    repetitions: configuration.repetitions,
+    maxCalls,
+    ...(manualJudgments === undefined ? {} : { manualJudgments }),
+    createModel: () => live(configuration.model),
+  });
   await mkdir(path.dirname(outputPath), { recursive: true });
   await writeFile(
     outputPath,

@@ -1,8 +1,0 @@
-move square
-move cellar
-attack neri
-search route-register
-move square
-move hall
-resolve file-register
-journal

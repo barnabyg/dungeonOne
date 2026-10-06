@@ -1,5 +1,7 @@
 # Start afresh on 5e and suspend compatibility until a stable release
 
+> **Status:** accepted. #137 made 5e the browser's only mode, and #139 removed the pre-5e game on 6 October 2026; git history keeps it.
+
 On 4 October 2026 the project owner decided to move Dungeon One to the 2024 fifth-edition rules published in the System Reference Document 5.2 (SRD 5.2, CC-BY-4.0), instead of extending the house rules in [`docs/character-rules.md`](../character-rules.md). The game is in early development, and building every feature twice (once in the house rules, once in 5e) costs more than starting again. The plan is the [D&D 5e expansion plan](../../dnd-expansion-implementation-plan.md); increment 11 is issues #125–#140.
 
 ## Decision
@@ -56,7 +58,7 @@ Other 5e rules arrive in later increments as the expansion plan schedules them (
 
 ## Supersedes
 
-This ADR supersedes ADRs 0001–0004 and the [increment 4 migration contract](../migration-contract.md) wherever they conflict. In particular:
+This ADR supersedes ADRs 0001–0004 and the increment 4 migration contract (deleted in #139) wherever they conflict. In particular:
 
 - [ADR 0003](0003-save-characters-independently-of-adventure-sessions.md) and [ADR 0004](0004-qualify-the-full-adventure-in-character-mode.md) assume released saves stay playable and that `--legacy` stays supported. Neither holds any more: released Hollow Beacon saves, existing characters and `--legacy` are removed without migration. ADR 0003's independent character library and once-only career handoff are kept for 5e characters.
 - [ADR 0001](0001-build-local-ai-browser-play-before-finishing-increment-8.md) and [ADR 0002](0002-restore-conversation-without-making-narration-authoritative.md) describe Hollow Beacon work. The browser-first direction and non-authoritative conversation history carry over to 5e; their Hollow Beacon specifics do not.

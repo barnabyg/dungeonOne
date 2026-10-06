@@ -1,6 +1,0 @@
-look
-talk lysa request ask
-talk lysa refuse ask
-journal
-resolve refuse-errand
-journal

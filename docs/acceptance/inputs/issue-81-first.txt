@@ -1,5 +1,0 @@
-move refugee-camp
-talk sera keeper-warning ask
-move watch-yard
-talk iona relay-warning ask
-move keeper-path

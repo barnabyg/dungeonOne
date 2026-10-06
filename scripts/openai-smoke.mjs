@@ -46,7 +46,7 @@ if (process.exitCode === undefined) {
   const result = spawnSync(
     process.execPath,
     [
-      path.join(process.cwd(), "dist", "cli.js"),
+      path.join(process.cwd(), "dist", "cli-5e.js"),
       "--ai",
       "--model",
       model,
