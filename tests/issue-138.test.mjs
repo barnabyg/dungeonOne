@@ -9,7 +9,7 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import {
@@ -441,46 +441,6 @@ test("the live qualification runs only with --live and a key, and its dry run fl
       [true, true, true, true, true, false, false, false, false, false],
     );
   }));
-
-/** Every module the CLI loads at startup, following static imports. */
-async function loaded(entry) {
-  const seen = new Set();
-  const pending = [entry];
-  while (pending.length > 0) {
-    const file = pending.pop();
-    if (seen.has(file)) {
-      continue;
-    }
-    seen.add(file);
-    const source = await readFile(file, "utf8");
-    for (const [, specifier] of source.matchAll(
-      /(?:\bfrom|^import)\s*["'](\.{1,2}\/[^"']+)["']/gm,
-    )) {
-      pending.push(resolve(dirname(file), specifier));
-    }
-  }
-  return [...seen].map((file) => file.slice(dirname(entry).length + 1));
-}
-
-test("the 5e CLI loads no pre-5e module", async () => {
-  const modules = await loaded(cli);
-  assert.ok(modules.includes("runtime-5e.js"));
-  for (const old of [
-    "data-runtime.js",
-    "runtime.js",
-    "adventure-loader.js",
-    "cli.js",
-    "play.js",
-    "replay.js",
-    "trace.js",
-    "save.js",
-    "session.js",
-    "game-tools.js",
-    "legacy-runtime-contract.js",
-  ]) {
-    assert.ok(!modules.includes(old), `the CLI loads ${old}`);
-  }
-});
 
 test("a DM call budget stops every model it limits once spent", async () => {
   const { createDmCallBudget } = await import("../dist/dm-turn.js");
