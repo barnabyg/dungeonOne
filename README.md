@@ -184,10 +184,10 @@ a hit the damage in bold with its dice and the target's HP after, such as
 d20s and strikes through the one not kept. Initiative, healing, checks and
 saving throws show their dice the same way, with a check's ability modifier,
 proficiency, DC and a Success or Failure tag; initiative is always a d20, so its
-dice show just the value. A card is never taller than the engine's text would
-be. Screen readers hear the engine's own text for each line, and **Full text**,
-on the card's top edge, shows it. The newest
-entry is marked with a gold edge.
+dice show just the value. A card with an attack is never taller than the
+engine's text would be. Screen readers hear the engine's own text for each line,
+and **Full text**, on the card's top edge, shows it. The newest entry is marked
+with a gold edge.
 
 **Busy states.** A typed message appears in the history at once, with "The
 Dungeon Master is thinking…" beneath it until the reply replaces it; that

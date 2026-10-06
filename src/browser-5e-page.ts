@@ -762,11 +762,11 @@ function part(tag, kind, text) {
 const OUTCOME_TAGS = { hit: "Hit", critical: "Critical hit", miss: "Miss", success: "Success", failure: "Failure" };
 const withSign = (value) => (value >= 0 ? " + " : " − ") + Math.abs(value);
 
-/** A roll's dice as chips, an unkept d20 struck through. */
-const diceChips = (group, separator) =>
+/** A roll's dice as chips, an unkept d20 struck through; with sides false, just each value. */
+const diceChips = (group, separator, sides = true) =>
   group.dice.flatMap((die, index) => [
     ...(index > 0 ? [separator] : []),
-    make("span", "d" + die.sides + " " + die.value, "roll-die" + (die.dropped ? " dropped" : "")),
+    make("span", (sides ? "d" + die.sides + " " : "") + die.value, "roll-die" + (die.dropped ? " dropped" : "")),
   ]);
 
 /** Damage or healing: the total in bold, its dice, and the HP after, such as "7 slashing (d6 4 + 3) → 0/7 HP". */
@@ -784,7 +784,7 @@ function compactRoll(group) {
     case "initiative":
       // Initiative is always a d20, so its chip shows just the value; with
       // "d20" the line can be wider than its engine text (#196).
-      node.append(group.roller + " ", ...group.dice.map((die) => make("span", String(die.value), "roll-die")), withSign(group.modifier) + " = " + group.total + (group.rollOff ? " (roll-off " + group.rollOff.join(", ") + ")" : ""));
+      node.append(group.roller + " ", ...diceChips(group, ", ", false), withSign(group.modifier) + " = " + group.total + (group.rollOff ? " (roll-off " + group.rollOff.join(", ") + ")" : ""));
       break;
     case "target":
       node.append("target die ", ...diceChips(group));

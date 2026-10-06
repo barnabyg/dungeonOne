@@ -93,10 +93,11 @@ function simulate(seed) {
         : { type: "attack", actorId: "pc", targetId: targets[0].id },
       random,
     );
-    if (
+    // A fresh turn ends with a turn event; without one, Ada's turn goes on.
+    const stillAdasTurn =
       result.state.status === "playing" &&
-      result.events.at(-1)?.type !== "turn"
-    ) {
+      result.events.at(-1)?.type !== "turn";
+    if (stillAdasTurn) {
       misses += result.events.filter(
         (event) =>
           event.type === "attack" && event.actorId === "pc" && !event.hit,
