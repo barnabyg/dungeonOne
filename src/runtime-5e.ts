@@ -1031,9 +1031,11 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
 
 /** Thrown by the dry-run roller: the engine accepted the action and rolls. */
 class WouldRoll extends Error {}
+/** One instance, thrown every time: building an Error per dry run is slow. */
+const WOULD_ROLL = new WouldRoll("A dry run draws no dice.");
 const DRY_RUN = {
   roll(): number {
-    throw new WouldRoll("A dry run draws no dice.");
+    throw WOULD_ROLL;
   },
 };
 
