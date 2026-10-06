@@ -30,6 +30,8 @@ const holding = (equipment, stowed = [], purse = 0) => ({
   stowed,
   purse,
 });
+/** Str 16's 240 lb, with nothing else carried: weight never refuses these (#224). */
+const ROOMY = { capacity: 240, other: 0 };
 
 test("a sale returns half the catalogue price, rounded down to the copper", () => {
   assert.equal(salePrice("shortsword"), 500);
@@ -41,7 +43,7 @@ test("a sale returns half the catalogue price, rounded down to the copper", () =
 
 test("buying pays the catalogue price from the purse and stows the item", () => {
   assert.deepEqual(
-    buyItem(holding(["leather", "mace"], [], 1234), "shortsword"),
+    buyItem(holding(["leather", "mace"], [], 1234), "shortsword", ROOMY),
     {
       holding: holding(["leather", "mace"], ["shortsword"], 234),
       price: 1000,
@@ -49,7 +51,7 @@ test("buying pays the catalogue price from the purse and stows the item", () => 
   );
   // Exactly enough coin is enough.
   assert.deepEqual(
-    buyItem(holding(["leather", "mace"], ["dagger"], 1000), "shield"),
+    buyItem(holding(["leather", "mace"], ["dagger"], 1000), "shield", ROOMY),
     {
       holding: holding(["leather", "mace"], ["dagger", "shield"], 0),
       price: 1000,
@@ -59,7 +61,7 @@ test("buying pays the catalogue price from the purse and stows the item", () => 
 
 test("buying with too little coin is refused, saying what it costs and what the purse holds", () => {
   assert.deepEqual(
-    buyItem(holding(["leather", "mace"], [], 950), "shortsword").refusal,
+    buyItem(holding(["leather", "mace"], [], 950), "shortsword", ROOMY).refusal,
     {
       code: "too-little-coin",
       reason:
@@ -67,19 +69,11 @@ test("buying with too little coin is refused, saying what it costs and what the 
     },
   );
   assert.deepEqual(
-    buyItem(holding(["leather", "mace"], [], 0), "dagger").refusal,
+    buyItem(holding(["leather", "mace"], [], 0), "dagger", ROOMY).refusal,
     {
       code: "too-little-coin",
       reason: "The dagger costs 2 gp, and your purse is empty.",
     },
-  );
-});
-
-test("buying is refused when the character carries all the gear it can", () => {
-  const full = Array.from({ length: 20 }, () => "club");
-  assert.equal(
-    buyItem(holding(["leather", "mace"], full, 5000), "dagger").refusal.code,
-    "carrying-full",
   );
 });
 

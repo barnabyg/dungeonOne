@@ -97,6 +97,8 @@ export type CharacterStatus = Readonly<{
   }>[];
   /** The coin the character holds, in mixed denominations ("0 cp" when empty), for a runtime with a purse. */
   purse?: string;
+  /** The weight carried against the most the character can carry, for a runtime that weighs it. */
+  carrying?: string;
   outcome: RuntimeStatus;
   combatTurn?: string;
   resources?: readonly string[];

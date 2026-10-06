@@ -2,9 +2,10 @@
  * Weapons and armour (SRD 5.2), the starting kits, and the one rules module
  * that derives armour class and attacks from what a character has equipped.
  *
- * Pure rules over data. Prices are in copper pieces. Each item has an
- * availability tier: starting kits use only common items, and later tickets
- * limit merchants and treasure by tier. `docs/character-rules.md` records the
+ * Pure rules over data. Prices are in copper pieces and weights in pounds;
+ * a character carries up to its Strength × 15 lb, coin included (#224). Each
+ * item has an availability tier: starting kits use only common items, and
+ * later tickets limit merchants and treasure by tier. `docs/character-rules.md` records the
  * catalogue, the kits, the masteries and each abstraction.
  *
  * Positions are not modelled, so masteries that need distance are omitted
@@ -33,6 +34,8 @@ export type WeaponData = Readonly<{
   name: string;
   /** In copper pieces. */
   price: number;
+  /** In pounds. */
+  weight: number;
   damage: Dice;
   /** The damage held in two hands, for a versatile weapon. */
   versatile?: Dice;
@@ -47,6 +50,7 @@ export const WEAPONS = {
   club: {
     name: "Club",
     price: 10,
+    weight: 2,
     damage: { dice: 1, sides: 4 },
     damageType: "bludgeoning",
     properties: ["light"],
@@ -56,6 +60,7 @@ export const WEAPONS = {
   dagger: {
     name: "Dagger",
     price: 200,
+    weight: 1,
     damage: { dice: 1, sides: 4 },
     damageType: "piercing",
     properties: ["finesse", "light"],
@@ -65,6 +70,7 @@ export const WEAPONS = {
   mace: {
     name: "Mace",
     price: 500,
+    weight: 4,
     damage: { dice: 1, sides: 6 },
     damageType: "bludgeoning",
     properties: [],
@@ -74,6 +80,7 @@ export const WEAPONS = {
   shortsword: {
     name: "Shortsword",
     price: 1000,
+    weight: 2,
     damage: { dice: 1, sides: 6 },
     damageType: "piercing",
     properties: ["finesse", "light"],
@@ -83,6 +90,7 @@ export const WEAPONS = {
   longsword: {
     name: "Longsword",
     price: 1500,
+    weight: 3,
     damage: { dice: 1, sides: 8 },
     versatile: { dice: 1, sides: 10 },
     damageType: "slashing",
@@ -93,6 +101,7 @@ export const WEAPONS = {
   greatsword: {
     name: "Greatsword",
     price: 5000,
+    weight: 6,
     damage: { dice: 2, sides: 6 },
     damageType: "slashing",
     properties: ["heavy", "two-handed"],
@@ -106,6 +115,8 @@ export type ArmourData = Readonly<{
   name: string;
   /** In copper pieces. */
   price: number;
+  /** In pounds. */
+  weight: number;
   category: "light" | "medium" | "heavy" | "shield";
   /** Base AC for body armour; the bonus for a shield. */
   armorClass: number;
@@ -122,6 +133,7 @@ export const ARMOUR = {
   leather: {
     name: "Leather armour",
     price: 1000,
+    weight: 10,
     category: "light",
     armorClass: 11,
     stealthDisadvantage: false,
@@ -130,6 +142,7 @@ export const ARMOUR = {
   "chain-shirt": {
     name: "Chain shirt",
     price: 5000,
+    weight: 20,
     category: "medium",
     armorClass: 13,
     dexterityCap: 2,
@@ -139,6 +152,7 @@ export const ARMOUR = {
   "chain-mail": {
     name: "Chain mail",
     price: 7500,
+    weight: 55,
     category: "heavy",
     armorClass: 16,
     dexterityCap: 0,
@@ -149,6 +163,7 @@ export const ARMOUR = {
   plate: {
     name: "Plate armour",
     price: 150000,
+    weight: 65,
     category: "heavy",
     armorClass: 18,
     dexterityCap: 0,
@@ -159,6 +174,7 @@ export const ARMOUR = {
   shield: {
     name: "Shield",
     price: 1000,
+    weight: 6,
     category: "shield",
     armorClass: 2,
     stealthDisadvantage: false,
@@ -178,9 +194,6 @@ export const DONNING_MINUTES = {
   medium: { don: 5, doff: 1 },
   heavy: { don: 10, doff: 5 },
 } as const;
-
-/** The most stowed items a character carries. */
-export const MAX_STOWED = 20;
 
 /** Whether `value` names a catalogue weapon, armour or the shield. */
 export function isItemId(value: unknown): value is ItemId {
@@ -205,6 +218,11 @@ export function itemName(id: ItemId): string {
 /** An item's price in copper pieces. */
 export function itemPrice(id: ItemId): number {
   return isWeaponId(id) ? WEAPONS[id].price : ARMOUR[id].price;
+}
+
+/** An item's SRD 5.2 weight in pounds. */
+export function itemWeight(id: ItemId): number {
+  return isWeaponId(id) ? WEAPONS[id].weight : ARMOUR[id].weight;
 }
 
 /** An item's availability tier. */
@@ -761,10 +779,83 @@ export function formatCoins(copper: number): string {
 /** What a character holds that it can trade: its gear and its purse, in copper. */
 export type Holding = Gear & Readonly<{ purse: number }>;
 
+/** SRD 5.2: fifty coins weigh a pound. */
+export const COINS_PER_POUND = 50;
+
+/** SRD 5.2: a Small or Medium creature carries its Strength score × 15 lb. */
+export const POUNDS_PER_STRENGTH = 15;
+
+/**
+ * SRD 5.2 weighs no treasure, so each carried treasure weighs a pound. A
+ * module item's weight comes from its kind (#224); a key weighs nothing, as
+ * SRD 5.2 weighs none (one comes with its lock).
+ */
+export const TREASURE_WEIGHT = 1;
+/** SRD 5.2: a Potion of Healing weighs half a pound. */
+export const POTION_WEIGHT = 0.5;
+
+/**
+ * The coins a purse holds. It is held in copper and carried as the fewest
+ * coins worth that much, largest first, as `formatCoins` shows it.
+ */
+export function coinCount(copper: number): number {
+  return (
+    Math.floor(copper / COIN_VALUES.gp) +
+    Math.floor((copper % COIN_VALUES.gp) / COIN_VALUES.sp) +
+    (copper % COIN_VALUES.sp)
+  );
+}
+
+/** Everything a character carries: its gear, its purse, and `other` pounds besides. */
+export type Load = Holding & Readonly<{ other: number }>;
+
+/**
+ * The weight of a load in pounds: its gear, its coin, and the rest. Exact for
+ * whole and half pounds and for coin, which is summed as a count, not as
+ * fiftieths of a pound.
+ */
+export function loadWeight(load: Load): number {
+  const pounds = [...load.equipment, ...load.stowed].reduce(
+    (sum, id) => sum + itemWeight(id),
+    load.other,
+  );
+  return (pounds * COINS_PER_POUND + coinCount(load.purse)) / COINS_PER_POUND;
+}
+
+/** The most a character with this Strength score carries, in pounds. */
+export function carryingCapacity(strength: number): number {
+  return strength * POUNDS_PER_STRENGTH;
+}
+
+/** A weight in pounds as players read it: "17.5 lb". */
+export function formatWeight(pounds: number): string {
+  return `${pounds} lb`;
+}
+
+/**
+ * What limits a trade or a find by weight: the character's capacity, and the
+ * weight of what it carries besides its gear and purse, in pounds.
+ */
+export type Burden = Readonly<{ capacity: number; other: number }>;
+
+/**
+ * The refusal sentence for taking on `what` (named with its article, such as
+ * "The chain shirt") at `weight` lb while carrying `carried` lb of `capacity`.
+ */
+export function tooHeavyReason(
+  what: string,
+  weight: number,
+  carried: number,
+  capacity: number,
+  remedy = "drop something first",
+): string {
+  return `${what} weighs ${formatWeight(weight)}, and you carry ${formatWeight(carried)} of the ${formatWeight(capacity)} your Strength allows: ${remedy}.`;
+}
+
 /** Why a trade is refused; `reason` is the sentence players read. */
 export type TradeRefusalCode =
   | "too-little-coin"
-  | "carrying-full"
+  | "too-heavy"
   | "sale-unconfirmed"
   /** Selling equipped gear unequips it first, which may refuse. */
   | GearRefusalCode;
@@ -790,9 +881,10 @@ export function salePrice(id: ItemId): number {
 
 /**
  * Buys an item at its catalogue price: the purse pays, and the item is
- * stowed. Refused with too little coin or no room to carry it.
+ * stowed. Refused with too little coin, or when the character would carry
+ * more than its capacity once the coin is paid.
  */
-export function buyItem(holding: Holding, id: ItemId): Trade {
+export function buyItem(holding: Holding, id: ItemId, burden: Burden): Trade {
   const price = itemPrice(id);
   if (holding.purse < price) {
     return {
@@ -802,22 +894,26 @@ export function buyItem(holding: Holding, id: ItemId): Trade {
       },
     };
   }
-  if (holding.stowed.length >= MAX_STOWED) {
+  const bought = {
+    equipment: [...holding.equipment],
+    stowed: [...holding.stowed, id],
+    purse: holding.purse - price,
+  };
+  if (loadWeight({ ...bought, other: burden.other }) > burden.capacity) {
     return {
       refusal: {
-        code: "carrying-full",
-        reason: `You carry ${MAX_STOWED} pieces of gear already; sell or drop something first.`,
+        code: "too-heavy",
+        reason: tooHeavyReason(
+          `The ${lower(id)}`,
+          itemWeight(id),
+          loadWeight({ ...holding, other: burden.other }),
+          burden.capacity,
+          "sell or drop something first",
+        ),
       },
     };
   }
-  return {
-    holding: {
-      equipment: [...holding.equipment],
-      stowed: [...holding.stowed, id],
-      purse: holding.purse - price,
-    },
-    price,
-  };
+  return { holding: bought, price };
 }
 
 /**
