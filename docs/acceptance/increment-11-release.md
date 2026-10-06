@@ -13,10 +13,9 @@ space for results).
 
 ## Automated evidence
 
-- `npm.cmd run verify` passes with zero warnings on a clean clone of commit
-  `081a8d2`: 361 tests, formatting, lint, types, static analysis, audit, secret
-  scan and package checks. It must pass again on the final commit of the PR,
-  in CI.
+- `npm.cmd run verify` passes with zero warnings on clean clones of `081a8d2`
+  and `ba2fe65`: 361 tests, formatting, lint, types, static analysis, audit,
+  secret scan and package checks. CI reruns it on the PR's final commit.
 - **Release run** (`tests/issue-140.test.mjs`): The Abandoned Delve played
   through the browser server, its API and its saved files, from the broken gate
   to the rope. It visits all ten rooms and wins all four fights, including the
@@ -43,9 +42,10 @@ space for results).
 ## Implementer evidence
 
 **Clean clone.** On Windows 11, Node.js 24.13.0 and npm 11.6.4, the
-implementer ran `git clone` of the branch at `081a8d2` into an empty directory,
-then `npm.cmd ci` (0 vulnerabilities), `npm.cmd run build` and
-`npm.cmd run verify`. All passed. `.nvmrc` pins Node.js 24.21.0; any 24.x is
+implementer ran `git clone` of the branch into an empty directory, at
+`081a8d2` and again at `ba2fe65`, then `npm.cmd ci` (0 vulnerabilities),
+`npm.cmd run build` and `npm.cmd run verify`. All passed both times. At
+`ba2fe65` the launcher served the page (HTTP 200) with an empty library. `.nvmrc` pins Node.js 24.21.0; any 24.x is
 supported.
 
 **Browser launch** from that clone, without a key:
