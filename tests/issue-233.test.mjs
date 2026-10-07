@@ -490,7 +490,7 @@ test("the bestiary and module validators refuse a damage type outside SRD 5.2", 
     entry((block) => {
       block.conditionImmunities = ["exhaustion"];
     }),
-    /condition immunity 1 must be one of poisoned, prone\./,
+    /condition immunity 1 must be one of poisoned, prone, paralysed\./,
   );
   assert.throws(
     entry((block) => {

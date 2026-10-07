@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-bestiary",
-  "formatVersion": 3,
+  "formatVersion": 4,
   "monsters": [
     {
       "id": "zombie",
@@ -157,6 +157,26 @@
         "challengeRating": "1",
         "xp": 200,
         "attacks": [
+          {
+            "name": "Claw",
+            "bonus": 4,
+            "damage": {
+              "dice": 1,
+              "sides": 4,
+              "modifier": 2,
+              "type": "slashing"
+            },
+            "rider": {
+              "condition": {
+                "kind": "paralysed",
+                "save": {
+                  "ability": "constitution",
+                  "dc": 10
+                },
+                "turns": 1
+              }
+            }
+          },
           {
             "name": "Bite",
             "bonus": 4,

@@ -38,7 +38,7 @@ const USAGE =
 // Each release run's issue, route and default seed, on which Ada clears the
 // route and walks out when each step is taken as planned.
 const RUNS = {
-  "abandoned-delve": { issue: 140, route: DELVE_FULL_ROUTE, seed: "711" },
+  "abandoned-delve": { issue: 140, route: DELVE_FULL_ROUTE, seed: "1443" },
   "tinkers-toll": { issue: 211, route: TOLL_FULL_ROUTE, seed: "0" },
 };
 const usage = () => {

@@ -16,8 +16,9 @@
 //   #initiative-toggle once the fight is over.
 // - #session-actions: #adventure-error and the action bar (#156), #action-bar:
 //   #attack-controls, #feature-controls (Drink in a fight, Second Wind, Action
-//   Surge, End turn) and #explore-controls (Go, Examine, Take, Drink, Force,
-//   Pick, Break, Unlock, Search, Disarm and Talk, grouped by target with the
+//   Surge, End turn; only Wait, with why, while paralysed, #234) and
+//   #explore-controls (Go, Examine, Take, Drink, Force, Pick, Break, Unlock,
+//   Search, Disarm and Talk, grouped by target with the
 //   full name as each button's accessible name) and #leave-controls (Leave
 //   the adventure, in an exit room; #133). Leave asks first in #leave-confirm,
 //   just after the bar, in place of the button, never in a browser dialog. It
@@ -1203,9 +1204,17 @@ const ACTIONS = {
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
   leave: { label: "Leave the adventure", busy: "Leaving the adventure", busyLabel: "Leaving…" },
 };
+// Paralysed (#234), the character's only action is ending its turn: waiting.
+const WAIT = { label: "Wait", busy: "Waiting", busyLabel: "Waiting…" };
+const paralysed = () => {
+  const encounter = session.encounter;
+  const self = encounter && encounter.combatants.find(({ id }) => id === encounter.playerId);
+  return Boolean(self && self.conditions.some(({ kind }) => kind === "paralysed"));
+};
+const wordsOf = (action) => action === "end-turn" && paralysed() ? WAIT : ACTIONS[action];
 // Leave names the adventure, not the room it is taken from.
 const named = (action, target) => target && action !== "leave" ? target.name : "";
-const busyName = ({ action, target }) => ACTIONS[action].busy + named(action, target) + "…";
+const busyName = ({ action, target }) => wordsOf(action).busy + named(action, target) + "…";
 const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
 const GEAR = ["equip", "unequip", "swap", "drop"];
 // The "You carry" slot each verb on the character's gear goes on.
@@ -1230,11 +1239,12 @@ function renderActions() {
     // fight with the turn's other options, as Drink does.
     // Trades go on the merchant's wares and on "You carry" (#210).
     const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : action === "buy" ? "wares" : SALES.includes(action) ? "carried" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
-    const label = ACTIONS[action].label + named(action, target) + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
+    const words = wordsOf(action);
+    const label = words.label + named(action, target) + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
     button.append(make("span", short ? ACTIONS[action].short : label));
-    button.dataset.busyLabel = ACTIONS[action].busyLabel;
+    button.dataset.busyLabel = words.busyLabel;
     button.type = "button";
     if (short) button.setAttribute("aria-label", label);
     // One opponent makes attacking the fight's primary action; several are peers.
@@ -1247,8 +1257,10 @@ function renderActions() {
     button.addEventListener("click", () => action === "leave" ? openLeave() : action === "sell-equipped" ? openSale(option) : perform(option));
     const wrap = make("span", undefined, "action");
     wrap.append(button);
-    if (!option.available) {
-      const reason = make("span", option.reason, "reason");
+    // Waiting says why it is all the character can do.
+    const why = !option.available ? option.reason : words === WAIT ? "You are paralysed, so you can only wait." : "";
+    if (why) {
+      const reason = make("span", why, "reason");
       reason.id = "action-reason-" + index;
       button.setAttribute("aria-describedby", reason.id);
       wrap.append(reason);
