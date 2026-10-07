@@ -5,7 +5,7 @@
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { sessionSeed } from "../../dist/session-5e.js";
-import { validateModule } from "./bestiary.mjs";
+import { inlineMonster, validateModule } from "./bestiary.mjs";
 import { fightThrough } from "./fleeing-goblins.mjs";
 import { moduleFile } from "./modules.mjs";
 import { firstFighter } from "./session-layout.mjs";
@@ -48,28 +48,30 @@ export const surrenderingGoblinsJson = {
   encounters: [
     {
       id: "barrow-goblin",
-      opponents: GOBLINS.map((goblinId, index) => ({
-        id: goblinId,
-        monster: "goblin-minion",
-        name: `Goblin ${index + 1}`,
-        surrender: {
-          description: `Goblin ${index + 1} kneels in the dirt, its dagger thrown down.`,
-          topics: [
-            {
-              id: mercyOf(goblinId),
-              name: "Mercy",
-              reply: "Spare me! Take it, take the ring!",
-              gives: [ringOf(goblinId)],
-            },
-            {
-              id: lairOf(goblinId),
-              name: "The barrow",
-              reply: "Only us three. The rest ran off with the good silver.",
-            },
-          ],
-          xp: SPARED_XP,
-        },
-      })),
+      // Inline Goblin Minions: no treasure type (#240) limits their rings.
+      opponents: GOBLINS.map((goblinId, index) =>
+        inlineMonster("goblin-minion", {
+          id: goblinId,
+          name: `Goblin ${index + 1}`,
+          surrender: {
+            description: `Goblin ${index + 1} kneels in the dirt, its dagger thrown down.`,
+            topics: [
+              {
+                id: mercyOf(goblinId),
+                name: "Mercy",
+                reply: "Spare me! Take it, take the ring!",
+                gives: [ringOf(goblinId)],
+              },
+              {
+                id: lairOf(goblinId),
+                name: "The barrow",
+                reply: "Only us three. The rest ran off with the good silver.",
+              },
+            ],
+            xp: SPARED_XP,
+          },
+        }),
+      ),
       defeatEndingId: "fallen-in-the-barrow",
     },
   ],

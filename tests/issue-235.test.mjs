@@ -416,7 +416,7 @@ test("the bestiary validator checks Multiattack and level bands", () => {
     withMonster((entry) => {
       delete entry.levelBand;
     }),
-    /monster 1 must have exactly id, description, levelBand, statBlock\./,
+    /monster 1 must have exactly id, description, levelBand, treasureType, statBlock\./,
   );
 });
 

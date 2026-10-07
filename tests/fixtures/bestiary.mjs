@@ -7,3 +7,18 @@ export const bestiary = await loadBuiltInFifthBestiary();
 
 export const validateModule = (module) =>
   validateFifthAdventure(module, bestiary);
+
+/**
+ * An inline opponent with bestiary monster `monsterId`'s stat block: it
+ * fights the same, but has no treasure type (#240), so a test may give it
+ * whatever loot its mechanic needs.
+ */
+export const inlineMonster = (monsterId, opponent) => {
+  const monster = bestiary.monsters.find(({ id }) => id === monsterId);
+  return {
+    name: monster.statBlock.name,
+    description: monster.description,
+    ...opponent,
+    statBlock: structuredClone(monster.statBlock),
+  };
+};

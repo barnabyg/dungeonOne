@@ -44,6 +44,12 @@
           "id": "smoking-brazier",
           "name": "Smoking Brazier",
           "description": "An iron brazier of greasy smoke, too hot to touch."
+        },
+        {
+          "id": "bone-pile",
+          "name": "Bone Pile",
+          "description": "A heap of gnawed bones against the tunnel wall.",
+          "discovery": "Under the bones the guards kept a stoppered vial of red liquid on a cord."
         }
       ],
       "items": [
@@ -52,7 +58,7 @@
           "name": "Potion of Healing",
           "description": "A stoppered vial of red liquid on a cord.",
           "kind": "potion-of-healing",
-          "hiddenIn": "tunnel-guard"
+          "hiddenIn": "bone-pile"
         }
       ]
     },

@@ -46,11 +46,11 @@
           "hiddenIn": "stone-bier"
         },
         {
-          "id": "coin-pouch",
-          "name": "Pouch of Old Coins",
-          "description": "A greasy leather pouch of tarnished coins, robbed from the barrow's dead.",
+          "id": "barrow-goblin-coins",
+          "name": "Goblin Warrior's Coins",
+          "description": "A greasy pouch of copper pieces.",
           "kind": "coin",
-          "coins": { "gp": 2, "sp": 5 },
+          "coins": { "cp": 10 },
           "hiddenIn": "barrow-goblin"
         }
       ]

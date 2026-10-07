@@ -101,7 +101,7 @@
           "id": "strongbox",
           "name": "Strongbox",
           "description": "An iron-bound box, its lock long since broken.",
-          "discovery": "Inside, wrapped in a rag, is the old toll keeper's seal of office, cast in silver."
+          "discovery": "Inside, wrapped in a rag, is the old toll keeper's seal of office, cast in silver, and beside it a leather purse heavy with the bandits' tolls."
         }
       ],
       "items": [
@@ -121,7 +121,7 @@
           "coins": {
             "gp": 12
           },
-          "hiddenIn": "scarred-bandit"
+          "hiddenIn": "strongbox"
         }
       ]
     }

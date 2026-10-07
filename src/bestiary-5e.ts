@@ -1,5 +1,5 @@
 /**
- * The 5e bestiary (format version 6): the shared monsters adventure modules
+ * The 5e bestiary (format version 7): the shared monsters adventure modules
  * fight, each an SRD 5.2 stat block (or a house one derived from it) under an
  * id, with the character levels it suits. A module's opponent names a
  * bestiary monster by id, or authors a one-off stat block inline. A stat
@@ -10,7 +10,9 @@
  * immunities, and give an attack a rider: extra damage on a hit and a
  * condition, after a saving throw if it names one. Every stat block gives a
  * morale DC (#237, a house rule) or `"never"` for one that never checks
- * morale; an Undead never does. A later ticket adds treasure types.
+ * morale; an Undead never does. Every monster has a treasure type
+ * (`treasure-5e.ts`, #240): what it carries for an authoring-time roll to
+ * turn into loot.
  *
  * Validation names the first problem it finds. A bestiary in any other format
  * version is refused with a message naming the file.
@@ -26,6 +28,11 @@ import {
 } from "./encounter-5e.js";
 import { ABILITIES, type Abilities, type Ability } from "./fighter-5e.js";
 import {
+  isTreasureTypeId,
+  TREASURE_TYPES,
+  type TreasureTypeId,
+} from "./treasure-5e.js";
+import {
   distinct,
   exactKeys,
   knownKeys,
@@ -39,7 +46,7 @@ import {
   fail,
 } from "./json-shape.js";
 
-export const FIFTH_BESTIARY_FORMAT = 6;
+export const FIFTH_BESTIARY_FORMAT = 7;
 
 /** The monster traits the engine applies. */
 export const MONSTER_TRAITS = [
@@ -115,6 +122,8 @@ export type FifthMonster = Readonly<{
   id: string;
   description: string;
   levelBand: Readonly<{ min: number; max: number }>;
+  /** What it carries: an authoring-time roll turns it into loot (#240). */
+  treasureType: TreasureTypeId;
   statBlock: StatBlock;
 }>;
 
@@ -411,9 +420,14 @@ function validateBestiary(value: unknown): FifthBestiary {
       const where = `monster ${index + 1}`;
       const monster = exactKeys(
         entry,
-        ["id", "description", "levelBand", "statBlock"],
+        ["id", "description", "levelBand", "treasureType", "statBlock"],
         where,
       );
+      if (!isTreasureTypeId(monster.treasureType)) {
+        fail(
+          `${where} treasureType must be one of ${Object.keys(TREASURE_TYPES).join(", ")}.`,
+        );
+      }
       const band = exactKeys(
         monster.levelBand,
         ["min", "max"],
@@ -425,6 +439,7 @@ function validateBestiary(value: unknown): FifthBestiary {
         id: id(monster.id, `${where} id`),
         description: text(monster.description, `${where} description`),
         levelBand: { min, max },
+        treasureType: monster.treasureType,
         statBlock: statBlock(monster.statBlock, `${where} statBlock`),
       };
     },

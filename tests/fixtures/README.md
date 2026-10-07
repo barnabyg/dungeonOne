@@ -111,6 +111,21 @@ mouth is a fight a level-1 Fighter loses, for the journey that trades and
 then falls. `armoury-barrow.mjs` is now for levels 1–3, since its longsword,
 greatsword and chain mail are uncommon.
 
+## Monster loot (issue 240)
+
+A bestiary monster's treasure type limits what it may carry, so fixtures whose
+opponents carry loot for another mechanic's sake use inline copies of a
+bestiary stat block, made with `inlineMonster(monsterId, opponent)` from
+`bestiary.mjs`: they fight the same but have no treasure type. The lintel
+barrow's goblin (its 2 gp 5 sp pouch), the fleeing and surrendering goblins
+(their silver and rings) and the #198 crypt's warden (its gold ring) are
+inline for that reason. The goblin burrow's guard potion lies under the guard
+tunnel's bone pile, as a Goblin Warrior carries no potion.
+
+`rolled-barrow.mjs` is the lintel barrow with its goblin as the bestiary's
+Goblin Warrior, carrying only the loot `rollModuleLoot` rolled for it with
+seed 240 (`ROLL_SEED`): the browser test defeats it and finds exactly that.
+
 ## Ranged weapons (issue 230)
 
 `archery-barrow.mjs` is the lintel barrow as _The Archers' Barrow_: a bowyer

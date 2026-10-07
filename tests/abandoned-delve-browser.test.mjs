@@ -61,9 +61,9 @@ const TO_THE_FIGHT = [
   ["move", "gate-hall"],
   ["move", "guard-post"],
 ];
-// After it: loot the zombie, ask the goblin about the key, and walk out.
+// After it: find the guard's purse, ask the goblin about the key, and walk out.
 const AFTER_THE_FIGHT = [
-  ["examine", "zombie"],
+  ["examine", "overturned-table"],
   ["take", "guard-purse"],
   ["move", "dry-well"],
   ["talk", "the-vault"],

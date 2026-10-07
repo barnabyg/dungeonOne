@@ -18,6 +18,7 @@
     "estimate": "npm run build && node scripts/estimate-5e.mjs",
     "format": "prettier --write \".github/**/*.{yml,yaml}\" \"agent-guidance/**/*.md\" \"src/**/*.ts\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" \"adventures/**/*.json\" \"*.config.mjs\" README.md package.json \"tsconfig*.json\"",
     "format:check": "prettier --check \".github/**/*.{yml,yaml}\" \"agent-guidance/**/*.md\" \"src/**/*.ts\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" \"adventures/**/*.json\" \"*.config.mjs\" README.md package.json \"tsconfig*.json\"",
+    "loot": "npm run build && node scripts/loot-5e.mjs",
     "lint": "eslint . --config eslint.style.config.mjs --max-warnings 0",
     "smoke:ai": "npm run build && node scripts/openai-smoke.mjs",
     "static": "eslint . --config eslint.bugs.config.mjs --max-warnings 0",

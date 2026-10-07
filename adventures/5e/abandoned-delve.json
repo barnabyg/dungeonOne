@@ -36,7 +36,7 @@
     {
       "id": "guard-post",
       "name": "Guard Post",
-      "description": "A cramped guard room with a weapon rack and an overturned table. A dead guard still stands its post, a purse at its belt. A narrow way leads on to an old well.",
+      "description": "A cramped guard room with a weapon rack and an overturned table. A dead guard still stands its post. A narrow way leads on to an old well.",
       "encounterId": "guard-zombie",
       "features": [
         {
@@ -44,6 +44,12 @@
           "name": "Weapon Rack",
           "description": "A rack of rusted spears.",
           "discovery": "Tucked behind the spears is a stoppered vial of red liquid."
+        },
+        {
+          "id": "overturned-table",
+          "name": "Overturned Table",
+          "description": "A heavy table knocked onto its side, dice scattered beneath it.",
+          "discovery": "Among the scattered dice lies a leather purse, dropped by the guard when it fell to its last game."
         }
       ],
       "items": [
@@ -57,10 +63,12 @@
         {
           "id": "guard-purse",
           "name": "Guard's Purse",
-          "description": "A leather purse of old silver coins.",
+          "description": "A leather purse of old silver coins, the guard's stake.",
           "kind": "coin",
-          "coins": { "sp": 18 },
-          "hiddenIn": "zombie"
+          "coins": {
+            "sp": 18
+          },
+          "hiddenIn": "overturned-table"
         }
       ]
     },
@@ -236,7 +244,7 @@
           "id": "iron-chest",
           "name": "Iron Chest",
           "description": "A great iron chest, its lid broken open.",
-          "discovery": "The chest is still half full of old gold coins."
+          "discovery": "The chest is still half full of old gold coins, and a jewelled goblet lies on top of them."
         }
       ],
       "items": [
@@ -245,16 +253,18 @@
           "name": "Gold Coins",
           "description": "Handfuls of old gold coins stamped with a forgotten lord's face.",
           "kind": "coin",
-          "coins": { "gp": 40 },
+          "coins": {
+            "gp": 40
+          },
           "hiddenIn": "iron-chest"
         },
         {
           "id": "jewelled-goblet",
           "name": "Goblet",
-          "description": "A jewelled gold goblet the ghoul clutched to its chest.",
+          "description": "A jewelled gold goblet, its rim gnawed by something's teeth.",
           "kind": "treasure",
           "treasure": "art-25gp",
-          "hiddenIn": "ghoul"
+          "hiddenIn": "iron-chest"
         }
       ]
     }

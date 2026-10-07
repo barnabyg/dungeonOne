@@ -113,7 +113,11 @@ export const DELVE_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
     target: "rack-potion",
     say: "Grab the vial from behind the spears.",
   },
-  { action: "examine", target: "zombie", say: "Search the zombie's body." },
+  {
+    action: "examine",
+    target: "overturned-table",
+    say: "Look under the overturned table.",
+  },
   { action: "take", target: "guard-purse", say: "Take the guard's purse." },
   { action: "move", target: "gate-hall", say: "Return to the gate hall." },
   {
@@ -200,7 +204,6 @@ export const DELVE_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
     say: "Look in the iron chest.",
   },
   { action: "take", target: "coin-chest", say: "Scoop up the gold coins." },
-  { action: "examine", target: "ghoul", say: "Search the ghoul's body." },
   {
     action: "take",
     target: "jewelled-goblet",
@@ -268,11 +271,6 @@ export const TOLL_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
     say: "Open the strongbox under the stair.",
   },
   { action: "take", target: "toll-seal", say: "Take the silver seal." },
-  {
-    action: "examine",
-    target: "scarred-bandit",
-    say: "Search the scarred bandit's body.",
-  },
   { action: "take", target: "bandit-purse", say: "Take the bandit's purse." },
   { action: "move", target: "ford", say: "Go back down to the ford." },
   {

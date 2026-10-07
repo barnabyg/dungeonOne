@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-bestiary",
-  "formatVersion": 6,
+  "formatVersion": 7,
   "monsters": [
     {
       "id": "zombie",
@@ -9,6 +9,7 @@
         "min": 1,
         "max": 2
       },
+      "treasureType": "none",
       "statBlock": {
         "name": "Zombie",
         "size": "Medium",
@@ -54,6 +55,7 @@
         "min": 1,
         "max": 2
       },
+      "treasureType": "none",
       "statBlock": {
         "name": "Skeleton",
         "size": "Medium",
@@ -98,6 +100,7 @@
         "min": 3,
         "max": 4
       },
+      "treasureType": "none",
       "statBlock": {
         "name": "Giant Spider",
         "size": "Large",
@@ -156,6 +159,7 @@
         "min": 2,
         "max": 3
       },
+      "treasureType": "none",
       "statBlock": {
         "name": "Ghoul",
         "size": "Medium",
@@ -219,6 +223,7 @@
         "min": 1,
         "max": 1
       },
+      "treasureType": "copper",
       "statBlock": {
         "name": "Goblin Minion",
         "size": "Small",
@@ -261,6 +266,7 @@
         "min": 1,
         "max": 2
       },
+      "treasureType": "copper",
       "statBlock": {
         "name": "Goblin Warrior",
         "size": "Small",
@@ -303,6 +309,7 @@
         "min": 2,
         "max": 3
       },
+      "treasureType": "silver-and-trinket",
       "statBlock": {
         "name": "Goblin Boss",
         "size": "Small",
@@ -345,6 +352,7 @@
         "min": 2,
         "max": 3
       },
+      "treasureType": "none",
       "statBlock": {
         "name": "Wolf",
         "size": "Medium",
@@ -396,6 +404,7 @@
         "min": 1,
         "max": 2
       },
+      "treasureType": "silver",
       "statBlock": {
         "name": "Bandit",
         "size": "Medium",
@@ -437,6 +446,7 @@
         "min": 1,
         "max": 1
       },
+      "treasureType": "none",
       "statBlock": {
         "name": "Giant Rat",
         "size": "Small",
@@ -479,6 +489,7 @@
         "min": 1,
         "max": 1
       },
+      "treasureType": "copper",
       "statBlock": {
         "name": "Kobold",
         "size": "Small",
@@ -521,6 +532,7 @@
         "min": 2,
         "max": 3
       },
+      "treasureType": "silver",
       "statBlock": {
         "name": "Hobgoblin Warrior",
         "size": "Medium",
@@ -563,6 +575,7 @@
         "min": 2,
         "max": 3
       },
+      "treasureType": "silver-and-trinket",
       "statBlock": {
         "name": "Bugbear Warrior",
         "size": "Medium",
@@ -604,6 +617,7 @@
         "min": 3,
         "max": 4
       },
+      "treasureType": "silver",
       "statBlock": {
         "name": "Gnoll Ravager",
         "size": "Medium",
@@ -657,6 +671,7 @@
         "min": 4,
         "max": 5
       },
+      "treasureType": "gold",
       "statBlock": {
         "name": "Ogre",
         "size": "Large",

@@ -117,20 +117,41 @@ test("every shipped module's treasure fits its budget (#239)", () => {
   }
 });
 
-test("the barrow's goblin carries coin, authored in gold and silver (#208)", () => {
+test("the barrow's goblin carries the coppers rolled from its treasure type (#208, #240)", () => {
   const barrow = shipped.find(({ id }) => id === "robbers-barrow");
-  const pouch = barrow.rooms
+  const carried = barrow.rooms
     .find(({ id }) => id === "burial-hall")
-    .items.find(({ id }) => id === "coin-pouch");
-  assert.deepEqual(pouch, {
-    id: "coin-pouch",
-    name: "Pouch of Old Coins",
-    description:
-      "A greasy leather pouch of tarnished coins, robbed from the barrow's dead.",
-    kind: "coin",
-    coins: { gp: 2, sp: 5 },
-    hiddenIn: "barrow-goblin",
-  });
+    .items.filter(({ hiddenIn }) => hiddenIn === "barrow-goblin");
+  assert.deepEqual(carried, [
+    {
+      id: "barrow-goblin-coins",
+      name: "Goblin Warrior's Coins",
+      description: "A greasy pouch of copper pieces.",
+      kind: "coin",
+      coins: { cp: 10 },
+      hiddenIn: "barrow-goblin",
+    },
+  ]);
+});
+
+test("only bestiary monsters with a treasure type carry loot in the shipped modules (#240)", () => {
+  // Undead and beasts carry none: the Delve's purse and goblet and the
+  // Warren's potion lie in the room, and the Toll's tolls are in the strongbox.
+  const carriers = shipped.flatMap((adventure) =>
+    adventure.rooms.flatMap(({ items }) =>
+      items.flatMap(({ id, hiddenIn }) =>
+        adventure.encounters.some(({ opponents }) =>
+          opponents.some((opponent) => opponent.id === hiddenIn),
+        )
+          ? [`${adventure.id}/${id}@${hiddenIn}`]
+          : [],
+      ),
+    ),
+  );
+  assert.deepEqual(carriers.sort(), [
+    "goblin-warren/boss-chain@goblin-boss",
+    "robbers-barrow/barrow-goblin-coins@barrow-goblin",
+  ]);
 });
 
 test("the browser offers the shipped modules by level, then difficulty (#165)", () => {

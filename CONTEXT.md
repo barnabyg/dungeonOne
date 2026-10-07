@@ -48,6 +48,10 @@ _Avoid_: Wallet, Gold, Balance
 The most an adventure module's findable treasure (coin, gems, art objects, potions and gear) may be worth, set by its maximum recommended level. Each item must also have a tier allowed at that level.
 _Avoid_: Loot table, Hoard
 
+**Treasure type**:
+What a bestiary monster carries, as dice for one kind of coin and optionally one trinket (a gem or art object): none for undead and beasts, a few coppers for a goblin. An authoring-time roll turns it into the items an opponent carries in a module; the validator rejects carried loot the type couldn't produce.
+_Avoid_: Loot table, Treasure class
+
 **Possessions**:
 What a character holds: its equipment, its stowed gear, its ammunition, its treasure and its purse. An adventure starts holding them, and they change only there. Settling a victory or an escape replaces them with what the character holds at the end.
 _Avoid_: Inventory (the items carried in one adventure), Loot
@@ -189,7 +193,7 @@ One creature in an encounter, with its own hit points, armour class, attack and 
 _Avoid_: Monster (for the player character), Unit
 
 **Monster**:
-A kind of creature characters fight, defined once in the bestiary by its stat block (SRD 5.2, or a house block derived from one), a default description and its level band, the character levels it suits. An opponent is a monster placed in an encounter, under the monster's name or one the module gives it ("Tall Skeleton"); whether it is a boss belongs to the opponent, not the monster.
+A kind of creature characters fight, defined once in the bestiary by its stat block (SRD 5.2, or a house block derived from one), a default description, its level band (the character levels it suits) and its treasure type. An opponent is a monster placed in an encounter, under the monster's name or one the module gives it ("Tall Skeleton"); whether it is a boss belongs to the opponent, not the monster.
 _Avoid_: Enemy (an opponent, in a fight), Creature (one the character can talk to)
 
 **Bestiary**:

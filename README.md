@@ -137,7 +137,7 @@ deleted. Creation needs no OpenAI key.
   rooms under a ruined keep. A Zombie that keeps getting up guards the way in,
   two Skeletons that shatter under clubs and maces the barracks, a Giant Spider
   an optional crypt and a Ghoul the vault, with a stuck door, a trapped stair, a
-  goblin to question, treasure and coin hidden in features and on bodies, and a
+  goblin to question, treasure and coin hidden in features, and a
   second exit beside the vault where you choose to climb out or push on.
 - _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`): one SRD 5.2
   Goblin Warrior.
@@ -300,7 +300,9 @@ an abandoned adventure leaves your coin and gear as they were at the start.
 ### Treasure, coin, XP and leaving
 
 Treasure and coin are found only by examining something: a feature, or the
-body of an opponent once its fight is won. Coin is copper, silver and gold
+body of an opponent once its fight is won. What a monster carries fits what it
+is: a goblin has a few coppers, a bandit some silver, and undead and beasts
+nothing; one that flees takes it with it. Coin is copper, silver and gold
 pieces, kept as one purse and shown in mixed denominations (for example
 "3 gp 4 sp"); taking it puts it in the purse at once, shown under **You
 carry**, and spent with merchants. Both are kept only if the
@@ -334,7 +336,7 @@ reason, the history stays readable, and reloading shows the same ending.
   earned.
 - Adventure modules (`adventures/5e/*.json`) are format version 17. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
-  format version 6, or author a one-off stat block inline.
+  format version 7, or author a one-off stat block inline.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from
@@ -375,6 +377,12 @@ These are for development, not play.
   monster's one-hit-kill chance against each difficulty's cap, then the gate's
   verdict at each difficulty. See
   [the rules document](docs/character-rules.md#encounter-estimate).
+- **Monster loot roll.** `npm.cmd run loot -- <module.json> --seed <n>` rolls
+  loot for the module's bestiary opponents from their treasure types and writes
+  it into the file as items they carry, so the balance gate sees exactly what a
+  player finds. It skips an opponent that already carries loot, so you can
+  lower or remove what it rolled and roll again. See
+  [the rules document](docs/character-rules.md#monster-loot-240).
 - **Live DM evaluation.** `npm.cmd run eval:dm -- --model <model-id> --live`
   evaluates the live AI DM on The Abandoned Delve's interpretation, refusal and
   narration-fidelity cases (`src/dm-evaluation-5e.ts`), within a stated call
