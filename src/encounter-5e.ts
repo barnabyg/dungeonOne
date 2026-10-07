@@ -1063,25 +1063,30 @@ function endTurn(
   return { ...state, conditions };
 }
 
-/** How an attack came about: the dice that chose it, and what kind it is. */
-type AttackOrigin = Readonly<{
-  targetRoll?: number;
-  weaponRoll?: number;
-  /** The weapon, when an opponent's die chose it from its Multiattack. */
-  weapon?: Weapon;
-  light?: true;
-  rampage?: true;
-}>;
+/**
+ * What kind of attack it is: a combatant's own attack, the Light property's
+ * extra attack, or an opponent's (Rampage's bonus attack among them), with
+ * the weapon its dice chose and those dice.
+ */
+type AttackOrigin =
+  | Readonly<{ kind: "attack" | "light" }>
+  | Readonly<{
+      kind: "opponent" | "rampage";
+      weapon: Weapon;
+      targetRoll: number | undefined;
+      weaponRoll: number | undefined;
+    }>;
 
 function resolveAttack(
   state: EncounterState,
   actor: Combatant,
   target: Combatant,
   random: Roller,
-  origin: AttackOrigin = {},
+  origin: AttackOrigin = { kind: "attack" },
 ): { state: EncounterState; events: EncounterEvent[] } {
-  const { targetRoll, weaponRoll, light = false, rampage = false } = origin;
-  const weapon = origin.weapon ?? (light ? actor.lightAttack! : actor.attack);
+  const light = origin.kind === "light";
+  const chosen = "weapon" in origin ? origin : undefined;
+  const weapon = chosen?.weapon ?? (light ? actor.lightAttack! : actor.attack);
   const sapped = state.sapped.some(({ targetId }) => targetId === actor.id);
   const vexing = state.vexed.some(
     ({ sourceId, targetId }) => sourceId === actor.id && targetId === target.id,
@@ -1192,9 +1197,13 @@ function resolveAttack(
       hit,
       critical: hit && critical,
       ...(mode === undefined ? {} : { mode }),
-      ...(targetRoll === undefined ? {} : { targetRoll }),
-      ...(weaponRoll === undefined ? {} : { weaponRoll }),
-      ...(rampage ? { rampage: true as const } : {}),
+      ...(chosen?.targetRoll === undefined
+        ? {}
+        : { targetRoll: chosen.targetRoll }),
+      ...(chosen?.weaponRoll === undefined
+        ? {}
+        : { weaponRoll: chosen.weaponRoll }),
+      ...(origin.kind === "rampage" ? { rampage: true as const } : {}),
       damageRolls,
       damageModifier: weapon.damage.modifier,
       damage,
@@ -1372,10 +1381,10 @@ function opponentAttack(
   const weaponRoll =
     weapons.length > 1 ? random.roll(weapons.length) : undefined;
   return resolveAttack(state, actor, targets[(targetRoll ?? 1) - 1]!, random, {
-    ...(targetRoll === undefined ? {} : { targetRoll }),
-    ...(weaponRoll === undefined ? {} : { weaponRoll }),
+    kind: rampage ? "rampage" : "opponent",
     weapon: weapons[(weaponRoll ?? 1) - 1]!,
-    ...(rampage ? { rampage: true as const } : {}),
+    targetRoll,
+    weaponRoll,
   });
 }
 
@@ -1535,7 +1544,7 @@ export function act(
         return { state, rejection: refusal };
       }
       const resolved = resolveAttack(state, actor, target, random, {
-        light: true,
+        kind: "light",
       });
       events.push(...resolved.events);
       next = {
