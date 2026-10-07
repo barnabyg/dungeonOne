@@ -10,6 +10,7 @@ import {
   rollAbilitySet,
 } from "../../dist/fighter-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
+import { actionButton, settled } from "./browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 export const launch = () =>
@@ -115,13 +116,7 @@ export const assertTogether = async (page, label) => {
 
 /** Runs one action by `click` and waits for its history entry. */
 export async function act(page, label, click) {
-  const count = await page.locator("#log li").count();
-  await click();
-  await page.waitForFunction(
-    (seen) =>
-      document.querySelectorAll("#log li:not([data-pending])").length > seen,
-    count,
-  );
+  await settled(page, click);
   // The page moves focus once the action settles.
   await page.evaluate(
     () =>
@@ -132,12 +127,10 @@ export async function act(page, label, click) {
   await assertTogether(page, label);
 }
 
-// An action on a target: in the action bar, or on a carried item (#198).
+/** Runs `actionButton(page, action, target)` by `act`. */
 export const explore = (page, action, target) =>
   act(page, `${action} ${target}`, () =>
-    page
-      .locator(`button.act[data-action="${action}"][data-target="${target}"]`)
-      .click(),
+    actionButton(page, action, target).click(),
   );
 
 export const fightOn = (page) =>
@@ -155,3 +148,34 @@ export const say = (page, message) =>
     await page.locator("#message").fill(message);
     await page.locator("#message").press("Enter");
   });
+
+/**
+ * Sets every element's font to Verdana, which is as wide as the Linux
+ * fallback font CI renders with and wider than Windows' default.
+ */
+export const widenFont = (page) =>
+  page.evaluate(() => {
+    for (const node of document.querySelectorAll("*")) {
+      node.style.fontFamily = "Verdana, sans-serif";
+    }
+  });
+
+/**
+ * Asserts the page does not scroll sideways; with `wideFont`, after
+ * `widenFont`.
+ */
+export async function assertNoSideScroll(
+  page,
+  message = "no horizontal scroll",
+  { wideFont = false } = {},
+) {
+  if (wideFont) {
+    await widenFont(page);
+  }
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+    message,
+  );
+}

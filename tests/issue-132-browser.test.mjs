@@ -4,26 +4,22 @@
 // roll group in the history, and every die matches an engine run on the seed.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import {} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { sealedCrypt } from "./fixtures/modules.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
-import { firstFighter } from "./fixtures/session-layout.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
+import { createAndStart, settled } from "./fixtures/browser-journey.mjs";
+import {
+  assertNoSideScroll,
+  firstFighter,
+  launch,
+} from "./fixtures/session-layout.mjs";
+import { sessionFile } from "./fixtures/save-files.mjs";
+import { recordingRandom } from "./fixtures/seed-search.mjs";
 
 const crypt = sealedCrypt;
 
@@ -45,13 +41,7 @@ function simulate(seed) {
   const runtime = createFifthRuntime(crypt, firstFighter(seed));
   const source = createSeededRandom(sessionSeed(seed, 1));
   const drawn = [];
-  const random = {
-    roll(sides) {
-      const value = source.roll(sides);
-      drawn.at(-1).push({ sides, value });
-      return value;
-    },
-  };
+  const random = recordingRandom(source, drawn);
   const run = (state, action) => {
     drawn.push([]);
     const result = runtime.handleAction(state, action, random);
@@ -122,19 +112,15 @@ const screen = (page) =>
     log: document.getElementById("log").textContent,
   }));
 
-/** Clicks an action-bar button and waits for its history entry. */
-async function click(page, action, target) {
-  const count = await page.locator("#log li").count();
-  await page
-    .locator(
-      `#action-bar button[data-action="${action}"][data-target="${target}"]`,
-    )
-    .click();
-  await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log li").length > seen,
-    count,
+/** Clicks an action-bar button and waits for its settled history entry. */
+const click = (page, action, target) =>
+  settled(page, () =>
+    page
+      .locator(
+        `#action-bar button[data-action="${action}"][data-target="${target}"]`,
+      )
+      .click(),
   );
-}
 
 const lastEntry = (page) => page.locator("#log li").last();
 /** The compact text of the newest entry's lines that have rolls. */
@@ -142,12 +128,6 @@ const compact = (page) =>
   lastEntry(page)
     .locator(".compact")
     .evaluateAll((nodes) => nodes.map((node) => node.textContent));
-
-const sessionFile = async (directory) => {
-  const folder = join(directory, "characters-adventures");
-  const [name] = await readdir(folder);
-  return JSON.parse(await readFile(join(folder, name), "utf8"));
-};
 
 /**
  * Plays the crypt on `seed` and runs `check` in the offering room. With
@@ -274,12 +254,7 @@ async function play(seed, check, { reload = false } = {}) {
       file.transitions.find(({ source }) => source === "message").action,
       ASK_KEY,
     );
-    assert.ok(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-      "no horizontal scroll at phone width",
-    );
+    await assertNoSideScroll(page, "no horizontal scroll at phone width");
   } finally {
     await browser.close();
     await server.close();

@@ -11,7 +11,6 @@ import test from "node:test";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
@@ -20,15 +19,7 @@ import { loadScriptedDmModel } from "../dist/scripted-dm-model.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { goblinBand } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-import { firstFighter } from "./fixtures/session-layout.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
+import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 
 const END_TURN = { type: "end-turn", actorId: "pc" };
 /**

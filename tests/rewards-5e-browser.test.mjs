@@ -1,25 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { settleFighter } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { lintelBarrow as barrow } from "./fixtures/modules.mjs";
-import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
-import { firstFighter } from "./fixtures/session-layout.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
+import {
+  createFighter,
+  fight,
+  startAdventure,
+} from "./fixtures/browser-journey.mjs";
+import {
+  assertNoSideScroll,
+  firstFighter,
+  launch,
+} from "./fixtures/session-layout.mjs";
+import { readAda } from "./fixtures/save-files.mjs";
 
 const fightStep = (runtime, state) =>
   runtime.attackTargets(state).length > 0
@@ -87,23 +87,6 @@ async function explore(page, action, target) {
   );
 }
 
-/** Fights until the fight is over: Attack, or End turn once it is spent. */
-async function fight(page) {
-  while ((await page.locator("#turn").textContent()) !== "The fight is over.") {
-    const count = await page.locator("#log li").count();
-    const attack = page.locator("#attack-controls button.attack:enabled");
-    await (
-      (await attack.count()) > 0
-        ? attack.first()
-        : page.locator('#feature-controls button[data-action="end-turn"]')
-    ).click();
-    await page.waitForFunction(
-      (seen) => document.querySelectorAll("#log li").length > seen,
-      count,
-    );
-  }
-}
-
 const focusedId = (page) => page.evaluate(() => document.activeElement?.id);
 
 /** Leaves from the barrow mouth through the confirmation in the panel. */
@@ -114,9 +97,6 @@ async function leave(page) {
   await page.locator("#confirm-leave").click();
   await page.locator("#ending").waitFor({ state: "visible" });
 }
-
-const ada = async (libraryPath) =>
-  JSON.parse(await readFile(libraryPath, "utf8")).characters[0];
 
 test(
   "escape with the torc, see it and level 2 on the sheet, earn nothing twice, and abandon without loss",
@@ -262,15 +242,10 @@ test(
         1,
         "one primary step back to the sheet",
       );
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-        "no horizontal scroll at phone width",
-      );
+      await assertNoSideScroll(page, "no horizontal scroll at phone width");
 
       // Storage holds it, once.
-      let record = await ada(libraryPath);
+      let record = await readAda(libraryPath);
       assert.equal(record.session, undefined);
       assert.equal(record.sheet.xp, 300);
       assert.equal(record.sheet.level, 2);
@@ -316,7 +291,7 @@ test(
         await page.locator("#ending").innerText(),
         /Nothing new earned: Ada already has everything this adventure gives\./,
       );
-      record = await ada(libraryPath);
+      record = await readAda(libraryPath);
       assert.equal(record.sheet.xp, 300);
       assert.equal(record.sheet.treasure.length, 1);
       assert.equal(record.sheet.purse, 250);
@@ -343,7 +318,7 @@ test(
         1,
         "Ada can start the barrow again",
       );
-      record = await ada(libraryPath);
+      record = await readAda(libraryPath);
       assert.equal(record.session, undefined);
       assert.deepEqual(record.sheet, before);
     } finally {

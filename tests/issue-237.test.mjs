@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { playAdventure, qualifyAdventure } from "../dist/balance-5e.js";
 import { validateFifthBestiary } from "../dist/bestiary-5e.js";
-import { act, legalTargets, startEncounter } from "../dist/encounter-5e.js";
+import { act, legalTargets } from "../dist/encounter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { FifthSession, sessionSeed } from "../dist/session-5e.js";
@@ -21,99 +21,16 @@ import {
 } from "./fixtures/fleeing-goblins.mjs";
 import { bestiary } from "./fixtures/bestiary.mjs";
 import { firstFighter } from "./fixtures/session-layout.mjs";
-
-/** Returns the queued values in order, checking each die's sides. */
-function dice(...queue) {
-  return {
-    remaining: () => queue.length,
-    roll(sides) {
-      assert.ok(queue.length > 0, `unexpected d${sides}`);
-      const [expected, value] = queue.shift();
-      assert.equal(sides, expected, `expected a d${expected}, got a d${sides}`);
-      return value;
-    },
-  };
-}
-
-const saves = (wisdom) => ({
-  strength: 0,
-  dexterity: 2,
-  constitution: 0,
-  intelligence: 0,
-  wisdom,
-  charisma: -1,
-});
-
-/** Ada wins initiative and has Action Surge, so she can attack twice. */
-const ada = {
-  id: "pc",
-  name: "Ada",
-  side: "party",
-  armorClass: 16,
-  hp: 12,
-  maxHp: 12,
-  dexterity: 12,
-  initiativeBonus: 1,
-  saves: saves(0),
-  actionSurge: { uses: 1, max: 1 },
-  attack: {
-    name: "Longsword",
-    bonus: 5,
-    damage: { dice: 1, sides: 8, modifier: 3, type: "slashing" },
-    criticalRange: 20,
-  },
-};
-
-/** A goblin with 1 HP, which any hit drops, and morale DC 8. */
-const goblin = (id, extra = {}) => ({
-  id,
-  name: `Goblin ${id.slice(1)}`,
-  side: "opponents",
-  armorClass: 15,
-  hp: 1,
-  maxHp: 1,
-  dexterity: 14,
-  initiativeBonus: 2,
-  saves: saves(-1),
-  morale: 8,
-  attack: {
-    name: "Scimitar",
-    bonus: 4,
-    damage: { dice: 1, sides: 6, modifier: 2, type: "slashing" },
-    criticalRange: 20,
-  },
-  ...extra,
-});
-
-/** Initiative: Ada 15 + 1, then each goblin lower in the order given. */
-const initiative = (count) => [
-  [20, 15],
-  ...Array.from({ length: count }, (_, index) => [20, 5 - index]),
-];
-
-/** A hit for 1d8 + 3 that drops a 1-HP goblin. */
-const KILL = [
-  [20, 15],
-  [8, 4],
-];
+import { dice } from "./fixtures/engine-dice.mjs";
+import {
+  ada,
+  attack,
+  begin,
+  goblin,
+  KILL,
+} from "./fixtures/morale-encounter.mjs";
 
 const morale = (events) => events.filter(({ type }) => type === "morale");
-
-function begin(combatants, ...rest) {
-  const random = dice(...initiative(combatants.length - 1), ...rest);
-  const { state } = startEncounter(combatants, random);
-  return { state, random };
-}
-
-function attack(state, random, targetId) {
-  const result = act(
-    state,
-    { type: "attack", actorId: "pc", targetId },
-    random,
-  );
-  assert.equal(result.rejection, undefined);
-  return result;
-}
 
 test("the first fall makes the rest of the side check morale, in initiative order", () => {
   const { state, random } = begin(

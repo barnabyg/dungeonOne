@@ -18,42 +18,12 @@ import {
   surrenderSeed,
 } from "./fixtures/surrendering-goblins.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
-
-/** An element's text with its blank lines collapsed. */
-const text = async (locator) =>
-  (await locator.innerText()).replace(/\n+/gu, "\n");
-
-/** Waits for a new, settled history entry after `run`. */
-async function settled(page, run) {
-  const count = await page.locator("#log li").count();
-  await run();
-  await page.waitForFunction(
-    (seen) =>
-      document.querySelectorAll("#log li:not([data-pending])").length > seen,
-    count,
-  );
-}
-
-const click = (page, action, target) =>
-  settled(page, () =>
-    page
-      .locator(`button.act[data-action="${action}"][data-target="${target}"]`)
-      .click(),
-  );
-
-/** Attacks the first goblin offered, or ends the turn, until the fight ends. */
-async function fight(page) {
-  while ((await page.locator("#turn").textContent()) !== "The fight is over.") {
-    const attack = page.locator("#attack-controls button.attack:enabled");
-    await settled(page, async () =>
-      ((await attack.count()) > 0
-        ? attack.first()
-        : page.locator('#feature-controls button[data-action="end-turn"]')
-      ).click(),
-    );
-  }
-}
+import {
+  clickAction,
+  createAndStart,
+  fight,
+  text,
+} from "./fixtures/browser-journey.mjs";
 
 test(
   "a goblin surrenders; Ada asks it for mercy, takes its ring and escapes with it",
@@ -82,7 +52,7 @@ test(
     try {
       await createAndStart(page, server.url, surrenderingGoblins.id);
 
-      await click(page, "move", "burial-hall");
+      await clickAction(page, "move", "burial-hall");
       await fight(page);
       const log = await text(page.locator("#log"));
       assert.match(
@@ -122,16 +92,16 @@ test(
           .count(),
         0,
       );
-      await click(page, "talk", mercyOf(captive));
+      await clickAction(page, "talk", mercyOf(captive));
       assert.match(
         await text(page.locator("#log li").last()),
         new RegExp(
           `${captiveName}: Spare me! Take it, take the ring! ${captiveName} offers you the ${ringName}\\.`,
         ),
       );
-      await click(page, "take", ringOf(captive));
+      await clickAction(page, "take", ringOf(captive));
 
-      await click(page, "move", "barrow-mouth");
+      await clickAction(page, "move", "barrow-mouth");
       await page.locator("#leave-controls button").click();
       await page.locator("#confirm-leave").click();
       await page.locator("#ending").waitFor({ state: "visible" });

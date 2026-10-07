@@ -16,6 +16,7 @@ import {
   goblinTrio as trio,
   loneGoblin as adventure,
 } from "./fixtures/modules.mjs";
+import { uncheckedDice as dice } from "./fixtures/engine-dice.mjs";
 
 // The engine's targeting tests use the goblin trio: two numbered minions.
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 13 in leather with Defense, 12 HP, mace +5.
@@ -46,20 +47,6 @@ const sheet = buildFighter(
     masteries: ["dagger", "mace", "shortsword"],
   },
 );
-
-/** Returns queued values in order and records every draw. */
-function dice(...queue) {
-  const drawn = [];
-  return {
-    drawn,
-    roll(sides) {
-      assert.ok(queue.length > 0, `unexpected d${sides}`);
-      const value = queue.shift();
-      drawn.push({ sides, value });
-      return value;
-    },
-  };
-}
 
 function scripted(...responses) {
   const requests = [];

@@ -3,8 +3,8 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import {
   FEATURE_USES_RULE,
@@ -14,14 +14,6 @@ import {
   validateFighter,
 } from "../dist/fighter-5e.js";
 import { saveFighter, startAdventure } from "./fixtures/browser-journey.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
 
 const RULE =
   "Spent uses stay spent for the rest of the adventure; a rest between adventures restores them and every hit point.";

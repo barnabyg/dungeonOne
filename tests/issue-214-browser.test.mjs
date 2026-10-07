@@ -9,18 +9,10 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 import { ratlessTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
 
 /** Each thing row's box, its name's box and its verb buttons' boxes. */
 const rows = (page) =>
@@ -177,15 +169,9 @@ for (const viewport of [
         );
 
         // No horizontal scroll, even with a wide font as CI's Linux one is.
-        assert.ok(
-          await page.evaluate(() => {
-            for (const node of document.querySelectorAll("*")) {
-              node.style.fontFamily = "Verdana, sans-serif";
-            }
-            return document.documentElement.scrollWidth <= window.innerWidth;
-          }),
-          "no horizontal scroll",
-        );
+        await assertNoSideScroll(page, "no horizontal scroll", {
+          wideFont: true,
+        });
       } finally {
         await browser.close();
         await server.close();

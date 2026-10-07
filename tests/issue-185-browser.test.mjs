@@ -8,8 +8,8 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { launch } from "./fixtures/session-layout.mjs";
 import { ratTunnels } from "./fixtures/modules.mjs";
 import {
   openCreation,
@@ -22,14 +22,6 @@ const SERVER_OPTIONS = {
   adventures: [ratTunnels],
   qualifies: () => true,
 };
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
 
 /** Holds the page's next POST to `path` until the returned function is called. */
 async function holdRequests(page, path) {

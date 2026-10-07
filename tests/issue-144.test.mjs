@@ -26,21 +26,7 @@ import {
 } from "./fixtures/armoury-barrow.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
-
-/** Returns the queued [sides, value] pairs in order, checking each die's sides. */
-function dice(...queue) {
-  const drawn = [];
-  return {
-    drawn,
-    roll(sides) {
-      assert.ok(queue.length > 0, `unexpected d${sides}`);
-      const [expected, value] = queue.shift();
-      assert.equal(sides, expected, `expected a d${expected}, got a d${sides}`);
-      drawn.push({ sides, value });
-      return value;
-    },
-  };
-}
+import { dice } from "./fixtures/engine-dice.mjs";
 
 /** Strength +3 (16), Dexterity +2, no masteries. */
 const CONTEXT = {

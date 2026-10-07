@@ -16,6 +16,7 @@ import {
   DELVE_FULL_ROUTE,
   playReleaseRun,
 } from "../dist/release-run-5e.js";
+import { narratingDm } from "./fixtures/session-layout.mjs";
 
 /** The seed the release run is qualified on: Ada clears every room. */
 const RELEASE_SEED = 1443;
@@ -41,14 +42,8 @@ const withServer = async (dmModel, work) => {
   }
 };
 
-const narrating = {
-  async respond() {
-    return { text: "The dark waits." };
-  },
-};
-
 test("the release run clears every room of the delve and climbs out with the loot, by button when the DM only narrates", () =>
-  withServer(narrating, async (url, libraryPath) => {
+  withServer(narratingDm(), async (url, libraryPath) => {
     const { session, turns } = await playReleaseRun({
       url,
       session: await startDelveOverHttp(url),

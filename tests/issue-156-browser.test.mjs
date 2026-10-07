@@ -9,25 +9,21 @@
 // screen.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-import { firstFighter } from "./fixtures/session-layout.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
+import {
+  assertNoSideScroll,
+  firstFighter,
+  launch,
+} from "./fixtures/session-layout.mjs";
+import { sessionFile } from "./fixtures/save-files.mjs";
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
 const adventure = ratTunnels;
@@ -164,14 +160,6 @@ async function assertReason(page, selector, reason) {
   assert.equal(await text.textContent(), reason);
   assert.equal(await text.isVisible(), true, `${reason} is visible`);
 }
-
-const sessionFile = async (directory) => {
-  const folder = join(directory, "characters-adventures");
-  const [name] = (await readdir(folder)).filter((file) =>
-    file.endsWith(".json"),
-  );
-  return JSON.parse(await readFile(join(folder, name), "utf8"));
-};
 
 const seed = findSeed();
 
@@ -350,15 +338,9 @@ const seed = findSeed();
         assert.equal(file.state.roomId, "rat-cellar");
 
         // No horizontal scroll, even with a wide font as CI's Linux one is.
-        assert.ok(
-          await page.evaluate(() => {
-            for (const node of document.querySelectorAll("*")) {
-              node.style.fontFamily = "Verdana, sans-serif";
-            }
-            return document.documentElement.scrollWidth <= window.innerWidth;
-          }),
-          "no horizontal scroll",
-        );
+        await assertNoSideScroll(page, "no horizontal scroll", {
+          wideFont: true,
+        });
       } finally {
         await browser.close();
         await server.close();

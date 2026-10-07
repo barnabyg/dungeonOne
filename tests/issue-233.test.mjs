@@ -15,19 +15,8 @@ import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
 import { fightRoom, moduleFile } from "./fixtures/modules.mjs";
-
-/** Returns the queued values in order, checking each die's sides. */
-function dice(...queue) {
-  return {
-    remaining: () => queue.length,
-    roll(sides) {
-      assert.ok(queue.length > 0, `unexpected d${sides}`);
-      const [expected, value] = queue.shift();
-      assert.equal(sides, expected, `expected a d${expected}, got a d${sides}`);
-      return value;
-    },
-  };
-}
+import { dice } from "./fixtures/engine-dice.mjs";
+import { IN_ORDER_CHOICES as CHOICES } from "./fixtures/fighter-choices.mjs";
 
 const saves = {
   strength: 4,
@@ -504,22 +493,6 @@ test("the bestiary and module validators refuse a damage type outside SRD 5.2", 
     "darts";
   assert.throws(() => validateModule(crypt), TYPES);
 });
-
-const CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-  kit: "mace",
-  masteries: ["dagger", "mace", "shortsword"],
-};
 
 /** The lone goblin's room with `opponents` in its place, as module `id`. */
 /** A Skeleton under `name` with `defenses` in place of its own. */

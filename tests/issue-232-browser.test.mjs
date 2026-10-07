@@ -12,7 +12,8 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { fightRoom } from "./fixtures/modules.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
+import { createAndStart, fightTurn } from "./fixtures/browser-journey.mjs";
+import { attackOrEndTurn } from "./fixtures/seed-search.mjs";
 
 // The bestiary's Wolf, alone in a one-room fight that starts as Ada arrives.
 // The server offers only this module, whatever its gate standing.
@@ -46,16 +47,7 @@ function knockdown(seed) {
     random,
   ).state;
   const fightOn = () => {
-    const [target] = runtime.attackTargets(state);
-    const result = runtime.handleAction(
-      state,
-      target === undefined
-        ? { type: "end-turn", actorId: "pc" }
-        : { type: "attack", actorId: "pc", targetId: target.id },
-      random,
-    );
-    assert.equal(result.rejection, undefined);
-    state = result.state;
+    state = attackOrEndTurn(runtime, state, random).state;
   };
   const ongoing = () => state.encounter?.outcome === "ongoing";
   let down = 0;
@@ -68,27 +60,6 @@ function knockdown(seed) {
   }
   return ongoing() && down > 0 ? { down, up } : undefined;
 }
-
-/** Runs one click and waits for its history entry. */
-async function click(page, locator) {
-  const count = await page.locator("#log li").count();
-  await locator.click();
-  await page.waitForFunction(
-    (seen) =>
-      document.querySelectorAll("#log li:not([data-pending])").length > seen,
-    count,
-  );
-}
-
-const fightOn = async (page) => {
-  const attack = page.locator("#attack-controls button.attack:enabled");
-  await click(
-    page,
-    (await attack.count()) > 0
-      ? attack.first()
-      : page.locator('#feature-controls button[data-action="end-turn"]'),
-  );
-};
 
 /** The conditions the initiative table and the status strip show for Ada. */
 const shown = (page) =>
@@ -130,7 +101,7 @@ test(
       await page.locator("#initiative-rows tr").first().waitFor();
       assert.deepEqual(await shown(page), { table: [], strip: [] });
       for (let count = 0; count < clicks.down; count++) {
-        await fightOn(page);
+        await fightTurn(page);
       }
 
       // The knockdown lands: narrated, tagged in the table and on the strip.
@@ -168,7 +139,7 @@ test(
 
       // Ada attacks at disadvantage and gets up as her turn ends.
       for (let count = 0; count < clicks.up; count++) {
-        await fightOn(page);
+        await fightTurn(page);
       }
       const after = await page.locator("#log").innerText();
       assert.match(after, /at disadvantage \(Prone\)/);

@@ -49,6 +49,28 @@ counter that a d6 advances and that wins at three. The DM turn loop, OpenAI
 adapter and runtime contract tests use it to exercise shared infrastructure
 without depending on the 5e runtime.
 
+## Scripted dice
+
+`engine-dice.mjs` holds the dice engine tests script: `dice(...pairs)`
+returns queued `[sides, value]` pairs in order and fails on a die of other
+sides; `uncheckedDice(...values)` returns queued values whatever the die.
+Both fail when the queue runs out, record each roll in `drawn` as
+`{ sides, value }` and count what is left with `remaining()`.
+
+`morale-encounter.mjs` is the encounter-engine fight of the morale (#237) and
+surrender (#238) tests: `ada`, who wins initiative and has Action Surge;
+`goblin(id, extra)`, 1 HP and morale DC 8; `saves(wisdom)`, their saving
+throw bonuses; `initiative(count)` and `KILL` (a hit that drops a goblin) as
+dice pairs; `begin(combatants, ...rest)` starts the fight on those dice and
+`attack(state, random, targetId)` is an attack by Ada the engine must accept.
+
+## Fighter choices
+
+`fighter-choices.mjs` holds `IN_ORDER`, each roll placed on the ability in
+table order, and `IN_ORDER_CHOICES`, the creation screen's default choices
+(`FIGHTER_DEFAULT_CHOICES`) with that placement, which the library and
+session tests create Ada with.
+
 ## Seeded playthroughs (issue 156)
 
 `playthroughs.mjs` holds the #156 fighter, `ada` (Con 14, 12 HP), and
@@ -78,12 +100,19 @@ minion with one attack, so it fails as too easy at every difficulty.
 
 `default-launch.mjs` runs the built browser launcher as a player would,
 through `quiet-launcher.mjs`, which stops it opening a desktop browser window.
-`session-layout.mjs` launches the browser and checks that the newest
-history entry and the action buttons are on screen together (#154). Its
+`session-layout.mjs` launches the browser (`launch`: Edge on Windows, else
+Playwright's Chromium; every browser test uses it) and checks that the newest
+history entry and the action buttons are on screen together (#154): `act`
+runs a click and checks that, and `explore(page, action, target)` and
+`fightOn` are `act` on an action's button and on a fight turn. Its
 `firstFighter(seed)` is the Fighter a browser on that seed creates first,
 with the page's default choices (`FIGHTER_DEFAULT_CHOICES`) and placement
 (`defaultPlacement`); browser tests that search for a seed by simulating
 Ada use it, so they simulate the Ada the page makes.
+`assertNoSideScroll(page, message, { wideFont })` asserts the page does not
+scroll sideways; with `wideFont`, after `widenFont(page)` sets every element
+to Verdana, as wide as CI's Linux fallback font. `narratingDm()` is a
+scripted AI DM that answers every message with the same narration.
 
 `browser-journey.mjs` holds the steps most browser tests take before the
 part they check: `openCreation`, `saveFighter` (Ada by default),
@@ -91,6 +120,18 @@ part they check: `openCreation`, `saveFighter` (Ada by default),
 first history entry) and `createAndStart` (open the page, create Ada,
 start). Tests that check one of these steps closely, such as creation's
 busy states, keep their own clicks.
+
+It also holds the clicks for tests that don't check the layout:
+`settled(page, run)` runs `run` and waits for a new history entry that is not
+pending; `actionButton(page, action, target)` is an action's button (the
+only one when `target` is left out) and `clickAction` clicks it, settled;
+`fightTurn` attacks the first target offered, or ends the turn once the
+action is spent, and `fight` takes turns until the fight is over. `text`
+is an element's text with blank lines collapsed.
+
+`save-files.mjs` reads what the browser server saves: `readAda(libraryPath)`,
+the library's first character, and `sessionFile(directory)`, the one saved
+session in the directory's `characters-adventures` folder.
 
 ## Bestiary (issue 231)
 
@@ -114,6 +155,16 @@ Minions in the burial hall, each carrying its own pouch of coin. `fleeingSeed()`
 finds the first browser seed on which Ada, attacking the first goblin offered,
 wins the fight with one goblin fled; the morale runtime and browser tests play
 it to check that the fled goblin leaves no body or coin and gives half its XP.
+
+## Seed search
+
+`seed-search.mjs` is for tests that find a browser seed by simulating Ada's
+clicks on the runtime. `attackOrEndTurn(runtime, state, random)` is one fight
+click as the browser tests make it (attack the first target offered, else
+end the turn), throwing if the runtime refuses it; `fightThrough` plays them
+until the fight ends, with the events on the way; `recordingRandom(source,
+drawn)` records each roll in the newest list in `drawn`, so a test can
+group the dice by action.
 
 ## Surrendering goblins (issue 238)
 
