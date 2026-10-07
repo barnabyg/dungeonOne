@@ -11,6 +11,7 @@
  */
 import {
   LOOT_KINDS,
+  statBlockSaves,
   type Difficulty,
   type EndingKind,
   type FifthAdventure,
@@ -39,7 +40,7 @@ import {
   type KitId,
   type WeaponId,
 } from "./equipment-5e.js";
-import { combatant, countedDamageDie } from "./encounter-5e.js";
+import { combatant, countedDamageDie, damageTaken } from "./encounter-5e.js";
 import {
   createFifthRuntime,
   PLAYER_ID,
@@ -139,18 +140,71 @@ export function percentileCharacters({
  * AC. The attack is the one the runtime gives the character, so Fighting
  * Style, level and masteries are counted: Great Weapon Fighting's 1s and 2s
  * counted as 3, a weapon's own disadvantage (Heavy) and Graze's damage on a
- * miss. Advantage from a previous hit (Vex) is not, nor is the Light extra
+ * miss. The enemy's resistance, vulnerability or immunity to the weapon's
+ * damage type changes the damage, and an enemy with Undead Fortitude must
+ * also fail its Constitution save unless the hit is critical or radiant.
+ * Advantage from a previous hit (Vex) is not counted, nor is the Light extra
  * attack (the only attack Two-Weapon Fighting changes): it is a second one.
  */
 export function oneHitKillChance(
   sheet: FighterSheet,
   enemy: Pick<StatBlock, "armorClass"> &
-    Readonly<{ hitPoints: Pick<StatBlock["hitPoints"], "average"> }>,
+    Readonly<{ hitPoints: Pick<StatBlock["hitPoints"], "average"> }> &
+    Partial<
+      Pick<
+        StatBlock,
+        | "damageResistances"
+        | "damageVulnerabilities"
+        | "damageImmunities"
+        | "traits"
+        | "abilities"
+        | "saveProficiencies"
+        | "challengeRating"
+      >
+    >,
 ): number {
   const attack = playerCombatant(sheet).attack;
   const hp = enemy.hitPoints.average;
-  /** P(damage ≥ hp) with `dice` dice of the weapon plus its modifier. */
-  const kills = (dice: number) => {
+  const defenses = {
+    ...(enemy.damageResistances === undefined
+      ? {}
+      : { resistances: enemy.damageResistances }),
+    ...(enemy.damageVulnerabilities === undefined
+      ? {}
+      : { vulnerabilities: enemy.damageVulnerabilities }),
+    ...(enemy.damageImmunities === undefined
+      ? {}
+      : { immunities: enemy.damageImmunities }),
+  };
+  /** Its Constitution save, if Undead Fortitude can keep it standing. */
+  const fortitude =
+    enemy.traits?.includes("Undead Fortitude") === true &&
+    enemy.abilities !== undefined &&
+    enemy.challengeRating !== undefined &&
+    attack.damage.type !== "radiant"
+      ? statBlockSaves({
+          abilities: enemy.abilities,
+          challengeRating: enemy.challengeRating,
+          ...(enemy.saveProficiencies === undefined
+            ? {}
+            : { saveProficiencies: enemy.saveProficiencies }),
+        }).constitution
+      : undefined;
+  /**
+   * P(`rolled` damage takes the enemy to 0 and keeps it there): Undead
+   * Fortitude saves against DC 5 + the damage taken, except on a critical.
+   */
+  const killedBy = (rolled: number, critical: boolean) => {
+    const { damage } = damageTaken(defenses, attack.damage.type, rolled);
+    if (damage < hp) {
+      return 0;
+    }
+    return fortitude === undefined || critical
+      ? 1
+      : Math.min(20, Math.max(0, 5 + damage - fortitude - 1)) / 20;
+  };
+  /** P(a kill) with `dice` dice of the weapon plus its modifier. */
+  const kills = (dice: number, critical: boolean) => {
     let totals = new Map([[attack.damage.modifier, 1]]);
     for (let die = 0; die < dice; die++) {
       const next = new Map<number, number>();
@@ -166,7 +220,8 @@ export function oneHitKillChance(
       totals = next;
     }
     return [...totals].reduce(
-      (sum, [total, chance]) => sum + (total >= hp ? chance : 0),
+      (sum, [total, chance]) =>
+        sum + chance * killedBy(Math.max(0, total), critical),
       0,
     );
   };
@@ -177,17 +232,15 @@ export function oneHitKillChance(
       : ((21 - d20) ** 2 - (20 - d20) ** 2) / 400;
   // Graze: a miss deals the damage modifier, if above 0.
   const grazeKills =
-    attack.mastery === "Graze" &&
-    attack.damage.modifier > 0 &&
-    attack.damage.modifier >= hp
-      ? 1
+    attack.mastery === "Graze" && attack.damage.modifier > 0
+      ? killedBy(attack.damage.modifier, false)
       : 0;
   let chance = 0;
   for (let d20 = 1; d20 <= 20; d20++) {
     if (d20 !== 1 && d20 >= attack.criticalRange) {
-      chance += kills(attack.damage.dice * 2) * rolled(d20);
+      chance += kills(attack.damage.dice * 2, true) * rolled(d20);
     } else if (d20 !== 1 && d20 + attack.bonus >= enemy.armorClass) {
-      chance += kills(attack.damage.dice) * rolled(d20);
+      chance += kills(attack.damage.dice, false) * rolled(d20);
     } else {
       chance += grazeKills * rolled(d20);
     }

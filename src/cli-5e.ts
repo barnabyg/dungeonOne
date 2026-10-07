@@ -28,7 +28,11 @@ import {
   createOpenAiDmModel,
   OPENAI_DM_DEFAULT_MODEL,
 } from "./openai-dm-model.js";
-import type { ActionView, RollGroup } from "./runtime-5e.js";
+import {
+  DAMAGE_ADJUSTMENT_TEXT,
+  type ActionView,
+  type RollGroup,
+} from "./runtime-5e.js";
 import { loadScriptedDmModel } from "./scripted-dm-model.js";
 import { FifthSession, type HistoryCard } from "./session-5e.js";
 import { TEST_FIGHTER } from "./test-fighter-5e.js";
@@ -198,6 +202,9 @@ function describeRoll(group: RollGroup): string {
     group.mode === undefined ? "" : ` (${group.mode})`,
     group.outcome === undefined ? "" : `, ${group.outcome}`,
     group.halved === true ? ", halved" : "",
+    group.adjustment === undefined
+      ? ""
+      : `, ${DAMAGE_ADJUSTMENT_TEXT[group.adjustment]}`,
     group.hpAfter === undefined
       ? ""
       : `, HP ${group.hpAfter}/${String(group.maxHp)}`,

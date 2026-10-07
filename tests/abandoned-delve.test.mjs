@@ -65,9 +65,10 @@ const treasureIn = (roomId) =>
     ({ kind }) => kind === "treasure" || kind === "coin",
   );
 
-test("the delve is a 10-room crawl for levels 1–2, declared hard", () => {
+// #233: Undead Fortitude made its Zombie too deadly at level 1.
+test("the delve is a 10-room crawl for level 2, declared hard", () => {
   assert.equal(delve.title, "The Abandoned Delve");
-  assert.deepEqual(delve.recommendedLevels, { min: 1, max: 2 });
+  assert.deepEqual(delve.recommendedLevels, { min: 2, max: 2 });
   assert.equal(delve.difficulty, "hard");
   assert.equal(delve.rooms.length, 10);
   assert.deepEqual(

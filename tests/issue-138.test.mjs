@@ -85,7 +85,7 @@ test("a recorded command-mode trace replays exactly", () =>
     assert.match(played.stdout, /Ada's initiative: d20 \d+ \+ 2 = \d+/);
     const recorded = await readJson(trace);
     assert.equal(recorded.kind, "dungeon-one-5e-trace");
-    assert.equal(recorded.formatVersion, 9);
+    assert.equal(recorded.formatVersion, 10);
     assert.equal(recorded.turns.length, 3);
     // Each card keeps its lines and their rolls grouped by purpose.
     const purposes = recorded.turns[2].card.lines.flatMap(({ rolls }) =>
@@ -147,7 +147,7 @@ test("a trace in another format version is refused and left unchanged", () =>
     assert.equal(result.status, 1);
     assert.match(
       result.stderr,
-      /trace\.json is a trace in format version 2, not 9\. .*Move it aside; the file has not been changed\./,
+      /trace\.json is a trace in format version 2, not 10\. .*Move it aside; the file has not been changed\./,
     );
     assert.equal(await readFile(trace, "utf8"), bytes);
   }));

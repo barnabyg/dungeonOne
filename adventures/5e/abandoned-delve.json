@@ -1,11 +1,11 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 10,
+  "formatVersion": 11,
   "id": "abandoned-delve",
   "title": "The Abandoned Delve",
   "objective": "Loot the old dungeon under the ruined keep and get out alive, by the gate or the shaft.",
   "recommendedLevels": {
-    "min": 1,
+    "min": 2,
     "max": 2
   },
   "difficulty": "hard",

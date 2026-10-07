@@ -55,11 +55,45 @@ import type { RandomSource } from "./random.js";
 
 export type Side = "party" | "opponents";
 
+/** The SRD 5.2 damage types. */
+export const DAMAGE_TYPES = [
+  "acid",
+  "bludgeoning",
+  "cold",
+  "fire",
+  "force",
+  "lightning",
+  "necrotic",
+  "piercing",
+  "poison",
+  "psychic",
+  "radiant",
+  "slashing",
+  "thunder",
+] as const;
+export type DamageType = (typeof DAMAGE_TYPES)[number];
+
 export type Damage = Readonly<{
   dice: number;
   sides: number;
   modifier: number;
-  type: string;
+  type: DamageType;
+}>;
+
+/**
+ * The damage types a creature takes half, double or no damage from. A type
+ * appears in at most one list.
+ */
+export type DamageDefenses = Readonly<{
+  resistances?: readonly DamageType[];
+  vulnerabilities?: readonly DamageType[];
+  immunities?: readonly DamageType[];
+}>;
+
+/** Which defence changed a damage roll, and the damage rolled before it. */
+export type DamageAdjustment = Readonly<{
+  by: "resistance" | "vulnerability" | "immunity";
+  rolled: number;
 }>;
 
 /** The conditions the engine applies. */
@@ -139,29 +173,38 @@ export type Weapon = Readonly<{
   rider?: AttackRider;
 }>;
 
-export type Combatant = Readonly<{
-  id: string;
-  name: string;
-  side: Side;
-  armorClass: number;
-  hp: number;
-  maxHp: number;
-  /** The Dexterity score, which breaks initiative ties. */
-  dexterity: number;
-  initiativeBonus: number;
-  /** Its saving throw bonus for each ability. */
-  saves: Readonly<Record<Ability, number>>;
-  attack: Weapon;
-  /** A second light weapon, for the Light property's extra attack. */
-  lightAttack?: Weapon;
-  /** Fighter features, with the uses left of their maximum. */
-  secondWind?: FeatureUses & Readonly<{ healing: Healing }>;
-  actionSurge?: FeatureUses;
-  /** Healing potions the combatant carries, which it can drink. */
-  potions?: readonly Potion[];
-  /** Advantage on its attacks while an ally is alive and able to act. */
-  packTactics?: true;
-}>;
+export type Combatant = DamageDefenses &
+  Readonly<{
+    id: string;
+    name: string;
+    side: Side;
+    armorClass: number;
+    hp: number;
+    maxHp: number;
+    /** The Dexterity score, which breaks initiative ties. */
+    dexterity: number;
+    initiativeBonus: number;
+    /** Its saving throw bonus for each ability. */
+    saves: Readonly<Record<Ability, number>>;
+    attack: Weapon;
+    /** A second light weapon, for the Light property's extra attack. */
+    lightAttack?: Weapon;
+    /** Fighter features, with the uses left of their maximum. */
+    secondWind?: FeatureUses & Readonly<{ healing: Healing }>;
+    actionSurge?: FeatureUses;
+    /** Healing potions the combatant carries, which it can drink. */
+    potions?: readonly Potion[];
+    /** Advantage on its attacks while an ally is alive and able to act. */
+    packTactics?: true;
+    /** Conditions it cannot be given. */
+    conditionImmunities?: readonly ConditionKind[];
+    /**
+     * Undead Fortitude: reduced to 0 HP by damage that isn't radiant or from a
+     * critical hit, a Constitution save against DC 5 + the damage taken leaves
+     * it at 1 HP instead.
+     */
+    undeadFortitude?: true;
+  }>;
 
 export type Healing = Readonly<{
   dice: number;
@@ -297,8 +340,15 @@ export type AttackEvent = Readonly<{
   /** The damage dice as rolled. */
   damageRolls: readonly number[];
   damageModifier: number;
+  /** The damage dealt, after any resistance, vulnerability or immunity. */
   damage: number;
-  damageType: string;
+  damageType: DamageType;
+  /** Present when the target's defences changed the damage rolled. */
+  damageAdjustment?: DamageAdjustment;
+  /**
+   * The target's HP once the damage lands: 0 even when Undead Fortitude
+   * then leaves it at 1 (its event follows).
+   */
   hpAfter: number;
   /** The Light property's extra attack. */
   light?: true;
@@ -311,8 +361,26 @@ export type AttackEvent = Readonly<{
     damageRolls: readonly number[];
     damageModifier: number;
     damage: number;
-    damageType: string;
+    damageType: DamageType;
+    damageAdjustment?: DamageAdjustment;
   }>;
+}>;
+
+/**
+ * A combatant with Undead Fortitude reduced to 0 HP: its Constitution save
+ * against DC 5 + the damage taken, and the HP it is left with.
+ */
+export type FortitudeEvent = Readonly<{
+  type: "undead-fortitude";
+  combatantId: string;
+  /** The damage taken from the attack that reduced it to 0 HP. */
+  damage: number;
+  d20: number;
+  bonus: number;
+  total: number;
+  dc: number;
+  success: boolean;
+  hpAfter: number;
 }>;
 
 /** A saving throw against a condition, on a hit or at the end of a turn. */
@@ -337,6 +405,7 @@ export type EncounterEvent =
   | Readonly<{ type: "sapped"; targetId: string; sourceId: string }>
   | Readonly<{ type: "vexed"; targetId: string; sourceId: string }>
   | SaveEvent
+  | FortitudeEvent
   | Readonly<{
       type: "condition";
       combatantId: string;
@@ -710,6 +779,34 @@ export function countedDamageDie(
 }
 
 /**
+ * The damage a creature with `defenses` takes from `rolled` damage of `type`
+ * (SRD 5.2): none if immune, half (rounded down) if resistant, double if
+ * vulnerable, and which applied.
+ */
+export function damageTaken(
+  defenses: DamageDefenses,
+  type: DamageType,
+  rolled: number,
+): Readonly<{ damage: number; damageAdjustment?: DamageAdjustment }> {
+  const by = defenses.immunities?.includes(type)
+    ? "immunity"
+    : defenses.resistances?.includes(type)
+      ? "resistance"
+      : defenses.vulnerabilities?.includes(type)
+        ? "vulnerability"
+        : undefined;
+  if (by === undefined || rolled === 0) {
+    return { damage: rolled };
+  }
+  const damage = {
+    immunity: 0,
+    resistance: Math.floor(rolled / 2),
+    vulnerability: rolled * 2,
+  }[by];
+  return { damage, damageAdjustment: { by, rolled } };
+}
+
+/**
  * Alive and able to act, for Pack Tactics: no condition in play stops a
  * living combatant acting yet.
  */
@@ -775,7 +872,10 @@ function applyRiderCondition(
   events: EncounterEvent[],
 ): EncounterState {
   const condition = weapon.rider?.condition;
-  if (condition === undefined) {
+  if (
+    condition === undefined ||
+    target.conditionImmunities?.includes(condition.kind) === true
+  ) {
     return state;
   }
   if (condition.save !== undefined) {
@@ -918,7 +1018,7 @@ function resolveAttack(
   // Graze: a miss still deals the damage modifier, if above 0.
   const graze =
     !hit && weapon.mastery === "Graze" && weapon.damage.modifier > 0;
-  const damage = hit
+  const rolled = hit
     ? Math.max(
         0,
         damageRolls.reduce(
@@ -930,6 +1030,11 @@ function resolveAttack(
     : graze
       ? weapon.damage.modifier
       : 0;
+  const { damage, damageAdjustment } = damageTaken(
+    target,
+    weapon.damage.type,
+    rolled,
+  );
   // A hit's rider deals its extra damage, its dice doubled by a critical.
   const extra = hit ? weapon.rider?.damage : undefined;
   const rider =
@@ -940,17 +1045,26 @@ function resolveAttack(
             { length: extra.dice * (critical ? 2 : 1) },
             () => random.roll(extra.sides),
           );
-          return {
-            damageRolls: rolls,
-            damageModifier: extra.modifier,
-            damage: Math.max(
+          const taken = damageTaken(
+            target,
+            extra.type,
+            Math.max(
               0,
               rolls.reduce((sum, value) => sum + value, 0) + extra.modifier,
             ),
+          );
+          return {
+            damageRolls: rolls,
+            damageModifier: extra.modifier,
+            damage: taken.damage,
             damageType: extra.type,
+            ...(taken.damageAdjustment === undefined
+              ? {}
+              : { damageAdjustment: taken.damageAdjustment }),
           };
         })();
-  const hpAfter = Math.max(0, target.hp - damage - (rider?.damage ?? 0));
+  const taken = damage + (rider?.damage ?? 0);
+  const hpAfter = Math.max(0, target.hp - taken);
   const events: EncounterEvent[] = [
     {
       type: "attack",
@@ -969,6 +1083,7 @@ function resolveAttack(
       damageModifier: weapon.damage.modifier,
       damage,
       damageType: weapon.damage.type,
+      ...(damageAdjustment === undefined ? {} : { damageAdjustment }),
       hpAfter,
       ...(light ? { light: true as const } : {}),
       ...(graze ? { graze: true as const } : {}),
@@ -978,12 +1093,43 @@ function resolveAttack(
       ...(rider === undefined ? {} : { rider }),
     },
   ];
+  // Undead Fortitude: reduced to 0 HP by damage that isn't radiant or from
+  // a critical hit, a Constitution save against DC 5 + the damage taken
+  // leaves it at 1 HP.
+  const radiant =
+    (weapon.damage.type === "radiant" && damage > 0) ||
+    (rider?.damageType === "radiant" && rider.damage > 0);
+  let hpLeft = hpAfter;
+  if (
+    hpAfter === 0 &&
+    target.hp > 0 &&
+    target.undeadFortitude === true &&
+    !(hit && critical) &&
+    !radiant
+  ) {
+    const d20 = random.roll(20);
+    const bonus = target.saves.constitution;
+    const dc = 5 + taken;
+    const success = d20 + bonus >= dc;
+    hpLeft = success ? 1 : 0;
+    events.push({
+      type: "undead-fortitude",
+      combatantId: target.id,
+      damage: taken,
+      d20,
+      bonus,
+      total: d20 + bonus,
+      dc,
+      success,
+      hpAfter: hpLeft,
+    });
+  }
   // The attack spends any disadvantage Sap gave the attacker, and any
   // advantage Vex gave it against this target.
   let next: EncounterState = {
     ...state,
     combatants: state.combatants.map((candidate) =>
-      candidate.id === target.id ? { ...candidate, hp: hpAfter } : candidate,
+      candidate.id === target.id ? { ...candidate, hp: hpLeft } : candidate,
     ),
     sapped: state.sapped.filter(({ targetId }) => targetId !== actor.id),
     vexed: state.vexed.filter(
@@ -991,7 +1137,7 @@ function resolveAttack(
         sourceId !== actor.id || targetId !== target.id,
     ),
   };
-  const defeated = hpAfter === 0 && target.hp > 0;
+  const defeated = hpLeft === 0 && target.hp > 0;
   if (defeated) {
     events.push({ type: "defeated", combatantId: target.id });
     next = {

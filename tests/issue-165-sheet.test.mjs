@@ -108,9 +108,9 @@ test("the server projects the modules in offer order", async () => {
         "robbers-barrow",
         "smugglers-cellar",
         "tinkers-toll",
-        "warden-crypt",
-        "abandoned-delve",
         "goblin-storeroom",
+        "abandoned-delve",
+        "warden-crypt",
         "goblin-warren",
       ],
     );
@@ -141,9 +141,9 @@ test(
         { tags: ["Level 1", "Hard"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },
         { tags: ["Level 1", "Hard"], button: "Start" },
-        { tags: ["Level 1", "Hard"], button: "Start" },
-        { tags: ["Levels 1–2", "Hard"], button: "Start" },
         { tags: ["Level 2", "Medium"], button: "Start" },
+        { tags: ["Level 2", "Hard"], button: "Start" },
+        { tags: ["Level 2", "Hard"], button: "Start" },
         { tags: ["Levels 2–3", "Hard"], button: "Start" },
       ]);
       const start = page.getByRole("button", {
