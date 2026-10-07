@@ -6,7 +6,6 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { buildFighter, rollAbilitySet } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import {
@@ -15,9 +14,9 @@ import {
   renderFifthResult,
 } from "../dist/runtime-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
+import { goblinBand, ratlessTunnels } from "./fixtures/modules.mjs";
 
-const adventures = await loadBuiltInFifthAdventures();
-const storeroom = adventures.find(({ id }) => id === "goblin-storeroom");
+const adventures = [goblinBand, ratlessTunnels];
 const CHOICES = {
   placement: {
     strength: 0,
@@ -43,9 +42,9 @@ const fighter = (seed) =>
     CHOICES,
   );
 
-/** Plays the storeroom fight on `seed`; each action's result and dice. */
+/** Plays the goblin band fight on `seed`; each action's result and dice. */
 function play(seed) {
-  const runtime = createFifthRuntime(storeroom, fighter(seed));
+  const runtime = createFifthRuntime(goblinBand, fighter(seed));
   const source = createSeededRandom(seed + 1);
   let drawn = [];
   const random = {
@@ -85,7 +84,7 @@ const sappedAttack = (group) =>
 let seed = 0;
 while (!groups(play(seed)).some(sappedAttack)) {
   seed++;
-  assert.ok(seed < 5000, "no storeroom fight with a sapped attack");
+  assert.ok(seed < 5000, "no goblin band fight with a sapped attack");
 }
 
 test("each line of a result card carries its rolls, grouped by purpose", () => {
@@ -109,7 +108,10 @@ test("each line of a result card carries its rolls, grouped by purpose", () => {
   }
   const all = groups(steps);
   const initiative = all.filter(({ purpose }) => purpose === "initiative");
-  assert.equal(initiative.length, storeroom.encounters[0].opponents.length + 1);
+  assert.equal(
+    initiative.length,
+    goblinBand.encounters[0].opponents.length + 1,
+  );
   for (const group of initiative) {
     assert.deepEqual(group.dice.length, 1);
     assert.equal(group.dice[0].sides, 20);
@@ -168,7 +170,7 @@ test("the session saves grouped rolls (format 5) and refuses format 3", async ()
       path,
       "b".repeat(32),
       seed + 1,
-      storeroom,
+      goblinBand,
       fighter(seed),
     );
     const file = JSON.parse(await readFile(path, "utf8"));
@@ -209,14 +211,13 @@ test("the session saves grouped rolls (format 5) and refuses format 3", async ()
 });
 
 test("entering a room without a fight is a narration card", async () => {
-  const smugglers = adventures.find(({ id }) => id === "smugglers-cellar");
   const directory = await mkdtemp(join(tmpdir(), "issue-159-"));
   try {
     const session = await FifthSession.create(
       join(directory, "session.json"),
       "c".repeat(32),
       1,
-      smugglers,
+      ratlessTunnels,
       fighter(0),
     );
     const moved = session.act(

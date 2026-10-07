@@ -4,10 +4,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  loadBuiltInFifthAdventures,
-  loadFifthAdventure,
-} from "../dist/adventure-5e.js";
-import {
   buildFighter,
   fighterProfile,
   levelForXp,
@@ -15,13 +11,11 @@ import {
 } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
-
-const adventures = await loadBuiltInFifthAdventures();
-const cellarGoblin = adventures.find(({ id }) => id === "cellar-goblin");
-// The Smugglers' Cellar as it was before #207, with its Giant Rat fight.
-const smugglers = await loadFifthAdventure(
-  "tests/fixtures/smugglers-with-rat.json",
-);
+import {
+  FIXTURE_MODULES as adventures,
+  loneGoblin,
+  ratTunnels as tunnels,
+} from "./fixtures/modules.mjs";
 
 // Con 14 (+2): 12 HP at level 1.
 const sheet = buildFighter(
@@ -182,7 +176,7 @@ const find = (actions, action, targetId) =>
   );
 
 test("a fight shows the whole toolkit; at full HP Second Wind is disabled with the reason (#156)", () => {
-  const runtime = createFifthRuntime(cellarGoblin, sheet);
+  const runtime = createFifthRuntime(loneGoblin, sheet);
   // Ada first (15 against 3), unhurt.
   const begun = runtime.handleAction(
     runtime.createSession(),
@@ -215,7 +209,7 @@ test("a fight shows the whole toolkit; at full HP Second Wind is disabled with t
 });
 
 test("after the attack the action is used: Attack is disabled while the turn goes on (#156)", () => {
-  const runtime = createFifthRuntime(cellarGoblin, sheet);
+  const runtime = createFifthRuntime(loneGoblin, sheet);
   // The goblin goes first and hits for 3 + 2: Ada is hurt, so Second Wind
   // keeps her turn going after she attacks.
   const hurt = runtime.handleAction(
@@ -259,7 +253,7 @@ function ratFight() {
     { type: "move", destinationId: "stair-foot" },
     { type: "move", destinationId: "rat-cellar" },
   ];
-  const runtime = createFifthRuntime(smugglers, sheet);
+  const runtime = createFifthRuntime(tunnels, sheet);
   for (let seed = 0; seed < 5000; seed++) {
     const random = createSeededRandom(seed);
     let state = runtime.handleAction(
@@ -328,7 +322,7 @@ test("a carried potion is in the fight's bar; with the bonus action spent it is 
 });
 
 test("Action Surge is in the bar from level 2, and disabled once used (#156)", () => {
-  const runtime = createFifthRuntime(cellarGoblin, veteran());
+  const runtime = createFifthRuntime(loneGoblin, veteran());
   const begun = runtime.handleAction(
     runtime.createSession(),
     { type: "begin" },
@@ -356,7 +350,7 @@ test("Action Surge is in the bar from level 2, and disabled once used (#156)", (
 });
 
 test("exploring, the bar holds each move, examination, take and drink; a potion at full HP says why (#156)", () => {
-  const runtime = createFifthRuntime(smugglers, sheet);
+  const runtime = createFifthRuntime(tunnels, sheet);
   let state = runtime.handleAction(runtime.createSession(), {
     type: "begin",
   }).state;
@@ -411,7 +405,7 @@ test("exploring, the bar holds each move, examination, take and drink; a potion 
 });
 
 test("each entry in the bar gives back the action it stands for (#134)", () => {
-  const runtime = createFifthRuntime(smugglers, sheet);
+  const runtime = createFifthRuntime(tunnels, sheet);
   const state = runtime.handleAction(runtime.createSession(), {
     type: "begin",
   }).state;
@@ -433,7 +427,7 @@ test("each entry in the bar gives back the action it stands for (#134)", () => {
 });
 
 test("an ended adventure projects no actions (#156)", () => {
-  const runtime = createFifthRuntime(cellarGoblin, sheet);
+  const runtime = createFifthRuntime(loneGoblin, sheet);
   const state = { ...runtime.createSession(), status: "victory" };
   assert.deepEqual(runtime.projectActions(state), []);
 });
