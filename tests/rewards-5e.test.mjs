@@ -244,15 +244,6 @@ test("a fallen opponent's treasure is found only by searching its body once the 
     runtime.projectSettlement(out).coin.map(({ id }) => id),
     ["lintel-barrow/coin-pouch"],
   );
-  // Once kept, the body holds nothing of value.
-  const veteran = settleFighter(sheet, runtime.projectSettlement(out));
-  const again = createFifthRuntime(barrow, veteran);
-  const empty = again.handleAction(
-    play(again, WIN_THE_HALL, WIN_DICE()),
-    SEARCH,
-  );
-  assert.equal(empty.events[0].discovery, "Nothing of value.");
-  assert.deepEqual(empty.events[0].found, []);
 });
 
 test("treasure and XP already earned are not found or awarded again", () => {
