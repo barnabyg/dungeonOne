@@ -145,6 +145,7 @@ export const TREASURE_TYPES = {
 } as const satisfies Record<string, TreasureTypeData>;
 export type TreasureTypeId = keyof typeof TREASURE_TYPES;
 
+/** Whether `value` names one of the treasure types. */
 export function isTreasureTypeId(value: unknown): value is TreasureTypeId {
   return typeof value === "string" && Object.hasOwn(TREASURE_TYPES, value);
 }
