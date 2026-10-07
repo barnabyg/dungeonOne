@@ -8,8 +8,9 @@
  * back is the author's file with items added. It rolls only for an opponent
  * that names a bestiary monster, carries no loot yet (a key is not loot) and
  * has a fight that doesn't end the adventure, so its body can be searched.
- * An author may then lower or remove what it rolled; rolling again leaves an
- * opponent that already carries loot alone.
+ * An author may then lower or remove what it rolled. Rolling again leaves an
+ * opponent that still carries loot alone, but rolls afresh for one whose
+ * loot was all removed.
  */
 import { validateFifthAdventure } from "./adventure-5e.js";
 import type { FifthBestiary } from "./bestiary-5e.js";

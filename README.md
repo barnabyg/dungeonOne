@@ -381,7 +381,8 @@ These are for development, not play.
   loot for the module's bestiary opponents from their treasure types and writes
   it into the file as items they carry, so the balance gate sees exactly what a
   player finds. It skips an opponent that already carries loot, so you can
-  lower or remove what it rolled and roll again. See
+  lower what it rolled and roll again; one whose loot you removed entirely is
+  rolled afresh. See
   [the rules document](docs/character-rules.md#monster-loot-240).
 - **Live DM evaluation.** `npm.cmd run eval:dm -- --model <model-id> --live`
   evaluates the live AI DM on The Abandoned Delve's interpretation, refusal and
