@@ -8,6 +8,12 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { orderFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import {
+  goblinBand,
+  goblinBurrow,
+  loneGoblin,
+  sealedCrypt,
+} from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -58,10 +64,14 @@ test("modules that don't qualify are left out before ordering (#135)", () => {
   assert.deepEqual(asked, ["b-hard", "a-medium", "e-easy"]);
 });
 
+// Given out of offer order: one module per level-range and difficulty tag.
+const OFFERED = [goblinBurrow, sealedCrypt, goblinBand, loneGoblin];
+
 async function withServer(work, options = {}) {
   const directory = await mkdtemp(join(tmpdir(), "issue-165-"));
   const libraryPath = join(directory, "characters.json");
   const server = await startFifthBrowserServer({
+    adventures: OFFERED,
     libraryPath,
     seed: 0,
     ...options,
@@ -103,16 +113,7 @@ test("the server projects the modules in offer order", async () => {
     const { adventures } = await response.json();
     assert.deepEqual(
       adventures.map(({ id }) => id),
-      [
-        "cellar-goblin",
-        "robbers-barrow",
-        "smugglers-cellar",
-        "tinkers-toll",
-        "goblin-storeroom",
-        "abandoned-delve",
-        "warden-crypt",
-        "goblin-warren",
-      ],
+      ["lone-goblin", "goblin-band", "sealed-crypt", "goblin-burrow"],
     );
   });
 });
@@ -138,16 +139,12 @@ test(
       );
       assert.deepEqual(cards, [
         { tags: ["Level 1", "Hard"], button: "Start" },
-        { tags: ["Level 1", "Hard"], button: "Start" },
-        { tags: ["Level 1", "Hard"], button: "Start" },
-        { tags: ["Level 1", "Hard"], button: "Start" },
         { tags: ["Level 2", "Medium"], button: "Start" },
-        { tags: ["Level 2", "Hard"], button: "Start" },
         { tags: ["Level 2", "Hard"], button: "Start" },
         { tags: ["Levels 2–3", "Hard"], button: "Start" },
       ]);
       const start = page.getByRole("button", {
-        name: "Start The Smugglers' Cellar",
+        name: "Start The Lone Goblin",
         exact: true,
       });
       assert.equal(await start.count(), 1);
@@ -250,8 +247,11 @@ test(
           .evaluateAll((buttons) =>
             buttons.map((button) => button.dataset.adventure),
           );
-        assert.equal(starts.length, 7);
-        assert.ok(!starts.includes("goblin-warren"));
+        assert.deepEqual(starts, [
+          "lone-goblin",
+          "goblin-band",
+          "sealed-crypt",
+        ]);
         const library = JSON.parse(await readFile(libraryPath, "utf8"));
         const refused = await page.evaluate(
           async (body) => {
@@ -265,13 +265,13 @@ test(
           {
             revision: library.revision,
             characterId: library.characters[0].sheet.id,
-            adventureId: "goblin-warren",
+            adventureId: "goblin-burrow",
           },
         );
         assert.equal(refused.status, 409);
         assert.equal(refused.body.error, "There is no such adventure.");
       },
-      { qualifies: ({ id }) => id !== "goblin-warren" },
+      { qualifies: ({ id }) => id !== "goblin-burrow" },
     );
   },
 );
