@@ -29,7 +29,7 @@ const CONTENT_TESTS = new Map([
   ],
   [
     "tests/abandoned-delve.test.mjs",
-    "the Abandoned Delve's content, gate verdict and scripted runs",
+    "the Abandoned Delve's content, gate verdict, scripted runs, DM evaluation cases and live qualification",
   ],
   [
     "tests/abandoned-delve-browser.test.mjs",
