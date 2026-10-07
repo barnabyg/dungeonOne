@@ -275,42 +275,8 @@ test("a fleeing goblin cut down before its turn is defeated, not fled", () => {
   assert.ok(second.events.some(({ type }) => type === "defeated"));
 });
 
-test("a fled combatant can't be attacked and its flight can bring the rest to half strength", () => {
-  // Three goblins: Goblin 2 fails at the first fall and flees on its turn,
-  // leaving one of three, so Goblin 3 checks at half strength.
-  const { state, random } = begin(
-    [ada, goblin("g1"), goblin("g2"), goblin("g3")],
-    ...KILL,
-    [20, 2], // Goblin 2 fails.
-    [20, 20], // Goblin 3 holds.
-  );
-  const first = attack(state, random, "g1");
-  const end = dice(
-    [20, 20], // Goblin 3 holds at half strength, after Goblin 2 flees.
-    [20, 1], // Goblin 3 attacks Ada and misses.
-  );
-  const ended = act(first.state, { type: "end-turn", actorId: "pc" }, end);
-  assert.equal(end.remaining(), 0);
-  assert.deepEqual(
-    morale(ended.events).map(({ combatantId, trigger }) => [
-      combatantId,
-      trigger,
-    ]),
-    [["g3", "half-strength"]],
-  );
-  assert.equal(ended.state.outcome, "ongoing");
-  const refused = act(
-    ended.state,
-    { type: "attack", actorId: "pc", targetId: "g2" },
-    dice(),
-  );
-  assert.equal(refused.rejection?.code, "fled");
-  assert.equal(refused.rejection?.reason, "Goblin 2 has fled.");
-  assert.deepEqual(
-    legalTargets(ended.state, "pc").map(({ id }) => id),
-    ["g3"],
-  );
-});
+// A fled combatant can't be attacked, and its flight can bring the rest to
+// half strength: tested beside surrender's yielding in issue-238.test.mjs.
 
 test("a lone monster never checks morale", () => {
   const { state, random } = begin([ada, goblin("g1")], ...KILL);

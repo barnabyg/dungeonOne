@@ -153,39 +153,45 @@ test("a monster that may surrender and fails morale surrenders on its turn, and 
   assert.equal(ended.state.outcome, "victory");
 });
 
-test("a surrendered monster can't be attacked, and its yielding can bring the rest to half strength", () => {
-  const { state, random } = begin(
-    [ada, goblin("g1"), goblin("g2", { surrenders: true }), goblin("g3")],
-    ...KILL,
-    [20, 2], // Goblin 2 fails.
-    [20, 20], // Goblin 3 holds.
-  );
-  const first = attack(state, random, "g1");
-  const end = dice(
-    [20, 20], // Goblin 3 holds at half strength, after Goblin 2 yields.
-    [20, 1], // Goblin 3 attacks Ada and misses.
-  );
-  const ended = act(first.state, { type: "end-turn", actorId: "pc" }, end);
-  assert.equal(end.remaining(), 0);
-  assert.deepEqual(
-    ended.events
-      .filter(({ type }) => type === "morale")
-      .map(({ combatantId, trigger }) => [combatantId, trigger]),
-    [["g3", "half-strength"]],
-  );
-  assert.equal(ended.state.outcome, "ongoing");
-  const refused = act(
-    ended.state,
-    { type: "attack", actorId: "pc", targetId: "g2" },
-    dice(),
-  );
-  assert.equal(refused.rejection?.code, "surrendered");
-  assert.equal(refused.rejection?.reason, "Goblin 2 has surrendered.");
-  assert.deepEqual(
-    legalTargets(ended.state, "pc").map(({ id }) => id),
-    ["g3"],
-  );
-});
+// Fleeing (#237) and surrendering leave the fight the same way.
+for (const surrenders of [false, true]) {
+  const left = surrenders ? "surrendered" : "fled";
+  test(`a ${left} monster can't be attacked, and its leaving can bring the rest to half strength`, () => {
+    // Three goblins: Goblin 2 fails at the first fall and leaves on its turn,
+    // leaving one of three, so Goblin 3 checks at half strength.
+    const { state, random } = begin(
+      [ada, goblin("g1"), goblin("g2", { surrenders }), goblin("g3")],
+      ...KILL,
+      [20, 2], // Goblin 2 fails.
+      [20, 20], // Goblin 3 holds.
+    );
+    const first = attack(state, random, "g1");
+    const end = dice(
+      [20, 20], // Goblin 3 holds at half strength, after Goblin 2 leaves.
+      [20, 1], // Goblin 3 attacks Ada and misses.
+    );
+    const ended = act(first.state, { type: "end-turn", actorId: "pc" }, end);
+    assert.equal(end.remaining(), 0);
+    assert.deepEqual(
+      ended.events
+        .filter(({ type }) => type === "morale")
+        .map(({ combatantId, trigger }) => [combatantId, trigger]),
+      [["g3", "half-strength"]],
+    );
+    assert.equal(ended.state.outcome, "ongoing");
+    const refused = act(
+      ended.state,
+      { type: "attack", actorId: "pc", targetId: "g2" },
+      dice(),
+    );
+    assert.equal(refused.rejection?.code, left);
+    assert.equal(refused.rejection?.reason, `Goblin 2 has ${left}.`);
+    assert.deepEqual(
+      legalTargets(ended.state, "pc").map(({ id }) => id),
+      ["g3"],
+    );
+  });
+}
 
 test("a monster that may surrender and holds its nerve fights on", () => {
   const { state, random } = begin(
