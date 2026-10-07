@@ -16,16 +16,27 @@ const USAGE = "Usage: npm run loot -- <module.json> --seed <0-4294967295>";
 
 /** Reads the command line: one module file and a seed, in either order. */
 export function parseArguments(args) {
-  const seedAt = args.indexOf("--seed");
-  const paths = args.filter(
-    (argument, index) => index !== seedAt && index !== seedAt + 1,
-  );
-  if (seedAt === -1 || paths.length !== 1 || paths[0].startsWith("--")) {
+  let seed;
+  const paths = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument === "--seed" && index + 1 < args.length) {
+      seed = args[index + 1];
+      index += 1;
+    } else if (argument.startsWith("--seed=")) {
+      seed = argument.slice("--seed=".length);
+    } else if (argument.startsWith("--")) {
+      throw new Error(USAGE);
+    } else {
+      paths.push(argument);
+    }
+  }
+  if (seed === undefined || paths.length !== 1) {
     throw new Error(USAGE);
   }
   return {
     path: paths[0],
-    seed: resolveStartupSeed(args.slice(seedAt, seedAt + 2), () => 0),
+    seed: resolveStartupSeed(["--seed", seed], () => 0),
   };
 }
 

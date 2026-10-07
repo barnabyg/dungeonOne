@@ -379,9 +379,16 @@ test("npm run loot rolls a module file in place with a seed, and says what it ro
     assert.equal(again.status, 0, again.stderr);
     assert.match(again.stdout, /^No opponent in lintel-barrow needs loot;/);
     assert.equal(await readFile(path, "utf8"), written);
-    const usage = run(path);
-    assert.equal(usage.status, 2);
-    assert.match(usage.stderr, /Usage: npm run loot -- <module\.json> --seed/);
+    for (const args of [[path], [path, "--seed"], ["--seed", "1"]]) {
+      const usage = run(...args);
+      assert.equal(usage.status, 2);
+      assert.match(
+        usage.stderr,
+        /Usage: npm run loot -- <module\.json> --seed/,
+      );
+    }
+    // --seed=N works as the browser's does.
+    assert.equal(run(`--seed=9`, path).status, 0);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
