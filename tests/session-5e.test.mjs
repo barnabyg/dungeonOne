@@ -3,7 +3,6 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
@@ -13,9 +12,10 @@ import {
   startFifthAdventure,
 } from "../dist/session-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import { loneGoblin } from "./fixtures/modules.mjs";
 
-const adventures = await loadBuiltInFifthAdventures();
-const adventure = adventures.find(({ id }) => id === "cellar-goblin");
+const adventure = loneGoblin;
+const adventures = [adventure];
 const CHOICES = {
   placement: {
     strength: 0,
@@ -89,7 +89,7 @@ test("starting an adventure saves the session with its fight begun, then links i
     const data = await library.read();
     assert.deepEqual(data.characters[0].session, {
       id: session.id,
-      adventureId: "cellar-goblin",
+      adventureId: "lone-goblin",
     });
     assert.equal(data.sessionsStarted, 1);
     const file = JSON.parse(
@@ -203,12 +203,12 @@ test("a session save that does not replay exactly is refused", async () => {
     );
     const changed = validateModule({
       ...structuredClone(adventure),
-      title: "The Goblin in the Wine Cellar",
+      title: "The Lone Goblin Returns",
     });
     await writeFile(path, JSON.stringify(good));
     await assert.rejects(
       FifthSession.load(path, [changed]),
-      /different version of The Goblin in the Wine Cellar.*Move it aside/,
+      /different version of The Lone Goblin Returns.*Move it aside/,
     );
   });
 });

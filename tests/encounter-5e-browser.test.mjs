@@ -5,7 +5,6 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
@@ -15,6 +14,10 @@ import {
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import {
+  goblinBand as band,
+  loneGoblin as adventure,
+} from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -24,9 +27,8 @@ const launch = () =>
       : { headless: true },
   );
 
-const builtIn = await loadBuiltInFifthAdventures();
-const adventure = builtIn.find(({ id }) => id === "cellar-goblin");
-const storeroom = builtIn.find(({ id }) => id === "goblin-storeroom");
+// The lone goblin's one-room fight and the goblin band's group fight.
+const ADVENTURES = [adventure, band];
 const ATTACK = { type: "attack", actorId: "pc", targetId: "goblin" };
 const END_TURN = { type: "end-turn", actorId: "pc" };
 // The creation screen's default choices; the placement follows the dice.
@@ -144,7 +146,7 @@ const post = (page, path, body) =>
     [path, body],
   );
 
-async function createAndStart(page, url, adventureId = "cellar-goblin") {
+async function createAndStart(page, url, adventureId = "lone-goblin") {
   await page.goto(url);
   await page.locator("#open-creation").click();
   await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
@@ -189,6 +191,7 @@ test(
     const directory = await mkdtemp(join(tmpdir(), "encounter-5e-victory-"));
     const libraryPath = join(directory, "characters.json");
     let server = await startFifthBrowserServer({
+      adventures: ADVENTURES,
       libraryPath,
       seed,
       dmModel: attackingDm(),
@@ -233,6 +236,7 @@ test(
       // Restart (even with another seed): the same panel, then the same dice.
       await server.close();
       server = await startFifthBrowserServer({
+        adventures: ADVENTURES,
         libraryPath,
         seed: seed + 1,
         dmModel: attackingDm(),
@@ -286,7 +290,11 @@ test(
     const seed = findSeed("defeat", 1);
     const directory = await mkdtemp(join(tmpdir(), "encounter-5e-defeat-"));
     const libraryPath = join(directory, "characters.json");
-    const server = await startFifthBrowserServer({ libraryPath, seed });
+    const server = await startFifthBrowserServer({
+      adventures: ADVENTURES,
+      libraryPath,
+      seed,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 360, height: 740 },
@@ -346,7 +354,7 @@ test(
       const refused = await post(page, "/api/5e/adventures/start", {
         revision: after.revision,
         characterId: after.characters[0].sheet.id,
-        adventureId: "cellar-goblin",
+        adventureId: "lone-goblin",
       });
       assert.equal(refused.status, 409);
       assert.match(
@@ -381,6 +389,7 @@ test(
       { text: "Your blow lands for 99 damage!" },
     ];
     const server = await startFifthBrowserServer({
+      adventures: ADVENTURES,
       libraryPath,
       seed: 11,
       dmModel: { respond: async () => responses.shift() },
@@ -456,6 +465,7 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "encounter-5e-nokey-"));
     const server = await startFifthBrowserServer({
+      adventures: ADVENTURES,
       libraryPath: join(directory, "characters.json"),
       seed: 4,
       apiKey: "",
@@ -501,6 +511,7 @@ test(
     const directory = await mkdtemp(join(tmpdir(), "encounter-5e-typed-end-"));
     const libraryPath = join(directory, "characters.json");
     const server = await startFifthBrowserServer({
+      adventures: ADVENTURES,
       libraryPath,
       seed,
       dmModel: attackingDm(),
@@ -530,13 +541,13 @@ test(
 );
 
 /**
- * The storeroom fight on `seed`: a typed attack on the Goblin Warrior, then
+ * The goblin band's fight on `seed`: a typed attack on the Goblin Warrior, then
  * clicks on the first offered target, or End turn once the action is spent.
  * Its outcome, its dice, and the player action that first fells an opponent
  * while others still stand.
  */
 function simulateGroup(seed) {
-  const runtime = createFifthRuntime(storeroom, firstFighter(seed));
+  const runtime = createFifthRuntime(band, firstFighter(seed));
   const source = createSeededRandom(sessionSeed(seed, 1));
   const drawn = [[]];
   const random = {
@@ -626,6 +637,7 @@ test(
     const directory = await mkdtemp(join(tmpdir(), "encounter-5e-group-"));
     const libraryPath = join(directory, "characters.json");
     const server = await startFifthBrowserServer({
+      adventures: ADVENTURES,
       libraryPath,
       seed,
       dmModel: targetingDm(),
@@ -647,7 +659,7 @@ test(
     const attackLabels = () =>
       page.locator("#attack-controls button.attack").allTextContents();
     try {
-      await createAndStart(page, server.url, "goblin-storeroom");
+      await createAndStart(page, server.url, "goblin-band");
       // Every combatant in initiative order, readable at phone width.
       let shown = await panel(page);
       assert.equal(shown.rows.length, 3);
@@ -690,7 +702,7 @@ test(
       for (let step = 1; step < expected.firstFall.steps; step++) {
         await clickNext(page);
       }
-      const fallen = storeroom.encounters[0].opponents.find(
+      const fallen = band.encounters[0].opponents.find(
         ({ id }) => id === expected.firstFall.id,
       ).name;
       shown = await panel(page);
@@ -810,7 +822,11 @@ test(
     }
     const directory = await mkdtemp(join(tmpdir(), "encounter-5e-features-"));
     const libraryPath = join(directory, "characters.json");
-    let server = await startFifthBrowserServer({ libraryPath, seed });
+    let server = await startFifthBrowserServer({
+      adventures: ADVENTURES,
+      libraryPath,
+      seed,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 360, height: 740 },
@@ -898,6 +914,7 @@ test(
             const shown = await panel(page);
             await server.close();
             server = await startFifthBrowserServer({
+              adventures: ADVENTURES,
               libraryPath,
               seed: seed + 1,
             });

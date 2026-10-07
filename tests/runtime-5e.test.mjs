@@ -1,9 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  loadBuiltInFifthAdventures,
-  loadFifthAdventure,
-} from "../dist/adventure-5e.js";
 import { runDmTurn } from "../dist/dm-turn.js";
 import {
   buildFighter,
@@ -16,12 +12,12 @@ import {
   playerCombatant,
   renderFifthEvent,
 } from "../dist/runtime-5e.js";
+import {
+  goblinTrio as trio,
+  loneGoblin as adventure,
+} from "./fixtures/modules.mjs";
 
-const adventure = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "cellar-goblin",
-);
-// The engine's targeting tests need three goblins: two numbered minions.
-const storeroom = await loadFifthAdventure("tests/fixtures/three-goblins.json");
+// The engine's targeting tests use the goblin trio: two numbered minions.
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 13 in leather with Defense, 12 HP, mace +5.
 const sheet = buildFighter(
   "a".repeat(32),
@@ -377,9 +373,9 @@ test("scripted DM: read tools return engine facts for the AI to voice", async ()
   );
 });
 
-/** The storeroom fight with Ada first, then Minion 1, Minion 2 and the Warrior. */
+/** The goblin trio fight with Ada first, then Minion 1, Minion 2 and the Warrior. */
 function groupBegun() {
-  const runtime = createFifthRuntime(storeroom, sheet);
+  const runtime = createFifthRuntime(trio, sheet);
   const result = runtime.handleAction(
     runtime.createSession(),
     { type: "begin" },
