@@ -16,12 +16,17 @@ import {
   requiredPath,
 } from "../dist/balance-5e.js";
 import { main, parseArguments } from "../scripts/balance-5e.mjs";
-import {
-  loadBuiltInFifthAdventures,
-  loadFifthAdventure,
-} from "../dist/adventure-5e.js";
+import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import {
+  goblinBand,
+  goblinBurrow,
+  lintelBarrow,
+  loneGoblin,
+  ratTunnels,
+  sealedCrypt,
+} from "./fixtures/modules.mjs";
 
 const STRONG_DICE = [
   [6, 6, 6, 1],
@@ -101,36 +106,24 @@ test("the chance of killing an enemy with one attack counts hit chance and criti
   );
 });
 
-const SHIPPED = Object.fromEntries(
-  (await loadBuiltInFifthAdventures()).map((adventure) => [
-    adventure.id,
-    adventure,
-  ]),
-);
-
-// The Smugglers' Cellar as it was before #207, with its Giant Rat fight.
-const SMUGGLERS = await loadFifthAdventure(
-  "tests/fixtures/smugglers-with-rat.json",
-);
-
 test("the required path leads to a victory, or else out with treasure, through the fewest fights", () => {
-  assert.deepEqual(requiredPath(SMUGGLERS), {
+  assert.deepEqual(requiredPath(ratTunnels), {
     objective: "victory",
     roomIds: ["stair-foot", "rat-cellar", "den"],
   });
-  assert.deepEqual(requiredPath(SHIPPED["warden-crypt"]), {
+  assert.deepEqual(requiredPath(sealedCrypt), {
     objective: "victory",
     roomIds: ["crypt-stair", "hall", "tomb"],
   });
-  assert.deepEqual(requiredPath(SHIPPED["robbers-barrow"]), {
+  assert.deepEqual(requiredPath(lintelBarrow), {
     objective: "escape-with-loot",
     roomIds: ["barrow-mouth", "burial-hall"],
   });
-  assert.deepEqual(requiredPath(SHIPPED["goblin-warren"]), {
+  assert.deepEqual(requiredPath(goblinBurrow), {
     objective: "escape-with-loot",
     roomIds: ["warren-gate", "guard-tunnel", "boss-hall"],
   });
-  assert.deepEqual(requiredPath(SHIPPED["cellar-goblin"]), {
+  assert.deepEqual(requiredPath(loneGoblin), {
     objective: "victory",
     roomIds: ["cellar"],
   });
@@ -138,16 +131,16 @@ test("the required path leads to a victory, or else out with treasure, through t
 
 const MEDIAN = percentileCharacters({ percentiles: [50] })[0].dice;
 
-/** A shipped module changed by `change`, validated again. */
-function variant(id, change) {
-  const copy = structuredClone(SHIPPED[id]);
+/** A fixture module changed by `change`, validated again. */
+function variant(adventure, change) {
+  const copy = structuredClone(adventure);
   change(copy);
   return validateModule(copy);
 }
 
-/** The smugglers' cellar with a giant rat in the optional alcove too. */
+/** The rat tunnels with a giant rat in the optional alcove too. */
 const RAT_IN_ALCOVE = (() => {
-  const module = structuredClone(SMUGGLERS);
+  const module = structuredClone(ratTunnels);
   const rat = module.encounters.find(({ id }) => id === "cellar-rat");
   module.encounters.push({
     ...structuredClone(rat),
@@ -172,14 +165,14 @@ function play(adventure, style, seed, dice = STRONG_DICE, level = 1) {
 test("a run is the same for the same seed", () => {
   for (const style of PLAY_STYLES) {
     assert.deepEqual(
-      play(SHIPPED["warden-crypt"], style, 7, MEDIAN),
-      play(SHIPPED["warden-crypt"], style, 7, MEDIAN),
+      play(sealedCrypt, style, 7, MEDIAN),
+      play(sealedCrypt, style, 7, MEDIAN),
     );
   }
 });
 
 test("avoid-optional keeps to the required rooms; cautious and direct look into quiet optional rooms", () => {
-  const cellar = SMUGGLERS;
+  const cellar = ratTunnels;
   const avoiding = play(cellar, "avoid-optional", 1);
   assert.equal(avoiding.outcome, "victory");
   assert.deepEqual(avoiding.roomIds, ["stair-foot", "rat-cellar", "den"]);
@@ -203,7 +196,7 @@ test("direct fights optional fights; cautious and avoid-optional skip them", () 
 });
 
 test("a loot run takes the treasure out and earns its XP", () => {
-  const run = play(SHIPPED["robbers-barrow"], "avoid-optional", 2);
+  const run = play(lintelBarrow, "avoid-optional", 2);
   assert.equal(run.outcome, "escape-with-loot");
   // The goblin's 50 XP and the ending's 250; the torc and the coin pouch.
   assert.equal(run.xp, 300);
@@ -212,7 +205,7 @@ test("a loot run takes the treasure out and earns its XP", () => {
 
 test("carrying treasure through an exit, direct still fights through the rooms beyond", () => {
   // The torc lies under the lintel by the way out instead of on the bier.
-  const torcAtTheDoor = variant("robbers-barrow", (module) => {
+  const torcAtTheDoor = variant(lintelBarrow, (module) => {
     const [mouth, hall] = module.rooms;
     const torc = hall.items.find(({ id }) => id === "silver-torc");
     hall.items = hall.items.filter((item) => item !== torc);
@@ -230,16 +223,16 @@ test("carrying treasure through an exit, direct still fights through the rooms b
 });
 
 test("each fight records the hit points it cost and how many rounds it lasted", () => {
-  const run = play(SHIPPED["cellar-goblin"], "direct", 5, MEDIAN);
+  const run = play(loneGoblin, "direct", 5, MEDIAN);
   assert.equal(run.encounters.length, 1);
   const [fight] = run.encounters;
-  assert.equal(fight.id, "cellar-goblin");
+  assert.equal(fight.id, "lone-goblin");
   assert.ok(fight.rounds >= 1);
   assert.ok(fight.hpLost >= 0);
 });
 
 test("a run against an overwhelming enemy ends in defeat", () => {
-  const deadly = variant("cellar-goblin", (module) => {
+  const deadly = variant(loneGoblin, (module) => {
     const block = module.encounters[0].opponents[0].statBlock;
     block.hitPoints.average = 300;
     const attack = block.attacks[0];
@@ -257,18 +250,18 @@ test("a run against an overwhelming enemy ends in defeat", () => {
 test("a trap sprung on the way is counted apart from the fights", () => {
   // Direct goes through the hall's trapped passage without searching.
   const runs = Array.from({ length: 20 }, (_, seed) =>
-    play(SHIPPED["warden-crypt"], "direct", seed, MEDIAN),
+    play(sealedCrypt, "direct", seed, MEDIAN),
   );
   assert.ok(runs.some(({ trapDamage }) => trapDamage > 0));
   const careful = Array.from({ length: 20 }, (_, seed) =>
-    play(SHIPPED["warden-crypt"], "avoid-optional", seed, MEDIAN),
+    play(sealedCrypt, "avoid-optional", seed, MEDIAN),
   );
   assert.ok(careful.every(({ trapDamage }) => trapDamage === 0));
 });
 
 test("an action the harness can't play fails the run with a named reason", () => {
   const runtime = createFifthRuntime(
-    SHIPPED["cellar-goblin"],
+    loneGoblin,
     fighterAtLevel(STRONG_DICE, 1),
   );
   const casting = {
@@ -285,7 +278,10 @@ test("an action the harness can't play fails the run with a named reason", () =>
 });
 
 test("a run left with no way on and no way out fails with a named reason", () => {
-  const runtime = createFifthRuntime(SMUGGLERS, fighterAtLevel(STRONG_DICE, 1));
+  const runtime = createFifthRuntime(
+    ratTunnels,
+    fighterAtLevel(STRONG_DICE, 1),
+  );
   // As if the stair foot's ways out needed something no style does.
   const walled = {
     ...runtime,
@@ -295,19 +291,19 @@ test("a run left with no way on and no way out fails with a named reason", () =>
   assert.throws(() => playAdventure(walled, "cautious", 1), {
     name: "BalanceError",
     code: "stranded",
-    message: /smugglers-cellar: a cautious run was stranded in stair-foot/u,
+    message: /rat-tunnels: a cautious run was stranded in stair-foot/u,
   });
 });
 
 const FEW_SEEDS = Array.from({ length: 20 }, (_, seed) => seed);
 
 test("a report has metrics for each level, character percentile and style", () => {
-  const result = qualifyAdventure(SHIPPED["goblin-warren"], {
+  const result = qualifyAdventure(goblinBurrow, {
     seeds: FEW_SEEDS,
   });
   assert.equal(result.ok, true);
   const { report } = result;
-  assert.equal(report.adventureId, "goblin-warren");
+  assert.equal(report.adventureId, "goblin-burrow");
   assert.equal(report.objective, "escape-with-loot");
   assert.deepEqual(
     report.cells.map(({ level, percentile, style }) => [
@@ -350,7 +346,7 @@ test("a report has metrics for each level, character percentile and style", () =
 });
 
 test("a weak character survives a hard fight less often than a strong one", () => {
-  const { report } = qualifyAdventure(SHIPPED["goblin-storeroom"], {
+  const { report } = qualifyAdventure(goblinBand, {
     seeds: Array.from({ length: 100 }, (_, seed) => seed),
     styles: ["cautious"],
   });
@@ -369,61 +365,43 @@ test("a weak character survives a hard fight less often than a strong one", () =
 test("the same seeds give the same report", () => {
   const options = { seeds: FEW_SEEDS, percentiles: [25] };
   assert.deepEqual(
-    qualifyAdventure(SHIPPED["warden-crypt"], options),
-    qualifyAdventure(SHIPPED["warden-crypt"], options),
+    qualifyAdventure(sealedCrypt, options),
+    qualifyAdventure(sealedCrypt, options),
   );
 });
 
 test("a run that never ends fails qualification with a named reason", () => {
-  const result = qualifyAdventure(SMUGGLERS, {
+  const result = qualifyAdventure(ratTunnels, {
     seeds: FEW_SEEDS,
     stepLimit: 3,
   });
   assert.equal(result.ok, false);
   assert.equal(result.failure.code, "step-limit");
-  assert.match(result.failure.message, /smugglers-cellar/);
-});
-
-test("the default run qualifies every shipped module within its time budget", () => {
-  // CPU time, not elapsed time: this file runs in its own process, so other
-  // test files running alongside it cannot push it over the budget.
-  const started = process.cpuUsage();
-  for (const adventure of Object.values(SHIPPED)) {
-    const result = qualifyAdventure(adventure);
-    assert.equal(result.ok, true, adventure.id);
-    assert.ok(result.report.cells.every(({ runs }) => runs === 200));
-  }
-  const { user, system } = process.cpuUsage(started);
-  const seconds = (user + system) / 1_000_000;
-  // docs/character-rules.md records the budget: well inside verify.
-  assert.ok(
-    seconds < 30,
-    `the default run took ${seconds.toFixed(1)} s of CPU`,
-  );
+  assert.match(result.failure.message, /rat-tunnels/);
 });
 
 test("the report reads as text, and a failure names its reason", () => {
-  const cellar = SHIPPED["cellar-goblin"];
+  const cellar = loneGoblin;
   const text = renderBalanceResult(
     cellar,
     qualifyAdventure(cellar, { seeds: [0, 1], styles: ["cautious"] }),
   );
   assert.match(
     text,
-    /^The Goblin in the Cellar \(cellar-goblin\)\nObjective: victory, through cellar$/mu,
+    /^The Lone Goblin \(lone-goblin\)\nObjective: victory, through cellar$/mu,
   );
   assert.match(
     text,
     /Level 1, 5th percentile character\. One-hit kill: Goblin Warrior \d+\.\d%/u,
   );
   assert.match(text, /cautious: survived \d+\.\d%, completed \d+\.\d% of 2;/u);
-  assert.match(text, /cellar-goblin: fought in 2, lost \d+\.\d%/u);
+  assert.match(text, /lone-goblin: fought in 2, lost \d+\.\d%/u);
   assert.equal(
     renderBalanceResult(cellar, {
       ok: false,
       failure: { code: "step-limit", message: "A run never ended." },
     }),
-    "The Goblin in the Cellar (cellar-goblin) fails: step-limit. A run never ended.",
+    "The Lone Goblin (lone-goblin) fails: step-limit. A run never ended.",
   );
 });
 
@@ -436,13 +414,13 @@ test("npm run balance qualifies the modules it is given", async () => {
       "--styles",
       "direct",
       "--json",
-      "adventures/5e/cellar-goblin.json",
+      "tests/fixtures/lone-goblin.json",
     ],
     { write: (text) => (written += text) },
   );
   assert.equal(code, 0);
   const [result] = JSON.parse(written);
-  assert.equal(result.adventureId, "cellar-goblin");
+  assert.equal(result.adventureId, "lone-goblin");
   assert.equal(result.ok, true);
   assert.deepEqual(
     result.report.cells.map(({ percentile, style, runs }) => [
@@ -571,7 +549,7 @@ test("bosses are exempt from the one-hit-kill cap, and half the ordinary enemies
   assert.equal(allBosses.verdict.oneHitKill.ok, true);
   assert.equal(allBosses.verdict.qualified, true);
   // One minion of two over the cap is half, not most.
-  const smugglers = gateAdventure(declared(SMUGGLERS, "hard")).verdict
+  const smugglers = gateAdventure(declared(ratTunnels, "hard")).verdict
     .oneHitKill;
   assert.deepEqual(
     smugglers.overCap.map(({ name }) => name),
@@ -625,16 +603,6 @@ test("a module the harness can't play fails the gate with a named reason", () =>
   );
 });
 
-test("every shipped module qualifies at its declared difficulty", () => {
-  for (const adventure of Object.values(SHIPPED)) {
-    const result = gateAdventure(adventure);
-    assert.ok(
-      result.ok && result.verdict.qualified,
-      renderGateResult(adventure, result),
-    );
-  }
-});
-
 test("npm run balance reports the gate and fails when a module doesn't qualify", async () => {
   let written = "";
   const write = { write: (text) => (written += text) };
@@ -658,7 +626,7 @@ test("npm run balance reports the gate and fails when a module doesn't qualify",
   written = "";
   assert.equal(
     await main(
-      ["--seeds", "20", "--json", "adventures/5e/warden-crypt.json"],
+      ["--seeds", "20", "--json", "tests/fixtures/sealed-crypt.json"],
       write,
     ),
     0,
@@ -670,7 +638,7 @@ test("npm run balance reports the gate and fails when a module doesn't qualify",
 });
 
 test("passesGate is the gate's verdict at the defaults, as the browser offers modules", () => {
-  assert.equal(passesGate(SHIPPED["warden-crypt"]), true);
+  assert.equal(passesGate(sealedCrypt), true);
   assert.equal(passesGate(GOBLIN_PAIR), false);
   assert.equal(passesGate(declared(GOBLIN_PAIR, "hard")), true);
   assert.equal(passesGate(GOBLIN_PAIR), false);

@@ -3,23 +3,24 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  loadBuiltInFifthAdventures,
-  loadFifthAdventure,
-} from "../dist/adventure-5e.js";
+import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
+import {
+  goblinBand,
+  goblinBurrow,
+  lintelBarrow,
+  loneGoblin,
+  moduleFile,
+  sealedCrypt,
+} from "./fixtures/modules.mjs";
 
-const fixture = JSON.parse(
-  await readFile(
-    new URL("../adventures/5e/cellar-goblin.json", import.meta.url),
-  ),
-);
+const fixture = moduleFile("lone-goblin");
 const changed = (change) => {
   const copy = structuredClone(fixture);
   change(copy);
   return copy;
 };
-/** Authors the cellar goblin's bestiary stat block inline, and returns it. */
+/** Authors the lone goblin's bestiary stat block inline, and returns it. */
 const inline = (m) => {
   const [goblin] = m.encounters[0].opponents;
   m.encounters[0].opponents[0] = {
@@ -33,10 +34,8 @@ const inline = (m) => {
   return m.encounters[0].opponents[0].statBlock;
 };
 
-test("the built-in fixture is a valid one-room module with a declared level range and difficulty", async () => {
-  const adventure = (await loadBuiltInFifthAdventures()).find(
-    ({ id }) => id === "cellar-goblin",
-  );
+test("the lone goblin is a valid one-room module with a declared level range and difficulty", () => {
+  const adventure = loneGoblin;
   assert.deepEqual(adventure.recommendedLevels, { min: 1, max: 1 });
   assert.equal(adventure.difficulty, "hard");
   assert.equal(adventure.rooms.length, 1);
@@ -105,7 +104,7 @@ test("the validator rejects malformed modules", () => {
   }
 });
 
-test("an opponent may be marked as a boss, and is ordinary otherwise", async () => {
+test("an opponent may be marked as a boss, and is ordinary otherwise", () => {
   const boss = validateModule(
     changed((m) => (m.encounters[0].opponents[0].boss = true)),
   );
@@ -121,11 +120,8 @@ test("an opponent may be marked as a boss, and is ordinary otherwise", async () 
       ),
     /opponent 1 boss must be true, or left out/,
   );
-  const warren = (await loadBuiltInFifthAdventures()).find(
-    ({ id }) => id === "goblin-warren",
-  );
   assert.deepEqual(
-    warren.encounters.flatMap(({ opponents }) =>
+    goblinBurrow.encounters.flatMap(({ opponents }) =>
       opponents.flatMap(({ id, boss }) => (boss ? [id] : [])),
     ),
     ["goblin-boss"],
@@ -151,22 +147,8 @@ test("a module in another format version is refused by name and left unchanged",
   }
 });
 
-test("the group-fight module holds two goblins with distinct names", async () => {
-  const adventures = await loadBuiltInFifthAdventures();
-  assert.deepEqual(
-    adventures.map(({ id }) => id),
-    [
-      "abandoned-delve",
-      "cellar-goblin",
-      "goblin-storeroom",
-      "goblin-warren",
-      "robbers-barrow",
-      "smugglers-cellar",
-      "tinkers-toll",
-      "warden-crypt",
-    ],
-  );
-  const group = adventures.find(({ id }) => id === "goblin-storeroom");
+test("the group-fight module holds two goblins with distinct names", () => {
+  const group = goblinBand;
   assert.equal(group.difficulty, "medium");
   assert.deepEqual(group.recommendedLevels, { min: 2, max: 2 });
   assert.deepEqual(
@@ -213,19 +195,16 @@ test("opponent names differing only in case count as the same name", () => {
   );
 });
 
-const smugglers = JSON.parse(
-  await readFile(new URL("fixtures/smugglers-with-rat.json", import.meta.url)),
-);
+const tunnels = moduleFile("rat-tunnels");
 const explored = (change) => {
-  const copy = structuredClone(smugglers);
+  const copy = structuredClone(tunnels);
   change(copy);
   return copy;
 };
 const room = (module, id) => module.rooms.find((entry) => entry.id === id);
 
 test("the multi-room fixture has passages, features with discoveries and a hidden potion", () => {
-  // The Smugglers' Cellar as it was before #207, with its Giant Rat fight.
-  const adventure = validateModule(smugglers);
+  const adventure = validateModule(tunnels);
   assert.deepEqual(
     adventure.rooms.map(({ id }) => id),
     ["stair-foot", "alcove", "rat-cellar", "den"],
@@ -335,11 +314,7 @@ test("the validator rejects an ending no encounter can reach", () => {
   );
 });
 
-const crypt = JSON.parse(
-  await readFile(
-    new URL("../adventures/5e/warden-crypt.json", import.meta.url),
-  ),
-);
+const crypt = moduleFile("sealed-crypt");
 const crypted = (change) => {
   const copy = structuredClone(crypt);
   change(copy);
@@ -347,10 +322,8 @@ const crypted = (change) => {
 };
 const passage = (m, id) => m.passages.find((entry) => entry.id === id);
 
-test("the crypt fixture has a stuck door, a locked door with a key, a trap and a talkable creature", async () => {
-  const adventure = (await loadBuiltInFifthAdventures()).find(
-    ({ id }) => id === "warden-crypt",
-  );
+test("the crypt fixture has a stuck door, a locked door with a key, a trap and a talkable creature", () => {
+  const adventure = sealedCrypt;
   assert.deepEqual(validateModule(crypt), adventure);
   assert.deepEqual(passage(adventure, "stair-to-cell").door, {
     id: "swollen-door",
@@ -528,11 +501,7 @@ test("an ending only a trap names can still be reached", () => {
   assert.equal(validateModule(trapOnly).endings.length, 3);
 });
 
-const barrow = JSON.parse(
-  await readFile(
-    new URL("../adventures/5e/robbers-barrow.json", import.meta.url),
-  ),
-);
+const barrow = moduleFile("lintel-barrow");
 const barrowed = (change) => {
   const copy = structuredClone(barrow);
   change(copy);
@@ -540,10 +509,8 @@ const barrowed = (change) => {
 };
 const endingOf = (m, kind) => m.endings.find((entry) => entry.kind === kind);
 
-test("the barrow fixture has an exit, hidden treasure and both escape endings with XP", async () => {
-  const adventure = (await loadBuiltInFifthAdventures()).find(
-    ({ id }) => id === "robbers-barrow",
-  );
+test("the barrow fixture has an exit, hidden treasure and both escape endings with XP", () => {
+  const adventure = lintelBarrow;
   assert.equal(adventure.rooms[0].exit, true);
   const [torc] = adventure.rooms[1].items;
   assert.equal(torc.kind, "treasure");
