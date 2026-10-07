@@ -13,6 +13,7 @@ import { sessionSeed } from "../dist/session-5e.js";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { fightRoom } from "./fixtures/modules.mjs";
 import { createAndStart, fightTurn } from "./fixtures/browser-journey.mjs";
+import { attackOrEndTurn } from "./fixtures/seed-search.mjs";
 
 // The bestiary's Wolf, alone in a one-room fight that starts as Ada arrives.
 // The server offers only this module, whatever its gate standing.
@@ -46,16 +47,7 @@ function knockdown(seed) {
     random,
   ).state;
   const fightOn = () => {
-    const [target] = runtime.attackTargets(state);
-    const result = runtime.handleAction(
-      state,
-      target === undefined
-        ? { type: "end-turn", actorId: "pc" }
-        : { type: "attack", actorId: "pc", targetId: target.id },
-      random,
-    );
-    assert.equal(result.rejection, undefined);
-    state = result.state;
+    state = attackOrEndTurn(runtime, state, random).state;
   };
   const ongoing = () => state.encounter?.outcome === "ongoing";
   let down = 0;

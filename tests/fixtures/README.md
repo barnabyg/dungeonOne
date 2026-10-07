@@ -144,6 +144,17 @@ Minions in the burial hall, each carrying its own pouch of coin. `fleeingSeed()`
 finds the first browser seed on which Ada, attacking the first goblin offered,
 wins the fight with one goblin fled; the morale runtime and browser tests play
 it to check that the fled goblin leaves no body or coin and gives half its XP.
+It re-exports `fightThrough` from `seed-search.mjs`.
+
+## Seed search
+
+`seed-search.mjs` is for tests that find a browser seed by simulating Ada's
+clicks on the runtime. `attackOrEndTurn(runtime, state, random)` is one fight
+click as the browser tests make it (attack the first target offered, else
+end the turn), throwing if the runtime refuses it; `fightThrough` plays them
+until the fight ends, with the events on the way; `recordingRandom(source,
+drawn)` records each roll in the newest list in `drawn`, so a test can
+group the dice by action.
 
 ## Surrendering goblins (issue 238)
 

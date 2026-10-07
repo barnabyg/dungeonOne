@@ -6,7 +6,7 @@ import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { sessionSeed } from "../../dist/session-5e.js";
 import { inlineMonster, validateModule } from "./bestiary.mjs";
-import { fightThrough } from "./fleeing-goblins.mjs";
+import { fightThrough } from "./seed-search.mjs";
 import { moduleFile } from "./modules.mjs";
 import { firstFighter } from "./session-layout.mjs";
 

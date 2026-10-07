@@ -18,6 +18,7 @@ import {
   createAndStart,
   fightTurn,
 } from "./fixtures/browser-journey.mjs";
+import { attackOrEndTurn } from "./fixtures/seed-search.mjs";
 
 const crypt = sealedCrypt;
 const ROUTE = ["hall", "tomb"];
@@ -44,15 +45,7 @@ function refusal(seed) {
     ).state;
   }
   for (let clicks = 1; state.encounter?.outcome === "ongoing"; clicks++) {
-    const [target] = runtime.attackTargets(state);
-    const result = runtime.handleAction(
-      state,
-      target === undefined
-        ? { type: "end-turn", actorId: "pc" }
-        : { type: "attack", actorId: "pc", targetId: target.id },
-      random,
-    );
-    assert.equal(result.rejection, undefined);
+    const result = attackOrEndTurn(runtime, state, random);
     state = result.state;
     const saved = result.events.some(
       ({ type, success }) => type === "undead-fortitude" && success,

@@ -18,6 +18,7 @@ import {
   fightTurn,
   settled,
 } from "./fixtures/browser-journey.mjs";
+import { attackOrEndTurn } from "./fixtures/seed-search.mjs";
 
 /** The lone goblin's room with the bestiary's Ghoul in the goblin's place. */
 const ghoulCellar = fightRoom("ghoul-cellar", "The Ghoul Cellar", [
@@ -44,16 +45,7 @@ function paralysis(seed) {
     random,
   ).state;
   const fightOn = () => {
-    const [target] = runtime.attackTargets(state);
-    const result = runtime.handleAction(
-      state,
-      target === undefined
-        ? { type: "end-turn", actorId: "pc" }
-        : { type: "attack", actorId: "pc", targetId: target.id },
-      random,
-    );
-    assert.equal(result.rejection, undefined);
-    state = result.state;
+    state = attackOrEndTurn(runtime, state, random).state;
   };
   const ongoing = () => state.encounter?.outcome === "ongoing";
   let down = 0;

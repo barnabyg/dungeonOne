@@ -11,6 +11,7 @@ import { ratTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
+import { recordingRandom } from "./fixtures/seed-search.mjs";
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
 const adventure = ratTunnels;
@@ -35,13 +36,7 @@ function simulate(seed) {
   const runtime = createFifthRuntime(adventure, firstFighter(seed));
   const source = createSeededRandom(sessionSeed(seed, 1));
   const drawn = [];
-  const random = {
-    roll(sides) {
-      const value = source.roll(sides);
-      drawn.at(-1).push({ sides, value });
-      return value;
-    },
-  };
+  const random = recordingRandom(source, drawn);
   const run = (state, action) => {
     drawn.push([]);
     const result = runtime.handleAction(state, action, random);

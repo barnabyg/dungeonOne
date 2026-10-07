@@ -15,6 +15,7 @@ import { sealedCrypt } from "./fixtures/modules.mjs";
 import { createAndStart, settled } from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
+import { recordingRandom } from "./fixtures/seed-search.mjs";
 
 const crypt = sealedCrypt;
 
@@ -36,13 +37,7 @@ function simulate(seed) {
   const runtime = createFifthRuntime(crypt, firstFighter(seed));
   const source = createSeededRandom(sessionSeed(seed, 1));
   const drawn = [];
-  const random = {
-    roll(sides) {
-      const value = source.roll(sides);
-      drawn.at(-1).push({ sides, value });
-      return value;
-    },
-  };
+  const random = recordingRandom(source, drawn);
   const run = (state, action) => {
     drawn.push([]);
     const result = runtime.handleAction(state, action, random);

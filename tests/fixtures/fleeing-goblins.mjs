@@ -6,6 +6,7 @@ import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { sessionSeed } from "../../dist/session-5e.js";
 import { inlineMonster, validateModule } from "./bestiary.mjs";
 import { moduleFile } from "./modules.mjs";
+import { fightThrough } from "./seed-search.mjs";
 import { firstFighter } from "./session-layout.mjs";
 
 const barrow = moduleFile("lintel-barrow");
@@ -50,30 +51,8 @@ export const fleeingGoblins = validateModule({
   ],
 });
 
-/**
- * Plays the burial hall's fight as the browser test does: Ada attacks the
- * first goblin offered, or ends her turn once her action is spent.
- */
-export function fightThrough(runtime, state, random) {
-  const events = [];
-  let next = state;
-  while (next.status === "playing" && next.encounter?.outcome === "ongoing") {
-    const [target] = runtime.attackTargets(next);
-    const result = runtime.handleAction(
-      next,
-      target === undefined
-        ? { type: "end-turn", actorId: "pc" }
-        : { type: "attack", actorId: "pc", targetId: target.id },
-      random,
-    );
-    if (result.rejection !== undefined) {
-      throw new Error(result.rejection.reason);
-    }
-    events.push(...result.events);
-    next = result.state;
-  }
-  return { state: next, events };
-}
+// Moved to seed-search.mjs; still exported here for its importers.
+export { fightThrough };
 
 /**
  * The first browser seed from `from` on which the burial hall's fight, played

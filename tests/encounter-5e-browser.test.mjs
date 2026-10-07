@@ -14,6 +14,7 @@ import {
 import { createAndStart, fightTurn } from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
+import { recordingRandom } from "./fixtures/seed-search.mjs";
 
 // The lone goblin's one-room fight and the goblin band's group fight.
 const ADVENTURES = [adventure, band];
@@ -27,13 +28,7 @@ function simulate(seed) {
   const runtime = createFifthRuntime(adventure, firstFighter(seed));
   const drawn = [];
   const source = createSeededRandom(sessionSeed(seed, 1));
-  const random = {
-    roll(sides) {
-      const value = source.roll(sides);
-      drawn.at(-1).push({ sides, value });
-      return value;
-    },
-  };
+  const random = recordingRandom(source, drawn);
   drawn.push([]);
   let state = runtime.handleAction(
     runtime.createSession(),
@@ -214,13 +209,7 @@ function simulateGroup(seed) {
   const runtime = createFifthRuntime(band, firstFighter(seed));
   const source = createSeededRandom(sessionSeed(seed, 1));
   const drawn = [[]];
-  const random = {
-    roll(sides) {
-      const value = source.roll(sides);
-      drawn.at(-1).push({ sides, value });
-      return value;
-    },
-  };
+  const random = recordingRandom(source, drawn);
   let state = runtime.handleAction(
     runtime.createSession(),
     { type: "begin" },
@@ -427,13 +416,7 @@ function simulateFeatures(seed) {
   const runtime = createFifthRuntime(adventure, firstFighter(seed));
   const source = createSeededRandom(sessionSeed(seed, 1));
   const drawn = [[]];
-  const random = {
-    roll(sides) {
-      const value = source.roll(sides);
-      drawn.at(-1).push({ sides, value });
-      return value;
-    },
-  };
+  const random = recordingRandom(source, drawn);
   let state = runtime.handleAction(
     runtime.createSession(),
     { type: "begin" },
