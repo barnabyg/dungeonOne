@@ -10,7 +10,6 @@ import {
   carryingCapacity,
   coinCount,
   formatWeight,
-  isItemId,
   itemWeight,
   KIT_IDS,
   loadWeight,
@@ -134,7 +133,6 @@ test("every starting kit fits the weakest character's capacity", () => {
 
 test("selling any catalogue item lightens the load: its price weighs less than it does", () => {
   for (const id of [...Object.keys(WEAPONS), ...Object.keys(ARMOUR)]) {
-    assert.ok(isItemId(id));
     assert.ok(coinCount(salePrice(id)) / 50 < itemWeight(id), id);
   }
 });

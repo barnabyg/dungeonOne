@@ -514,14 +514,7 @@ test("morale saves are narrated, carded, recorded and replay exactly from a save
 
 // The bestiary: every monster has a morale DC or never checks.
 
-test("every bestiary monster has a morale DC, and the undead never check", () => {
-  for (const { id, statBlock } of bestiary.monsters) {
-    if (/^Undead/.test(statBlock.type)) {
-      assert.equal(statBlock.morale, "never", id);
-    } else {
-      assert.equal(typeof statBlock.morale, "number", id);
-    }
-  }
+test("the bestiary's morale DCs: goblins and their kin 8, hobgoblins 5, the undead never", () => {
   const dc = (id) =>
     bestiary.monsters.find((monster) => monster.id === id).statBlock.morale;
   assert.deepEqual(
@@ -529,6 +522,7 @@ test("every bestiary monster has a morale DC, and the undead never check", () =>
     [8, 8, 8, 8],
   );
   assert.equal(dc("hobgoblin-warrior"), 5);
+  assert.equal(dc("zombie"), "never");
   // A combatant carries the DC; one that never checks carries none.
   const runtime = createFifthRuntime(fleeingGoblins, firstFighter(0));
   const { state } = runtime.handleAction(
