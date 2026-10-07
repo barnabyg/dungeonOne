@@ -192,6 +192,10 @@ _Avoid_: Monster manual, Stat block library
 A house rule on top of 5e: a side's nerve, checked when its first combatant falls and again at half strength. Each monster on it with a morale DC makes a Wisdom saving throw; one that fails is fleeing, and on its next turn it has fled: it is out of the fight, leaves no body and takes what it carried with it, and gives half its XP if it exchanged blows with the character first, or none. Undead and mindless monsters have no morale DC and never check.
 _Avoid_: Rout, Retreat
 
+**Surrender**:
+What a monster does instead of fleeing when it fails morale and its adventure module authors a surrender for it: on its next turn it yields and is out of the fight, leaving no body. Once the fight is won it is a creature to talk to about its authored topics, and a topic may have it offer what it carries: it is a named person giving treasure (see Treasure). It gives half its XP if it exchanged blows with the character first, or none, plus any XP the module awards for sparing it.
+_Avoid_: Capture (it is not taken prisoner), Yield (as a term)
+
 **Condition**:
 A state the engine puts on a combatant in a fight, such as poisoned, prone or paralysed, with what gave it, how many of the combatant's turns it lasts and the save that ends it. Conditions change rolls (advantage, disadvantage, failed saves and critical hits) and may stop the combatant acting; they end with the fight, and the AI DM can only report them.
 _Avoid_: Status effect, Debuff

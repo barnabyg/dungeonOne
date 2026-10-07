@@ -70,6 +70,9 @@
  *   one cut down first is defeated. A side is beaten when each of its
  *   combatants is defeated or has fled. Undead and mindless monsters have no
  *   morale DC and never check.
+ * - Surrender (#238): a combatant that may surrender yields on its turn
+ *   instead of fleeing, in the same way; it is out of the fight, and a side
+ *   is beaten when none of it is left fighting.
  *
  * The state allows any number of combatants per side.
  */
@@ -257,6 +260,11 @@ export type Combatant = DamageDefenses &
      * morale. Without one it never checks.
      */
     morale?: number;
+    /**
+     * It surrenders instead of fleeing when it fails morale (#238): its
+     * module authors what it says once it has yielded.
+     */
+    surrenders?: true;
   }>;
 
 export type Healing = Readonly<{
@@ -307,14 +315,19 @@ export type EncounterState = Readonly<{
   }>[];
   /** The conditions on living combatants. */
   conditions: readonly Condition[];
-  /** Combatants that failed a morale saving throw; each leaves on its next turn. */
+  /**
+   * Combatants that failed a morale saving throw; each leaves on its next
+   * turn, fleeing or, when it may (#238), surrendering.
+   */
   fleeing: readonly string[];
   /** Combatants that left the fight, in the order they left. */
   fled: readonly string[];
+  /** Combatants that surrendered (#238), in the order they yielded. */
+  surrendered: readonly string[];
   /**
    * Combatants that have exchanged blows: each made an attack or was the
-   * target of one, hit or miss. A fled monster among them gives half its XP
-   * (#237).
+   * target of one, hit or miss. A fled or surrendered monster among them
+   * gives half its XP (#237, #238).
    */
   engaged: readonly string[];
   /** The morale checks each side has made; each is made once. */
@@ -488,7 +501,7 @@ export type MoraleEvent = Readonly<{
   bonus: number;
   total: number;
   dc: number;
-  /** A failure means it flees on its next turn. */
+  /** A failure means it flees, or surrenders, on its next turn. */
   success: boolean;
 }>;
 
@@ -502,6 +515,7 @@ export type EncounterEvent =
   | FortitudeEvent
   | MoraleEvent
   | Readonly<{ type: "fled"; combatantId: string }>
+  | Readonly<{ type: "surrendered"; combatantId: string }>
   | Readonly<{
       type: "condition";
       combatantId: string;
@@ -570,7 +584,8 @@ export type EncounterRefusalCode =
   | "full-hp"
   | "interaction-used"
   | "paralysed"
-  | "fled";
+  | "fled"
+  | "surrendered";
 
 export type EncounterRejection = Readonly<{
   code: EncounterRefusalCode;
@@ -608,23 +623,44 @@ export function hasFled(state: EncounterState, entrantId: string): boolean {
   return state.fled.includes(entrantId);
 }
 
+/** Whether `entrantId` has surrendered (#238). */
+export function hasSurrendered(
+  state: EncounterState,
+  entrantId: string,
+): boolean {
+  return state.surrendered.includes(entrantId);
+}
+
+/** What a failed morale saving throw makes of a combatant (#237, #238). */
+export type MoraleStatus = "fleeing" | "fled" | "surrendering" | "surrendered";
+
 /**
- * Whether `entrantId` is fleeing or has fled (#237), or neither.
+ * Whether `entrantId` is fleeing or has fled (#237), is surrendering or has
+ * surrendered (#238), or none of these.
  */
 export function moraleStatus(
   state: EncounterState,
   entrantId: string,
-): "fleeing" | "fled" | undefined {
-  return hasFled(state, entrantId)
-    ? "fled"
-    : state.fleeing.includes(entrantId)
-      ? "fleeing"
-      : undefined;
+): MoraleStatus | undefined {
+  if (hasFled(state, entrantId)) {
+    return "fled";
+  }
+  if (hasSurrendered(state, entrantId)) {
+    return "surrendered";
+  }
+  if (!state.fleeing.includes(entrantId)) {
+    return undefined;
+  }
+  return combatant(state, entrantId).surrenders ? "surrendering" : "fleeing";
 }
 
-/** Defeated or fled: out of the fight. */
+/** Defeated, fled or surrendered: out of the fight. */
 function isOut(state: EncounterState, entrant: Combatant): boolean {
-  return isDefeated(entrant) || hasFled(state, entrant.id);
+  return (
+    isDefeated(entrant) ||
+    hasFled(state, entrant.id) ||
+    hasSurrendered(state, entrant.id)
+  );
 }
 
 /** The combatant whose turn it is, or undefined once the encounter is over. */
@@ -1017,9 +1053,9 @@ function concludeIfOver(
 }
 
 /**
- * A fleeing combatant leaves the fight on its turn. Its conditions end
- * silently, as a defeated one's do, and its going may bring its side to
- * half strength.
+ * A fleeing combatant leaves the fight on its turn, or surrenders if it may
+ * (#238). Its conditions end silently, as a defeated one's do, and its going
+ * may bring its side to half strength.
  */
 function flee(
   state: EncounterState,
@@ -1027,11 +1063,17 @@ function flee(
   random: Roller,
   events: EncounterEvent[],
 ): EncounterState {
-  events.push({ type: "fled", combatantId: entrant.id });
+  const yields = entrant.surrenders === true;
+  events.push({
+    type: yields ? "surrendered" : "fled",
+    combatantId: entrant.id,
+  });
   const gone: EncounterState = {
     ...state,
     fleeing: state.fleeing.filter((id) => id !== entrant.id),
-    fled: [...state.fled, entrant.id],
+    ...(yields
+      ? { surrendered: [...state.surrendered, entrant.id] }
+      : { fled: [...state.fled, entrant.id] }),
     conditions: state.conditions.filter(
       ({ targetId }) => targetId !== entrant.id,
     ),
@@ -1539,9 +1581,10 @@ function advance(
       ),
     };
     events.push({ type: "turn", combatantId: actor.id, round: next.round });
-    // A fleeing combatant leaves on its turn, unless it can't act.
+    // A fleeing combatant leaves, or surrenders, on its turn, unless it
+    // can't act.
     if (
-      moraleStatus(next, actor.id) === "fleeing" &&
+      next.fleeing.includes(actor.id) &&
       incapacitatedBy(next, actor.id) === undefined
     ) {
       next = flee(next, actor, random, events);
@@ -1644,6 +1687,7 @@ export function startEncounter(
       conditions: [],
       fleeing: [],
       fled: [],
+      surrendered: [],
       engaged: [],
       moraleChecks: [],
     },
@@ -1702,6 +1746,9 @@ export function act(
     }
     if (hasFled(state, target.id)) {
       return refused("fled", `${target.name} has fled.`);
+    }
+    if (hasSurrendered(state, target.id)) {
+      return refused("surrendered", `${target.name} has surrendered.`);
     }
     return isDefeated(target)
       ? refused("already-defeated", `${target.name} is already defeated.`)

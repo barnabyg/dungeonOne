@@ -12,7 +12,8 @@
 // - #session-scene: the room and the fight. The room lists only
 //   what is there (#157); in a fight its details collapse behind #room-toggle.
 //   The fight's initiative table shows totals, marks the current turn, tags
-//   fleeing and fled opponents (#237) and
+//   fleeing and fled opponents (#237) and surrendering and surrendered ones
+//   (#238), and
 //   keeps each roll in #initiative-breakdown; it collapses behind
 //   #initiative-toggle once the fight is over.
 // - #session-actions: #adventure-error and the action bar (#156), #action-bar:
@@ -1119,10 +1120,11 @@ const combatantName = (encounter, combatant) => combatant.name + (combatant.id =
 
 // The initiative table shows each total; the current turn's row is
 // highlighted and its name tagged. The rolls behind the totals are on demand.
+const MORALE_TAGS = { fleeing: "Fleeing", fled: "Fled", surrendering: "Surrendering", surrendered: "Surrendered" };
 function renderInitiative(encounter, fighting) {
   element("initiative-rows").replaceChildren(...encounter.combatants.map((combatant) => {
     const current = combatant.id === encounter.currentTurn;
-    const row = make("tr", undefined, (current ? "current" : "") + (combatant.defeated || combatant.morale === "fled" ? " defeated" : ""));
+    const row = make("tr", undefined, (current ? "current" : "") + (combatant.defeated || combatant.morale === "fled" || combatant.morale === "surrendered" ? " defeated" : ""));
     row.dataset.combatant = combatant.id;
     if (current) row.setAttribute("aria-current", "true");
     const name = make("th", combatantName(encounter, combatant) + (combatant.sapped ? " (sapped)" : ""));
@@ -1131,7 +1133,8 @@ function renderInitiative(encounter, fighting) {
     if (current) name.append(" ", make("span", "Now", "tag now"));
     if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
     // Morale (#237): a fleeing opponent leaves on its turn; a fled one is gone.
-    if (combatant.morale) name.append(" ", make("span", combatant.morale === "fled" ? "Fled" : "Fleeing", "tag morale"));
+    // One that may surrender (#238) yields on its turn instead.
+    if (combatant.morale) name.append(" ", make("span", MORALE_TAGS[combatant.morale], "tag morale"));
     row.append(name, make("td", combatant.initiative.total), make("td", combatant.hp + "/" + combatant.maxHp), make("td", combatant.armorClass));
     return row;
   }));

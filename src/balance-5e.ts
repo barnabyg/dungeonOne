@@ -568,6 +568,8 @@ export type FightRecord = Readonly<{
   hpLost: number;
   /** Opponents that fled (#237), giving half their XP or none. */
   fled: number;
+  /** Opponents that surrendered (#238), giving half their XP or none. */
+  surrendered: number;
   rounds: number;
   outcome: "victory" | "defeat";
 }>;
@@ -629,7 +631,9 @@ export function playAdventure(
   let state = runtime.createSession();
   const roomIds = [state.roomId];
   const fights: FightRecord[] = [];
-  let fight: { id: string; hpLost: number; fled: number } | undefined;
+  let fight:
+    | { id: string; hpLost: number; fled: number; surrendered: number }
+    | undefined;
   const healing = { secondWinds: 0, potions: 0, hp: 0 };
   let trapDamage = 0;
   /** The character's hit points, so a blow costs only what was left. */
@@ -662,6 +666,7 @@ export function playAdventure(
             id: roomById.get(state.roomId)!.encounterId!,
             hpLost: 0,
             fled: 0,
+            surrendered: 0,
           };
           break;
         case "attack":
@@ -672,6 +677,9 @@ export function playAdventure(
           break;
         case "fled":
           fight!.fled += 1;
+          break;
+        case "surrendered":
+          fight!.surrendered += 1;
           break;
         case "second-wind":
           healing.secondWinds += 1;
@@ -1220,7 +1228,10 @@ export type OneHitKillCheck = Readonly<{
  */
 export type XpCheck = Readonly<{
   ok: boolean;
-  /** Every encounter's XP and the most any ending awards. */
+  /**
+   * Every encounter's XP, with what sparing each opponent that may surrender
+   * would give if more (#238), and the most any ending awards.
+   */
   available: number;
   startXp: number;
   endLevel: number;
@@ -1441,7 +1452,15 @@ export function gateAdventure(
       adventure.encounters.reduce(
         (sum, { opponents }) =>
           sum +
-          opponents.reduce((total, { statBlock }) => total + statBlock.xp, 0),
+          opponents.reduce(
+            (total, { statBlock, surrender }) =>
+              total +
+              Math.max(
+                statBlock.xp,
+                Math.floor(statBlock.xp / 2) + (surrender?.xp ?? 0),
+              ),
+            0,
+          ),
         0,
       ) + Math.max(0, ...adventure.endings.map(({ xp }) => xp ?? 0));
     const startXp = SRD_LEVEL_XP[max]! - 1;

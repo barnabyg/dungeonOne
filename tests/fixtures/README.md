@@ -62,3 +62,13 @@ Minions in the burial hall, each carrying its own pouch of coin. `fleeingSeed()`
 finds the first browser seed on which Ada, attacking the first goblin offered,
 wins the fight with one goblin fled; the morale runtime and browser tests play
 it to check that the fled goblin leaves no body or coin and gives half its XP.
+
+## Surrendering goblins (issue 238)
+
+`surrendering-goblins.mjs` is _The Robbers' Barrow_ with three numbered Goblin
+Minions in the burial hall that surrender instead of fleeing, each carrying a
+stolen ring. Each goblin's surrender has a Mercy topic that gives its ring, a
+topic that only tells, and 10 XP for sparing it. `surrenderSeed()` finds the
+first browser seed on which Ada, attacking the first goblin offered, wins the
+fight with a goblin surrendered; the surrender runtime and browser tests talk
+to it, take its ring and escape.

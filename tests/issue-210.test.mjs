@@ -147,7 +147,7 @@ function withPedlar(change) {
 }
 
 test("a module's creature may be a merchant with authored stock and minutes per trade", () => {
-  assert.equal(marketBarrow.formatVersion, 14);
+  assert.equal(marketBarrow.formatVersion, 15);
   assert.deepEqual(room(marketBarrow, "barrow-mouth").creatures[0].merchant, {
     stock: ["shortsword", "shield", "dagger"],
     minutes: 10,
@@ -158,7 +158,7 @@ test("a module's creature may be a merchant with authored stock and minutes per 
         ...structuredClone(marketFile),
         formatVersion: 7,
       }),
-    /format version 7 is not 14/,
+    /format version 7 is not 15/,
   );
 });
 
