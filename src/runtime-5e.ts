@@ -793,7 +793,6 @@ function shownAttackText(attack: ShownAttack): string {
   return `${attack.weapon} ${attack.bonus >= 0 ? "+" : "−"}${Math.abs(attack.bonus)} to hit, ${dice}d${sides}${modifier === 0 ? "" : ` ${signed(modifier)}`} ${type}${attack.grip === "two-handed" ? " (two-handed)" : ""}${attack.disadvantage.length === 0 ? "" : ` (disadvantage: ${attack.disadvantage.join(", ")})`}`;
 }
 
-/** "2 (counts as 3, Great Weapon Fighting) + 7": an attack's damage dice. */
 /** How a damage roll group names the defence that changed it. */
 export const DAMAGE_ADJUSTMENT_TEXT: Readonly<
   Record<DamageAdjustment["by"], string>
@@ -826,6 +825,7 @@ const rolledDamage = (
   adjustment: DamageAdjustment | undefined,
 ): number => adjustment?.rolled ?? damage;
 
+/** "2 (counts as 3, Great Weapon Fighting) + 7": an attack's damage dice. */
 function damageDice(event: AttackEvent): string {
   return event.damageRolls
     .map((value) => {
