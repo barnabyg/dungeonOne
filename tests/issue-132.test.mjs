@@ -15,6 +15,7 @@ import {
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { ratlessTunnels, sealedCrypt } from "./fixtures/modules.mjs";
 import { engineAction } from "./fixtures/playthroughs.mjs";
+import { uncheckedDice as dice } from "./fixtures/engine-dice.mjs";
 
 const crypt = sealedCrypt;
 
@@ -47,20 +48,6 @@ const sheet = buildFighter(
     masteries: ["dagger", "mace", "shortsword"],
   },
 );
-
-/** Returns queued values in order and records every draw. */
-function dice(...queue) {
-  const drawn = [];
-  return {
-    drawn,
-    roll(sides) {
-      assert.ok(queue.length > 0, `unexpected d${sides}`);
-      const value = queue.shift();
-      drawn.push({ sides, value });
-      return value;
-    },
-  };
-}
 
 const runtimeFor = (adventure = crypt) => createFifthRuntime(adventure, sheet);
 

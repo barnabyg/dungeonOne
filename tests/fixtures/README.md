@@ -49,6 +49,21 @@ counter that a d6 advances and that wins at three. The DM turn loop, OpenAI
 adapter and runtime contract tests use it to exercise shared infrastructure
 without depending on the 5e runtime.
 
+## Scripted dice
+
+`engine-dice.mjs` holds the dice engine tests script: `dice(...pairs)`
+returns queued `[sides, value]` pairs in order and fails on a die of other
+sides; `uncheckedDice(...values)` returns queued values whatever the die.
+Both fail when the queue runs out, record each roll in `drawn` as
+`{ sides, value }` and count what is left with `remaining()`.
+
+`morale-encounter.mjs` is the encounter-engine fight of the morale (#237) and
+surrender (#238) tests: `ada`, who wins initiative and has Action Surge;
+`goblin(id, extra)`, 1 HP and morale DC 8; `saves`, `initiative(count)` and
+`KILL` (a hit that drops a goblin) as dice; `begin(combatants, ...rest)`
+starts the fight on those dice and `attack(state, random, targetId)` is an
+attack by Ada the engine must accept.
+
 ## Seeded playthroughs (issue 156)
 
 `playthroughs.mjs` holds the #156 fighter, `ada` (Con 14, 12 HP), and

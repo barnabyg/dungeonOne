@@ -19,21 +19,8 @@ import {
 } from "../dist/balance-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { goblinBurrow, loneGoblin } from "./fixtures/modules.mjs";
+import { dice } from "./fixtures/engine-dice.mjs";
 
-/** Returns the queued [sides, value] pairs in order, checking each die's sides. */
-function dice(...queue) {
-  const drawn = [];
-  return {
-    drawn,
-    roll(sides) {
-      assert.ok(queue.length > 0, `unexpected d${sides}`);
-      const [expected, value] = queue.shift();
-      assert.equal(sides, expected, `expected a d${expected}, got a d${sides}`);
-      drawn.push({ sides, value });
-      return value;
-    },
-  };
-}
 const none = dice();
 
 const weapon = (name, sides, modifier, extra = {}) => ({

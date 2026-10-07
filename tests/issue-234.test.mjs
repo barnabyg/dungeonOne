@@ -23,19 +23,7 @@ import {
   withStatBlocks,
 } from "./fixtures/modules.mjs";
 import { firstFighter } from "./fixtures/session-layout.mjs";
-
-/** Returns the queued values in order, checking each die's sides. */
-function dice(...queue) {
-  return {
-    remaining: () => queue.length,
-    roll(sides) {
-      assert.ok(queue.length > 0, `unexpected d${sides}`);
-      const [expected, value] = queue.shift();
-      assert.equal(sides, expected, `expected a d${expected}, got a d${sides}`);
-      return value;
-    },
-  };
-}
+import { dice } from "./fixtures/engine-dice.mjs";
 
 /** Draws no dice: an action that rolls fails the test. */
 const NO_DICE = dice();

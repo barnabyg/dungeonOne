@@ -8,22 +8,7 @@ import {
   rollD20,
   startEncounter,
 } from "../dist/encounter-5e.js";
-
-/** Returns the queued values in order, checking each die's sides. */
-function dice(...queue) {
-  const drawn = [];
-  return {
-    drawn,
-    remaining: () => queue.length,
-    roll(sides) {
-      assert.ok(queue.length > 0, `unexpected d${sides}`);
-      const [expected, value] = queue.shift();
-      assert.equal(sides, expected, `expected a d${expected}, got a d${sides}`);
-      drawn.push({ sides, value });
-      return value;
-    },
-  };
-}
+import { dice } from "./fixtures/engine-dice.mjs";
 
 const fighter = {
   id: "pc",
