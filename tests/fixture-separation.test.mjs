@@ -48,6 +48,14 @@ const CONTENT_TESTS = new Map([
     "tests/issue-211-browser.test.mjs",
     "the Tinker's Toll's handoff run through the browser",
   ],
+  [
+    "tests/issue-241.test.mjs",
+    "the Silvervein Mine's content, scripted-DM journeys and #241 release run",
+  ],
+  [
+    "tests/issue-241-browser.test.mjs",
+    "the Silvervein Mine's handoff run through the browser",
+  ],
 ]);
 
 /**

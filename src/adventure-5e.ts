@@ -1571,6 +1571,7 @@ export const FIFTH_ADVENTURE_FILES = {
   "goblin-storeroom": "goblin-storeroom.json",
   "goblin-warren": "goblin-warren.json",
   "robbers-barrow": "robbers-barrow.json",
+  "silvervein-mine": "silvervein-mine.json",
   "smugglers-cellar": "smugglers-cellar.json",
   "tinkers-toll": "tinkers-toll.json",
   "warden-crypt": "warden-crypt.json",

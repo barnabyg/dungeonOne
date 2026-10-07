@@ -1,0 +1,2141 @@
+{
+  "issue": 241,
+  "mode": "live",
+  "adventureId": "silvervein-mine",
+  "runDirectory": ".verify-artifacts\\issue-241-live-WuSR4r",
+  "requestedModel": "gpt-5.6-luna",
+  "startedAt": "2026-10-07T21:18:28.305Z",
+  "seed": 26,
+  "maxProviderCalls": 80,
+  "providerCalls": 68,
+  "usage": {
+    "inputTokens": 177960,
+    "outputTokens": 1817,
+    "totalTokens": 179777
+  },
+  "promptVersions": [
+    "5e-dm-v14"
+  ],
+  "summary": {
+    "turns": 69,
+    "typed": 68,
+    "committed": 68,
+    "matched": 68,
+    "fallbacks": 1,
+    "skipped": 0,
+    "reviewClaims": 0,
+    "roomsVisited": 6
+  },
+  "turns": [
+    {
+      "phase": "explore",
+      "room": "mine-mouth",
+      "intent": "examine ore-cart",
+      "message": "Look over the overturned ore cart.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Overturned Ore Cart: A rusted ore cart lies on its side across the rails. The cart is empty. Dozens of small clawed footprints lead from it into the mine.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Overturned Ore Cart: A rusted ore cart lies on its side across the rails. The cart is empty. Dozens of small clawed footprints lead from it into the mine."
+        }
+      ],
+      "hp": 28,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"ore-cart\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "mine-mouth",
+      "intent": "move sorting-shed",
+      "message": "Follow the rails into the mine.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Sorting Shed. A low cavern where miners once sorted ore. Plank tables stand among heaps of broken rock, and the rail track runs on, deeper into the hill. A kobold lookout yelps from a heap of rock and scrambles down, spike in hand. A kobold tunneller, an iron key bouncing on a cord at its neck, comes at you from behind a table.\nInitiative: Kobold Lookout 8 + 2 = 10; Ada 4 + 2 = 6; Kobold Tunneller 1 + 2 = 3.\nKobold Lookout attacks Ada with Spike, at advantage (Pack Tactics): 15 and 20, keeping 20; 20 + 4 = 24 against AC 14. Critical hit! Damage 4 + 1 + 2 = 7 piercing; Ada has 21/28 HP.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You enter the Sorting Shed. A low cavern where miners once sorted ore. Plank tables stand among heaps of broken rock, and the rail track runs on, deeper into the hill. A kobold lookout yelps from a heap of rock and scrambles down, spike in hand. A kobold tunneller, an iron key bouncing on a cord at its neck, comes at you from behind a table.\nInitiative: Kobold Lookout 8 + 2 = 10; Ada 4 + 2 = 6; Kobold Tunneller 1 + 2 = 3.\nKobold Lookout attacks Ada with Spike, at advantage (Pack Tactics): 15 and 20, keeping 20; 20 + 4 = 24 against AC 14. Critical hit! Damage 4 + 1 + 2 = 7 piercing; Ada has 21/28 HP.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"sorting-shed\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "sorting-shed",
+      "intent": "attack kobold-lookout",
+      "message": "Attack the Kobold Lookout.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Kobold Lookout with Mace: 8 + 5 = 13 against AC 13. Hit. Damage 3 + 3 = 6 bludgeoning; Kobold Lookout has 0/5 HP.\nKobold Lookout is defeated.\nKobold Tunneller checks morale as the first of its side falls: a Wisdom saving throw, 1 − 2 = -1 against DC 8. Failure: it will surrender on its turn.\nIt is still your turn: you can use Second Wind, use Action Surge or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Kobold Lookout with Mace: 8 + 5 = 13 against AC 13. Hit. Damage 3 + 3 = 6 bludgeoning; Kobold Lookout has 0/5 HP.\nKobold Lookout is defeated.\nKobold Tunneller checks morale as the first of its side falls: a Wisdom saving throw, 1 − 2 = -1 against DC 8. Failure: it will surrender on its turn.\nIt is still your turn: you can use Second Wind, use Action Surge or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"kobold-lookout\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "sorting-shed",
+      "intent": "action-surge",
+      "message": "Use Action Surge.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada uses Action Surge: one more action this turn. 0 uses left.\nIt is still your turn: you can attack, use Second Wind or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada uses Action Surge: one more action this turn. 0 uses left.\nIt is still your turn: you can attack, use Second Wind or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "action_surge",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "sorting-shed",
+      "intent": "attack kobold-tunneller",
+      "message": "Attack the Kobold Tunneller.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Kobold Tunneller with Mace: 12 + 5 = 17 against AC 13. Hit. Damage 1 + 3 = 4 bludgeoning; Kobold Tunneller has 1/5 HP.\nKobold Tunneller is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Kobold Tunneller with Mace: 12 + 5 = 17 against AC 13. Hit. Damage 1 + 3 = 4 bludgeoning; Kobold Tunneller has 1/5 HP.\nKobold Tunneller is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"kobold-tunneller\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "sorting-shed",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nKobold Tunneller throws down its arms and surrenders.\nThe fight is over.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nKobold Tunneller throws down its arms and surrenders.\nThe fight is over."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "sorting-shed",
+      "intent": "talk the-iron-door",
+      "message": "Ask the kobold about the iron door.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Kobold Tunneller: \"The overseer gave me the key to fetch his supper. Take it, take it, only do not hurt me!\" Kobold Tunneller offers you the Iron Key.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Kobold Tunneller: \"The overseer gave me the key to fetch his supper. Take it, take it, only do not hurt me!\" Kobold Tunneller offers you the Iron Key."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "talk",
+              "argumentsJson": "{\"topic\":\"the-iron-door\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "sorting-shed",
+      "intent": "take iron-key",
+      "message": "Take the iron key.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Iron Key.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Iron Key."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"iron-key\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "sorting-shed",
+      "intent": "talk the-spider",
+      "message": "Ask the kobold about the webs.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Kobold Tunneller: \"Big spider in the winze. It ate Skrit. It ate Nub. Do not go in the webs!\"",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Kobold Tunneller: \"Big spider in the winze. It ate Skrit. It ate Nub. Do not go in the webs!\""
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "talk",
+              "argumentsJson": "{\"topic\":\"the-spider\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "sorting-shed",
+      "intent": "talk the-overseer",
+      "message": "Ask the kobold about its overseer.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Kobold Tunneller: \"The bugbear makes us dig. He keeps the miners' gold in a chest behind the iron door, and he hits very hard.\"",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Kobold Tunneller: \"The bugbear makes us dig. He keeps the miners' gold in a chest behind the iron door, and he hits very hard.\""
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "talk",
+              "argumentsJson": "{\"topic\":\"the-overseer\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "sorting-shed",
+      "intent": "examine ore-bin",
+      "message": "Dig through the ore bin.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ore Bin: A wooden bin of sorted ore, its lid weighted down with a stone. Under the ore lie a stoppered vial of red liquid and a cloth bag of silver the kobolds have scraped together. You find the Potion of Healing and Kobolds' Takings.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ore Bin: A wooden bin of sorted ore, its lid weighted down with a stone. Under the ore lie a stoppered vial of red liquid and a cloth bag of silver the kobolds have scraped together. You find the Potion of Healing and Kobolds' Takings."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"ore-bin\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "sorting-shed",
+      "intent": "take shed-potion",
+      "message": "Take the vial from the bin.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Potion of Healing."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"shed-potion\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "sorting-shed",
+      "intent": "take kobold-takings",
+      "message": "Take the bag of silver.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Kobolds' Takings and put 4 gp in your purse.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Kobolds' Takings and put 4 gp in your purse."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"kobold-takings\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "sorting-shed",
+      "intent": "examine kobold-lookout",
+      "message": "Search the lookout's body.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Kobold Lookout's body: It lies where it fell. You find the Kobold Lookout's Coins.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Kobold Lookout's body: It lies where it fell. You find the Kobold Lookout's Coins."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"kobold-lookout\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "sorting-shed",
+      "intent": "take kobold-lookout-coins",
+      "message": "Take the lookout's coins.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Kobold Lookout's Coins and put 9 cp in your purse.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Kobold Lookout's Coins and put 9 cp in your purse."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"kobold-lookout-coins\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "sorting-shed",
+      "intent": "move main-gallery",
+      "message": "Go on into the main gallery.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Main Gallery. A long gallery runs between rotten pit props. Side passages branch off: one dripping, one hung with grey webs, and one closed by an iron door.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Main Gallery. A long gallery runs between rotten pit props. Side passages branch off: one dripping, one hung with grey webs, and one closed by an iron door."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"main-gallery\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "main-gallery",
+      "intent": "examine notice-board",
+      "message": "Read the notice board.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Notice Board: A board nailed to a pit prop, its notices curling with damp. One notice can still be read: \"Lower drift flooded. Six men lost. Pay held in the office until the pumps are mended.\"",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Notice Board: A board nailed to a pit prop, its notices curling with damp. One notice can still be read: \"Lower drift flooded. Six men lost. Pay held in the office until the pumps are mended.\""
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"notice-board\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "main-gallery",
+      "intent": "move flooded-drift",
+      "message": "Wade down into the flooded drift.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Flooded Drift. Black water stands knee-deep in a low drift. Picks and lamps float among fallen timbers, and burial niches are cut into the dry wall. A bloated miner rises out of the black water, pick still in its fist. Bones climb out of a niche and pull themselves together around a rusted blade.\nInitiative: Miner's Bones 9 + 3 = 12; Ada 5 + 2 = 7; Drowned Miner 1 − 2 = -1.\nMiner's Bones attacks Ada with Shortsword: 6 + 5 = 11 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You enter the Flooded Drift. Black water stands knee-deep in a low drift. Picks and lamps float among fallen timbers, and burial niches are cut into the dry wall. A bloated miner rises out of the black water, pick still in its fist. Bones climb out of a niche and pull themselves together around a rusted blade.\nInitiative: Miner's Bones 9 + 3 = 12; Ada 5 + 2 = 7; Drowned Miner 1 − 2 = -1.\nMiner's Bones attacks Ada with Shortsword: 6 + 5 = 11 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"flooded-drift\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "flooded-drift",
+      "intent": "attack miners-bones",
+      "message": "Attack the Miner's Bones.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Miner's Bones with Mace: 19 + 5 = 24 against AC 14. Critical hit! Damage 6 + 3 + 3 = 12 bludgeoning, doubled to 24 (vulnerable); Miner's Bones has 0/13 HP.\nMiner's Bones is defeated.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Miner's Bones with Mace: 19 + 5 = 24 against AC 14. Critical hit! Damage 6 + 3 + 3 = 12 bludgeoning, doubled to 24 (vulnerable); Miner's Bones has 0/13 HP.\nMiner's Bones is defeated.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"miners-bones\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "flooded-drift",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nDrowned Miner attacks Ada with Slam: 8 + 3 = 11 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nDrowned Miner attacks Ada with Slam: 8 + 3 = 11 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "flooded-drift",
+      "intent": "attack drowned-miner",
+      "message": "Attack the Drowned Miner.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Drowned Miner with Mace: 17 + 5 = 22 against AC 8. Hit. Damage 5 + 3 = 8 bludgeoning; Drowned Miner has 7/15 HP.\nDrowned Miner is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Drowned Miner with Mace: 17 + 5 = 22 against AC 8. Hit. Damage 5 + 3 = 8 bludgeoning; Drowned Miner has 7/15 HP.\nDrowned Miner is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"drowned-miner\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "flooded-drift",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nDrowned Miner attacks Ada with Slam, at disadvantage (Sap): 14 and 3, keeping 3; 3 + 3 = 6 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nDrowned Miner attacks Ada with Slam, at disadvantage (Sap): 14 and 3, keeping 3; 3 + 3 = 6 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "flooded-drift",
+      "intent": "attack drowned-miner",
+      "message": "Attack the Drowned Miner.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Drowned Miner with Mace: 9 + 5 = 14 against AC 8. Hit. Damage 6 + 3 = 9 bludgeoning; Drowned Miner has 0/15 HP.\nUndead Fortitude: Drowned Miner makes a Constitution saving throw against DC 5 + 9 damage taken: 17 + 3 = 20 against DC 14. Success: Drowned Miner refuses to fall and has 1/15 HP.\nDrowned Miner is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Drowned Miner with Mace: 9 + 5 = 14 against AC 8. Hit. Damage 6 + 3 = 9 bludgeoning; Drowned Miner has 0/15 HP.\nUndead Fortitude: Drowned Miner makes a Constitution saving throw against DC 5 + 9 damage taken: 17 + 3 = 20 against DC 14. Success: Drowned Miner refuses to fall and has 1/15 HP.\nDrowned Miner is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"drowned-miner\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "flooded-drift",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nDrowned Miner attacks Ada with Slam, at disadvantage (Sap): 3 and 1, keeping 1; 1 + 3 = 4 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nDrowned Miner attacks Ada with Slam, at disadvantage (Sap): 3 and 1, keeping 1; 1 + 3 = 4 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "flooded-drift",
+      "intent": "attack drowned-miner",
+      "message": "Attack the Drowned Miner.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Drowned Miner with Mace: 10 + 5 = 15 against AC 8. Hit. Damage 3 + 3 = 6 bludgeoning; Drowned Miner has 0/15 HP.\nUndead Fortitude: Drowned Miner makes a Constitution saving throw against DC 5 + 6 damage taken: 14 + 3 = 17 against DC 11. Success: Drowned Miner refuses to fall and has 1/15 HP.\nDrowned Miner is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Drowned Miner with Mace: 10 + 5 = 15 against AC 8. Hit. Damage 3 + 3 = 6 bludgeoning; Drowned Miner has 0/15 HP.\nUndead Fortitude: Drowned Miner makes a Constitution saving throw against DC 5 + 6 damage taken: 14 + 3 = 17 against DC 11. Success: Drowned Miner refuses to fall and has 1/15 HP.\nDrowned Miner is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"drowned-miner\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "flooded-drift",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nDrowned Miner attacks Ada with Slam, at disadvantage (Sap): 12 and 10, keeping 10; 10 + 3 = 13 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nDrowned Miner attacks Ada with Slam, at disadvantage (Sap): 12 and 10, keeping 10; 10 + 3 = 13 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "flooded-drift",
+      "intent": "attack drowned-miner",
+      "message": "Attack the Drowned Miner.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Drowned Miner with Mace: 17 + 5 = 22 against AC 8. Hit. Damage 5 + 3 = 8 bludgeoning; Drowned Miner has 0/15 HP.\nUndead Fortitude: Drowned Miner makes a Constitution saving throw against DC 5 + 8 damage taken: 3 + 3 = 6 against DC 13. Failure: Drowned Miner stays down.\nDrowned Miner is defeated.\nThe fight is over.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Drowned Miner with Mace: 17 + 5 = 22 against AC 8. Hit. Damage 5 + 3 = 8 bludgeoning; Drowned Miner has 0/15 HP.\nUndead Fortitude: Drowned Miner makes a Constitution saving throw against DC 5 + 8 damage taken: 3 + 3 = 6 against DC 13. Failure: Drowned Miner stays down.\nDrowned Miner is defeated.\nThe fight is over."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"drowned-miner\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "flooded-drift",
+      "intent": "examine burial-niche",
+      "message": "Search the burial niche.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Burial Niche: A niche cut into the wall above the waterline, stacked with old bones. Among the bones lies a silver locket on a broken chain. You find the Silver Locket.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Burial Niche: A niche cut into the wall above the waterline, stacked with old bones. Among the bones lies a silver locket on a broken chain. You find the Silver Locket."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"burial-niche\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "flooded-drift",
+      "intent": "take silver-locket",
+      "message": "Take the silver locket.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Silver Locket.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Silver Locket."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"silver-locket\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "flooded-drift",
+      "intent": "move main-gallery",
+      "message": "Back up to the main gallery.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Main Gallery. A long gallery runs between rotten pit props. Side passages branch off: one dripping, one hung with grey webs, and one closed by an iron door.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Main Gallery. A long gallery runs between rotten pit props. Side passages branch off: one dripping, one hung with grey webs, and one closed by an iron door."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"main-gallery\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "main-gallery",
+      "intent": "unlock iron-door",
+      "message": "Unlock the iron door with the kobold's key.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You unlock the Iron Door with the Iron Key.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You unlock the Iron Door with the Iron Key."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "unlock",
+              "argumentsJson": "{\"door\":\"iron-door\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "main-gallery",
+      "intent": "move overseers-office",
+      "message": "Go through into the office.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Overseer's Office. The old mine office, its shutters nailed closed. A ledger desk stands against one wall and a heavy chest against another. A bugbear in a miner's leather apron heaves itself up from behind the desk, a hammer in its fist.\nInitiative: Bugbear Overseer 14 + 2 = 16; Ada 9 + 2 = 11.\nBugbear Overseer attacks Ada with Light Hammer: 4 + 4 = 8 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You enter the Overseer's Office. The old mine office, its shutters nailed closed. A ledger desk stands against one wall and a heavy chest against another. A bugbear in a miner's leather apron heaves itself up from behind the desk, a hammer in its fist.\nInitiative: Bugbear Overseer 14 + 2 = 16; Ada 9 + 2 = 11.\nBugbear Overseer attacks Ada with Light Hammer: 4 + 4 = 8 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"overseers-office\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "attack bugbear-overseer",
+      "message": "Attack the Bugbear Overseer.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Bugbear Overseer with Mace: 11 + 5 = 16 against AC 14. Hit. Damage 2 + 3 = 5 bludgeoning; Bugbear Overseer has 28/33 HP.\nBugbear Overseer is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Bugbear Overseer with Mace: 11 + 5 = 16 against AC 14. Hit. Damage 2 + 3 = 5 bludgeoning; Bugbear Overseer has 28/33 HP.\nBugbear Overseer is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"bugbear-overseer\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nBugbear Overseer attacks Ada with Light Hammer, at disadvantage (Sap): 18 and 2, keeping 2; 2 + 4 = 6 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nBugbear Overseer attacks Ada with Light Hammer, at disadvantage (Sap): 18 and 2, keeping 2; 2 + 4 = 6 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "attack bugbear-overseer",
+      "message": "Attack the Bugbear Overseer.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Bugbear Overseer with Mace: 14 + 5 = 19 against AC 14. Hit. Damage 5 + 3 = 8 bludgeoning; Bugbear Overseer has 20/33 HP.\nBugbear Overseer is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Bugbear Overseer with Mace: 14 + 5 = 19 against AC 14. Hit. Damage 5 + 3 = 8 bludgeoning; Bugbear Overseer has 20/33 HP.\nBugbear Overseer is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"bugbear-overseer\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nBugbear Overseer attacks Ada with Light Hammer, at disadvantage (Sap): 5 and 5, keeping 5; 5 + 4 = 9 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nBugbear Overseer attacks Ada with Light Hammer, at disadvantage (Sap): 5 and 5, keeping 5; 5 + 4 = 9 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "attack bugbear-overseer",
+      "message": "Attack the Bugbear Overseer.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Bugbear Overseer with Mace: 12 + 5 = 17 against AC 14. Hit. Damage 1 + 3 = 4 bludgeoning; Bugbear Overseer has 16/33 HP.\nBugbear Overseer is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Bugbear Overseer with Mace: 12 + 5 = 17 against AC 14. Hit. Damage 1 + 3 = 4 bludgeoning; Bugbear Overseer has 16/33 HP.\nBugbear Overseer is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"bugbear-overseer\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nBugbear Overseer attacks Ada with Light Hammer, at disadvantage (Sap): 6 and 19, keeping 6; 6 + 4 = 10 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nBugbear Overseer attacks Ada with Light Hammer, at disadvantage (Sap): 6 and 19, keeping 6; 6 + 4 = 10 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "attack bugbear-overseer",
+      "message": "Attack the Bugbear Overseer.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Bugbear Overseer with Mace: 17 + 5 = 22 against AC 14. Hit. Damage 3 + 3 = 6 bludgeoning; Bugbear Overseer has 10/33 HP.\nBugbear Overseer is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Bugbear Overseer with Mace: 17 + 5 = 22 against AC 14. Hit. Damage 3 + 3 = 6 bludgeoning; Bugbear Overseer has 10/33 HP.\nBugbear Overseer is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"bugbear-overseer\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nBugbear Overseer attacks Ada with Light Hammer, at disadvantage (Sap): 14 and 2, keeping 2; 2 + 4 = 6 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nBugbear Overseer attacks Ada with Light Hammer, at disadvantage (Sap): 14 and 2, keeping 2; 2 + 4 = 6 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "attack bugbear-overseer",
+      "message": "Attack the Bugbear Overseer.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Bugbear Overseer with Mace: 1 + 5 = 6 against AC 14. Miss.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Bugbear Overseer with Mace: 1 + 5 = 6 against AC 14. Miss.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"bugbear-overseer\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nBugbear Overseer attacks Ada with Light Hammer: 16 + 4 = 20 against AC 14. Hit. Damage 4 + 3 + 4 + 2 = 13 bludgeoning; Ada has 8/28 HP.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nBugbear Overseer attacks Ada with Light Hammer: 16 + 4 = 20 against AC 14. Hit. Damage 4 + 3 + 4 + 2 = 13 bludgeoning; Ada has 8/28 HP.\nIt is your turn."
+        }
+      ],
+      "hp": 8,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "second-wind",
+      "message": "Catch my breath with Second Wind.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada uses Second Wind: 3 + 3 = 6; Ada regains 6 HP and has 14/28 HP. 1 use left.\nIt is still your turn: you can attack or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada uses Second Wind: 3 + 3 = 6; Ada regains 6 HP and has 14/28 HP. 1 use left.\nIt is still your turn: you can attack or end your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "second_wind",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "attack bugbear-overseer",
+      "message": "Attack the Bugbear Overseer.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Bugbear Overseer with Mace: 16 + 5 = 21 against AC 14. Hit. Damage 3 + 3 = 6 bludgeoning; Bugbear Overseer has 4/33 HP.\nBugbear Overseer is sapped: disadvantage on its next attack roll before Ada's next turn.\nBugbear Overseer attacks Ada with Light Hammer, at disadvantage (Sap): 19 and 3, keeping 3; 3 + 4 = 7 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Bugbear Overseer with Mace: 16 + 5 = 21 against AC 14. Hit. Damage 3 + 3 = 6 bludgeoning; Bugbear Overseer has 4/33 HP.\nBugbear Overseer is sapped: disadvantage on its next attack roll before Ada's next turn.\nBugbear Overseer attacks Ada with Light Hammer, at disadvantage (Sap): 19 and 3, keeping 3; 3 + 4 = 7 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 14,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"bugbear-overseer\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "second-wind",
+      "message": "Catch my breath with Second Wind.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada uses Second Wind: 2 + 3 = 5; Ada regains 5 HP and has 19/28 HP. 0 uses left.\nIt is still your turn: you can attack or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada uses Second Wind: 2 + 3 = 5; Ada regains 5 HP and has 19/28 HP. 0 uses left.\nIt is still your turn: you can attack or end your turn."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "second_wind",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "overseers-office",
+      "intent": "attack bugbear-overseer",
+      "message": "Attack the Bugbear Overseer.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Bugbear Overseer with Mace: 10 + 5 = 15 against AC 14. Hit. Damage 4 + 3 = 7 bludgeoning; Bugbear Overseer has 0/33 HP.\nBugbear Overseer is defeated.\nThe fight is over.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Bugbear Overseer with Mace: 10 + 5 = 15 against AC 14. Hit. Damage 4 + 3 = 7 bludgeoning; Bugbear Overseer has 0/33 HP.\nBugbear Overseer is defeated.\nThe fight is over."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"bugbear-overseer\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "overseers-office",
+      "intent": "examine bugbear-overseer",
+      "message": "Search the bugbear's body.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Bugbear Overseer's body: It lies where it fell. You find the Bugbear Overseer's Coins and Bugbear Overseer's Rough Gem.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Bugbear Overseer's body: It lies where it fell. You find the Bugbear Overseer's Coins and Bugbear Overseer's Rough Gem."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"bugbear-overseer\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "overseers-office",
+      "intent": "take bugbear-overseer-coins",
+      "message": "Take the bugbear's coins.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Bugbear Overseer's Coins and put 1 gp 2 sp in your purse.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Bugbear Overseer's Coins and put 1 gp 2 sp in your purse."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"bugbear-overseer-coins\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "overseers-office",
+      "intent": "take bugbear-overseer-trinket",
+      "message": "Take the bugbear's gem.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Bugbear Overseer's Rough Gem.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Bugbear Overseer's Rough Gem."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"bugbear-overseer-trinket\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "overseers-office",
+      "intent": "examine ledger-desk",
+      "message": "Read the ledger on the desk.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ledger Desk: A tall desk with a mouldering ledger open on it. The last page lists six miners' names, each marked \"drowned\", and the words \"pay held\".",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ledger Desk: A tall desk with a mouldering ledger open on it. The last page lists six miners' names, each marked \"drowned\", and the words \"pay held\"."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"ledger-desk\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "overseers-office",
+      "intent": "examine payroll-chest",
+      "message": "Open the payroll chest.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Payroll Chest: An iron-bound chest, its lid prised open. The chest still holds the mine's last payroll, in sealed canvas bags. You find the Miners' Payroll.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Payroll Chest: An iron-bound chest, its lid prised open. The chest still holds the mine's last payroll, in sealed canvas bags. You find the Miners' Payroll."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"payroll-chest\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "overseers-office",
+      "intent": "take payroll",
+      "message": "Take the payroll.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Miners' Payroll and put 60 gp in your purse.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Miners' Payroll and put 60 gp in your purse."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"payroll\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "overseers-office",
+      "intent": "move main-gallery",
+      "message": "Back out to the gallery.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Main Gallery. A long gallery runs between rotten pit props. Side passages branch off: one dripping, one hung with grey webs, and one closed by an iron door.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Main Gallery. A long gallery runs between rotten pit props. Side passages branch off: one dripping, one hung with grey webs, and one closed by an iron door."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"main-gallery\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "main-gallery",
+      "intent": "move webbed-winze",
+      "message": "Push into the webbed winze.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Webbed Winze. A steep shaft drops away, choked with grey webs. Husks of rats and kobolds hang in the strands. A giant spider drops from the dark on a line of silk, fangs dripping.\nInitiative: Ada 14 + 2 = 16; Giant Spider 10 + 3 = 13.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You enter the Webbed Winze. A steep shaft drops away, choked with grey webs. Husks of rats and kobolds hang in the strands. A giant spider drops from the dark on a line of silk, fangs dripping.\nInitiative: Ada 14 + 2 = 16; Giant Spider 10 + 3 = 13.\nIt is your turn."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"webbed-winze\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "webbed-winze",
+      "intent": "attack winze-spider",
+      "message": "Attack the Giant Spider.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Giant Spider with Mace: 17 + 5 = 22 against AC 14. Hit. Damage 1 + 3 = 4 bludgeoning; Giant Spider has 22/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Giant Spider with Mace: 17 + 5 = 22 against AC 14. Hit. Damage 1 + 3 = 4 bludgeoning; Giant Spider has 22/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can drink a potion or end your turn."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"winze-spider\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "webbed-winze",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 15 and 8, keeping 8; 8 + 5 = 13 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 15 and 8, keeping 8; 8 + 5 = 13 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "webbed-winze",
+      "intent": "attack winze-spider",
+      "message": "Attack the Giant Spider.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Giant Spider with Mace: 18 + 5 = 23 against AC 14. Hit. Damage 2 + 3 = 5 bludgeoning; Giant Spider has 17/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Giant Spider with Mace: 18 + 5 = 23 against AC 14. Hit. Damage 2 + 3 = 5 bludgeoning; Giant Spider has 17/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can drink a potion or end your turn."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"winze-spider\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "webbed-winze",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 12 and 20, keeping 12; 12 + 5 = 17 against AC 14. Hit. Damage 6 + 3 = 9 piercing, plus 6 = 6 poison; Ada has 4/28 HP.\nAda makes a Constitution saving throw against being poisoned: 7 + 4 = 11 against DC 11. Success.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 12 and 20, keeping 12; 12 + 5 = 17 against AC 14. Hit. Damage 6 + 3 = 9 piercing, plus 6 = 6 poison; Ada has 4/28 HP.\nAda makes a Constitution saving throw against being poisoned: 7 + 4 = 11 against DC 11. Success.\nIt is your turn."
+        }
+      ],
+      "hp": 4,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "webbed-winze",
+      "intent": "use shed-potion",
+      "message": "Drink the Potion of Healing.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You drink the Potion of Healing: 3 + 2 + 2 = 7; you regain 7 HP and have 11/28 HP.\nIt is still your turn: you can attack or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You drink the Potion of Healing: 3 + 2 + 2 = 7; you regain 7 HP and have 11/28 HP.\nIt is still your turn: you can attack or end your turn."
+        }
+      ],
+      "hp": 11,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "use_item",
+              "argumentsJson": "{\"item\":\"shed-potion\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "webbed-winze",
+      "intent": "attack winze-spider",
+      "message": "Attack the Giant Spider.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Giant Spider with Mace: 16 + 5 = 21 against AC 14. Hit. Damage 6 + 3 = 9 bludgeoning; Giant Spider has 8/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 2 and 20, keeping 2; 2 + 5 = 7 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Giant Spider with Mace: 16 + 5 = 21 against AC 14. Hit. Damage 6 + 3 = 9 bludgeoning; Giant Spider has 8/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 2 and 20, keeping 2; 2 + 5 = 7 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 11,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"winze-spider\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "webbed-winze",
+      "intent": "attack winze-spider",
+      "message": "Attack the Giant Spider.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Giant Spider with Mace: 14 + 5 = 19 against AC 14. Hit. Damage 3 + 3 = 6 bludgeoning; Giant Spider has 2/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 8 and 14, keeping 8; 8 + 5 = 13 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Giant Spider with Mace: 14 + 5 = 19 against AC 14. Hit. Damage 3 + 3 = 6 bludgeoning; Giant Spider has 2/26 HP.\nGiant Spider is sapped: disadvantage on its next attack roll before Ada's next turn.\nGiant Spider attacks Ada with Bite, at disadvantage (Sap): 8 and 14, keeping 8; 8 + 5 = 13 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 11,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"winze-spider\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "webbed-winze",
+      "intent": "attack winze-spider",
+      "message": "Attack the Giant Spider.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Giant Spider with Mace: 17 + 5 = 22 against AC 14. Hit. Damage 4 + 3 = 7 bludgeoning; Giant Spider has 0/26 HP.\nGiant Spider is defeated.\nThe fight is over.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Giant Spider with Mace: 17 + 5 = 22 against AC 14. Hit. Damage 4 + 3 = 7 bludgeoning; Giant Spider has 0/26 HP.\nGiant Spider is defeated.\nThe fight is over."
+        }
+      ],
+      "hp": 11,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"winze-spider\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "webbed-winze",
+      "intent": "examine cocoon",
+      "message": "Cut open the cocoon.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Cocooned Prospector: A man-sized bundle of web hangs from a beam over the shaft. Inside the cocoon is a dead prospector, still clutching a pouch. In it are an uncut sapphire and a vial of red liquid. You find the Uncut Sapphire and Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Cocooned Prospector: A man-sized bundle of web hangs from a beam over the shaft. Inside the cocoon is a dead prospector, still clutching a pouch. In it are an uncut sapphire and a vial of red liquid. You find the Uncut Sapphire and Potion of Healing."
+        }
+      ],
+      "hp": 11,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"cocoon\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "webbed-winze",
+      "intent": "take uncut-sapphire",
+      "message": "Take the sapphire.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Uncut Sapphire.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Uncut Sapphire."
+        }
+      ],
+      "hp": 11,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"uncut-sapphire\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "webbed-winze",
+      "intent": "take winze-potion",
+      "message": "Take the prospector's vial.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Potion of Healing."
+        }
+      ],
+      "hp": 11,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"winze-potion\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "webbed-winze",
+      "intent": "move main-gallery",
+      "message": "Climb back to the gallery.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Main Gallery. A long gallery runs between rotten pit props. Side passages branch off: one dripping, one hung with grey webs, and one closed by an iron door.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Main Gallery. A long gallery runs between rotten pit props. Side passages branch off: one dripping, one hung with grey webs, and one closed by an iron door."
+        }
+      ],
+      "hp": 11,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"main-gallery\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "main-gallery",
+      "intent": "move sorting-shed",
+      "message": "Head back to the sorting shed.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Sorting Shed. A low cavern where miners once sorted ore. Plank tables stand among heaps of broken rock, and the rail track runs on, deeper into the hill.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Sorting Shed. A low cavern where miners once sorted ore. Plank tables stand among heaps of broken rock, and the rail track runs on, deeper into the hill."
+        }
+      ],
+      "hp": 11,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"sorting-shed\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "sorting-shed",
+      "intent": "move mine-mouth",
+      "message": "Walk out to the mine mouth.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Mine Mouth. A timbered adit opens in the hillside, its beams black with age. Fresh spoil spills down the slope, and a rail track runs into the dark.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Mine Mouth. A timbered adit opens in the hillside, its beams black with age. Fresh spoil spills down the slope, and a rail track runs into the dark."
+        }
+      ],
+      "hp": 11,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"mine-mouth\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "mine-mouth",
+      "intent": "leave mine-mouth",
+      "committed": false,
+      "matched": false,
+      "fallback": true,
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Out with the silver. You climb out of the adit into daylight with the mine's silver in your pack."
+        }
+      ],
+      "hp": 11,
+      "reviewClaim": false,
+      "calls": []
+    }
+  ],
+  "finalStatus": "escaped",
+  "finalRoom": "Mine Mouth",
+  "ending": {
+    "kind": "escape-with-loot",
+    "title": "Out with the silver",
+    "text": "You climb out of the adit into daylight with the mine's silver in your pack.",
+    "rewards": {
+      "xp": [
+        {
+          "name": "Defeated the Kobold Lookout; spared the Kobold Tunneller",
+          "xp": 62
+        },
+        {
+          "name": "Defeated Drowned Miner and Miner's Bones",
+          "xp": 100
+        },
+        {
+          "name": "Defeated the Bugbear Overseer",
+          "xp": 200
+        },
+        {
+          "name": "Defeated the Giant Spider",
+          "xp": 200
+        },
+        {
+          "name": "Out with the silver",
+          "xp": 300
+        }
+      ],
+      "treasure": [
+        {
+          "name": "Silver Locket",
+          "description": "A tarnished silver locket. Inside is a lock of a child's hair.",
+          "value": "25 gp"
+        },
+        {
+          "name": "Bugbear Overseer's Rough Gem",
+          "description": "A cloudy, roughly cut stone that a jeweller would buy.",
+          "value": "10 gp"
+        },
+        {
+          "name": "Uncut Sapphire",
+          "description": "A rough blue stone the size of a thumbnail.",
+          "value": "100 gp"
+        }
+      ],
+      "coin": "65 gp 2 sp 9 cp",
+      "purse": "65 gp 2 sp 9 cp",
+      "totalXp": 1762,
+      "level": 3
+    }
+  },
+  "finishedAt": "2026-10-07T21:20:05.913Z"
+}

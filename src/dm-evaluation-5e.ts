@@ -794,19 +794,44 @@ export async function startAdventureOverHttp(
   url: string,
   adventureId: string,
 ): Promise<DelveSessionView> {
-  type Library = Readonly<{
-    revision: string;
-    characters: readonly Readonly<{ sheet: Readonly<{ id: string }> }>[];
-  }>;
-  const pending = (await postToServer<Library>(url, "/api/5e/creation", {}))
+  const pending = (await postToServer<LibraryView>(url, "/api/5e/creation", {}))
     .body;
   const library = (
-    await postToServer<Library>(url, "/api/5e/characters", {
+    await postToServer<LibraryView>(url, "/api/5e/characters", {
       revision: pending.revision,
       name: "Ada",
       ...TEST_FIGHTER_CHOICES,
     })
   ).body;
+  return startFirstCharacter(url, library, adventureId);
+}
+
+/**
+ * Through a browser server's API, starts the library's first character,
+ * already saved, on `adventureId`: for a module above level 1, whose run
+ * starts from a character saved at a higher level (#241).
+ */
+export async function startSavedAdventureOverHttp(
+  url: string,
+  adventureId: string,
+): Promise<DelveSessionView> {
+  const response = await fetch(url + "/api/5e/library", {
+    headers: { Origin: url },
+  });
+  const library = (await response.json()) as LibraryView;
+  return startFirstCharacter(url, library, adventureId);
+}
+
+type LibraryView = Readonly<{
+  revision: string;
+  characters: readonly Readonly<{ sheet: Readonly<{ id: string }> }>[];
+}>;
+
+async function startFirstCharacter(
+  url: string,
+  library: LibraryView,
+  adventureId: string,
+): Promise<DelveSessionView> {
   return (
     await postToServer<{ session: DelveSessionView }>(
       url,

@@ -297,6 +297,149 @@ export const TOLL_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
   { action: "leave", target: "wayside-shrine" },
 ]);
 
+/**
+ * The Silvervein Mine, in play order (#241): the kobolds in the sorting shed,
+ * where the tunneller surrenders on the release seed and gives up the iron
+ * key, then the drowned miners, the overseer behind the iron door and the
+ * spider in the winze, and back out of the mine mouth.
+ */
+export const MINE_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
+  {
+    action: "examine",
+    target: "ore-cart",
+    say: "Look over the overturned ore cart.",
+  },
+  {
+    action: "move",
+    target: "sorting-shed",
+    say: "Follow the rails into the mine.",
+  },
+  {
+    action: "talk",
+    target: "the-iron-door",
+    say: "Ask the kobold about the iron door.",
+  },
+  { action: "take", target: "iron-key", say: "Take the iron key." },
+  {
+    action: "talk",
+    target: "the-spider",
+    say: "Ask the kobold about the webs.",
+  },
+  {
+    action: "talk",
+    target: "the-overseer",
+    say: "Ask the kobold about its overseer.",
+  },
+  { action: "examine", target: "ore-bin", say: "Dig through the ore bin." },
+  { action: "take", target: "shed-potion", say: "Take the vial from the bin." },
+  {
+    action: "take",
+    target: "kobold-takings",
+    say: "Take the bag of silver.",
+  },
+  {
+    action: "examine",
+    target: "kobold-lookout",
+    say: "Search the lookout's body.",
+  },
+  {
+    action: "take",
+    target: "kobold-lookout-coins",
+    say: "Take the lookout's coins.",
+  },
+  {
+    action: "move",
+    target: "main-gallery",
+    say: "Go on into the main gallery.",
+  },
+  {
+    action: "examine",
+    target: "notice-board",
+    say: "Read the notice board.",
+  },
+  {
+    action: "move",
+    target: "flooded-drift",
+    say: "Wade down into the flooded drift.",
+  },
+  {
+    action: "examine",
+    target: "burial-niche",
+    say: "Search the burial niche.",
+  },
+  { action: "take", target: "silver-locket", say: "Take the silver locket." },
+  {
+    action: "move",
+    target: "main-gallery",
+    say: "Back up to the main gallery.",
+  },
+  {
+    action: "unlock",
+    target: "iron-door",
+    say: "Unlock the iron door with the kobold's key.",
+  },
+  {
+    action: "move",
+    target: "overseers-office",
+    say: "Go through into the office.",
+  },
+  {
+    action: "examine",
+    target: "bugbear-overseer",
+    say: "Search the bugbear's body.",
+  },
+  {
+    action: "take",
+    target: "bugbear-overseer-coins",
+    say: "Take the bugbear's coins.",
+  },
+  {
+    action: "take",
+    target: "bugbear-overseer-trinket",
+    say: "Take the bugbear's gem.",
+  },
+  {
+    action: "examine",
+    target: "ledger-desk",
+    say: "Read the ledger on the desk.",
+  },
+  {
+    action: "examine",
+    target: "payroll-chest",
+    say: "Open the payroll chest.",
+  },
+  { action: "take", target: "payroll", say: "Take the payroll." },
+  { action: "move", target: "main-gallery", say: "Back out to the gallery." },
+  {
+    action: "move",
+    target: "webbed-winze",
+    say: "Push into the webbed winze.",
+  },
+  { action: "examine", target: "cocoon", say: "Cut open the cocoon." },
+  { action: "take", target: "uncut-sapphire", say: "Take the sapphire." },
+  {
+    action: "take",
+    target: "winze-potion",
+    say: "Take the prospector's vial.",
+  },
+  {
+    action: "move",
+    target: "main-gallery",
+    say: "Climb back to the gallery.",
+  },
+  {
+    action: "move",
+    target: "sorting-shed",
+    say: "Head back to the sorting shed.",
+  },
+  {
+    action: "move",
+    target: "mine-mouth",
+    say: "Walk out to the mine mouth.",
+  },
+  { action: "leave", target: "mine-mouth" },
+]);
+
 /** Whether the action bar is a fight's: it always offers End turn. */
 const inFight = (view: ReleaseSessionView): boolean =>
   view.actions.some(({ action }) => action === "end-turn");
