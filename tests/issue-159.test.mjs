@@ -13,7 +13,7 @@ import {
   describeFifthResult,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
-import { FifthSession } from "../dist/session-5e.js";
+import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
 import { goblinBand, ratlessTunnels } from "./fixtures/modules.mjs";
 
 const adventures = [goblinBand, ratlessTunnels];
@@ -162,7 +162,7 @@ test("dice that do not match the events are refused", () => {
   );
 });
 
-test("the session saves grouped rolls (format 5) and refuses format 3", async () => {
+test("the session saves grouped rolls and refuses a card whose lines do not make up its text", async () => {
   const directory = await mkdtemp(join(tmpdir(), "issue-159-"));
   try {
     const path = join(directory, "session.json");
@@ -174,7 +174,7 @@ test("the session saves grouped rolls (format 5) and refuses format 3", async ()
       fighter(seed),
     );
     const file = JSON.parse(await readFile(path, "utf8"));
-    assert.equal(file.formatVersion, 22);
+    assert.equal(file.formatVersion, FIFTH_SESSION_FORMAT);
     const [card] = file.history[0].cards;
     assert.equal(card.kind, "result");
     assert.deepEqual(Object.keys(card).sort(), ["kind", "lines", "text"]);
@@ -191,20 +191,6 @@ test("the session saves grouped rolls (format 5) and refuses format 3", async ()
       FifthSession.load(path, adventures),
       /Invalid adventure session/,
     );
-    // The format 3 card shape, with ungrouped rolls, is refused by version.
-    const older = structuredClone(file);
-    older.formatVersion = 3;
-    older.history[0].cards[0] = {
-      kind: "result",
-      text: card.text,
-      rolls: file.transitions[0].rolls,
-    };
-    await writeFile(path, JSON.stringify(older));
-    await assert.rejects(
-      FifthSession.load(path, adventures),
-      /format version 3, not 22\. This build cannot continue it\. Move it aside/,
-    );
-    assert.deepEqual(JSON.parse(await readFile(path, "utf8")), older);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

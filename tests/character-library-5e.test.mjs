@@ -3,7 +3,10 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
+import {
+  FIFTH_LIBRARY_FORMAT,
+  FifthCharacterLibrary,
+} from "../dist/character-library-5e.js";
 import { buildFighter, keptTotal } from "../dist/fighter-5e.js";
 import { PRE_5E_LIBRARY } from "./fixtures/pre-5e-library.mjs";
 
@@ -40,7 +43,7 @@ test("a pending creation is saved before it is returned and never changes", asyn
     assert.equal((await library.read()).pendingCreation, undefined);
     const started = await library.startCreation();
     const stored = JSON.parse(await readFile(path, "utf8"));
-    assert.equal(stored.formatVersion, 10);
+    assert.equal(stored.formatVersion, FIFTH_LIBRARY_FORMAT);
     assert.deepEqual(stored.pendingCreation, started.pendingCreation);
     assert.equal(started.pendingCreation.dice.length, 6);
     const bytes = await readFile(path);

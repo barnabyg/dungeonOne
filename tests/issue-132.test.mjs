@@ -855,7 +855,8 @@ test("a session saves its checks' cards and remembered outcomes, and replays the
   const { mkdtemp, readFile, rm } = await import("node:fs/promises");
   const { tmpdir } = await import("node:os");
   const { join } = await import("node:path");
-  const { FifthSession } = await import("../dist/session-5e.js");
+  const { FIFTH_SESSION_FORMAT, FifthSession } =
+    await import("../dist/session-5e.js");
   const directory = await mkdtemp(join(tmpdir(), "issue-132-"));
   try {
     const path = join(directory, "session.json");
@@ -879,7 +880,7 @@ test("a session saves its checks' cards and remembered outcomes, and replays the
     }
     await session.persist();
     const file = JSON.parse(await readFile(path, "utf8"));
-    assert.equal(file.formatVersion, 22);
+    assert.equal(file.formatVersion, FIFTH_SESSION_FORMAT);
     const purposes = file.history.flatMap(({ cards }) =>
       cards.flatMap(({ lines }) =>
         lines.flatMap(({ rolls }) => rolls.map(({ purpose }) => purpose)),

@@ -7,7 +7,10 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadFifthAdventure } from "../dist/adventure-5e.js";
+import {
+  FIFTH_ADVENTURE_FORMAT,
+  loadFifthAdventure,
+} from "../dist/adventure-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { formatCoins } from "../dist/equipment-5e.js";
 import {
@@ -162,7 +165,9 @@ test("an older module file is refused with a message naming the file", async () 
     await writeFile(path, bytes);
     await assert.rejects(
       loadFifthAdventure(path),
-      /older-barrow\.json is a 5e adventure module in format version 5, not 18. Move it aside/,
+      new RegExp(
+        String.raw`older-barrow\.json is a 5e adventure module in format version 5, not ${FIFTH_ADVENTURE_FORMAT}\. Move it aside`,
+      ),
     );
     assert.equal(await readFile(path, "utf8"), bytes);
   } finally {

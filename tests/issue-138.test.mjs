@@ -23,6 +23,7 @@ import {
   setUpCase,
 } from "../dist/dm-evaluation-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
+import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { ratTunnels, sealedCrypt } from "./fixtures/modules.mjs";
 
@@ -110,7 +111,7 @@ test("a recorded command-mode trace replays exactly", () =>
     assert.match(played.stdout, /Ada's initiative: d20 \d+ \+ 2 = \d+/);
     const recorded = await readJson(trace);
     assert.equal(recorded.kind, "dungeon-one-5e-trace");
-    assert.equal(recorded.formatVersion, 16);
+    assert.equal(recorded.formatVersion, FIFTH_TRACE_FORMAT);
     assert.equal(recorded.adventure.id, "sealed-crypt");
     assert.equal(recorded.turns.length, 3);
     // Each card keeps its lines and their rolls grouped by purpose.
@@ -182,7 +183,9 @@ test("a trace in another format version is refused and left unchanged", () =>
     assert.equal(result.status, 1);
     assert.match(
       result.stderr,
-      /trace\.json is a trace in format version 2, not 16\. .*Move it aside; the file has not been changed\./,
+      new RegExp(
+        String.raw`trace\.json is a trace in format version 2, not ${FIFTH_TRACE_FORMAT}\. .*Move it aside; the file has not been changed\.`,
+      ),
     );
     assert.equal(await readFile(trace, "utf8"), bytes);
   }));

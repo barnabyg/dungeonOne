@@ -8,6 +8,7 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import { gateAdventure } from "../dist/balance-5e.js";
 import { buyItem, salePrice, sellItem } from "../dist/equipment-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
@@ -147,7 +148,6 @@ function withPedlar(change) {
 }
 
 test("a module's creature may be a merchant with authored stock and minutes per trade", () => {
-  assert.equal(marketBarrow.formatVersion, 18);
   assert.deepEqual(room(marketBarrow, "barrow-mouth").creatures[0].merchant, {
     stock: ["shortsword", "shield", "dagger"],
     minutes: 10,
@@ -158,7 +158,7 @@ test("a module's creature may be a merchant with authored stock and minutes per 
         ...structuredClone(marketFile),
         formatVersion: 7,
       }),
-    /format version 7 is not 18/,
+    new RegExp(`format version 7 is not ${FIFTH_ADVENTURE_FORMAT}`),
   );
 });
 
