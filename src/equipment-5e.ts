@@ -819,9 +819,9 @@ function attackWith(
  * none), +2 for a shield, +1 for Defense while wearing body armour; the main
  * weapon's attack (finesse uses the higher of Strength and Dexterity, a
  * versatile weapon held in two hands its larger die, a ranged weapon uses
- * Dexterity, and +2 to hit with Archery, a heavy weapon below Strength 13, or
- * a heavy ranged one below Dexterity 13, has disadvantage, and Great Weapon Fighting marks a weapon in
- * two hands); and the Light extra attack when a second light weapon is held
+ * Dexterity, +2 to hit with Archery, a heavy weapon below Strength 13, or a
+ * heavy ranged one below Dexterity 13, has disadvantage, and Great Weapon
+ * Fighting marks a weapon in two hands); and the Light extra attack when a second light weapon is held
  * (with its ability modifier under Two-Weapon Fighting). A mastery applies only to a weapon the character has
  * mastered and is holding.
  */
