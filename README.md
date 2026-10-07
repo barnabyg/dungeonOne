@@ -314,12 +314,12 @@ reason, the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 8.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 19.
+  `characters-adventures` directory beside the library, in format version 20.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 14. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 15. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 6, or author a one-off stat block inline.
 

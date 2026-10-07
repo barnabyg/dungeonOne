@@ -1,5 +1,5 @@
 /**
- * A 5e session trace (format version 13) and its exact replay.
+ * A 5e session trace (format version 14) and its exact replay.
  *
  * The command-line adapter records every turn of a run: each clicked action
  * with the dice it drew and its card, and each typed message with the AI DM's
@@ -37,7 +37,7 @@ import {
   type RollRecord,
 } from "./session-5e.js";
 
-export const FIFTH_TRACE_FORMAT = 13;
+export const FIFTH_TRACE_FORMAT = 14;
 const MAX_TRACE_BYTES = 16 * 1024 * 1024;
 const MAX_TURNS = 5000;
 

@@ -13,9 +13,7 @@
     "outputTokens": 675,
     "totalTokens": 60674
   },
-  "promptVersions": [
-    "5e-dm-v9"
-  ],
+  "promptVersions": ["5e-dm-v9"],
   "summary": {
     "turns": 27,
     "typed": 26,

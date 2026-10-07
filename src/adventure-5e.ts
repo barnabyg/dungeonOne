@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 14) and its validator.
+ * The 5e adventure module format (format version 15) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -13,7 +13,10 @@
  * creature may be a merchant, with catalogue gear in stock and the minutes
  * each trade takes. A merchant stocks common gear, and uncommon gear only in
  * a module for level 3 and up; no merchant sells rare gear. Each
- * opponent in an encounter has its own name, so the player can target it.
+ * opponent in an encounter has its own name, so the player can target it,
+ * and may have a surrender (#238): what it says once it yields to a failed
+ * morale saving throw, the things it carries that it hands over when asked,
+ * and any XP for sparing it.
  * Treasure, coin and gear are items hidden in a feature or carried by an
  * opponent, so they are only ever found by examining: the feature, or the
  * opponent's body once its fight is won. Coin is authored in gold, silver and
@@ -71,7 +74,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 14;
+export const FIFTH_ADVENTURE_FORMAT = 15;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -87,6 +90,21 @@ export type FifthOpponent = Readonly<{
    * opponent is ordinary.
    */
   boss?: true;
+  /**
+   * What it does when it fails morale (#238): it surrenders instead of
+   * fleeing, and becomes a creature to talk to once its fight is won.
+   */
+  surrender?: FifthSurrender;
+}>;
+
+/**
+ * A surrendered opponent as a creature: how it looks once it has yielded, its
+ * topics, and the XP for sparing it, credited on surviving completion.
+ */
+export type FifthSurrender = Readonly<{
+  description: string;
+  topics: readonly FifthTopic[];
+  xp?: number;
 }>;
 
 export type FifthEncounter = Readonly<{
@@ -164,6 +182,11 @@ export type FifthTopic = Readonly<{
   check?: CheckSpec;
   /** What it says after a failed check; present exactly with `check`. */
   failure?: string;
+  /**
+   * Items it hands over with its reply (after a passed check, when there is
+   * one): only a surrendered opponent gives, and only what it carries (#238).
+   */
+  gives?: readonly string[];
 }>;
 
 /**
@@ -337,6 +360,59 @@ function check(value: unknown, where: string): CheckSpec {
 }
 
 /**
+ * A creature's topics, each optionally with a check and its failure words;
+ * with `gifts`, each may also give items, by id (#238).
+ */
+function topics(
+  value: unknown,
+  at: string,
+  gifts = false,
+): readonly FifthTopic[] {
+  const parsed = list(value, `${at} topics`, 12).map((rawTopic, index) => {
+    const on = `${at} topic ${index + 1}`;
+    const topic = knownKeys(
+      rawTopic,
+      ["id", "name", "reply"],
+      gifts ? ["check", "failure", "gives"] : ["check", "failure"],
+      on,
+    );
+    const topicId = id(topic.id, `${on} id`);
+    if ((topic.check === undefined) !== (topic.failure === undefined)) {
+      fail(
+        topic.check === undefined
+          ? `topic ${topicId} has a failure but no check.`
+          : `topic ${topicId} has a check but no failure.`,
+      );
+    }
+    return {
+      id: topicId,
+      name: text(topic.name, `${on} name`, 60),
+      reply: text(topic.reply, `${on} reply`),
+      ...(topic.check === undefined
+        ? {}
+        : {
+            check: check(topic.check, `${on} check`),
+            failure: text(topic.failure, `${on} failure`),
+          }),
+      ...(topic.gives === undefined
+        ? {}
+        : {
+            gives: list(topic.gives, `${on} gives`, 12).map((given, number) =>
+              id(given, `${on} gives ${number + 1}`),
+            ),
+          }),
+    };
+  });
+  // The player asks about topics by name, in any case.
+  distinct(
+    parsed,
+    ({ name }) => name.toLowerCase(),
+    ({ name }) => `${at} has two topics named ${name}.`,
+  );
+  return parsed;
+}
+
+/**
  * Validates a decoded module against the bestiary its opponents name,
  * rejecting unknown references and missing endings. Each opponent that names
  * a bestiary monster gets that monster's stat block, and its name and
@@ -496,13 +572,13 @@ function validateModule(
           ? knownKeys(
               raw,
               ["id", "monster"],
-              ["name", "description", "boss", "statBlock"],
+              ["name", "description", "boss", "statBlock", "surrender"],
               at,
             )
           : knownKeys(
               raw,
               ["id", "name", "description", "statBlock"],
-              ["boss"],
+              ["boss", "surrender"],
               at,
             );
         if (opponent.boss !== undefined && opponent.boss !== true) {
@@ -510,13 +586,47 @@ function validateModule(
         }
         const opponentId = id(opponent.id, `${at} id`);
         const boss = opponent.boss === true ? { boss: true as const } : {};
+        /** Its surrender, if authored, for a monster that checks morale. */
+        const yielding = (block: StatBlock) => {
+          if (opponent.surrender === undefined) {
+            return {};
+          }
+          if (block.morale === "never") {
+            fail(
+              `${at} (${opponentId}) never checks morale (undead or mindless), so it cannot surrender.`,
+            );
+          }
+          if (encounter.victoryEndingId !== undefined) {
+            fail(
+              `${at} (${opponentId}) can surrender, but its fight ends the adventure, so it can never be talked to.`,
+            );
+          }
+          const on = `${at} surrender`;
+          const raw = knownKeys(
+            opponent.surrender,
+            ["description", "topics"],
+            ["xp"],
+            on,
+          );
+          return {
+            surrender: {
+              description: text(raw.description, `${on} description`),
+              topics: topics(raw.topics, on, true),
+              ...(raw.xp === undefined
+                ? {}
+                : { xp: integer(raw.xp, `${on} xp`, 1, 10000) }),
+            },
+          };
+        };
         if (!reference) {
+          const block = statBlock(opponent.statBlock, `${at} statBlock`);
           return {
             id: opponentId,
             name: text(opponent.name, `${at} name`, 60),
             description: text(opponent.description, `${at} description`),
-            statBlock: statBlock(opponent.statBlock, `${at} statBlock`),
+            statBlock: block,
             ...boss,
+            ...yielding(block),
           };
         }
         const monsterId = id(opponent.monster, `${at} monster`);
@@ -545,6 +655,7 @@ function validateModule(
               : text(opponent.description, `${at} description`),
           statBlock: monster.statBlock,
           ...boss,
+          ...yielding(monster.statBlock),
         };
       });
       unique(opponents, `${where} opponent`);
@@ -708,47 +819,11 @@ function validateModule(
         ["merchant"],
         at,
       );
-      const topics = list(creature.topics, `${at} topics`, 12).map(
-        (rawTopic, index) => {
-          const on = `${at} topic ${index + 1}`;
-          const topic = knownKeys(
-            rawTopic,
-            ["id", "name", "reply"],
-            ["check", "failure"],
-            on,
-          );
-          const topicId = id(topic.id, `${on} id`);
-          if ((topic.check === undefined) !== (topic.failure === undefined)) {
-            fail(
-              topic.check === undefined
-                ? `topic ${topicId} has a failure but no check.`
-                : `topic ${topicId} has a check but no failure.`,
-            );
-          }
-          return {
-            id: topicId,
-            name: text(topic.name, `${on} name`, 60),
-            reply: text(topic.reply, `${on} reply`),
-            ...(topic.check === undefined
-              ? {}
-              : {
-                  check: check(topic.check, `${on} check`),
-                  failure: text(topic.failure, `${on} failure`),
-                }),
-          };
-        },
-      );
-      // The player asks about topics by name, in any case.
-      distinct(
-        topics,
-        ({ name }) => name.toLowerCase(),
-        ({ name }) => `${at} has two topics named ${name}.`,
-      );
       return {
         id: id(creature.id, `${at} id`),
         name: text(creature.name, `${at} name`, 60),
         description: text(creature.description, `${at} description`),
-        topics,
+        topics: topics(creature.topics, at),
         ...(creature.merchant === undefined
           ? {}
           : { merchant: merchant(creature.merchant, `${at} merchant`) }),
@@ -924,6 +999,9 @@ function validateModule(
   distinct(
     [
       ...encounters.flatMap(({ opponents }) => opponents),
+      ...encounters.flatMap(({ opponents }) =>
+        opponents.flatMap(({ surrender }) => surrender?.topics ?? []),
+      ),
       ...rooms.flatMap(({ features, items, creatures }) => [
         ...features,
         ...items,
@@ -955,6 +1033,29 @@ function validateModule(
       items.map((item) => [item.id, { item, roomId }] as const),
     ),
   );
+  // A surrendered opponent gives only what it carries, and each thing once.
+  const given = new Set<string>();
+  for (const { opponents } of encounters) {
+    for (const { id: opponentId, surrender } of opponents) {
+      for (const { id: topicId, gives } of surrender?.topics ?? []) {
+        for (const itemId of gives ?? []) {
+          const item = itemRooms.get(itemId)?.item;
+          if (item === undefined) {
+            fail(`topic ${topicId} gives unknown item ${itemId}.`);
+          }
+          if (item.hiddenIn !== opponentId) {
+            fail(
+              `topic ${topicId} gives ${itemId}, which ${opponentId} does not carry.`,
+            );
+          }
+          if (given.has(itemId)) {
+            fail(`${itemId} is given by two topics.`);
+          }
+          given.add(itemId);
+        }
+      }
+    }
+  }
   for (const { door: shut } of passages) {
     if (shut?.keyItemId !== undefined) {
       const key = itemRooms.get(shut.keyItemId)?.item;

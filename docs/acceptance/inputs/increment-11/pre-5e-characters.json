@@ -1,1 +1,6 @@
-{"kind":"dungeon-one-characters","formatVersion":1,"revision":"00000000000000000000000000000000","characters":[{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","name":"Ada"}]}
+{
+  "kind": "dungeon-one-characters",
+  "formatVersion": 1,
+  "revision": "00000000000000000000000000000000",
+  "characters": [{ "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "name": "Ada" }]
+}

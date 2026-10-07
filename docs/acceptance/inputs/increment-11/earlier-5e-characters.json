@@ -1,1 +1,6 @@
-{"kind":"dungeon-one-characters","formatVersion":3,"revision":"00000000000000000000000000000000","characters":[]}
+{
+  "kind": "dungeon-one-characters",
+  "formatVersion": 3,
+  "revision": "00000000000000000000000000000000",
+  "characters": []
+}

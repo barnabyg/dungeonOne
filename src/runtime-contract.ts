@@ -59,7 +59,13 @@ export type DmScene = Readonly<{
     opponents: readonly Readonly<{
       id: string;
       name: string;
-      condition: "living" | "defeated" | "fleeing" | "fled";
+      condition:
+        | "living"
+        | "defeated"
+        | "fleeing"
+        | "fled"
+        | "surrendering"
+        | "surrendered";
     }>[];
     npcs?: readonly Readonly<{
       id: string;
