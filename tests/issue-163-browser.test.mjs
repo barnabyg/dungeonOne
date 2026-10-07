@@ -117,6 +117,7 @@ for (const [width, height, seed] of [
               nodes.map((node) => [node.id, node.checked]),
             ),
           [
+            ["style-archery", false],
             ["style-defense", true],
             ["style-great-weapon-fighting", false],
             ["style-two-weapon-fighting", false],

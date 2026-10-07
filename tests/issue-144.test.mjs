@@ -396,6 +396,7 @@ test("the sheet and creation say whether the Fighting Style applies with the cur
   assert.deepEqual(
     projected.fightingStyles.map(({ id, applies }) => [id, applies]),
     [
+      ["archery", false],
       ["defense", true],
       ["great-weapon-fighting", false],
       ["two-weapon-fighting", true],

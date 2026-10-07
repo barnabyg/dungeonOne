@@ -70,8 +70,12 @@ export const FIGHTER_SKILLS = {
 } as const satisfies Record<string, { name: string; ability: Ability }>;
 export type FighterSkill = keyof typeof FIGHTER_SKILLS;
 
-/** SRD 5.2 Fighting Style feats, without Archery, which #225 adds. */
+/** The SRD 5.2 Fighting Style feats. */
 export const FIGHTING_STYLES = {
+  archery: {
+    name: "Archery",
+    text: "+2 to attack rolls with ranged weapons.",
+  },
   defense: {
     name: "Defense",
     text: "+1 AC while wearing armour.",
@@ -109,6 +113,10 @@ export function fightingStyleUse(
     note,
   });
   switch (style) {
+    case "archery":
+      return gear.attack.ammunition === undefined
+        ? use(false, `No effect with the ${weapon}: it needs a ranged weapon.`)
+        : use(true, `Applies: the ${weapon} is a ranged weapon.`);
     case "defense":
       return gear.loadout.armour === undefined
         ? use(false, "No effect without armour.")

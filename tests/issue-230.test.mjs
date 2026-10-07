@@ -612,8 +612,8 @@ test("the gate's one-hit-kill measure tries a ranged weapon a module sells, Dext
   ]);
   const bows = attackers.filter(({ gear }) => gear === "light-crossbow");
   const mace = attackers.find(({ gear }) => gear === "mace").sheet;
-  assert.equal(bows.length, 3);
-  for (const { sheet } of bows) {
+  assert.equal(bows.length, 4);
+  for (const { sheet, fightingStyle } of bows) {
     // The archer swaps the mace build's Strength and Dexterity, +2 included.
     assert.equal(sheet.abilities.dexterity, mace.abilities.strength);
     assert.equal(
@@ -626,9 +626,11 @@ test("the gate's one-hit-kill measure tries a ranged weapon a module sells, Dext
     });
     const attack = playerCombatant(sheet).attack;
     assert.equal(attack.ammunition, "bolts");
+    // Archery (#225) adds 2 to hit with the bow only.
     assert.equal(
       attack.bonus,
-      playerCombatant(mace).attack.bonus,
+      playerCombatant(mace).attack.bonus +
+        (fightingStyle === "archery" ? 2 : 0),
       "the bow hits as often as the mace build's main weapon",
     );
     // One attack from full HP is measured in round 1: no close combat.
