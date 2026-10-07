@@ -134,6 +134,39 @@ const ending = (page) =>
     };
   });
 
+/**
+ * The status strip's HP as spoken (text outside aria-hidden parts) and as
+ * shown (text outside visually-hidden parts), its health, the turn line and
+ * the resources it lists (#155).
+ */
+const statusStrip = (page) =>
+  page.evaluate(() => {
+    const spoken = (node) =>
+      node.nodeType === Node.TEXT_NODE
+        ? node.textContent
+        : node.getAttribute?.("aria-hidden") === "true"
+          ? ""
+          : [...node.childNodes].map(spoken).join(" ");
+    const seen = (node) =>
+      node.nodeType === Node.TEXT_NODE
+        ? node.textContent
+        : node.classList?.contains("visually-hidden")
+          ? ""
+          : [...node.childNodes].map(seen).join("");
+    const tidy = (text) => text.replace(/\s+/g, " ").trim();
+    const hp = document.getElementById("character-hp");
+    return {
+      hp: tidy(spoken(hp)),
+      shown: tidy(seen(hp)),
+      health: document.getElementById("status-hp").dataset.health,
+      turn: document.getElementById("turn").textContent,
+      resources: [...document.querySelectorAll("#resources li")].map(
+        (item) => item.dataset.resource,
+      ),
+      fill: document.getElementById("hp-fill").style.width,
+    };
+  });
+
 /** A CSS colour token (#rrggbb) as the computed rgb() string. */
 const rgb = (hex) => {
   const value = Number.parseInt(hex.slice(1), 16);
@@ -303,6 +336,18 @@ test(
       assert.ok(shown.composerDisabled);
       assert.match(shown.reason, /The adventure is over/);
       assert.equal((await sessionFile(directory)).state.status, "defeat");
+
+      // The status strip shows defeat at 0 HP (#155). No turn is left to
+      // take; the feature uses still show.
+      const maxHp = firstFighter(seed).hp;
+      assert.deepEqual(await statusStrip(page), {
+        hp: `HP 0 of ${maxHp}, Defeated`,
+        shown: `HP 0/${maxHp} Defeated`,
+        health: "down",
+        turn: "The fight is over.",
+        resources: ["second-wind"],
+        fill: "0%",
+      });
 
       await page.reload();
       await page.locator("#ending").waitFor({ state: "visible" });
