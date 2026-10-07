@@ -157,7 +157,9 @@ function violations(file, source) {
     found.push("runs the real launcher");
   }
   // The command-line adapter loads the built-in modules unless it is given a
-  // module file, so a test that runs it must give one.
+  // module file, so a test that runs it must give one. This is checked per
+  // file, not per run: runs without one must stop before loading modules
+  // (--help and refused options), as in issue-138.test.mjs.
   if (
     /dist\/cli-5e\.js/u.test(source) &&
     !source.includes('"--adventure-file"') &&
