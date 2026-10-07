@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 17) and its validator.
+ * The 5e adventure module format (format version 18) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -24,7 +24,11 @@
  * names a catalogue gem or art object (`treasure-5e.ts`), which sets its
  * value. Everything findable (coin, gems, art objects, potions and gear) is
  * held to the treasure budget for the module's maximum recommended level,
- * and each item's tier must be allowed at that level (#239). A room may be an exit, where the player can choose to leave: the
+ * and each item's tier must be allowed at that level (#239). What a bestiary
+ * opponent carries must be loot its monster's treasure type could produce
+ * (#240): an authoring-time roll (`npm run loot`) writes it in, and an
+ * author may lower or remove it. A key is never loot, and an inline
+ * opponent has no treasure type, so what it carries is the author's. A room may be an exit, where the player can choose to leave: the
  * adventure then ends in its escape-with-loot ending when the character
  * carries treasure or found coin, and its escape-without-loot ending otherwise. A victory
  * or escape ending may award XP, on top of each won encounter's stat-block XP.
@@ -55,6 +59,9 @@ import {
 import {
   isTradeGoodId,
   POTIONS,
+  TREASURE_TYPES,
+  type TreasureTypeData,
+  type TreasureTypeId,
   tierAllowed,
   TRADE_GOOD_TIER,
   tradeGoodValue,
@@ -93,7 +100,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 17;
+export const FIFTH_ADVENTURE_FORMAT = 18;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -384,6 +391,64 @@ export function findableValue(
     .reduce((sum, item) => sum + itemValue(item), 0);
 }
 
+/** What a treasure type gives, for a problem: "up to 18 cp and one of gem-10gp". */
+function treasureTypeGives(type: TreasureTypeId): string {
+  const { coins, trinkets }: TreasureTypeData = TREASURE_TYPES[type];
+  const parts = [
+    ...(coins === undefined
+      ? []
+      : [`up to ${coins.dice * coins.sides} ${coins.coin}`]),
+    ...(trinkets === undefined ? [] : [`one of ${trinkets.join(", ")}`]),
+  ];
+  return parts.length === 0 ? "nothing" : `only ${parts.join(" and ")}`;
+}
+
+/**
+ * Checks what an opponent carries against its treasure type (#240): coin in
+ * the type's coin, no more than its dice can roll, and at most one of its
+ * trinkets. A key is not loot. A problem throws a `ShapeError` naming `who`.
+ */
+function carriedLoot(
+  carried: readonly FifthItem[],
+  type: TreasureTypeId,
+  who: string,
+): void {
+  const { coins, trinkets }: TreasureTypeData = TREASURE_TYPES[type];
+  const refuse: (what: string) => never = (what) =>
+    fail(
+      `${who} carries ${what}, but its treasure type ${type} gives ${treasureTypeGives(type)}.`,
+    );
+  let amount = 0;
+  let found = 0;
+  for (const item of carried) {
+    if (item.kind === "key") {
+      continue;
+    }
+    if (item.coins !== undefined) {
+      const held = Object.entries(item.coins).filter(([, count]) => count > 0);
+      if (coins === undefined || held.some(([coin]) => coin !== coins.coin)) {
+        refuse(
+          `${item.name} (${held.map(([coin, count]) => `${count} ${coin}`).join(" ")})`,
+        );
+      }
+      amount += item.coins[coins.coin] ?? 0;
+    } else if (item.treasure !== undefined) {
+      if (!(trinkets ?? []).includes(item.treasure)) {
+        refuse(`${item.name} (${item.treasure})`);
+      }
+      found += 1;
+    } else {
+      refuse(item.name);
+    }
+  }
+  if (coins !== undefined && amount > coins.dice * coins.sides) {
+    refuse(`${amount} ${coins.coin}`);
+  }
+  if (found > 1) {
+    refuse(`${found} trinkets`);
+  }
+}
+
 /** An amount of coin: some gold, silver or copper pieces, at least one. */
 function coins(value: unknown, where: string): Coins {
   const denominations = Object.keys(COIN_VALUES) as Coin[];
@@ -630,6 +695,8 @@ function validateModule(
       minutes: integer(raw.minutes, `${where} minutes`, 1, MAX_TRADE_MINUTES),
     };
   };
+  /** The treasure type of each opponent that names a bestiary monster. */
+  const treasureTypes = new Map<FifthOpponent, TreasureTypeId>();
   const encounters = list(module.encounters, "encounters", 20).map(
     (entry, index) => {
       const where = `encounter ${index + 1}`;
@@ -721,7 +788,7 @@ function validateModule(
             `module ${moduleId} ${at} (${opponentId}) names bestiary monster ${monsterId}, which is not in the bestiary.`,
           );
         }
-        return {
+        const named: FifthOpponent = {
           id: opponentId,
           name:
             opponent.name === undefined
@@ -735,6 +802,8 @@ function validateModule(
           ...boss,
           ...yielding(monster.statBlock),
         };
+        treasureTypes.set(named, monster.treasureType);
+        return named;
       });
       unique(opponents, `${where} opponent`);
       // The player targets opponents by name, in any case.
@@ -932,6 +1001,19 @@ function validateModule(
           : { merchant: merchant(creature.merchant, `${at} merchant`) }),
       };
     });
+    const fight = encounters.find(
+      ({ id: encounterId }) => encounterId === room.encounterId,
+    );
+    for (const opponent of fight?.opponents ?? []) {
+      const type = treasureTypes.get(opponent);
+      if (type !== undefined) {
+        carriedLoot(
+          items.filter(({ hiddenIn }) => hiddenIn === opponent.id),
+          type,
+          `module ${moduleId} ${where}: ${opponent.id}`,
+        );
+      }
+    }
     if (creatures.filter((creature) => creature.merchant).length > 1) {
       fail(`${where} has two merchants; one is enough.`);
     }

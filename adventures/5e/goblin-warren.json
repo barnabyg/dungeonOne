@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 17,
+  "formatVersion": 18,
   "id": "goblin-warren",
   "title": "The Goblin Warren",
   "objective": "Fight through the goblin warren to the boss's hall, take its hoard, and get back out alive. Leave by the gate when you are ready.",
@@ -44,6 +44,12 @@
           "id": "smoking-brazier",
           "name": "Smoking Brazier",
           "description": "An iron brazier of greasy smoke, too hot to touch."
+        },
+        {
+          "id": "gnawed-bones",
+          "name": "Gnawed Bones",
+          "description": "A heap of gnawed bones against the tunnel wall.",
+          "discovery": "Under the bones the guards hid a stoppered vial of red liquid on a cord."
         }
       ],
       "items": [
@@ -52,7 +58,7 @@
           "name": "Potion of Healing",
           "description": "A stoppered vial of red liquid on a cord.",
           "kind": "potion-of-healing",
-          "hiddenIn": "tunnel-guard"
+          "hiddenIn": "gnawed-bones"
         }
       ]
     },
@@ -75,7 +81,10 @@
           "name": "Sack of Stolen Coins",
           "description": "A sack of mixed coins taken from travellers on the road.",
           "kind": "coin",
-          "coins": { "gp": 9, "sp": 6 },
+          "coins": {
+            "gp": 9,
+            "sp": 6
+          },
           "hiddenIn": "crate-throne"
         },
         {

@@ -12,7 +12,7 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
-import { validateModule } from "./fixtures/bestiary.mjs";
+import { inlineMonster, validateModule } from "./fixtures/bestiary.mjs";
 import { moduleFile, room } from "./fixtures/modules.mjs";
 import {
   act,
@@ -60,6 +60,9 @@ const lootedCrypt = (() => {
     hiddenIn: "risen-warden",
   });
   delete module.encounters[0].victoryEndingId;
+  // An inline Zombie: a bestiary one's treasure type (#240) carries nothing.
+  const { monster, ...warden } = module.encounters[0].opponents[0];
+  module.encounters[0].opponents[0] = inlineMonster(monster, warden);
   module.endings = [
     {
       id: "out-with-the-loot",

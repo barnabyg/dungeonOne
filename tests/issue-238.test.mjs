@@ -14,7 +14,7 @@ import {
   startEncounter,
 } from "../dist/encounter-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
-import { validateModule } from "./fixtures/bestiary.mjs";
+import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
 import { firstFighter } from "./fixtures/session-layout.mjs";
 import {
   GOBLINS,
@@ -231,12 +231,18 @@ test("a module authors a surrender with topics, gifts it carries and XP for spar
     ],
     xp: SPARED_XP,
   });
-  assert.equal(surrenderingGoblins.formatVersion, 17);
+  assert.equal(surrenderingGoblins.formatVersion, 18);
 });
 
 test("the validator refuses a surrender on an undead or mindless monster", () => {
   assert.throws(
-    withGoblin(0, (opponent) => (opponent.monster = "skeleton")),
+    withGoblin(
+      0,
+      (opponent) =>
+        (opponent.statBlock = bestiary.monsters.find(
+          ({ id }) => id === "skeleton",
+        ).statBlock),
+    ),
     /encounter 1 opponent 1 \(goblin-1\) never checks morale \(undead or mindless\), so it cannot surrender\./,
   );
 });

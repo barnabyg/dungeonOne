@@ -4,7 +4,7 @@
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { sessionSeed } from "../../dist/session-5e.js";
-import { validateModule } from "./bestiary.mjs";
+import { inlineMonster, validateModule } from "./bestiary.mjs";
 import { moduleFile } from "./modules.mjs";
 import { firstFighter } from "./session-layout.mjs";
 
@@ -38,11 +38,13 @@ export const fleeingGoblins = validateModule({
   encounters: [
     {
       id: "barrow-goblin",
-      opponents: GOBLINS.map((goblinId, index) => ({
-        id: goblinId,
-        monster: "goblin-minion",
-        name: `Goblin ${index + 1}`,
-      })),
+      // Inline Goblin Minions: no treasure type (#240) limits their silver.
+      opponents: GOBLINS.map((goblinId, index) =>
+        inlineMonster("goblin-minion", {
+          id: goblinId,
+          name: `Goblin ${index + 1}`,
+        }),
+      ),
       defeatEndingId: "fallen-in-the-barrow",
     },
   ],

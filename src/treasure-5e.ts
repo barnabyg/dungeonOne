@@ -1,6 +1,7 @@
 /**
  * The treasure catalogue (#239): gems and art objects, the potions, and the
- * treasure-value budget each adventure is held to.
+ * treasure-value budget each adventure is held to, and the treasure types
+ * that say what a bestiary monster carries (#240).
  *
  * Pure rules over data. Values are in copper pieces, like gear prices.
  * Gems and art objects are trade goods: they do nothing but sell, and a
@@ -13,7 +14,13 @@
  * the tier levels are parameter tables, recorded in `docs/character-rules.md`;
  * tune them here.
  */
-import { POTION_WEIGHT, type Tier } from "./equipment-5e.js";
+import {
+  POTION_WEIGHT,
+  type Coin,
+  type Coins,
+  type Tier,
+} from "./equipment-5e.js";
+import type { RandomSource } from "./random.js";
 
 /** What a module's treasure may be worth, by its maximum recommended level, in copper. */
 export const TREASURE_BUDGETS: Readonly<Record<number, number>> = {
@@ -110,3 +117,59 @@ export const POTIONS = {
   },
 } as const satisfies Record<string, PotionData>;
 export type PotionId = keyof typeof POTIONS;
+
+export type TreasureTypeData = Readonly<{
+  /** The coins it carries: `dice`d`sides` pieces of one coin. */
+  coins?: Readonly<{ coin: Coin; dice: number; sides: number }>;
+  /** One trinket it carries, a gem or art object chosen by a die. */
+  trinkets?: readonly TradeGoodId[];
+}>;
+
+/**
+ * What a bestiary monster carries, by its treasure type (#240, a house rule
+ * the owner chose): undead and beasts carry nothing, goblins and kobolds a
+ * few coppers, bandits, hobgoblins and gnolls some silver, a goblin boss or
+ * bugbear silver and a trinket, an ogre some gold. An authoring-time roll
+ * turns a type into the items an opponent carries; an author may lower or
+ * remove what was rolled, but nothing the type couldn't produce validates.
+ */
+export const TREASURE_TYPES = {
+  none: {},
+  copper: { coins: { coin: "cp", dice: 3, sides: 6 } },
+  silver: { coins: { coin: "sp", dice: 3, sides: 6 } },
+  "silver-and-trinket": {
+    coins: { coin: "sp", dice: 3, sides: 6 },
+    trinkets: ["gem-10gp", "art-25gp"],
+  },
+  gold: { coins: { coin: "gp", dice: 2, sides: 6 } },
+} as const satisfies Record<string, TreasureTypeData>;
+export type TreasureTypeId = keyof typeof TREASURE_TYPES;
+
+/** Whether `value` names one of the treasure types. */
+export function isTreasureTypeId(value: unknown): value is TreasureTypeId {
+  return typeof value === "string" && Object.hasOwn(TREASURE_TYPES, value);
+}
+
+/** What one roll of a treasure type gives. */
+export type RolledTreasure = Readonly<{
+  coins?: Coins;
+  trinket?: TradeGoodId;
+}>;
+
+/** Rolls a treasure type: its coins' dice, then a die for its trinket. */
+export function rollTreasure(
+  type: TreasureTypeId,
+  random: RandomSource,
+): RolledTreasure {
+  const { coins, trinkets }: TreasureTypeData = TREASURE_TYPES[type];
+  let amount = 0;
+  for (let die = 0; coins !== undefined && die < coins.dice; die += 1) {
+    amount += random.roll(coins.sides);
+  }
+  return {
+    ...(coins === undefined ? {} : { coins: { [coins.coin]: amount } }),
+    ...(trinkets === undefined
+      ? {}
+      : { trinket: trinkets[random.roll(trinkets.length) - 1] }),
+  };
+}

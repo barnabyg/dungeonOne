@@ -82,7 +82,7 @@ test("the shield and the first coin lie in the reeds after the wolf; the purse a
       id: "bandit-purse",
       kind: "coin",
       coins: { gp: 12 },
-      hiddenIn: "scarred-bandit",
+      hiddenIn: "strongbox",
     },
   ]);
 });

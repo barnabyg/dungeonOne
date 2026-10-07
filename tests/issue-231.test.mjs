@@ -167,7 +167,7 @@ test("a bestiary in another format version is refused by name and left unchanged
     await assert.rejects(loadFifthBestiary(path), (error) => {
       assert.match(
         error.message,
-        /old-bestiary\.json is a 5e bestiary in format version 0, not 6\. Move it aside; the file has not been changed\./,
+        /old-bestiary\.json is a 5e bestiary in format version 0, not 7\. Move it aside; the file has not been changed\./,
       );
       return true;
     });
