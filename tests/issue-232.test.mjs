@@ -6,7 +6,6 @@ import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { gateAdventure } from "../dist/balance-5e.js";
 import { validateFifthBestiary } from "../dist/bestiary-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
@@ -23,7 +22,8 @@ import {
   sessionSeed,
   startFifthAdventure,
 } from "../dist/session-5e.js";
-import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
+import { bestiary } from "./fixtures/bestiary.mjs";
+import { fightRoom } from "./fixtures/modules.mjs";
 
 /** Returns the queued values in order, checking each die's sides. */
 function dice(...queue) {
@@ -525,28 +525,11 @@ test("the bestiary validator refuses malformed riders and traits", () => {
   );
 });
 
-/** The Goblin in the Cellar's file, with `opponents` in place of the goblin. */
-const cellarFile = JSON.parse(
-  await readFile(
-    new URL("../adventures/5e/cellar-goblin.json", import.meta.url),
-    "utf8",
-  ),
-);
-const cellarWith = (opponents) =>
-  validateModule({
-    ...cellarFile,
-    encounters: [
-      {
-        id: "cellar-goblin",
-        opponents,
-        victoryEndingId: "goblin-defeated",
-        defeatEndingId: "fallen-in-the-cellar",
-      },
-    ],
-  });
-
-/** The Goblin in the Cellar with the bestiary's Giant Spider in its place. */
-const spiderCellar = cellarWith([{ id: "spider", monster: "giant-spider" }]);
+/** The lone goblin's room with `opponents` in its place, as module `id`. */
+/** The lone goblin's room with the bestiary's Giant Spider in its place. */
+const spiderCellar = fightRoom("spider-cellar", "The Spider Cellar", [
+  { id: "spider", monster: "giant-spider" },
+]);
 
 /** A module with `change` made to each opponent's stat block. */
 function changed(adventure, change) {
@@ -578,20 +561,18 @@ function survival(adventure) {
   return result.verdict.survival.rate;
 }
 
-test("the balance gate plays the riders and Pack Tactics", async () => {
-  // The Tinker's Toll's lone Wolf: its knockdown makes it deadlier.
-  const toll = (await loadBuiltInFifthAdventures()).find(
-    ({ id }) => id === "tinkers-toll",
-  );
-  const gated = gateAdventure(toll);
-  assert.ok(gated.ok && gated.verdict.qualified);
-  assert.ok(survival(toll) < survival(changed(toll, withoutRiders)));
+test("the balance gate plays the riders and Pack Tactics", () => {
+  // A lone Wolf: its knockdown makes it deadlier.
+  const wolf = fightRoom("wolf-cellar", "The Wolf Cellar", [
+    { id: "wolf", monster: "wolf" },
+  ]);
+  assert.ok(survival(wolf) < survival(changed(wolf, withoutRiders)));
   // The Giant Spider's poison makes it deadlier.
   assert.ok(
     survival(spiderCellar) < survival(changed(spiderCellar, withoutRiders)),
   );
   // Two Wolves with Pack Tactics are deadlier than two without.
-  const pack = cellarWith([
+  const pack = fightRoom("wolf-pack", "The Wolf Pack", [
     { id: "wolf-1", monster: "wolf", name: "Wolf 1" },
     { id: "wolf-2", monster: "wolf", name: "Wolf 2" },
   ]);

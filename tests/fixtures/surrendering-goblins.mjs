@@ -1,21 +1,16 @@
-// The Robbers' Barrow with three Goblin Minions in the burial hall that
+// The lintel barrow with three Goblin Minions in the burial hall that
 // surrender instead of fleeing, for the surrender tests (#238). Each carries a
 // stolen ring; one that surrenders hands it over when asked for mercy, and
 // one cut down leaves it on its body.
-import { readFile } from "node:fs/promises";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { sessionSeed } from "../../dist/session-5e.js";
 import { validateModule } from "./bestiary.mjs";
 import { fightThrough } from "./fleeing-goblins.mjs";
+import { moduleFile } from "./modules.mjs";
 import { firstFighter } from "./session-layout.mjs";
 
-const barrow = JSON.parse(
-  await readFile(
-    new URL("../../adventures/5e/robbers-barrow.json", import.meta.url),
-    "utf8",
-  ),
-);
+const barrow = moduleFile("lintel-barrow");
 
 export const GOBLINS = ["goblin-1", "goblin-2", "goblin-3"];
 

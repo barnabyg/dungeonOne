@@ -11,6 +11,7 @@ import {
   FIFTH_DM_SETUP_HINT,
   startFifthBrowserServer,
 } from "../dist/browser-5e-server.js";
+import { loneGoblin } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -38,7 +39,7 @@ async function api(url, path, body) {
   return { status: response.status, body: await response.json() };
 }
 
-/** Creates a Fighter and starts the cellar goblin adventure over the API. */
+/** Creates a Fighter and starts the lone goblin over the API. */
 async function startOverApi(url) {
   let library = (await api(url, "/api/5e/creation", {})).body;
   library = (
@@ -63,7 +64,7 @@ async function startOverApi(url) {
   const started = await api(url, "/api/5e/adventures/start", {
     revision: library.revision,
     characterId: library.characters[0].sheet.id,
-    adventureId: "cellar-goblin",
+    adventureId: "lone-goblin",
   });
   assert.equal(started.status, 200);
   return started.body.session;
@@ -72,6 +73,7 @@ async function startOverApi(url) {
 async function withServer(options, run) {
   const directory = await mkdtemp(join(tmpdir(), "issue-161-"));
   const server = await startFifthBrowserServer({
+    adventures: [loneGoblin],
     libraryPath: join(directory, "characters.json"),
     seed: 4,
     ...options,
@@ -129,9 +131,7 @@ async function createAndStart(page, name) {
   await page.locator("#character-name").fill(name);
   await page.locator("#save-character").click();
   await page.locator("#sheet-name").filter({ hasText: name }).waitFor();
-  await page
-    .locator('.start-adventure[data-adventure="cellar-goblin"]')
-    .click();
+  await page.locator('.start-adventure[data-adventure="lone-goblin"]').click();
   await page.locator("#adventure").waitFor({ state: "visible" });
 }
 

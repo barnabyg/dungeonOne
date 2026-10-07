@@ -7,7 +7,6 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
 import {
@@ -19,10 +18,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { launch } from "./fixtures/session-layout.mjs";
-
-const cellar = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "cellar-goblin",
-);
+import { loneGoblin } from "./fixtures/modules.mjs";
 
 test(
   "creation and the sheet say whether the Fighting Style applies with the kit",
@@ -30,7 +26,11 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-144-"));
     const libraryPath = join(directory, "characters.json");
-    const server = await startFifthBrowserServer({ libraryPath, seed: 0 });
+    const server = await startFifthBrowserServer({
+      adventures: [loneGoblin],
+      libraryPath,
+      seed: 0,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 375, height: 812 },
@@ -116,7 +116,7 @@ const sheet = validateFighter({
 /** A seed whose first session's first attack hits with a 1 or 2 on the d10. */
 function findSeed() {
   for (let seed = 0; seed < 5000; seed++) {
-    const runtime = createFifthRuntime(cellar, sheet);
+    const runtime = createFifthRuntime(loneGoblin, sheet);
     const random = createSeededRandom(sessionSeed(seed, 1));
     const { state } = runtime.handleAction(
       runtime.createSession(),
@@ -159,7 +159,11 @@ test(
         characters: [{ sheet, revision: 1 }],
       }),
     );
-    const server = await startFifthBrowserServer({ libraryPath, seed });
+    const server = await startFifthBrowserServer({
+      adventures: [loneGoblin],
+      libraryPath,
+      seed,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 375, height: 812 },
@@ -172,7 +176,7 @@ test(
         .filter({ hasText: "Applies: the longsword is held in two hands." })
         .waitFor();
       await page
-        .locator('.start-adventure[data-adventure="cellar-goblin"]')
+        .locator('.start-adventure[data-adventure="lone-goblin"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
       await page

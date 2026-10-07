@@ -15,6 +15,7 @@ import {
   keptTotal,
 } from "../dist/fighter-5e.js";
 import { PRE_5E_LIBRARY } from "./fixtures/pre-5e-library.mjs";
+import { loneGoblin } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -53,7 +54,11 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "fighter-5e-browser-"));
     const libraryPath = join(directory, "characters.json");
-    let server = await startFifthBrowserServer({ libraryPath, seed: 42 });
+    let server = await startFifthBrowserServer({
+      adventures: [loneGoblin],
+      libraryPath,
+      seed: 42,
+    });
     const browser = await launch();
     const page = await browser.newPage();
     page.setDefaultTimeout(5000);
@@ -90,7 +95,11 @@ test(
 
       // Restart, even with another seed: the same dice.
       await server.close();
-      server = await startFifthBrowserServer({ libraryPath, seed: 7 });
+      server = await startFifthBrowserServer({
+        adventures: [loneGoblin],
+        libraryPath,
+        seed: 7,
+      });
       await page.goto(server.url);
       await page.locator("#open-creation").click();
       assert.deepEqual(await shownRolls(page), shown);
@@ -234,7 +243,11 @@ test(
 
       // The sheet reads back after a restart; the next creation is new dice.
       await server.close();
-      server = await startFifthBrowserServer({ libraryPath, seed: 42 });
+      server = await startFifthBrowserServer({
+        adventures: [loneGoblin],
+        libraryPath,
+        seed: 42,
+      });
       await page.goto(server.url);
       await page
         .locator("#characters button")
@@ -261,6 +274,7 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "fighter-5e-phone-"));
     const server = await startFifthBrowserServer({
+      adventures: [loneGoblin],
       libraryPath: join(directory, "characters.json"),
       seed: 3,
     });
@@ -322,7 +336,11 @@ test("a pre-5e library is refused at launch and left byte-identical", async () =
     await writeFile(libraryPath, PRE_5E_LIBRARY);
     const before = await readFile(libraryPath);
     await assert.rejects(
-      startFifthBrowserServer({ libraryPath, seed: 1 }),
+      startFifthBrowserServer({
+        adventures: [loneGoblin],
+        libraryPath,
+        seed: 1,
+      }),
       /pre-5e character library.*Move it aside/,
     );
     const launched = spawnSync(
@@ -345,7 +363,11 @@ test("a pre-5e library is refused at launch and left byte-identical", async () =
 test("the 5e server rejects other hosts and cross-origin posts", async () => {
   const directory = await mkdtemp(join(tmpdir(), "fighter-5e-origin-"));
   const libraryPath = join(directory, "characters.json");
-  const server = await startFifthBrowserServer({ libraryPath, seed: 1 });
+  const server = await startFifthBrowserServer({
+    adventures: [loneGoblin],
+    libraryPath,
+    seed: 1,
+  });
   const { port } = new URL(server.url);
   const send = (headers, method = "POST") =>
     new Promise((resolve, reject) => {
@@ -381,7 +403,11 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "fighter-5e-delete-"));
     const libraryPath = join(directory, "characters.json");
-    let server = await startFifthBrowserServer({ libraryPath, seed: 5 });
+    let server = await startFifthBrowserServer({
+      adventures: [loneGoblin],
+      libraryPath,
+      seed: 5,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 360, height: 740 },
@@ -511,7 +537,11 @@ test(
         ["Bram"],
       );
       await server.close();
-      server = await startFifthBrowserServer({ libraryPath, seed: 9 });
+      server = await startFifthBrowserServer({
+        adventures: [loneGoblin],
+        libraryPath,
+        seed: 9,
+      });
       await page.goto(server.url);
       await page
         .locator("#characters button")

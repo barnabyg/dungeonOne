@@ -196,7 +196,7 @@ test("a sheet's weight carried counts its gear, treasure and purse", () => {
   );
 });
 
-// The Robbers' Barrow with a longsword, a shield, a greatsword and chain mail
+// The Lintel Barrow with a longsword, a shield, a greatsword and chain mail
 // behind the lintel (#209), and here a pouch of 10 gp and a silver cup too.
 const laden = structuredClone(armoury);
 room(laden, "barrow-mouth").items.push(

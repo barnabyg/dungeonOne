@@ -1,4 +1,4 @@
-// #232, browser → API → storage: in the Tinker's Toll the Wolf knocks the
+// #232, browser → API → storage: the bestiary's Wolf knocks the
 // character prone. The initiative table and the status strip show it when it
 // lands, a restart keeps it, and it ends when the character gets up.
 import assert from "node:assert/strict";
@@ -6,17 +6,24 @@ import test from "node:test";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
+import { fightRoom } from "./fixtures/modules.mjs";
 
-const toll = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "tinkers-toll",
-);
-const ROUTE = ["tinkers-cart", "ford"];
+// The bestiary's Wolf, alone in a one-room fight that starts as Ada arrives.
+// The server offers only this module, whatever its gate standing.
+const wolfDen = fightRoom("wolf-den", "The Wolf's Den", [
+  {
+    id: "wolf",
+    monster: "wolf",
+    description:
+      "A gaunt grey wolf rises from behind the casks, hackles up, and comes at you.",
+  },
+]);
+const SERVER_OPTIONS = { adventures: [wolfDen], qualifies: () => true };
 
 const prone = (state) =>
   (state.encounter?.conditions ?? []).some(
@@ -25,25 +32,18 @@ const prone = (state) =>
 
 /**
  * The fight clicks (attack, or end the turn once the action is spent) in the
- * first session on `seed` that leave the character prone on its own turn at
- * the ford, and then that get it up with the fight still on; undefined if
- * that never happens.
+ * first session on `seed` that leave the character prone on its own turn,
+ * and then that get it up with the fight still on; undefined if that never
+ * happens or the knockdown lands before Ada's first click.
  */
 function knockdown(seed) {
-  const runtime = createFifthRuntime(toll, firstFighter(seed));
+  const runtime = createFifthRuntime(wolfDen, firstFighter(seed));
   const random = createSeededRandom(sessionSeed(seed, 1));
   let state = runtime.handleAction(
     runtime.createSession(),
     { type: "begin" },
     random,
   ).state;
-  for (const destinationId of ROUTE) {
-    state = runtime.handleAction(
-      state,
-      { type: "move", destinationId },
-      random,
-    ).state;
-  }
   const fightOn = () => {
     const [target] = runtime.attackTargets(state);
     const result = runtime.handleAction(
@@ -65,7 +65,7 @@ function knockdown(seed) {
   for (; ongoing() && prone(state); up++) {
     fightOn();
   }
-  return ongoing() ? { down, up } : undefined;
+  return ongoing() && down > 0 ? { down, up } : undefined;
 }
 
 /** Runs one click and waits for its history entry. */
@@ -114,7 +114,11 @@ test(
     const clicks = knockdown(seed);
     const directory = await mkdtemp(join(tmpdir(), "issue-232-browser-"));
     const libraryPath = join(directory, "characters.json");
-    let server = await startFifthBrowserServer({ libraryPath, seed });
+    let server = await startFifthBrowserServer({
+      ...SERVER_OPTIONS,
+      libraryPath,
+      seed,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 1280, height: 900 },
@@ -127,18 +131,9 @@ test(
       await page.locator("#character-name").fill("Ada");
       await page.locator("#save-character").click();
       await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-      await page
-        .locator('.start-adventure[data-adventure="tinkers-toll"]')
-        .click();
+      await page.locator('.start-adventure[data-adventure="wolf-den"]').click();
       await page.locator("#adventure").waitFor({ state: "visible" });
-      for (const destination of ROUTE) {
-        await click(
-          page,
-          page.locator(
-            `button.act[data-action="move"][data-target="${destination}"]`,
-          ),
-        );
-      }
+      await page.locator("#initiative-rows tr").first().waitFor();
       assert.deepEqual(await shown(page), { table: [], strip: [] });
       for (let count = 0; count < clicks.down; count++) {
         await fightOn(page);
@@ -168,7 +163,11 @@ test(
       );
       assert.equal(saved.state.encounter.conditions[0].kind, "prone");
       await server.close();
-      server = await startFifthBrowserServer({ libraryPath, seed: seed + 1 });
+      server = await startFifthBrowserServer({
+        ...SERVER_OPTIONS,
+        libraryPath,
+        seed: seed + 1,
+      });
       await page.goto(`${server.url}/#adventure-${saved.id}`);
       await page.locator("#adventure").waitFor({ state: "visible" });
       assert.deepEqual(await shown(page), prone);

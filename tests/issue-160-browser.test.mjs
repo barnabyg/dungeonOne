@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { loadScriptedDmModel } from "../dist/scripted-dm-model.js";
+import { goblinBand } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -80,6 +81,7 @@ for (const viewport of [
       const scripted = await loadScriptedDmModel(script);
       const dm = gate();
       const server = await startFifthBrowserServer({
+        adventures: [goblinBand],
         libraryPath: join(directory, "characters.json"),
         seed: 0,
         dmModel: {
@@ -184,7 +186,7 @@ for (const viewport of [
         // Starting an adventure: busy until the session arrives.
         const starting = await holdRequests(page, "/api/5e/adventures/start");
         const start = page.locator(
-          '.start-adventure[data-adventure="goblin-storeroom"]',
+          '.start-adventure[data-adventure="goblin-band"]',
         );
         await start.click();
         await page
@@ -313,6 +315,7 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-160-"));
     const server = await startFifthBrowserServer({
+      adventures: [goblinBand],
       libraryPath: join(directory, "characters.json"),
       seed: 0,
       dmModel: await loadScriptedDmModel(
@@ -336,7 +339,7 @@ test(
       await page.locator("#save-character").click();
       await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
       await page
-        .locator('.start-adventure[data-adventure="goblin-storeroom"]')
+        .locator('.start-adventure[data-adventure="goblin-band"]')
         .click();
       await page.locator("#log > li").first().waitFor();
       const before = await page.locator("#log").innerHTML();

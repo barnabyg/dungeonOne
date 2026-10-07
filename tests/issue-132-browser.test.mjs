@@ -9,7 +9,6 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
@@ -19,6 +18,7 @@ import {
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import { sealedCrypt } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -28,9 +28,7 @@ const launch = () =>
       : { headless: true },
   );
 
-const crypt = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "warden-crypt",
-);
+const crypt = sealedCrypt;
 
 /** The first Fighter a browser on `seed` creates with the default choices. */
 function firstFighter(seed) {
@@ -176,6 +174,7 @@ async function play(seed, check) {
   const directory = await mkdtemp(join(tmpdir(), "issue-132-"));
   const libraryPath = join(directory, "characters.json");
   let server = await startFifthBrowserServer({
+    adventures: [crypt],
     libraryPath,
     seed,
     dmModel: talkingDm(),
@@ -191,7 +190,7 @@ async function play(seed, check) {
     await page.locator("#save-character").click();
     await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
     await page
-      .locator('.start-adventure[data-adventure="warden-crypt"]')
+      .locator('.start-adventure[data-adventure="sealed-crypt"]')
       .click();
     await page.locator("#adventure").waitFor({ state: "visible" });
 
@@ -287,6 +286,7 @@ async function play(seed, check) {
     assert.deepEqual(await screen(page), shown);
     await server.close();
     server = await startFifthBrowserServer({
+      adventures: [crypt],
       libraryPath,
       seed: seed + 1,
       dmModel: talkingDm(),

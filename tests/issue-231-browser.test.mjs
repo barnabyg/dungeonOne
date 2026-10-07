@@ -1,6 +1,6 @@
-// #231, browser → API → storage: the Abandoned Delve's barracks skeletons
-// are the bestiary's Skeleton under the module's own names, and the fight
-// shows those names in the initiative table and the narration.
+// #231, browser → API → storage: two skeletons are the bestiary's Skeleton
+// under the module's own names, and the fight shows those names in the
+// initiative table and the narration.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -8,19 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { launch } from "./fixtures/session-layout.mjs";
-
-/** Clicks an action control and waits for its history entry. */
-async function click(page, action, target) {
-  const count = await page.locator("#log li").count();
-  await page
-    .locator(`button.act[data-action="${action}"][data-target="${target}"]`)
-    .click();
-  await page.waitForFunction(
-    (seen) =>
-      document.querySelectorAll("#log li:not([data-pending])").length > seen,
-    count,
-  );
-}
+import { skeletonBarracks } from "./fixtures/renamed-skeletons.mjs";
 
 test(
   "a renamed bestiary monster fights under the module's name",
@@ -28,6 +16,8 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-231-browser-"));
     const server = await startFifthBrowserServer({
+      adventures: [skeletonBarracks],
+      qualifies: () => true,
       libraryPath: join(directory, "characters.json"),
       seed: 0,
     });
@@ -44,12 +34,12 @@ test(
       await page.locator("#save-character").click();
       await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
       await page
-        .locator('.start-adventure[data-adventure="abandoned-delve"]')
+        .locator('.start-adventure[data-adventure="skeleton-barracks"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
-
-      await click(page, "move", "gate-hall");
-      await click(page, "move", "barracks");
+      // The fight starts as Ada arrives.
+      await page.locator("#initiative-rows tr").first().waitFor();
+      await page.locator("#log li:not([data-pending])").first().waitFor();
       const rows = await page.locator("#initiative-rows tr").allTextContents();
       assert.equal(rows.length, 3);
       assert.ok(rows.some((row) => row.includes("Tall Skeleton")));

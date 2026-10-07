@@ -11,27 +11,13 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
-import { validateModule } from "./fixtures/bestiary.mjs";
+import { fightRoom } from "./fixtures/modules.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 
-/** The Goblin in the Cellar with the bestiary's Ghoul in the goblin's place. */
-const cellarFile = JSON.parse(
-  await readFile(
-    new URL("../adventures/5e/cellar-goblin.json", import.meta.url),
-    "utf8",
-  ),
-);
-const ghoulCellar = validateModule({
-  ...cellarFile,
-  encounters: [
-    {
-      id: "cellar-goblin",
-      opponents: [{ id: "ghoul", monster: "ghoul" }],
-      victoryEndingId: "goblin-defeated",
-      defeatEndingId: "fallen-in-the-cellar",
-    },
-  ],
-});
+/** The lone goblin's room with the bestiary's Ghoul in the goblin's place. */
+const ghoulCellar = fightRoom("ghoul-cellar", "The Ghoul Cellar", [
+  { id: "ghoul", monster: "ghoul" },
+]);
 
 const paralysed = (state) =>
   (state.encounter?.conditions ?? []).some(

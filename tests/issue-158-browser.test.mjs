@@ -10,7 +10,6 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
@@ -20,6 +19,7 @@ import {
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import { loneGoblin } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -29,9 +29,6 @@ const launch = () =>
       : { headless: true },
   );
 
-const cellar = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "cellar-goblin",
-);
 const DEFAULT_CHOICES = {
   placement: {
     strength: 0,
@@ -61,10 +58,10 @@ function firstFighter(seed) {
   });
 }
 
-/** A cellar seed where attacking every turn ends in `wanted`. */
+/** A lone goblin seed where attacking every turn ends in `wanted`. */
 function seedFor(wanted) {
   for (let seed = 0; seed < 5000; seed++) {
-    const runtime = createFifthRuntime(cellar, firstFighter(seed));
+    const runtime = createFifthRuntime(loneGoblin, firstFighter(seed));
     const random = createSeededRandom(sessionSeed(seed, 1));
     let state = runtime.handleAction(
       runtime.createSession(),
@@ -82,7 +79,7 @@ function seedFor(wanted) {
       return seed;
     }
   }
-  throw new Error(`no cellar seed ending in ${wanted}`);
+  throw new Error(`no lone goblin seed ending in ${wanted}`);
 }
 
 async function createAndStart(page, url) {
@@ -92,9 +89,7 @@ async function createAndStart(page, url) {
   await page.locator("#character-name").fill("Ada");
   await page.locator("#save-character").click();
   await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-  await page
-    .locator('.start-adventure[data-adventure="cellar-goblin"]')
-    .click();
+  await page.locator('.start-adventure[data-adventure="lone-goblin"]').click();
   await page.locator("#adventure").waitFor({ state: "visible" });
 }
 
@@ -209,13 +204,17 @@ for (const viewport of [
   { width: 375, height: 812 },
 ]) {
   test(
-    `winning the goblin cellar shows the victory ending in place of the actions (${viewport.width}px)`,
+    `winning the lone goblin fight shows the victory ending in place of the actions (${viewport.width}px)`,
     { timeout: 120000 },
     async () => {
       const seed = seedFor("victory");
       const directory = await mkdtemp(join(tmpdir(), "issue-158-victory-"));
       const libraryPath = join(directory, "characters.json");
-      const server = await startFifthBrowserServer({ libraryPath, seed });
+      const server = await startFifthBrowserServer({
+        adventures: [loneGoblin],
+        libraryPath,
+        seed,
+      });
       const browser = await launch();
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(5000);
@@ -317,7 +316,11 @@ test(
     const seed = seedFor("defeat");
     const directory = await mkdtemp(join(tmpdir(), "issue-158-defeat-"));
     const libraryPath = join(directory, "characters.json");
-    const server = await startFifthBrowserServer({ libraryPath, seed });
+    const server = await startFifthBrowserServer({
+      adventures: [loneGoblin],
+      libraryPath,
+      seed,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 375, height: 812 },

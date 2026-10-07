@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { loneGoblin, ratlessTunnels } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -248,6 +249,7 @@ for (const viewport of [
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-152-"));
       const server = await startFifthBrowserServer({
+        adventures: [ratlessTunnels, loneGoblin],
         libraryPath: join(directory, "characters.json"),
         seed: 0,
       });
@@ -309,7 +311,7 @@ for (const viewport of [
         await page.locator("#cancel-delete").click();
 
         await page
-          .locator('.start-adventure[data-adventure="smugglers-cellar"]')
+          .locator('.start-adventure[data-adventure="quiet-tunnels"]')
           .click();
         await page.locator("#adventure").waitFor({ state: "visible" });
         await page.locator("#action-bar button.explore").first().waitFor();
@@ -323,7 +325,7 @@ for (const viewport of [
 
         await create(page, "Bea");
         await page
-          .locator('.start-adventure[data-adventure="cellar-goblin"]')
+          .locator('.start-adventure[data-adventure="lone-goblin"]')
           .click();
         await page.locator("#encounter").waitFor({ state: "visible" });
         await check(page, "fight");

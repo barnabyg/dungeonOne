@@ -12,7 +12,6 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
@@ -22,6 +21,7 @@ import {
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import { loneGoblin, ratlessTunnels } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -60,14 +60,10 @@ function firstFighter(seed) {
   });
 }
 
-const cellarGoblin = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "cellar-goblin",
-);
-
-/** A seed where The Goblin in the Cellar opens with an initiative roll-off. */
+/** A seed where the lone goblin fight opens with an initiative roll-off. */
 function rollOffSeed() {
   for (let seed = 0; seed < 5000; seed++) {
-    const runtime = createFifthRuntime(cellarGoblin, firstFighter(seed));
+    const runtime = createFifthRuntime(loneGoblin, firstFighter(seed));
     const { state } = runtime.handleAction(
       runtime.createSession(),
       { type: "begin" },
@@ -138,6 +134,7 @@ for (const viewport of [
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-157-"));
       const server = await startFifthBrowserServer({
+        adventures: [loneGoblin],
         libraryPath: join(directory, "characters.json"),
         seed: rollOff,
       });
@@ -145,7 +142,7 @@ for (const viewport of [
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(5000);
       try {
-        await start(page, server.url, "cellar-goblin");
+        await start(page, server.url, "lone-goblin");
 
         // In the fight, the room's details are collapsed, and no "None."
         // rows render anywhere.
@@ -274,6 +271,7 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-157-"));
     const server = await startFifthBrowserServer({
+      adventures: [ratlessTunnels],
       libraryPath: join(directory, "characters.json"),
       seed: 0,
     });
@@ -283,7 +281,7 @@ test(
     });
     page.setDefaultTimeout(5000);
     try {
-      await start(page, server.url, "smugglers-cellar");
+      await start(page, server.url, "quiet-tunnels");
       const act = async (name) => {
         const count = await page.locator("#log li").count();
         await page.getByRole("button", { name, exact: true }).click();

@@ -7,10 +7,7 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  loadBuiltInFifthAdventures,
-  loadFifthAdventure,
-} from "../dist/adventure-5e.js";
+import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { formatCoins } from "../dist/equipment-5e.js";
 import {
@@ -27,14 +24,10 @@ import {
   startFifthAdventure,
 } from "../dist/session-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import { lintelBarrow as barrow, moduleFile } from "./fixtures/modules.mjs";
 
-const adventures = await loadBuiltInFifthAdventures();
-const barrow = adventures.find(({ id }) => id === "robbers-barrow");
-const barrowFile = JSON.parse(
-  await readFile(
-    new URL("../adventures/5e/robbers-barrow.json", import.meta.url),
-  ),
-);
+const adventures = [barrow];
+const barrowFile = moduleFile("lintel-barrow");
 const changed = (change) => {
   const copy = structuredClone(barrowFile);
   change(copy);
@@ -45,7 +38,7 @@ const pouchOf = (module) =>
   hall(module).items.find(({ id }) => id === "coin-pouch");
 
 const POUCH = 250; // 2 gp 5 sp
-const POUCH_ID = "robbers-barrow/coin-pouch";
+const POUCH_ID = "lintel-barrow/coin-pouch";
 
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): the rewards tests' Ada.
 const sheet = buildFighter(
@@ -112,18 +105,6 @@ test("coin is shown in mixed denominations from copper", () => {
   assert.equal(formatCoins(7), "7 cp");
   assert.equal(formatCoins(340), "3 gp 4 sp");
   assert.equal(formatCoins(1234), "12 gp 3 sp 4 cp");
-});
-
-test("the barrow's goblin carries coin, authored in gold and silver", () => {
-  assert.deepEqual(pouchOf(barrow), {
-    id: "coin-pouch",
-    name: "Pouch of Old Coins",
-    description:
-      "A greasy leather pouch of tarnished coins, robbed from the barrow's dead.",
-    kind: "coin",
-    coins: { gp: 2, sp: 5 },
-    hiddenIn: "barrow-goblin",
-  });
 });
 
 test("the validator rejects coin that is not hidden in a feature or carried by an opponent", () => {

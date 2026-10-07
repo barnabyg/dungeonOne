@@ -13,6 +13,7 @@ import {
   buildFighter,
   defaultPlacement,
 } from "../dist/fighter-5e.js";
+import { loneGoblin } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -86,7 +87,11 @@ for (const [width, height, seed] of [
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-184-"));
       const libraryPath = join(directory, "characters.json");
-      const server = await startFifthBrowserServer({ libraryPath, seed });
+      const server = await startFifthBrowserServer({
+        adventures: [loneGoblin],
+        libraryPath,
+        seed,
+      });
       const browser = await launch();
       const page = await browser.newPage({ viewport: { width, height } });
       page.setDefaultTimeout(5000);

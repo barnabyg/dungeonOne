@@ -4,7 +4,6 @@
 // rejection card and the AI DM still get the sentence.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { act, currentCombatant, startEncounter } from "../dist/encounter-5e.js";
 import {
   buildFighter,
@@ -14,8 +13,10 @@ import {
 } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime, SHORT_REASONS } from "../dist/runtime-5e.js";
-
-const adventures = await loadBuiltInFifthAdventures();
+import {
+  FIXTURE_MODULES as adventures,
+  loneGoblin,
+} from "./fixtures/modules.mjs";
 
 // The #156 fighter: Con 14 (+2), 12 HP at level 1.
 const sheet = buildFighter(
@@ -96,7 +97,7 @@ function engineAction({ action, target }) {
   }
 }
 
-/** Every state of seeded playthroughs of both adventures at levels 1 and 2. */
+/** Every state of seeded playthroughs of every fixture module at levels 1 and 2. */
 function* playthroughStates() {
   for (const adventure of adventures) {
     for (let seed = 0; seed < 25; seed++) {
@@ -213,7 +214,7 @@ test("the encounter engine codes its refusals beside the sentence (#183)", () =>
 });
 
 test("a refused AI DM tool call still hands the AI DM the sentence, not the code (#183)", () => {
-  const adventure = adventures.find(({ id }) => id === "cellar-goblin");
+  const adventure = loneGoblin;
   const runtime = createFifthRuntime(adventure, sheet);
   const random = createSeededRandom(2);
   const begun = runtime.handleAction(

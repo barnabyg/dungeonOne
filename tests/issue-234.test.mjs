@@ -1,12 +1,10 @@
 // #234: a ghoul's claws paralyse. A paralysed combatant can't act, fails
 // Strength and Dexterity saves, is attacked with advantage and critically hit
 // by every hit, and repeats its Constitution save at the end of each of its
-// turns. The AI DM can't act for a paralysed character, and the Abandoned
-// Delve still qualifies with its Ghoul.
+// turns. The AI DM can't act for a paralysed character, and the balance gate
+// plays the paralysis.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { gateAdventure } from "../dist/balance-5e.js";
 import { validateFifthBestiary } from "../dist/bestiary-5e.js";
 import {
@@ -19,7 +17,8 @@ import {
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
-import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
+import { bestiary } from "./fixtures/bestiary.mjs";
+import { fightRoom } from "./fixtures/modules.mjs";
 import { firstFighter } from "./fixtures/session-layout.mjs";
 
 /** Returns the queued values in order, checking each die's sides. */
@@ -435,24 +434,10 @@ test("the bestiary validator needs a paralysis to say how long it lasts", () => 
   );
 });
 
-/** The Goblin in the Cellar's file, with a Ghoul in place of the goblin. */
-const cellarFile = JSON.parse(
-  await readFile(
-    new URL("../adventures/5e/cellar-goblin.json", import.meta.url),
-    "utf8",
-  ),
-);
-const ghoulCellar = validateModule({
-  ...cellarFile,
-  encounters: [
-    {
-      id: "cellar-goblin",
-      opponents: [{ id: "ghoul", monster: "ghoul" }],
-      victoryEndingId: "goblin-defeated",
-      defeatEndingId: "fallen-in-the-cellar",
-    },
-  ],
-});
+/** The lone goblin's room with a Ghoul in place of the goblin. */
+const ghoulCellar = fightRoom("ghoul-cellar", "The Ghoul Cellar", [
+  { id: "ghoul", monster: "ghoul" },
+]);
 
 const paralysedNow = (state) =>
   (state.encounter?.conditions ?? []).some(
@@ -531,15 +516,7 @@ test("the AI DM's attempts to act for a paralysed character get the engine's ref
   }
 });
 
-test("the balance gate plays the Ghoul's paralysis, and the Abandoned Delve qualifies", async () => {
-  const delve = (await loadBuiltInFifthAdventures()).find(
-    ({ id }) => id === "abandoned-delve",
-  );
-  const gated = gateAdventure(delve);
-  assert.ok(
-    gated.ok && gated.verdict.qualified,
-    "the Abandoned Delve qualifies",
-  );
+test("the balance gate plays the Ghoul's paralysis", () => {
   const withoutRiders = structuredClone(ghoulCellar);
   for (const opponent of withoutRiders.encounters[0].opponents) {
     opponent.statBlock = {

@@ -1,18 +1,19 @@
-// #198: a full loot run through The Abandoned Delve fits the phone action
-// bar. Ada takes both potions, the key and every treasure on the push-deeper
-// route, opens the vault, fights the ghoul and climbs the shaft, and after
-// every action the newest history entry and the actions are on screen
-// together (#154).
+// #198: a full loot run fits the phone action bar. In a crypt with a way out,
+// Ada forces a door, talks, searches for a trap, takes both potions, the key,
+// the coins and every treasure, unlocks the strongroom, fights the warden and
+// walks out, and after every action the newest history entry and the actions
+// are on screen together (#154).
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import { validateModule } from "./fixtures/bestiary.mjs";
+import { moduleFile, room } from "./fixtures/modules.mjs";
 import {
   act,
   assertTogether,
@@ -23,43 +24,92 @@ import {
   narratingDm,
 } from "./fixtures/session-layout.mjs";
 
-const delve = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "abandoned-delve",
-);
+// The sealed crypt made into a loot run: its stair is a way out, treasure
+// and coins wait in the bowl, the strongbox and on the warden, and beating
+// the warden no longer ends the adventure. The bound smuggler sits in the
+// flooded cell, so no room offers more actions than the phone dock can show.
+const lootedCrypt = (() => {
+  const module = moduleFile("sealed-crypt");
+  module.id = "looted-crypt";
+  module.title = "The Looted Crypt";
+  room(module, "crypt-stair").exit = true;
+  room(module, "flooded-cell").creatures = room(module, "hall").creatures;
+  delete room(module, "hall").creatures;
+  room(module, "offering-room").items.push({
+    id: "silver-chalice",
+    name: "Silver Chalice",
+    description: "A tarnished silver chalice among the old coins.",
+    kind: "treasure",
+    treasure: "art-25gp",
+    hiddenIn: "offering-bowl",
+  });
+  room(module, "strongroom").items.push({
+    id: "strongbox-coins",
+    name: "Gold Coins",
+    description: "Handfuls of old gold coins.",
+    kind: "coin",
+    coins: { gp: 40 },
+    hiddenIn: "strongbox",
+  });
+  room(module, "tomb").items.push({
+    id: "grave-ring",
+    name: "Gold Ring",
+    description: "A heavy gold ring set with a red stone.",
+    kind: "treasure",
+    treasure: "art-25gp",
+    hiddenIn: "risen-warden",
+  });
+  delete module.encounters[0].victoryEndingId;
+  module.endings = [
+    {
+      id: "out-with-the-loot",
+      kind: "escape-with-loot",
+      title: "Out with the loot",
+      text: "You climb back up the stair with the crypt's treasure on your back.",
+      xp: 200,
+    },
+    {
+      id: "out-empty-handed",
+      kind: "escape-without-loot",
+      title: "Out empty-handed",
+      text: "You climb back up the stair alive, with nothing to show for it.",
+    },
+    ...module.endings.filter(({ kind }) => kind === "defeat"),
+  ];
+  return validateModule(module);
+})();
 
-// The push-deeper route as the browser's actions, with the storeroom's
-// barrel potion on the way. Moving into a guarded room starts its fight.
-const PUSH_DEEPER = [
-  ["examine", "chalk-marks"],
-  ["move", "gate-hall"],
+// The whole loot run as the browser's actions. Moving into a guarded room
+// starts its fight.
+const LOOT_RUN = [
+  ["examine", "carved-warning"],
   ["force", "swollen-door"],
-  ["move", "storeroom"],
-  ["examine", "old-barrel"],
-  ["take", "barrel-potion"],
-  ["move", "gate-hall"],
-  ["move", "guard-post"],
-  ["examine", "zombie"],
-  ["take", "guard-purse"],
-  ["examine", "weapon-rack"],
-  ["take", "rack-potion"],
-  ["move", "dry-well"],
-  ["talk", "the-vault"],
-  ["search", "dry-well"],
-  ["move", "shrine"],
-  ["examine", "altar"],
-  ["take", "bronze-key"],
-  ["take", "candlesticks"],
-  ["move", "shaft-bottom"],
-  ["unlock", "vault-door"],
-  ["move", "vault"],
-  ["examine", "ghoul"],
-  ["take", "jewelled-goblet"],
-  ["examine", "iron-chest"],
-  ["take", "coin-chest"],
-  ["move", "shaft-bottom"],
+  ["move", "flooded-cell"],
+  ["examine", "wall-shelf"],
+  ["take", "cell-potion"],
+  ["talk", "warden"],
+  ["move", "crypt-stair"],
+  ["move", "hall"],
+  ["search", "hall"],
+  ["move", "offering-room"],
+  ["examine", "offering-bowl"],
+  ["take", "iron-key"],
+  ["take", "silver-chalice"],
+  ["move", "hall"],
+  ["unlock", "iron-door"],
+  ["move", "strongroom"],
+  ["examine", "strongbox"],
+  ["take", "strongroom-potion"],
+  ["take", "strongbox-coins"],
+  ["move", "hall"],
+  ["move", "tomb"],
+  ["examine", "risen-warden"],
+  ["take", "grave-ring"],
+  ["move", "hall"],
+  ["move", "crypt-stair"],
 ];
-// At the shaft, fully laden, Ada looks over what she carries.
-const CARRIED = ["barrel-potion", "bronze-key", "candlesticks"];
+// At the stair, fully laden, Ada looks over what she carries.
+const CARRIED = ["iron-key", "cell-potion", "silver-chalice"];
 
 const ENGINE = {
   examine: (id) => ({ type: "examine", targetId: id }),
@@ -71,15 +121,15 @@ const ENGINE = {
   unlock: (id) => ({ type: "unlock", doorId: id }),
 };
 
-/** A seed where Ada forces the door and survives every fight on the route. */
+/** A seed where Ada forces the door and survives the whole loot run. */
 function findSeed() {
   for (let seed = 0; seed < 5000; seed++) {
-    const runtime = createFifthRuntime(delve, firstFighter(seed));
+    const runtime = createFifthRuntime(lootedCrypt, firstFighter(seed));
     const random = createSeededRandom(sessionSeed(seed, 1));
     const run = (state, action) =>
       runtime.handleAction(state, action, random).state;
     let state = run(runtime.createSession(), { type: "begin" });
-    for (const [action, id] of PUSH_DEEPER) {
+    for (const [action, id] of LOOT_RUN) {
       if (state.status !== "playing") {
         break;
       }
@@ -99,14 +149,15 @@ function findSeed() {
     }
     if (
       state.status === "playing" &&
-      state.roomId === "shaft-bottom" &&
-      state.inventory.includes("jewelled-goblet") &&
-      state.inventory.includes("barrel-potion")
+      state.roomId === "crypt-stair" &&
+      state.inventory.includes("grave-ring") &&
+      state.inventory.includes("cell-potion") &&
+      state.inventory.includes("strongroom-potion")
     ) {
       return seed;
     }
   }
-  throw new Error("no seed where Ada carries the whole route's loot out");
+  throw new Error("no seed where Ada carries the whole run's loot out");
 }
 
 const seed = findSeed();
@@ -116,11 +167,14 @@ for (const viewport of [
   { width: 375, height: 812 },
 ]) {
   test(
-    `a full loot run through the Abandoned Delve keeps actions and history on screen (${viewport.width}px)`,
+    `a full loot run keeps actions and history on screen (${viewport.width}px)`,
     { timeout: 180000 },
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-198-"));
+      // The server offers only the loot run, whatever its gate standing.
       const server = await startFifthBrowserServer({
+        adventures: [lootedCrypt],
+        qualifies: () => true,
         libraryPath: join(directory, "characters.json"),
         seed,
         dmModel: narratingDm(),
@@ -139,13 +193,13 @@ for (const viewport of [
         await page.locator("#save-character").click();
         await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
         await page
-          .getByRole("button", { name: "Start The Abandoned Delve" })
+          .getByRole("button", { name: "Start The Looted Crypt" })
           .click();
         await page.locator("#adventure").waitFor({ state: "visible" });
         await page.locator("#log li").first().waitFor();
         await assertTogether(page, "start");
 
-        for (const [action, target] of PUSH_DEEPER) {
+        for (const [action, target] of LOOT_RUN) {
           await explore(page, action, target);
           while (
             (await page

@@ -3,7 +3,6 @@
 // the balance gate counts both.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,6 +14,7 @@ import { validateFifthBestiary } from "../dist/bestiary-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
+import { fightRoom, moduleFile } from "./fixtures/modules.mjs";
 
 /** Returns the queued values in order, checking each die's sides. */
 function dice(...queue) {
@@ -499,12 +499,7 @@ test("the bestiary and module validators refuse a damage type outside SRD 5.2", 
     /save proficiency 1 must be one of strength/,
   );
   // A trap's damage type is checked the same way.
-  const crypt = JSON.parse(
-    readFileSync(
-      new URL("../adventures/5e/warden-crypt.json", import.meta.url),
-      "utf8",
-    ),
-  );
+  const crypt = moduleFile("sealed-crypt");
   crypt.passages.find(({ trap }) => trap !== undefined).trap.damage.type =
     "darts";
   assert.throws(() => validateModule(crypt), TYPES);
@@ -526,32 +521,14 @@ const CHOICES = {
   masteries: ["dagger", "mace", "shortsword"],
 };
 
-/** The Goblin in the Cellar's file, with `opponents` in place of the goblin. */
-const cellarFile = JSON.parse(
-  readFileSync(
-    new URL("../adventures/5e/cellar-goblin.json", import.meta.url),
-    "utf8",
-  ),
-);
-const cellarWith = (opponents) =>
-  validateModule({
-    ...cellarFile,
-    encounters: [
-      {
-        id: "cellar-goblin",
-        opponents,
-        victoryEndingId: "goblin-defeated",
-        defeatEndingId: "fallen-in-the-cellar",
-      },
-    ],
-  });
-
+/** The lone goblin's room with `opponents` in its place, as module `id`. */
 /** A Skeleton under `name` with `defenses` in place of its own. */
 const skeletonWith = (name, defenses) => {
   const rest = structuredClone(monster("skeleton").statBlock);
   delete rest.damageVulnerabilities;
   delete rest.damageImmunities;
-  return cellarWith([
+  const id = `${name.toLowerCase().replace(" ", "-")}-cellar`;
+  return fightRoom(id, `The ${name} Cellar`, [
     {
       id: "foe",
       name,
@@ -587,7 +564,9 @@ test("the result card says when a mace's damage is doubled, halved or ignored", 
   const sheet = await ada();
   const cases = [
     {
-      module: cellarWith([{ id: "foe", monster: "skeleton" }]),
+      module: fightRoom("skeleton-cellar", "The Skeleton Cellar", [
+        { id: "foe", monster: "skeleton" },
+      ]),
       by: "vulnerability",
       text: /Hit\. Damage \d+ \+ \d+ = (\d+) bludgeoning, doubled to (\d+) \(vulnerable\); Skeleton has \d+\/13 HP\./u,
       dealt: (rolled) => rolled * 2,
@@ -658,7 +637,9 @@ function toFortitude(sheet, module, seed) {
 
 test("Undead Fortitude is narrated, carded and replays exactly from a save", async () => {
   const sheet = await ada();
-  const module = cellarWith([{ id: "zombie", monster: "zombie" }]);
+  const module = fightRoom("zombie-cellar", "The Zombie Cellar", [
+    { id: "zombie", monster: "zombie" },
+  ]);
   const outcomes = new Set();
   for (let seed = 0; outcomes.size < 2; seed++) {
     assert.ok(seed < 200, "seeds show a success and a failure");

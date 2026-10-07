@@ -1,8 +1,8 @@
 {
   "kind": "dungeon-one-5e-adventure",
   "formatVersion": 16,
-  "id": "three-goblins",
-  "title": "Three Goblins",
+  "id": "goblin-trio",
+  "title": "The Goblin Trio",
   "objective": "Clear the goblin band out of the mill storeroom.",
   "recommendedLevels": {
     "min": 1,
