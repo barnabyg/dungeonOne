@@ -1,5 +1,5 @@
 /**
- * The 5e bestiary (format version 5): the shared monsters adventure modules
+ * The 5e bestiary (format version 6): the shared monsters adventure modules
  * fight, each an SRD 5.2 stat block (or a house one derived from it) under an
  * id, with the character levels it suits. A module's opponent names a
  * bestiary monster by id, or authors a one-off stat block inline. A stat
@@ -8,8 +8,9 @@
  * proficiencies, damage resistances,
  * vulnerabilities and immunities (SRD 5.2 damage types) and condition
  * immunities, and give an attack a rider: extra damage on a hit and a
- * condition, after a saving throw if it names one. Later tickets extend the
- * bestiary with morale and treasure types.
+ * condition, after a saving throw if it names one. Every stat block gives a
+ * morale DC (#237, a house rule) or `"never"` for one that never checks
+ * morale; an Undead never does. A later ticket adds treasure types.
  *
  * Validation names the first problem it finds. A bestiary in any other format
  * version is refused with a message naming the file.
@@ -38,7 +39,7 @@ import {
   fail,
 } from "./json-shape.js";
 
-export const FIFTH_BESTIARY_FORMAT = 5;
+export const FIFTH_BESTIARY_FORMAT = 6;
 
 /** The monster traits the engine applies. */
 export const MONSTER_TRAITS = [
@@ -97,6 +98,12 @@ export type StatBlock = Readonly<{
   damageImmunities?: readonly DamageType[];
   /** Conditions it cannot be given. */
   conditionImmunities?: readonly ConditionKind[];
+  /**
+   * Its morale DC, a house rule (#237): the Wisdom saving throw it makes when its
+   * side's first combatant falls and at half strength, fleeing on a failure.
+   * Undead and mindless monsters never check.
+   */
+  morale: number | "never";
 }>;
 
 /**
@@ -256,6 +263,7 @@ export function statBlock(value: unknown, where: string): StatBlock {
       "challengeRating",
       "xp",
       "attacks",
+      "morale",
     ],
     [
       "multiattack",
@@ -340,6 +348,16 @@ export function statBlock(value: unknown, where: string): StatBlock {
     "conditionImmunities",
     "condition immunity",
   );
+  const type = text(block.type, `${where} type`, 60);
+  const morale =
+    block.morale === "never"
+      ? "never"
+      : typeof block.morale === "number"
+        ? integer(block.morale, `${where} morale`, 1, 30)
+        : fail(`${where} morale must be a DC from 1 to 30, or "never".`);
+  if (/^undead\b/i.test(type) && morale !== "never") {
+    fail(`${where} is Undead, so its morale must be "never".`);
+  }
   if (
     typeof block.challengeRating !== "string" ||
     !/^(0|1\/8|1\/4|1\/2|[1-9]|[12][0-9]|30)$/.test(block.challengeRating)
@@ -349,7 +367,7 @@ export function statBlock(value: unknown, where: string): StatBlock {
   return {
     name: text(block.name, `${where} name`, 60),
     size: text(block.size, `${where} size`, 20),
-    type: text(block.type, `${where} type`, 60),
+    type,
     armorClass: integer(block.armorClass, `${where} armorClass`, 1, 30),
     hitPoints: {
       average: integer(hitPoints.average, `${where} hitPoints average`, 1, 999),
@@ -370,6 +388,7 @@ export function statBlock(value: unknown, where: string): StatBlock {
       Object.entries(defenses).filter(([, types]) => types !== undefined),
     ),
     ...(conditionImmunities === undefined ? {} : { conditionImmunities }),
+    morale,
   };
 }
 

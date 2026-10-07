@@ -323,14 +323,18 @@ for (const viewport of [
         );
         const hits = attacks.filter((text) => !/ Miss /.test(text));
         assert.ok(hits.length > 0);
-        // Damage is emphasised; the hit or miss is a tag.
+        // Damage is emphasised; the hit or miss is a tag, as is a saving
+        // throw's success or failure (morale, #237).
         assert.equal(
           await page.locator("#log .compact .roll.damage strong").count(),
           hits.length,
         );
+        const saves = (await compactTexts(page)).filter((text) =>
+          text.includes(" saving throw "),
+        );
         assert.equal(
           await page.locator("#log .compact .tag").count(),
-          attacks.length,
+          attacks.length + saves.length,
         );
 
         // Screen readers get every line's engine text, not the compact form,
@@ -486,7 +490,7 @@ for (const viewport of [
             "utf8",
           ),
         );
-        assert.equal(file.formatVersion, 18);
+        assert.equal(file.formatVersion, 19);
         assert.ok(
           file.history.some(({ cards }) =>
             cards.some(({ lines }) =>

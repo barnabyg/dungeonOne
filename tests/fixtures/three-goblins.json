@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 13,
+  "formatVersion": 14,
   "id": "three-goblins",
   "title": "Three Goblins",
   "objective": "Clear the goblin band out of the mill storeroom.",
@@ -48,6 +48,7 @@
             },
             "challengeRating": "1/8",
             "xp": 25,
+            "morale": 8,
             "attacks": [
               {
                 "name": "Dagger",
@@ -85,6 +86,7 @@
             },
             "challengeRating": "1/8",
             "xp": 25,
+            "morale": 8,
             "attacks": [
               {
                 "name": "Dagger",
@@ -122,6 +124,7 @@
             },
             "challengeRating": "1/4",
             "xp": 50,
+            "morale": 8,
             "attacks": [
               {
                 "name": "Scimitar",

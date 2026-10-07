@@ -58,8 +58,18 @@
  * - Rampage (#235): when an opponent with it drops a combatant to 0 HP on
  *   its turn, it makes one bonus attack at once, chosen as above.
  * - Nimble Escape (#235): a bonus-action Disengage. Without positions there
- *   are no opportunity attacks to avoid, so it changes nothing in a fight
- *   yet; the flag waits for fleeing (#237).
+ *   are no opportunity attacks to avoid, so it changes nothing in a fight,
+ *   fleeing included (#237).
+ * - Morale (#237, a house rule): a side checks morale when its first
+ *   combatant falls, and again when defeat or flight leaves it at half its
+ *   starting numbers or fewer; when both come at once it checks once. Each
+ *   combatant on it still in the fight, with a morale DC and not already
+ *   fleeing, makes a Wisdom saving throw against that DC, in initiative order. One
+ *   that fails flees: on its next turn it leaves the fight instead of
+ *   acting, unless it is incapacitated. Until then it can be attacked, and
+ *   one cut down first is defeated. A side is beaten when each of its
+ *   combatants is defeated or has fled. Undead and mindless monsters have no
+ *   morale DC and never check.
  *
  * The state allows any number of combatants per side.
  */
@@ -242,6 +252,11 @@ export type Combatant = DamageDefenses &
      * attacks, that changes nothing in a fight yet.
      */
     nimbleEscape?: true;
+    /**
+     * Its morale DC (#237): the Wisdom saving throw it makes when its side checks
+     * morale. Without one it never checks.
+     */
+    morale?: number;
   }>;
 
 export type Healing = Readonly<{
@@ -264,6 +279,9 @@ export type InitiativeRoll = Readonly<{
 }>;
 
 export type EncounterOutcome = "ongoing" | "victory" | "defeat";
+
+/** What makes a side check morale: its first fall, then half strength. */
+export type MoraleTrigger = "first-fall" | "half-strength";
 
 export type EncounterState = Readonly<{
   combatants: readonly Combatant[];
@@ -289,6 +307,18 @@ export type EncounterState = Readonly<{
   }>[];
   /** The conditions on living combatants. */
   conditions: readonly Condition[];
+  /** Combatants that failed a morale saving throw; each leaves on its next turn. */
+  fleeing: readonly string[];
+  /** Combatants that left the fight, in the order they left. */
+  fled: readonly string[];
+  /**
+   * Combatants that have exchanged blows: each made an attack or was the
+   * target of one, hit or miss. A fled monster among them gives half its XP
+   * (#237).
+   */
+  engaged: readonly string[];
+  /** The morale checks each side has made; each is made once. */
+  moraleChecks: readonly Readonly<{ side: Side; trigger: MoraleTrigger }>[];
 }>;
 
 export type TurnEconomy = Readonly<{
@@ -449,6 +479,19 @@ export type SaveEvent = Readonly<
   )
 >;
 
+/** A combatant's Wisdom saving throw against its morale DC (#237). */
+export type MoraleEvent = Readonly<{
+  type: "morale";
+  combatantId: string;
+  trigger: MoraleTrigger;
+  d20: number;
+  bonus: number;
+  total: number;
+  dc: number;
+  /** A failure means it flees on its next turn. */
+  success: boolean;
+}>;
+
 export type EncounterEvent =
   | Readonly<{ type: "initiative"; order: readonly InitiativeRoll[] }>
   | Readonly<{ type: "turn"; combatantId: string; round: number }>
@@ -457,6 +500,8 @@ export type EncounterEvent =
   | Readonly<{ type: "vexed"; targetId: string; sourceId: string }>
   | SaveEvent
   | FortitudeEvent
+  | MoraleEvent
+  | Readonly<{ type: "fled"; combatantId: string }>
   | Readonly<{
       type: "condition";
       combatantId: string;
@@ -524,7 +569,8 @@ export type EncounterRefusalCode =
   | "no-uses-left"
   | "full-hp"
   | "interaction-used"
-  | "paralysed";
+  | "paralysed"
+  | "fled";
 
 export type EncounterRejection = Readonly<{
   code: EncounterRefusalCode;
@@ -557,6 +603,30 @@ export function isDefeated(target: Combatant): boolean {
   return target.hp === 0;
 }
 
+/** Whether `entrantId` has fled the fight (#237). */
+export function hasFled(state: EncounterState, entrantId: string): boolean {
+  return state.fled.includes(entrantId);
+}
+
+/**
+ * Whether `entrantId` is fleeing or has fled (#237), or neither.
+ */
+export function moraleStatus(
+  state: EncounterState,
+  entrantId: string,
+): "fleeing" | "fled" | undefined {
+  return hasFled(state, entrantId)
+    ? "fled"
+    : state.fleeing.includes(entrantId)
+      ? "fleeing"
+      : undefined;
+}
+
+/** Defeated or fled: out of the fight. */
+function isOut(state: EncounterState, entrant: Combatant): boolean {
+  return isDefeated(entrant) || hasFled(state, entrant.id);
+}
+
 /** The combatant whose turn it is, or undefined once the encounter is over. */
 export function currentCombatant(state: EncounterState): Combatant | undefined {
   return state.outcome === "ongoing"
@@ -564,7 +634,7 @@ export function currentCombatant(state: EncounterState): Combatant | undefined {
     : undefined;
 }
 
-/** The living combatants on the other side from `actorId`. */
+/** The combatants still in the fight on the other side from `actorId`. */
 export function legalTargets(
   state: EncounterState,
   actorId: string,
@@ -572,7 +642,7 @@ export function legalTargets(
   const actor = combatant(state, actorId);
   return state.order
     .map(({ combatantId }) => combatant(state, combatantId))
-    .filter((target) => target.side !== actor.side && !isDefeated(target));
+    .filter((target) => target.side !== actor.side && !isOut(state, target));
 }
 
 /**
@@ -842,10 +912,134 @@ function rollInitiative(
   return rolls.sort(compare);
 }
 
-function sideDefeated(state: EncounterState, side: Side): boolean {
+/** Every combatant on `side` is defeated or has fled. */
+function sideBeaten(state: EncounterState, side: Side): boolean {
   return state.combatants
     .filter((candidate) => candidate.side === side)
-    .every(isDefeated);
+    .every((candidate) => isOut(state, candidate));
+}
+
+/**
+ * Checks `side`'s morale if its first fall or half strength has come and its
+ * check for it has not been made (#237). Each combatant on it still in the
+ * fight, with a morale DC and not already fleeing, makes a Wisdom saving throw in
+ * initiative order; one that fails is fleeing.
+ */
+function checkMorale(
+  state: EncounterState,
+  side: Side,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  const members = state.combatants.filter(
+    (candidate) => candidate.side === side,
+  );
+  const left = members.filter((member) => !isOut(state, member)).length;
+  const reached: readonly (readonly [MoraleTrigger, boolean])[] = [
+    ["first-fall", members.some(isDefeated)],
+    ["half-strength", left * 2 <= members.length],
+  ];
+  const due = reached.flatMap(([trigger, now]) =>
+    now &&
+    !state.moraleChecks.some(
+      (check) => check.side === side && check.trigger === trigger,
+    )
+      ? [trigger]
+      : [],
+  );
+  // Both triggers can come at once (a pair's first fall): the side checks
+  // once, the event names the first, and both are marked made.
+  const [trigger] = due;
+  if (trigger === undefined) {
+    return state;
+  }
+  const fleeing = [...state.fleeing];
+  for (const { combatantId } of state.order) {
+    const member = combatant(state, combatantId);
+    if (
+      member.side !== side ||
+      member.morale === undefined ||
+      isOut(state, member) ||
+      fleeing.includes(member.id)
+    ) {
+      continue;
+    }
+    const d20 = random.roll(20);
+    const bonus = member.saves.wisdom;
+    const success = d20 + bonus >= member.morale;
+    events.push({
+      type: "morale",
+      combatantId: member.id,
+      trigger,
+      d20,
+      bonus,
+      total: d20 + bonus,
+      dc: member.morale,
+      success,
+    });
+    if (!success) {
+      fleeing.push(member.id);
+    }
+  }
+  return {
+    ...state,
+    fleeing,
+    moraleChecks: [
+      ...state.moraleChecks,
+      ...due.map((made) => ({ side, trigger: made })),
+    ],
+  };
+}
+
+/** Ends the fight once a side is beaten; every condition ends with it. */
+function concludeIfOver(
+  state: EncounterState,
+  events: EncounterEvent[],
+): EncounterState {
+  const outcome = sideBeaten(state, "opponents")
+    ? "victory"
+    : sideBeaten(state, "party")
+      ? "defeat"
+      : "ongoing";
+  if (outcome === "ongoing") {
+    return state;
+  }
+  for (const { targetId, kind } of state.conditions) {
+    events.push({
+      type: "condition-ended",
+      combatantId: targetId,
+      kind,
+      reason: "fight-over",
+    });
+  }
+  events.push({ type: "ended", outcome });
+  return { ...state, outcome, conditions: [], fleeing: [] };
+}
+
+/**
+ * A fleeing combatant leaves the fight on its turn. Its conditions end
+ * silently, as a defeated one's do, and its going may bring its side to
+ * half strength.
+ */
+function flee(
+  state: EncounterState,
+  entrant: Combatant,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  events.push({ type: "fled", combatantId: entrant.id });
+  const gone: EncounterState = {
+    ...state,
+    fleeing: state.fleeing.filter((id) => id !== entrant.id),
+    fled: [...state.fled, entrant.id],
+    conditions: state.conditions.filter(
+      ({ targetId }) => targetId !== entrant.id,
+    ),
+  };
+  return concludeIfOver(
+    checkMorale(gone, entrant.side, random, events),
+    events,
+  );
 }
 
 /**
@@ -887,10 +1081,10 @@ export function damageTaken(
   return { damage, damageAdjustment: { by, rolled } };
 }
 
-/** Alive and able to act, for Pack Tactics. */
+/** In the fight and able to act, for Pack Tactics. */
 function ableToAct(state: EncounterState, entrant: Combatant): boolean {
   return (
-    !isDefeated(entrant) && incapacitatedBy(state, entrant.id) === undefined
+    !isOut(state, entrant) && incapacitatedBy(state, entrant.id) === undefined
   );
 }
 
@@ -1262,16 +1456,26 @@ function resolveAttack(
       ({ sourceId, targetId }) =>
         sourceId !== actor.id || targetId !== target.id,
     ),
+    engaged: [
+      ...state.engaged,
+      ...[actor.id, target.id].filter((id) => !state.engaged.includes(id)),
+    ],
   };
   const defeated = hpLeft === 0 && target.hp > 0;
   if (defeated) {
     events.push({ type: "defeated", combatantId: target.id });
-    next = {
-      ...next,
-      conditions: next.conditions.filter(
-        ({ targetId }) => targetId !== target.id,
-      ),
-    };
+    next = checkMorale(
+      {
+        ...next,
+        conditions: next.conditions.filter(
+          ({ targetId }) => targetId !== target.id,
+        ),
+        fleeing: next.fleeing.filter((id) => id !== target.id),
+      },
+      target.side,
+      random,
+      events,
+    );
   } else if (hit && weapon.mastery === "Sap") {
     next = {
       ...next,
@@ -1294,24 +1498,7 @@ function resolveAttack(
   if (hit && !defeated) {
     next = applyRiderCondition(next, actor, target, weapon, random, events);
   }
-  const outcome = sideDefeated(next, "opponents")
-    ? "victory"
-    : sideDefeated(next, "party")
-      ? "defeat"
-      : "ongoing";
-  if (outcome !== "ongoing") {
-    for (const { targetId, kind } of next.conditions) {
-      events.push({
-        type: "condition-ended",
-        combatantId: targetId,
-        kind,
-        reason: "fight-over",
-      });
-    }
-    next = { ...next, outcome, conditions: [] };
-    events.push({ type: "ended", outcome });
-  }
-  return { state: next, events };
+  return { state: concludeIfOver(next, events), events };
 }
 
 /**
@@ -1329,7 +1516,7 @@ function advance(
   while (next.outcome === "ongoing") {
     if (!first) {
       const ending = combatant(next, next.order[next.turn]!.combatantId);
-      if (!isDefeated(ending)) {
+      if (!isOut(next, ending)) {
         next = endTurn(next, ending, random, events);
       }
       const turn = (next.turn + 1) % next.order.length;
@@ -1337,7 +1524,7 @@ function advance(
     }
     first = false;
     const actor = combatant(next, next.order[next.turn]!.combatantId);
-    if (isDefeated(actor)) {
+    if (isOut(next, actor)) {
       continue;
     }
     // A turn starts afresh, and ends any Sap this combatant gave and any
@@ -1352,6 +1539,14 @@ function advance(
       ),
     };
     events.push({ type: "turn", combatantId: actor.id, round: next.round });
+    // A fleeing combatant leaves on its turn, unless it can't act.
+    if (
+      moraleStatus(next, actor.id) === "fleeing" &&
+      incapacitatedBy(next, actor.id) === undefined
+    ) {
+      next = flee(next, actor, random, events);
+      continue;
+    }
     if (actor.side === "party") {
       return next;
     }
@@ -1447,6 +1642,10 @@ export function startEncounter(
       sapped: [],
       vexed: [],
       conditions: [],
+      fleeing: [],
+      fled: [],
+      engaged: [],
+      moraleChecks: [],
     },
     random,
     events,
@@ -1500,6 +1699,9 @@ export function act(
     }
     if (target.side === actor.side) {
       return refused("same-side", `${target.name} is on your side.`);
+    }
+    if (hasFled(state, target.id)) {
+      return refused("fled", `${target.name} has fled.`);
     }
     return isDefeated(target)
       ? refused("already-defeated", `${target.name} is already defeated.`)

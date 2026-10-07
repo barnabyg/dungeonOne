@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-bestiary",
-  "formatVersion": 5,
+  "formatVersion": 6,
   "monsters": [
     {
       "id": "zombie",
@@ -43,7 +43,8 @@
         "traits": ["Undead Fortitude"],
         "saveProficiencies": ["wisdom"],
         "damageImmunities": ["poison"],
-        "conditionImmunities": ["poisoned"]
+        "conditionImmunities": ["poisoned"],
+        "morale": "never"
       }
     },
     {
@@ -86,7 +87,8 @@
         ],
         "damageVulnerabilities": ["bludgeoning"],
         "damageImmunities": ["poison"],
-        "conditionImmunities": ["poisoned"]
+        "conditionImmunities": ["poisoned"],
+        "morale": "never"
       }
     },
     {
@@ -143,7 +145,8 @@
               }
             }
           }
-        ]
+        ],
+        "morale": 6
       }
     },
     {
@@ -205,7 +208,8 @@
           }
         ],
         "damageImmunities": ["poison"],
-        "conditionImmunities": ["poisoned"]
+        "conditionImmunities": ["poisoned"],
+        "morale": "never"
       }
     },
     {
@@ -246,7 +250,8 @@
             }
           }
         ],
-        "traits": ["Nimble Escape"]
+        "traits": ["Nimble Escape"],
+        "morale": 8
       }
     },
     {
@@ -287,7 +292,8 @@
             }
           }
         ],
-        "traits": ["Nimble Escape"]
+        "traits": ["Nimble Escape"],
+        "morale": 8
       }
     },
     {
@@ -328,7 +334,8 @@
             }
           }
         ],
-        "traits": ["Nimble Escape"]
+        "traits": ["Nimble Escape"],
+        "morale": 6
       }
     },
     {
@@ -378,7 +385,8 @@
             }
           }
         ],
-        "traits": ["Pack Tactics"]
+        "traits": ["Pack Tactics"],
+        "morale": 6
       }
     },
     {
@@ -418,7 +426,8 @@
               "type": "slashing"
             }
           }
-        ]
+        ],
+        "morale": 8
       }
     },
     {
@@ -459,7 +468,8 @@
             }
           }
         ],
-        "traits": ["Pack Tactics"]
+        "traits": ["Pack Tactics"],
+        "morale": 8
       }
     },
     {
@@ -500,7 +510,8 @@
             }
           }
         ],
-        "traits": ["Nimble Escape", "Pack Tactics"]
+        "traits": ["Nimble Escape", "Pack Tactics"],
+        "morale": 8
       }
     },
     {
@@ -541,7 +552,8 @@
             }
           }
         ],
-        "traits": ["Pack Tactics"]
+        "traits": ["Pack Tactics"],
+        "morale": 5
       }
     },
     {
@@ -581,7 +593,8 @@
               "type": "bludgeoning"
             }
           }
-        ]
+        ],
+        "morale": 6
       }
     },
     {
@@ -633,7 +646,8 @@
           }
         ],
         "multiattack": 2,
-        "traits": ["Rampage"]
+        "traits": ["Rampage"],
+        "morale": 5
       }
     },
     {
@@ -673,7 +687,8 @@
               "type": "bludgeoning"
             }
           }
-        ]
+        ],
+        "morale": 6
       }
     }
   ]

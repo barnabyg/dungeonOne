@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 13,
+  "formatVersion": 14,
   "id": "goblin-pair",
   "title": "The Goblin Pair",
   "objective": "Drive two goblin warriors out of the woodshed.",
@@ -48,6 +48,7 @@
             },
             "challengeRating": "1/4",
             "xp": 50,
+            "morale": 8,
             "attacks": [
               {
                 "name": "Scimitar",
@@ -85,6 +86,7 @@
             },
             "challengeRating": "1/4",
             "xp": 50,
+            "morale": 8,
             "attacks": [
               {
                 "name": "Scimitar",

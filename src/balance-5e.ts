@@ -566,6 +566,8 @@ export type FightRecord = Readonly<{
   id: string;
   /** Hit points the character lost in the fight, before any healing. */
   hpLost: number;
+  /** Opponents that fled (#237), giving half their XP or none. */
+  fled: number;
   rounds: number;
   outcome: "victory" | "defeat";
 }>;
@@ -627,7 +629,7 @@ export function playAdventure(
   let state = runtime.createSession();
   const roomIds = [state.roomId];
   const fights: FightRecord[] = [];
-  let fight: { id: string; hpLost: number } | undefined;
+  let fight: { id: string; hpLost: number; fled: number } | undefined;
   const healing = { secondWinds: 0, potions: 0, hp: 0 };
   let trapDamage = 0;
   /** The character's hit points, so a blow costs only what was left. */
@@ -656,13 +658,20 @@ export function playAdventure(
     for (const event of result.events) {
       switch (event.type) {
         case "initiative":
-          fight = { id: roomById.get(state.roomId)!.encounterId!, hpLost: 0 };
+          fight = {
+            id: roomById.get(state.roomId)!.encounterId!,
+            hpLost: 0,
+            fled: 0,
+          };
           break;
         case "attack":
           if (event.targetId === PLAYER_ID) {
             fight!.hpLost += hp - event.hpAfter;
             hp = event.hpAfter;
           }
+          break;
+        case "fled":
+          fight!.fled += 1;
           break;
         case "second-wind":
           healing.secondWinds += 1;
