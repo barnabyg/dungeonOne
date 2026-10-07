@@ -392,14 +392,14 @@ test("a new Fighter has no treasure, no finds and no XP awards", () => {
 });
 
 const TORC = {
-  id: "robbers-barrow/silver-torc",
+  id: "lintel-barrow/silver-torc",
   name: "Silver Torc",
   description: "A neck ring of twisted silver.",
   value: 2500,
 };
 const AWARDS = [
-  { id: "robbers-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
-  { id: "robbers-barrow/ending/out-with-the-torc", name: "Out", xp: 250 },
+  { id: "lintel-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
+  { id: "lintel-barrow/ending/out-with-the-torc", name: "Out", xp: 250 },
 ];
 /** A settlement holding the starting equipment, `treasure` and nothing else. */
 const settlement = (xp, finds = [], treasure = finds) => ({
@@ -465,7 +465,7 @@ test("reaching 900 XP raises a level 2 Fighter to 3 with the Champion's features
   const third = settleFighter(
     second,
     settlement([
-      { id: "warden-crypt/ending/crypt-cleared", name: "Crypt", xp: 600 },
+      { id: "sealed-crypt/ending/crypt-cleared", name: "Crypt", xp: 600 },
     ]),
   );
   assert.equal(third.level, 3);
@@ -489,7 +489,7 @@ test("validation rejects malformed treasure and repeated awards", () => {
     { treasure: [{ ...TORC, id: "torc" }] },
     { treasure: [TORC, TORC] },
     { treasure: "torc" },
-    { xpAwards: ["robbers-barrow/encounter/a", "robbers-barrow/encounter/a"] },
+    { xpAwards: ["lintel-barrow/encounter/a", "lintel-barrow/encounter/a"] },
     { xpAwards: ["goblin"] },
     { finds: [TORC.id, TORC.id] },
     { finds: ["torc"] },

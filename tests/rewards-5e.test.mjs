@@ -3,7 +3,6 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import {
@@ -20,10 +19,13 @@ import {
   settleFifthSession,
   startFifthAdventure,
 } from "../dist/session-5e.js";
+import {
+  goblinBurrow,
+  lintelBarrow as barrow,
+  loneGoblin as cellar,
+} from "./fixtures/modules.mjs";
 
-const adventures = await loadBuiltInFifthAdventures();
-const barrow = adventures.find(({ id }) => id === "robbers-barrow");
-const cellar = adventures.find(({ id }) => id === "cellar-goblin");
+const adventures = [barrow];
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 17 with Defense, 12 HP, mace +5.
 const sheet = buildFighter(
   "a".repeat(32),
@@ -143,7 +145,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
   assert.equal(out.status, "escaped");
   assert.equal(out.endingId, "out-with-the-torc");
   const torc = {
-    id: "robbers-barrow/silver-torc",
+    id: "lintel-barrow/silver-torc",
     name: "Silver Torc",
     description: "A neck ring of twisted silver, heavy and cold.",
     value: 2500,
@@ -157,12 +159,12 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
     },
     xp: [
       {
-        id: "robbers-barrow/encounter/barrow-goblin",
+        id: "lintel-barrow/encounter/barrow-goblin",
         name: "Defeated the Goblin Warrior",
         xp: 50,
       },
       {
-        id: "robbers-barrow/ending/out-with-the-torc",
+        id: "lintel-barrow/ending/out-with-the-torc",
         name: "Out with the silver",
         xp: 250,
       },
@@ -232,7 +234,7 @@ test("a fallen opponent's treasure is found only by searching its body once the 
   assert.equal(out.endingId, "out-with-the-torc");
   assert.deepEqual(
     runtime.projectSettlement(out).coin.map(({ id }) => id),
-    ["robbers-barrow/coin-pouch"],
+    ["lintel-barrow/coin-pouch"],
   );
   // Once kept, the body holds nothing of value.
   const veteran = settleFighter(sheet, runtime.projectSettlement(out));
@@ -325,7 +327,7 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
     },
     xp: [
       {
-        id: "cellar-goblin/encounter/cellar-goblin",
+        id: "lone-goblin/encounter/lone-goblin",
         name: "Defeated the Goblin Warrior",
         xp: 50,
       },
@@ -350,8 +352,8 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
   assert.equal(runtime.projectSettlement(state), undefined);
 });
 
-test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin warren with its hoard", () => {
-  const warren = adventures.find(({ id }) => id === "goblin-warren");
+test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin burrow with its hoard", () => {
+  const warren = goblinBurrow;
   assert.deepEqual(warren.recommendedLevels, { min: 2, max: 3 });
   // The barrow's 300 XP makes Ada level 2.
   const veteran = settleFighter(sheet, {
@@ -362,8 +364,8 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin w
       purse: 0,
     },
     xp: [
-      { id: "robbers-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
-      { id: "robbers-barrow/ending/out-with-the-torc", name: "Out", xp: 250 },
+      { id: "lintel-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
+      { id: "lintel-barrow/ending/out-with-the-torc", name: "Out", xp: 250 },
     ],
     finds: [],
     sold: [],
@@ -441,7 +443,7 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin w
   );
   // The sack of stolen coins (9 gp 6 sp) goes into the purse.
   assert.deepEqual(rewards.coin, [
-    { id: "goblin-warren/stolen-coins", copper: 960 },
+    { id: "goblin-burrow/stolen-coins", copper: 960 },
   ]);
   assert.equal(rewards.possessions.purse, 960);
   const champion = settleFighter(veteran, rewards);
@@ -564,7 +566,7 @@ test("escaping with the torc credits it, the XP and a level once, however often 
     assert.equal(record.sheet.hp, fighterProfile(record.sheet).maxHp);
     assert.deepEqual(
       record.sheet.treasure.map(({ id }) => id),
-      ["robbers-barrow/silver-torc"],
+      ["lintel-barrow/silver-torc"],
     );
     // Settling again writes nothing.
     const bytes = await readFile(library.path);
@@ -651,6 +653,7 @@ test("abandoning an escape that was never settled records it instead; an unreada
     const server = await startFifthBrowserServer({
       libraryPath: library.path,
       seed: 7,
+      adventures: [barrow],
     });
     try {
       const refused = await post(server.url, "/api/5e/adventures/abandon", {
@@ -686,9 +689,9 @@ test("abandoning an escape that was never settled records it instead; an unreada
 // Replace-on-settle (#206): the session holds the character's possessions,
 // and a surviving ending replaces them with what it holds at the end.
 
-const TORC_ID = "robbers-barrow/silver-torc";
+const TORC_ID = "lintel-barrow/silver-torc";
 const GEM = {
-  id: "warden-crypt/river-pearl",
+  id: "sealed-crypt/river-pearl",
   name: "River Pearl",
   description: "A grey pearl the size of a thumbnail.",
   value: 5000,
@@ -767,7 +770,7 @@ test("a surviving ending keeps treasure brought in beside coin found (#206, #208
   const settlement = runtime.projectSettlement(out);
   assert.deepEqual(
     settlement.coin.map(({ id }) => id),
-    ["robbers-barrow/coin-pouch"],
+    ["lintel-barrow/coin-pouch"],
   );
   const after = settleFighter(veteran, settlement);
   assert.deepEqual(
@@ -775,7 +778,7 @@ test("a surviving ending keeps treasure brought in beside coin found (#206, #208
     [TORC_ID],
   );
   assert.equal(after.purse, 250);
-  assert.deepEqual(after.finds, [TORC_ID, "robbers-barrow/coin-pouch"]);
+  assert.deepEqual(after.finds, [TORC_ID, "lintel-barrow/coin-pouch"]);
   // Settling the same ending again changes nothing.
   assert.deepEqual(settleFighter(after, settlement), after);
 });
