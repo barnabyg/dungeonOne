@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { loneGoblin } from "./fixtures/modules.mjs";
 import {
   FEATURE_USES_RULE,
   buildFighter,
@@ -77,7 +78,11 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-166-"));
     const libraryPath = join(directory, "characters.json");
-    const server = await startFifthBrowserServer({ libraryPath, seed: 0 });
+    const server = await startFifthBrowserServer({
+      adventures: [loneGoblin],
+      libraryPath,
+      seed: 0,
+    });
     const browser = await launch();
     const page = await browser.newPage();
     page.setDefaultTimeout(5000);
@@ -115,7 +120,7 @@ test(
 
       // In a fight the same rule sits under the initiative table (#155).
       await page
-        .locator('.start-adventure[data-adventure="cellar-goblin"]')
+        .locator('.start-adventure[data-adventure="lone-goblin"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
       const rule = await page.locator("#feature-rule").textContent();

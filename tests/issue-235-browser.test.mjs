@@ -12,26 +12,15 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import { fightRoomFile } from "./fixtures/modules.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 
-/** The Goblin in the Cellar with the bestiary's gnoll in the goblin's place. */
-const cellarFile = JSON.parse(
-  await readFile(
-    new URL("../adventures/5e/cellar-goblin.json", import.meta.url),
-    "utf8",
-  ),
+/** The lone goblin's room with the bestiary's gnoll in the goblin's place. */
+const gnollCellar = validateModule(
+  fightRoomFile("gnoll-cellar", "The Gnoll Cellar", [
+    { id: "gnoll", monster: "gnoll" },
+  ]),
 );
-const gnollCellar = validateModule({
-  ...cellarFile,
-  encounters: [
-    {
-      id: "cellar-goblin",
-      opponents: [{ id: "gnoll", monster: "gnoll" }],
-      victoryEndingId: "goblin-defeated",
-      defeatEndingId: "fallen-in-the-cellar",
-    },
-  ],
-});
 
 /** Whether the gnoll acts before Ada's first turn in the session on `seed`. */
 function gnollFirst(seed) {

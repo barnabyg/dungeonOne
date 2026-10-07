@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import {
   buildFighter,
   fighterProfile,
@@ -9,10 +8,8 @@ import {
 } from "../dist/fighter-5e.js";
 import { createFifthRuntime, healthOf } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT } from "../dist/session-5e.js";
+import { loneGoblin as adventure } from "./fixtures/modules.mjs";
 
-const adventure = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "cellar-goblin",
-);
 // Con 14 (+2): 12 HP at level 1.
 const sheet = buildFighter(
   "a".repeat(32),

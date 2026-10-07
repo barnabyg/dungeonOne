@@ -3,7 +3,6 @@
 // rests on the engine refusing every action before it draws a die.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import {
   buildFighter,
   fighterProfile,
@@ -12,8 +11,7 @@ import {
 } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
-
-const adventures = await loadBuiltInFifthAdventures();
+import { FIXTURE_MODULES as adventures } from "./fixtures/modules.mjs";
 
 // The #156 fighter: Con 14 (+2), 12 HP at level 1.
 const sheet = buildFighter(
@@ -85,7 +83,7 @@ function countingDice(seed) {
 }
 
 /**
- * Every state of the #156 seeded playthroughs: both adventures, 25 seeds,
+ * Every state of the #156 seeded playthroughs over every fixture module, 25 seeds,
  * alternating a level-1 and a level-2 fighter.
  */
 function* playthroughStates() {
