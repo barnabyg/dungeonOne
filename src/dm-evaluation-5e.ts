@@ -808,8 +808,8 @@ export async function startAdventureOverHttp(
 
 /**
  * Through a browser server's API, starts the library's first character,
- * already saved, on `adventureId`. The Silvervein Mine is for levels 2–3, so
- * its runs start from a saved level-3 Ada (#241).
+ * already saved, on `adventureId`: for a module above level 1, whose run
+ * starts from a character saved at a higher level (#241).
  */
 export async function startSavedAdventureOverHttp(
   url: string,

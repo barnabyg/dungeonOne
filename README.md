@@ -401,7 +401,8 @@ These are for development, not play.
   `--max-calls`, default 160) plays the whole of The Abandoned Delve (seed 1443
   by default), or with `--adventure tinkers-toll` The Tinker's Toll with its
   trades (seed 0), or with `--adventure silvervein-mine` The Silvervein Mine
-  (seed 26) from a saved level-3 Ada, through the browser server, typing every step to the AI DM
+  (seed 26) from a saved level-3 Ada, through the browser server, typing every
+  step to the AI DM
   and pressing a step's button only when the DM's turn left it undone, and
   writes a turn-by-turn report (`src/release-run-5e.ts`); `--seed` changes the
   seed and `--dry-run` checks the harness offline.

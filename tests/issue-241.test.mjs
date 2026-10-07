@@ -17,7 +17,7 @@ import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
-import { requiredPath } from "../dist/balance-5e.js";
+import { gateAdventure, requiredPath } from "../dist/balance-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { startSavedAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
 import { runDmTurn } from "../dist/dm-turn.js";
@@ -144,6 +144,24 @@ test("its treasure is within the level-3 budget, the monsters' loot rolled from 
   // In copper: 300 gp 3 sp 7 cp, within the level-3 budget.
   assert.equal(findableValue(mine), 30037);
   assert.ok(findableValue(mine) <= treasureBudget(mine.recommendedLevels.max));
+});
+
+test("the gate qualifies it as Hard with the figures the handoff quotes", () => {
+  const result = gateAdventure(mine);
+  assert.equal(result.ok, true);
+  const { verdict } = result;
+  assert.equal(verdict.qualified, true);
+  assert.deepEqual(
+    [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
+    [2, "mace", 0.925],
+  );
+  // Both kobolds and the Skeleton: three of six, no more than half.
+  assert.deepEqual(
+    verdict.oneHitKill.overCap.map(({ opponentId }) => opponentId),
+    ["kobold-lookout", "kobold-tunneller", "miners-bones"],
+  );
+  assert.equal(verdict.oneHitKill.enemies.length, 6);
+  assert.equal(verdict.xp.available, 862);
 });
 
 function scripted(responses) {

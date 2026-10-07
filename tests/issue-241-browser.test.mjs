@@ -154,6 +154,12 @@ test(
       ]) {
         assert.match(drift, line);
       }
+      // It gets up twice in all, and Ada comes through unhurt.
+      assert.equal(drift.match(/Success: Drowned Miner refuses/gu).length, 2);
+      assert.match(
+        await page.locator("#character-hp").innerText(),
+        /HP 21\/28/u,
+      );
       await clickAction(page, "examine", "burial-niche");
       await clickAction(page, "take", "silver-locket");
       await clickAction(page, "move", "main-gallery");
@@ -169,6 +175,11 @@ test(
       );
       await fight(page);
       const office = await text(page.locator("#log"));
+      // The overseer hits once.
+      assert.equal(
+        office.match(/Bugbear Overseer attacks Ada[^\n]*\. Hit\./gu).length,
+        1,
+      );
       for (const line of [
         /Bugbear Overseer attacks Ada with Light Hammer: 16 \+ 4 = 20 against AC 14\. Hit\. Damage 4 \+ 3 \+ 4 \+ 2 = 13 bludgeoning; Ada has 8\/28 HP\./u,
         /Ada uses Second Wind: 3 \+ 3 = 6; Ada regains 6 HP and has 14\/28 HP\. 1 use left\./u,

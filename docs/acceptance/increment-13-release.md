@@ -17,13 +17,15 @@ results).
 
 - **The Silvervein Mine** (`adventures/5e/silvervein-mine.json`), levels 2–3,
   declared Hard. The owner approved the premise, room map, monsters and
-  treasure placement on #241 before the content was written. It has six rooms
-  in an old silver mine, and you get out by the mine mouth, where it starts and
-  where there is nothing to take:
+  treasure placement in the #241 implementation session, before the content
+  was written. It has six rooms in an old silver mine, and you get out by the
+  mine mouth, where it starts and where there is nothing to take:
   - **Sorting Shed** (the required path): a Kobold Lookout and a Kobold
-    Tunneller. When the first falls, the other checks morale (DC 8). The
-    lookout flees, taking its coins. The tunneller surrenders and, asked about
-    "the iron door", gives up the iron key it carries. The ore bin holds the
+    Tunneller. When the first falls, the other checks morale (DC 8) and may
+    break: the lookout flees, taking its coins, while the tunneller surrenders
+    and, asked about "the iron door", gives up the iron key it carries. A fled
+    monster that fought gives half its XP (the #237 owner decision, which
+    refined this issue's "no XP"). The ore bin holds the
     first loot: a Potion of Healing and 40 sp.
   - **Main Gallery**: a notice board, and three ways on.
   - **Flooded Drift**: the drowned miners, a Zombie and a Skeleton (undead),

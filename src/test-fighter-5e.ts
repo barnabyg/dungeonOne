@@ -1,6 +1,8 @@
 /**
  * The fixed level-1 Fighter the command-line adapter and the 5e DM evaluation
- * play, so their runs are reproducible from a seed alone.
+ * play, so their runs are reproducible from a seed alone, and the same Fighter
+ * raised to a higher level, alone in a library, for release runs of modules
+ * above level 1 (#241).
  */
 import {
   FIFTH_LIBRARY_FORMAT,
