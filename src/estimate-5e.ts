@@ -12,6 +12,7 @@
 import {
   DIFFICULTIES,
   FIFTH_ADVENTURE_FORMAT,
+  MAX_OPPONENTS,
   unsimulatedTraits,
   validateFifthAdventure,
   type Difficulty,
@@ -42,8 +43,8 @@ import type { FightingStyle, Level } from "./fighter-5e.js";
 import type { KitId } from "./equipment-5e.js";
 import { createFifthRuntime } from "./runtime-5e.js";
 
-/** The most opponents one encounter may have, as in a module. */
-const MAX_OPPONENTS = 8;
+/** The id of the one-room module an estimate plays. */
+export const ESTIMATE_MODULE_ID = "encounter-estimate";
 
 /** The fight to estimate: bestiary monsters, each counted, and the levels. */
 export type EncounterSpec = Readonly<{
@@ -180,14 +181,10 @@ function specMonsters(
 
 /** "Wolf ×2, Bandit": each monster's name, counted. */
 function encounterTitle(
-  monsters: readonly Readonly<{ monster: FifthMonster; count: number }>[],
+  monsters: readonly Readonly<{ name: string; count: number }>[],
 ): string {
   return monsters
-    .map(({ monster, count }) =>
-      count === 1
-        ? monster.statBlock.name
-        : `${monster.statBlock.name} ×${count}`,
-    )
+    .map(({ name, count }) => (count === 1 ? name : `${name} ×${count}`))
     .join(", ");
 }
 
@@ -227,12 +224,17 @@ function buildModule(
       ...(shared === 1 ? {} : { name: `${name} ${number}` }),
     };
   });
-  const title = encounterTitle(monsters);
+  const title = encounterTitle(
+    monsters.map(({ monster, count }) => ({
+      name: monster.statBlock.name,
+      count,
+    })),
+  );
   return validateFifthAdventure(
     {
       kind: "dungeon-one-5e-adventure",
       formatVersion: FIFTH_ADVENTURE_FORMAT,
-      id: "encounter-estimate",
+      id: ESTIMATE_MODULE_ID,
       title: title.slice(0, 80),
       objective: "Win the fight.",
       recommendedLevels: { min: spec.levels.min, max: spec.levels.max },
@@ -421,9 +423,7 @@ export function renderEstimate(result: EstimateResult): string {
     return `The encounter can't be estimated: ${result.failure.code}. ${result.failure.message}`;
   }
   const { estimate } = result;
-  const title = estimate.monsters
-    .map(({ name, count }) => (count === 1 ? name : `${name} ×${count}`))
-    .join(", ");
+  const title = encounterTitle(estimate.monsters);
   const { min, max } = estimate.levels;
   const lines = [
     `${title} at ${min === max ? `level ${min}` : `levels ${min}–${max}`}, ${estimate.seeds} ${estimate.seeds === 1 ? "run" : "runs"} a cell.`,
@@ -451,7 +451,7 @@ export function renderEstimate(result: EstimateResult): string {
         ),
     );
   }
-  const module = { id: "encounter-estimate", title };
+  const module = { id: ESTIMATE_MODULE_ID, title };
   for (const difficulty of DIFFICULTIES) {
     lines.push(
       "",
