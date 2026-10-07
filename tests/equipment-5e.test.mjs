@@ -467,7 +467,8 @@ test("kits hold only common-tier items, are legal loadouts and are of equal valu
   assert.equal(isKitId("plate"), false);
 });
 
-test("prices show as mixed coins", () => {
+test("prices and coin show in mixed denominations from copper (#208)", () => {
+  assert.equal(formatCoins(1234), "12 gp 3 sp 4 cp");
   assert.equal(formatCoins(1210), "12 gp 1 sp");
   assert.equal(formatCoins(10), "1 sp");
   assert.equal(formatCoins(150000), "1500 gp");

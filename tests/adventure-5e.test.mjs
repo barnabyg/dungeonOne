@@ -3,7 +3,10 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadFifthAdventure } from "../dist/adventure-5e.js";
+import {
+  FIFTH_ADVENTURE_FORMAT,
+  loadFifthAdventure,
+} from "../dist/adventure-5e.js";
 import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
 import {
   goblinBand,
@@ -137,7 +140,9 @@ test("a module in another format version is refused by name and left unchanged",
     await assert.rejects(loadFifthAdventure(path), (error) => {
       assert.match(
         error.message,
-        /old\.json is a 5e adventure module in format version 4, not 18. Move it aside/,
+        new RegExp(
+          String.raw`old\.json is a 5e adventure module in format version 4, not ${FIFTH_ADVENTURE_FORMAT}\. Move it aside`,
+        ),
       );
       return true;
     });

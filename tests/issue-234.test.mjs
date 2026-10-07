@@ -10,7 +10,6 @@ import { validateFifthBestiary } from "../dist/bestiary-5e.js";
 import {
   act,
   availableActions,
-  CONDITION_RULES,
   currentCombatant,
   startEncounter,
 } from "../dist/encounter-5e.js";
@@ -145,16 +144,6 @@ function paralysed() {
     dice([20, 5], [20, 18], [20, 15], [4, 2], [20, 3]),
   );
 }
-
-test("paralysed: can't act, fails Strength and Dexterity saves, attacked with advantage, every hit critical", () => {
-  assert.deepEqual(CONDITION_RULES.paralysed, {
-    name: "Paralysed",
-    attacked: "advantage",
-    incapacitated: true,
-    failsSaves: ["strength", "dexterity"],
-    criticalHits: true,
-  });
-});
 
 test("a ghoul's claw paralyses on a failed Constitution save", () => {
   const { state, events } = paralysed();

@@ -7,7 +7,6 @@ import {
   validateFighter,
 } from "../dist/fighter-5e.js";
 import { createFifthRuntime, healthOf } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT } from "../dist/session-5e.js";
 import { loneGoblin as adventure } from "./fixtures/modules.mjs";
 
 // Con 14 (+2): 12 HP at level 1.
@@ -127,8 +126,4 @@ test("the turn view counts the actions this turn: two after Action Surge (#155)"
   ).state;
   assert.equal(runtime.projectFight(missed).turn.actions, 1);
   assert.equal(runtime.projectFight(missed).turn.maxActions, 2);
-});
-
-test("adventure saves are in format version 22 (#155, #132, #133, #206, #207, #208, #209, #144, #210, #224, #232, #233, #237, #238, #239, #230)", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 22);
 });

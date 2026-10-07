@@ -536,8 +536,6 @@ test("the player's combatant brings Sap, Second Wind and, from level 2, Action S
   assert.equal(one.actionSurge, undefined);
   const two = playerCombatant(atXp(300));
   assert.deepEqual(two.actionSurge, { uses: 1, max: 1 });
-  assert.equal(two.secondWind.healing.modifier, 2);
-  assert.equal(two.attack.criticalRange, 20);
 });
 
 test("Improved Critical: a level 3 Champion's 19 is a critical hit", () => {

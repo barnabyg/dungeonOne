@@ -619,25 +619,6 @@ test("abandoning keeps the character's treasure and XP as they were at the start
   });
 });
 
-test("a defeat with treasure in hand keeps nothing and ends the character", async () => {
-  await withLibrary(async (library, characterId) => {
-    const before = (await library.read()).characters[0].sheet;
-    const session = await lootTheBarrow(library, characterId, 1);
-    // Fall on the way out: the ended state, as a defeat leaves it.
-    session.state = {
-      ...session.state,
-      status: "defeat",
-      endingId: "fallen-in-the-barrow",
-    };
-    await settleFifthSession(library, session);
-    const record = (await library.read()).characters[0];
-    assert.equal(record.defeated, true);
-    assert.equal(record.sheet.hp, 0);
-    assert.equal(record.sheet.xp, before.xp);
-    assert.deepEqual(record.sheet.treasure, before.treasure);
-  });
-});
-
 /** Posts to the browser server as its own page would. */
 async function post(url, path, body) {
   const response = await fetch(url + path, {

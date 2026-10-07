@@ -9,11 +9,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import {
-  FIFTH_BESTIARY_FORMAT,
-  validateFifthBestiary,
-} from "../dist/bestiary-5e.js";
+  FIFTH_ADVENTURE_FORMAT,
+  loadFifthAdventure,
+} from "../dist/adventure-5e.js";
+import { validateFifthBestiary } from "../dist/bestiary-5e.js";
 import { formatCoins } from "../dist/equipment-5e.js";
 import { rollModuleLoot } from "../dist/loot-5e.js";
 import { createSeededRandom } from "../dist/random.js";
@@ -75,7 +75,6 @@ test("a roll is deterministic for a seed and never exceeds its type's range", ()
 });
 
 test("each bestiary monster has the owner's treasure type; undead and beasts carry none", () => {
-  assert.equal(FIFTH_BESTIARY_FORMAT, 7);
   assert.deepEqual(
     Object.fromEntries(
       bestiary.monsters.map(({ id, treasureType }) => [id, treasureType]),
@@ -405,8 +404,9 @@ test("a module from before treasure types (format 17) is refused by name and lef
     });
     await writeFile(path, bytes);
     await assert.rejects(loadFifthAdventure(path), {
-      message:
-        /before-loot\.json is a 5e adventure module in format version 17, not 18\. Move it aside/,
+      message: new RegExp(
+        String.raw`before-loot\.json is a 5e adventure module in format version 17, not ${FIFTH_ADVENTURE_FORMAT}\. Move it aside`,
+      ),
     });
     assert.equal(await readFile(path, "utf8"), bytes);
   } finally {

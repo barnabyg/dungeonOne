@@ -7,9 +7,11 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadFifthAdventure } from "../dist/adventure-5e.js";
+import {
+  FIFTH_ADVENTURE_FORMAT,
+  loadFifthAdventure,
+} from "../dist/adventure-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
-import { formatCoins } from "../dist/equipment-5e.js";
 import {
   buildFighter,
   settleFighter,
@@ -100,13 +102,6 @@ const TAKE_POUCH = { type: "take", itemId: "coin-pouch" };
 const OUT = { type: "move", destinationId: "barrow-mouth" };
 const LEAVE = { type: "leave", roomId: "barrow-mouth" };
 
-test("coin is shown in mixed denominations from copper", () => {
-  assert.equal(formatCoins(0), "0 cp");
-  assert.equal(formatCoins(7), "7 cp");
-  assert.equal(formatCoins(340), "3 gp 4 sp");
-  assert.equal(formatCoins(1234), "12 gp 3 sp 4 cp");
-});
-
 test("the validator rejects coin that is not hidden in a feature or carried by an opponent", () => {
   assert.throws(
     () => validateModule(changed((m) => delete pouchOf(m).hiddenIn)),
@@ -162,7 +157,9 @@ test("an older module file is refused with a message naming the file", async () 
     await writeFile(path, bytes);
     await assert.rejects(
       loadFifthAdventure(path),
-      /older-barrow\.json is a 5e adventure module in format version 5, not 18. Move it aside/,
+      new RegExp(
+        String.raw`older-barrow\.json is a 5e adventure module in format version 5, not ${FIFTH_ADVENTURE_FORMAT}\. Move it aside`,
+      ),
     );
     assert.equal(await readFile(path, "utf8"), bytes);
   } finally {

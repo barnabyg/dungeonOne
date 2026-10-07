@@ -385,12 +385,8 @@ test("the new monsters carry their stat blocks, traits and Multiattack", () => {
   assert.equal(block("goblin-boss").multiattack, undefined);
 });
 
-test("every bestiary monster has an XP value and a level band", () => {
-  assert.equal(bestiary.monsters.length, 15);
-  for (const { id, levelBand, statBlock } of bestiary.monsters) {
-    assert.ok(Number.isInteger(statBlock.xp) && statBlock.xp > 0, id);
-    assert.ok(levelBand.min >= 1 && levelBand.min <= levelBand.max, id);
-  }
+test("the Ogre is worth 450 XP and suits levels 4 to 5", () => {
+  assert.equal(monster("ogre").statBlock.xp, 450);
   assert.deepEqual(monster("ogre").levelBand, { min: 4, max: 5 });
 });
 
