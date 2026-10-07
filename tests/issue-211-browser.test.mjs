@@ -155,9 +155,10 @@ test(
       const towerFight = await text(page.locator("#log"));
       for (const line of [
         /Young Bandit has 4\/11 HP\./,
-        /Scarred Bandit attacks Ada with Scimitar: 13 \+ 3 = 16 against AC 15\. Hit\. Damage 3 \+ 1 = 4 slashing; Ada has 9\/13 HP\./,
-        /Scarred Bandit has 5\/11 HP\.[^]*It is still your turn: you can use Second Wind or end your turn\./u,
-        /Ada ends the turn\.\nScarred Bandit attacks Ada with Scimitar: 3 \+ 3 = 6 against AC 15\. Miss\./u,
+        // The scarred bandit holds its nerve when the young one falls (#237).
+        /Young Bandit is defeated\.\nScarred Bandit checks morale as the first of its side falls: a Wisdom saving throw, 13 \+ 0 = 13 against DC 8\. Success: it stands its ground\./,
+        /Scarred Bandit has 5\/11 HP\./,
+        /Scarred Bandit attacks Ada with Scimitar: 3 \+ 3 = 6 against AC 15\. Miss\./,
       ]) {
         assert.match(towerFight, line);
       }

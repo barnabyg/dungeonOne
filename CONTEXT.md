@@ -173,7 +173,7 @@ A named use of an ability, such as Athletics (Strength) or Perception (Wisdom). 
 _Avoid_: Ability check (when a skill is meant), Talent
 
 **Encounter**:
-A fight between two sides, the party and its opponents, each holding one or more combatants. It ends when one side is entirely defeated.
+A fight between two sides, the party and its opponents, each holding one or more combatants. It ends when every combatant on one side is defeated or has fled.
 _Avoid_: Battle, Combat (when one fight is meant)
 
 **Combatant**:
@@ -187,6 +187,10 @@ _Avoid_: Enemy (an opponent, in a fight), Creature (one the character can talk t
 **Bestiary**:
 The shared collection of monsters adventure modules name by id, in its own file with its own format version. A module may still author a one-off stat block inline for an opponent that no other module needs.
 _Avoid_: Monster manual, Stat block library
+
+**Morale**:
+A house rule on top of 5e: a side's nerve, checked when its first combatant falls and again at half strength. Each monster on it with a morale DC makes a Wisdom save; one that fails is fleeing, and on its next turn it has fled: it is out of the fight, leaves no body, gives no XP and takes what it carried with it. Undead and mindless monsters have no morale DC and never check.
+_Avoid_: Rout, Retreat
 
 **Condition**:
 A state the engine puts on a combatant in a fight, such as poisoned, prone or paralysed, with what gave it, how many of the combatant's turns it lasts and the save that ends it. Conditions change rolls (advantage, disadvantage, failed saves and critical hits) and may stop the combatant acting; they end with the fight, and the AI DM can only report them.

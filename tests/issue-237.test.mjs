@@ -1,0 +1,554 @@
+// #237: monsters check morale (a house rule) when their side's first
+// combatant falls and again at half strength, and one that fails flees on its
+// turn. Fled monsters give no XP and take their loot with them.
+import assert from "node:assert/strict";
+import test from "node:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { playAdventure, qualifyAdventure } from "../dist/balance-5e.js";
+import { validateFifthBestiary } from "../dist/bestiary-5e.js";
+import { act, legalTargets, startEncounter } from "../dist/encounter-5e.js";
+import { createSeededRandom } from "../dist/random.js";
+import { createFifthRuntime } from "../dist/runtime-5e.js";
+import { FifthSession, sessionSeed } from "../dist/session-5e.js";
+import {
+  fleeingGoblins,
+  fleeingSeed,
+  GOBLINS,
+  pouchOf,
+} from "./fixtures/fleeing-goblins.mjs";
+import { bestiary } from "./fixtures/bestiary.mjs";
+import { firstFighter } from "./fixtures/session-layout.mjs";
+
+/** Returns the queued values in order, checking each die's sides. */
+function dice(...queue) {
+  return {
+    remaining: () => queue.length,
+    roll(sides) {
+      assert.ok(queue.length > 0, `unexpected d${sides}`);
+      const [expected, value] = queue.shift();
+      assert.equal(sides, expected, `expected a d${expected}, got a d${sides}`);
+      return value;
+    },
+  };
+}
+
+const saves = (wisdom) => ({
+  strength: 0,
+  dexterity: 2,
+  constitution: 0,
+  intelligence: 0,
+  wisdom,
+  charisma: -1,
+});
+
+/** Ada wins initiative and has Action Surge, so she can attack twice. */
+const ada = {
+  id: "pc",
+  name: "Ada",
+  side: "party",
+  armorClass: 16,
+  hp: 12,
+  maxHp: 12,
+  dexterity: 12,
+  initiativeBonus: 1,
+  saves: saves(0),
+  actionSurge: { uses: 1, max: 1 },
+  attack: {
+    name: "Longsword",
+    bonus: 5,
+    damage: { dice: 1, sides: 8, modifier: 3, type: "slashing" },
+    criticalRange: 20,
+  },
+};
+
+/** A goblin with 1 HP, which any hit drops, and morale DC 8. */
+const goblin = (id, extra = {}) => ({
+  id,
+  name: `Goblin ${id.slice(1)}`,
+  side: "opponents",
+  armorClass: 15,
+  hp: 1,
+  maxHp: 1,
+  dexterity: 14,
+  initiativeBonus: 2,
+  saves: saves(-1),
+  morale: 8,
+  attack: {
+    name: "Scimitar",
+    bonus: 4,
+    damage: { dice: 1, sides: 6, modifier: 2, type: "slashing" },
+    criticalRange: 20,
+  },
+  ...extra,
+});
+
+/** Initiative: Ada 15 + 1, then each goblin lower in the order given. */
+const initiative = (count) => [
+  [20, 15],
+  ...Array.from({ length: count }, (_, index) => [20, 5 - index]),
+];
+
+/** A hit for 1d8 + 3 that drops a 1-HP goblin. */
+const KILL = [
+  [20, 15],
+  [8, 4],
+];
+
+const morale = (events) => events.filter(({ type }) => type === "morale");
+
+function begin(combatants, ...rest) {
+  const random = dice(...initiative(combatants.length - 1), ...rest);
+  const { state } = startEncounter(combatants, random);
+  return { state, random };
+}
+
+function attack(state, random, targetId) {
+  const result = act(
+    state,
+    { type: "attack", actorId: "pc", targetId },
+    random,
+  );
+  assert.equal(result.rejection, undefined);
+  return result;
+}
+
+test("the first fall makes the rest of the side check morale, in initiative order", () => {
+  const { state, random } = begin(
+    [ada, goblin("g1"), goblin("g2"), goblin("g3")],
+    ...KILL,
+    [20, 9], // Goblin 2: 9 − 1 = 8 against DC 8, held.
+    [20, 8], // Goblin 3: 8 − 1 = 7, fails.
+  );
+  const { state: after, events } = attack(state, random, "g1");
+  assert.equal(random.remaining(), 0);
+  assert.deepEqual(morale(events), [
+    {
+      type: "morale",
+      combatantId: "g2",
+      trigger: "first-fall",
+      d20: 9,
+      bonus: -1,
+      total: 8,
+      dc: 8,
+      success: true,
+    },
+    {
+      type: "morale",
+      combatantId: "g3",
+      trigger: "first-fall",
+      d20: 8,
+      bonus: -1,
+      total: 7,
+      dc: 8,
+      success: false,
+    },
+  ]);
+  assert.deepEqual(after.fleeing, ["g3"]);
+  assert.deepEqual(after.fled, []);
+  // A fleeing goblin is still there to be hit until its turn.
+  assert.deepEqual(
+    legalTargets(after, "pc").map(({ id }) => id),
+    ["g2", "g3"],
+  );
+});
+
+test("a side checks again at half strength, and each check is made once", () => {
+  const { state, random } = begin(
+    [ada, goblin("g1"), goblin("g2"), goblin("g3"), goblin("g4")],
+    ...KILL,
+    [20, 20],
+    [20, 20],
+    [20, 20], // First fall: all three hold.
+  );
+  const first = attack(state, random, "g1");
+  assert.equal(morale(first.events).length, 3);
+  const surged = act(
+    first.state,
+    { type: "action-surge", actorId: "pc" },
+    random,
+  );
+  // Her turn then ends by itself, and Goblins 3 and 4 swing and miss.
+  const second = attack(
+    surged.state,
+    dice(...KILL, [20, 20], [20, 20], [20, 1], [20, 1]),
+    "g2",
+  );
+  // Two of four left: half strength.
+  assert.deepEqual(
+    morale(second.events).map(({ combatantId, trigger }) => [
+      combatantId,
+      trigger,
+    ]),
+    [
+      ["g3", "half-strength"],
+      ["g4", "half-strength"],
+    ],
+  );
+  assert.deepEqual(second.state.moraleChecks, [
+    { side: "opponents", trigger: "first-fall" },
+    { side: "opponents", trigger: "half-strength" },
+  ]);
+  // Her next kill draws no morale die: both checks are spent. Goblin 4 then
+  // swings and misses.
+  const random3 = dice(...KILL, [20, 1]);
+  const third = attack(second.state, random3, "g3");
+  assert.equal(random3.remaining(), 0);
+  assert.deepEqual(morale(third.events), []);
+});
+
+test("a pair's first fall is also half strength: one check, not two", () => {
+  const { state, random } = begin(
+    [ada, goblin("g1"), goblin("g2")],
+    ...KILL,
+    [20, 20],
+  );
+  const { state: after, events } = attack(state, random, "g1");
+  assert.equal(random.remaining(), 0);
+  assert.equal(morale(events).length, 1);
+  assert.deepEqual(after.moraleChecks, [
+    { side: "opponents", trigger: "first-fall" },
+    { side: "opponents", trigger: "half-strength" },
+  ]);
+});
+
+test("a combatant with no morale DC (undead, mindless) never checks", () => {
+  const skeleton = (id) => {
+    const { morale: _never, ...rest } = goblin(id, { name: `Skeleton ${id}` });
+    void _never;
+    return rest;
+  };
+  const { state, random } = begin(
+    [ada, skeleton("g1"), skeleton("g2"), skeleton("g3")],
+    ...KILL,
+  );
+  const { events, state: after } = attack(state, random, "g1");
+  assert.equal(random.remaining(), 0);
+  assert.deepEqual(morale(events), []);
+  assert.deepEqual(after.fleeing, []);
+});
+
+test("a goblin that fails flees on its turn instead of attacking, and the fight is won", () => {
+  const { state, random } = begin(
+    [ada, goblin("g1"), goblin("g2")],
+    ...KILL,
+    [20, 2], // Goblin 2 fails: 2 − 1 = 1.
+  );
+  const first = attack(state, random, "g1");
+  assert.deepEqual(first.state.fleeing, ["g2"]);
+  const end = dice();
+  const ended = act(first.state, { type: "end-turn", actorId: "pc" }, end);
+  assert.equal(ended.rejection, undefined);
+  assert.equal(end.remaining(), 0);
+  const types = ended.events.map(({ type }) => type);
+  assert.ok(!types.includes("attack"));
+  assert.deepEqual(
+    ended.events.filter(({ type }) => type === "fled" || type === "ended"),
+    [
+      { type: "fled", combatantId: "g2" },
+      { type: "ended", outcome: "victory" },
+    ],
+  );
+  assert.deepEqual(ended.state.fled, ["g2"]);
+  assert.deepEqual(ended.state.fleeing, []);
+  assert.equal(ended.state.outcome, "victory");
+});
+
+test("a fleeing goblin cut down before its turn is defeated, not fled", () => {
+  const { state, random } = begin(
+    [ada, goblin("g1"), goblin("g2")],
+    ...KILL,
+    [20, 2],
+  );
+  const first = attack(state, random, "g1");
+  const surged = act(
+    first.state,
+    { type: "action-surge", actorId: "pc" },
+    random,
+  );
+  const second = attack(surged.state, dice(...KILL), "g2");
+  assert.equal(second.state.outcome, "victory");
+  assert.deepEqual(second.state.fled, []);
+  assert.deepEqual(second.state.fleeing, []);
+  assert.ok(second.events.some(({ type }) => type === "defeated"));
+});
+
+test("a fled combatant can't be attacked and its flight can bring the rest to half strength", () => {
+  // Three goblins: Goblin 2 fails at the first fall and flees on its turn,
+  // leaving one of three, so Goblin 3 checks at half strength.
+  const { state, random } = begin(
+    [ada, goblin("g1"), goblin("g2"), goblin("g3")],
+    ...KILL,
+    [20, 2], // Goblin 2 fails.
+    [20, 20], // Goblin 3 holds.
+  );
+  const first = attack(state, random, "g1");
+  const end = dice(
+    [20, 20], // Goblin 3 holds at half strength, after Goblin 2 flees.
+    [20, 1], // Goblin 3 attacks Ada and misses.
+  );
+  const ended = act(first.state, { type: "end-turn", actorId: "pc" }, end);
+  assert.equal(end.remaining(), 0);
+  assert.deepEqual(
+    morale(ended.events).map(({ combatantId, trigger }) => [
+      combatantId,
+      trigger,
+    ]),
+    [["g3", "half-strength"]],
+  );
+  assert.equal(ended.state.outcome, "ongoing");
+  const refused = act(
+    ended.state,
+    { type: "attack", actorId: "pc", targetId: "g2" },
+    dice(),
+  );
+  assert.equal(refused.rejection?.code, "fled");
+  assert.equal(refused.rejection?.reason, "Goblin 2 has fled.");
+  assert.deepEqual(
+    legalTargets(ended.state, "pc").map(({ id }) => id),
+    ["g3"],
+  );
+});
+
+test("a lone monster never checks morale", () => {
+  const { state, random } = begin([ada, goblin("g1")], ...KILL);
+  const { events } = attack(state, random, "g1");
+  assert.equal(random.remaining(), 0);
+  assert.deepEqual(morale(events), []);
+});
+
+// The runtime: a fled goblin leaves no body, gives no XP and keeps its
+// pouch; the defeated goblins' bodies still hold theirs.
+
+test("a fled goblin's XP and pouch are absent at settlement, and it leaves no body", () => {
+  const { runtime, random, state: won } = fleeingSeed();
+  const [{ opponentId: gone }] = won.fledOpponents;
+  const fallen = GOBLINS.filter((id) => id !== gone);
+  const bodies = runtime
+    .projectActions(won)
+    .filter(({ action }) => action === "examine")
+    .map(({ target }) => target.id);
+  assert.deepEqual(bodies, fallen);
+  assert.ok(
+    runtime.handleAction(won, { type: "examine", targetId: gone }, random)
+      .rejection,
+  );
+  assert.deepEqual(
+    runtime
+      .projectDmScene(won)
+      .room.opponents.map(({ id, condition }) => [id, condition]),
+    GOBLINS.map((id) => [id, id === gone ? "fled" : "defeated"]),
+  );
+
+  let state = won;
+  for (const action of [
+    ...fallen.flatMap((id) => [
+      { type: "examine", targetId: id },
+      { type: "take", itemId: pouchOf(id) },
+    ]),
+    { type: "move", destinationId: "barrow-mouth" },
+    { type: "leave", roomId: "barrow-mouth" },
+  ]) {
+    const result = runtime.handleAction(state, action, random);
+    assert.equal(result.rejection, undefined, JSON.stringify(action));
+    state = result.state;
+  }
+  assert.equal(state.status, "escaped");
+  const settlement = runtime.projectSettlement(state);
+  const [encounter] = settlement.xp;
+  const names = fallen.map((id) => `Goblin ${id.slice(-1)}`);
+  assert.deepEqual(encounter, {
+    id: "fleeing-goblins/encounter/barrow-goblin",
+    name: `Defeated ${names.join(" and ")}`,
+    xp: 25 * fallen.length,
+  });
+  assert.deepEqual(
+    settlement.coin.map(({ id }) => id),
+    fallen.map((id) => `fleeing-goblins/${pouchOf(id)}`),
+  );
+});
+
+test("the AI DM's scene and the initiative table show a fleeing goblin, then a fled one", () => {
+  const runtime = createFifthRuntime(fleeingGoblins, firstFighter(0));
+  const random = createSeededRandom(1);
+  let state = runtime.createSession();
+  for (const action of [
+    { type: "begin" },
+    { type: "move", destinationId: "burial-hall" },
+  ]) {
+    state = runtime.handleAction(state, action, random).state;
+  }
+  const marked = (encounter) => ({ ...state, encounter });
+  const fleeing = marked({ ...state.encounter, fleeing: ["goblin-2"] });
+  const fled = marked({ ...state.encounter, fled: ["goblin-2"] });
+  const condition = (at) =>
+    runtime
+      .projectDmScene(at)
+      .room.opponents.find(({ id }) => id === "goblin-2").condition;
+  assert.equal(condition(fleeing), "fleeing");
+  assert.equal(condition(fled), "fled");
+  assert.match(
+    runtime.projectDmScene(fleeing).combatStatus,
+    /Goblin 2 is fleeing: it leaves on its turn\./,
+  );
+  assert.match(
+    runtime.projectDmScene(fled).combatStatus,
+    /Goblin 2 has fled\./,
+  );
+  const morale = (at) =>
+    runtime
+      .projectFight(at)
+      .encounter.combatants.find(({ id }) => id === "goblin-2").morale;
+  assert.equal(morale(state), undefined);
+  assert.equal(morale(fleeing), "fleeing");
+  assert.equal(morale(fled), "fled");
+});
+
+test("morale saves are narrated, carded, recorded and replay exactly from a save", async () => {
+  const { seed } = fleeingSeed();
+  const directory = await mkdtemp(join(tmpdir(), "issue-237-"));
+  try {
+    const original = await FifthSession.create(
+      join(directory, "session.json"),
+      "f".repeat(32),
+      sessionSeed(seed, 1),
+      fleeingGoblins,
+      firstFighter(seed),
+    );
+    original.act({ type: "move", destinationId: "burial-hall" }, "click");
+    const next = (session) => {
+      const [target] = session.runtime.attackTargets(session.state);
+      return target === undefined
+        ? { type: "end-turn", actorId: "pc" }
+        : { type: "attack", actorId: "pc", targetId: target.id };
+    };
+    const triggers = (result) =>
+      result.events.some(({ type }) => type === "morale");
+    // Save before each action; the first that checks morale is played
+    // again from the save.
+    let a;
+    let b;
+    let resumed;
+    for (;;) {
+      await original.persist();
+      const action = next(original);
+      a = original.act(action, "click");
+      if (triggers(a.result)) {
+        resumed = await FifthSession.load(original.path, [fleeingGoblins]);
+        b = resumed.act(action, "click");
+        assert.deepEqual(resumed.state, original.state);
+        break;
+      }
+    }
+    assert.deepEqual(b.rolls, a.rolls);
+    assert.deepEqual(b.result.events, a.result.events);
+    const card = original.card(a.result, a.rolls);
+    assert.deepEqual(resumed.card(b.result, b.rolls), card);
+    assert.match(
+      card.text,
+      /Goblin \d checks morale as the first of its side falls: a Wisdom saving throw, \d+ − 1 = -?\d+ against DC 8\. (Success: it stands its ground|Failure: it will flee on its turn)\./u,
+    );
+    const save = card.lines
+      .flatMap(({ rolls }) => rolls)
+      .find(({ label }) => label === "Wisdom saving throw (morale)");
+    assert.equal(save.purpose, "save");
+    assert.equal(save.dc, 8);
+    // The rest of the fight, a flight among it, replays from the save too.
+    while (original.state.encounter?.outcome === "ongoing") {
+      original.act(next(original), "click");
+    }
+    assert.ok(original.state.fledOpponents.length > 0);
+    await original.persist();
+    const reloaded = await FifthSession.load(original.path, [fleeingGoblins]);
+    assert.deepEqual(reloaded.state, original.state);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+// The bestiary: every monster has a morale DC or never checks.
+
+test("every bestiary monster has a morale DC, and the undead never check", () => {
+  for (const { id, statBlock } of bestiary.monsters) {
+    if (/^Undead/.test(statBlock.type)) {
+      assert.equal(statBlock.morale, "never", id);
+    } else {
+      assert.equal(typeof statBlock.morale, "number", id);
+    }
+  }
+  const dc = (id) =>
+    bestiary.monsters.find((monster) => monster.id === id).statBlock.morale;
+  assert.deepEqual(
+    ["goblin-minion", "goblin-warrior", "kobold", "bandit"].map(dc),
+    [8, 8, 8, 8],
+  );
+  assert.equal(dc("hobgoblin-warrior"), 5);
+  // A combatant carries the DC; one that never checks carries none.
+  const runtime = createFifthRuntime(fleeingGoblins, firstFighter(0));
+  const { state } = runtime.handleAction(
+    runtime.handleAction(runtime.createSession(), { type: "begin" }, dice())
+      .state,
+    { type: "move", destinationId: "burial-hall" },
+    createSeededRandom(0),
+  );
+  assert.equal(
+    state.encounter.combatants.find(({ id }) => id === "goblin-1").morale,
+    8,
+  );
+});
+
+test("the bestiary refuses a monster without a morale DC, or an undead one with one", () => {
+  const entry = (id, change) => {
+    const copy = structuredClone(
+      bestiary.monsters.find((monster) => monster.id === id),
+    );
+    change(copy.statBlock);
+    return () => validateFifthBestiary({ ...bestiary, monsters: [copy] });
+  };
+  assert.throws(
+    entry("goblin-minion", (block) => delete block.morale),
+    /statBlock must have name, .*, attacks, morale and may have/,
+  );
+  assert.throws(
+    entry("goblin-minion", (block) => (block.morale = "sometimes")),
+    /statBlock morale must be a DC from 1 to 30, or "never"\./,
+  );
+  assert.throws(
+    entry("goblin-minion", (block) => (block.morale = 31)),
+    /statBlock morale must be/,
+  );
+  assert.throws(
+    entry("skeleton", (block) => (block.morale = 10)),
+    /statBlock is Undead, so its morale must be "never"\./,
+  );
+});
+
+// The balance harness: survival and XP come from the runtime, so a fled
+// goblin's XP is missing from a run, and each fight counts who fled.
+
+test("the harness counts fled goblins and credits only the defeated ones' XP", () => {
+  const runtime = createFifthRuntime(fleeingGoblins, firstFighter(0));
+  let fled = 0;
+  for (let seed = 0; seed < 60; seed++) {
+    const run = playAdventure(runtime, "direct", seed);
+    if (run.outcome === "defeat") {
+      continue;
+    }
+    const [fight] = run.encounters;
+    fled += fight.fled;
+    const ending = run.outcome === "escape-with-loot" ? 250 : 0;
+    assert.equal(run.xp, ending + 25 * (GOBLINS.length - fight.fled));
+  }
+  assert.ok(fled > 0, "some goblins fled");
+  // A goblin that may flee still counts toward the one-hit-kill check.
+  const { report } = qualifyAdventure(fleeingGoblins, {
+    seeds: [0],
+    percentiles: [95],
+    styles: ["direct"],
+  });
+  assert.deepEqual(
+    report.cells[0].oneHitKill.map(({ opponentId }) => opponentId),
+    GOBLINS,
+  );
+});

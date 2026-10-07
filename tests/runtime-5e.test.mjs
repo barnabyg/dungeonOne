@@ -452,8 +452,9 @@ test("scripted DM: an ordinal resolves to the opponent with that number in its n
     state,
     playerInput: "attack the second goblin",
     transcript: [],
-    // Ada hits AC 12 for 4 + 3, felling it; the other two miss on natural 1s.
-    random: dice(10, 4, 1, 1),
+    // Ada hits AC 12 for 4 + 3, felling it; the other two hold their nerve
+    // (morale 20s) and miss on natural 1s.
+    random: dice(10, 4, 20, 20, 1, 1),
     model,
     runtime,
   });
@@ -480,7 +481,7 @@ test("scripted DM: targeting a defeated opponent is refused by the engine withou
   const state = runtime.handleAction(
     begun,
     { type: "attack", actorId: "pc", targetId: "minion-1" },
-    dice(10, 4, 1, 1),
+    dice(10, 4, 20, 20, 1, 1),
   ).state;
   assert.equal(state.encounter.combatants[1].hp, 0);
   const model = scripted(call("attack", { target: "minion-1" }));

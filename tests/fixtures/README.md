@@ -54,3 +54,11 @@ blocks inline, so they also cover one-off inline opponents.
 bestiary Wolves, renamed, for levels 2–3. `tests/estimate-5e.test.mjs` checks
 that `npm run estimate -- --levels 2-3 wolf:2` gives the same numbers as the
 gate and the harness measure on it.
+
+## Fleeing goblins (issue 237)
+
+`fleeing-goblins.mjs` is _The Robbers' Barrow_ with three numbered Goblin
+Minions in the burial hall, each carrying its own pouch of coin. `fleeingSeed()`
+finds the first browser seed on which Ada, attacking the first goblin offered,
+wins the fight with one goblin fled; the morale runtime and browser tests play
+it to check that the fled goblin leaves no body, XP or coin.

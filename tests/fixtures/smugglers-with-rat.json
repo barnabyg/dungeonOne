@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 13,
+  "formatVersion": 14,
   "id": "smugglers-cellar",
   "title": "The Smugglers' Cellar",
   "objective": "Find out what has moved into the old smugglers' cellar, and clear it out.",
@@ -115,6 +115,7 @@
             },
             "challengeRating": "1/8",
             "xp": 25,
+            "morale": 8,
             "attacks": [
               {
                 "name": "Bite",
@@ -155,6 +156,7 @@
             },
             "challengeRating": "1/4",
             "xp": 50,
+            "morale": 8,
             "attacks": [
               {
                 "name": "Scimitar",
