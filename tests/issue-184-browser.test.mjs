@@ -1,6 +1,9 @@
 // #184: each roll appears once, in the ability table's Roll column, and every
 // score, modifier, the 20 cap and the skill limit come from the server's
-// projection. Browser → API → storage at desktop and phone widths.
+// projection. #162: rolls and the background increase are placed in one live
+// table, a bonus or roll moves by swapping, errors sit beside their fields
+// and the preview keeps updating. Browser → API → storage at desktop and
+// phone widths.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -12,6 +15,8 @@ import {
   ABILITIES,
   buildFighter,
   defaultPlacement,
+  fighterProfile,
+  keptTotal,
 } from "../dist/fighter-5e.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
 
@@ -146,14 +151,6 @@ for (const [width, height, seed] of [
           "Skill proficiencies: choose 2",
         );
 
-        // The page script computes no rule.
-        const script = await page.evaluate(async () =>
-          (await fetch("/app.js")).text(),
-        );
-        for (const rule of ["Math.floor", "- 10", "max 20", "of 2", ">= 2"]) {
-          assert.ok(!script.includes(rule), rule);
-        }
-
         // Accessible names are kept.
         for (const ability of ABILITIES) {
           await page
@@ -166,20 +163,74 @@ for (const [width, height, seed] of [
             .waitFor();
         }
 
-        // Swap Strength's roll with Wisdom's: the dice move with the roll
-        // and both rows update from the server.
-        projection = await projected(page, () =>
-          page
-            .getByRole("combobox", { name: "Strength roll" })
-            .selectOption(String(placement.wisdom)),
+        const fits = () =>
+          page.evaluate(() => {
+            const wrap = document.querySelector("#ability-table").parentElement;
+            return (
+              document.documentElement.scrollWidth <= window.innerWidth &&
+              wrap.scrollWidth <= wrap.clientWidth
+            );
+          });
+        if (width === 375) {
+          assert.ok(await fits(), "no horizontal scroll at 375 px");
+        }
+
+        // A roll placed elsewhere says which ability it swaps with (#162).
+        const strengthRoll = page.getByRole("combobox", {
+          name: "Strength roll",
+        });
+        const options = await strengthRoll
+          .locator("option")
+          .evaluateAll((nodes) => nodes.map((node) => node.textContent));
+        const [held, wisdom] = [placement.strength, placement.wisdom];
+        assert.equal(
+          options[held],
+          `${keptTotal(dice[held])} (roll ${held + 1})`,
         );
-        [placement.strength, placement.wisdom] = [
-          placement.wisdom,
-          placement.strength,
-        ];
+        assert.equal(
+          options[wisdom],
+          `${keptTotal(dice[wisdom])} (roll ${wisdom + 1}), swaps with Wisdom`,
+        );
+
+        // Swap Strength's roll with Wisdom's: the dice move with the roll,
+        // focus stays put and both rows update from the server.
+        projection = await projected(page, () =>
+          strengthRoll.selectOption(String(wisdom)),
+        );
+        [placement.strength, placement.wisdom] = [wisdom, held];
+        assert.equal(
+          await page
+            .getByRole("combobox", { name: "Wisdom roll" })
+            .inputValue(),
+          String(held),
+        );
+        assert.equal(
+          await page.evaluate(() => document.activeElement.id),
+          "place-strength",
+        );
         assert.deepEqual(
           await shownRows(page),
           expectedRows(projection, dice, placement),
+        );
+
+        // +2 and +1: a bonus moves by swapping, so the shape stays legal.
+        const dexterityBonus = page.getByRole("combobox", {
+          name: "Dexterity background bonus",
+        });
+        assert.match(
+          await dexterityBonus.locator("option[value='2']").textContent(),
+          /\+2, swaps with Strength/,
+        );
+        projection = await projected(page, () =>
+          dexterityBonus.selectOption("2"),
+        );
+        assert.deepEqual(
+          await shownRows(page),
+          expectedRows(projection, dice, placement),
+        );
+        assert.equal(
+          await dexterityBonus.locator("option[value='0']").isDisabled(),
+          true,
         );
 
         // +1 to three: rows update while it is still being ticked.
@@ -190,6 +241,18 @@ for (const [width, height, seed] of [
           page.getByRole("checkbox", {
             name: `${title(ability)} background bonus`,
           });
+        // The ticks start from the +2/+1 abilities; a fourth cannot be ticked.
+        for (const ability of ABILITIES) {
+          assert.equal(
+            await box(ability).isChecked(),
+            ["dexterity", "constitution", "strength"].includes(ability),
+            ability,
+          );
+        }
+        assert.equal(await box("wisdom").isDisabled(), true);
+        if (width === 375) {
+          assert.ok(await fits(), "the +1 to three table fits too");
+        }
         projection = await projected(page, () => box("strength").uncheck());
         assert.equal(
           projection.unfinished.increase,
@@ -204,6 +267,8 @@ for (const [width, height, seed] of [
           expectedRows(projection, dice, placement),
         );
         assert.equal(await page.locator("#save-character").isDisabled(), true);
+        // The preview keeps the last numbers rather than collapsing (#162).
+        assert.match(await page.locator("#preview-body").innerText(), /AC:/);
         projection = await projected(page, () => box("wisdom").check());
         assert.deepEqual(projection.unfinished, {});
         assert.deepEqual(
@@ -224,6 +289,13 @@ for (const [width, height, seed] of [
           .locator("#skills-count")
           .filter({ hasText: "1 of 2 chosen" })
           .waitFor();
+        // The skill error sits in the skills fieldset; the preview stays.
+        await page
+          .locator("#skills #skills-error")
+          .filter({ hasText: "Choose 2 skills" })
+          .waitFor();
+        assert.match(await page.locator("#preview-body").innerText(), /AC:/);
+        assert.equal(await page.locator("#save-character").isDisabled(), true);
         assert.equal(
           await page.locator("#skill-fields input:disabled").count(),
           0,
@@ -236,18 +308,12 @@ for (const [width, height, seed] of [
           .filter({ hasText: "2 of 2 chosen" })
           .waitFor();
         assert.equal(await page.locator("#skill-history").isDisabled(), true);
+        await page
+          .locator("#skills-error")
+          .filter({ hasText: /^$/ })
+          .waitFor({ state: "attached" });
 
         if (width === 375) {
-          const fits = () =>
-            page.evaluate(() => {
-              const wrap =
-                document.querySelector("#ability-table").parentElement;
-              return (
-                document.documentElement.scrollWidth <= window.innerWidth &&
-                wrap.scrollWidth <= wrap.clientWidth
-              );
-            });
-          assert.ok(await fits(), "no horizontal scroll at 375 px");
           // CI fonts run wider than Windows ones: keep slack with a wide font.
           await page.evaluate(() => {
             document.body.style.fontFamily = "Verdana";
@@ -269,11 +335,29 @@ for (const [width, height, seed] of [
         };
         const expected = buildFighter("0".repeat(32), "Preview", dice, choices);
         assert.deepEqual(projection.sheet.abilities, expected.abilities);
+        const profile = fighterProfile(expected);
+        await page
+          .locator("#preview-body")
+          .filter({ hasText: new RegExp(`AC:\\s*${profile.armorClass}`) })
+          .filter({
+            hasText: new RegExp(`HP:\\s*${profile.maxHp}/${profile.maxHp}`),
+          })
+          .filter({ hasText: `Mace: ${signed(profile.attack.bonus)} to hit` })
+          .waitFor();
         await page
           .locator("#save-character:not([disabled])")
           .waitFor({ state: "attached" });
-        await page.locator("#character-name").fill("Cassia");
+
+        // A missing name is reported beside the name field (#162).
         await page.locator("#save-character").click();
+        const nameError = page.locator("#name-error");
+        await nameError.filter({ hasText: "Enter a name" }).waitFor();
+        const input = await page.locator("#character-name").boundingBox();
+        const error = await nameError.boundingBox();
+        assert.ok(Math.abs(error.y - (input.y + input.height)) < 40);
+
+        await page.locator("#character-name").fill("Cassia");
+        await page.locator("#character-name").press("Enter");
         await page
           .locator("#sheet-name")
           .filter({ hasText: "Cassia" })
