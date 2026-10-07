@@ -318,6 +318,26 @@ test(
     page.setDefaultTimeout(5000);
     try {
       await createAndStart(page, server.url, "lone-goblin");
+
+      // Deleting is refused while the adventure is in progress.
+      await page.locator(`#breadcrumb a[data-view="sheet"]`).click();
+      await page.locator("#continue-adventure").waitFor();
+      await page.locator("#delete-character").click();
+      await page.locator("#delete-confirm-name").fill("Ada");
+      const bytes = await readFile(libraryPath);
+      await page.locator("#confirm-delete").click();
+      await page
+        .locator("#delete-error")
+        .filter({
+          hasText:
+            "Ada is on an adventure. Finish it before deleting the character; nothing was deleted.",
+        })
+        .waitFor();
+      assert.deepEqual(await readFile(libraryPath), bytes);
+      await page.locator("#cancel-delete").click();
+      await page.locator("#continue-adventure").click();
+      await page.locator("#adventure").waitFor({ state: "visible" });
+
       await playToTheEnd(page);
 
       const shown = await ending(page);
@@ -361,6 +381,18 @@ test(
         })
         .waitFor();
       assert.equal(await page.locator(".start-adventure").count(), 0);
+      // The server refuses a start the page no longer offers.
+      const library = JSON.parse(await readFile(libraryPath, "utf8"));
+      const refused = await post(page, "/api/5e/adventures/start", {
+        revision: library.revision,
+        characterId: library.characters[0].sheet.id,
+        adventureId: "lone-goblin",
+      });
+      assert.equal(refused.status, 409);
+      assert.match(
+        refused.body.error,
+        /defeated and cannot start another adventure/,
+      );
     } finally {
       await browser.close();
       await server.close();
