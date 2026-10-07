@@ -119,6 +119,7 @@ test("leaving from an exit without treasure ends the adventure empty-handed", ()
     possessions: {
       equipment: ["leather", "mace"],
       stowed: [],
+      ammunition: { arrows: 0, bolts: 0 },
       treasure: [],
       purse: 0,
     },
@@ -154,6 +155,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
     possessions: {
       equipment: ["leather", "mace"],
       stowed: [],
+      ammunition: { arrows: 0, bolts: 0 },
       treasure: [torc],
       purse: 0,
     },
@@ -322,6 +324,7 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
     possessions: {
       equipment: ["leather", "mace"],
       stowed: [],
+      ammunition: { arrows: 0, bolts: 0 },
       treasure: [],
       purse: 0,
     },
@@ -360,6 +363,7 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin b
     possessions: {
       equipment: sheet.equipment,
       stowed: [],
+      ammunition: { arrows: 0, bolts: 0 },
       treasure: [],
       purse: 0,
     },
@@ -711,6 +715,7 @@ test("an adventure starts holding the character's equipment and kept treasure (#
   assert.deepEqual(runtime.createSession().possessions, {
     equipment: ["leather", "mace"],
     stowed: [],
+    ammunition: { arrows: 0, bolts: 0 },
     treasure: veteran.treasure,
     purse: 0,
   });

@@ -103,6 +103,10 @@ export type CharacterStatus = Readonly<{
   }>[];
   /** The coin the character holds, in mixed denominations ("0 cp" when empty), for a runtime with a purse. */
   purse?: string;
+  /** The ammunition the character holds ("17 arrows", or "none"), for a runtime with ranged weapons. */
+  ammunition?: string;
+  /** Each attack the character makes with its weapons, with its bonus and damage. */
+  attacks?: readonly string[];
   /** The weight carried against the most the character can carry, for a runtime that weighs it. */
   carrying?: string;
   outcome: RuntimeStatus;

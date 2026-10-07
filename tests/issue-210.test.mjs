@@ -166,7 +166,7 @@ test("a merchant stocks only distinct catalogue gear and takes 1–60 minutes a 
   const cases = [
     [
       (pedlar) => (pedlar.merchant.stock = ["rope"]),
-      /stock 1 must be a catalogue weapon or armour/,
+      /stock 1 must be a catalogue weapon, armour or ammunition/,
     ],
     [(pedlar) => (pedlar.merchant.stock = []), /stock must list 1–12 entries/],
     [(pedlar) => pedlar.merchant.stock.push("dagger"), /stocks dagger twice/],

@@ -110,3 +110,12 @@ sold to the pedlar at the mouth for its full value. An ogre's den off the
 mouth is a fight a level-1 Fighter loses, for the journey that trades and
 then falls. `armoury-barrow.mjs` is now for levels 1–3, since its longsword,
 greatsword and chain mail are uncommon.
+
+## Ranged weapons (issue 230)
+
+`archery-barrow.mjs` is the lintel barrow as _The Archers' Barrow_: a bowyer
+at the mouth sells the shortbow, the light crossbow and bundles of arrows and
+bolts, ten minutes a trade, and a quiver of 20 arrows lies behind the lintel.
+`archer(arrows, bolts)` is Wren, Ada's scores with leather, a shortbow, a
+stowed mace and that many arrows and bolts; the ranged-weapon runtime, library
+and browser tests play her there and against the lone goblin.

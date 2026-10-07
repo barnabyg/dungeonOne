@@ -61,6 +61,36 @@ test("the catalogue holds the SRD 5.2 weapons with price in copper, damage, prop
       "Graze",
       "uncommon",
     ],
+    [
+      "shortbow",
+      2500,
+      "1d6",
+      "piercing",
+      [],
+      "ammunition,two-handed",
+      "Vex",
+      "common",
+    ],
+    [
+      "light-crossbow",
+      2500,
+      "1d8",
+      "piercing",
+      [],
+      "ammunition,loading,two-handed",
+      "Slow",
+      "common",
+    ],
+    [
+      "longbow",
+      5000,
+      "1d8",
+      "piercing",
+      [],
+      "ammunition,heavy,two-handed",
+      "Slow",
+      "uncommon",
+    ],
   ];
   assert.deepEqual(
     Object.keys(WEAPONS),
@@ -325,6 +355,7 @@ test("a mastery applies only to a mastered weapon being held", () => {
     "shortsword",
     "longsword",
     "greatsword",
+    "shortbow",
   ]);
   assert.equal(MASTERIES.Slow.used, false);
 });
@@ -335,6 +366,9 @@ const weaponDominates = (a, b) => {
   const better = [
     average(a.versatile ?? a.damage) - average(b.versatile ?? b.damage),
     average(a.damage) - average(b.damage),
+    // A mastery the game uses, and a lighter load (#224), are worth having.
+    Number(MASTERIES[a.mastery].used) - Number(MASTERIES[b.mastery].used),
+    b.weight - a.weight,
     ...["finesse", "light"].map(
       (property) =>
         Number(a.properties.includes(property)) -
@@ -366,8 +400,17 @@ const armourDominates = (a, b) => {
 };
 
 test("within each table no item is both cheaper and strictly better than another", () => {
+  // Melee and ranged weapons are separate tables, as in SRD 5.2: a bow does
+  // what no sword can.
   const tables = [
-    [Object.values(WEAPONS), weaponDominates],
+    [
+      Object.values(WEAPONS).filter(({ ammunition }) => !ammunition),
+      weaponDominates,
+    ],
+    [
+      Object.values(WEAPONS).filter(({ ammunition }) => ammunition),
+      weaponDominates,
+    ],
     [
       Object.values(ARMOUR).filter(({ category }) => category !== "shield"),
       armourDominates,
@@ -387,6 +430,12 @@ test("within each table no item is both cheaper and strictly better than another
   }
   // The check catches a cheaper, strictly better item.
   assert.ok(weaponDominates(WEAPONS.shortsword, WEAPONS.club));
+  assert.ok(
+    weaponDominates(
+      { ...WEAPONS["light-crossbow"], weight: 2 },
+      WEAPONS.longbow,
+    ),
+  );
   assert.ok(
     armourDominates(
       { ...ARMOUR["chain-mail"], armorClass: 17 },
