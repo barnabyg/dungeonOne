@@ -99,7 +99,7 @@ export type StatBlock = Readonly<{
   /** Conditions it cannot be given. */
   conditionImmunities?: readonly ConditionKind[];
   /**
-   * Its morale DC, a house rule (#237): the Wisdom save it makes when its
+   * Its morale DC, a house rule (#237): the Wisdom saving throw it makes when its
    * side's first combatant falls and at half strength, fleeing on a failure.
    * Undead and mindless monsters never check.
    */

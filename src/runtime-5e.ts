@@ -71,6 +71,7 @@ import {
   currentCombatant,
   drinkPotion,
   hasFled,
+  moraleStatus,
   incapacitatedBy,
   legalTargets,
   startEncounter,
@@ -1105,11 +1106,8 @@ function moraleOf(
   encounter: EncounterState,
   combatantId: string,
 ): Readonly<{ morale?: "fleeing" | "fled" }> {
-  return hasFled(encounter, combatantId)
-    ? { morale: "fled" }
-    : encounter.fleeing.includes(combatantId)
-      ? { morale: "fleeing" }
-      : {};
+  const morale = moraleStatus(encounter, combatantId);
+  return morale === undefined ? {} : { morale };
 }
 
 /** One die as the browser shows it; `dropped` marks an unkept d20. */
@@ -1726,7 +1724,7 @@ export type FightView = Readonly<{
       armorClass: number;
       defeated: boolean;
       /**
-       * Present once it has failed a morale save (#237): fleeing until it
+       * Present once it has failed a morale saving throw (#237): fleeing until it
        * leaves on its turn, then fled.
        */
       morale?: "fleeing" | "fled";
@@ -1886,7 +1884,11 @@ export function createFifthRuntime(
       .filter((item) => item.kind === "coin");
 
   /** Whether the opponent fled the encounter's won fight (#237). */
-  const fled = (state: FifthState, encounterId: string, opponentId: string) =>
+  const fledFrom = (
+    state: FifthState,
+    encounterId: string,
+    opponentId: string,
+  ) =>
     state.fledOpponents.some(
       (gone) =>
         gone.encounterId === encounterId && gone.opponentId === opponentId,
@@ -1903,7 +1905,7 @@ export function createFifthRuntime(
       !state.clearedEncounterIds.includes(fight.id)
       ? []
       : fight.opponents
-          .filter(({ id }) => !fled(state, fight.id, id))
+          .filter(({ id }) => !fledFrom(state, fight.id, id))
           .map(({ id, name }) => ({
             id,
             name: `${name}'s body`,
@@ -3357,14 +3359,14 @@ export function createFifthRuntime(
             id,
             name,
             condition:
-              (fight !== undefined && fled(state, fight.id, id)) ||
-              (encounter !== undefined && hasFled(encounter, id))
+              fight !== undefined && fledFrom(state, fight.id, id)
                 ? ("fled" as const)
-                : encounter?.fleeing.includes(id) === true
-                  ? ("fleeing" as const)
-                  : won || hp === 0
+                : ((encounter === undefined
+                    ? undefined
+                    : moraleStatus(encounter, id)) ??
+                  (won || hp === 0
                     ? ("defeated" as const)
-                    : ("living" as const),
+                    : ("living" as const))),
           })),
         exits: projectRoom(state).exits.map(
           ({ id, name, description, door, trap }) => ({
@@ -3858,7 +3860,7 @@ export function createFifthRuntime(
         )!;
         // A fled opponent gives no XP (#237).
         const defeated = fight.opponents.filter(
-          ({ id }) => !fled(state, fight.id, id),
+          ({ id }) => !fledFrom(state, fight.id, id),
         );
         const names = defeated.map(({ name }) => name);
         return {

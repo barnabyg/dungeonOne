@@ -64,7 +64,7 @@
  *   combatant falls, and again when defeat or flight leaves it at half its
  *   starting numbers or fewer; when both come at once it checks once. Each
  *   combatant on it still in the fight, with a morale DC and not already
- *   fleeing, makes a Wisdom save against that DC, in initiative order. One
+ *   fleeing, makes a Wisdom saving throw against that DC, in initiative order. One
  *   that fails flees: on its next turn it leaves the fight instead of
  *   acting, unless it is incapacitated. Until then it can be attacked, and
  *   one cut down first is defeated. A side is beaten when each of its
@@ -253,7 +253,7 @@ export type Combatant = DamageDefenses &
      */
     nimbleEscape?: true;
     /**
-     * Its morale DC (#237): the Wisdom save it makes when its side checks
+     * Its morale DC (#237): the Wisdom saving throw it makes when its side checks
      * morale. Without one it never checks.
      */
     morale?: number;
@@ -307,7 +307,7 @@ export type EncounterState = Readonly<{
   }>[];
   /** The conditions on living combatants. */
   conditions: readonly Condition[];
-  /** Combatants that failed a morale save and leave on their next turn. */
+  /** Combatants that failed a morale saving throw; each leaves on its next turn. */
   fleeing: readonly string[];
   /** Combatants that left the fight, in the order they left. */
   fled: readonly string[];
@@ -473,7 +473,7 @@ export type SaveEvent = Readonly<
   )
 >;
 
-/** A combatant's Wisdom save against its morale DC (#237). */
+/** A combatant's Wisdom saving throw against its morale DC (#237). */
 export type MoraleEvent = Readonly<{
   type: "morale";
   combatantId: string;
@@ -600,6 +600,20 @@ export function isDefeated(target: Combatant): boolean {
 /** Whether `entrantId` has fled the fight (#237). */
 export function hasFled(state: EncounterState, entrantId: string): boolean {
   return state.fled.includes(entrantId);
+}
+
+/**
+ * Whether `entrantId` is fleeing or has fled (#237), or neither.
+ */
+export function moraleStatus(
+  state: EncounterState,
+  entrantId: string,
+): "fleeing" | "fled" | undefined {
+  return hasFled(state, entrantId)
+    ? "fled"
+    : state.fleeing.includes(entrantId)
+      ? "fleeing"
+      : undefined;
 }
 
 /** Defeated or fled: out of the fight. */
@@ -902,7 +916,7 @@ function sideBeaten(state: EncounterState, side: Side): boolean {
 /**
  * Checks `side`'s morale if its first fall or half strength has come and its
  * check for it has not been made (#237). Each combatant on it still in the
- * fight, with a morale DC and not already fleeing, makes a Wisdom save in
+ * fight, with a morale DC and not already fleeing, makes a Wisdom saving throw in
  * initiative order; one that fails is fleeing.
  */
 function checkMorale(
@@ -927,6 +941,8 @@ function checkMorale(
       ? [trigger]
       : [],
   );
+  // Both triggers can come at once (a pair's first fall): the side checks
+  // once, the event names the first, and both are marked made.
   const [trigger] = due;
   if (trigger === undefined) {
     return state;
@@ -1515,7 +1531,7 @@ function advance(
     events.push({ type: "turn", combatantId: actor.id, round: next.round });
     // A fleeing combatant leaves on its turn, unless it can't act.
     if (
-      next.fleeing.includes(actor.id) &&
+      moraleStatus(next, actor.id) === "fleeing" &&
       incapacitatedBy(next, actor.id) === undefined
     ) {
       next = flee(next, actor, random, events);
