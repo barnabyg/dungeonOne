@@ -4,7 +4,6 @@
 // the same actions and cannot invent results.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { runDmTurn } from "../dist/dm-turn.js";
 import { buildFighter } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
@@ -14,10 +13,9 @@ import {
   renderFifthResult,
 } from "../dist/runtime-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import { ratlessTunnels, sealedCrypt } from "./fixtures/modules.mjs";
 
-const crypt = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "warden-crypt",
-);
+const crypt = sealedCrypt;
 
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2), Int 10, Wis 10, Cha 10; Athletics
 // (+5) and Perception (+2); 12 HP.
@@ -932,11 +930,8 @@ test("a session saves its checks' cards and remembered outcomes, and replays the
   }
 });
 
-test("a module without traps offers no Search, and the engine refuses one", async () => {
-  const smugglers = (await loadBuiltInFifthAdventures()).find(
-    ({ id }) => id === "smugglers-cellar",
-  );
-  const runtime = runtimeFor(smugglers);
+test("a module without traps offers no Search, and the engine refuses one", () => {
+  const runtime = runtimeFor(ratlessTunnels);
   const start = play(runtime, [BEGIN]);
   assert.equal(
     assertAgrees(runtime, start).some(({ action }) => action === "search"),

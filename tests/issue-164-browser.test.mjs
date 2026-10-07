@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { ratlessTunnels } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -112,7 +113,11 @@ for (const viewport of [
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-164-"));
       const libraryPath = join(directory, "characters.json");
-      let server = await startFifthBrowserServer({ libraryPath, seed: 0 });
+      let server = await startFifthBrowserServer({
+        adventures: [ratlessTunnels],
+        libraryPath,
+        seed: 0,
+      });
       const browser = await launch();
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(5000);
@@ -123,7 +128,7 @@ for (const viewport of [
         await page.locator('#breadcrumb a[data-view="library"]').click();
         await create(page, "Ada");
         await page
-          .locator('.start-adventure[data-adventure="smugglers-cellar"]')
+          .locator('.start-adventure[data-adventure="quiet-tunnels"]')
           .click();
         await page.locator("#adventure").waitFor({ state: "visible" });
         // Act once so there is progress to resume.
@@ -170,7 +175,7 @@ for (const viewport of [
         assert.equal(resume.className, "continue-adventure secondary");
         assert.equal(
           resume.label,
-          "Continue Ada's adventure, The Smugglers' Cellar",
+          "Continue Ada's adventure, The Quiet Tunnels",
         );
         assert.ok(
           await page.evaluate(
@@ -213,7 +218,11 @@ for (const viewport of [
         const data = await libraryFile(libraryPath);
         data.characters[0].defeated = true;
         await writeFile(libraryPath, JSON.stringify(data));
-        server = await startFifthBrowserServer({ libraryPath, seed: 0 });
+        server = await startFifthBrowserServer({
+          adventures: [ratlessTunnels],
+          libraryPath,
+          seed: 0,
+        });
         await page.goto(server.url);
         await page.locator("#characters .continue-adventure").waitFor();
         const [bea] = await rows(page);

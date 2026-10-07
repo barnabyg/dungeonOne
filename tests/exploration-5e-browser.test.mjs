@@ -5,7 +5,6 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
@@ -15,6 +14,7 @@ import {
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import { ratTunnels } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -24,11 +24,8 @@ const launch = () =>
       : { headless: true },
   );
 
-// The Smugglers' Cellar as it was before #207, with its Giant Rat fight; the
-// server offers it in place of the built-in modules.
-const adventure = await loadFifthAdventure(
-  "tests/fixtures/smugglers-with-rat.json",
-);
+// The rat tunnels, with the Giant Rat's fight; the server offers only them.
+const adventure = ratTunnels;
 const FIXTURE_MODULES = { adventures: [adventure], qualifies: () => true };
 // The creation screen's default choices; the placement follows the dice.
 const DEFAULT_CHOICES = {
@@ -215,7 +212,7 @@ test(
       await page.locator("#save-character").click();
       await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
       await page
-        .locator('.start-adventure[data-adventure="smugglers-cellar"]')
+        .locator('.start-adventure[data-adventure="rat-tunnels"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
 

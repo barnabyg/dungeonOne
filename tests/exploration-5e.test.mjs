@@ -3,16 +3,14 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import { runDmTurn } from "../dist/dm-turn.js";
 import { buildFighter } from "../dist/fighter-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
+import { ratTunnels } from "./fixtures/modules.mjs";
 
-// The Smugglers' Cellar as it was before #207, with its Giant Rat fight.
-const adventure = await loadFifthAdventure(
-  "tests/fixtures/smugglers-with-rat.json",
-);
+// The rat tunnels: an alcove's chest, the Giant Rat's fight, the goblin's den.
+const adventure = ratTunnels;
 const adventures = [adventure];
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 13 in leather with Defense, 12 HP, mace +5.
 const sheet = buildFighter(

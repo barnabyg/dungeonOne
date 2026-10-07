@@ -5,11 +5,11 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import { ratTunnels } from "./fixtures/modules.mjs";
 import {
   assertTogether,
   explore,
@@ -20,11 +20,8 @@ import {
   say,
 } from "./fixtures/session-layout.mjs";
 
-// The Smugglers' Cellar as it was before #207, with its Giant Rat fight; the
-// server offers it in place of the built-in modules.
-const adventure = await loadFifthAdventure(
-  "tests/fixtures/smugglers-with-rat.json",
-);
+// The rat tunnels, with the Giant Rat's fight; the server offers only them.
+const adventure = ratTunnels;
 const FIXTURE_MODULES = { adventures: [adventure], qualifies: () => true };
 
 /** A seed where Ada wins the rat fight hurt, so she can drink the potion. */
@@ -131,7 +128,7 @@ for (const viewport of [
   { width: 375, height: 812 },
 ]) {
   test(
-    `actions and their results stay on screen together in the Smugglers' Cellar (${viewport.width}px)`,
+    `actions and their results stay on screen together in the rat tunnels (${viewport.width}px)`,
     { timeout: 120000 },
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-154-"));
@@ -155,7 +152,7 @@ for (const viewport of [
         await page.locator("#save-character").click();
         await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
         await page
-          .locator('.start-adventure[data-adventure="smugglers-cellar"]')
+          .locator('.start-adventure[data-adventure="rat-tunnels"]')
           .click();
         await page.locator("#adventure").waitFor({ state: "visible" });
         await page.locator("#log li").first().waitFor();

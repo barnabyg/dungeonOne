@@ -9,12 +9,12 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { FIFTH_DM_SETUP_HINT } from "../dist/browser-5e-server.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { startFifthAdventure } from "../dist/session-5e.js";
 import { launchDefault } from "./fixtures/default-launch.mjs";
 import { PRE_5E_LIBRARY } from "./fixtures/pre-5e-library.mjs";
+import { loneGoblin } from "./fixtures/modules.mjs";
 
 const cli = fileURLToPath(new URL("../dist/browser-cli.js", import.meta.url));
 
@@ -157,14 +157,13 @@ test("an adventure saved in an older format is refused when opened and left byte
     const library = new FifthCharacterLibrary(libraryPath, 0);
     const pending = await library.startCreation();
     const saved = await library.create("Ada", CHOICES, pending.revision);
-    const delve = (await loadBuiltInFifthAdventures()).find(
-      ({ id }) => id === "abandoned-delve",
-    );
+    // The launcher offers only the shipped modules, but it refuses the older
+    // format before it looks up the session's module.
     const session = await startFifthAdventure(
       library,
       0,
       saved.characters[0].sheet.id,
-      delve,
+      loneGoblin,
       saved.revision,
     );
     const sessionPath = library.sessionPath(session.id);
