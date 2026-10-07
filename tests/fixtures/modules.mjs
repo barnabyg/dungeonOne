@@ -1,5 +1,5 @@
 // The test-owned adventure modules (#251). Engine, runtime, browser and
-// harness tests play these instead of the shipped modules in adventures/5e/,
+// harness tests play these instead of the shipped adventure modules,
 // so content can change without touching engine tests. Each is named for the
 // mechanic it serves; README.md lists them.
 import { readFile } from "node:fs/promises";
