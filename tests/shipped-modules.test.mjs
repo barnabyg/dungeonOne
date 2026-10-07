@@ -38,7 +38,7 @@ const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the built-in modules are the eight shipped ones", () => {
+test("the built-in modules are the nine shipped ones", () => {
   assert.deepEqual(
     shipped.map(({ id }) => id),
     [
@@ -47,6 +47,7 @@ test("the built-in modules are the eight shipped ones", () => {
       "goblin-storeroom",
       "goblin-warren",
       "robbers-barrow",
+      "silvervein-mine",
       "smugglers-cellar",
       "tinkers-toll",
       "warden-crypt",
@@ -151,6 +152,11 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
   assert.deepEqual(carriers.sort(), [
     "goblin-warren/boss-chain@goblin-boss",
     "robbers-barrow/barrow-goblin-coins@barrow-goblin",
+    "silvervein-mine/bugbear-overseer-coins@bugbear-overseer",
+    "silvervein-mine/bugbear-overseer-trinket@bugbear-overseer",
+    "silvervein-mine/iron-key@kobold-tunneller",
+    "silvervein-mine/kobold-lookout-coins@kobold-lookout",
+    "silvervein-mine/kobold-tunneller-coins@kobold-tunneller",
   ]);
 });
 
@@ -172,6 +178,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["abandoned-delve", "2–2", "hard"],
       ["warden-crypt", "2–2", "hard"],
       ["goblin-warren", "2–3", "hard"],
+      ["silvervein-mine", "2–3", "hard"],
     ],
   );
 });

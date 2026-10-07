@@ -1,0 +1,355 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 18,
+  "id": "silvervein-mine",
+  "title": "The Silvervein Mine",
+  "objective": "Kobolds have dug into the old Silvervein mine, and worse things stir below. Take what silver you can and get back out of the mine mouth alive.",
+  "recommendedLevels": {
+    "min": 2,
+    "max": 3
+  },
+  "difficulty": "hard",
+  "startRoomId": "mine-mouth",
+  "rooms": [
+    {
+      "id": "mine-mouth",
+      "name": "Mine Mouth",
+      "description": "A timbered adit opens in the hillside, its beams black with age. Fresh spoil spills down the slope, and a rail track runs into the dark.",
+      "exit": true,
+      "features": [
+        {
+          "id": "ore-cart",
+          "name": "Overturned Ore Cart",
+          "description": "A rusted ore cart lies on its side across the rails.",
+          "discovery": "The cart is empty. Dozens of small clawed footprints lead from it into the mine."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "sorting-shed",
+      "name": "Sorting Shed",
+      "description": "A low cavern where miners once sorted ore. Plank tables stand among heaps of broken rock, and the rail track runs on, deeper into the hill.",
+      "encounterId": "shed-kobolds",
+      "features": [
+        {
+          "id": "ore-bin",
+          "name": "Ore Bin",
+          "description": "A wooden bin of sorted ore, its lid weighted down with a stone.",
+          "discovery": "Under the ore lie a stoppered vial of red liquid and a cloth bag of silver the kobolds have scraped together."
+        }
+      ],
+      "items": [
+        {
+          "id": "shed-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "ore-bin"
+        },
+        {
+          "id": "kobold-takings",
+          "name": "Kobolds' Takings",
+          "description": "A cloth bag of tarnished silver pieces.",
+          "kind": "coin",
+          "coins": {
+            "sp": 40
+          },
+          "hiddenIn": "ore-bin"
+        },
+        {
+          "id": "iron-key",
+          "name": "Iron Key",
+          "description": "A heavy iron key on a loop of greasy cord.",
+          "kind": "key",
+          "hiddenIn": "kobold-tunneller"
+        },
+        {
+          "id": "kobold-lookout-coins",
+          "name": "Kobold Lookout's Coins",
+          "description": "A greasy pouch of copper pieces.",
+          "kind": "coin",
+          "coins": {
+            "cp": 9
+          },
+          "hiddenIn": "kobold-lookout"
+        },
+        {
+          "id": "kobold-tunneller-coins",
+          "name": "Kobold Tunneller's Coins",
+          "description": "A greasy pouch of copper pieces.",
+          "kind": "coin",
+          "coins": {
+            "cp": 8
+          },
+          "hiddenIn": "kobold-tunneller"
+        }
+      ]
+    },
+    {
+      "id": "main-gallery",
+      "name": "Main Gallery",
+      "description": "A long gallery runs between rotten pit props. Side passages branch off: one dripping, one hung with grey webs, and one closed by an iron door.",
+      "features": [
+        {
+          "id": "notice-board",
+          "name": "Notice Board",
+          "description": "A board nailed to a pit prop, its notices curling with damp.",
+          "discovery": "One notice can still be read: \"Lower drift flooded. Six men lost. Pay held in the office until the pumps are mended.\""
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "flooded-drift",
+      "name": "Flooded Drift",
+      "description": "Black water stands knee-deep in a low drift. Picks and lamps float among fallen timbers, and burial niches are cut into the dry wall.",
+      "encounterId": "drift-dead",
+      "features": [
+        {
+          "id": "burial-niche",
+          "name": "Burial Niche",
+          "description": "A niche cut into the wall above the waterline, stacked with old bones.",
+          "discovery": "Among the bones lies a silver locket on a broken chain."
+        }
+      ],
+      "items": [
+        {
+          "id": "silver-locket",
+          "name": "Silver Locket",
+          "description": "A tarnished silver locket. Inside is a lock of a child's hair.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "burial-niche"
+        }
+      ]
+    },
+    {
+      "id": "webbed-winze",
+      "name": "Webbed Winze",
+      "description": "A steep shaft drops away, choked with grey webs. Husks of rats and kobolds hang in the strands.",
+      "encounterId": "winze-spider",
+      "features": [
+        {
+          "id": "cocoon",
+          "name": "Cocooned Prospector",
+          "description": "A man-sized bundle of web hangs from a beam over the shaft.",
+          "discovery": "Inside the cocoon is a dead prospector, still clutching a pouch. In it are an uncut sapphire and a vial of red liquid."
+        }
+      ],
+      "items": [
+        {
+          "id": "uncut-sapphire",
+          "name": "Uncut Sapphire",
+          "description": "A rough blue stone the size of a thumbnail.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "cocoon"
+        },
+        {
+          "id": "winze-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "cocoon"
+        }
+      ]
+    },
+    {
+      "id": "overseers-office",
+      "name": "Overseer's Office",
+      "description": "The old mine office, its shutters nailed closed. A ledger desk stands against one wall and a heavy chest against another.",
+      "encounterId": "office-bugbear",
+      "features": [
+        {
+          "id": "ledger-desk",
+          "name": "Ledger Desk",
+          "description": "A tall desk with a mouldering ledger open on it.",
+          "discovery": "The last page lists six miners' names, each marked \"drowned\", and the words \"pay held\"."
+        },
+        {
+          "id": "payroll-chest",
+          "name": "Payroll Chest",
+          "description": "An iron-bound chest, its lid prised open.",
+          "discovery": "The chest still holds the mine's last payroll, in sealed canvas bags."
+        }
+      ],
+      "items": [
+        {
+          "id": "payroll",
+          "name": "Miners' Payroll",
+          "description": "Sealed canvas bags of gold, the pay the drowned miners never drew.",
+          "kind": "coin",
+          "coins": {
+            "gp": 60
+          },
+          "hiddenIn": "payroll-chest"
+        },
+        {
+          "id": "bugbear-overseer-coins",
+          "name": "Bugbear Overseer's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": {
+            "sp": 12
+          },
+          "hiddenIn": "bugbear-overseer"
+        },
+        {
+          "id": "bugbear-overseer-trinket",
+          "name": "Bugbear Overseer's Rough Gem",
+          "description": "A cloudy, roughly cut stone that a jeweller would buy.",
+          "kind": "treasure",
+          "treasure": "gem-10gp",
+          "hiddenIn": "bugbear-overseer"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "mouth-to-shed",
+      "between": ["mine-mouth", "sorting-shed"],
+      "description": "The rail track runs into the adit."
+    },
+    {
+      "id": "shed-to-gallery",
+      "between": ["sorting-shed", "main-gallery"],
+      "description": "The track runs on into a long gallery."
+    },
+    {
+      "id": "gallery-to-drift",
+      "between": ["main-gallery", "flooded-drift"],
+      "description": "A dripping passage slopes down to the water."
+    },
+    {
+      "id": "gallery-to-winze",
+      "between": ["main-gallery", "webbed-winze"],
+      "description": "A side passage hung with grey webs."
+    },
+    {
+      "id": "gallery-to-office",
+      "between": ["main-gallery", "overseers-office"],
+      "description": "The iron door.",
+      "door": {
+        "id": "iron-door",
+        "name": "Iron Door",
+        "description": "A heavy iron door, bolted from the far side and locked.",
+        "state": "locked",
+        "keyItemId": "iron-key",
+        "pick": {
+          "ability": "dexterity",
+          "dc": 15
+        },
+        "break": {
+          "skill": "athletics",
+          "dc": 17
+        }
+      }
+    }
+  ],
+  "encounters": [
+    {
+      "id": "shed-kobolds",
+      "opponents": [
+        {
+          "id": "kobold-lookout",
+          "monster": "kobold",
+          "name": "Kobold Lookout",
+          "description": "A kobold lookout yelps from a heap of rock and scrambles down, spike in hand."
+        },
+        {
+          "id": "kobold-tunneller",
+          "monster": "kobold",
+          "name": "Kobold Tunneller",
+          "description": "A kobold tunneller, an iron key bouncing on a cord at its neck, comes at you from behind a table.",
+          "surrender": {
+            "description": "The tunneller throws down its spike and cowers behind a table, clutching the key at its neck.",
+            "topics": [
+              {
+                "id": "the-spider",
+                "name": "the webs",
+                "reply": "\"Big spider in the winze. It ate Skrit. It ate Nub. Do not go in the webs!\""
+              },
+              {
+                "id": "the-overseer",
+                "name": "the overseer",
+                "reply": "\"The bugbear makes us dig. He keeps the miners' gold in a chest behind the iron door, and he hits very hard.\""
+              },
+              {
+                "id": "the-iron-door",
+                "name": "the iron door",
+                "reply": "\"The overseer gave me the key to fetch his supper. Take it, take it, only do not hurt me!\"",
+                "gives": ["iron-key"]
+              }
+            ],
+            "xp": 25
+          }
+        }
+      ],
+      "defeatEndingId": "lost-in-the-mine"
+    },
+    {
+      "id": "drift-dead",
+      "opponents": [
+        {
+          "id": "drowned-miner",
+          "monster": "zombie",
+          "name": "Drowned Miner",
+          "description": "A bloated miner rises out of the black water, pick still in its fist."
+        },
+        {
+          "id": "miners-bones",
+          "monster": "skeleton",
+          "name": "Miner's Bones",
+          "description": "Bones climb out of a niche and pull themselves together around a rusted blade."
+        }
+      ],
+      "defeatEndingId": "lost-in-the-mine"
+    },
+    {
+      "id": "winze-spider",
+      "opponents": [
+        {
+          "id": "winze-spider",
+          "monster": "giant-spider",
+          "description": "A giant spider drops from the dark on a line of silk, fangs dripping."
+        }
+      ],
+      "defeatEndingId": "lost-in-the-mine"
+    },
+    {
+      "id": "office-bugbear",
+      "opponents": [
+        {
+          "id": "bugbear-overseer",
+          "monster": "bugbear-warrior",
+          "name": "Bugbear Overseer",
+          "description": "A bugbear in a miner's leather apron heaves itself up from behind the desk, a hammer in its fist."
+        }
+      ],
+      "defeatEndingId": "lost-in-the-mine"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-silver",
+      "kind": "escape-with-loot",
+      "title": "Out with the silver",
+      "text": "You climb out of the adit into daylight with the mine's silver in your pack.",
+      "xp": 300
+    },
+    {
+      "id": "out-empty-handed",
+      "kind": "escape-without-loot",
+      "title": "Out empty-handed",
+      "text": "You climb out of the adit into daylight with nothing to show for the mine but dust."
+    },
+    {
+      "id": "lost-in-the-mine",
+      "kind": "defeat",
+      "title": "Lost in the mine",
+      "text": "You fall in the dark under the hill. Your adventuring ends here."
+    }
+  ]
+}

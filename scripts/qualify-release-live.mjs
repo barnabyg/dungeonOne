@@ -1,6 +1,8 @@
 // Opt-in live release run: a module played from start to an ending through
 // the 5e browser server, its API and its saves (The Abandoned Delve for #140
-// by default, or The Tinker's Toll for #211 with --adventure tinkers-toll),
+// by default, The Tinker's Toll for #211 with --adventure tinkers-toll, or
+// The Silvervein Mine for #241 with --adventure silvervein-mine, played by a
+// saved level-3 Ada as the mine is for levels 2–3),
 // every step typed to the configured OpenAI provider (src/release-run-5e.ts). A
 // step the AI DM's turn leaves undone is taken with its button and flagged,
 // so the run always reaches an ending. Each turn records the message, what
@@ -20,6 +22,7 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   OUTCOME_CLAIM,
   startAdventureOverHttp,
+  startSavedAdventureOverHttp,
 } from "../dist/dm-evaluation-5e.js";
 import { createDmCallBudget } from "../dist/dm-turn.js";
 import {
@@ -28,18 +31,27 @@ import {
 } from "../dist/openai-dm-model.js";
 import {
   DELVE_FULL_ROUTE,
+  MINE_FULL_ROUTE,
   playReleaseRun,
   TOLL_FULL_ROUTE,
 } from "../dist/release-run-5e.js";
+import { levelThreeLibrary } from "../dist/test-fighter-5e.js";
 
 const USAGE =
   "Usage: node scripts/qualify-release-live.mjs --live|--dry-run [--adventure <id>] [--output <report.json>] [--max-calls <count>] [--seed <seed>]";
 
 // Each release run's issue, route and default seed, on which Ada clears the
-// route and walks out when each step is taken as planned.
+// route and walks out when each step is taken as planned. A run with a
+// `character` starts from a library holding it, already saved.
 const RUNS = {
   "abandoned-delve": { issue: 140, route: DELVE_FULL_ROUTE, seed: "1443" },
   "tinkers-toll": { issue: 211, route: TOLL_FULL_ROUTE, seed: "0" },
+  "silvervein-mine": {
+    issue: 241,
+    route: MINE_FULL_ROUTE,
+    seed: "26",
+    character: levelThreeLibrary,
+  },
 };
 const usage = () => {
   process.stderr.write(`${USAGE}\n`);
@@ -148,8 +160,12 @@ const model = {
   },
 };
 
+const libraryPath = join(directory, "characters.json");
+if (run.character !== undefined) {
+  await writeFile(libraryPath, JSON.stringify(run.character()));
+}
 const server = await startFifthBrowserServer({
-  libraryPath: join(directory, "characters.json"),
+  libraryPath,
   seed,
   dmModel: model,
   // This qualifies the AI DM, not the balance gate, which the shipped-module
@@ -159,7 +175,11 @@ const server = await startFifthBrowserServer({
 try {
   const { session } = await playReleaseRun({
     url: server.url,
-    session: await startAdventureOverHttp(server.url, options.adventure),
+    session: await (
+      run.character === undefined
+        ? startAdventureOverHttp
+        : startSavedAdventureOverHttp
+    )(server.url, options.adventure),
     route: run.route,
     onTurn(turn) {
       report.turns.push({
