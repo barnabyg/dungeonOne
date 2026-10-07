@@ -73,6 +73,8 @@ export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
 export const FIFTH_ADVENTURE_FORMAT = 13;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
+/** The most opponents one encounter may have. */
+export const MAX_OPPONENTS = 8;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
 export type FifthOpponent = Readonly<{
@@ -483,66 +485,68 @@ function validateModule(
         ["victoryEndingId"],
         where,
       );
-      const opponents = list(encounter.opponents, `${where} opponents`, 8).map(
-        (raw, number) => {
-          const at = `${where} opponent ${number + 1}`;
-          const reference = isRecord(raw) && "monster" in raw;
-          const opponent = reference
-            ? knownKeys(
-                raw,
-                ["id", "monster"],
-                ["name", "description", "boss", "statBlock"],
-                at,
-              )
-            : knownKeys(
-                raw,
-                ["id", "name", "description", "statBlock"],
-                ["boss"],
-                at,
-              );
-          if (opponent.boss !== undefined && opponent.boss !== true) {
-            fail(`${at} boss must be true, or left out.`);
-          }
-          const opponentId = id(opponent.id, `${at} id`);
-          const boss = opponent.boss === true ? { boss: true as const } : {};
-          if (!reference) {
-            return {
-              id: opponentId,
-              name: text(opponent.name, `${at} name`, 60),
-              description: text(opponent.description, `${at} description`),
-              statBlock: statBlock(opponent.statBlock, `${at} statBlock`),
-              ...boss,
-            };
-          }
-          const monsterId = id(opponent.monster, `${at} monster`);
-          if (opponent.statBlock !== undefined) {
-            fail(
-              `module ${moduleId} ${at} (${opponentId}) names bestiary monster ${monsterId} and has an inline statBlock; give only one.`,
+      const opponents = list(
+        encounter.opponents,
+        `${where} opponents`,
+        MAX_OPPONENTS,
+      ).map((raw, number) => {
+        const at = `${where} opponent ${number + 1}`;
+        const reference = isRecord(raw) && "monster" in raw;
+        const opponent = reference
+          ? knownKeys(
+              raw,
+              ["id", "monster"],
+              ["name", "description", "boss", "statBlock"],
+              at,
+            )
+          : knownKeys(
+              raw,
+              ["id", "name", "description", "statBlock"],
+              ["boss"],
+              at,
             );
-          }
-          const monster = bestiary.monsters.find(
-            ({ id: entryId }) => entryId === monsterId,
-          );
-          if (monster === undefined) {
-            fail(
-              `module ${moduleId} ${at} (${opponentId}) names bestiary monster ${monsterId}, which is not in the bestiary.`,
-            );
-          }
+        if (opponent.boss !== undefined && opponent.boss !== true) {
+          fail(`${at} boss must be true, or left out.`);
+        }
+        const opponentId = id(opponent.id, `${at} id`);
+        const boss = opponent.boss === true ? { boss: true as const } : {};
+        if (!reference) {
           return {
             id: opponentId,
-            name:
-              opponent.name === undefined
-                ? monster.statBlock.name
-                : text(opponent.name, `${at} name`, 60),
-            description:
-              opponent.description === undefined
-                ? monster.description
-                : text(opponent.description, `${at} description`),
-            statBlock: monster.statBlock,
+            name: text(opponent.name, `${at} name`, 60),
+            description: text(opponent.description, `${at} description`),
+            statBlock: statBlock(opponent.statBlock, `${at} statBlock`),
             ...boss,
           };
-        },
-      );
+        }
+        const monsterId = id(opponent.monster, `${at} monster`);
+        if (opponent.statBlock !== undefined) {
+          fail(
+            `module ${moduleId} ${at} (${opponentId}) names bestiary monster ${monsterId} and has an inline statBlock; give only one.`,
+          );
+        }
+        const monster = bestiary.monsters.find(
+          ({ id: entryId }) => entryId === monsterId,
+        );
+        if (monster === undefined) {
+          fail(
+            `module ${moduleId} ${at} (${opponentId}) names bestiary monster ${monsterId}, which is not in the bestiary.`,
+          );
+        }
+        return {
+          id: opponentId,
+          name:
+            opponent.name === undefined
+              ? monster.statBlock.name
+              : text(opponent.name, `${at} name`, 60),
+          description:
+            opponent.description === undefined
+              ? monster.description
+              : text(opponent.description, `${at} description`),
+          statBlock: monster.statBlock,
+          ...boss,
+        };
+      });
       unique(opponents, `${where} opponent`);
       // The player targets opponents by name, in any case.
       distinct(

@@ -15,6 +15,7 @@
     "check:package": "node scripts/package-checks.mjs",
     "check:security": "node scripts/security-checks.mjs",
     "eval:dm": "npm run build && node scripts/eval-dm.mjs",
+    "estimate": "npm run build && node scripts/estimate-5e.mjs",
     "format": "prettier --write \".github/**/*.{yml,yaml}\" \"agent-guidance/**/*.md\" \"src/**/*.ts\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" \"adventures/**/*.json\" \"*.config.mjs\" README.md package.json \"tsconfig*.json\"",
     "format:check": "prettier --check \".github/**/*.{yml,yaml}\" \"agent-guidance/**/*.md\" \"src/**/*.ts\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" \"adventures/**/*.json\" \"*.config.mjs\" README.md package.json \"tsconfig*.json\"",
     "lint": "eslint . --config eslint.style.config.mjs --max-warnings 0",

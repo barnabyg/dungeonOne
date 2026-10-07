@@ -47,3 +47,10 @@ are on screen together (#154).
 it as `validateModule`, for tests that validate a shipped module's JSON, or a
 changed copy of it, directly. The other module fixtures author their stat
 blocks inline, so they also cover one-off inline opponents.
+
+## Encounter estimate (issue 236)
+
+`estimate-wolf-pair.json` is _The Wolf Pair_: one room whose fight is two
+bestiary Wolves, renamed, for levels 2–3. `tests/estimate-5e.test.mjs` checks
+that `npm run estimate -- --levels 2-3 wolf:2` gives the same numbers as the
+gate and the harness measure on it.

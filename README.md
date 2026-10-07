@@ -351,6 +351,15 @@ These are for development, not play.
   survival, HP lost and rounds per fight, healing, XP, treasure, one-hit-kill
   chances and each module's balance-gate verdict. See
   [the rules document](docs/character-rules.md#balance-harness).
+- **Encounter estimate.** `npm.cmd run estimate -- [--levels <min>-<max>]
+[--seeds <count>] [--percentiles <p,p>] [--styles <style,style>] [--bestiary
+<file>] [--json] <monster>[:<count>] ...` estimates a fight before you write
+  it: give bestiary ids with counts (`wolf:2 bandit`) and a level range, and it
+  plays the fight as a one-room module with the harness's characters, every
+  starting kit and every style, reporting survival, HP lost, rounds and each
+  monster's one-hit-kill chance against each difficulty's cap, then the gate's
+  verdict at each difficulty. See
+  [the rules document](docs/character-rules.md#encounter-estimate).
 - **Live DM evaluation.** `npm.cmd run eval:dm -- --model <model-id> --live`
   evaluates the live AI DM on The Abandoned Delve's interpretation, refusal and
   narration-fidelity cases (`src/dm-evaluation-5e.ts`), within a stated call

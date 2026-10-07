@@ -1227,6 +1227,17 @@ export type GateVerdict = Readonly<{
   xp: XpCheck;
 }>;
 
+/**
+ * What the gate measures of a module, before it is judged at a difficulty:
+ * none of it depends on the difficulty declared.
+ */
+export type GateMeasures = Readonly<{
+  adventureId: string;
+  survival: Omit<SurvivalCheck, "ok" | "required">;
+  oneHitKill: Omit<OneHitKillCheck, "ok" | "cap" | "overCap">;
+  xp: XpCheck;
+}>;
+
 export type GateResult =
   | Readonly<{ ok: true; verdict: GateVerdict }>
   | Readonly<{
@@ -1238,6 +1249,82 @@ export type GateOptions = Pick<
   BalanceOptions,
   "seeds" | "sampleSize" | "sampleSeed" | "stepLimit"
 >;
+
+/** One way the strongest character may be armed, as the gate tries it. */
+export type Attacker = Readonly<{
+  kit: KitId;
+  /** A weapon the module places or a merchant sells, wielded instead. */
+  gear?: WeaponId;
+  fightingStyle: FightingStyle;
+  sheet: FighterSheet;
+}>;
+
+/**
+ * The ways the gate arms the character rolled with `dice` at `level`: every
+ * starting kit, and every weapon in `placed` wielded with the default kit's
+ * armour, each with every Fighting Style, the default first.
+ */
+export function strongestAttackers(
+  dice: RolledDice,
+  level: Level,
+  placed: readonly WeaponId[] = [],
+): readonly Attacker[] {
+  const armed = [
+    ...KITS.map((kit) => ({
+      kit,
+      sheet: fighterAtLevel(dice, level, kit),
+    })),
+    ...placed.map((gear) => {
+      const kit = FIGHTER_DEFAULT_CHOICES.kit;
+      const sheet = fighterAtLevel(dice, level, kit);
+      return {
+        kit,
+        gear,
+        sheet: validateFighter({
+          ...sheet,
+          equipment: [
+            ...STARTING_KITS[kit].equipment.filter((item) => !isWeaponId(item)),
+            gear,
+          ],
+        }),
+      };
+    }),
+  ];
+  const styles = [
+    FIGHTER_DEFAULT_CHOICES.fightingStyle,
+    ...(Object.keys(FIGHTING_STYLES) as FightingStyle[]).filter(
+      (style) => style !== FIGHTER_DEFAULT_CHOICES.fightingStyle,
+    ),
+  ];
+  return armed.flatMap((entry) =>
+    styles.map((fightingStyle) => ({
+      ...entry,
+      fightingStyle,
+      sheet: validateFighter({ ...entry.sheet, fightingStyle }),
+    })),
+  );
+}
+
+/**
+ * The best one-hit-kill chance against `enemy` among `attackers`, and the
+ * kit, gear and Fighting Style that give it. On a tie the earlier is kept.
+ */
+export function bestOneHitKill(
+  attackers: readonly Attacker[],
+  enemy: StatBlock,
+): Readonly<{
+  chance: number;
+  kit: KitId;
+  gear?: WeaponId;
+  fightingStyle: FightingStyle;
+}> {
+  return attackers
+    .map(({ sheet, ...found }) => ({
+      chance: oneHitKillChance(sheet, enemy),
+      ...found,
+    }))
+    .reduce((best, entry) => (entry.chance > best.chance ? entry : best));
+}
 
 /**
  * Checks `adventure` against its declared difficulty
@@ -1264,7 +1351,6 @@ export function gateAdventure(
     stepLimit,
   }: GateOptions = {},
 ): GateResult {
-  const thresholds = DIFFICULTY_THRESHOLDS[adventure.difficulty];
   const { min, max } = adventure.recommendedLevels;
   try {
     const [weakest, strongest] = percentileCharacters({
@@ -1299,8 +1385,7 @@ export function gateAdventure(
     const weakestKit = kits.reduce((worst, entry) =>
       entry.rate < worst.rate ? entry : worst,
     );
-    const survival: SurvivalCheck = {
-      ok: weakestKit.rate >= thresholds.survival,
+    const survival: GateMeasures["survival"] = {
       level: weakestKit.level,
       percentile: WEAKEST_PERCENTILE,
       style: GATE_STYLE,
@@ -1308,11 +1393,9 @@ export function gateAdventure(
       rate: weakestKit.rate,
       kit: weakestKit.kit,
       kits,
-      required: thresholds.survival,
     };
 
-    // Every kit, and every weapon the module places or a merchant sells
-    // wielded instead.
+    // Every weapon the module places or a merchant sells.
     const placed = [
       ...new Set(
         adventure.rooms.flatMap(({ items, creatures }) =>
@@ -1323,74 +1406,26 @@ export function gateAdventure(
         ),
       ),
     ];
-    const armed = [
-      ...KITS.map((kit) => ({
-        kit,
-        sheet: fighterAtLevel(strongest!.dice, max as Level, kit),
-      })),
-      ...placed.map((gear) => {
-        const kit = FIGHTER_DEFAULT_CHOICES.kit;
-        const sheet = fighterAtLevel(strongest!.dice, max as Level, kit);
-        return {
-          kit,
-          gear,
-          sheet: validateFighter({
-            ...sheet,
-            equipment: [
-              ...STARTING_KITS[kit].equipment.filter(
-                (item) => !isWeaponId(item),
-              ),
-              gear,
-            ],
-          }),
-        };
-      }),
-    ];
-    // Each of those with every Fighting Style, the default first.
-    const styles = [
-      FIGHTER_DEFAULT_CHOICES.fightingStyle,
-      ...(Object.keys(FIGHTING_STYLES) as FightingStyle[]).filter(
-        (style) => style !== FIGHTER_DEFAULT_CHOICES.fightingStyle,
-      ),
-    ];
-    const strong = armed.flatMap((entry) =>
-      styles.map((fightingStyle) => ({
-        ...entry,
-        fightingStyle,
-        sheet: validateFighter({ ...entry.sheet, fightingStyle }),
-      })),
-    );
+    const strong = strongestAttackers(strongest!.dice, max as Level, placed);
     const enemies = adventure.encounters.flatMap(
       ({ id: encounterId, opponents }) =>
         opponents.flatMap(({ id, name, statBlock, boss }) =>
           boss === true
             ? []
             : [
-                strong
-                  .map(({ kit, sheet, ...found }) => ({
-                    encounterId,
-                    opponentId: id,
-                    name,
-                    chance: oneHitKillChance(sheet, statBlock),
-                    kit,
-                    ...found,
-                  }))
-                  .reduce((best, entry) =>
-                    entry.chance > best.chance ? entry : best,
-                  ),
+                {
+                  encounterId,
+                  opponentId: id,
+                  name,
+                  ...bestOneHitKill(strong, statBlock),
+                },
               ],
         ),
     );
-    const overCap = enemies.filter(
-      ({ chance }) => chance > thresholds.oneHitKillCap,
-    );
-    const oneHitKill: OneHitKillCheck = {
-      ok: overCap.length * 2 <= enemies.length,
+    const oneHitKill: GateMeasures["oneHitKill"] = {
       level: max,
       percentile: STRONGEST_PERCENTILE,
-      cap: thresholds.oneHitKillCap,
       enemies,
-      overCap,
     };
 
     const available =
@@ -1412,14 +1447,10 @@ export function gateAdventure(
 
     return {
       ok: true,
-      verdict: {
-        adventureId: adventure.id,
-        difficulty: adventure.difficulty,
-        qualified: survival.ok && oneHitKill.ok && xp.ok,
-        survival,
-        oneHitKill,
-        xp,
-      },
+      verdict: gateVerdictAt(
+        { adventureId: adventure.id, survival, oneHitKill, xp },
+        adventure.difficulty,
+      ),
     };
   } catch (error) {
     if (error instanceof BalanceError) {
@@ -1430,6 +1461,50 @@ export function gateAdventure(
     }
     throw error;
   }
+}
+
+/**
+ * The gate's measurements judged at `difficulty`'s thresholds: the verdict
+ * the gate gives the module declared at `difficulty`. A `GateVerdict` is
+ * also its own measurements, so this re-judges one at another difficulty.
+ */
+export function gateVerdictAt(
+  measures: GateMeasures,
+  difficulty: Difficulty,
+): GateVerdict {
+  const thresholds = DIFFICULTY_THRESHOLDS[difficulty];
+  const { level, percentile, style, runs, rate, kit, kits } = measures.survival;
+  const survival: SurvivalCheck = {
+    ok: rate >= thresholds.survival,
+    level,
+    percentile,
+    style,
+    runs,
+    rate,
+    kit,
+    kits,
+    required: thresholds.survival,
+  };
+  const { enemies } = measures.oneHitKill;
+  const overCap = enemies.filter(
+    ({ chance }) => chance > thresholds.oneHitKillCap,
+  );
+  const oneHitKill: OneHitKillCheck = {
+    ok: overCap.length * 2 <= enemies.length,
+    level: measures.oneHitKill.level,
+    percentile: measures.oneHitKill.percentile,
+    cap: thresholds.oneHitKillCap,
+    enemies,
+    overCap,
+  };
+  return {
+    adventureId: measures.adventureId,
+    difficulty,
+    qualified: survival.ok && oneHitKill.ok && measures.xp.ok,
+    survival,
+    oneHitKill,
+    xp: measures.xp,
+  };
 }
 
 /** Each module gated so far, by its content: the verdict never changes. */
