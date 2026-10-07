@@ -1,4 +1,4 @@
-// #233, browser → API → storage: in the Warden's Crypt the risen warden, a
+// #233, browser → API → storage: in the sealed crypt the risen warden, a
 // Zombie, is reduced to 0 HP and its Undead Fortitude keeps it standing. The
 // history narrates the save and shows its roll, the initiative table shows
 // it at 1 HP, and a restart serves the same state from the saved session.
@@ -7,16 +7,14 @@ import test from "node:test";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
+import { sealedCrypt } from "./fixtures/modules.mjs";
 
-const crypt = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "warden-crypt",
-);
+const crypt = sealedCrypt;
 const ROUTE = ["hall", "tomb"];
 
 /**
@@ -98,7 +96,11 @@ test(
     const clicks = refusal(seed);
     const directory = await mkdtemp(join(tmpdir(), "issue-233-browser-"));
     const libraryPath = join(directory, "characters.json");
-    let server = await startFifthBrowserServer({ libraryPath, seed });
+    let server = await startFifthBrowserServer({
+      adventures: [crypt],
+      libraryPath,
+      seed,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 1280, height: 900 },
@@ -112,7 +114,7 @@ test(
       await page.locator("#save-character").click();
       await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
       await page
-        .locator('.start-adventure[data-adventure="warden-crypt"]')
+        .locator('.start-adventure[data-adventure="sealed-crypt"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
       for (const destination of ROUTE) {
@@ -157,7 +159,11 @@ test(
       assert.equal(warden.hp, 1);
       assert.equal(warden.undeadFortitude, true);
       await server.close();
-      server = await startFifthBrowserServer({ libraryPath, seed: seed + 1 });
+      server = await startFifthBrowserServer({
+        adventures: [crypt],
+        libraryPath,
+        seed: seed + 1,
+      });
       await page.goto(`${server.url}/#adventure-${saved.id}`);
       await page.locator("#adventure").waitFor({ state: "visible" });
       assert.match(await wardenRow(page).innerText(), /1\/15/);
