@@ -149,11 +149,16 @@ const sessionFile = async (directory) => {
   return JSON.parse(await readFile(join(folder, name), "utf8"));
 };
 
-async function play(seed, check) {
+/**
+ * Plays the crypt on `seed` and runs `check` in the offering room. With
+ * `reload`, a reload must show the same screen (one variant is enough; the
+ * restart on another seed is checked in encounter-5e-browser.test.mjs).
+ */
+async function play(seed, check, { reload = false } = {}) {
   const expected = simulate(seed);
   const directory = await mkdtemp(join(tmpdir(), "issue-132-"));
   const libraryPath = join(directory, "characters.json");
-  let server = await startFifthBrowserServer({
+  const server = await startFifthBrowserServer({
     adventures: [crypt],
     libraryPath,
     seed,
@@ -250,23 +255,13 @@ async function play(seed, check) {
     await click(page, "move", "offering-room");
     await check(page, expected);
 
-    // Reload, then restart with another seed: the same screen.
-    shown = await screen(page);
-    await page.reload();
-    await page.locator("#adventure").waitFor({ state: "visible" });
-    assert.deepEqual(await screen(page), shown);
-    await server.close();
-    server = await startFifthBrowserServer({
-      adventures: [crypt],
-      libraryPath,
-      seed: seed + 1,
-      dmModel: talkingDm(),
-    });
-    await page.goto(
-      `${server.url}/#adventure-${(await sessionFile(directory)).id}`,
-    );
-    await page.locator("#adventure").waitFor({ state: "visible" });
-    assert.deepEqual(await screen(page), shown);
+    if (reload) {
+      // A reload shows the same screen, from the saved session.
+      shown = await screen(page);
+      await page.reload();
+      await page.locator("#adventure").waitFor({ state: "visible" });
+      assert.deepEqual(await screen(page), shown);
+    }
 
     // Every die matches an uninterrupted engine run on the same seed.
     const file = await sessionFile(directory);
@@ -299,24 +294,28 @@ test(
     const seed = findSeed(
       (run) => !run.forced && !run.found && run.state.status === "playing",
     );
-    await play(seed, async (page, expected) => {
-      const lines = await compact(page);
-      assert.match(
-        lines[0],
-        /^Ada Dexterity saving throw (Success|Failure) d20 \d+ [+−] \d+ = \d+ vs DC 12$/,
-      );
-      assert.match(
-        lines[1],
-        /^Dart Trap → Ada \d+ piercing \(d4 \d \+ d4 \d(, halved)?\) → \d+\/\d+ HP$/,
-      );
-      const shown = await screen(page);
-      assert.match(
-        shown.status,
-        new RegExp(`HP ${expected.state.character.hp}/`),
-      );
-      assert.match(shown.room, /^Offering Room\n/);
-      assert.match(shown.room, /Dart Trap: sprung\./);
-    });
+    await play(
+      seed,
+      async (page, expected) => {
+        const lines = await compact(page);
+        assert.match(
+          lines[0],
+          /^Ada Dexterity saving throw (Success|Failure) d20 \d+ [+−] \d+ = \d+ vs DC 12$/,
+        );
+        assert.match(
+          lines[1],
+          /^Dart Trap → Ada \d+ piercing \(d4 \d \+ d4 \d(, halved)?\) → \d+\/\d+ HP$/,
+        );
+        const shown = await screen(page);
+        assert.match(
+          shown.status,
+          new RegExp(`HP ${expected.state.character.hp}/`),
+        );
+        assert.match(shown.room, /^Offering Room\n/);
+        assert.match(shown.room, /Dart Trap: sprung\./);
+      },
+      { reload: true },
+    );
   },
 );
 

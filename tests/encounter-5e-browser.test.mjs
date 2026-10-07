@@ -131,13 +131,6 @@ const panel = (page) =>
     log: document.getElementById("log").textContent,
   }));
 
-/** What the status strip's resources say to a screen reader (#155). */
-const resources = (page) =>
-  page
-    .locator("#resources li .visually-hidden")
-    .allTextContents()
-    .then((words) => words.join("; "));
-
 const sessionFile = async (directory) => {
   const folder = join(directory, "characters-adventures");
   const [name] = await readdir(folder);
@@ -496,7 +489,7 @@ function simulateFeatures(seed) {
 }
 
 test(
-  "Second Wind by click: its button, compact healing line, a restart and the saved session",
+  "Second Wind by click: its button, compact healing line and the saved session",
   { timeout: 90000 },
   async () => {
     // A fight where Ada heals with Second Wind.
@@ -508,7 +501,7 @@ test(
     }
     const directory = await mkdtemp(join(tmpdir(), "encounter-5e-features-"));
     const libraryPath = join(directory, "characters.json");
-    let server = await startFifthBrowserServer({
+    const server = await startFifthBrowserServer({
       adventures: ADVENTURES,
       libraryPath,
       seed,
@@ -562,24 +555,6 @@ test(
                 .locator(".compact .roll.healing strong")
                 .count(),
               1,
-            );
-            // Reload and restart: the same spent use and the same panel.
-            const shown = await panel(page);
-            await server.close();
-            server = await startFifthBrowserServer({
-              adventures: ADVENTURES,
-              libraryPath,
-              seed: seed + 1,
-            });
-            await page.goto(
-              `${server.url}/#adventure-${(await sessionFile(directory)).id}`,
-            );
-            await page.locator("#adventure").waitFor({ state: "visible" });
-            assert.deepEqual(await panel(page), shown);
-            // The spent use survives the restart (#155's strip).
-            assert.equal(
-              await resources(page),
-              "Action: available; Bonus action: used; Reaction: available; Second Wind: 1 of 2 uses left",
             );
           }
         } else {

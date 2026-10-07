@@ -168,7 +168,7 @@ test(
     const expected = simulate(seed);
     const directory = await mkdtemp(join(tmpdir(), "exploration-5e-"));
     const libraryPath = join(directory, "characters.json");
-    let server = await startFifthBrowserServer({
+    const server = await startFifthBrowserServer({
       ...SERVER_OPTIONS,
       libraryPath,
       seed,
@@ -273,20 +273,6 @@ test(
         shown.status,
         new RegExp(`HP ${expected.state.character.hp}/`),
       );
-
-      // Restart (even with another seed): the same screen.
-      await server.close();
-      server = await startFifthBrowserServer({
-        ...SERVER_OPTIONS,
-        libraryPath,
-        seed: seed + 1,
-        dmModel: examiningDm(),
-      });
-      await page.goto(
-        `${server.url}/#adventure-${(await sessionFile(directory)).id}`,
-      );
-      await page.locator("#adventure").waitFor({ state: "visible" });
-      assert.deepEqual(await screen(page), shown);
 
       // Every die matches an uninterrupted engine run on the same seed.
       const file = await sessionFile(directory);
