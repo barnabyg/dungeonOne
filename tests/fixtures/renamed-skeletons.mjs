@@ -1,7 +1,6 @@
 // Two of the bestiary's Skeleton under a module's own names (#231), for the
 // tests that check a renamed bestiary monster keeps its module name.
-import { validateModule } from "./bestiary.mjs";
-import { fightRoomFile } from "./modules.mjs";
+import { fightRoom } from "./modules.mjs";
 
 /** The two skeletons, as module JSON opponents. */
 export const RENAMED_SKELETONS = [
@@ -20,10 +19,8 @@ export const RENAMED_SKELETONS = [
 ];
 
 /** A one-room fight against the two renamed skeletons, level 1, hard. */
-export const skeletonBarracks = validateModule(
-  fightRoomFile(
-    "skeleton-barracks",
-    "The Skeleton Barracks",
-    RENAMED_SKELETONS,
-  ),
+export const skeletonBarracks = fightRoom(
+  "skeleton-barracks",
+  "The Skeleton Barracks",
+  RENAMED_SKELETONS,
 );

@@ -17,8 +17,8 @@ import {
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
-import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
-import { fightRoomFile } from "./fixtures/modules.mjs";
+import { bestiary } from "./fixtures/bestiary.mjs";
+import { fightRoom } from "./fixtures/modules.mjs";
 import { firstFighter } from "./fixtures/session-layout.mjs";
 
 /** Returns the queued values in order, checking each die's sides. */
@@ -435,11 +435,9 @@ test("the bestiary validator needs a paralysis to say how long it lasts", () => 
 });
 
 /** The lone goblin's room with a Ghoul in place of the goblin. */
-const ghoulCellar = validateModule(
-  fightRoomFile("ghoul-cellar", "The Ghoul Cellar", [
-    { id: "ghoul", monster: "ghoul" },
-  ]),
-);
+const ghoulCellar = fightRoom("ghoul-cellar", "The Ghoul Cellar", [
+  { id: "ghoul", monster: "ghoul" },
+]);
 
 const paralysedNow = (state) =>
   (state.encounter?.conditions ?? []).some(

@@ -11,16 +11,13 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
-import { validateModule } from "./fixtures/bestiary.mjs";
-import { fightRoomFile } from "./fixtures/modules.mjs";
+import { fightRoom } from "./fixtures/modules.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 
 /** The lone goblin's room with the bestiary's Ghoul in the goblin's place. */
-const ghoulCellar = validateModule(
-  fightRoomFile("ghoul-cellar", "The Ghoul Cellar", [
-    { id: "ghoul", monster: "ghoul" },
-  ]),
-);
+const ghoulCellar = fightRoom("ghoul-cellar", "The Ghoul Cellar", [
+  { id: "ghoul", monster: "ghoul" },
+]);
 
 const paralysed = (state) =>
   (state.encounter?.conditions ?? []).some(

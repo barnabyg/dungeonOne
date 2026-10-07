@@ -22,8 +22,8 @@ import {
   sessionSeed,
   startFifthAdventure,
 } from "../dist/session-5e.js";
-import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
-import { fightRoomFile } from "./fixtures/modules.mjs";
+import { bestiary } from "./fixtures/bestiary.mjs";
+import { fightRoom } from "./fixtures/modules.mjs";
 
 /** Returns the queued values in order, checking each die's sides. */
 function dice(...queue) {
@@ -526,11 +526,8 @@ test("the bestiary validator refuses malformed riders and traits", () => {
 });
 
 /** The lone goblin's room with `opponents` in its place, as module `id`. */
-const fightWith = (id, title, opponents) =>
-  validateModule(fightRoomFile(id, title, opponents));
-
 /** The lone goblin's room with the bestiary's Giant Spider in its place. */
-const spiderCellar = fightWith("spider-cellar", "The Spider Cellar", [
+const spiderCellar = fightRoom("spider-cellar", "The Spider Cellar", [
   { id: "spider", monster: "giant-spider" },
 ]);
 
@@ -566,7 +563,7 @@ function survival(adventure) {
 
 test("the balance gate plays the riders and Pack Tactics", () => {
   // A lone Wolf: its knockdown makes it deadlier.
-  const wolf = fightWith("wolf-cellar", "The Wolf Cellar", [
+  const wolf = fightRoom("wolf-cellar", "The Wolf Cellar", [
     { id: "wolf", monster: "wolf" },
   ]);
   assert.ok(survival(wolf) < survival(changed(wolf, withoutRiders)));
@@ -575,7 +572,7 @@ test("the balance gate plays the riders and Pack Tactics", () => {
     survival(spiderCellar) < survival(changed(spiderCellar, withoutRiders)),
   );
   // Two Wolves with Pack Tactics are deadlier than two without.
-  const pack = fightWith("wolf-pack", "The Wolf Pack", [
+  const pack = fightRoom("wolf-pack", "The Wolf Pack", [
     { id: "wolf-1", monster: "wolf", name: "Wolf 1" },
     { id: "wolf-2", monster: "wolf", name: "Wolf 2" },
   ]);

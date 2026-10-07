@@ -11,22 +11,19 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
-import { validateModule } from "./fixtures/bestiary.mjs";
-import { fightRoomFile } from "./fixtures/modules.mjs";
+import { fightRoom } from "./fixtures/modules.mjs";
 
 // The bestiary's Wolf, alone in a one-room fight that starts as Ada arrives.
 // The server offers only this module, whatever its gate standing.
-const wolfDen = validateModule(
-  fightRoomFile("wolf-den", "The Wolf's Den", [
-    {
-      id: "wolf",
-      monster: "wolf",
-      description:
-        "A gaunt grey wolf rises from behind the casks, hackles up, and comes at you.",
-    },
-  ]),
-);
-const MODULES = { adventures: [wolfDen], qualifies: () => true };
+const wolfDen = fightRoom("wolf-den", "The Wolf's Den", [
+  {
+    id: "wolf",
+    monster: "wolf",
+    description:
+      "A gaunt grey wolf rises from behind the casks, hackles up, and comes at you.",
+  },
+]);
+const SERVER_OPTIONS = { adventures: [wolfDen], qualifies: () => true };
 
 const prone = (state) =>
   (state.encounter?.conditions ?? []).some(
@@ -118,7 +115,7 @@ test(
     const directory = await mkdtemp(join(tmpdir(), "issue-232-browser-"));
     const libraryPath = join(directory, "characters.json");
     let server = await startFifthBrowserServer({
-      ...MODULES,
+      ...SERVER_OPTIONS,
       libraryPath,
       seed,
     });
@@ -167,7 +164,7 @@ test(
       assert.equal(saved.state.encounter.conditions[0].kind, "prone");
       await server.close();
       server = await startFifthBrowserServer({
-        ...MODULES,
+        ...SERVER_OPTIONS,
         libraryPath,
         seed: seed + 1,
       });

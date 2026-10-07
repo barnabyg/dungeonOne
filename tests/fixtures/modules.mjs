@@ -105,6 +105,10 @@ export function fightRoomFile(id, title, opponents) {
   return module;
 }
 
+/** `fightRoomFile`'s module, validated. */
+export const fightRoom = (id, title, opponents) =>
+  validateModule(fightRoomFile(id, title, opponents));
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,

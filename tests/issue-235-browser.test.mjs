@@ -11,16 +11,13 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
-import { validateModule } from "./fixtures/bestiary.mjs";
-import { fightRoomFile } from "./fixtures/modules.mjs";
+import { fightRoom } from "./fixtures/modules.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 
 /** The lone goblin's room with the bestiary's gnoll in the goblin's place. */
-const gnollCellar = validateModule(
-  fightRoomFile("gnoll-cellar", "The Gnoll Cellar", [
-    { id: "gnoll", monster: "gnoll" },
-  ]),
-);
+const gnollCellar = fightRoom("gnoll-cellar", "The Gnoll Cellar", [
+  { id: "gnoll", monster: "gnoll" },
+]);
 
 /** Whether the gnoll acts before Ada's first turn in the session on `seed`. */
 function gnollFirst(seed) {

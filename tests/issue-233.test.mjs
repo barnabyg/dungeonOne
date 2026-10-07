@@ -14,7 +14,7 @@ import { validateFifthBestiary } from "../dist/bestiary-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
-import { fightRoomFile, moduleFile } from "./fixtures/modules.mjs";
+import { fightRoom, moduleFile } from "./fixtures/modules.mjs";
 
 /** Returns the queued values in order, checking each die's sides. */
 function dice(...queue) {
@@ -522,16 +522,13 @@ const CHOICES = {
 };
 
 /** The lone goblin's room with `opponents` in its place, as module `id`. */
-const fightWith = (id, title, opponents) =>
-  validateModule(fightRoomFile(id, title, opponents));
-
 /** A Skeleton under `name` with `defenses` in place of its own. */
 const skeletonWith = (name, defenses) => {
   const rest = structuredClone(monster("skeleton").statBlock);
   delete rest.damageVulnerabilities;
   delete rest.damageImmunities;
   const id = `${name.toLowerCase().replace(" ", "-")}-cellar`;
-  return fightWith(id, `The ${name} Cellar`, [
+  return fightRoom(id, `The ${name} Cellar`, [
     {
       id: "foe",
       name,
@@ -567,7 +564,7 @@ test("the result card says when a mace's damage is doubled, halved or ignored", 
   const sheet = await ada();
   const cases = [
     {
-      module: fightWith("skeleton-cellar", "The Skeleton Cellar", [
+      module: fightRoom("skeleton-cellar", "The Skeleton Cellar", [
         { id: "foe", monster: "skeleton" },
       ]),
       by: "vulnerability",
@@ -640,7 +637,7 @@ function toFortitude(sheet, module, seed) {
 
 test("Undead Fortitude is narrated, carded and replays exactly from a save", async () => {
   const sheet = await ada();
-  const module = fightWith("zombie-cellar", "The Zombie Cellar", [
+  const module = fightRoom("zombie-cellar", "The Zombie Cellar", [
     { id: "zombie", monster: "zombie" },
   ]);
   const outcomes = new Set();

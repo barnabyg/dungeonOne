@@ -15,7 +15,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
-import { fightRoomFile, moduleFile, ratTunnels } from "./fixtures/modules.mjs";
+import { fightRoom, moduleFile, ratTunnels } from "./fixtures/modules.mjs";
 import { RENAMED_SKELETONS } from "./fixtures/renamed-skeletons.mjs";
 
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
@@ -47,17 +47,15 @@ test("the bestiary holds the shipped monsters, the Giant Rat (#232) and the #235
 });
 
 test("an opponent takes its monster's stat block, and its name and description unless the module gives its own", () => {
-  const barracks = validateModule(
-    fightRoomFile("skeleton-barracks", "The Skeleton Barracks", [
-      ...RENAMED_SKELETONS,
-      {
-        id: "ghoul",
-        monster: "ghoul",
-        description: "A ghoul looks up from the bunks and springs.",
-        boss: true,
-      },
-    ]),
-  );
+  const barracks = fightRoom("skeleton-barracks", "The Skeleton Barracks", [
+    ...RENAMED_SKELETONS,
+    {
+      id: "ghoul",
+      monster: "ghoul",
+      description: "A ghoul looks up from the bunks and springs.",
+      boss: true,
+    },
+  ]);
   const [tall, bent, ghoul] = opponents(barracks);
   assert.equal(tall.name, "Tall Skeleton");
   assert.equal(bent.name, "Bent Skeleton");
