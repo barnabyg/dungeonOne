@@ -46,6 +46,16 @@ counter that a d6 advances and that wins at three. The DM turn loop, OpenAI
 adapter and runtime contract tests use it to exercise shared infrastructure
 without depending on the 5e runtime.
 
+## Seeded playthroughs (issue 156)
+
+`playthroughs.mjs` holds the #156 fighter, `ada` (Con 14, 12 HP), and
+`veteran()`, Ada at level 2 with Action Surge; `engineAction(view)`, the
+engine action each kind of projected action stands for, as the browser
+server makes it from a click; and `playthroughStates()`, every state of
+seeded random playthroughs of every fixture module. The bar-projection tests
+(#132, #156, #182, #183) share them, so a new kind of action is mapped once;
+#182 checks the mapping against the action each projection dry-ran.
+
 ## Pre-5e library
 
 `pre-5e-library.mjs` is a character library in the pre-5e game's format

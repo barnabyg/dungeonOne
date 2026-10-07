@@ -5,123 +5,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { act, currentCombatant, startEncounter } from "../dist/encounter-5e.js";
-import {
-  buildFighter,
-  fighterProfile,
-  levelForXp,
-  validateFighter,
-} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime, SHORT_REASONS } from "../dist/runtime-5e.js";
+import { loneGoblin } from "./fixtures/modules.mjs";
 import {
-  FIXTURE_MODULES as adventures,
-  loneGoblin,
-} from "./fixtures/modules.mjs";
-
-// The #156 fighter: Con 14 (+2), 12 HP at level 1.
-const sheet = buildFighter(
-  "a".repeat(32),
-  "Ada",
-  [
-    [6, 6, 4, 1],
-    [4, 4, 4, 1],
-    [4, 4, 4, 1],
-    [3, 3, 3, 1],
-    [3, 3, 3, 1],
-    [3, 3, 3, 1],
-  ],
-  {
-    placement: {
-      strength: 0,
-      dexterity: 1,
-      constitution: 2,
-      intelligence: 3,
-      wisdom: 4,
-      charisma: 5,
-    },
-    increase: { constitution: 2, intelligence: 1 },
-    skills: ["athletics", "perception"],
-    fightingStyle: "defense",
-    kit: "mace",
-    masteries: ["dagger", "mace", "shortsword"],
-  },
-);
-
-/** Ada at level 2, at full health, so she has Action Surge. */
-function veteran() {
-  const xp = 300;
-  const leveled = { ...sheet, xp, level: levelForXp(xp) };
-  return validateFighter({ ...leveled, hp: fighterProfile(leveled).maxHp });
-}
-
-const PLAYER = "pc";
-
-/** The engine action a projected action stands for. */
-function engineAction({ action, target }) {
-  switch (action) {
-    case "attack":
-    case "light-attack":
-      return { type: action, actorId: PLAYER, targetId: target.id };
-    case "use":
-      return { type: "use-item", itemId: target.id };
-    case "move":
-      return { type: "move", destinationId: target.id };
-    case "examine":
-      return { type: "examine", targetId: target.id };
-    case "take":
-      return { type: "take", itemId: target.id };
-    case "equip":
-    case "unequip":
-    case "swap":
-    case "drop":
-    case "buy":
-    case "sell":
-      return { type: action, itemId: target.id };
-    case "sell-equipped":
-      return { type: "sell", itemId: target.id, equipped: true };
-    case "force":
-    case "pick":
-    case "break":
-    case "unlock":
-      return { type: action, doorId: target.id };
-    case "search":
-      return { type: "search", roomId: target.id };
-    case "disarm":
-      return { type: "disarm", trapId: target.id };
-    case "talk":
-      return { type: "talk", topicId: target.id };
-    case "leave":
-      return { type: "leave", roomId: target.id };
-    default:
-      return { type: action, actorId: PLAYER };
-  }
-}
-
-/** Every state of seeded playthroughs of every fixture module at levels 1 and 2. */
-function* playthroughStates() {
-  for (const adventure of adventures) {
-    for (let seed = 0; seed < 25; seed++) {
-      const runtime = createFifthRuntime(
-        adventure,
-        seed % 2 === 0 ? sheet : veteran(),
-      );
-      const random = createSeededRandom(seed);
-      let state = runtime.handleAction(
-        runtime.createSession(),
-        { type: "begin" },
-        random,
-      ).state;
-      for (let step = 0; step < 60 && state.status === "playing"; step++) {
-        yield { runtime, state };
-        const enabled = runtime
-          .projectActions(state)
-          .filter(({ available }) => available);
-        const chosen = enabled[random.roll(enabled.length) - 1];
-        state = runtime.handleAction(state, engineAction(chosen), random).state;
-      }
-    }
-  }
-}
+  ada as sheet,
+  engineAction,
+  playthroughStates,
+} from "./fixtures/playthroughs.mjs";
 
 test("every refusal the action bar shows has a code and the short reason for that code (#183)", () => {
   const seen = new Set();

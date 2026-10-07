@@ -3,55 +3,16 @@
 // exactly the actions the bar shows enabled.
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  buildFighter,
-  fighterProfile,
-  levelForXp,
-  validateFighter,
-} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
+import { loneGoblin, ratTunnels as tunnels } from "./fixtures/modules.mjs";
 import {
-  FIXTURE_MODULES as adventures,
-  loneGoblin,
-  ratTunnels as tunnels,
-} from "./fixtures/modules.mjs";
-
-// Con 14 (+2): 12 HP at level 1.
-const sheet = buildFighter(
-  "a".repeat(32),
-  "Ada",
-  [
-    [6, 6, 4, 1],
-    [4, 4, 4, 1],
-    [4, 4, 4, 1],
-    [3, 3, 3, 1],
-    [3, 3, 3, 1],
-    [3, 3, 3, 1],
-  ],
-  {
-    placement: {
-      strength: 0,
-      dexterity: 1,
-      constitution: 2,
-      intelligence: 3,
-      wisdom: 4,
-      charisma: 5,
-    },
-    increase: { constitution: 2, intelligence: 1 },
-    skills: ["athletics", "perception"],
-    fightingStyle: "defense",
-    kit: "mace",
-    masteries: ["dagger", "mace", "shortsword"],
-  },
-);
-
-/** Ada at level 2, at full health, so she has Action Surge. */
-function veteran() {
-  const xp = 300;
-  const leveled = { ...sheet, xp, level: levelForXp(xp) };
-  return validateFighter({ ...leveled, hp: fighterProfile(leveled).maxHp });
-}
+  ada as sheet,
+  engineAction,
+  PLAYER,
+  playthroughStates,
+  veteran,
+} from "./fixtures/playthroughs.mjs";
 
 function dice(...queue) {
   return {
@@ -60,49 +21,6 @@ function dice(...queue) {
       return queue.shift();
     },
   };
-}
-
-const PLAYER = "pc";
-
-/** The engine action a projected action stands for. */
-function engineAction({ action, target }) {
-  switch (action) {
-    case "attack":
-    case "light-attack":
-      return { type: action, actorId: PLAYER, targetId: target.id };
-    case "use":
-      return { type: "use-item", itemId: target.id };
-    case "move":
-      return { type: "move", destinationId: target.id };
-    case "examine":
-      return { type: "examine", targetId: target.id };
-    case "take":
-      return { type: "take", itemId: target.id };
-    case "equip":
-    case "unequip":
-    case "swap":
-    case "drop":
-    case "buy":
-    case "sell":
-      return { type: action, itemId: target.id };
-    case "sell-equipped":
-      return { type: "sell", itemId: target.id, equipped: true };
-    case "force":
-    case "pick":
-    case "break":
-    case "unlock":
-      return { type: action, doorId: target.id };
-    case "search":
-      return { type: "search", roomId: target.id };
-    case "disarm":
-      return { type: "disarm", trapId: target.id };
-    case "talk":
-      return { type: "talk", topicId: target.id };
-    case "leave":
-      return { type: "leave", roomId: target.id };
-    default:
-      return { type: action, actorId: PLAYER };
-  }
 }
 
 /** A die that never runs out, for trying accepted actions. */
@@ -433,33 +351,7 @@ test("an ended adventure projects no actions (#156)", () => {
 });
 
 test("in every state of seeded playthroughs, the bar agrees with the engine and the AI DM's tools (#156)", () => {
-  for (const adventure of adventures) {
-    for (let seed = 0; seed < 25; seed++) {
-      const runtime = createFifthRuntime(
-        adventure,
-        seed % 2 === 0 ? sheet : veteran(),
-      );
-      const random = createSeededRandom(seed);
-      let state = runtime.handleAction(
-        runtime.createSession(),
-        { type: "begin" },
-        random,
-      ).state;
-      for (let step = 0; step < 60 && state.status === "playing"; step++) {
-        const enabled = assertAgrees(runtime, state).filter(
-          ({ available }) => available,
-        );
-        assert.ok(enabled.length > 0, "a playing session can always act");
-        const chosen = enabled[random.roll(enabled.length) - 1];
-        const result = runtime.handleAction(
-          state,
-          engineAction(chosen),
-          random,
-        );
-        assert.equal(result.rejection, undefined);
-        state = result.state;
-      }
-      assertAgrees(runtime, state);
-    }
+  for (const { runtime, state } of playthroughStates()) {
+    assertAgrees(runtime, state);
   }
 });
