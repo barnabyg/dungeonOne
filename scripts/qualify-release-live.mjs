@@ -152,6 +152,9 @@ const server = await startFifthBrowserServer({
   libraryPath: join(directory, "characters.json"),
   seed,
   dmModel: model,
+  // This qualifies the AI DM, not the balance gate, which the shipped-module
+  // tests check; gating all the built-ins only slowed startup.
+  qualifies: () => true,
 });
 try {
   const { session } = await playReleaseRun({
