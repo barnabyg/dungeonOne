@@ -4,7 +4,6 @@
 // kit's numbers on the creation screen.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { act, availableActions, startEncounter } from "../dist/encounter-5e.js";
 import {
   buildFighter,
@@ -19,6 +18,7 @@ import {
   percentileCharacters,
 } from "../dist/balance-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
+import { goblinBurrow, loneGoblin } from "./fixtures/modules.mjs";
 
 /** Returns the queued [sides, value] pairs in order, checking each die's sides. */
 function dice(...queue) {
@@ -225,8 +225,6 @@ test("Graze: a miss still deals the damage modifier; Heavy below Strength 13 att
   });
 });
 
-const adventures = await loadBuiltInFifthAdventures();
-const cellarGoblin = adventures.find(({ id }) => id === "cellar-goblin");
 const DICE = [
   [6, 6, 4, 1],
   [4, 4, 4, 1],
@@ -266,7 +264,7 @@ const toolNames = (runtime, state) =>
 
 test("the action bar and the AI DM offer the extra attack only with two light weapons, with its reason", () => {
   const sheet = buildFighter("a".repeat(32), "Ada", DICE, CHOICES);
-  const runtime = createFifthRuntime(cellarGoblin, sheet);
+  const runtime = createFifthRuntime(loneGoblin, sheet);
   const begun = runtime.handleAction(
     runtime.createSession(),
     { type: "begin" },
@@ -316,7 +314,7 @@ test("the action bar and the AI DM offer the extra attack only with two light we
 
   // The mace kit holds one weapon: no extra attack in the bar.
   const mace = createFifthRuntime(
-    cellarGoblin,
+    loneGoblin,
     buildFighter("a".repeat(32), "Ada", DICE, { ...CHOICES, kit: "mace" }),
   );
   const maceBegun = mace.handleAction(
@@ -366,8 +364,7 @@ test("creation projects every kit's AC, attack and damage for the current scores
 });
 
 test("the gate checks every kit at every recommended level, and one-hit kills with the strongest kit", () => {
-  const warren = adventures.find(({ id }) => id === "goblin-warren");
-  const result = gateAdventure(warren, {
+  const result = gateAdventure(goblinBurrow, {
     seeds: Array.from({ length: 20 }, (_, seed) => seed),
   });
   const { survival, oneHitKill } = result.verdict;
@@ -391,7 +388,7 @@ test("the gate checks every kit at every recommended level, and one-hit kills wi
 
   const [, strongest] = percentileCharacters({ percentiles: [5, 95] });
   for (const enemy of oneHitKill.enemies) {
-    const statBlock = warren.encounters
+    const statBlock = goblinBurrow.encounters
       .flatMap(({ opponents }) => opponents)
       .find(({ id }) => id === enemy.opponentId).statBlock;
     const chances = KITS.map((kit) =>
