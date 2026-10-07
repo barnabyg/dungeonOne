@@ -143,14 +143,19 @@ function parseOptions(args: readonly string[]): Options {
   }
   const replay = values.get("--replay");
   const adventureFile = values.get("--adventure-file");
-  const file = adventureFile === undefined ? {} : { adventureFile };
+  const fileOption = adventureFile === undefined ? {} : { adventureFile };
   if (replay !== undefined) {
-    if (values.size !== 1 + Object.keys(file).length || ai) {
+    if (
+      ai ||
+      [...values.keys()].some(
+        (name) => name !== "--replay" && name !== "--adventure-file",
+      )
+    ) {
       throw new Error(
         `--replay can be combined only with --adventure-file.\n${USAGE}`,
       );
     }
-    return { mode: "replay", path: replay, ...file };
+    return { mode: "replay", path: replay, ...fileOption };
   }
   if (adventureFile !== undefined && values.has("--adventure")) {
     throw new Error(
@@ -183,7 +188,7 @@ function parseOptions(args: readonly string[]): Options {
   return {
     mode: "play",
     adventureId: values.get("--adventure") ?? DEFAULT_ADVENTURE,
-    ...file,
+    ...fileOption,
     seed,
     ...(tracePath === undefined ? {} : { tracePath }),
     ...(ai
