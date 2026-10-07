@@ -10,6 +10,9 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # A full verify takes about 3 minutes; a hung step should fail, not hold the
+    # PR for the 6-hour default.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -18,6 +21,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+        # This step has hung on the runner (PR #265); fail fast so a re-run can start.
+        timeout-minutes: 10
       - run: npm run verify
         env:
           CI: "true"
