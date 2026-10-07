@@ -28,7 +28,10 @@ owned by the tests: change it only for a test's sake.
 validate, and `fightRoomFile(id, title, opponents)` builds a one-room fight
 against any opponents in the lone goblin's room (`fightRoom` validates it),
 for tests of one monster's rules (riders, paralysis, Multiattack, damage
-defences). `FIXTURE_MODULES`
+defences). `withStatBlocks(adventure, change)` copies a validated module with
+`change` made to each opponent's stat block, and `withoutRiders` is the change
+that strips every attack's riders, for the gate tests that compare a monster
+with and without them (#232, #234). `FIXTURE_MODULES`
 lists every module above, for property checks that play each one.
 
 `renamed-skeletons.mjs` is two bestiary Skeletons under the module's own

@@ -23,7 +23,11 @@ import {
   startFifthAdventure,
 } from "../dist/session-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
-import { fightRoom } from "./fixtures/modules.mjs";
+import {
+  fightRoom,
+  withoutRiders,
+  withStatBlocks,
+} from "./fixtures/modules.mjs";
 
 /** Returns the queued values in order, checking each die's sides. */
 function dice(...queue) {
@@ -531,32 +535,21 @@ const spiderCellar = fightRoom("spider-cellar", "The Spider Cellar", [
   { id: "spider", monster: "giant-spider" },
 ]);
 
-/** A module with `change` made to each opponent's stat block. */
-function changed(adventure, change) {
-  const copy = structuredClone(adventure);
-  for (const encounter of copy.encounters) {
-    for (const opponent of encounter.opponents) {
-      const statBlock = { ...opponent.statBlock };
-      change(statBlock);
-      opponent.statBlock = statBlock;
-    }
-  }
-  return copy;
-}
-const withoutRiders = (block) => {
-  block.attacks = block.attacks.map(({ name, bonus, damage }) => ({
-    name,
-    bonus,
-    damage,
-  }));
-};
 const withoutTraits = (block) => {
   delete block.traits;
 };
 
-/** The gate's weakest survival rate playing `adventure`. */
-function survival(adventure) {
-  const result = gateAdventure(adventure);
+/**
+ * The gate's weakest survival rate playing `adventure`, on its first `count`
+ * seeds, or the gate's default seeds.
+ */
+function survival(adventure, count) {
+  const result = gateAdventure(
+    adventure,
+    count === undefined
+      ? {}
+      : { seeds: Array.from({ length: count }, (_, seed) => seed) },
+  );
   assert.ok(result.ok, adventure.id);
   return result.verdict.survival.rate;
 }
@@ -566,17 +559,20 @@ test("the balance gate plays the riders and Pack Tactics", () => {
   const wolf = fightRoom("wolf-cellar", "The Wolf Cellar", [
     { id: "wolf", monster: "wolf" },
   ]);
-  assert.ok(survival(wolf) < survival(changed(wolf, withoutRiders)));
-  // The Giant Spider's poison makes it deadlier.
+  // The knockdown changes survival by about as much as the seeds do, so the
+  // wolf keeps the gate's default seeds.
+  assert.ok(survival(wolf) < survival(withStatBlocks(wolf, withoutRiders)));
+  // The Giant Spider's poison makes it deadlier, clearly so on 60 seeds.
   assert.ok(
-    survival(spiderCellar) < survival(changed(spiderCellar, withoutRiders)),
+    survival(spiderCellar, 60) <
+      survival(withStatBlocks(spiderCellar, withoutRiders), 60),
   );
   // Two Wolves with Pack Tactics are deadlier than two without.
   const pack = fightRoom("wolf-pack", "The Wolf Pack", [
     { id: "wolf-1", monster: "wolf", name: "Wolf 1" },
     { id: "wolf-2", monster: "wolf", name: "Wolf 2" },
   ]);
-  assert.ok(survival(pack) < survival(changed(pack, withoutTraits)));
+  assert.ok(survival(pack) < survival(withStatBlocks(pack, withoutTraits)));
 });
 
 const CHOICES = {
