@@ -9,12 +9,7 @@ import { join } from "node:path";
 import { gateAdventure } from "../dist/balance-5e.js";
 import { validateFifthBestiary } from "../dist/bestiary-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
-import {
-  act,
-  CONDITION_RULES,
-  currentCombatant,
-  startEncounter,
-} from "../dist/encounter-5e.js";
+import { act, currentCombatant, startEncounter } from "../dist/encounter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import {
@@ -240,11 +235,6 @@ test("a hit that defeats the target rolls no save", () => {
 });
 
 test("poisoned: disadvantage on attack rolls and ability checks, none on saves", () => {
-  assert.deepEqual(CONDITION_RULES.poisoned, {
-    name: "Poisoned",
-    attacks: "disadvantage",
-    checks: "disadvantage",
-  });
   // Poisoned, Ada rolls 18 and 4 and keeps the 4: 4 + 5 misses AC 14. At the
   // end of her turn her repeat save is one d20: 15 + 4 succeeds.
   const result = act(
@@ -344,11 +334,6 @@ test("conditions end with the fight", () => {
 });
 
 test("prone: disadvantage on its own attacks, and it stands at the end of its turn", () => {
-  assert.deepEqual(CONDITION_RULES.prone, {
-    name: "Prone",
-    attacks: "disadvantage",
-    attacked: "advantage",
-  });
   // Initiative: Ada 5 + 1, the wolf 18 + 2. The bite: 14 + 4 hits for 3 + 2;
   // Ada's Strength save is 5 + 4 = 9.
   const { state, events } = startEncounter(

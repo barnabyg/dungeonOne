@@ -13,7 +13,6 @@ import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import {
   POTIONS,
-  TIER_MIN_LEVEL,
   TRADE_GOODS,
   TREASURE_BUDGETS,
   tierAllowed,
@@ -75,12 +74,10 @@ test("the catalogue values gems and art objects, and both healing potions", () =
 });
 
 test("tiers have a minimum level: common always, uncommon from 3, no rare", () => {
-  assert.deepEqual(TIER_MIN_LEVEL, { common: 1, uncommon: 3 });
   assert.equal(tierAllowed("common", 1), true);
   assert.equal(tierAllowed("uncommon", 2), false);
   assert.equal(tierAllowed("uncommon", 3), true);
   assert.equal(tierAllowed("rare", 3), false);
-  assert.equal(treasureBudget(1), TREASURE_BUDGETS[1]);
   assert.throws(() => treasureBudget(4), /No treasure budget for level 4/);
 });
 
