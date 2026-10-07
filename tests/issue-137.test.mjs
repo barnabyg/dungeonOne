@@ -15,24 +15,9 @@ import { startFifthAdventure } from "../dist/session-5e.js";
 import { launchDefault } from "./fixtures/default-launch.mjs";
 import { PRE_5E_LIBRARY } from "./fixtures/pre-5e-library.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
+import { IN_ORDER_CHOICES as CHOICES } from "./fixtures/fighter-choices.mjs";
 
 const cli = fileURLToPath(new URL("../dist/browser-cli.js", import.meta.url));
-
-const CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-  kit: "mace",
-  masteries: ["dagger", "mace", "shortsword"],
-};
 
 const withDirectory = async (work) => {
   const directory = await mkdtemp(join(tmpdir(), "issue-137-"));

@@ -59,10 +59,17 @@ Both fail when the queue runs out, record each roll in `drawn` as
 
 `morale-encounter.mjs` is the encounter-engine fight of the morale (#237) and
 surrender (#238) tests: `ada`, who wins initiative and has Action Surge;
-`goblin(id, extra)`, 1 HP and morale DC 8; `saves`, `initiative(count)` and
-`KILL` (a hit that drops a goblin) as dice; `begin(combatants, ...rest)`
-starts the fight on those dice and `attack(state, random, targetId)` is an
-attack by Ada the engine must accept.
+`goblin(id, extra)`, 1 HP and morale DC 8; `saves(wisdom)`, their saving
+throw bonuses; `initiative(count)` and `KILL` (a hit that drops a goblin) as
+dice pairs; `begin(combatants, ...rest)` starts the fight on those dice and
+`attack(state, random, targetId)` is an attack by Ada the engine must accept.
+
+## Fighter choices
+
+`fighter-choices.mjs` holds `IN_ORDER`, each roll placed on the ability in
+table order, and `IN_ORDER_CHOICES`, the creation screen's default choices
+(`FIGHTER_DEFAULT_CHOICES`) with that placement, which the library and
+session tests create Ada with.
 
 ## Seeded playthroughs (issue 156)
 
@@ -104,7 +111,8 @@ with the page's default choices (`FIGHTER_DEFAULT_CHOICES`) and placement
 Ada use it, so they simulate the Ada the page makes.
 `assertNoSideScroll(page, message, { wideFont })` asserts the page does not
 scroll sideways; with `wideFont`, after `widenFont(page)` sets every element
-to Verdana, as wide as CI's Linux fallback font.
+to Verdana, as wide as CI's Linux fallback font. `narratingDm()` is a
+scripted AI DM that answers every message with the same narration.
 
 `browser-journey.mjs` holds the steps most browser tests take before the
 part they check: `openCreation`, `saveFighter` (Ada by default),

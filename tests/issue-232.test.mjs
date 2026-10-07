@@ -24,6 +24,7 @@ import {
   withStatBlocks,
 } from "./fixtures/modules.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
+import { IN_ORDER_CHOICES as CHOICES } from "./fixtures/fighter-choices.mjs";
 
 const saves = {
   strength: 4,
@@ -547,22 +548,6 @@ test("the balance gate plays the riders and Pack Tactics", () => {
   ]);
   assert.ok(survival(pack) < survival(withStatBlocks(pack, withoutTraits)));
 });
-
-const CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-  kit: "mace",
-  masteries: ["dagger", "mace", "shortsword"],
-};
 
 /** Attack the spider, or end the turn once the action is spent. */
 const step = (runtime, state) =>

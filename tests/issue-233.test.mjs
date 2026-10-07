@@ -16,6 +16,7 @@ import { FifthSession } from "../dist/session-5e.js";
 import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
 import { fightRoom, moduleFile } from "./fixtures/modules.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
+import { IN_ORDER_CHOICES as CHOICES } from "./fixtures/fighter-choices.mjs";
 
 const saves = {
   strength: 4,
@@ -492,22 +493,6 @@ test("the bestiary and module validators refuse a damage type outside SRD 5.2", 
     "darts";
   assert.throws(() => validateModule(crypt), TYPES);
 });
-
-const CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-  kit: "mace",
-  masteries: ["dagger", "mace", "shortsword"],
-};
 
 /** The lone goblin's room with `opponents` in its place, as module `id`. */
 /** A Skeleton under `name` with `defenses` in place of its own. */

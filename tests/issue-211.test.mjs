@@ -15,6 +15,7 @@ import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { startAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
 import { playReleaseRun, TOLL_FULL_ROUTE } from "../dist/release-run-5e.js";
+import { narratingDm } from "./fixtures/session-layout.mjs";
 
 const toll = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "tinkers-toll",
@@ -90,19 +91,13 @@ test("the shield and the first coin lie in the reeds after the wolf; the purse a
 /** A seed on which Ada, with the mace kit, clears the toll and walks out. */
 const RELEASE_SEED = 0;
 
-const narrating = {
-  async respond() {
-    return { text: "The road waits." };
-  },
-};
-
 test("the release run clears the toll, trades with the tinker and walks out, through the server to the library file", async () => {
   const directory = await mkdtemp(join(tmpdir(), "issue-211-"));
   const libraryPath = join(directory, "characters.json");
   const server = await startFifthBrowserServer({
     libraryPath,
     seed: RELEASE_SEED,
-    dmModel: narrating,
+    dmModel: narratingDm(),
     // shipped-modules.test.mjs gates every shipped module; skip it here.
     qualifies: () => true,
   });

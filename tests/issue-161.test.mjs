@@ -10,11 +10,10 @@ import {
   FIFTH_DM_SETUP_HINT,
   startFifthBrowserServer,
 } from "../dist/browser-5e-server.js";
+import { FIFTH_DM_OFF_NOTICE } from "../dist/browser-5e-page.js";
 import { launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
-
-const NOTICE = "Typing to the Dungeon Master is off. Use the buttons.";
 
 /** A scripted AI DM that answers every message with narration. */
 const narratingDm = () => ({
@@ -94,7 +93,7 @@ test("without a key the session view says the AI DM is off, and messages are sti
       message: "attack the goblin",
     });
     assert.equal(refused.status, 409);
-    assert.equal(refused.body.error, NOTICE);
+    assert.equal(refused.body.error, FIFTH_DM_OFF_NOTICE);
     assert.doesNotMatch(refused.body.error, /OPENAI_API_KEY/);
   }));
 
@@ -136,7 +135,7 @@ test("the launcher's setup hint names the key and the restart", () => {
         assert.equal(await page.locator("#send-message").isDisabled(), true);
         const notice = page.locator("#dm-notice");
         assert.equal(await notice.isVisible(), true);
-        assert.equal(await notice.textContent(), NOTICE);
+        assert.equal(await notice.textContent(), FIFTH_DM_OFF_NOTICE);
         assert.equal(
           await page.locator("#message").getAttribute("aria-describedby"),
           "dm-notice",
