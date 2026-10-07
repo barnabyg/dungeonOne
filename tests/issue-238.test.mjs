@@ -231,7 +231,7 @@ test("a module authors a surrender with topics, gifts it carries and XP for spar
     ],
     xp: SPARED_XP,
   });
-  assert.equal(surrenderingGoblins.formatVersion, 16);
+  assert.equal(surrenderingGoblins.formatVersion, 17);
 });
 
 test("the validator refuses a surrender on an undead or mindless monster", () => {
