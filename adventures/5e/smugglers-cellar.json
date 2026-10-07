@@ -34,7 +34,7 @@
           "id": "iron-chest",
           "name": "Iron-Bound Chest",
           "description": "A squat iron-bound chest sits in the corner, its lock long since broken.",
-          "discovery": "Under a mouldy blanket in the chest lies a stoppered vial of red liquid."
+          "discovery": "Under a mouldy blanket in the chest lies a stoppered vial of red liquid, and a silver hip flask wrapped in a rag."
         }
       ],
       "items": [
@@ -43,6 +43,14 @@
           "name": "Potion of Healing",
           "description": "A stoppered vial of red liquid that glimmers when shaken.",
           "kind": "potion-of-healing",
+          "hiddenIn": "iron-chest"
+        },
+        {
+          "id": "silver-flask",
+          "name": "Silver Hip Flask",
+          "description": "A smuggler's hip flask of chased silver, still smelling of brandy.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
           "hiddenIn": "iron-chest"
         }
       ]
@@ -55,10 +63,30 @@
         {
           "id": "gnawed-sacks",
           "name": "Gnawed Sacks",
-          "description": "The sacks held grain once. Now they hold mostly droppings."
+          "description": "The sacks held grain once. Now they hold mostly droppings.",
+          "discovery": "At the bottom of one sack, under the droppings, is an oilskin packet the rats could not chew through."
         }
       ],
-      "items": []
+      "items": [
+        {
+          "id": "smuggled-moonstone",
+          "name": "Smuggled Moonstone",
+          "description": "A milky moonstone that glows faintly blue in the lamplight.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "gnawed-sacks"
+        },
+        {
+          "id": "smugglers-cut",
+          "name": "Smugglers' Cut",
+          "description": "A smuggler's share of gold, sewn into the oilskin.",
+          "kind": "coin",
+          "coins": {
+            "gp": 10
+          },
+          "hiddenIn": "gnawed-sacks"
+        }
+      ]
     },
     {
       "id": "den",

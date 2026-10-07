@@ -85,6 +85,9 @@ test("the shield and the first coin lie in the reeds after the wolf; the purse a
       coins: { gp: 12 },
       hiddenIn: "strongbox",
     },
+    // #252: designed against the budget, 125 gp 5 sp of 150 gp.
+    { id: "toll-chain", kind: "treasure", hiddenIn: "strongbox" },
+    { id: "travellers-carnelian", kind: "treasure", hiddenIn: "strongbox" },
   ]);
 });
 
@@ -130,7 +133,7 @@ test("the release run clears the toll, trades with the tinker and walks out, thr
     assert.equal(session.ending.rewards.level, 2);
     assert.deepEqual(
       session.ending.rewards.treasure.map(({ name }) => name),
-      ["Silver Toll Seal"],
+      ["Silver Toll Seal", "Silver Toll Chain", "Traveller's Carnelian"],
     );
     // 3 gp 5 sp and 12 gp found, 10 gp on the shortsword, 2 gp 5 sp for
     // the mace: the purse and the gear the sheet keeps.

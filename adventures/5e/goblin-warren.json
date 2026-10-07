@@ -5,10 +5,10 @@
   "title": "The Goblin Warren",
   "objective": "Fight through the goblin warren to the boss's hall, take its hoard, and get back out alive. Leave by the gate when you are ready.",
   "recommendedLevels": {
-    "min": 2,
+    "min": 3,
     "max": 3
   },
-  "difficulty": "hard",
+  "difficulty": "medium",
   "startRoomId": "warren-gate",
   "rooms": [
     {
@@ -72,7 +72,7 @@
           "id": "crate-throne",
           "name": "Crate Throne",
           "description": "Crates stacked into a lopsided throne, draped with a moth-eaten cloak.",
-          "discovery": "Under the cloak is a sack, heavy and clinking."
+          "discovery": "Under the cloak is a sack, heavy and clinking, and behind the crates a gilded idol wrapped in sacking, with a chip of green malachite pushed into its base."
         }
       ],
       "items": [
@@ -94,6 +94,22 @@
           "kind": "treasure",
           "treasure": "art-25gp",
           "hiddenIn": "goblin-boss"
+        },
+        {
+          "id": "gilded-idol",
+          "name": "Gilded Idol",
+          "description": "A temple idol of carved wood covered in gold leaf, stolen from some hill shrine.",
+          "kind": "treasure",
+          "treasure": "art-250gp",
+          "hiddenIn": "crate-throne"
+        },
+        {
+          "id": "idol-stone",
+          "name": "Malachite Chip",
+          "description": "A small banded green malachite, pried loose from the idol's base.",
+          "kind": "treasure",
+          "treasure": "gem-10gp",
+          "hiddenIn": "crate-throne"
         }
       ]
     }

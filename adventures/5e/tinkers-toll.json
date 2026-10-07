@@ -101,7 +101,7 @@
           "id": "strongbox",
           "name": "Strongbox",
           "description": "An iron-bound box, its lock long since broken.",
-          "discovery": "Inside, wrapped in a rag, is the old toll keeper's seal of office, cast in silver, and beside it a leather purse heavy with the bandits' tolls."
+          "discovery": "Inside, wrapped in a rag, is the old toll keeper's seal of office, cast in silver, and beside it a leather purse heavy with the bandits' tolls. Under the purse lie a silver chain and a red stone the bandits took from some traveller."
         }
       ],
       "items": [
@@ -121,6 +121,22 @@
           "coins": {
             "gp": 12
           },
+          "hiddenIn": "strongbox"
+        },
+        {
+          "id": "toll-chain",
+          "name": "Silver Toll Chain",
+          "description": "The toll keeper's chain of office, fine silver links gone dark with neglect.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "strongbox"
+        },
+        {
+          "id": "travellers-carnelian",
+          "name": "Traveller's Carnelian",
+          "description": "A smooth orange-red carnelian, polished by someone's thumb.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
           "hiddenIn": "strongbox"
         }
       ]

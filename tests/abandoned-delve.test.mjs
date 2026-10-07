@@ -64,11 +64,12 @@ const treasureIn = (roomId) =>
     ({ kind }) => kind === "treasure" || kind === "coin",
   );
 
-// #233: Undead Fortitude made its Zombie too deadly at level 1.
-test("the delve is a 10-room crawl for level 2, declared hard", () => {
+// #233: Undead Fortitude made its Zombie too deadly at level 1. #252: its
+// cautious route survives 96%, so it is declared Medium.
+test("the delve is a 10-room crawl for level 2, declared medium", () => {
   assert.equal(delve.title, "The Abandoned Delve");
   assert.deepEqual(delve.recommendedLevels, { min: 2, max: 2 });
-  assert.equal(delve.difficulty, "hard");
+  assert.equal(delve.difficulty, "medium");
   assert.equal(delve.rooms.length, 10);
   assert.deepEqual(
     delve.rooms.filter(({ exit }) => exit).map(({ id }) => id),

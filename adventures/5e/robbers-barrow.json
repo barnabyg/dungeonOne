@@ -3,9 +3,9 @@
   "formatVersion": 18,
   "id": "robbers-barrow",
   "title": "The Robbers' Barrow",
-  "objective": "Find what the goblin robbers left in the old barrow, and get out alive. Leave by the way you came in when you are ready.",
+  "objective": "Find what the grave robber has gathered in the old barrow, and get out alive. Leave by the way you came in when you are ready.",
   "recommendedLevels": { "min": 1, "max": 1 },
-  "difficulty": "hard",
+  "difficulty": "medium",
   "startRoomId": "barrow-mouth",
   "rooms": [
     {
@@ -18,7 +18,7 @@
           "id": "scratched-lintel",
           "name": "Scratched Lintel",
           "description": "The stone over the doorway is scored with fresh knife marks.",
-          "discovery": "Someone has scratched a warning into the stone: \"Goblin on the bier. Silver underneath.\""
+          "discovery": "Someone has scratched a warning into the stone: \"Robber on the bier. Silver underneath.\""
         }
       ],
       "items": []
@@ -26,14 +26,20 @@
     {
       "id": "burial-hall",
       "name": "Burial Hall",
-      "description": "A long, low hall of packed earth and old bones. A stone bier stands at the far end under a rotted cloth.",
-      "encounterId": "barrow-goblin",
+      "description": "A long, low hall of packed earth and old bones. A stone bier stands at the far end under a rotted cloth, and a lumpy sack lies beside it.",
+      "encounterId": "barrow-robber",
       "features": [
         {
           "id": "stone-bier",
           "name": "Stone Bier",
           "description": "A waist-high slab of grey stone, draped in cloth gone black with age.",
-          "discovery": "Beneath the rotted cloth lies a neck ring of twisted silver that the robbers missed."
+          "discovery": "Beneath the rotted cloth lies a neck ring of twisted silver, and a dark red stone has rolled into a crack in the slab."
+        },
+        {
+          "id": "robbers-sack",
+          "name": "Robber's Sack",
+          "description": "A patched grain sack, knotted at the neck and heavy for its size.",
+          "discovery": "The sack holds the robber's haul from the older graves: a fistful of tarnished gold coins."
         }
       ],
       "items": [
@@ -46,12 +52,28 @@
           "hiddenIn": "stone-bier"
         },
         {
-          "id": "barrow-goblin-coins",
-          "name": "Goblin Warrior's Coins",
-          "description": "A greasy pouch of copper pieces.",
+          "id": "grave-garnet",
+          "name": "Grave Garnet",
+          "description": "A polished garnet the size of a thumbnail, dark as old wine.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "stone-bier"
+        },
+        {
+          "id": "grave-gold",
+          "name": "Grave Gold",
+          "description": "Fifty old gold coins, worn smooth and stamped with a forgotten king.",
           "kind": "coin",
-          "coins": { "cp": 10 },
-          "hiddenIn": "barrow-goblin"
+          "coins": { "gp": 50 },
+          "hiddenIn": "robbers-sack"
+        },
+        {
+          "id": "barrow-robber-coins",
+          "name": "Grave Robber's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": { "sp": 14 },
+          "hiddenIn": "barrow-robber"
         }
       ]
     }
@@ -65,12 +87,13 @@
   ],
   "encounters": [
     {
-      "id": "barrow-goblin",
+      "id": "barrow-robber",
       "opponents": [
         {
-          "id": "barrow-goblin",
-          "monster": "goblin-warrior",
-          "description": "A goblin crouches on the bier, picking through the grave goods, and leaps down with its scimitar drawn."
+          "id": "barrow-robber",
+          "monster": "bandit",
+          "name": "Grave Robber",
+          "description": "A wiry robber crouches on the bier, picking through the grave goods, and leaps down with a scimitar drawn."
         }
       ],
       "defeatEndingId": "fallen-in-the-barrow"

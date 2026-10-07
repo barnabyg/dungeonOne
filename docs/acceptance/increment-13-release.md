@@ -49,6 +49,10 @@ results).
   (`levelThreeLibrary` in `src/test-fighter-5e.ts`), because the mine is for
   levels 2–3.
 
+**Since #252** (module audit, 7 October 2026): _The Silvervein Mine_ is
+declared Medium, as its weakest character survives 92.5% at level 2; its
+content and release seeds are unchanged. The browser now tags it Medium.
+
 ## Automated evidence
 
 - `npm.cmd run verify` passes with zero warnings: formatting, lint, types,
@@ -195,9 +199,9 @@ npm.cmd run browser -- --seed 26 --characters .\.scratch\release-241\mine\charac
 1. The library lists Ada. Open her sheet. Expect "Level 3 Fighter · 900 XP ·
    Leather armour, Mace", HP 28/28, AC 14, and Mace +5 to hit, 1d6 + 3
    bludgeoning, Sap, critical on 19–20.
-2. Expect _The Silvervein Mine_ last among the adventures, tagged Levels 2–3
-   and Hard, with its objective: "Kobolds have dug into the old Silvervein
-   mine…".
+2. Expect _The Silvervein Mine_ among the adventures, just before _The
+   Goblin Warren_ (level 3 since #252), tagged Levels 2–3 and Medium (#252),
+   with its objective: "Kobolds have dug into the old Silvervein mine…".
 
 ### 2. The Silvervein Mine: surrender, undead, the overseer and the spider
 
