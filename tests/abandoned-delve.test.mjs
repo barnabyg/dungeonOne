@@ -3,8 +3,20 @@
 // difficulty, and scripted-DM journeys reach each of its endings.
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { passesGate, requiredPath } from "../dist/balance-5e.js";
+import {
+  FIFTH_DM_CASES,
+  offeredToolsMatchActions,
+  runFifthDmEvaluation,
+  scriptedCaseModel,
+  setUpCase,
+} from "../dist/dm-evaluation-5e.js";
 import { runDmTurn } from "../dist/dm-turn.js";
 import { buildFighter } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
@@ -283,3 +295,139 @@ test("scripted DM: a feeble Fighter who walks into the barracks and the crypt fa
   assert.equal(state.status, "defeat");
   assert.equal(state.character.hp, 0);
 });
+
+// The DM evaluation's cases and the live qualification are written for the
+// delve (#138); issue-138.test.mjs tests their harness on fixtures (#255).
+const qualify = fileURLToPath(
+  new URL("../scripts/qualify-delve-live.mjs", import.meta.url),
+);
+
+const withDirectory = async (work) => {
+  const directory = await mkdtemp(join(tmpdir(), "delve-qualify-"));
+  try {
+    await work(directory);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+};
+
+const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
+
+test("the DM evaluation covers interpretation, refusal and narration fidelity on the dungeon", () => {
+  assert.deepEqual(
+    [...new Set(FIFTH_DM_CASES.map(({ kind }) => kind))].sort(),
+    ["interpretation", "narration-fidelity", "refusal"],
+  );
+  const dimensions = new Set(FIFTH_DM_CASES.flatMap((c) => c.dimensions));
+  for (const dimension of [
+    "clear-accuracy",
+    "synonym-accuracy",
+    "navigation-accuracy",
+    "target-accuracy",
+    "status-accuracy",
+    "compound-mutation-budget",
+    "ambiguous-clarification",
+    "refusal",
+    "narration-fidelity",
+  ]) {
+    assert.ok(dimensions.has(dimension), dimension);
+  }
+  assert.equal(
+    new Set(FIFTH_DM_CASES.map(({ id }) => id)).size,
+    FIFTH_DM_CASES.length,
+  );
+});
+
+test("every case's setup offers the AI DM exactly the enabled actions", () => {
+  for (const sample of FIFTH_DM_CASES) {
+    const session = setUpCase(sample, delve);
+    const ended = [
+      "after-the-ending",
+      "after-a-defeat",
+      "status-after-the-ending",
+    ];
+    assert.equal(
+      session.state.status === "playing",
+      !ended.includes(sample.id),
+      sample.id,
+    );
+    assert.ok(offeredToolsMatchActions(session), sample.id);
+  }
+});
+
+test("a correct scripted DM passes every automated check, and the DM-off notice is checked", async () => {
+  const report = await runFifthDmEvaluation({
+    requestedModel: "scripted",
+    repetitions: 1,
+    createModel: (sample) => scriptedCaseModel(sample),
+    manualJudgments: Object.fromEntries(
+      FIFTH_DM_CASES.map((sample) => [
+        sample.id,
+        {
+          1: Object.fromEntries(sample.manualJudgments.map((id) => [id, true])),
+        },
+      ]),
+    ),
+  });
+  for (const run of report.runs) {
+    assert.ok(Object.values(run.checks).every(Boolean), run.caseId);
+  }
+  assert.deepEqual(report.dmOff, { refused: true });
+  assert.equal(report.passed, true);
+  assert.ok(report.providerCalls <= report.maxCalls);
+});
+
+test("the live qualification runs only with --live and a key, and its dry run flags overclaims", () =>
+  withDirectory(async (directory) => {
+    const env = { ...process.env, OPENAI_API_KEY: "" };
+    for (const args of [
+      ["--dry-run", "--live"],
+      ["--dry-run", "--max-calls", "0"],
+      ["--dry-run", "--max-calls"],
+      ["--dry-run", "report.json"],
+    ]) {
+      const refused = spawnSync(process.execPath, [qualify, ...args], {
+        encoding: "utf8",
+        env,
+      });
+      assert.equal(refused.status, 2, args.join(" "));
+    }
+    const bare = spawnSync(process.execPath, [qualify], {
+      encoding: "utf8",
+      env,
+    });
+    assert.equal(bare.status, 2);
+    const noKey = spawnSync(process.execPath, [qualify, "--live"], {
+      encoding: "utf8",
+      env,
+    });
+    assert.equal(noKey.status, 2);
+    assert.match(noKey.stderr, /OPENAI_API_KEY is required for --live/);
+
+    const output = join(directory, "report.json");
+    const dry = spawnSync(
+      process.execPath,
+      [qualify, "--dry-run", "--output", output, "--max-calls", "5"],
+      {
+        encoding: "utf8",
+        env,
+        timeout: 20000,
+      },
+    );
+    assert.equal(dry.status, 0, dry.stderr);
+    const report = await readJson(output);
+    assert.equal(report.adventureId, "abandoned-delve");
+    assert.equal(report.maxProviderCalls, 5);
+    assert.ok(report.providerCalls <= 5);
+    assert.deepEqual(
+      [...new Set(report.turns.map(({ kind }) => kind))].sort(),
+      ["interpretation", "narration-fidelity", "refusal"],
+    );
+    // One call a turn: the first five overclaim and are flagged; after the
+    // budget is spent, each turn gets the engine's safe fallback.
+    assert.equal(report.providerCalls, 5);
+    assert.deepEqual(
+      report.turns.map(({ reviewClaim }) => reviewClaim),
+      [true, true, true, true, true, false, false, false, false, false],
+    );
+  }));
