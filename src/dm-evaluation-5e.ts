@@ -877,9 +877,11 @@ export async function checkDmOffRefusal(
  * `createModel`, within `maxCalls` model responses in all. A run that would
  * exceed the budget fails rather than calling.
  *
- * The cases play `adventure`, The Abandoned Delve by default, and the DM-off
- * check starts it on a server that offers only it. `FIFTH_DM_CASES` are
- * written for the delve, so give other `cases` with another adventure.
+ * The cases play `adventure`, The Abandoned Delve by default. A given
+ * adventure is also what the DM-off check starts, on a server that offers
+ * only it; by default that check runs on the default server, with every
+ * built-in module. `FIFTH_DM_CASES` are written for the delve, so give
+ * other `cases` with another adventure.
  */
 export async function runFifthDmEvaluation(options: {
   requestedModel: string;
@@ -1031,7 +1033,7 @@ export async function runFifthDmEvaluation(options: {
     missing: manual.filter((entry) => entry === "missing").length,
     complete: manual.every((entry) => entry !== "missing"),
   };
-  const dmOff = { refused: await checkDmOffRefusal(adventure) };
+  const dmOff = { refused: await checkDmOffRefusal(options.adventure) };
   return {
     kind: "dungeon-one-5e-dm-evaluation",
     formatVersion: FIFTH_DM_EVALUATION_FORMAT,
