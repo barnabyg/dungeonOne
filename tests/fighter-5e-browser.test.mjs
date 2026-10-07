@@ -16,6 +16,7 @@ import {
 } from "../dist/fighter-5e.js";
 import { PRE_5E_LIBRARY } from "./fixtures/pre-5e-library.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
+import { openCreation } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -428,11 +429,7 @@ test(
       // Save two characters and start a third creation, all in the page.
       await page.goto(server.url);
       for (const name of ["Ada", "Bram"]) {
-        await page.locator("#open-creation").click();
-        await page
-          .locator("#preview-body")
-          .filter({ hasText: "AC:" })
-          .waitFor();
+        await openCreation(page);
         await page.locator("#character-name").fill(name);
         await page.locator("#character-name").press("Enter");
         await page.locator("#sheet-name").filter({ hasText: name }).waitFor();

@@ -16,6 +16,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { lintelBarrow as barrow } from "./fixtures/modules.mjs";
+import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -158,11 +159,7 @@ test(
     page.setDefaultTimeout(5000);
     try {
       await page.goto(server.url);
-      await page.locator("#open-creation").click();
-      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+      await createFighter(page);
       assert.match(
         await page.locator("#sheet-body").innerText(),
         /Treasure\n+No treasure yet\./,
@@ -171,10 +168,7 @@ test(
         await page.locator("#sheet-body").innerText(),
         /Purse\n+No coin yet\./,
       );
-      await page
-        .locator('.start-adventure[data-adventure="lintel-barrow"]')
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await startAdventure(page, "lintel-barrow");
 
       // Leave is an explicit choice that asks first, inside the panel.
       const leaveButton = page.locator("#leave-controls button");
@@ -312,10 +306,7 @@ test(
       assert.match(sheet, /Purse\n+2 gp 5 sp/);
 
       // The same adventure again: no torc or coin to find, and nothing earned.
-      await page
-        .locator('.start-adventure[data-adventure="lintel-barrow"]')
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await startAdventure(page, "lintel-barrow");
       await explore(page, "move", "burial-hall");
       await fight(page);
       await explore(page, "examine", "stone-bier");
@@ -347,10 +338,7 @@ test(
       // Abandoning, from the sheet, keeps everything as it was.
       const before = record.sheet;
       await page.locator("#ending-next").click();
-      await page
-        .locator('.start-adventure[data-adventure="lintel-barrow"]')
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await startAdventure(page, "lintel-barrow");
       await explore(page, "examine", "scratched-lintel");
       await page.locator('#breadcrumb a[data-view="sheet"]').click();
       await page.locator("#abandon-adventure").click();

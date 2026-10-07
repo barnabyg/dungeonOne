@@ -14,6 +14,7 @@ import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { loadScriptedDmModel } from "../dist/scripted-dm-model.js";
 import { goblinBand } from "./fixtures/modules.mjs";
+import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -333,15 +334,8 @@ test(
     page.setDefaultTimeout(5000);
     try {
       await page.goto(server.url);
-      await page.locator("#open-creation").click();
-      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-      await page
-        .locator('.start-adventure[data-adventure="goblin-band"]')
-        .click();
-      await page.locator("#log > li").first().waitFor();
+      await createFighter(page);
+      await startAdventure(page, "goblin-band");
       const before = await page.locator("#log").innerHTML();
 
       // The server is held, then answers with an error.

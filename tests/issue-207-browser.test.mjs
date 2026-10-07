@@ -22,6 +22,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
+import { openCreation, startAdventure } from "./fixtures/browser-journey.mjs";
 
 const KITS = ["mace", "two-daggers", "club-and-dagger"];
 
@@ -106,11 +107,7 @@ test(
         const choices = choicesFor(dice, kit);
         const projection = projectCreation(dice, choices);
         await page.goto(server.url);
-        await page.locator("#open-creation").click();
-        await page
-          .locator("#preview-body")
-          .filter({ hasText: "AC:" })
-          .waitFor();
+        await openCreation(page);
 
         // Every kit's AC, attack and damage, before choosing one.
         for (const shown of projection.kits) {
@@ -163,10 +160,7 @@ test(
         assert.ok(body.includes(attackText(profile.attack)), body);
 
         // Fight with it: attack, then the extra attack with two light weapons.
-        await page
-          .locator('.start-adventure[data-adventure="lone-goblin"]')
-          .click();
-        await page.locator("#adventure").waitFor({ state: "visible" });
+        await startAdventure(page, "lone-goblin");
         const attack = page.locator(
           '#attack-controls button[data-action="attack"]',
         );

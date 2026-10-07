@@ -14,6 +14,7 @@ import { buildFighter, validateFighter } from "../dist/fighter-5e.js";
 import { barrowFile, room } from "./fixtures/armoury-barrow.mjs";
 import { assertTogether, launch } from "./fixtures/session-layout.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import { startAdventure } from "./fixtures/browser-journey.mjs";
 
 // Chain mail is uncommon, found only in modules for level 3 and up (#239).
 const mailed = {
@@ -115,10 +116,7 @@ test(
         /Carrying:\s*21 of 75 lb/,
       );
 
-      await page
-        .locator('.start-adventure[data-adventure="lintel-barrow"]')
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await startAdventure(page, "lintel-barrow");
       assert.equal(
         await carrying(page),
         "Carrying 21 lb of the 75 lb your Strength allows.",

@@ -12,6 +12,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { fightRoom } from "./fixtures/modules.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 // The bestiary's Wolf, alone in a one-room fight that starts as Ada arrives.
 // The server offers only this module, whatever its gate standing.
@@ -125,14 +126,7 @@ test(
     });
     page.setDefaultTimeout(8000);
     try {
-      await page.goto(server.url);
-      await page.locator("#open-creation").click();
-      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-      await page.locator('.start-adventure[data-adventure="wolf-den"]').click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await createAndStart(page, server.url, "wolf-den");
       await page.locator("#initiative-rows tr").first().waitFor();
       assert.deepEqual(await shown(page), { table: [], strip: [] });
       for (let count = 0; count < clicks.down; count++) {

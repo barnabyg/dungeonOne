@@ -11,6 +11,11 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
+import {
+  openCreation,
+  saveFighter,
+  startAdventure,
+} from "./fixtures/browser-journey.mjs";
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
 const SERVER_OPTIONS = {
@@ -167,24 +172,15 @@ for (const viewport of [
       page.setDefaultTimeout(5000);
       try {
         await page.goto(server.url);
-        await page.locator("#open-creation").click();
-        await page
-          .locator("#preview-body")
-          .filter({ hasText: "AC:" })
-          .waitFor();
+        await openCreation(page);
         // Two daggers, so the fight row has the extra attack too (#207).
         await page.locator("#kit-two-daggers").check();
         await page
           .locator("#preview-body")
           .filter({ hasText: "Dagger (extra attack)" })
           .waitFor();
-        await page.locator("#character-name").fill("Ada");
-        await page.locator("#save-character").click();
-        await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-        await page
-          .locator('.start-adventure[data-adventure="rat-tunnels"]')
-          .click();
-        await page.locator("#log > li").first().waitFor();
+        await saveFighter(page);
+        await startAdventure(page, "rat-tunnels");
 
         // Exploring: a short verb shows its own busy verb.
         await holdAction(

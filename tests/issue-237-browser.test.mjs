@@ -17,6 +17,7 @@ import {
   pouchOf,
 } from "./fixtures/fleeing-goblins.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 /** An element's text with its blank lines collapsed. */
 const text = async (locator) =>
@@ -74,16 +75,7 @@ test(
     });
     page.setDefaultTimeout(8000);
     try {
-      await page.goto(server.url);
-      await page.locator("#open-creation").click();
-      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-      await page
-        .locator(`.start-adventure[data-adventure="${fleeingGoblins.id}"]`)
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await createAndStart(page, server.url, fleeingGoblins.id);
 
       await click(page, "move", "burial-hall");
       await fight(page);

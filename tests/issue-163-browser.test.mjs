@@ -15,6 +15,7 @@ import {
   keptTotal,
 } from "../dist/fighter-5e.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
+import { openCreation, saveFighter } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -44,11 +45,7 @@ for (const [width, height, seed] of [
       page.setDefaultTimeout(5000);
       try {
         await page.goto(server.url);
-        await page.locator("#open-creation").click();
-        await page
-          .locator("#preview-body")
-          .filter({ hasText: "AC:" })
-          .waitFor();
+        await openCreation(page);
         const dice = JSON.parse(await readFile(libraryPath, "utf8"))
           .pendingCreation.dice;
         const totals = dice.map(keptTotal);
@@ -130,9 +127,7 @@ for (const [width, height, seed] of [
         await page
           .locator("#save-character:not([disabled])")
           .waitFor({ state: "attached" });
-        await page.locator("#character-name").fill("Ada");
-        await page.locator("#save-character").click();
-        await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+        await saveFighter(page);
         const sheet = JSON.parse(await readFile(libraryPath, "utf8"))
           .characters[0].sheet;
         for (const ability of ABILITIES) {

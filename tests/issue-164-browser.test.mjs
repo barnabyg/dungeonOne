@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { ratlessTunnels } from "./fixtures/modules.mjs";
+import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -20,14 +21,6 @@ const launch = () =>
   );
 
 const libraryFile = async (path) => JSON.parse(await readFile(path, "utf8"));
-
-async function create(page, name) {
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-  await page.locator("#character-name").fill(name);
-  await page.locator("#save-character").click();
-  await page.locator("#sheet-name").filter({ hasText: name }).waitFor();
-}
 
 /** Each library row: its controls, its tags and whether it is dimmed. */
 const rows = (page) =>
@@ -124,13 +117,10 @@ for (const viewport of [
       try {
         await page.goto(server.url);
         await page.locator("#no-characters").waitFor();
-        await create(page, "Bea");
+        await createFighter(page, "Bea");
         await page.locator('#breadcrumb a[data-view="library"]').click();
-        await create(page, "Ada");
-        await page
-          .locator('.start-adventure[data-adventure="quiet-tunnels"]')
-          .click();
-        await page.locator("#adventure").waitFor({ state: "visible" });
+        await createFighter(page, "Ada");
+        await startAdventure(page, "quiet-tunnels");
         // Act once so there is progress to resume.
         await page.locator("#explore-controls button:enabled").first().click();
         await page.waitForFunction(

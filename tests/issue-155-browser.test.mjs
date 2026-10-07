@@ -15,6 +15,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { goblinBand, loneGoblin } from "./fixtures/modules.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 // The status strip (#155): HP, health, round, turn and resource pips.
 
@@ -111,19 +112,6 @@ function defeatSeed() {
     }
   }
   throw new Error("no lone goblin seed ending in defeat");
-}
-
-async function createAndStart(page, url, adventureId) {
-  await page.goto(url);
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-  await page.locator("#character-name").fill("Ada");
-  await page.locator("#save-character").click();
-  await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-  await page
-    .locator(`.start-adventure[data-adventure="${adventureId}"]`)
-    .click();
-  await page.locator("#adventure").waitFor({ state: "visible" });
 }
 
 const sessionFile = async (directory) => {

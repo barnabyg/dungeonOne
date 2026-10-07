@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { ratlessTunnels } from "./fixtures/modules.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -20,20 +21,6 @@ const launch = () =>
       ? { channel: "msedge", headless: true }
       : { headless: true },
   );
-
-async function start(page, url, adventureId) {
-  await page.goto(url);
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-  await page.locator("#character-name").fill("Ada");
-  await page.locator("#save-character").click();
-  await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-  await page
-    .locator(`.start-adventure[data-adventure="${adventureId}"]`)
-    .click();
-  await page.locator("#adventure").waitFor({ state: "visible" });
-  await page.locator("#log li").first().waitFor();
-}
 
 /** Each thing row's box, its name's box and its verb buttons' boxes. */
 const rows = (page) =>
@@ -109,7 +96,7 @@ for (const viewport of [
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(5000);
       try {
-        await start(page, server.url, "quiet-tunnels");
+        await createAndStart(page, server.url, "quiet-tunnels");
         const act = async (name) => {
           const count = await page.locator("#log li").count();
           await page.getByRole("button", { name, exact: true }).click();

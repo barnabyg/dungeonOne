@@ -13,6 +13,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { fightRoom } from "./fixtures/modules.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 /** The lone goblin's room with the bestiary's gnoll in the goblin's place. */
 const gnollCellar = fightRoom("gnoll-cellar", "The Gnoll Cellar", [
@@ -64,16 +65,7 @@ test(
     });
     page.setDefaultTimeout(8000);
     try {
-      await page.goto(server.url);
-      await page.locator("#open-creation").click();
-      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-      await page
-        .locator(`.start-adventure[data-adventure="${gnollCellar.id}"]`)
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await createAndStart(page, server.url, gnollCellar.id);
       await page.locator("#log .roll.weapon").first().waitFor();
 
       const before = await shown(page);

@@ -11,6 +11,7 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { fighterProfile } from "../dist/fighter-5e.js";
 import { longswordBarrow } from "./fixtures/armoury-barrow.mjs";
 import { assertTogether, launch } from "./fixtures/session-layout.mjs";
+import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 /**
  * Clicks an action control, in the bar or on a carried entry, and waits for
@@ -64,19 +65,12 @@ test(
     page.setDefaultTimeout(5000);
     try {
       await page.goto(server.url);
-      await page.locator("#open-creation").click();
-      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+      await createFighter(page);
       const start = JSON.parse(await readFile(libraryPath, "utf8"))
         .characters[0].sheet;
       assert.deepEqual(start.equipment, ["leather", "mace"]);
 
-      await page
-        .locator('.start-adventure[data-adventure="lintel-barrow"]')
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await startAdventure(page, "lintel-barrow");
       const before = fighterProfile(start);
       // The status strip shows AC and attack from the gear worn and held.
       assert.match(

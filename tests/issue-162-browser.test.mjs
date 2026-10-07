@@ -17,6 +17,7 @@ import {
   keptTotal,
 } from "../dist/fighter-5e.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
+import { openCreation } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -58,12 +59,6 @@ const expectedScores = (dice, placement, increase) =>
     return [String(score), signed(abilityModifier(score))];
   });
 
-async function openCreation(page, url) {
-  await page.goto(url);
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-}
-
 test(
   "place and swap rolls, give +1 to three abilities, watch the scores and save",
   { timeout: 60000 },
@@ -81,7 +76,8 @@ test(
     });
     page.setDefaultTimeout(5000);
     try {
-      await openCreation(page, server.url);
+      await page.goto(server.url);
+      await openCreation(page);
       const dice = JSON.parse(await readFile(libraryPath, "utf8"))
         .pendingCreation.dice;
       const placement = { ...defaultPlacement(dice) };
@@ -265,7 +261,8 @@ test(
     });
     page.setDefaultTimeout(5000);
     try {
-      await openCreation(page, server.url);
+      await page.goto(server.url);
+      await openCreation(page);
       const fits = () =>
         page.evaluate(() => {
           const wrap = document.querySelector("#ability-table").parentElement;

@@ -19,6 +19,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
+import { saveFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 test(
   "creation and the sheet say whether the Fighting Style applies with the kit",
@@ -62,9 +63,7 @@ test(
       await tag("two-weapon-fighting")
         .filter({ hasText: "Applies with this kit" })
         .waitFor();
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+      await saveFighter(page);
 
       const saved = JSON.parse(await readFile(libraryPath, "utf8"));
       assert.equal(
@@ -175,10 +174,7 @@ test(
         .locator("#sheet-style-use")
         .filter({ hasText: "Applies: the longsword is held in two hands." })
         .waitFor();
-      await page
-        .locator('.start-adventure[data-adventure="lone-goblin"]')
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await startAdventure(page, "lone-goblin");
       await page
         .locator('#attack-controls button[data-action="attack"]')
         .click();

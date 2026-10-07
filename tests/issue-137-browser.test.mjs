@@ -21,6 +21,11 @@ import {
   firstFighter,
   launch,
 } from "./fixtures/session-layout.mjs";
+import {
+  openCreation,
+  saveFighter,
+  startAdventure,
+} from "./fixtures/browser-journey.mjs";
 
 const delve = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "abandoned-delve",
@@ -107,21 +112,14 @@ test(
       assert.equal(await page.title(), "Characters · Dungeon One");
       assert.equal(await page.locator(".masthead .eyebrow").count(), 0);
 
-      await page.locator("#open-creation").click();
-      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
+      await openCreation(page);
       assert.equal(new URL(page.url()).hash, "#create");
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+      await saveFighter(page);
       const [{ sheet }] = (await libraryFile(libraryPath)).characters;
       assert.equal(new URL(page.url()).hash, `#character-${sheet.id}`);
       assert.equal(await page.title(), "Ada · Dungeon One");
 
-      await page
-        .getByRole("button", { name: "Start The Abandoned Delve" })
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
-      await page.locator("#log li").first().waitFor();
+      await startAdventure(page, "abandoned-delve");
       const { session } = (await libraryFile(libraryPath)).characters[0];
       assert.equal(new URL(page.url()).hash, `#adventure-${session.id}`);
       assert.equal(await page.title(), "The Abandoned Delve · Dungeon One");

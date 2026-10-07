@@ -13,6 +13,7 @@ import {
   levelForXp,
   validateFighter,
 } from "../dist/fighter-5e.js";
+import { saveFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -102,9 +103,7 @@ test(
       assert.ok(previewText.includes(RULE), previewText);
       assert.doesNotMatch(previewText, STALE);
 
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+      await saveFighter(page);
       const sheetText = await page.locator("#sheet").innerText();
       assert.ok(sheetText.includes(RULE), sheetText);
       assert.doesNotMatch(sheetText, STALE);
@@ -119,10 +118,7 @@ test(
       await page.locator("#delete-dialog").press("Escape");
 
       // In a fight the same rule sits under the initiative table (#155).
-      await page
-        .locator('.start-adventure[data-adventure="lone-goblin"]')
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await startAdventure(page, "lone-goblin");
       const rule = await page.locator("#feature-rule").textContent();
       assert.equal(rule, RULE);
       assert.doesNotMatch(

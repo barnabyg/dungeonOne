@@ -12,6 +12,7 @@ import {
   startFifthBrowserServer,
 } from "../dist/browser-5e-server.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
+import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -125,16 +126,6 @@ test("the launcher's setup hint names the key and the restart", () => {
   assert.ok(FIFTH_DM_SETUP_HINT.endsWith("\n"));
 });
 
-async function createAndStart(page, name) {
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-  await page.locator("#character-name").fill(name);
-  await page.locator("#save-character").click();
-  await page.locator("#sheet-name").filter({ hasText: name }).waitFor();
-  await page.locator('.start-adventure[data-adventure="lone-goblin"]').click();
-  await page.locator("#adventure").waitFor({ state: "visible" });
-}
-
 for (const viewport of [
   { width: 1280, height: 850 },
   { width: 375, height: 812 },
@@ -148,7 +139,8 @@ for (const viewport of [
       page.setDefaultTimeout(5000);
       try {
         await page.goto(server.url);
-        await createAndStart(page, "Ada");
+        await createFighter(page, "Ada");
+        await startAdventure(page, "lone-goblin");
         assert.equal(await page.locator("#message").isDisabled(), true);
         assert.equal(await page.locator("#send-message").isDisabled(), true);
         const notice = page.locator("#dm-notice");
@@ -183,7 +175,8 @@ for (const viewport of [
       page.setDefaultTimeout(5000);
       try {
         await page.goto(server.url);
-        await createAndStart(page, "Ada");
+        await createFighter(page, "Ada");
+        await startAdventure(page, "lone-goblin");
         assert.equal(await page.locator("#message").isEnabled(), true);
         assert.equal(await page.locator("#send-message").isEnabled(), true);
         assert.equal(await page.locator("#dm-notice").isVisible(), false);
@@ -202,7 +195,8 @@ for (const viewport of [
         // Ada's adventure has a draft; Bea's adventure starts empty.
         await page.locator("#message").fill("Ada's unsent plan");
         await page.locator('#breadcrumb a[data-view="library"]').click();
-        await createAndStart(page, "Bea");
+        await createFighter(page, "Bea");
+        await startAdventure(page, "lone-goblin");
         assert.equal(await page.locator("#message").inputValue(), "");
 
         // Bea's draft does not follow the player back into Ada's adventure.
