@@ -111,6 +111,8 @@ test("the release run clears the toll, trades with the tinker and walks out, thr
     libraryPath,
     seed: RELEASE_SEED,
     dmModel: narrating,
+    // shipped-modules.test.mjs gates every shipped module; skip it here.
+    qualifies: () => true,
   });
   try {
     const { session, turns } = await playReleaseRun({

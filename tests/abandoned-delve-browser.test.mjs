@@ -128,6 +128,8 @@ for (const viewport of [
         libraryPath: join(directory, "characters.json"),
         seed,
         dmModel: narratingDm(),
+        // shipped-modules.test.mjs gates every shipped module; skip it here.
+        qualifies: () => true,
       });
       const browser = await launch();
       const page = await browser.newPage({ viewport });

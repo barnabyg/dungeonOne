@@ -30,6 +30,8 @@ const withServer = async (dmModel, work) => {
     libraryPath,
     seed: RELEASE_SEED,
     dmModel,
+    // shipped-modules.test.mjs gates every shipped module; skip it here.
+    qualifies: () => true,
   });
   try {
     await work(server.url, libraryPath);
