@@ -140,8 +140,8 @@ deleted. Creation needs no OpenAI key.
   goblin to question, treasure and coin hidden in features, and a
   second exit beside the vault where you choose to climb out or push on.
 - _The Goblin Warren_ (`adventures/5e/goblin-warren.json`, level 3, Medium): a
-  potion among the charms at the gate, a Goblin Warrior with another hidden
-  under its bones, then the SRD 5.2 Goblin Boss and its hoard, a gilded idol
+  potion among the charms at the gate, a Goblin Warrior in the tunnel where
+  another lies under the gnawed bones, then the SRD 5.2 Goblin Boss and its hoard, a gilded idol
   among it, and a way out.
 - _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`, level 1,
   Medium): two rooms with a grave robber (a Bandit) guarding a silver torc and

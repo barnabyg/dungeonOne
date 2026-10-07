@@ -72,7 +72,7 @@
           "id": "crate-throne",
           "name": "Crate Throne",
           "description": "Crates stacked into a lopsided throne, draped with a moth-eaten cloak.",
-          "discovery": "Under the cloak is a sack, heavy and clinking, and behind the crates a gilded idol wrapped in sacking, with a glass-green stone pushed into its base."
+          "discovery": "Under the cloak is a sack, heavy and clinking, and behind the crates a gilded idol wrapped in sacking, with a chip of green malachite pushed into its base."
         }
       ],
       "items": [
@@ -105,7 +105,7 @@
         },
         {
           "id": "idol-stone",
-          "name": "Green Glass Stone",
+          "name": "Malachite Chip",
           "description": "A small banded green malachite, pried loose from the idol's base.",
           "kind": "treasure",
           "treasure": "gem-10gp",

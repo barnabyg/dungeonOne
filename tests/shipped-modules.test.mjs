@@ -144,9 +144,9 @@ test("every shipped module's treasure fits its budget (#239)", () => {
   }
 });
 
-test("each reworked module holds 75–100% of its budget as a mixed hoard (#252)", () => {
-  // The Delve and the Mine keep their content; the rest were designed against
-  // the budget with more than one class of gem or art object.
+test("each module designed against the budget holds 75–100% of it as a mixed hoard (#252)", () => {
+  // The Delve and the Mine keep their shipped treasure; the other five were
+  // designed against the budget with more than one class of gem or art object.
   for (const id of [
     "goblin-warren",
     "robbers-barrow",

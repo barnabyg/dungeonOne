@@ -62,9 +62,9 @@
         {
           "id": "grave-gold",
           "name": "Grave Gold",
-          "description": "Old gold coins, worn smooth and stamped with a forgotten king.",
+          "description": "Fifty old gold coins, worn smooth and stamped with a forgotten king.",
           "kind": "coin",
-          "coins": { "gp": 40 },
+          "coins": { "gp": 50 },
           "hiddenIn": "robbers-sack"
         },
         {
