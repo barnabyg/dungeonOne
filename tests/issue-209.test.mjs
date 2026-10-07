@@ -6,9 +6,6 @@
 // interaction. Gear follows the adventure rollback contract.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { gateAdventure } from "../dist/balance-5e.js";
 import {
   dropItem,
@@ -16,7 +13,6 @@ import {
   swapWeapon,
   unequipItem,
 } from "../dist/equipment-5e.js";
-import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import {
   buildFighter,
   settleFighter,
@@ -36,6 +32,7 @@ import {
   room,
 } from "./fixtures/armoury-barrow.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import { withLibrary } from "./fixtures/library.mjs";
 
 const ROLLS = [
   [6, 6, 4, 1],
@@ -436,40 +433,6 @@ test("the AI DM's gear tools are bounded and every refusal is the engine's", () 
   );
 });
 
-/** A library holding one fresh Ada (Str 16, the mace kit). */
-async function withLibrary(run) {
-  const directory = await mkdtemp(join(tmpdir(), "issue-209-"));
-  try {
-    const library = new FifthCharacterLibrary(
-      join(directory, "characters.json"),
-      7,
-    );
-    const started = await library.startCreation();
-    const data = await library.create(
-      "Ada",
-      {
-        placement: {
-          strength: 0,
-          dexterity: 1,
-          constitution: 2,
-          intelligence: 3,
-          wisdom: 4,
-          charisma: 5,
-        },
-        increase: { strength: 2, constitution: 1 },
-        skills: ["athletics", "perception"],
-        fightingStyle: "defense",
-        kit: "mace",
-        masteries: ["dagger", "mace", "shortsword"],
-      },
-      started.revision,
-    );
-    await run(library, data.characters[0].sheet.id);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-}
-
 const record = async (library) => (await library.read()).characters[0];
 
 /** Starts the armoury barrow and plays `actions` at its mouth; no dice. */
@@ -491,7 +454,7 @@ async function arm(library, characterId, actions) {
 const LEAVE = { type: "leave", roomId: "barrow-mouth" };
 
 test("an interruption between the session and library writes never duplicates or loses gear", async () => {
-  await withLibrary(async (library, characterId) => {
+  await withLibrary(async (library, { id: characterId }) => {
     const session = await arm(library, characterId, [
       take("lintel-longsword"),
       { type: "swap", itemId: "longsword" },
@@ -520,7 +483,7 @@ test("an interruption between the session and library writes never duplicates or
 });
 
 test("abandonment and defeat restore the starting gear exactly", async () => {
-  await withLibrary(async (library, characterId) => {
+  await withLibrary(async (library, { id: characterId }) => {
     const first = await arm(library, characterId, [
       take("lintel-longsword"),
       take("lintel-shield"),
