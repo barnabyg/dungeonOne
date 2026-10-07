@@ -1875,10 +1875,11 @@ element("log").addEventListener("scroll", () => {
 // When the dock around the log changes, as the Leave question opens or closes,
 // the log changes size: a following reader stays on the newest entry (#221).
 new ResizeObserver(followNewest).observe(element("log"));
-// On a phone the dock is sticky: keep focused controls clear of it.
+// On a phone the dock is sticky: keep focused controls clear of it. The height
+// rounds up, as offsetHeight's rounding down left a button under it (#256).
 new ResizeObserver(() => {
   const dock = element("session-dock");
-  document.documentElement.style.setProperty("--session-dock-height", getComputedStyle(dock).position === "sticky" ? dock.offsetHeight + "px" : "0px");
+  document.documentElement.style.setProperty("--session-dock-height", getComputedStyle(dock).position === "sticky" ? Math.ceil(dock.getBoundingClientRect().height) + "px" : "0px");
 }).observe(element("session-dock"));
 window.addEventListener("popstate", () => { if (library) route(true); });
 request("/api/5e/library").then((value) => {

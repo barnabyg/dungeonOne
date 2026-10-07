@@ -108,8 +108,9 @@ const LOOT_RUN = [
   ["move", "hall"],
   ["move", "crypt-stair"],
 ];
-// At the stair, fully laden, Ada looks over what she carries.
-const CARRIED = ["iron-key", "cell-potion", "silver-chalice"];
+// At the stair, fully laden, Ada looks over what she carries, in the order
+// she picked it up. Before #256 the key's Examine ended under the dock here.
+const CARRIED = ["cell-potion", "iron-key", "silver-chalice"];
 
 const ENGINE = {
   examine: (id) => ({ type: "examine", targetId: id }),
