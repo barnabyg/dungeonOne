@@ -347,7 +347,8 @@ the owner declares a stable release.
 These are for development, not play.
 
 - **Command-line test adapter.** `npm.cmd run cli` plays a built-in module (The
-  Abandoned Delve by default; `--adventure <id>` picks another) with Ada, a fixed
+  Abandoned Delve by default; `--adventure <id>` picks another, and
+  `--adventure-file <module.json>` plays a module file instead) with Ada, a fixed
   level-1 Fighter, from `--seed`. Each turn it lists the browser's action bar,
   numbered, with each disabled action's reason; type a number to take one.
   Other text goes to the AI DM, which is off by default (typed messages are
@@ -356,7 +357,8 @@ These are for development, not play.
   which makes at most `--max-calls` provider calls (default 30). `--trace
 <path>` records the run after every turn, and `--replay <path>` replays it,
   checking every turn's state, dice, cards and reply and naming the first turn
-  that differs.
+  that differs; replay a trace recorded with `--adventure-file` with the same
+  file.
 - **Balance harness.** `npm.cmd run balance -- [--seeds <count>] [--percentiles
 <p,p>] [--styles <style,style>] [--json] [module.json ...]` plays each built-in
   module (or the files named) through the real runtime with weak and strong
