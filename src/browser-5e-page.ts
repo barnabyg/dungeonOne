@@ -856,6 +856,10 @@ function compactRoll(group) {
     case "target":
       node.append("target die ", ...diceChips(group));
       break;
+    case "weapon":
+      // Multiattack's choice of attack (#235).
+      node.append("attack die ", ...diceChips(group));
+      break;
     case "attack":
       node.append(group.mode ? group.mode + " " : "", ...diceChips(group, ", "), withSign(group.modifier) + " = " + group.total + " vs AC " + group.armorClass);
       break;

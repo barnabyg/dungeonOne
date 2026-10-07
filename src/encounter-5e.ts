@@ -50,6 +50,16 @@
  *   ends when the fight does.
  * - Pack Tactics: a combatant with it has advantage on its attacks while an
  *   ally on its side is alive and able to act.
+ * - Multiattack (#235): an opponent with it makes several attacks on its
+ *   turn. For each, a seeded die picks the target when more than one party
+ *   combatant stands, and another picks the attack when it has more than
+ *   one. A target that falls is not picked again; the turn's attacks stop
+ *   when the fight ends.
+ * - Rampage (#235): when an opponent with it drops a combatant to 0 HP on
+ *   its turn, it makes one bonus attack at once, chosen as above.
+ * - Nimble Escape (#235): a bonus-action Disengage. Without positions there
+ *   are no opportunity attacks to avoid, so it changes nothing in a fight
+ *   yet; the flag waits for fleeing (#237).
  *
  * The state allows any number of combatants per side.
  */
@@ -220,6 +230,18 @@ export type Combatant = DamageDefenses &
      * it at 1 HP instead.
      */
     undeadFortitude?: true;
+    /**
+     * An opponent's Multiattack: the attacks it makes each turn, each with
+     * one of `weapons` picked by a die when there is more than one.
+     */
+    multiattack?: Readonly<{ attacks: number; weapons: readonly Weapon[] }>;
+    /** Rampage: a bonus attack when it drops a combatant on its turn. */
+    rampage?: true;
+    /**
+     * Nimble Escape: it can Disengage as a bonus action. With no opportunity
+     * attacks, that changes nothing in a fight yet.
+     */
+    nimbleEscape?: true;
   }>;
 
 export type Healing = Readonly<{
@@ -353,6 +375,10 @@ export type AttackEvent = Readonly<{
   mode?: RollMode;
   /** The opponent die that chose this target, when there was a choice. */
   targetRoll?: number;
+  /** The opponent die that chose this attack, when it had a choice. */
+  weaponRoll?: number;
+  /** Rampage's bonus attack, after the attacker dropped a combatant. */
+  rampage?: true;
   /** The damage dice as rolled. */
   damageRolls: readonly number[];
   damageModifier: number;
@@ -1037,15 +1063,25 @@ function endTurn(
   return { ...state, conditions };
 }
 
+/** How an attack came about: the dice that chose it, and what kind it is. */
+type AttackOrigin = Readonly<{
+  targetRoll?: number;
+  weaponRoll?: number;
+  /** The weapon, when an opponent's die chose it from its Multiattack. */
+  weapon?: Weapon;
+  light?: true;
+  rampage?: true;
+}>;
+
 function resolveAttack(
   state: EncounterState,
   actor: Combatant,
   target: Combatant,
   random: Roller,
-  targetRoll: number | undefined,
-  light = false,
+  origin: AttackOrigin = {},
 ): { state: EncounterState; events: EncounterEvent[] } {
-  const weapon = light ? actor.lightAttack! : actor.attack;
+  const { targetRoll, weaponRoll, light = false, rampage = false } = origin;
+  const weapon = origin.weapon ?? (light ? actor.lightAttack! : actor.attack);
   const sapped = state.sapped.some(({ targetId }) => targetId === actor.id);
   const vexing = state.vexed.some(
     ({ sourceId, targetId }) => sourceId === actor.id && targetId === target.id,
@@ -1157,6 +1193,8 @@ function resolveAttack(
       critical: hit && critical,
       ...(mode === undefined ? {} : { mode }),
       ...(targetRoll === undefined ? {} : { targetRoll }),
+      ...(weaponRoll === undefined ? {} : { weaponRoll }),
+      ...(rampage ? { rampage: true as const } : {}),
       damageRolls,
       damageModifier: weapon.damage.modifier,
       damage,
@@ -1312,13 +1350,68 @@ function advance(
     if (incapacitatedBy(next, actor.id) !== undefined) {
       continue;
     }
-    const targets = legalTargets(next, actor.id);
-    const targetRoll =
-      targets.length > 1 ? random.roll(targets.length) : undefined;
-    const target = targets[(targetRoll ?? 1) - 1]!;
-    const resolved = resolveAttack(next, actor, target, random, targetRoll);
+    next = opponentTurn(next, actor, random, events);
+  }
+  return next;
+}
+
+/**
+ * One attack by an opponent: a die picks its target when more than one
+ * stands, and another its attack when its Multiattack offers more than one.
+ */
+function opponentAttack(
+  state: EncounterState,
+  actor: Combatant,
+  random: Roller,
+  rampage: boolean,
+): { state: EncounterState; events: EncounterEvent[] } {
+  const targets = legalTargets(state, actor.id);
+  const targetRoll =
+    targets.length > 1 ? random.roll(targets.length) : undefined;
+  const weapons = actor.multiattack?.weapons ?? [actor.attack];
+  const weaponRoll =
+    weapons.length > 1 ? random.roll(weapons.length) : undefined;
+  return resolveAttack(state, actor, targets[(targetRoll ?? 1) - 1]!, random, {
+    ...(targetRoll === undefined ? {} : { targetRoll }),
+    ...(weaponRoll === undefined ? {} : { weaponRoll }),
+    weapon: weapons[(weaponRoll ?? 1) - 1]!,
+    ...(rampage ? { rampage: true as const } : {}),
+  });
+}
+
+/**
+ * An opponent's turn: its attacks (several with Multiattack), and Rampage's
+ * bonus attack when one of them drops a combatant. It stops when the fight
+ * ends.
+ */
+function opponentTurn(
+  state: EncounterState,
+  actor: Combatant,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  let next = state;
+  let bonusAction = true;
+  const attack = (rampage: boolean) => {
+    const resolved = opponentAttack(next, actor, random, rampage);
     events.push(...resolved.events);
     next = resolved.state;
+    return resolved.events.some(({ type }) => type === "defeated");
+  };
+  for (
+    let made = 0;
+    made < (actor.multiattack?.attacks ?? 1) && next.outcome === "ongoing";
+    made++
+  ) {
+    if (
+      attack(false) &&
+      actor.rampage === true &&
+      bonusAction &&
+      next.outcome === "ongoing"
+    ) {
+      bonusAction = false;
+      attack(true);
+    }
   }
   return next;
 }
@@ -1415,7 +1508,7 @@ export function act(
           "You have already used your action this turn.",
         );
       }
-      const resolved = resolveAttack(state, actor, target, random, undefined);
+      const resolved = resolveAttack(state, actor, target, random);
       events.push(...resolved.events);
       next = {
         ...resolved.state,
@@ -1441,14 +1534,9 @@ export function act(
       if (refusal !== undefined) {
         return { state, rejection: refusal };
       }
-      const resolved = resolveAttack(
-        state,
-        actor,
-        target,
-        random,
-        undefined,
-        true,
-      );
+      const resolved = resolveAttack(state, actor, target, random, {
+        light: true,
+      });
       events.push(...resolved.events);
       next = {
         ...resolved.state,

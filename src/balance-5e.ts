@@ -13,6 +13,7 @@ import {
   LOOT_KINDS,
   statBlockDefenses,
   statBlockSaves,
+  unsimulatedTraits,
   type Difficulty,
   type EndingKind,
   type FifthAdventure,
@@ -241,7 +242,11 @@ export function oneHitKillChance(
 
 /** Why the harness can't qualify a module: a named reason, never a pass. */
 export type BalanceFailureCode =
-  "unreachable-objective" | "unsupported-action" | "step-limit" | "stranded";
+  | "unreachable-objective"
+  | "unsupported-action"
+  | "step-limit"
+  | "stranded"
+  | "unsimulated-trait";
 
 export class BalanceError extends Error {
   constructor(
@@ -583,9 +588,10 @@ export type RunRecord = Readonly<{
 /**
  * Plays one run of `runtime`'s adventure in `style` with dice from `seed`,
  * starting as a browser session does, with `begin`. Throws a `BalanceError`
- * when the runtime offers an action no style can play, the run takes more
- * than `stepLimit` actions, or it is stranded: alive, with no action left
- * that leads on or out.
+ * when an opponent has a trait the engine does not apply (the run would not
+ * be the fight a player meets), the runtime offers an action no style can
+ * play, the run takes more than `stepLimit` actions, or it is stranded:
+ * alive, with no action left that leads on or out.
  */
 export function playAdventure(
   runtime: FifthRuntime,
@@ -594,6 +600,17 @@ export function playAdventure(
   { stepLimit = 2000 }: Readonly<{ stepLimit?: number }> = {},
 ): RunRecord {
   const { adventure } = runtime;
+  for (const { opponents } of adventure.encounters) {
+    for (const { name, statBlock } of opponents) {
+      const [trait] = unsimulatedTraits(statBlock);
+      if (trait !== undefined) {
+        throw new BalanceError(
+          "unsimulated-trait",
+          `${adventure.id}: ${name}'s ${trait} is not simulated by the encounter engine.`,
+        );
+      }
+    }
+  }
   const { plan, roomById, fightIn } = routePlanner(adventure);
   const required = new Set(requiredPath(adventure).roomIds);
   const objective = objectiveOf(adventure);

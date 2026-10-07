@@ -521,7 +521,7 @@ test("the bestiary validator refuses malformed riders and traits", () => {
     withBite((block) => {
       block.traits = ["Keen Smell"];
     }),
-    /trait 1 must be one of Pack Tactics, Undead Fortitude\./,
+    /trait 1 must be one of Pack Tactics, Undead Fortitude, Nimble Escape, Rampage\./,
   );
 });
 
