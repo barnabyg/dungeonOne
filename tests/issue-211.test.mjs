@@ -1,8 +1,9 @@
 // #211: The Tinker's Toll, the increment 12 release module, with the
 // content the owner approved: a tinker who trades, a shield and coin found
 // in the reeds after the wolf, and the bandits' purse and seal at the tower.
-// It qualifies at its declared difficulty, and the release run plays it
-// through the browser server, buying and selling with coin it finds.
+// The release run plays it through the browser server, buying and selling
+// with coin it finds; shipped-modules.test.mjs checks it qualifies at its
+// declared difficulty.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -11,7 +12,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
-import { gateAdventure, renderGateResult } from "../dist/balance-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { startAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
 import { playReleaseRun, TOLL_FULL_ROUTE } from "../dist/release-run-5e.js";
@@ -85,14 +85,6 @@ test("the shield and the first coin lie in the reeds after the wolf; the purse a
       hiddenIn: "strongbox",
     },
   ]);
-});
-
-test("The Tinker's Toll qualifies at its declared difficulty", () => {
-  const result = gateAdventure(toll);
-  assert.ok(
-    result.ok && result.verdict.qualified,
-    renderGateResult(toll, result),
-  );
 });
 
 /** A seed on which Ada, with the mace kit, clears the toll and walks out. */
