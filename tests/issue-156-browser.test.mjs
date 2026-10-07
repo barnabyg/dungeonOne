@@ -30,7 +30,7 @@ const launch = () =>
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
 const adventure = ratTunnels;
-const FIXTURE_MODULES = { adventures: [adventure], qualifies: () => true };
+const SERVER_OPTIONS = { adventures: [adventure], qualifies: () => true };
 const DEFAULT_CHOICES = {
   placement: {
     strength: 0,
@@ -214,7 +214,7 @@ for (const viewport of [
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-156-"));
       const server = await startFifthBrowserServer({
-        ...FIXTURE_MODULES,
+        ...SERVER_OPTIONS,
         libraryPath: join(directory, "characters.json"),
         seed,
       });

@@ -26,8 +26,9 @@ owned by the tests: change it only for a test's sake.
 
 `moduleFile(name)` returns a fresh copy of a fixture's JSON to change and
 validate, and `fightRoomFile(id, title, opponents)` builds a one-room fight
-against any opponents in the lone goblin's room, for tests of one monster's
-rules (riders, paralysis, Multiattack, damage defences). `FIXTURE_MODULES`
+against any opponents in the lone goblin's room (`fightRoom` validates it),
+for tests of one monster's rules (riders, paralysis, Multiattack, damage
+defences). `FIXTURE_MODULES`
 lists every module above, for property checks that play each one.
 
 `renamed-skeletons.mjs` is two bestiary Skeletons under the module's own
@@ -72,8 +73,9 @@ are on screen together (#154).
 
 `bestiary.mjs` loads the built-in bestiary and binds the adventure validator to
 it as `validateModule`, for tests that validate a module's JSON, or a changed
-copy of it, directly. The other module fixtures author their stat
-blocks inline, so they also cover one-off inline opponents.
+copy of it, directly. The two gate fixtures, `goblin-trio.json` and
+`rat-tunnels.json` author their stat blocks inline, so they also cover one-off
+inline opponents; the other fixtures name bestiary monsters.
 
 ## Encounter estimate (issue 236)
 

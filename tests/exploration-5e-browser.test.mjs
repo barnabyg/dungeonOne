@@ -26,7 +26,7 @@ const launch = () =>
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
 const adventure = ratTunnels;
-const FIXTURE_MODULES = { adventures: [adventure], qualifies: () => true };
+const SERVER_OPTIONS = { adventures: [adventure], qualifies: () => true };
 // The creation screen's default choices; the placement follows the dice.
 const DEFAULT_CHOICES = {
   increase: { strength: 2, constitution: 1 },
@@ -186,7 +186,7 @@ const sessionFile = async (directory) => {
 };
 
 test(
-  "walk the cellar, search the chest by typing, take the potion, drink it after a fight, and resume exactly",
+  "walk the tunnels, search the chest by typing, take the potion, drink it after a fight, and resume exactly",
   { timeout: 120000 },
   async () => {
     const seed = findSeed();
@@ -194,7 +194,7 @@ test(
     const directory = await mkdtemp(join(tmpdir(), "exploration-5e-"));
     const libraryPath = join(directory, "characters.json");
     let server = await startFifthBrowserServer({
-      ...FIXTURE_MODULES,
+      ...SERVER_OPTIONS,
       libraryPath,
       seed,
       dmModel: examiningDm(),
@@ -311,7 +311,7 @@ test(
       // Restart (even with another seed): the same screen.
       await server.close();
       server = await startFifthBrowserServer({
-        ...FIXTURE_MODULES,
+        ...SERVER_OPTIONS,
         libraryPath,
         seed: seed + 1,
         dmModel: examiningDm(),

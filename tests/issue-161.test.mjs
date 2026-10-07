@@ -39,7 +39,7 @@ async function api(url, path, body) {
   return { status: response.status, body: await response.json() };
 }
 
-/** Creates a Fighter and starts the cellar goblin adventure over the API. */
+/** Creates a Fighter and starts the lone goblin over the API. */
 async function startOverApi(url) {
   let library = (await api(url, "/api/5e/creation", {})).body;
   library = (

@@ -22,7 +22,7 @@ import {
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
 const adventure = ratTunnels;
-const FIXTURE_MODULES = { adventures: [adventure], qualifies: () => true };
+const SERVER_OPTIONS = { adventures: [adventure], qualifies: () => true };
 
 /** A seed where Ada wins the rat fight hurt, so she can drink the potion. */
 function findSeed() {
@@ -133,7 +133,7 @@ for (const viewport of [
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-154-"));
       const server = await startFifthBrowserServer({
-        ...FIXTURE_MODULES,
+        ...SERVER_OPTIONS,
         libraryPath: join(directory, "characters.json"),
         seed,
         dmModel: narratingDm(),

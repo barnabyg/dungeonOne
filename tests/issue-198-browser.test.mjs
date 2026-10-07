@@ -27,7 +27,7 @@ import {
 // The sealed crypt made into a loot run: its stair is a way out, treasure
 // and coins wait in the bowl, the strongbox and on the warden, and beating
 // the warden no longer ends the adventure. The bound smuggler sits in the
-// flooded cell, so no room offers more actions than the old route's did.
+// flooded cell, so no room offers more actions than the phone dock can show.
 const lootedCrypt = (() => {
   const module = moduleFile("sealed-crypt");
   module.id = "looted-crypt";

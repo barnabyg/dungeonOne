@@ -549,14 +549,14 @@ test("bosses are exempt from the one-hit-kill cap, and half the ordinary enemies
   assert.equal(allBosses.verdict.oneHitKill.ok, true);
   assert.equal(allBosses.verdict.qualified, true);
   // One minion of two over the cap is half, not most.
-  const smugglers = gateAdventure(declared(ratTunnels, "hard")).verdict
+  const tunnels = gateAdventure(declared(ratTunnels, "hard")).verdict
     .oneHitKill;
   assert.deepEqual(
-    smugglers.overCap.map(({ name }) => name),
+    tunnels.overCap.map(({ name }) => name),
     ["Giant Rat"],
   );
-  assert.equal(smugglers.enemies.length, 2);
-  assert.equal(smugglers.ok, true);
+  assert.equal(tunnels.enemies.length, 2);
+  assert.equal(tunnels.ok, true);
 });
 
 test("a module whose XP could carry a character past its maximum level + 1 is rejected", () => {

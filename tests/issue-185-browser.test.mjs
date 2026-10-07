@@ -13,7 +13,7 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
-const FIXTURE_MODULES = {
+const SERVER_OPTIONS = {
   adventures: [ratTunnels],
   qualifies: () => true,
 };
@@ -158,7 +158,7 @@ for (const viewport of [
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-185-"));
       const server = await startFifthBrowserServer({
-        ...FIXTURE_MODULES,
+        ...SERVER_OPTIONS,
         libraryPath: join(directory, "characters.json"),
         seed: 0,
       });
