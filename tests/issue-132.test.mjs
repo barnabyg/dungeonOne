@@ -14,6 +14,7 @@ import {
 } from "../dist/runtime-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { ratlessTunnels, sealedCrypt } from "./fixtures/modules.mjs";
+import { engineAction } from "./fixtures/playthroughs.mjs";
 
 const crypt = sealedCrypt;
 
@@ -80,41 +81,6 @@ const force = (...values) => [
   { type: "force", doorId: "swollen-door" },
   ...values,
 ];
-
-const PLAYER = "pc";
-/** The engine action a projected action stands for. */
-function engineAction({ action, target }) {
-  switch (action) {
-    case "attack":
-      return { type: "attack", actorId: PLAYER, targetId: target.id };
-    case "use":
-      return { type: "use-item", itemId: target.id };
-    case "move":
-      return { type: "move", destinationId: target.id };
-    case "examine":
-      return { type: "examine", targetId: target.id };
-    case "take":
-      return { type: "take", itemId: target.id };
-    case "equip":
-    case "unequip":
-    case "swap":
-    case "drop":
-      return { type: action, itemId: target.id };
-    case "force":
-    case "pick":
-    case "break":
-    case "unlock":
-      return { type: action, doorId: target.id };
-    case "search":
-      return { type: "search", roomId: target.id };
-    case "disarm":
-      return { type: "disarm", trapId: target.id };
-    case "talk":
-      return { type: "talk", topicId: target.id };
-    default:
-      return { type: action, actorId: PLAYER };
-  }
-}
 
 const TOOLS = [
   ["move", "move"],

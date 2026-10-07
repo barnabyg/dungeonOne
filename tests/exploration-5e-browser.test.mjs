@@ -1,21 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createHash } from "node:crypto";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import {
-  buildFighter,
-  defaultPlacement,
-  rollAbilitySet,
-} from "../dist/fighter-5e.js";
+import {} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
+import { firstFighter } from "./fixtures/session-layout.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -28,28 +24,6 @@ const launch = () =>
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
 const adventure = ratTunnels;
 const SERVER_OPTIONS = { adventures: [adventure], qualifies: () => true };
-// The creation screen's default choices; the placement follows the dice.
-const DEFAULT_CHOICES = {
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-  kit: "mace",
-  masteries: ["dagger", "mace", "shortsword"],
-};
-
-/** The first Fighter a browser on `seed` creates with the default choices. */
-function firstFighter(seed) {
-  const stream = createHash("sha256")
-    .update(`5e-ability-rolls:${seed}:1`)
-    .digest()
-    .readUInt32LE(0);
-  const dice = rollAbilitySet(createSeededRandom(stream));
-  return buildFighter("a".repeat(32), "Ada", dice, {
-    ...DEFAULT_CHOICES,
-    placement: defaultPlacement(dice),
-  });
-}
-
 const WALK = [
   { type: "move", destinationId: "alcove" },
   { type: "examine", targetId: "iron-chest" },

@@ -46,6 +46,16 @@ counter that a d6 advances and that wins at three. The DM turn loop, OpenAI
 adapter and runtime contract tests use it to exercise shared infrastructure
 without depending on the 5e runtime.
 
+## Seeded playthroughs (issue 156)
+
+`playthroughs.mjs` holds the #156 fighter, `ada` (Con 14, 12 HP), and
+`veteran()`, Ada at level 2 with Action Surge; `engineAction(view)`, the
+engine action each kind of projected action stands for, as the browser
+server makes it from a click; and `playthroughStates()`, every state of
+seeded random playthroughs of every fixture module. The bar-projection tests
+(#132, #156, #182, #183) share them, so a new kind of action is mapped once;
+#182 checks the mapping against the action each projection dry-ran.
+
 ## Pre-5e library
 
 `pre-5e-library.mjs` is a character library in the pre-5e game's format
@@ -65,9 +75,12 @@ minion with one attack, so it fails as too easy at every difficulty.
 
 `default-launch.mjs` runs the built browser launcher as a player would,
 through `quiet-launcher.mjs`, which stops it opening a desktop browser window.
-`session-layout.mjs` launches the browser and builds the fighters the 5e
-journeys use to check that the newest history entry and the action buttons
-are on screen together (#154).
+`session-layout.mjs` launches the browser and checks that the newest
+history entry and the action buttons are on screen together (#154). Its
+`firstFighter(seed)` is the Fighter a browser on that seed creates first,
+with the page's default choices (`FIGHTER_DEFAULT_CHOICES`) and placement
+(`defaultPlacement`); browser tests that search for a seed by simulating
+Ada use it, so they simulate the Ada the page makes.
 
 `browser-journey.mjs` holds the steps most browser tests take before the
 part they check: `openCreation`, `saveFighter` (Ada by default),
