@@ -164,12 +164,14 @@ export type FighterChoices = Readonly<{
 
 /**
  * A treasure found in an adventure. `id` is the adventure's id and the item's,
- * as `adventure/item`, so each is found once.
+ * as `adventure/item`, so each is found once. `value` is what it is worth in
+ * copper, and what a merchant pays for it (#239).
  */
 export type TreasureRecord = Readonly<{
   id: string;
   name: string;
   description: string;
+  value: number;
 }>;
 
 /**
@@ -203,6 +205,11 @@ export type Settlement = Readonly<{
   xp: readonly XpAward[];
   /** The treasure found in this adventure and carried out, not found before. */
   finds: readonly TreasureRecord[];
+  /**
+   * The ids (`adventure/item`) of the treasure found in this adventure and
+   * sold there (#239): each is still found once.
+   */
+  sold: readonly string[];
   /** The coin found in this adventure and carried out in the purse. */
   coin: readonly CoinFind[];
   /**
@@ -216,6 +223,8 @@ const TREASURE_ID = /^[a-z][a-z0-9-]{0,47}\/[a-z][a-z0-9-]{0,47}$/;
 const AWARD_ID =
   /^[a-z][a-z0-9-]{0,47}\/(encounter|ending)\/[a-z][a-z0-9-]{0,47}$/;
 const MAX_EARNED = 1000;
+/** The most one treasure may be worth, in copper: 100,000 gp. */
+const MAX_TREASURE_VALUE = 10_000_000;
 
 export type FighterSheet = Readonly<{
   id: string;
@@ -512,9 +521,12 @@ function validateTreasure(value: unknown): readonly TreasureRecord[] {
     !value.every(
       (entry) =>
         isRecord(entry) &&
-        Object.keys(entry).sort().join(",") === "description,id,name" &&
+        Object.keys(entry).sort().join(",") === "description,id,name,value" &&
         typeof entry.id === "string" &&
         TREASURE_ID.test(entry.id) &&
+        Number.isSafeInteger(entry.value) &&
+        (entry.value as number) >= 0 &&
+        (entry.value as number) <= MAX_TREASURE_VALUE &&
         plainText(entry.name, 60) &&
         plainText(entry.description, 2000),
     ) ||
@@ -1053,6 +1065,7 @@ export function settleFighter(
   const awards = settlement.xp.filter(({ id }) => !sheet.xpAwards.includes(id));
   const finds = [
     ...[...settlement.finds, ...settlement.coin].map(({ id }) => id),
+    ...settlement.sold,
     ...settlement.gear,
   ].filter(
     (id, index, all) => !sheet.finds.includes(id) && all.indexOf(id) === index,
@@ -1065,7 +1078,7 @@ export function settleFighter(
     equipment: settlement.possessions.equipment,
     stowed: settlement.possessions.stowed,
     treasure: settlement.possessions.treasure.map(
-      ({ id, name, description }) => ({ id, name, description }),
+      ({ id, name, description, value }) => ({ id, name, description, value }),
     ),
     purse: settlement.possessions.purse,
     finds: [...sheet.finds, ...finds],

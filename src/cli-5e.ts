@@ -82,6 +82,7 @@ const LABELS: Readonly<Record<ActionView["action"], string>> = {
   buy: "Buy ",
   sell: "Sell ",
   "sell-equipped": "Sell equipped ",
+  "sell-treasure": "Sell ",
   "second-wind": "Second Wind",
   "action-surge": "Action Surge",
   "end-turn": "End turn",

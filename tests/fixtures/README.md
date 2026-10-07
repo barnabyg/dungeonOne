@@ -72,3 +72,12 @@ topic that only tells, and 10 XP for sparing it. `surrenderSeed()` finds the
 first browser seed on which Ada, attacking the first goblin offered, wins the
 fight with a goblin surrendered; the surrender runtime and browser tests talk
 to it, take its ring and escape.
+
+## Treasure value (issue 239)
+
+`gem-market.mjs` is the market barrow (`market-barrow.mjs`) with a Blue Opal,
+a 50 gp gem, under the stone bier, found once the goblin's fight is won and
+sold to the pedlar at the mouth for its full value. An ogre's den off the
+mouth is a fight a level-1 Fighter loses, for the journey that trades and
+then falls. `armoury-barrow.mjs` is now for levels 1–3, since its longsword,
+greatsword and chain mail are uncommon.

@@ -15,7 +15,11 @@ import { barrowFile, room } from "./fixtures/armoury-barrow.mjs";
 import { assertTogether, launch } from "./fixtures/session-layout.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
 
-const mailed = structuredClone(barrowFile);
+// Chain mail is uncommon, found only in modules for level 3 and up (#239).
+const mailed = {
+  ...structuredClone(barrowFile),
+  recommendedLevels: { min: 1, max: 3 },
+};
 room(mailed, "barrow-mouth").items.push({
   id: "lintel-mail",
   name: "Chain Mail",

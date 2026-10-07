@@ -292,7 +292,8 @@ body of an opponent once its fight is won. Coin is copper, silver and gold
 pieces, kept as one purse and shown in mixed denominations (for example
 "3 gp 4 sp"); taking it puts it in the purse at once, shown under **You
 carry**, and spent with merchants. Both are kept only if the
-character survives: an adventure starts holding the character's equipment,
+character survives. Gems and art objects show their value; a merchant buys
+them for it in full, and gear for half its price. An adventure starts holding the character's equipment,
 stowed gear, treasure and purse, and a victory or an escape replaces them with what the
 character holds at the end. A defeat
 or an abandoned adventure leaves the character as it started. In a room that is a way out, the action bar has
@@ -312,14 +313,14 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 8.
+- The character library (`characters.json` by default) is format version 9.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 20.
+  `characters-adventures` directory beside the library, in format version 21.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 15. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 16. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 6, or author a one-off stat block inline.
 

@@ -122,6 +122,7 @@ test("leaving from an exit without treasure ends the adventure empty-handed", ()
     },
     xp: [],
     finds: [],
+    sold: [],
     coin: [],
     gear: [],
   });
@@ -145,6 +146,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
     id: "robbers-barrow/silver-torc",
     name: "Silver Torc",
     description: "A neck ring of twisted silver, heavy and cold.",
+    value: 2500,
   };
   assert.deepEqual(runtime.projectSettlement(out), {
     possessions: {
@@ -166,6 +168,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
       },
     ],
     finds: [torc],
+    sold: [],
     coin: [],
     gear: [],
   });
@@ -328,6 +331,7 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
       },
     ],
     finds: [],
+    sold: [],
     coin: [],
     gear: [],
   });
@@ -362,6 +366,7 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin w
       { id: "robbers-barrow/ending/out-with-the-torc", name: "Out", xp: 250 },
     ],
     finds: [],
+    sold: [],
     coin: [],
     gear: [],
   });
@@ -686,6 +691,7 @@ const GEM = {
   id: "warden-crypt/river-pearl",
   name: "River Pearl",
   description: "A grey pearl the size of a thumbnail.",
+  value: 5000,
 };
 
 /** Ada after escaping the barrow with the torc. */

@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 15,
+  "formatVersion": 16,
   "id": "abandoned-delve",
   "title": "The Abandoned Delve",
   "objective": "Loot the old dungeon under the ruined keep and get out alive, by the gate or the shaft.",
@@ -83,6 +83,7 @@
           "name": "Dagger Hilt",
           "description": "A dagger hilt chased with silver, its blade long gone.",
           "kind": "treasure",
+          "treasure": "art-25gp",
           "hiddenIn": "footlocker"
         }
       ]
@@ -108,11 +109,11 @@
           "hiddenIn": "old-barrel"
         },
         {
-          "id": "barrel-longsword",
-          "name": "Oiled Longsword",
-          "description": "A plain longsword wrapped in oilcloth, its edge still keen.",
+          "id": "barrel-shortsword",
+          "name": "Oiled Shortsword",
+          "description": "A plain shortsword wrapped in oilcloth, its edge still keen.",
           "kind": "gear",
-          "gear": "longsword",
+          "gear": "shortsword",
           "hiddenIn": "old-barrel"
         },
         {
@@ -181,6 +182,7 @@
           "name": "Candlesticks",
           "description": "A pair of tarnished silver candlesticks.",
           "kind": "treasure",
+          "treasure": "art-25gp",
           "hiddenIn": "altar"
         }
       ]
@@ -204,6 +206,7 @@
           "name": "Gold Ring",
           "description": "A heavy gold ring set with a red stone.",
           "kind": "treasure",
+          "treasure": "art-25gp",
           "hiddenIn": "cocoon"
         }
       ]
@@ -250,6 +253,7 @@
           "name": "Goblet",
           "description": "A jewelled gold goblet the ghoul clutched to its chest.",
           "kind": "treasure",
+          "treasure": "art-25gp",
           "hiddenIn": "ghoul"
         }
       ]

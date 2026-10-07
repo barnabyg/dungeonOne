@@ -1,5 +1,5 @@
 /**
- * The 5e character library (format version 8).
+ * The 5e character library (format version 9).
  *
  * It holds saved 5e Fighters and at most one pending creation: the dice of a
  * Fighter being created. Each character record names its adventure session
@@ -39,7 +39,7 @@ import {
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 8;
+export const FIFTH_LIBRARY_FORMAT = 9;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -144,7 +144,8 @@ export class FifthCharacterLibrary {
       version === 4 ||
       version === 5 ||
       version === 6 ||
-      version === 7
+      version === 7 ||
+      version === 8
     ) {
       throw moveAside(
         this.path,

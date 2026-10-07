@@ -252,7 +252,10 @@ test(
       const ending = await page.locator("#ending").innerText();
       assert.match(ending, /Defeated the Goblin Warrior: \+50 XP/);
       assert.match(ending, /Out with the silver: \+250 XP/);
-      assert.match(ending, /Treasure kept\n+Silver Torc\. A neck ring/);
+      assert.match(
+        ending,
+        /Treasure kept\n+Silver Torc \(25 gp\)\. A neck ring/,
+      );
       assert.doesNotMatch(ending, /Pouch of Old Coins/);
       assert.match(ending, /Coin found: 2 gp 5 sp\. Purse: 2 gp 5 sp\./);
       assert.match(ending, /Ada has 300 XP\./);
@@ -308,7 +311,7 @@ test(
       await page.locator("#sheet").waitFor({ state: "visible" });
       const sheet = await page.locator("#sheet-body").innerText();
       assert.match(sheet, /^Level 2 Fighter · 300 XP \(level 3 at 900\)/);
-      assert.match(sheet, /Treasure\n+Silver Torc\. A neck ring/);
+      assert.match(sheet, /Treasure\n+Silver Torc \(25 gp\)\. A neck ring/);
       assert.match(sheet, /Purse\n+2 gp 5 sp/);
 
       // The same adventure again: no torc or coin to find, and nothing earned.

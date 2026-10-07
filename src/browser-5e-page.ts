@@ -32,7 +32,9 @@
 //   Unequip, Wield, Equip and Drop (#209), so a laden character's bar stays
 //   short enough for a phone. Where a merchant is (#210), Buy sits on each of
 //   its wares in #creatures and Sell on each "You carry" entry; selling
-//   equipped gear asks first in #sale-confirm, inside that entry.
+//   equipped gear asks first in #sale-confirm, inside that entry. Gems and
+//   art objects (#239) show their value on their entry and sell for it in
+//   full, found here or brought in.
 //   After an action, focus stays on the clicked control if it is still
 //   enabled, and otherwise moves to the newest history entry. When the
 //   adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
@@ -452,12 +454,12 @@ const findEntry = (id) => library.characters.find(({ sheet }) => sheet.id === id
 function openSheet(id) {
   const entry = findEntry(id);
   if (!entry) return;
-  const { sheet, profile, purse, stowed, carrying } = entry;
+  const { sheet, profile, purse, stowed, carrying, treasure } = entry;
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
   const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
-  element("sheet-body").replaceChildren(summary, styleUseNode(profile.fightingStyle), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...treasureNodes(sheet.treasure), ...purseNodes(sheet.purse, purse), rolls);
+  element("sheet-body").replaceChildren(summary, styleUseNode(profile.fightingStyle), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
@@ -487,7 +489,7 @@ function purseNodes(copper, text) {
 /** One treasure as a list item: its name in bold, then its description. */
 function treasureItem(item) {
   const entry = make("li");
-  entry.append(make("strong", item.name + ". "), document.createTextNode(item.description));
+  entry.append(make("strong", item.name + " (" + item.value + "). "), document.createTextNode(item.description));
   return entry;
 }
 
@@ -1063,7 +1065,8 @@ function renderRoom(room, fighting) {
       item.dataset.id = entry.id;
       if (entry.slot) item.dataset.slot = entry.slot;
       const text = make("p");
-      text.append(make("strong", entry.name), document.createTextNode(" — " + entry.description));
+      // A gem or art object shows its value (#239).
+      text.append(make("strong", entry.name + (entry.value ? " (" + entry.value + ")" : "")), document.createTextNode(" — " + entry.description));
       item.append(text);
       if (entry.discovery) item.append(make("p", "You found: " + entry.discovery, "discovery"));
       // An exit's door and found trap (#132), and what each topic drew from a creature.
@@ -1087,6 +1090,7 @@ function renderRoom(room, fighting) {
         }));
         item.append(wares);
         if (entry.salePrices.length) item.append(make("p", "Pays half price: " + entry.salePrices.map(({ name, price }) => name + " " + price).join(", ") + ".", "trade"));
+        item.append(make("p", "Pays full value for gems and art objects.", "trade"));
       }
       return item;
     }));
@@ -1209,6 +1213,7 @@ const ACTIONS = {
   buy: { label: "Buy ", short: "Buy", busy: "Buying ", busyLabel: "Buying…" },
   sell: { label: "Sell ", short: "Sell", busy: "Selling ", busyLabel: "Selling…" },
   "sell-equipped": { label: "Sell ", short: "Sell", busy: "Selling ", busyLabel: "Selling…" },
+  "sell-treasure": { label: "Sell ", short: "Sell", busy: "Selling ", busyLabel: "Selling…" },
   "second-wind": { label: "Second Wind", busy: "Using Second Wind", busyLabel: "Using Second Wind…" },
   "action-surge": { label: "Action Surge", busy: "Using Action Surge", busyLabel: "Using Action Surge…" },
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
@@ -1229,7 +1234,10 @@ const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
 const GEAR = ["equip", "unequip", "swap", "drop"];
 // The "You carry" slot each verb on the character's gear goes on.
 const EQUIPPED_VERBS = ["unequip", "sell-equipped"];
-const SALES = ["sell", "sell-equipped"];
+const GEAR_SALES = ["sell", "sell-equipped"];
+// Selling a gem or art object (#239): its entry has no slot, as only gear is
+// equipped or stowed.
+const SALES = [...GEAR_SALES, "sell-treasure"];
 const EXPLORING = ["move", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
 
 function renderActions() {
@@ -1277,7 +1285,7 @@ function renderActions() {
     }
     if (group === "carried" || group === "wares") {
       wrap.dataset.target = target.id;
-      if (GEAR.includes(action) || SALES.includes(action)) wrap.dataset.slot = EQUIPPED_VERBS.includes(action) ? "equipped" : "stowed";
+      if (GEAR.includes(action) || GEAR_SALES.includes(action)) wrap.dataset.slot = EQUIPPED_VERBS.includes(action) ? "equipped" : "stowed";
       groups[group].push(wrap);
       return;
     }

@@ -68,6 +68,7 @@ import {
   projectCreation,
   settleFighter,
   type FighterChoices,
+  type TreasureRecord,
 } from "./fighter-5e.js";
 import {
   json,
@@ -143,10 +144,7 @@ function rewardsView(session: FifthSession) {
   const levelUp = levelUpChanges(before, after);
   return {
     xp: settlement.xp.map(({ name, xp }) => ({ name, xp })),
-    treasure: settlement.finds.map(({ name, description }) => ({
-      name,
-      description,
-    })),
+    treasure: settlement.finds.map(treasureView),
     ...(settlement.coin.length === 0
       ? {}
       : {
@@ -161,6 +159,11 @@ function rewardsView(session: FifthSession) {
     level: after.level,
     ...(levelUp === undefined ? {} : { levelUp }),
   };
+}
+
+/** A treasure as the sheet and the ending show it, with its value in coins (#239). */
+function treasureView({ name, description, value }: TreasureRecord) {
+  return { name, description, value: formatCoins(value) };
 }
 
 function sessionView(session: FifthSession) {
@@ -241,6 +244,7 @@ function libraryView(
       purse: formatCoins(sheet.purse),
       carrying: fighterCarrying(sheet),
       stowed: sheet.stowed.map(itemName),
+      treasure: sheet.treasure.map(treasureView),
       ...(session === undefined ? {} : { session }),
       defeated: defeated === true,
     })),
@@ -294,6 +298,7 @@ const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   sell: (itemId) => ({ type: "sell", itemId }),
   // Sent only once the player has confirmed the sale in the panel.
   "sell-equipped": (itemId) => ({ type: "sell", itemId, equipped: true }),
+  "sell-treasure": (itemId) => ({ type: "sell-treasure", itemId }),
 };
 
 export async function startFifthBrowserServer(options: FifthBrowserOptions) {

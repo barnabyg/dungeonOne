@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 15,
+  "formatVersion": 16,
   "id": "tinkers-toll",
   "title": "The Tinker's Toll",
   "objective": "Bandits hold the old toll tower above the ford, and a tinker's cart is stuck on the near bank. Clear the road or take what you can, and get back to the shrine alive.",
@@ -110,6 +110,7 @@
           "name": "Silver Toll Seal",
           "description": "A heavy silver seal stamped with the old toll keeper's mark.",
           "kind": "treasure",
+          "treasure": "art-25gp",
           "hiddenIn": "strongbox"
         },
         {
