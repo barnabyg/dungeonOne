@@ -147,7 +147,7 @@ function withPedlar(change) {
 }
 
 test("a module's creature may be a merchant with authored stock and minutes per trade", () => {
-  assert.equal(marketBarrow.formatVersion, 16);
+  assert.equal(marketBarrow.formatVersion, 17);
   assert.deepEqual(room(marketBarrow, "barrow-mouth").creatures[0].merchant, {
     stock: ["shortsword", "shield", "dagger"],
     minutes: 10,
@@ -158,7 +158,7 @@ test("a module's creature may be a merchant with authored stock and minutes per 
         ...structuredClone(marketFile),
         formatVersion: 7,
       }),
-    /format version 7 is not 16/,
+    /format version 7 is not 17/,
   );
 });
 
@@ -166,7 +166,7 @@ test("a merchant stocks only distinct catalogue gear and takes 1–60 minutes a 
   const cases = [
     [
       (pedlar) => (pedlar.merchant.stock = ["rope"]),
-      /stock 1 must be a catalogue weapon or armour/,
+      /stock 1 must be a catalogue weapon, armour or ammunition/,
     ],
     [(pedlar) => (pedlar.merchant.stock = []), /stock must list 1–12 entries/],
     [(pedlar) => pedlar.merchant.stock.push("dagger"), /stocks dagger twice/],

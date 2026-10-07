@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 16) and its validator.
+ * The 5e adventure module format (format version 17) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -42,14 +42,14 @@ import {
   COIN_VALUES,
   coinsInCopper,
   formatCoins,
-  isItemId,
+  isCatalogueId,
   itemName,
   itemPrice,
   itemTier,
   TREASURE_WEIGHT,
   type Coin,
   type Coins,
-  type ItemId,
+  type CatalogueId,
   type Tier,
 } from "./equipment-5e.js";
 import {
@@ -93,7 +93,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 16;
+export const FIFTH_ADVENTURE_FORMAT = 17;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -146,9 +146,10 @@ export type FifthFeature = Readonly<{
  * What each kind of item does: the SRD 5.2 healing potions heal, a key
  * opens the locked doors that name it, treasure is kept on surviving, coin
  * goes into the purse as it is taken, and gear (a catalogue weapon, armour or
- * shield) is stowed as it is taken, ready to equip. A carried item weighs
- * its kind's `weight` in pounds (#224); coin and gear weigh what the purse
- * and the gear they become weigh.
+ * shield) is stowed as it is taken, ready to equip, or, for a bundle of
+ * arrows or bolts, adds 20 to what the character holds (#230). A carried
+ * item weighs its kind's `weight` in pounds (#224); coin and gear weigh what
+ * the purse, the gear and the ammunition they become weigh.
  */
 export const ITEM_KINDS = {
   ...POTIONS,
@@ -183,8 +184,11 @@ export type FifthItem = Readonly<{
   kind: ItemKind;
   /** How much coin it holds; present exactly on coin. */
   coins?: Coins;
-  /** The catalogue weapon, armour or shield it is; present exactly on gear. */
-  gear?: ItemId;
+  /**
+   * The catalogue weapon, armour, shield or bundle of ammunition it is;
+   * present exactly on gear.
+   */
+  gear?: CatalogueId;
   /** The catalogue gem or art object it is; present exactly on treasure. */
   treasure?: TradeGoodId;
   /** The feature it is hidden in, or the opponent carrying it. */
@@ -210,10 +214,10 @@ export type FifthTopic = Readonly<{
 /**
  * What a merchant sells, any number of each, at catalogue prices, and the
  * minutes each purchase or sale takes. It buys any catalogue gear at half
- * price.
+ * price, and ammunition by the bundle of 20 (#230).
  */
 export type FifthMerchant = Readonly<{
-  stock: readonly ItemId[];
+  stock: readonly CatalogueId[];
   minutes: number;
 }>;
 
@@ -598,9 +602,9 @@ function validateModule(
   const merchant = (value: unknown, where: string): FifthMerchant => {
     const raw = exactKeys(value, ["stock", "minutes"], where);
     const stock = list(raw.stock, `${where} stock`, 12).map((entry, index) => {
-      if (!isItemId(entry)) {
+      if (!isCatalogueId(entry)) {
         fail(
-          `${where} stock ${index + 1} must be a catalogue weapon or armour.`,
+          `${where} stock ${index + 1} must be a catalogue weapon, armour or ammunition.`,
         );
       }
       const tier = itemTier(entry);
@@ -830,9 +834,9 @@ function validateModule(
         if (item.kind !== "coin" && item.coins !== undefined) {
           fail(`${at} has coins, but only coin has coins.`);
         }
-        if (item.kind === "gear" && !isItemId(item.gear)) {
+        if (item.kind === "gear" && !isCatalogueId(item.gear)) {
           fail(
-            `${at} is gear, so it needs gear: a catalogue weapon or armour.`,
+            `${at} is gear, so it needs gear: a catalogue weapon, armour or ammunition.`,
           );
         }
         if (item.kind !== "gear" && item.gear !== undefined) {
@@ -882,7 +886,9 @@ function validateModule(
           ...(item.coins === undefined
             ? {}
             : { coins: coins(item.coins, `${at} coins`) }),
-          ...(item.gear === undefined ? {} : { gear: item.gear as ItemId }),
+          ...(item.gear === undefined
+            ? {}
+            : { gear: item.gear as CatalogueId }),
           ...(item.treasure === undefined
             ? {}
             : { treasure: item.treasure as TradeGoodId }),
@@ -1119,7 +1125,7 @@ function validateModule(
     ],
     ({ id: thingId }) => {
       // Catalogue ids name the character's own gear in its actions.
-      if (isItemId(thingId)) {
+      if (isCatalogueId(thingId)) {
         fail(`id ${thingId} names catalogue gear; choose another.`);
       }
       return thingId;

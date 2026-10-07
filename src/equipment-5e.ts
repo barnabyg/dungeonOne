@@ -10,8 +10,10 @@
  *
  * Positions are not modelled, so masteries that need distance are omitted
  * (Slow), and a Strength requirement's speed penalty is recorded but has no
- * effect. Ranged weapons are deferred, so the dagger's Thrown property is not
- * used.
+ * effect. Ranged weapons (#230) shoot arrows or bolts, counted one by one and
+ * sold and found in bundles of 20; the encounter engine gives them
+ * disadvantage from a fight's second round, when foes have closed. The
+ * dagger's Thrown property stays deferred.
  */
 import type { DamageType } from "./encounter-5e.js";
 
@@ -25,7 +27,13 @@ export type MasteryName = "Graze" | "Nick" | "Sap" | "Slow" | "Vex";
 export type UsedMastery = Exclude<MasteryName, "Slow">;
 
 export type WeaponProperty =
-  "finesse" | "heavy" | "light" | "two-handed" | "versatile";
+  | "ammunition"
+  | "finesse"
+  | "heavy"
+  | "light"
+  | "loading"
+  | "two-handed"
+  | "versatile";
 
 /** The damage types the catalogue's weapons deal. */
 export type WeaponDamageType = Extract<
@@ -48,9 +56,45 @@ export type WeaponData = Readonly<{
   properties: readonly WeaponProperty[];
   mastery: MasteryName;
   tier: Tier;
+  /**
+   * A ranged weapon's ammunition, each shot spending one; present exactly on
+   * ranged weapons, which attack with Dexterity.
+   */
+  ammunition?: AmmunitionId;
 }>;
 
-/** SRD 5.2 melee weapons. Prices in copper: 1 sp = 10 cp, 1 gp = 100 cp. */
+/**
+ * SRD 5.2 ammunition, bought, sold and found in bundles of 20. Price and
+ * weight are a bundle's; a character holds a count of each kind.
+ */
+export const AMMUNITION = {
+  arrows: {
+    name: "Arrows",
+    price: 100,
+    weight: 1,
+    tier: "common",
+  },
+  bolts: {
+    name: "Bolts",
+    price: 100,
+    weight: 1.5,
+    tier: "common",
+  },
+} as const satisfies Record<
+  string,
+  Readonly<{ name: string; price: number; weight: number; tier: Tier }>
+>;
+export type AmmunitionId = keyof typeof AMMUNITION;
+/** How many arrows or bolts a bundle holds (SRD 5.2). */
+export const AMMUNITION_BUNDLE = 20;
+/** The arrows and bolts a character holds, by count. */
+export type Ammunition = Readonly<Record<AmmunitionId, number>>;
+export const NO_AMMUNITION: Ammunition = { arrows: 0, bolts: 0 };
+
+/**
+ * SRD 5.2 melee weapons, then ranged weapons. Prices in copper: 1 sp = 10
+ * cp, 1 gp = 100 cp.
+ */
 export const WEAPONS = {
   club: {
     name: "Club",
@@ -112,6 +156,41 @@ export const WEAPONS = {
     properties: ["heavy", "two-handed"],
     mastery: "Graze",
     tier: "uncommon",
+  },
+  shortbow: {
+    name: "Shortbow",
+    price: 2500,
+    weight: 2,
+    damage: { dice: 1, sides: 6 },
+    damageType: "piercing",
+    properties: ["ammunition", "two-handed"],
+    mastery: "Vex",
+    tier: "common",
+    ammunition: "arrows",
+  },
+  "light-crossbow": {
+    name: "Light crossbow",
+    price: 2500,
+    weight: 5,
+    damage: { dice: 1, sides: 8 },
+    damageType: "piercing",
+    // Loading limits attacks per action; without Extra Attack (levels 1–3)
+    // it changes nothing.
+    properties: ["ammunition", "loading", "two-handed"],
+    mastery: "Slow",
+    tier: "common",
+    ammunition: "bolts",
+  },
+  longbow: {
+    name: "Longbow",
+    price: 5000,
+    weight: 2,
+    damage: { dice: 1, sides: 8 },
+    damageType: "piercing",
+    properties: ["ammunition", "heavy", "two-handed"],
+    mastery: "Slow",
+    tier: "uncommon",
+    ammunition: "arrows",
   },
 } as const satisfies Record<string, WeaponData>;
 export type WeaponId = keyof typeof WEAPONS;
@@ -188,7 +267,10 @@ export const ARMOUR = {
 } as const satisfies Record<string, ArmourData>;
 export type ArmourId = keyof typeof ARMOUR;
 
+/** A weapon, armour or the shield: gear a character equips or stows. */
 export type ItemId = WeaponId | ArmourId;
+/** Anything in the catalogue: gear, or a bundle of ammunition. */
+export type CatalogueId = ItemId | AmmunitionId;
 
 /**
  * SRD 5.2: the minutes body armour takes to don and to doff, by category. A
@@ -215,24 +297,74 @@ export function isArmourId(id: string): id is ArmourId {
   return Object.hasOwn(ARMOUR, id);
 }
 
-/** An item's SRD 5.2 name, such as "Leather armour". */
-export function itemName(id: ItemId): string {
-  return isWeaponId(id) ? WEAPONS[id].name : ARMOUR[id].name;
+/** Whether `id` names a kind of ammunition. */
+export function isAmmunitionId(id: string): id is AmmunitionId {
+  return Object.hasOwn(AMMUNITION, id);
 }
 
-/** An item's price in copper pieces. */
-export function itemPrice(id: ItemId): number {
-  return isWeaponId(id) ? WEAPONS[id].price : ARMOUR[id].price;
+/** Whether `value` names anything in the catalogue, ammunition included. */
+export function isCatalogueId(value: unknown): value is CatalogueId {
+  return (
+    typeof value === "string" && (isItemId(value) || isAmmunitionId(value))
+  );
 }
 
-/** An item's SRD 5.2 weight in pounds. */
-export function itemWeight(id: ItemId): number {
-  return isWeaponId(id) ? WEAPONS[id].weight : ARMOUR[id].weight;
+type CatalogueEntry = Readonly<{
+  name: string;
+  price: number;
+  weight: number;
+  tier: Tier;
+}>;
+const entry = (id: CatalogueId): CatalogueEntry =>
+  isWeaponId(id) ? WEAPONS[id] : isArmourId(id) ? ARMOUR[id] : AMMUNITION[id];
+
+/**
+ * An item's SRD 5.2 name, such as "Leather armour"; a bundle of ammunition
+ * is "Arrows (20)".
+ */
+export function itemName(id: CatalogueId): string {
+  return isAmmunitionId(id)
+    ? `${AMMUNITION[id].name} (${AMMUNITION_BUNDLE})`
+    : entry(id).name;
+}
+
+/** An item's price in copper pieces; a bundle's for ammunition. */
+export function itemPrice(id: CatalogueId): number {
+  return entry(id).price;
+}
+
+/** An item's SRD 5.2 weight in pounds; a bundle's for ammunition. */
+export function itemWeight(id: CatalogueId): number {
+  return entry(id).weight;
 }
 
 /** An item's availability tier. */
-export function itemTier(id: ItemId): Tier {
-  return isWeaponId(id) ? WEAPONS[id].tier : ARMOUR[id].tier;
+export function itemTier(id: CatalogueId): Tier {
+  return entry(id).tier;
+}
+
+/**
+ * How a message names an item after "the": "shortbow", or "bundle of 20
+ * arrows".
+ */
+export function itemNoun(id: CatalogueId): string {
+  return isAmmunitionId(id)
+    ? `bundle of ${AMMUNITION_BUNDLE} ${id}`
+    : itemName(id).toLowerCase();
+}
+
+/** "1 arrow", "20 bolts". */
+export function ammunitionCount(id: AmmunitionId, count: number): string {
+  return `${count} ${count === 1 ? id.slice(0, -1) : id}`;
+}
+
+/** Each kind of ammunition held, with its count, leaving out kinds with none. */
+export function ammunitionHeld(
+  ammunition: Ammunition,
+): readonly Readonly<{ id: AmmunitionId; count: number }>[] {
+  return (Object.keys(AMMUNITION) as AmmunitionId[])
+    .filter((id) => ammunition[id] > 0)
+    .map((id) => ({ id, count: ammunition[id] }));
 }
 
 /** What each mastery does here, and whether it is used. */
@@ -545,8 +677,16 @@ export type AbilityModifiers = Readonly<{
 export type AttackProfile = Readonly<{
   weaponId: WeaponId;
   weapon: string;
-  /** The ability the attack and its damage use: finesse takes the higher. */
+  /**
+   * The ability the attack and its damage use: finesse takes the higher, and
+   * a ranged weapon uses Dexterity.
+   */
   ability: "strength" | "dexterity";
+  /**
+   * A ranged weapon's ammunition: each attack spends one, and from a fight's
+   * second round it has disadvantage (close combat).
+   */
+  ammunition?: AmmunitionId;
   grip: "one-handed" | "two-handed";
   bonus: number;
   damage: Readonly<{
@@ -561,7 +701,10 @@ export type AttackProfile = Readonly<{
    * it acts on this attack (Nick acts only on the extra attack).
    */
   mastery?: UsedMastery;
-  /** Sources of disadvantage on every attack with it: a heavy weapon below Strength 13. */
+  /**
+   * Sources of disadvantage on every attack with it: a heavy melee weapon
+   * below Strength 13, or a heavy ranged weapon below Dexterity 13.
+   */
   disadvantage: readonly string[];
   /**
    * Great Weapon Fighting: a 1 or 2 on a damage die counts as 3. Present only
@@ -594,6 +737,7 @@ export type FightingStyleId =
 export type EquipmentContext = Readonly<{
   modifiers: AbilityModifiers;
   strengthScore: number;
+  dexterityScore: number;
   proficiency: number;
   masteries: readonly WeaponId[];
   /**
@@ -613,8 +757,9 @@ function attackWith(
 ): AttackProfile {
   const weapon: WeaponData = WEAPONS[weaponId];
   const { strength, dexterity } = context.modifiers;
+  const ranged = weapon.ammunition !== undefined;
   const ability =
-    weapon.properties.includes("finesse") && dexterity > strength
+    ranged || (weapon.properties.includes("finesse") && dexterity > strength)
       ? "dexterity"
       : "strength";
   const modifier = context.modifiers[ability];
@@ -626,6 +771,9 @@ function attackWith(
     weaponId,
     weapon: weapon.name,
     ability,
+    ...(weapon.ammunition === undefined
+      ? {}
+      : { ammunition: weapon.ammunition }),
     grip,
     bonus: modifier + context.proficiency,
     damage: {
@@ -646,8 +794,11 @@ function attackWith(
     (weapon.mastery !== "Nick" || extra)
       ? { mastery: weapon.mastery as UsedMastery }
       : {}),
+    // SRD 5.2 Heavy: Strength 13 for a melee weapon, Dexterity 13 for a
+    // ranged one.
     disadvantage:
-      weapon.properties.includes("heavy") && context.strengthScore < 13
+      weapon.properties.includes("heavy") &&
+      (ranged ? context.dexterityScore : context.strengthScore) < 13
         ? ["Heavy"]
         : [],
     ...(context.fightingStyle === "great-weapon-fighting" &&
@@ -662,8 +813,9 @@ function attackWith(
  * base AC plus the Dexterity modifier up to its cap (10 + Dexterity with
  * none), +2 for a shield, +1 for Defense while wearing body armour; the main
  * weapon's attack (finesse uses the higher of Strength and Dexterity, a
- * versatile weapon held in two hands its larger die, a heavy weapon below
- * Strength 13 has disadvantage, and Great Weapon Fighting marks a weapon in
+ * versatile weapon held in two hands its larger die, a ranged weapon uses
+ * Dexterity, a heavy weapon below Strength 13, or a heavy ranged one below
+ * Dexterity 13, has disadvantage, and Great Weapon Fighting marks a weapon in
  * two hands); and the Light extra attack when a second light weapon is held
  * (with its ability modifier under Two-Weapon Fighting). A mastery applies only to a weapon the character has
  * mastered and is holding.
@@ -781,8 +933,12 @@ export function formatCoins(copper: number): string {
   return parts.length === 0 ? "0 cp" : parts.join(" ");
 }
 
-/** What a character holds that it can trade: its gear and its purse, in copper. */
-export type Holding = Gear & Readonly<{ purse: number }>;
+/**
+ * What a character holds that it can trade: its gear, its purse in copper,
+ * and its arrows and bolts (none when absent).
+ */
+export type Holding = Gear &
+  Readonly<{ purse: number; ammunition?: Ammunition }>;
 
 /** SRD 5.2: fifty coins weigh a pound. */
 export const COINS_PER_POUND = 50;
@@ -815,16 +971,33 @@ export function coinCount(copper: number): number {
 export type Load = Holding & Readonly<{ other: number }>;
 
 /**
- * The weight of a load in pounds: its gear, its coin, and the rest. Exact for
- * whole and half pounds and for coin, which is summed as a count, not as
- * fiftieths of a pound.
+ * The units a load is summed in, per pound: a coin weighs 4 (fifty to the
+ * pound), an arrow 10 and a bolt 15 (twenty to a bundle of 1 or 1.5 lb).
+ */
+const UNITS_PER_POUND = 200;
+
+/**
+ * The weight of a load in pounds: its gear, its coin, its ammunition and the
+ * rest. Exact for whole and half pounds, and for coin, arrows and bolts,
+ * which are summed as counts, not as fractions of a pound.
  */
 export function loadWeight(load: Load): number {
   const pounds = [...load.equipment, ...load.stowed].reduce(
     (sum, id) => sum + itemWeight(id),
     load.other,
   );
-  return (pounds * COINS_PER_POUND + coinCount(load.purse)) / COINS_PER_POUND;
+  const ammunition = load.ammunition ?? NO_AMMUNITION;
+  const units =
+    Math.round(pounds * UNITS_PER_POUND) +
+    (coinCount(load.purse) * UNITS_PER_POUND) / COINS_PER_POUND +
+    (Object.keys(AMMUNITION) as AmmunitionId[]).reduce(
+      (sum, id) =>
+        sum +
+        (ammunition[id] * AMMUNITION[id].weight * UNITS_PER_POUND) /
+          AMMUNITION_BUNDLE,
+      0,
+    );
+  return units / UNITS_PER_POUND;
 }
 
 /** The most a character with this Strength score carries, in pounds. */
@@ -862,6 +1035,8 @@ export type TradeRefusalCode =
   | "too-little-coin"
   | "too-heavy"
   | "sale-unconfirmed"
+  /** Ammunition sells by the bundle of 20, and fewer are carried. */
+  | "short-bundle"
   /** Selling equipped gear unequips it first, which may refuse. */
   | GearRefusalCode;
 
@@ -880,36 +1055,63 @@ export type Trade =
     }>;
 
 /** What a merchant pays for an item: half its price, rounded down. */
-export function salePrice(id: ItemId): number {
+export function salePrice(id: CatalogueId): number {
   return Math.floor(itemPrice(id) / 2);
 }
 
+/** `ammunition` with `change` more of `id`. */
+function addAmmunition(
+  ammunition: Ammunition | undefined,
+  id: AmmunitionId,
+  change: number,
+): Ammunition {
+  const held = ammunition ?? NO_AMMUNITION;
+  return { ...held, [id]: held[id] + change };
+}
+
+/** `holding`'s ammunition, as a field to spread, when it has any. */
+const ammunitionField = (holding: Holding) =>
+  holding.ammunition === undefined ? {} : { ammunition: holding.ammunition };
+
 /**
  * Buys an item at its catalogue price: the purse pays, and the item is
- * stowed. Refused with too little coin, or when the character would carry
- * more than its capacity once the coin is paid.
+ * stowed, or a bundle of ammunition adds 20 to the count. Refused with too
+ * little coin, or when the character would carry more than its capacity once
+ * the coin is paid.
  */
-export function buyItem(holding: Holding, id: ItemId, burden: Burden): Trade {
+export function buyItem(
+  holding: Holding,
+  id: CatalogueId,
+  burden: Burden,
+): Trade {
   const price = itemPrice(id);
   if (holding.purse < price) {
     return {
       refusal: {
         code: "too-little-coin",
-        reason: `The ${lower(id)} costs ${formatCoins(price)}, and your purse ${holding.purse === 0 ? "is empty" : `holds only ${formatCoins(holding.purse)}`}.`,
+        reason: `The ${itemNoun(id)} costs ${formatCoins(price)}, and your purse ${holding.purse === 0 ? "is empty" : `holds only ${formatCoins(holding.purse)}`}.`,
       },
     };
   }
-  const bought = {
-    equipment: [...holding.equipment],
-    stowed: [...holding.stowed, id],
-    purse: holding.purse - price,
-  };
+  const bought: Holding = isAmmunitionId(id)
+    ? {
+        equipment: [...holding.equipment],
+        stowed: [...holding.stowed],
+        purse: holding.purse - price,
+        ammunition: addAmmunition(holding.ammunition, id, AMMUNITION_BUNDLE),
+      }
+    : {
+        equipment: [...holding.equipment],
+        stowed: [...holding.stowed, id],
+        purse: holding.purse - price,
+        ...ammunitionField(holding),
+      };
   if (loadWeight({ ...bought, other: burden.other }) > burden.capacity) {
     return {
       refusal: {
         code: "too-heavy",
         reason: tooHeavyReason(
-          `The ${lower(id)}`,
+          `The ${itemNoun(id)}`,
           itemWeight(id),
           loadWeight({ ...holding, other: burden.other }),
           burden.capacity,
@@ -925,19 +1127,46 @@ export function buyItem(holding: Holding, id: ItemId, burden: Burden): Trade {
  * Sells an item for half its price. A stowed copy is sold unless `equipped`
  * confirms selling the one equipped, which is taken off first; selling what
  * is only equipped needs that confirmation. The last weapon held is never
- * sold.
+ * sold. Ammunition sells by the bundle of 20.
  */
 export function sellItem(
   holding: Holding,
-  id: ItemId,
+  id: CatalogueId,
   equipped = false,
 ): Trade {
   const price = salePrice(id);
+  if (isAmmunitionId(id)) {
+    const held = (holding.ammunition ?? NO_AMMUNITION)[id];
+    if (held === 0) {
+      return {
+        refusal: { code: "not-carried", reason: `You don't carry any ${id}.` },
+      };
+    }
+    if (held < AMMUNITION_BUNDLE) {
+      return {
+        refusal: {
+          code: "short-bundle",
+          reason: `You carry only ${ammunitionCount(id, held)}, and a merchant buys them by the ${AMMUNITION_BUNDLE}.`,
+        },
+      };
+    }
+    return {
+      holding: {
+        equipment: [...holding.equipment],
+        stowed: [...holding.stowed],
+        purse: holding.purse + price,
+        ammunition: addAmmunition(holding.ammunition, id, -AMMUNITION_BUNDLE),
+      },
+      price,
+      replaced: [],
+    };
+  }
   const sold = (gear: Gear, replaced: readonly ItemId[]): Trade => ({
     holding: {
       equipment: [...gear.equipment],
       stowed: withoutOne(gear.stowed, id),
       purse: holding.purse + price,
+      ...ammunitionField(holding),
     },
     price,
     replaced: [...replaced],

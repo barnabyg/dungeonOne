@@ -34,7 +34,8 @@
 //   its wares in #creatures and Sell on each "You carry" entry; selling
 //   equipped gear asks first in #sale-confirm, inside that entry. Gems and
 //   art objects (#239) show their value on their entry and sell for it in
-//   full, found here or brought in.
+//   full, found here or brought in. Arrows and bolts (#230) have an entry
+//   each with their count, and sell there by the bundle of 20.
 //   After an action, focus stays on the clicked control if it is still
 //   enabled, and otherwise moves to the newest history entry. When the
 //   adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
@@ -409,10 +410,16 @@ function abilityTable(abilities, profile, caption) {
   return wrap;
 }
 
-/** "+5 to hit, 1d6 + 3 bludgeoning, Sap" for one weapon attack. */
+/**
+ * "+5 to hit, 1d6 + 3 bludgeoning, Sap" for one weapon attack; a ranged one
+ * says what it shoots and when it has disadvantage (#230).
+ */
 function attackText(attack) {
-  return signed(attack.bonus) + " to hit, " + damageText(attack.damage) + " " + attack.damage.type + (attack.mastery ? ", " + attack.mastery : "") + attack.disadvantage.map((source) => ", disadvantage (" + source + ")").join("") + (attack.criticalRange === 19 ? ", critical on 19–20" : "");
+  return signed(attack.bonus) + " to hit, " + damageText(attack.damage) + " " + attack.damage.type + (attack.mastery ? ", " + attack.mastery : "") + (attack.ammunition ? ", ranged (" + attack.ammunition + "; disadvantage from round 2)" : "") + attack.disadvantage.map((source) => ", disadvantage (" + source + ")").join("") + (attack.criticalRange === 19 ? ", critical on 19–20" : "");
 }
+
+/** "17 arrows", "1 bolt". */
+const ammunitionText = ({ id, count }) => count + " " + (count === 1 ? id.slice(0, -1) : id);
 
 function profileNodes(abilities, profile, hp, carrying) {
   const stats = make("ul", undefined, "stats");
@@ -454,10 +461,10 @@ const findEntry = (id) => library.characters.find(({ sheet }) => sheet.id === id
 function openSheet(id) {
   const entry = findEntry(id);
   if (!entry) return;
-  const { sheet, profile, purse, stowed, carrying, treasure } = entry;
+  const { sheet, profile, purse, stowed, ammunition, carrying, treasure } = entry;
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
-  const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : ""), "hint");
+  const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
   element("sheet-body").replaceChildren(summary, styleUseNode(profile.fightingStyle), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
@@ -1037,9 +1044,10 @@ function disclose(name, shown) {
 }
 
 // The character's own gear heads what it carries (#209): what it wears, the
-// weapons in hand, then its stowed gear, each kind once with a count. Each
-// entry's slot says which verbs go on it: Unequip on what is equipped,
-// Wield, Equip and Drop on what is stowed.
+// weapons in hand, then its stowed gear, each kind once with a count, then
+// its arrows and bolts (#230). Each entry's slot says which verbs go on it:
+// Unequip on what is equipped, Wield, Equip and Drop on what is stowed, and
+// Sell on ammunition.
 function gearEntries(gear) {
   const counted = (items, slot, describe) => {
     const counts = new Map();
@@ -1051,6 +1059,7 @@ function gearEntries(gear) {
     ...counted(gear.worn, "equipped", () => "Worn."),
     ...counted(held, "equipped", () => "In hand."),
     ...counted(gear.stowed, "stowed", () => "Carried, not equipped."),
+    ...gear.ammunition.map(({ id, name, count }) => ({ id, slot: "stowed", name: name + " (" + count + ")", description: "Ammunition: each shot spends one." })),
   ];
 }
 
@@ -1106,10 +1115,13 @@ function renderRoom(room, fighting) {
 
 // The character's AC and attacks from its gear as it stands (#209), in the
 // status strip so a swap in a fight shows at once. Stowed gear is listed
-// with what the character carries.
+// with what the character carries. The arrows and bolts held follow (#230),
+// and a ranged weapon's own kind shows even when none are left.
 function renderGear(gear) {
   const worn = gear.worn.map(({ name }) => name.toLowerCase()).join(", ");
-  element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + ".";
+  const shooting = gear.attack.ammunition;
+  const ammunition = [...(shooting && !gear.ammunition.some(({ id }) => id === shooting) ? [{ id: shooting, count: 0 }] : []), ...gear.ammunition];
+  element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (ammunition.length ? "; " + ammunition.map(ammunitionText).join(", ") : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + ".";
 }
 
 const rollText = (roll) => "d20 " + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");

@@ -49,7 +49,7 @@ The most an adventure module's findable treasure (coin, gems, art objects, potio
 _Avoid_: Loot table, Hoard
 
 **Possessions**:
-What a character holds: its equipment, its stowed gear, its treasure and its purse. An adventure starts holding them, and they change only there. Settling a victory or an escape replaces them with what the character holds at the end.
+What a character holds: its equipment, its stowed gear, its ammunition, its treasure and its purse. An adventure starts holding them, and they change only there. Settling a victory or an escape replaces them with what the character holds at the end.
 _Avoid_: Inventory (the items carried in one adventure), Loot
 
 **Equipment**:
@@ -61,8 +61,12 @@ Catalogue weapons, armour and shields a character carries but has not equipped. 
 _Avoid_: Pack, Backpack, Inventory (the module items carried in one adventure)
 
 **Gear**:
-A catalogue weapon, armour or shield. A module places gear as an item hidden in a feature or on an opponent, found once per character like treasure; it is equipment, not loot, so carrying it out is not escaping with loot.
+A catalogue weapon, armour or shield, or a bundle of 20 arrows or bolts. A module places gear as an item hidden in a feature or on an opponent, found once per character like treasure; it is equipment, not loot, so carrying it out is not escaping with loot.
 _Avoid_: Loot, Treasure (which has no catalogue numbers)
+
+**Ammunition**:
+The arrows and bolts a character holds, kept as a count of each. A ranged weapon spends one of its kind with each attack and is refused with none; half of those spent in a fight are recovered when it is won. Bought, sold and found in bundles of 20.
+_Avoid_: Quiver (a found item's name, not the count), Missiles
 
 **Object interaction**:
 The one free interaction a combatant has each turn (SRD 5.2). Drawing, stowing or swapping a weapon in a fight uses it; a second weapon change that turn is refused.

@@ -99,6 +99,10 @@ import {
   type Weapon,
 } from "./encounter-5e.js";
 import {
+  AMMUNITION,
+  AMMUNITION_BUNDLE,
+  ammunitionCount,
+  ammunitionHeld,
   ARMOUR,
   buyItem,
   carryingCapacity,
@@ -110,10 +114,13 @@ import {
   equipItem,
   formatCoins,
   formatWeight,
+  isAmmunitionId,
   isArmourId,
+  isCatalogueId,
   isItemId,
   isWeaponId,
   itemName,
+  itemNoun,
   itemPrice,
   itemWeight,
   loadWeight,
@@ -124,8 +131,11 @@ import {
   TREASURE_WEIGHT,
   unequipItem,
   WEAPONS,
+  type Ammunition,
+  type AmmunitionId,
   type ArmourData,
   type AttackProfile,
+  type CatalogueId,
   type GearRefusalCode,
   type ItemId,
   type TradeRefusalCode,
@@ -418,6 +428,22 @@ export type FifthEvent =
       coin?: number;
       /** Gear, which is stowed as it is taken. */
       stowed?: true;
+      /** A bundle of ammunition: the kind, how many, and how many are held now. */
+      ammunition?: Readonly<{
+        kind: AmmunitionId;
+        count: number;
+        held: number;
+      }>;
+    }>
+  /**
+   * Half the ammunition spent in a fight, rounded down, picked up once it is
+   * won (#230), and how many are held now.
+   */
+  | Readonly<{
+      type: "recovered";
+      kind: AmmunitionId;
+      count: number;
+      held: number;
     }>
   | GearEvent
   | TradeEvent
@@ -494,6 +520,8 @@ export type ShownAttack = Readonly<{
   damage: AttackProfile["damage"];
   grip: AttackProfile["grip"];
   disadvantage: readonly string[];
+  /** A ranged weapon's ammunition. */
+  ammunition?: AmmunitionId;
 }>;
 
 /**
@@ -524,13 +552,15 @@ export type GearEvent = Readonly<{
 export type TradeEvent = Readonly<{
   type: "traded";
   deal: "buy" | "sell";
-  item: ItemId;
+  item: CatalogueId;
   merchant: string;
   /** Copper paid, or received. */
   price: number;
   /** Copper in the purse afterwards. */
   purse: number;
   minutes: number;
+  /** A bundle of ammunition: how many of its kind are held afterwards. */
+  ammunition?: number;
   equipped?: Readonly<{
     doff: number;
     armorClass: number;
@@ -681,6 +711,9 @@ function weaponOf(attack: AttackProfile): Weapon {
     ...(attack.greatWeaponFighting === true
       ? { greatWeaponFighting: true as const }
       : {}),
+    ...(attack.ammunition === undefined
+      ? {}
+      : { ammunition: attack.ammunition }),
   };
 }
 
@@ -728,6 +761,7 @@ export function playerCombatant(
           },
         }),
     ...(potions.length === 0 ? {} : { potions }),
+    ammunition: sheet.ammunition,
   };
 }
 
@@ -815,6 +849,9 @@ function shown(attack: AttackProfile): ShownAttack {
     damage: attack.damage,
     grip: attack.grip,
     disadvantage: attack.disadvantage,
+    ...(attack.ammunition === undefined
+      ? {}
+      : { ammunition: attack.ammunition }),
   };
 }
 
@@ -823,13 +860,19 @@ function minutes(count: number): string {
 }
 
 function tradeText(event: TradeEvent): string {
-  const item = itemName(event.item).toLowerCase();
+  const item = itemNoun(event.item);
   const price = formatCoins(event.price);
   const purse =
     event.purse === 0
       ? "Your purse is empty."
       : `Purse: ${formatCoins(event.purse)}.`;
   const taken = `The trade takes ${minutes(event.minutes)}. ${purse}`;
+  if (isAmmunitionId(event.item)) {
+    const held = `You have ${ammunitionCount(event.item, event.ammunition!)}.`;
+    return event.deal === "buy"
+      ? `You buy the ${item} from ${event.merchant} for ${price}. ${taken} ${held}`
+      : `You sell the ${item} to ${event.merchant} for ${price}. ${taken} ${held}`;
+  }
   if (event.deal === "buy") {
     return `You buy the ${item} from ${event.merchant} for ${price} and stow it. ${taken}`;
   }
@@ -848,10 +891,13 @@ function tradeText(event: TradeEvent): string {
   return `${off} to ${event.merchant} for ${price}. ${taken} AC ${equipped.armorClass}; ${shownAttackText(equipped.attack)}${light}.`;
 }
 
-/** "Longsword +5 to hit, 1d10 + 3 slashing (two-handed)". */
+/**
+ * "Longsword +5 to hit, 1d10 + 3 slashing (two-handed)"; a ranged weapon
+ * adds "(ranged: spends arrows; disadvantage from round 2)".
+ */
 function shownAttackText(attack: ShownAttack): string {
   const { dice, sides, modifier, type } = attack.damage;
-  return `${attack.weapon} ${attack.bonus >= 0 ? "+" : "−"}${Math.abs(attack.bonus)} to hit, ${dice}d${sides}${modifier === 0 ? "" : ` ${signed(modifier)}`} ${type}${attack.grip === "two-handed" ? " (two-handed)" : ""}${attack.disadvantage.length === 0 ? "" : ` (disadvantage: ${attack.disadvantage.join(", ")})`}`;
+  return `${attack.weapon} ${attack.bonus >= 0 ? "+" : "−"}${Math.abs(attack.bonus)} to hit, ${dice}d${sides}${modifier === 0 ? "" : ` ${signed(modifier)}`} ${type}${attack.grip === "two-handed" ? " (two-handed)" : ""}${attack.ammunition === undefined ? "" : ` (ranged: spends ${attack.ammunition}; disadvantage from round 2)`}${attack.disadvantage.length === 0 ? "" : ` (disadvantage: ${attack.disadvantage.join(", ")})`}`;
 }
 
 /** How a damage roll group names the defence that changed it. */
@@ -1010,14 +1056,19 @@ export function renderFifthEvent(
       const target = combatant(state.encounter!, event.targetId);
       const dealt = `${rolledDamage(event.damage, event.damageAdjustment)} ${event.damageType}`;
       const adjusted = adjustedText(event.damage, event.damageAdjustment);
+      // A ranged attack says what its shot left (#230).
+      const left =
+        event.ammunition === undefined
+          ? ""
+          : ` ${ammunitionCount(event.ammunition.kind, event.ammunition.left)} left.`;
       if (!event.hit) {
-        return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. Miss.${event.graze === true ? ` Graze: ${dealt} damage${adjusted}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.` : ""}`;
+        return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. Miss.${event.graze === true ? ` Graze: ${dealt} damage${adjusted}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.` : ""}${left}`;
       }
       const rider =
         event.rider === undefined
           ? ""
           : `, plus ${event.rider.damageRolls.join(" + ")}${event.rider.damageModifier === 0 ? "" : ` ${signed(event.rider.damageModifier)}`} = ${rolledDamage(event.rider.damage, event.rider.damageAdjustment)} ${event.rider.damageType}${adjustedText(event.rider.damage, event.rider.damageAdjustment)}`;
-      return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. ${event.paralysedCritical === true ? `Critical hit: ${target.name} is paralysed!` : event.critical ? "Critical hit!" : "Hit."} Damage ${damageDice(event)} ${signed(event.damageModifier)} = ${dealt}${adjusted}${rider}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.`;
+      return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. ${event.paralysedCritical === true ? `Critical hit: ${target.name} is paralysed!` : event.critical ? "Critical hit!" : "Hit."} Damage ${damageDice(event)} ${signed(event.damageModifier)} = ${dealt}${adjusted}${rider}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.${left}`;
     }
     case "undead-fortitude": {
       const self = combatant(state.encounter!, event.combatantId);
@@ -1077,9 +1128,13 @@ export function renderFifthEvent(
     case "taken":
       return event.coin !== undefined
         ? `You take the ${event.name} and put ${formatCoins(event.coin)} in your purse.`
-        : event.stowed
-          ? `You take the ${event.name} and stow it.`
-          : `You take the ${event.name}.`;
+        : event.ammunition !== undefined
+          ? `You take the ${event.name}: ${ammunitionCount(event.ammunition.kind, event.ammunition.count)}. You have ${ammunitionCount(event.ammunition.kind, event.ammunition.held)}.`
+          : event.stowed
+            ? `You take the ${event.name} and stow it.`
+            : `You take the ${event.name}.`;
+    case "recovered":
+      return `You recover ${ammunitionCount(event.kind, event.count)} from the fight. You have ${ammunitionCount(event.kind, event.held)}.`;
     case "gear":
       return gearText(event);
     case "traded":
@@ -1542,10 +1597,14 @@ export type RoomView = Readonly<{
   creatures: readonly (Named &
     Readonly<{
       topics: readonly Readonly<{ id: string; name: string; said?: string }>[];
-      wares?: readonly Readonly<{ id: ItemId; name: string; price: string }>[];
+      wares?: readonly Readonly<{
+        id: CatalogueId;
+        name: string;
+        price: string;
+      }>[];
       /** What it pays for each kind of gear the character carries. */
       salePrices?: readonly Readonly<{
-        id: ItemId;
+        id: CatalogueId;
         name: string;
         price: string;
       }>[];
@@ -1565,6 +1624,12 @@ export type RoomView = Readonly<{
     worn: readonly Readonly<{ id: string; name: string }>[];
     /** Catalogue gear carried but not equipped. */
     stowed: readonly Readonly<{ id: string; name: string }>[];
+    /** The arrows and bolts carried, each kind held with its count (#230). */
+    ammunition: readonly Readonly<{
+      id: AmmunitionId;
+      name: string;
+      count: number;
+    }>[];
     armorClass: number;
     attack: AttackProfile;
     lightAttack?: AttackProfile;
@@ -1678,6 +1743,9 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "not-stocked": "Not for sale",
   "too-little-coin": "Too little coin",
   "sale-unconfirmed": "Confirm first",
+  "short-bundle": "Fewer than 20",
+  "no-arrows": "No arrows",
+  "no-bolts": "No bolts",
   paralysed: "Paralysed",
   fled: "Fled",
   surrendered: "Surrendered",
@@ -2199,20 +2267,31 @@ export function createFifthRuntime(
       (sum, item) => sum + ITEM_KINDS[item.kind].weight,
       state.possessions.treasure.length * TREASURE_WEIGHT,
     );
+  /**
+   * The arrows and bolts the character holds now: in a fight, what its
+   * combatant has left; the possessions keep what it had when the fight
+   * began until it is over (#230).
+   */
+  const ammunitionOf = (state: FifthState): Ammunition =>
+    (fighting(state)
+      ? combatant(state.encounter!, PLAYER_ID).ammunition
+      : undefined) ?? state.possessions.ammunition;
   /** Everything the character carries now, in pounds (#224). */
   const weightOf = (state: FifthState): number =>
     loadWeight({
       equipment: state.possessions.equipment,
       stowed: state.possessions.stowed,
+      ammunition: ammunitionOf(state),
       purse: state.possessions.purse,
       other: otherWeight(state),
     });
 
-  /** The sheet with the gear the character holds now. */
+  /** The sheet with the gear and ammunition the character holds now. */
   const sheetOf = (state: FifthState): FighterSheet => ({
     ...sheet,
     equipment: state.possessions.equipment,
     stowed: state.possessions.stowed,
+    ammunition: ammunitionOf(state),
   });
   /** Gear the character dropped in this room, one entry per kind of item. */
   const droppedHere = (state: FifthState): readonly Named[] => {
@@ -2281,8 +2360,47 @@ export function createFifthRuntime(
       : [];
 
   /**
+   * The ammunition the character holds once a fight is over: what its
+   * combatant has left and, after a victory, half of what it spent there,
+   * rounded down (#230), with an event for each kind recovered.
+   */
+  const afterFight = (
+    state: FifthState,
+    encounter: EncounterState,
+  ): Readonly<{ ammunition: Ammunition; events: readonly FifthEvent[] }> => {
+    const before = state.possessions.ammunition;
+    const left = combatant(encounter, PLAYER_ID).ammunition ?? before;
+    const recovered = (Object.keys(AMMUNITION) as AmmunitionId[]).flatMap(
+      (kind) => {
+        const count =
+          encounter.outcome === "victory"
+            ? Math.floor((before[kind] - left[kind]) / 2)
+            : 0;
+        return count > 0
+          ? [
+              {
+                type: "recovered" as const,
+                kind,
+                count,
+                held: left[kind] + count,
+              },
+            ]
+          : [];
+      },
+    );
+    return {
+      ammunition: {
+        ...left,
+        ...Object.fromEntries(recovered.map(({ kind, held }) => [kind, held])),
+      },
+      events: recovered,
+    };
+  };
+
+  /**
    * Moves to the fight's new state, copying the character's HP, feature uses
    * and potions out of it, then ends the fight or the adventure if it is over.
+   * Its ammunition is copied out when the fight is over.
    */
   const settle = (
     state: FifthState,
@@ -2308,6 +2426,12 @@ export function createFifthRuntime(
       return { state: next, events };
     }
     const fight = encounterOf(state)!;
+    const spent = afterFight(state, encounter);
+    const over: FifthState = {
+      ...next,
+      possessions: { ...next.possessions, ammunition: spent.ammunition },
+    };
+    const ended = [...events, ...spent.events];
     const endingId =
       encounter.outcome === "victory"
         ? fight.victoryEndingId
@@ -2328,20 +2452,20 @@ export function createFifthRuntime(
     };
     if (endingId === undefined) {
       return {
-        state: { ...next, ...won },
-        events: [...events, { type: "cleared", encounterId: fight.id }],
+        state: { ...over, ...won },
+        events: [...ended, { type: "cleared", encounterId: fight.id }],
       };
     }
     const ending = adventure.endings.find(({ id }) => id === endingId)!;
     return {
       state: {
-        ...next,
+        ...over,
         status: encounter.outcome,
         endingId,
         ...(encounter.outcome === "victory" ? won : {}),
       },
       events: [
-        ...events,
+        ...ended,
         {
           type: "ending",
           endingId,
@@ -3010,6 +3134,29 @@ export function createFifthRuntime(
         if (item === undefined) {
           return reject("no-item", "There is no such item here to take.");
         }
+        if (item.gear !== undefined && isAmmunitionId(item.gear)) {
+          // Found ammunition adds a bundle to the count, found once.
+          const kind = item.gear;
+          const held = state.possessions.ammunition[kind] + AMMUNITION_BUNDLE;
+          return taken(
+            {
+              ...state,
+              possessions: {
+                ...state.possessions,
+                ammunition: { ...state.possessions.ammunition, [kind]: held },
+              },
+              usedItemIds: [...state.usedItemIds, item.id],
+            },
+            `The ${item.name}`,
+            itemWeight(kind),
+            {
+              type: "taken",
+              itemId: item.id,
+              name: item.name,
+              ammunition: { kind, count: AMMUNITION_BUNDLE, held },
+            },
+          );
+        }
         if (item.gear !== undefined) {
           // Found gear is stowed, ready to equip, and found once.
           return taken(
@@ -3190,16 +3337,17 @@ export function createFifthRuntime(
         const id = action.itemId;
         if (
           action.type === "buy" &&
-          !(isItemId(id) && trader.merchant.stock.includes(id))
+          !(isCatalogueId(id) && trader.merchant.stock.includes(id))
         ) {
           return reject("not-stocked", `The ${trader.name} doesn't sell that.`);
         }
-        if (!isItemId(id)) {
+        if (!isCatalogueId(id)) {
           return reject("not-carried", "You don't carry that.");
         }
         const holding = {
           equipment: state.possessions.equipment,
           stowed: state.possessions.stowed,
+          ammunition: state.possessions.ammunition,
           purse: state.possessions.purse,
         };
         const trade =
@@ -3222,7 +3370,10 @@ export function createFifthRuntime(
           price: trade.price,
           purse: trade.holding.purse,
           minutes: trader.merchant.minutes,
-          ...((trade.replaced ?? []).length === 0
+          ...(isAmmunitionId(id)
+            ? { ammunition: next.possessions.ammunition[id] }
+            : {}),
+          ...((trade.replaced ?? []).length === 0 || !isItemId(id)
             ? {}
             : {
                 equipped: {
@@ -3397,13 +3548,17 @@ export function createFifthRuntime(
       if (trader === undefined) {
         return [];
       }
-      const item = (id: ItemId) => ({ id, name: itemName(id) });
+      const item = (id: CatalogueId) => ({ id, name: itemName(id) });
       const { equipment, stowed } = state.possessions;
       return [
         ...trader.merchant.stock.map((id) =>
           view("buy", { type: "buy", itemId: id }, item(id)),
         ),
         ...[...new Set(stowed)].map((id) =>
+          view("sell", { type: "sell", itemId: id }, item(id)),
+        ),
+        // Ammunition sells by the bundle (#230).
+        ...ammunitionHeld(state.possessions.ammunition).map(({ id }) =>
           view("sell", { type: "sell", itemId: id }, item(id)),
         ),
         ...[...new Set(equipment)].map((id) =>
@@ -3568,7 +3723,10 @@ export function createFifthRuntime(
   });
 
   /** A merchant's stock, each with its price. */
-  const priced = (items: readonly ItemId[], price: (id: ItemId) => number) =>
+  const priced = (
+    items: readonly CatalogueId[],
+    price: (id: CatalogueId) => number,
+  ) =>
     items.map((id) => ({
       id,
       name: itemName(id),
@@ -3716,6 +3874,7 @@ export function createFifthRuntime(
       state.encounter === undefined
         ? undefined
         : currentCombatant(state.encounter);
+    const profile = fighterProfile(sheetOf(state));
     return {
       hp: state.character.hp,
       maxHp,
@@ -3738,6 +3897,19 @@ export function createFifthRuntime(
         }),
       ),
       purse: formatCoins(state.possessions.purse),
+      ammunition:
+        listed(
+          ammunitionHeld(ammunitionOf(state)).map(({ id, count }) =>
+            ammunitionCount(id, count),
+          ),
+          "and",
+        ) || "none",
+      attacks: [
+        shownAttackText(shown(profile.attack)),
+        ...(profile.lightAttack === undefined
+          ? []
+          : [`${shownAttackText(shown(profile.lightAttack))} (extra attack)`]),
+      ],
       carrying: `${formatWeight(weightOf(state))} of the ${formatWeight(capacity)} its Strength allows`,
       outcome: state.status,
       resources: featureUses(self(state)),
@@ -3810,6 +3982,9 @@ export function createFifthRuntime(
                     ...state.possessions.equipment,
                     ...state.possessions.stowed,
                   ]),
+                  ...ammunitionHeld(state.possessions.ammunition).map(
+                    ({ id }) => id,
+                  ),
                 ],
                 salePrice,
               ),
@@ -3829,6 +4004,9 @@ export function createFifthRuntime(
             .filter((id) => !isWeaponId(id))
             .map(item),
           stowed: state.possessions.stowed.map(item),
+          ammunition: ammunitionHeld(ammunitionOf(state)).map(
+            ({ id, count }) => ({ id, name: AMMUNITION[id].name, count }),
+          ),
           armorClass: profile.armorClass,
           attack: profile.attack,
           ...(profile.lightAttack === undefined
@@ -3917,7 +4095,7 @@ export function createFifthRuntime(
         type: "function",
         name: "get_character_status",
         description:
-          "Read the character's hit points, equipment, stowed gear, carried items, purse and whether the adventure is won or lost.",
+          "Read the character's hit points, equipment, stowed gear, attacks, ammunition, carried items, purse and whether the adventure is won or lost.",
         strict: true,
         parameters: EMPTY_PARAMETERS,
       },
@@ -4015,13 +4193,13 @@ export function createFifthRuntime(
         "trade",
         "Trade with the merchant here: the engine sets each price, takes or pays the coin, and says how long the trade takes. Offers:",
         [
-          ...choices("buy").map(({ id, name }) => ({
+          ...choices("buy").map(({ id }) => ({
             id: `buy:${id}`,
-            name: `buy the ${name.toLowerCase()} for ${formatCoins(itemPrice(id as ItemId))}`,
+            name: `buy the ${itemNoun(id as CatalogueId)} for ${formatCoins(itemPrice(id as CatalogueId))}`,
           })),
-          ...choices("sell").map(({ id, name }) => ({
+          ...choices("sell").map(({ id }) => ({
             id: `sell:${id}`,
-            name: `sell the ${name.toLowerCase()} for ${formatCoins(salePrice(id as ItemId))}`,
+            name: `sell the ${itemNoun(id as CatalogueId)} for ${formatCoins(salePrice(id as CatalogueId))}`,
           })),
           ...choices("sell-treasure").map(({ id, name }) => ({
             id: `sell-treasure:${id}`,
@@ -4218,7 +4396,7 @@ export function createFifthRuntime(
     rulesVersion: FIFTH_RULES_VERSION,
     promptVersion: FIFTH_PROMPT_VERSION,
     systemPrompt: FIFTH_DM_SYSTEM_PROMPT,
-    toolSchemaVersion: "5e-tools-v7",
+    toolSchemaVersion: "5e-tools-v8",
     readToolNames: ["look", "get_character_status"],
     mutationToolNames: MUTATION_TOOLS,
     adventure,

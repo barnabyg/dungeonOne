@@ -272,6 +272,18 @@ shows your gear after the adventure. Like treasure, gear is kept only on
 getting out alive: what you dropped or left behind is gone, and a defeat or an
 abandoned adventure leaves you with exactly the gear you started with.
 
+### Bows and crossbows
+
+The shortbow, light crossbow and longbow are bought from merchants or found;
+no starting kit has one. They need both hands and attack with Dexterity. Each
+shot spends one arrow or bolt of the kind the weapon needs; with none left,
+**Attack** says "No arrows" or "No bolts" until you wield another weapon.
+There is no map, so a fight's first round is your opening volley; from the
+second round your foes have closed in and ranged attacks have disadvantage.
+Winning a fight recovers half the arrows and bolts you spent in it. Arrows and
+bolts are listed under **You carry** with their count, weigh a pound or a
+pound and a half for 20, and are bought, sold and found 20 at a time.
+
 ### Merchants
 
 Some adventures have a merchant. Outside a fight in its room, its entry under
@@ -313,14 +325,14 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 9.
+- The character library (`characters.json` by default) is format version 10.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 21.
+  `characters-adventures` directory beside the library, in format version 22.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 16. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 17. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 6, or author a one-off stat block inline.
 

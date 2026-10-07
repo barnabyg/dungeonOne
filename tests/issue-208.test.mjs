@@ -162,7 +162,7 @@ test("an older module file is refused with a message naming the file", async () 
     await writeFile(path, bytes);
     await assert.rejects(
       loadFifthAdventure(path),
-      /older-barrow\.json is a 5e adventure module in format version 5, not 16. Move it aside/,
+      /older-barrow\.json is a 5e adventure module in format version 5, not 17. Move it aside/,
     );
     assert.equal(await readFile(path, "utf8"), bytes);
   } finally {

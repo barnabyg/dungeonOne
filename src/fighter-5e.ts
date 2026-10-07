@@ -6,13 +6,14 @@
  * validated sheet. `docs/character-rules.md` records these numbers.
  *
  * A sheet keeps what the character holds (its equipment, stowed gear,
- * treasure and purse) apart from its ledger of what it has earned: each
- * treasure, coin or gear found and each XP award credited, once. Settling a
- * surviving adventure (`settleFighter`) replaces the possessions with what
- * the character holds at the end and adds to the ledger, so a find stays
- * earned after the item is gone.
+ * ammunition, treasure and purse) apart from its ledger of what it has
+ * earned: each treasure, coin or gear found and each XP award credited,
+ * once. Settling a surviving adventure (`settleFighter`) replaces the
+ * possessions with what the character holds at the end and adds to the
+ * ledger, so a find stays earned after the item is gone.
  */
 import {
+  AMMUNITION,
   carryingCapacity,
   equipmentProfile,
   FIGHTER_MASTERY_COUNT,
@@ -29,6 +30,8 @@ import {
   STARTING_KITS,
   TREASURE_WEIGHT,
   WEAPONS,
+  type Ammunition,
+  type AmmunitionId,
   type AttackProfile,
   type EquipmentProfile,
   type FightingStyleId,
@@ -67,7 +70,7 @@ export const FIGHTER_SKILLS = {
 } as const satisfies Record<string, { name: string; ability: Ability }>;
 export type FighterSkill = keyof typeof FIGHTER_SKILLS;
 
-/** SRD 5.2 Fighting Style feats, without Archery: it needs ranged weapons (#225). */
+/** SRD 5.2 Fighting Style feats, without Archery, which #225 adds. */
 export const FIGHTING_STYLES = {
   defense: {
     name: "Defense",
@@ -180,12 +183,17 @@ export type TreasureRecord = Readonly<{
  */
 export type XpAward = Readonly<{ id: string; name: string; xp: number }>;
 
-/** What a character holds: its equipment, its stowed gear, its treasure and its purse. */
+/**
+ * What a character holds: its equipment, its stowed gear, its ammunition, its
+ * treasure and its purse.
+ */
 export type Possessions = Readonly<{
   /** What it has equipped: armour, then the weapon it attacks with, then any second weapon. */
   equipment: readonly ItemId[];
   /** Catalogue gear it carries but has not equipped. */
   stowed: readonly ItemId[];
+  /** The arrows and bolts it carries, by count (#230). */
+  ammunition: Ammunition;
   treasure: readonly TreasureRecord[];
   /** Its coin, in copper. */
   purse: number;
@@ -225,6 +233,8 @@ const AWARD_ID =
 const MAX_EARNED = 1000;
 /** The most one treasure may be worth, in copper: 100,000 gp. */
 const MAX_TREASURE_VALUE = 10_000_000;
+/** The most arrows or bolts of one kind a sheet may hold. */
+const MAX_AMMUNITION = 10_000;
 
 export type FighterSheet = Readonly<{
   id: string;
@@ -246,6 +256,8 @@ export type FighterSheet = Readonly<{
   equipment: readonly ItemId[];
   /** The catalogue gear it carries but has not equipped. */
   stowed: readonly ItemId[];
+  /** The arrows and bolts it carries, by count (#230). */
+  ammunition: Ammunition;
   /** The treasure the character holds. */
   treasure: readonly TreasureRecord[];
   /** The coin the character holds, in copper. */
@@ -271,6 +283,7 @@ const SHEET_KEYS = [
   "weaponMasteries",
   "equipment",
   "stowed",
+  "ammunition",
   "treasure",
   "purse",
   "finds",
@@ -554,6 +567,24 @@ function validateIds(
   return value as string[];
 }
 
+/** A count of each kind of ammunition, and no other key. */
+function validateAmmunition(value: unknown): Ammunition {
+  const kinds = Object.keys(AMMUNITION) as AmmunitionId[];
+  if (
+    !isRecord(value) ||
+    Object.keys(value).sort().join(",") !== [...kinds].sort().join(",") ||
+    !kinds.every(
+      (kind) =>
+        Number.isSafeInteger(value[kind]) &&
+        (value[kind] as number) >= 0 &&
+        (value[kind] as number) <= MAX_AMMUNITION,
+    )
+  ) {
+    throw new Error("Invalid ammunition.");
+  }
+  return value as Ammunition;
+}
+
 function validateName(value: unknown): string {
   if (
     typeof value !== "string" ||
@@ -600,6 +631,7 @@ export function buildFighter(
     weaponMasteries: validateMasteries(choices.masteries),
     equipment: STARTING_KITS[validateKit(choices.kit)].equipment,
     stowed: [],
+    ammunition: { arrows: 0, bolts: 0 },
     treasure: [],
     purse: 0,
     finds: [],
@@ -716,6 +748,7 @@ export function projectCreation(
         dexterity: abilityModifier(score("dexterity")),
       },
       strengthScore: score("strength"),
+      dexterityScore: score("dexterity"),
       proficiency: proficiencyBonus(1),
       masteries,
       fightingStyle: style,
@@ -825,6 +858,7 @@ export function validateFighter(value: unknown): FighterSheet {
   if (!Array.isArray(sheet.stowed) || !sheet.stowed.every(isItemId)) {
     throw new Error("Invalid stowed gear.");
   }
+  validateAmmunition(sheet.ammunition);
   validateTreasure(sheet.treasure);
   if (!Number.isSafeInteger(sheet.purse) || sheet.purse < 0) {
     throw new Error("Invalid purse.");
@@ -912,6 +946,7 @@ export function fighterProfile(
   const gear = equipmentProfile(sheet.equipment, {
     modifiers,
     strengthScore: sheet.abilities.strength,
+    dexterityScore: sheet.abilities.dexterity,
     proficiency,
     masteries: sheet.weaponMasteries,
     fightingStyle: sheet.fightingStyle,
@@ -1022,6 +1057,7 @@ export function possessionsOf(sheet: FighterSheet): Possessions {
   return {
     equipment: sheet.equipment,
     stowed: sheet.stowed,
+    ammunition: sheet.ammunition,
     treasure: sheet.treasure,
     purse: sheet.purse,
   };
@@ -1031,19 +1067,20 @@ export function possessionsOf(sheet: FighterSheet): Possessions {
 export type Carrying = Readonly<{ weight: number; capacity: number }>;
 
 /**
- * What a sheet carries between adventures: its gear, its treasure and its
- * purse, against its Strength score × 15 lb (#224).
+ * What a sheet carries between adventures: its gear, its ammunition, its
+ * treasure and its purse, against its Strength score × 15 lb (#224).
  */
 export function fighterCarrying(
   sheet: Pick<
     FighterSheet,
-    "abilities" | "equipment" | "stowed" | "treasure" | "purse"
+    "abilities" | "equipment" | "stowed" | "ammunition" | "treasure" | "purse"
   >,
 ): Carrying {
   return {
     weight: loadWeight({
       equipment: sheet.equipment,
       stowed: sheet.stowed,
+      ammunition: sheet.ammunition,
       purse: sheet.purse,
       other: sheet.treasure.length * TREASURE_WEIGHT,
     }),
@@ -1077,6 +1114,7 @@ export function settleFighter(
     hp: fighterProfile(raised).maxHp,
     equipment: settlement.possessions.equipment,
     stowed: settlement.possessions.stowed,
+    ammunition: settlement.possessions.ammunition,
     treasure: settlement.possessions.treasure.map(
       ({ id, name, description, value }) => ({ id, name, description, value }),
     ),

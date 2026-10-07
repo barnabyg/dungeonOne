@@ -584,7 +584,7 @@ test("the validator places gear only as a catalogue item, and keeps catalogue id
   };
   assert.throws(
     broken((item) => (item.gear = "halberd")),
-    /room 1 item 1 is gear, so it needs gear: a catalogue weapon or armour\./,
+    /room 1 item 1 is gear, so it needs gear: a catalogue weapon, armour or ammunition\./,
   );
   assert.throws(
     broken((item) => (item.kind = "treasure")),

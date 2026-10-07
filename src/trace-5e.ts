@@ -37,7 +37,7 @@ import {
   type RollRecord,
 } from "./session-5e.js";
 
-export const FIFTH_TRACE_FORMAT = 15;
+export const FIFTH_TRACE_FORMAT = 16;
 const MAX_TRACE_BYTES = 16 * 1024 * 1024;
 const MAX_TURNS = 5000;
 

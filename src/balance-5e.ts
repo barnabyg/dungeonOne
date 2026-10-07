@@ -39,7 +39,9 @@ import {
   isWeaponId,
   KIT_IDS,
   STARTING_KITS,
+  WEAPONS,
   type KitId,
+  type WeaponData,
   type WeaponId,
 } from "./equipment-5e.js";
 import { combatant, countedDamageDie, damageTaken } from "./encounter-5e.js";
@@ -61,16 +63,29 @@ export const KITS = KIT_IDS;
 
 /**
  * A level-`level` Fighter from one creation's dice, placed and chosen as a
- * fresh creation starts but with `kit`, at full health.
+ * fresh creation starts but with `kit`, at full health. An `archer` is
+ * Dexterity-first instead (#230): the rolls placed on Strength and
+ * Dexterity change places, and the +2 goes on Dexterity.
  */
 export function fighterAtLevel(
   dice: RolledDice,
   level: Level,
   kit: KitId = FIGHTER_DEFAULT_CHOICES.kit,
+  archer = false,
 ): FighterSheet {
+  const placement = defaultPlacement(dice);
   const created = buildFighter("0".repeat(32), "Balance", dice, {
     ...FIGHTER_DEFAULT_CHOICES,
-    placement: defaultPlacement(dice),
+    ...(archer
+      ? {
+          placement: {
+            ...placement,
+            strength: placement.dexterity,
+            dexterity: placement.strength,
+          },
+          increase: { dexterity: 2, constitution: 1 },
+        }
+      : { placement }),
     kit,
   });
   const raised = { ...created, level, xp: LEVEL_XP[level] };
@@ -1283,7 +1298,8 @@ export type Attacker = Readonly<{
 /**
  * The ways the gate arms the character rolled with `dice` at `level`: every
  * starting kit, and every weapon in `placed` wielded with the default kit's
- * armour, each with every Fighting Style, the default first.
+ * armour, each with every Fighting Style, the default first. A placed ranged
+ * weapon is wielded by the Dexterity-first build of the same dice (#230).
  */
 export function strongestAttackers(
   dice: RolledDice,
@@ -1297,7 +1313,8 @@ export function strongestAttackers(
     })),
     ...placed.map((gear) => {
       const kit = FIGHTER_DEFAULT_CHOICES.kit;
-      const sheet = fighterAtLevel(dice, level, kit);
+      const ranged = (WEAPONS[gear] as WeaponData).ammunition !== undefined;
+      const sheet = fighterAtLevel(dice, level, kit, ranged);
       return {
         kit,
         gear,

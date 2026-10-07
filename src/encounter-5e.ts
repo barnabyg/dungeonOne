@@ -30,9 +30,13 @@
  *   hit that deals damage with a Vex weapon gives the attacker advantage on
  *   its next attack roll against that target before the end of its next
  *   turn; a miss with a Graze weapon still deals damage equal to the damage
- *   modifier, if above 0. A heavy weapon wielded below Strength 13 attacks
- *   with disadvantage. Advantage and disadvantage come only from such engine
- *   rules, never from an action.
+ *   modifier, if above 0. A heavy weapon wielded below its ability score of
+ *   13 attacks with disadvantage. Advantage and disadvantage come only from
+ *   such engine rules, never from an action.
+ * - Ranged weapons (#230): each attack spends one of the arrows or bolts the
+ *   attacker carries, and is refused with none. Without positions every foe
+ *   closes in, so a ranged attack has disadvantage from the fight's second
+ *   round on (close combat); round 1 is the opening volley.
  * - Great Weapon Fighting: a weapon marked with it counts each 1 or 2 on a
  *   damage die as 3. The event keeps the dice as rolled.
  * - Conditions (`CONDITION_RULES`): a monster attack's rider may deal extra
@@ -76,6 +80,7 @@
  *
  * The state allows any number of combatants per side.
  */
+import type { Ammunition, AmmunitionId } from "./equipment-5e.js";
 import type { Ability } from "./fighter-5e.js";
 import type { RandomSource } from "./random.js";
 
@@ -210,6 +215,11 @@ export type Weapon = Readonly<{
   greatWeaponFighting?: true;
   /** What a hit does besides its damage. */
   rider?: AttackRider;
+  /**
+   * A ranged weapon's ammunition: each attack spends one of the attacker's,
+   * and from the fight's second round it attacks at disadvantage.
+   */
+  ammunition?: AmmunitionId;
 }>;
 
 export type Combatant = DamageDefenses &
@@ -233,6 +243,8 @@ export type Combatant = DamageDefenses &
     actionSurge?: FeatureUses;
     /** Healing potions the combatant carries, which it can drink. */
     potions?: readonly Potion[];
+    /** The arrows and bolts it carries, for a ranged weapon (#230). */
+    ammunition?: Ammunition;
     /** Advantage on its attacks while an ally is alive and able to act. */
     packTactics?: true;
     /** Conditions it cannot be given. */
@@ -437,6 +449,8 @@ export type AttackEvent = Readonly<{
   hpAfter: number;
   /** The Light property's extra attack. */
   light?: true;
+  /** A ranged attack's ammunition: the kind spent, and how many are left. */
+  ammunition?: Readonly<{ kind: AmmunitionId; left: number }>;
   /** A miss that still dealt `damage` through the Graze mastery. */
   graze?: true;
   /** Great Weapon Fighting counted each 1 or 2 in `damageRolls` as 3. */
@@ -583,6 +597,8 @@ export type EncounterRefusalCode =
   | "no-uses-left"
   | "full-hp"
   | "interaction-used"
+  | "no-arrows"
+  | "no-bolts"
   | "paralysed"
   | "fled"
   | "surrendered";
@@ -810,6 +826,21 @@ function lightAttackRefusal(
     : undefined;
 }
 
+/** The name of disadvantage on a ranged attack once foes have closed in. */
+export const CLOSE_COMBAT = "Close combat";
+
+/** Why the combatant's weapon can't shoot: it has no ammunition left. */
+function ammunitionRefusal(actor: Combatant): EncounterRejection | undefined {
+  const kind = actor.attack.ammunition;
+  if (kind === undefined || (actor.ammunition?.[kind] ?? 0) > 0) {
+    return undefined;
+  }
+  return refused(
+    kind === "arrows" ? "no-arrows" : "no-bolts",
+    `You have no ${kind} left for the ${actor.attack.name.toLowerCase()}.`,
+  );
+}
+
 function actionSurgeRefusal(actor: Combatant): EncounterRejection | undefined {
   if (actor.actionSurge === undefined) {
     return refused("no-action-surge", "You don't have Action Surge.");
@@ -858,7 +889,9 @@ export function availableActions(
     return ["end-turn"];
   }
   return [
-    ...(state.economy.actions > 0 ? (["attack"] as const) : []),
+    ...(state.economy.actions > 0 && ammunitionRefusal(actor) === undefined
+      ? (["attack"] as const)
+      : []),
     ...(lightAttackRefusal(state, actor) === undefined
       ? (["light-attack"] as const)
       : []),
@@ -1347,6 +1380,10 @@ function resolveAttack(
     [
       ...(sapped ? ["Sap"] : []),
       ...(weapon.disadvantage ?? []),
+      // Round 1 is the opening volley; then every foe is close (#230).
+      ...(weapon.ammunition !== undefined && state.round >= 2
+        ? [CLOSE_COMBAT]
+        : []),
       ...conditionSources(state, actor.id, "attacks"),
     ],
   );
@@ -1420,6 +1457,14 @@ function resolveAttack(
         })();
   const taken = damage + (rider?.damage ?? 0);
   const hpAfter = Math.max(0, target.hp - taken);
+  // A ranged attack spends one of the attacker's arrows or bolts.
+  const spent =
+    weapon.ammunition === undefined
+      ? undefined
+      : {
+          kind: weapon.ammunition,
+          left: (actor.ammunition?.[weapon.ammunition] ?? 0) - 1,
+        };
   const events: EncounterEvent[] = [
     {
       type: "attack",
@@ -1447,6 +1492,7 @@ function resolveAttack(
       ...(damageAdjustment === undefined ? {} : { damageAdjustment }),
       hpAfter,
       ...(light ? { light: true as const } : {}),
+      ...(spent === undefined ? {} : { ammunition: spent }),
       ...(graze ? { graze: true as const } : {}),
       ...(hit && weapon.greatWeaponFighting === true
         ? { greatWeaponFighting: true as const }
@@ -1491,7 +1537,17 @@ function resolveAttack(
   let next: EncounterState = {
     ...state,
     combatants: state.combatants.map((candidate) =>
-      candidate.id === target.id ? { ...candidate, hp: hpLeft } : candidate,
+      candidate.id === target.id
+        ? { ...candidate, hp: hpLeft }
+        : candidate.id === actor.id && spent !== undefined
+          ? {
+              ...candidate,
+              ammunition: {
+                ...candidate.ammunition!,
+                [spent.kind]: spent.left,
+              },
+            }
+          : candidate,
     ),
     sapped: state.sapped.filter(({ targetId }) => targetId !== actor.id),
     vexed: state.vexed.filter(
@@ -1765,6 +1821,10 @@ export function act(
           "action-used",
           "You have already used your action this turn.",
         );
+      }
+      const empty = ammunitionRefusal(actor);
+      if (empty !== undefined) {
+        return { state, rejection: empty };
       }
       const resolved = resolveAttack(state, actor, target, random);
       events.push(...resolved.events);

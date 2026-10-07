@@ -44,6 +44,8 @@ import {
 import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
 import { passesGate } from "./balance-5e.js";
 import {
+  ammunitionCount,
+  ammunitionHeld,
   FIGHTER_MASTERY_COUNT,
   formatCoins,
   itemName,
@@ -244,6 +246,9 @@ function libraryView(
       purse: formatCoins(sheet.purse),
       carrying: fighterCarrying(sheet),
       stowed: sheet.stowed.map(itemName),
+      ammunition: ammunitionHeld(sheet.ammunition).map(({ id, count }) =>
+        ammunitionCount(id, count),
+      ),
       treasure: sheet.treasure.map(treasureView),
       ...(session === undefined ? {} : { session }),
       defeated: defeated === true,
