@@ -2,8 +2,9 @@
  * The 5e command-line adapter: a testing and regression route, not the
  * player's game (players use the browser).
  *
- * It plays a built-in 5e adventure module (The Abandoned Delve by default)
- * with a fixed level-1 Fighter from a seed. Each turn it lists the action
+ * It plays a built-in 5e adventure module (The Abandoned Delve by default),
+ * or the module file `--adventure-file` names, with a fixed level-1 Fighter
+ * from a seed. Each turn it lists the action
  * bar the browser shows, from the runtime's `projectActions`: every action,
  * numbered, with a disabled one's engine reason. Typing a number takes that
  * action; any other text goes to the AI DM, when there is one:
@@ -15,12 +16,14 @@
  * - live AI: `--ai` with OPENAI_API_KEY, within `--max-calls` provider calls.
  *
  * `--trace` records the run (see trace-5e.ts) after every turn, and
- * `--replay` replays a recorded trace and checks it reproduces exactly.
+ * `--replay` replays a recorded trace and checks it reproduces exactly;
+ * a trace recorded with `--adventure-file` replays with the same file.
  */
 import { randomBytes } from "node:crypto";
 import { createInterface } from "node:readline";
 import {
   loadBuiltInFifthAdventures,
+  loadFifthAdventure,
   type FifthAdventure,
 } from "./adventure-5e.js";
 import { createDmCallBudget, type DmModel } from "./dm-turn.js";
@@ -46,11 +49,12 @@ const DEFAULT_ADVENTURE = "abandoned-delve";
 const DEFAULT_MAX_CALLS = 30;
 
 const USAGE = [
-  "Usage: dungeon-one-5e [--adventure <id>] [--seed <0-4294967295>] [--trace <path>]",
-  "       dungeon-one-5e --ai [--model <model-id>] [--max-calls <count>] [--adventure <id>] [--seed <0-4294967295>] [--trace <path>]",
-  "       dungeon-one-5e --replay <trace.json>",
+  "Usage: dungeon-one-5e [--adventure <id> | --adventure-file <module.json>] [--seed <0-4294967295>] [--trace <path>]",
+  "       dungeon-one-5e --ai [--model <model-id>] [--max-calls <count>] [--adventure <id> | --adventure-file <module.json>] [--seed <0-4294967295>] [--trace <path>]",
+  "       dungeon-one-5e --replay <trace.json> [--adventure-file <module.json>]",
   "       dungeon-one-5e --help",
   `Default adventure: ${DEFAULT_ADVENTURE}. The character is Ada, a fixed level-1 Fighter.`,
+  "--adventure-file plays that module file instead of a built-in adventure; replay a trace recorded with it with the same file.",
   `Live AI needs --ai and OPENAI_API_KEY; it makes at most --max-calls provider calls (default ${DEFAULT_MAX_CALLS}). Default AI model: ${OPENAI_DM_DEFAULT_MODEL}.`,
   "For a scripted AI DM, set DUNGEON_ONE_TEST_DM_SCRIPT to a JSON array of model responses.",
 ].join("\n");
@@ -91,10 +95,12 @@ const LABELS: Readonly<Record<ActionView["action"], string>> = {
 
 type Options = Readonly<
   | { mode: "help" }
-  | { mode: "replay"; path: string }
+  | { mode: "replay"; path: string; adventureFile?: string }
   | {
       mode: "play";
+      /** The built-in adventure, played when there is no adventure file. */
       adventureId: string;
+      adventureFile?: string;
       seed: number;
       tracePath?: string;
       ai?: Readonly<{ model: string; maxCalls: number }>;
@@ -120,6 +126,7 @@ function parseOptions(args: readonly string[]): Options {
       ![
         "--replay",
         "--adventure",
+        "--adventure-file",
         "--seed",
         "--trace",
         "--model",
@@ -135,13 +142,20 @@ function parseOptions(args: readonly string[]): Options {
     values.set(name, value);
   }
   const replay = values.get("--replay");
+  const adventureFile = values.get("--adventure-file");
+  const file = adventureFile === undefined ? {} : { adventureFile };
   if (replay !== undefined) {
-    if (values.size !== 1 || ai) {
+    if (values.size !== 1 + Object.keys(file).length || ai) {
       throw new Error(
-        `--replay cannot be combined with other options.\n${USAGE}`,
+        `--replay can be combined only with --adventure-file.\n${USAGE}`,
       );
     }
-    return { mode: "replay", path: replay };
+    return { mode: "replay", path: replay, ...file };
+  }
+  if (adventureFile !== undefined && values.has("--adventure")) {
+    throw new Error(
+      `Choose --adventure or --adventure-file, not both.\n${USAGE}`,
+    );
   }
   if (!ai && (values.has("--model") || values.has("--max-calls"))) {
     throw new Error(`--model and --max-calls require --ai.\n${USAGE}`);
@@ -169,6 +183,7 @@ function parseOptions(args: readonly string[]): Options {
   return {
     mode: "play",
     adventureId: values.get("--adventure") ?? DEFAULT_ADVENTURE,
+    ...file,
     seed,
     ...(tracePath === undefined ? {} : { tracePath }),
     ...(ai
@@ -312,7 +327,10 @@ async function play(
   options: Extract<Options, { mode: "play" }>,
   adventures: readonly FifthAdventure[],
 ): Promise<void> {
-  const adventure = adventures.find(({ id }) => id === options.adventureId);
+  const adventure =
+    options.adventureFile === undefined
+      ? adventures.find(({ id }) => id === options.adventureId)
+      : adventures[0];
   if (adventure === undefined) {
     throw new Error(
       `There is no adventure ${options.adventureId}. Adventures: ${adventures.map(({ id }) => id).join(", ")}.`,
@@ -449,7 +467,11 @@ async function main(): Promise<void> {
     return;
   }
   try {
-    const adventures = await loadBuiltInFifthAdventures();
+    // An adventure file is the only module: the built-ins are not loaded.
+    const adventures =
+      options.adventureFile === undefined
+        ? await loadBuiltInFifthAdventures()
+        : [await loadFifthAdventure(options.adventureFile)];
     if (options.mode === "replay") {
       const { turns, state } = await verifyFifthTraceFile(
         options.path,
