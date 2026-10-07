@@ -21,6 +21,7 @@ import {
   narratingDm,
   say,
 } from "./fixtures/session-layout.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 /** The page never scrolls sideways. */
 const assertNoSideScroll = async (page, label) =>
@@ -132,20 +133,7 @@ for (const viewport of [
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(5000);
       try {
-        await page.goto(server.url);
-        await page.locator("#open-creation").click();
-        await page
-          .locator("#preview-body")
-          .filter({ hasText: "AC:" })
-          .waitFor();
-        await page.locator("#character-name").fill("Ada");
-        await page.locator("#save-character").click();
-        await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-        await page
-          .getByRole("button", { name: "Start The Abandoned Delve" })
-          .click();
-        await page.locator("#adventure").waitFor({ state: "visible" });
-        await page.locator("#log li").first().waitFor();
+        await createAndStart(page, server.url, "abandoned-delve");
         await assertTogether(page, "start");
 
         for (const [action, target] of TO_THE_FIGHT) {

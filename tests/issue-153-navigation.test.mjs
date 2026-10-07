@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
+import { createFighter, openCreation } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -44,14 +45,6 @@ const shown = async (page, view) => {
 
 const libraryFile = async (path) => JSON.parse(await readFile(path, "utf8"));
 
-async function create(page, name) {
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-  await page.locator("#character-name").fill(name);
-  await page.locator("#save-character").click();
-  await page.locator("#sheet-name").filter({ hasText: name }).waitFor();
-}
-
 for (const viewport of [
   { width: 1280, height: 850 },
   { width: 375, height: 812 },
@@ -87,11 +80,7 @@ for (const viewport of [
         });
 
         // Creation is its own entry, titled, with a Cancel and a breadcrumb.
-        await page.locator("#open-creation").click();
-        await page
-          .locator("#preview-body")
-          .filter({ hasText: "AC:" })
-          .waitFor();
+        await openCreation(page);
         const creation = await shown(page, "creation");
         assert.equal(creation.title, "Create a Fighter · Dungeon One");
         assert.equal(creation.hash, "#create");
@@ -207,7 +196,7 @@ test(
     page.setDefaultTimeout(5000);
     try {
       await page.goto(server.url);
-      await create(page, "Ada");
+      await createFighter(page, "Ada");
       const adaUrl = page.url();
       await page.locator("#delete-character").click();
       await page.locator("#delete-confirm-name").fill("Ada");

@@ -22,6 +22,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { loneGoblin, ratlessTunnels } from "./fixtures/modules.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -76,20 +77,6 @@ function rollOffSeed() {
   throw new Error("no seed with an initiative roll-off");
 }
 
-async function start(page, url, adventureId) {
-  await page.goto(url);
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-  await page.locator("#character-name").fill("Ada");
-  await page.locator("#save-character").click();
-  await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-  await page
-    .locator(`.start-adventure[data-adventure="${adventureId}"]`)
-    .click();
-  await page.locator("#adventure").waitFor({ state: "visible" });
-  await page.locator("#log li").first().waitFor();
-}
-
 /** Clicks the first Attack button, or End turn once the action is spent. */
 async function clickNext(page) {
   const count = await page.locator("#log li").count();
@@ -142,7 +129,7 @@ for (const viewport of [
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(5000);
       try {
-        await start(page, server.url, "lone-goblin");
+        await createAndStart(page, server.url, "lone-goblin");
 
         // In the fight, the room's details are collapsed, and no "None."
         // rows render anywhere.
@@ -281,7 +268,7 @@ test(
     });
     page.setDefaultTimeout(5000);
     try {
-      await start(page, server.url, "quiet-tunnels");
+      await createAndStart(page, server.url, "quiet-tunnels");
       const act = async (name) => {
         const count = await page.locator("#log li").count();
         await page.getByRole("button", { name, exact: true }).click();

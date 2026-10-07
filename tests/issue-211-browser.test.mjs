@@ -11,6 +11,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { launch } from "./fixtures/session-layout.mjs";
+import {
+  openCreation,
+  saveFighter,
+  startAdventure,
+} from "./fixtures/browser-journey.mjs";
 
 /** The handoff's seed: Ada survives the toll taking exactly these steps. */
 const SEED = 0;
@@ -70,25 +75,19 @@ test(
     page.setDefaultTimeout(8000);
     try {
       await page.goto(server.url);
-      await page.locator("#open-creation").click();
-      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
+      await openCreation(page);
       assert.equal(await page.locator("#kit-mace").isChecked(), true);
       // Each kit's numbers for these rolls, before choosing one.
       assert.match(
         await text(page.locator("#kits")),
         /Mace and leather\nLeather armour, Mace \(15 gp\)\. AC 13; Mace \+6 to hit, 1d6 \+ 4 bludgeoning, Sap\.\nTwo daggers and leather\nLeather armour, Dagger, Dagger \(14 gp\)\. AC 13; Dagger \+6 to hit, 1d4 \+ 4 piercing; then Dagger \+6 to hit, 1d4 piercing, Nick as an extra attack\.\nClub, dagger and leather\nLeather armour, Club, Dagger \(12 gp 1 sp\)\. AC 13; Club \+6 to hit, 1d4 \+ 4 bludgeoning; then Dagger \+6 to hit, 1d4 piercing, Nick as an extra attack\./u,
       );
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+      await saveFighter(page);
       assert.match(
         await text(page.locator("#sheet-body")),
         /^Level 1 Fighter · 0 XP \(level 2 at 300\) · Leather armour, Mace\n[\s\S]*HP: 13\/13\nAC: 13\n[\s\S]*Mace: \+6 to hit, 1d6 \+ 4 bludgeoning, Sap/u,
       );
-      await page
-        .locator('.start-adventure[data-adventure="tinkers-toll"]')
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await startAdventure(page, "tinkers-toll");
 
       await click(page, "examine", "offering-bowl");
       assert.match(await newest(page), /The bowl is empty/);
@@ -236,10 +235,7 @@ test(
 
       // Buying and dropping gear, then abandoning, changes nothing.
       const before = record.sheet;
-      await page
-        .locator('.start-adventure[data-adventure="tinkers-toll"]')
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await startAdventure(page, "tinkers-toll");
       await click(page, "move", "tinkers-cart");
       await click(page, "buy", "dagger");
       await click(page, "unequip", "shield");

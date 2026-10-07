@@ -18,6 +18,7 @@ import {
   goblinBand as band,
   loneGoblin as adventure,
 } from "./fixtures/modules.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -146,19 +147,6 @@ const post = (page, path, body) =>
     [path, body],
   );
 
-async function createAndStart(page, url, adventureId = "lone-goblin") {
-  await page.goto(url);
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-  await page.locator("#character-name").fill("Ada");
-  await page.locator("#save-character").click();
-  await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-  await page
-    .locator(`.start-adventure[data-adventure="${adventureId}"]`)
-    .click();
-  await page.locator("#adventure").waitFor({ state: "visible" });
-}
-
 /** What the encounter panel shows: initiative rows, turn and the log. */
 const panel = (page) =>
   page.evaluate(() => ({
@@ -200,7 +188,7 @@ test(
     const page = await browser.newPage();
     page.setDefaultTimeout(5000);
     try {
-      await createAndStart(page, server.url);
+      await createAndStart(page, server.url, "lone-goblin");
       const library = JSON.parse(await readFile(libraryPath, "utf8"));
       assert.deepEqual(
         library.characters[0].sheet.abilities,
@@ -301,7 +289,7 @@ test(
     });
     page.setDefaultTimeout(5000);
     try {
-      await createAndStart(page, server.url);
+      await createAndStart(page, server.url, "lone-goblin");
       assert.ok(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -398,7 +386,7 @@ test(
     const page = await browser.newPage();
     page.setDefaultTimeout(5000);
     try {
-      await createAndStart(page, server.url);
+      await createAndStart(page, server.url, "lone-goblin");
       const before = await sessionFile(directory);
       const bytes = JSON.stringify(before);
       const attempt = (body) =>
@@ -474,7 +462,7 @@ test(
     const page = await browser.newPage();
     page.setDefaultTimeout(5000);
     try {
-      await createAndStart(page, server.url);
+      await createAndStart(page, server.url, "lone-goblin");
       // #161: the composer is off up front, with a notice for the player.
       assert.equal(await page.locator("#message").isDisabled(), true);
       await page
@@ -520,7 +508,7 @@ test(
     const page = await browser.newPage();
     page.setDefaultTimeout(5000);
     try {
-      await createAndStart(page, server.url);
+      await createAndStart(page, server.url, "lone-goblin");
       const file = await sessionFile(directory);
       const turn = await post(page, "/api/5e/session/message", {
         sessionId: file.id,
@@ -835,7 +823,7 @@ test(
     const feature = (action) =>
       page.locator(`#feature-controls button[data-action="${action}"]:enabled`);
     try {
-      await createAndStart(page, server.url);
+      await createAndStart(page, server.url, "lone-goblin");
       // At full health there is no Second Wind to click, and the API refuses
       // it (and Action Surge, before level 2) without dice or a save.
       assert.equal(await feature("second-wind").count(), 0);

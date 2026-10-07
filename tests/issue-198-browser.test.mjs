@@ -23,6 +23,7 @@ import {
   launch,
   narratingDm,
 } from "./fixtures/session-layout.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 // The sealed crypt made into a loot run: its stair is a way out, treasure
 // and coins wait in the bowl, the strongbox and on the warden, and beating
@@ -187,20 +188,7 @@ for (const viewport of [
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(5000);
       try {
-        await page.goto(server.url);
-        await page.locator("#open-creation").click();
-        await page
-          .locator("#preview-body")
-          .filter({ hasText: "AC:" })
-          .waitFor();
-        await page.locator("#character-name").fill("Ada");
-        await page.locator("#save-character").click();
-        await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-        await page
-          .getByRole("button", { name: "Start The Looted Crypt" })
-          .click();
-        await page.locator("#adventure").waitFor({ state: "visible" });
-        await page.locator("#log li").first().waitFor();
+        await createAndStart(page, server.url, lootedCrypt.id);
         await assertTogether(page, "start");
 
         for (const [action, target] of LOOT_RUN) {

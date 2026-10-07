@@ -10,6 +10,12 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { loneGoblin, ratlessTunnels } from "./fixtures/modules.mjs";
+import {
+  createFighter,
+  openCreation,
+  saveFighter,
+  startAdventure,
+} from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -214,14 +220,6 @@ async function check(page, screen) {
   assert.deepEqual(result.crowded, [], `${screen}: at most one primary button`);
 }
 
-async function create(page, name) {
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-  await page.locator("#character-name").fill(name);
-  await page.locator("#save-character").click();
-  await page.locator("#sheet-name").filter({ hasText: name }).waitFor();
-}
-
 /** Attacks, or ends the turn once the action is spent, until the fight ends. */
 async function fightToTheEnd(page) {
   while (!(await page.locator("#ending").isVisible())) {
@@ -261,15 +259,9 @@ for (const viewport of [
         await page.locator("#no-characters").waitFor();
         await check(page, "empty library");
 
-        await page.locator("#open-creation").click();
-        await page
-          .locator("#preview-body")
-          .filter({ hasText: "AC:" })
-          .waitFor();
+        await openCreation(page);
         await check(page, "creation");
-        await page.locator("#character-name").fill("Ada");
-        await page.locator("#save-character").click();
-        await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+        await saveFighter(page);
         await check(page, "sheet");
 
         // A heading focused by script shows no ring; a keyboard-focused
@@ -310,10 +302,7 @@ for (const viewport of [
         await check(page, "delete dialog");
         await page.locator("#cancel-delete").click();
 
-        await page
-          .locator('.start-adventure[data-adventure="quiet-tunnels"]')
-          .click();
-        await page.locator("#adventure").waitFor({ state: "visible" });
+        await startAdventure(page, "quiet-tunnels");
         await page.locator("#action-bar button.explore").first().waitFor();
         await check(page, "room");
         await page.locator('#breadcrumb a[data-view="sheet"]').click();
@@ -323,10 +312,8 @@ for (const viewport of [
         await page.locator("#characters button").first().waitFor();
         await check(page, "library");
 
-        await create(page, "Bea");
-        await page
-          .locator('.start-adventure[data-adventure="lone-goblin"]')
-          .click();
+        await createFighter(page, "Bea");
+        await startAdventure(page, "lone-goblin");
         await page.locator("#encounter").waitFor({ state: "visible" });
         await check(page, "fight");
         await fightToTheEnd(page);

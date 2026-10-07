@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { launch } from "./fixtures/session-layout.mjs";
 import { skeletonBarracks } from "./fixtures/renamed-skeletons.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 test(
   "a renamed bestiary monster fights under the module's name",
@@ -27,16 +28,7 @@ test(
     });
     page.setDefaultTimeout(8000);
     try {
-      await page.goto(server.url);
-      await page.locator("#open-creation").click();
-      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-      await page
-        .locator('.start-adventure[data-adventure="skeleton-barracks"]')
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await createAndStart(page, server.url, "skeleton-barracks");
       // The fight starts as Ada arrives.
       await page.locator("#initiative-rows tr").first().waitFor();
       await page.locator("#log li:not([data-pending])").first().waitFor();

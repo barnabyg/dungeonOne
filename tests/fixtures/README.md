@@ -69,6 +69,13 @@ through `quiet-launcher.mjs`, which stops it opening a desktop browser window.
 journeys use to check that the newest history entry and the action buttons
 are on screen together (#154).
 
+`browser-journey.mjs` holds the steps most browser tests take before the
+part they check: `openCreation`, `saveFighter` (Ada by default),
+`createFighter` (both), `startAdventure` (by module id, waiting for the
+first history entry) and `createAndStart` (open the page, create Ada,
+start). Tests that check one of these steps closely, such as creation's
+busy states, keep their own clicks.
+
 ## Bestiary (issue 231)
 
 `bestiary.mjs` loads the built-in bestiary and binds the adventure validator to

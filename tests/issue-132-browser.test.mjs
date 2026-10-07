@@ -19,6 +19,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { sealedCrypt } from "./fixtures/modules.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -183,16 +184,7 @@ async function play(seed, check) {
   const page = await browser.newPage({ viewport: { width: 360, height: 740 } });
   page.setDefaultTimeout(5000);
   try {
-    await page.goto(server.url);
-    await page.locator("#open-creation").click();
-    await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-    await page.locator("#character-name").fill("Ada");
-    await page.locator("#save-character").click();
-    await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-    await page
-      .locator('.start-adventure[data-adventure="sealed-crypt"]')
-      .click();
-    await page.locator("#adventure").waitFor({ state: "visible" });
+    await createAndStart(page, server.url, "sealed-crypt");
 
     let shown = await screen(page);
     assert.match(shown.actions, /Go to Flooded Cell Door shut/);

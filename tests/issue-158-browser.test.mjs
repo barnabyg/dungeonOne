@@ -20,6 +20,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -80,17 +81,6 @@ function seedFor(wanted) {
     }
   }
   throw new Error(`no lone goblin seed ending in ${wanted}`);
-}
-
-async function createAndStart(page, url) {
-  await page.goto(url);
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-  await page.locator("#character-name").fill("Ada");
-  await page.locator("#save-character").click();
-  await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-  await page.locator('.start-adventure[data-adventure="lone-goblin"]').click();
-  await page.locator("#adventure").waitFor({ state: "visible" });
 }
 
 /** Attacks, or ends the turn once the action is spent, until the ending. */
@@ -219,7 +209,7 @@ for (const viewport of [
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(5000);
       try {
-        await createAndStart(page, server.url);
+        await createAndStart(page, server.url, "lone-goblin");
         await playToTheEnd(page);
 
         const shown = await ending(page);
@@ -327,7 +317,7 @@ test(
     });
     page.setDefaultTimeout(5000);
     try {
-      await createAndStart(page, server.url);
+      await createAndStart(page, server.url, "lone-goblin");
       await playToTheEnd(page);
 
       const shown = await ending(page);

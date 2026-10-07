@@ -18,6 +18,7 @@ import {
   firstFighter,
   launch,
 } from "./fixtures/session-layout.mjs";
+import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 /** A browser seed on which the first Ada wins the burial hall's fight. */
 function winningSeed() {
@@ -119,16 +120,9 @@ async function journey(seed, finish) {
   page.setDefaultTimeout(5000);
   try {
     await page.goto(server.url);
-    await page.locator("#open-creation").click();
-    await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-    await page.locator("#character-name").fill("Ada");
-    await page.locator("#save-character").click();
-    await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
+    await createFighter(page);
     const start = (await ada(libraryPath)).sheet;
-    await page
-      .locator('.start-adventure[data-adventure="lintel-barrow"]')
-      .click();
-    await page.locator("#adventure").waitFor({ state: "visible" });
+    await startAdventure(page, "lintel-barrow");
     assert.match(
       await page.locator('#creatures li[data-id="pedlar"]').innerText(),
       /Pays full value for gems and art objects\./,

@@ -14,6 +14,7 @@ import {
   loneGoblin,
   sealedCrypt,
 } from "./fixtures/modules.mjs";
+import { createFighter } from "./fixtures/browser-journey.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -86,15 +87,6 @@ async function withServer(work, options = {}) {
   }
 }
 
-async function create(page, url, name) {
-  await page.goto(url);
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-  await page.locator("#character-name").fill(name);
-  await page.locator("#save-character").click();
-  await page.locator("#sheet-name").filter({ hasText: name }).waitFor();
-}
-
 /** Whether the whole element is inside the viewport without scrolling. */
 const inView = (locator) =>
   locator.evaluate((node) => {
@@ -127,7 +119,8 @@ test(
         viewport: { width: 1280, height: 850 },
       });
       page.setDefaultTimeout(5000);
-      await create(page, server.url, "Ada");
+      await page.goto(server.url);
+      await createFighter(page);
 
       const cards = await page.evaluate(() =>
         [...document.querySelectorAll(".adventure-choice")].map((card) => ({
@@ -205,7 +198,8 @@ test(
         viewport: { width: 375, height: 812 },
       });
       page.setDefaultTimeout(5000);
-      await create(page, server.url, "Ada");
+      await page.goto(server.url);
+      await createFighter(page);
       // Stand in for a lost fight: the library records the defeat.
       const data = JSON.parse(await readFile(libraryPath, "utf8"));
       data.characters[0].defeated = true;
@@ -241,7 +235,8 @@ test(
           viewport: { width: 1280, height: 850 },
         });
         page.setDefaultTimeout(5000);
-        await create(page, server.url, "Ada");
+        await page.goto(server.url);
+        await createFighter(page);
         const starts = await page
           .locator(".start-adventure")
           .evaluateAll((buttons) =>

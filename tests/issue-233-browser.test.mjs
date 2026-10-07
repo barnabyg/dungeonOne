@@ -13,6 +13,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sealedCrypt } from "./fixtures/modules.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 const crypt = sealedCrypt;
 const ROUTE = ["hall", "tomb"];
@@ -107,16 +108,7 @@ test(
     });
     page.setDefaultTimeout(8000);
     try {
-      await page.goto(server.url);
-      await page.locator("#open-creation").click();
-      await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-      await page.locator("#character-name").fill("Ada");
-      await page.locator("#save-character").click();
-      await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-      await page
-        .locator('.start-adventure[data-adventure="sealed-crypt"]')
-        .click();
-      await page.locator("#adventure").waitFor({ state: "visible" });
+      await createAndStart(page, server.url, "sealed-crypt");
       for (const destination of ROUTE) {
         await click(
           page,

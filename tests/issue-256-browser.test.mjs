@@ -15,21 +15,14 @@ import {
   layout,
   narratingDm,
 } from "./fixtures/session-layout.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 const CARRIED_EXAMINE =
   '#inventory button[data-action="examine"][data-target="healing-potion"]';
 
 /** Ada starts the rat tunnels and picks up the healing potion. */
 async function carryPotion(page, url) {
-  await page.goto(url);
-  await page.locator("#open-creation").click();
-  await page.locator("#preview-body").filter({ hasText: "AC:" }).waitFor();
-  await page.locator("#character-name").fill("Ada");
-  await page.locator("#save-character").click();
-  await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
-  await page.locator('.start-adventure[data-adventure="rat-tunnels"]').click();
-  await page.locator("#adventure").waitFor({ state: "visible" });
-  await page.locator("#log li").first().waitFor();
+  await createAndStart(page, url, "rat-tunnels");
   await explore(page, "move", "alcove");
   await explore(page, "examine", "iron-chest");
   await explore(page, "take", "healing-potion");
