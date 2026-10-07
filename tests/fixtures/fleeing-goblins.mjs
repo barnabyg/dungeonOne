@@ -1,19 +1,14 @@
-// The Robbers' Barrow with three Goblin Minions in the burial hall, each
+// The lintel barrow with three Goblin Minions in the burial hall, each
 // carrying its own pouch of coin, for the morale tests (#237): a goblin that
 // flees takes its pouch with it.
-import { readFile } from "node:fs/promises";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { sessionSeed } from "../../dist/session-5e.js";
 import { validateModule } from "./bestiary.mjs";
+import { moduleFile } from "./modules.mjs";
 import { firstFighter } from "./session-layout.mjs";
 
-const barrow = JSON.parse(
-  await readFile(
-    new URL("../../adventures/5e/robbers-barrow.json", import.meta.url),
-    "utf8",
-  ),
-);
+const barrow = moduleFile("lintel-barrow");
 
 export const GOBLINS = ["goblin-1", "goblin-2", "goblin-3"];
 

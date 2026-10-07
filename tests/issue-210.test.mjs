@@ -516,7 +516,7 @@ test("a surviving ending keeps what was bought and the change; found coin spent 
   assert.equal(settlement.possessions.purse, 250);
   const after = settleFighter(ada, settlement);
   assert.equal(after.purse, 250);
-  assert.ok(after.finds.includes("robbers-barrow/coin-pouch"));
+  assert.ok(after.finds.includes("lintel-barrow/coin-pouch"));
 
   // On a later visit the goblin's body holds nothing; the purse is as kept.
   const again = createFifthRuntime(marketBarrow, after);

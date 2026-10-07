@@ -74,7 +74,7 @@ test(
       assert.deepEqual(start.equipment, ["leather", "mace"]);
 
       await page
-        .locator('.start-adventure[data-adventure="robbers-barrow"]')
+        .locator('.start-adventure[data-adventure="lintel-barrow"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
       const before = fighterProfile(start);
@@ -173,7 +173,7 @@ test(
         .characters[0];
       assert.deepEqual(sheet.equipment, ["leather", "longsword"]);
       assert.deepEqual(sheet.stowed, []);
-      assert.deepEqual(sheet.finds, ["robbers-barrow/lintel-longsword"]);
+      assert.deepEqual(sheet.finds, ["lintel-barrow/lintel-longsword"]);
     } finally {
       await browser.close();
       await server.close();

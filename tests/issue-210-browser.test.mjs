@@ -111,7 +111,7 @@ test(
       await page.locator("#save-character").click();
       await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
       await page
-        .locator('.start-adventure[data-adventure="robbers-barrow"]')
+        .locator('.start-adventure[data-adventure="lintel-barrow"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
 
@@ -221,7 +221,7 @@ test(
       // Buying again, then abandoning, leaves the sheet exactly as it was.
       const before = record.sheet;
       await page
-        .locator('.start-adventure[data-adventure="robbers-barrow"]')
+        .locator('.start-adventure[data-adventure="lintel-barrow"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
       await click(page, "buy", "dagger");
@@ -234,7 +234,7 @@ test(
       await page.locator("#confirm-abandon").click();
       await page
         .locator("#feedback")
-        .filter({ hasText: "Ada abandoned The Robbers' Barrow." })
+        .filter({ hasText: "Ada abandoned The Lintel Barrow." })
         .waitFor();
       record = await ada(libraryPath);
       assert.equal(record.session, undefined);

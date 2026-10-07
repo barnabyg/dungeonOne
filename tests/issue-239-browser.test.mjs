@@ -126,7 +126,7 @@ async function journey(seed, finish) {
     await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
     const start = (await ada(libraryPath)).sheet;
     await page
-      .locator('.start-adventure[data-adventure="robbers-barrow"]')
+      .locator('.start-adventure[data-adventure="lintel-barrow"]')
       .click();
     await page.locator("#adventure").waitFor({ state: "visible" });
     assert.match(
@@ -184,7 +184,7 @@ test(
       assert.equal(record.sheet.purse, 4000);
       assert.deepEqual(record.sheet.treasure, []);
       // Sold, but found: the ledger keeps the find.
-      assert.ok(record.sheet.finds.includes("robbers-barrow/blue-opal"));
+      assert.ok(record.sheet.finds.includes("lintel-barrow/blue-opal"));
 
       await page.locator("#ending-next").click();
       await page.locator("#sheet").waitFor({ state: "visible" });

@@ -5,10 +5,6 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import {
-  FIFTH_ADVENTURE_FILES,
-  loadBuiltInFifthAdventures,
-} from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
@@ -19,6 +15,7 @@ import {
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import { lintelBarrow as barrow } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -27,10 +24,6 @@ const launch = () =>
       ? { channel: "msedge", headless: true }
       : { headless: true },
   );
-
-const barrow = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "robbers-barrow",
-);
 
 /** The first Fighter a browser on `seed` creates with the default choices. */
 function firstFighter(seed) {
@@ -153,7 +146,11 @@ test(
     const seed = findSeed();
     const directory = await mkdtemp(join(tmpdir(), "rewards-5e-browser-"));
     const libraryPath = join(directory, "characters.json");
-    const server = await startFifthBrowserServer({ libraryPath, seed });
+    const server = await startFifthBrowserServer({
+      libraryPath,
+      seed,
+      adventures: [barrow],
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 375, height: 760 },
@@ -175,7 +172,7 @@ test(
         /Purse\n+No coin yet\./,
       );
       await page
-        .locator('.start-adventure[data-adventure="robbers-barrow"]')
+        .locator('.start-adventure[data-adventure="lintel-barrow"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
 
@@ -185,7 +182,7 @@ test(
       await leaveButton.click();
       assert.match(
         await page.locator("#leave-question").textContent(),
-        /^Leave The Robbers' Barrow\? This ends the adventure here/,
+        /^Leave The Lintel Barrow\? This ends the adventure here/,
       );
       assert.equal(await leaveButton.isVisible(), false);
       await page.locator("#cancel-leave").click();
@@ -303,8 +300,8 @@ test(
       );
       assert.equal(record.sheet.purse, 250);
       assert.deepEqual(record.sheet.finds, [
-        "robbers-barrow/silver-torc",
-        "robbers-barrow/coin-pouch",
+        "lintel-barrow/silver-torc",
+        "lintel-barrow/coin-pouch",
       ]);
 
       await page.locator("#ending-next").click();
@@ -316,7 +313,7 @@ test(
 
       // The same adventure again: no torc or coin to find, and nothing earned.
       await page
-        .locator('.start-adventure[data-adventure="robbers-barrow"]')
+        .locator('.start-adventure[data-adventure="lintel-barrow"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
       await explore(page, "move", "burial-hall");
@@ -351,7 +348,7 @@ test(
       const before = record.sheet;
       await page.locator("#ending-next").click();
       await page
-        .locator('.start-adventure[data-adventure="robbers-barrow"]')
+        .locator('.start-adventure[data-adventure="lintel-barrow"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
       await explore(page, "examine", "scratched-lintel");
@@ -360,17 +357,17 @@ test(
       assert.equal(await focusedId(page), "confirm-abandon");
       assert.match(
         await page.locator("#abandon-question").textContent(),
-        /^Abandon The Robbers' Barrow\? Ada keeps nothing found on it/,
+        /^Abandon The Lintel Barrow\? Ada keeps nothing found on it/,
       );
       await page.locator("#confirm-abandon").click();
       await page
         .locator("#feedback")
-        .filter({ hasText: "Ada abandoned The Robbers' Barrow." })
+        .filter({ hasText: "Ada abandoned The Lintel Barrow." })
         .waitFor();
       assert.equal(
         await page.locator(".start-adventure").count(),
-        Object.keys(FIFTH_ADVENTURE_FILES).length,
-        "Ada can start an adventure again",
+        1,
+        "Ada can start the barrow again",
       );
       record = await ada(libraryPath);
       assert.equal(record.session, undefined);
