@@ -181,7 +181,7 @@ One creature in an encounter, with its own hit points, armour class, attack and 
 _Avoid_: Monster (for the player character), Unit
 
 **Monster**:
-A kind of creature characters fight, defined once in the bestiary by its stat block (SRD 5.2, or a house block derived from one) and a default description. An opponent is a monster placed in an encounter, under the monster's name or one the module gives it ("Tall Skeleton"); whether it is a boss belongs to the opponent, not the monster.
+A kind of creature characters fight, defined once in the bestiary by its stat block (SRD 5.2, or a house block derived from one), a default description and its level band, the character levels it suits. An opponent is a monster placed in an encounter, under the monster's name or one the module gives it ("Tall Skeleton"); whether it is a boss belongs to the opponent, not the monster.
 _Avoid_: Enemy (an opponent, in a fight), Creature (one the character can talk to)
 
 **Bestiary**:
@@ -197,7 +197,7 @@ What a hit with a monster's attack does besides its damage: extra damage of its 
 _Avoid_: On-hit effect, Proc
 
 **Trait**:
-A rule a monster's stat block carries beyond its attacks, such as Pack Tactics (advantage on its attacks while an ally is alive and able to act) or Undead Fortitude (a Zombie's Constitution save to stay at 1 HP instead of falling).
+A rule a monster's stat block carries beyond its attacks, such as Pack Tactics (advantage on its attacks while an ally is alive and able to act) or Undead Fortitude (a Zombie's Constitution save to stay at 1 HP instead of falling). Multiattack, the several attacks some monsters make each turn, is an action, not a trait.
 _Avoid_: Ability (an ability score), Feature (the character's)
 
 **Damage type**:

@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 12) and its validator.
+ * The 5e adventure module format (format version 13) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -30,7 +30,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
 import type { CheckSpec } from "./checks-5e.js";
-import type { DamageDefenses, DamageType } from "./encounter-5e.js";
+import type { Combatant, DamageDefenses, DamageType } from "./encounter-5e.js";
 import {
   COIN_VALUES,
   isItemId,
@@ -65,12 +65,13 @@ import {
   loadBuiltInFifthBestiary,
   statBlock,
   type FifthBestiary,
+  type MonsterTrait,
   type StatBlock,
 } from "./bestiary-5e.js";
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 12;
+export const FIFTH_ADVENTURE_FORMAT = 13;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -1157,6 +1158,40 @@ export function statBlockDefenses(
       ? {}
       : { immunities: block.damageImmunities }),
   };
+}
+
+/** The combatant flag through which the encounter engine applies each trait. */
+export const TRAIT_FLAGS = {
+  "Pack Tactics": "packTactics",
+  "Undead Fortitude": "undeadFortitude",
+  "Nimble Escape": "nimbleEscape",
+  Rampage: "rampage",
+} as const satisfies Record<MonsterTrait, keyof Combatant>;
+
+type TraitFlag = (typeof TRAIT_FLAGS)[MonsterTrait];
+
+const simulated = (trait: string): trait is MonsterTrait =>
+  Object.hasOwn(TRAIT_FLAGS, trait);
+
+/**
+ * The traits on `block` that the encounter engine does not apply. A
+ * validated stat block has none; the balance harness refuses one that does.
+ */
+export function unsimulatedTraits(
+  block: Pick<StatBlock, "traits">,
+): readonly string[] {
+  return (block.traits ?? []).filter((trait) => !simulated(trait));
+}
+
+/** A monster's traits as the flags its combatant carries into a fight. */
+export function statBlockTraits(
+  block: Pick<StatBlock, "traits">,
+): Partial<Record<TraitFlag, true>> {
+  return Object.fromEntries(
+    (block.traits ?? [])
+      .filter(simulated)
+      .map((trait) => [TRAIT_FLAGS[trait], true]),
+  );
 }
 
 /**

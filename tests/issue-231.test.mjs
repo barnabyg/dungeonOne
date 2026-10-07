@@ -36,7 +36,7 @@ const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the bestiary holds the nine shipped monsters and the Giant Rat (#232)", () => {
+test("the bestiary holds the shipped monsters, the Giant Rat (#232) and the #235 additions", () => {
   assert.equal(bestiary.formatVersion, FIFTH_BESTIARY_FORMAT);
   assert.deepEqual(
     bestiary.monsters.map(({ id, statBlock }) => [id, statBlock.name]),
@@ -51,6 +51,11 @@ test("the bestiary holds the nine shipped monsters and the Giant Rat (#232)", ()
       ["wolf", "Wolf"],
       ["bandit", "Bandit"],
       ["giant-rat", "Giant Rat"],
+      ["kobold", "Kobold"],
+      ["hobgoblin-warrior", "Hobgoblin Warrior"],
+      ["bugbear-warrior", "Bugbear Warrior"],
+      ["gnoll", "Gnoll Ravager"],
+      ["ogre", "Ogre"],
     ],
   );
 });
@@ -200,7 +205,7 @@ test("a bestiary in another format version is refused by name and left unchanged
     await assert.rejects(loadFifthBestiary(path), (error) => {
       assert.match(
         error.message,
-        /old-bestiary\.json is a 5e bestiary in format version 0, not 4\. Move it aside; the file has not been changed\./,
+        /old-bestiary\.json is a 5e bestiary in format version 0, not 5\. Move it aside; the file has not been changed\./,
       );
       return true;
     });

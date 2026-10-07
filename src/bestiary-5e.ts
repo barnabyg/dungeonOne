@@ -1,9 +1,11 @@
 /**
- * The 5e bestiary (format version 4): the shared monsters adventure modules
+ * The 5e bestiary (format version 5): the shared monsters adventure modules
  * fight, each an SRD 5.2 stat block (or a house one derived from it) under an
- * id. A module's opponent names a bestiary monster by id, or authors a
- * one-off stat block inline. A stat block may list traits (Pack Tactics,
- * Undead Fortitude), saving throw proficiencies, damage resistances,
+ * id, with the character levels it suits. A module's opponent names a
+ * bestiary monster by id, or authors a one-off stat block inline. A stat
+ * block may list traits (Pack Tactics, Undead Fortitude, Nimble Escape,
+ * Rampage), make several attacks a turn (Multiattack), list saving throw
+ * proficiencies, damage resistances,
  * vulnerabilities and immunities (SRD 5.2 damage types) and condition
  * immunities, and give an attack a rider: extra damage on a hit and a
  * condition, after a saving throw if it names one. Later tickets extend the
@@ -36,10 +38,15 @@ import {
   fail,
 } from "./json-shape.js";
 
-export const FIFTH_BESTIARY_FORMAT = 4;
+export const FIFTH_BESTIARY_FORMAT = 5;
 
 /** The monster traits the engine applies. */
-export const MONSTER_TRAITS = ["Pack Tactics", "Undead Fortitude"] as const;
+export const MONSTER_TRAITS = [
+  "Pack Tactics",
+  "Undead Fortitude",
+  "Nimble Escape",
+  "Rampage",
+] as const;
 export type MonsterTrait = (typeof MONSTER_TRAITS)[number];
 
 const CONDITION_KINDS: readonly ConditionKind[] = [
@@ -76,6 +83,11 @@ export type StatBlock = Readonly<{
   xp: number;
   /** Melee attacks only: ranged weapons are deferred. */
   attacks: readonly StatBlockAttack[];
+  /**
+   * Multiattack: the attacks it makes each turn, each one of `attacks`
+   * chosen by a die. Without it, it makes one attack, its first.
+   */
+  multiattack?: number;
   traits?: readonly MonsterTrait[];
   /** The abilities it adds its proficiency bonus to when it saves. */
   saveProficiencies?: readonly Ability[];
@@ -90,11 +102,12 @@ export type StatBlock = Readonly<{
 /**
  * A bestiary monster. An opponent that names it is called by its stat
  * block's name and described by its description, unless the module gives
- * its own.
+ * its own. Its level band is the character levels it is meant for.
  */
 export type FifthMonster = Readonly<{
   id: string;
   description: string;
+  levelBand: Readonly<{ min: number; max: number }>;
   statBlock: StatBlock;
 }>;
 
@@ -245,6 +258,7 @@ export function statBlock(value: unknown, where: string): StatBlock {
       "attacks",
     ],
     [
+      "multiattack",
       "traits",
       "saveProficiencies",
       "damageResistances",
@@ -345,6 +359,11 @@ export function statBlock(value: unknown, where: string): StatBlock {
     challengeRating: block.challengeRating,
     xp: integer(block.xp, `${where} xp`, 0, 155000),
     attacks,
+    ...(block.multiattack === undefined
+      ? {}
+      : {
+          multiattack: integer(block.multiattack, `${where} multiattack`, 2, 4),
+        }),
     ...(traits === undefined ? {} : { traits }),
     ...(saveProficiencies === undefined ? {} : { saveProficiencies }),
     ...Object.fromEntries(
@@ -373,12 +392,20 @@ function validateBestiary(value: unknown): FifthBestiary {
       const where = `monster ${index + 1}`;
       const monster = exactKeys(
         entry,
-        ["id", "description", "statBlock"],
+        ["id", "description", "levelBand", "statBlock"],
         where,
       );
+      const band = exactKeys(
+        monster.levelBand,
+        ["min", "max"],
+        `${where} levelBand`,
+      );
+      const min = integer(band.min, `${where} levelBand min`, 1, 20);
+      const max = integer(band.max, `${where} levelBand max`, min, 20);
       return {
         id: id(monster.id, `${where} id`),
         description: text(monster.description, `${where} description`),
+        levelBand: { min, max },
         statBlock: statBlock(monster.statBlock, `${where} statBlock`),
       };
     },

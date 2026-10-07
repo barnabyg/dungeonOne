@@ -133,5 +133,5 @@ test("the turn view counts the actions this turn: two after Action Surge (#155)"
 });
 
 test("adventure saves are in format version 16 (#155, #132, #133, #206, #207, #208, #209, #144, #210, #224, #232, #233)", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 17);
+  assert.equal(FIFTH_SESSION_FORMAT, 18);
 });

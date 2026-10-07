@@ -1,0 +1,166 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 13,
+  "id": "bestiary-lairs",
+  "title": "The Bestiary Lairs",
+  "objective": "Clear any one lair off the crossroads.",
+  "recommendedLevels": {
+    "min": 1,
+    "max": 3
+  },
+  "difficulty": "hard",
+  "startRoomId": "crossroads",
+  "rooms": [
+    {
+      "id": "crossroads",
+      "name": "Crossroads",
+      "description": "Five tunnels lead off a muddy crossroads.",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "kobold-warren",
+      "name": "Kobold Warren",
+      "description": "Low tunnels reek of smoke. Two kobolds hiss and raise their spikes.",
+      "encounterId": "kobold-warren-fight",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "hobgoblin-post",
+      "name": "Hobgoblin Post",
+      "description": "A neat guard post with a swept floor. A hobgoblin stands to attention.",
+      "encounterId": "hobgoblin-post-fight",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "bugbear-den",
+      "name": "Bugbear Den",
+      "description": "Bones and furs litter a cramped den. Something large shifts in the dark.",
+      "encounterId": "bugbear-den-fight",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "gnoll-pit",
+      "name": "Gnoll Pit",
+      "description": "A pit of gnawed bones. A gnoll looks up and laughs.",
+      "encounterId": "gnoll-pit-fight",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "ogre-cave",
+      "name": "Ogre Cave",
+      "description": "A cave that stinks of old meat. An ogre heaves itself upright.",
+      "encounterId": "ogre-cave-fight",
+      "features": [],
+      "items": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "to-kobold-warren",
+      "between": ["crossroads", "kobold-warren"],
+      "description": "A dark tunnel off the crossroads."
+    },
+    {
+      "id": "to-hobgoblin-post",
+      "between": ["crossroads", "hobgoblin-post"],
+      "description": "A dark tunnel off the crossroads."
+    },
+    {
+      "id": "to-bugbear-den",
+      "between": ["crossroads", "bugbear-den"],
+      "description": "A dark tunnel off the crossroads."
+    },
+    {
+      "id": "to-gnoll-pit",
+      "between": ["crossroads", "gnoll-pit"],
+      "description": "A dark tunnel off the crossroads."
+    },
+    {
+      "id": "to-ogre-cave",
+      "between": ["crossroads", "ogre-cave"],
+      "description": "A dark tunnel off the crossroads."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "kobold-warren-fight",
+      "opponents": [
+        {
+          "id": "kobold-1",
+          "monster": "kobold",
+          "name": "Kobold 1"
+        },
+        {
+          "id": "kobold-2",
+          "monster": "kobold",
+          "name": "Kobold 2"
+        }
+      ],
+      "victoryEndingId": "lair-cleared",
+      "defeatEndingId": "fallen"
+    },
+    {
+      "id": "hobgoblin-post-fight",
+      "opponents": [
+        {
+          "id": "hobgoblin",
+          "monster": "hobgoblin-warrior"
+        }
+      ],
+      "victoryEndingId": "lair-cleared",
+      "defeatEndingId": "fallen"
+    },
+    {
+      "id": "bugbear-den-fight",
+      "opponents": [
+        {
+          "id": "bugbear",
+          "monster": "bugbear-warrior"
+        }
+      ],
+      "victoryEndingId": "lair-cleared",
+      "defeatEndingId": "fallen"
+    },
+    {
+      "id": "gnoll-pit-fight",
+      "opponents": [
+        {
+          "id": "gnoll",
+          "monster": "gnoll"
+        }
+      ],
+      "victoryEndingId": "lair-cleared",
+      "defeatEndingId": "fallen"
+    },
+    {
+      "id": "ogre-cave-fight",
+      "opponents": [
+        {
+          "id": "ogre",
+          "monster": "ogre"
+        }
+      ],
+      "victoryEndingId": "lair-cleared",
+      "defeatEndingId": "fallen"
+    }
+  ],
+  "endings": [
+    {
+      "id": "lair-cleared",
+      "kind": "victory",
+      "title": "The lair is clear",
+      "text": "The last of them falls, and the tunnel is quiet."
+    },
+    {
+      "id": "fallen",
+      "kind": "defeat",
+      "title": "Fallen in the dark",
+      "text": "You fall in the lair. Your adventuring ends here."
+    }
+  ]
+}

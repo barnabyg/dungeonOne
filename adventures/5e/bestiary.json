@@ -1,10 +1,14 @@
 {
   "kind": "dungeon-one-5e-bestiary",
-  "formatVersion": 4,
+  "formatVersion": 5,
   "monsters": [
     {
       "id": "zombie",
       "description": "A shambling corpse, jaw hanging, that will not stay down.",
+      "levelBand": {
+        "min": 1,
+        "max": 2
+      },
       "statBlock": {
         "name": "Zombie",
         "size": "Medium",
@@ -45,6 +49,10 @@
     {
       "id": "skeleton",
       "description": "A skeleton in rusted mail, raising a shortsword.",
+      "levelBand": {
+        "min": 1,
+        "max": 2
+      },
       "statBlock": {
         "name": "Skeleton",
         "size": "Medium",
@@ -84,6 +92,10 @@
     {
       "id": "giant-spider",
       "description": "A spider the size of a pony, fangs glistening.",
+      "levelBand": {
+        "min": 3,
+        "max": 4
+      },
       "statBlock": {
         "name": "Giant Spider",
         "size": "Large",
@@ -137,6 +149,10 @@
     {
       "id": "ghoul",
       "description": "A grey-skinned corpse-eater with long, filthy claws.",
+      "levelBand": {
+        "min": 2,
+        "max": 3
+      },
       "statBlock": {
         "name": "Ghoul",
         "size": "Medium",
@@ -195,6 +211,10 @@
     {
       "id": "goblin-minion",
       "description": "A scrawny goblin with a dagger, braver in a crowd.",
+      "levelBand": {
+        "min": 1,
+        "max": 1
+      },
       "statBlock": {
         "name": "Goblin Minion",
         "size": "Small",
@@ -225,12 +245,17 @@
               "type": "piercing"
             }
           }
-        ]
+        ],
+        "traits": ["Nimble Escape"]
       }
     },
     {
       "id": "goblin-warrior",
       "description": "A wiry goblin in scraps of leather, scimitar drawn.",
+      "levelBand": {
+        "min": 1,
+        "max": 2
+      },
       "statBlock": {
         "name": "Goblin Warrior",
         "size": "Small",
@@ -261,12 +286,17 @@
               "type": "slashing"
             }
           }
-        ]
+        ],
+        "traits": ["Nimble Escape"]
       }
     },
     {
       "id": "goblin-boss",
       "description": "A scarred goblin in a battered helm, used to being obeyed.",
+      "levelBand": {
+        "min": 2,
+        "max": 3
+      },
       "statBlock": {
         "name": "Goblin Boss",
         "size": "Small",
@@ -297,12 +327,17 @@
               "type": "slashing"
             }
           }
-        ]
+        ],
+        "traits": ["Nimble Escape"]
       }
     },
     {
       "id": "wolf",
       "description": "A lean grey wolf, hackles up, circling.",
+      "levelBand": {
+        "min": 2,
+        "max": 3
+      },
       "statBlock": {
         "name": "Wolf",
         "size": "Medium",
@@ -349,6 +384,10 @@
     {
       "id": "bandit",
       "description": "A desperate outlaw with a scimitar and nothing to lose.",
+      "levelBand": {
+        "min": 1,
+        "max": 2
+      },
       "statBlock": {
         "name": "Bandit",
         "size": "Medium",
@@ -385,6 +424,10 @@
     {
       "id": "giant-rat",
       "description": "A rat the size of a dog, yellow teeth bared, never far from the rest of its pack.",
+      "levelBand": {
+        "min": 1,
+        "max": 1
+      },
       "statBlock": {
         "name": "Giant Rat",
         "size": "Small",
@@ -417,6 +460,220 @@
           }
         ],
         "traits": ["Pack Tactics"]
+      }
+    },
+    {
+      "id": "kobold",
+      "description": "A small, scaly creature with a yellow-eyed grin and a sharpened iron spike.",
+      "levelBand": {
+        "min": 1,
+        "max": 1
+      },
+      "statBlock": {
+        "name": "Kobold",
+        "size": "Small",
+        "type": "Dragon",
+        "armorClass": 13,
+        "hitPoints": {
+          "average": 5,
+          "formula": "2d6 - 2"
+        },
+        "abilities": {
+          "strength": 7,
+          "dexterity": 15,
+          "constitution": 9,
+          "intelligence": 8,
+          "wisdom": 7,
+          "charisma": 8
+        },
+        "challengeRating": "1/8",
+        "xp": 25,
+        "attacks": [
+          {
+            "name": "Spike",
+            "bonus": 4,
+            "damage": {
+              "dice": 1,
+              "sides": 4,
+              "modifier": 2,
+              "type": "piercing"
+            }
+          }
+        ],
+        "traits": ["Nimble Escape", "Pack Tactics"]
+      }
+    },
+    {
+      "id": "hobgoblin-warrior",
+      "description": "A disciplined hobgoblin in half plate, longsword held in both hands.",
+      "levelBand": {
+        "min": 2,
+        "max": 3
+      },
+      "statBlock": {
+        "name": "Hobgoblin Warrior",
+        "size": "Medium",
+        "type": "Fey (Goblinoid)",
+        "armorClass": 18,
+        "hitPoints": {
+          "average": 11,
+          "formula": "2d8 + 2"
+        },
+        "abilities": {
+          "strength": 13,
+          "dexterity": 12,
+          "constitution": 12,
+          "intelligence": 10,
+          "wisdom": 10,
+          "charisma": 9
+        },
+        "challengeRating": "1/2",
+        "xp": 100,
+        "attacks": [
+          {
+            "name": "Longsword",
+            "bonus": 3,
+            "damage": {
+              "dice": 2,
+              "sides": 10,
+              "modifier": 1,
+              "type": "slashing"
+            }
+          }
+        ],
+        "traits": ["Pack Tactics"]
+      }
+    },
+    {
+      "id": "bugbear-warrior",
+      "description": "A hulking, hairy bugbear swinging a light hammer on a long arm.",
+      "levelBand": {
+        "min": 2,
+        "max": 3
+      },
+      "statBlock": {
+        "name": "Bugbear Warrior",
+        "size": "Medium",
+        "type": "Fey (Goblinoid)",
+        "armorClass": 14,
+        "hitPoints": {
+          "average": 33,
+          "formula": "6d8 + 6"
+        },
+        "abilities": {
+          "strength": 15,
+          "dexterity": 14,
+          "constitution": 13,
+          "intelligence": 8,
+          "wisdom": 11,
+          "charisma": 9
+        },
+        "challengeRating": "1",
+        "xp": 200,
+        "attacks": [
+          {
+            "name": "Light Hammer",
+            "bonus": 4,
+            "damage": {
+              "dice": 3,
+              "sides": 4,
+              "modifier": 2,
+              "type": "bludgeoning"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "gnoll",
+      "description": "A hyena-headed raider, snarling, with a spear and bloodied jaws.",
+      "levelBand": {
+        "min": 3,
+        "max": 4
+      },
+      "statBlock": {
+        "name": "Gnoll Ravager",
+        "size": "Medium",
+        "type": "Fiend",
+        "armorClass": 14,
+        "hitPoints": {
+          "average": 27,
+          "formula": "6d8"
+        },
+        "abilities": {
+          "strength": 14,
+          "dexterity": 12,
+          "constitution": 11,
+          "intelligence": 6,
+          "wisdom": 10,
+          "charisma": 7
+        },
+        "challengeRating": "1",
+        "xp": 200,
+        "attacks": [
+          {
+            "name": "Spear",
+            "bonus": 4,
+            "damage": {
+              "dice": 1,
+              "sides": 6,
+              "modifier": 2,
+              "type": "piercing"
+            }
+          },
+          {
+            "name": "Bite",
+            "bonus": 4,
+            "damage": {
+              "dice": 1,
+              "sides": 4,
+              "modifier": 2,
+              "type": "piercing"
+            }
+          }
+        ],
+        "multiattack": 2,
+        "traits": ["Rampage"]
+      }
+    },
+    {
+      "id": "ogre",
+      "description": "A huge, dull-eyed brute dragging a greatclub studded with nails.",
+      "levelBand": {
+        "min": 4,
+        "max": 5
+      },
+      "statBlock": {
+        "name": "Ogre",
+        "size": "Large",
+        "type": "Giant",
+        "armorClass": 11,
+        "hitPoints": {
+          "average": 68,
+          "formula": "8d10 + 24"
+        },
+        "abilities": {
+          "strength": 19,
+          "dexterity": 8,
+          "constitution": 16,
+          "intelligence": 5,
+          "wisdom": 7,
+          "charisma": 7
+        },
+        "challengeRating": "2",
+        "xp": 450,
+        "attacks": [
+          {
+            "name": "Greatclub",
+            "bonus": 6,
+            "damage": {
+              "dice": 2,
+              "sides": 8,
+              "modifier": 4,
+              "type": "bludgeoning"
+            }
+          }
+        ]
       }
     }
   ]
