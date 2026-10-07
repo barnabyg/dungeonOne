@@ -44,7 +44,10 @@
  *   gives disadvantage on its own attacks and advantage to attacks against
  *   it. Without positions every attacker is within 5 feet, and a prone
  *   combatant spends its next turn getting up: it stays prone until that
- *   turn ends. Every condition ends when the fight does.
+ *   turn ends. Paralysed (#234): it can't act (it can only end its turn) or
+ *   react, automatically fails Strength and Dexterity saves, attacks against
+ *   it have advantage, and every hit on it is a critical hit. Every condition
+ *   ends when the fight does.
  * - Pack Tactics: a combatant with it has advantage on its attacks while an
  *   ally on its side is alive and able to act.
  *
@@ -97,7 +100,7 @@ export type DamageAdjustment = Readonly<{
 }>;
 
 /** The conditions the engine applies. */
-export type ConditionKind = "poisoned" | "prone";
+export type ConditionKind = "poisoned" | "prone" | "paralysed";
 
 /** What each condition does to its combatant's rolls and to attacks on it. */
 export const CONDITION_RULES: Readonly<
@@ -111,6 +114,12 @@ export const CONDITION_RULES: Readonly<
       attacked?: "advantage";
       /** Its ability checks; no check is rolled in a fight yet. */
       checks?: "disadvantage";
+      /** It can't take actions, bonus actions or reactions. */
+      incapacitated?: true;
+      /** The saving throws it fails without a roll. */
+      failsSaves?: readonly Ability[];
+      /** Every hit on it is a critical hit: every attacker is within 5 feet. */
+      criticalHits?: true;
     }>
   >
 > = {
@@ -120,6 +129,13 @@ export const CONDITION_RULES: Readonly<
     checks: "disadvantage",
   },
   prone: { name: "Prone", attacks: "disadvantage", attacked: "advantage" },
+  paralysed: {
+    name: "Paralysed",
+    attacked: "advantage",
+    incapacitated: true,
+    failsSaves: ["strength", "dexterity"],
+    criticalHits: true,
+  },
 };
 
 /** A saving throw: the ability and its DC. */
@@ -356,6 +372,8 @@ export type AttackEvent = Readonly<{
   graze?: true;
   /** Great Weapon Fighting counted each 1 or 2 in `damageRolls` as 3. */
   greatWeaponFighting?: true;
+  /** A hit that is critical only because the target is paralysed. */
+  paralysedCritical?: true;
   /** A hit's extra damage from the attack's rider, also taken by `hpAfter`. */
   rider?: Readonly<{
     damageRolls: readonly number[];
@@ -383,20 +401,27 @@ export type FortitudeEvent = Readonly<{
   hpAfter: number;
 }>;
 
-/** A saving throw against a condition, on a hit or at the end of a turn. */
-export type SaveEvent = Readonly<{
-  type: "save";
-  combatantId: string;
-  ability: Ability;
-  d20: number;
-  bonus: number;
-  total: number;
-  dc: number;
-  success: boolean;
-  condition: ConditionKind;
-  /** A repeat save at the end of the combatant's turn. */
-  repeat: boolean;
-}>;
+/**
+ * A saving throw against a condition, on a hit or at the end of a turn. A
+ * condition such as paralysed fails some saves without a roll: `autoFail`
+ * names it, and no die is drawn.
+ */
+export type SaveEvent = Readonly<
+  {
+    type: "save";
+    combatantId: string;
+    ability: Ability;
+    bonus: number;
+    dc: number;
+    success: boolean;
+    condition: ConditionKind;
+    /** A repeat save at the end of the combatant's turn. */
+    repeat: boolean;
+  } & (
+    | { d20: number; total: number; autoFail?: never }
+    | { autoFail: ConditionKind; d20?: never; total?: never }
+  )
+>;
 
 export type EncounterEvent =
   | Readonly<{ type: "initiative"; order: readonly InitiativeRoll[] }>
@@ -472,7 +497,8 @@ export type EncounterRefusalCode =
   | "no-potion"
   | "no-uses-left"
   | "full-hp"
-  | "interaction-used";
+  | "interaction-used"
+  | "paralysed";
 
 export type EncounterRejection = Readonly<{
   code: EncounterRefusalCode;
@@ -661,6 +687,32 @@ function actionSurgeRefusal(actor: Combatant): EncounterRejection | undefined {
     : undefined;
 }
 
+type ConditionRule = (typeof CONDITION_RULES)[ConditionKind];
+
+/** The kind of the first condition on `entrantId` whose rule passes `test`. */
+function conditionWhere(
+  state: EncounterState,
+  entrantId: string,
+  test: (rule: ConditionRule) => boolean,
+): ConditionKind | undefined {
+  return state.conditions.find(
+    ({ targetId, kind }) =>
+      targetId === entrantId && test(CONDITION_RULES[kind]),
+  )?.kind;
+}
+
+/** The condition on `entrantId`, such as paralysed, that stops it acting. */
+export function incapacitatedBy(
+  state: EncounterState,
+  entrantId: string,
+): ConditionKind | undefined {
+  return conditionWhere(
+    state,
+    entrantId,
+    ({ incapacitated }) => incapacitated === true,
+  );
+}
+
 /** What `actorId` may do now; empty unless it is its turn. */
 export function availableActions(
   state: EncounterState,
@@ -669,6 +721,9 @@ export function availableActions(
   const actor = currentCombatant(state);
   if (actor?.id !== actorId) {
     return [];
+  }
+  if (incapacitatedBy(state, actorId) !== undefined) {
+    return ["end-turn"];
   }
   return [
     ...(state.economy.actions > 0 ? (["attack"] as const) : []),
@@ -806,12 +861,11 @@ export function damageTaken(
   return { damage, damageAdjustment: { by, rolled } };
 }
 
-/**
- * Alive and able to act, for Pack Tactics: no condition in play stops a
- * living combatant acting yet.
- */
-function ableToAct(entrant: Combatant): boolean {
-  return !isDefeated(entrant);
+/** Alive and able to act, for Pack Tactics. */
+function ableToAct(state: EncounterState, entrant: Combatant): boolean {
+  return (
+    !isDefeated(entrant) && incapacitatedBy(state, entrant.id) === undefined
+  );
 }
 
 /** The names of `entrantId`'s conditions with `effect` on attack rolls. */
@@ -833,29 +887,39 @@ function conditionSources(
   ];
 }
 
-/** Rolls `entrant`'s saving throw against a condition. */
+/**
+ * Rolls `entrant`'s saving throw against a condition, or fails it without a
+ * roll when one of its conditions (paralysed) fails saves of that ability.
+ */
 function rollSave(
+  state: EncounterState,
   entrant: Combatant,
   save: SaveSpec,
   condition: ConditionKind,
   repeat: boolean,
   random: Roller,
 ): SaveEvent {
-  const { d20 } = rollD20(random, [], []);
   const bonus = entrant.saves[save.ability];
-  const total = d20 + bonus;
-  return {
+  const fails = conditionWhere(
+    state,
+    entrant.id,
+    ({ failsSaves }) => failsSaves?.includes(save.ability) === true,
+  );
+  const common = {
     type: "save",
     combatantId: entrant.id,
     ability: save.ability,
-    d20,
     bonus,
-    total,
     dc: save.dc,
-    success: total >= save.dc,
     condition,
     repeat,
-  };
+  } as const;
+  if (fails !== undefined) {
+    return { ...common, success: false, autoFail: fails };
+  }
+  const { d20 } = rollD20(random, [], []);
+  const total = d20 + bonus;
+  return { ...common, d20, total, success: total >= save.dc };
 }
 
 /**
@@ -880,6 +944,7 @@ function applyRiderCondition(
   }
   if (condition.save !== undefined) {
     const save = rollSave(
+      state,
       target,
       condition.save,
       condition.kind,
@@ -950,6 +1015,7 @@ function endTurn(
       });
     if (condition.save !== undefined) {
       const save = rollSave(
+        state,
         entrant,
         condition.save,
         condition.kind,
@@ -988,7 +1054,9 @@ function resolveAttack(
     actor.packTactics === true &&
     state.combatants.some(
       (ally) =>
-        ally.side === actor.side && ally.id !== actor.id && ableToAct(ally),
+        ally.side === actor.side &&
+        ally.id !== actor.id &&
+        ableToAct(state, ally),
     );
   const { d20, mode } = rollD20(
     random,
@@ -1005,9 +1073,19 @@ function resolveAttack(
       ...conditionSources(state, actor.id, "attacks"),
     ],
   );
-  const critical = d20 >= weapon.criticalRange;
+  const natural = d20 >= weapon.criticalRange;
   const total = d20 + weapon.bonus;
-  const hit = d20 !== 1 && (critical || total >= target.armorClass);
+  const hit = d20 !== 1 && (natural || total >= target.armorClass);
+  // Paralysed: every hit on it is a critical hit.
+  const paralysedCritical =
+    hit &&
+    !natural &&
+    conditionWhere(
+      state,
+      target.id,
+      ({ criticalHits }) => criticalHits === true,
+    ) !== undefined;
+  const critical = natural || paralysedCritical;
   const damageRolls: number[] = [];
   if (hit) {
     const dice = weapon.damage.dice * (critical ? 2 : 1);
@@ -1090,6 +1168,7 @@ function resolveAttack(
       ...(hit && weapon.greatWeaponFighting === true
         ? { greatWeaponFighting: true as const }
         : {}),
+      ...(paralysedCritical ? { paralysedCritical: true as const } : {}),
       ...(rider === undefined ? {} : { rider }),
     },
   ];
@@ -1229,6 +1308,10 @@ function advance(
     if (actor.side === "party") {
       return next;
     }
+    // An incapacitated opponent can only wait for its turn to end.
+    if (incapacitatedBy(next, actor.id) !== undefined) {
+      continue;
+    }
     const targets = legalTargets(next, actor.id);
     const targetRoll =
       targets.length > 1 ? random.roll(targets.length) : undefined;
@@ -1296,6 +1379,13 @@ export function act(
     return reject(
       "not-your-turn",
       `It is ${current.name}'s turn, not ${actor.name}'s.`,
+    );
+  }
+  const holding = incapacitatedBy(state, actor.id);
+  if (holding !== undefined && action.type !== "end-turn") {
+    return reject(
+      "paralysed",
+      `You are ${holding} and can't act until it ends; you can only wait.`,
     );
   }
   const events: EncounterEvent[] = [];

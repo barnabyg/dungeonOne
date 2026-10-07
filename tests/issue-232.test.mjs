@@ -477,7 +477,7 @@ test("the bestiary validator refuses malformed riders and traits", () => {
   assert.throws(rider({}), /rider must give damage, a condition or both\./);
   assert.throws(
     rider({ condition: { kind: "frightened" } }),
-    /condition kind must be one of poisoned, prone\./,
+    /condition kind must be one of poisoned, prone, paralysed\./,
   );
   assert.throws(
     rider({ condition: { kind: "prone", turns: 2 } }),

@@ -189,7 +189,7 @@ The shared collection of monsters adventure modules name by id, in its own file 
 _Avoid_: Monster manual, Stat block library
 
 **Condition**:
-A state the engine puts on a combatant in a fight, such as poisoned or prone, with what gave it, how many of the combatant's turns it lasts and the save that ends it. Conditions change rolls (advantage and disadvantage) and end with the fight; the AI DM can only report them.
+A state the engine puts on a combatant in a fight, such as poisoned, prone or paralysed, with what gave it, how many of the combatant's turns it lasts and the save that ends it. Conditions change rolls (advantage, disadvantage, failed saves and critical hits) and may stop the combatant acting; they end with the fight, and the AI DM can only report them.
 _Avoid_: Status effect, Debuff
 
 **Rider**:

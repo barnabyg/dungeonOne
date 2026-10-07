@@ -1,5 +1,5 @@
 /**
- * The 5e bestiary (format version 3): the shared monsters adventure modules
+ * The 5e bestiary (format version 4): the shared monsters adventure modules
  * fight, each an SRD 5.2 stat block (or a house one derived from it) under an
  * id. A module's opponent names a bestiary monster by id, or authors a
  * one-off stat block inline. A stat block may list traits (Pack Tactics,
@@ -36,13 +36,17 @@ import {
   fail,
 } from "./json-shape.js";
 
-export const FIFTH_BESTIARY_FORMAT = 3;
+export const FIFTH_BESTIARY_FORMAT = 4;
 
 /** The monster traits the engine applies. */
 export const MONSTER_TRAITS = ["Pack Tactics", "Undead Fortitude"] as const;
 export type MonsterTrait = (typeof MONSTER_TRAITS)[number];
 
-const CONDITION_KINDS: readonly ConditionKind[] = ["poisoned", "prone"];
+const CONDITION_KINDS: readonly ConditionKind[] = [
+  "poisoned",
+  "prone",
+  "paralysed",
+];
 
 /** The most turns a rider's condition lasts: 10 turns is 1 minute. */
 const MAX_CONDITION_TURNS = 10;

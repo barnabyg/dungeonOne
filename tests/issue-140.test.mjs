@@ -18,7 +18,7 @@ import {
 } from "../dist/release-run-5e.js";
 
 /** The seed the release run is qualified on: Ada clears every room. */
-const RELEASE_SEED = 711;
+const RELEASE_SEED = 1443;
 const script = fileURLToPath(
   new URL("../scripts/qualify-release-live.mjs", import.meta.url),
 );
