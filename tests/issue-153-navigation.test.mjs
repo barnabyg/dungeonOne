@@ -3,18 +3,10 @@ import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import { createFighter, openCreation } from "./fixtures/browser-journey.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
 
 /** What the page shows: the visible view, its title, breadcrumb and focus. */
 const state = (page) =>
@@ -126,12 +118,7 @@ for (const viewport of [
           focused: "adventure-title",
         });
         assert.equal(await page.locator("#close-adventure").count(), 0);
-        assert.ok(
-          await page.evaluate(
-            () => document.documentElement.scrollWidth <= window.innerWidth,
-          ),
-          "no horizontal scroll",
-        );
+        await assertNoSideScroll(page, "no horizontal scroll");
 
         // Back to the sheet (the saved creation is skipped), Back to the
         // library, Forward to the sheet, Forward to the adventure.

@@ -1,27 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import {} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { goblinBand, loneGoblin } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-import { firstFighter } from "./fixtures/session-layout.mjs";
+import {
+  assertNoSideScroll,
+  firstFighter,
+  launch,
+  widenFont,
+} from "./fixtures/session-layout.mjs";
+import { sessionFile } from "./fixtures/save-files.mjs";
 
 // The status strip (#155): HP, health, round, turn and resource pips.
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
 
 const SECOND_WIND = { type: "second-wind", actorId: "pc" };
 
@@ -56,12 +52,6 @@ function bandSeed() {
   }
   throw new Error("no goblin band seed with two hurt turns");
 }
-
-const sessionFile = async (directory) => {
-  const folder = join(directory, "characters-adventures");
-  const [name] = await readdir(folder);
-  return JSON.parse(await readFile(join(folder, name), "utf8"));
-};
 
 /** Clicks a button and waits for its result in the conversation history. */
 async function clickAndWait(page, button) {
@@ -129,13 +119,6 @@ const stripRows = (page) =>
       }
     }
     return tops.length;
-  });
-
-const widen = (page) =>
-  page.evaluate(() => {
-    for (const node of document.querySelectorAll("*")) {
-      node.style.fontFamily = "Verdana, sans-serif";
-    }
   });
 
 for (const viewport of [
@@ -251,17 +234,12 @@ for (const viewport of [
         if (viewport.width === 375) {
           assert.ok((await stripRows(page)) <= 2, "the strip fits two rows");
           // CI's Linux fallback font is wider than Windows'.
-          await widen(page);
+          await widenFont(page);
           assert.ok(
             (await stripRows(page)) <= 2,
             "the strip fits two rows in a wide font",
           );
-          assert.ok(
-            await page.evaluate(
-              () => document.documentElement.scrollWidth <= window.innerWidth,
-            ),
-            "no horizontal scroll",
-          );
+          await assertNoSideScroll(page, "no horizontal scroll");
         }
       } finally {
         await browser.close();

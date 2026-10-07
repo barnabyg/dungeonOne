@@ -10,26 +10,8 @@ import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { fighterProfile } from "../dist/fighter-5e.js";
 import { longswordBarrow } from "./fixtures/armoury-barrow.mjs";
-import { assertTogether, launch } from "./fixtures/session-layout.mjs";
+import { explore, launch } from "./fixtures/session-layout.mjs";
 import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
-
-/**
- * Clicks an action control, in the bar or on a carried entry, and waits for
- * its result card.
- */
-async function click(page, action, target) {
-  const count = await page.locator("#log li").count();
-  const button = page.locator(
-    `button.act[data-action="${action}"][data-target="${target}"]`,
-  );
-  await button.click();
-  await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log li").length > seen,
-    count,
-  );
-  // #154: the newest entry and the actions stay on screen together.
-  await assertTogether(page, `${action} ${target}`);
-}
 
 const newest = (page) => page.locator("#log li").last().innerText();
 
@@ -83,8 +65,8 @@ test(
         ["Mace — In hand.", []],
       ]);
 
-      await click(page, "examine", "scratched-lintel");
-      await click(page, "take", "lintel-longsword");
+      await explore(page, "examine", "scratched-lintel");
+      await explore(page, "take", "lintel-longsword");
       assert.equal(await newest(page), "You take the Longsword and stow it.");
       assert.deepEqual(await carried(page), [
         ["Leather armour — Worn.", ["Unequip Leather armour"]],
@@ -105,7 +87,7 @@ test(
       );
 
       // Wielding it changes the attack and damage on the page at once.
-      await click(page, "swap", "longsword");
+      await explore(page, "swap", "longsword");
       const wielding = fighterProfile({
         ...start,
         equipment: ["leather", "longsword"],
@@ -130,7 +112,7 @@ test(
       ]);
 
       // The mace dropped lies here, with Take to pick it back up.
-      await click(page, "drop", "mace");
+      await explore(page, "drop", "mace");
       assert.equal(await newest(page), "You drop the mace. It stays here.");
       assert.match(
         await page.locator("#room-items").innerText(),

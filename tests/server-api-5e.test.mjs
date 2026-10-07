@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
@@ -17,6 +17,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
+import { sessionFile } from "./fixtures/save-files.mjs";
 
 // The creation screen's default choices; the placement follows the dice.
 const DEFAULT_CHOICES = {
@@ -75,12 +76,6 @@ async function api(url, path, body) {
   });
   return { status: response.status, body: await response.json() };
 }
-
-const sessionFile = async (directory) => {
-  const folder = join(directory, "characters-adventures");
-  const [name] = await readdir(folder);
-  return JSON.parse(await readFile(join(folder, name), "utf8"));
-};
 
 /**
  * Runs `run` against a server on `seed` that has Ada, created with the

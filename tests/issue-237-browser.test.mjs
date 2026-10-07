@@ -17,42 +17,12 @@ import {
   pouchOf,
 } from "./fixtures/fleeing-goblins.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
-
-/** An element's text with its blank lines collapsed. */
-const text = async (locator) =>
-  (await locator.innerText()).replace(/\n+/gu, "\n");
-
-/** Waits for a new, settled history entry after `run`. */
-async function settled(page, run) {
-  const count = await page.locator("#log li").count();
-  await run();
-  await page.waitForFunction(
-    (seen) =>
-      document.querySelectorAll("#log li:not([data-pending])").length > seen,
-    count,
-  );
-}
-
-const click = (page, action, target) =>
-  settled(page, () =>
-    page
-      .locator(`button.act[data-action="${action}"][data-target="${target}"]`)
-      .click(),
-  );
-
-/** Attacks the first goblin offered, or ends the turn, until the fight ends. */
-async function fight(page) {
-  while ((await page.locator("#turn").textContent()) !== "The fight is over.") {
-    const attack = page.locator("#attack-controls button.attack:enabled");
-    await settled(page, async () =>
-      ((await attack.count()) > 0
-        ? attack.first()
-        : page.locator('#feature-controls button[data-action="end-turn"]')
-      ).click(),
-    );
-  }
-}
+import {
+  clickAction,
+  createAndStart,
+  fight,
+  text,
+} from "./fixtures/browser-journey.mjs";
 
 test(
   "a goblin flees; Ada escapes with the defeated goblins' coin, their XP and half the fled one's",
@@ -77,7 +47,7 @@ test(
     try {
       await createAndStart(page, server.url, fleeingGoblins.id);
 
-      await click(page, "move", "burial-hall");
+      await clickAction(page, "move", "burial-hall");
       await fight(page);
       const log = await text(page.locator("#log"));
       const goneName = `Goblin ${gone.slice(-1)}`;
@@ -105,10 +75,10 @@ test(
       );
 
       for (const id of fallen) {
-        await click(page, "examine", id);
-        await click(page, "take", pouchOf(id));
+        await clickAction(page, "examine", id);
+        await clickAction(page, "take", pouchOf(id));
       }
-      await click(page, "move", "barrow-mouth");
+      await clickAction(page, "move", "barrow-mouth");
       await page.locator("#leave-controls button").click();
       await page.locator("#confirm-leave").click();
       await page.locator("#ending").waitFor({ state: "visible" });

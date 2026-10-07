@@ -1,25 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import {} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-import { firstFighter } from "./fixtures/session-layout.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
+import {
+  assertNoSideScroll,
+  firstFighter,
+  launch,
+} from "./fixtures/session-layout.mjs";
+import { sessionFile } from "./fixtures/save-files.mjs";
+import { recordingRandom } from "./fixtures/seed-search.mjs";
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
 const adventure = ratTunnels;
@@ -44,13 +40,7 @@ function simulate(seed) {
   const runtime = createFifthRuntime(adventure, firstFighter(seed));
   const source = createSeededRandom(sessionSeed(seed, 1));
   const drawn = [];
-  const random = {
-    roll(sides) {
-      const value = source.roll(sides);
-      drawn.at(-1).push({ sides, value });
-      return value;
-    },
-  };
+  const random = recordingRandom(source, drawn);
   const run = (state, action) => {
     drawn.push([]);
     const result = runtime.handleAction(state, action, random);
@@ -154,12 +144,6 @@ async function clickNext(page) {
   );
 }
 
-const sessionFile = async (directory) => {
-  const folder = join(directory, "characters-adventures");
-  const [name] = await readdir(folder);
-  return JSON.parse(await readFile(join(folder, name), "utf8"));
-};
-
 test(
   "walk the tunnels, search the chest by typing, take the potion, drink it after a fight, and resume exactly",
   { timeout: 120000 },
@@ -190,12 +174,7 @@ test(
       assert.match(shown.actions, /Go to Alcove/);
       assert.match(shown.actions, /Go to Rat-Gnawed Cellar/);
       assert.match(shown.actions, /Examine Rusted Lantern/);
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-        "no horizontal scroll at phone width",
-      );
+      await assertNoSideScroll(page, "no horizontal scroll at phone width");
 
       await explore(page, "move", "alcove");
       shown = await screen(page);
@@ -289,14 +268,10 @@ test(
 
       // Still no horizontal scroll at phone width with a wide font, as CI's
       // Linux fallback font is wider than Windows'.
-      assert.ok(
-        await page.evaluate(() => {
-          for (const node of document.querySelectorAll("*")) {
-            node.style.fontFamily = "Verdana, sans-serif";
-          }
-          return document.documentElement.scrollWidth <= window.innerWidth;
-        }),
+      await assertNoSideScroll(
+        page,
         "no horizontal scroll at phone width with a wide font",
+        { wideFont: true },
       );
     } finally {
       await browser.close();

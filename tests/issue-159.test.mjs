@@ -15,23 +15,9 @@ import {
 } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
 import { goblinBand, ratlessTunnels } from "./fixtures/modules.mjs";
+import { IN_ORDER_CHOICES as CHOICES } from "./fixtures/fighter-choices.mjs";
 
 const adventures = [goblinBand, ratlessTunnels];
-const CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-  kit: "mace",
-  masteries: ["dagger", "mace", "shortsword"],
-};
 const END_TURN = { type: "end-turn", actorId: "pc" };
 
 const fighter = (seed) =>

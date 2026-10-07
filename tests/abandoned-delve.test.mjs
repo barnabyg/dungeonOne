@@ -23,26 +23,11 @@ import { runDmTurn } from "../dist/dm-turn.js";
 import { buildFighter } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
+import { IN_ORDER_CHOICES as CHOICES } from "./fixtures/fighter-choices.mjs";
 
 const delve = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "abandoned-delve",
 );
-
-const CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-  kit: "mace",
-  masteries: ["dagger", "mace", "shortsword"],
-};
 
 // Str 17 (+3), Dex 14 (+2), Con 15 (+2): a sturdy level-1 Fighter.
 const STRONG = buildFighter(

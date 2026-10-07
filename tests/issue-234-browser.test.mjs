@@ -13,7 +13,12 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { fightRoom } from "./fixtures/modules.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
+import {
+  createAndStart,
+  fightTurn,
+  settled,
+} from "./fixtures/browser-journey.mjs";
+import { attackOrEndTurn } from "./fixtures/seed-search.mjs";
 
 /** The lone goblin's room with the bestiary's Ghoul in the goblin's place. */
 const ghoulCellar = fightRoom("ghoul-cellar", "The Ghoul Cellar", [
@@ -40,16 +45,7 @@ function paralysis(seed) {
     random,
   ).state;
   const fightOn = () => {
-    const [target] = runtime.attackTargets(state);
-    const result = runtime.handleAction(
-      state,
-      target === undefined
-        ? { type: "end-turn", actorId: "pc" }
-        : { type: "attack", actorId: "pc", targetId: target.id },
-      random,
-    );
-    assert.equal(result.rejection, undefined);
-    state = result.state;
+    state = attackOrEndTurn(runtime, state, random).state;
   };
   const ongoing = () => state.encounter?.outcome === "ongoing";
   let down = 0;
@@ -62,27 +58,6 @@ function paralysis(seed) {
   fightOn();
   return ongoing() && !paralysed(state) ? down : undefined;
 }
-
-/** Runs one click and waits for its history entry. */
-async function click(page, locator) {
-  const count = await page.locator("#log li").count();
-  await locator.click();
-  await page.waitForFunction(
-    (seen) =>
-      document.querySelectorAll("#log li:not([data-pending])").length > seen,
-    count,
-  );
-}
-
-const fightOn = async (page) => {
-  const attack = page.locator("#attack-controls button.attack:enabled");
-  await click(
-    page,
-    (await attack.count()) > 0
-      ? attack.first()
-      : page.locator('#feature-controls button[data-action="end-turn"]'),
-  );
-};
 
 /** The status strip's conditions and the action bar's buttons and reasons. */
 const shown = (page) =>
@@ -121,7 +96,7 @@ test(
     try {
       await createAndStart(page, server.url, ghoulCellar.id);
       for (let count = 0; count < down; count++) {
-        await fightOn(page);
+        await fightTurn(page);
       }
 
       // The claw lands: narrated, tagged on the strip, and only Wait offered.
@@ -164,9 +139,10 @@ test(
       assert.deepEqual(await shown(page), held);
 
       // Ada waits: the paralysis runs out as her turn ends, with no save.
-      await click(
-        page,
-        page.locator('#feature-controls button[data-action="end-turn"]'),
+      await settled(page, () =>
+        page
+          .locator('#feature-controls button[data-action="end-turn"]')
+          .click(),
       );
       const after = await page.locator("#log").innerText();
       assert.match(

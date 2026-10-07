@@ -5,7 +5,7 @@
 // after a purchase is checked in issue-211-browser.test.mjs.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
@@ -13,12 +13,9 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { marketBarrow } from "./fixtures/market-barrow.mjs";
-import {
-  assertTogether,
-  firstFighter,
-  launch,
-} from "./fixtures/session-layout.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
+import { explore, firstFighter, launch } from "./fixtures/session-layout.mjs";
+import { createAndStart, fight } from "./fixtures/browser-journey.mjs";
+import { readAda } from "./fixtures/save-files.mjs";
 
 /** A browser seed on which the first Ada wins the burial hall's fight. */
 function winningSeed() {
@@ -44,40 +41,7 @@ function winningSeed() {
   throw new Error("no seed wins the burial hall");
 }
 
-/** Clicks an action control and waits for its result card. */
-async function click(page, action, target) {
-  const count = await page.locator("#log li").count();
-  await page
-    .locator(`button.act[data-action="${action}"][data-target="${target}"]`)
-    .click();
-  await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log li").length > seen,
-    count,
-  );
-  // #154: the newest entry and the actions stay on screen together.
-  await assertTogether(page, `${action} ${target}`);
-}
-
-/** Fights until the fight is over: Attack, or End turn once it is spent. */
-async function fight(page) {
-  while ((await page.locator("#turn").textContent()) !== "The fight is over.") {
-    const count = await page.locator("#log li").count();
-    const attack = page.locator("#attack-controls button.attack:enabled");
-    await (
-      (await attack.count()) > 0
-        ? attack.first()
-        : page.locator('#feature-controls button[data-action="end-turn"]')
-    ).click();
-    await page.waitForFunction(
-      (seen) => document.querySelectorAll("#log li").length > seen,
-      count,
-    );
-  }
-}
-
 const newest = (page) => page.locator("#log li").last().innerText();
-const ada = async (libraryPath) =>
-  JSON.parse(await readFile(libraryPath, "utf8")).characters[0];
 const ware = (page, id) =>
   page.locator(`#creatures li[data-id="pedlar"] [data-ware="${id}"]`);
 
@@ -129,25 +93,25 @@ test(
         0,
       );
 
-      await click(page, "move", "burial-hall");
+      await explore(page, "move", "burial-hall");
       await fight(page);
-      await click(page, "examine", "barrow-goblin");
-      await click(page, "take", "coin-pouch");
+      await explore(page, "examine", "barrow-goblin");
+      await explore(page, "take", "coin-pouch");
       assert.equal(await page.locator("#purse").textContent(), "Purse: 10 gp");
-      await click(page, "move", "barrow-mouth");
+      await explore(page, "move", "barrow-mouth");
 
-      await click(page, "buy", "shortsword");
+      await explore(page, "buy", "shortsword");
       assert.equal(
         await newest(page),
         "You buy the shortsword from Pedlar for 10 gp and stow it. The trade takes 10 minutes. Your purse is empty.",
       );
-      await click(page, "swap", "shortsword");
+      await explore(page, "swap", "shortsword");
       // The mace, now stowed, sells at once for half its price.
       assert.match(
         await pedlar.innerText(),
         /Pays half price: Leather armour 5 gp, Shortsword 5 gp, Mace 2 gp 5 sp\./,
       );
-      await click(page, "sell", "mace");
+      await explore(page, "sell", "mace");
       assert.equal(
         await newest(page),
         "You sell the mace to Pedlar for 2 gp 5 sp. The trade takes 10 minutes. Purse: 2 gp 5 sp.",
@@ -199,7 +163,7 @@ test(
       );
 
       // Storage and the sheet hold the shortsword and the change.
-      const record = await ada(libraryPath);
+      const record = await readAda(libraryPath);
       assert.equal(record.session, undefined);
       assert.deepEqual(record.sheet.equipment, ["shortsword"]);
       assert.deepEqual(record.sheet.stowed, []);

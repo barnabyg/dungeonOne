@@ -5,7 +5,6 @@ import { request } from "node:http";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   ABILITIES,
@@ -14,17 +13,10 @@ import {
   fighterProfile,
   keptTotal,
 } from "../dist/fighter-5e.js";
+import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 import { PRE_5E_LIBRARY } from "./fixtures/pre-5e-library.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import { openCreation } from "./fixtures/browser-journey.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
 
 // The page shows the creation screen only after rendering the rolls it
 // fetched, so wait for it before reading them. Each row's Roll cell shows
@@ -300,12 +292,7 @@ test(
         await page.evaluate(() => document.activeElement.id),
         "creation-title",
       );
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-        "no horizontal scroll at phone width",
-      );
+      await assertNoSideScroll(page, "no horizontal scroll at phone width");
       // Every control is reachable by Tab.
       const reached = new Set();
       for (let step = 0; step < 40; step++) {
@@ -447,12 +434,7 @@ test(
       assert.equal(await focused(), "delete-confirm-name");
       assert.match(await dialog.innerText(), /permanent/i);
       assert.match(await dialog.innerText(), /no undo/i);
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-        "no horizontal scroll at phone width",
-      );
+      await assertNoSideScroll(page, "no horizontal scroll at phone width");
       const box = await dialog.boundingBox();
       assert.ok(box.x >= 0 && box.x + box.width <= 360, "dialog fits");
 

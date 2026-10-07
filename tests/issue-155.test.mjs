@@ -8,6 +8,7 @@ import {
 } from "../dist/fighter-5e.js";
 import { createFifthRuntime, healthOf } from "../dist/runtime-5e.js";
 import { loneGoblin as adventure } from "./fixtures/modules.mjs";
+import { uncheckedDice as dice } from "./fixtures/engine-dice.mjs";
 
 // Con 14 (+2): 12 HP at level 1.
 const sheet = buildFighter(
@@ -37,15 +38,6 @@ const sheet = buildFighter(
     masteries: ["dagger", "mace", "shortsword"],
   },
 );
-
-function dice(...queue) {
-  return {
-    roll(sides) {
-      assert.ok(queue.length > 0, `unexpected d${sides}`);
-      return queue.shift();
-    },
-  };
-}
 
 test("health: bloodied at half HP or less, critical at a quarter, down at 0 (#155)", () => {
   assert.equal(healthOf(12, 12), "healthy");

@@ -12,7 +12,7 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
 import { buildFighter, validateFighter } from "../dist/fighter-5e.js";
 import { barrowFile, room } from "./fixtures/armoury-barrow.mjs";
-import { assertTogether, launch } from "./fixtures/session-layout.mjs";
+import { explore, launch } from "./fixtures/session-layout.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { startAdventure } from "./fixtures/browser-journey.mjs";
 
@@ -63,19 +63,6 @@ const sheet = validateFighter({
   stowed: ["shield", "dagger"],
 });
 
-/** Clicks an action control and waits for its result card. */
-async function click(page, action, target) {
-  const count = await page.locator("#log li").count();
-  await page
-    .locator(`button.act[data-action="${action}"][data-target="${target}"]`)
-    .click();
-  await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log li").length > seen,
-    count,
-  );
-  await assertTogether(page, `${action} ${target}`);
-}
-
 const newest = (page) => page.locator("#log li").last().innerText();
 const carrying = (page) => page.locator("#carrying").textContent();
 
@@ -122,7 +109,7 @@ test(
         "Carrying 21 lb of the 75 lb your Strength allows.",
       );
 
-      await click(page, "examine", "scratched-lintel");
+      await explore(page, "examine", "scratched-lintel");
       const takeMail = page.locator(
         'button.act[data-action="take"][data-target="lintel-mail"]',
       );
@@ -135,12 +122,12 @@ test(
       );
 
       // Dropping the dagger makes room for the mail, at exactly 75 lb.
-      await click(page, "drop", "dagger");
+      await explore(page, "drop", "dagger");
       assert.equal(
         await carrying(page),
         "Carrying 20 lb of the 75 lb your Strength allows.",
       );
-      await click(page, "take", "lintel-mail");
+      await explore(page, "take", "lintel-mail");
       assert.equal(await newest(page), "You take the Chain Mail and stow it.");
       assert.equal(
         await carrying(page),

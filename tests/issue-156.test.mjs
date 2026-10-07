@@ -13,15 +13,7 @@ import {
   playthroughStates,
   veteran,
 } from "./fixtures/playthroughs.mjs";
-
-function dice(...queue) {
-  return {
-    roll(sides) {
-      assert.ok(queue.length > 0, `unexpected d${sides}`);
-      return queue.shift();
-    },
-  };
-}
+import { uncheckedDice as dice } from "./fixtures/engine-dice.mjs";
 
 /** A die that never runs out, for trying accepted actions. */
 const anyDice = () => createSeededRandom(1);
