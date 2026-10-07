@@ -173,8 +173,7 @@
                   "ability": "constitution",
                   "dc": 10
                 },
-                "turns": 10,
-                "repeatSave": true
+                "turns": 1
               }
             }
           },

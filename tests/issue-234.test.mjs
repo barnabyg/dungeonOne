@@ -85,6 +85,8 @@ const undeadSaves = {
   charisma: -2,
 };
 
+// A ghoul whose paralysis lasts up to 10 turns with a repeat save, as a rider
+// may; the bestiary's Ghoul paralyses only until the end of the next turn.
 const ghoul = {
   id: "ghoul",
   name: "Ghoul",
@@ -308,6 +310,41 @@ test("a successful repeat save at the end of its turn ends the paralysis", () =>
   ]);
 });
 
+test("the bestiary's one-turn paralysis ends at the end of the target's next turn, with no save", () => {
+  const brief = {
+    ...ghoul,
+    attack: {
+      ...ghoul.attack,
+      rider: {
+        condition: {
+          kind: "paralysed",
+          save: { ability: "constitution", dc: 10 },
+          turns: 1,
+        },
+      },
+    },
+  };
+  // As in `paralysed()`: the claw hits and Ada's save, 3 + 4, fails.
+  const { state } = startEncounter(
+    [fighter, brief],
+    dice([20, 5], [20, 18], [20, 15], [4, 2], [20, 3]),
+  );
+  assert.deepEqual(availableActions(state, "pc"), ["end-turn"]);
+  // Ending her turn draws no save: the paralysis runs out, and the ghoul,
+  // attacking without advantage, misses on a 1.
+  const result = act(state, { type: "end-turn", actorId: "pc" }, dice([20, 1]));
+  assert.deepEqual(
+    result.events.find(({ type }) => type === "condition-ended"),
+    {
+      type: "condition-ended",
+      combatantId: "pc",
+      kind: "paralysed",
+      reason: "expired",
+    },
+  );
+  assert.deepEqual(result.state.conditions, []);
+});
+
 for (const ability of ["strength", "dexterity"]) {
   test(`a paralysed combatant fails a ${ability} save without a roll`, () => {
     // Initiative: Ada 5 + 1, ghoul 18 + 2, tripper 16 + 2. The ghoul
@@ -381,8 +418,7 @@ test("the bestiary's Ghoul claws first, with its paralysing rider", () => {
       condition: {
         kind: "paralysed",
         save: { ability: "constitution", dc: 10 },
-        turns: 10,
-        repeatSave: true,
+        turns: 1,
       },
     },
   });
@@ -469,7 +505,7 @@ test("while paralysed the action bar and the AI DM's tools offer only waiting", 
   assert.deepEqual(runtime.attackTargets(state), []);
   assert.match(
     runtime.projectCharacterStatus(state).conditions[0],
-    /^Paralysed \(Ghoul's Claw; DC 10 Constitution save at the end of each of its turns, up to \d+ turns? left\)$/u,
+    /^Paralysed \(Ghoul's Claw; ends at the end of this turn\)$/u,
   );
 });
 

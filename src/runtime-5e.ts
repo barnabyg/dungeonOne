@@ -892,7 +892,9 @@ function conditionText(
   const turns = `${event.turns} ${event.turns === 1 ? "turn" : "turns"}`;
   const ends =
     event.save === undefined
-      ? `for ${turns}`
+      ? event.turns === 1
+        ? "until the end of its next turn"
+        : `for ${turns}`
       : `until it succeeds on a DC ${event.save.dc} ${titleCase(event.save.ability)} saving throw at the end of one of its turns, for up to ${turns}`;
   const effects =
     event.kind === "paralysed"
@@ -1693,11 +1695,14 @@ function conditionsOf(
     .map((condition) => {
       const source = `${combatant(encounter, condition.sourceId).name}'s ${condition.source}`;
       const turns = `${condition.turnsLeft} ${condition.turnsLeft === 1 ? "turn" : "turns"} left`;
+      const turnEnd = `the end of ${currentCombatant(encounter)?.id === combatantId ? "this" : "its next"} turn`;
       const ends =
         condition.kind === "prone"
-          ? `gets up at the end of ${currentCombatant(encounter)?.id === combatantId ? "this" : "its next"} turn`
+          ? `gets up at ${turnEnd}`
           : condition.save === undefined
-            ? turns
+            ? condition.turnsLeft === 1
+              ? `ends at ${turnEnd}`
+              : turns
             : `DC ${condition.save.dc} ${titleCase(condition.save.ability)} save at the end of each of its turns, up to ${turns}`;
       return {
         kind: condition.kind,

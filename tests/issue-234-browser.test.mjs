@@ -1,6 +1,7 @@
 // #234, browser → API → storage: a Ghoul's claw paralyses the character. The
 // status strip shows it, the action bar offers only Wait and says why, a
-// restart keeps it, and the repeat save that ends it brings the bar back.
+// restart keeps it, and it ends with the character's next turn, bringing the
+// bar back.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
@@ -39,9 +40,9 @@ const paralysed = (state) =>
 
 /**
  * The clicks (attack, or end the turn once the action is spent) in the first
- * session on `seed` that leave the character paralysed on its own turn, and
- * then the waits until a repeat save ends it with the fight still on;
- * undefined if that never happens.
+ * session on `seed` that leave the character paralysed on its own turn, after
+ * which one wait ends the paralysis with the fight still on and the
+ * character free; undefined if that never happens.
  */
 function paralysis(seed) {
   const runtime = createFifthRuntime(ghoulCellar, firstFighter(seed));
@@ -62,25 +63,17 @@ function paralysis(seed) {
     );
     assert.equal(result.rejection, undefined);
     state = result.state;
-    return result.events;
   };
   const ongoing = () => state.encounter?.outcome === "ongoing";
   let down = 0;
   for (; ongoing() && !paralysed(state); down++) {
     fightOn();
   }
-  let waits = 0;
-  let saved = false;
-  for (; ongoing() && paralysed(state); waits++) {
-    saved = fightOn().some(
-      ({ type, reason, kind }) =>
-        type === "condition-ended" &&
-        kind === "paralysed" &&
-        reason === "saved",
-    );
+  if (!ongoing()) {
+    return undefined;
   }
-  // At least two waits, so a restart comes mid-paralysis with one to go.
-  return ongoing() && saved && waits >= 2 ? { down, waits } : undefined;
+  fightOn();
+  return ongoing() && !paralysed(state) ? down : undefined;
 }
 
 /** Runs one click and waits for its history entry. */
@@ -116,7 +109,7 @@ const shown = (page) =>
   }));
 
 test(
-  "a Ghoul paralyses Ada: only Wait is offered, a restart keeps it, and the save that ends it frees her",
+  "a Ghoul paralyses Ada: only Wait is offered, a restart keeps it, and it ends as her next turn does",
   { timeout: 120000 },
   async () => {
     let seed = 0;
@@ -124,7 +117,7 @@ test(
       seed += 1;
       assert.ok(seed < 500, "a seed paralyses Ada");
     }
-    const { down, waits } = paralysis(seed);
+    const down = paralysis(seed);
     const directory = await mkdtemp(join(tmpdir(), "issue-234-browser-"));
     const libraryPath = join(directory, "characters.json");
     const options = {
@@ -161,13 +154,13 @@ test(
       );
       assert.match(
         log,
-        /Ada is paralysed by Ghoul's Claw: it can't act, it fails Strength and Dexterity saving throws, and attack rolls against it have advantage and every hit is a critical hit, until it succeeds on a DC 10 Constitution saving throw at the end of one of its turns, for up to 10 turns\./,
+        /Ada is paralysed by Ghoul's Claw: it can't act, it fails Strength and Dexterity saving throws, and attack rolls against it have advantage and every hit is a critical hit, until the end of its next turn\./,
       );
       const held = await shown(page);
       assert.equal(held.strip.length, 1);
       assert.match(
         held.strip[0],
-        /^Paralysed: Ghoul's Claw; DC 10 Constitution save at the end of each of its turns, up to 10 turns left$/,
+        /^Paralysed: Ghoul's Claw; ends at the end of this turn$/,
       );
       assert.deepEqual(held.bar, [
         "WaitYou are paralysed, so you can only wait.",
@@ -180,15 +173,6 @@ test(
         "action-reason-0",
       );
 
-      // One wait: a failed save, and the paralysis goes on.
-      await click(page, wait);
-      const mid = await shown(page);
-      assert.match(
-        mid.strip[0],
-        /^Paralysed: Ghoul's Claw; .* up to \d+ turns? left$/,
-      );
-      assert.deepEqual(mid.bar, held.bar);
-
       // Stored: a restart serves the same paralysis from the saved session.
       const [file] = await readdir(join(directory, "characters-adventures"));
       const saved = JSON.parse(
@@ -199,21 +183,18 @@ test(
       server = await startFifthBrowserServer({ ...options, seed: seed + 1 });
       await page.goto(`${server.url}/#adventure-${saved.id}`);
       await page.locator("#adventure").waitFor({ state: "visible" });
-      assert.deepEqual(await shown(page), mid);
+      assert.deepEqual(await shown(page), held);
 
-      // Ada waits until her repeat save succeeds, and can act again.
-      for (let count = 1; count < waits; count++) {
-        await click(
-          page,
-          page.locator('#feature-controls button[data-action="end-turn"]'),
-        );
-      }
+      // Ada waits: the paralysis runs out as her turn ends, with no save.
+      await click(
+        page,
+        page.locator('#feature-controls button[data-action="end-turn"]'),
+      );
       const after = await page.locator("#log").innerText();
       assert.match(
         after,
-        /Ada repeats a Constitution saving throw against being paralysed: \d+ [+−] \d+ = \d+ against DC 10\. Success\./u,
+        /Ada is no longer paralysed: it has run its course\./,
       );
-      assert.match(after, /Ada is no longer paralysed\./);
       const free = await shown(page);
       assert.deepEqual(free.strip, []);
       assert.ok(free.bar.some((text) => text.startsWith("Attack Ghoul")));
