@@ -155,8 +155,8 @@ export function percentileCharacters({
  * hit points to 0: a natural 1 misses, a roll in the critical range hits and
  * doubles the damage dice, and any other roll hits when it meets the enemy's
  * AC. The attack is the one the runtime gives the character, so Fighting
- * Style, level and masteries are counted: Great Weapon Fighting's 1s and 2s
- * counted as 3, a weapon's own disadvantage (Heavy) and Graze's damage on a
+ * Style, level and masteries are counted: Archery's +2 to hit with a ranged
+ * weapon, Great Weapon Fighting's 1s and 2s counted as 3, a weapon's own disadvantage (Heavy) and Graze's damage on a
  * miss. The enemy's resistance, vulnerability or immunity to the weapon's
  * damage type changes the damage, and an enemy with Undead Fortitude must
  * also fail its Constitution save unless the hit is critical or radiant.

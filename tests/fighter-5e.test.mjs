@@ -338,7 +338,7 @@ test("validation rejects malformed sheets and illegal choices", () => {
   rejects({ ...sheet, skills: ["athletics"] }, /skill/);
   rejects({ ...sheet, skills: ["athletics", "athletics"] }, /skill/);
   rejects({ ...sheet, skills: ["athletics", "stealth"] }, /skill/);
-  rejects({ ...sheet, fightingStyle: "archery" }, /Fighting Style/);
+  rejects({ ...sheet, fightingStyle: "blind-fighting" }, /Fighting Style/);
   rejects(
     { ...sheet, equipment: ["chain-mail", "shield", "greatsword"] },
     /equipment/,

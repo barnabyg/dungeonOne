@@ -118,7 +118,7 @@ test("choices that no page could send are refused", () => {
     { ...complete, skills: ["athletics", "athletics"] },
     { ...complete, skills: ["stealth"] },
     { ...complete, skills: "athletics" },
-    { ...complete, fightingStyle: "archery" },
+    { ...complete, fightingStyle: "blind-fighting" },
   ]) {
     assert.throws(() => projectCreation(dice, choices), Error);
   }

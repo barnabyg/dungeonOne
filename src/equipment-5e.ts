@@ -732,7 +732,7 @@ export type EquipmentProfile = Readonly<{
 
 /** The SRD 5.2 Fighting Style feats a Fighter can take. */
 export type FightingStyleId =
-  "defense" | "great-weapon-fighting" | "two-weapon-fighting";
+  "archery" | "defense" | "great-weapon-fighting" | "two-weapon-fighting";
 
 export type EquipmentContext = Readonly<{
   modifiers: AbilityModifiers;
@@ -741,9 +741,10 @@ export type EquipmentContext = Readonly<{
   proficiency: number;
   masteries: readonly WeaponId[];
   /**
-   * Defense: +1 AC while wearing armour. Great Weapon Fighting: 1s and 2s on
-   * damage dice count as 3 with a weapon in two hands. Two-Weapon Fighting:
-   * the Light extra attack adds the ability modifier.
+   * Archery: +2 to hit with a ranged weapon. Defense: +1 AC while wearing
+   * armour. Great Weapon Fighting: 1s and 2s on damage dice count as 3 with a
+   * weapon in two hands. Two-Weapon Fighting: the Light extra attack adds the
+   * ability modifier.
    */
   fightingStyle?: FightingStyleId;
   criticalRange: 19 | 20;
@@ -775,7 +776,11 @@ function attackWith(
       ? {}
       : { ammunition: weapon.ammunition }),
     grip,
-    bonus: modifier + context.proficiency,
+    // Archery: +2 to hit with a ranged weapon, never to its damage.
+    bonus:
+      modifier +
+      context.proficiency +
+      (ranged && context.fightingStyle === "archery" ? 2 : 0),
     damage: {
       dice: dice.dice,
       sides: dice.sides,
@@ -814,9 +819,9 @@ function attackWith(
  * none), +2 for a shield, +1 for Defense while wearing body armour; the main
  * weapon's attack (finesse uses the higher of Strength and Dexterity, a
  * versatile weapon held in two hands its larger die, a ranged weapon uses
- * Dexterity, a heavy weapon below Strength 13, or a heavy ranged one below
- * Dexterity 13, has disadvantage, and Great Weapon Fighting marks a weapon in
- * two hands); and the Light extra attack when a second light weapon is held
+ * Dexterity, +2 to hit with Archery, a heavy weapon below Strength 13, or a
+ * heavy ranged one below Dexterity 13, has disadvantage, and Great Weapon
+ * Fighting marks a weapon in two hands); and the Light extra attack when a second light weapon is held
  * (with its ability modifier under Two-Weapon Fighting). A mastery applies only to a weapon the character has
  * mastered and is holding.
  */
