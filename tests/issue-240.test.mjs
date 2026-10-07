@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import {
   FIFTH_BESTIARY_FORMAT,
   validateFifthBestiary,
@@ -389,6 +390,25 @@ test("npm run loot rolls a module file in place with a seed, and says what it ro
     }
     // --seed=N works as the browser's does.
     assert.equal(run(`--seed=9`, path).status, 0);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("a module from before treasure types (format 17) is refused by name and left unchanged", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "issue-240-format-"));
+  try {
+    const path = join(directory, "before-loot.json");
+    const bytes = JSON.stringify({
+      ...moduleFile("lintel-barrow"),
+      formatVersion: 17,
+    });
+    await writeFile(path, bytes);
+    await assert.rejects(loadFifthAdventure(path), {
+      message:
+        /before-loot\.json is a 5e adventure module in format version 17, not 18\. Move it aside/,
+    });
+    assert.equal(await readFile(path, "utf8"), bytes);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

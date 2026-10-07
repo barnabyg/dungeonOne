@@ -334,7 +334,7 @@ reason, the history stays readable, and reloading shows the same ending.
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 17. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 18. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 7, or author a one-off stat block inline.
 
