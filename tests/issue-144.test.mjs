@@ -6,7 +6,6 @@
 // gate's one-hit-kill measure counts it.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { gateAdventure, oneHitKillChance } from "../dist/balance-5e.js";
 import { act, startEncounter } from "../dist/encounter-5e.js";
 import { equipmentProfile } from "../dist/equipment-5e.js";
@@ -28,6 +27,7 @@ import {
   barrowFile,
 } from "./fixtures/armoury-barrow.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import { loneGoblin } from "./fixtures/modules.mjs";
 
 /** Returns the queued [sides, value] pairs in order, checking each die's sides. */
 function dice(...queue) {
@@ -182,8 +182,6 @@ test("the engine counts a 1 or 2 on each damage die as 3 with Great Weapon Fight
   assert.equal(unstyled.greatWeaponFighting, undefined);
 });
 
-const adventures = await loadBuiltInFifthAdventures();
-const cellarGoblin = adventures.find(({ id }) => id === "cellar-goblin");
 const DICE = [
   [6, 6, 4, 1],
   [4, 4, 4, 1],
@@ -240,7 +238,7 @@ test("a Fighter with Great Weapon Fighting and a found longsword in both hands a
     undefined,
   );
 
-  const runtime = createFifthRuntime(cellarGoblin, sheet);
+  const runtime = createFifthRuntime(loneGoblin, sheet);
   const begun = runtime.handleAction(
     runtime.createSession(),
     { type: "begin" },
@@ -267,7 +265,7 @@ test("a Fighter with Great Weapon Fighting and a found longsword in both hands a
 test("Two-Weapon Fighting's extra attack adds the modifier in the fight, and the bar says when the bonus action is spent", () => {
   const twin = (fightingStyle) => {
     const runtime = createFifthRuntime(
-      cellarGoblin,
+      loneGoblin,
       ada({ fightingStyle, kit: "two-daggers" }),
     );
     const begun = runtime.handleAction(
@@ -315,7 +313,7 @@ test("Two-Weapon Fighting's extra attack adds the modifier in the fight, and the
     masteries: ["mace", "shortsword", "longsword"],
   });
   const runtime = createFifthRuntime(
-    cellarGoblin,
+    loneGoblin,
     validateFighter({ ...unnicked, xp: 300, level: 2 }),
   );
   let state = runtime.handleAction(
