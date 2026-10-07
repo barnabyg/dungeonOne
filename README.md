@@ -149,6 +149,11 @@ deleted. Creation needs no OpenAI key.
 - _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`): two rooms with a
   Goblin Warrior carrying a Pouch of Old Coins (2 gp 5 sp), a Silver Torc
   hidden under the bier and a way out.
+- _The Silvervein Mine_ (`adventures/5e/silvervein-mine.json`, levels 2–3):
+  six rooms in an old silver mine. Two kobolds in the sorting shed may flee or
+  surrender, and the one that surrenders gives up the key to the overseer's
+  door; drowned miners (a Zombie and a Skeleton), a Giant Spider and a Bugbear
+  overseer guard the rest of the silver.
 - _The Smugglers' Cellar_ (`adventures/5e/smugglers-cellar.json`): four rooms
   with a Goblin Warrior and a Potion of Healing hidden in a chest.
 - _The Tinker's Toll_ (`adventures/5e/tinkers-toll.json`): four rooms on a
@@ -395,7 +400,8 @@ These are for development, not play.
 - **Live release run.** `node scripts/qualify-release-live.mjs --live` (with
   `--max-calls`, default 160) plays the whole of The Abandoned Delve (seed 1443
   by default), or with `--adventure tinkers-toll` The Tinker's Toll with its
-  trades (seed 0), through the browser server, typing every step to the AI DM
+  trades (seed 0), or with `--adventure silvervein-mine` The Silvervein Mine
+  (seed 26) from a saved level-3 Ada, through the browser server, typing every step to the AI DM
   and pressing a step's button only when the DM's turn left it undone, and
   writes a turn-by-turn report (`src/release-run-5e.ts`); `--seed` changes the
   seed and `--dry-run` checks the harness offline.
