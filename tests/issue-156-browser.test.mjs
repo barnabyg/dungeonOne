@@ -2,7 +2,7 @@
 // an unavailable action disabled with its reason as visible text; after an
 // action, focus stays on the clicked control while it is enabled and
 // otherwise moves to the newest history entry. Played keyboard-only through
-// the Smugglers' Cellar at desktop and phone widths: pressing Enter again
+// the rat tunnels at desktop and phone widths: pressing Enter again
 // after an attack attacks again or does nothing, never drinking the potion
 // or leaving the room, and after the win focus is on the newest entry, on
 // screen.
@@ -13,12 +13,12 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { loadFifthAdventure } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { buildFighter, rollAbilitySet } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import { ratTunnels } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -28,11 +28,8 @@ const launch = () =>
       : { headless: true },
   );
 
-// The Smugglers' Cellar as it was before #207, with its Giant Rat fight; the
-// server offers it in place of the built-in modules.
-const adventure = await loadFifthAdventure(
-  "tests/fixtures/smugglers-with-rat.json",
-);
+// The rat tunnels, with the Giant Rat's fight; the server offers only them.
+const adventure = ratTunnels;
 const FIXTURE_MODULES = { adventures: [adventure], qualifies: () => true };
 const DEFAULT_CHOICES = {
   placement: {
@@ -212,7 +209,7 @@ for (const viewport of [
   { width: 375, height: 812 },
 ]) {
   test(
-    `keyboard play: the action bar keeps focus safe in the Smugglers' Cellar (${viewport.width}px)`,
+    `keyboard play: the action bar keeps focus safe in the rat tunnels (${viewport.width}px)`,
     { timeout: 120000 },
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-156-"));
@@ -235,7 +232,7 @@ for (const viewport of [
         await page.locator("#save-character").click();
         await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
         await page
-          .locator('.start-adventure[data-adventure="smugglers-cellar"]')
+          .locator('.start-adventure[data-adventure="rat-tunnels"]')
           .click();
         await page.locator("#adventure").waitFor({ state: "visible" });
         await page.locator("#log li").first().waitFor();

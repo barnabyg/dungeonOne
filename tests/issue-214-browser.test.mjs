@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { ratlessTunnels } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -100,6 +101,7 @@ for (const viewport of [
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-214-"));
       const server = await startFifthBrowserServer({
+        adventures: [ratlessTunnels],
         libraryPath: join(directory, "characters.json"),
         seed: 0,
       });
@@ -107,7 +109,7 @@ for (const viewport of [
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(5000);
       try {
-        await start(page, server.url, "smugglers-cellar");
+        await start(page, server.url, "quiet-tunnels");
         const act = async (name) => {
           const count = await page.locator("#log li").count();
           await page.getByRole("button", { name, exact: true }).click();
