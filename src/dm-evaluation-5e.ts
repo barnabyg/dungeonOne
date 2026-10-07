@@ -1,5 +1,5 @@
 /**
- * The AI DM evaluation for 5e, played on The Abandoned Delve.
+ * The AI DM evaluation for 5e, played on The Abandoned Delve by default.
  *
  * Each case sets up a session with the fixed test Fighter from a seed and a
  * list of clicks, hands one typed message to the AI DM through the same
@@ -28,7 +28,6 @@ import { isDeepStrictEqual } from "node:util";
 import {
   loadBuiltInFifthAdventures,
   type FifthAdventure,
-  type FifthAdventureId,
 } from "./adventure-5e.js";
 import { FIFTH_DM_OFF_NOTICE } from "./browser-5e-page.js";
 import { startFifthBrowserServer } from "./browser-5e-server.js";
@@ -793,7 +792,7 @@ export function startDelveOverHttp(url: string): Promise<DelveSessionView> {
  */
 export async function startAdventureOverHttp(
   url: string,
-  adventureId: FifthAdventureId,
+  adventureId: string,
 ): Promise<DelveSessionView> {
   type Library = Readonly<{
     revision: string;
@@ -823,17 +822,28 @@ export async function startAdventureOverHttp(
 
 /**
  * Starts a browser server with no AI DM and checks that a typed message is
- * refused with the player notice, changing nothing.
+ * refused with the player notice, changing nothing. The server offers only
+ * `adventure`, gate or no gate, and starts it; without one, it offers the
+ * built-in modules and starts the delve.
  */
-export async function checkDmOffRefusal(): Promise<boolean> {
+export async function checkDmOffRefusal(
+  adventure?: FifthAdventure,
+): Promise<boolean> {
   const directory = await mkdtemp(join(tmpdir(), "dungeon-one-dm-off-"));
   const server = await startFifthBrowserServer({
     libraryPath: join(directory, "characters.json"),
     seed: 0,
     apiKey: "",
+    // The check is of the refusal, not the balance gate.
+    ...(adventure === undefined
+      ? {}
+      : { adventures: [adventure], qualifies: () => true }),
   });
   try {
-    const started = await startDelveOverHttp(server.url);
+    const started = await startAdventureOverHttp(
+      server.url,
+      adventure?.id ?? FIFTH_DM_EVALUATION_ADVENTURE,
+    );
     const refused = await postToServer<{ error?: string }>(
       server.url,
       "/api/5e/session/message",
@@ -866,6 +876,12 @@ export async function checkDmOffRefusal(): Promise<boolean> {
  * Runs every case `repetitions` times, each with a fresh model from
  * `createModel`, within `maxCalls` model responses in all. A run that would
  * exceed the budget fails rather than calling.
+ *
+ * The cases play `adventure`, The Abandoned Delve by default. A given
+ * adventure is also what the DM-off check starts, on a server that offers
+ * only it; by default that check runs on the default server, with every
+ * built-in module. `FIFTH_DM_CASES` are written for the delve, so give
+ * other `cases` with another adventure.
  */
 export async function runFifthDmEvaluation(options: {
   requestedModel: string;
@@ -873,6 +889,7 @@ export async function runFifthDmEvaluation(options: {
   createModel: (sample: FifthDmCase, repetition: number) => DmModel;
   maxCalls?: number;
   cases?: readonly FifthDmCase[];
+  adventure?: FifthAdventure;
   manualJudgments?: FifthManualJudgments;
   clock?: () => number;
 }): Promise<FifthDmEvaluationReport> {
@@ -883,9 +900,11 @@ export async function runFifthDmEvaluation(options: {
   const maxCalls =
     options.maxCalls ?? evaluationCallBudget(options.repetitions, cases);
   const clock = options.clock ?? Date.now;
-  const adventure = (await loadBuiltInFifthAdventures()).find(
-    ({ id }) => id === FIFTH_DM_EVALUATION_ADVENTURE,
-  )!;
+  const adventure =
+    options.adventure ??
+    (await loadBuiltInFifthAdventures()).find(
+      ({ id }) => id === FIFTH_DM_EVALUATION_ADVENTURE,
+    )!;
   const budget = createDmCallBudget(maxCalls);
   const runs: FifthDmRun[] = [];
   for (const sample of cases) {
@@ -1014,7 +1033,7 @@ export async function runFifthDmEvaluation(options: {
     missing: manual.filter((entry) => entry === "missing").length,
     complete: manual.every((entry) => entry !== "missing"),
   };
-  const dmOff = { refused: await checkDmOffRefusal() };
+  const dmOff = { refused: await checkDmOffRefusal(options.adventure) };
   return {
     kind: "dungeon-one-5e-dm-evaluation",
     formatVersion: FIFTH_DM_EVALUATION_FORMAT,

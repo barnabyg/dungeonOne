@@ -1,9 +1,13 @@
-// #138: the command-line adapter's test routes run on the 5e dungeon. Command
-// mode offers the action bar's choices (disabled ones with their reason); the
-// scripted DM route plays typed messages; a recorded trace replays exactly,
-// cards, grouped rolls and all; the live route needs --ai and OPENAI_API_KEY
-// and keeps to its call budget; and the DM evaluation and live qualification
-// cover interpretation, refusal and narration fidelity on the dungeon.
+// #138: the command-line adapter's test routes. Command mode offers the
+// action bar's choices (disabled ones with their reason); the scripted DM
+// route plays typed messages; a recorded trace replays exactly, cards,
+// grouped rolls and all; the live route needs --ai and OPENAI_API_KEY and
+// keeps to its call budget; and the DM evaluation scores interpretation,
+// refusal and narration fidelity within its call budget. Since #255 these
+// play fixture modules: the CLI through --adventure-file, the evaluation
+// through its `adventure` option with cases written for the fixture. The
+// shipped evaluation cases and the live qualification are content, tested
+// with the module they are written for.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -11,10 +15,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import {
   checkDmOffRefusal,
-  FIFTH_DM_CASES,
   offeredToolsMatchActions,
   runFifthDmEvaluation,
   scriptedCaseModel,
@@ -22,13 +24,13 @@ import {
 } from "../dist/dm-evaluation-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
+import { ratTunnels, sealedCrypt } from "./fixtures/modules.mjs";
 
 const cli = fileURLToPath(new URL("../dist/cli-5e.js", import.meta.url));
-const qualify = fileURLToPath(
-  new URL("../scripts/qualify-delve-live.mjs", import.meta.url),
+/** Doors (one stuck shut) and a zombie in the tomb, for the CLI's runs. */
+const cryptFile = fileURLToPath(
+  new URL("./fixtures/sealed-crypt.json", import.meta.url),
 );
-const adventures = await loadBuiltInFifthAdventures();
-const delve = adventures.find(({ id }) => id === "abandoned-delve");
 
 const withDirectory = async (work) => {
   const directory = await mkdtemp(join(tmpdir(), "issue-138-"));
@@ -53,21 +55,25 @@ const run = (args, lines = [], env = {}) =>
     timeout: 20000,
   });
 
+/** Runs the CLI on the sealed crypt fixture. */
+const runCrypt = (args, lines, env) =>
+  run(["--adventure-file", cryptFile, ...args], lines, env);
+
 const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
 
 test("command mode lists the action bar, disabled actions with their reason, and refuses typing without an AI DM", () => {
-  const result = run(["--seed", "0"], ["1", "Open the door", "4", "quit"]);
+  const result = runCrypt(["--seed", "0"], ["2", "Open the door", "4", "quit"]);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /The Abandoned Delve\. Seed 0\./);
+  assert.match(result.stdout, /The Sealed Crypt\. Seed 0\./);
   // The same choices as the browser's action bar, in its order.
-  const session = FifthSession.begin(0, delve, TEST_FIGHTER);
+  const session = FifthSession.begin(0, sealedCrypt, TEST_FIGHTER);
   const actions = session.runtime.projectActions(session.state);
   assert.match(
     result.stdout,
-    /1\. Go to Gate Hall\n {2}2\. Search Broken Gate/,
+    /1\. Go to Flooded Cell — Door shut\n {2}2\. Go to Hall of Niches/,
   );
-  assert.equal(actions[0].target.name, "Gate Hall");
-  assert.match(result.stdout, /4\. Go to Storeroom — Door shut/);
+  assert.equal(actions[1].target.name, "Hall of Niches");
+  assert.match(result.stdout, /4\. Go to Strongroom — Door shut/);
   assert.match(
     result.stdout,
     /Typing to the Dungeon Master is off\. Choose an action by its number\./,
@@ -75,17 +81,37 @@ test("command mode lists the action bar, disabled actions with their reason, and
   assert.match(result.stdout, /That action is not available: Door shut\./);
 });
 
+test("--adventure-file plays only the module it names, and names a file it cannot read", () =>
+  withDirectory(async (directory) => {
+    const both = run(["--adventure", "x", "--adventure-file", cryptFile]);
+    assert.equal(both.status, 2);
+    assert.match(
+      both.stderr,
+      /Choose --adventure or --adventure-file, not both\./,
+    );
+    const missing = join(directory, "missing.json");
+    const unread = run(["--adventure-file", missing, "--seed", "0"]);
+    assert.equal(unread.status, 1);
+    assert.match(unread.stderr, /missing\.json is not a readable adventure/);
+    const help = run(["--help"]);
+    assert.match(help.stdout, /--adventure-file <module\.json>/);
+  }));
+
 test("a recorded command-mode trace replays exactly", () =>
   withDirectory(async (directory) => {
     const trace = join(directory, "trace.json");
-    // Into the hall, to the guard post (its fight begins), attack the zombie.
-    const played = run(["--seed", "0", "--trace", trace], ["1", "2", "1"]);
+    // Into the hall, to the tomb (its fight begins), attack the zombie.
+    const played = runCrypt(["--seed", "0", "--trace", trace], ["2", "2", "1"]);
     assert.equal(played.status, 0, played.stderr);
-    assert.match(played.stdout, /\[Result\]\n {2}You enter the Guard Post\./);
+    assert.match(
+      played.stdout,
+      /\[Result\]\n {2}You enter the Warden's Tomb\./,
+    );
     assert.match(played.stdout, /Ada's initiative: d20 \d+ \+ 2 = \d+/);
     const recorded = await readJson(trace);
     assert.equal(recorded.kind, "dungeon-one-5e-trace");
     assert.equal(recorded.formatVersion, 15);
+    assert.equal(recorded.adventure.id, "sealed-crypt");
     assert.equal(recorded.turns.length, 3);
     // Each card keeps its lines and their rolls grouped by purpose.
     const purposes = recorded.turns[2].card.lines.flatMap(({ rolls }) =>
@@ -93,22 +119,31 @@ test("a recorded command-mode trace replays exactly", () =>
     );
     assert.ok(purposes.includes("attack"), JSON.stringify(purposes));
 
-    const replayed = run(["--replay", trace]);
+    const replayed = runCrypt(["--replay", trace]);
     assert.equal(replayed.status, 0, replayed.stderr);
     assert.match(replayed.stdout, /Trace verified: .* \(3 turns, playing\)\./);
+    // Replay finds the module only in the file it is given.
+    const elsewhere = run([
+      "--replay",
+      trace,
+      "--adventure-file",
+      fileURLToPath(new URL("./fixtures/rat-tunnels.json", import.meta.url)),
+    ]);
+    assert.equal(elsewhere.status, 1);
+    assert.match(elsewhere.stderr, /recorded in sealed-crypt/);
   }));
 
 test("replay names the first turn whose card, rolls, state or dice stream differ", () =>
   withDirectory(async (directory) => {
     const trace = join(directory, "trace.json");
-    run(["--seed", "0", "--trace", trace], ["1", "2", "1"]);
+    runCrypt(["--seed", "0", "--trace", trace], ["2", "2", "1"]);
     const original = await readJson(trace);
     const tampered = async (change, expected) => {
       const copy = structuredClone(original);
       change(copy);
       const path = join(directory, "tampered.json");
       await writeFile(path, JSON.stringify(copy));
-      const result = run(["--replay", path]);
+      const result = runCrypt(["--replay", path]);
       assert.equal(result.status, 1);
       assert.match(result.stderr, expected);
     };
@@ -138,12 +173,12 @@ test("replay names the first turn whose card, rolls, state or dice stream differ
 test("a trace in another format version is refused and left unchanged", () =>
   withDirectory(async (directory) => {
     const trace = join(directory, "trace.json");
-    run(["--seed", "0", "--trace", trace], ["1"]);
+    runCrypt(["--seed", "0", "--trace", trace], ["2"]);
     const copy = await readJson(trace);
     copy.formatVersion = 2;
     const bytes = JSON.stringify(copy);
     await writeFile(trace, bytes);
-    const result = run(["--replay", trace]);
+    const result = runCrypt(["--replay", trace]);
     assert.equal(result.status, 1);
     assert.match(
       result.stderr,
@@ -162,19 +197,19 @@ test("the scripted DM route plays typed messages, and their trace replays exactl
       script,
       JSON.stringify([
         // The engine writes the reply to an action, so no narration follows.
-        call("c1", "move", { destination: "gate-hall" }),
-        call("c2", "attack", { target: "zombie" }),
+        call("c1", "move", { destination: "hall" }),
+        call("c2", "attack", { target: "risen-warden" }),
         { text: "Which do you mean?" },
       ]),
     );
     const trace = join(directory, "trace.json");
-    const played = run(
+    const played = runCrypt(
       ["--seed", "0", "--trace", trace],
       ["Go into the hall.", "2", "Hit the zombie.", "Do the thing."],
       { DUNGEON_ONE_TEST_DM_SCRIPT: script },
     );
     assert.equal(played.status, 0, played.stderr);
-    assert.match(played.stdout, /You enter the Gate Hall\./);
+    assert.match(played.stdout, /You enter the Hall of Niches\./);
     assert.match(played.stdout, /Ada's attack/);
     const recorded = await readJson(trace);
     assert.deepEqual(
@@ -188,20 +223,20 @@ test("the scripted DM route plays typed messages, and their trace replays exactl
     assert.equal(recorded.turns[3].calls.length, 0);
     assert.equal(recorded.turns[3].entry.reply, "Which do you mean?");
 
-    assert.equal(run(["--replay", trace]).status, 0);
+    assert.equal(runCrypt(["--replay", trace]).status, 0);
     // A different recorded response replays to a different turn.
     attack.responses[0].response.toolCalls[0].argumentsJson = JSON.stringify({
       target: "nobody",
     });
     await writeFile(trace, JSON.stringify(recorded));
-    const result = run(["--replay", trace]);
+    const result = runCrypt(["--replay", trace]);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /diverged at turn 3/);
   }));
 
 test("the live route needs --ai and OPENAI_API_KEY, and never plays a script instead", () =>
   withDirectory(async (directory) => {
-    const noKey = run(["--ai", "--seed", "0"], ["quit"]);
+    const noKey = runCrypt(["--ai", "--seed", "0"], ["quit"]);
     assert.equal(noKey.status, 2);
     assert.match(noKey.stderr, /OPENAI_API_KEY is required for --ai\./);
     for (const args of [
@@ -222,7 +257,7 @@ test("the live route needs --ai and OPENAI_API_KEY, and never plays a script ins
     // A scripted DM never stands in for the live one.
     const script = join(directory, "dm.json");
     await writeFile(script, JSON.stringify([{ text: "Hello." }]));
-    const mixed = run(["--ai", "--seed", "0"], ["Hello?"], {
+    const mixed = runCrypt(["--ai", "--seed", "0"], ["Hello?"], {
       OPENAI_API_KEY: "sk-test",
       DUNGEON_ONE_TEST_DM_SCRIPT: script,
     });
@@ -230,55 +265,99 @@ test("the live route needs --ai and OPENAI_API_KEY, and never plays a script ins
     assert.match(mixed.stderr, /unset DUNGEON_ONE_TEST_DM_SCRIPT/);
   }));
 
-test("the DM evaluation covers interpretation, refusal and narration fidelity on the dungeon", () => {
-  assert.deepEqual(
-    [...new Set(FIFTH_DM_CASES.map(({ kind }) => kind))].sort(),
-    ["interpretation", "narration-fidelity", "refusal"],
-  );
-  const dimensions = new Set(FIFTH_DM_CASES.flatMap((c) => c.dimensions));
-  for (const dimension of [
-    "clear-accuracy",
-    "synonym-accuracy",
-    "navigation-accuracy",
-    "target-accuracy",
-    "status-accuracy",
-    "compound-mutation-budget",
-    "ambiguous-clarification",
-    "refusal",
-    "narration-fidelity",
-  ]) {
-    assert.ok(dimensions.has(dimension), dimension);
-  }
-  assert.equal(
-    new Set(FIFTH_DM_CASES.map(({ id }) => id)).size,
-    FIFTH_DM_CASES.length,
-  );
+// DM evaluation cases written for the rat tunnels, a level-1 module the test
+// Fighter can win a fight in, so the evaluation's plumbing is tested apart
+// from the shipped cases.
+const toolCall = (id, name, args = {}) => ({
+  toolCalls: [{ id: `${id}-call`, name, argumentsJson: JSON.stringify(args) }],
 });
+const actionCase = ({ id, name, arguments: args, ...rest }) => ({
+  id,
+  kind: "interpretation",
+  manualJudgments: [],
+  ...rest,
+  expectation: { kind: "action", name, arguments: args },
+  scripted: [toolCall(id, name, args), { text: "So it is done." }],
+});
+const toCellar = [{ type: "move", destinationId: "rat-cellar" }];
+const TUNNEL_CASES = [
+  actionCase({
+    id: "clear-move",
+    seed: 0,
+    setup: [],
+    playerInput: "Go down to the cellar.",
+    name: "move",
+    arguments: { destination: "rat-cellar" },
+    dimensions: ["clear-accuracy"],
+  }),
+  actionCase({
+    id: "clear-attack",
+    seed: 0,
+    setup: toCellar,
+    playerInput: "Attack the rat.",
+    name: "attack",
+    arguments: { target: "giant-rat" },
+    dimensions: ["clear-accuracy"],
+  }),
+  actionCase({
+    id: "synonym-search-body",
+    seed: 0,
+    setup: [...toCellar, { type: "win-fight" }],
+    playerInput: "Poke at the dead rat.",
+    name: "examine",
+    arguments: { target: "giant-rat" },
+    dimensions: ["synonym-accuracy"],
+  }),
+  {
+    id: "impossible-request",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput: "I fly back up the stair and out into the sun.",
+    expectation: { kind: "no-action" },
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: ["no-fabricated-outcomes"],
+    scripted: [{ text: "You can't do that here." }],
+  },
+  {
+    id: "status-health",
+    kind: "interpretation",
+    seed: 0,
+    setup: [],
+    playerInput: "How am I holding up?",
+    expectation: { kind: "read", name: "get_character_status" },
+    dimensions: ["status-accuracy", "narration-fidelity"],
+    manualJudgments: [],
+    scripted: [
+      toolCall("status-health", "get_character_status"),
+      { text: "You are unhurt." },
+    ],
+  },
+];
 
-test("every case's setup offers the AI DM exactly the enabled actions", () => {
-  for (const sample of FIFTH_DM_CASES) {
-    const session = setUpCase(sample, delve);
-    const ended = [
-      "after-the-ending",
-      "after-a-defeat",
-      "status-after-the-ending",
-    ];
-    assert.equal(
-      session.state.status === "playing",
-      !ended.includes(sample.id),
-      sample.id,
-    );
+/** The evaluation over the tunnel cases. */
+const evaluate = (options) =>
+  runFifthDmEvaluation({
+    repetitions: 1,
+    adventure: ratTunnels,
+    cases: TUNNEL_CASES,
+    ...options,
+  });
+
+test("every case's setup, a won fight included, offers the AI DM exactly the enabled actions", () => {
+  for (const sample of TUNNEL_CASES) {
+    const session = setUpCase(sample, ratTunnels);
+    assert.equal(session.state.status, "playing", sample.id);
     assert.ok(offeredToolsMatchActions(session), sample.id);
   }
 });
 
 test("a correct scripted DM passes every automated check, and the DM-off notice is checked", async () => {
-  const report = await runFifthDmEvaluation({
+  const report = await evaluate({
     requestedModel: "scripted",
-    repetitions: 1,
     createModel: (sample) => scriptedCaseModel(sample),
     manualJudgments: Object.fromEntries(
-      FIFTH_DM_CASES.map((sample) => [
+      TUNNEL_CASES.map((sample) => [
         sample.id,
         {
           1: Object.fromEntries(sample.manualJudgments.map((id) => [id, true])),
@@ -286,6 +365,8 @@ test("a correct scripted DM passes every automated check, and the DM-off notice 
       ]),
     ),
   });
+  assert.equal(report.adventureId, "rat-tunnels");
+  assert.equal(report.runs.length, TUNNEL_CASES.length);
   for (const run of report.runs) {
     assert.ok(Object.values(run.checks).every(Boolean), run.caseId);
   }
@@ -320,9 +401,8 @@ test("a DM that acts unasked fails refusal and safety", async () => {
       };
     },
   });
-  const report = await runFifthDmEvaluation({
+  const report = await evaluate({
     requestedModel: "reckless",
-    repetitions: 1,
     createModel: reckless,
   });
   assert.equal(report.passed, false);
@@ -333,12 +413,11 @@ test("a DM that acts unasked fails refusal and safety", async () => {
 test("a DM that claims outcomes it never produced fails narration fidelity", async () => {
   const boaster = () => ({
     async respond() {
-      return { text: "You hit the zombie for 12 damage and find the key." };
+      return { text: "You hit the rat for 12 damage and find the key." };
     },
   });
-  const report = await runFifthDmEvaluation({
+  const report = await evaluate({
     requestedModel: "boaster",
-    repetitions: 1,
     createModel: boaster,
   });
   assert.equal(report.summary["narration-fidelity"].passed, 0);
@@ -346,11 +425,10 @@ test("a DM that claims outcomes it never produced fails narration fidelity", asy
 });
 
 test("the evaluation keeps to its call budget", async () => {
-  const report = await runFifthDmEvaluation({
+  const report = await evaluate({
     requestedModel: "scripted",
-    repetitions: 1,
     maxCalls: 3,
-    cases: FIFTH_DM_CASES.slice(0, 4),
+    cases: TUNNEL_CASES.slice(0, 4),
     createModel: (sample) => scriptedCaseModel(sample),
   });
   assert.equal(report.providerCalls, 3);
@@ -359,14 +437,14 @@ test("the evaluation keeps to its call budget", async () => {
 });
 
 test("a server without an AI DM refuses typed messages with the player notice", async () => {
-  assert.equal(await checkDmOffRefusal(), true);
+  assert.equal(await checkDmOffRefusal(ratTunnels), true);
 });
 
 test("the 5e DM evaluation calls the provider only with --live and a key", () => {
   const evalDm = fileURLToPath(
     new URL("../scripts/eval-dm.mjs", import.meta.url),
   );
-  const evaluate = (args, key = "") =>
+  const evaluateScript = (args, key = "") =>
     spawnSync(process.execPath, [evalDm, "--model", "m", ...args], {
       encoding: "utf8",
       env: { ...process.env, OPENAI_API_KEY: key },
@@ -376,71 +454,16 @@ test("the 5e DM evaluation calls the provider only with --live and a key", () =>
     ["--live", "--live"],
     ["--live", "--max-calls", "0"],
     // The pre-5e campaigns, and the option that chose them, are gone (#139).
-    ["--live", "--campaign", "abandoned-delve"],
+    ["--live", "--campaign", "any-campaign"],
   ]) {
-    const result = evaluate(args, "sk-test");
+    const result = evaluateScript(args, "sk-test");
     assert.equal(result.status, 2, args.join(" "));
     assert.match(result.stderr, /only with --live/);
   }
-  const noKey = evaluate(["--live"]);
+  const noKey = evaluateScript(["--live"]);
   assert.equal(noKey.status, 2);
   assert.match(noKey.stderr, /OPENAI_API_KEY is required/);
 });
-
-test("the live qualification runs only with --live and a key, and its dry run flags overclaims", () =>
-  withDirectory(async (directory) => {
-    const env = { ...process.env, OPENAI_API_KEY: "" };
-    for (const args of [
-      ["--dry-run", "--live"],
-      ["--dry-run", "--max-calls", "0"],
-      ["--dry-run", "--max-calls"],
-      ["--dry-run", "report.json"],
-    ]) {
-      const refused = spawnSync(process.execPath, [qualify, ...args], {
-        encoding: "utf8",
-        env,
-      });
-      assert.equal(refused.status, 2, args.join(" "));
-    }
-    const bare = spawnSync(process.execPath, [qualify], {
-      encoding: "utf8",
-      env,
-    });
-    assert.equal(bare.status, 2);
-    const noKey = spawnSync(process.execPath, [qualify, "--live"], {
-      encoding: "utf8",
-      env,
-    });
-    assert.equal(noKey.status, 2);
-    assert.match(noKey.stderr, /OPENAI_API_KEY is required for --live/);
-
-    const output = join(directory, "report.json");
-    const dry = spawnSync(
-      process.execPath,
-      [qualify, "--dry-run", "--output", output, "--max-calls", "5"],
-      {
-        encoding: "utf8",
-        env,
-        timeout: 20000,
-      },
-    );
-    assert.equal(dry.status, 0, dry.stderr);
-    const report = await readJson(output);
-    assert.equal(report.adventureId, "abandoned-delve");
-    assert.equal(report.maxProviderCalls, 5);
-    assert.ok(report.providerCalls <= 5);
-    assert.deepEqual(
-      [...new Set(report.turns.map(({ kind }) => kind))].sort(),
-      ["interpretation", "narration-fidelity", "refusal"],
-    );
-    // One call a turn: the first five overclaim and are flagged; after the
-    // budget is spent, each turn gets the engine's safe fallback.
-    assert.equal(report.providerCalls, 5);
-    assert.deepEqual(
-      report.turns.map(({ reviewClaim }) => reviewClaim),
-      [true, true, true, true, true, false, false, false, false, false],
-    );
-  }));
 
 test("a DM call budget stops every model it limits once spent", async () => {
   const { createDmCallBudget } = await import("../dist/dm-turn.js");
