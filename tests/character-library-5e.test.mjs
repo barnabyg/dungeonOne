@@ -40,7 +40,7 @@ test("a pending creation is saved before it is returned and never changes", asyn
     assert.equal((await library.read()).pendingCreation, undefined);
     const started = await library.startCreation();
     const stored = JSON.parse(await readFile(path, "utf8"));
-    assert.equal(stored.formatVersion, 8);
+    assert.equal(stored.formatVersion, 9);
     assert.deepEqual(stored.pendingCreation, started.pendingCreation);
     assert.equal(started.pendingCreation.dice.length, 6);
     const bytes = await readFile(path);
@@ -158,9 +158,9 @@ test("a pre-5e library is refused by name and left byte-identical", async () => 
 
     await writeFile(
       path,
-      JSON.stringify({ ...JSON.parse(before), formatVersion: 9 }),
+      JSON.stringify({ ...JSON.parse(before), formatVersion: 10 }),
     );
-    await assert.rejects(library.read(), /format version 9.*Move it aside/);
+    await assert.rejects(library.read(), /format version 10.*Move it aside/);
     // A library from #127's build, before adventure sessions.
     const earlier = JSON.stringify({
       kind: "dungeon-one-characters",

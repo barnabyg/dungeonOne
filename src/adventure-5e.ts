@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 15) and its validator.
+ * The 5e adventure module format (format version 16) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -20,7 +20,11 @@
  * Treasure, coin and gear are items hidden in a feature or carried by an
  * opponent, so they are only ever found by examining: the feature, or the
  * opponent's body once its fight is won. Coin is authored in gold, silver and
- * copper pieces; gear names a catalogue weapon, armour or shield. A room may be an exit, where the player can choose to leave: the
+ * copper pieces; gear names a catalogue weapon, armour or shield; treasure
+ * names a catalogue gem or art object (`treasure-5e.ts`), which sets its
+ * value. Everything findable (coin, gems, art objects, potions and gear) is
+ * held to the treasure budget for the module's maximum recommended level,
+ * and each item's tier must be allowed at that level (#239). A room may be an exit, where the player can choose to leave: the
  * adventure then ends in its escape-with-loot ending when the character
  * carries treasure or found coin, and its escape-without-loot ending otherwise. A victory
  * or escape ending may award XP, on top of each won encounter's stat-block XP.
@@ -36,14 +40,29 @@ import type { CheckSpec } from "./checks-5e.js";
 import type { Combatant, DamageDefenses, DamageType } from "./encounter-5e.js";
 import {
   COIN_VALUES,
+  coinsInCopper,
+  formatCoins,
   isItemId,
+  itemName,
+  itemPrice,
   itemTier,
-  POTION_WEIGHT,
   TREASURE_WEIGHT,
   type Coin,
   type Coins,
   type ItemId,
+  type Tier,
 } from "./equipment-5e.js";
+import {
+  isTradeGoodId,
+  POTIONS,
+  tierAllowed,
+  TRADE_GOOD_TIER,
+  tradeGoodValue,
+  treasureBudget,
+  TIER_MIN_LEVEL,
+  type PotionId,
+  type TradeGoodId,
+} from "./treasure-5e.js";
 import {
   ABILITIES,
   FIGHTER_SKILLS,
@@ -74,7 +93,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 15;
+export const FIFTH_ADVENTURE_FORMAT = 16;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -124,7 +143,7 @@ export type FifthFeature = Readonly<{
 }>;
 
 /**
- * What each kind of item does: the SRD 5.2 Potion of Healing heals, a key
+ * What each kind of item does: the SRD 5.2 healing potions heal, a key
  * opens the locked doors that name it, treasure is kept on surviving, coin
  * goes into the purse as it is taken, and gear (a catalogue weapon, armour or
  * shield) is stowed as it is taken, ready to equip. A carried item weighs
@@ -132,10 +151,7 @@ export type FifthFeature = Readonly<{
  * and the gear they become weigh.
  */
 export const ITEM_KINDS = {
-  "potion-of-healing": {
-    healing: { dice: 2, sides: 4, modifier: 2 },
-    weight: POTION_WEIGHT,
-  },
+  ...POTIONS,
   key: { weight: 0 },
   treasure: { weight: TREASURE_WEIGHT },
   coin: { weight: 0 },
@@ -169,6 +185,8 @@ export type FifthItem = Readonly<{
   coins?: Coins;
   /** The catalogue weapon, armour or shield it is; present exactly on gear. */
   gear?: ItemId;
+  /** The catalogue gem or art object it is; present exactly on treasure. */
+  treasure?: TradeGoodId;
   /** The feature it is hidden in, or the opponent carrying it. */
   hiddenIn?: string;
 }>;
@@ -305,6 +323,62 @@ export type FifthAdventure = Readonly<{
   encounters: readonly FifthEncounter[];
   endings: readonly FifthEnding[];
 }>;
+
+/**
+ * What a placed item is worth toward the treasure budget, in copper: coin's
+ * amount, a gem or art object's value, a potion's value and gear's price.
+ * A key is worth nothing.
+ */
+export function itemValue(item: FifthItem): number {
+  if (item.coins !== undefined) {
+    return coinsInCopper(item.coins);
+  }
+  if (item.treasure !== undefined) {
+    return tradeGoodValue(item.treasure);
+  }
+  if (item.gear !== undefined) {
+    return itemPrice(item.gear);
+  }
+  return isPotionKind(item.kind) ? POTIONS[item.kind].value : 0;
+}
+
+/** Whether an item kind is one of the catalogue's potions. */
+function isPotionKind(kind: ItemKind): kind is PotionId {
+  return Object.hasOwn(POTIONS, kind);
+}
+
+/** A placed item as the validator names it: its catalogue gear or potion, or its own name. */
+function catalogueName(item: FifthItem): string {
+  return item.gear !== undefined
+    ? itemName(item.gear).toLowerCase()
+    : isPotionKind(item.kind)
+      ? POTIONS[item.kind].name
+      : item.name;
+}
+
+/** A placed item's availability tier; a key and coin have none. */
+function findableTier(item: FifthItem): Tier | undefined {
+  if (item.gear !== undefined) {
+    return itemTier(item.gear);
+  }
+  if (item.treasure !== undefined) {
+    return TRADE_GOOD_TIER;
+  }
+  return isPotionKind(item.kind) ? POTIONS[item.kind].tier : undefined;
+}
+
+/**
+ * Everything a module hides to find, in copper (#239): its coin, gems, art
+ * objects, potions and gear. The validator holds it to the budget for the
+ * module's maximum recommended level.
+ */
+export function findableValue(
+  adventure: Pick<FifthAdventure, "rooms">,
+): number {
+  return adventure.rooms
+    .flatMap(({ items }) => items)
+    .reduce((sum, item) => sum + itemValue(item), 0);
+}
 
 /** An amount of coin: some gold, silver or copper pieces, at least one. */
 function coins(value: unknown, where: string): Coins {
@@ -734,7 +808,7 @@ function validateModule(
         const item = knownKeys(
           raw,
           ["id", "name", "description", "kind"],
-          ["coins", "gear", "hiddenIn"],
+          ["coins", "gear", "treasure", "hiddenIn"],
           at,
         );
         if (!Object.hasOwn(ITEM_KINDS, item.kind as string)) {
@@ -764,6 +838,14 @@ function validateModule(
         if (item.kind !== "gear" && item.gear !== undefined) {
           fail(`${at} has gear, but only gear has gear.`);
         }
+        if (item.kind === "treasure" && !isTradeGoodId(item.treasure)) {
+          fail(
+            `${at} is treasure, so it needs treasure: a catalogue gem or art object.`,
+          );
+        }
+        if (item.kind !== "treasure" && item.treasure !== undefined) {
+          fail(`${at} has treasure, but only treasure has treasure.`);
+        }
         // An opponent of this room's fight may carry it: searching its body
         // once the fight is won finds it.
         const fight = encounters.find(
@@ -792,7 +874,7 @@ function validateModule(
             );
           }
         }
-        return {
+        const placed = {
           id: id(item.id, `${at} id`),
           name: text(item.name, `${at} name`, 60),
           description: text(item.description, `${at} description`),
@@ -801,10 +883,25 @@ function validateModule(
             ? {}
             : { coins: coins(item.coins, `${at} coins`) }),
           ...(item.gear === undefined ? {} : { gear: item.gear as ItemId }),
+          ...(item.treasure === undefined
+            ? {}
+            : { treasure: item.treasure as TradeGoodId }),
           ...(item.hiddenIn === undefined
             ? {}
             : { hiddenIn: item.hiddenIn as string }),
         };
+        const tier = findableTier(placed);
+        if (tier !== undefined && !tierAllowed(tier, max)) {
+          const from = TIER_MIN_LEVEL[tier];
+          fail(
+            `module ${moduleId} ${at} (${placed.id}) is the ${tier} ${catalogueName(placed)}, but ${
+              from === undefined
+                ? `no ${tier} treasure is found yet.`
+                : `${tier} treasure is found only in modules for level ${from} and up.`
+            }`,
+          );
+        }
+        return placed;
       },
     );
     const creatures = (
@@ -846,6 +943,13 @@ function validateModule(
     };
   });
   const roomIds = unique(rooms, "room");
+  const worth = findableValue({ rooms });
+  const budget = treasureBudget(max);
+  if (worth > budget) {
+    fail(
+      `module ${moduleId}: its findable treasure is worth ${formatCoins(worth)}, ${formatCoins(worth - budget)} over the ${formatCoins(budget)} budget for level ${max}.`,
+    );
+  }
   if (!roomIds.has(module.startRoomId as string)) {
     fail(`startRoomId names unknown room ${String(module.startRoomId)}.`);
   }

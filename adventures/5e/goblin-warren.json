@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 15,
+  "formatVersion": 16,
   "id": "goblin-warren",
   "title": "The Goblin Warren",
   "objective": "Fight through the goblin warren to the boss's hall, take its hoard, and get back out alive. Leave by the gate when you are ready.",
@@ -83,6 +83,7 @@
           "name": "Silver Chain of Office",
           "description": "A heavy silver chain the boss wore as a badge of rank.",
           "kind": "treasure",
+          "treasure": "art-25gp",
           "hiddenIn": "goblin-boss"
         }
       ]

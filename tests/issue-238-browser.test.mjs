@@ -154,7 +154,10 @@ test(
           `Defeated ${names.join(" and ")}; spared the ${captiveName}: \\+${fightXp} XP\\n`,
         ),
       );
-      assert.match(ending, new RegExp(`Treasure kept\\n${ringName}\\.`));
+      assert.match(
+        ending,
+        new RegExp(`Treasure kept\\n${ringName} \\(25 gp\\)\\.`),
+      );
 
       // Storage: the ring is kept and found once; all the XP is credited.
       const xp = fightXp + 250;

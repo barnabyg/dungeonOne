@@ -33,8 +33,9 @@
  * settles the character: what it holds at the end, and what it earned.
  *
  * Outside a fight, where a merchant is, the character buys what it stocks at
- * catalogue prices and sells catalogue gear for half; each trade takes the
- * merchant's authored minutes. Equipped gear is sold only when the sale says
+ * catalogue prices, sells catalogue gear for half, and sells gems and art
+ * objects (treasure found here or brought in) for their full value (#239);
+ * each trade takes the merchant's authored minutes. Equipped gear is sold only when the sale says
  * so (the browser asks the player first).
  *
  * The AI DM reads with `look` and `get_character_status`, and acts with
@@ -130,12 +131,14 @@ import {
   type TradeRefusalCode,
   type WeaponData,
 } from "./equipment-5e.js";
+import { tradeGoodValue } from "./treasure-5e.js";
 import {
   fighterProfile,
   type Carrying,
   type FighterSheet,
   possessionsOf,
   type Possessions,
+  type TreasureRecord,
   type Settlement,
   type XpAward,
 } from "./fighter-5e.js";
@@ -154,7 +157,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v13";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v14";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -243,6 +246,12 @@ export type FifthAction =
   | Readonly<{ type: GearAction; itemId: string }>
   /** Buying from the merchant here, by catalogue id. */
   | Readonly<{ type: "buy"; itemId: string }>
+  /**
+   * Selling a gem or art object to the merchant here for its full value: a
+   * treasure found here, by its item id, or one brought in, by its record id
+   * (`adventure/item`).
+   */
+  | Readonly<{ type: "sell-treasure"; itemId: string }>
   /**
    * Selling to the merchant here, by catalogue id: a stowed one, or with
    * `equipped`, confirmed by the player, the one equipped.
@@ -364,10 +373,13 @@ const TARGET_TOOLS = {
     action: (offer: string): FifthAction => {
       const [deal, itemId = ""] = offer.split(":", 2);
       // Never equipped gear: the player confirms that sale in the panel.
-      // Anything but buy: or sell: is a purchase of nothing, refused.
+      // Anything but buy:, sell: or sell-treasure: is a purchase of nothing,
+      // refused.
       return deal === "sell"
         ? { type: "sell", itemId }
-        : { type: "buy", itemId: deal === "buy" ? itemId : "" };
+        : deal === "sell-treasure"
+          ? { type: "sell-treasure", itemId }
+          : { type: "buy", itemId: deal === "buy" ? itemId : "" };
     },
   },
 } as const satisfies Partial<
@@ -409,6 +421,7 @@ export type FifthEvent =
     }>
   | GearEvent
   | TradeEvent
+  | TreasureSaleEvent
   /** A check or saving throw the character made. */
   | Readonly<{ type: "check"; roll: CheckRoll }>
   | Readonly<{
@@ -526,6 +539,20 @@ export type TradeEvent = Readonly<{
   }>;
 }>;
 
+/** A gem or art object sold to a merchant for its full value (#239). */
+export type TreasureSaleEvent = Readonly<{
+  type: "sold-treasure";
+  /** The item id of a treasure found here, or the record id of one brought in. */
+  item: string;
+  name: string;
+  merchant: string;
+  /** Copper received. */
+  price: number;
+  /** Copper in the purse afterwards. */
+  purse: number;
+  minutes: number;
+}>;
+
 /**
  * Why the engine refuses an action. Code branches on `code`, which stays
  * stable; `reason` is the sentence rejection cards and the AI DM show.
@@ -590,7 +617,7 @@ Leaving the adventure is the player's own final choice, made with the Leave butt
 
 Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
 
-Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
+Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
 The character's own gear (its catalogue weapons, armour and shield) is named by its id. To put on armour or a shield, or take a second light weapon in the other hand, call equip; to take armour or a shield off or put a second weapon away, call unequip; to wield a different carried weapon in place of the ones held, call swap_weapon; to leave carried gear behind, call drop. Gear found is taken with take, like any item. The engine decides what the character can hold, how long armour takes to don and what the change does to its AC and attacks.
 
@@ -1057,6 +1084,8 @@ export function renderFifthEvent(
       return gearText(event);
     case "traded":
       return tradeText(event);
+    case "sold-treasure":
+      return `You sell the ${event.name.toLowerCase()} to ${event.merchant} for ${formatCoins(event.price)}. The trade takes ${minutes(event.minutes)}. Purse: ${formatCoins(event.purse)}.`;
     case "check":
       return checkText(event.roll);
     case "door":
@@ -1523,7 +1552,11 @@ export type RoomView = Readonly<{
       tradeMinutes?: number;
     }>)[];
   items: readonly Named[];
-  inventory: readonly Named[];
+  /**
+   * What the character carries besides its gear: the items taken here, then
+   * the treasure it brought in. A gem or art object shows its value.
+   */
+  inventory: readonly (Named & Readonly<{ value?: string }>)[];
   /** The coin the character holds, in mixed denominations, if it has any. */
   purse?: string;
   /** The character's gear as it stands, and the AC and attacks it gives. */
@@ -1568,6 +1601,8 @@ export type ActionKind =
   | "sell"
   /** Selling equipped gear, which the browser asks the player to confirm. */
   | "sell-equipped"
+  /** Selling a gem or art object for its full value. */
+  | "sell-treasure"
   | "leave";
 
 /**
@@ -1908,6 +1943,75 @@ export function createFifthRuntime(
     state.usedItemIds
       .map((id) => items.get(id)!)
       .filter((item) => item.kind === "coin");
+  /** The treasure found in this adventure and sold here (#239). */
+  const treasureSold = (state: FifthState): readonly FifthItem[] =>
+    state.usedItemIds
+      .map((id) => items.get(id)!)
+      .filter((item) => item.kind === "treasure");
+  /** A treasure found here as the record the sheet keeps, with its value. */
+  const treasureRecord = (item: FifthItem): TreasureRecord => ({
+    id: treasureId(item),
+    name: item.name,
+    description: item.description,
+    value: tradeGoodValue(item.treasure!),
+  });
+  /**
+   * The state after selling the treasure `itemId` names, with its name and
+   * value: one found here (it is used up, and stays found) or one brought in
+   * (it leaves the possessions). Undefined when no such treasure is carried.
+   */
+  const treasureSale = (
+    state: FifthState,
+    itemId: string,
+  ):
+    | Readonly<{ state: FifthState; name: string; price: number }>
+    | undefined => {
+    const found = carried(state).find(
+      (item) => item.id === itemId && item.kind === "treasure",
+    );
+    if (found !== undefined) {
+      return {
+        state: {
+          ...state,
+          inventory: state.inventory.filter((id) => id !== itemId),
+          usedItemIds: [...state.usedItemIds, itemId],
+        },
+        name: found.name,
+        price: tradeGoodValue(found.treasure!),
+      };
+    }
+    const held = state.possessions.treasure.find(({ id }) => id === itemId);
+    return held === undefined
+      ? undefined
+      : {
+          state: {
+            ...state,
+            possessions: {
+              ...state.possessions,
+              treasure: state.possessions.treasure.filter(
+                ({ id }) => id !== itemId,
+              ),
+            },
+          },
+          name: held.name,
+          price: held.value,
+        };
+  };
+  /** What the character carries besides its gear, as the room panel lists it. */
+  const carriedEntries = (state: FifthState) => [
+    ...carried(state).map((item) => ({
+      ...named(item),
+      ...(item.treasure === undefined
+        ? {}
+        : { value: formatCoins(tradeGoodValue(item.treasure)) }),
+    })),
+    ...state.possessions.treasure.map(({ id, name, description, value }) => ({
+      id,
+      name,
+      description,
+      value: formatCoins(value),
+    })),
+  ];
 
   /** How the opponent fled the encounter's won fight (#237), if it did. */
   const fledRecord = (
@@ -2441,7 +2545,8 @@ export function createFifthRuntime(
       case "unequip":
       case "swap":
       case "drop":
-      case "buy": {
+      case "buy":
+      case "sell-treasure": {
         const itemId = field("itemId");
         return itemId === undefined ? undefined : { type: action.type, itemId };
       }
@@ -3132,6 +3237,37 @@ export function createFifthRuntime(
         };
         return { state: next, events: [event] };
       }
+      case "sell-treasure": {
+        if (fighting(state)) {
+          return reject("fighting", "Not while you are fighting.");
+        }
+        const trader = merchantHere(state);
+        if (trader === undefined) {
+          return reject("no-merchant", "There is no one here to trade with.");
+        }
+        const sale = treasureSale(state, action.itemId);
+        if (sale === undefined) {
+          return reject("not-carried", "You don't carry that treasure.");
+        }
+        const purse = state.possessions.purse + sale.price;
+        return {
+          state: {
+            ...sale.state,
+            possessions: { ...sale.state.possessions, purse },
+          },
+          events: [
+            {
+              type: "sold-treasure",
+              item: action.itemId,
+              name: sale.name,
+              merchant: trader.name,
+              price: sale.price,
+              purse,
+              minutes: trader.merchant.minutes,
+            },
+          ],
+        };
+      }
       case "leave": {
         if (fighting(state)) {
           return reject(
@@ -3145,10 +3281,12 @@ export function createFifthRuntime(
         if (room(state).exit !== true) {
           return reject("not-an-exit", "There is no way out of here.");
         }
-        // Carrying any treasure, or coin found here, out is escaping with loot.
+        // Carrying any treasure, or coin found here, out is escaping with
+        // loot; so is selling treasure found here, whose coin goes out.
         const kind =
           carried(state).some((item) => LOOT_KINDS.includes(item.kind)) ||
-          coinFound(state).length > 0
+          coinFound(state).length > 0 ||
+          treasureSold(state).length > 0
             ? "escape-with-loot"
             : "escape-without-loot";
         const ending = adventure.endings.find(
@@ -3275,6 +3413,19 @@ export function createFifthRuntime(
             item(id),
           ),
         ),
+        // Gems and art objects, found here or brought in (#239).
+        ...carriedEntries(state)
+          .filter(({ value }) => value !== undefined)
+          .map(({ id, name }) =>
+            view(
+              "sell-treasure",
+              { type: "sell-treasure", itemId: id },
+              {
+                id,
+                name,
+              },
+            ),
+          ),
       ];
     };
     if (fighting(state)) {
@@ -3576,7 +3727,16 @@ export function createFifthRuntime(
         id,
         name: itemName(id),
       })),
-      collectedItems: carried(state).map(named),
+      collectedItems: carriedEntries(state).map(
+        ({ id, name, description, value }) => ({
+          id,
+          name,
+          description:
+            value === undefined
+              ? description
+              : `${description} Worth ${value}.`,
+        }),
+      ),
       purse: formatCoins(state.possessions.purse),
       carrying: `${formatWeight(weightOf(state))} of the ${formatWeight(capacity)} its Strength allows`,
       outcome: state.status,
@@ -3657,7 +3817,7 @@ export function createFifthRuntime(
             }),
       })),
       items: [...roomItems(state).map(named), ...droppedHere(state)],
-      inventory: carried(state).map(named),
+      inventory: carriedEntries(state),
       ...(state.possessions.purse === 0
         ? {}
         : { purse: formatCoins(state.possessions.purse) }),
@@ -3863,8 +4023,12 @@ export function createFifthRuntime(
             id: `sell:${id}`,
             name: `sell the ${name.toLowerCase()} for ${formatCoins(salePrice(id as ItemId))}`,
           })),
+          ...choices("sell-treasure").map(({ id, name }) => ({
+            id: `sell-treasure:${id}`,
+            name: `sell the ${name.toLowerCase()} for ${formatCoins(treasureSale(state, id)!.price)}`,
+          })),
         ],
-        "The offer: buy: or sell: and the item's id.",
+        "The offer: buy:, sell: or sell-treasure: and the item's id.",
       ),
       ...targetTool(
         "attack",
@@ -4027,11 +4191,7 @@ export function createFifthRuntime(
     ];
     const finds = carried(state)
       .filter((item) => item.kind === "treasure")
-      .map((item) => ({
-        id: treasureId(item),
-        name: item.name,
-        description: item.description,
-      }));
+      .map(treasureRecord);
     return {
       possessions: {
         ...state.possessions,
@@ -4039,6 +4199,7 @@ export function createFifthRuntime(
       },
       xp: awards.filter(({ id, xp }) => xp > 0 && !sheet.xpAwards.includes(id)),
       finds: finds.filter(({ id }) => !found.has(id)),
+      sold: treasureSold(state).map(treasureId),
       coin: coinFound(state).map((item) => ({
         id: treasureId(item),
         copper: coinsInCopper(item.coins!),
@@ -4057,7 +4218,7 @@ export function createFifthRuntime(
     rulesVersion: FIFTH_RULES_VERSION,
     promptVersion: FIFTH_PROMPT_VERSION,
     systemPrompt: FIFTH_DM_SYSTEM_PROMPT,
-    toolSchemaVersion: "5e-tools-v6",
+    toolSchemaVersion: "5e-tools-v7",
     readToolNames: ["look", "get_character_status"],
     mutationToolNames: MUTATION_TOOLS,
     adventure,

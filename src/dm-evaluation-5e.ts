@@ -520,6 +520,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   drop: "drop",
   buy: "trade",
   sell: "trade",
+  "sell-treasure": "trade",
   // Selling equipped gear is confirmed by the player in the panel.
   "sell-equipped": undefined,
   leave: undefined,

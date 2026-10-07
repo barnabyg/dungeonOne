@@ -33,7 +33,7 @@ Earned character progress awarded for authored accomplishments and used to deter
 _Avoid_: Story milestones, Player score
 
 **Treasure**:
-Items a character finds by examining something (such as a chest, or a defeated enemy's body), or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion. It is never simply awarded. Each treasure is found once per character: the character's ledger records it as a find, and it is never there to find again, even after the character no longer holds it. Treasure the character holds is one of its possessions. Treasure is named items with no price; coin found the same way is not treasure but goes into the purse.
+Items a character finds by examining something (such as a chest, or a defeated enemy's body), or is given by a named person, during an adventure. The engine decides what is there; it is kept only on surviving completion. It is never simply awarded. Each treasure is found once per character: the character's ledger records it as a find, and it is never there to find again, even after the character no longer holds it. Treasure the character holds is one of its possessions. Each treasure is a gem or art object with a value from the treasure catalogue, which a merchant pays in full; coin found the same way is not treasure but goes into the purse.
 _Avoid_: Reward XP, Drop
 
 **Coin**:
@@ -43,6 +43,10 @@ _Avoid_: Gold (for coin in general), Money
 **Purse**:
 The coin a character holds, one of its possessions, kept as a number of copper pieces and always shown in mixed denominations, largest first ("3 gp 4 sp"). A new character's purse is empty: there is no starting coin.
 _Avoid_: Wallet, Gold, Balance
+
+**Treasure budget**:
+The most an adventure module's findable treasure (coin, gems, art objects, potions and gear) may be worth, set by its maximum recommended level. Each item must also have a tier allowed at that level.
+_Avoid_: Loot table, Hoard
 
 **Possessions**:
 What a character holds: its equipment, its stowed gear, its treasure and its purse. An adventure starts holding them, and they change only there. Settling a victory or an escape replaces them with what the character holds at the end.
@@ -77,7 +81,7 @@ The SRD 5.2 Light property's one extra attack with a second light weapon after a
 _Avoid_: Extra Attack (the level-5 Fighter feature), Off-hand attack
 
 **Merchant**:
-A creature in a module that trades: it sells the catalogue gear it stocks at catalogue prices and buys carried gear at half price. Each trade takes its authored minutes. Merchants exist only inside adventures.
+A creature in a module that trades: it sells the catalogue gear it stocks at catalogue prices, buys carried gear at half price, and buys gems and art objects at their full value. Each trade takes its authored minutes. Merchants exist only inside adventures.
 _Avoid_: Shop, Market (there is none between adventures), Vendor
 
 **Trade**:

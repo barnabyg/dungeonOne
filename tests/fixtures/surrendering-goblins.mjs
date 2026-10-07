@@ -44,6 +44,7 @@ export const surrenderingGoblinsJson = {
             name: `Stolen Ring ${index + 1}`,
             description: "A thin silver ring, robbed from the barrow's dead.",
             kind: "treasure",
+            treasure: "art-25gp",
             hiddenIn: goblinId,
           })),
         }

@@ -395,6 +395,7 @@ const TORC = {
   id: "robbers-barrow/silver-torc",
   name: "Silver Torc",
   description: "A neck ring of twisted silver.",
+  value: 2500,
 };
 const AWARDS = [
   { id: "robbers-barrow/encounter/barrow-goblin", name: "Goblin", xp: 50 },
@@ -410,6 +411,7 @@ const settlement = (xp, finds = [], treasure = finds) => ({
   },
   xp,
   finds,
+  sold: [],
   coin: [],
   gear: [],
 });
@@ -480,7 +482,10 @@ test("reaching 900 XP raises a level 2 Fighter to 3 with the Champion's features
 test("validation rejects malformed treasure and repeated awards", () => {
   const sheet = fighter();
   for (const change of [
-    { treasure: [{ ...TORC, value: 5 }] },
+    { treasure: [{ ...TORC, price: 5 }] },
+    { treasure: [{ ...TORC, value: -1 }] },
+    { treasure: [{ ...TORC, value: 2.5 }] },
+    { treasure: [{ ...TORC, value: undefined }] },
     { treasure: [{ ...TORC, id: "torc" }] },
     { treasure: [TORC, TORC] },
     { treasure: "torc" },

@@ -206,7 +206,7 @@ test(
         ending,
         /Defeated the Wolf: \+50 XP\nDefeated Scarred Bandit and Young Bandit: \+50 XP\nBack with the takings: \+200 XP/,
       );
-      assert.match(ending, /Treasure kept\nSilver Toll Seal\./);
+      assert.match(ending, /Treasure kept\nSilver Toll Seal \(25 gp\)\./);
       assert.match(ending, /Coin found: 15 gp 5 sp\. Purse: 7 gp\./);
       assert.match(
         ending,
@@ -231,7 +231,7 @@ test(
         /^Level 2 Fighter · 300 XP \(level 3 at 900\) · Leather armour, Shield, Shortsword\n[\s\S]*HP: 22\/22\nAC: 15\n/u,
       );
       assert.match(sheet, /Shortsword: \+6 to hit, 1d6 \+ 4 piercing, Vex/);
-      assert.match(sheet, /Treasure\nSilver Toll Seal\./);
+      assert.match(sheet, /Treasure\nSilver Toll Seal \(25 gp\)\./);
       assert.match(sheet, /Purse\n7 gp\n/);
 
       // Buying and dropping gear, then abandoning, changes nothing.

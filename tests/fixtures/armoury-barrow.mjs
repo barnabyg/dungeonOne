@@ -1,6 +1,8 @@
 // The Robbers' Barrow with gear hidden behind the lintel at its mouth (#209),
 // found by examining the lintel before any fight: a longsword, a shield, a
-// greatsword and chain mail, or the longsword alone.
+// greatsword and chain mail, or the longsword alone. Uncommon gear is found
+// only in modules for level 3 and up (#239), so both copies are for levels
+// 1–3.
 import { readFile } from "node:fs/promises";
 import { validateModule } from "./bestiary.mjs";
 
@@ -24,7 +26,13 @@ const placed = (id, name, gear) => ({
 
 const LONGSWORD = placed("lintel-longsword", "Longsword", "longsword");
 
-export const armoury = structuredClone(barrowFile);
+/** The barrow for levels 1–3, so it may hide uncommon gear (#239). */
+const upToThree = () => ({
+  ...structuredClone(barrowFile),
+  recommendedLevels: { min: 1, max: 3 },
+});
+
+export const armoury = upToThree();
 room(armoury, "barrow-mouth").items.push(
   LONGSWORD,
   placed("lintel-shield", "Shield", "shield"),
@@ -38,6 +46,6 @@ export const armouryBarrow = validateModule(armoury);
  * The barrow with only the longsword behind the lintel: four revealed items
  * at once would overflow the phone action bar (#198).
  */
-const swordOnly = structuredClone(barrowFile);
+const swordOnly = upToThree();
 room(swordOnly, "barrow-mouth").items.push(LONGSWORD);
 export const longswordBarrow = validateModule(swordOnly);

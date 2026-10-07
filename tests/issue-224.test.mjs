@@ -213,6 +213,7 @@ room(laden, "barrow-mouth").items.push(
     name: "Silver Cup",
     description: "A dented silver cup.",
     kind: "treasure",
+    treasure: "art-25gp",
     hiddenIn: "scratched-lintel",
   },
 );

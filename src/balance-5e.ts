@@ -558,6 +558,7 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   buy: true,
   sell: true,
   "sell-equipped": true,
+  "sell-treasure": true,
   leave: true,
 };
 
