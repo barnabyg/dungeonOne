@@ -102,6 +102,9 @@ runs a click and checks that, and `explore(page, action, target)` and
 with the page's default choices (`FIGHTER_DEFAULT_CHOICES`) and placement
 (`defaultPlacement`); browser tests that search for a seed by simulating
 Ada use it, so they simulate the Ada the page makes.
+`assertNoSideScroll(page, message, { wideFont })` asserts the page does not
+scroll sideways; with `wideFont`, after `widenFont(page)` sets every element
+to Verdana, as wide as CI's Linux fallback font.
 
 `browser-journey.mjs` holds the steps most browser tests take before the
 part they check: `openCreation`, `saveFighter` (Ada by default),

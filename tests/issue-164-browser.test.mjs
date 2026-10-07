@@ -8,7 +8,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { launch } from "./fixtures/session-layout.mjs";
+import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 import { ratlessTunnels } from "./fixtures/modules.mjs";
 import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
@@ -159,12 +159,7 @@ for (const viewport of [
           resume.label,
           "Continue Ada's adventure, The Quiet Tunnels",
         );
-        assert.ok(
-          await page.evaluate(
-            () => document.documentElement.scrollWidth <= window.innerWidth,
-          ),
-          "no horizontal scroll",
-        );
+        await assertNoSideScroll(page, "no horizontal scroll");
 
         // Both controls are keyboard-reachable: the sheet control, then Continue.
         await page.locator("#characters .open-character").nth(1).focus();

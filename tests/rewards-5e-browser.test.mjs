@@ -14,7 +14,11 @@ import {
   fight,
   startAdventure,
 } from "./fixtures/browser-journey.mjs";
-import { firstFighter, launch } from "./fixtures/session-layout.mjs";
+import {
+  assertNoSideScroll,
+  firstFighter,
+  launch,
+} from "./fixtures/session-layout.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 
 const fightStep = (runtime, state) =>
@@ -238,12 +242,7 @@ test(
         1,
         "one primary step back to the sheet",
       );
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-        "no horizontal scroll at phone width",
-      );
+      await assertNoSideScroll(page, "no horizontal scroll at phone width");
 
       // Storage holds it, once.
       let record = await readAda(libraryPath);

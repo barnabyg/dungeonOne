@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { launch } from "./fixtures/session-layout.mjs";
+import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import { createFighter, openCreation } from "./fixtures/browser-journey.mjs";
 
@@ -118,12 +118,7 @@ for (const viewport of [
           focused: "adventure-title",
         });
         assert.equal(await page.locator("#close-adventure").count(), 0);
-        assert.ok(
-          await page.evaluate(
-            () => document.documentElement.scrollWidth <= window.innerWidth,
-          ),
-          "no horizontal scroll",
-        );
+        await assertNoSideScroll(page, "no horizontal scroll");
 
         // Back to the sheet (the saved creation is skipped), Back to the
         // library, Forward to the sheet, Forward to the adventure.

@@ -13,7 +13,11 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { sealedCrypt } from "./fixtures/modules.mjs";
 import { createAndStart, settled } from "./fixtures/browser-journey.mjs";
-import { firstFighter, launch } from "./fixtures/session-layout.mjs";
+import {
+  assertNoSideScroll,
+  firstFighter,
+  launch,
+} from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 import { recordingRandom } from "./fixtures/seed-search.mjs";
 
@@ -250,12 +254,7 @@ async function play(seed, check, { reload = false } = {}) {
       file.transitions.find(({ source }) => source === "message").action,
       ASK_KEY,
     );
-    assert.ok(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-      "no horizontal scroll at phone width",
-    );
+    await assertNoSideScroll(page, "no horizontal scroll at phone width");
   } finally {
     await browser.close();
     await server.close();

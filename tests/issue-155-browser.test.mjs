@@ -9,7 +9,12 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { goblinBand, loneGoblin } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-import { firstFighter, launch } from "./fixtures/session-layout.mjs";
+import {
+  assertNoSideScroll,
+  firstFighter,
+  launch,
+  widenFont,
+} from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 
 // The status strip (#155): HP, health, round, turn and resource pips.
@@ -114,13 +119,6 @@ const stripRows = (page) =>
       }
     }
     return tops.length;
-  });
-
-const widen = (page) =>
-  page.evaluate(() => {
-    for (const node of document.querySelectorAll("*")) {
-      node.style.fontFamily = "Verdana, sans-serif";
-    }
   });
 
 for (const viewport of [
@@ -236,17 +234,12 @@ for (const viewport of [
         if (viewport.width === 375) {
           assert.ok((await stripRows(page)) <= 2, "the strip fits two rows");
           // CI's Linux fallback font is wider than Windows'.
-          await widen(page);
+          await widenFont(page);
           assert.ok(
             (await stripRows(page)) <= 2,
             "the strip fits two rows in a wide font",
           );
-          assert.ok(
-            await page.evaluate(
-              () => document.documentElement.scrollWidth <= window.innerWidth,
-            ),
-            "no horizontal scroll",
-          );
+          await assertNoSideScroll(page, "no horizontal scroll");
         }
       } finally {
         await browser.close();

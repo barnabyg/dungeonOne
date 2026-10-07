@@ -18,7 +18,11 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-import { firstFighter, launch } from "./fixtures/session-layout.mjs";
+import {
+  assertNoSideScroll,
+  firstFighter,
+  launch,
+} from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
@@ -334,15 +338,9 @@ const seed = findSeed();
         assert.equal(file.state.roomId, "rat-cellar");
 
         // No horizontal scroll, even with a wide font as CI's Linux one is.
-        assert.ok(
-          await page.evaluate(() => {
-            for (const node of document.querySelectorAll("*")) {
-              node.style.fontFamily = "Verdana, sans-serif";
-            }
-            return document.documentElement.scrollWidth <= window.innerWidth;
-          }),
-          "no horizontal scroll",
-        );
+        await assertNoSideScroll(page, "no horizontal scroll", {
+          wideFont: true,
+        });
       } finally {
         await browser.close();
         await server.close();

@@ -13,7 +13,7 @@ import {
   loneGoblin,
   sealedCrypt,
 } from "./fixtures/modules.mjs";
-import { launch } from "./fixtures/session-layout.mjs";
+import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 import { createFighter } from "./fixtures/browser-journey.mjs";
 
 const module = (id, min, max, difficulty) => ({
@@ -162,12 +162,7 @@ test(
           node.style.fontFamily = "Verdana";
         }
       });
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-        "no horizontal scroll at phone width",
-      );
+      await assertNoSideScroll(page, "no horizontal scroll at phone width");
       await page.setViewportSize({ width: 1280, height: 850 });
 
       await start.click();
@@ -207,12 +202,7 @@ test(
       assert.ok(await inView(notice), "the defeat is stated at the top");
       assert.equal(await page.locator(".start-adventure").count(), 0);
       assert.ok(!(await page.locator("#defeat-warning").isVisible()));
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-        "no horizontal scroll at phone width",
-      );
+      await assertNoSideScroll(page, "no horizontal scroll at phone width");
     });
   },
 );

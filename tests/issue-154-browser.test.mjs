@@ -11,6 +11,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
 import {
+  assertNoSideScroll,
   assertTogether,
   explore,
   fightOn,
@@ -251,15 +252,9 @@ for (const viewport of [
         );
 
         // No horizontal scroll, even with a wide font as CI's Linux one is.
-        assert.ok(
-          await page.evaluate(() => {
-            for (const node of document.querySelectorAll("*")) {
-              node.style.fontFamily = "Verdana, sans-serif";
-            }
-            return document.documentElement.scrollWidth <= window.innerWidth;
-          }),
-          "no horizontal scroll",
-        );
+        await assertNoSideScroll(page, "no horizontal scroll", {
+          wideFont: true,
+        });
       } finally {
         await browser.close();
         await server.close();

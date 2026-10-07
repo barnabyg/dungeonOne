@@ -148,3 +148,34 @@ export const say = (page, message) =>
     await page.locator("#message").fill(message);
     await page.locator("#message").press("Enter");
   });
+
+/**
+ * Sets every element's font to Verdana, which is as wide as the Linux
+ * fallback font CI renders with and wider than Windows' default.
+ */
+export const widenFont = (page) =>
+  page.evaluate(() => {
+    for (const node of document.querySelectorAll("*")) {
+      node.style.fontFamily = "Verdana, sans-serif";
+    }
+  });
+
+/**
+ * Asserts the page does not scroll sideways; with `wideFont`, after
+ * `widenFont`.
+ */
+export async function assertNoSideScroll(
+  page,
+  message = "no horizontal scroll",
+  { wideFont = false } = {},
+) {
+  if (wideFont) {
+    await widenFont(page);
+  }
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+    message,
+  );
+}

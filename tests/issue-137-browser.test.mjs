@@ -15,6 +15,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { launchDefault } from "./fixtures/default-launch.mjs";
 import {
+  assertNoSideScroll,
   assertTogether,
   explore,
   fightOn,
@@ -199,12 +200,7 @@ test(
       const ending = await page.locator("#ending").innerText();
       assert.match(ending, /Ada has 300 XP\./);
       assert.match(ending, /Level up: Ada is now level 2/);
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-        "no horizontal scroll",
-      );
+      await assertNoSideScroll(page, "no horizontal scroll");
 
       // Storage holds the settled character.
       const [record] = (await libraryFile(libraryPath)).characters;

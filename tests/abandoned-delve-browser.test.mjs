@@ -13,6 +13,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import {
+  assertNoSideScroll,
   assertTogether,
   explore as exploreOnly,
   fightOn,
@@ -22,15 +23,6 @@ import {
   say,
 } from "./fixtures/session-layout.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-
-/** The page never scrolls sideways. */
-const assertNoSideScroll = async (page, label) =>
-  assert.ok(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-    `${label}: no horizontal scroll`,
-  );
 
 /** Waits for the page to lay out and react to resizing. */
 const nextFrame = (page) =>
@@ -44,7 +36,7 @@ const nextFrame = (page) =>
 /** Runs one action bar action with the #154 check, then the scroll check. */
 const explore = async (page, action, target) => {
   await exploreOnly(page, action, target);
-  await assertNoSideScroll(page, `${action} ${target}`);
+  await assertNoSideScroll(page, `${action} ${target}: no horizontal scroll`);
 };
 
 const delve = (await loadBuiltInFifthAdventures()).find(
@@ -193,15 +185,9 @@ for (const viewport of [
         );
 
         // No horizontal scroll, even with a wide font as CI's Linux one is.
-        assert.ok(
-          await page.evaluate(() => {
-            for (const node of document.querySelectorAll("*")) {
-              node.style.fontFamily = "Verdana, sans-serif";
-            }
-            return document.documentElement.scrollWidth <= window.innerWidth;
-          }),
-          "no horizontal scroll",
-        );
+        await assertNoSideScroll(page, "no horizontal scroll", {
+          wideFont: true,
+        });
       } finally {
         await browser.close();
         await server.close();

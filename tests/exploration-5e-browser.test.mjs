@@ -9,7 +9,11 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-import { firstFighter, launch } from "./fixtures/session-layout.mjs";
+import {
+  assertNoSideScroll,
+  firstFighter,
+  launch,
+} from "./fixtures/session-layout.mjs";
 import { sessionFile } from "./fixtures/save-files.mjs";
 import { recordingRandom } from "./fixtures/seed-search.mjs";
 
@@ -170,12 +174,7 @@ test(
       assert.match(shown.actions, /Go to Alcove/);
       assert.match(shown.actions, /Go to Rat-Gnawed Cellar/);
       assert.match(shown.actions, /Examine Rusted Lantern/);
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-        "no horizontal scroll at phone width",
-      );
+      await assertNoSideScroll(page, "no horizontal scroll at phone width");
 
       await explore(page, "move", "alcove");
       shown = await screen(page);
@@ -269,14 +268,10 @@ test(
 
       // Still no horizontal scroll at phone width with a wide font, as CI's
       // Linux fallback font is wider than Windows'.
-      assert.ok(
-        await page.evaluate(() => {
-          for (const node of document.querySelectorAll("*")) {
-            node.style.fontFamily = "Verdana, sans-serif";
-          }
-          return document.documentElement.scrollWidth <= window.innerWidth;
-        }),
+      await assertNoSideScroll(
+        page,
         "no horizontal scroll at phone width with a wide font",
+        { wideFont: true },
       );
     } finally {
       await browser.close();
