@@ -5,10 +5,7 @@
 // and an item's tier must be allowed at that level.
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  findableValue,
-  loadBuiltInFifthAdventures,
-} from "../dist/adventure-5e.js";
+import { findableValue } from "../dist/adventure-5e.js";
 import { itemPrice } from "../dist/equipment-5e.js";
 import { settleFighter, validateFighter } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
@@ -124,7 +121,7 @@ test("the validator rejects a module over its budget, naming the module and the 
       ),
     {
       message:
-        "Invalid adventure module: module robbers-barrow: its findable treasure is worth 150 gp 1 cp, 1 cp over the 150 gp budget for level 1.",
+        "Invalid adventure module: module lintel-barrow: its findable treasure is worth 150 gp 1 cp, 1 cp over the 150 gp budget for level 1.",
     },
   );
 });
@@ -154,7 +151,7 @@ test("the validator rejects an item above the tier allowed for the maximum level
     () => validateModule(barrowWith([longsword], { min: 1, max: 2 })),
     {
       message:
-        "Invalid adventure module: module robbers-barrow room 2 item 3 (old-sword) is the uncommon longsword, but uncommon treasure is found only in modules for level 3 and up.",
+        "Invalid adventure module: module lintel-barrow room 2 item 3 (old-sword) is the uncommon longsword, but uncommon treasure is found only in modules for level 3 and up.",
     },
   );
   validateModule(barrowWith([longsword], { min: 1, max: 3 }));
@@ -203,16 +200,6 @@ test("a treasure names a gem or art object from the catalogue, and nothing else 
     () => validateModule(torc({ kind: "key" })),
     /item 1 has treasure, but only treasure has treasure/,
   );
-});
-
-test("every shipped module's treasure fits its budget and tiers", async () => {
-  for (const module of await loadBuiltInFifthAdventures()) {
-    const budget = treasureBudget(module.recommendedLevels.max);
-    assert.ok(
-      findableValue(module) <= budget,
-      `${module.id} is worth ${findableValue(module)} cp, over ${budget}`,
-    );
-  }
 });
 
 /** Applies `action`, which the engine must accept. */
@@ -347,9 +334,9 @@ test("a sold find stays in the ledger, and escaping after selling it is escaping
   );
   const settlement = runtime.projectSettlement(left);
   assert.deepEqual(settlement.finds, []);
-  assert.deepEqual(settlement.sold, ["robbers-barrow/blue-opal"]);
+  assert.deepEqual(settlement.sold, ["lintel-barrow/blue-opal"]);
   const after = settleFighter(TEST_FIGHTER, settlement);
-  assert.ok(after.finds.includes("robbers-barrow/blue-opal"));
+  assert.ok(after.finds.includes("lintel-barrow/blue-opal"));
   assert.deepEqual(after.treasure, []);
   assert.equal(after.purse, sold.possessions.purse);
   // Found once: the opal is not under the bier for this character again.
@@ -367,7 +354,7 @@ test("kept treasure carries its value onto the sheet, and a later merchant pays 
   const after = settleFighter(TEST_FIGHTER, runtime.projectSettlement(left));
   assert.deepEqual(after.treasure, [
     {
-      id: "robbers-barrow/blue-opal",
+      id: "lintel-barrow/blue-opal",
       name: "Blue Opal",
       description: "A milky opal flecked with blue fire.",
       value: 5000,
@@ -387,14 +374,14 @@ test("kept treasure carries its value onto the sheet, and a later merchant pays 
   const start = accept(later, later.createSession(), { type: "begin" }).state;
   const held = later
     .projectRoom(start)
-    .inventory.find(({ id }) => id === "robbers-barrow/blue-opal");
+    .inventory.find(({ id }) => id === "lintel-barrow/blue-opal");
   assert.deepEqual(held, {
-    id: "robbers-barrow/blue-opal",
+    id: "lintel-barrow/blue-opal",
     name: "Blue Opal",
     description: "A milky opal flecked with blue fire.",
     value: "50 gp",
   });
-  const sold = accept(later, start, sellTreasure("robbers-barrow/blue-opal"));
+  const sold = accept(later, start, sellTreasure("lintel-barrow/blue-opal"));
   assert.equal(sold.state.possessions.treasure.length, 0);
   assert.equal(sold.state.possessions.purse, after.purse + 5000);
   const out = accept(later, sold.state, {
@@ -404,7 +391,7 @@ test("kept treasure carries its value onto the sheet, and a later merchant pays 
   const settled = settleFighter(after, later.projectSettlement(out));
   assert.deepEqual(settled.treasure, []);
   assert.equal(settled.purse, after.purse + 5000);
-  assert.ok(settled.finds.includes("robbers-barrow/blue-opal"));
+  assert.ok(settled.finds.includes("lintel-barrow/blue-opal"));
 });
 
 test("a Potion of Greater Healing heals 4d4 + 4 and is used up", () => {

@@ -1,19 +1,15 @@
-// The Robbers' Barrow with gear hidden behind the lintel at its mouth (#209),
+// The lintel barrow with gear hidden behind the lintel at its mouth (#209),
 // found by examining the lintel before any fight: a longsword, a shield, a
 // greatsword and chain mail, or the longsword alone. Uncommon gear is found
 // only in modules for level 3 and up (#239), so both copies are for levels
 // 1–3.
-import { readFile } from "node:fs/promises";
 import { validateModule } from "./bestiary.mjs";
+import { moduleFile, room } from "./modules.mjs";
 
-export const barrowFile = JSON.parse(
-  await readFile(
-    new URL("../../adventures/5e/robbers-barrow.json", import.meta.url),
-  ),
-);
+export { room };
 
-export const room = (module, id) =>
-  module.rooms.find((entry) => entry.id === id);
+/** The lintel barrow's JSON, unchanged. */
+export const barrowFile = moduleFile("lintel-barrow");
 
 const placed = (id, name, gear) => ({
   id,

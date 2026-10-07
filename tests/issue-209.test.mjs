@@ -301,11 +301,11 @@ test("gear found behind the lintel is taken, wielded and carried out; the mace d
   const settlement = runtime.projectSettlement(left.state);
   assert.deepEqual(settlement.possessions.equipment, ["leather", "longsword"]);
   assert.deepEqual(settlement.possessions.stowed, []);
-  assert.deepEqual(settlement.gear, ["robbers-barrow/lintel-longsword"]);
+  assert.deepEqual(settlement.gear, ["lintel-barrow/lintel-longsword"]);
   const after = settleFighter(ada, settlement);
   assert.deepEqual(after.equipment, ["leather", "longsword"]);
   assert.deepEqual(after.stowed, []);
-  assert.ok(after.finds.includes("robbers-barrow/lintel-longsword"));
+  assert.ok(after.finds.includes("lintel-barrow/lintel-longsword"));
 
   // Gear is found once: the longsword is not behind the lintel again.
   const replay = play(createFifthRuntime(barrow, after), FIND);
@@ -515,7 +515,7 @@ test("an interruption between the session and library writes never duplicates or
     assert.equal(active, undefined);
     assert.deepEqual(sheet.equipment, ["leather", "longsword"]);
     assert.deepEqual(sheet.stowed, []);
-    assert.deepEqual(sheet.finds, ["robbers-barrow/lintel-longsword"]);
+    assert.deepEqual(sheet.finds, ["lintel-barrow/lintel-longsword"]);
   });
 });
 

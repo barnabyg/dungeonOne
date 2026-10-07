@@ -116,7 +116,7 @@ test(
       );
 
       await page
-        .locator('.start-adventure[data-adventure="robbers-barrow"]')
+        .locator('.start-adventure[data-adventure="lintel-barrow"]')
         .click();
       await page.locator("#adventure").waitFor({ state: "visible" });
       assert.equal(
