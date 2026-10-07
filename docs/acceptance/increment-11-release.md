@@ -11,6 +11,11 @@ scripts anyone can rerun), **implementer** (what the implementer ran and saw
 by hand), and **owner** (the manual scenarios for the project owner, with
 space for results).
 
+**Since #252** (module audit, 7 October 2026): _The Abandoned Delve_ is
+declared Medium, as its cautious route survives 96%; its content and release
+seed are unchanged. _The Goblin in the Cellar_ was retired, so scenario 5 now
+ends in _The Smugglers' Cellar_.
+
 ## Automated evidence
 
 - `npm.cmd run verify` passes with zero warnings on clean clones of `081a8d2`
@@ -254,8 +259,9 @@ Create **Bryn** with the defaults: rolls 18, 14, 11, 15, 9, 11 and HP 13.
 Start _The Abandoned Delve_ and, at the Broken Gate, **Leave the adventure**.
 Expect the question first; **Stay** keeps you there. Leave again and
 choose **Leave now**. Expect **Out empty-handed**, no XP and no level-up. Choose **Back to
-Bryn's sheet**, then **Start** _The Goblin in the Cellar_. The fight begins at
-once. **Attack** the Goblin Warrior each turn, using **End turn** when nothing else is
+Bryn's sheet**, then **Start** _The Smugglers' Cellar_. **Go** to the
+Rat-Gnawed Cellar, then to the Smugglers' Den, and the fight begins.
+**Attack** the Goblin Warrior each turn, using **End turn** when nothing else is
 offered. Expect **The cellar is clear**, a Victory, with 50 XP.
 
 ### 6. Defeat

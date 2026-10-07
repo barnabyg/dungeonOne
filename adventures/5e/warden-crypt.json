@@ -8,7 +8,7 @@
     "min": 2,
     "max": 2
   },
-  "difficulty": "hard",
+  "difficulty": "medium",
   "startRoomId": "crypt-stair",
   "rooms": [
     {
@@ -87,7 +87,7 @@
           "id": "offering-bowl",
           "name": "Offering Bowl",
           "description": "A bronze bowl heaped with dead flowers and old coins.",
-          "discovery": "Under the flowers lies a heavy iron key."
+          "discovery": "Under the flowers lie a heavy iron key and a small blue stone left as an offering."
         }
       ],
       "items": [
@@ -96,6 +96,14 @@
           "name": "Iron Key",
           "description": "A heavy iron key, its bow shaped like a closed eye.",
           "kind": "key",
+          "hiddenIn": "offering-bowl"
+        },
+        {
+          "id": "offering-azurite",
+          "name": "Offering Azurite",
+          "description": "A small chip of deep blue azurite, left for the dead.",
+          "kind": "treasure",
+          "treasure": "gem-10gp",
           "hiddenIn": "offering-bowl"
         }
       ]
@@ -109,7 +117,7 @@
           "id": "strongbox",
           "name": "Strongbox",
           "description": "An iron strongbox bolted to the floor, its lid ajar.",
-          "discovery": "Inside the strongbox, wrapped in oilcloth, is a stoppered vial of red liquid."
+          "discovery": "Inside the strongbox, wrapped in oilcloth, is a stoppered vial of red liquid. Beneath it lie the warden's silver cup, a velvet pouch holding a blue gemstone, and a stack of old gold coins."
         }
       ],
       "items": [
@@ -118,6 +126,32 @@
           "name": "Potion of Healing",
           "description": "A stoppered vial of red liquid that glimmers when shaken.",
           "kind": "potion-of-healing",
+          "hiddenIn": "strongbox"
+        },
+        {
+          "id": "warden-cup",
+          "name": "Warden's Silver Cup",
+          "description": "A silver drinking cup engraved with a key and an open eye.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "strongbox"
+        },
+        {
+          "id": "warden-sapphire",
+          "name": "Warden's Sapphire",
+          "description": "A clear blue sapphire, cut and polished, in a velvet pouch.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "strongbox"
+        },
+        {
+          "id": "crypt-gold",
+          "name": "Crypt Gold",
+          "description": "Thirty old gold coins, stacked and bound with waxed thread.",
+          "kind": "coin",
+          "coins": {
+            "gp": 30
+          },
           "hiddenIn": "strongbox"
         }
       ]

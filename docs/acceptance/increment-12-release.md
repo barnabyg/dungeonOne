@@ -38,6 +38,12 @@ results).
 - **Release-run harness.** `scripts/qualify-release-live.mjs` takes
   `--adventure tinkers-toll` to play the toll's route, including its trades.
 
+**Since #252** (module audit, 7 October 2026): the toll tower's strongbox
+also holds a Silver Toll Chain (art, 25 gp) and a Traveller's Carnelian (gem,
+50 gp), bringing the module to 125 gp 5 sp of its 150 gp budget, and the
+release route takes both. Coin, prices and the purse figures below are
+unchanged; taking the two new finds adds them to the ending's treasure kept.
+
 ## Automated evidence
 
 - `npm.cmd run verify` passes with zero warnings: formatting, lint, types,

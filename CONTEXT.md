@@ -233,7 +233,7 @@ A character whose adventure session ended at 0 HP. It stays in the library but c
 _Avoid_: Dead character, Unconscious
 
 **Difficulty**:
-An adventure module's declared challenge for its recommended level range: Easy, Medium or Hard. The balance gate checks that the module is neither more lethal nor easier than it declares. Not to be confused with the Difficulty Class (DC) of a single check.
+An adventure module's declared challenge for its recommended level range: Easy, Medium or Hard. The balance gate checks that the module is neither more lethal nor easier than it declares; a shipped module is declared at the strictest difficulty whose survival threshold it clears by at least 3 points (#252). Not to be confused with the Difficulty Class (DC) of a single check.
 _Avoid_: Challenge rating (a monster's, not a module's), DC
 
 **Ordinary enemy**:

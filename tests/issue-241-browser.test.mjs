@@ -98,7 +98,7 @@ test(
       );
       assert.match(
         await text(page.locator("#adventure-choices")),
-        /The Silvervein Mine\nStart\nLevels 2–3\nHard\nKobolds have dug into the old Silvervein mine/u,
+        /The Silvervein Mine\nStart\nLevels 2–3\nMedium\nKobolds have dug into the old Silvervein mine/u,
       );
       await startAdventure(page, "silvervein-mine");
 

@@ -8,7 +8,7 @@
     "min": 2,
     "max": 2
   },
-  "difficulty": "hard",
+  "difficulty": "medium",
   "startRoomId": "broken-gate",
   "rooms": [
     {

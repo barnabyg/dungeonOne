@@ -272,6 +272,12 @@ export const TOLL_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
   },
   { action: "take", target: "toll-seal", say: "Take the silver seal." },
   { action: "take", target: "bandit-purse", say: "Take the bandit's purse." },
+  { action: "take", target: "toll-chain", say: "Take the silver chain." },
+  {
+    action: "take",
+    target: "travellers-carnelian",
+    say: "Take the red stone.",
+  },
   { action: "move", target: "ford", say: "Go back down to the ford." },
   {
     action: "move",

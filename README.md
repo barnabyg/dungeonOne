@@ -133,36 +133,35 @@ deleted. Creation needs no OpenAI key.
 
 ### Adventure modules
 
-- _The Abandoned Delve_ (`adventures/5e/abandoned-delve.json`, level 2): ten
+- _The Abandoned Delve_ (`adventures/5e/abandoned-delve.json`, level 2, Medium): ten
   rooms under a ruined keep. A Zombie that keeps getting up guards the way in,
   two Skeletons that shatter under clubs and maces the barracks, a Giant Spider
   an optional crypt and a Ghoul the vault, with a stuck door, a trapped stair, a
   goblin to question, treasure and coin hidden in features, and a
   second exit beside the vault where you choose to climb out or push on.
-- _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`): one SRD 5.2
-  Goblin Warrior.
-- _The Goblins in the Storeroom_ (`adventures/5e/goblin-storeroom.json`,
-  level 2): a group fight against a Goblin Minion and a Goblin Warrior.
-- _The Goblin Warren_ (`adventures/5e/goblin-warren.json`, levels 2–3): a
-  potion among the charms at the gate, a Goblin Warrior carrying another, then
-  the SRD 5.2 Goblin Boss and its hoard, and a way out.
-- _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`): two rooms with a
-  Goblin Warrior carrying a Pouch of Old Coins (2 gp 5 sp), a Silver Torc
-  hidden under the bier and a way out.
-- _The Silvervein Mine_ (`adventures/5e/silvervein-mine.json`, levels 2–3):
+- _The Goblin Warren_ (`adventures/5e/goblin-warren.json`, level 3, Medium): a
+  potion among the charms at the gate, a Goblin Warrior with another hidden
+  under its bones, then the SRD 5.2 Goblin Boss and its hoard, a gilded idol
+  among it, and a way out.
+- _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`, level 1,
+  Medium): two rooms with a grave robber (a Bandit) guarding a silver torc and
+  a garnet under the bier, a sack of grave gold and a way out.
+- _The Silvervein Mine_ (`adventures/5e/silvervein-mine.json`, levels 2–3, Medium):
   six rooms in an old silver mine. Two kobolds in the sorting shed may flee or
   surrender, and the one that surrenders gives up the key to the overseer's
   door; drowned miners (a Zombie and a Skeleton), a Giant Spider and a Bugbear
   overseer guard the rest of the silver.
-- _The Smugglers' Cellar_ (`adventures/5e/smugglers-cellar.json`): four rooms
-  with a Goblin Warrior and a Potion of Healing hidden in a chest.
-- _The Tinker's Toll_ (`adventures/5e/tinkers-toll.json`): four rooms on a
+- _The Smugglers' Cellar_ (`adventures/5e/smugglers-cellar.json`, level 1,
+  Hard): four rooms with a Goblin Warrior, a Potion of Healing hidden in a
+  chest and the smugglers' leavings to find on the way.
+- _The Tinker's Toll_ (`adventures/5e/tinkers-toll.json`, level 1, Hard): four rooms on a
   river road. Merrow the tinker trades dagger, shortsword, shield and chain
   shirt from the cart; a Wolf guards the ford, where a shield and a purse lie
   in the reeds, and two Bandits hold the toll tower with their takings.
-- _The Warden's Crypt_ (`adventures/5e/warden-crypt.json`, level 2): six rooms
-  with a stuck door, a locked door and its key, a dart trap, a bound smuggler
-  to question and the warden risen as a Zombie in the tomb.
+- _The Warden's Crypt_ (`adventures/5e/warden-crypt.json`, level 2, Medium):
+  six rooms with a stuck door, a locked door and its key, a dart trap, a bound
+  smuggler to question, the warden's hoard in the strongroom and the warden
+  risen as a Zombie in the tomb.
 
 A sheet offers only the modules that pass the balance gate; `npm.cmd run
 balance` shows each module's verdict.

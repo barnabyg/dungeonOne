@@ -39,10 +39,10 @@ const opponents = (encounterId) =>
 const lootIn = (roomId) =>
   room(roomId).items.filter(({ kind }) => kind !== "key");
 
-test("the mine is a six-room level 2–3 Hard module, entered and left by the mine mouth", () => {
+test("the mine is a six-room level 2–3 Medium module (#252), entered and left by the mine mouth", () => {
   assert.equal(mine.title, "The Silvervein Mine");
   assert.deepEqual(mine.recommendedLevels, { min: 2, max: 3 });
-  assert.equal(mine.difficulty, "hard");
+  assert.equal(mine.difficulty, "medium");
   assert.equal(mine.startRoomId, "mine-mouth");
   assert.deepEqual(
     mine.rooms.filter(({ exit }) => exit).map(({ id }) => id),
@@ -146,7 +146,7 @@ test("its treasure is within the level-3 budget, the monsters' loot rolled from 
   assert.ok(findableValue(mine) <= treasureBudget(mine.recommendedLevels.max));
 });
 
-test("the gate qualifies it as Hard with the figures the handoff quotes", () => {
+test("the gate qualifies it as Medium with the figures the handoff quotes", () => {
   const result = gateAdventure(mine);
   assert.equal(result.ok, true);
   const { verdict } = result;

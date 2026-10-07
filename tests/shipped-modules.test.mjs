@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import {
+  DIFFICULTIES,
   FIFTH_ADVENTURE_FILES,
   findableValue,
   loadBuiltInFifthAdventures,
@@ -15,7 +16,9 @@ import {
   validateFifthAdventure,
 } from "../dist/adventure-5e.js";
 import {
+  DIFFICULTY_THRESHOLDS,
   gateAdventure,
+  gateVerdictAt,
   passesGate,
   qualifyAdventure,
   renderGateResult,
@@ -34,17 +37,17 @@ const moduleFiles = Object.fromEntries(
     ]),
   ),
 );
+/** The least survival margin over its difficulty's threshold a module keeps (#252). */
+const SURVIVAL_SLACK = 0.03;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the built-in modules are the nine shipped ones", () => {
+test("the built-in modules are the seven shipped ones (#252)", () => {
   assert.deepEqual(
     shipped.map(({ id }) => id),
     [
       "abandoned-delve",
-      "cellar-goblin",
-      "goblin-storeroom",
       "goblin-warren",
       "robbers-barrow",
       "silvervein-mine",
@@ -79,6 +82,29 @@ test("every shipped module qualifies at its declared difficulty", () => {
     if (!passesGate(adventure)) {
       assert.fail(renderGateResult(adventure, gateAdventure(adventure)));
     }
+  }
+});
+
+test("every shipped module declares the strictest difficulty it passes with 3 points of slack (#252)", () => {
+  // Survival must clear the threshold by at least 3 points, and no stricter
+  // difficulty may also pass with that slack: the label is what it measures.
+  for (const adventure of shipped) {
+    const result = gateAdventure(adventure);
+    assert.equal(result.ok, true, adventure.id);
+    const measures = result.verdict;
+    const passes = (difficulty) => {
+      const verdict = gateVerdictAt(measures, difficulty);
+      return (
+        verdict.qualified &&
+        verdict.survival.rate - DIFFICULTY_THRESHOLDS[difficulty].survival >=
+          SURVIVAL_SLACK
+      );
+    };
+    assert.equal(
+      DIFFICULTIES.find(passes),
+      adventure.difficulty,
+      `${adventure.id} survives ${measures.survival.rate}`,
+    );
   }
 });
 
@@ -118,21 +144,32 @@ test("every shipped module's treasure fits its budget (#239)", () => {
   }
 });
 
-test("the barrow's goblin carries the coppers rolled from its treasure type (#208, #240)", () => {
-  const barrow = shipped.find(({ id }) => id === "robbers-barrow");
-  const carried = barrow.rooms
-    .find(({ id }) => id === "burial-hall")
-    .items.filter(({ hiddenIn }) => hiddenIn === "barrow-goblin");
-  assert.deepEqual(carried, [
-    {
-      id: "barrow-goblin-coins",
-      name: "Goblin Warrior's Coins",
-      description: "A greasy pouch of copper pieces.",
-      kind: "coin",
-      coins: { cp: 10 },
-      hiddenIn: "barrow-goblin",
-    },
-  ]);
+test("each reworked module holds 75–100% of its budget as a mixed hoard (#252)", () => {
+  // The Delve and the Mine keep their content; the rest were designed against
+  // the budget with more than one class of gem or art object.
+  for (const id of [
+    "goblin-warren",
+    "robbers-barrow",
+    "smugglers-cellar",
+    "tinkers-toll",
+    "warden-crypt",
+  ]) {
+    const module = shipped.find((adventure) => adventure.id === id);
+    const budget = treasureBudget(module.recommendedLevels.max);
+    const value = findableValue(module);
+    assert.ok(
+      value >= budget * 0.75 && value <= budget,
+      `${id} is worth ${value} cp of ${budget}`,
+    );
+    const classes = new Set(
+      module.rooms.flatMap(({ items }) =>
+        items.flatMap(({ treasure }) =>
+          treasure === undefined ? [] : [treasure],
+        ),
+      ),
+    );
+    assert.ok(classes.size >= 2, `${id} holds ${[...classes].join(", ")}`);
+  }
 });
 
 test("only bestiary monsters with a treasure type carry loot in the shipped modules (#240)", () => {
@@ -151,7 +188,7 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
   );
   assert.deepEqual(carriers.sort(), [
     "goblin-warren/boss-chain@goblin-boss",
-    "robbers-barrow/barrow-goblin-coins@barrow-goblin",
+    "robbers-barrow/barrow-robber-coins@barrow-robber",
     "silvervein-mine/bugbear-overseer-coins@bugbear-overseer",
     "silvervein-mine/bugbear-overseer-trinket@bugbear-overseer",
     "silvervein-mine/iron-key@kobold-tunneller",
@@ -170,15 +207,13 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ],
     ),
     [
-      ["cellar-goblin", "1–1", "hard"],
-      ["robbers-barrow", "1–1", "hard"],
+      ["robbers-barrow", "1–1", "medium"],
       ["smugglers-cellar", "1–1", "hard"],
       ["tinkers-toll", "1–1", "hard"],
-      ["goblin-storeroom", "2–2", "medium"],
-      ["abandoned-delve", "2–2", "hard"],
-      ["warden-crypt", "2–2", "hard"],
-      ["goblin-warren", "2–3", "hard"],
-      ["silvervein-mine", "2–3", "hard"],
+      ["abandoned-delve", "2–2", "medium"],
+      ["warden-crypt", "2–2", "medium"],
+      ["silvervein-mine", "2–3", "medium"],
+      ["goblin-warren", "3–3", "medium"],
     ],
   );
 });
