@@ -1,12 +1,13 @@
 // A character library holding one fresh Ada, and the burial hall fight the
 // barrow modules' library tests win on a found browser seed.
+import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FifthCharacterLibrary } from "../../dist/character-library-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
-import { sessionSeed } from "../../dist/session-5e.js";
+import { sessionSeed, startFifthAdventure } from "../../dist/session-5e.js";
 import { TEST_FIGHTER_CHOICES } from "../../dist/test-fighter-5e.js";
 
 /**
@@ -68,4 +69,51 @@ export function winBarrowSeed(module, sheet, number, before = []) {
     }
   }
   throw new Error("no seed wins the burial hall");
+}
+
+/** In `playSession`'s actions: move into the burial hall and win its fight. */
+export const WIN_THE_BURIAL_HALL = "win the hall";
+
+/**
+ * Starts `module` (a lintel barrow) for the library's one character and plays
+ * `actions`, each accepted. With `WIN_THE_BURIAL_HALL` among them, it starts on the
+ * first browser seed that wins the burial hall after the actions before it;
+ * otherwise on seed 0.
+ */
+export async function playSession(library, module, actions) {
+  const data = await library.read();
+  const [{ sheet }] = data.characters;
+  const fight = actions.indexOf(WIN_THE_BURIAL_HALL);
+  const seed =
+    fight < 0
+      ? 0
+      : winBarrowSeed(
+          module,
+          sheet,
+          data.sessionsStarted + 1,
+          actions.slice(0, fight),
+        );
+  const session = await startFifthAdventure(
+    library,
+    seed,
+    sheet.id,
+    module,
+    data.revision,
+  );
+  const act = (action) => {
+    const { result } = session.act(action, "click");
+    assert.equal(result.rejection, undefined, JSON.stringify(result.rejection));
+  };
+  for (const action of actions) {
+    if (action !== WIN_THE_BURIAL_HALL) {
+      act(action);
+      continue;
+    }
+    act({ type: "move", destinationId: "burial-hall" });
+    while (session.state.encounter?.outcome === "ongoing") {
+      act(barrowFightStep(session.runtime, session.state));
+    }
+    assert.equal(session.state.status, "playing");
+  }
+  return session;
 }

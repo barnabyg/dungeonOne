@@ -584,45 +584,6 @@ test("trades are kept on escape, once, even across an interrupted settlement", a
   });
 });
 
-test("abandonment and defeat undo every trade: the coin and gear the character started with", async () => {
-  await withLibrary(async (library, { id: characterId }) => {
-    const first = await trade(library, characterId, [
-      sell("leather", true),
-      LEAVE,
-    ]);
-    await first.persist();
-    await settleFifthSession(library, first);
-    const before = (await record(library)).sheet;
-    assert.equal(before.purse, 500);
-
-    const abandoned = await trade(library, characterId, [
-      buy("dagger"),
-      { type: "swap", itemId: "dagger" },
-      sell("mace"),
-    ]);
-    await abandoned.persist();
-    const data = await library.abandonSession(
-      characterId,
-      (await library.read()).revision,
-    );
-    assert.deepEqual(data.characters[0].sheet, before);
-
-    const fallen = await trade(library, characterId, [
-      buy("dagger"),
-      buy("dagger"),
-    ]);
-    fallen.state = {
-      ...fallen.state,
-      status: "defeat",
-      endingId: "fallen-in-the-barrow",
-    };
-    await settleFifthSession(library, fallen);
-    const { sheet, defeated } = await record(library);
-    assert.equal(defeated, true);
-    assert.deepEqual(sheet, { ...before, hp: 0 });
-  });
-});
-
 test("the balance gate's one-hit-kill measure tries each weapon a merchant sells", () => {
   const stocking = (stock) =>
     validateModule(

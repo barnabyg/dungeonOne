@@ -657,7 +657,7 @@ async function trade(library, characterId, actions) {
   return session;
 }
 
-test("arrows bought are kept on escape; abandonment and defeat roll them back", async () => {
+test("arrows and bolts bought are kept on escape", async () => {
   await withLibrary(async (library, { id: characterId }) => {
     const kept = await trade(library, characterId, [
       { type: "sell", itemId: "leather", equipped: true },
@@ -667,33 +667,9 @@ test("arrows bought are kept on escape; abandonment and defeat roll them back", 
     ]);
     await kept.persist();
     await settleFifthSession(library, kept);
-    const before = (await record(library)).sheet;
-    assert.deepEqual(before.ammunition, { arrows: 20, bolts: 20 });
-    assert.equal(before.purse, 300);
-
-    const abandoned = await trade(library, characterId, [
-      { type: "buy", itemId: "arrows" },
-      { type: "sell", itemId: "bolts" },
-    ]);
-    await abandoned.persist();
-    const data = await library.abandonSession(
-      characterId,
-      (await library.read()).revision,
-    );
-    assert.deepEqual(data.characters[0].sheet, before);
-
-    const fallen = await trade(library, characterId, [
-      { type: "buy", itemId: "arrows" },
-    ]);
-    fallen.state = {
-      ...fallen.state,
-      status: "defeat",
-      endingId: "fallen-in-the-barrow",
-    };
-    await settleFifthSession(library, fallen);
-    const { sheet, defeated } = await record(library);
-    assert.equal(defeated, true);
-    assert.deepEqual(sheet, { ...before, hp: 0 });
+    const { sheet } = await record(library);
+    assert.deepEqual(sheet.ammunition, { arrows: 20, bolts: 20 });
+    assert.equal(sheet.purse, 300);
   });
 });
 

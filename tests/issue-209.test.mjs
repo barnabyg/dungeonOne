@@ -482,48 +482,6 @@ test("an interruption between the session and library writes never duplicates or
   });
 });
 
-test("abandonment and defeat restore the starting gear exactly", async () => {
-  await withLibrary(async (library, { id: characterId }) => {
-    const first = await arm(library, characterId, [
-      take("lintel-longsword"),
-      take("lintel-shield"),
-      LEAVE,
-    ]);
-    await first.persist();
-    await settleFifthSession(library, first);
-    const before = (await record(library)).sheet;
-    assert.deepEqual(before.stowed, ["longsword", "shield"]);
-
-    // Gear changed mid-adventure is forgotten on abandonment.
-    const abandoned = await arm(library, characterId, [
-      take("lintel-greatsword"),
-      { type: "swap", itemId: "greatsword" },
-      { type: "drop", itemId: "shield" },
-      { type: "drop", itemId: "mace" },
-    ]);
-    await abandoned.persist();
-    const data = await library.abandonSession(
-      characterId,
-      (await library.read()).revision,
-    );
-    assert.deepEqual(data.characters[0].sheet, before);
-
-    const fallen = await arm(library, characterId, [
-      { type: "equip", itemId: "shield" },
-      { type: "drop", itemId: "longsword" },
-    ]);
-    fallen.state = {
-      ...fallen.state,
-      status: "defeat",
-      endingId: "fallen-in-the-barrow",
-    };
-    await settleFifthSession(library, fallen);
-    const { sheet, defeated } = await record(library);
-    assert.equal(defeated, true);
-    assert.deepEqual(sheet, { ...before, hp: 0 });
-  });
-});
-
 test("the balance gate's one-hit-kill measure uses the strongest gear the module places", () => {
   const plain = validateModule(barrowFile);
   const enemy = (adventure) => {

@@ -20,9 +20,12 @@ import {
   lintelBarrow as barrow,
   loneGoblin as cellar,
 } from "./fixtures/modules.mjs";
+import { archeryBarrow } from "./fixtures/archery-barrow.mjs";
 import {
   barrowFightStep,
+  playSession,
   winBarrowSeed,
+  WIN_THE_BURIAL_HALL,
   withLibrary,
 } from "./fixtures/library.mjs";
 
@@ -712,16 +715,74 @@ async function escapeWithTheTorc(library, characterId) {
   return (await library.read()).characters[0].sheet;
 }
 
-test("defeat and abandonment leave a veteran's possessions, ledger and XP as at the start (#206)", async () => {
-  await withLibrary(async (library, { id: characterId }) => {
-    const before = await escapeWithTheTorc(library, characterId);
-    assert.deepEqual(before.finds, [TORC_ID]);
+/**
+ * At the archers' barrow's mouth: changes the worn and held gear, sells the
+ * torc, buys a bow and draws it, sells the arrows, and drops the mace.
+ */
+const CHANGE_EVERY_POSSESSION = [
+  { type: "equip", itemId: "leather" },
+  { type: "sell-treasure", itemId: "archery-barrow/silver-torc" },
+  { type: "buy", itemId: "shortbow" },
+  { type: "swap", itemId: "shortbow" },
+  { type: "sell", itemId: "arrows" },
+  { type: "drop", itemId: "mace" },
+];
 
-    const abandoned = await lootTheBarrow(library, characterId, 2);
-    abandoned.state = {
-      ...abandoned.state,
-      possessions: { ...abandoned.state.possessions, treasure: [] },
+test("abandonment restores the sheet from the start exactly, and defeat restores it at 0 HP, whatever possessions changed (#206)", async () => {
+  await withLibrary(async (library, { id: characterId }) => {
+    // A first escape leaves Ada holding something of every kind.
+    const first = await playSession(library, archeryBarrow, [
+      { type: "examine", targetId: "scratched-lintel" },
+      { type: "take", itemId: "lintel-quiver" },
+      WIN_THE_BURIAL_HALL,
+      { type: "examine", targetId: "stone-bier" },
+      { type: "take", itemId: "silver-torc" },
+      { type: "examine", targetId: "barrow-goblin" },
+      { type: "take", itemId: "coin-pouch" },
+      { type: "move", destinationId: "barrow-mouth" },
+      { type: "unequip", itemId: "leather" },
+      { type: "buy", itemId: "bolts" },
+      LEAVE,
+    ]);
+    await first.persist();
+    await settleFifthSession(library, first);
+    const before = (await library.read()).characters[0].sheet;
+    assert.deepEqual(
+      {
+        equipment: before.equipment,
+        stowed: before.stowed,
+        ammunition: before.ammunition,
+        treasure: before.treasure.map(({ id }) => id),
+        purse: before.purse,
+        xp: before.xp,
+      },
+      {
+        equipment: ["mace"],
+        stowed: ["leather"],
+        ammunition: { arrows: 20, bolts: 20 },
+        treasure: ["archery-barrow/silver-torc"],
+        purse: 150,
+        xp: 300,
+      },
+    );
+
+    /** Plays the changes; the session then differs from the sheet in every possession. */
+    const changeEverything = async () => {
+      const session = await playSession(
+        library,
+        archeryBarrow,
+        CHANGE_EVERY_POSSESSION,
+      );
+      for (const [field, held] of Object.entries(session.state.possessions)) {
+        assert.notDeepEqual(held, before[field], field);
+      }
+      assert.deepEqual(session.state.dropped, [
+        { roomId: "barrow-mouth", item: "mace" },
+      ]);
+      return session;
     };
+
+    const abandoned = await changeEverything();
     await abandoned.persist();
     const data = await library.abandonSession(
       characterId,
@@ -729,10 +790,9 @@ test("defeat and abandonment leave a veteran's possessions, ledger and XP as at 
     );
     assert.deepEqual(data.characters[0].sheet, before);
 
-    const fallen = await lootTheBarrow(library, characterId, 3);
+    const fallen = await changeEverything();
     fallen.state = {
       ...fallen.state,
-      possessions: { ...fallen.state.possessions, treasure: [GEM] },
       status: "defeat",
       endingId: "fallen-in-the-barrow",
     };

@@ -168,3 +168,7 @@ fresh Ada (the test fighter's choices, the mace kit) and calls
 `number`th session of a lintel barrow wins the burial hall's fight, after
 `before` (actions at the mouth that roll no dice), and `barrowFightStep` is
 that fight's next action: attack, or end the turn.
+`playSession(library, module, actions)` starts a lintel barrow for the
+library's character and plays `actions`, each accepted; `WIN_THE_BURIAL_HALL`
+among them moves into the hall and wins its fight, on the seed
+`winBarrowSeed` finds.

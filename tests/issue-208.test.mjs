@@ -354,39 +354,3 @@ test("escaping with coin keeps it once; an interruption between the session and 
     assert.equal(record.sheet.purse, POUCH);
   });
 });
-
-test("defeat and abandonment leave the purse as it was at the start", async () => {
-  await withLibrary(async (library, { id: characterId }) => {
-    const first = await lootTheGoblin(library, characterId, 1);
-    first.act(LEAVE, "click");
-    await first.persist();
-    await settleFifthSession(library, first);
-    const before = (await ada(library)).sheet;
-    assert.equal(before.purse, POUCH);
-
-    // Coin spent or gained mid-adventure is forgotten on abandonment.
-    const abandoned = await lootTheGoblin(library, characterId, 2);
-    abandoned.state = {
-      ...abandoned.state,
-      possessions: { ...abandoned.state.possessions, purse: 9999 },
-    };
-    await abandoned.persist();
-    const data = await library.abandonSession(
-      characterId,
-      (await library.read()).revision,
-    );
-    assert.deepEqual(data.characters[0].sheet, before);
-
-    const fallen = await lootTheGoblin(library, characterId, 3);
-    fallen.state = {
-      ...fallen.state,
-      possessions: { ...fallen.state.possessions, purse: 0 },
-      status: "defeat",
-      endingId: "fallen-in-the-barrow",
-    };
-    await settleFifthSession(library, fallen);
-    const record = await ada(library);
-    assert.equal(record.defeated, true);
-    assert.deepEqual(record.sheet, { ...before, hp: 0 });
-  });
-});
