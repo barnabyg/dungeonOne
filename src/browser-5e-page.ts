@@ -65,6 +65,7 @@
 // #feedback, a polite live region that show() moves under the current panel's
 // heading and route() clears on every navigation.
 import { FEATURE_USES_RULE, FIGHTER_DEFAULT_CHOICES } from "./fighter-5e.js";
+import { DAMAGE_ADJUSTMENT_TEXT } from "./runtime-5e.js";
 
 /** The composer's notice when the server has no AI DM (#161). */
 export const FIFTH_DM_OFF_NOTICE =
@@ -815,6 +816,7 @@ function part(tag, kind, text) {
 }
 
 const OUTCOME_TAGS = { hit: "Hit", critical: "Critical hit", miss: "Miss", success: "Success", failure: "Failure" };
+const ADJUSTMENTS = ${JSON.stringify(DAMAGE_ADJUSTMENT_TEXT)};
 const withSign = (value) => (value >= 0 ? " + " : " − ") + Math.abs(value);
 
 /**
@@ -828,13 +830,17 @@ const diceChips = (group, separator, sides = true) =>
     make("span", (sides ? "d" + die.sides + " " : "") + die.value + (die.countsAs ? "→" + die.countsAs : ""), "roll-die" + (die.dropped ? " dropped" : "") + (die.countsAs ? " counted" : "")),
   ]);
 
-/** Damage or healing: the total in bold, its dice, and the HP after, such as "7 slashing (d6 4 + 3) → 0/7 HP". */
+/**
+ * Damage or healing: the total in bold, its dice, and the HP after, such as
+ * "7 slashing (d6 4 + 3) → 0/7 HP" or, against a vulnerability (#233),
+ * "14 bludgeoning (d6 4 + 3, doubled (vulnerable)) → 0/13 HP".
+ */
 const hpChange = (group, label) => [
   make("strong", group.total),
   label + " (",
   ...diceChips(group, " + "),
   // A hit's weapon damage before a rider's extra damage (#232) leaves the HP to the rider's.
-  (group.modifier === 0 ? "" : withSign(group.modifier)) + (group.halved ? ", halved" : "") + ")" + (group.hpAfter === undefined ? "" : " → " + group.hpAfter + "/" + group.maxHp + " HP"),
+  (group.modifier === 0 ? "" : withSign(group.modifier)) + (group.halved ? ", halved" : "") + (group.adjustment ? ", " + ADJUSTMENTS[group.adjustment] : "") + ")" + (group.hpAfter === undefined ? "" : " → " + group.hpAfter + "/" + group.maxHp + " HP"),
 ];
 
 /** One compact roll, such as "d20 12 + 5 = 17 vs AC 15" or "7 slashing (d6 4 + 3) → 0/7 HP". */

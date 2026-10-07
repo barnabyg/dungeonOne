@@ -197,8 +197,12 @@ What a hit with a monster's attack does besides its damage: extra damage of its 
 _Avoid_: On-hit effect, Proc
 
 **Trait**:
-A rule a monster's stat block carries beyond its attacks, such as Pack Tactics (advantage on its attacks while an ally is alive and able to act).
+A rule a monster's stat block carries beyond its attacks, such as Pack Tactics (advantage on its attacks while an ally is alive and able to act) or Undead Fortitude (a Zombie's Constitution save to stay at 1 HP instead of falling).
 _Avoid_: Ability (an ability score), Feature (the character's)
+
+**Damage type**:
+One of the 13 SRD 5.2 kinds of damage, such as bludgeoning, poison or radiant, carried by every damage roll. A creature's resistance to a type halves that damage, its vulnerability doubles it and its immunity ignores it; the engine applies them after rolling.
+_Avoid_: Element, Damage kind
 
 **Initiative**:
 The d20 + initiative bonus each combatant rolls when an encounter begins; higher totals act first, ties going to the higher Dexterity and then a seeded roll-off.

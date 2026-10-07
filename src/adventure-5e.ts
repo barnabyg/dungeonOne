@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 10) and its validator.
+ * The 5e adventure module format (format version 11) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -30,6 +30,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
 import type { CheckSpec } from "./checks-5e.js";
+import type { DamageDefenses, DamageType } from "./encounter-5e.js";
 import {
   COIN_VALUES,
   isItemId,
@@ -60,6 +61,7 @@ import {
   unique,
 } from "./json-shape.js";
 import {
+  damageType,
   loadBuiltInFifthBestiary,
   statBlock,
   type FifthBestiary,
@@ -68,7 +70,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 10;
+export const FIFTH_ADVENTURE_FORMAT = 11;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -231,7 +233,7 @@ export type FifthTrap = Readonly<{
     dice: number;
     sides: number;
     modifier: number;
-    type: string;
+    type: DamageType;
   }>;
   /** Where the adventure ends if the trap's damage drops the character. */
   defeatEndingId: string;
@@ -872,7 +874,7 @@ function validateModule(
         dice: integer(damage.dice, `${where} damage dice`, 1, 10),
         sides: integer(damage.sides, `${where} damage sides`, 2, 12),
         modifier: integer(damage.modifier, `${where} damage modifier`, -5, 20),
-        type: text(damage.type, `${where} damage type`, 30),
+        type: damageType(damage.type, `${where} damage type`),
       },
       defeatEndingId: ending(raw.defeatEndingId, "defeat", where),
     };
@@ -1127,12 +1129,50 @@ export function statBlockInitiative(block: StatBlock): number {
   return statBlockModifier(block.abilities.dexterity);
 }
 
-/** A monster's saving throws: each ability's modifier (no proficiencies). */
-export function statBlockSaves(block: StatBlock): Record<Ability, number> {
+/** A monster's proficiency bonus, from its challenge rating (SRD 5.2). */
+export function statBlockProficiency(
+  block: Pick<StatBlock, "challengeRating">,
+): number {
+  const rating = block.challengeRating.includes("/")
+    ? 0
+    : Number(block.challengeRating);
+  return 2 + Math.floor(Math.max(0, rating - 1) / 4);
+}
+
+/** A monster's damage resistances, vulnerabilities and immunities. */
+export function statBlockDefenses(
+  block: Pick<
+    StatBlock,
+    "damageResistances" | "damageVulnerabilities" | "damageImmunities"
+  >,
+): DamageDefenses {
+  return {
+    ...(block.damageResistances === undefined
+      ? {}
+      : { resistances: block.damageResistances }),
+    ...(block.damageVulnerabilities === undefined
+      ? {}
+      : { vulnerabilities: block.damageVulnerabilities }),
+    ...(block.damageImmunities === undefined
+      ? {}
+      : { immunities: block.damageImmunities }),
+  };
+}
+
+/**
+ * A monster's saving throws: each ability's modifier, plus its proficiency
+ * bonus for each save it is proficient in.
+ */
+export function statBlockSaves(
+  block: Pick<StatBlock, "abilities" | "challengeRating" | "saveProficiencies">,
+): Record<Ability, number> {
   return Object.fromEntries(
     ABILITIES.map((ability) => [
       ability,
-      statBlockModifier(block.abilities[ability]),
+      statBlockModifier(block.abilities[ability]) +
+        (block.saveProficiencies?.includes(ability) === true
+          ? statBlockProficiency(block)
+          : 0),
     ]),
   ) as Record<Ability, number>;
 }

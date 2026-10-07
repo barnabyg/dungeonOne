@@ -133,12 +133,12 @@ deleted. Creation needs no OpenAI key.
 
 ### Adventure modules
 
-- _The Abandoned Delve_ (`adventures/5e/abandoned-delve.json`, levels 1–2): ten
-  rooms under a ruined keep. A Zombie guards the way in, two Skeletons the
-  barracks, a Giant Spider an optional crypt and a Ghoul the vault, with a
-  stuck door, a trapped stair, a goblin to question, treasure and coin hidden
-  in features and on bodies, and a second exit beside the vault where you choose
-  to climb out or push on.
+- _The Abandoned Delve_ (`adventures/5e/abandoned-delve.json`, level 2): ten
+  rooms under a ruined keep. A Zombie that keeps getting up guards the way in,
+  two Skeletons that shatter under clubs and maces the barracks, a Giant Spider
+  an optional crypt and a Ghoul the vault, with a stuck door, a trapped stair, a
+  goblin to question, treasure and coin hidden in features and on bodies, and a
+  second exit beside the vault where you choose to climb out or push on.
 - _The Goblin in the Cellar_ (`adventures/5e/cellar-goblin.json`): one SRD 5.2
   Goblin Warrior.
 - _The Goblins in the Storeroom_ (`adventures/5e/goblin-storeroom.json`,
@@ -155,9 +155,9 @@ deleted. Creation needs no OpenAI key.
   river road. Merrow the tinker trades dagger, shortsword, shield and chain
   shirt from the cart; a Wolf guards the ford, where a shield and a purse lie
   in the reeds, and two Bandits hold the toll tower with their takings.
-- _The Warden's Crypt_ (`adventures/5e/warden-crypt.json`): six rooms with a
-  stuck door, a locked door and its key, a dart trap, a bound smuggler to
-  question and the warden risen as a Zombie in the tomb.
+- _The Warden's Crypt_ (`adventures/5e/warden-crypt.json`, level 2): six rooms
+  with a stuck door, a locked door and its key, a dart trap, a bound smuggler
+  to question and the warden risen as a Zombie in the tomb.
 
 A sheet offers only the modules that pass the balance gate; `npm.cmd run
 balance` shows each module's verdict.
@@ -314,14 +314,14 @@ reason, the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 8.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 15.
+  `characters-adventures` directory beside the library, in format version 16.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 10. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 11. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
-  format version 2, or author a one-off stat block inline.
+  format version 3, or author a one-off stat block inline.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from
@@ -360,7 +360,7 @@ These are for development, not play.
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.
 - **Live release run.** `node scripts/qualify-release-live.mjs --live` (with
-  `--max-calls`, default 160) plays the whole of The Abandoned Delve (seed 99
+  `--max-calls`, default 160) plays the whole of The Abandoned Delve (seed 711
   by default), or with `--adventure tinkers-toll` The Tinker's Toll with its
   trades (seed 0), through the browser server, typing every step to the AI DM
   and pressing a step's button only when the DM's turn left it undone, and

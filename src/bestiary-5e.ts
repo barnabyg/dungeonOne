@@ -1,11 +1,13 @@
 /**
- * The 5e bestiary (format version 2): the shared monsters adventure modules
+ * The 5e bestiary (format version 3): the shared monsters adventure modules
  * fight, each an SRD 5.2 stat block (or a house one derived from it) under an
  * id. A module's opponent names a bestiary monster by id, or authors a
- * one-off stat block inline. A stat block may list traits (Pack Tactics) and
- * give an attack a rider: extra damage on a hit and a condition, after a
- * saving throw if it names one. Later tickets extend the bestiary with
- * resistances, morale and treasure types.
+ * one-off stat block inline. A stat block may list traits (Pack Tactics,
+ * Undead Fortitude), saving throw proficiencies, damage resistances,
+ * vulnerabilities and immunities (SRD 5.2 damage types) and condition
+ * immunities, and give an attack a rider: extra damage on a hit and a
+ * condition, after a saving throw if it names one. Later tickets extend the
+ * bestiary with morale and treasure types.
  *
  * Validation names the first problem it finds. A bestiary in any other format
  * version is refused with a message naming the file.
@@ -13,7 +15,12 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
-import type { AttackRider, ConditionKind } from "./encounter-5e.js";
+import {
+  DAMAGE_TYPES,
+  type AttackRider,
+  type ConditionKind,
+  type DamageType,
+} from "./encounter-5e.js";
 import { ABILITIES, type Abilities, type Ability } from "./fighter-5e.js";
 import {
   distinct,
@@ -29,10 +36,10 @@ import {
   fail,
 } from "./json-shape.js";
 
-export const FIFTH_BESTIARY_FORMAT = 2;
+export const FIFTH_BESTIARY_FORMAT = 3;
 
 /** The monster traits the engine applies. */
-export const MONSTER_TRAITS = ["Pack Tactics"] as const;
+export const MONSTER_TRAITS = ["Pack Tactics", "Undead Fortitude"] as const;
 export type MonsterTrait = (typeof MONSTER_TRAITS)[number];
 
 const CONDITION_KINDS: readonly ConditionKind[] = ["poisoned", "prone"];
@@ -47,7 +54,7 @@ export type StatBlockAttack = Readonly<{
     dice: number;
     sides: number;
     modifier: number;
-    type: string;
+    type: DamageType;
   }>;
   /** What a hit does besides its damage. */
   rider?: AttackRider;
@@ -66,6 +73,14 @@ export type StatBlock = Readonly<{
   /** Melee attacks only: ranged weapons are deferred. */
   attacks: readonly StatBlockAttack[];
   traits?: readonly MonsterTrait[];
+  /** The abilities it adds its proficiency bonus to when it saves. */
+  saveProficiencies?: readonly Ability[];
+  /** Damage types it takes half, double or no damage from. */
+  damageResistances?: readonly DamageType[];
+  damageVulnerabilities?: readonly DamageType[];
+  damageImmunities?: readonly DamageType[];
+  /** Conditions it cannot be given. */
+  conditionImmunities?: readonly ConditionKind[];
 }>;
 
 /**
@@ -91,8 +106,49 @@ function damage(value: unknown, where: string): StatBlockAttack["damage"] {
     dice: integer(raw.dice, `${where} dice`, 1, 10),
     sides: integer(raw.sides, `${where} sides`, 2, 12),
     modifier: integer(raw.modifier, `${where} modifier`, -5, 20),
-    type: text(raw.type, `${where} type`, 30),
+    type: damageType(raw.type, `${where} type`),
   };
+}
+
+/** One of the SRD 5.2 damage types; a problem throws a `ShapeError`. */
+export function damageType(value: unknown, where: string): DamageType {
+  if (!DAMAGE_TYPES.includes(value as DamageType)) {
+    fail(`${where} must be one of ${DAMAGE_TYPES.join(", ")}.`);
+  }
+  return value as DamageType;
+}
+
+/**
+ * A stat block's list of distinct values drawn from `allowed`, such as its
+ * traits, or undefined if left out. `field` names the list and `entry` one
+ * of its values in a problem.
+ */
+function chosen<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  where: string,
+  field: string,
+  entry: string,
+): T[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const values = list(value, `${where} ${field}`, allowed.length).map(
+    (item, index) => {
+      if (!allowed.includes(item as T)) {
+        fail(
+          `${where} ${entry} ${index + 1} must be one of ${allowed.join(", ")}.`,
+        );
+      }
+      return item as T;
+    },
+  );
+  distinct(
+    values,
+    (item) => item,
+    (item) => `${where} ${field} lists ${item} twice.`,
+  );
+  return values;
 }
 
 function rider(value: unknown, where: string): AttackRider {
@@ -184,7 +240,14 @@ export function statBlock(value: unknown, where: string): StatBlock {
       "xp",
       "attacks",
     ],
-    ["traits"],
+    [
+      "traits",
+      "saveProficiencies",
+      "damageResistances",
+      "damageVulnerabilities",
+      "damageImmunities",
+      "conditionImmunities",
+    ],
     where,
   );
   const hitPoints = exactKeys(
@@ -215,26 +278,50 @@ export function statBlock(value: unknown, where: string): StatBlock {
       };
     },
   );
-  const traits =
-    block.traits === undefined
-      ? undefined
-      : list(block.traits, `${where} traits`, MONSTER_TRAITS.length).map(
-          (trait, index) => {
-            if (!MONSTER_TRAITS.includes(trait as MonsterTrait)) {
-              fail(
-                `${where} trait ${index + 1} must be one of ${MONSTER_TRAITS.join(", ")}.`,
-              );
-            }
-            return trait as MonsterTrait;
-          },
-        );
-  if (traits !== undefined) {
-    distinct(
-      traits,
-      (trait) => trait,
-      (trait) => `${where} lists ${trait} twice.`,
-    );
-  }
+  const traits = chosen(block.traits, MONSTER_TRAITS, where, "traits", "trait");
+  const saveProficiencies = chosen(
+    block.saveProficiencies,
+    ABILITIES,
+    where,
+    "saveProficiencies",
+    "save proficiency",
+  );
+  const defenses = {
+    damageResistances: chosen(
+      block.damageResistances,
+      DAMAGE_TYPES,
+      where,
+      "damageResistances",
+      "damage resistance",
+    ),
+    damageVulnerabilities: chosen(
+      block.damageVulnerabilities,
+      DAMAGE_TYPES,
+      where,
+      "damageVulnerabilities",
+      "damage vulnerability",
+    ),
+    damageImmunities: chosen(
+      block.damageImmunities,
+      DAMAGE_TYPES,
+      where,
+      "damageImmunities",
+      "damage immunity",
+    ),
+  };
+  distinct(
+    Object.values(defenses).flatMap((types) => types ?? []),
+    (type) => type,
+    (type) =>
+      `${where} gives ${type} damage more than one of resistance, vulnerability and immunity.`,
+  );
+  const conditionImmunities = chosen(
+    block.conditionImmunities,
+    CONDITION_KINDS,
+    where,
+    "conditionImmunities",
+    "condition immunity",
+  );
   if (
     typeof block.challengeRating !== "string" ||
     !/^(0|1\/8|1\/4|1\/2|[1-9]|[12][0-9]|30)$/.test(block.challengeRating)
@@ -255,6 +342,11 @@ export function statBlock(value: unknown, where: string): StatBlock {
     xp: integer(block.xp, `${where} xp`, 0, 155000),
     attacks,
     ...(traits === undefined ? {} : { traits }),
+    ...(saveProficiencies === undefined ? {} : { saveProficiencies }),
+    ...Object.fromEntries(
+      Object.entries(defenses).filter(([, types]) => types !== undefined),
+    ),
+    ...(conditionImmunities === undefined ? {} : { conditionImmunities }),
   };
 }
 

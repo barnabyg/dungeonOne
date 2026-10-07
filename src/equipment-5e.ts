@@ -13,6 +13,7 @@
  * effect. Ranged weapons are deferred, so the dagger's Thrown property is not
  * used.
  */
+import type { DamageType } from "./encounter-5e.js";
 
 /** Availability tiers, from the easiest found to the hardest. */
 export const TIERS = ["common", "uncommon", "rare"] as const;
@@ -26,7 +27,11 @@ export type UsedMastery = Exclude<MasteryName, "Slow">;
 export type WeaponProperty =
   "finesse" | "heavy" | "light" | "two-handed" | "versatile";
 
-export type DamageType = "bludgeoning" | "piercing" | "slashing";
+/** The damage types the catalogue's weapons deal. */
+export type WeaponDamageType = Extract<
+  DamageType,
+  "bludgeoning" | "piercing" | "slashing"
+>;
 
 export type Dice = Readonly<{ dice: number; sides: number }>;
 
@@ -39,7 +44,7 @@ export type WeaponData = Readonly<{
   damage: Dice;
   /** The damage held in two hands, for a versatile weapon. */
   versatile?: Dice;
-  damageType: DamageType;
+  damageType: WeaponDamageType;
   properties: readonly WeaponProperty[];
   mastery: MasteryName;
   tier: Tier;
@@ -548,7 +553,7 @@ export type AttackProfile = Readonly<{
     dice: number;
     sides: number;
     modifier: number;
-    type: DamageType;
+    type: WeaponDamageType;
   }>;
   criticalRange: 19 | 20;
   /**

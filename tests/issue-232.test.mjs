@@ -515,13 +515,13 @@ test("the bestiary validator refuses malformed riders and traits", () => {
     withBite((block) => {
       block.traits = ["Pack Tactics", "Pack Tactics"];
     }),
-    /traits must list 1/,
+    /traits lists Pack Tactics twice\./,
   );
   assert.throws(
     withBite((block) => {
       block.traits = ["Keen Smell"];
     }),
-    /trait 1 must be one of Pack Tactics\./,
+    /trait 1 must be one of Pack Tactics, Undead Fortitude\./,
   );
 });
 
