@@ -61,4 +61,4 @@ gate and the harness measure on it.
 Minions in the burial hall, each carrying its own pouch of coin. `fleeingSeed()`
 finds the first browser seed on which Ada, attacking the first goblin offered,
 wins the fight with one goblin fled; the morale runtime and browser tests play
-it to check that the fled goblin leaves no body, XP or coin.
+it to check that the fled goblin leaves no body or coin and gives half its XP.

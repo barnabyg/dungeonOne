@@ -189,7 +189,7 @@ The shared collection of monsters adventure modules name by id, in its own file 
 _Avoid_: Monster manual, Stat block library
 
 **Morale**:
-A house rule on top of 5e: a side's nerve, checked when its first combatant falls and again at half strength. Each monster on it with a morale DC makes a Wisdom saving throw; one that fails is fleeing, and on its next turn it has fled: it is out of the fight, leaves no body, gives no XP and takes what it carried with it. Undead and mindless monsters have no morale DC and never check.
+A house rule on top of 5e: a side's nerve, checked when its first combatant falls and again at half strength. Each monster on it with a morale DC makes a Wisdom saving throw; one that fails is fleeing, and on its next turn it has fled: it is out of the fight, leaves no body and takes what it carried with it, and gives half its XP if it exchanged blows with the character first, or none. Undead and mindless monsters have no morale DC and never check.
 _Avoid_: Rout, Retreat
 
 **Condition**:

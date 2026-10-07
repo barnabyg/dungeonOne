@@ -566,7 +566,7 @@ export type FightRecord = Readonly<{
   id: string;
   /** Hit points the character lost in the fight, before any healing. */
   hpLost: number;
-  /** Opponents that fled (#237): a won fight's fled opponents give no XP. */
+  /** Opponents that fled (#237), giving half their XP or none. */
   fled: number;
   rounds: number;
   outcome: "victory" | "defeat";

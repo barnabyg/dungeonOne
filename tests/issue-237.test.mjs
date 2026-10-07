@@ -1,6 +1,7 @@
 // #237: monsters check morale (a house rule) when their side's first
 // combatant falls and again at half strength, and one that fails flees on its
-// turn. Fled monsters give no XP and take their loot with them.
+// turn. A fled monster takes its loot with it, and gives half its XP if it
+// exchanged blows with the character first, or none.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -318,10 +319,11 @@ test("a lone monster never checks morale", () => {
   assert.deepEqual(morale(events), []);
 });
 
-// The runtime: a fled goblin leaves no body, gives no XP and keeps its
-// pouch; the defeated goblins' bodies still hold theirs.
+// The runtime: a fled goblin leaves no body and keeps its pouch, and gives
+// half its XP for having fought; the defeated goblins' bodies still hold
+// theirs.
 
-test("a fled goblin's XP and pouch are absent at settlement, and it leaves no body", () => {
+test("a fled goblin's pouch is absent at settlement, it leaves no body, and it gives half its XP", () => {
   const { runtime, random, state: won } = fleeingSeed();
   const [{ opponentId: gone }] = won.fledOpponents;
   const fallen = GOBLINS.filter((id) => id !== gone);
@@ -358,15 +360,58 @@ test("a fled goblin's XP and pouch are absent at settlement, and it leaves no bo
   const settlement = runtime.projectSettlement(state);
   const [encounter] = settlement.xp;
   const names = fallen.map((id) => `Goblin ${id.slice(-1)}`);
+  // It attacked Ada before it fled: half a Goblin Minion's 25 XP.
+  assert.equal(won.fledOpponents[0].engaged, true);
   assert.deepEqual(encounter, {
     id: "fleeing-goblins/encounter/barrow-goblin",
-    name: `Defeated ${names.join(" and ")}`,
-    xp: 25 * fallen.length,
+    name: `Defeated ${names.join(" and ")}; drove off the Goblin ${gone.slice(-1)}`,
+    xp: 25 * fallen.length + 12,
   });
   assert.deepEqual(
     settlement.coin.map(({ id }) => id),
     fallen.map((id) => `fleeing-goblins/${pouchOf(id)}`),
   );
+
+  // Had it fled without exchanging a blow, it would give nothing.
+  const untouched = {
+    ...state,
+    fledOpponents: [{ ...state.fledOpponents[0], engaged: false }],
+  };
+  assert.deepEqual(runtime.projectSettlement(untouched).xp[0], {
+    id: "fleeing-goblins/encounter/barrow-goblin",
+    name: `Defeated ${names.join(" and ")}`,
+    xp: 25 * fallen.length,
+  });
+  // A whole band that fled after fighting is driven off, for half its XP;
+  // one that never fought gives none, so no award is credited for it.
+  const band = (engaged) => ({
+    ...state,
+    fledOpponents: GOBLINS.map((opponentId) => ({
+      encounterId: "barrow-goblin",
+      opponentId,
+      engaged,
+    })),
+  });
+  assert.deepEqual(runtime.projectSettlement(band(true)).xp[0], {
+    id: "fleeing-goblins/encounter/barrow-goblin",
+    name: "Drove off Goblin 1, Goblin 2 and Goblin 3",
+    xp: 36,
+  });
+  assert.deepEqual(
+    runtime.projectSettlement(band(false)).xp.map(({ id }) => id),
+    ["fleeing-goblins/ending/out-with-the-torc"],
+  );
+});
+
+test("a combatant has exchanged blows once it attacks or is attacked, hit or miss", () => {
+  // Ada misses Goblin 1; Goblins 2 and 3 have done nothing yet.
+  const { state, random } = begin(
+    [ada, goblin("g1"), goblin("g2"), goblin("g3")],
+    [20, 2],
+  );
+  assert.deepEqual(state.engaged, []);
+  const { state: after } = attack(state, random, "g1");
+  assert.deepEqual(after.engaged, ["pc", "g1"]);
 });
 
 test("the AI DM's scene and the initiative table show a fleeing goblin, then a fled one", () => {
@@ -525,9 +570,9 @@ test("the bestiary refuses a monster without a morale DC, or an undead one with 
 });
 
 // The balance harness: survival and XP come from the runtime, so a fled
-// goblin's XP is missing from a run, and each fight counts who fled.
+// goblin's XP is at most halved in a run, and each fight counts who fled.
 
-test("the harness counts fled goblins and credits only the defeated ones' XP", () => {
+test("the harness counts fled goblins and credits a fled one at most half its XP", () => {
   const runtime = createFifthRuntime(fleeingGoblins, firstFighter(0));
   let fled = 0;
   for (let seed = 0; seed < 60; seed++) {
@@ -538,7 +583,8 @@ test("the harness counts fled goblins and credits only the defeated ones' XP", (
     const [fight] = run.encounters;
     fled += fight.fled;
     const ending = run.outcome === "escape-with-loot" ? 250 : 0;
-    assert.equal(run.xp, ending + 25 * (GOBLINS.length - fight.fled));
+    const defeated = ending + 25 * (GOBLINS.length - fight.fled);
+    assert.ok(run.xp >= defeated && run.xp <= defeated + 12 * fight.fled);
   }
   assert.ok(fled > 0, "some goblins fled");
   // A goblin that may flee still counts toward the one-hit-kill check.

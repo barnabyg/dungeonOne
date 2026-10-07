@@ -311,6 +311,12 @@ export type EncounterState = Readonly<{
   fleeing: readonly string[];
   /** Combatants that left the fight, in the order they left. */
   fled: readonly string[];
+  /**
+   * Combatants that have exchanged blows: each made an attack or was the
+   * target of one, hit or miss. A fled monster among them gives half its XP
+   * (#237).
+   */
+  engaged: readonly string[];
   /** The morale checks each side has made; each is made once. */
   moraleChecks: readonly Readonly<{ side: Side; trigger: MoraleTrigger }>[];
 }>;
@@ -1450,6 +1456,10 @@ function resolveAttack(
       ({ sourceId, targetId }) =>
         sourceId !== actor.id || targetId !== target.id,
     ),
+    engaged: [
+      ...state.engaged,
+      ...[actor.id, target.id].filter((id) => !state.engaged.includes(id)),
+    ],
   };
   const defeated = hpLeft === 0 && target.hp > 0;
   if (defeated) {
@@ -1634,6 +1644,7 @@ export function startEncounter(
       conditions: [],
       fleeing: [],
       fled: [],
+      engaged: [],
       moraleChecks: [],
     },
     random,

@@ -19,7 +19,8 @@
  * victory either ends it (when the encounter names a victory ending) or lets
  * the player explore on. Opponents may lose their nerve and flee (#237): one
  * that fled a won fight leaves no body to search, so what it carried leaves
- * with it, and gives no XP. Hit points, Fighter feature uses and carried items
+ * with it, and gives half its XP if it exchanged blows with the character
+ * first, or none. Hit points, Fighter feature uses and carried items
  * last from fight to fight. In an exit room the player may choose to leave,
  * ending the adventure with or without the loot it carries (treasure, or
  * coin found here); leaving is
@@ -177,12 +178,13 @@ export type FifthState = Readonly<{
   /** Encounters won, including one whose victory ended the adventure. */
   clearedEncounterIds: readonly string[];
   /**
-   * The opponents that fled a won fight (#237): they leave no body and give
-   * no XP.
+   * The opponents that fled a won fight (#237): they leave no body, and give
+   * half their XP if they exchanged blows with the character first, or none.
    */
   fledOpponents: readonly Readonly<{
     encounterId: string;
     opponentId: string;
+    engaged: boolean;
   }>[];
   /** Doors opened, by a check or a key; they stay open. */
   openedDoorIds: readonly string[];
@@ -1883,16 +1885,22 @@ export function createFifthRuntime(
       .map((id) => items.get(id)!)
       .filter((item) => item.kind === "coin");
 
+  /** How the opponent fled the encounter's won fight (#237), if it did. */
+  const fledRecord = (
+    state: FifthState,
+    encounterId: string,
+    opponentId: string,
+  ) =>
+    state.fledOpponents.find(
+      (gone) =>
+        gone.encounterId === encounterId && gone.opponentId === opponentId,
+    );
   /** Whether the opponent fled the encounter's won fight (#237). */
   const fledFrom = (
     state: FifthState,
     encounterId: string,
     opponentId: string,
-  ) =>
-    state.fledOpponents.some(
-      (gone) =>
-        gone.encounterId === encounterId && gone.opponentId === opponentId,
-    );
+  ) => fledRecord(state, encounterId, opponentId) !== undefined;
   /**
    * The bodies of the room's opponents that fell once their fight is won
    * (one that fled left none): each can be
@@ -2126,6 +2134,7 @@ export function createFifthRuntime(
         ...encounter.fled.map((opponentId) => ({
           encounterId: fight.id,
           opponentId,
+          engaged: encounter.engaged.includes(opponentId),
         })),
       ],
     };
@@ -3858,15 +3867,35 @@ export function createFifthRuntime(
         const fight = adventure.encounters.find(
           ({ id }) => id === encounterId,
         )!;
-        // A fled opponent gives no XP (#237).
+        // A fled opponent gives half its XP, rounded down, if it exchanged
+        // blows with the character first, and none if it did not (#237).
         const defeated = fight.opponents.filter(
           ({ id }) => !fledFrom(state, fight.id, id),
         );
-        const names = defeated.map(({ name }) => name);
+        const drivenOff = fight.opponents.filter(
+          ({ id }) => fledRecord(state, fight.id, id)?.engaged === true,
+        );
+        const the = (names: readonly string[]) =>
+          `${names.length === 1 ? "the " : ""}${listed(names, "and")}`;
+        const parts = [
+          ...(defeated.length === 0
+            ? []
+            : [`Defeated ${the(defeated.map(({ name }) => name))}`]),
+          ...(drivenOff.length === 0
+            ? []
+            : [
+                `${defeated.length === 0 ? "Drove" : "drove"} off ${the(drivenOff.map(({ name }) => name))}`,
+              ]),
+        ];
         return {
           id: `${adventure.id}/encounter/${fight.id}`,
-          name: `Defeated ${names.length === 1 ? "the " : ""}${listed(names, "and")}`,
-          xp: defeated.reduce((sum, { statBlock }) => sum + statBlock.xp, 0),
+          name: parts.join("; "),
+          xp:
+            defeated.reduce((sum, { statBlock }) => sum + statBlock.xp, 0) +
+            drivenOff.reduce(
+              (sum, { statBlock }) => sum + Math.floor(statBlock.xp / 2),
+              0,
+            ),
         };
       }),
       ...(ending?.xp === undefined

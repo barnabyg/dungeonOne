@@ -1,8 +1,9 @@
 // #237, browser → API → storage: in the burial hall a goblin loses its nerve
 // and flees. The initiative table tags it Fled and offers no body for it. Ada
 // searches the bodies of the goblins she cut down, takes their pouches and
-// escapes; the ending, the stored sheet and the sheet page credit only the
-// defeated goblins' XP and coin.
+// escapes; the ending, the stored sheet and the sheet page credit the
+// defeated goblins' XP and coin, and half the XP of the one that fought and
+// fled.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -53,7 +54,7 @@ async function fight(page) {
 }
 
 test(
-  "a goblin flees; Ada escapes and keeps only the defeated goblins' XP and coin",
+  "a goblin flees; Ada escapes with the defeated goblins' coin, their XP and half the fled one's",
   { timeout: 120000 },
   async () => {
     const { seed, state: expected } = fleeingSeed();
@@ -121,12 +122,14 @@ test(
       await page.locator("#ending").waitFor({ state: "visible" });
       const ending = await text(page.locator("#ending"));
       const names = fallen.map((id) => `Goblin ${id.slice(-1)}`);
-      const goblinXp = 25 * fallen.length;
+      // The fled goblin attacked Ada before it ran: half its 25 XP.
+      const goblinXp = 25 * fallen.length + 12;
       assert.match(
         ending,
-        new RegExp(`Defeated ${names.join(" and ")}: \\+${goblinXp} XP\\n`),
+        new RegExp(
+          `Defeated ${names.join(" and ")}; drove off the ${goneName}: \\+${goblinXp} XP\\n`,
+        ),
       );
-      assert.doesNotMatch(ending, new RegExp(goneName));
       // Goblin n carries n sp.
       const silver = fallen.reduce((sum, id) => sum + Number(id.slice(-1)), 0);
       assert.match(ending, new RegExp(`Coin found: ${silver} sp\\.`));
