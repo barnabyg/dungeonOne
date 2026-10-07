@@ -5,7 +5,7 @@
 // is the library's (rewards-5e.test.mjs).
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
@@ -13,12 +13,9 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { gemMarket } from "./fixtures/gem-market.mjs";
-import {
-  assertTogether,
-  firstFighter,
-  launch,
-} from "./fixtures/session-layout.mjs";
+import { explore, firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
+import { readAda } from "./fixtures/save-files.mjs";
 
 /** A browser seed on which the first Ada wins the burial hall's fight. */
 function winningSeed() {
@@ -42,20 +39,6 @@ function winningSeed() {
     }
   }
   throw new Error("no seed wins the burial hall");
-}
-
-/** Clicks an action control and waits for its result card. */
-async function click(page, action, target) {
-  const count = await page.locator("#log li").count();
-  await page
-    .locator(`button.act[data-action="${action}"][data-target="${target}"]`)
-    .click();
-  await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log li").length > seen,
-    count,
-  );
-  // #154: the newest entry and the actions stay on screen together.
-  await assertTogether(page, `${action} ${target}`);
 }
 
 /**
@@ -86,9 +69,6 @@ async function fight(page) {
 }
 
 const newest = (page) => page.locator("#log li").last().innerText();
-const ada = async (libraryPath) =>
-  JSON.parse(await readFile(libraryPath, "utf8")).characters[0];
-
 /**
  * Creates Ada, finds the opal, sells it to the pedlar and buys a shortsword
  * with the coin, then hands the page to `finish`.
@@ -110,20 +90,20 @@ async function journey(seed, finish) {
   try {
     await page.goto(server.url);
     await createFighter(page);
-    const start = (await ada(libraryPath)).sheet;
+    const start = (await readAda(libraryPath)).sheet;
     await startAdventure(page, "lintel-barrow");
     assert.match(
       await page.locator('#creatures li[data-id="pedlar"]').innerText(),
       /Pays full value for gems and art objects\./,
     );
 
-    await click(page, "move", "burial-hall");
+    await explore(page, "move", "burial-hall");
     await fight(page);
-    await click(page, "examine", "stone-bier");
-    await click(page, "take", "blue-opal");
+    await explore(page, "examine", "stone-bier");
+    await explore(page, "take", "blue-opal");
     const opal = page.locator('#inventory > li[data-id="blue-opal"]');
     assert.match(await opal.innerText(), /Blue Opal \(50 gp\)/);
-    await click(page, "move", "barrow-mouth");
+    await explore(page, "move", "barrow-mouth");
 
     // Sell sits on the opal's "You carry" entry, never in the action bar.
     assert.equal(
@@ -132,13 +112,13 @@ async function journey(seed, finish) {
         .count(),
       0,
     );
-    await click(page, "sell-treasure", "blue-opal");
+    await explore(page, "sell-treasure", "blue-opal");
     assert.equal(
       await newest(page),
       "You sell the blue opal to Pedlar for 50 gp. The trade takes 10 minutes. Purse: 50 gp.",
     );
     assert.equal(await opal.count(), 0);
-    await click(page, "buy", "shortsword");
+    await explore(page, "buy", "shortsword");
     assert.equal(await page.locator("#purse").textContent(), "Purse: 40 gp");
     await finish(page, libraryPath, start);
   } finally {
@@ -161,7 +141,7 @@ test(
         "Escaped with loot",
       );
 
-      const record = await ada(libraryPath);
+      const record = await readAda(libraryPath);
       assert.equal(record.session, undefined);
       assert.deepEqual(record.sheet.stowed, [...start.stowed, "shortsword"]);
       assert.equal(record.sheet.purse, 4000);

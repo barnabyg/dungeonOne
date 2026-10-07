@@ -13,7 +13,11 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 import { sealedCrypt } from "./fixtures/modules.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
+import {
+  clickAction,
+  createAndStart,
+  fightTurn,
+} from "./fixtures/browser-journey.mjs";
 
 const crypt = sealedCrypt;
 const ROUTE = ["hall", "tomb"];
@@ -60,27 +64,6 @@ function refusal(seed) {
   return undefined;
 }
 
-/** Runs one click and waits for its history entry. */
-async function click(page, locator) {
-  const count = await page.locator("#log li").count();
-  await locator.click();
-  await page.waitForFunction(
-    (seen) =>
-      document.querySelectorAll("#log li:not([data-pending])").length > seen,
-    count,
-  );
-}
-
-const fightOn = async (page) => {
-  const attack = page.locator("#attack-controls button.attack:enabled");
-  await click(
-    page,
-    (await attack.count()) > 0
-      ? attack.first()
-      : page.locator('#feature-controls button[data-action="end-turn"]'),
-  );
-};
-
 /** The warden's row in the initiative table. */
 const wardenRow = (page) =>
   page.locator('#initiative-rows tr[data-combatant="risen-warden"]');
@@ -110,15 +93,10 @@ test(
     try {
       await createAndStart(page, server.url, "sealed-crypt");
       for (const destination of ROUTE) {
-        await click(
-          page,
-          page.locator(
-            `button.act[data-action="move"][data-target="${destination}"]`,
-          ),
-        );
+        await clickAction(page, "move", destination);
       }
       for (let count = 0; count < clicks; count++) {
-        await fightOn(page);
+        await fightTurn(page);
       }
 
       // Narrated: the blow takes it to 0, then the save keeps it at 1 HP.

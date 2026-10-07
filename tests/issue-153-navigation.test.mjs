@@ -3,18 +3,10 @@ import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import { createFighter, openCreation } from "./fixtures/browser-journey.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
 
 /** What the page shows: the visible view, its title, breadcrumb and focus. */
 const state = (page) =>

@@ -10,19 +10,11 @@ import test from "node:test";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { loadScriptedDmModel } from "../dist/scripted-dm-model.js";
+import { launch } from "./fixtures/session-layout.mjs";
 import { goblinBand } from "./fixtures/modules.mjs";
 import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
 
 /** A promise and the function that settles it. */
 function gate() {

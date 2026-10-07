@@ -9,18 +9,10 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { launch } from "./fixtures/session-layout.mjs";
 import { ratlessTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
 
 /** Each thing row's box, its name's box and its verb buttons' boxes. */
 const rows = (page) =>

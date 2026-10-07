@@ -5,7 +5,6 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { orderFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
@@ -14,15 +13,8 @@ import {
   loneGoblin,
   sealedCrypt,
 } from "./fixtures/modules.mjs";
+import { launch } from "./fixtures/session-layout.mjs";
 import { createFighter } from "./fixtures/browser-journey.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
 
 const module = (id, min, max, difficulty) => ({
   id,

@@ -15,7 +15,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { archer, archeryBarrow, QUIVER } from "./fixtures/archery-barrow.mjs";
-import { assertTogether, launch } from "./fixtures/session-layout.mjs";
+import { explore, launch } from "./fixtures/session-layout.mjs";
 
 const sheet = archer(2);
 const GOBLIN = "barrow-goblin";
@@ -73,21 +73,6 @@ function archerySeed() {
     }
   }
   throw new Error("No seed in 500 has Wren run out of arrows and win.");
-}
-
-/** Clicks an action control and waits for its result card. */
-async function click(page, action, target) {
-  const count = await page.locator("#log li").count();
-  await page
-    .locator(
-      `button.act[data-action="${action}"]${target === undefined ? "" : `[data-target="${target}"]`}`,
-    )
-    .click();
-  await page.waitForFunction(
-    (seen) => document.querySelectorAll("#log li").length > seen,
-    count,
-  );
-  await assertTogether(page, `${action} ${target}`);
 }
 
 /** The short reason shown beside a disabled control. */
@@ -149,7 +134,7 @@ test(
       );
       assert.equal(await carried(page, "arrows"), "Arrows (2)");
 
-      await click(page, "move", "burial-hall");
+      await explore(page, "move", "burial-hall");
       const attack = page.locator(
         `button.act[data-action="attack"][data-target="${GOBLIN}"]`,
       );
@@ -167,13 +152,13 @@ test(
             await page.locator("#gear-numbers").textContent(),
             /Shortbow .*; 0 arrows\.$/,
           );
-          await click(page, "swap", "mace");
+          await explore(page, "swap", "mace");
           assert.match(
             await page.locator("#gear-numbers").textContent(),
             /Mace \+5 to hit/,
           );
         } else {
-          await click(page, choice, choice === "attack" ? GOBLIN : undefined);
+          await explore(page, choice, choice === "attack" ? GOBLIN : undefined);
         }
       }
       assert.equal(drew, true);
@@ -183,11 +168,11 @@ test(
       );
       assert.equal(await carried(page, "arrows"), "Arrows (1)");
 
-      await click(page, "move", "barrow-mouth");
-      await click(page, "examine", "scratched-lintel");
-      await click(page, "take", QUIVER.id);
+      await explore(page, "move", "barrow-mouth");
+      await explore(page, "examine", "scratched-lintel");
+      await explore(page, "take", QUIVER.id);
       assert.equal(await carried(page, "arrows"), "Arrows (21)");
-      await click(page, "sell", "arrows");
+      await explore(page, "sell", "arrows");
       assert.equal(await carried(page, "arrows"), "Arrows (1)");
       const sell = page.locator(
         'button.act[data-action="sell"][data-target="arrows"]',

@@ -1,25 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import {} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-import { firstFighter } from "./fixtures/session-layout.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
+import { firstFighter, launch } from "./fixtures/session-layout.mjs";
+import { sessionFile } from "./fixtures/save-files.mjs";
 
 // The rat tunnels, with the Giant Rat's fight; the server offers only them.
 const adventure = ratTunnels;
@@ -153,12 +144,6 @@ async function clickNext(page) {
     count,
   );
 }
-
-const sessionFile = async (directory) => {
-  const folder = join(directory, "characters-adventures");
-  const [name] = await readdir(folder);
-  return JSON.parse(await readFile(join(folder, name), "utf8"));
-};
 
 test(
   "walk the tunnels, search the chest by typing, take the potion, drink it after a fight, and resume exactly",

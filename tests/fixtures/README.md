@@ -78,8 +78,11 @@ minion with one attack, so it fails as too easy at every difficulty.
 
 `default-launch.mjs` runs the built browser launcher as a player would,
 through `quiet-launcher.mjs`, which stops it opening a desktop browser window.
-`session-layout.mjs` launches the browser and checks that the newest
-history entry and the action buttons are on screen together (#154). Its
+`session-layout.mjs` launches the browser (`launch`: Edge on Windows, else
+Playwright's Chromium; every browser test uses it) and checks that the newest
+history entry and the action buttons are on screen together (#154): `act`
+runs a click and checks that, and `explore(page, action, target)` and
+`fightOn` are `act` on an action's button and on a fight turn. Its
 `firstFighter(seed)` is the Fighter a browser on that seed creates first,
 with the page's default choices (`FIGHTER_DEFAULT_CHOICES`) and placement
 (`defaultPlacement`); browser tests that search for a seed by simulating
@@ -91,6 +94,18 @@ part they check: `openCreation`, `saveFighter` (Ada by default),
 first history entry) and `createAndStart` (open the page, create Ada,
 start). Tests that check one of these steps closely, such as creation's
 busy states, keep their own clicks.
+
+It also holds the clicks for tests that don't check the layout:
+`settled(page, run)` runs `run` and waits for a new history entry that is not
+pending; `actionButton(page, action, target)` is an action's button (the
+only one when `target` is left out) and `clickAction` clicks it, settled;
+`fightTurn` attacks the first target offered, or ends the turn once the
+action is spent, and `fight` takes turns until the fight is over. `text`
+is an element's text with blank lines collapsed.
+
+`save-files.mjs` reads what the browser server saves: `readAda(libraryPath)`,
+the library's first character, and `sessionFile(directory)`, the one saved
+session in the directory's `characters-adventures` folder.
 
 ## Bestiary (issue 231)
 

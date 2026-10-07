@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import {} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
@@ -13,16 +11,9 @@ import {
   goblinBand as band,
   loneGoblin as adventure,
 } from "./fixtures/modules.mjs";
-import { createAndStart } from "./fixtures/browser-journey.mjs";
-import { firstFighter } from "./fixtures/session-layout.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
+import { createAndStart, fightTurn } from "./fixtures/browser-journey.mjs";
+import { firstFighter, launch } from "./fixtures/session-layout.mjs";
+import { sessionFile } from "./fixtures/save-files.mjs";
 
 // The lone goblin's one-room fight and the goblin band's group fight.
 const ADVENTURES = [adventure, band];
@@ -57,25 +48,6 @@ function simulate(seed) {
     attacks += action === ATTACK ? 1 : 0;
   }
   return { status: state.status, attacks, drawn };
-}
-
-/**
- * Clicks the first Attack button, or End turn once the action is spent, and
- * waits for the result card.
- */
-async function clickNext(page) {
-  const count = await page.locator("#log li").count();
-  const attack = page.locator("#attack-controls button.attack:enabled");
-  await (
-    (await attack.count()) > 0
-      ? attack.first()
-      : page.locator('#feature-controls button[data-action="end-turn"]')
-  ).click();
-  await page.waitForFunction(
-    (seen) =>
-      document.querySelectorAll("#log li:not([data-pending])").length > seen,
-    count,
-  );
 }
 
 function findSeed(wanted, minimumAttacks) {
@@ -130,12 +102,6 @@ const panel = (page) =>
     turn: document.getElementById("turn").textContent,
     log: document.getElementById("log").textContent,
   }));
-
-const sessionFile = async (directory) => {
-  const folder = join(directory, "characters-adventures");
-  const [name] = await readdir(folder);
-  return JSON.parse(await readFile(join(folder, name), "utf8"));
-};
 
 test(
   "a typed and clicked fight survives a reload and a restart, and ends in victory",
@@ -204,7 +170,7 @@ test(
 
       // Clicked attacks (and ends of turn) to the end.
       while (!(await page.locator("#ending").isVisible())) {
-        await clickNext(page);
+        await fightTurn(page);
       }
       assert.equal(
         await page.locator("#ending-title").textContent(),
@@ -394,7 +360,7 @@ test(
 
       // Clicks on the first offered target until the first goblin falls.
       for (let step = 1; step < expected.firstFall.steps; step++) {
-        await clickNext(page);
+        await fightTurn(page);
       }
       const fallen = band.encounters[0].opponents.find(
         ({ id }) => id === expected.firstFall.id,
@@ -425,7 +391,7 @@ test(
       assert.deepEqual(await panel(page), shown);
 
       while (!(await page.locator("#ending").isVisible())) {
-        await clickNext(page);
+        await fightTurn(page);
       }
       assert.equal(
         await page.locator("#ending-title").textContent(),
@@ -558,7 +524,7 @@ test(
             );
           }
         } else {
-          await clickNext(page);
+          await fightTurn(page);
         }
       }
       // Storage holds every click, with dice matching the engine run.

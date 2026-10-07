@@ -9,7 +9,6 @@ import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   ABILITIES,
@@ -18,15 +17,8 @@ import {
   fighterProfile,
   keptTotal,
 } from "../dist/fighter-5e.js";
+import { launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
 
 const title = (ability) => ability.charAt(0).toUpperCase() + ability.slice(1);
 const signed = (value) => (value >= 0 ? "+" : "") + value;

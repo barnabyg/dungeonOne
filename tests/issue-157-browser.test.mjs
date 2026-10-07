@@ -10,7 +10,6 @@ import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
@@ -18,15 +17,7 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
-import { firstFighter } from "./fixtures/session-layout.mjs";
-
-// Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
-const launch = () =>
-  chromium.launch(
-    process.platform === "win32"
-      ? { channel: "msedge", headless: true }
-      : { headless: true },
-  );
+import { firstFighter, launch } from "./fixtures/session-layout.mjs";
 
 /** A seed where the lone goblin fight opens with an initiative roll-off. */
 function rollOffSeed() {
