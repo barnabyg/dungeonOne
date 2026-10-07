@@ -11,24 +11,15 @@ import {
   FIFTH_ADVENTURE_FORMAT,
   loadFifthAdventure,
 } from "../dist/adventure-5e.js";
-import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import {
   buildFighter,
   settleFighter,
   validateFighter,
 } from "../dist/fighter-5e.js";
-import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
-import {
-  FifthSession,
-  sessionSeed,
-  settleFifthSession,
-  startFifthAdventure,
-} from "../dist/session-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { lintelBarrow as barrow, moduleFile } from "./fixtures/modules.mjs";
 
-const adventures = [barrow];
 const barrowFile = moduleFile("lintel-barrow");
 const changed = (change) => {
   const copy = structuredClone(barrowFile);
@@ -294,163 +285,4 @@ test("a sheet's purse is a whole number of copper, and new characters start with
     assert.throws(() => validateFighter({ ...sheet, purse }), /purse/i);
   }
   assert.equal(validateFighter({ ...sheet, purse: 12345 }).purse, 12345);
-});
-
-// Engine → storage.
-
-async function withLibrary(run) {
-  const directory = await mkdtemp(join(tmpdir(), "issue-208-"));
-  try {
-    const library = new FifthCharacterLibrary(
-      join(directory, "characters.json"),
-      7,
-    );
-    const started = await library.startCreation();
-    const data = await library.create(
-      "Ada",
-      {
-        placement: {
-          strength: 0,
-          dexterity: 1,
-          constitution: 2,
-          intelligence: 3,
-          wisdom: 4,
-          charisma: 5,
-        },
-        increase: { strength: 2, constitution: 1 },
-        skills: ["athletics", "perception"],
-        fightingStyle: "defense",
-        kit: "mace",
-        masteries: ["dagger", "mace", "shortsword"],
-      },
-      started.revision,
-    );
-    assert.equal(data.characters[0].sheet.purse, 0);
-    await run(library, data.characters[0].sheet.id);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-}
-
-const fightStep = (runtime, state) =>
-  runtime.attackTargets(state).length > 0
-    ? { type: "attack", actorId: "pc", targetId: "barrow-goblin" }
-    : { type: "end-turn", actorId: "pc" };
-
-async function winningSeed(library, characterId, number) {
-  const { sheet: current } = (await library.read()).characters.find(
-    (record) => record.sheet.id === characterId,
-  );
-  for (let seed = 0; seed < 500; seed++) {
-    const runtime = createFifthRuntime(barrow, current);
-    const random = createSeededRandom(sessionSeed(seed, number));
-    let state = runtime.createSession();
-    for (const action of [
-      { type: "begin" },
-      { type: "move", destinationId: "burial-hall" },
-    ]) {
-      state = runtime.handleAction(state, action, random).state;
-    }
-    while (state.encounter?.outcome === "ongoing") {
-      state = runtime.handleAction(
-        state,
-        fightStep(runtime, state),
-        random,
-      ).state;
-    }
-    if (state.status === "playing") {
-      return seed;
-    }
-  }
-  throw new Error("no winning seed");
-}
-
-/** Starts the barrow, wins its fight, loots the body if it holds coin, and returns to the exit. */
-async function lootTheGoblin(library, characterId, number) {
-  const seed = await winningSeed(library, characterId, number);
-  const session = await startFifthAdventure(
-    library,
-    seed,
-    characterId,
-    barrow,
-    (await library.read()).revision,
-  );
-  session.act({ type: "move", destinationId: "burial-hall" }, "click");
-  while (session.state.encounter?.outcome === "ongoing") {
-    session.act(fightStep(session.runtime, session.state), "click");
-  }
-  session.act(SEARCH_BODY, "click");
-  if (session.runtime.projectRoom(session.state).items.length > 0) {
-    session.act(TAKE_POUCH, "click");
-  }
-  session.act(OUT, "click");
-  return session;
-}
-
-const ada = async (library) => (await library.read()).characters[0];
-
-test("escaping with coin keeps it once; an interruption between the session and library writes never duplicates or loses it", async () => {
-  await withLibrary(async (library, characterId) => {
-    const session = await lootTheGoblin(library, characterId, 1);
-    assert.equal(session.state.possessions.purse, POUCH);
-    session.act(LEAVE, "click");
-    await session.persist();
-    // A crash here: the session has ended, the library still names it.
-    assert.equal((await ada(library)).sheet.purse, 0);
-    const reloaded = await FifthSession.load(session.path, adventures);
-    assert.equal(reloaded.state.possessions.purse, POUCH);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, session);
-    let record = await ada(library);
-    assert.equal(record.session, undefined);
-    assert.equal(record.sheet.purse, POUCH);
-    assert.deepEqual(record.sheet.finds, [POUCH_ID]);
-
-    // The same adventure again finds no coin; the purse is carried in and out.
-    const again = await lootTheGoblin(library, characterId, 2);
-    assert.equal(again.state.possessions.purse, POUCH);
-    again.act(LEAVE, "click");
-    assert.equal(again.state.endingId, "out-empty-handed");
-    await again.persist();
-    await settleFifthSession(library, again);
-    record = await ada(library);
-    assert.equal(record.sheet.purse, POUCH);
-  });
-});
-
-test("defeat and abandonment leave the purse as it was at the start", async () => {
-  await withLibrary(async (library, characterId) => {
-    const first = await lootTheGoblin(library, characterId, 1);
-    first.act(LEAVE, "click");
-    await first.persist();
-    await settleFifthSession(library, first);
-    const before = (await ada(library)).sheet;
-    assert.equal(before.purse, POUCH);
-
-    // Coin spent or gained mid-adventure is forgotten on abandonment.
-    const abandoned = await lootTheGoblin(library, characterId, 2);
-    abandoned.state = {
-      ...abandoned.state,
-      possessions: { ...abandoned.state.possessions, purse: 9999 },
-    };
-    await abandoned.persist();
-    const data = await library.abandonSession(
-      characterId,
-      (await library.read()).revision,
-    );
-    assert.deepEqual(data.characters[0].sheet, before);
-
-    const fallen = await lootTheGoblin(library, characterId, 3);
-    fallen.state = {
-      ...fallen.state,
-      possessions: { ...fallen.state.possessions, purse: 0 },
-      status: "defeat",
-      endingId: "fallen-in-the-barrow",
-    };
-    await settleFifthSession(library, fallen);
-    const record = await ada(library);
-    assert.equal(record.defeated, true);
-    assert.deepEqual(record.sheet, { ...before, hp: 0 });
-  });
 });

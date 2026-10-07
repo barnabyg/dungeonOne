@@ -157,3 +157,18 @@ bolts, ten minutes a trade, and a quiver of 20 arrows lies behind the lintel.
 `archer(arrows, bolts)` is Wren, Ada's scores with leather, a shortbow, a
 stowed mace and that many arrows and bolts; the ranged-weapon runtime, library
 and browser tests play her there and against the lone goblin.
+
+## Character library
+
+`library.mjs` holds the harness the library and session tests share.
+`withLibrary(run)` creates a library in a temporary directory holding one
+fresh Ada (the test fighter's choices, the mace kit) and calls
+`run(library, sheet, revision, directory)`, removing the directory afterwards.
+`winBarrowSeed(module, sheet, number, before)` finds the browser seed whose
+`number`th session of a lintel barrow wins the burial hall's fight, after
+`before` (actions at the mouth that roll no dice), and `barrowFightStep` is
+that fight's next action: attack, or end the turn.
+`playSession(library, module, actions)` starts a lintel barrow for the
+library's character and plays `actions`, each accepted; `WIN_THE_BURIAL_HALL`
+among them moves into the hall and wins its fight, on the seed
+`winBarrowSeed` finds.

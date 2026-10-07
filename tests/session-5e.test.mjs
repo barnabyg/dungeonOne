@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
+import { readFile, writeFile } from "node:fs/promises";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import {
@@ -13,45 +10,16 @@ import {
   startFifthAdventure,
 } from "../dist/session-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import { withLibrary } from "./fixtures/library.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
 
 const adventure = loneGoblin;
 const adventures = [adventure];
-const CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-  kit: "mace",
-  masteries: ["dagger", "mace", "shortsword"],
-};
 const ATTACK = { type: "attack", actorId: "pc", targetId: "goblin" };
 const END_TURN = { type: "end-turn", actorId: "pc" };
 /** Attack, or end the turn once the action is spent. */
 const step = (runtime, state) =>
   runtime.attackTargets(state).length > 0 ? ATTACK : END_TURN;
-
-async function withLibrary(run) {
-  const directory = await mkdtemp(join(tmpdir(), "session-5e-"));
-  try {
-    const library = new FifthCharacterLibrary(
-      join(directory, "characters.json"),
-      7,
-    );
-    const started = await library.startCreation();
-    const data = await library.create("Ada", CHOICES, started.revision);
-    await run(library, data.characters[0].sheet, data.revision, directory);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-}
 
 /** How a session on `seed` ends if the player always attacks. */
 function outcome(sheet, seed) {

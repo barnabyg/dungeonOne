@@ -6,16 +6,12 @@
 // Ammunition is counted, weighed, and bought, sold and found by the 20.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { itemValue } from "../dist/adventure-5e.js";
 import {
   oneHitKillChance,
   percentileCharacters,
   strongestAttackers,
 } from "../dist/balance-5e.js";
-import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { act, availableActions, startEncounter } from "../dist/encounter-5e.js";
 import {
   AMMUNITION,
@@ -44,7 +40,6 @@ import {
   playerCombatant,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
-import { TEST_FIGHTER_CHOICES } from "../dist/test-fighter-5e.js";
 import {
   archer,
   archeryBarrow,
@@ -53,6 +48,7 @@ import {
 } from "./fixtures/archery-barrow.mjs";
 import { room } from "./fixtures/armoury-barrow.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
+import { withLibrary } from "./fixtures/library.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
 
 /** Returns the queued `[sides, value]` dice in order, checking each die's sides. */
@@ -643,25 +639,6 @@ test("the gate's one-hit-kill measure tries a ranged weapon a module sells, Dext
 });
 
 /** A library holding one fresh Ada (the mace kit), at the archers' barrow. */
-async function withLibrary(run) {
-  const directory = await mkdtemp(join(tmpdir(), "issue-230-"));
-  try {
-    const library = new FifthCharacterLibrary(
-      join(directory, "characters.json"),
-      7,
-    );
-    const started = await library.startCreation();
-    const data = await library.create(
-      "Ada",
-      TEST_FIGHTER_CHOICES,
-      started.revision,
-    );
-    await run(library, data.characters[0].sheet.id);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-}
-
 const record = async (library) => (await library.read()).characters[0];
 
 /** Starts the archers' barrow and trades at its mouth; no dice. */
@@ -680,8 +657,8 @@ async function trade(library, characterId, actions) {
   return session;
 }
 
-test("arrows bought are kept on escape; abandonment and defeat roll them back", async () => {
-  await withLibrary(async (library, characterId) => {
+test("arrows and bolts bought are kept on escape", async () => {
+  await withLibrary(async (library, { id: characterId }) => {
     const kept = await trade(library, characterId, [
       { type: "sell", itemId: "leather", equipped: true },
       { type: "buy", itemId: "arrows" },
@@ -690,33 +667,9 @@ test("arrows bought are kept on escape; abandonment and defeat roll them back", 
     ]);
     await kept.persist();
     await settleFifthSession(library, kept);
-    const before = (await record(library)).sheet;
-    assert.deepEqual(before.ammunition, { arrows: 20, bolts: 20 });
-    assert.equal(before.purse, 300);
-
-    const abandoned = await trade(library, characterId, [
-      { type: "buy", itemId: "arrows" },
-      { type: "sell", itemId: "bolts" },
-    ]);
-    await abandoned.persist();
-    const data = await library.abandonSession(
-      characterId,
-      (await library.read()).revision,
-    );
-    assert.deepEqual(data.characters[0].sheet, before);
-
-    const fallen = await trade(library, characterId, [
-      { type: "buy", itemId: "arrows" },
-    ]);
-    fallen.state = {
-      ...fallen.state,
-      status: "defeat",
-      endingId: "fallen-in-the-barrow",
-    };
-    await settleFifthSession(library, fallen);
-    const { sheet, defeated } = await record(library);
-    assert.equal(defeated, true);
-    assert.deepEqual(sheet, { ...before, hp: 0 });
+    const { sheet } = await record(library);
+    assert.deepEqual(sheet.ammunition, { arrows: 20, bolts: 20 });
+    assert.equal(sheet.purse, 300);
   });
 });
 

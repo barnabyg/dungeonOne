@@ -1,8 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { runDmTurn } from "../dist/dm-turn.js";
 import { buildFighter } from "../dist/fighter-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
@@ -11,7 +8,6 @@ import { ratTunnels } from "./fixtures/modules.mjs";
 
 // The rat tunnels: an alcove's chest, the Giant Rat's fight, the goblin's den.
 const adventure = ratTunnels;
-const adventures = [adventure];
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 13 in leather with Defense, 12 HP, mace +5.
 const sheet = buildFighter(
   "a".repeat(32),
@@ -489,39 +485,11 @@ test("scripted DM: a typed drink uses the potion through the engine", async () =
   );
 });
 
-test("a session with exploration saves and reloads exactly", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "exploration-5e-"));
-  try {
-    const path = join(directory, "session.json");
-    const session = await FifthSession.create(
-      path,
-      "b".repeat(32),
-      11,
-      adventure,
-      sheet,
-    );
-    assert.equal(
-      session.history[0].reply.startsWith("Foot of the Stair."),
-      true,
-    );
-    assert.deepEqual(session.history[0].cards, []);
-    for (const action of [
-      { type: "examine", targetId: "rusted-lantern" },
-      { type: "move", destinationId: "alcove" },
-      { type: "examine", targetId: "iron-chest" },
-      { type: "take", itemId: "healing-potion" },
-      { type: "move", destinationId: "stair-foot" },
-      { type: "move", destinationId: "rat-cellar" },
-    ]) {
-      assert.equal(session.act(action, "click").result.rejection, undefined);
-    }
-    await session.persist();
-    const loaded = await FifthSession.load(path, adventures);
-    assert.deepEqual(loaded.state, session.state);
-    assert.equal(loaded.randomPosition, session.randomPosition);
-    assert.ok(loaded.randomPosition >= 2, "entering the cellar rolled dice");
-    assert.deepEqual(loaded.state.inventory, ["healing-potion"]);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
+// Saving and reloading exploration is covered by issue-132's session test
+// and rewards-5e's interrupted settlements, which reload taken items.
+test("a session that starts outside a fight opens with the room and no cards", () => {
+  const session = FifthSession.begin(11, adventure, sheet);
+  assert.match(session.history[0].reply, /^Foot of the Stair\./);
+  assert.deepEqual(session.history[0].cards, []);
+  assert.equal(session.randomPosition, 0);
 });

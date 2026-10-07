@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import {
   buildFighter,
   fighterProfile,
@@ -15,7 +12,6 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import {
   FifthSession,
-  sessionSeed,
   settleFifthSession,
   startFifthAdventure,
 } from "../dist/session-5e.js";
@@ -24,6 +20,16 @@ import {
   lintelBarrow as barrow,
   loneGoblin as cellar,
 } from "./fixtures/modules.mjs";
+import { archeryBarrow } from "./fixtures/archery-barrow.mjs";
+import { armouryBarrow } from "./fixtures/armoury-barrow.mjs";
+import {
+  barrowFightStep,
+  playSession,
+  winBarrowSeed,
+  WIN_THE_BURIAL_HALL,
+  withLibrary,
+} from "./fixtures/library.mjs";
+import { marketBarrow } from "./fixtures/market-barrow.mjs";
 
 const adventures = [barrow];
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 17 with Defense, 12 HP, mace +5.
@@ -238,15 +244,6 @@ test("a fallen opponent's treasure is found only by searching its body once the 
     runtime.projectSettlement(out).coin.map(({ id }) => id),
     ["lintel-barrow/coin-pouch"],
   );
-  // Once kept, the body holds nothing of value.
-  const veteran = settleFighter(sheet, runtime.projectSettlement(out));
-  const again = createFifthRuntime(barrow, veteran);
-  const empty = again.handleAction(
-    play(again, WIN_THE_HALL, WIN_DICE()),
-    SEARCH,
-  );
-  assert.equal(empty.events[0].discovery, "Nothing of value.");
-  assert.deepEqual(empty.events[0].found, []);
 });
 
 test("treasure and XP already earned are not found or awarded again", () => {
@@ -461,77 +458,10 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin b
 
 // Engine → storage: the library and the session saves.
 
-async function withLibrary(run) {
-  const directory = await mkdtemp(join(tmpdir(), "rewards-5e-"));
-  try {
-    const library = new FifthCharacterLibrary(
-      join(directory, "characters.json"),
-      7,
-    );
-    const started = await library.startCreation();
-    const data = await library.create(
-      "Ada",
-      {
-        placement: {
-          strength: 0,
-          dexterity: 1,
-          constitution: 2,
-          intelligence: 3,
-          wisdom: 4,
-          charisma: 5,
-        },
-        increase: { strength: 2, constitution: 1 },
-        skills: ["athletics", "perception"],
-        fightingStyle: "defense",
-        kit: "mace",
-        masteries: ["dagger", "mace", "shortsword"],
-      },
-      started.revision,
-    );
-    await run(library, data.characters[0].sheet.id);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-}
-
-/** The barrow fight's next action: attack, or end the turn once spent. */
-const fightStep = (runtime, state) =>
-  runtime.attackTargets(state).length > 0
-    ? { type: "attack", actorId: "pc", targetId: "barrow-goblin" }
-    : { type: "end-turn", actorId: "pc" };
-
-/** A browser seed whose `number`th session wins the barrow's fight. */
-async function winningSeed(library, characterId, number) {
-  const { sheet: current } = (await library.read()).characters.find(
-    (record) => record.sheet.id === characterId,
-  );
-  for (let seed = 0; seed < 500; seed++) {
-    const runtime = createFifthRuntime(barrow, current);
-    const random = createSeededRandom(sessionSeed(seed, number));
-    let state = runtime.createSession();
-    for (const action of [
-      { type: "begin" },
-      { type: "move", destinationId: "burial-hall" },
-    ]) {
-      state = runtime.handleAction(state, action, random).state;
-    }
-    while (state.encounter?.outcome === "ongoing") {
-      state = runtime.handleAction(
-        state,
-        fightStep(runtime, state),
-        random,
-      ).state;
-    }
-    if (state.status === "playing") {
-      return seed;
-    }
-  }
-  throw new Error("no winning seed");
-}
-
 /** Starts the barrow, wins its fight, takes the torc if it is there, and returns to the exit. */
 async function lootTheBarrow(library, characterId, number) {
-  const seed = await winningSeed(library, characterId, number);
+  const { sheet: current } = (await library.read()).characters[0];
+  const seed = winBarrowSeed(barrow, current, number);
   const session = await startFifthAdventure(
     library,
     seed,
@@ -541,7 +471,7 @@ async function lootTheBarrow(library, characterId, number) {
   );
   session.act({ type: "move", destinationId: "burial-hall" }, "click");
   while (session.state.encounter?.outcome === "ongoing") {
-    session.act(fightStep(session.runtime, session.state), "click");
+    session.act(barrowFightStep(session.runtime, session.state), "click");
   }
   session.act({ type: "examine", targetId: "stone-bier" }, "click");
   if (session.runtime.projectRoom(session.state).items.length > 0) {
@@ -552,7 +482,7 @@ async function lootTheBarrow(library, characterId, number) {
 }
 
 test("escaping with the torc credits it, the XP and a level once, however often settling is retried", async () => {
-  await withLibrary(async (library, characterId) => {
+  await withLibrary(async (library, { id: characterId }) => {
     const session = await lootTheBarrow(library, characterId, 1);
     assert.equal(session.act(LEAVE, "click").result.rejection, undefined);
     await session.persist();
@@ -593,7 +523,7 @@ test("escaping with the torc credits it, the XP and a level once, however often 
 });
 
 test("abandoning keeps the character's treasure and XP as they were at the start", async () => {
-  await withLibrary(async (library, characterId) => {
+  await withLibrary(async (library, { id: characterId }) => {
     const before = (await library.read()).characters[0].sheet;
     const session = await lootTheBarrow(library, characterId, 1);
     assert.deepEqual(session.state.inventory, ["silver-torc"]);
@@ -630,7 +560,7 @@ async function post(url, path, body) {
 }
 
 test("abandoning an escape that was never settled records it instead; an unreadable session can still be abandoned", async () => {
-  await withLibrary(async (library, characterId) => {
+  await withLibrary(async (library, { id: characterId }) => {
     const session = await lootTheBarrow(library, characterId, 1);
     session.act(LEAVE, "click");
     // A crash after the session save, before the library write.
@@ -769,25 +699,74 @@ test("a surviving ending keeps treasure brought in beside coin found (#206, #208
   assert.deepEqual(settleFighter(after, settlement), after);
 });
 
-/** Escapes the barrow with the torc and settles it. */
-async function escapeWithTheTorc(library, characterId) {
-  const session = await lootTheBarrow(library, characterId, 1);
-  session.act(LEAVE, "click");
-  await session.persist();
-  await settleFifthSession(library, session);
-  return (await library.read()).characters[0].sheet;
-}
+/**
+ * At the archers' barrow's mouth: changes the worn and held gear, sells the
+ * torc, buys a bow and draws it, sells the arrows, and drops the mace.
+ */
+const CHANGE_EVERY_POSSESSION = [
+  { type: "equip", itemId: "leather" },
+  { type: "sell-treasure", itemId: "archery-barrow/silver-torc" },
+  { type: "buy", itemId: "shortbow" },
+  { type: "swap", itemId: "shortbow" },
+  { type: "sell", itemId: "arrows" },
+  { type: "drop", itemId: "mace" },
+];
 
-test("defeat and abandonment leave a veteran's possessions, ledger and XP as at the start (#206)", async () => {
-  await withLibrary(async (library, characterId) => {
-    const before = await escapeWithTheTorc(library, characterId);
-    assert.deepEqual(before.finds, [TORC_ID]);
+test("abandonment restores the sheet from the start exactly, and defeat restores it at 0 HP, whatever possessions changed (#206)", async () => {
+  await withLibrary(async (library, { id: characterId }) => {
+    // A first escape leaves Ada holding something of every kind.
+    const first = await playSession(library, archeryBarrow, [
+      { type: "examine", targetId: "scratched-lintel" },
+      { type: "take", itemId: "lintel-quiver" },
+      WIN_THE_BURIAL_HALL,
+      { type: "examine", targetId: "stone-bier" },
+      { type: "take", itemId: "silver-torc" },
+      { type: "examine", targetId: "barrow-goblin" },
+      { type: "take", itemId: "coin-pouch" },
+      { type: "move", destinationId: "barrow-mouth" },
+      { type: "unequip", itemId: "leather" },
+      { type: "buy", itemId: "bolts" },
+      LEAVE,
+    ]);
+    await first.persist();
+    await settleFifthSession(library, first);
+    const before = (await library.read()).characters[0].sheet;
+    assert.deepEqual(
+      {
+        equipment: before.equipment,
+        stowed: before.stowed,
+        ammunition: before.ammunition,
+        treasure: before.treasure.map(({ id }) => id),
+        purse: before.purse,
+        xp: before.xp,
+      },
+      {
+        equipment: ["mace"],
+        stowed: ["leather"],
+        ammunition: { arrows: 20, bolts: 20 },
+        treasure: ["archery-barrow/silver-torc"],
+        purse: 150,
+        xp: 300,
+      },
+    );
 
-    const abandoned = await lootTheBarrow(library, characterId, 2);
-    abandoned.state = {
-      ...abandoned.state,
-      possessions: { ...abandoned.state.possessions, treasure: [] },
+    /** Plays the changes; the session then differs from the sheet in every possession. */
+    const changeEverything = async () => {
+      const session = await playSession(
+        library,
+        archeryBarrow,
+        CHANGE_EVERY_POSSESSION,
+      );
+      for (const [field, held] of Object.entries(session.state.possessions)) {
+        assert.notDeepEqual(held, before[field], field);
+      }
+      assert.deepEqual(session.state.dropped, [
+        { roomId: "barrow-mouth", item: "mace" },
+      ]);
+      return session;
     };
+
+    const abandoned = await changeEverything();
     await abandoned.persist();
     const data = await library.abandonSession(
       characterId,
@@ -795,10 +774,9 @@ test("defeat and abandonment leave a veteran's possessions, ledger and XP as at 
     );
     assert.deepEqual(data.characters[0].sheet, before);
 
-    const fallen = await lootTheBarrow(library, characterId, 3);
+    const fallen = await changeEverything();
     fallen.state = {
       ...fallen.state,
-      possessions: { ...fallen.state.possessions, treasure: [GEM] },
       status: "defeat",
       endingId: "fallen-in-the-barrow",
     };
@@ -809,29 +787,114 @@ test("defeat and abandonment leave a veteran's possessions, ledger and XP as at 
   });
 });
 
-test("an interruption between the session and library writes never duplicates or loses possessions (#206)", async () => {
-  await withLibrary(async (library, characterId) => {
-    const before = await escapeWithTheTorc(library, characterId);
-    const session = await lootTheBarrow(library, characterId, 2);
-    assert.deepEqual(session.state.possessions.treasure, before.treasure);
-    session.act(LEAVE, "click");
-    await session.persist();
-    // A crash here: the session has ended, the library still names it.
-    assert.equal((await library.read()).characters[0].session.id, session.id);
-    const reloaded = await FifthSession.load(session.path, adventures);
-    assert.deepEqual(reloaded.state.possessions, session.state.possessions);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, session);
-    const after = (await library.read()).characters[0].sheet;
-    assert.deepEqual(after.treasure, before.treasure);
-    assert.deepEqual(after.finds, before.finds);
-    assert.equal(after.xp, before.xp);
+/**
+ * Escapes played in turn by one Ada, each carrying the last one's
+ * possessions in, and the sheet each leaves: `treasure` lists ids.
+ */
+const ESCAPES = [
+  {
+    name: "treasure and coin from the burial hall",
+    module: barrow,
+    actions: [
+      WIN_THE_BURIAL_HALL,
+      { type: "examine", targetId: "stone-bier" },
+      { type: "take", itemId: "silver-torc" },
+      { type: "examine", targetId: "barrow-goblin" },
+      { type: "take", itemId: "coin-pouch" },
+      { type: "move", destinationId: "barrow-mouth" },
+      LEAVE,
+    ],
+    sheet: {
+      equipment: ["leather", "mace"],
+      stowed: [],
+      treasure: [TORC_ID],
+      purse: 250,
+      finds: [TORC_ID, "lintel-barrow/coin-pouch"],
+      xp: 300,
+    },
+  },
+  {
+    name: "gear found and wielded, and the mace dropped",
+    module: armouryBarrow,
+    actions: [
+      { type: "examine", targetId: "scratched-lintel" },
+      { type: "take", itemId: "lintel-longsword" },
+      { type: "swap", itemId: "longsword" },
+      { type: "drop", itemId: "mace" },
+      LEAVE,
+    ],
+    sheet: {
+      equipment: ["leather", "longsword"],
+      stowed: [],
+      treasure: [TORC_ID],
+      purse: 250,
+      finds: [
+        TORC_ID,
+        "lintel-barrow/coin-pouch",
+        "lintel-barrow/lintel-longsword",
+      ],
+      xp: 300,
+    },
+  },
+  {
+    name: "armour sold and a dagger bought",
+    module: marketBarrow,
+    actions: [
+      { type: "sell", itemId: "leather", equipped: true },
+      { type: "buy", itemId: "dagger" },
+      LEAVE,
+    ],
+    sheet: {
+      equipment: ["longsword"],
+      stowed: ["dagger"],
+      treasure: [TORC_ID],
+      purse: 550,
+      finds: [
+        TORC_ID,
+        "lintel-barrow/coin-pouch",
+        "lintel-barrow/lintel-longsword",
+      ],
+      xp: 300,
+    },
+  },
+];
+
+test("an interruption between the session and library writes never duplicates or loses what an escape holds (#206)", async () => {
+  await withLibrary(async (library) => {
+    for (const { name, module, actions, sheet } of ESCAPES) {
+      const session = await playSession(library, module, actions);
+      assert.equal(session.state.status, "escaped", name);
+      const before = (await library.read()).characters[0];
+      await session.persist();
+      // A crash here: the session has ended, the library still names it.
+      const crashed = (await library.read()).characters[0];
+      assert.equal(crashed.session.id, session.id, name);
+      assert.deepEqual(crashed.sheet, before.sheet, name);
+      const reloaded = await FifthSession.load(session.path, [module]);
+      assert.deepEqual(reloaded.state, session.state, name);
+      await settleFifthSession(library, reloaded);
+      await settleFifthSession(library, reloaded);
+      await settleFifthSession(library, session);
+      const after = (await library.read()).characters[0];
+      assert.equal(after.session, undefined, name);
+      assert.deepEqual(
+        {
+          equipment: after.sheet.equipment,
+          stowed: after.sheet.stowed,
+          treasure: after.sheet.treasure.map(({ id }) => id),
+          purse: after.sheet.purse,
+          finds: after.sheet.finds,
+          xp: after.sheet.xp,
+        },
+        sheet,
+        name,
+      );
+    }
   });
 });
 
 test("a surviving ending cannot be settled without what the character holds (#206)", async () => {
-  await withLibrary(async (library, characterId) => {
+  await withLibrary(async (library, { id: characterId }) => {
     const session = await lootTheBarrow(library, characterId, 1);
     const bytes = await readFile(library.path);
     await assert.rejects(

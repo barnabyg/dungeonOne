@@ -5,20 +5,12 @@
 // rollback contract.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import { gateAdventure } from "../dist/balance-5e.js";
 import { buyItem, salePrice, sellItem } from "../dist/equipment-5e.js";
-import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { offeredToolsMatchActions } from "../dist/dm-evaluation-5e.js";
 import { buildFighter, settleFighter } from "../dist/fighter-5e.js";
-import {
-  FifthSession,
-  settleFifthSession,
-  startFifthAdventure,
-} from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
@@ -544,120 +536,6 @@ test("the trade tool offers exactly the trades the panel shows enabled, but no e
       .some(({ name }) => name === "trade"),
   );
   assert.equal(offeredToolsMatchActions(session), true);
-});
-
-/** A library holding one fresh Ada (Str 16, the mace kit). */
-async function withLibrary(run) {
-  const directory = await mkdtemp(join(tmpdir(), "issue-210-"));
-  try {
-    const library = new FifthCharacterLibrary(
-      join(directory, "characters.json"),
-      7,
-    );
-    const started = await library.startCreation();
-    const data = await library.create(
-      "Ada",
-      {
-        placement: {
-          strength: 0,
-          dexterity: 1,
-          constitution: 2,
-          intelligence: 3,
-          wisdom: 4,
-          charisma: 5,
-        },
-        increase: { strength: 2, constitution: 1 },
-        skills: ["athletics", "perception"],
-        fightingStyle: "defense",
-        kit: "mace",
-        masteries: ["dagger", "mace", "shortsword"],
-      },
-      started.revision,
-    );
-    await run(library, data.characters[0].sheet.id);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-}
-
-const record = async (library) => (await library.read()).characters[0];
-
-/** Starts the market barrow and trades at its mouth; no dice. */
-async function trade(library, characterId, actions) {
-  const session = await startFifthAdventure(
-    library,
-    0,
-    characterId,
-    marketBarrow,
-    (await library.read()).revision,
-  );
-  for (const action of actions) {
-    const { result } = session.act(action, "click");
-    assert.equal(result.rejection, undefined, JSON.stringify(result.rejection));
-  }
-  return session;
-}
-
-const LEAVE = { type: "leave", roomId: "barrow-mouth" };
-
-test("trades are kept on escape, once, even across an interrupted settlement", async () => {
-  await withLibrary(async (library, characterId) => {
-    const session = await trade(library, characterId, [
-      sell("leather", true),
-      buy("dagger"),
-      LEAVE,
-    ]);
-    await session.persist();
-    // A crash here: the session has ended, the library still names it.
-    assert.equal((await record(library)).sheet.purse, 0);
-    const reloaded = await FifthSession.load(session.path, [marketBarrow]);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, session);
-    const { sheet, session: active } = await record(library);
-    assert.equal(active, undefined);
-    assert.deepEqual(sheet.equipment, ["mace"]);
-    assert.deepEqual(sheet.stowed, ["dagger"]);
-    assert.equal(sheet.purse, 300);
-  });
-});
-
-test("abandonment and defeat undo every trade: the coin and gear the character started with", async () => {
-  await withLibrary(async (library, characterId) => {
-    const first = await trade(library, characterId, [
-      sell("leather", true),
-      LEAVE,
-    ]);
-    await first.persist();
-    await settleFifthSession(library, first);
-    const before = (await record(library)).sheet;
-    assert.equal(before.purse, 500);
-
-    const abandoned = await trade(library, characterId, [
-      buy("dagger"),
-      { type: "swap", itemId: "dagger" },
-      sell("mace"),
-    ]);
-    await abandoned.persist();
-    const data = await library.abandonSession(
-      characterId,
-      (await library.read()).revision,
-    );
-    assert.deepEqual(data.characters[0].sheet, before);
-
-    const fallen = await trade(library, characterId, [
-      buy("dagger"),
-      buy("dagger"),
-    ]);
-    fallen.state = {
-      ...fallen.state,
-      status: "defeat",
-      endingId: "fallen-in-the-barrow",
-    };
-    await settleFifthSession(library, fallen);
-    const { sheet, defeated } = await record(library);
-    assert.equal(defeated, true);
-    assert.deepEqual(sheet, { ...before, hp: 0 });
-  });
 });
 
 test("the balance gate's one-hit-kill measure tries each weapon a merchant sells", () => {

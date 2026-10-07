@@ -6,9 +6,6 @@
 // interaction. Gear follows the adventure rollback contract.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { gateAdventure } from "../dist/balance-5e.js";
 import {
   dropItem,
@@ -16,17 +13,11 @@ import {
   swapWeapon,
   unequipItem,
 } from "../dist/equipment-5e.js";
-import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import {
   buildFighter,
   settleFighter,
   validateFighter,
 } from "../dist/fighter-5e.js";
-import {
-  FifthSession,
-  settleFifthSession,
-  startFifthAdventure,
-} from "../dist/session-5e.js";
 import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
 
 import {
@@ -434,131 +425,6 @@ test("the AI DM's gear tools are bounded and every refusal is the engine's", () 
     ),
     "The greatsword needs both hands: there is no hand for a shield.",
   );
-});
-
-/** A library holding one fresh Ada (Str 16, the mace kit). */
-async function withLibrary(run) {
-  const directory = await mkdtemp(join(tmpdir(), "issue-209-"));
-  try {
-    const library = new FifthCharacterLibrary(
-      join(directory, "characters.json"),
-      7,
-    );
-    const started = await library.startCreation();
-    const data = await library.create(
-      "Ada",
-      {
-        placement: {
-          strength: 0,
-          dexterity: 1,
-          constitution: 2,
-          intelligence: 3,
-          wisdom: 4,
-          charisma: 5,
-        },
-        increase: { strength: 2, constitution: 1 },
-        skills: ["athletics", "perception"],
-        fightingStyle: "defense",
-        kit: "mace",
-        masteries: ["dagger", "mace", "shortsword"],
-      },
-      started.revision,
-    );
-    await run(library, data.characters[0].sheet.id);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-}
-
-const record = async (library) => (await library.read()).characters[0];
-
-/** Starts the armoury barrow and plays `actions` at its mouth; no dice. */
-async function arm(library, characterId, actions) {
-  const session = await startFifthAdventure(
-    library,
-    0,
-    characterId,
-    barrow,
-    (await library.read()).revision,
-  );
-  for (const action of [FIND[1], ...actions]) {
-    const { result } = session.act(action, "click");
-    assert.equal(result.rejection, undefined, JSON.stringify(result.rejection));
-  }
-  return session;
-}
-
-const LEAVE = { type: "leave", roomId: "barrow-mouth" };
-
-test("an interruption between the session and library writes never duplicates or loses gear", async () => {
-  await withLibrary(async (library, characterId) => {
-    const session = await arm(library, characterId, [
-      take("lintel-longsword"),
-      { type: "swap", itemId: "longsword" },
-      { type: "drop", itemId: "mace" },
-      LEAVE,
-    ]);
-    await session.persist();
-    // A crash here: the session has ended, the library still names it.
-    assert.deepEqual((await record(library)).sheet.equipment, [
-      "leather",
-      "mace",
-    ]);
-    const reloaded = await FifthSession.load(session.path, [barrow]);
-    assert.deepEqual(reloaded.state.dropped, [
-      { roomId: "barrow-mouth", item: "mace" },
-    ]);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, session);
-    const { sheet, session: active } = await record(library);
-    assert.equal(active, undefined);
-    assert.deepEqual(sheet.equipment, ["leather", "longsword"]);
-    assert.deepEqual(sheet.stowed, []);
-    assert.deepEqual(sheet.finds, ["lintel-barrow/lintel-longsword"]);
-  });
-});
-
-test("abandonment and defeat restore the starting gear exactly", async () => {
-  await withLibrary(async (library, characterId) => {
-    const first = await arm(library, characterId, [
-      take("lintel-longsword"),
-      take("lintel-shield"),
-      LEAVE,
-    ]);
-    await first.persist();
-    await settleFifthSession(library, first);
-    const before = (await record(library)).sheet;
-    assert.deepEqual(before.stowed, ["longsword", "shield"]);
-
-    // Gear changed mid-adventure is forgotten on abandonment.
-    const abandoned = await arm(library, characterId, [
-      take("lintel-greatsword"),
-      { type: "swap", itemId: "greatsword" },
-      { type: "drop", itemId: "shield" },
-      { type: "drop", itemId: "mace" },
-    ]);
-    await abandoned.persist();
-    const data = await library.abandonSession(
-      characterId,
-      (await library.read()).revision,
-    );
-    assert.deepEqual(data.characters[0].sheet, before);
-
-    const fallen = await arm(library, characterId, [
-      { type: "equip", itemId: "shield" },
-      { type: "drop", itemId: "longsword" },
-    ]);
-    fallen.state = {
-      ...fallen.state,
-      status: "defeat",
-      endingId: "fallen-in-the-barrow",
-    };
-    await settleFifthSession(library, fallen);
-    const { sheet, defeated } = await record(library);
-    assert.equal(defeated, true);
-    assert.deepEqual(sheet, { ...before, hp: 0 });
-  });
 });
 
 test("the balance gate's one-hit-kill measure uses the strongest gear the module places", () => {
