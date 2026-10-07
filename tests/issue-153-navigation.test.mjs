@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { loneGoblin } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -61,7 +62,11 @@ for (const viewport of [
     async () => {
       const directory = await mkdtemp(join(tmpdir(), "issue-153-history-"));
       const libraryPath = join(directory, "characters.json");
-      const server = await startFifthBrowserServer({ libraryPath, seed: 5 });
+      const server = await startFifthBrowserServer({
+        adventures: [loneGoblin],
+        libraryPath,
+        seed: 5,
+      });
       const browser = await launch();
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(5000);
@@ -190,7 +195,11 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-153-missing-"));
     const libraryPath = join(directory, "characters.json");
-    const server = await startFifthBrowserServer({ libraryPath, seed: 8 });
+    const server = await startFifthBrowserServer({
+      adventures: [loneGoblin],
+      libraryPath,
+      seed: 8,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 1280, height: 850 },

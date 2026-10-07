@@ -4,7 +4,7 @@
 // the same rendering. #186: attack and initiative lines are compact, built
 // from their roll groups, with the engine text for screen readers and behind
 // a Full text disclosure; a card is no taller than its plain engine text. A
-// storeroom fight with Sap and typed messages to the scripted DM, at desktop
+// goblin band fight with Sap and typed messages to the scripted DM, at desktop
 // and phone widths.
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -13,7 +13,6 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
@@ -24,6 +23,7 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { loadScriptedDmModel } from "../dist/scripted-dm-model.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import { goblinBand } from "./fixtures/modules.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -33,9 +33,6 @@ const launch = () =>
       : { headless: true },
   );
 
-const storeroom = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "goblin-storeroom",
-);
 const END_TURN = { type: "end-turn", actorId: "pc" };
 // The creation screen's default choices; the placement follows the dice.
 const DEFAULT_CHOICES = {
@@ -60,14 +57,14 @@ function firstFighter(seed) {
 }
 
 /**
- * The storeroom fight on `seed`, played as the test plays it: a typed
+ * The goblin band fight on `seed`, played as the test plays it: a typed
  * attack on the first target, then clicks on the first target, or End turn
  * once the action is spent. The first target, whether a sapped opponent
  * attacked, how many attacks the opening made and how often Ada missed with
  * her turn still going (the card ends "It is still your turn").
  */
 function simulate(seed) {
-  const runtime = createFifthRuntime(storeroom, firstFighter(seed));
+  const runtime = createFifthRuntime(goblinBand, firstFighter(seed));
   const random = createSeededRandom(sessionSeed(seed, 1));
   const begun = runtime.handleAction(
     runtime.createSession(),
@@ -124,7 +121,7 @@ while (
   expected.misses === 0
 ) {
   expected = simulate(++seed);
-  assert.ok(seed < 5000, "no storeroom fight with both card shapes");
+  assert.ok(seed < 5000, "no goblin band fight with both card shapes");
 }
 
 // Fonts and letter spacings the height check is repeated in, as CI's
@@ -201,6 +198,7 @@ for (const viewport of [
         ]),
       );
       const server = await startFifthBrowserServer({
+        adventures: [goblinBand],
         libraryPath: join(directory, "characters.json"),
         seed,
         dmModel: await loadScriptedDmModel(script),
@@ -219,7 +217,7 @@ for (const viewport of [
         await page.locator("#save-character").click();
         await page.locator("#sheet-name").filter({ hasText: "Ada" }).waitFor();
         await page
-          .locator('.start-adventure[data-adventure="goblin-storeroom"]')
+          .locator('.start-adventure[data-adventure="goblin-band"]')
           .click();
         await page.locator("#adventure").waitFor({ state: "visible" });
         await page.locator("#log > li").first().waitFor();

@@ -1,6 +1,6 @@
 // #207, browser → API → storage: create a Fighter with each starting kit,
 // see the kit's AC, attack and damage on the creation screen and the sheet,
-// and fight with it in The Goblin in the Cellar, making the light-weapon
+// and fight with it against the lone goblin, making the light-weapon
 // extra attack with the two kits that hold two light weapons.
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -8,7 +8,6 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
@@ -21,11 +20,9 @@ import {
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import { loneGoblin } from "./fixtures/modules.mjs";
 import { launch } from "./fixtures/session-layout.mjs";
 
-const cellar = (await loadBuiltInFifthAdventures()).find(
-  ({ id }) => id === "cellar-goblin",
-);
 const KITS = ["mace", "two-daggers", "club-and-dagger"];
 
 /** The dice of a browser's `number`th creation on `seed`. */
@@ -46,7 +43,7 @@ const choicesFor = (dice, kit) => ({
 
 /**
  * A seed on which each kit's character, created in order, survives its first
- * attack in the cellar with the goblin still standing, so the extra attack
+ * attack on the lone goblin with it still standing, so the extra attack
  * can follow it.
  */
 function findSeed() {
@@ -54,7 +51,7 @@ function findSeed() {
     const fine = KITS.every((kit, index) => {
       const dice = creationDice(seed, index + 1);
       const runtime = createFifthRuntime(
-        cellar,
+        loneGoblin,
         buildFighter("a".repeat(32), "Ada", dice, choicesFor(dice, kit)),
       );
       const random = createSeededRandom(sessionSeed(seed, index + 1));
@@ -93,7 +90,11 @@ test(
     const seed = findSeed();
     const directory = await mkdtemp(join(tmpdir(), "issue-207-"));
     const libraryPath = join(directory, "characters.json");
-    const server = await startFifthBrowserServer({ libraryPath, seed });
+    const server = await startFifthBrowserServer({
+      adventures: [loneGoblin],
+      libraryPath,
+      seed,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 375, height: 812 },
@@ -163,7 +164,7 @@ test(
 
         // Fight with it: attack, then the extra attack with two light weapons.
         await page
-          .locator('.start-adventure[data-adventure="cellar-goblin"]')
+          .locator('.start-adventure[data-adventure="lone-goblin"]')
           .click();
         await page.locator("#adventure").waitFor({ state: "visible" });
         const attack = page.locator(

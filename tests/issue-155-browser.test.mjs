@@ -5,7 +5,6 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   buildFighter,
@@ -15,6 +14,7 @@ import {
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
+import { goblinBand, loneGoblin } from "./fixtures/modules.mjs";
 
 // The status strip (#155): HP, health, round, turn and resource pips.
 
@@ -26,9 +26,6 @@ const launch = () =>
       : { headless: true },
   );
 
-const builtIn = await loadBuiltInFifthAdventures();
-const cellar = builtIn.find(({ id }) => id === "cellar-goblin");
-const storeroom = builtIn.find(({ id }) => id === "goblin-storeroom");
 const DEFAULT_CHOICES = {
   placement: {
     strength: 0,
@@ -61,12 +58,12 @@ function firstFighter(seed) {
 const SECOND_WIND = { type: "second-wind", actorId: "pc" };
 
 /**
- * A storeroom seed where Ada starts her first turn hurt (attack, then Second
+ * A goblin band seed where Ada starts her first turn hurt (attack, then Second
  * Wind) and is still hurt on her second (Second Wind, leaving the action).
  */
-function storeroomSeed() {
+function bandSeed() {
   for (let seed = 0; seed < 5000; seed++) {
-    const runtime = createFifthRuntime(storeroom, firstFighter(seed));
+    const runtime = createFifthRuntime(goblinBand, firstFighter(seed));
     const random = createSeededRandom(sessionSeed(seed, 1));
     const options = (state) => runtime.projectFight(state).turn?.options ?? [];
     let state = runtime.handleAction(
@@ -89,13 +86,13 @@ function storeroomSeed() {
     }
     return seed;
   }
-  throw new Error("no storeroom seed with two hurt turns");
+  throw new Error("no goblin band seed with two hurt turns");
 }
 
-/** A cellar seed where attacking every turn ends in defeat. */
+/** A lone goblin seed where attacking every turn ends in defeat. */
 function defeatSeed() {
   for (let seed = 0; seed < 5000; seed++) {
-    const runtime = createFifthRuntime(cellar, firstFighter(seed));
+    const runtime = createFifthRuntime(loneGoblin, firstFighter(seed));
     const random = createSeededRandom(sessionSeed(seed, 1));
     let state = runtime.handleAction(
       runtime.createSession(),
@@ -113,7 +110,7 @@ function defeatSeed() {
       return seed;
     }
   }
-  throw new Error("no cellar seed ending in defeat");
+  throw new Error("no lone goblin seed ending in defeat");
 }
 
 async function createAndStart(page, url, adventureId) {
@@ -218,10 +215,14 @@ for (const viewport of [
     `the status strip tracks the action, bonus action and Second Wind through a reload at ${viewport.width} px (#155)`,
     { timeout: 120000 },
     async () => {
-      const seed = storeroomSeed();
+      const seed = bandSeed();
       const directory = await mkdtemp(join(tmpdir(), "issue-155-"));
       const libraryPath = join(directory, "characters.json");
-      const server = await startFifthBrowserServer({ libraryPath, seed });
+      const server = await startFifthBrowserServer({
+        adventures: [goblinBand, loneGoblin],
+        libraryPath,
+        seed,
+      });
       const browser = await launch();
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(5000);
@@ -230,7 +231,7 @@ for (const viewport of [
         await page.locator("#adventure").waitFor({ state: "visible" });
       };
       try {
-        await createAndStart(page, server.url, "goblin-storeroom");
+        await createAndStart(page, server.url, "goblin-band");
         // The prose sentence is gone; the rule stays beside the fight.
         assert.equal(await page.locator("#economy").count(), 0);
         assert.match(
@@ -364,14 +365,18 @@ test(
     const seed = defeatSeed();
     const directory = await mkdtemp(join(tmpdir(), "issue-155-defeat-"));
     const libraryPath = join(directory, "characters.json");
-    const server = await startFifthBrowserServer({ libraryPath, seed });
+    const server = await startFifthBrowserServer({
+      adventures: [goblinBand, loneGoblin],
+      libraryPath,
+      seed,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 375, height: 812 },
     });
     page.setDefaultTimeout(5000);
     try {
-      await createAndStart(page, server.url, "cellar-goblin");
+      await createAndStart(page, server.url, "lone-goblin");
       while (!(await page.locator("#ending").isVisible())) {
         const attack = page.locator("#attack-controls button.attack:enabled");
         await clickAndWait(
