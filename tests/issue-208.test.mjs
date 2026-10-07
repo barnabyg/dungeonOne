@@ -17,20 +17,9 @@ import {
   validateFighter,
 } from "../dist/fighter-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
-import {
-  FifthSession,
-  settleFifthSession,
-  startFifthAdventure,
-} from "../dist/session-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
-import {
-  barrowFightStep,
-  winBarrowSeed,
-  withLibrary,
-} from "./fixtures/library.mjs";
 import { lintelBarrow as barrow, moduleFile } from "./fixtures/modules.mjs";
 
-const adventures = [barrow];
 const barrowFile = moduleFile("lintel-barrow");
 const changed = (change) => {
   const copy = structuredClone(barrowFile);
@@ -296,61 +285,4 @@ test("a sheet's purse is a whole number of copper, and new characters start with
     assert.throws(() => validateFighter({ ...sheet, purse }), /purse/i);
   }
   assert.equal(validateFighter({ ...sheet, purse: 12345 }).purse, 12345);
-});
-
-// Engine → storage.
-
-/** Starts the barrow, wins its fight, loots the body if it holds coin, and returns to the exit. */
-async function lootTheGoblin(library, characterId, number) {
-  const { sheet: current } = (await library.read()).characters[0];
-  const seed = winBarrowSeed(barrow, current, number);
-  const session = await startFifthAdventure(
-    library,
-    seed,
-    characterId,
-    barrow,
-    (await library.read()).revision,
-  );
-  session.act({ type: "move", destinationId: "burial-hall" }, "click");
-  while (session.state.encounter?.outcome === "ongoing") {
-    session.act(barrowFightStep(session.runtime, session.state), "click");
-  }
-  session.act(SEARCH_BODY, "click");
-  if (session.runtime.projectRoom(session.state).items.length > 0) {
-    session.act(TAKE_POUCH, "click");
-  }
-  session.act(OUT, "click");
-  return session;
-}
-
-const ada = async (library) => (await library.read()).characters[0];
-
-test("escaping with coin keeps it once; an interruption between the session and library writes never duplicates or loses it", async () => {
-  await withLibrary(async (library, { id: characterId }) => {
-    const session = await lootTheGoblin(library, characterId, 1);
-    assert.equal(session.state.possessions.purse, POUCH);
-    session.act(LEAVE, "click");
-    await session.persist();
-    // A crash here: the session has ended, the library still names it.
-    assert.equal((await ada(library)).sheet.purse, 0);
-    const reloaded = await FifthSession.load(session.path, adventures);
-    assert.equal(reloaded.state.possessions.purse, POUCH);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, session);
-    let record = await ada(library);
-    assert.equal(record.session, undefined);
-    assert.equal(record.sheet.purse, POUCH);
-    assert.deepEqual(record.sheet.finds, [POUCH_ID]);
-
-    // The same adventure again finds no coin; the purse is carried in and out.
-    const again = await lootTheGoblin(library, characterId, 2);
-    assert.equal(again.state.possessions.purse, POUCH);
-    again.act(LEAVE, "click");
-    assert.equal(again.state.endingId, "out-empty-handed");
-    await again.persist();
-    await settleFifthSession(library, again);
-    record = await ada(library);
-    assert.equal(record.sheet.purse, POUCH);
-  });
 });

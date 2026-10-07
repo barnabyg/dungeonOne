@@ -18,11 +18,6 @@ import {
   settleFighter,
   validateFighter,
 } from "../dist/fighter-5e.js";
-import {
-  FifthSession,
-  settleFifthSession,
-  startFifthAdventure,
-} from "../dist/session-5e.js";
 import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
 
 import {
@@ -32,7 +27,6 @@ import {
   room,
 } from "./fixtures/armoury-barrow.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
-import { withLibrary } from "./fixtures/library.mjs";
 
 const ROLLS = [
   [6, 6, 4, 1],
@@ -431,55 +425,6 @@ test("the AI DM's gear tools are bounded and every refusal is the engine's", () 
     ),
     "The greatsword needs both hands: there is no hand for a shield.",
   );
-});
-
-const record = async (library) => (await library.read()).characters[0];
-
-/** Starts the armoury barrow and plays `actions` at its mouth; no dice. */
-async function arm(library, characterId, actions) {
-  const session = await startFifthAdventure(
-    library,
-    0,
-    characterId,
-    barrow,
-    (await library.read()).revision,
-  );
-  for (const action of [FIND[1], ...actions]) {
-    const { result } = session.act(action, "click");
-    assert.equal(result.rejection, undefined, JSON.stringify(result.rejection));
-  }
-  return session;
-}
-
-const LEAVE = { type: "leave", roomId: "barrow-mouth" };
-
-test("an interruption between the session and library writes never duplicates or loses gear", async () => {
-  await withLibrary(async (library, { id: characterId }) => {
-    const session = await arm(library, characterId, [
-      take("lintel-longsword"),
-      { type: "swap", itemId: "longsword" },
-      { type: "drop", itemId: "mace" },
-      LEAVE,
-    ]);
-    await session.persist();
-    // A crash here: the session has ended, the library still names it.
-    assert.deepEqual((await record(library)).sheet.equipment, [
-      "leather",
-      "mace",
-    ]);
-    const reloaded = await FifthSession.load(session.path, [barrow]);
-    assert.deepEqual(reloaded.state.dropped, [
-      { roomId: "barrow-mouth", item: "mace" },
-    ]);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, session);
-    const { sheet, session: active } = await record(library);
-    assert.equal(active, undefined);
-    assert.deepEqual(sheet.equipment, ["leather", "longsword"]);
-    assert.deepEqual(sheet.stowed, []);
-    assert.deepEqual(sheet.finds, ["lintel-barrow/lintel-longsword"]);
-  });
 });
 
 test("the balance gate's one-hit-kill measure uses the strongest gear the module places", () => {

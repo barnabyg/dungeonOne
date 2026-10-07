@@ -10,18 +10,13 @@ import { gateAdventure } from "../dist/balance-5e.js";
 import { buyItem, salePrice, sellItem } from "../dist/equipment-5e.js";
 import { offeredToolsMatchActions } from "../dist/dm-evaluation-5e.js";
 import { buildFighter, settleFighter } from "../dist/fighter-5e.js";
-import {
-  FifthSession,
-  settleFifthSession,
-  startFifthAdventure,
-} from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
 import { room } from "./fixtures/armoury-barrow.mjs";
 import { marketBarrow, marketFile, PEDLAR } from "./fixtures/market-barrow.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
-import { withLibrary } from "./fixtures/library.mjs";
 
 const holding = (equipment, stowed = [], purse = 0) => ({
   equipment,
@@ -541,47 +536,6 @@ test("the trade tool offers exactly the trades the panel shows enabled, but no e
       .some(({ name }) => name === "trade"),
   );
   assert.equal(offeredToolsMatchActions(session), true);
-});
-
-const record = async (library) => (await library.read()).characters[0];
-
-/** Starts the market barrow and trades at its mouth; no dice. */
-async function trade(library, characterId, actions) {
-  const session = await startFifthAdventure(
-    library,
-    0,
-    characterId,
-    marketBarrow,
-    (await library.read()).revision,
-  );
-  for (const action of actions) {
-    const { result } = session.act(action, "click");
-    assert.equal(result.rejection, undefined, JSON.stringify(result.rejection));
-  }
-  return session;
-}
-
-const LEAVE = { type: "leave", roomId: "barrow-mouth" };
-
-test("trades are kept on escape, once, even across an interrupted settlement", async () => {
-  await withLibrary(async (library, { id: characterId }) => {
-    const session = await trade(library, characterId, [
-      sell("leather", true),
-      buy("dagger"),
-      LEAVE,
-    ]);
-    await session.persist();
-    // A crash here: the session has ended, the library still names it.
-    assert.equal((await record(library)).sheet.purse, 0);
-    const reloaded = await FifthSession.load(session.path, [marketBarrow]);
-    await settleFifthSession(library, reloaded);
-    await settleFifthSession(library, session);
-    const { sheet, session: active } = await record(library);
-    assert.equal(active, undefined);
-    assert.deepEqual(sheet.equipment, ["mace"]);
-    assert.deepEqual(sheet.stowed, ["dagger"]);
-    assert.equal(sheet.purse, 300);
-  });
 });
 
 test("the balance gate's one-hit-kill measure tries each weapon a merchant sells", () => {
