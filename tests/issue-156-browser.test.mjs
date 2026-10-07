@@ -2,7 +2,8 @@
 // an unavailable action disabled with its reason as visible text; after an
 // action, focus stays on the clicked control while it is enabled and
 // otherwise moves to the newest history entry. Played keyboard-only through
-// the rat tunnels at desktop and phone widths: pressing Enter again
+// the rat tunnels at phone width, where the newest entry is hardest to keep
+// on screen (the focus rules don't depend on the width): pressing Enter again
 // after an attack attacks again or does nothing, never drinking the potion
 // or leaving the room, and after the win focus is on the newest entry, on
 // screen.
@@ -174,10 +175,8 @@ const sessionFile = async (directory) => {
 
 const seed = findSeed();
 
-for (const viewport of [
-  { width: 1280, height: 850 },
-  { width: 375, height: 812 },
-]) {
+{
+  const viewport = { width: 375, height: 812 };
   test(
     `keyboard play: the action bar keeps focus safe in the rat tunnels (${viewport.width}px)`,
     { timeout: 120000 },

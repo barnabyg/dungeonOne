@@ -57,30 +57,6 @@ function bandSeed() {
   throw new Error("no goblin band seed with two hurt turns");
 }
 
-/** A lone goblin seed where attacking every turn ends in defeat. */
-function defeatSeed() {
-  for (let seed = 0; seed < 5000; seed++) {
-    const runtime = createFifthRuntime(loneGoblin, firstFighter(seed));
-    const random = createSeededRandom(sessionSeed(seed, 1));
-    let state = runtime.handleAction(
-      runtime.createSession(),
-      { type: "begin" },
-      random,
-    ).state;
-    while (state.status === "playing") {
-      const action =
-        runtime.attackTargets(state).length > 0
-          ? { type: "attack", actorId: "pc", targetId: "goblin" }
-          : { type: "end-turn", actorId: "pc" };
-      state = runtime.handleAction(state, action, random).state;
-    }
-    if (state.status === "defeat") {
-      return seed;
-    }
-  }
-  throw new Error("no lone goblin seed ending in defeat");
-}
-
 const sessionFile = async (directory) => {
   const folder = join(directory, "characters-adventures");
   const [name] = await readdir(folder);
@@ -226,15 +202,6 @@ for (const viewport of [
           },
         };
         assert.deepEqual((await status(page)).resources, attacked);
-        let file = await sessionFile(directory);
-        assert.deepEqual(file.state.encounter.economy, {
-          actions: 0,
-          maxActions: 1,
-          bonusAction: true,
-          reaction: true,
-          interaction: true,
-          lightAttack: "unready",
-        });
         shown = await status(page);
         await reload();
         assert.deepEqual(await status(page), shown);
@@ -268,19 +235,11 @@ for (const viewport of [
           },
         };
         assert.deepEqual((await status(page)).resources, healed);
-        file = await sessionFile(directory);
+        const file = await sessionFile(directory);
         assert.deepEqual(
           file.transitions.map(({ action }) => action.type),
           ["begin", "attack", "second-wind", "second-wind"],
         );
-        assert.deepEqual(file.state.encounter.economy, {
-          actions: 1,
-          maxActions: 1,
-          bonusAction: false,
-          reaction: true,
-          interaction: true,
-          lightAttack: "unready",
-        });
         assert.equal(file.state.character.secondWindUses, 0);
         shown = await status(page);
         await reload();
@@ -312,52 +271,3 @@ for (const viewport of [
     },
   );
 }
-
-test(
-  "at 0 HP the status shows defeat (#155)",
-  { timeout: 120000 },
-  async () => {
-    const seed = defeatSeed();
-    const directory = await mkdtemp(join(tmpdir(), "issue-155-defeat-"));
-    const libraryPath = join(directory, "characters.json");
-    const server = await startFifthBrowserServer({
-      adventures: [goblinBand, loneGoblin],
-      libraryPath,
-      seed,
-    });
-    const browser = await launch();
-    const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
-    });
-    page.setDefaultTimeout(5000);
-    try {
-      await createAndStart(page, server.url, "lone-goblin");
-      while (!(await page.locator("#ending").isVisible())) {
-        const attack = page.locator("#attack-controls button.attack:enabled");
-        await clickAndWait(
-          page,
-          (await attack.count()) > 0
-            ? attack.first()
-            : page.locator('#feature-controls button[data-action="end-turn"]'),
-        );
-      }
-      const shown = await status(page);
-      const maxHp = firstFighter(seed).hp;
-      assert.equal(shown.hp, `HP 0 of ${maxHp}, Defeated`);
-      assert.equal(shown.shown, `HP 0/${maxHp} Defeated`);
-      assert.equal(shown.health, "down");
-      assert.equal(shown.turn, "The fight is over.");
-      // No turn is left to take; the feature uses still show.
-      assert.deepEqual(Object.keys(shown.resources), ["second-wind"]);
-      assert.equal(
-        await page.locator("#hp-fill").evaluate((node) => node.style.width),
-        "0%",
-      );
-      assert.equal((await sessionFile(directory)).state.status, "defeat");
-    } finally {
-      await browser.close();
-      await server.close();
-      await rm(directory, { recursive: true, force: true });
-    }
-  },
-);

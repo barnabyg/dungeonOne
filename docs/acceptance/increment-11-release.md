@@ -26,18 +26,18 @@ space for results).
 - **Browser UI from #152–#166**, each driven in a real browser with a scripted
   DM, browser → API → storage:
 
-  | Behavior                                                       | Test                                                                                     |
-  | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-  | Back, Forward and reload on every view                         | `issue-153-navigation.test.mjs`, `issue-137-browser.test.mjs`                            |
-  | Continue from the library row; status tags                     | `issue-164-browser.test.mjs`, `issue-137-browser.test.mjs`                               |
-  | Disabled actions with their reasons; focus rule                | `issue-156-browser.test.mjs`, `issue-156.test.mjs`, `issue-183.test.mjs`                 |
-  | Ending in place of the action bar; composer off; reload        | `issue-158-browser.test.mjs`                                                             |
-  | Composer off with its notice without a key                     | `issue-161.test.mjs`, `encounter-5e-browser.test.mjs`                                    |
-  | Busy states while a request runs                               | `issue-160-browser.test.mjs`, `issue-185-browser.test.mjs`                               |
-  | Creation: dice saved before shown, one table, defaults, reload | `issue-162-browser.test.mjs`, `issue-163-browser.test.mjs`, `issue-184-browser.test.mjs` |
-  | Restart mid-fight, then escape and level-up                    | `issue-137-browser.test.mjs`                                                             |
-  | Old library refused at launch, byte-identical                  | `issue-137.test.mjs`, `fighter-5e-browser.test.mjs`                                      |
-  | Session in an older format refused on opening                  | `issue-137.test.mjs`, `session-5e.test.mjs`                                              |
+  | Behavior                                                       | Test                                                                            |
+  | -------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+  | Back, Forward and reload on every view                         | `issue-153-navigation.test.mjs`, `issue-137-browser.test.mjs`                   |
+  | Continue from the library row; status tags                     | `issue-164-browser.test.mjs`, `issue-137-browser.test.mjs`                      |
+  | Disabled actions with their reasons; focus rule                | `issue-156-browser.test.mjs`, `issue-156.test.mjs`, `issue-183.test.mjs`        |
+  | Ending in place of the action bar; composer off; reload        | `issue-158-browser.test.mjs`                                                    |
+  | Composer off with its notice without a key                     | `issue-161.test.mjs`                                                            |
+  | Busy states while a request runs                               | `issue-160-browser.test.mjs`, `issue-185-browser.test.mjs`                      |
+  | Creation: dice saved before shown, one table, defaults, reload | `issue-163-browser.test.mjs`, `issue-184-browser.test.mjs` (with #162's checks) |
+  | Restart mid-fight, then escape and level-up                    | `issue-137-browser.test.mjs`                                                    |
+  | Old library refused at launch, byte-identical                  | `issue-137.test.mjs`, `fighter-5e-browser.test.mjs`                             |
+  | Session in an older format refused on opening                  | `issue-137.test.mjs`, `session-5e.test.mjs`                                     |
 
 ## Implementer evidence
 

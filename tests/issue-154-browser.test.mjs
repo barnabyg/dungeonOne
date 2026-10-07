@@ -146,7 +146,6 @@ for (const viewport of [
         await createAndStart(page, server.url, "rat-tunnels");
         await assertTogether(page, "start");
 
-        let actions = 0;
         assertTabOrder(await tabRegions(page), [
           "session-actions",
           "session-history",
@@ -161,7 +160,6 @@ for (const viewport of [
         await explore(page, "move", "stair-foot");
         await say(page, "I listen at the passage");
         await explore(page, "move", "rat-cellar");
-        actions += 9;
 
         // Mid-fight: tab order and the skip link, then a reload keeps the
         // same layout with the newest entry shown.
@@ -193,10 +191,8 @@ for (const viewport of [
           (await page.locator("#turn").textContent()) !== "The fight is over."
         ) {
           await fightOn(page);
-          actions++;
         }
         await explore(page, "use", "healing-potion");
-        actions++;
 
         // A reader who scrolled up keeps their place; the entry still
         // arrives in the live region.
@@ -215,7 +211,6 @@ for (const viewport of [
             seen,
           count,
         );
-        actions++;
         assert.deepEqual(
           await page.locator("#log").evaluate((log) => ({
             scrollTop: log.scrollTop,
@@ -246,8 +241,14 @@ for (const viewport of [
         await say(page, "I catch my breath");
         await explore(page, "move", "den");
         await fightOn(page);
-        actions += 3;
-        assert.ok(actions >= 10, `${actions} actions`);
+        // The history outgrew its area, so keeping the newest entry in view
+        // was needed after every one of these actions.
+        assert.ok(
+          await page
+            .locator("#log")
+            .evaluate((log) => log.scrollHeight > log.clientHeight),
+          "the history scrolls",
+        );
 
         // No horizontal scroll, even with a wide font as CI's Linux one is.
         assert.ok(

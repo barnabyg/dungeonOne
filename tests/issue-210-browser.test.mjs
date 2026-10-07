@@ -1,8 +1,8 @@
 // #210, browser → API → storage: loot 10 gp from the barrow goblin's body,
 // buy a shortsword from the pedlar at the mouth, wield it, sell the mace and
 // (after confirming in the panel) the leather armour, and escape: the sheet
-// and the saved library hold the shortsword and the change. Then buy again
-// and abandon: the sheet is exactly as it was.
+// and the saved library hold the shortsword and the change. Abandoning
+// after a purchase is checked in issue-211-browser.test.mjs.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -18,7 +18,7 @@ import {
   firstFighter,
   launch,
 } from "./fixtures/session-layout.mjs";
-import { createAndStart, startAdventure } from "./fixtures/browser-journey.mjs";
+import { createAndStart } from "./fixtures/browser-journey.mjs";
 
 /** A browser seed on which the first Ada wins the burial hall's fight. */
 function winningSeed() {
@@ -82,7 +82,7 @@ const ware = (page, id) =>
   page.locator(`#creatures li[data-id="pedlar"] [data-ware="${id}"]`);
 
 test(
-  "buy a shortsword with looted coin, sell gear, escape and keep the change; abandon undoes a purchase",
+  "buy a shortsword with looted coin, sell gear, escape and keep the change",
   { timeout: 180000 },
   async () => {
     const seed = winningSeed();
@@ -199,7 +199,7 @@ test(
       );
 
       // Storage and the sheet hold the shortsword and the change.
-      let record = await ada(libraryPath);
+      const record = await ada(libraryPath);
       assert.equal(record.session, undefined);
       assert.deepEqual(record.sheet.equipment, ["shortsword"]);
       assert.deepEqual(record.sheet.stowed, []);
@@ -209,29 +209,6 @@ test(
       const sheet = await page.locator("#sheet-body").innerText();
       assert.match(sheet, /Shortsword/);
       assert.match(sheet, /Purse\n+7 gp 5 sp/);
-
-      // Buying again, then abandoning, leaves the sheet exactly as it was.
-      const before = record.sheet;
-      await startAdventure(page, "lintel-barrow");
-      await click(page, "buy", "dagger");
-      assert.equal(
-        await page.locator("#purse").textContent(),
-        "Purse: 5 gp 5 sp",
-      );
-      await page.locator('#breadcrumb a[data-view="sheet"]').click();
-      await page.locator("#abandon-adventure").click();
-      await page.locator("#confirm-abandon").click();
-      await page
-        .locator("#feedback")
-        .filter({ hasText: "Ada abandoned The Lintel Barrow." })
-        .waitFor();
-      record = await ada(libraryPath);
-      assert.equal(record.session, undefined);
-      assert.deepEqual(record.sheet, before);
-      assert.match(
-        await page.locator("#sheet-body").innerText(),
-        /Purse\n+7 gp 5 sp/,
-      );
     } finally {
       await browser.close();
       await server.close();

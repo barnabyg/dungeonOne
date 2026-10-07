@@ -126,10 +126,9 @@ test("the launcher's setup hint names the key and the restart", () => {
   assert.ok(FIFTH_DM_SETUP_HINT.endsWith("\n"));
 });
 
-for (const viewport of [
-  { width: 1280, height: 850 },
-  { width: 375, height: 812 },
-]) {
+// The composer's state doesn't depend on the width: phone width only.
+{
+  const viewport = { width: 375, height: 812 };
   const size = `${viewport.width}x${viewport.height}`;
 
   test(`${size}: without a key the composer is disabled with a notice and the buttons work`, () =>

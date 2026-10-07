@@ -212,12 +212,20 @@ test(
         await page.locator("#ending-kind").textContent(),
         "Escaped with loot",
       );
-      assert.equal(
-        await page
-          .locator("#ending")
-          .evaluate((node) => getComputedStyle(node).borderLeftColor),
-        "rgb(122, 99, 49)",
-      );
+      // Its border takes the escape-with-loot colour token, whatever the
+      // token's value.
+      const [border, token] = await page.locator("#ending").evaluate((node) => {
+        const probe = document.createElement("span");
+        probe.style.color = "var(--color-gold-text)";
+        node.append(probe);
+        const colours = [
+          getComputedStyle(node).borderLeftColor,
+          getComputedStyle(probe).color,
+        ];
+        probe.remove();
+        return colours;
+      });
+      assert.equal(border, token);
       const ending = await page.locator("#ending").innerText();
       assert.match(ending, /Defeated the Goblin Warrior: \+50 XP/);
       assert.match(ending, /Out with the silver: \+250 XP/);

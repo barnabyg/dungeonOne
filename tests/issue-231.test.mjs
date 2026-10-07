@@ -16,7 +16,10 @@ import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
 import { fightRoom, moduleFile, ratTunnels } from "./fixtures/modules.mjs";
-import { RENAMED_SKELETONS } from "./fixtures/renamed-skeletons.mjs";
+import {
+  RENAMED_SKELETONS,
+  skeletonBarracks,
+} from "./fixtures/renamed-skeletons.mjs";
 
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
@@ -69,6 +72,53 @@ test("an opponent takes its monster's stat block, and its name and description u
   const [goblin] = validateModule(plain).encounters[0].opponents;
   assert.equal(goblin.name, "Goblin Warrior");
   assert.equal(goblin.description, monster("goblin-warrior").description);
+});
+
+test("a renamed bestiary monster fights under the module's name: the fight view and the rendered results", () => {
+  const [tall] = opponents(skeletonBarracks);
+  assert.equal(
+    tall.description,
+    "A tall skeleton in rusted mail raises a shortsword.",
+  );
+  const runtime = createFifthRuntime(skeletonBarracks, TEST_FIGHTER);
+  const random = createSeededRandom(0);
+  // The fight starts as Ada arrives.
+  const begun = runtime.handleAction(
+    runtime.createSession(),
+    { type: "begin" },
+    random,
+  );
+  // The initiative table: Ada and the two skeletons by their module names.
+  assert.deepEqual(
+    runtime
+      .projectFight(begun.state)
+      .encounter.combatants.map(({ name }) => name)
+      .sort(),
+    ["Ada", "Bent Skeleton", "Tall Skeleton"],
+  );
+  assert.match(
+    runtime.renderResult(begun),
+    /Initiative: [^\n]*(Tall Skeleton[^\n]*Bent Skeleton|Bent Skeleton[^\n]*Tall Skeleton)/u,
+  );
+  // An attack's card names the skeleton too.
+  const [target] = runtime.attackTargets(begun.state);
+  const attacked = runtime.handleAction(
+    begun.state,
+    { type: "attack", actorId: "pc", targetId: target.id },
+    random,
+  );
+  assert.match(
+    runtime.renderResult(attacked),
+    new RegExp(`^Ada attacks ${target.name} with `, "u"),
+  );
+  // Only the module's names: no bare bestiary "Skeleton" anywhere.
+  assert.doesNotMatch(
+    (runtime.renderResult(begun) + runtime.renderResult(attacked)).replace(
+      /(Tall|Bent) Skeleton/gu,
+      "",
+    ),
+    /Skeleton/u,
+  );
 });
 
 test("the validator rejects an unknown monster, and an opponent with both a monster and a stat block", () => {

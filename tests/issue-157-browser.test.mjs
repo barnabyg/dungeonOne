@@ -3,8 +3,8 @@
 // room's details collapse behind a keyboard-operable disclosure. The
 // initiative table shows totals, marks the current turn by highlighting its
 // row and tagging the name, keeps the rolls and roll-offs in a disclosure,
-// and collapses once the fight is over. Exploring buttons show short verbs,
-// with the full name ("Examine Rusted Lantern") as their accessible name.
+// and collapses once the fight is over. The exploring side (short verbs,
+// left-out empty lists) is checked in issue-214-browser.test.mjs.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -16,7 +16,7 @@ import {} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
-import { loneGoblin, ratlessTunnels } from "./fixtures/modules.mjs";
+import { loneGoblin } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
 import { firstFighter } from "./fixtures/session-layout.mjs";
 
@@ -147,15 +147,12 @@ for (const viewport of [
           .allTextContents()) {
           assert.match(cell, /^\d+$/);
         }
-        if (!(await fightOver(page))) {
-          const current = page.locator("#initiative-rows tr.current");
-          assert.equal(await current.count(), 1);
-          assert.equal(await current.getAttribute("aria-current"), "true");
-          assert.equal(
-            await current.locator("th .tag.now").textContent(),
-            "Now",
-          );
-        }
+        // The roll-off seed's fight outlasts that first action.
+        assert.equal(await fightOver(page), false, "the fight is still on");
+        const current = page.locator("#initiative-rows tr.current");
+        assert.equal(await current.count(), 1);
+        assert.equal(await current.getAttribute("aria-current"), "true");
+        assert.equal(await current.locator("th .tag.now").textContent(), "Now");
 
         // The rolls behind the totals, with the roll-off, open by keyboard.
         const breakdown = page.locator("#initiative-breakdown");
@@ -218,88 +215,3 @@ for (const viewport of [
     },
   );
 }
-
-test(
-  "exploring buttons show short verbs and are named in full",
-  { timeout: 120000 },
-  async () => {
-    const directory = await mkdtemp(join(tmpdir(), "issue-157-"));
-    const server = await startFifthBrowserServer({
-      adventures: [ratlessTunnels],
-      libraryPath: join(directory, "characters.json"),
-      seed: 0,
-    });
-    const browser = await launch();
-    const page = await browser.newPage({
-      viewport: { width: 375, height: 812 },
-    });
-    page.setDefaultTimeout(5000);
-    try {
-      await createAndStart(page, server.url, "quiet-tunnels");
-      const act = async (name) => {
-        const count = await page.locator("#log li").count();
-        await page.getByRole("button", { name, exact: true }).click();
-        await page.waitForFunction(
-          (seen) => document.querySelectorAll("#log li").length > seen,
-          count,
-        );
-      };
-
-      // Out of a fight there is no room disclosure, and empty lists are left
-      // out: the stair has exits and a feature, but no items.
-      assert.equal(await page.locator("#room-toggle").isVisible(), false);
-      assert.equal(await page.locator("#room-items-group").isVisible(), false);
-      // What Ada carries is always listed: her own gear (#209).
-      assert.equal(await page.locator("#inventory-group").isVisible(), true);
-      assert.equal(await page.locator("#room-empty").isVisible(), false);
-      assert.doesNotMatch(await page.locator("#room").innerText(), /None\./);
-
-      // Each target's name is shown once, beside its short verbs.
-      assert.deepEqual(
-        await page
-          .locator("#explore-controls .thing-actions")
-          .evaluateAll((things) =>
-            things.map((thing) => thing.innerText.replace(/\s+/g, " ")),
-          ),
-        ["Alcove Go", "Rat-Gnawed Cellar Go", "Rusted Lantern Examine"],
-      );
-      const examine = page.getByRole("button", {
-        name: "Examine Rusted Lantern",
-        exact: true,
-      });
-      assert.equal(await examine.textContent(), "Examine");
-
-      await act("Go to Alcove");
-      await act("Examine Iron-Bound Chest");
-      assert.equal(
-        await page
-          .getByRole("button", { name: "Take Potion of Healing", exact: true })
-          .textContent(),
-        "Take",
-      );
-      await act("Take Potion of Healing");
-
-      // Drink is unavailable at full HP: the reason is its description.
-      const drink = page.getByRole("button", {
-        name: "Drink Potion of Healing",
-        exact: true,
-      });
-      assert.equal(await drink.textContent(), "Drink");
-      assert.equal(await drink.isDisabled(), true);
-      assert.equal(
-        await drink.evaluate(
-          (button) =>
-            document.getElementById(button.getAttribute("aria-describedby"))
-              .textContent,
-        ),
-        "Full HP",
-      );
-      assert.equal(await page.locator("#inventory-group").isVisible(), true);
-      assert.equal(await page.locator("#room-items-group").isVisible(), false);
-    } finally {
-      await browser.close();
-      await server.close();
-      await rm(directory, { recursive: true, force: true });
-    }
-  },
-);

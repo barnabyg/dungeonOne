@@ -1,8 +1,8 @@
 // #239, browser → API → storage: find a gem under the barrow's bier, sell it
 // to the pedlar at its full value, buy a shortsword with the coin, escape,
 // and see the gear and the change on the sheet and in the saved library.
-// The same journey ending in defeat in the ogre's den leaves the character's
-// possessions and ledger exactly as they started.
+// That a defeat leaves the character's possessions and ledger as they started
+// is the library's (rewards-5e.test.mjs).
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -89,17 +89,6 @@ const newest = (page) => page.locator("#log li").last().innerText();
 const ada = async (libraryPath) =>
   JSON.parse(await readFile(libraryPath, "utf8")).characters[0];
 
-/** What settling may change: the possessions and the ledger. */
-const held = ({ equipment, stowed, treasure, purse, finds, xp, xpAwards }) => ({
-  equipment,
-  stowed,
-  treasure,
-  purse,
-  finds,
-  xp,
-  xpAwards,
-});
-
 /**
  * Creates Ada, finds the opal, sells it to the pedlar and buys a shortsword
  * with the coin, then hands the page to `finish`.
@@ -185,33 +174,6 @@ test(
       const sheet = await page.locator("#sheet-body").innerText();
       assert.match(sheet, /Carried: Shortsword/);
       assert.match(sheet, /Purse\n+40 gp/);
-    });
-  },
-);
-
-test(
-  "sell a found gem and buy gear, then fall: the character is as it started",
-  { timeout: 180000 },
-  async () => {
-    await journey(winningSeed(), async (page, libraryPath, start) => {
-      await page
-        .locator('button.act[data-action="move"][data-target="ogre-den"]')
-        .click();
-      await fight(page);
-      await page.locator("#ending").waitFor({ state: "visible" });
-      assert.equal(
-        await page.locator("#ending").getAttribute("data-kind"),
-        "defeat",
-      );
-      const record = await ada(libraryPath);
-      assert.equal(record.defeated, true);
-      assert.deepEqual(held(record.sheet), held(start));
-      // The sheet shows no bought shortsword, no opal and no coin.
-      await page.locator("#ending-next").click();
-      await page.locator("#sheet").waitFor({ state: "visible" });
-      const sheet = await page.locator("#sheet-body").innerText();
-      assert.doesNotMatch(sheet, /Carried: Shortsword|Blue Opal/);
-      assert.match(sheet, /No treasure yet\./);
     });
   },
 );

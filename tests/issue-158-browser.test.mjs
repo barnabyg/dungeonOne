@@ -134,6 +134,39 @@ const ending = (page) =>
     };
   });
 
+/**
+ * The status strip's HP as spoken (text outside aria-hidden parts) and as
+ * shown (text outside visually-hidden parts), its health, the turn line and
+ * the resources it lists (#155).
+ */
+const statusStrip = (page) =>
+  page.evaluate(() => {
+    const spoken = (node) =>
+      node.nodeType === Node.TEXT_NODE
+        ? node.textContent
+        : node.getAttribute?.("aria-hidden") === "true"
+          ? ""
+          : [...node.childNodes].map(spoken).join(" ");
+    const seen = (node) =>
+      node.nodeType === Node.TEXT_NODE
+        ? node.textContent
+        : node.classList?.contains("visually-hidden")
+          ? ""
+          : [...node.childNodes].map(seen).join("");
+    const tidy = (text) => text.replace(/\s+/g, " ").trim();
+    const hp = document.getElementById("character-hp");
+    return {
+      hp: tidy(spoken(hp)),
+      shown: tidy(seen(hp)),
+      health: document.getElementById("status-hp").dataset.health,
+      turn: document.getElementById("turn").textContent,
+      resources: [...document.querySelectorAll("#resources li")].map(
+        (item) => item.dataset.resource,
+      ),
+      fill: document.getElementById("hp-fill").style.width,
+    };
+  });
+
 /** A CSS colour token (#rrggbb) as the computed rgb() string. */
 const rgb = (hex) => {
   const value = Number.parseInt(hex.slice(1), 16);
@@ -204,36 +237,39 @@ for (const viewport of [
         assert.equal(library.characters[0].session, undefined);
 
         // API: the ended session stays viewable, with its kind, read-only.
-        const viewed = await post(page, "/api/5e/session", {
-          sessionId: file.id,
-        });
-        assert.equal(viewed.status, 200);
-        assert.equal(viewed.body.session.status, "victory");
-        assert.deepEqual(viewed.body.session.ending, {
-          kind: "victory",
-          title: "The cellar is clear",
-          text: viewed.body.session.ending.text,
-          // A victory credits the fight's XP (#133).
-          rewards: {
-            xp: [{ name: "Defeated the Goblin Warrior", xp: 50 }],
-            treasure: [],
-            totalXp: 50,
-            level: 1,
-          },
-        });
-        assert.equal(library.characters[0].sheet.xp, 50);
-        assert.deepEqual(viewed.body.session.actions, []);
-        const acted = await post(page, "/api/5e/session/action", {
-          sessionId: file.id,
-          sequence: file.transitions.length,
-          action: "end-turn",
-        });
-        assert.notEqual(acted.status, 200);
-        assert.deepEqual(await sessionFile(directory), file);
-        const unknown = await post(page, "/api/5e/session", {
-          sessionId: "0".repeat(32),
-        });
-        assert.notEqual(unknown.status, 200);
+        // None of this depends on the width: checked once.
+        if (viewport.width === 1280) {
+          const viewed = await post(page, "/api/5e/session", {
+            sessionId: file.id,
+          });
+          assert.equal(viewed.status, 200);
+          assert.equal(viewed.body.session.status, "victory");
+          assert.deepEqual(viewed.body.session.ending, {
+            kind: "victory",
+            title: "The cellar is clear",
+            text: viewed.body.session.ending.text,
+            // A victory credits the fight's XP (#133).
+            rewards: {
+              xp: [{ name: "Defeated the Goblin Warrior", xp: 50 }],
+              treasure: [],
+              totalXp: 50,
+              level: 1,
+            },
+          });
+          assert.equal(library.characters[0].sheet.xp, 50);
+          assert.deepEqual(viewed.body.session.actions, []);
+          const acted = await post(page, "/api/5e/session/action", {
+            sessionId: file.id,
+            sequence: file.transitions.length,
+            action: "end-turn",
+          });
+          assert.notEqual(acted.status, 200);
+          assert.deepEqual(await sessionFile(directory), file);
+          const unknown = await post(page, "/api/5e/session", {
+            sessionId: "0".repeat(32),
+          });
+          assert.notEqual(unknown.status, 200);
+        }
 
         // Reloading shows the same ending, focused.
         await page.reload();
@@ -285,6 +321,26 @@ test(
     page.setDefaultTimeout(5000);
     try {
       await createAndStart(page, server.url, "lone-goblin");
+
+      // Deleting is refused while the adventure is in progress.
+      await page.locator(`#breadcrumb a[data-view="sheet"]`).click();
+      await page.locator("#continue-adventure").waitFor();
+      await page.locator("#delete-character").click();
+      await page.locator("#delete-confirm-name").fill("Ada");
+      const bytes = await readFile(libraryPath);
+      await page.locator("#confirm-delete").click();
+      await page
+        .locator("#delete-error")
+        .filter({
+          hasText:
+            "Ada is on an adventure. Finish it before deleting the character; nothing was deleted.",
+        })
+        .waitFor();
+      assert.deepEqual(await readFile(libraryPath), bytes);
+      await page.locator("#cancel-delete").click();
+      await page.locator("#continue-adventure").click();
+      await page.locator("#adventure").waitFor({ state: "visible" });
+
       await playToTheEnd(page);
 
       const shown = await ending(page);
@@ -304,6 +360,18 @@ test(
       assert.match(shown.reason, /The adventure is over/);
       assert.equal((await sessionFile(directory)).state.status, "defeat");
 
+      // The status strip shows defeat at 0 HP (#155). No turn is left to
+      // take; the feature uses still show.
+      const maxHp = firstFighter(seed).hp;
+      assert.deepEqual(await statusStrip(page), {
+        hp: `HP 0 of ${maxHp}, Defeated`,
+        shown: `HP 0/${maxHp} Defeated`,
+        health: "down",
+        turn: "The fight is over.",
+        resources: ["second-wind"],
+        fill: "0%",
+      });
+
       await page.reload();
       await page.locator("#ending").waitFor({ state: "visible" });
       assert.equal((await ending(page)).kind, "defeat");
@@ -316,6 +384,18 @@ test(
         })
         .waitFor();
       assert.equal(await page.locator(".start-adventure").count(), 0);
+      // The server refuses a start the page no longer offers.
+      const library = JSON.parse(await readFile(libraryPath, "utf8"));
+      const refused = await post(page, "/api/5e/adventures/start", {
+        revision: library.revision,
+        characterId: library.characters[0].sheet.id,
+        adventureId: "lone-goblin",
+      });
+      assert.equal(refused.status, 409);
+      assert.match(
+        refused.body.error,
+        /defeated and cannot start another adventure/,
+      );
     } finally {
       await browser.close();
       await server.close();
