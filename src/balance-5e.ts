@@ -11,6 +11,7 @@
  */
 import {
   LOOT_KINDS,
+  statBlockDefenses,
   statBlockSaves,
   type Difficulty,
   type EndingKind,
@@ -165,17 +166,7 @@ export function oneHitKillChance(
 ): number {
   const attack = playerCombatant(sheet).attack;
   const hp = enemy.hitPoints.average;
-  const defenses = {
-    ...(enemy.damageResistances === undefined
-      ? {}
-      : { resistances: enemy.damageResistances }),
-    ...(enemy.damageVulnerabilities === undefined
-      ? {}
-      : { vulnerabilities: enemy.damageVulnerabilities }),
-    ...(enemy.damageImmunities === undefined
-      ? {}
-      : { immunities: enemy.damageImmunities }),
-  };
+  const defenses = statBlockDefenses(enemy);
   /** Its Constitution save, if Undead Fortitude can keep it standing. */
   const fortitude =
     enemy.traits?.includes("Undead Fortitude") === true &&

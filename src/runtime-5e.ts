@@ -47,6 +47,7 @@ import {
   ITEM_KINDS,
   LOOT_KINDS,
   statBlockInitiative,
+  statBlockDefenses,
   statBlockSaves,
   type FifthAdventure,
   type FifthCreature,
@@ -1978,15 +1979,7 @@ export function createFifthRuntime(
         ...(statBlock.traits?.includes("Undead Fortitude") === true
           ? { undeadFortitude: true as const }
           : {}),
-        ...(statBlock.damageResistances === undefined
-          ? {}
-          : { resistances: statBlock.damageResistances }),
-        ...(statBlock.damageVulnerabilities === undefined
-          ? {}
-          : { vulnerabilities: statBlock.damageVulnerabilities }),
-        ...(statBlock.damageImmunities === undefined
-          ? {}
-          : { immunities: statBlock.damageImmunities }),
+        ...statBlockDefenses(statBlock),
         ...(statBlock.conditionImmunities === undefined
           ? {}
           : { conditionImmunities: statBlock.conditionImmunities }),

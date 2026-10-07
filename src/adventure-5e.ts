@@ -30,7 +30,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
 import type { CheckSpec } from "./checks-5e.js";
-import type { DamageType } from "./encounter-5e.js";
+import type { DamageDefenses, DamageType } from "./encounter-5e.js";
 import {
   COIN_VALUES,
   isItemId,
@@ -1137,6 +1137,26 @@ export function statBlockProficiency(
     ? 0
     : Number(block.challengeRating);
   return 2 + Math.floor(Math.max(0, rating - 1) / 4);
+}
+
+/** A monster's damage resistances, vulnerabilities and immunities. */
+export function statBlockDefenses(
+  block: Pick<
+    StatBlock,
+    "damageResistances" | "damageVulnerabilities" | "damageImmunities"
+  >,
+): DamageDefenses {
+  return {
+    ...(block.damageResistances === undefined
+      ? {}
+      : { resistances: block.damageResistances }),
+    ...(block.damageVulnerabilities === undefined
+      ? {}
+      : { vulnerabilities: block.damageVulnerabilities }),
+    ...(block.damageImmunities === undefined
+      ? {}
+      : { immunities: block.damageImmunities }),
+  };
 }
 
 /**
