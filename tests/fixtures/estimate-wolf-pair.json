@@ -1,0 +1,57 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 13,
+  "id": "wolf-pair",
+  "title": "The Wolf Pair",
+  "objective": "Drive off the two wolves at the ford.",
+  "recommendedLevels": {
+    "min": 2,
+    "max": 3
+  },
+  "difficulty": "hard",
+  "startRoomId": "ford",
+  "rooms": [
+    {
+      "id": "ford",
+      "name": "The Ford",
+      "description": "Two wolves pace the far bank, then splash across towards you.",
+      "encounterId": "wolf-pair",
+      "features": [],
+      "items": []
+    }
+  ],
+  "passages": [],
+  "encounters": [
+    {
+      "id": "wolf-pair",
+      "opponents": [
+        {
+          "id": "grey-wolf",
+          "monster": "wolf",
+          "name": "Grey Wolf"
+        },
+        {
+          "id": "black-wolf",
+          "monster": "wolf",
+          "name": "Black Wolf"
+        }
+      ],
+      "victoryEndingId": "ford-held",
+      "defeatEndingId": "fallen-at-the-ford"
+    }
+  ],
+  "endings": [
+    {
+      "id": "ford-held",
+      "kind": "victory",
+      "title": "The ford is held",
+      "text": "The second wolf limps away into the reeds."
+    },
+    {
+      "id": "fallen-at-the-ford",
+      "kind": "defeat",
+      "title": "Fallen at the ford",
+      "text": "You fall in the shallows. Your adventuring ends here."
+    }
+  ]
+}

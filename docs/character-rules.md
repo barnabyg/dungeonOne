@@ -271,6 +271,14 @@ A module is offered in the browser only if it qualifies at its declared difficul
 
 A module the harness can't play fails the gate with the harness's named reason. The verdict names each check, whether it passed and, for too easy, the enemies over the cap.
 
+## Encounter estimate
+
+Before writing a fight into a module, an author can estimate its danger from bestiary ids (#236): `npm.cmd run estimate -- --levels 2-3 wolf:2` (`src/estimate-5e.ts`). Each argument is a bestiary id with an optional count (`wolf:2`, or `bandit` for one), up to 8 monsters in all, as in a module; `--levels` gives the character levels (1–3, by default all three, `--levels 2` for one), and `--seeds`, `--percentiles`, `--styles` and `--json` are the harness's. `--bestiary <file>` estimates against another bestiary file instead of the built-in one.
+
+- **What it plays.** The fight becomes a one-room module: its start room holds the fight, winning ends it in victory and losing in defeat, and monsters sharing a name are numbered. The harness plays that module through the real runtime with the same sampled characters and seeds as the gate, at every level, for each percentile character (the 5th and 95th by default), with every starting kit, in every style.
+- **What it reports.** For each level and character, each monster's chance of dying to one attack from full HP, with the kit and Fighting Style that kill it most often (as the gate measures it), and which difficulties' caps it is over; then for each kit and style the survival rate, HP lost in the fight and rounds. Last, the gate's verdict on the module at easy, medium and hard: the three checks of the balance gate, so a module whose only fight is this one, at these levels, qualifies at the same difficulties. A module with more rooms, potions or other fights before it will measure differently, and the estimate counts every monster as ordinary: mark a boss in the module to exempt it from the cap.
+- **Failures.** A bestiary id that isn't in the bestiary fails as `unknown-monster`, and a monster with a trait the encounter engine does not apply as `unsimulated-trait`, each naming the monster; the harness's own failures (`step-limit` and the rest) are reported the same way. The exit code is 1 on a named failure and 2 on a malformed command line.
+
 ## House rules
 
 - A player character at 0 HP is defeated at once; there are no death saving throws.
