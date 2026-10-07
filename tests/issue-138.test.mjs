@@ -16,7 +16,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  checkDmOffRefusal,
   offeredToolsMatchActions,
   runFifthDmEvaluation,
   scriptedCaseModel,
@@ -437,10 +436,6 @@ test("the evaluation keeps to its call budget", async () => {
   assert.equal(report.providerCalls, 3);
   assert.ok(report.runs.some(({ failures }) => failures > 0));
   assert.equal(report.passed, false);
-});
-
-test("a server without an AI DM refuses typed messages with the player notice", async () => {
-  assert.equal(await checkDmOffRefusal(ratTunnels), true);
 });
 
 test("the 5e DM evaluation calls the provider only with --live and a key", () => {

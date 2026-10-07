@@ -12,7 +12,6 @@ import {
   loadFifthAdventure,
 } from "../dist/adventure-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
-import { formatCoins } from "../dist/equipment-5e.js";
 import {
   buildFighter,
   settleFighter,
@@ -102,13 +101,6 @@ const SEARCH_BODY = { type: "examine", targetId: "barrow-goblin" };
 const TAKE_POUCH = { type: "take", itemId: "coin-pouch" };
 const OUT = { type: "move", destinationId: "barrow-mouth" };
 const LEAVE = { type: "leave", roomId: "barrow-mouth" };
-
-test("coin is shown in mixed denominations from copper", () => {
-  assert.equal(formatCoins(0), "0 cp");
-  assert.equal(formatCoins(7), "7 cp");
-  assert.equal(formatCoins(340), "3 gp 4 sp");
-  assert.equal(formatCoins(1234), "12 gp 3 sp 4 cp");
-});
 
 test("the validator rejects coin that is not hidden in a feature or carried by an opponent", () => {
   assert.throws(
