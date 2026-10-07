@@ -1,8 +1,8 @@
 // #136: The Abandoned Delve, the first real 5e adventure module. It holds
-// what the ticket asks for, passes the balance gate at its declared
-// difficulty, and scripted-DM journeys reach each of its endings. The DM
-// evaluation's cases and the live qualification, both written for it (#138),
-// are checked here too.
+// what the ticket asks for, and scripted-DM journeys reach each of its
+// endings; shipped-modules.test.mjs checks it qualifies at its declared
+// difficulty. The DM evaluation's cases and the live qualification, both
+// written for it (#138), are checked here too.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
-import { passesGate, requiredPath } from "../dist/balance-5e.js";
+import { requiredPath } from "../dist/balance-5e.js";
 import {
   FIFTH_DM_CASES,
   offeredToolsMatchActions,
@@ -135,10 +135,6 @@ test("every treasure and coin is found by examining, and the richest lies past t
   for (const safer of ["guard-post", "barracks", "shrine", "web-crypt"]) {
     assert.equal(treasureIn(safer).length, 1, safer);
   }
-});
-
-test("it passes the balance gate at its declared difficulty", () => {
-  assert.equal(passesGate(delve), true);
 });
 
 function scripted(responses) {

@@ -109,6 +109,31 @@ export function fightRoomFile(id, title, opponents) {
 export const fightRoom = (id, title, opponents) =>
   validateModule(fightRoomFile(id, title, opponents));
 
+/**
+ * A copy of the validated `adventure` with `change` made to a copy of each
+ * opponent's stat block, for comparing a monster with and without a rule.
+ */
+export function withStatBlocks(adventure, change) {
+  const copy = structuredClone(adventure);
+  for (const encounter of copy.encounters) {
+    for (const opponent of encounter.opponents) {
+      const statBlock = { ...opponent.statBlock };
+      change(statBlock);
+      opponent.statBlock = statBlock;
+    }
+  }
+  return copy;
+}
+
+/** A `withStatBlocks` change: each attack loses its riders. */
+export const withoutRiders = (statBlock) => {
+  statBlock.attacks = statBlock.attacks.map(({ name, bonus, damage }) => ({
+    name,
+    bonus,
+    damage,
+  }));
+};
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,

@@ -463,9 +463,21 @@ const MINION_YARD = await loadFifthAdventure(
 );
 const declared = (adventure, difficulty) =>
   validateModule({ ...adventure, difficulty });
+// The one-hit-kill and XP measures are worked out, not played, so one seed
+// gives them as the default 200 do; a verdict that turns on them alone does
+// too. Survival, and any qualified verdict, needs the default seeds.
+const SEED_FREE = { seeds: [0] };
+// The Goblin Pair gated as declared (medium) and one step harder, once for
+// every test that judges them.
+let goblinPairGates;
+const goblinPair = () =>
+  (goblinPairGates ??= {
+    medium: gateAdventure(GOBLIN_PAIR),
+    hard: gateAdventure(declared(GOBLIN_PAIR, "hard")),
+  });
 
 test("a module too deadly for its difficulty is rejected, and passes declared one step harder", () => {
-  const medium = gateAdventure(GOBLIN_PAIR);
+  const { medium, hard } = goblinPair();
   assert.equal(medium.ok, true);
   const { verdict } = medium;
   assert.equal(verdict.difficulty, "medium");
@@ -491,7 +503,6 @@ test("a module too deadly for its difficulty is rejected, and passes declared on
     /^The Goblin Pair \(goblin-pair\) does not qualify as medium\.\n {2}Too deadly, FAIL: the level 3, 5th percentile character playing cautious survived \d+\.\d% of 200 runs with its weakest kit, mace \(mace level 3 \d+\.\d%, two-daggers level 3 \d+\.\d%, club-and-dagger level 3 \d+\.\d%\); medium needs 85\.0%\.$/mu,
   );
 
-  const hard = gateAdventure(declared(GOBLIN_PAIR, "hard"));
   assert.equal(hard.verdict.qualified, true);
   assert.equal(hard.verdict.survival.rate, verdict.survival.rate);
   assert.match(
@@ -502,7 +513,7 @@ test("a module too deadly for its difficulty is rejected, and passes declared on
 
 test("a module whose ordinary enemies a strong level-1 Fighter usually one-shots is rejected, naming them", () => {
   for (const difficulty of ["easy", "medium", "hard"]) {
-    const result = gateAdventure(declared(MINION_YARD, difficulty));
+    const result = gateAdventure(declared(MINION_YARD, difficulty), SEED_FREE);
     const { oneHitKill } = result.verdict;
     assert.equal(result.verdict.qualified, false, difficulty);
     assert.equal(oneHitKill.ok, false, difficulty);
@@ -538,7 +549,8 @@ test("bosses are exempt from the one-hit-kill cap, and half the ordinary enemies
         ),
       })),
     });
-  const oneBoss = gateAdventure(withBoss(["gate-minion"])).verdict.oneHitKill;
+  const oneBoss = gateAdventure(withBoss(["gate-minion"]), SEED_FREE).verdict
+    .oneHitKill;
   assert.deepEqual(
     oneBoss.enemies.map(({ opponentId }) => opponentId),
     ["yard-minion"],
@@ -549,7 +561,7 @@ test("bosses are exempt from the one-hit-kill cap, and half the ordinary enemies
   assert.equal(allBosses.verdict.oneHitKill.ok, true);
   assert.equal(allBosses.verdict.qualified, true);
   // One minion of two over the cap is half, not most.
-  const tunnels = gateAdventure(declared(ratTunnels, "hard")).verdict
+  const tunnels = gateAdventure(declared(ratTunnels, "hard"), SEED_FREE).verdict
     .oneHitKill;
   assert.deepEqual(
     tunnels.overCap.map(({ name }) => name),
@@ -570,7 +582,7 @@ test("a module whose XP could carry a character past its maximum level + 1 is re
         ending.kind === "victory" ? { ...ending, xp } : ending,
       ),
     });
-  const within = gateAdventure(rich(1700)).verdict.xp;
+  const within = gateAdventure(rich(1700), SEED_FREE).verdict.xp;
   assert.deepEqual(within, {
     ok: true,
     available: 1800,
@@ -578,7 +590,7 @@ test("a module whose XP could carry a character past its maximum level + 1 is re
     endLevel: 3,
     levelLimit: 3,
   });
-  const over = gateAdventure(rich(1701));
+  const over = gateAdventure(rich(1701), SEED_FREE);
   assert.deepEqual(over.verdict.xp, {
     ok: false,
     available: 1801,
@@ -645,8 +657,8 @@ test("passesGate is the gate's verdict at the defaults, as the browser offers mo
 });
 
 test("gateVerdictAt judges a verdict's measurements as the gate does at another difficulty", () => {
-  const medium = gateAdventure(GOBLIN_PAIR).verdict;
-  const hard = gateAdventure(declared(GOBLIN_PAIR, "hard")).verdict;
+  const medium = goblinPair().medium.verdict;
+  const hard = goblinPair().hard.verdict;
   assert.equal(medium.qualified, false);
   assert.equal(hard.qualified, true);
   assert.deepEqual(gateVerdictAt(medium, "hard"), hard);

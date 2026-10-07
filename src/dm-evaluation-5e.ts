@@ -823,8 +823,9 @@ export async function startAdventureOverHttp(
 /**
  * Starts a browser server with no AI DM and checks that a typed message is
  * refused with the player notice, changing nothing. The server offers only
- * `adventure`, gate or no gate, and starts it; without one, it offers the
- * built-in modules and starts the delve.
+ * `adventure` and starts it; without one, it offers the built-in modules and
+ * starts the delve. Either way the balance gate is skipped: which modules
+ * qualify does not change the refusal.
  */
 export async function checkDmOffRefusal(
   adventure?: FifthAdventure,
@@ -835,9 +836,8 @@ export async function checkDmOffRefusal(
     seed: 0,
     apiKey: "",
     // The check is of the refusal, not the balance gate.
-    ...(adventure === undefined
-      ? {}
-      : { adventures: [adventure], qualifies: () => true }),
+    qualifies: () => true,
+    ...(adventure === undefined ? {} : { adventures: [adventure] }),
   });
   try {
     const started = await startAdventureOverHttp(

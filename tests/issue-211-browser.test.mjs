@@ -67,7 +67,12 @@ test(
   async () => {
     const directory = await mkdtemp(join(tmpdir(), "issue-211-browser-"));
     const libraryPath = join(directory, "characters.json");
-    const server = await startFifthBrowserServer({ libraryPath, seed: SEED });
+    const server = await startFifthBrowserServer({
+      libraryPath,
+      seed: SEED,
+      // shipped-modules.test.mjs gates every shipped module; skip it here.
+      qualifies: () => true,
+    });
     const browser = await launch();
     const page = await browser.newPage({
       viewport: { width: 1280, height: 900 },

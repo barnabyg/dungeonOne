@@ -18,7 +18,11 @@ import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
-import { fightRoom } from "./fixtures/modules.mjs";
+import {
+  fightRoom,
+  withoutRiders,
+  withStatBlocks,
+} from "./fixtures/modules.mjs";
 import { firstFighter } from "./fixtures/session-layout.mjs";
 
 /** Returns the queued values in order, checking each die's sides. */
@@ -517,21 +521,16 @@ test("the AI DM's attempts to act for a paralysed character get the engine's ref
 });
 
 test("the balance gate plays the Ghoul's paralysis", () => {
-  const withoutRiders = structuredClone(ghoulCellar);
-  for (const opponent of withoutRiders.encounters[0].opponents) {
-    opponent.statBlock = {
-      ...opponent.statBlock,
-      attacks: opponent.statBlock.attacks.map(({ name, bonus, damage }) => ({
-        name,
-        bonus,
-        damage,
-      })),
-    };
-  }
+  // Paralysis costs about a fifth of the runs; 40 seeds show it clearly.
   const survival = (adventure) => {
-    const result = gateAdventure(adventure);
+    const result = gateAdventure(adventure, {
+      seeds: Array.from({ length: 40 }, (_, seed) => seed),
+    });
     assert.ok(result.ok);
     return result.verdict.survival.rate;
   };
-  assert.ok(survival(ghoulCellar) < survival(withoutRiders));
+  assert.ok(
+    survival(ghoulCellar) <
+      survival(withStatBlocks(ghoulCellar, withoutRiders)),
+  );
 });
