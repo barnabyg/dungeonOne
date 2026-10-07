@@ -17,7 +17,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
  * The tests about shipped content, and why each may read a shipped module.
  * Everything else under tests/ must use fixtures.
  */
-export const CONTENT_TESTS = new Map([
+const CONTENT_TESTS = new Map([
   [
     "tests/fixture-separation.test.mjs",
     "this check: it names the shipped modules to look for them",
@@ -55,9 +55,18 @@ export const CONTENT_TESTS = new Map([
 
 /**
  * Tests that start the real launcher, which loads the shipped modules, only
- * to check how it starts and what it refuses.
+ * to check how it starts and what it refuses, and the fixtures that start it.
  */
-const LAUNCHER_TESTS = new Set(["tests/issue-137.test.mjs"]);
+const LAUNCHER_TESTS = new Set([
+  "tests/issue-137.test.mjs",
+  "tests/fighter-5e-browser.test.mjs",
+  "tests/fixtures/default-launch.mjs",
+  "tests/fixtures/quiet-launcher.mjs",
+]);
+
+/** An `adventures` option given a value, or shorthand, in an object. */
+const ADVENTURES_OPTION =
+  /(?:^|[{,\s])adventures\s*(?::\s*(?!undefined\b)[^\s,}]|[,}]|$)/mu;
 
 async function testFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -97,14 +106,15 @@ const callArguments = (source, name) =>
  * in an object constant they spread.
  */
 function namesAdventures(source, args) {
+  const code = (text) => text.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gmu, "");
   return (
-    /\badventures\b/u.test(args) ||
+    ADVENTURES_OPTION.test(code(args)) ||
     [...args.matchAll(/\.\.\.(\w+)/gu)].some(([, name]) => {
       const defined = new RegExp(`\\bconst ${name} = \\{`, "u").exec(source);
       return (
         defined !== null &&
-        /\badventures\b/u.test(
-          bracketed(source, defined.index + defined[0].length - 1),
+        ADVENTURES_OPTION.test(
+          code(bracketed(source, defined.index + defined[0].length - 1)),
         )
       );
     })
@@ -144,11 +154,10 @@ function violations(file, source) {
     found.push("starts a browser server on the built-in modules");
   }
   if (
-    /\blaunchDefault\(/u.test(source) &&
-    !LAUNCHER_TESTS.has(file) &&
-    !file.endsWith("fixtures/default-launch.mjs")
+    /\blaunchDefault\(|dist\/(?:browser-cli|cli-5e)\.js/u.test(source) &&
+    !LAUNCHER_TESTS.has(file)
   ) {
-    found.push("plays through the real launcher");
+    found.push("runs the real launcher or command-line adapter");
   }
   return found;
 }
@@ -179,6 +188,10 @@ test("the check catches each way a test can reach a shipped module (#251)", () =
     "await startFifthBrowserServer({ libraryPath, seed: 0 })",
     "const OPTIONS = { seed: 0 }; await startFifthBrowserServer({ ...OPTIONS })",
     "await launchDefault(directory, args)",
+    'spawnSync(process.execPath, ["dist/browser-cli.js", "--seed", "1"])',
+    'new URL("../dist/cli-5e.js", import.meta.url)',
+    "await startFifthBrowserServer({ seed: 0, adventures: undefined })",
+    "await startFifthBrowserServer({ seed: 0 /* adventures: none */ })",
   ]) {
     assert.notDeepEqual(violations("tests/x.test.mjs", source), [], source);
   }
