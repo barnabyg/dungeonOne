@@ -237,36 +237,39 @@ for (const viewport of [
         assert.equal(library.characters[0].session, undefined);
 
         // API: the ended session stays viewable, with its kind, read-only.
-        const viewed = await post(page, "/api/5e/session", {
-          sessionId: file.id,
-        });
-        assert.equal(viewed.status, 200);
-        assert.equal(viewed.body.session.status, "victory");
-        assert.deepEqual(viewed.body.session.ending, {
-          kind: "victory",
-          title: "The cellar is clear",
-          text: viewed.body.session.ending.text,
-          // A victory credits the fight's XP (#133).
-          rewards: {
-            xp: [{ name: "Defeated the Goblin Warrior", xp: 50 }],
-            treasure: [],
-            totalXp: 50,
-            level: 1,
-          },
-        });
-        assert.equal(library.characters[0].sheet.xp, 50);
-        assert.deepEqual(viewed.body.session.actions, []);
-        const acted = await post(page, "/api/5e/session/action", {
-          sessionId: file.id,
-          sequence: file.transitions.length,
-          action: "end-turn",
-        });
-        assert.notEqual(acted.status, 200);
-        assert.deepEqual(await sessionFile(directory), file);
-        const unknown = await post(page, "/api/5e/session", {
-          sessionId: "0".repeat(32),
-        });
-        assert.notEqual(unknown.status, 200);
+        // None of this depends on the width: checked once.
+        if (viewport.width === 1280) {
+          const viewed = await post(page, "/api/5e/session", {
+            sessionId: file.id,
+          });
+          assert.equal(viewed.status, 200);
+          assert.equal(viewed.body.session.status, "victory");
+          assert.deepEqual(viewed.body.session.ending, {
+            kind: "victory",
+            title: "The cellar is clear",
+            text: viewed.body.session.ending.text,
+            // A victory credits the fight's XP (#133).
+            rewards: {
+              xp: [{ name: "Defeated the Goblin Warrior", xp: 50 }],
+              treasure: [],
+              totalXp: 50,
+              level: 1,
+            },
+          });
+          assert.equal(library.characters[0].sheet.xp, 50);
+          assert.deepEqual(viewed.body.session.actions, []);
+          const acted = await post(page, "/api/5e/session/action", {
+            sessionId: file.id,
+            sequence: file.transitions.length,
+            action: "end-turn",
+          });
+          assert.notEqual(acted.status, 200);
+          assert.deepEqual(await sessionFile(directory), file);
+          const unknown = await post(page, "/api/5e/session", {
+            sessionId: "0".repeat(32),
+          });
+          assert.notEqual(unknown.status, 200);
+        }
 
         // Reloading shows the same ending, focused.
         await page.reload();
