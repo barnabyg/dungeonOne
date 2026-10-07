@@ -92,7 +92,18 @@ results).
 
 ## Implementer evidence
 
-**Clean clone.** CLEAN-CLONE-RESULT
+**Clean clone.** On Windows 11, Node.js 24.13.0 and npm 11.6.4, the
+implementer ran `git clone` of the branch at `a356b4f` into an empty
+directory, then `npm.cmd ci` (0 vulnerabilities), `npm.cmd run build` and
+`npm.cmd run verify`. All passed, and verify ended "Verification passed with
+zero warnings." An earlier clean clone, at `e273d24`, failed verify: the
+fixture-separation test had not yet listed the two new content tests, which
+`87067ab` fixed. From the `a356b4f` clone, a browser server on seed 26 with
+the balance gate on and no key served the page (HTTP 200). It loaded the
+handoff's input library (Ada, level 3) and offered all nine modules, _The
+Silvervein Mine_ last. The real launcher, which also opens the desktop
+browser, was not run. The scenario 1–3 clicks were run by the browser test
+above, not by hand.
 
 **Bounded live AI run.** The budget was stated in the implementer's session
 before the run started: at most 80 provider calls on `gpt-5.6-luna` (the
