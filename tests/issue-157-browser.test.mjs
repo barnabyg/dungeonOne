@@ -147,15 +147,12 @@ for (const viewport of [
           .allTextContents()) {
           assert.match(cell, /^\d+$/);
         }
-        if (!(await fightOver(page))) {
-          const current = page.locator("#initiative-rows tr.current");
-          assert.equal(await current.count(), 1);
-          assert.equal(await current.getAttribute("aria-current"), "true");
-          assert.equal(
-            await current.locator("th .tag.now").textContent(),
-            "Now",
-          );
-        }
+        // The roll-off seed's fight outlasts that first action.
+        assert.equal(await fightOver(page), false, "the fight is still on");
+        const current = page.locator("#initiative-rows tr.current");
+        assert.equal(await current.count(), 1);
+        assert.equal(await current.getAttribute("aria-current"), "true");
+        assert.equal(await current.locator("th .tag.now").textContent(), "Now");
 
         // The rolls behind the totals, with the roll-off, open by keyboard.
         const breakdown = page.locator("#initiative-breakdown");
