@@ -7,22 +7,18 @@
 // with the full name ("Examine Rusted Lantern") as their accessible name.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import {
-  buildFighter,
-  defaultPlacement,
-  rollAbilitySet,
-} from "../dist/fighter-5e.js";
+import {} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
 import { loneGoblin, ratlessTunnels } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
+import { firstFighter } from "./fixtures/session-layout.mjs";
 
 // Edge on Windows; elsewhere the pinned Playwright Chromium, as CI installs.
 const launch = () =>
@@ -31,35 +27,6 @@ const launch = () =>
       ? { channel: "msedge", headless: true }
       : { headless: true },
   );
-
-const DEFAULT_CHOICES = {
-  placement: {
-    strength: 0,
-    dexterity: 1,
-    constitution: 2,
-    intelligence: 3,
-    wisdom: 4,
-    charisma: 5,
-  },
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-  kit: "mace",
-  masteries: ["dagger", "mace", "shortsword"],
-};
-
-/** The first Fighter a browser on `seed` creates with the default choices. */
-function firstFighter(seed) {
-  const stream = createHash("sha256")
-    .update(`5e-ability-rolls:${seed}:1`)
-    .digest()
-    .readUInt32LE(0);
-  const dice = rollAbilitySet(createSeededRandom(stream));
-  return buildFighter("a".repeat(32), "Ada", dice, {
-    ...DEFAULT_CHOICES,
-    placement: defaultPlacement(dice),
-  });
-}
 
 /** A seed where the lone goblin fight opens with an initiative roll-off. */
 function rollOffSeed() {

@@ -75,9 +75,12 @@ minion with one attack, so it fails as too easy at every difficulty.
 
 `default-launch.mjs` runs the built browser launcher as a player would,
 through `quiet-launcher.mjs`, which stops it opening a desktop browser window.
-`session-layout.mjs` launches the browser and builds the fighters the 5e
-journeys use to check that the newest history entry and the action buttons
-are on screen together (#154).
+`session-layout.mjs` launches the browser and checks that the newest
+history entry and the action buttons are on screen together (#154). Its
+`firstFighter(seed)` is the Fighter a browser on that seed creates first,
+with the page's default choices (`FIGHTER_DEFAULT_CHOICES`) and placement
+(`defaultPlacement`); browser tests that search for a seed by simulating
+Ada use it, so they simulate the Ada the page makes.
 
 `browser-journey.mjs` holds the steps most browser tests take before the
 part they check: `openCreation`, `saveFighter` (Ada by default),

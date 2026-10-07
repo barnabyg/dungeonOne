@@ -6,6 +6,7 @@ import { chromium } from "playwright";
 import {
   buildFighter,
   defaultPlacement,
+  FIGHTER_DEFAULT_CHOICES,
   rollAbilitySet,
 } from "../../dist/fighter-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
@@ -18,16 +19,10 @@ export const launch = () =>
       : { headless: true },
   );
 
-// The creation screen's default choices; the placement follows the dice.
-const DEFAULT_CHOICES = {
-  increase: { strength: 2, constitution: 1 },
-  skills: ["athletics", "perception"],
-  fightingStyle: "defense",
-  kit: "mace",
-  masteries: ["dagger", "mace", "shortsword"],
-};
-
-/** The first Fighter a browser on `seed` creates with the default choices. */
+/**
+ * The first Fighter a browser on `seed` creates with the creation screen's
+ * default choices, its placement following the dice as the page's does.
+ */
 export function firstFighter(seed) {
   const stream = createHash("sha256")
     .update(`5e-ability-rolls:${seed}:1`)
@@ -35,7 +30,7 @@ export function firstFighter(seed) {
     .readUInt32LE(0);
   const dice = rollAbilitySet(createSeededRandom(stream));
   return buildFighter("a".repeat(32), "Ada", dice, {
-    ...DEFAULT_CHOICES,
+    ...FIGHTER_DEFAULT_CHOICES,
     placement: defaultPlacement(dice),
   });
 }
