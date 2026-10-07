@@ -3,7 +3,8 @@
 // breaks only the tests about that content. This test scans every test file
 // and fixture for the ways a test can reach a shipped module: its path, the
 // built-in loader, its id or title, a browser server that loads the built-in
-// modules by default, or the real launcher.
+// modules by default, the real launcher, or the command-line adapter without
+// --adventure-file (#255).
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readdir, readFile } from "node:fs/promises";
@@ -28,7 +29,7 @@ const CONTENT_TESTS = new Map([
   ],
   [
     "tests/abandoned-delve.test.mjs",
-    "the Abandoned Delve's content, gate verdict and scripted runs",
+    "the Abandoned Delve's content, gate verdict, scripted runs, DM evaluation cases and live qualification",
   ],
   [
     "tests/abandoned-delve-browser.test.mjs",
@@ -37,10 +38,6 @@ const CONTENT_TESTS = new Map([
   [
     "tests/issue-137-browser.test.mjs",
     "the default launch's handoff run of the Abandoned Delve, which only the shipped modules reach",
-  ],
-  [
-    "tests/issue-138.test.mjs",
-    "the command-line adapter and the DM evaluation, which play the Abandoned Delve by design",
   ],
   ["tests/issue-140.test.mjs", "the #140 release run of the Abandoned Delve"],
   [
@@ -154,10 +151,21 @@ function violations(file, source) {
     found.push("starts a browser server on the built-in modules");
   }
   if (
-    /\blaunchDefault\(|dist\/(?:browser-cli|cli-5e)\.js/u.test(source) &&
+    /\blaunchDefault\(|dist\/browser-cli\.js/u.test(source) &&
     !LAUNCHER_TESTS.has(file)
   ) {
-    found.push("runs the real launcher or command-line adapter");
+    found.push("runs the real launcher");
+  }
+  // The command-line adapter loads the built-in modules unless it is given a
+  // module file, so a test that runs it must give one. This is checked per
+  // file, not per run: runs without one must stop before loading modules
+  // (--help and refused options), as in issue-138.test.mjs.
+  if (
+    /dist\/cli-5e\.js/u.test(source) &&
+    !source.includes('"--adventure-file"') &&
+    !LAUNCHER_TESTS.has(file)
+  ) {
+    found.push("runs the command-line adapter without --adventure-file");
   }
   return found;
 }
@@ -200,6 +208,7 @@ test("the check catches each way a test can reach a shipped module (#251)", () =
     `const ${id.replaceAll("-", "")}Fixture = "${id}-fixture";`,
     "await startFifthBrowserServer({ libraryPath, seed: 0, adventures })",
     "const OPTIONS = { adventures: [loneGoblin] }; await startFifthBrowserServer({ ...OPTIONS, seed: 0 })",
+    'new URL("../dist/cli-5e.js", import.meta.url); run(["--adventure-file", file])',
   ]) {
     assert.deepEqual(violations("tests/x.test.mjs", source), [], source);
   }
