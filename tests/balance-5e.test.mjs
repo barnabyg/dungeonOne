@@ -4,6 +4,7 @@ import {
   DIFFICULTY_THRESHOLDS,
   fighterAtLevel,
   gateAdventure,
+  gateVerdictAt,
   oneHitKillChance,
   percentileCharacters,
   PLAY_STYLES,
@@ -673,4 +674,14 @@ test("passesGate is the gate's verdict at the defaults, as the browser offers mo
   assert.equal(passesGate(GOBLIN_PAIR), false);
   assert.equal(passesGate(declared(GOBLIN_PAIR, "hard")), true);
   assert.equal(passesGate(GOBLIN_PAIR), false);
+});
+
+test("gateVerdictAt judges a verdict's measurements as the gate does at another difficulty", () => {
+  const medium = gateAdventure(GOBLIN_PAIR).verdict;
+  const hard = gateAdventure(declared(GOBLIN_PAIR, "hard")).verdict;
+  assert.equal(medium.qualified, false);
+  assert.equal(hard.qualified, true);
+  assert.deepEqual(gateVerdictAt(medium, "hard"), hard);
+  assert.deepEqual(gateVerdictAt(hard, "medium"), medium);
+  assert.deepEqual(gateVerdictAt(medium, "medium"), medium);
 });

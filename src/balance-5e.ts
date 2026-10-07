@@ -1227,6 +1227,17 @@ export type GateVerdict = Readonly<{
   xp: XpCheck;
 }>;
 
+/**
+ * What the gate measures of a module, before it is judged at a difficulty:
+ * none of it depends on the difficulty declared.
+ */
+export type GateMeasures = Readonly<{
+  adventureId: string;
+  survival: Omit<SurvivalCheck, "ok" | "required">;
+  oneHitKill: Omit<OneHitKillCheck, "ok" | "cap" | "overCap">;
+  xp: XpCheck;
+}>;
+
 export type GateResult =
   | Readonly<{ ok: true; verdict: GateVerdict }>
   | Readonly<{
@@ -1374,9 +1385,7 @@ export function gateAdventure(
     const weakestKit = kits.reduce((worst, entry) =>
       entry.rate < worst.rate ? entry : worst,
     );
-    // The checks' thresholds and passes are judged by `gateVerdictAt`.
-    const survival: SurvivalCheck = {
-      ok: false,
+    const survival: GateMeasures["survival"] = {
       level: weakestKit.level,
       percentile: WEAKEST_PERCENTILE,
       style: GATE_STYLE,
@@ -1384,7 +1393,6 @@ export function gateAdventure(
       rate: weakestKit.rate,
       kit: weakestKit.kit,
       kits,
-      required: 1,
     };
 
     // Every weapon the module places or a merchant sells.
@@ -1414,13 +1422,10 @@ export function gateAdventure(
               ],
         ),
     );
-    const oneHitKill: OneHitKillCheck = {
-      ok: false,
+    const oneHitKill: GateMeasures["oneHitKill"] = {
       level: max,
       percentile: STRONGEST_PERCENTILE,
-      cap: 0,
       enemies,
-      overCap: enemies,
     };
 
     const available =
@@ -1443,14 +1448,7 @@ export function gateAdventure(
     return {
       ok: true,
       verdict: gateVerdictAt(
-        {
-          adventureId: adventure.id,
-          difficulty: adventure.difficulty,
-          qualified: false,
-          survival,
-          oneHitKill,
-          xp,
-        },
+        { adventureId: adventure.id, survival, oneHitKill, xp },
         adventure.difficulty,
       ),
     };
@@ -1466,37 +1464,46 @@ export function gateAdventure(
 }
 
 /**
- * `verdict` judged at `difficulty` instead: the same measurements against
- * that difficulty's thresholds. No check measures anything that depends on
- * the declared difficulty, so this is the verdict the gate gives the module
- * declared at `difficulty`.
+ * The gate's measurements judged at `difficulty`'s thresholds: the verdict
+ * the gate gives the module declared at `difficulty`. A `GateVerdict` is
+ * also its own measurements, so this re-judges one at another difficulty.
  */
 export function gateVerdictAt(
-  verdict: GateVerdict,
+  measures: GateMeasures,
   difficulty: Difficulty,
 ): GateVerdict {
   const thresholds = DIFFICULTY_THRESHOLDS[difficulty];
+  const { level, percentile, style, runs, rate, kit, kits } = measures.survival;
   const survival: SurvivalCheck = {
-    ...verdict.survival,
-    ok: verdict.survival.rate >= thresholds.survival,
+    ok: rate >= thresholds.survival,
+    level,
+    percentile,
+    style,
+    runs,
+    rate,
+    kit,
+    kits,
     required: thresholds.survival,
   };
-  const { enemies } = verdict.oneHitKill;
+  const { enemies } = measures.oneHitKill;
   const overCap = enemies.filter(
     ({ chance }) => chance > thresholds.oneHitKillCap,
   );
   const oneHitKill: OneHitKillCheck = {
-    ...verdict.oneHitKill,
     ok: overCap.length * 2 <= enemies.length,
+    level: measures.oneHitKill.level,
+    percentile: measures.oneHitKill.percentile,
     cap: thresholds.oneHitKillCap,
+    enemies,
     overCap,
   };
   return {
-    ...verdict,
+    adventureId: measures.adventureId,
     difficulty,
-    qualified: survival.ok && oneHitKill.ok && verdict.xp.ok,
+    qualified: survival.ok && oneHitKill.ok && measures.xp.ok,
     survival,
     oneHitKill,
+    xp: measures.xp,
   };
 }
 
