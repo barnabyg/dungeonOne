@@ -51,9 +51,6 @@ export const fleeingGoblins = validateModule({
   ],
 });
 
-// Moved to seed-search.mjs; still exported here for its importers.
-export { fightThrough };
-
 /**
  * The first browser seed from `from` on which the burial hall's fight, played
  * by `fightThrough` with the character a fresh browser creates, is won with
