@@ -88,6 +88,10 @@ const CONTENT_TESTS = new Map([
     "tests/thornwood-lodge.test.mjs",
     "the Thornwood Lodge's content, gate verdict, checks and journeys",
   ],
+  [
+    "tests/issue-291-browser.test.mjs",
+    "the increment 14 handoff runs through the browser",
+  ],
 ]);
 
 /**
