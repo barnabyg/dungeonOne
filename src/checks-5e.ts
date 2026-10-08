@@ -188,3 +188,74 @@ export function savingThrow(
     random,
   );
 }
+
+/**
+ * A character's passive Perception (#303): 10 + its Wisdom modifier, + its
+ * proficiency bonus if it is proficient in Perception, + 5 with advantage
+ * on Perception checks and − 5 with disadvantage (SRD 5.2). Advantage comes
+ * from its class's features or the `circumstances` the caller names,
+ * disadvantage from the circumstances; any of each cancel, as on a roll.
+ */
+export type PassivePerception = Readonly<{
+  total: number;
+  wisdom: number;
+  /** The proficiency bonus added, or 0. */
+  proficiency: number;
+  /** +5 for advantage, −5 for disadvantage, or 0. */
+  adjustment: number;
+  /** What gives the advantage or disadvantage applied, by name; none when they cancel. */
+  sources: readonly string[];
+}>;
+
+export function passivePerception(
+  sheet: CharacterSheet,
+  circumstances: Circumstances = NO_CIRCUMSTANCES,
+): PassivePerception {
+  const profile = characterProfile(sheet);
+  const wisdom = profile.modifiers.wisdom;
+  const proficiency = sheet.skills.includes("perception")
+    ? profile.proficiencyBonus
+    : 0;
+  const advantage = [
+    ...checkAdvantages(sheet, "perception"),
+    ...circumstances.advantage,
+  ];
+  const { disadvantage } = circumstances;
+  const [adjustment, sources] =
+    advantage.length > 0 === disadvantage.length > 0
+      ? [0, []]
+      : advantage.length > 0
+        ? [5, advantage]
+        : [-5, disadvantage];
+  return {
+    total: 10 + wisdom + proficiency + adjustment,
+    wisdom,
+    proficiency,
+    adjustment,
+    sources,
+  };
+}
+
+/**
+ * A monster's skill check (#303): d20 + its bonus for the skill, which
+ * already counts any proficiency, against `dc`.
+ */
+export function creatureCheck(
+  skill: SkillId,
+  bonus: number,
+  dc: number,
+  random: Pick<RandomSource, "roll">,
+): CheckRoll {
+  const { name, ability } = SKILLS[skill];
+  return rolled(
+    "check",
+    ability,
+    skill,
+    `${name} check`,
+    bonus,
+    0,
+    dc,
+    [],
+    random,
+  );
+}

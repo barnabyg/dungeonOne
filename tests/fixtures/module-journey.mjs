@@ -12,7 +12,8 @@ const PLAYER = "pc";
 /**
  * The route's shorthand as engine actions: `["move", "bothy"]` (or
  * `["sneak", "bothy"]`, #301) and the rest,
- * with `["force", doorId]` (#289) forcing a stuck door and
+ * with `["ambush", roomId]` (#302) springing an ambush from unseen,
+ * `["force", doorId]` (#289) forcing a stuck door and
  * `["talk", topicId, approach]` (#291) asking about a topic with a check.
  */
 export function routeAction([type, target, approach]) {
@@ -25,11 +26,14 @@ export function routeAction([type, target, approach]) {
     case "take":
       return { type, itemId: target };
     case "leave":
+    case "ambush":
       return { type, roomId: target };
     case "force":
       return { type, doorId: target };
     case "talk":
       return { type, topicId: target, approach };
+    case "react":
+      return { type, option: target };
     default:
       throw new Error(`no route action ${type}`);
   }

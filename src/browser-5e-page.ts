@@ -861,6 +861,8 @@ const OUTCOME_TAGS = { hit: "Hit", critical: "Critical hit", miss: "Miss", succe
 // An authored check's failure or success by 5 or more (#281), shortened for
 // the compact line; the engine text names it in full.
 const BAND_TAGS = { "failure-by-5": "Failure by 5+", "success-by-5": "Success by 5+" };
+// A reaction roll's band (#304).
+const REACTION_TAGS = { hostile: "Hostile", unfriendly: "Unfriendly", uncertain: "Uncertain", indifferent: "Indifferent", friendly: "Friendly" };
 const ADJUSTMENTS = ${JSON.stringify(DAMAGE_ADJUSTMENT_TEXT)};
 const withSign = (value) => (value >= 0 ? " + " : " − ") + Math.abs(value);
 
@@ -917,6 +919,10 @@ function compactRoll(group) {
     case "save":
       node.append(group.mode ? group.mode + " " : "", ...diceChips(group, ", "), withSign(group.modifier) + (group.proficiency ? " + " + group.proficiency + " prof" : "") + " = " + group.total + " vs DC " + group.dc);
       break;
+    case "reaction":
+      // 2d6 + the Charisma modifier (#304).
+      node.append(...diceChips(group, ", "), withSign(group.modifier) + " Cha = " + group.total);
+      break;
   }
   return node;
 }
@@ -934,6 +940,10 @@ function compactLine(line) {
     // A check or saving throw (#132): its label, outcome (or band, #281) and roll against the DC.
     const check = line.rolls[0];
     node.append(make("span", check.roller, "who"), " ", make("span", check.label, "roll-label"), " ", make("span", check.band ? BAND_TAGS[check.band] : OUTCOME_TAGS[check.outcome], "tag " + check.outcome), " ", compactRoll(check));
+  } else if (line.rolls[0].purpose === "reaction") {
+    // A reaction roll (#304): its band and the dice with the Charisma modifier.
+    const reaction = line.rolls[0];
+    node.append(make("span", reaction.roller, "who"), " ", make("span", reaction.label, "roll-label"), " ", make("span", REACTION_TAGS[reaction.reaction], "tag reaction " + reaction.reaction), " ", compactRoll(reaction));
   } else if (line.rolls[0].purpose === "damage") {
     node.append(make("span", line.rolls[0].roller + " → " + line.rolls[0].target, "who"), " ", compactRoll(line.rolls[0]));
   } else {
@@ -1247,6 +1257,9 @@ const ACTIONS = {
   use: { label: "Drink ", short: "Drink", busy: "Drinking ", busyLabel: "Drinking…" },
   move: { label: "Go to ", short: "Go", busy: "Going to ", busyLabel: "Going…" },
   sneak: { label: "Sneak into ", short: "Sneak", busy: "Sneaking into ", busyLabel: "Sneaking…" },
+  ambush: { label: "Ambush in ", short: "Ambush", busy: "Ambushing in ", busyLabel: "Ambushing…" },
+  // A reaction's option (#304) is named in full by its target: "Attack", "Pass peacefully".
+  react: { label: "", busy: "", busyLabel: "Answering…" },
   examine: { label: "Examine ", short: "Examine", busy: "Examining ", busyLabel: "Examining…" },
   take: { label: "Take ", short: "Take", busy: "Taking ", busyLabel: "Taking…" },
   force: { label: "Force ", short: "Force", busy: "Forcing ", busyLabel: "Forcing…" },
@@ -1288,7 +1301,7 @@ const GEAR_SALES = ["sell", "sell-equipped"];
 // Selling a gem or art object (#239): its entry has no slot, as only gear is
 // equipped or stowed.
 const SALES = [...GEAR_SALES, "sell-treasure"];
-const EXPLORING = ["move", "sneak", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
+const EXPLORING = ["ambush", "move", "sneak", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
 
 function renderActions() {
   // The ending (#158) takes the bar's place; an ended adventure projects no actions.

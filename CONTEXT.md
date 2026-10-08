@@ -121,7 +121,7 @@ Treasure and coin the character carries during an adventure but has not kept yet
 _Avoid_: Loot (when kept treasure is meant), Inventory
 
 **XP award**:
-One source of experience points a character can earn once: winning an encounter (its opponents' stat-block XP) or reaching an ending that awards XP. Awards are credited only on surviving completion.
+One source of experience points a character can earn once: winning an encounter (its opponents' stat-block XP), slipping past one whose module authors XP for it instead, or ending one peacefully whose module authors XP for that (the same award, so an encounter is credited once whichever way), or reaching an ending that awards XP. Awards are credited only on surviving completion.
 _Avoid_: Milestone, Score
 
 **Exit room**:
@@ -165,15 +165,39 @@ A d20 roll plus one ability's modifier, and the proficiency bonus when the check
 _Avoid_: Skill roll, Test
 
 **Sneaking in**:
-Entering a room where a fight waits with a Stealth check against the highest passive Perception among its opponents. Meeting it surprises every opponent; the check is remembered with that fight.
+Entering a room where a fight waits with a Stealth check against the highest passive Perception among its opponents. Meeting it leaves the character unseen; missing it starts the fight. The check is made once per fight, and sneaking up on it again is refused, unless the module lets the character sneak up on it again after slipping past it (see Bypassed encounter): then a fresh check is rolled.
 _Avoid_: Ambush roll, Sneak attack (a Rogue feature)
+
+**Unseen**:
+In a fight's room after sneaking in, before the fight begins: the character may spring an ambush, which surprises every opponent, or slip past. Anything else in the room would give it away, so it is refused.
+_Avoid_: Hidden (which a later Hide action means), Invisible
+
+**Bypassed encounter**:
+A fight the character slipped past unseen, through another way out or back the way it came. It stays unresolved: its opponents keep what they carry, and coming back meets it again, with a fresh sneak only where the module authors one. It gives no XP unless the module authors XP for slipping past.
+_Avoid_: Avoided fight, Skipped encounter, Cleared
 
 **Surprise**:
 Being caught unaware as a fight begins: a surprised combatant rolls initiative with disadvantage (SRD 5.2). Only the engine decides it.
 _Avoid_: Surprise round
 
+**Lurking encounter**:
+An encounter whose opponents lie in wait (#303). The first time the character comes into its room, the least stealthy of them rolls Stealth against the character's passive Perception; meeting it surprises the character. The roll is remembered with the fight. When the character also sneaks in, each side's check decides whether it noticed the other, and both hidden means everyone is surprised.
+_Avoid_: Ambush (the character's), Hidden monsters, Trap
+
+**Reaction roll**:
+A house rule (#304): when a reaction-eligible encounter's fight would begin with no one surprised, the engine rolls 2d6 + the character's Charisma modifier and looks it up in the reaction table for a band: hostile, unfriendly, uncertain, indifferent or friendly. Hostile always fights; every other band offers only the options its module authors (attack, or let pass). It is remembered with the fight and never rerolled. Mindless opponents never react.
+_Avoid_: Reaction (a 5e action-economy term), Attitude check, Morale
+
+**Reaction-eligible**:
+An encounter whose module gives it a reaction (#304): the options each band offers and any peaceful XP. Off by default; it may mark single opponents to react, and none of its opponents may be mindless (an Undead, or a stat block whose morale is "never").
+_Avoid_: Talkative, Peaceful encounter
+
+**Peaceful resolution**:
+An encounter ended by a reaction band's let-pass option (#304): settled with no fight, its room free to explore and never fought on coming back; its opponents keep what they carry. It gives the XP its module authors for it, once.
+_Avoid_: Cleared (which means won), Bypassed encounter
+
 **Passive Perception**:
-A creature's constant alertness, 10 plus its Wisdom (Perception) bonus, given in every stat block; it is the DC of a Stealth check to sneak up on it.
+A creature's constant alertness, 10 plus its Wisdom (Perception) bonus, given in every stat block; it is the DC of a Stealth check to sneak up on it. The character's (10 + Wisdom modifier + proficiency if proficient in Perception, ±5 for advantage or disadvantage) is the DC lurking opponents' Stealth must meet.
 _Avoid_: Notice score
 
 **Retry**:
@@ -275,6 +299,14 @@ _Avoid_: Challenge rating (a monster's, not a module's), DC
 **Check policy**:
 How the balance harness grades checks (#285): seeded rolls them as a player meets them; always-fail and always-succeed land every check in its worst or best reachable band. The balance gate requires a module to stay completable, and within its difficulty, when every check fails.
 _Avoid_: Check mode, Dice mode
+
+**Stealth-first**:
+The balance harness's play style that sneaks into every fight it can and slips past those that aren't its goal (#302). The balance gate reports it beside its checks but never judges it.
+_Avoid_: Sneaky style, Rogue style
+
+**Reaction policy**:
+How the balance harness answers a reaction roll's band (#304): attack, the default and the gate's judged runs, attacks whenever offered; peaceful takes a peaceful option whenever offered. The gate reports both for a module with a reaction-eligible encounter.
+_Avoid_: Diplomacy style
 
 **Ordinary enemy**:
 An opponent a module doesn't mark as a boss. The balance gate's one-hit-kill cap applies only to ordinary enemies; a boss is exempt.

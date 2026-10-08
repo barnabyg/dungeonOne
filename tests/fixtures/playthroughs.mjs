@@ -109,13 +109,16 @@ function madeAction({ action, target }) {
     case "unlock":
       return { type: action, doorId: target.id };
     case "search":
-      return { type: "search", roomId: target.id };
+    case "ambush":
+      return { type: action, roomId: target.id };
     case "disarm":
       return { type: "disarm", trapId: target.id };
     case "talk":
       return { type: "talk", topicId: target.id };
     case "leave":
       return { type: "leave", roomId: target.id };
+    case "react":
+      return { type: "react", option: target.id };
     default:
       // A new kind must be mapped above, not guessed at.
       throw new Error(`no engine action for ${action}`);

@@ -132,8 +132,10 @@ export type TreasureRecord = Readonly<{
 }>;
 
 /**
- * One XP award: winning an encounter (`adventure/encounter/id`) or reaching
- * an ending (`adventure/ending/id`). Each is credited once per character.
+ * One XP award: winning an encounter, or slipping past one whose module
+ * awards XP for it (#302), under the encounter's id (`adventure/encounter/id`),
+ * or reaching an ending (`adventure/ending/id`). Each is credited once per
+ * character.
  */
 export type XpAward = Readonly<{ id: string; name: string; xp: number }>;
 

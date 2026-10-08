@@ -1,9 +1,9 @@
 {
   "kind": "dungeon-one-5e-adventure",
   "formatVersion": 24,
-  "id": "smugglers-cellar",
-  "title": "The Smugglers' Cellar",
-  "objective": "Find out what has moved into the old smugglers' cellar, and clear it out.",
+  "id": "wary-cellar",
+  "title": "The Wary Cellar",
+  "objective": "Get through the rat cellar to the den and out.",
   "recommendedLevels": {
     "min": 1,
     "max": 1
@@ -20,7 +20,7 @@
           "id": "rusted-lantern",
           "name": "Rusted Lantern",
           "description": "A rusted lantern hangs from a hook by the stair, its glass cracked.",
-          "discovery": "Scratched into the lantern's base: \"Rats gone. Boss in the den.\""
+          "discovery": "Scratched into the lantern's base: \"Rats in the cellar. Boss in the den.\""
         }
       ],
       "items": []
@@ -34,7 +34,7 @@
           "id": "iron-chest",
           "name": "Iron-Bound Chest",
           "description": "A squat iron-bound chest sits in the corner, its lock long since broken.",
-          "discovery": "Under a mouldy blanket in the chest lies a stoppered vial of red liquid, and a silver hip flask wrapped in a rag."
+          "discovery": "Under a mouldy blanket in the chest lies a stoppered vial of red liquid."
         }
       ],
       "items": [
@@ -44,14 +44,6 @@
           "description": "A stoppered vial of red liquid that glimmers when shaken.",
           "kind": "potion-of-healing",
           "hiddenIn": "iron-chest"
-        },
-        {
-          "id": "silver-flask",
-          "name": "Silver Hip Flask",
-          "description": "A smuggler's hip flask of chased silver, still smelling of brandy.",
-          "kind": "treasure",
-          "treasure": "art-25gp",
-          "hiddenIn": "iron-chest"
         }
       ]
     },
@@ -59,40 +51,20 @@
       "id": "rat-cellar",
       "name": "Rat-Gnawed Cellar",
       "description": "Grain sacks slump against the walls, chewed open. Droppings cover the floor.",
+      "encounterId": "cellar-rat",
       "features": [
         {
           "id": "gnawed-sacks",
           "name": "Gnawed Sacks",
-          "description": "The sacks held grain once. Now they hold mostly droppings.",
-          "discovery": "At the bottom of one sack, under the droppings, is an oilskin packet the rats could not chew through."
+          "description": "The sacks held grain once. Now they hold mostly droppings."
         }
       ],
-      "items": [
-        {
-          "id": "smuggled-moonstone",
-          "name": "Smuggled Moonstone",
-          "description": "A milky moonstone that glows faintly blue in the lamplight.",
-          "kind": "treasure",
-          "treasure": "gem-50gp",
-          "hiddenIn": "gnawed-sacks"
-        },
-        {
-          "id": "smugglers-cut",
-          "name": "Smugglers' Cut",
-          "description": "A smuggler's share of gold, sewn into the oilskin.",
-          "kind": "coin",
-          "coins": {
-            "gp": 10
-          },
-          "hiddenIn": "gnawed-sacks"
-        }
-      ]
+      "items": []
     },
     {
       "id": "den",
       "name": "Smugglers' Den",
       "description": "A vaulted room with a cold hearth, a table of empty bottles and a barrel used as a desk.",
-      "encounterId": "den-goblin",
       "features": [
         {
           "id": "ledger",
@@ -101,7 +73,8 @@
           "discovery": "The last entry reads: \"Goods moved upriver. The goblin stays to guard the den.\""
         }
       ],
-      "items": []
+      "items": [],
+      "exit": true
     }
   ],
   "passages": [
@@ -123,24 +96,78 @@
   ],
   "encounters": [
     {
-      "id": "den-goblin",
+      "id": "cellar-rat",
       "opponents": [
         {
-          "id": "goblin",
-          "monster": "goblin-warrior",
-          "description": "A goblin warrior kicks back its stool and draws a scimitar."
+          "id": "giant-rat",
+          "name": "Giant Rat",
+          "description": "A rat the size of a dog rears up from the sacks, teeth bared.",
+          "statBlock": {
+            "name": "Giant Rat",
+            "size": "Small",
+            "type": "Beast",
+            "armorClass": 13,
+            "hitPoints": {
+              "average": 7,
+              "formula": "2d6"
+            },
+            "abilities": {
+              "strength": 7,
+              "dexterity": 16,
+              "constitution": 11,
+              "intelligence": 2,
+              "wisdom": 10,
+              "charisma": 4
+            },
+            "challengeRating": "1/8",
+            "xp": 25,
+            "passivePerception": 10,
+            "morale": 8,
+            "attacks": [
+              {
+                "name": "Bite",
+                "bonus": 5,
+                "damage": {
+                  "dice": 1,
+                  "sides": 4,
+                  "modifier": 3,
+                  "type": "piercing"
+                }
+              }
+            ]
+          }
         }
       ],
-      "victoryEndingId": "cellar-cleared",
-      "defeatEndingId": "fallen-in-the-cellar"
+      "defeatEndingId": "fallen-in-the-cellar",
+      "reaction": {
+        "peacefulXp": 15,
+        "bands": {
+          "unfriendly": {
+            "options": ["attack"],
+            "text": "The rat hisses and bares its yellow teeth."
+          },
+          "uncertain": {
+            "options": ["attack", "let-pass"],
+            "text": "The rat freezes, whiskers twitching."
+          },
+          "indifferent": {
+            "options": ["let-pass", "attack"],
+            "text": "The rat goes back to gnawing at a sack."
+          },
+          "friendly": {
+            "options": ["let-pass"],
+            "text": "The rat sniffs at your boots and wanders off."
+          }
+        }
+      }
     }
   ],
   "endings": [
     {
-      "id": "cellar-cleared",
-      "kind": "victory",
-      "title": "The cellar is clear",
-      "text": "The goblin falls beside its barrel. Whatever the smugglers left behind, nothing guards it now."
+      "id": "out-through-the-den",
+      "kind": "escape-without-loot",
+      "title": "Out through the den",
+      "text": "You climb the den's back stair into the open air."
     },
     {
       "id": "fallen-in-the-cellar",

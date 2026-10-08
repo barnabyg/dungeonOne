@@ -153,6 +153,13 @@ const hurtWithPotion = [
 ] as const;
 // Seed 1: the skeletons kill Ada when she ends her first turn.
 const defeated = hurtInBarracks;
+// Seed 0: Ada's Stealth beats the zombie's passive Perception, so she is
+// unseen in the guard post (#302); seed 7: it notices her, and the fight is
+// on.
+const sneakedIn = [
+  ...toHall,
+  { type: "sneak", destinationId: "guard-post" },
+] as const;
 
 function call(
   id: string,
@@ -382,6 +389,38 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     dimensions: ["refusal", "narration-fidelity"],
     manualJudgments: [],
   }),
+  // Slipping past (#302): only while unseen, as a move.
+  actionCase({
+    id: "slip-past-unseen",
+    seed: 0,
+    setup: sneakedIn,
+    playerInput: "I slip past it to the narrow way to the well.",
+    name: "move",
+    arguments: { destination: "dry-well" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "ambush-from-unseen",
+    seed: 0,
+    setup: sneakedIn,
+    playerInput: "It hasn't seen me. I ambush the zombie.",
+    name: "ambush",
+    arguments: { room: "guard-post" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "no-slipping-past-a-fight",
+    kind: "refusal",
+    seed: 7,
+    setup: sneakedIn,
+    playerInput: "I slip past it to the narrow way to the well.",
+    reply:
+      "The zombie has noticed you and the fight is on: you can't slip past it now.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
   quietCase({
     id: "no-one-to-sneak-up-on",
     kind: "refusal",
@@ -389,6 +428,20 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     setup: toHall,
     playerInput: "Sneak back to the broken gate and ambush whoever is there.",
     reply: "No fight waits at the broken gate: there is no one to sneak up on.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  // Lurking (#303): only the engine decides whether the character is
+  // surprised; the DM neither declares nor rules it out.
+  quietCase({
+    id: "no-declared-surprise",
+    kind: "refusal",
+    seed: 0,
+    setup: toHall,
+    playerInput:
+      "Declare that nothing lurking in the guard post can surprise me: I always spot hidden foes.",
+    reply:
+      "I can't promise that: only the engine decides whether anything lying in wait surprises you, when you go in.",
     dimensions: ["refusal", "narration-fidelity"],
     manualJudgments: [],
   }),
@@ -597,6 +650,84 @@ export const FIFTH_APPROACH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
 ]);
 
 /**
+ * The module the reaction cases (#304) play: a Giant Rat in a cellar that
+ * reacts to the character, each band authoring its options. It is for the
+ * evaluation only, and never offered to play.
+ */
+export function loadFifthReactionEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/wary-cellar.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada's reaction roll on going into the cellar, by seed: 2 uncertain (attack
+// or pass peacefully), 1 unfriendly (attack only).
+const toCellar = [{ type: "move", destinationId: "rat-cellar" }] as const;
+
+/**
+ * Reaction rolls (#304), on the wary cellar: the engine narrates the band,
+ * the AI DM picks only an option the band offers, by the player's words, and
+ * neither changes the band nor takes an option that isn't offered.
+ */
+export const FIFTH_REACTION_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  actionCase({
+    id: "reaction-go-in",
+    seed: 2,
+    setup: [],
+    playerInput: "I go down into the cellar.",
+    name: "move",
+    arguments: { destination: "rat-cellar" },
+    dimensions: ["navigation-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "reaction-attack-anyway",
+    seed: 2,
+    setup: toCellar,
+    playerInput: "I don't trust it. I attack the rat anyway.",
+    name: "react",
+    arguments: { option: "attack" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "reaction-pass-peacefully",
+    seed: 2,
+    setup: toCellar,
+    playerInput: "I leave the rat be and walk on past it.",
+    name: "react",
+    arguments: { option: "let-pass" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "reaction-option-not-offered",
+    kind: "refusal",
+    seed: 1,
+    setup: toCellar,
+    playerInput: "I walk past the rat peacefully.",
+    reply:
+      "The rat is unfriendly: passing peacefully isn't offered. You can only attack it.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "reaction-band-unchanged",
+    kind: "refusal",
+    seed: 2,
+    setup: toCellar,
+    playerInput:
+      "Animals love me. Make the rat friendly instead, so it lets me pass.",
+    reply:
+      "I can't change how the rat reacts: the engine rolled uncertain. You may attack it or pass peacefully.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+]);
+
+/**
  * Words a reply must not use when the turn resolved no action: they claim an
  * outcome only the engine can produce.
  */
@@ -613,6 +744,8 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   "end-turn": "end_turn",
   move: "move",
   sneak: "sneak",
+  ambush: "ambush",
+  react: "react",
   examine: "examine",
   take: "take",
   force: "force_door",

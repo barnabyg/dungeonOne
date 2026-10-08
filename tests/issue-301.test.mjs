@@ -57,7 +57,7 @@ test("Stealth is a Dexterity skill anyone can roll; the Fighter is not proficien
 });
 
 test("every bestiary monster has its SRD 5.2 passive Perception", () => {
-  assert.equal(FIFTH_BESTIARY_FORMAT, 8);
+  assert.ok(FIFTH_BESTIARY_FORMAT >= 8);
   const perception = Object.fromEntries(
     bestiary.monsters.map(({ id, statBlock }) => [
       id,
@@ -75,12 +75,15 @@ test("every bestiary monster has its SRD 5.2 passive Perception", () => {
 });
 
 test("an inline stat block needs a passive Perception; the module format bumps", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 21);
+  assert.ok(FIFTH_ADVENTURE_FORMAT >= 21);
   const file = moduleFile("rat-tunnels");
   delete file.encounters[0].opponents[0].statBlock.passivePerception;
   assert.throws(() => validateModule(file), /passivePerception/u);
   const older = { ...moduleFile("rat-tunnels"), formatVersion: 20 };
-  assert.throws(() => validateModule(older), /format version 20 is not 21/u);
+  assert.throws(
+    () => validateModule(older),
+    new RegExp(`format version 20 is not ${FIFTH_ADVENTURE_FORMAT}`, "u"),
+  );
 });
 
 test("sneaking in is offered beside going in, only where a fight waits", () => {
@@ -106,19 +109,27 @@ test("sneaking in is offered beside going in, only where a fight waits", () => {
 });
 
 test("a successful sneak surprises every opponent: they roll initiative at disadvantage", () => {
-  // Stealth d20 12 + 2 = 14 against the rat's passive Perception 10; then
-  // initiative: Ada d20 15, the rat 18 and 4, keeping 4.
-  const result = accepted(
-    begun,
-    SNEAK,
-    dice([20, 12], [20, 15], [20, 18], [20, 4]),
+  // Stealth d20 12 + 2 = 14 against the rat's passive Perception 10. The
+  // rat has not noticed Ada (#302); she springs an ambush, and initiative:
+  // Ada d20 15, the rat 18 and 4, keeping 4.
+  const sneaked = accepted(begun, SNEAK, dice([20, 12]));
+  assert.deepEqual(types(sneaked.events), ["sneak", "entered"]);
+  const sneak = sneakEvent(sneaked);
+  const ambush = accepted(
+    sneaked.state,
+    { type: "ambush", roomId: "rat-cellar" },
+    dice([20, 15], [20, 18], [20, 4]),
   );
-  assert.deepEqual(types(result.events).slice(0, 3), [
+  const result = {
+    state: ambush.state,
+    events: [...sneaked.events, ...ambush.events],
+  };
+  assert.deepEqual(types(result.events).slice(0, 4), [
     "sneak",
     "entered",
+    "ambush",
     "initiative",
   ]);
-  const sneak = sneakEvent(result);
   assert.equal(sneak.roll.label, "Stealth check");
   assert.equal(sneak.roll.total, 14);
   assert.equal(sneak.roll.dc, 10);
@@ -128,7 +139,7 @@ test("a successful sneak surprises every opponent: they roll initiative at disad
   assert.deepEqual(sneak.surprised, ["Giant Rat"]);
   assert.equal(
     renderFifthEvent(result.state, sneak),
-    "You sneak into the Rat-Gnawed Cellar. Stealth check: d20 12 + 2 = 14 against DC 10. Success. The best passive Perception is Giant Rat's 10: Giant Rat is surprised and rolls initiative with disadvantage.",
+    "You sneak into the Rat-Gnawed Cellar. Stealth check: d20 12 + 2 = 14 against DC 10. Success. The best passive Perception is Giant Rat's 10: Giant Rat has not noticed you. Ambush it, and it is surprised; or slip past through another way.",
   );
   const rat = initiativeOf(result, "giant-rat");
   assert.equal(rat.d20, 4);
@@ -218,45 +229,27 @@ test("armour that hampers Stealth gives the check disadvantage", () => {
 });
 
 test("the Stealth check is remembered: sneaking up on the same fight again never rerolls it", () => {
-  const first = accepted(
-    begun,
-    SNEAK,
-    dice([20, 12], [20, 15], [20, 18], [20, 4]),
-  );
+  const first = accepted(begun, SNEAK, dice([20, 12]));
   assert.deepEqual(first.state.sneaks, [
     { encounterId: "cellar-rat", roll: sneakEvent(first).roll },
   ]);
-  // As if the character had walked back out with the fight not begun: the
-  // same check stands, and only initiative is rolled.
-  const { encounter, ...rest } = first.state;
-  void encounter;
-  const outside = { ...rest, roomId: "stair-foot" };
-  const again = accepted(outside, SNEAK, dice([20, 15], [20, 18], [20, 4]));
-  const sneak = sneakEvent(again);
-  assert.equal(sneak.remembered, true);
-  assert.deepEqual(sneak.roll, sneakEvent(first).roll);
-  assert.deepEqual(again.state.sneaks, first.state.sneaks);
-  assert.equal(initiativeOf(again, "giant-rat").d20, 4);
-  assert.match(
-    renderFifthEvent(again.state, sneak),
-    /^You sneak into the Rat-Gnawed Cellar \(as before\)\./u,
-  );
-  // A remembered check shows no dice.
-  const lines = describeFifthResult(
-    again,
-    [
-      { sides: 20, value: 15 },
-      { sides: 20, value: 18 },
-      { sides: 20, value: 4 },
-    ],
-    "Ada",
-  );
-  assert.deepEqual(lines[0].rolls, []);
+  // Back out with the fight not begun (#302): the check stands, so sneaking
+  // up on it again is refused before any die is drawn.
+  const outside = accepted(first.state, {
+    type: "move",
+    destinationId: "stair-foot",
+  }).state;
+  const random = dice();
+  const again = runtime.handleAction(outside, SNEAK, random);
+  assert.equal(again.rejection.code, "already-sneaked");
+  assert.equal(again.state, outside);
+  assert.equal(random.drawn.length, 0);
+  assert.deepEqual(outside.sneaks, first.state.sneaks);
 });
 
 test("the save and trace formats bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 28);
-  assert.equal(FIFTH_TRACE_FORMAT, 22);
+  assert.ok(FIFTH_SESSION_FORMAT >= 28);
+  assert.ok(FIFTH_TRACE_FORMAT >= 22);
 });
 
 /**
@@ -335,6 +328,6 @@ test("the AI DM evaluation fixture modules still validate", async () => {
       "utf8",
     ),
   );
-  assert.equal(eval_.formatVersion, 21);
+  assert.equal(eval_.formatVersion, FIFTH_ADVENTURE_FORMAT);
   validateModule(eval_);
 });

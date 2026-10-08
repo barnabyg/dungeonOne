@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 21,
+  "formatVersion": 24,
   "id": "sealed-crypt",
   "title": "The Sealed Crypt",
   "objective": "Get past the crypt's doors and traps and put an end to whatever guards the warden's tomb.",

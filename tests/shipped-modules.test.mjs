@@ -108,11 +108,20 @@ test("a new character's career through the shipped modules reaches the required 
   );
 });
 
+/** Each shipped module's full gate result, stealth-first report included. */
+const gates = new Map();
+const gateOf = (adventure) => {
+  if (!gates.has(adventure.id)) {
+    gates.set(adventure.id, gateAdventure(adventure));
+  }
+  return gates.get(adventure.id);
+};
+
 test("every shipped module declares the strictest difficulty it passes with 3 points of slack (#252)", () => {
   // Survival must clear the threshold by at least 3 points, and no stricter
   // difficulty may also pass with that slack: the label is what it measures.
   for (const adventure of shipped) {
-    const result = gateAdventure(adventure);
+    const result = gateOf(adventure);
     assert.equal(result.ok, true, adventure.id);
     const measures = result.verdict;
     const passes = (difficulty) => {
@@ -127,6 +136,20 @@ test("every shipped module declares the strictest difficulty it passes with 3 po
       DIFFICULTIES.find(passes),
       adventure.difficulty,
       `${adventure.id} survives ${measures.survival.rate}`,
+    );
+  }
+});
+
+test("the gate reports the stealth-first style for every shipped module (#302)", () => {
+  for (const adventure of shipped) {
+    const result = gateOf(adventure);
+    const { stealthFirst } = result.verdict;
+    assert.equal(stealthFirst.style, "stealth-first", adventure.id);
+    assert.equal(stealthFirst.runs, 200, adventure.id);
+    assert.match(
+      renderGateResult(adventure, result),
+      /^ {2}Stealth-first, reported \(not judged\): .* survived \d+\.\d% of 200 runs .*; over every kit and level it completed \d+\.\d%, slipped past \d+\.\d fights and earned \d+\.\d XP a run\.$/mu,
+      adventure.id,
     );
   }
 });

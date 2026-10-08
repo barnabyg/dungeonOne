@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-bestiary",
-  "formatVersion": 8,
+  "formatVersion": 9,
   "monsters": [
     {
       "id": "zombie",
@@ -123,6 +123,7 @@
         "challengeRating": "1",
         "xp": 200,
         "passivePerception": 14,
+        "stealth": 7,
         "attacks": [
           {
             "name": "Bite",
@@ -248,6 +249,7 @@
         "challengeRating": "1/8",
         "xp": 25,
         "passivePerception": 9,
+        "stealth": 6,
         "attacks": [
           {
             "name": "Dagger",
@@ -292,6 +294,7 @@
         "challengeRating": "1/4",
         "xp": 50,
         "passivePerception": 9,
+        "stealth": 6,
         "attacks": [
           {
             "name": "Scimitar",
@@ -336,6 +339,7 @@
         "challengeRating": "1",
         "xp": 200,
         "passivePerception": 9,
+        "stealth": 6,
         "attacks": [
           {
             "name": "Scimitar",
@@ -380,6 +384,7 @@
         "challengeRating": "1/4",
         "xp": 50,
         "passivePerception": 15,
+        "stealth": 4,
         "attacks": [
           {
             "name": "Bite",
@@ -520,6 +525,7 @@
         "challengeRating": "1/8",
         "xp": 25,
         "passivePerception": 8,
+        "stealth": 4,
         "attacks": [
           {
             "name": "Spike",
@@ -608,6 +614,7 @@
         "challengeRating": "1",
         "xp": 200,
         "passivePerception": 10,
+        "stealth": 6,
         "attacks": [
           {
             "name": "Light Hammer",
@@ -749,6 +756,7 @@
         "challengeRating": "1",
         "xp": 200,
         "passivePerception": 15,
+        "stealth": 4,
         "attacks": [
           {
             "name": "Bite",
