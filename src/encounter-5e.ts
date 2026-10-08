@@ -1835,7 +1835,7 @@ export function act(
         return reject(
           "action-used",
           (actor.attacksPerAction ?? 1) > 1
-            ? "You have already made both attacks of your Attack action this turn."
+            ? "You have already made every attack your Attack actions allow this turn."
             : "You have already used your action this turn.",
         );
       }

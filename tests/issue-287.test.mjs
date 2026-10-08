@@ -134,7 +134,7 @@ test("a third attack is refused, drawing no dice", () => {
     rejection: {
       code: "action-used",
       reason:
-        "You have already made both attacks of your Attack action this turn.",
+        "You have already made every attack your Attack actions allow this turn.",
     },
   });
   assert.deepEqual(none.drawn, []);
@@ -166,7 +166,7 @@ test("Extra Attack with Action Surge: two Attack actions, four attacks", () => {
   assert.equal(state.economy.attacks, 0);
   assert.equal(
     attack(state, "a", dice()).rejection.reason,
-    "You have already made both attacks of your Attack action this turn.",
+    "You have already made every attack your Attack actions allow this turn.",
   );
 });
 
