@@ -2601,23 +2601,39 @@ export function createFifthRuntime(
   const damageWords = (cost: Extract<RetryCost, { type: "damage" }>) =>
     `${cost.dice}d${cost.sides}${cost.modifier === 0 ? "" : ` ${signed(cost.modifier)}`} ${cost.damageType} damage`;
   /**
+   * Whether every way a success at `check` opens is closed (#289): a check
+   * whose success opens none is never in this state.
+   */
+  const waysGone = (state: FifthState, check: AuthoredCheck | undefined) => {
+    const opens = (["success", "success-by-5"] as const).flatMap((band) =>
+      effectsOf(check?.bands?.[band]).flatMap((effect) =>
+        effect.type === "open" ? [effect.passage] : [],
+      ),
+    );
+    const { closed } = revealedIn(state);
+    return opens.length > 0 && opens.every((id) => closed.has(id));
+  };
+  /**
    * Another try at the failed check at `site` (#284), when its module
    * authors a retry that allows one now, with why: its cost, paid before
    * the roll, or the circumstance that changed since the check was last
    * made (one more try, unless the last was made while it held). A trap
-   * no longer armed has nothing left to try.
+   * no longer armed has nothing left to try, and nor has a check once every
+   * way its success opens is closed (#289).
    */
   const retryOffer = (
     state: FifthState,
     site: CheckSite,
   ): Readonly<{ reason: string; cost?: RetryCost }> | undefined => {
-    const policy = siteChecks.get(checkSiteId(site))?.retry;
+    const check = siteChecks.get(checkSiteId(site));
+    const policy = check?.retry;
     const last = outcomeAt(state, site);
     if (
       policy === undefined ||
       last === undefined ||
       isSuccess(last.band) ||
-      (site.kind === "disarm" && !armed(state, site.id))
+      (site.kind === "disarm" && !armed(state, site.id)) ||
+      waysGone(state, check)
     ) {
       return undefined;
     }

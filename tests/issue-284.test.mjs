@@ -287,6 +287,53 @@ test("after a cost: damage is paid before the roll, every try", () => {
   assert.equal(third.state.checks.length, 3);
 });
 
+test("a check whose fall closed the way its success opens offers no other try (#289)", () => {
+  // The rope cove's cliff with a cost retry, and a fall that brings the way
+  // up down with it.
+  const module = moduleFile("rope-cove");
+  const { check } = room(module, "cliff-foot").features[0];
+  check.retry = {
+    cost: {
+      type: "damage",
+      dice: 1,
+      sides: 4,
+      modifier: 0,
+      damageType: "bludgeoning",
+      defeatEndingId: "fallen-at-the-cliff",
+    },
+  };
+  check.bands["failure-by-5"].effects.push({
+    type: "close",
+    passage: "foot-to-ledge",
+  });
+  const crumbling = createFifthRuntime(
+    validateFifthAdventure(module, BESTIARY),
+    TEST_FIGHTER,
+  );
+  const start = accepted(
+    crumbling.createSession(),
+    { type: "begin" },
+    dice(),
+    crumbling,
+  ).state;
+  // A plain failure leaves the way to be found: another try is offered.
+  const balked = accepted(start, CLIMB, dice([20, 6]), crumbling).state;
+  assert.deepEqual(offered(balked, "sheer-cliff", crumbling), [
+    { action: "examine", available: true },
+    {
+      action: "examine",
+      retry: "costs 1d4 bludgeoning damage",
+      available: true,
+    },
+  ]);
+  // A failure by 5 closes it: there is nothing left to climb to.
+  const fallen = accepted(start, CLIMB, dice([20, 1], [4, 2]), crumbling).state;
+  assert.deepEqual(offered(fallen, "sheer-cliff", crumbling), [
+    { action: "examine", available: true },
+  ]);
+  refused(fallen, CLIMB_AGAIN, "no-retry", crumbling);
+});
+
 test("a retry's damage that drops the character ends the adventure unrolled", () => {
   const failed = accepted(begun, FORCE, dice([20, 2])).state;
   const weak = { ...failed, character: { ...failed.character, hp: 2 } };
