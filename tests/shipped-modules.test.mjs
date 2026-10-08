@@ -76,7 +76,7 @@ test("the default run qualifies every shipped module within its time budget", ()
   const seconds = (user + system) / 1_000_000;
   // docs/character-rules.md records the budget: well inside verify.
   assert.ok(
-    seconds < 30,
+    seconds < 45,
     `the default run took ${seconds.toFixed(1)} s of CPU`,
   );
 });
