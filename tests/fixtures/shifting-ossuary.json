@@ -1,0 +1,190 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 19,
+  "id": "shifting-ossuary",
+  "title": "The Shifting Ossuary",
+  "objective": "Find the ossuary's tomb and lay its guardian to rest. Leave by the gate if it gets too much.",
+  "recommendedLevels": {
+    "min": 1,
+    "max": 1
+  },
+  "difficulty": "hard",
+  "startRoomId": "ossuary-gate",
+  "rooms": [
+    {
+      "id": "ossuary-gate",
+      "name": "Ossuary Gate",
+      "description": "A rusted gate stands open on a stair down into the ossuary.",
+      "exit": true,
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "bone-hall",
+      "name": "Bone Hall",
+      "description": "Skulls are stacked to the ceiling along every wall. A low door leads to a side crypt, and an arch to the tomb.",
+      "features": [
+        {
+          "id": "skull-wall",
+          "name": "Skull Wall",
+          "description": "A wall of stacked skulls, some of them loose.",
+          "check": {
+            "skill": "perception",
+            "dc": 12,
+            "bands": {
+              "failure": {
+                "text": "The skulls stare back at you, and give nothing away."
+              },
+              "success": {
+                "text": "A draught stirs the dust between two loose skulls: there is a space behind the wall.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "hall-to-reliquary"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "reliquary",
+      "name": "Reliquary",
+      "description": "A cramped chamber behind the skull wall, its niches full of dust.",
+      "features": [
+        {
+          "id": "reliquary-niche",
+          "name": "Reliquary Niche",
+          "description": "A niche cut deeper than the rest.",
+          "discovery": "At the back of the niche lies a bone box bound in silver."
+        }
+      ],
+      "items": [
+        {
+          "id": "bone-box",
+          "name": "Bone Box",
+          "description": "A small box of carved bone, bound in silver.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "reliquary-niche"
+        }
+      ]
+    },
+    {
+      "id": "side-crypt",
+      "name": "Side Crypt",
+      "description": "A crypt with a single shelf of urns.",
+      "features": [
+        {
+          "id": "urn-shelf",
+          "name": "Urn Shelf",
+          "description": "A shelf of cracked funeral urns.",
+          "discovery": "One urn holds a stoppered vial of red liquid."
+        }
+      ],
+      "items": [
+        {
+          "id": "urn-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "urn-shelf"
+        }
+      ]
+    },
+    {
+      "id": "tomb",
+      "name": "Tomb",
+      "description": "A round tomb where something gnaws at the bones of the dead.",
+      "encounterId": "tomb-rat",
+      "features": [],
+      "items": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "gate-to-hall",
+      "between": ["ossuary-gate", "bone-hall"],
+      "description": "The stair down into the ossuary."
+    },
+    {
+      "id": "hall-to-tomb",
+      "between": ["bone-hall", "tomb"],
+      "description": "An arch of fitted bones."
+    },
+    {
+      "id": "hall-to-reliquary",
+      "between": ["bone-hall", "reliquary"],
+      "description": "A gap behind the loose skulls.",
+      "hidden": true
+    },
+    {
+      "id": "hall-to-side",
+      "between": ["bone-hall", "side-crypt"],
+      "description": "A low door.",
+      "door": {
+        "id": "rotten-door",
+        "name": "Rotten Door",
+        "description": "A door of rotten planks, stuck in a sagging frame.",
+        "state": "stuck",
+        "force": {
+          "skill": "athletics",
+          "dc": 12,
+          "bands": {
+            "failure": {
+              "text": "The sagging frame gives way, and the ceiling comes down across the doorway.",
+              "effects": [
+                {
+                  "type": "close",
+                  "passage": "hall-to-side"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "encounters": [
+    {
+      "id": "tomb-rat",
+      "opponents": [
+        {
+          "id": "tomb-rat",
+          "monster": "giant-rat"
+        }
+      ],
+      "victoryEndingId": "tomb-quiet",
+      "defeatEndingId": "lost-in-the-ossuary"
+    }
+  ],
+  "endings": [
+    {
+      "id": "tomb-quiet",
+      "kind": "victory",
+      "title": "The tomb is quiet",
+      "text": "The rat lies still among the bones."
+    },
+    {
+      "id": "out-with-the-box",
+      "kind": "escape-with-loot",
+      "title": "Out with the box",
+      "text": "You climb out with the bone box."
+    },
+    {
+      "id": "out-empty-handed",
+      "kind": "escape-without-loot",
+      "title": "Out empty-handed",
+      "text": "You climb out with nothing."
+    },
+    {
+      "id": "lost-in-the-ossuary",
+      "kind": "defeat",
+      "title": "Lost in the ossuary",
+      "text": "You fall among the bones."
+    }
+  ]
+}

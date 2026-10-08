@@ -494,6 +494,17 @@ export type FifthEvent =
     }>
   /** An item a check's band revealed, now there to take (#281). */
   | Readonly<{ type: "revealed"; itemId: string; name: string }>
+  /**
+   * A passage a check's band opened or closed (#282), named by the room it
+   * leads to from the character's room, or by both its rooms when it is
+   * elsewhere.
+   */
+  | Readonly<{
+      type: "route";
+      passageId: string;
+      change: "opened" | "closed";
+      rooms: readonly string[];
+    }>
   /** Damage a check's band dealt the character (#281). */
   | Readonly<{
       type: "check-damage";
@@ -657,6 +668,7 @@ export type FifthRefusalCode =
   | "not-carried"
   | "not-drinkable"
   | "door-shut"
+  | "route-closed"
   | "no-door"
   | "door-open"
   | "no-approach"
@@ -1211,6 +1223,15 @@ export function renderFifthEvent(
       return event.discovery;
     case "revealed":
       return `You find the ${event.name}.`;
+    case "route": {
+      const way =
+        event.rooms.length === 1
+          ? `the way to the ${event.rooms[0]!}`
+          : `the way between the ${event.rooms.join(" and the ")}`;
+      return event.change === "opened"
+        ? `${titleCase(way)} is open.`
+        : `${titleCase(way)} is closed.`;
+    }
     case "check-damage":
       return `The ${event.source} deals ${event.rolls.join(" + ")}${event.modifier === 0 ? "" : ` ${signed(event.modifier)}`} = ${event.damage} ${event.damageType}; you have ${event.hpAfter}/${event.maxHp} HP.`;
     case "door":
@@ -1671,10 +1692,13 @@ export type RoomView = Readonly<{
   description: string;
   /**
    * Each exit, with its door (if any) and its trap once found or sprung. A
-   * trap the character has not found stays hidden.
+   * trap the character has not found stays hidden, and so does a hidden
+   * passage until a check's band opens it; `route` says a band opened or
+   * closed it (#282).
    */
   exits: readonly (Named &
     Readonly<{
+      route?: "opened" | "closed";
       door?: Named & Readonly<{ open: boolean }>;
       trap?: Named & Readonly<{ state: "armed" | "disarmed" | "sprung" }>;
     }>)[];
@@ -1840,6 +1864,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "not-carried": "Not carried",
   "not-drinkable": "Not drinkable",
   "door-shut": "Door shut",
+  "route-closed": "Way closed",
   "no-door": "No such door",
   "door-open": "Already open",
   "no-approach": "Can't be done",
@@ -2132,10 +2157,18 @@ export function createFifthRuntime(
   const siteChecks = new Map(
     authoredChecks(adventure).map((site) => [checkSiteId(site), site.check]),
   );
-  const revelations = new WeakMap<
-    FifthState,
-    Readonly<{ discoveries: Set<string>; items: Set<string> }>
-  >();
+  /**
+   * What the bands of the checks made so far revealed and changed: the
+   * features whose discovery they made, the items they revealed and the
+   * passages they opened and closed.
+   */
+  type Revelations = Readonly<{
+    discoveries: Set<string>;
+    items: Set<string>;
+    opened: Set<string>;
+    closed: Set<string>;
+  }>;
+  const revelations = new WeakMap<FifthState, Revelations>();
   /** Whether the feature `id` has a check, so only its bands find things. */
   const hasCheck = (id: string | undefined) =>
     id !== undefined && featureById.get(id)?.check !== undefined;
@@ -2354,8 +2387,15 @@ export function createFifthRuntime(
       const [from, to] = passage.between;
       const other =
         from === state.roomId ? to : to === state.roomId ? from : undefined;
-      return other === undefined ? [] : [{ passage, to: other }];
+      // A hidden passage is a way only once a check's band opens it (#282).
+      return other === undefined ||
+        (passage.hidden === true && !revealedIn(state).opened.has(passage.id))
+        ? []
+        : [{ passage, to: other }];
     });
+  /** Whether a check's band closed the passage (#282). */
+  const isClosed = (state: FifthState, passage: FifthPassage) =>
+    revealedIn(state).closed.has(passage.id);
   const exits = (state: FifthState): readonly Named[] =>
     ways(state).map(({ passage, to }) => ({
       id: to,
@@ -2365,11 +2405,15 @@ export function createFifthRuntime(
   /** The doors on the room's exits. */
   const doorsHere = (state: FifthState): readonly FifthDoor[] =>
     ways(state).flatMap(({ passage }) =>
-      passage.door === undefined ? [] : [passage.door],
+      passage.door === undefined || isClosed(state, passage)
+        ? []
+        : [passage.door],
     );
   const trapsHere = (state: FifthState) =>
     ways(state).flatMap(({ passage, to }) =>
-      passage.trap === undefined ? [] : [{ trap: passage.trap, to }],
+      passage.trap === undefined || isClosed(state, passage)
+        ? []
+        : [{ trap: passage.trap, to }],
     );
   const isOpen = (state: FifthState, door: FifthDoor) =>
     state.openedDoorIds.includes(door.id);
@@ -2727,6 +2771,25 @@ export function createFifthRuntime(
           }
           break;
         }
+        case "open":
+        case "close": {
+          const passage = adventure.passages.find(
+            ({ id }) => id === effect.passage,
+          )!;
+          const [from, to] = passage.between;
+          effects.push({
+            type: "route",
+            passageId: passage.id,
+            change: effect.type === "open" ? "opened" : "closed",
+            rooms:
+              from === next.roomId
+                ? [roomById(to).name]
+                : to === next.roomId
+                  ? [roomById(from).name]
+                  : [roomById(from).name, roomById(to).name],
+          });
+          break;
+        }
         case "damage": {
           const rolls = Array.from({ length: effect.dice }, () =>
             dice.roll(effect.sides),
@@ -2780,18 +2843,25 @@ export function createFifthRuntime(
    * The discoveries made and items revealed by the bands of the checks made
    * so far (#281), worked out once per state.
    */
-  const revealedIn = (
-    state: FifthState,
-  ): Readonly<{ discoveries: Set<string>; items: Set<string> }> => {
+  const revealedIn = (state: FifthState): Revelations => {
     let found = revelations.get(state);
     if (found === undefined) {
-      found = { discoveries: new Set(), items: new Set() };
+      found = {
+        discoveries: new Set(),
+        items: new Set(),
+        opened: new Set(),
+        closed: new Set(),
+      };
       for (const { id, band } of state.checks) {
         for (const effect of effectsOf(siteChecks.get(id)?.bands?.[band])) {
           if (effect.type === "discovery") {
             found.discoveries.add(effect.feature);
           } else if (effect.type === "item") {
             found.items.add(effect.item);
+          } else if (effect.type === "open") {
+            found.opened.add(effect.passage);
+          } else if (effect.type === "close") {
+            found.closed.add(effect.passage);
           }
         }
       }
@@ -3045,6 +3115,12 @@ export function createFifthRuntime(
         const way = ways(state).find(({ to }) => to === action.destinationId);
         if (way === undefined) {
           return reject("no-exit", "There is no way from here to there.");
+        }
+        if (isClosed(state, way.passage)) {
+          return reject(
+            "route-closed",
+            `The way to the ${roomById(way.to).name} is closed.`,
+          );
         }
         const door = way.passage.door;
         if (door !== undefined && !isOpen(state, door)) {
@@ -4109,9 +4185,9 @@ export function createFifthRuntime(
                       : ("living" as const))),
           })),
         exits: projectRoom(state).exits.map(
-          ({ id, name, description, door, trap }) => ({
+          ({ id, name, description, door, trap, route }) => ({
             destinationId: id,
-            name: `${name} (${description}${trap === undefined ? "" : ` ${trap.name}, ${trap.state}.`})`,
+            name: `${name} (${description}${trap === undefined ? "" : ` ${trap.name}, ${trap.state}.`}${route === "closed" ? " The way is closed." : ""})`,
             ...(door === undefined
               ? {}
               : {
@@ -4268,11 +4344,20 @@ export function createFifthRuntime(
       name: current.name,
       description: current.description,
       exits: ways(state).map(
-        ({ passage: { door, trap, description }, to }) => ({
+        ({
+          passage: { id: passageId, hidden, door, trap, description },
+          to,
+        }) => ({
           id: to,
           name: roomById(to).name,
           description,
-          ...(door === undefined
+          ...(revealedIn(state).closed.has(passageId)
+            ? { route: "closed" as const }
+            : hidden === true
+              ? { route: "opened" as const }
+              : {}),
+          // A closed way has no door or trap left to deal with (#282).
+          ...(door === undefined || revealedIn(state).closed.has(passageId)
             ? {}
             : {
                 door: {

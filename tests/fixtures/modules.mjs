@@ -14,6 +14,7 @@ const NAMES = [
   "lone-goblin",
   "rat-tunnels",
   "sealed-crypt",
+  "shifting-ossuary",
 ];
 
 const FILES = Object.fromEntries(
@@ -143,6 +144,14 @@ export const withoutRiders = (statBlock) => {
  */
 export const gradedCellar = validateModule(moduleFile("graded-cellar"));
 
+/**
+ * Routes opened and closed (#282), level 1: a skull wall whose Perception
+ * success opens a hidden passage to a reliquary, and a rotten door whose
+ * failed force brings the ceiling down and closes its passage for good. The
+ * tomb, the module's essential room, is reached freely.
+ */
+export const shiftingOssuary = validateModule(moduleFile("shifting-ossuary"));
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,
@@ -154,4 +163,5 @@ export const FIXTURE_MODULES = [
   sealedCrypt,
   goblinBurrow,
   gradedCellar,
+  shiftingOssuary,
 ];

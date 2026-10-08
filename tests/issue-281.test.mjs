@@ -339,7 +339,7 @@ test("the validator rejects effects naming what is not there", () => {
   );
   rejects(
     (m) => (heap(m).check.bands.success.effects[0].type = "gold"),
-    /effect 1 type must be discovery, item, damage\./,
+    /effect 1 type must be discovery, item, damage, open, close\./,
   );
 });
 

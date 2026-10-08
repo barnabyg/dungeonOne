@@ -37,8 +37,12 @@
  * authored check (a feature's, a door's force, pick or break, a trap's
  * disarm, a topic's) may grade its outcome into bands, each with words and
  * typed effects: a feature's discovery made, an item hidden in a feature
- * revealed, or damage that can defeat the character. An item hidden in a
- * feature with a check is found only through an item effect.
+ * revealed, damage that can defeat the character, or a passage opened or
+ * closed (#282). An item hidden in a feature with a check is found only
+ * through an item effect, and a hidden passage is a way only once a band
+ * opens it. Each essential room, and some exit, must be reachable by a
+ * route without a check, or through checks every band of which leaves a way
+ * forward, whatever any band may close.
  *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
@@ -164,11 +168,14 @@ export type FifthFeature = Readonly<{
 /**
  * One effect of a check's band (#281): a feature's discovery made, an item
  * hidden in a feature revealed (found once per character, like other
- * finds), or damage of a type, which can defeat the character.
+ * finds), damage of a type, which can defeat the character, or a passage
+ * opened (a hidden one becomes a way) or closed for the rest of the
+ * adventure (#282).
  */
 export type CheckEffect = Readonly<
   | { type: "discovery"; feature: string }
   | { type: "item"; item: string }
+  | { type: "open" | "close"; passage: string }
   | {
       type: "damage";
       dice: number;
@@ -414,11 +421,15 @@ export type FifthTrap = Readonly<{
   defeatEndingId: string;
 }>;
 
-/** A two-way way between two rooms. */
+/**
+ * A two-way way between two rooms. A hidden one (#282) is no way at all
+ * until a check's band opens it.
+ */
 export type FifthPassage = Readonly<{
   id: string;
   between: readonly [string, string];
   description: string;
+  hidden?: true;
   door?: FifthDoor;
   trap?: FifthTrap;
 }>;
@@ -640,6 +651,11 @@ function effect(value: unknown, where: string): CheckEffect {
       const raw = exactKeys(value, ["type", "item"], where);
       return { type, item: id(raw.item, `${where} item`) };
     }
+    case "open":
+    case "close": {
+      const raw = exactKeys(value, ["type", "passage"], where);
+      return { type, passage: id(raw.passage, `${where} passage`) };
+    }
     case "damage": {
       const raw = exactKeys(
         value,
@@ -659,7 +675,7 @@ function effect(value: unknown, where: string): CheckEffect {
       return fail(`${where} type must be ${EFFECT_TYPES.join(", ")}.`);
   }
 }
-const EFFECT_TYPES = ["discovery", "item", "damage"] as const;
+const EFFECT_TYPES = ["discovery", "item", "damage", "open", "close"] as const;
 
 /**
  * An authored check: `{ skill, dc }` or `{ ability, dc }`, with optional
@@ -1412,9 +1428,12 @@ function validateModule(
       const passage = knownKeys(
         entry,
         ["id", "between", "description"],
-        ["door", "trap"],
+        ["door", "trap", "hidden"],
         where,
       );
+      if (passage.hidden !== undefined && passage.hidden !== true) {
+        fail(`${where} hidden must be true, or left out.`);
+      }
       if (!Array.isArray(passage.between) || passage.between.length !== 2) {
         fail(`${where} between must name two rooms.`);
       }
@@ -1431,6 +1450,7 @@ function validateModule(
         id: id(passage.id, `${where} id`),
         between: [from as string, to as string] as const,
         description: text(passage.description, `${where} description`, 200),
+        ...(passage.hidden === true ? { hidden: true as const } : {}),
         ...(passage.door === undefined
           ? {}
           : { door: door(passage.door, `${where} door`) }),
@@ -1524,6 +1544,9 @@ function validateModule(
     ),
   );
   const revealed = new Set<string>();
+  /** Hidden passages some band opens, and who can close each passage. */
+  const openable = new Set<string>();
+  const closers = new Map<string, string[]>();
   for (const site of authoredChecks({ rooms, passages, encounters })) {
     const label = siteLabel(site);
     for (const band of BANDS) {
@@ -1580,8 +1603,33 @@ function validateModule(
           case "damage":
             ending(entry.defeatEndingId, "defeat", on);
             break;
+          case "open":
+          case "close": {
+            const way = passages.find(
+              ({ id: passageId }) => passageId === entry.passage,
+            );
+            if (way === undefined) {
+              fail(`${on} names unknown passage ${entry.passage}.`);
+            }
+            if (entry.type === "open" && way.hidden !== true) {
+              fail(
+                `${on} opens passage ${way.id}, which is not hidden; only a hidden passage is opened.`,
+              );
+            }
+            if (entry.type === "open") {
+              openable.add(way.id);
+            } else {
+              closers.set(way.id, [...(closers.get(way.id) ?? []), `${on}`]);
+            }
+            break;
+          }
         }
       }
+    }
+  }
+  for (const { id: passageId, hidden } of passages) {
+    if (hidden === true && !openable.has(passageId)) {
+      fail(`passage ${passageId} is hidden, but no check's band opens it.`);
     }
   }
   for (const { item } of itemRooms.values()) {
@@ -1619,27 +1667,131 @@ function validateModule(
     }
   }
   // An essential room (one whose fight wins the adventure) must be reachable
-  // without a check or a trap. A locked door counts as open when its key can
-  // be reached that way.
-  const free = new Set([module.startRoomId as string]);
-  // A key in a feature with a check is found only on some bands.
-  const passable = ({ door: shut, trap: armed }: FifthPassage) =>
-    armed === undefined &&
-    (shut === undefined ||
-      (shut.keyItemId !== undefined &&
-        free.has(itemRooms.get(shut.keyItemId)!.roomId) &&
+  // without a check or a trap, or through checks that go forward on every
+  // band (#282). A locked door counts as open when its key can be reached
+  // that way. `excluded` passages are never counted on: those a band can
+  // close.
+  const sites = authoredChecks({ rooms, passages, encounters });
+  const siteRooms = (site: AuthoredSite): readonly string[] => {
+    switch (site.kind) {
+      case "examine":
+        return rooms.flatMap(({ id: roomId, features }) =>
+          features.some(({ id: featureId }) => featureId === site.id)
+            ? [roomId]
+            : [],
+        );
+      case "talk":
+        // A surrender's topics need it to surrender, which is never sure.
+        return rooms.flatMap(({ id: roomId, creatures }) =>
+          creatures.some(({ topics: said }) =>
+            said.some(({ id: topicId }) => topicId === site.id),
+          )
+            ? [roomId]
+            : [],
+        );
+      case "disarm":
+        return [];
+      default:
+        return passages.flatMap(({ door: shut, between }) =>
+          shut?.id === site.id ? [...between] : [],
+        );
+    }
+  };
+  /** The effective bands some character can roll on a check. */
+  const outcomesOf = (site: AuthoredSite): readonly Band[] => [
+    ...new Set(
+      BANDS.filter((band) =>
+        approachesOf(site.check).some((spec) => bandReachable(band, spec, max)),
+      ).map((band) => authoredBand(site.check, band)),
+    ),
+  ];
+  /** The passages a band makes a way: its opens, and a door it opens. */
+  const opensOn = (site: AuthoredSite, band: Band): ReadonlySet<string> =>
+    new Set([
+      ...effectsOf(site.check.bands?.[band]).flatMap((entry) =>
+        entry.type === "open" ? [entry.passage] : [],
+      ),
+      ...(["force", "pick", "break"].includes(site.kind) &&
+      (band === "success" || band === "success-by-5")
+        ? passages.flatMap(({ id: passageId, door: shut }) =>
+            shut?.id === site.id ? [passageId] : [],
+          )
+        : []),
+    ]);
+  const reachable = (excluded: ReadonlySet<string>): Set<string> => {
+    // The rooms reached from `from` through ways needing no check, and the
+    // passages in `extra` a band has made ways.
+    const closure = (
+      from: ReadonlySet<string>,
+      extra: ReadonlySet<string>,
+    ): Set<string> => {
+      const reached = new Set(from);
+      // A key in a feature with a check is found only on some bands.
+      const keyed = (shut: FifthDoor) =>
+        shut.keyItemId !== undefined &&
+        reached.has(itemRooms.get(shut.keyItemId)!.roomId) &&
         featureById.get(itemRooms.get(shut.keyItemId)!.item.hiddenIn ?? "")
-          ?.check === undefined));
-  for (let grew = true; grew;) {
-    grew = false;
-    for (const entry of passages) {
-      const [from, to] = entry.between;
-      if (free.has(from) !== free.has(to) && passable(entry)) {
-        free.add(from).add(to);
-        grew = true;
+          ?.check === undefined;
+      const passable = (entry: FifthPassage) =>
+        !excluded.has(entry.id) &&
+        entry.trap === undefined &&
+        (extra.has(entry.id) ||
+          (entry.hidden !== true &&
+            (entry.door === undefined || keyed(entry.door))));
+      for (let grew = true; grew;) {
+        grew = false;
+        for (const entry of passages) {
+          const [from, to] = entry.between;
+          if (reached.has(from) !== reached.has(to) && passable(entry)) {
+            reached.add(from).add(to);
+            grew = true;
+          }
+        }
+      }
+      return reached;
+    };
+    let sure = closure(new Set([module.startRoomId as string]), new Set());
+    // A check reached for sure adds what every band of it reaches.
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const site of sites) {
+        if (!siteRooms(site).some((roomId) => sure.has(roomId))) {
+          continue;
+        }
+        const ways = outcomesOf(site).map((band) =>
+          closure(sure, opensOn(site, band)),
+        );
+        const forward = new Set(
+          [...ways[0]!].filter((roomId) =>
+            ways.every((way) => way.has(roomId)),
+          ),
+        );
+        if (forward.size > sure.size) {
+          sure = forward;
+          grew = true;
+        }
       }
     }
-  }
+    return sure;
+  };
+  const free = reachable(new Set());
+  const safe = reachable(new Set(closers.keys()));
+  /**
+   * Fails naming the check whose close can cut `what` off, when one alone
+   * can; otherwise the checks that can between them.
+   */
+  const cutOff = (what: string, gone: (sure: Set<string>) => boolean) => {
+    for (const [passageId, who] of closers) {
+      if (gone(reachable(new Set([passageId])))) {
+        fail(
+          `${who[0]!} closes passage ${passageId}, which can cut off ${what}.`,
+        );
+      }
+    }
+    fail(
+      `${[...closers.values()].flat().join(", ")} can between them cut off ${what}.`,
+    );
+  };
   const winning = new Set(
     encounters.flatMap(({ id: encounterId, victoryEndingId }) =>
       victoryEndingId === undefined ? [] : [encounterId],
@@ -1672,27 +1824,38 @@ function validateModule(
         const [from, to] = entry.between;
         return (free.has(from) && beyond.has(to)) ||
           (free.has(to) && beyond.has(from))
-          ? [entry.door?.id, entry.trap?.id].filter(
-              (guard): guard is string => guard !== undefined,
-            )
+          ? [
+              entry.door?.id,
+              entry.trap?.id,
+              entry.hidden === true ? entry.id : undefined,
+            ].filter((guard): guard is string => guard !== undefined)
           : [];
       });
       fail(
         `room ${roomId} is essential, but every route to it needs a check or passes a trap (${guards.join(", ")}).`,
       );
     }
+    if (
+      encounterId !== undefined &&
+      winning.has(encounterId) &&
+      !safe.has(roomId)
+    ) {
+      cutOff(`essential room ${roomId}`, (sure) => !sure.has(roomId));
+    }
   }
   // Leaving from an exit reaches the escape endings: with loot only when
   // there is treasure to carry out. Like an essential room, some exit must
   // be reachable without a check or a trap.
   const hasExit = rooms.some(({ exit }) => exit === true);
-  if (
-    hasExit &&
-    !rooms.some(({ id: roomId, exit }) => exit && free.has(roomId))
-  ) {
+  const exitIn = (sure: Set<string>) =>
+    rooms.some(({ id: roomId, exit }) => exit && sure.has(roomId));
+  if (hasExit && !exitIn(free)) {
     fail(
       "every exit needs a check or passes a trap; one must be free to reach.",
     );
+  }
+  if (hasExit && !exitIn(safe)) {
+    cutOff("every exit room", (sure) => !exitIn(sure));
   }
   const hasTreasure = rooms.some(({ items }) =>
     items.some(({ kind }) => LOOT_KINDS.includes(kind)),
