@@ -24,17 +24,26 @@ import {
   type StatBlock,
 } from "./adventure-5e.js";
 import {
+  ABILITY_SCORE_CAP,
   abilityModifier,
+  applyLevelChoice,
   buildFighter,
   defaultPlacement,
+  FIGHTER_ABILITY_PRIORITY,
   FIGHTER_DEFAULT_CHOICES,
   fighterProfile,
   FIGHTING_STYLES,
+  LEVEL_XP,
+  masteryOptions,
+  pendingLevelChoice,
   rollAbilitySet,
   validateFighter,
+  type Ability,
+  type AbilityScoreImprovement,
   type FighterSheet,
   type FightingStyle,
   type Level,
+  type LevelChoice,
   type RolledDice,
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
@@ -68,23 +77,58 @@ import {
 
 export { CHECK_POLICIES, type CheckPolicy };
 
-/** The XP a character needs to reach each level. */
-const LEVEL_XP: Readonly<Record<Level, number>> = { 1: 0, 2: 300, 3: 900 };
-
 /** Every starting kit, as creation offers them. */
 export const KITS = KIT_IDS;
+
+/**
+ * The gate's level-4 choice (#286). The Ability Score Improvement's two
+ * points go one at a time to the first ability below 20 in the order: the
+ * attack ability (Strength, or Dexterity for the Dexterity-first build), then
+ * `FIGHTER_ABILITY_PRIORITY`; so +2 to the attack ability unless that passes
+ * 20. The fourth mastery is `preferred` (a placed weapon the gate tries)
+ * when it can be mastered, or else the first of `MASTERY_WEAPONS` not
+ * mastered yet: the longsword, after the default dagger, mace and shortsword.
+ */
+export function gateLevelChoice(
+  sheet: FighterSheet,
+  archer = false,
+  preferred?: WeaponId,
+): LevelChoice {
+  const order: readonly Ability[] = [
+    archer ? "dexterity" : "strength",
+    ...FIGHTER_ABILITY_PRIORITY,
+  ];
+  const scores = { ...sheet.abilities };
+  const increase: Partial<Record<Ability, 1 | 2>> = {};
+  for (let point = 0; point < 2; point++) {
+    const ability = order.find((entry) => scores[entry] < ABILITY_SCORE_CAP)!;
+    scores[ability] += 1;
+    increase[ability] = increase[ability] === undefined ? 1 : 2;
+  }
+  const options = masteryOptions(sheet);
+  return {
+    increase: increase as AbilityScoreImprovement,
+    mastery:
+      preferred !== undefined && options.includes(preferred)
+        ? preferred
+        : options[0]!,
+  };
+}
 
 /**
  * A level-`level` Fighter from one creation's dice, placed and chosen as a
  * fresh creation starts but with `kit`, at full health. An `archer` is
  * Dexterity-first instead (#230): the rolls placed on Strength and
- * Dexterity change places, and the +2 goes on Dexterity.
+ * Dexterity change places, and the +2 goes on Dexterity. From level 4 it
+ * makes the gate's level choice (`gateLevelChoice`), preferring to master
+ * `mastery`.
  */
 export function fighterAtLevel(
   dice: RolledDice,
   level: Level,
   kit: KitId = FIGHTER_DEFAULT_CHOICES.kit,
   archer = false,
+  mastery?: WeaponId,
 ): FighterSheet {
   const placement = defaultPlacement(dice);
   const created = buildFighter("0".repeat(32), "Balance", dice, {
@@ -102,7 +146,13 @@ export function fighterAtLevel(
     kit,
   });
   const raised = { ...created, level, xp: LEVEL_XP[level] };
-  return validateFighter({ ...raised, hp: fighterProfile(raised).maxHp });
+  const sheet = validateFighter({
+    ...raised,
+    hp: fighterProfile(raised).maxHp,
+  });
+  return pendingLevelChoice(sheet) === undefined
+    ? sheet
+    : applyLevelChoice(sheet, gateLevelChoice(sheet, archer, mastery));
 }
 
 /** The sum of a default creation's six ability modifiers. */
@@ -1276,10 +1326,10 @@ export const GATE_STYLE: PlayStyle = "cautious";
 export const XP_STYLE: PlayStyle = "direct";
 
 /**
- * The SRD 5.2 XP needed for levels 1–5. Characters stop at level 3; levels 4
- * and 5 are here only so the XP check can tell how far XP would carry one.
+ * The SRD 5.2 XP needed for levels 1–6. Characters stop at level 4; levels 5
+ * and 6 are here only so the XP check can tell how far XP would carry one.
  */
-const SRD_LEVEL_XP = [0, 300, 900, 2700, 6500] as const;
+const SRD_LEVEL_XP = [0, 300, 900, 2700, 6500, 14000] as const;
 
 function srdLevelForXp(xp: number): number {
   return SRD_LEVEL_XP.filter((needed) => xp >= needed).length;
@@ -1425,7 +1475,7 @@ export function strongestAttackers(
     ...placed.map((gear) => {
       const kit = FIGHTER_DEFAULT_CHOICES.kit;
       const ranged = (WEAPONS[gear] as WeaponData).ammunition !== undefined;
-      const sheet = fighterAtLevel(dice, level, kit, ranged);
+      const sheet = fighterAtLevel(dice, level, kit, ranged, gear);
       return {
         kit,
         gear,

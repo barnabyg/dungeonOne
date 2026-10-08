@@ -401,7 +401,7 @@ export const MASTERY_WEAPONS = (Object.keys(WEAPONS) as WeaponId[]).filter(
   (id) => MASTERIES[WEAPONS[id].mastery].used,
 );
 
-/** SRD 5.2: a level 1–3 Fighter masters three kinds of weapon. */
+/** SRD 5.2: a level 1–3 Fighter masters three kinds of weapon (four from level 4, `weaponMasteryCount`). */
 export const FIGHTER_MASTERY_COUNT = 3;
 
 /** What a character has equipped, read from its equipment list. */

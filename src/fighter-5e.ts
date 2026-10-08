@@ -1,5 +1,5 @@
 /**
- * The 5e Fighter (SRD 5.2) at levels 1–3, created from 4d6-drop-lowest.
+ * The 5e Fighter (SRD 5.2) at levels 1–4, created from 4d6-drop-lowest.
  *
  * Pure rules: dice come only from the `RandomSource` passed in, and every
  * derived number (HP, AC, attack, saves, skills, features) is computed from a
@@ -55,7 +55,18 @@ export type Abilities = Readonly<Record<Ability, number>>;
 export type AbilityRoll = readonly [number, number, number, number];
 /** The six rolls of one creation, in the order rolled. */
 export type RolledDice = readonly AbilityRoll[];
-export type Level = 1 | 2 | 3;
+export type Level = 1 | 2 | 3 | 4;
+
+/** The highest level a character reaches; XP above its threshold is kept. */
+export const MAX_LEVEL: Level = 4;
+
+/** The SRD 5.2 XP a character needs to reach each supported level. */
+export const LEVEL_XP: Readonly<Record<Level, number>> = {
+  1: 0,
+  2: 300,
+  3: 900,
+  4: 2700,
+};
 
 export const FIGHTER_SKILLS = {
   acrobatics: { name: "Acrobatics", ability: "dexterity" },
@@ -159,6 +170,18 @@ export const ABILITY_SCORE_CAP = 20;
 export const FIGHTER_SKILL_COUNT = 2;
 
 export type BackgroundIncrease = Readonly<Partial<Record<Ability, 1 | 2>>>;
+/**
+ * One Ability Score Improvement (#286): +2 to one ability, or +1 to two. No
+ * score can rise above ABILITY_SCORE_CAP. Other feats are not used.
+ */
+export type AbilityScoreImprovement = Readonly<Partial<Record<Ability, 1 | 2>>>;
+
+/** The choices a level-4 Fighter makes after settling (#286). */
+export type LevelChoice = Readonly<{
+  increase: AbilityScoreImprovement;
+  /** The fourth kind of weapon mastered, from `MASTERY_WEAPONS`. */
+  mastery: WeaponId;
+}>;
 export type Placement = Readonly<Record<Ability, number>>;
 
 export type FighterChoices = Readonly<{
@@ -254,7 +277,15 @@ export type FighterSheet = Readonly<{
   /** The four dice placed on each ability. */
   abilityRolls: Readonly<Record<Ability, AbilityRoll>>;
   backgroundIncrease: BackgroundIncrease;
-  /** Each score is its kept three dice plus its background increase. */
+  /**
+   * The Ability Score Improvements chosen, in level order (#286). A level-4
+   * sheet without one owes its level choice (`pendingLevelChoice`).
+   */
+  abilityScoreImprovements: readonly AbilityScoreImprovement[];
+  /**
+   * Each score is its kept three dice plus its background increase and its
+   * Ability Score Improvements.
+   */
   abilities: Abilities;
   skills: readonly FighterSkill[];
   fightingStyle: FightingStyle;
@@ -285,6 +316,7 @@ const SHEET_KEYS = [
   "hp",
   "abilityRolls",
   "backgroundIncrease",
+  "abilityScoreImprovements",
   "abilities",
   "skills",
   "fightingStyle",
@@ -313,12 +345,39 @@ export function levelForXp(xp: number): Level {
   if (!Number.isSafeInteger(xp) || xp < 0) {
     throw new Error("Invalid experience points.");
   }
-  return xp >= 900 ? 3 : xp >= 300 ? 2 : 1;
+  let level: Level = 1;
+  for (const next of [2, 3, 4] as const) {
+    if (xp >= LEVEL_XP[next]) {
+      level = next;
+    }
+  }
+  return level;
 }
 
 /** XP needed for the next level, or undefined at the highest level. */
 export function nextLevelXp(level: Level): number | undefined {
-  return level === 1 ? 300 : level === 2 ? 900 : undefined;
+  return level === MAX_LEVEL ? undefined : LEVEL_XP[(level + 1) as Level];
+}
+
+/** The levels that bring an Ability Score Improvement (the 2024 Fighter table). */
+export const ABILITY_SCORE_IMPROVEMENT_LEVELS: readonly Level[] = [4];
+
+/** How many Ability Score Improvements a Fighter of `level` has. */
+export function abilityScoreImprovementCount(level: Level): number {
+  return ABILITY_SCORE_IMPROVEMENT_LEVELS.filter((at) => at <= level).length;
+}
+
+/**
+ * How many kinds of weapon a Fighter of `level` masters (the 2024 Fighter
+ * table): three from level 1, four from level 4.
+ */
+export function weaponMasteryCount(level: Level): number {
+  return level >= 4 ? FIGHTER_MASTERY_COUNT + 1 : FIGHTER_MASTERY_COUNT;
+}
+
+/** Second Wind's uses at `level` (the 2024 Fighter table): 2, then 3 from level 4. */
+export function secondWindUses(level: Level): number {
+  return level >= 4 ? 3 : 2;
 }
 
 export function rollAbilitySet(random: Pick<RandomSource, "roll">): RolledDice {
@@ -440,6 +499,53 @@ function validateIncrease(value: unknown): BackgroundIncrease {
   return increase;
 }
 
+const ASI_SHAPE =
+  "An Ability Score Improvement is +2 to one ability or +1 to two different abilities.";
+
+/**
+ * An Ability Score Improvement being chosen: +2 to one ability (complete),
+ * or +1s to up to two, and how many +1s it still lacks.
+ */
+function validatePartialImprovement(value: unknown): {
+  increase: AbilityScoreImprovement;
+  missing: number;
+} {
+  if (
+    !isRecord(value) ||
+    !Object.keys(value).every((key) =>
+      (ABILITIES as readonly string[]).includes(key),
+    )
+  ) {
+    throw new Error(ASI_SHAPE);
+  }
+  const amounts = Object.values(value);
+  const twos = amounts.filter((amount) => amount === 2).length;
+  const ones = amounts.filter((amount) => amount === 1).length;
+  const missing =
+    twos === 1 && ones === 0 ? 0 : twos === 0 && ones <= 2 ? 2 - ones : -1;
+  if (twos + ones !== amounts.length || missing < 0) {
+    throw new Error(ASI_SHAPE);
+  }
+  return { increase: { ...(value as AbilityScoreImprovement) }, missing };
+}
+
+function validateImprovement(value: unknown): AbilityScoreImprovement {
+  const { increase, missing } = validatePartialImprovement(value);
+  if (missing > 0) {
+    throw new Error(ASI_SHAPE);
+  }
+  return increase;
+}
+
+function validateImprovements(
+  value: unknown,
+): readonly AbilityScoreImprovement[] {
+  if (!Array.isArray(value) || value.length > MAX_LEVEL) {
+    throw new Error("Invalid Ability Score Improvements.");
+  }
+  return value.map(validateImprovement);
+}
+
 function validatePlacement(value: unknown): Placement {
   if (
     !isRecord(value) ||
@@ -523,6 +629,26 @@ function validateMasteries(value: unknown): readonly WeaponId[] {
     throw new Error(MASTERY_CHOICE);
   }
   return masteries;
+}
+
+/** A sheet's masteries: `count` different weapons whose mastery is used. */
+function validateSheetMasteries(
+  value: unknown,
+  count: number,
+): readonly WeaponId[] {
+  if (
+    !Array.isArray(value) ||
+    value.length !== count ||
+    new Set(value).size !== value.length ||
+    !value.every(
+      (id) =>
+        typeof id === "string" &&
+        (MASTERY_WEAPONS as readonly string[]).includes(id),
+    )
+  ) {
+    throw new Error("Unsupported weapon mastery.");
+  }
+  return value as WeaponId[];
 }
 
 function plainText(value: unknown, max: number): boolean {
@@ -628,6 +754,7 @@ export function buildFighter(
     hp: 0,
     abilityRolls,
     backgroundIncrease: increase,
+    abilityScoreImprovements: [],
     abilities: Object.fromEntries(
       ABILITIES.map((ability) => [
         ability,
@@ -810,6 +937,25 @@ export function projectCreation(
   };
 }
 
+/** What a sheet's Ability Score Improvements add to `ability`. */
+function improvementTo(
+  improvements: readonly AbilityScoreImprovement[],
+  ability: Ability,
+): number {
+  return improvements.reduce((sum, entry) => sum + (entry[ability] ?? 0), 0);
+}
+
+/** "+2 Strength" or "+1 Strength, +1 Constitution", in ABILITIES order. */
+export function improvementText(increase: AbilityScoreImprovement): string {
+  return ABILITIES.filter((ability) => increase[ability] !== undefined)
+    .map((ability) => `+${increase[ability]} ${titleCase(ability)}`)
+    .join(", ");
+}
+
+function titleCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 export function validateFighter(value: unknown): FighterSheet {
   if (
     !isRecord(value) ||
@@ -835,17 +981,20 @@ export function validateFighter(value: unknown): FighterSheet {
     throw new Error("Invalid ability dice.");
   }
   const increase = validateIncrease(sheet.backgroundIncrease);
+  const improvements = validateImprovements(sheet.abilityScoreImprovements);
   if (
     !isRecord(sheet.abilities) ||
     Object.keys(sheet.abilities).length !== 6 ||
     !ABILITIES.every(
       (ability) =>
         sheet.abilities[ability] ===
-        keptTotal(sheet.abilityRolls[ability]) + (increase[ability] ?? 0),
+        keptTotal(sheet.abilityRolls[ability]) +
+          (increase[ability] ?? 0) +
+          improvementTo(improvements, ability),
     )
   ) {
     throw new Error(
-      "Ability scores must equal their kept dice plus the background increase.",
+      "Ability scores must equal their kept dice plus the background increase and any Ability Score Improvements.",
     );
   }
   for (const ability of ABILITIES) {
@@ -853,11 +1002,6 @@ export function validateFighter(value: unknown): FighterSheet {
   }
   validateSkills(sheet.skills);
   validateFightingStyle(sheet.fightingStyle);
-  try {
-    validateMasteries(sheet.weaponMasteries);
-  } catch {
-    throw new Error("Unsupported weapon mastery.");
-  }
   try {
     readLoadout(sheet.equipment);
   } catch {
@@ -876,6 +1020,15 @@ export function validateFighter(value: unknown): FighterSheet {
   if (sheet.level !== levelForXp(sheet.xp)) {
     throw new Error("Character level differs from experience points.");
   }
+  // Each level choice (#286) is an Ability Score Improvement and one more
+  // mastery, made together; a sheet may still owe its latest one.
+  if (improvements.length > abilityScoreImprovementCount(sheet.level)) {
+    throw new Error("Too many Ability Score Improvements for the level.");
+  }
+  validateSheetMasteries(
+    sheet.weaponMasteries,
+    FIGHTER_MASTERY_COUNT + improvements.length,
+  );
   if (
     !Number.isInteger(sheet.hp) ||
     sheet.hp < 0 ||
@@ -935,6 +1088,7 @@ export function fighterProfile(
   sheet: Pick<
     FighterSheet,
     | "abilities"
+    | "abilityScoreImprovements"
     | "level"
     | "skills"
     | "fightingStyle"
@@ -970,7 +1124,7 @@ export function fighterProfile(
     {
       id: "second-wind",
       name: "Second Wind",
-      text: `Bonus action: regain 1d10 + ${level} HP. 2 uses. ${FEATURE_USES_RULE}`,
+      text: `Bonus action: regain 1d10 + ${level} HP. ${secondWindUses(level)} uses. ${FEATURE_USES_RULE}`,
     },
     {
       id: "weapon-mastery",
@@ -1013,6 +1167,17 @@ export function fighterProfile(
       },
     );
   }
+  if (level >= 4) {
+    const [chosen] = sheet.abilityScoreImprovements;
+    features.push({
+      id: "ability-score-improvement",
+      name: "Ability Score Improvement",
+      text:
+        chosen === undefined
+          ? `Not chosen yet: +2 to one ability score or +1 to two, to a maximum of ${ABILITY_SCORE_CAP}. Choose it, with a fourth weapon mastery, before the next adventure.`
+          : `${improvementText(chosen)}, to a maximum of ${ABILITY_SCORE_CAP}.`,
+    });
+  }
   return {
     level,
     proficiencyBonus: proficiency,
@@ -1053,7 +1218,10 @@ export function fighterProfile(
     ...(gear.strengthShortfall === undefined
       ? {}
       : { strengthShortfall: gear.strengthShortfall }),
-    secondWind: { uses: 2, healing: { dice: 1, sides: 10, modifier: level } },
+    secondWind: {
+      uses: secondWindUses(level),
+      healing: { dice: 1, sides: 10, modifier: level },
+    },
     actionSurgeUses: level >= 2 ? 1 : 0,
     features,
     nextLevelXp: nextLevelXp(level),
@@ -1132,19 +1300,38 @@ export function settleFighter(
   });
 }
 
+/** A choice a new level asks for, made on the sheet (#286). */
+export type LevelUpChoice = "ability-score-improvement" | "weapon-mastery";
+
 /** What changed when a character went up a level, for the level-up card. */
 export type LevelUpChanges = Readonly<{
   from: Level;
   to: Level;
   maxHp: Readonly<{ before: number; after: number }>;
+  proficiencyBonus: Readonly<{ before: number; after: number }>;
+  /** Second Wind's uses and healing modifier (1d10 + level). */
+  secondWind: Readonly<{
+    before: Readonly<{ uses: number; modifier: number }>;
+    after: Readonly<{ uses: number; modifier: number }>;
+  }>;
+  /** How many kinds of weapon the character masters. */
+  weaponMasteries: Readonly<{ before: number; after: number }>;
   /** The class features gained, in the sheet's order. */
   features: readonly FighterFeature[];
+  /**
+   * The choices still to make before the next adventure: an Ability Score
+   * Improvement and one more weapon mastery at level 4.
+   */
+  choices: readonly LevelUpChoice[];
 }>;
+
+/** The fields a profile and a pending level choice are read from. */
+type ProfiledSheet = Parameters<typeof fighterProfile>[0];
 
 /** The changes from `before` to `after`, or undefined if the level held. */
 export function levelUpChanges(
-  before: FighterSheet,
-  after: FighterSheet,
+  before: ProfiledSheet,
+  after: ProfiledSheet,
 ): LevelUpChanges | undefined {
   if (after.level === before.level) {
     return undefined;
@@ -1152,10 +1339,326 @@ export function levelUpChanges(
   const was = fighterProfile(before);
   const now = fighterProfile(after);
   const known = new Set(was.features.map(({ id }) => id));
+  const wind = (profile: FighterProfile) => ({
+    uses: profile.secondWind.uses,
+    modifier: profile.secondWind.healing.modifier,
+  });
   return {
     from: before.level,
     to: after.level,
     maxHp: { before: was.maxHp, after: now.maxHp },
+    proficiencyBonus: {
+      before: was.proficiencyBonus,
+      after: now.proficiencyBonus,
+    },
+    secondWind: { before: wind(was), after: wind(now) },
+    weaponMasteries: {
+      before: weaponMasteryCount(before.level),
+      after: weaponMasteryCount(after.level),
+    },
     features: now.features.filter(({ id }) => !known.has(id)),
+    choices:
+      pendingLevelChoice(after) === undefined
+        ? []
+        : ["ability-score-improvement", "weapon-mastery"],
   };
+}
+
+/**
+ * The level whose choice (an Ability Score Improvement and one more weapon
+ * mastery, #286) the sheet still owes, or undefined. A character that owes
+ * one cannot start another adventure.
+ */
+export function pendingLevelChoice(
+  sheet: Pick<FighterSheet, "level" | "abilityScoreImprovements">,
+): Level | undefined {
+  const next =
+    ABILITY_SCORE_IMPROVEMENT_LEVELS[sheet.abilityScoreImprovements.length];
+  return next !== undefined && next <= sheet.level ? next : undefined;
+}
+
+/**
+ * The level-up card's view of the level a pending choice belongs to: from
+ * the level below it to that level.
+ */
+export function pendingLevelUp(
+  sheet: FighterSheet,
+): LevelUpChanges | undefined {
+  const level = pendingLevelChoice(sheet);
+  if (level === undefined) {
+    return undefined;
+  }
+  return levelUpChanges(
+    { ...sheet, level: (level - 1) as Level },
+    { ...sheet, level },
+  );
+}
+
+const capMessage = (ability: Ability, score: number) =>
+  `${titleCase(ability)} is ${score}: an Ability Score Improvement can't raise a score above ${ABILITY_SCORE_CAP}.`;
+
+/** The weapons whose mastery `sheet` could add: every used one not yet mastered. */
+export function masteryOptions(
+  sheet: Pick<FighterSheet, "weaponMasteries">,
+): readonly WeaponId[] {
+  return MASTERY_WEAPONS.filter((id) => !sheet.weaponMasteries.includes(id));
+}
+
+function validateNewMastery(sheet: FighterSheet, value: unknown): WeaponId {
+  if (
+    typeof value !== "string" ||
+    !(MASTERY_WEAPONS as readonly string[]).includes(value)
+  ) {
+    throw new Error("Choose a kind of weapon to master.");
+  }
+  const id = value as WeaponId;
+  if (sheet.weaponMasteries.includes(id)) {
+    throw new Error(
+      `${sheet.name} already masters the ${WEAPONS[id].name.toLowerCase()}; choose another kind of weapon.`,
+    );
+  }
+  return id;
+}
+
+/** The scores after `increase`, refusing any above ABILITY_SCORE_CAP. */
+function improvedAbilities(
+  abilities: Abilities,
+  increase: AbilityScoreImprovement,
+): Abilities {
+  for (const ability of ABILITIES) {
+    if (abilities[ability] + (increase[ability] ?? 0) > ABILITY_SCORE_CAP) {
+      throw new Error(capMessage(ability, abilities[ability]));
+    }
+  }
+  return Object.fromEntries(
+    ABILITIES.map((ability) => [
+      ability,
+      abilities[ability] + (increase[ability] ?? 0),
+    ]),
+  ) as Abilities;
+}
+
+/**
+ * The sheet with its pending level choice made: the Ability Score
+ * Improvement raises its scores (none above ABILITY_SCORE_CAP) and the new
+ * mastery is added. Every number is derived again from the new scores, so a
+ * Constitution increase raises the maximum hit points for every level, and
+ * current hit points rise with them. Refused unless a choice is pending and
+ * `choice` is complete and legal.
+ */
+export function applyLevelChoice(
+  sheet: FighterSheet,
+  choice: unknown,
+): FighterSheet {
+  if (pendingLevelChoice(sheet) === undefined) {
+    throw new Error(`${sheet.name} has no level choice to make.`);
+  }
+  if (
+    !isRecord(choice) ||
+    Object.keys(choice).sort().join(",") !== "increase,mastery"
+  ) {
+    throw new Error("Invalid level choice.");
+  }
+  const increase = validateImprovement(choice.increase);
+  const mastery = validateNewMastery(sheet, choice.mastery);
+  const improved = {
+    ...sheet,
+    abilityScoreImprovements: [...sheet.abilityScoreImprovements, increase],
+    abilities: improvedAbilities(sheet.abilities, increase),
+    weaponMasteries: [...sheet.weaponMasteries, mastery],
+  };
+  const maxHp = fighterProfile(improved).maxHp;
+  const gained = maxHp - fighterProfile(sheet).maxHp;
+  return validateFighter({
+    ...improved,
+    hp: Math.min(maxHp, Math.max(0, sheet.hp + gained)),
+  });
+}
+
+/** One ability's row in the level choice: its score before and after. */
+export type LevelChoiceRow = Readonly<{
+  ability: Ability;
+  before: number;
+  score: number;
+  modifier: number;
+  /** How far the score can still rise before ABILITY_SCORE_CAP. */
+  room: number;
+}>;
+
+/** What the sheet's level-up card shows for the level choice made so far. */
+export type LevelChoiceProjection = Readonly<{
+  level: Level;
+  rows: readonly LevelChoiceRow[];
+  /** The weapons whose mastery can be added. */
+  masteries: readonly WeaponId[];
+  /** Why the choice is not finished yet; empty when it can be confirmed. */
+  unfinished: Readonly<{ increase?: string; mastery?: string }>;
+  /** Every number the finished choice changes, in words, once finished. */
+  changes?: readonly string[];
+}>;
+
+/**
+ * Projects a pending level choice for the sheet: each score and modifier for
+ * the improvement chosen so far, the masteries offered, what is unfinished
+ * (including an improvement past ABILITY_SCORE_CAP) and, once it is
+ * finished, every change it makes. `mastery` is null until chosen.
+ */
+export function projectLevelChoice(
+  sheet: FighterSheet,
+  choice: Readonly<{ increase: unknown; mastery: unknown }>,
+): LevelChoiceProjection {
+  const level = pendingLevelChoice(sheet);
+  if (level === undefined) {
+    throw new Error(`${sheet.name} has no level choice to make.`);
+  }
+  const { increase, missing } = validatePartialImprovement(choice.increase);
+  if (choice.mastery !== null) {
+    validateNewMastery(sheet, choice.mastery);
+  }
+  const rows = ABILITIES.map((ability) => {
+    const before = sheet.abilities[ability];
+    const score = before + (increase[ability] ?? 0);
+    return {
+      ability,
+      before,
+      score,
+      modifier: abilityModifier(Math.min(score, ABILITY_SCORE_CAP)),
+      room: ABILITY_SCORE_CAP - before,
+    };
+  });
+  const over = rows.find(({ score }) => score > ABILITY_SCORE_CAP);
+  const unfinished = {
+    ...(over !== undefined
+      ? { increase: capMessage(over.ability, over.before) }
+      : missing === 0
+        ? {}
+        : {
+            increase:
+              missing === 2
+                ? "Choose the ability score to improve."
+                : "Choose one more ability for +1.",
+          }),
+    ...(choice.mastery === null
+      ? { mastery: "Choose a fourth kind of weapon to master." }
+      : {}),
+  };
+  const projection = {
+    level,
+    rows,
+    masteries: masteryOptions(sheet),
+    unfinished,
+  };
+  if (Object.keys(unfinished).length > 0) {
+    return projection;
+  }
+  return {
+    ...projection,
+    changes: levelChoiceChanges(
+      sheet,
+      applyLevelChoice(sheet, { increase, mastery: choice.mastery }),
+    ),
+  };
+}
+
+const signed = (value: number) => (value >= 0 ? `+${value}` : `${value}`);
+
+function damageWords(damage: AttackProfile["damage"]): string {
+  const { dice, sides, modifier } = damage;
+  const added =
+    modifier === 0 ? "" : modifier > 0 ? ` + ${modifier}` : ` − ${-modifier}`;
+  return `${dice}d${sides}${added}`;
+}
+
+function attackChange(
+  label: string,
+  was: AttackProfile | undefined,
+  now: AttackProfile | undefined,
+): readonly string[] {
+  if (
+    was === undefined ||
+    now === undefined ||
+    (was.bonus === now.bonus &&
+      was.damage.modifier === now.damage.modifier &&
+      was.mastery === now.mastery)
+  ) {
+    return [];
+  }
+  const mastery =
+    now.mastery === was.mastery
+      ? ""
+      : `, now with ${now.mastery ?? "no mastery"}`;
+  return [
+    `${label}: ${signed(was.bonus)} → ${signed(now.bonus)} to hit, ${damageWords(was.damage)} → ${damageWords(now.damage)} ${now.damage.type}${mastery}.`,
+  ];
+}
+
+/**
+ * Every number that differs from `before` to `after` once a level choice is
+ * made, in words: scores and modifiers, hit points, AC, initiative, attacks,
+ * saving throws, skills, carrying capacity and the mastery added.
+ */
+export function levelChoiceChanges(
+  before: FighterSheet,
+  after: FighterSheet,
+): readonly string[] {
+  const was = fighterProfile(before);
+  const now = fighterProfile(after);
+  const lines: string[] = [];
+  for (const ability of ABILITIES) {
+    if (before.abilities[ability] !== after.abilities[ability]) {
+      lines.push(
+        `${titleCase(ability)} ${before.abilities[ability]} → ${after.abilities[ability]} (modifier ${signed(was.modifiers[ability])} → ${signed(now.modifiers[ability])}).`,
+      );
+    }
+  }
+  if (was.maxHp !== now.maxHp) {
+    lines.push(
+      `Hit points ${was.maxHp} → ${now.maxHp}: the Constitution modifier counts at every level.`,
+    );
+  }
+  if (was.armorClass !== now.armorClass) {
+    lines.push(`AC ${was.armorClass} → ${now.armorClass}.`);
+  }
+  if (was.initiative !== now.initiative) {
+    lines.push(
+      `Initiative ${signed(was.initiative)} → ${signed(now.initiative)}.`,
+    );
+  }
+  lines.push(
+    ...attackChange(now.attack.weapon, was.attack, now.attack),
+    ...attackChange(
+      `${now.lightAttack?.weapon ?? ""} (extra attack)`,
+      was.lightAttack,
+      now.lightAttack,
+    ),
+  );
+  for (const ability of ABILITIES) {
+    const from = was.savingThrows[ability].bonus;
+    const to = now.savingThrows[ability].bonus;
+    if (from !== to) {
+      lines.push(
+        `${titleCase(ability)} saving throw ${signed(from)} → ${signed(to)}.`,
+      );
+    }
+  }
+  for (const skill of now.skills) {
+    const from = was.skills.find(({ id }) => id === skill.id)!.bonus;
+    if (from !== skill.bonus) {
+      lines.push(`${skill.name} ${signed(from)} → ${signed(skill.bonus)}.`);
+    }
+  }
+  const carried = fighterCarrying(before).capacity;
+  const carries = fighterCarrying(after).capacity;
+  if (carried !== carries) {
+    lines.push(`Carrying capacity ${carried} → ${carries} lb.`);
+  }
+  for (const id of after.weaponMasteries) {
+    if (!before.weaponMasteries.includes(id)) {
+      const mastery = WEAPONS[id].mastery;
+      lines.push(
+        `Weapon Mastery: ${WEAPONS[id].name} (${mastery}): ${MASTERIES[mastery].text} It applies only while you wield it.`,
+      );
+    }
+  }
+  return lines;
 }

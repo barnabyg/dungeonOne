@@ -84,6 +84,7 @@ import {
 import {
   ABILITIES,
   FIGHTER_SKILLS,
+  MAX_LEVEL,
   proficiencyBonus,
   type Ability,
   type FighterSkill,
@@ -930,8 +931,8 @@ function validateModule(
     ["min", "max"],
     "recommendedLevels",
   );
-  const min = integer(levels.min, "recommendedLevels min", 1, 3);
-  const max = integer(levels.max, "recommendedLevels max", min, 3);
+  const min = integer(levels.min, "recommendedLevels min", 1, MAX_LEVEL);
+  const max = integer(levels.max, "recommendedLevels max", min, MAX_LEVEL);
   if (!DIFFICULTIES.includes(module.difficulty as Difficulty)) {
     fail("difficulty must be easy, medium or hard.");
   }

@@ -28,6 +28,10 @@ _Avoid_: Roll (when the saved set is meant), Draft character
 The stage of a character's advancement that determines its supported class capabilities.
 _Avoid_: Content version, Story milestone, Hint level
 
+**Level choice**:
+The Ability Score Improvement (+2 to one ability or +1 to two, none above 20) and fourth weapon mastery a Fighter chooses on its sheet after settling at level 4. Until it is made the character owes it, saved in the character library, and cannot start another adventure.
+_Avoid_: Level-up (the card that shows a new level), Feat
+
 **Experience points**:
 Earned character progress awarded for authored accomplishments and used to determine advancement.
 _Avoid_: Story milestones, Player score
@@ -81,7 +85,7 @@ One of the named sets of common-tier equipment a player chooses from at creation
 _Avoid_: Starting gear package, Class equipment
 
 **Weapon mastery**:
-A Fighter's mastery of a kind of weapon, chosen at creation (three at levels 1–3). The weapon's mastery property (Sap, Vex, Graze or Nick) applies only while the character wields that weapon.
+A Fighter's mastery of a kind of weapon, chosen at creation (three at levels 1–3), and a fourth chosen at level 4. The weapon's mastery property (Sap, Vex, Graze or Nick) applies only while the character wields that weapon.
 _Avoid_: Proficiency (Fighters are proficient with every weapon), Weapon skill
 
 **Extra attack (light weapon)**:

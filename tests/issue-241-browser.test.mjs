@@ -94,7 +94,7 @@ test(
         .click();
       assert.match(
         await text(page.locator("#sheet-body")),
-        /^Level 3 Fighter · 900 XP · Leather armour, Mace\n[\s\S]*HP: 28\/28\nAC: 14\n[\s\S]*Mace: \+5 to hit, 1d6 \+ 3 bludgeoning, Sap, critical on 19–20\n/u,
+        /^Level 3 Fighter · 900 XP \(level 4 at 2700\) · Leather armour, Mace\n[\s\S]*HP: 28\/28\nAC: 14\n[\s\S]*Mace: \+5 to hit, 1d6 \+ 3 bludgeoning, Sap, critical on 19–20\n/u,
       );
       assert.match(
         await text(page.locator("#adventure-choices")),
@@ -251,7 +251,7 @@ test(
       const sheet = await text(page.locator("#sheet-body"));
       assert.match(
         sheet,
-        /^Level 3 Fighter · 1762 XP · Leather armour, Mace\n[\s\S]*HP: 28\/28\n/u,
+        /^Level 3 Fighter · 1762 XP \(level 4 at 2700\) · Leather armour, Mace\n[\s\S]*HP: 28\/28\n/u,
       );
       assert.match(sheet, /Purse\n65 gp 2 sp 9 cp\n/u);
 

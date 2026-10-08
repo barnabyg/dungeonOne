@@ -39,7 +39,7 @@ import {
   type PlayStyle,
 } from "./balance-5e.js";
 import type { FifthBestiary, FifthMonster } from "./bestiary-5e.js";
-import type { FightingStyle, Level } from "./fighter-5e.js";
+import { MAX_LEVEL, type FightingStyle, type Level } from "./fighter-5e.js";
 import type { KitId } from "./equipment-5e.js";
 import { createFifthRuntime } from "./runtime-5e.js";
 
@@ -134,11 +134,11 @@ function specMonsters(
     !Number.isInteger(levels.min) ||
     !Number.isInteger(levels.max) ||
     levels.min < 1 ||
-    levels.max > 3 ||
+    levels.max > MAX_LEVEL ||
     levels.min > levels.max
   ) {
     throw new Error(
-      "An encounter's levels must run from 1 to 3, lowest first.",
+      `An encounter's levels must run from 1 to ${MAX_LEVEL}, lowest first.`,
     );
   }
   const seen = new Set<string>();

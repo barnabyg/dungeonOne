@@ -161,9 +161,27 @@ test("a pre-5e library is refused by name and left byte-identical", async () => 
 
     await writeFile(
       path,
-      JSON.stringify({ ...JSON.parse(before), formatVersion: 11 }),
+      JSON.stringify({ ...JSON.parse(before), formatVersion: 12 }),
     );
-    await assert.rejects(library.read(), /format version 11.*Move it aside/);
+    await assert.rejects(library.read(), /format version 12.*Move it aside/);
+    // A library from before level 4 (#286), whose sheets have no Ability
+    // Score Improvements.
+    const beforeLevelFour = JSON.stringify({
+      kind: "dungeon-one-characters",
+      formatVersion: 10,
+      revision: "0".repeat(32),
+      creationsStarted: 0,
+      sessionsStarted: 0,
+      characters: [],
+    });
+    await writeFile(path, beforeLevelFour);
+    await assert.rejects(
+      library.read(),
+      new RegExp(
+        `${path.replaceAll("\\", "\\\\")} is a 5e character library from an earlier build \\(format version 10\\).*Move it aside`,
+      ),
+    );
+    assert.equal(await readFile(path, "utf8"), beforeLevelFour);
     // A library from #127's build, before adventure sessions.
     const earlier = JSON.stringify({
       kind: "dungeon-one-characters",

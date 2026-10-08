@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-characters",
-  "formatVersion": 10,
+  "formatVersion": 11,
   "revision": "00000000000000000000000000000000",
   "creationsStarted": 1,
   "sessionsStarted": 0,
@@ -25,6 +25,7 @@
           "strength": 2,
           "constitution": 1
         },
+        "abilityScoreImprovements": [],
         "abilities": {
           "strength": 17,
           "dexterity": 14,

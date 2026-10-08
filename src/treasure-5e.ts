@@ -27,6 +27,7 @@ export const TREASURE_BUDGETS: Readonly<Record<number, number>> = {
   1: 15000,
   2: 30000,
   3: 45000,
+  4: 60000,
 };
 
 /**

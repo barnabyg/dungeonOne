@@ -16,7 +16,7 @@ import {} from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { loadScriptedDmModel } from "../dist/scripted-dm-model.js";
-import { sessionSeed } from "../dist/session-5e.js";
+import { FIFTH_SESSION_FORMAT, sessionSeed } from "../dist/session-5e.js";
 import { goblinBand } from "./fixtures/modules.mjs";
 import { createAndStart } from "./fixtures/browser-journey.mjs";
 import { firstFighter, launch } from "./fixtures/session-layout.mjs";
@@ -441,7 +441,7 @@ for (const viewport of [
             "utf8",
           ),
         );
-        assert.equal(file.formatVersion, 23);
+        assert.equal(file.formatVersion, FIFTH_SESSION_FORMAT);
         assert.ok(
           file.history.some(({ cards }) =>
             cards.some(({ lines }) =>
