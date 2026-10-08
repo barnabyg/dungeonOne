@@ -75,33 +75,27 @@ const ROUTE = [
   ["move", "forest-gate"],
 ];
 
-// A seed where Ada's clicks win Brann over, kill all three beasts (none
-// flees, so each gives its full XP) and walk out with the loot.
-const seed = Array.from({ length: 200 }, (_, index) => index).find(
-  (candidate) => {
-    try {
-      const played = journey(
-        lodge,
-        sheet,
-        candidate,
-        [...ROUTE, ["leave", "forest-gate"]],
-        { browser: true },
-      );
-      return (
-        played.state.endingId === "out-with-the-spoils" &&
-        xpOf(played.runtime, played.state)[0]?.[1] === 250
-      );
-    } catch {
-      return false;
-    }
-  },
-);
+// The handoff's seed for scenario 2: Ada's clicks win Brann over, kill all
+// three beasts (none flees, so each gives its full XP) and walk out with the
+// loot. The engine journey checks that before the browser plays it.
+const seed = 2;
 
 test(
   `Thornwood Lodge handoff: a level-4 Fighter talks her way to the poachers' hide, wins the kennel yard and reaches level 5 (seed ${seed})`,
   { timeout: 120000 },
   async () => {
-    assert.notEqual(seed, undefined, "some seed below 200 plays the route");
+    const played = journey(
+      lodge,
+      sheet,
+      seed,
+      [...ROUTE, ["leave", "forest-gate"]],
+      { browser: true },
+    );
+    assert.equal(played.state.endingId, "out-with-the-spoils");
+    assert.deepEqual(xpOf(played.runtime, played.state)[0], [
+      "Defeated Hesk's Hound, Kennel Mastiff 1 and Kennel Mastiff 2",
+      250,
+    ]);
     // The input library is the one the handoff gives the owner.
     assert.deepEqual(
       JSON.parse(await readFile(LIBRARY, "utf8")),
