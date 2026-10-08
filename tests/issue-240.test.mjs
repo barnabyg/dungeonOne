@@ -95,6 +95,11 @@ test("each bestiary monster has the owner's treasure type; undead and beasts car
       "bugbear-warrior": "silver-and-trinket",
       gnoll: "silver",
       ogre: "gold",
+      "dire-wolf": "none",
+      "brown-bear": "none",
+      "bandit-captain": "gold",
+      owlbear: "none",
+      "warrior-veteran": "gold",
     },
   );
 });

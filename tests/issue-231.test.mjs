@@ -25,7 +25,7 @@ const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the bestiary holds the shipped monsters, the Giant Rat (#232) and the #235 additions", () => {
+test("the bestiary holds the shipped monsters, the Giant Rat (#232), the #235 additions and the level 4–5 monsters (#288)", () => {
   assert.equal(bestiary.formatVersion, FIFTH_BESTIARY_FORMAT);
   assert.deepEqual(
     bestiary.monsters.map(({ id, statBlock }) => [id, statBlock.name]),
@@ -45,6 +45,11 @@ test("the bestiary holds the shipped monsters, the Giant Rat (#232) and the #235
       ["bugbear-warrior", "Bugbear Warrior"],
       ["gnoll", "Gnoll Ravager"],
       ["ogre", "Ogre"],
+      ["dire-wolf", "Dire Wolf"],
+      ["brown-bear", "Brown Bear"],
+      ["bandit-captain", "Bandit Captain"],
+      ["owlbear", "Owlbear"],
+      ["warrior-veteran", "Warrior Veteran"],
     ],
   );
 });
@@ -123,10 +128,10 @@ test("a renamed bestiary monster fights under the module's name: the fight view 
 
 test("the validator rejects an unknown monster, and an opponent with both a monster and a stat block", () => {
   const unknown = moduleFile("goblin-burrow");
-  unknown.encounters[1].opponents[0].monster = "owlbear";
+  unknown.encounters[1].opponents[0].monster = "manticore";
   assert.throws(
     () => validateModule(unknown),
-    /module goblin-burrow encounter 2 opponent 1 \(goblin-boss\) names bestiary monster owlbear, which is not in the bestiary\./,
+    /module goblin-burrow encounter 2 opponent 1 \(goblin-boss\) names bestiary monster manticore, which is not in the bestiary\./,
   );
   const both = moduleFile("lone-goblin");
   opponents(both)[0].statBlock = structuredClone(

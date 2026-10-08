@@ -162,7 +162,7 @@ test("an unknown bestiary id fails with a named reason", () => {
   const result = estimateEncounter(bestiary, {
     monsters: [
       { id: "wolf", count: 1 },
-      { id: "owlbear", count: 1 },
+      { id: "manticore", count: 1 },
     ],
     levels: { min: 1, max: 1 },
   });
@@ -170,7 +170,7 @@ test("an unknown bestiary id fails with a named reason", () => {
     ok: false,
     failure: {
       code: "unknown-monster",
-      message: "owlbear is not a monster in the bestiary.",
+      message: "manticore is not a monster in the bestiary.",
     },
   });
 });
@@ -266,10 +266,10 @@ test("the estimate renders per level, character and kit, and the gate per diffic
       ok: false,
       failure: {
         code: "unknown-monster",
-        message: "owlbear is not a monster in the bestiary.",
+        message: "manticore is not a monster in the bestiary.",
       },
     }),
-    "The encounter can't be estimated: unknown-monster. owlbear is not a monster in the bestiary.",
+    "The encounter can't be estimated: unknown-monster. manticore is not a monster in the bestiary.",
   );
 });
 
@@ -339,10 +339,10 @@ test("npm run estimate takes bestiary ids with counts, levels and the harness pa
   assert.equal(parsed.estimate.cells.length, 2 * KITS.length);
 
   written = "";
-  assert.equal(await main(["--seeds", "2", "owlbear"], write), 1);
+  assert.equal(await main(["--seeds", "2", "manticore"], write), 1);
   assert.equal(
     written,
-    "The encounter can't be estimated: unknown-monster. owlbear is not a monster in the bestiary.\n",
+    "The encounter can't be estimated: unknown-monster. manticore is not a monster in the bestiary.\n",
   );
 
   written = "";
