@@ -153,8 +153,20 @@ A hidden danger in a passage. Searching a room may find it, and a found trap may
 _Avoid_: Hazard
 
 **Ability check**:
-A d20 roll plus one ability's modifier, and the proficiency bonus when the check uses a skill the character is proficient in, against an authored DC. Each check is rolled once and its outcome remembered, so asking again never rerolls it.
+A d20 roll plus one ability's modifier, and the proficiency bonus when the check uses a skill the character is proficient in, against an authored DC. Each check is rolled once and its outcome remembered, so asking again never rerolls it; only an authored retry rolls it again.
 _Avoid_: Skill roll, Test
+
+**Retry**:
+Another try at a failed check, offered only when its adventure module authors one: after a cost, paid before the roll (damage, or a tool used up), or after a changed circumstance. Without one, a check is never tried again; asking for one changes nothing.
+_Avoid_: Reroll, Second chance
+
+**Circumstance**:
+An authored fact about the adventure session that a check can depend on: the character holds a named item, has made a named discovery or has won a named encounter (or hasn't). It can give a check advantage or disadvantage, or allow a retry once it changes; the check's card names it.
+_Avoid_: Situational modifier, Condition (which is a fight's)
+
+**Tool**:
+A mundane item a module places, such as a rope or an iron spike, that does nothing by itself: a circumstance or a retry's cost names it. It is not kept after the adventure.
+_Avoid_: Gear (a catalogue weapon, armour or shield), Kit
 
 **Topic**:
 Something a creature can be asked about, with its authored answer. Some need a check, with an answer for success and one for failure. The AI DM offers only these topics.

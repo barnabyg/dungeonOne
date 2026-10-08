@@ -27,6 +27,7 @@ import {
   fallingArch,
   gradedCellar,
   loneGoblin,
+  ropeCove,
   sealedCrypt,
 } from "./fixtures/modules.mjs";
 
@@ -191,6 +192,19 @@ test("loot a failed check loses no longer holds the run: it heads out without it
       run.outcome,
     );
     assert.ok(run.roomIds.includes("coal-store"));
+  }
+});
+
+test("a run takes no retry whose damage could leave it low, so failing checks can't wear it down (#284)", () => {
+  // The Rope Cove's swollen door may be forced again for 1d4 damage; when
+  // every check fails, a run paying for try after try would fall at it.
+  const sheet = fighterAtLevel(WEAKEST.dice, 1);
+  const runtime = createFifthRuntime(ropeCove, sheet, {
+    checks: "always-fail",
+  });
+  for (const seed of [0, 1, 2, 3, 4]) {
+    const run = playAdventure(runtime, "cautious", seed);
+    assert.notEqual(run.outcome, "defeat", `seed ${seed}`);
   }
 });
 

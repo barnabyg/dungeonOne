@@ -843,8 +843,21 @@ export function playAdventure(
   };
 
   const low = (hp: number) => hp < maxHp * HEAL_BELOW[style];
+  /**
+   * Whether the style takes a view: any but a retry (#284) whose damage
+   * could leave the character low, so no run pays damage for try after
+   * failed try until it falls.
+   */
+  const affordable = ({ action, target, retry }: ActionView) => {
+    const cost = siteChecks.get(`${action}:${target?.id}`)?.retry?.cost;
+    return (
+      retry === undefined ||
+      cost?.type !== "damage" ||
+      !low(state.character.hp - (cost.dice * cost.sides + cost.modifier))
+    );
+  };
   const offered = (views: readonly ActionView[], kind: ActionKind) =>
-    views.filter(({ action }) => action === kind);
+    views.filter((view) => view.action === kind && affordable(view));
 
   /** The fight action to take now. */
   const fightChoice = (views: readonly ActionView[]): ActionView => {

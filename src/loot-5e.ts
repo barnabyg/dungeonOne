@@ -99,7 +99,8 @@ export function rollModuleLoot(
         ({ id }) => isRecord(raw) && id === raw.monster,
       );
       const carriesLoot = items.some(
-        ({ hiddenIn, kind }) => hiddenIn === opponent.id && kind !== "key",
+        ({ hiddenIn, kind }) =>
+          hiddenIn === opponent.id && kind !== "key" && kind !== "tool",
       );
       if (monster === undefined || carriesLoot) {
         return;

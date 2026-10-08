@@ -13,8 +13,11 @@
  * the player also forces, picks, breaks or unlocks doors, searches a room for
  * traps on its exits, disarms a found trap and talks to creatures about their
  * topics. Each check (`checks-5e.ts`) is rolled once and its outcome
- * remembered, so asking again is refused rather than rerolled. Going through
- * an armed trap springs it: a saving throw against its damage. In a fight the
+ * remembered, so asking again is refused rather than rerolled; only a retry
+ * the module authors (#284), after a cost or a changed circumstance, rolls
+ * it again, and the circumstances a module names give a check advantage or
+ * disadvantage. Going through an armed trap springs it: a saving throw
+ * against its damage. In a fight the
  * player attacks until one side is defeated: defeat ends the adventure, and
  * victory either ends it (when the encounter names a victory ending) or lets
  * the player explore on. Opponents may lose their nerve and flee (#237): one
@@ -51,6 +54,9 @@
 import {
   approachesOf,
   authoredBand,
+  type AuthoredApproach,
+  type Circumstance,
+  type RetryCost,
   authoredChecks,
   effectsOf,
   extremeTotals,
@@ -185,7 +191,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v16";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v17";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -238,10 +244,12 @@ export type FifthState = Readonly<{
    * Every check tried, in order, and the band whose outcome applied (#281):
    * `force:`, `pick:` or `break:` and a door id, `search:` and a room id,
    * `disarm:` and a trap id, `talk:` and a topic id, or `examine:` and a
-   * feature id. Each is tried once. The discoveries and items its band
-   * revealed follow from it.
+   * feature id. Each is tried once, unless the module authors a retry
+   * (#284): then each try adds an entry, and the last is the outcome that
+   * stands. `held` marks a try made while the retry's circumstance held. The
+   * discoveries and items every try's band revealed follow from them.
    */
-  checks: readonly Readonly<{ id: string; band: Band }>[];
+  checks: readonly Readonly<{ id: string; band: Band; held?: true }>[];
   foundTrapIds: readonly string[];
   disarmedTrapIds: readonly string[];
   sprungTrapIds: readonly string[];
@@ -269,13 +277,15 @@ export type FifthAction =
   /**
    * `approach` (#283), a skill or ability id, chooses how a check with
    * several approaches is made; it is accepted only where it is offered.
+   * `retry` (#284) asks for another try at a check already made; it is
+   * accepted only where the module authors one and it is offered now.
    */
-  | Readonly<{ type: "examine"; targetId: string; approach?: string }>
+  | (Readonly<{ type: "examine"; targetId: string }> & CheckChoice)
   | Readonly<{ type: "take" | "use-item"; itemId: string }>
-  | Readonly<{ type: DoorApproach; doorId: string; approach?: string }>
+  | (Readonly<{ type: DoorApproach; doorId: string }> & CheckChoice)
   | Readonly<{ type: "search"; roomId: string }>
-  | Readonly<{ type: "disarm"; trapId: string; approach?: string }>
-  | Readonly<{ type: "talk"; topicId: string; approach?: string }>
+  | (Readonly<{ type: "disarm"; trapId: string }> & CheckChoice)
+  | (Readonly<{ type: "talk"; topicId: string }> & CheckChoice)
   /** A change to the character's own gear, named by its catalogue id. */
   | Readonly<{ type: GearAction; itemId: string }>
   /** Buying from the merchant here, by catalogue id. */
@@ -293,6 +303,9 @@ export type FifthAction =
   | Readonly<{ type: "sell"; itemId: string; equipped?: true }>
   /** The player's final choice to leave from an exit room. */
   | Readonly<{ type: "leave"; roomId: string }>;
+
+/** How an action making a check chooses it: its approach, and a retry. */
+export type CheckChoice = Readonly<{ approach?: string; retry?: true }>;
 
 /** The changes a character makes to its own gear. */
 export type GearAction = "equip" | "unequip" | "swap" | "drop";
@@ -335,9 +348,17 @@ const FEATURE_TOOLS = {
 >;
 type FeatureTool = keyof typeof FEATURE_TOOLS;
 
-/** An action's `approach` field, when one was chosen (#283). */
-const chosen = (approach: string | undefined) =>
-  approach === undefined ? {} : { approach };
+/**
+ * An action's `approach` (#283) and `retry` (#284) fields, when they were
+ * chosen.
+ */
+const chosen = (
+  approach: string | undefined,
+  retry?: boolean,
+): CheckChoice => ({
+  ...(approach === undefined ? {} : { approach }),
+  ...(retry === true ? { retry: true as const } : {}),
+});
 
 /**
  * The AI DM's check tools (#283): each may also take the approach, offered
@@ -379,10 +400,14 @@ const TARGET_TOOLS = {
   },
   examine: {
     parameter: "target",
-    action: (targetId: string, approach?: string): FifthAction => ({
+    action: (
+      targetId: string,
+      approach?: string,
+      retry?: boolean,
+    ): FifthAction => ({
       type: "examine",
       targetId,
-      ...chosen(approach),
+      ...chosen(approach, retry),
     }),
   },
   take: {
@@ -395,26 +420,38 @@ const TARGET_TOOLS = {
   },
   force_door: {
     parameter: "door",
-    action: (doorId: string, approach?: string): FifthAction => ({
+    action: (
+      doorId: string,
+      approach?: string,
+      retry?: boolean,
+    ): FifthAction => ({
       type: "force",
       doorId,
-      ...chosen(approach),
+      ...chosen(approach, retry),
     }),
   },
   pick_lock: {
     parameter: "door",
-    action: (doorId: string, approach?: string): FifthAction => ({
+    action: (
+      doorId: string,
+      approach?: string,
+      retry?: boolean,
+    ): FifthAction => ({
       type: "pick",
       doorId,
-      ...chosen(approach),
+      ...chosen(approach, retry),
     }),
   },
   break_door: {
     parameter: "door",
-    action: (doorId: string, approach?: string): FifthAction => ({
+    action: (
+      doorId: string,
+      approach?: string,
+      retry?: boolean,
+    ): FifthAction => ({
       type: "break",
       doorId,
-      ...chosen(approach),
+      ...chosen(approach, retry),
     }),
   },
   unlock: {
@@ -427,18 +464,26 @@ const TARGET_TOOLS = {
   },
   disarm: {
     parameter: "trap",
-    action: (trapId: string, approach?: string): FifthAction => ({
+    action: (
+      trapId: string,
+      approach?: string,
+      retry?: boolean,
+    ): FifthAction => ({
       type: "disarm",
       trapId,
-      ...chosen(approach),
+      ...chosen(approach, retry),
     }),
   },
   talk: {
     parameter: "topic",
-    action: (topicId: string, approach?: string): FifthAction => ({
+    action: (
+      topicId: string,
+      approach?: string,
+      retry?: boolean,
+    ): FifthAction => ({
       type: "talk",
       topicId,
-      ...chosen(approach),
+      ...chosen(approach, retry),
     }),
   },
   equip: {
@@ -554,7 +599,14 @@ export type FifthEvent =
       change: "opened" | "closed";
       rooms: readonly string[];
     }>
-  /** Damage a check's band dealt the character (#281). */
+  /**
+   * Another try at a check already made (#284): what it is made on, and why
+   * it is offered, a cost paid first or a changed circumstance.
+   */
+  | Readonly<{ type: "retry"; name: string; reason: string }>
+  /** An item a retry used up (#284). */
+  | Readonly<{ type: "used-up"; itemId: string; name: string }>
+  /** Damage a check's band, or a retry's cost, dealt the character (#281). */
   | Readonly<{
       type: "check-damage";
       /** What the check was made on, such as "Rubble Heap". */
@@ -725,6 +777,7 @@ export type FifthRefusalCode =
   | "already-tried"
   | "choose-approach"
   | "unknown-approach"
+  | "no-retry"
   | "not-here"
   | "no-traps"
   | "already-searched"
@@ -764,7 +817,7 @@ Act only through the offered tools, and only with the ids each tool lists. To go
 
 Leaving the adventure is the player's own final choice, made with the Leave button in an exit room; you have no tool for it. If the player asks to leave, tell them to use that button when they are ready, without calling a tool.
 
-Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, damage, or a way opened or closed. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage, way opened or closed, or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
+Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. A module may allow another try at a failed check, after a cost (damage, or a tool used up) or once something has changed (the character holds an item, has made a discovery or has won a fight): only then does the tool take retry and list the targets that offer another try, with why. Call it with retry true only when the player asks to try again and the target is listed, and false otherwise; the engine takes the cost before it rolls. Asking for another try, or for advantage, where none is offered changes nothing: say so without calling a tool. The engine alone decides advantage and disadvantage on a check, from the module's circumstances, and its result names them; never claim or promise either. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, damage, or a way opened or closed. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage, way opened or closed, or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -1283,6 +1336,10 @@ export function renderFifthEvent(
         ? `${titleCase(way)} is open.`
         : `${titleCase(way)} is closed.`;
     }
+    case "retry":
+      return `Another try at the ${event.name} (${event.reason}).`;
+    case "used-up":
+      return `The ${event.name} is used up.`;
     case "check-damage":
       return `The ${event.source} deals ${event.rolls.join(" + ")}${event.modifier === 0 ? "" : ` ${signed(event.modifier)}`} = ${event.damage} ${event.damageType}; you have ${event.hpAfter}/${event.maxHp} HP.`;
     case "door":
@@ -1882,6 +1939,12 @@ export type ActionView = Readonly<{
    * Athletics: one entry per approach while the check is unmade.
    */
   approach?: Readonly<{ id: string; name: string }>;
+  /**
+   * Another try at a check already made (#284), offered while the module's
+   * retry allows it, with why: its cost ("costs 1d4 bludgeoning damage",
+   * "uses up the Iron Wedge") or the circumstance that changed.
+   */
+  retry?: Readonly<{ reason: string }>;
   available: boolean;
   /** Present exactly when the action is unavailable. */
   reason?: string;
@@ -1928,6 +1991,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "already-tried": "Already tried",
   "choose-approach": "Choose how",
   "unknown-approach": "Not offered",
+  "no-retry": "No other try",
   "not-here": "Not here",
   "no-traps": "No traps here",
   "already-searched": "Already searched",
@@ -2498,9 +2562,121 @@ export function createFifthRuntime(
     );
   const isOpen = (state: FifthState, door: FifthDoor) =>
     state.openedDoorIds.includes(door.id);
-  /** The remembered outcome of the check at `site`, once it is made. */
+  /**
+   * The remembered outcome of the check at `site`, once it is made: its
+   * last try's, when a retry (#284) tried it again.
+   */
   const outcomeAt = (state: FifthState, site: CheckSite) =>
-    state.checks.find(({ id }) => id === checkSiteId(site));
+    state.checks.findLast(({ id }) => id === checkSiteId(site));
+  /** Whether the feature's discovery has been made, by examining or a band. */
+  const discoveryMade = (state: FifthState, featureId: string) =>
+    revealedIn(state).discoveries.has(featureId) ||
+    (!hasCheck(featureId) && state.examinedFeatureIds.includes(featureId));
+  /** Whether a module's circumstance (#284) holds now. */
+  const holds = (state: FifthState, entry: Circumstance): boolean => {
+    const fact =
+      entry.type === "holds"
+        ? state.inventory.includes(entry.item)
+        : entry.type === "discovered"
+          ? discoveryMade(state, entry.feature)
+          : state.clearedEncounterIds.includes(entry.encounter);
+    return entry.not === true ? !fact : fact;
+  };
+  /**
+   * The names of the circumstances giving an approach advantage and
+   * disadvantage now (#284).
+   */
+  const circumstancesOf = (state: FifthState, spec: AuthoredApproach) => ({
+    advantage: (spec.advantage ?? [])
+      .filter((entry) => holds(state, entry))
+      .map(({ name }) => name),
+    disadvantage: (spec.disadvantage ?? [])
+      .filter((entry) => holds(state, entry))
+      .map(({ name }) => name),
+  });
+  /** "1d4 + 1 bludgeoning damage": a damage cost's dice. */
+  const damageWords = (cost: Extract<RetryCost, { type: "damage" }>) =>
+    `${cost.dice}d${cost.sides}${cost.modifier === 0 ? "" : ` ${signed(cost.modifier)}`} ${cost.damageType} damage`;
+  /**
+   * Another try at the failed check at `site` (#284), when its module
+   * authors a retry that allows one now, with why: its cost, paid before
+   * the roll, or the circumstance that changed since the check was last
+   * made (each change gives one more try). A trap no longer armed has
+   * nothing left to try.
+   */
+  const retryOffer = (
+    state: FifthState,
+    site: CheckSite,
+  ): Readonly<{ reason: string; cost?: RetryCost }> | undefined => {
+    const policy = siteChecks.get(checkSiteId(site))?.retry;
+    const last = outcomeAt(state, site);
+    if (
+      policy === undefined ||
+      last === undefined ||
+      isSuccess(last.band) ||
+      (site.kind === "disarm" && !armed(state, site.id))
+    ) {
+      return undefined;
+    }
+    if (policy.after !== undefined) {
+      const tried = state.checks.some(
+        ({ id, held }) => id === checkSiteId(site) && held === true,
+      );
+      return holds(state, policy.after) && !tried
+        ? { reason: policy.after.name }
+        : undefined;
+    }
+    const { cost } = policy;
+    if (cost.type === "item") {
+      return state.inventory.includes(cost.item)
+        ? { reason: `uses up the ${items.get(cost.item)!.name}`, cost }
+        : undefined;
+    }
+    return { reason: `costs ${damageWords(cost)}`, cost };
+  };
+  /**
+   * Whether an action at `site` may make its check (#284): with `retry`, only
+   * when another try is offered, which it returns; without, the site refuses
+   * a check already made itself. `name` is what the check is made on.
+   */
+  const tryAgain = (
+    state: FifthState,
+    site: CheckSite,
+    retry: boolean,
+    name: string,
+  ): Readonly<{
+    refused?: FifthRejection;
+    offer?: Readonly<{ reason: string; cost?: RetryCost }>;
+  }> => {
+    if (!retry) {
+      return {};
+    }
+    if (!siteChecks.has(checkSiteId(site))) {
+      return {
+        refused: {
+          code: "no-retry",
+          reason: "There is no check to try again here.",
+        },
+      };
+    }
+    if (outcomeAt(state, site) === undefined) {
+      return {
+        refused: {
+          code: "no-retry",
+          reason: `You haven't tried the ${name} yet.`,
+        },
+      };
+    }
+    const offer = retryOffer(state, site);
+    return offer === undefined
+      ? {
+          refused: {
+            code: "no-retry",
+            reason: `Nothing lets you try the ${name} again.`,
+          },
+        }
+      : { offer };
+  };
   const armed = (state: FifthState, trapId: string) =>
     !state.disarmedTrapIds.includes(trapId) &&
     !state.sprungTrapIds.includes(trapId);
@@ -2801,6 +2977,100 @@ export function createFifthRuntime(
   };
 
   /**
+   * Damage a check's band or a retry's cost deals the character (#281,
+   * #284): rolled and dealt with no saving throw; at 0 HP the adventure ends
+   * in its defeat.
+   */
+  const checkDamage = (
+    state: FifthState,
+    effect: Readonly<{
+      dice: number;
+      sides: number;
+      modifier: number;
+      damageType: string;
+      defeatEndingId: string;
+    }>,
+    source: string,
+    dice: Pick<RandomSource, "roll">,
+  ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
+    const rolls = Array.from({ length: effect.dice }, () =>
+      dice.roll(effect.sides),
+    );
+    const damage = Math.max(
+      0,
+      rolls.reduce((sum, value) => sum + value, 0) + effect.modifier,
+    );
+    const hpAfter = Math.max(0, state.character.hp - damage);
+    const hurt: FifthState = {
+      ...state,
+      character: { ...state.character, hp: hpAfter },
+    };
+    const dealt: FifthEvent = {
+      type: "check-damage",
+      source,
+      rolls,
+      modifier: effect.modifier,
+      damage,
+      damageType: effect.damageType,
+      hpAfter,
+      maxHp,
+    };
+    if (hpAfter > 0) {
+      return { state: hurt, events: [dealt] };
+    }
+    const ending = adventure.endings.find(
+      ({ id }) => id === effect.defeatEndingId,
+    )!;
+    return {
+      state: { ...hurt, status: "defeat", endingId: ending.id },
+      events: [
+        dealt,
+        {
+          type: "ending",
+          endingId: ending.id,
+          kind: ending.kind,
+          title: ending.title,
+          text: ending.text,
+        },
+      ],
+    };
+  };
+
+  /**
+   * Pays for another try (#284) before its roll: a tool used up, or damage,
+   * which can end the adventure before the check is made. Without an
+   * offer, a first try, there is nothing to pay.
+   */
+  const payRetry = (
+    state: FifthState,
+    offer: Readonly<{ reason: string; cost?: RetryCost }> | undefined,
+    name: string,
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
+    if (offer === undefined) {
+      return { state, events: [] };
+    }
+    const tried: FifthEvent = { type: "retry", name, reason: offer.reason };
+    const { cost } = offer;
+    if (cost === undefined) {
+      return { state, events: [tried] };
+    }
+    if (cost.type === "damage") {
+      const hurt = checkDamage(state, cost, name, need(random, "A retry"));
+      return { state: hurt.state, events: [tried, ...hurt.events] };
+    }
+    const item = items.get(cost.item)!;
+    return {
+      state: {
+        ...state,
+        inventory: state.inventory.filter((id) => id !== item.id),
+        usedItemIds: [...state.usedItemIds, item.id],
+      },
+      events: [tried, { type: "used-up", itemId: item.id, name: item.name }],
+    };
+  };
+
+  /**
    * The one check path (#280): rolls the check at `site` once from the
    * seeded stream, grades it into the band whose outcome applies (#281) and
    * remembers that band, so asking or typing again never rerolls it. Then it
@@ -2817,7 +3087,7 @@ export function createFifthRuntime(
     state: FifthState,
     site: CheckSite,
     check: AuthoredCheck,
-    spec: CheckSpec,
+    spec: AuthoredApproach,
     source: string,
     random: Pick<RandomSource, "roll"> | undefined,
   ): Readonly<{
@@ -2827,12 +3097,27 @@ export function createFifthRuntime(
     around: (siteEvents: readonly FifthEvent[]) => FifthEvent[];
   }> => {
     const dice = need(random, "A check");
-    const roll = policyRoll(abilityCheck(sheet, spec, dice), spec);
+    // The module's circumstances give advantage or disadvantage (#284).
+    const roll = policyRoll(
+      abilityCheck(sheet, spec, dice, circumstancesOf(state, spec)),
+      spec,
+    );
     const band = authoredBand(check, bandOf(roll));
     const outcome = check.bands?.[band];
+    // A try made while a retry's circumstance holds is not followed by
+    // another for it (#284).
+    const held =
+      check.retry?.after !== undefined && holds(state, check.retry.after);
     let next: FifthState = {
       ...state,
-      checks: [...state.checks, { id: checkSiteId(site), band }],
+      checks: [
+        ...state.checks,
+        {
+          id: checkSiteId(site),
+          band,
+          ...(held ? { held: true as const } : {}),
+        },
+      ],
     };
     const effects: FifthEvent[] =
       outcome?.text === undefined
@@ -2888,38 +3173,9 @@ export function createFifthRuntime(
           break;
         }
         case "damage": {
-          const rolls = Array.from({ length: effect.dice }, () =>
-            dice.roll(effect.sides),
-          );
-          const damage = Math.max(
-            0,
-            rolls.reduce((sum, value) => sum + value, 0) + effect.modifier,
-          );
-          const hpAfter = Math.max(0, next.character.hp - damage);
-          next = { ...next, character: { ...next.character, hp: hpAfter } };
-          effects.push({
-            type: "check-damage",
-            source,
-            rolls,
-            modifier: effect.modifier,
-            damage,
-            damageType: effect.damageType,
-            hpAfter,
-            maxHp,
-          });
-          if (hpAfter === 0) {
-            const ending = adventure.endings.find(
-              ({ id }) => id === effect.defeatEndingId,
-            )!;
-            next = { ...next, status: "defeat", endingId: ending.id };
-            effects.push({
-              type: "ending",
-              endingId: ending.id,
-              kind: ending.kind,
-              title: ending.title,
-              text: ending.text,
-            });
-          }
+          const hurt = checkDamage(next, effect, source, dice);
+          next = hurt.state;
+          effects.push(...hurt.events);
           break;
         }
       }
@@ -2946,7 +3202,7 @@ export function createFifthRuntime(
     check: AuthoredCheck | undefined,
     requested: string | undefined,
   ):
-    | Readonly<{ spec?: CheckSpec; refused?: never }>
+    | Readonly<{ spec?: AuthoredApproach; refused?: never }>
     | Readonly<{ refused: FifthRejection; spec?: never }> => {
     const offered = check === undefined ? [] : approachesOf(check);
     const names = listed(offered.map(approachName));
@@ -3095,9 +3351,13 @@ export function createFifthRuntime(
     const field = (key: string) =>
       typeof action[key] === "string" ? action[key] : undefined;
     const actorId = field("actorId");
-    // A check's approach (#283), when given, is a string.
+    // A check's approach (#283), when given, is a string; a retry (#284),
+    // when asked for, is true.
     const approach = field("approach");
-    const approachOk = action.approach === undefined || approach !== undefined;
+    const retry = action.retry === true;
+    const approachOk =
+      (action.approach === undefined || approach !== undefined) &&
+      (action.retry === undefined || retry);
     switch (action.type) {
       case "begin":
         return { type: "begin" };
@@ -3124,7 +3384,7 @@ export function createFifthRuntime(
         const targetId = field("targetId");
         return targetId === undefined || !approachOk
           ? undefined
-          : { type: "examine", targetId, ...chosen(approach) };
+          : { type: "examine", targetId, ...chosen(approach, retry) };
       }
       case "take":
       case "use-item": {
@@ -3138,7 +3398,7 @@ export function createFifthRuntime(
         const doorId = field("doorId");
         return doorId === undefined || !approachOk
           ? undefined
-          : { type: action.type, doorId, ...chosen(approach) };
+          : { type: action.type, doorId, ...chosen(approach, retry) };
       }
       case "search": {
         const roomId = field("roomId");
@@ -3148,13 +3408,13 @@ export function createFifthRuntime(
         const trapId = field("trapId");
         return trapId === undefined || !approachOk
           ? undefined
-          : { type: "disarm", trapId, ...chosen(approach) };
+          : { type: "disarm", trapId, ...chosen(approach, retry) };
       }
       case "talk": {
         const topicId = field("topicId");
         return topicId === undefined || !approachOk
           ? undefined
-          : { type: "talk", topicId, ...chosen(approach) };
+          : { type: "talk", topicId, ...chosen(approach, retry) };
       }
       case "leave": {
         const roomId = field("roomId");
@@ -3327,6 +3587,9 @@ export function createFifthRuntime(
           events,
         });
         if (action.type === "unlock") {
+          if (action.retry === true) {
+            return reject("no-retry", "There is no check to try again here.");
+          }
           if (action.approach !== undefined) {
             return reject(
               "unknown-approach",
@@ -3360,7 +3623,11 @@ export function createFifthRuntime(
           );
         }
         const site: CheckSite = { kind: action.type, id: door.id };
-        if (outcomeAt(state, site) !== undefined) {
+        const again = tryAgain(state, site, action.retry === true, door.name);
+        if (again.refused !== undefined) {
+          return { state, rejection: again.refused };
+        }
+        if (again.offer === undefined && outcomeAt(state, site) !== undefined) {
           return reject(
             "already-tried",
             `You already tried to ${action.type} the ${door.name}; trying again would go no better.`,
@@ -3370,23 +3637,31 @@ export function createFifthRuntime(
         if (choice.refused !== undefined) {
           return { state, rejection: choice.refused };
         }
+        // A retry's cost is paid before the roll, and may end the adventure.
+        const paid = payRetry(state, again.offer, door.name, random);
+        if (paid.state.status !== "playing") {
+          return paid;
+        }
         const resolved = resolveCheck(
-          state,
+          paid.state,
           site,
           spec,
           choice.spec!,
           door.name,
           random,
         );
-        const events = resolved.around([
-          {
-            type: "door",
-            doorId: door.id,
-            name: door.name,
-            approach: action.type,
-            opened: resolved.success,
-          },
-        ]);
+        const events = [
+          ...paid.events,
+          ...resolved.around([
+            {
+              type: "door",
+              doorId: door.id,
+              name: door.name,
+              approach: action.type,
+              opened: resolved.success,
+            },
+          ]),
+        ];
         return resolved.success
           ? opened(resolved.state, events)
           : { state: resolved.state, events };
@@ -3475,7 +3750,11 @@ export function createFifthRuntime(
           return reject("trap-sprung", `The ${trap.name} has already sprung.`);
         }
         const site: CheckSite = { kind: "disarm", id: trap.id };
-        if (outcomeAt(state, site) !== undefined) {
+        const again = tryAgain(state, site, action.retry === true, trap.name);
+        if (again.refused !== undefined) {
+          return { state, rejection: again.refused };
+        }
+        if (again.offer === undefined && outcomeAt(state, site) !== undefined) {
           return reject(
             "already-tried",
             `You already tried to disarm the ${trap.name}; trying again would go no better.`,
@@ -3485,12 +3764,16 @@ export function createFifthRuntime(
         if (choice.refused !== undefined) {
           return { state, rejection: choice.refused };
         }
+        const paid = payRetry(state, again.offer, trap.name, random);
+        if (paid.state.status !== "playing") {
+          return paid;
+        }
         const {
           state: next,
           success,
           around,
         } = resolveCheck(
-          state,
+          paid.state,
           site,
           trap.disarm,
           choice.spec!,
@@ -3501,9 +3784,12 @@ export function createFifthRuntime(
           state: success
             ? { ...next, disarmedTrapIds: [...next.disarmedTrapIds, trap.id] }
             : next,
-          events: around([
-            { type: "disarmed", trapId: trap.id, name: trap.name, success },
-          ]),
+          events: [
+            ...paid.events,
+            ...around([
+              { type: "disarmed", trapId: trap.id, name: trap.name, success },
+            ]),
+          ],
         };
       }
       case "talk": {
@@ -3517,7 +3803,16 @@ export function createFifthRuntime(
         if (creature === undefined || topic === undefined) {
           return reject("no-topic", "There is no one here to ask about that.");
         }
-        if (state.talkedTopicIds.includes(topic.id)) {
+        const site: CheckSite = { kind: "talk", id: topic.id };
+        const asking = `${creature.name} about ${topic.name}`;
+        const again = tryAgain(state, site, action.retry === true, asking);
+        if (again.refused !== undefined) {
+          return { state, rejection: again.refused };
+        }
+        if (
+          again.offer === undefined &&
+          state.talkedTopicIds.includes(topic.id)
+        ) {
           return reject(
             "already-asked",
             `You already asked the ${creature.name} about ${topic.name}.`,
@@ -3527,9 +3822,15 @@ export function createFifthRuntime(
         if (choice.refused !== undefined) {
           return { state, rejection: choice.refused };
         }
+        const paid = payRetry(state, again.offer, asking, random);
+        if (paid.state.status !== "playing") {
+          return paid;
+        }
         const talked = {
-          ...state,
-          talkedTopicIds: [...state.talkedTopicIds, topic.id],
+          ...paid.state,
+          talkedTopicIds: paid.state.talkedTopicIds.includes(topic.id)
+            ? paid.state.talkedTopicIds
+            : [...paid.state.talkedTopicIds, topic.id],
         };
         // A surrendered opponent offers what the topic gives with its reply.
         const words = (success: boolean): FifthEvent => ({
@@ -3552,13 +3853,16 @@ export function createFifthRuntime(
           around,
         } = resolveCheck(
           talked,
-          { kind: "talk", id: topic.id },
+          site,
           topic.check,
           choice.spec!,
           creature.name,
           random,
         );
-        return { state: next, events: around([words(success)]) };
+        return {
+          state: next,
+          events: [...paid.events, ...around([words(success)])],
+        };
       }
       case "examine": {
         if (fighting(state)) {
@@ -3580,7 +3884,19 @@ export function createFifthRuntime(
             description: feature.description,
             found: [],
           };
-          if (outcomeAt(state, site) !== undefined) {
+          const again = tryAgain(
+            state,
+            site,
+            action.retry === true,
+            feature.name,
+          );
+          if (again.refused !== undefined) {
+            return { state, rejection: again.refused };
+          }
+          if (
+            again.offer === undefined &&
+            outcomeAt(state, site) !== undefined
+          ) {
             // Asking to try it some way again is asking for a reroll.
             if (action.approach !== undefined) {
               return reject(
@@ -3605,10 +3921,18 @@ export function createFifthRuntime(
           if (choice.refused !== undefined) {
             return { state, rejection: choice.refused };
           }
+          const paid = payRetry(state, again.offer, feature.name, random);
+          if (paid.state.status !== "playing") {
+            return paid;
+          }
           const resolved = resolveCheck(
             {
-              ...state,
-              examinedFeatureIds: [...state.examinedFeatureIds, feature.id],
+              ...paid.state,
+              examinedFeatureIds: paid.state.examinedFeatureIds.includes(
+                feature.id,
+              )
+                ? paid.state.examinedFeatureIds
+                : [...paid.state.examinedFeatureIds, feature.id],
             },
             site,
             authored.check,
@@ -3616,7 +3940,13 @@ export function createFifthRuntime(
             feature.name,
             random,
           );
-          return { state: resolved.state, events: resolved.around([looked]) };
+          return {
+            state: resolved.state,
+            events: [...paid.events, ...resolved.around([looked])],
+          };
+        }
+        if (action.retry === true) {
+          return reject("no-retry", "There is no check to try again here.");
         }
         if (action.approach !== undefined) {
           return reject(
@@ -4093,6 +4423,7 @@ export function createFifthRuntime(
       action: FifthAction,
       target?: Readonly<{ id: string; name: string }>,
       approach?: CheckSpec,
+      retry?: string,
     ): ActionView => {
       const refused = refusal(state, action);
       const entry: ActionView = {
@@ -4108,6 +4439,7 @@ export function createFifthRuntime(
                 name: approachName(approach),
               },
             }),
+        ...(retry === undefined ? {} : { retry: { reason: retry } }),
         available: refused === undefined,
         ...(refused === undefined
           ? {}
@@ -4120,7 +4452,9 @@ export function createFifthRuntime(
       view("use", { type: "use-item", itemId: item.id }, item);
     /**
      * A check site's action: one per approach while its check, having
-     * several, is unmade (#283); otherwise one, without an approach.
+     * several, is unmade (#283); otherwise one, without an approach. While
+     * the module's retry offers another try (#284), the retry follows, one
+     * per approach when there are several.
      */
     const tries = (
       kind: ActionKind,
@@ -4128,19 +4462,49 @@ export function createFifthRuntime(
       target: Readonly<{ id: string; name: string }>,
       check: AuthoredCheck | undefined,
       site: CheckSite,
-    ): readonly ActionView[] =>
-      check === undefined ||
-      approachesOf(check).length < 2 ||
-      outcomeAt(state, site) !== undefined
-        ? [view(kind, action, target)]
-        : approachesOf(check).map((spec) =>
-            view(
-              kind,
-              { ...action, approach: approachId(spec) } as FifthAction,
-              target,
-              spec,
-            ),
-          );
+    ): readonly ActionView[] => {
+      const each = (
+        authored: AuthoredCheck,
+        retry?: string,
+      ): readonly ActionView[] =>
+        approachesOf(authored).map((spec) =>
+          view(
+            kind,
+            {
+              ...action,
+              ...chosen(approachId(spec), retry !== undefined),
+            } as FifthAction,
+            target,
+            spec,
+            retry,
+          ),
+        );
+      const first =
+        check === undefined ||
+        approachesOf(check).length < 2 ||
+        outcomeAt(state, site) !== undefined
+          ? [view(kind, action, target)]
+          : each(check);
+      const authored = siteChecks.get(checkSiteId(site));
+      const offer = retryOffer(state, site);
+      if (authored === undefined || offer === undefined) {
+        return first;
+      }
+      return [
+        ...first,
+        ...(approachesOf(authored).length < 2
+          ? [
+              view(
+                kind,
+                { ...action, retry: true } as FifthAction,
+                target,
+                undefined,
+                offer.reason,
+              ),
+            ]
+          : each(authored, offer.reason)),
+      ];
+    };
     const examine = (target: Named) =>
       tries(
         "examine",
@@ -4713,7 +5077,9 @@ export function createFifthRuntime(
   /**
    * A tool that takes one id from `choices`, offered only when there are
    * some. A check tool whose targets include one with several approaches
-   * (#283) also takes the approach: one of `approaches`, or null.
+   * (#283) also takes the approach: one of `approaches`, or null. One whose
+   * targets include one offering another try (#284) also takes `retry`,
+   * listing those targets and why.
    */
   const targetTool = (
     name: TargetTool,
@@ -4724,6 +5090,7 @@ export function createFifthRuntime(
       target: string;
       approaches: readonly Readonly<{ id: string; name: string }>[];
     }>[] = [],
+    retries: readonly Readonly<{ target: string; reason: string }>[] = [],
   ): GameToolDefinition[] => {
     if (choices.length === 0) {
       return [];
@@ -4749,6 +5116,12 @@ export function createFifthRuntime(
                     )}`,
                 )
                 .join("; ")}. Give null for any other target.`
+        }${
+          retries.length === 0
+            ? ""
+            : ` Another try, only when the player asks to try again: ${retries
+                .map(({ target, reason }) => `${target} (${reason})`)
+                .join("; ")}; give retry true for it, and false otherwise.`
         }`,
         strict: true,
         parameters: {
@@ -4769,8 +5142,21 @@ export function createFifthRuntime(
                       "The approach the player chose, for a target that offers several; null otherwise.",
                   },
                 }),
+            ...(retries.length === 0
+              ? {}
+              : {
+                  retry: {
+                    type: "boolean",
+                    description:
+                      "True only when the player asks to try a listed target again; false otherwise.",
+                  },
+                }),
           },
-          required: ids.length === 0 ? [parameter] : [parameter, "approach"],
+          required: [
+            parameter,
+            ...(ids.length === 0 ? [] : ["approach"]),
+            ...(retries.length === 0 ? [] : ["retry"]),
+          ],
           additionalProperties: false,
         },
       },
@@ -4799,6 +5185,21 @@ export function createFifthRuntime(
           }, new Map<string, Readonly<{ id: string; name: string }>[]>())
           .entries(),
       ].map(([target, offered]) => ({ target, approaches: offered }));
+    /** The targets of `kind` that offer another try now (#284), and why. */
+    const retryChoices = (kind: ActionKind) => [
+      ...new Map(
+        actions.flatMap(({ action, target, retry, available }) =>
+          action === kind && available && retry !== undefined
+            ? [
+                [
+                  target!.id,
+                  { target: target!.id, reason: retry.reason },
+                ] as const,
+              ]
+            : [],
+        ),
+      ).values(),
+    ];
     const features = (
       Object.entries(FEATURE_TOOLS) as [FeatureTool, EncounterActionType][]
     )
@@ -4841,6 +5242,7 @@ export function createFifthRuntime(
         choices("examine"),
         "The id of the feature or item to examine.",
         approachChoices("examine"),
+        retryChoices("examine"),
       ),
       ...targetTool(
         "take",
@@ -4860,6 +5262,7 @@ export function createFifthRuntime(
         choices("force"),
         "The id of the door to force.",
         approachChoices("force"),
+        retryChoices("force"),
       ),
       ...targetTool(
         "pick_lock",
@@ -4867,6 +5270,7 @@ export function createFifthRuntime(
         choices("pick"),
         "The id of the door whose lock to pick.",
         approachChoices("pick"),
+        retryChoices("pick"),
       ),
       ...targetTool(
         "break_door",
@@ -4874,6 +5278,7 @@ export function createFifthRuntime(
         choices("break"),
         "The id of the door to break.",
         approachChoices("break"),
+        retryChoices("break"),
       ),
       ...targetTool(
         "unlock",
@@ -4893,6 +5298,7 @@ export function createFifthRuntime(
         choices("disarm"),
         "The id of the trap to disarm.",
         approachChoices("disarm"),
+        retryChoices("disarm"),
       ),
       ...targetTool(
         "talk",
@@ -4900,6 +5306,7 @@ export function createFifthRuntime(
         choices("talk"),
         "The id of the topic to ask about.",
         approachChoices("talk"),
+        retryChoices("talk"),
       ),
       ...targetTool(
         "equip",
@@ -4985,18 +5392,25 @@ export function createFifthRuntime(
     const parameter = Object.hasOwn(TARGET_TOOLS, call.name)
       ? TARGET_TOOLS[call.name as TargetTool].parameter
       : undefined;
-    // A check tool may also give the approach (#283): a string, or null.
-    const keys = isRecord(parsed) ? Object.keys(parsed).sort().join(",") : "";
+    // A check tool may also give the approach (#283), a string or null,
+    // and a retry (#284), true or false; nothing else.
     const approach = isRecord(parsed) ? parsed.approach : undefined;
-    const withApproach =
-      parameter !== undefined &&
-      APPROACH_TOOLS.includes(call.name) &&
-      keys === [parameter, "approach"].sort().join(",") &&
-      (approach === null || typeof approach === "string");
+    const retry = isRecord(parsed) ? parsed.retry : undefined;
+    const checkTool =
+      parameter !== undefined && APPROACH_TOOLS.includes(call.name);
+    const extraOk = (key: string) =>
+      checkTool &&
+      ((key === "approach" &&
+        (approach === null || typeof approach === "string")) ||
+        (key === "retry" && typeof retry === "boolean"));
     if (
       !isRecord(parsed) ||
-      (keys !== (parameter ?? "") && !withApproach) ||
-      (parameter !== undefined && typeof parsed[parameter] !== "string")
+      (parameter === undefined
+        ? Object.keys(parsed).length > 0
+        : typeof parsed[parameter] !== "string" ||
+          !Object.keys(parsed).every(
+            (key) => key === parameter || extraOk(key),
+          ))
     ) {
       return invalid("invalid-arguments");
     }
@@ -5014,6 +5428,7 @@ export function createFifthRuntime(
         : TARGET_TOOLS[call.name as TargetTool].action(
             parsed[parameter] as string,
             typeof approach === "string" ? approach : undefined,
+            retry === true,
           );
     const result = handleAction(state, action, random);
     if (result.rejection !== undefined) {
@@ -5141,7 +5556,7 @@ export function createFifthRuntime(
     rulesVersion: FIFTH_RULES_VERSION,
     promptVersion: FIFTH_PROMPT_VERSION,
     systemPrompt: FIFTH_DM_SYSTEM_PROMPT,
-    toolSchemaVersion: "5e-tools-v10",
+    toolSchemaVersion: "5e-tools-v11",
     readToolNames: ["look", "get_character_status"],
     mutationToolNames: MUTATION_TOOLS,
     adventure,

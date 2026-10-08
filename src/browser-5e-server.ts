@@ -300,7 +300,10 @@ const CHOICE_KEYS = [
 ];
 /** The clicked actions that take no target. */
 const CLICK_ACTIONS = ["second-wind", "action-surge", "end-turn"] as const;
-/** The clicked actions that make a check, which may name its approach (#283). */
+/**
+ * The clicked actions that make a check, which may name its approach (#283)
+ * and ask for another try (#284).
+ */
 const APPROACH_ACTIONS: readonly string[] = [
   "examine",
   "force",
@@ -595,8 +598,10 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           actorId: PLAYER_ID,
         });
       case "/api/5e/session/explore": {
-        // A check's approach (#283) comes with the actions that make checks.
+        // A check's approach (#283) and a retry (#284) come with the
+        // actions that make checks.
         const approach = typeof body.approach === "string";
+        const retry = body.retry === true;
         if (
           !hasExactKeys(body, [
             "sessionId",
@@ -604,21 +609,21 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             "action",
             "target",
             ...(approach ? ["approach"] : []),
+            ...(retry ? ["retry"] : []),
           ]) ||
           typeof body.action !== "string" ||
           !Object.hasOwn(EXPLORE_ACTIONS, body.action) ||
           typeof body.target !== "string" ||
-          (approach && !APPROACH_ACTIONS.includes(body.action))
+          ((approach || retry) && !APPROACH_ACTIONS.includes(body.action))
         ) {
           throw new Error("Invalid exploring request.");
         }
         const action = EXPLORE_ACTIONS[body.action]!(body.target);
-        return click(
-          body,
-          approach
-            ? ({ ...action, approach: body.approach } as FifthAction)
-            : action,
-        );
+        return click(body, {
+          ...action,
+          ...(approach ? { approach: body.approach } : {}),
+          ...(retry ? { retry: true } : {}),
+        } as FifthAction);
       }
       case "/api/5e/session/message": {
         if (

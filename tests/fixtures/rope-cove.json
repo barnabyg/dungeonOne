@@ -1,0 +1,286 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 20,
+  "id": "rope-cove",
+  "title": "The Rope Cove",
+  "objective": "Climb to the gull ledge, look into the old shed and its burrow, and leave by the shingle path.",
+  "recommendedLevels": {
+    "min": 1,
+    "max": 1
+  },
+  "difficulty": "hard",
+  "startRoomId": "cliff-foot",
+  "rooms": [
+    {
+      "id": "cliff-foot",
+      "name": "Cliff Foot",
+      "description": "A strip of shingle under a sheer cliff. A shed leans against the rock, and an old hermit mends nets by a broken crate.",
+      "exit": true,
+      "features": [
+        {
+          "id": "sheer-cliff",
+          "name": "Sheer Cliff",
+          "description": "Wet rock rising to a ledge where gulls wheel.",
+          "check": {
+            "skill": "athletics",
+            "dc": 15,
+            "advantage": [
+              {
+                "type": "holds",
+                "item": "knotted-rope",
+                "name": "Knotted Rope"
+              }
+            ],
+            "retry": {
+              "after": {
+                "type": "holds",
+                "item": "knotted-rope",
+                "name": "Knotted Rope"
+              }
+            },
+            "bands": {
+              "failure-by-5": {
+                "text": "You slip and land hard on the shingle.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 1,
+                    "sides": 4,
+                    "modifier": 0,
+                    "damageType": "bludgeoning",
+                    "defeatEndingId": "fallen-at-the-cliff"
+                  }
+                ]
+              },
+              "failure": {
+                "text": "The wet rock gives you no hold."
+              },
+              "success": {
+                "text": "You haul yourself up onto the ledge.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "foot-to-ledge"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "old-crate",
+          "name": "Old Crate",
+          "description": "A broken fishing crate half buried in the shingle.",
+          "discovery": "Under the sacking lies a coil of knotted rope."
+        },
+        {
+          "id": "tide-notice",
+          "name": "Tide Notice",
+          "description": "A notice nailed to a driftwood post.",
+          "discovery": "Scrawled on it: the hermit trusts anyone who knows the tides."
+        }
+      ],
+      "items": [
+        {
+          "id": "knotted-rope",
+          "name": "Knotted Rope",
+          "description": "Fifty feet of hempen rope, knotted every foot.",
+          "kind": "tool",
+          "hiddenIn": "old-crate"
+        },
+        {
+          "id": "iron-spike",
+          "name": "Iron Spike",
+          "description": "A rusty iron spike, good for wedging a wire.",
+          "kind": "tool"
+        }
+      ],
+      "creatures": [
+        {
+          "id": "old-hermit",
+          "name": "Old Hermit",
+          "description": "A bent old man who watches the sea more than you.",
+          "topics": [
+            {
+              "id": "the-burrow",
+              "name": "the burrow",
+              "reply": "\"The rats' burrow runs down to the sea. Mind the wire.\"",
+              "failure": "\"Strangers ask too many questions.\"",
+              "check": {
+                "skill": "persuasion",
+                "dc": 14,
+                "retry": {
+                  "after": {
+                    "type": "discovered",
+                    "feature": "tide-notice",
+                    "name": "the tide notice"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gull-ledge",
+      "name": "Gull Ledge",
+      "description": "A windy ledge above the cove, white with droppings.",
+      "features": [
+        {
+          "id": "gull-nest",
+          "name": "Gull Nest",
+          "description": "A nest of weed and feathers.",
+          "discovery": "Nothing but broken shells."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "tool-shed",
+      "name": "Tool Shed",
+      "description": "A dark shed that smells of tar. A hole in the floor squeals and scrabbles.",
+      "features": [
+        {
+          "id": "burrow-mouth",
+          "name": "Burrow Mouth",
+          "description": "A hole in the floor, loud with scrabbling.",
+          "discovery": "Under the noise, water drips: the burrow runs down to the sea.",
+          "check": {
+            "skill": "perception",
+            "dc": 12,
+            "disadvantage": [
+              {
+                "type": "won",
+                "encounter": "burrow-rat",
+                "not": true,
+                "name": "the rats squealing nearby"
+              }
+            ],
+            "retry": {
+              "after": {
+                "type": "won",
+                "encounter": "burrow-rat",
+                "name": "the rats gone quiet"
+              }
+            },
+            "bands": {
+              "success": {
+                "effects": [
+                  {
+                    "type": "discovery",
+                    "feature": "burrow-mouth"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "rat-burrow",
+      "name": "Rat Burrow",
+      "description": "A low, damp burrow.",
+      "encounterId": "burrow-rat",
+      "features": [],
+      "items": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "foot-to-ledge",
+      "between": ["cliff-foot", "gull-ledge"],
+      "description": "The way up the cliff.",
+      "hidden": true
+    },
+    {
+      "id": "foot-to-shed",
+      "between": ["cliff-foot", "tool-shed"],
+      "description": "The shed door.",
+      "door": {
+        "id": "swollen-door",
+        "name": "Swollen Door",
+        "description": "Salt has swollen the door tight in its frame.",
+        "state": "stuck",
+        "force": {
+          "skill": "athletics",
+          "dc": 13,
+          "retry": {
+            "cost": {
+              "type": "damage",
+              "dice": 1,
+              "sides": 4,
+              "modifier": 0,
+              "damageType": "bludgeoning",
+              "defeatEndingId": "fallen-at-the-cliff"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "shed-to-burrow",
+      "between": ["tool-shed", "rat-burrow"],
+      "description": "The hole in the floor.",
+      "trap": {
+        "id": "trip-wire",
+        "name": "Trip Wire",
+        "description": "A wire strung across the hole, tied to a falling plank.",
+        "find": {
+          "skill": "perception",
+          "dc": 12
+        },
+        "disarm": {
+          "ability": "dexterity",
+          "dc": 13,
+          "retry": {
+            "cost": {
+              "type": "item",
+              "item": "iron-spike"
+            }
+          }
+        },
+        "trigger": "The wire snaps and a plank swings down.",
+        "save": {
+          "ability": "dexterity",
+          "dc": 12
+        },
+        "damage": {
+          "dice": 1,
+          "sides": 4,
+          "modifier": 0,
+          "type": "bludgeoning"
+        },
+        "defeatEndingId": "fallen-at-the-cliff"
+      }
+    }
+  ],
+  "encounters": [
+    {
+      "id": "burrow-rat",
+      "opponents": [
+        {
+          "id": "burrow-rat",
+          "monster": "giant-rat"
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-cliff"
+    }
+  ],
+  "endings": [
+    {
+      "id": "left-the-cove",
+      "kind": "escape-without-loot",
+      "title": "Left the cove",
+      "text": "You leave by the shingle path."
+    },
+    {
+      "id": "fallen-at-the-cliff",
+      "kind": "defeat",
+      "title": "Fallen at the cliff",
+      "text": "You lie still on the shingle."
+    }
+  ]
+}

@@ -14,6 +14,7 @@ const NAMES = [
   "lone-goblin",
   "obstacle-yard",
   "rat-tunnels",
+  "rope-cove",
   "sealed-crypt",
   "shifting-ossuary",
 ];
@@ -261,6 +262,17 @@ export const coalStore = (() => {
   return validateModule(module);
 })();
 
+/**
+ * Retries and circumstances (#284), level 1: a sheer cliff (Athletics DC 15)
+ * that holding the knotted rope, hidden in the old crate, gives advantage
+ * and another try; a swollen door whose force can be retried for 1d4
+ * bludgeoning damage; a trip wire whose disarm can be retried by using up
+ * the iron spike; a hermit's topic retried once the tide notice is read;
+ * and a burrow to listen at, at disadvantage while its rat lives and again
+ * once it is beaten.
+ */
+export const ropeCove = validateModule(moduleFile("rope-cove"));
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,
@@ -274,4 +286,5 @@ export const FIXTURE_MODULES = [
   gradedCellar,
   shiftingOssuary,
   obstacleYard,
+  ropeCove,
 ];

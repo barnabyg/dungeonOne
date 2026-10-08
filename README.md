@@ -254,7 +254,10 @@ its key). In a module with traps every room has **Search**, a Perception check
 that finds traps on its exits; a found trap has **Disarm**. Going through an
 armed trap springs it: a saving throw for half damage. **Talk** asks a creature
 about one of its topics; some need a check. Each check is rolled once, so
-retyping never rerolls it. Or type instead: "search the chest", "go to the
+retyping never rerolls it; only a module's authored retry offers **Try again**,
+with its cost (such as damage) or what changed (such as a rope found) under the
+button. Circumstances the module names, such as holding a rope, can give a
+check advantage or disadvantage, and its card says why. Or type instead: "search the chest", "go to the
 alcove", "drink the potion".
 
 ### Fighting
@@ -348,12 +351,12 @@ reason, the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 11.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 24.
+  `characters-adventures` directory beside the library, in format version 25.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 19. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 20. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 7, or author a one-off stat block inline.
 

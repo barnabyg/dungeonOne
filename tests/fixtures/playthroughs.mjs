@@ -66,10 +66,13 @@ export function veteran() {
  */
 export function engineAction(view) {
   const made = madeAction(view);
-  // A check's chosen approach (#283) goes with the click, as the browser sends it.
-  return view.approach === undefined
-    ? made
-    : { ...made, approach: view.approach.id };
+  // A check's chosen approach (#283) and a retry (#284) go with the click, as
+  // the browser sends them.
+  return {
+    ...made,
+    ...(view.approach === undefined ? {} : { approach: view.approach.id }),
+    ...(view.retry === undefined ? {} : { retry: true }),
+  };
 }
 
 function madeAction({ action, target }) {
