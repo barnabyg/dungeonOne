@@ -4,8 +4,11 @@
  * Pure rules: one d20 (two with advantage) from the `RandomSource` passed in,
  * plus the ability modifier, plus the proficiency bonus when the character is
  * proficient in the skill or the save. A check or save succeeds when its total
- * meets the DC; a natural 20 or 1 has no special effect. The only source of
- * advantage so far is the Champion's Remarkable Athlete, on Athletics checks.
+ * meets the DC; a natural 20 or 1 has no special effect. The Champion's
+ * Remarkable Athlete gives advantage on Athletics checks, and a module's
+ * circumstances (#284) may give advantage or disadvantage on any check: the
+ * caller names them, and they combine as SRD 5.2 says (any advantage and any
+ * disadvantage cancel).
  *
  * An authored check grades its outcome into bands (#281): failure by 5 or
  * more, failure, success, and success by 5 or more.
@@ -90,8 +93,9 @@ function rolled(
   dc: number,
   advantage: readonly string[],
   random: Pick<RandomSource, "roll">,
+  disadvantage: readonly string[] = [],
 ): CheckRoll {
-  const { d20, mode } = rollD20(random, advantage, []);
+  const { d20, mode } = rollD20(random, advantage, disadvantage);
   const total = d20 + modifier + proficiency;
   return {
     kind,
@@ -118,11 +122,24 @@ export const approachName = (spec: CheckSpec): string =>
     ? titleCase(spec.ability)
     : FIGHTER_SKILLS[spec.skill].name;
 
-/** Rolls an ability check, with the skill's proficiency where the sheet has it. */
+/** Named sources of advantage and disadvantage on one roll (#284). */
+export type Circumstances = Readonly<{
+  advantage: readonly string[];
+  disadvantage: readonly string[];
+}>;
+
+const NO_CIRCUMSTANCES: Circumstances = { advantage: [], disadvantage: [] };
+
+/**
+ * Rolls an ability check, with the skill's proficiency where the sheet has
+ * it, and the advantage and disadvantage `circumstances` name (#284) beside
+ * Remarkable Athlete's.
+ */
 export function abilityCheck(
   sheet: FighterSheet,
   spec: CheckSpec,
   random: Pick<RandomSource, "roll">,
+  circumstances: Circumstances = NO_CIRCUMSTANCES,
 ): CheckRoll {
   const profile = fighterProfile(sheet);
   if (spec.skill === undefined) {
@@ -134,8 +151,9 @@ export function abilityCheck(
       profile.modifiers[spec.ability],
       0,
       spec.dc,
-      [],
+      circumstances.advantage,
       random,
+      circumstances.disadvantage,
     );
   }
   const { name, ability } = FIGHTER_SKILLS[spec.skill];
@@ -148,11 +166,15 @@ export function abilityCheck(
     profile.modifiers[ability],
     proficient ? profile.proficiencyBonus : 0,
     spec.dc,
-    spec.skill === "athletics" &&
+    [
+      ...(spec.skill === "athletics" &&
       profile.features.some(({ id }) => id === "remarkable-athlete")
-      ? ["Remarkable Athlete"]
-      : [],
+        ? ["Remarkable Athlete"]
+        : []),
+      ...circumstances.advantage,
+    ],
     random,
+    circumstances.disadvantage,
   );
 }
 

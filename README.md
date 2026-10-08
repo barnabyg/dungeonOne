@@ -254,7 +254,10 @@ its key). In a module with traps every room has **Search**, a Perception check
 that finds traps on its exits; a found trap has **Disarm**. Going through an
 armed trap springs it: a saving throw for half damage. **Talk** asks a creature
 about one of its topics; some need a check. Each check is rolled once, so
-retyping never rerolls it. Or type instead: "search the chest", "go to the
+retyping never rerolls it; only a module's authored retry offers **Try again**,
+with its cost (such as damage) or what changed (such as a rope found) under the
+button. Circumstances the module names, such as holding a rope, can give a
+check advantage or disadvantage, and its card says why. Or type instead: "search the chest", "go to the
 alcove", "drink the potion".
 
 ### Fighting
@@ -340,20 +343,20 @@ character, so playing an adventure again earns nothing twice. When the adventure
 ending takes the place of the action buttons and gets focus: Victory, Escaped
 with loot, Escaped empty-handed or Defeat, its title and text, what it earned
 (with the coin found and the purse kept, which differ once coin is spent) and
-any level-up (300 XP for level 2, 900 for level 3) with the new hit points
-and features, and **Back to _name_'s sheet**. The typing box is disabled with the
+any level-up (300 XP for level 2, 900 for level 3, 2,700 for level 4) with
+the new hit points and features, and **Back to _name_'s sheet**. The typing box is disabled with the
 reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 10.
+- The character library (`characters.json` by default) is format version 11.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 23.
+  `characters-adventures` directory beside the library, in format version 25.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 19. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 20. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 7, or author a one-off stat block inline.
 
@@ -381,11 +384,14 @@ These are for development, not play.
   that differs; replay a trace recorded with `--adventure-file` with the same
   file.
 - **Balance harness.** `npm.cmd run balance -- [--seeds <count>] [--percentiles
-<p,p>] [--styles <style,style>] [--json] [module.json ...]` plays each built-in
-  module (or the files named) through the real runtime with weak and strong
-  rolled Fighters at every recommended level, in three play styles, and reports
+<p,p>] [--styles <style,style>] [--checks <policy>] [--json] [module.json ...]`
+  plays each built-in module (or the files named) through the real runtime with
+  weak and strong rolled Fighters at every recommended level, in three play
+  styles, with checks rolled (`seeded`, the default), always in their worst band
+  (`always-fail`) or always in their best (`always-succeed`), and reports
   survival, HP lost and rounds per fight, healing, XP, treasure, one-hit-kill
-  chances and each module's balance-gate verdict. See
+  chances and each module's balance-gate verdict, which plays every check
+  policy. See
   [the rules document](docs/character-rules.md#balance-harness).
 - **Encounter estimate.** `npm.cmd run estimate -- [--levels <min>-<max>]
 [--seeds <count>] [--percentiles <p,p>] [--styles <style,style>] [--bestiary

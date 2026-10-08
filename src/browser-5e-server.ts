@@ -17,7 +17,10 @@
  * a reload or a restart; an ended session settles its character in the
  * library (crediting XP, treasure and coin once), and stays viewable, read-only,
  * with its ending's kind, what it earned and any level-up. A character's
- * adventure in progress can be abandoned, crediting nothing.
+ * adventure in progress can be abandoned, crediting nothing. A level-4
+ * Fighter's sheet asks for its Ability Score Improvement and fourth weapon
+ * mastery (#286), projecting what each choice changes, and the server makes
+ * the choice; until then the character starts no adventure.
  * A library in another format is refused before the server listens.
  */
 import { createServer } from "node:http";
@@ -67,7 +70,10 @@ import {
   FIGHTING_STYLES,
   keptTotal,
   levelUpChanges,
+  masteryOptions,
+  pendingLevelUp,
   projectCreation,
+  projectLevelChoice,
   settleFighter,
   type FighterChoices,
   type TreasureRecord,
@@ -240,19 +246,32 @@ function libraryView(
             },
           },
         }),
-    characters: data.characters.map(({ sheet, session, defeated }) => ({
-      sheet,
-      profile: fighterProfile(sheet),
-      purse: formatCoins(sheet.purse),
-      carrying: fighterCarrying(sheet),
-      stowed: sheet.stowed.map(itemName),
-      ammunition: ammunitionHeld(sheet.ammunition).map(({ id, count }) =>
-        ammunitionCount(id, count),
-      ),
-      treasure: sheet.treasure.map(treasureView),
-      ...(session === undefined ? {} : { session }),
-      defeated: defeated === true,
-    })),
+    characters: data.characters.map(({ sheet, session, defeated }) => {
+      const levelUp = pendingLevelUp(sheet);
+      return {
+        sheet,
+        profile: fighterProfile(sheet),
+        purse: formatCoins(sheet.purse),
+        carrying: fighterCarrying(sheet),
+        stowed: sheet.stowed.map(itemName),
+        ammunition: ammunitionHeld(sheet.ammunition).map(({ id, count }) =>
+          ammunitionCount(id, count),
+        ),
+        treasure: sheet.treasure.map(treasureView),
+        ...(session === undefined ? {} : { session }),
+        defeated: defeated === true,
+        // The level choice still to make (#286), with the level's changes.
+        ...(levelUp === undefined
+          ? {}
+          : {
+              levelChoice: {
+                levelUp,
+                masteries: masteryOptions(sheet),
+                scoreCap: ABILITY_SCORE_CAP,
+              },
+            }),
+      };
+    }),
   };
 }
 
@@ -281,7 +300,10 @@ const CHOICE_KEYS = [
 ];
 /** The clicked actions that take no target. */
 const CLICK_ACTIONS = ["second-wind", "action-surge", "end-turn"] as const;
-/** The clicked actions that make a check, which may name its approach (#283). */
+/**
+ * The clicked actions that make a check, which may name its approach (#283)
+ * and ask for another try (#284).
+ */
 const APPROACH_ACTIONS: readonly string[] = [
   "examine",
   "force",
@@ -576,8 +598,10 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           actorId: PLAYER_ID,
         });
       case "/api/5e/session/explore": {
-        // A check's approach (#283) comes with the actions that make checks.
+        // A check's approach (#283) and a retry (#284) come with the
+        // actions that make checks.
         const approach = typeof body.approach === "string";
+        const retry = body.retry === true;
         if (
           !hasExactKeys(body, [
             "sessionId",
@@ -585,21 +609,21 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             "action",
             "target",
             ...(approach ? ["approach"] : []),
+            ...(retry ? ["retry"] : []),
           ]) ||
           typeof body.action !== "string" ||
           !Object.hasOwn(EXPLORE_ACTIONS, body.action) ||
           typeof body.target !== "string" ||
-          (approach && !APPROACH_ACTIONS.includes(body.action))
+          ((approach || retry) && !APPROACH_ACTIONS.includes(body.action))
         ) {
           throw new Error("Invalid exploring request.");
         }
         const action = EXPLORE_ACTIONS[body.action]!(body.target);
-        return click(
-          body,
-          approach
-            ? ({ ...action, approach: body.approach } as FifthAction)
-            : action,
-        );
+        return click(body, {
+          ...action,
+          ...(approach ? { approach: body.approach } : {}),
+          ...(retry ? { retry: true } : {}),
+        } as FifthAction);
       }
       case "/api/5e/session/message": {
         if (
@@ -660,6 +684,46 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             library.create(
               (body.name as string).trim(),
               choicesFrom(body),
+              body.revision as string,
+            ),
+          ),
+        );
+      case "/api/5e/characters/level-choice/preview": {
+        if (
+          !hasExactKeys(body, ["characterId", "increase", "mastery"]) ||
+          typeof body.characterId !== "string"
+        ) {
+          throw new Error("Invalid level choice request.");
+        }
+        const record = (await library.read()).characters.find(
+          ({ sheet }) => sheet.id === body.characterId,
+        );
+        if (record === undefined) {
+          throw new Error("There is no such character in the library.");
+        }
+        return projectLevelChoice(record.sheet, {
+          increase: body.increase,
+          mastery: body.mastery,
+        });
+      }
+      case "/api/5e/characters/level-choice":
+        if (
+          !hasExactKeys(body, [
+            "revision",
+            "characterId",
+            "increase",
+            "mastery",
+          ]) ||
+          typeof body.revision !== "string" ||
+          typeof body.characterId !== "string"
+        ) {
+          throw new Error("Invalid level choice request.");
+        }
+        return view(
+          await serialized(() =>
+            library.chooseLevel(
+              body.characterId as string,
+              { increase: body.increase, mastery: body.mastery },
               body.revision as string,
             ),
           ),

@@ -10,10 +10,13 @@
  * ability modifier.
  */
 import {
+  authoredChecks,
+  effectsOf,
   LOOT_KINDS,
   statBlockDefenses,
   statBlockSaves,
   unsimulatedTraits,
+  type AuthoredCheck,
   type Difficulty,
   type EndingKind,
   type FifthAdventure,
@@ -21,17 +24,26 @@ import {
   type StatBlock,
 } from "./adventure-5e.js";
 import {
+  ABILITY_SCORE_CAP,
   abilityModifier,
+  applyLevelChoice,
   buildFighter,
   defaultPlacement,
+  FIGHTER_ABILITY_PRIORITY,
   FIGHTER_DEFAULT_CHOICES,
   fighterProfile,
   FIGHTING_STYLES,
+  LEVEL_XP,
+  masteryOptions,
+  pendingLevelChoice,
   rollAbilitySet,
   validateFighter,
+  type Ability,
+  type AbilityScoreImprovement,
   type FighterSheet,
   type FightingStyle,
   type Level,
+  type LevelChoice,
   type RolledDice,
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
@@ -51,32 +63,72 @@ import {
   type ConditionKind,
 } from "./encounter-5e.js";
 import {
+  CHECK_POLICIES,
   createFifthRuntime,
   PLAYER_ID,
   playerCombatant,
   type ActionKind,
   type ActionView,
+  type CheckPolicy,
   type FifthAction,
   type FifthRuntime,
+  type FifthState,
 } from "./runtime-5e.js";
 
-/** The XP a character needs to reach each level. */
-const LEVEL_XP: Readonly<Record<Level, number>> = { 1: 0, 2: 300, 3: 900 };
+export { CHECK_POLICIES, type CheckPolicy };
 
 /** Every starting kit, as creation offers them. */
 export const KITS = KIT_IDS;
 
 /**
+ * The gate's level-4 choice (#286). The Ability Score Improvement's two
+ * points go one at a time to the first ability below 20 in the order: the
+ * attack ability (Strength, or Dexterity for the Dexterity-first build), then
+ * `FIGHTER_ABILITY_PRIORITY`; so +2 to the attack ability unless that passes
+ * 20. The fourth mastery is `preferred` (a placed weapon the gate tries)
+ * when it can be mastered, or else the first of `MASTERY_WEAPONS` not
+ * mastered yet: the longsword, after the default dagger, mace and shortsword.
+ */
+export function gateLevelChoice(
+  sheet: FighterSheet,
+  archer = false,
+  preferred?: WeaponId,
+): LevelChoice {
+  const order: readonly Ability[] = [
+    archer ? "dexterity" : "strength",
+    ...FIGHTER_ABILITY_PRIORITY,
+  ];
+  const scores = { ...sheet.abilities };
+  const increase: Partial<Record<Ability, 1 | 2>> = {};
+  for (let point = 0; point < 2; point++) {
+    const ability = order.find((entry) => scores[entry] < ABILITY_SCORE_CAP)!;
+    scores[ability] += 1;
+    increase[ability] = increase[ability] === undefined ? 1 : 2;
+  }
+  const options = masteryOptions(sheet);
+  return {
+    increase: increase as AbilityScoreImprovement,
+    mastery:
+      preferred !== undefined && options.includes(preferred)
+        ? preferred
+        : options[0]!,
+  };
+}
+
+/**
  * A level-`level` Fighter from one creation's dice, placed and chosen as a
  * fresh creation starts but with `kit`, at full health. An `archer` is
  * Dexterity-first instead (#230): the rolls placed on Strength and
- * Dexterity change places, and the +2 goes on Dexterity.
+ * Dexterity change places, and the +2 goes on Dexterity. From level 4 it
+ * makes the gate's level choice (`gateLevelChoice`), preferring to master
+ * `mastery`.
  */
 export function fighterAtLevel(
   dice: RolledDice,
   level: Level,
   kit: KitId = FIGHTER_DEFAULT_CHOICES.kit,
   archer = false,
+  mastery?: WeaponId,
 ): FighterSheet {
   const placement = defaultPlacement(dice);
   const created = buildFighter("0".repeat(32), "Balance", dice, {
@@ -94,7 +146,13 @@ export function fighterAtLevel(
     kit,
   });
   const raised = { ...created, level, xp: LEVEL_XP[level] };
-  return validateFighter({ ...raised, hp: fighterProfile(raised).maxHp });
+  const sheet = validateFighter({
+    ...raised,
+    hp: fighterProfile(raised).maxHp,
+  });
+  return pendingLevelChoice(sheet) === undefined
+    ? sheet
+    : applyLevelChoice(sheet, gateLevelChoice(sheet, archer, mastery));
 }
 
 /** The sum of a default creation's six ability modifiers. */
@@ -617,7 +675,39 @@ export type RunRecord = Readonly<{
   xp: number;
   treasure: number;
   actions: number;
+  /** How many checks the run made (#285). */
+  checks: number;
 }>;
+
+/**
+ * The checks a run has made, in order, each named as the validator names it
+ * with the band it landed in and any passage that band closed: what a
+ * stranded run names (#285).
+ */
+function checksMade(
+  state: FifthState,
+  siteChecks: ReadonlyMap<string, AuthoredCheck>,
+): readonly string[] {
+  return state.checks.map(({ id, band }) => {
+    const split = id.indexOf(":");
+    const kind = id.slice(0, split);
+    const siteId = id.slice(split + 1);
+    const site =
+      kind === "examine"
+        ? `feature ${siteId} check`
+        : kind === "talk"
+          ? `topic ${siteId} check`
+          : kind === "disarm"
+            ? `trap ${siteId} disarm`
+            : kind === "search"
+              ? `search of ${siteId}`
+              : `door ${siteId} ${kind}`;
+    const closed = effectsOf(siteChecks.get(id)?.bands?.[band]).flatMap(
+      (effect) => (effect.type === "close" ? [effect.passage] : []),
+    );
+    return `${site} ${band}${closed.length === 0 ? "" : ` (closes passage ${closed.join(", ")})`}`;
+  });
+}
 
 /**
  * Plays one run of `runtime`'s adventure in `style` with dice from `seed`,
@@ -657,6 +747,12 @@ export function playAdventure(
     ),
   );
   const random = createSeededRandom(seed);
+  const siteChecks = new Map(
+    authoredChecks(adventure).map((site) => [
+      `${site.kind}:${site.id}`,
+      site.check,
+    ]),
+  );
 
   let state = runtime.createSession();
   const roomIds = [state.roomId];
@@ -747,8 +843,21 @@ export function playAdventure(
   };
 
   const low = (hp: number) => hp < maxHp * HEAL_BELOW[style];
+  /**
+   * Whether the style takes a view: any but a retry (#284) whose damage
+   * could leave the character low, so no run pays damage for try after
+   * failed try until it falls.
+   */
+  const affordable = ({ action, target, retry }: ActionView) => {
+    const cost = siteChecks.get(`${action}:${target?.id}`)?.retry?.cost;
+    return (
+      retry === undefined ||
+      cost?.type !== "damage" ||
+      !low(state.character.hp - (cost.dice * cost.sides + cost.modifier))
+    );
+  };
   const offered = (views: readonly ActionView[], kind: ActionKind) =>
-    views.filter(({ action }) => action === kind);
+    views.filter((view) => view.action === kind && affordable(view));
 
   /** The fight action to take now. */
   const fightChoice = (views: readonly ActionView[]): ActionView => {
@@ -789,6 +898,22 @@ export function playAdventure(
   const carriesLoot = () =>
     state.inventory.some((id) => items.get(id)!.item.kind === "treasure") ||
     state.usedItemIds.some((id) => items.get(id)!.item.kind === "coin");
+  /**
+   * Whether an item hidden in a feature with a check can no longer be found:
+   * the check is made, and the band of its last try (#284) did not reveal
+   * the item (#285).
+   */
+  const lost = (itemId: string, hiddenIn: string | undefined) => {
+    const made = state.checks.findLast(
+      ({ id }) => id === `examine:${hiddenIn}`,
+    );
+    return (
+      made !== undefined &&
+      !effectsOf(siteChecks.get(made.id)?.bands?.[made.band]).some(
+        (effect) => effect.type === "item" && effect.item === itemId,
+      )
+    );
+  };
   /** Where the objective lies from here. */
   const objectiveRooms = (): ReadonlySet<string> => {
     if (objective === "victory") {
@@ -798,7 +923,8 @@ export function playAdventure(
       [...items.values()].flatMap(({ item, roomId }) =>
         LOOT_KINDS.includes(item.kind) &&
         !state.inventory.includes(item.id) &&
-        !state.usedItemIds.includes(item.id)
+        !state.usedItemIds.includes(item.id) &&
+        !lost(item.id, item.hiddenIn)
           ? [roomId]
           : [],
       ),
@@ -914,9 +1040,10 @@ export function playAdventure(
     const fighting = state.encounter?.outcome === "ongoing";
     const choice = fighting ? fightChoice(views) : exploreChoice(views);
     if (choice === undefined) {
+      const made = checksMade(state, siteChecks);
       throw new BalanceError(
         "stranded",
-        `${adventure.id}: a ${style} run was stranded in ${state.roomId}.`,
+        `${adventure.id}: a ${style} run${runtime.checks === "seeded" ? "" : ` with ${runtime.checks} checks`} was stranded in ${state.roomId}${made.length === 0 ? "" : `, after ${made.join(", ")}`}.`,
       );
     }
     apply(runtime.actionOf(choice)!);
@@ -935,6 +1062,7 @@ export function playAdventure(
         ? 0
         : settlement.finds.length + settlement.coin.length,
     actions,
+    checks: state.checks.length,
   };
 }
 
@@ -951,6 +1079,8 @@ export type BalanceOptions = Readonly<{
   sampleSeed?: number;
   /** The most actions one run may take before it fails as `step-limit`. */
   stepLimit?: number;
+  /** How checks are graded (#285): `seeded` by default. */
+  checks?: CheckPolicy;
 }>;
 
 export const DEFAULT_SEED_COUNT = 200;
@@ -997,6 +1127,8 @@ export type BalanceCell = Readonly<{
 
 export type BalanceReport = Readonly<{
   adventureId: string;
+  /** The check policy the runs played (#285). */
+  checks: CheckPolicy;
   objective: Objective;
   requiredRoomIds: readonly string[];
   cells: readonly BalanceCell[];
@@ -1084,6 +1216,7 @@ export function qualifyAdventure(
     sampleSize,
     sampleSeed,
     stepLimit,
+    checks = "seeded",
   }: BalanceOptions = {},
 ): BalanceResult {
   try {
@@ -1098,7 +1231,7 @@ export function qualifyAdventure(
     for (let level = min as Level; level <= max; level++) {
       for (const { percentile, dice } of characters) {
         const sheet = fighterAtLevel(dice, level);
-        const runtime = createFifthRuntime(adventure, sheet);
+        const runtime = createFifthRuntime(adventure, sheet, { checks });
         for (const style of styles) {
           const runs = seeds.map((seed) =>
             playAdventure(runtime, style, seed, {
@@ -1118,6 +1251,7 @@ export function qualifyAdventure(
       ok: true,
       report: {
         adventureId: adventure.id,
+        checks,
         objective,
         requiredRoomIds: roomIds,
         cells,
@@ -1151,7 +1285,7 @@ export function renderBalanceResult(
   }
   const { report } = result;
   const lines = [
-    `${adventure.title} (${report.adventureId})`,
+    `${adventure.title} (${report.adventureId})${report.checks === "seeded" ? "" : `, with ${report.checks} checks`}`,
     `Objective: ${report.objective}, through ${report.requiredRoomIds.join(" > ")}`,
   ];
   for (const cell of report.cells) {
@@ -1204,12 +1338,14 @@ export const WEAKEST_PERCENTILE = 5;
 export const STRONGEST_PERCENTILE = 95;
 /** The style the weakest character plays the survival check in. */
 export const GATE_STYLE: PlayStyle = "cautious";
+/** The style the strongest character plays the always-succeed branch in. */
+export const XP_STYLE: PlayStyle = "direct";
 
 /**
- * The SRD 5.2 XP needed for levels 1–5. Characters stop at level 3; levels 4
- * and 5 are here only so the XP check can tell how far XP would carry one.
+ * The SRD 5.2 XP needed for levels 1–6. Characters stop at level 4; levels 5
+ * and 6 are here only so the XP check can tell how far XP would carry one.
  */
-const SRD_LEVEL_XP = [0, 300, 900, 2700, 6500] as const;
+const SRD_LEVEL_XP = [0, 300, 900, 2700, 6500, 14000] as const;
 
 function srdLevelForXp(xp: number): number {
   return SRD_LEVEL_XP.filter((needed) => xp >= needed).length;
@@ -1217,11 +1353,13 @@ function srdLevelForXp(xp: number): number {
 
 /**
  * The share of runs the weakest character survives with each kit at each
- * recommended level, against the threshold. `rate`, `kit` and `level` are
- * the kit and level it survives least with.
+ * recommended level, against the threshold, with its checks graded by
+ * `checks` (#285). `rate`, `kit` and `level` are the kit and level it
+ * survives least with.
  */
 export type SurvivalCheck = Readonly<{
   ok: boolean;
+  checks: CheckPolicy;
   level: number;
   percentile: number;
   style: PlayStyle;
@@ -1270,6 +1408,20 @@ export type XpCheck = Readonly<{
    * would give if more (#238), and the most any ending awards.
    */
   available: number;
+  /**
+   * The always-succeed branch (#285): the most XP the strongest character
+   * earned at the maximum recommended level, playing direct with every check
+   * in its best band, over the seeds in order until a run earns all the XP
+   * offered (`runs` is how many it played). It counts toward the limit when
+   * it is more than `available`.
+   */
+  alwaysSucceed: Readonly<{
+    level: number;
+    percentile: number;
+    style: PlayStyle;
+    runs: number;
+    mostXp: number;
+  }>;
   startXp: number;
   endLevel: number;
   levelLimit: number;
@@ -1279,7 +1431,10 @@ export type GateVerdict = Readonly<{
   adventureId: string;
   difficulty: Difficulty;
   qualified: boolean;
+  /** The survival check on seeded checks. */
   survival: SurvivalCheck;
+  /** The same check with every check in its worst band (#285). */
+  alwaysFail: SurvivalCheck;
   oneHitKill: OneHitKillCheck;
   xp: XpCheck;
 }>;
@@ -1291,6 +1446,7 @@ export type GateVerdict = Readonly<{
 export type GateMeasures = Readonly<{
   adventureId: string;
   survival: Omit<SurvivalCheck, "ok" | "required">;
+  alwaysFail: Omit<SurvivalCheck, "ok" | "required">;
   oneHitKill: Omit<OneHitKillCheck, "ok" | "cap" | "overCap">;
   xp: XpCheck;
 }>;
@@ -1335,7 +1491,7 @@ export function strongestAttackers(
     ...placed.map((gear) => {
       const kit = FIGHTER_DEFAULT_CHOICES.kit;
       const ranged = (WEAPONS[gear] as WeaponData).ammunition !== undefined;
-      const sheet = fighterAtLevel(dice, level, kit, ranged);
+      const sheet = fighterAtLevel(dice, level, kit, ranged, gear);
       return {
         kit,
         gear,
@@ -1390,14 +1546,18 @@ export function bestOneHitKill(
  * (`DIFFICULTY_THRESHOLDS`):
  * - too deadly: the weakest character, playing cautious, must survive at
  *   least the difficulty's share of runs with every starting kit at every
- *   recommended level;
+ *   recommended level, on seeded checks and again with every check in its
+ *   worst band (#285), where a run stranded by a check fails the module
+ *   naming the checks it made;
  * - too easy: for the strongest character at the maximum recommended level,
  *   with the kit or placed weapon, and the Fighting Style, strongest against
  *   each enemy, no more than half the
  *   ordinary (non-boss) enemies may be killed by one attack from full HP more
  *   often than the difficulty's cap;
- * - XP: all the XP the module offers must not take a character one XP short
- *   of the level above the maximum past the maximum + 1.
+ * - XP: all the XP the module offers, or more if the strongest character
+ *   earns more playing direct with every check in its best band (#285),
+ *   must not take a character one XP short of the level above the maximum
+ *   past the maximum + 1.
  * A module the harness can't play fails with a named reason, as in
  * `qualifyAdventure`. The same options always give the same verdict.
  */
@@ -1421,38 +1581,60 @@ export function gateAdventure(
       { length: max - min + 1 },
       (_, index) => (min + index) as Level,
     );
-    const kits = levels.flatMap((level) =>
+    const limit = stepLimit === undefined ? {} : { stepLimit };
+    /**
+     * The weakest character's cautious runs with each kit at each level, on
+     * seeded checks and with every check failing. A seeded run that made no
+     * check is the always-fail run on its seed too, so only runs that made
+     * one are played again.
+     */
+    const played = levels.flatMap((level) =>
       KITS.map((kit) => {
-        const runtime = createFifthRuntime(
-          adventure,
-          fighterAtLevel(weakest!.dice, level, kit),
-        );
-        const runs = seeds.map((seed) =>
-          playAdventure(runtime, GATE_STYLE, seed, {
-            ...(stepLimit === undefined ? {} : { stepLimit }),
-          }),
-        );
-        return {
-          kit,
-          level,
-          rate:
-            runs.filter(({ outcome }) => outcome !== "defeat").length /
-            runs.length,
-        };
+        const sheet = fighterAtLevel(weakest!.dice, level, kit);
+        const seeded = createFifthRuntime(adventure, sheet);
+        const failing = createFifthRuntime(adventure, sheet, {
+          checks: "always-fail",
+        });
+        const runs = seeds.map((seed) => {
+          const run = playAdventure(seeded, GATE_STYLE, seed, limit);
+          return {
+            seeded: run,
+            failing:
+              run.checks === 0
+                ? run
+                : playAdventure(failing, GATE_STYLE, seed, limit),
+          };
+        });
+        return { kit, level, runs };
       }),
     );
-    const weakestKit = kits.reduce((worst, entry) =>
-      entry.rate < worst.rate ? entry : worst,
-    );
-    const survival: GateMeasures["survival"] = {
-      level: weakestKit.level,
-      percentile: WEAKEST_PERCENTILE,
-      style: GATE_STYLE,
-      runs: seeds.length,
-      rate: weakestKit.rate,
-      kit: weakestKit.kit,
-      kits,
+    const survivalOf = (
+      checks: CheckPolicy,
+      branch: "seeded" | "failing",
+    ): GateMeasures["survival"] => {
+      const kits = played.map(({ kit, level, runs }) => ({
+        kit,
+        level,
+        rate:
+          runs.filter((run) => run[branch].outcome !== "defeat").length /
+          runs.length,
+      }));
+      const weakestKit = kits.reduce((worst, entry) =>
+        entry.rate < worst.rate ? entry : worst,
+      );
+      return {
+        checks,
+        level: weakestKit.level,
+        percentile: WEAKEST_PERCENTILE,
+        style: GATE_STYLE,
+        runs: seeds.length,
+        rate: weakestKit.rate,
+        kit: weakestKit.kit,
+        kits,
+      };
     };
+    const survival = survivalOf("seeded", "seeded");
+    const alwaysFail = survivalOf("always-fail", "failing");
 
     // Every weapon the module places or a merchant sells.
     const placed = [
@@ -1502,11 +1684,41 @@ export function gateAdventure(
           ),
         0,
       ) + Math.max(0, ...adventure.endings.map(({ xp }) => xp ?? 0));
+    // The always-succeed branch: every way a check can open is open, and the
+    // character fights every fight it finds.
+    const succeeding = createFifthRuntime(
+      adventure,
+      fighterAtLevel(strongest!.dice, max as Level),
+      { checks: "always-succeed" },
+    );
+    // Once a run earns everything offered, no other run can earn more.
+    let mostXp = 0;
+    let xpRuns = 0;
+    for (const seed of seeds) {
+      xpRuns += 1;
+      mostXp = Math.max(
+        mostXp,
+        playAdventure(succeeding, XP_STYLE, seed, limit).xp,
+      );
+      if (mostXp >= available) {
+        break;
+      }
+    }
+    const alwaysSucceed: XpCheck["alwaysSucceed"] = {
+      level: max,
+      percentile: STRONGEST_PERCENTILE,
+      style: XP_STYLE,
+      runs: xpRuns,
+      mostXp,
+    };
     const startXp = SRD_LEVEL_XP[max]! - 1;
-    const endLevel = srdLevelForXp(startXp + available);
+    const endLevel = srdLevelForXp(
+      startXp + Math.max(available, alwaysSucceed.mostXp),
+    );
     const xp: XpCheck = {
       ok: endLevel <= max + 1,
       available,
+      alwaysSucceed,
       startXp,
       endLevel,
       levelLimit: max + 1,
@@ -1515,7 +1727,7 @@ export function gateAdventure(
     return {
       ok: true,
       verdict: gateVerdictAt(
-        { adventureId: adventure.id, survival, oneHitKill, xp },
+        { adventureId: adventure.id, survival, alwaysFail, oneHitKill, xp },
         adventure.difficulty,
       ),
     };
@@ -1540,18 +1752,24 @@ export function gateVerdictAt(
   difficulty: Difficulty,
 ): GateVerdict {
   const thresholds = DIFFICULTY_THRESHOLDS[difficulty];
-  const { level, percentile, style, runs, rate, kit, kits } = measures.survival;
-  const survival: SurvivalCheck = {
-    ok: rate >= thresholds.survival,
-    level,
-    percentile,
-    style,
-    runs,
-    rate,
-    kit,
-    kits,
-    required: thresholds.survival,
+  const judged = (measured: GateMeasures["survival"]): SurvivalCheck => {
+    const { checks, level, percentile, style, runs, rate, kit, kits } =
+      measured;
+    return {
+      ok: rate >= thresholds.survival,
+      checks,
+      level,
+      percentile,
+      style,
+      runs,
+      rate,
+      kit,
+      kits,
+      required: thresholds.survival,
+    };
   };
+  const survival = judged(measures.survival);
+  const alwaysFail = judged(measures.alwaysFail);
   const { enemies } = measures.oneHitKill;
   const overCap = enemies.filter(
     ({ chance }) => chance > thresholds.oneHitKillCap,
@@ -1567,8 +1785,9 @@ export function gateVerdictAt(
   return {
     adventureId: measures.adventureId,
     difficulty,
-    qualified: survival.ok && oneHitKill.ok && measures.xp.ok,
+    qualified: survival.ok && alwaysFail.ok && oneHitKill.ok && measures.xp.ok,
     survival,
+    alwaysFail,
     oneHitKill,
     xp: measures.xp,
   };
@@ -1606,16 +1825,18 @@ export function renderGateResult(
     return `${name} does not qualify: ${result.failure.code}. ${result.failure.message}`;
   }
   const { verdict } = result;
-  const { survival, oneHitKill, xp } = verdict;
+  const { survival, alwaysFail, oneHitKill, xp } = verdict;
   const mark = (ok: boolean) => (ok ? "pass" : "FAIL");
   const over = oneHitKill.overCap;
+  const deadly = (check: SurvivalCheck, title: string) =>
+    `  ${title}, ${mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile character playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${check.kits
+      .map(({ kit, level, rate }) => `${kit} level ${level} ${percent(rate)}`)
+      .join(", ")}); ${verdict.difficulty} needs ${percent(check.required)}.`;
+  const succeeded = xp.alwaysSucceed;
   return [
     `${name} ${verdict.qualified ? "qualifies" : "does not qualify"} as ${verdict.difficulty}.`,
-    `  Too deadly, ${mark(survival.ok)}: the level ${survival.level}, ${survival.percentile}th percentile character playing ${survival.style} survived ${percent(survival.rate)} of ${survival.runs} runs with its weakest kit, ${survival.kit} (${survival.kits
-      .map(({ kit, level, rate }) => `${kit} level ${level} ${percent(rate)}`)
-      .join(
-        ", ",
-      )}); ${verdict.difficulty} needs ${percent(survival.required)}.`,
+    deadly(survival, "Too deadly"),
+    deadly(alwaysFail, "Too deadly when every check fails"),
     `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile character kills ` +
       (over.length === 0
         ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`
@@ -1625,6 +1846,7 @@ export function renderGateResult(
                 `${enemy} ${percent(chance)} (${gear === undefined ? kit : `found ${gear}`})`,
             )
             .join(", ")}.${oneHitKill.ok ? "" : " No more than half may be."}`),
-    `  XP, ${mark(xp.ok)}: its ${xp.available} XP takes a character from ${xp.startXp} XP to level ${xp.endLevel}; the limit is level ${xp.levelLimit}.`,
+    `  XP, ${mark(xp.ok)}: its ${Math.max(xp.available, succeeded.mostXp)} XP takes a character from ${xp.startXp} XP to level ${xp.endLevel}; the limit is level ${xp.levelLimit}.`,
+    `  When every check succeeds, the level ${succeeded.level}, ${succeeded.percentile}th percentile character playing ${succeeded.style} earned at most ${succeeded.mostXp} of the ${xp.available} XP offered in ${succeeded.runs} ${succeeded.runs === 1 ? "run" : "runs"}.`,
   ].join("\n");
 }

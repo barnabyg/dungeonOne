@@ -13,19 +13,20 @@ bestiary (`bestiary.mjs`), which holds SRD stat blocks rather than content.
 module's content at the time of #251, under its own id and title, and is now
 owned by the tests: change it only for a test's sake.
 
-| Fixture                 | Export            | Mechanic                                                                                                                 |
-| ----------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `lone-goblin.json`      | `loneGoblin`      | A one-room fight: one Goblin Warrior, level 1, hard. Victory and defeat endings.                                         |
-| `goblin-band.json`      | `goblinBand`      | A group fight: a Goblin Minion and a Goblin Warrior, level 2, medium.                                                    |
-| `goblin-trio.json`      | `goblinTrio`      | A group fight with numbered opponents of one kind, for multi-target and ordinal targeting.                               |
-| `rat-tunnels.json`      | `ratTunnels`      | Exploration: passages, examined features, a hidden potion, a Giant Rat fight that leaves the adventure going.            |
-| (built from the above)  | `ratlessTunnels`  | The tunnels without the rat, as _The Quiet Tunnels_: exploring rooms with one fight, in the den.                         |
-| `lintel-barrow.json`    | `lintelBarrow`    | An exit with loot behind a fight: a lintel to examine, a torc under the bier, a goblin carrying a pouch of coin.         |
-| `sealed-crypt.json`     | `sealedCrypt`     | Doors, a trap and talk, level 2: a stuck door, a locked door and its key, a dart trap, a creature with a check.          |
-| `goblin-burrow.json`    | `goblinBurrow`    | A level-up journey, levels 2–3: tunnel guards, then a goblin boss and its hoard on the way out.                          |
-| `obstacle-yard.json`    | `obstacleYard`    | Approaches (#283): a wall (Athletics or Acrobatics) and a guard (Persuasion or Intimidation), each opening a hidden way. |
-| `shifting-ossuary.json` | `shiftingOssuary` | Routes (#282): a skull wall's success opens a hidden passage; a rotten door's failed force closes its passage.           |
-| `graded-cellar.json`    | `gradedCellar`    | Graded checks (#281): a rubble heap's bands (damage, words, a ring revealed, a discovery), a topic and a door's.         |
+| Fixture                 | Export            | Mechanic                                                                                                                                             |
+| ----------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lone-goblin.json`      | `loneGoblin`      | A one-room fight: one Goblin Warrior, level 1, hard. Victory and defeat endings.                                                                     |
+| `goblin-band.json`      | `goblinBand`      | A group fight: a Goblin Minion and a Goblin Warrior, level 2, medium.                                                                                |
+| `goblin-trio.json`      | `goblinTrio`      | A group fight with numbered opponents of one kind, for multi-target and ordinal targeting.                                                           |
+| `rat-tunnels.json`      | `ratTunnels`      | Exploration: passages, examined features, a hidden potion, a Giant Rat fight that leaves the adventure going.                                        |
+| (built from the above)  | `ratlessTunnels`  | The tunnels without the rat, as _The Quiet Tunnels_: exploring rooms with one fight, in the den.                                                     |
+| `lintel-barrow.json`    | `lintelBarrow`    | An exit with loot behind a fight: a lintel to examine, a torc under the bier, a goblin carrying a pouch of coin.                                     |
+| `sealed-crypt.json`     | `sealedCrypt`     | Doors, a trap and talk, level 2: a stuck door, a locked door and its key, a dart trap, a creature with a check.                                      |
+| `goblin-burrow.json`    | `goblinBurrow`    | A level-up journey, levels 2–3: tunnel guards, then a goblin boss and its hoard on the way out.                                                      |
+| `obstacle-yard.json`    | `obstacleYard`    | Approaches (#283): a wall (Athletics or Acrobatics) and a guard (Persuasion or Intimidation), each opening a hidden way.                             |
+| `rope-cove.json`        | `ropeCove`        | Retries and circumstances (#284): a cliff the rope gives advantage and a retry, a door retried for damage, a trap for a spike, a topic and a burrow. |
+| `shifting-ossuary.json` | `shiftingOssuary` | Routes (#282): a skull wall's success opens a hidden passage; a rotten door's failed force closes its passage.                                       |
+| `graded-cellar.json`    | `gradedCellar`    | Graded checks (#281): a rubble heap's bands (damage, words, a ring revealed, a discovery), a topic and a door's.                                     |
 
 `moduleFile(name)` returns a fresh copy of a fixture's JSON to change and
 validate, and `fightRoomFile(id, title, opponents)` builds a one-room fight
@@ -102,6 +103,20 @@ _The Goblin Pair_ (two Goblin Warriors, level 3 since the leather starting
 kits of #207) is too deadly for medium and passes as hard. _The Minion Yard_ (two Goblin Minions in turn, level 1) is
 safe enough for medium, but a strong level-1 Fighter usually kills each
 minion with one attack, so it fails as too easy at every difficulty.
+
+## Check policies (issue 285)
+
+`modules.mjs` also builds three variants for `tests/issue-285.test.mjs`, which
+are not in `FIXTURE_MODULES`. `collapsingOssuary` (_The Collapsing Ossuary_)
+is the shifting ossuary with its side crypt open and an urn shelf whose
+Athletics check (DC 5) closes the way back on a failure by 5 or more: no
+Fighter fails it by 5, but always-fail does, so the gate rejects it as
+stranded, naming the check. `fallingArch` (_The Falling Arch_) adds a cracked
+arch at the gate whose Athletics check (DC 5) deals 4d6 on a failure by 5 or
+more, and makes the rat a boss: it qualifies as hard on seeded checks and is
+far too deadly when every check fails. `coalStore` (_The Coal Store_) is the
+graded cellar with its rubble heap and ring in a room that is no exit, so a
+run whose heap check fails must leave without the ring.
 
 ## Browser launch
 

@@ -28,6 +28,10 @@ _Avoid_: Roll (when the saved set is meant), Draft character
 The stage of a character's advancement that determines its supported class capabilities.
 _Avoid_: Content version, Story milestone, Hint level
 
+**Level choice**:
+The Ability Score Improvement (+2 to one ability or +1 to two, none above 20) and fourth weapon mastery a Fighter chooses on its sheet after settling at level 4. Until it is made the character owes it, saved in the character library, and cannot start another adventure.
+_Avoid_: Level-up (the card that shows a new level), Feat
+
 **Experience points**:
 Earned character progress awarded for authored accomplishments and used to determine advancement.
 _Avoid_: Story milestones, Player score
@@ -81,7 +85,7 @@ One of the named sets of common-tier equipment a player chooses from at creation
 _Avoid_: Starting gear package, Class equipment
 
 **Weapon mastery**:
-A Fighter's mastery of a kind of weapon, chosen at creation (three at levels 1–3). The weapon's mastery property (Sap, Vex, Graze or Nick) applies only while the character wields that weapon.
+A Fighter's mastery of a kind of weapon, chosen at creation (three at levels 1–3), and a fourth chosen at level 4. The weapon's mastery property (Sap, Vex, Graze or Nick) applies only while the character wields that weapon.
 _Avoid_: Proficiency (Fighters are proficient with every weapon), Weapon skill
 
 **Extra attack (light weapon)**:
@@ -149,8 +153,20 @@ A hidden danger in a passage. Searching a room may find it, and a found trap may
 _Avoid_: Hazard
 
 **Ability check**:
-A d20 roll plus one ability's modifier, and the proficiency bonus when the check uses a skill the character is proficient in, against an authored DC. Each check is rolled once and its outcome remembered, so asking again never rerolls it.
+A d20 roll plus one ability's modifier, and the proficiency bonus when the check uses a skill the character is proficient in, against an authored DC. Each check is rolled once and its outcome remembered, so asking again never rerolls it; only an authored retry rolls it again.
 _Avoid_: Skill roll, Test
+
+**Retry**:
+Another try at a failed check, offered only when its adventure module authors one: after a cost, paid before the roll (damage, or a tool used up), or after a changed circumstance. Without one, a check is never tried again; asking for one changes nothing.
+_Avoid_: Reroll, Second chance
+
+**Circumstance**:
+An authored fact about the adventure session that a check can depend on: the character holds a named item, has made a named discovery or has won a named encounter (or hasn't). It can give a check advantage or disadvantage, or allow a retry once it changes; the check's card names it.
+_Avoid_: Situational modifier, Condition (which is a fight's)
+
+**Tool**:
+A mundane item a module places, such as a rope or an iron spike, that does nothing by itself: a circumstance or a retry's cost names it. It is not kept after the adventure.
+_Avoid_: Gear (a catalogue weapon, armour or shield), Kit
 
 **Topic**:
 Something a creature can be asked about, with its authored answer. Some need a check, with an answer for success and one for failure. The AI DM offers only these topics.
@@ -235,6 +251,10 @@ _Avoid_: Dead character, Unconscious
 **Difficulty**:
 An adventure module's declared challenge for its recommended level range: Easy, Medium or Hard. The balance gate checks that the module is neither more lethal nor easier than it declares; a shipped module is declared at the strictest difficulty whose survival threshold it clears by at least 3 points (#252). Not to be confused with the Difficulty Class (DC) of a single check.
 _Avoid_: Challenge rating (a monster's, not a module's), DC
+
+**Check policy**:
+How the balance harness grades checks (#285): seeded rolls them as a player meets them; always-fail and always-succeed land every check in its worst or best reachable band. The balance gate requires a module to stay completable, and within its difficulty, when every check fails.
+_Avoid_: Check mode, Dice mode
 
 **Ordinary enemy**:
 An opponent a module doesn't mark as a boss. The balance gate's one-hit-kill cap applies only to ordinary enemies; a boss is exempt.

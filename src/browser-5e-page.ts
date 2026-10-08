@@ -59,6 +59,13 @@
 // in two columns (status and scene left, the dock right, each scrolling on its
 // own); narrower, it is one column with the dock sticky at the bottom.
 //
+// A level-4 Fighter's sheet (#286) leads with #level-choice, the level-up
+// card that asks for its Ability Score Improvement (#asi-mode-two or
+// #asi-mode-split, then #asi-<ability>) and fourth weapon mastery
+// (#new-mastery-<id>). The server projects every score and lists every
+// change in #level-choice-changes; #confirm-level-choice makes the choice.
+// Until it is made the sheet offers no adventure.
+//
 // Busy states (#160): while a request runs, the control that started it has
 // aria-busy (setBusy/clearBusy, with a label such as "Saving…") and cannot
 // start it again. An action-bar button (#185) keeps its busy label in
@@ -113,6 +120,11 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </section>
 <section id="sheet" class="panel" aria-labelledby="sheet-name" hidden>
 <h2 id="sheet-name" tabindex="-1"></h2>
+<section id="level-choice" class="level-up" aria-labelledby="level-choice-title" hidden><h3 id="level-choice-title"></h3><ul id="level-up-changes"></ul>
+<fieldset id="asi" aria-describedby="asi-error"><legend>Ability Score Improvement</legend><fieldset class="choice-row"><legend>How to improve</legend><label><input type="radio" name="asi-mode" id="asi-mode-two" value="two"> +2 to one ability</label><label><input type="radio" name="asi-mode" id="asi-mode-split" value="split"> +1 to two abilities</label></fieldset><div id="asi-fields" class="checks"></div><p id="asi-error" class="error" role="alert"></p></fieldset>
+<fieldset id="new-mastery" aria-describedby="new-mastery-error"><legend>Fourth weapon mastery</legend><p class="hint">A mastery works only while you wield that weapon.</p><div id="new-mastery-fields" class="checks"></div><p id="new-mastery-error" class="error" role="alert"></p></fieldset>
+<h4 id="level-choice-changes-title">What these choices change</h4><p id="level-choice-status" class="hint"></p><ul id="level-choice-changes" aria-labelledby="level-choice-changes-title"></ul>
+<p id="level-choice-error" class="error" role="alert"></p><div class="controls"><button id="confirm-level-choice" type="button" class="primary">Confirm level choices</button></div></section>
 <section id="sheet-adventures" aria-labelledby="sheet-adventures-title"><h3 id="sheet-adventures-title">Adventures</h3><p id="defeat-warning" class="hint"></p><div id="adventure-choices"></div><div id="abandon-confirm" class="confirm" hidden><p id="abandon-question"></p><div class="controls"><button id="confirm-abandon" type="button" class="primary danger">Abandon adventure</button><button id="cancel-abandon" type="button" class="secondary">Keep going</button></div></div><p id="start-error" class="error" role="alert"></p></section>
 <div id="sheet-body"></div>
 <div class="controls"><button id="delete-character" type="button" class="danger">Delete character</button></div>
@@ -202,12 +214,12 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 .card{background:var(--color-surface);border:1px solid var(--color-control-border);border-radius:var(--radius-sm);padding:6px 10px;margin-top:6px}.card.rejection{border-color:var(--color-danger);background:var(--color-danger-soft)}.card.rejection::before{content:"Action rejected"/"";color:var(--color-danger)}
 .log .roll{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:2px}.compact .who{font-weight:600}.compact .tag,.compact .roll-die{display:inline}.compact *{line-height:1}.card.has-more{position:relative;margin-top:10px}.card-more::before{content:"▸ "/""}.card-more[aria-expanded=true]::before{content:"▾ "/""}.card.has-more>.card-more{position:absolute;top:0;right:var(--space-2);transform:translateY(-50%);padding:0 4px;font-size:var(--text-xs);line-height:1.3;color:var(--color-text-label);background:inherit}.full-text{white-space:pre-line;margin-top:var(--space-1);font-size:var(--text-sm)}.roll-label{font-weight:600;color:var(--color-text-label)}.roll-die{display:inline-block;padding:0 4px;border:1px solid var(--color-control-border);border-radius:var(--radius-sm);background:var(--color-paper);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap}.roll-die.dropped{border-style:dashed;color:var(--color-text-muted);text-decoration:line-through}.roll strong{color:var(--color-text);font-size:var(--text-sm)}.tag.hit,.tag.critical,.tag.success{color:var(--color-success)}.tag.miss{color:var(--color-text-muted)}.tag.failure{color:var(--color-danger)}.roll-die.counted{font-weight:700}.tag.applies{color:var(--color-success)}.tag.no-effect{color:var(--color-text-muted)}.style-use-line{font:var(--text-sm) var(--font-sans)}
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#inventory .action{width:8.5em}#inventory .action button{width:100%}.things .wares{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}.things .wares li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);border:0;padding:0;background:none}.things .wares .controls{margin-top:0}.wares .action{width:8.5em}.wares .action button{width:100%}#sale-confirm{margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
-#ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#ending .level-up p{margin:0}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
+#ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares) button{display:inline-grid}:is(#action-bar,#inventory,.wares) button>span,:is(#action-bar,#inventory,.wares) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares) button{display:inline-grid}:is(#action-bar,#inventory,.wares) button>span,:is(#action-bar,#inventory,.wares) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1;min-height:8rem}#log{flex:1;max-height:none}#session-dock{overflow-y:auto}}
@@ -352,7 +364,7 @@ function showLibrary(focus) {
   if (focus) element("library-title").focus();
 }
 
-const characterStatus = (entry) => entry.defeated ? "Defeated" : entry.session ? "On an adventure" : "";
+const characterStatus = (entry) => entry.defeated ? "Defeated" : entry.session ? "On an adventure" : entry.levelChoice ? "Level choice to make" : "";
 const adventureTitle = (adventureId) => (library.adventures.find(({ id }) => id === adventureId) || { title: "an adventure" }).title;
 
 function feedback(message) { element("feedback").textContent = message; }
@@ -465,7 +477,8 @@ function openSheet(id) {
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
   const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
-  const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + ".", "hint");
+  const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
+  renderLevelChoice(entry);
   element("sheet-body").replaceChildren(summary, styleUseNode(profile.fightingStyle), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
@@ -510,6 +523,10 @@ function renderAdventureChoices(entry) {
   // A defeated character's sheet leads with its defeat.
   if (entry.defeated) {
     choices.replaceChildren(make("p", entry.sheet.name + " was defeated and cannot start another adventure.", "defeat-notice"));
+    return;
+  }
+  if (entry.levelChoice) {
+    choices.replaceChildren(make("p", "Choose " + entry.sheet.name + "'s level " + entry.levelChoice.levelUp.to + " Ability Score Improvement and weapon mastery above before starting another adventure.", "hint level-choice-notice"));
     return;
   }
   if (entry.session) {
@@ -738,8 +755,15 @@ function rewardNodes(rewards, name) {
     heading.id = "level-up-title";
     card.setAttribute("aria-labelledby", heading.id);
     // Names only: the sheet explains each feature, and the dock stays short.
-    const gains = make("p", "Hit points " + up.maxHp.before + " → " + up.maxHp.after + ". New: " + up.features.map((feature) => feature.name).join(", ") + ". See the sheet for what each does.");
+    const wind = up.secondWind.before.uses === up.secondWind.after.uses ? "" : " Second Wind uses " + up.secondWind.before.uses + " → " + up.secondWind.after.uses + ".";
+    const gains = make("p", "Hit points " + up.maxHp.before + " → " + up.maxHp.after + "." + wind + " New: " + up.features.map((feature) => feature.name).join(", ") + ". See the sheet for what each does.");
     card.append(heading, gains);
+    // Level 4 (#286): the choices wait on the sheet, and block the next adventure.
+    if (up.choices.length) {
+      const owed = make("p", "Choose an Ability Score Improvement and a fourth weapon mastery on " + name + "'s sheet before the next adventure.");
+      owed.id = "level-up-choices";
+      card.append(owed);
+    }
     nodes.push(card);
   }
   return nodes;
@@ -1277,10 +1301,12 @@ function renderActions() {
     const words = wordsOf(action);
     // A check with several approaches (#283) offers one button per skill.
     const way = option.approach ? " with " + option.approach.name : "";
-    const label = words.label + named(action, target) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
+    // Another try the module offers (#284) says so, and why, under it.
+    const again = option.retry ? "Try again: " : "";
+    const label = again + words.label + named(action, target) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
-    button.append(make("span", short ? ACTIONS[action].short : label));
+    button.append(make("span", option.retry ? (short ? "Try again" : label) : short ? ACTIONS[action].short : label));
     button.dataset.busyLabel = words.busyLabel;
     button.type = "button";
     if (short) button.setAttribute("aria-label", label);
@@ -1291,12 +1317,20 @@ function renderActions() {
     button.dataset.action = action;
     if (target) button.dataset.target = target.id;
     if (option.approach) button.dataset.approach = option.approach.id;
+    if (option.retry) button.dataset.retry = "true";
     button.disabled = acting || !option.available;
     button.addEventListener("click", () => action === "leave" ? openLeave() : action === "sell-equipped" ? openSale(option) : perform(option));
     const wrap = make("span", undefined, "action");
     wrap.append(button);
     // The approach's skill, under its button (the button keeps the verb).
     if (option.approach) wrap.append(unspoken(make("span", option.approach.name, "approach")));
+    // Why another try is offered: its cost, or what changed (#284).
+    if (option.retry) {
+      const why = make("span", option.retry.reason.charAt(0).toUpperCase() + option.retry.reason.slice(1), "retry");
+      why.id = "action-retry-" + index;
+      button.setAttribute("aria-describedby", why.id);
+      wrap.append(why);
+    }
     // Waiting says why it is all the character can do.
     const why = !option.available ? option.reason : words === WAIT ? "You are paralysed, so you can only wait." : "";
     if (why) {
@@ -1424,14 +1458,14 @@ async function leaveAdventure() {
   element(session.ending ? "ending-title" : "confirm-leave").focus();
 }
 
-async function perform({ action, target, approach }) {
+async function perform({ action, target, approach, retry }) {
   const targetId = target ? target.id : "";
   // The clicked control, found again after the bar re-renders, shows busy.
-  const control = "button.act[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])") + (approach ? "[data-approach=" + JSON.stringify(approach.id) + "]" : "");
+  const control = "button.act[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])") + (approach ? "[data-approach=" + JSON.stringify(approach.id) + "]" : "") + (retry ? "[data-retry]" : ":not([data-retry])");
   const busy = busyName({ action, target });
   if (action === "attack" || action === "light-attack") await act("/api/5e/session/" + action, { actorId: session.encounter.playerId, targetId }, control, busy);
   else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action }, control, busy);
-  else await act("/api/5e/session/explore", { action, target: targetId, ...(approach ? { approach: approach.id } : {}) }, control, busy);
+  else await act("/api/5e/session/explore", { action, target: targetId, ...(approach ? { approach: approach.id } : {}), ...(retry ? { retry: true } : {}) }, control, busy);
   keepFocus(action, targetId);
 }
 
@@ -1822,6 +1856,145 @@ async function saveCharacter(event) {
   }
 }
 
+// The level-up card's choice (#286): its draft, kept per character while the
+// page is open, and the server's projection of it.
+let levelDraft;
+let levelProjection;
+let levelPreviewRequest = 0;
+
+/** "+2 Strength" or "+1 Strength, +1 Constitution". */
+const increaseText = (increase) => library.abilities.filter((ability) => increase[ability]).map((ability) => "+" + increase[ability] + " " + titleCase(ability)).join(", ");
+
+/** The level's changes in words, from the server's level-up view. */
+function levelUpLines(up, scoreCap) {
+  const lines = ["Hit points " + up.maxHp.before + " → " + up.maxHp.after + " (+6 + Constitution modifier)."];
+  if (up.proficiencyBonus.before !== up.proficiencyBonus.after) lines.push("Proficiency bonus " + signed(up.proficiencyBonus.before) + " → " + signed(up.proficiencyBonus.after) + ".");
+  const wind = up.secondWind;
+  lines.push("Second Wind: " + wind.after.uses + " uses" + (wind.before.uses === wind.after.uses ? "" : " (was " + wind.before.uses + ")") + ", healing 1d10 + " + wind.after.modifier + " (was 1d10 + " + wind.before.modifier + ").");
+  if (up.weaponMasteries.before !== up.weaponMasteries.after) lines.push("Weapon Mastery: " + up.weaponMasteries.after + " kinds of weapon (was " + up.weaponMasteries.before + "); choose the new one below.");
+  if (up.choices.includes("ability-score-improvement")) lines.push("Ability Score Improvement: +2 to one ability score or +1 to two, to a maximum of " + scoreCap + "; choose it below.");
+  lines.push("Both choices are needed before the next adventure.");
+  return lines;
+}
+
+function renderLevelChoice(entry) {
+  const card = element("level-choice");
+  card.hidden = !entry.levelChoice;
+  if (!entry.levelChoice) return;
+  const { levelUp, masteries, scoreCap } = entry.levelChoice;
+  if (!levelDraft || levelDraft.characterId !== entry.sheet.id) levelDraft = { characterId: entry.sheet.id, mode: "two", increase: {}, mastery: null, scoreCap };
+  levelProjection = undefined;
+  element("level-choice-title").textContent = "Level " + levelUp.to + ": choose an Ability Score Improvement and a weapon mastery";
+  element("level-up-changes").replaceChildren(...levelUpLines(levelUp, scoreCap).map((line) => make("li", line)));
+  element("asi-mode-two").checked = levelDraft.mode === "two";
+  element("asi-mode-split").checked = levelDraft.mode === "split";
+  element("new-mastery-fields").replaceChildren(...library.masteryWeapons.filter(({ id }) => masteries.includes(id)).map((weapon) => {
+    const label = make("label");
+    const radio = make("input");
+    radio.type = "radio";
+    radio.name = "new-mastery";
+    radio.id = "new-mastery-" + weapon.id;
+    radio.checked = levelDraft.mastery === weapon.id;
+    radio.addEventListener("change", () => { levelDraft.mastery = weapon.id; previewLevelChoice(); });
+    const text = make("span", weapon.name + " (" + weapon.mastery + ")");
+    text.append(make("small", weapon.text));
+    label.append(radio, text);
+    return label;
+  }));
+  element("level-choice-changes").replaceChildren();
+  renderAsiFields(entry.sheet.abilities);
+  previewLevelChoice();
+}
+
+/**
+ * One choice per ability: a radio for +2, or a checkbox for +1 (two at
+ * most). Each shows the server's score and modifier for the draft, and an
+ * ability the improvement would take past the cap is disabled.
+ */
+function renderAsiFields(abilities) {
+  const amount = levelDraft.mode === "two" ? 2 : 1;
+  const chosen = Object.keys(levelDraft.increase);
+  element("asi-fields").replaceChildren(...library.abilities.map((ability) => {
+    const row = levelProjection && levelProjection.rows.find((entry) => entry.ability === ability);
+    const label = make("label");
+    const input = make("input");
+    input.type = amount === 2 ? "radio" : "checkbox";
+    input.name = "asi-ability";
+    input.id = "asi-" + ability;
+    input.checked = chosen.includes(ability);
+    const room = row ? row.room : levelDraft.scoreCap - abilities[ability];
+    input.disabled = (room < amount && !input.checked) || (amount === 1 && chosen.length >= 2 && !input.checked);
+    input.addEventListener("change", () => changeAsi(ability, input.checked));
+    const text = make("span", titleCase(ability) + " " + (row ? row.before + (row.score === row.before ? "" : " → " + row.score) + " (" + signed(row.modifier) + ")" : abilities[ability]));
+    if (room < amount) text.append(make("small", room === 0 ? "Already " + levelDraft.scoreCap : "Only +1 fits under " + levelDraft.scoreCap));
+    label.append(input, text);
+    return label;
+  }));
+}
+
+function changeAsi(ability, checked) {
+  if (levelDraft.mode === "two") levelDraft.increase = { [ability]: 2 };
+  else if (checked) levelDraft.increase = { ...levelDraft.increase, [ability]: 1 };
+  else {
+    const rest = { ...levelDraft.increase };
+    delete rest[ability];
+    levelDraft.increase = rest;
+  }
+  previewLevelChoice();
+}
+
+function changeAsiMode(event) {
+  levelDraft.mode = event.target.value;
+  levelDraft.increase = {};
+  previewLevelChoice();
+}
+
+/** Asks the server to project the draft; confirming waits for a finished one. */
+async function previewLevelChoice() {
+  const ticket = ++levelPreviewRequest;
+  const entry = findEntry(levelDraft.characterId);
+  const confirm = element("confirm-level-choice");
+  confirm.disabled = true;
+  try {
+    const result = await request("/api/5e/characters/level-choice/preview", { characterId: levelDraft.characterId, increase: levelDraft.increase, mastery: levelDraft.mastery });
+    if (ticket !== levelPreviewRequest) return;
+    levelProjection = result;
+    renderAsiFields(entry.sheet.abilities);
+    element("asi-error").textContent = result.unfinished.increase || "";
+    element("new-mastery-error").textContent = result.unfinished.mastery || "";
+    element("level-choice-error").textContent = "";
+    element("level-choice-status").textContent = result.changes ? "" : "Finish both choices to see what they change.";
+    element("level-choice-changes").replaceChildren(...(result.changes || []).map((line) => make("li", line)));
+    confirm.disabled = !result.changes || isBusy(confirm);
+  } catch (error) {
+    // The server stays the authority: a choice it refuses can't be confirmed.
+    if (ticket !== levelPreviewRequest) return;
+    element("level-choice-error").textContent = error.message;
+  }
+}
+
+async function confirmLevelChoice() {
+  const confirm = element("confirm-level-choice");
+  if (isBusy(confirm) || !levelProjection || !levelProjection.changes) return;
+  const { characterId, increase, mastery } = levelDraft;
+  const entry = findEntry(characterId);
+  setBusy(confirm, "Saving…");
+  try {
+    library = await request("/api/5e/characters/level-choice", { revision: library.revision, characterId, increase, mastery });
+  } catch (error) {
+    element("level-choice-error").textContent = error.message;
+    clearBusy(confirm);
+    confirm.disabled = false;
+    return;
+  }
+  clearBusy(confirm);
+  confirm.disabled = false;
+  levelDraft = undefined;
+  openSheet(characterId);
+  const weapon = library.masteryWeapons.find(({ id }) => id === mastery);
+  feedback(entry.sheet.name + "'s level choices are saved: " + increaseText(increase) + ", and mastery of the " + weapon.name.toLowerCase() + ".");
+}
+
 // The delete dialog opens only from a shown sheet, which is in the library.
 const shownSheet = () => findEntry(shownSheetId).sheet;
 
@@ -1869,6 +2042,8 @@ element("close-creation").addEventListener("click", () => go(""));
 for (const mode of ["two", "three"]) element("increase-mode-" + mode).addEventListener("change", changeIncreaseMode);
 element("character-name").addEventListener("input", () => { element("name-error").textContent = ""; });
 element("delete-character").addEventListener("click", openDelete);
+for (const mode of ["two", "split"]) element("asi-mode-" + mode).addEventListener("change", changeAsiMode);
+element("confirm-level-choice").addEventListener("click", confirmLevelChoice);
 element("delete-confirm-name").addEventListener("input", () => { element("confirm-delete").disabled = !nameMatches() || isBusy(element("confirm-delete")); });
 element("delete-form").addEventListener("submit", deleteCharacter);
 element("cancel-delete").addEventListener("click", () => element("delete-dialog").close());

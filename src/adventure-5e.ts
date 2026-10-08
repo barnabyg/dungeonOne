@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 19) and its validator.
+ * The 5e adventure module format (format version 20) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -44,6 +44,13 @@
  * route without a check, or through checks every band of which leaves a way
  * forward, whatever any band may close.
  *
+ * A check may author a retry (#284): never (the default), after a cost
+ * (damage, or using up a carried tool), or after a changed circumstance
+ * (holding an item, a discovery made, an encounter won). Each approach may
+ * have circumstances that give it advantage or disadvantage. A tool is a
+ * mundane item, such as a rope, that does nothing by itself: a check's
+ * circumstance or retry cost names it.
+ *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
  */
@@ -84,6 +91,7 @@ import {
 import {
   ABILITIES,
   FIGHTER_SKILLS,
+  MAX_LEVEL,
   proficiencyBonus,
   type Ability,
   type FighterSkill,
@@ -113,7 +121,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 19;
+export const FIFTH_ADVENTURE_FORMAT = 20;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -196,36 +204,95 @@ export type CheckBand = Readonly<{
 }>;
 
 /**
+ * A circumstance (#284): the character holds an item, has made a feature's
+ * discovery, or has won an encounter; with `not`, while it hasn't. `name`
+ * is how a check card and the action bar name it.
+ */
+export type Circumstance = Readonly<
+  (
+    | { type: "holds"; item: string }
+    | { type: "discovered"; feature: string }
+    | { type: "won"; encounter: string }
+  ) & { name: string; not?: true }
+>;
+
+/**
+ * One approach to a check: a skill or ability against a DC, with the
+ * circumstances that give it advantage or disadvantage (#284).
+ */
+export type AuthoredApproach = CheckSpec &
+  Readonly<{
+    advantage?: readonly Circumstance[];
+    disadvantage?: readonly Circumstance[];
+  }>;
+
+/**
+ * What another try at a failed check needs (#284): a cost paid before the
+ * roll (damage, or a carried tool used up), or a changed circumstance (one
+ * that didn't hold when the check was last made). Without one, a check is
+ * never tried again.
+ */
+export type RetryPolicy = Readonly<
+  { cost: RetryCost; after?: never } | { after: Circumstance; cost?: never }
+>;
+
+/** What a retry costs: damage, or a carried tool used up. */
+export type RetryCost = Readonly<
+  | { type: "item"; item: string }
+  | {
+      type: "damage";
+      dice: number;
+      sides: number;
+      modifier: number;
+      damageType: DamageType;
+      defeatEndingId: string;
+    }
+>;
+
+/**
  * An authored check (#281): its approach, a skill or an ability against a
  * DC, and the bands its outcome is graded into. Any band may be left out;
  * an unauthored failure or success by 5 or more falls back to plain failure
  * or success, and an unauthored plain band does nothing beyond the site's
- * own outcome.
+ * own outcome. It may author a retry (#284).
  */
 export type AuthoredCheck = (
-  | CheckSpec
+  | AuthoredApproach
   /**
    * Alternative approaches to one obstacle (#283): 2–4 skills or abilities,
    * each with its own DC. The bands belong to the obstacle.
    */
   | Readonly<{
-      approaches: readonly CheckSpec[];
+      approaches: readonly AuthoredApproach[];
       skill?: never;
       ability?: never;
       dc?: never;
+      advantage?: never;
+      disadvantage?: never;
     }>
 ) &
-  Readonly<{ bands?: Readonly<Partial<Record<Band, CheckBand>>> }>;
+  Readonly<{
+    bands?: Readonly<Partial<Record<Band, CheckBand>>>;
+    retry?: RetryPolicy;
+  }>;
 
 /** The approaches an authored check can be made with, one or several. */
-export function approachesOf(check: AuthoredCheck): readonly CheckSpec[] {
+export function approachesOf(
+  check: AuthoredCheck,
+): readonly AuthoredApproach[] {
   if ("approaches" in check && check.approaches !== undefined) {
     return check.approaches;
   }
+  const circumstances = {
+    ...(check.advantage === undefined ? {} : { advantage: check.advantage }),
+    ...(check.disadvantage === undefined
+      ? {}
+      : { disadvantage: check.disadvantage }),
+  };
   return [
     check.skill === undefined
-      ? { ability: check.ability!, dc: check.dc! }
-      : { skill: check.skill, dc: check.dc! },
+      ? { ability: check.ability!, dc: check.dc!, ...circumstances }
+      : { skill: check.skill, dc: check.dc!, ...circumstances },
   ];
 }
 
@@ -297,7 +364,9 @@ export function authoredChecks(
  * opens the locked doors that name it, treasure is kept on surviving, coin
  * goes into the purse as it is taken, and gear (a catalogue weapon, armour or
  * shield) is stowed as it is taken, ready to equip, or, for a bundle of
- * arrows or bolts, adds 20 to what the character holds (#230). A carried
+ * arrows or bolts, adds 20 to what the character holds (#230). A tool
+ * (#284), such as a rope, does nothing by itself: a check's circumstance or
+ * retry cost names it, and it is not kept after the adventure. A carried
  * item weighs its kind's `weight` in pounds (#224); coin and gear weigh what
  * the purse, the gear and the ammunition they become weigh.
  */
@@ -307,6 +376,7 @@ export const ITEM_KINDS = {
   treasure: { weight: TREASURE_WEIGHT },
   coin: { weight: 0 },
   gear: { weight: 0 },
+  tool: { weight: 0 },
 } as const;
 export type ItemKind = keyof typeof ITEM_KINDS;
 /** The kinds that are found once per character: never there to find again. */
@@ -569,7 +639,8 @@ function carriedLoot(
   let amount = 0;
   let found = 0;
   for (const item of carried) {
-    if (item.kind === "key") {
+    // A key or a tool (#284) is not loot.
+    if (item.kind === "key" || item.kind === "tool") {
       continue;
     }
     if (item.coins !== undefined) {
@@ -629,14 +700,82 @@ function ability(value: unknown, where: string): Ability {
   return value as Ability;
 }
 
-/** A check's approach: `{ skill, dc }` or `{ ability, dc }`. */
-function approach(value: unknown, where: string): CheckSpec {
-  const raw =
-    isRecord(value) && "skill" in value
-      ? exactKeys(value, ["skill", "dc"], where)
-      : exactKeys(value, ["ability", "dc"], where);
+/** The most circumstances one approach's advantage or disadvantage may name. */
+const MAX_CIRCUMSTANCES = 4;
+const CIRCUMSTANCE_TYPES = ["holds", "discovered", "won"] as const;
+
+/**
+ * A circumstance (#284): `{ "type": "holds", "item" }`, `{ "type":
+ * "discovered", "feature" }` or `{ "type": "won", "encounter" }`, each with
+ * its `name` and optional `not: true`. What it names is checked once the
+ * whole module is read.
+ */
+function circumstance(value: unknown, where: string): Circumstance {
+  const type = isRecord(value) ? value.type : undefined;
+  const target = {
+    holds: "item",
+    discovered: "feature",
+    won: "encounter",
+  } as const;
+  if (!(CIRCUMSTANCE_TYPES as readonly unknown[]).includes(type)) {
+    fail(`${where} type must be ${CIRCUMSTANCE_TYPES.join(", ")}.`);
+  }
+  const kind = type as (typeof CIRCUMSTANCE_TYPES)[number];
+  const raw = knownKeys(value, ["type", target[kind], "name"], ["not"], where);
+  if (raw.not !== undefined && raw.not !== true) {
+    fail(`${where} not must be true when given.`);
+  }
+  const named = id(raw[target[kind]], `${where} ${target[kind]}`);
+  return {
+    ...(kind === "holds"
+      ? { type: kind, item: named }
+      : kind === "discovered"
+        ? { type: kind, feature: named }
+        : { type: kind, encounter: named }),
+    name: text(raw.name, `${where} name`, 60),
+    ...(raw.not === true ? { not: true as const } : {}),
+  };
+}
+
+/** An approach's advantage or disadvantage: 1–4 circumstances. */
+function circumstances(value: unknown, where: string): readonly Circumstance[] {
+  return list(value, where, MAX_CIRCUMSTANCES).map((entry, index) =>
+    circumstance(entry, `${where} ${index + 1}`),
+  );
+}
+
+/**
+ * A check's approach: `{ skill, dc }` or `{ ability, dc }`, each with
+ * optional `advantage` and `disadvantage` circumstances (#284), unless it
+ * is a trap's find, which a room's one search rolls.
+ */
+function approach(
+  value: unknown,
+  where: string,
+  circumstanced = true,
+): AuthoredApproach {
+  const skilled = isRecord(value) && "skill" in value;
+  const raw = knownKeys(
+    value,
+    [skilled ? "skill" : "ability", "dc"],
+    circumstanced ? ["advantage", "disadvantage"] : [],
+    where,
+  );
   const dc = integer(raw.dc, `${where} dc`, 5, 30);
-  if ("skill" in raw) {
+  const modes = {
+    ...(raw.advantage === undefined
+      ? {}
+      : { advantage: circumstances(raw.advantage, `${where} advantage`) }),
+    ...(raw.disadvantage === undefined
+      ? {}
+      : {
+          disadvantage: circumstances(
+            raw.disadvantage,
+            `${where} disadvantage`,
+          ),
+        }),
+  };
+  if (skilled) {
     if (
       typeof raw.skill !== "string" ||
       !Object.hasOwn(FIGHTER_SKILLS, raw.skill)
@@ -645,9 +784,58 @@ function approach(value: unknown, where: string): CheckSpec {
         `${where} skill must be one of ${Object.keys(FIGHTER_SKILLS).join(", ")}.`,
       );
     }
-    return { skill: raw.skill as FighterSkill, dc };
+    return { skill: raw.skill as FighterSkill, dc, ...modes };
   }
-  return { ability: ability(raw.ability, `${where} ability`), dc };
+  return { ability: ability(raw.ability, `${where} ability`), dc, ...modes };
+}
+
+/** A damage effect's or a damage cost's fields (#281, #284). */
+function damageFields(raw: Record<string, unknown>, where: string) {
+  return {
+    dice: integer(raw.dice, `${where} dice`, 1, 10),
+    sides: integer(raw.sides, `${where} sides`, 2, 12),
+    modifier: integer(raw.modifier, `${where} modifier`, -5, 20),
+    damageType: damageType(raw.damageType, `${where} damageType`),
+    defeatEndingId: id(raw.defeatEndingId, `${where} defeatEndingId`),
+  };
+}
+const DAMAGE_KEYS = [
+  "type",
+  "dice",
+  "sides",
+  "modifier",
+  "damageType",
+  "defeatEndingId",
+];
+
+/**
+ * A check's retry (#284): `{ "cost": { "type": "damage", ... } }`, `{
+ * "cost": { "type": "item", "item" } }` or `{ "after": circumstance }`.
+ */
+function retry(value: unknown, where: string): RetryPolicy {
+  if (isRecord(value) && "after" in value) {
+    const raw = exactKeys(value, ["after"], where);
+    const after = circumstance(raw.after, `${where} after`);
+    if (after.not === true) {
+      fail(
+        `${where} after can't be a circumstance with not: one that no longer holds never changes back.`,
+      );
+    }
+    return { after };
+  }
+  const raw = exactKeys(value, ["cost"], where);
+  const on = `${where} cost`;
+  const type = isRecord(raw.cost) ? raw.cost.type : undefined;
+  if (type === "item") {
+    const cost = exactKeys(raw.cost, ["type", "item"], on);
+    return { cost: { type, item: id(cost.item, `${on} item`) } };
+  }
+  if (type === "damage") {
+    return {
+      cost: { type, ...damageFields(exactKeys(raw.cost, DAMAGE_KEYS, on), on) },
+    };
+  }
+  return fail(`${on} type must be item or damage.`);
 }
 
 /** The most effects one band may have. */
@@ -673,21 +861,11 @@ function effect(value: unknown, where: string): CheckEffect {
       const raw = exactKeys(value, ["type", "passage"], where);
       return { type, passage: id(raw.passage, `${where} passage`) };
     }
-    case "damage": {
-      const raw = exactKeys(
-        value,
-        ["type", "dice", "sides", "modifier", "damageType", "defeatEndingId"],
-        where,
-      );
+    case "damage":
       return {
         type,
-        dice: integer(raw.dice, `${where} dice`, 1, 10),
-        sides: integer(raw.sides, `${where} sides`, 2, 12),
-        modifier: integer(raw.modifier, `${where} modifier`, -5, 20),
-        damageType: damageType(raw.damageType, `${where} damageType`),
-        defeatEndingId: id(raw.defeatEndingId, `${where} defeatEndingId`),
+        ...damageFields(exactKeys(value, DAMAGE_KEYS, where), where),
       };
-    }
     default:
       return fail(`${where} type must be ${EFFECT_TYPES.join(", ")}.`);
   }
@@ -727,10 +905,23 @@ function approaches(
 
 /**
  * An authored check: its approaches (see `approaches`), with optional
- * `bands` (#281), each with optional `text` and `effects`.
+ * `bands` (#281), each with optional `text` and `effects`, and an optional
+ * `retry` (#284).
  */
 function check(value: unknown, where: string): AuthoredCheck {
-  const { bands, ...spec } = isRecord(value) ? value : { value };
+  const { retry: again, ...rest } = isRecord(value) ? value : { value };
+  const made = gradedCheck(rest, where);
+  return again === undefined
+    ? made
+    : { ...made, retry: retry(again, `${where} retry`) };
+}
+
+/** A check's approaches and its optional `bands` (#281). */
+function gradedCheck(
+  value: Record<string, unknown>,
+  where: string,
+): AuthoredCheck {
+  const { bands, ...spec } = value;
   if (bands === undefined) {
     return approaches(spec, where);
   }
@@ -794,16 +985,21 @@ function siteLabel({ kind, id: siteId }: Omit<AuthoredSite, "check">): string {
  * The lowest and highest totals an approach can make for a character of
  * `level` or below: a natural 1 at the lowest ability modifier (−4, a score
  * of 3), and a natural 20 at the highest (+5), plus the proficiency bonus
- * for a skill.
+ * for a skill. The bands between them are the ones the validator counts
+ * reachable, and the balance harness's always-fail and always-succeed
+ * check policies (#285) make every check at one end.
  */
-function totals(spec: CheckSpec, level: number): [number, number] {
+export function extremeTotals(
+  spec: CheckSpec,
+  level: number,
+): readonly [number, number] {
   const proficiency = proficiencyBonus(level as Level);
   return [1 - 4, 20 + 5 + (spec.skill === undefined ? 0 : proficiency)];
 }
 
 /** Whether some character of `level` or below can roll `band` on `spec`. */
 function bandReachable(band: Band, spec: CheckSpec, level: number): boolean {
-  const [lowest, highest] = totals(spec, level);
+  const [lowest, highest] = extremeTotals(spec, level);
   switch (band) {
     case "failure-by-5":
       return lowest <= spec.dc - 5;
@@ -925,8 +1121,8 @@ function validateModule(
     ["min", "max"],
     "recommendedLevels",
   );
-  const min = integer(levels.min, "recommendedLevels min", 1, 3);
-  const max = integer(levels.max, "recommendedLevels max", min, 3);
+  const min = integer(levels.min, "recommendedLevels min", 1, MAX_LEVEL);
+  const max = integer(levels.max, "recommendedLevels max", min, MAX_LEVEL);
   if (!DIFFICULTIES.includes(module.difficulty as Difficulty)) {
     fail("difficulty must be easy, medium or hard.");
   }
@@ -1454,7 +1650,7 @@ function validateModule(
       id: id(raw.id, `${where} id`),
       name: text(raw.name, `${where} name`, 60),
       description: text(raw.description, `${where} description`),
-      find: approach(raw.find, `${where} find`),
+      find: approach(raw.find, `${where} find`, false),
       disarm: check(raw.disarm, `${where} disarm`),
       trigger: text(raw.trigger, `${where} trigger`),
       save: {
@@ -1613,7 +1809,7 @@ function validateModule(
         )[
           band.startsWith("success") ? 0 : approachesOf(site.check).length - 1
         ]!;
-        const [lowest, highest] = totals(closest, max);
+        const [lowest, highest] = extremeTotals(closest, max);
         const { dc } = closest;
         fail(
           `${on} can't be reached with DC ${dc}: ${
@@ -1680,6 +1876,89 @@ function validateModule(
           }
         }
       }
+    }
+  }
+  // Each check's circumstances and retry (#284) name what exists: an item
+  // the character can carry, a feature with a discovery, an encounter; a
+  // retry's cost, a tool, or damage with a defeat ending.
+  const named = (entry: Circumstance, on: string) => {
+    switch (entry.type) {
+      case "holds": {
+        const placed = itemRooms.get(entry.item)?.item;
+        if (placed === undefined) {
+          fail(`${on} names unknown item ${entry.item}.`);
+        }
+        if (placed.kind === "coin" || placed.kind === "gear") {
+          fail(
+            `${on} names ${placed.id}, which is ${placed.kind}: it goes into the ${placed.kind === "coin" ? "purse" : "stowed gear"}, so it is never held.`,
+          );
+        }
+        break;
+      }
+      case "discovered": {
+        const feature = featureById.get(entry.feature);
+        if (feature === undefined) {
+          fail(`${on} names unknown feature ${entry.feature}.`);
+        }
+        if (feature.discovery === undefined) {
+          fail(`${on} names ${feature.id}, which has no discovery.`);
+        }
+        break;
+      }
+      case "won":
+        if (!encounterIds.has(entry.encounter)) {
+          fail(`${on} names unknown encounter ${entry.encounter}.`);
+        }
+        break;
+    }
+  };
+  for (const site of authoredChecks({ rooms, passages, encounters })) {
+    const label = siteLabel(site);
+    approachesOf(site.check).forEach((spec, index) => {
+      const way =
+        approachesOf(site.check).length === 1
+          ? label
+          : `${label}'s approach ${index + 1}`;
+      for (const mode of ["advantage", "disadvantage"] as const) {
+        (spec[mode] ?? []).forEach((entry, number) =>
+          named(entry, `${way}'s ${mode} ${number + 1}`),
+        );
+      }
+    });
+    const again = site.check.retry;
+    if (again?.after !== undefined) {
+      named(again.after, `${label}'s retry`);
+    } else if (again?.cost.type === "item") {
+      const placed = itemRooms.get(again.cost.item)?.item;
+      if (placed === undefined) {
+        fail(`${label}'s retry costs unknown item ${again.cost.item}.`);
+      }
+      if (placed.kind !== "tool") {
+        fail(
+          `${label}'s retry costs ${placed.id}, which is ${placed.kind}; only a tool is used up.`,
+        );
+      }
+      // The cost is paid before the roll, so a tool used up can't also be
+      // the one held for advantage on that roll.
+      approachesOf(site.check).forEach((spec, index) => {
+        const needed = (spec.advantage ?? []).findIndex(
+          (entry) =>
+            entry.type === "holds" &&
+            entry.item === placed.id &&
+            entry.not !== true,
+        );
+        if (needed !== -1) {
+          const way =
+            approachesOf(site.check).length === 1
+              ? label
+              : `${label}'s approach ${index + 1}`;
+          fail(
+            `${way}'s retry uses up ${placed.id}, which its advantage ${needed + 1} needs held.`,
+          );
+        }
+      });
+    } else if (again?.cost.type === "damage") {
+      ending(again.cost.defeatEndingId, "defeat", `${label}'s retry`);
     }
   }
   for (const { id: passageId, hidden } of passages) {
@@ -1940,13 +2219,17 @@ function validateModule(
   // Every other ending must be reachable: an encounter, a trap or a check's
   // damage names it.
   const damageEndings = new Set(
-    authoredChecks({ rooms, passages, encounters }).flatMap(({ check: c }) =>
-      Object.values(c.bands ?? {}).flatMap((outcome) =>
+    authoredChecks({ rooms, passages, encounters }).flatMap(({ check: c }) => [
+      ...Object.values(c.bands ?? {}).flatMap((outcome) =>
         effectsOf(outcome).flatMap((entry) =>
           entry.type === "damage" ? [entry.defeatEndingId] : [],
         ),
       ),
-    ),
+      // A retry's damage (#284) can drop the character too.
+      ...(c.retry?.cost?.type === "damage"
+        ? [c.retry.cost.defeatEndingId]
+        : []),
+    ]),
   );
   for (const { id: endingId, kind } of endings) {
     if (

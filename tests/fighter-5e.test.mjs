@@ -69,7 +69,7 @@ test("4d6-drop-lowest rolls six sets of four dice from the seeded stream", () =>
   assert.equal(droppedDie([2, 2, 4, 2]), 0);
 });
 
-test("5e modifiers round down and proficiency is +2 at levels 1-3", () => {
+test("5e modifiers round down and proficiency is +2 at levels 1-4", () => {
   const table = [
     [3, -4],
     [7, -2],
@@ -87,21 +87,24 @@ test("5e modifiers round down and proficiency is +2 at levels 1-3", () => {
   }
   assert.throws(() => abilityModifier(2), /ability score/);
   assert.throws(() => abilityModifier(21), /ability score/);
-  for (const level of [1, 2, 3]) {
+  for (const level of [1, 2, 3, 4]) {
     assert.equal(proficiencyBonus(level), 2);
   }
 });
 
-test("XP thresholds are 300 for level 2 and 900 for level 3", () => {
+test("XP thresholds are 300 for level 2, 900 for level 3 and 2,700 for level 4", () => {
   assert.equal(levelForXp(0), 1);
   assert.equal(levelForXp(299), 1);
   assert.equal(levelForXp(300), 2);
   assert.equal(levelForXp(899), 2);
   assert.equal(levelForXp(900), 3);
-  assert.equal(levelForXp(50000), 3);
+  assert.equal(levelForXp(2699), 3);
+  assert.equal(levelForXp(2700), 4);
+  assert.equal(levelForXp(50000), 4);
   assert.equal(nextLevelXp(1), 300);
   assert.equal(nextLevelXp(2), 900);
-  assert.equal(nextLevelXp(3), undefined);
+  assert.equal(nextLevelXp(3), 2700);
+  assert.equal(nextLevelXp(4), undefined);
   assert.throws(() => levelForXp(-1), /experience/);
 });
 
@@ -305,7 +308,7 @@ test("levels 2 and 3 add hit points, Action Surge, Tactical Mind and Champion", 
     three.features.slice(5).map(({ id }) => id),
     ["improved-critical", "remarkable-athlete"],
   );
-  assert.equal(three.nextLevelXp, undefined);
+  assert.equal(three.nextLevelXp, 2700);
   assert.equal(three.attack.bonus, 5);
   assert.equal(three.savingThrows.strength.bonus, 5);
 });

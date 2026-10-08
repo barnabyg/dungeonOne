@@ -364,7 +364,7 @@ test("the validator rejects an item no band can reveal", () => {
 
 test("a module in the format before graded checks is refused", () => {
   const module = moduleFile("graded-cellar");
-  module.formatVersion = FIFTH_ADVENTURE_FORMAT - 1;
+  module.formatVersion = 18;
   assert.throws(
     () => validateFifthAdventure(module, BESTIARY),
     new RegExp(`format version 18 is not ${FIFTH_ADVENTURE_FORMAT}`),

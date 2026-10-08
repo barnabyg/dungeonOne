@@ -582,7 +582,10 @@ test("a module whose XP could carry a character past its maximum level + 1 is re
         ending.kind === "victory" ? { ...ending, xp } : ending,
       ),
     });
-  const within = gateAdventure(rich(1700), SEED_FREE).verdict.xp;
+  // The always-succeed branch earns no more than the module offers.
+  const { alwaysSucceed, ...within } = gateAdventure(rich(1700), SEED_FREE)
+    .verdict.xp;
+  assert.ok(alwaysSucceed.mostXp <= 1800);
   assert.deepEqual(within, {
     ok: true,
     available: 1800,
@@ -591,7 +594,9 @@ test("a module whose XP could carry a character past its maximum level + 1 is re
     levelLimit: 3,
   });
   const over = gateAdventure(rich(1701), SEED_FREE);
-  assert.deepEqual(over.verdict.xp, {
+  const overXp = { ...over.verdict.xp };
+  delete overXp.alwaysSucceed;
+  assert.deepEqual(overXp, {
     ok: false,
     available: 1801,
     startXp: 899,

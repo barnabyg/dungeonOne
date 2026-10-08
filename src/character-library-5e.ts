@@ -1,5 +1,5 @@
 /**
- * The 5e character library (format version 9).
+ * The 5e character library (format version 11).
  *
  * It holds saved 5e Fighters and at most one pending creation: the dice of a
  * Fighter being created. Each character record names its adventure session
@@ -13,7 +13,10 @@
  * before anyone sees them and are
  * returned unchanged until a character is saved from them, so reloading,
  * restarting, backing out of creation or deleting a character never rolls
- * again (ADR 0005).
+ * again (ADR 0005). A level-4 Fighter's Ability Score Improvement and fourth
+ * weapon mastery are chosen after settling (#286); until they are, its sheet
+ * owes the choice and it cannot start another adventure, so the pending
+ * choice is saved with it and survives a reload.
  *
  * A library in any other format version is refused with a message naming the
  * file, and left untouched.
@@ -26,8 +29,10 @@ import { parseBoundedJson } from "./bounded-json.js";
 import { acquireFileLock } from "./file-lock.js";
 import {
   ABILITIES,
+  applyLevelChoice,
   buildFighter,
   fighterProfile,
+  pendingLevelChoice,
   rollAbilitySet,
   settleFighter,
   validateDice,
@@ -39,7 +44,7 @@ import {
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 10;
+export const FIFTH_LIBRARY_FORMAT = 11;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -145,7 +150,9 @@ export class FifthCharacterLibrary {
       version === 5 ||
       version === 6 ||
       version === 7 ||
-      version === 8
+      version === 8 ||
+      version === 9 ||
+      version === 10
     ) {
       throw moveAside(
         this.path,
@@ -355,7 +362,45 @@ export class FifthCharacterLibrary {
     if (record.session !== undefined) {
       throw new Error(`${record.sheet.name} is already on an adventure.`);
     }
+    const level = pendingLevelChoice(record.sheet);
+    if (level !== undefined) {
+      throw new Error(
+        `${record.sheet.name} must choose the level ${level} Ability Score Improvement and weapon mastery on the character sheet before starting another adventure.`,
+      );
+    }
     return index;
+  }
+
+  /**
+   * Makes `characterId`'s pending level choice (#286): its Ability Score
+   * Improvement and new weapon mastery. Refused for a character that owes
+   * none, is on an adventure or was defeated, and for an illegal choice,
+   * such as one raising a score above 20; nothing is written then.
+   */
+  async chooseLevel(
+    characterId: string,
+    choice: unknown,
+    revision: string,
+  ): Promise<FifthLibraryData> {
+    return this.update(revision, (data) => {
+      const index = data.characters.findIndex(
+        ({ sheet }) => sheet.id === characterId,
+      );
+      const record = data.characters[index];
+      if (record === undefined) {
+        throw new Error("There is no such character in the library.");
+      }
+      if (record.defeated === true) {
+        throw new Error(`${record.sheet.name} was defeated.`);
+      }
+      if (record.session !== undefined) {
+        throw new Error(`${record.sheet.name} is on an adventure.`);
+      }
+      data.characters[index] = {
+        sheet: applyLevelChoice(record.sheet, choice),
+        revision: record.revision + 1,
+      };
+    });
   }
 
   /**

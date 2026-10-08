@@ -78,7 +78,9 @@ test("tiers have a minimum level: common always, uncommon from 3, no rare", () =
   assert.equal(tierAllowed("uncommon", 2), false);
   assert.equal(tierAllowed("uncommon", 3), true);
   assert.equal(tierAllowed("rare", 3), false);
-  assert.throws(() => treasureBudget(4), /No treasure budget for level 4/);
+  assert.equal(tierAllowed("uncommon", 4), true);
+  assert.equal(tierAllowed("rare", 4), false);
+  assert.throws(() => treasureBudget(5), /No treasure budget for level 5/);
 });
 
 test("a module's findable value counts coin, gems, art objects, potions and gear", () => {
