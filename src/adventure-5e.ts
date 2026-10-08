@@ -38,7 +38,7 @@
  * surprise the character as it comes in. An encounter may be
  * reaction-eligible (#304): its reaction authors the options each band of a
  * reaction roll offers, and any XP for an encounter ended peacefully; it may
- * name the opponents who react, and none of them may be mindless.
+ * name the opponents who react, and none of its opponents may be mindless.
  *
  * A feature may have a check made when it is first examined (#281). Every
  * authored check (a feature's, a door's force, pick or break, a trap's
@@ -1471,11 +1471,12 @@ function validateModule(
             `${where} is reaction-eligible, but its fight ends the adventure: it could never be won once its opponents let the character pass.`,
           );
         }
-        // Mindless opponents (undead, or never checking morale) never react.
-        for (const opponent of reactors(opponents)) {
+        // Mindless opponents (undead, or never checking morale) never
+        // react, and none may follow another's lead either.
+        for (const opponent of opponents) {
           if (isMindless(opponent.statBlock)) {
             fail(
-              `${where} opponent ${opponent.id} is mindless (undead, or its morale is "never"), so it can't be reaction-eligible.`,
+              `${where} is reaction-eligible, but opponent ${opponent.id} is mindless (undead, or its morale is "never"): remove the reaction or the opponent.`,
             );
           }
         }

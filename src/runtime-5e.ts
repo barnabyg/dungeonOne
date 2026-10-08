@@ -73,7 +73,6 @@ import {
   FOUND_ONCE_KINDS,
   ITEM_KINDS,
   LOOT_KINDS,
-  isMindless,
   reactors,
   statBlockInitiative,
   statBlockStealth,
@@ -3369,15 +3368,11 @@ export function createFifthRuntime(
   ): FifthResult => {
     const fight = encounterOf(state);
     const reaction = fight?.reaction;
-    // Mindless opponents never react; the validator refuses a module that
-    // marks one, and the engine skips the roll for one all the same.
-    const reacting = reactors(fight?.opponents ?? []).filter(
-      ({ statBlock }) => !isMindless(statBlock),
-    );
+    // The validator refuses a reaction on a fight with a mindless opponent.
+    const reacting = reactors(fight?.opponents ?? []);
     if (
       fight === undefined ||
       reaction === undefined ||
-      reacting.length === 0 ||
       settled(state, fight.id) ||
       surprise.opponents === true ||
       surprise.character === true

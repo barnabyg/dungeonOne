@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FIFTH_ADVENTURE_FORMAT, isMindless } from "../dist/adventure-5e.js";
+import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import {
   gateAdventure,
   playAdventure,
@@ -162,7 +162,7 @@ test("mindless opponents are never reaction-eligible", () => {
   zombie(file);
   assert.throws(
     () => validateModule(file),
-    /encounter 1 opponent zombie is mindless/u,
+    /encounter 1 is reaction-eligible, but opponent zombie is mindless/u,
   );
   const marked = structuredClone(waryTunnelsFile);
   zombie(marked);
@@ -175,7 +175,8 @@ test("mindless opponents are never reaction-eligible", () => {
     () => validateModule(fearless),
     /opponent giant-rat is mindless/u,
   );
-  // With the rat alone marked to react, a zombie may stand beside it.
+  // Nor may a zombie stand beside a rat marked to react: it would follow
+  // the rat's lead and let the character pass.
   const mixed = structuredClone(waryTunnelsFile);
   mixed.encounters[0].opponents[0].reacts = true;
   mixed.encounters[0].opponents.push({
@@ -183,26 +184,10 @@ test("mindless opponents are never reaction-eligible", () => {
     monster: "zombie",
     description: "A zombie shambles.",
   });
-  const together = validateModule(mixed);
-  assert.equal(isMindless(together.encounters[0].opponents[1].statBlock), true);
-  assert.equal(
-    isMindless(together.encounters[0].opponents[0].statBlock),
-    false,
+  assert.throws(
+    () => validateModule(mixed),
+    /is reaction-eligible, but opponent zombie is mindless/u,
   );
-  const run = createFifthRuntime(together, TEST_FIGHTER);
-  const met = accepted(start(run), MOVE, dice(...d6s(4, 4)), run);
-  const reaction = met.events.find(({ type }) => type === "reaction");
-  assert.deepEqual(reaction.reactors, ["Giant Rat"]);
-  // The engine skips the roll for a mindless opponent all the same.
-  const unchecked = structuredClone(waryTunnels);
-  unchecked.encounters[0].opponents[0].statBlock = {
-    ...unchecked.encounters[0].opponents[0].statBlock,
-    morale: "never",
-  };
-  const skipped = createFifthRuntime(unchecked, TEST_FIGHTER);
-  const fight = accepted(start(skipped), MOVE, dice(...INITIATIVE), skipped);
-  assert.ok(!types(fight.events).includes("reaction"));
-  assert.equal(fight.state.encounter.outcome, "ongoing");
 });
 
 test("the reaction table maps 2d6 + Charisma to a band", () => {

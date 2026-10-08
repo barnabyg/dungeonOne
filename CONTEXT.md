@@ -189,7 +189,7 @@ A house rule (#304): when a reaction-eligible encounter's fight would begin with
 _Avoid_: Reaction (a 5e action-economy term), Attitude check, Morale
 
 **Reaction-eligible**:
-An encounter whose module gives it a reaction (#304): the options each band offers and any peaceful XP. Off by default; it may mark single opponents to react, and none that react may be mindless (an Undead, or a stat block whose morale is "never").
+An encounter whose module gives it a reaction (#304): the options each band offers and any peaceful XP. Off by default; it may mark single opponents to react, and none of its opponents may be mindless (an Undead, or a stat block whose morale is "never").
 _Avoid_: Talkative, Peaceful encounter
 
 **Peaceful resolution**:
