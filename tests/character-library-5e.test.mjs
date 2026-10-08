@@ -161,9 +161,9 @@ test("a pre-5e library is refused by name and left byte-identical", async () => 
 
     await writeFile(
       path,
-      JSON.stringify({ ...JSON.parse(before), formatVersion: 12 }),
+      JSON.stringify({ ...JSON.parse(before), formatVersion: 13 }),
     );
-    await assert.rejects(library.read(), /format version 12.*Move it aside/);
+    await assert.rejects(library.read(), /format version 13.*Move it aside/);
     // A library from before level 4 (#286), whose sheets have no Ability
     // Score Improvements.
     const beforeLevelFour = JSON.stringify({

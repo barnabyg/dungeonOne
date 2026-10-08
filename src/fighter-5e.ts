@@ -1,5 +1,5 @@
 /**
- * The 5e Fighter (SRD 5.2) at levels 1–4, created from 4d6-drop-lowest.
+ * The 5e Fighter (SRD 5.2) at levels 1–5, created from 4d6-drop-lowest.
  *
  * Pure rules: dice come only from the `RandomSource` passed in, and every
  * derived number (HP, AC, attack, saves, skills, features) is computed from a
@@ -55,10 +55,10 @@ export type Abilities = Readonly<Record<Ability, number>>;
 export type AbilityRoll = readonly [number, number, number, number];
 /** The six rolls of one creation, in the order rolled. */
 export type RolledDice = readonly AbilityRoll[];
-export type Level = 1 | 2 | 3 | 4;
+export type Level = 1 | 2 | 3 | 4 | 5;
 
 /** The highest level a character reaches; XP above its threshold is kept. */
-export const MAX_LEVEL: Level = 4;
+export const MAX_LEVEL: Level = 5;
 
 /** The SRD 5.2 XP a character needs to reach each supported level. */
 export const LEVEL_XP: Readonly<Record<Level, number>> = {
@@ -66,6 +66,7 @@ export const LEVEL_XP: Readonly<Record<Level, number>> = {
   2: 300,
   3: 900,
   4: 2700,
+  5: 6500,
 };
 
 export const FIGHTER_SKILLS = {
@@ -346,7 +347,7 @@ export function levelForXp(xp: number): Level {
     throw new Error("Invalid experience points.");
   }
   let level: Level = 1;
-  for (const next of [2, 3, 4] as const) {
+  for (const next of [2, 3, 4, 5] as const) {
     if (xp >= LEVEL_XP[next]) {
       level = next;
     }
@@ -1077,6 +1078,8 @@ export type FighterProfile = Readonly<{
     healing: Readonly<{ dice: 1; sides: 10; modifier: number }>;
   }>;
   actionSurgeUses: number;
+  /** Attacks per Attack action: 2 with Extra Attack from level 5 (#287). */
+  attacksPerAction: number;
   features: readonly FighterFeature[];
   nextLevelXp: number | undefined;
 }>;
@@ -1178,6 +1181,15 @@ export function fighterProfile(
           : `${improvementText(chosen)}, to a maximum of ${ABILITY_SCORE_CAP}.`,
     });
   }
+  if (level >= 5) {
+    // Tactical Shift is omitted: it moves the character, and there are no
+    // positions (#287).
+    features.push({
+      id: "extra-attack",
+      name: "Extra Attack",
+      text: "Attack twice, instead of once, whenever you take the Attack action. Each attack may be at a different opponent.",
+    });
+  }
   return {
     level,
     proficiencyBonus: proficiency,
@@ -1223,6 +1235,7 @@ export function fighterProfile(
       healing: { dice: 1, sides: 10, modifier: level },
     },
     actionSurgeUses: level >= 2 ? 1 : 0,
+    attacksPerAction: level >= 5 ? 2 : 1,
     features,
     nextLevelXp: nextLevelXp(level),
   };

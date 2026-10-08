@@ -92,6 +92,10 @@ _Avoid_: Proficiency (Fighters are proficient with every weapon), Weapon skill
 The SRD 5.2 Light property's one extra attack with a second light weapon after attacking with a light weapon on the same turn; a bonus action unless Nick makes it part of the Attack action.
 _Avoid_: Extra Attack (the level-5 Fighter feature), Off-hand attack
 
+**Extra Attack**:
+The level-5 Fighter feature: the Attack action makes two attacks, each at any living opponent. Each attack is a separate action call; the engine refuses a third.
+_Avoid_: Extra attack (the light weapon's), Multiattack (a monster's)
+
 **Merchant**:
 A creature in a module that trades: it sells the catalogue gear it stocks at catalogue prices, buys carried gear at half price, and buys gems and art objects at their full value. Each trade takes its authored minutes. Merchants exist only inside adventures.
 _Avoid_: Shop, Market (there is none between adventures), Vendor

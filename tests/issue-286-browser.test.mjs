@@ -250,7 +250,7 @@ test(
         "Ada's level choices are saved: +2 Strength, and mastery of the longsword.",
       );
       const sheet = await page.locator("#sheet-body").innerText();
-      assert.match(sheet, /Level 4 Fighter · 2740 XP · /u);
+      assert.match(sheet, /Level 4 Fighter · 2740 XP \(level 5 at 6500\) · /u);
       assert.match(sheet, /HP: 36\/36/u);
       assert.match(sheet, /Mace: \+6 to hit, 1d6 \+ 4 bludgeoning, Sap/u);
       assert.match(sheet, /Strength\t19\t\+4\t\+6 \(proficient\)/u);

@@ -22,6 +22,11 @@
  *   Surge adds an action. Drinking a potion takes the bonus action (SRD 5.2).
  *   Nothing uses a reaction yet. Drawing, stowing or swapping a weapon uses
  *   the turn's one object interaction; it takes no action.
+ * - Extra Attack (#287): a combatant with it makes two attacks, not one,
+ *   whenever it takes the Attack action. Each attack is its own action call,
+ *   at any living opponent; the first spends the action and the second
+ *   follows it in the same turn or is lost when the turn ends. Action Surge
+ *   gives another Attack action with its own two attacks.
  * - Light property: after an attack with a light weapon, a combatant holding
  *   a second light weapon may make one extra attack with it that turn, as a
  *   bonus action, or as part of the Attack action with the Nick mastery.
@@ -238,6 +243,8 @@ export type Combatant = DamageDefenses &
     attack: Weapon;
     /** A second light weapon, for the Light property's extra attack. */
     lightAttack?: Weapon;
+    /** Attacks per Attack action: 2 with Extra Attack (#287), else 1. */
+    attacksPerAction?: number;
     /** Fighter features, with the uses left of their maximum. */
     secondWind?: FeatureUses & Readonly<{ healing: Healing }>;
     actionSurge?: FeatureUses;
@@ -351,6 +358,11 @@ export type TurnEconomy = Readonly<{
   actions: number;
   /** Actions this turn in all: 1, and 1 more for each Action Surge. */
   maxActions: number;
+  /**
+   * Attacks left in the Attack action under way (#287): Extra Attack's
+   * second attack, once the first has spent the action.
+   */
+  attacks: number;
   bonusAction: boolean;
   /** Reset each turn; nothing uses a reaction yet. */
   reaction: boolean;
@@ -369,6 +381,7 @@ export type TurnEconomy = Readonly<{
 const FRESH_TURN: TurnEconomy = {
   actions: 1,
   maxActions: 1,
+  attacks: 0,
   bonusAction: true,
   reaction: true,
   interaction: true,
@@ -889,7 +902,8 @@ export function availableActions(
     return ["end-turn"];
   }
   return [
-    ...(state.economy.actions > 0 && ammunitionRefusal(actor) === undefined
+    ...((state.economy.attacks > 0 || state.economy.actions > 0) &&
+    ammunitionRefusal(actor) === undefined
       ? (["attack"] as const)
       : []),
     ...(lightAttackRefusal(state, actor) === undefined
@@ -1816,10 +1830,13 @@ export function act(
       if ("code" in target) {
         return { state, rejection: target };
       }
-      if (state.economy.actions === 0) {
+      const attacking = state.economy.attacks > 0;
+      if (!attacking && state.economy.actions === 0) {
         return reject(
           "action-used",
-          "You have already used your action this turn.",
+          (actor.attacksPerAction ?? 1) > 1
+            ? "You have already made every attack your Attack actions allow this turn."
+            : "You have already used your action this turn.",
         );
       }
       const empty = ammunitionRefusal(actor);
@@ -1832,7 +1849,13 @@ export function act(
         ...resolved.state,
         economy: {
           ...state.economy,
-          actions: state.economy.actions - 1,
+          // The first attack spends the action; Extra Attack's follow it.
+          ...(attacking
+            ? { attacks: state.economy.attacks - 1 }
+            : {
+                actions: state.economy.actions - 1,
+                attacks: (actor.attacksPerAction ?? 1) - 1,
+              }),
           // Holding two light weapons, every attack is with a light one.
           lightAttack:
             actor.lightAttack !== undefined &&

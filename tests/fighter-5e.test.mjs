@@ -90,9 +90,10 @@ test("5e modifiers round down and proficiency is +2 at levels 1-4", () => {
   for (const level of [1, 2, 3, 4]) {
     assert.equal(proficiencyBonus(level), 2);
   }
+  assert.equal(proficiencyBonus(5), 3);
 });
 
-test("XP thresholds are 300 for level 2, 900 for level 3 and 2,700 for level 4", () => {
+test("XP thresholds are 300 for level 2, 900 for level 3, 2,700 for level 4 and 6,500 for level 5", () => {
   assert.equal(levelForXp(0), 1);
   assert.equal(levelForXp(299), 1);
   assert.equal(levelForXp(300), 2);
@@ -100,11 +101,14 @@ test("XP thresholds are 300 for level 2, 900 for level 3 and 2,700 for level 4",
   assert.equal(levelForXp(900), 3);
   assert.equal(levelForXp(2699), 3);
   assert.equal(levelForXp(2700), 4);
-  assert.equal(levelForXp(50000), 4);
+  assert.equal(levelForXp(6499), 4);
+  assert.equal(levelForXp(6500), 5);
+  assert.equal(levelForXp(50000), 5);
   assert.equal(nextLevelXp(1), 300);
   assert.equal(nextLevelXp(2), 900);
   assert.equal(nextLevelXp(3), 2700);
-  assert.equal(nextLevelXp(4), undefined);
+  assert.equal(nextLevelXp(4), 6500);
+  assert.equal(nextLevelXp(5), undefined);
   assert.throws(() => levelForXp(-1), /experience/);
 });
 
