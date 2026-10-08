@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createSeededRandom } from "../dist/random.js";
-import { createFifthRuntime } from "../dist/runtime-5e.js";
+import { ACTION_KINDS, createFifthRuntime } from "../dist/runtime-5e.js";
 import { FIXTURE_MODULES as adventures } from "./fixtures/modules.mjs";
 import {
   ada as sheet,
@@ -75,7 +75,7 @@ test("one tool listing dry-runs each projected action once, and the bar, room an
   assert.ok(checked.exploring > 0, JSON.stringify(checked));
 });
 
-test("no action is refused after it draws a die, in any state of the #156 playthroughs (#182)", () => {
+test("no action is refused after it draws a die, in any state of the seeded playthroughs (#182)", () => {
   const refused = new Set();
   for (const { runtime, state, seed } of playthroughStates()) {
     for (const shown of runtime.projectActions(state)) {
@@ -97,16 +97,37 @@ test("no action is refused after it draws a die, in any state of the #156 playth
       }
     }
   }
-  // Refusals of actions that roll when accepted, in a fight and out of one.
+  // Refusals of actions that roll when accepted, in a fight and out of one,
+  // and of each trade and gear change the bar can show refused (#269). The
+  // bar shows Unlock only with the key in hand and Sell on treasure only
+  // while it is carried, so neither is ever refused there.
   for (const kind of [
     "attack",
+    "light-attack",
     "second-wind",
     "force",
     "pick",
     "break",
     "search",
+    "disarm",
     "talk",
+    "swap",
+    "buy",
+    "sell",
+    "sell-equipped",
   ]) {
     assert.ok(refused.has(kind), `the playthroughs refuse a ${kind}`);
+  }
+});
+
+test("the seeded playthroughs show every kind of action the bar has (#269)", () => {
+  const projected = new Set();
+  for (const { runtime, state } of playthroughStates()) {
+    for (const { action } of runtime.projectActions(state)) {
+      projected.add(action);
+    }
+  }
+  for (const kind of ACTION_KINDS) {
+    assert.ok(projected.has(kind), `the playthroughs project a ${kind}`);
   }
 });

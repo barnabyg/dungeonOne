@@ -71,15 +71,19 @@ table order, and `IN_ORDER_CHOICES`, the creation screen's default choices
 (`FIGHTER_DEFAULT_CHOICES`) with that placement, which the library and
 session tests create Ada with.
 
-## Seeded playthroughs (issue 156)
+## Seeded playthroughs (issues 156 and 269)
 
 `playthroughs.mjs` holds the #156 fighter, `ada` (Con 14, 12 HP), and
-`veteran()`, Ada at level 2 with Action Surge; `engineAction(view)`, the
+`veteran()`, Ada at level 2 with Action Surge; `twin`, Ada with two daggers
+for the light weapons' extra attack (#269); `engineAction(view)`, the
 engine action each kind of projected action stands for, as the browser
 server makes it from a click; and `playthroughStates()`, every state of
-seeded random playthroughs of every fixture module. The bar-projection tests
-(#132, #156, #182, #183) share them, so a new kind of action is mapped once;
-#182 checks the mapping against the action each projection dry-ran.
+seeded random playthroughs of every fixture module, the gem market, the
+archers' barrow (with `twin` and Wren) and the sealed crypt again with
+`twin`. The bar-projection tests (#132, #156, #182, #183) share them, so a
+new kind of action is mapped once; #182 checks the mapping against the
+action each projection dry-ran, and that the playthroughs show every kind in
+the runtime's `ACTION_KINDS` and refuse each kind the bar can show refused.
 
 ## Pre-5e library
 

@@ -1,8 +1,9 @@
-// Seeded playthroughs of every fixture module (#156): a fighter picks a random
-// enabled action from the bar at each step. The bar-projection tests (#156,
-// #182, #183) check each state these reach, and the engine action each
-// projected action stands for is mapped here once, so a new kind of action
-// can't leave one test's copy behind.
+// Seeded playthroughs of every fixture module (#156), and of merchants and a
+// fighter holding two daggers (#269): a fighter picks a random enabled action
+// from the bar at each step. The bar-projection tests (#156, #182, #183)
+// check each state these reach, and the engine action each projected action
+// stands for is mapped here once, so a new kind of action can't leave one
+// test's copy behind.
 import assert from "node:assert/strict";
 import {
   buildFighter,
@@ -12,38 +13,45 @@ import {
 } from "../../dist/fighter-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
-import { FIXTURE_MODULES } from "./modules.mjs";
+import { archer, archeryBarrow } from "./archery-barrow.mjs";
+import { gemMarket } from "./gem-market.mjs";
+import { FIXTURE_MODULES, sealedCrypt } from "./modules.mjs";
 
 export const PLAYER = "pc";
 
-// The #156 fighter: Con 14 (+2), 12 HP at level 1.
-export const ada = buildFighter(
-  "a".repeat(32),
-  "Ada",
-  [
-    [6, 6, 4, 1],
-    [4, 4, 4, 1],
-    [4, 4, 4, 1],
-    [3, 3, 3, 1],
-    [3, 3, 3, 1],
-    [3, 3, 3, 1],
-  ],
-  {
-    placement: {
-      strength: 0,
-      dexterity: 1,
-      constitution: 2,
-      intelligence: 3,
-      wisdom: 4,
-      charisma: 5,
-    },
-    increase: { constitution: 2, intelligence: 1 },
-    skills: ["athletics", "perception"],
-    fightingStyle: "defense",
-    kit: "mace",
-    masteries: ["dagger", "mace", "shortsword"],
+const ADA_DICE = [
+  [6, 6, 4, 1],
+  [4, 4, 4, 1],
+  [4, 4, 4, 1],
+  [3, 3, 3, 1],
+  [3, 3, 3, 1],
+  [3, 3, 3, 1],
+];
+
+const ADA_CHOICES = {
+  placement: {
+    strength: 0,
+    dexterity: 1,
+    constitution: 2,
+    intelligence: 3,
+    wisdom: 4,
+    charisma: 5,
   },
-);
+  increase: { constitution: 2, intelligence: 1 },
+  skills: ["athletics", "perception"],
+  fightingStyle: "defense",
+  kit: "mace",
+  masteries: ["dagger", "mace", "shortsword"],
+};
+
+// The #156 fighter: Con 14 (+2), 12 HP at level 1.
+export const ada = buildFighter("a".repeat(32), "Ada", ADA_DICE, ADA_CHOICES);
+
+/** Ada with two daggers and leather, for the light weapons' extra attack (#269). */
+export const twin = buildFighter("a".repeat(32), "Ada", ADA_DICE, {
+  ...ADA_CHOICES,
+  kit: "two-daggers",
+});
 
 /** Ada at level 2, at full health, so she has Action Surge. */
 export function veteran() {
@@ -103,17 +111,33 @@ export function engineAction({ action, target }) {
 }
 
 /**
- * Every state of the #156 seeded playthroughs: each fixture module, 25 seeds,
- * alternating Ada at level 1 and the veteran, up to 60 steps each, ending
- * state included. Each step plays a random enabled action, which the engine
- * must accept.
+ * The playthroughs' modules, each with the fighters that play it in turn:
+ * every fixture module with Ada at level 1 and the veteran (#156), then
+ * trade, two light weapons and traps (#269): a merchant who buys treasure,
+ * one who sells ammunition with an archer who has a stowed weapon and too
+ * few arrows to sell, and more tries at the sealed crypt's trap.
+ */
+const PLAYTHROUGHS = [
+  ...FIXTURE_MODULES.map((adventure) => ({
+    adventure,
+    fighters: [ada, veteran()],
+  })),
+  { adventure: gemMarket, fighters: [ada, twin] },
+  { adventure: archeryBarrow, fighters: [twin, archer()] },
+  { adventure: sealedCrypt, fighters: [twin] },
+];
+
+/**
+ * Every state of the seeded playthroughs: each of `PLAYTHROUGHS`'s modules,
+ * 25 seeds, its fighters in turn, up to 60 steps each, ending state included.
+ * Each step plays a random enabled action, which the engine must accept.
  */
 export function* playthroughStates() {
-  for (const adventure of FIXTURE_MODULES) {
+  for (const { adventure, fighters } of PLAYTHROUGHS) {
     for (let seed = 0; seed < 25; seed++) {
       const runtime = createFifthRuntime(
         adventure,
-        seed % 2 === 0 ? ada : veteran(),
+        fighters[seed % fighters.length],
       );
       const random = createSeededRandom(seed);
       let state = runtime.handleAction(

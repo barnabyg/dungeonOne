@@ -1670,6 +1670,42 @@ export type ActionKind =
   | "sell-treasure"
   | "leave";
 
+const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
+  attack: true,
+  "light-attack": true,
+  use: true,
+  "second-wind": true,
+  "action-surge": true,
+  "end-turn": true,
+  move: true,
+  examine: true,
+  take: true,
+  force: true,
+  pick: true,
+  break: true,
+  unlock: true,
+  search: true,
+  disarm: true,
+  talk: true,
+  equip: true,
+  unequip: true,
+  swap: true,
+  drop: true,
+  buy: true,
+  sell: true,
+  "sell-equipped": true,
+  "sell-treasure": true,
+  leave: true,
+};
+
+/**
+ * Every `ActionKind`, for tests that check each is covered (#269). A kind
+ * missing here fails to compile.
+ */
+export const ACTION_KINDS = Object.keys(
+  ACTION_KIND_SET,
+) as readonly ActionKind[];
+
 /**
  * One action the player can see in the action bar, with its target, whether
  * the engine would accept it now and, when it would not, a short reason.
