@@ -128,6 +128,32 @@ test("bestiary stat blocks give SRD 5.2's Stealth bonus, or roll Dexterity", () 
   assert.equal(statBlockStealth(monster("giant-rat")), 3);
 });
 
+test("passive Perception is + 5 with advantage, − 5 with disadvantage, and both cancel", () => {
+  const glow = { advantage: ["Lantern"], disadvantage: [] };
+  const fog = { advantage: [], disadvantage: ["Fog"] };
+  assert.deepEqual(passivePerception(TEST_FIGHTER, glow), {
+    total: 17,
+    wisdom: 0,
+    proficiency: 2,
+    adjustment: 5,
+    sources: ["Lantern"],
+  });
+  assert.deepEqual(passivePerception(TEST_FIGHTER, fog), {
+    total: 7,
+    wisdom: 0,
+    proficiency: 2,
+    adjustment: -5,
+    sources: ["Fog"],
+  });
+  const both = passivePerception(TEST_FIGHTER, {
+    advantage: ["Lantern"],
+    disadvantage: ["Fog"],
+  });
+  assert.equal(both.total, 12);
+  assert.equal(both.adjustment, 0);
+  assert.deepEqual(both.sources, []);
+});
+
 test("passive Perception is 10 + Wisdom, + proficiency when proficient in Perception", () => {
   assert.deepEqual(passivePerception(TEST_FIGHTER), {
     total: 12,
