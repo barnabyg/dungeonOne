@@ -84,6 +84,10 @@ const CONTENT_TESTS = new Map([
     "tests/issue-289-browser.test.mjs",
     "the Wolfstone Hillfort's handoff runs through the browser",
   ],
+  [
+    "tests/thornwood-lodge.test.mjs",
+    "the Thornwood Lodge's content, gate verdict, checks and journeys",
+  ],
 ]);
 
 /**

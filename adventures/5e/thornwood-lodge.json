@@ -1,0 +1,506 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 20,
+  "id": "thornwood-lodge",
+  "title": "The Thornwood Lodge",
+  "objective": "Get past Captain Hesk's beasts into the old hunting lodge, take what you can from it, and leave by the forest gate.",
+  "recommendedLevels": {
+    "min": 4,
+    "max": 5
+  },
+  "difficulty": "hard",
+  "startRoomId": "forest-gate",
+  "rooms": [
+    {
+      "id": "forest-gate",
+      "name": "Forest Gate",
+      "description": "A sagging gate in the lodge's palisade, where a charcoal-burner has made camp beside a woodpile.",
+      "exit": true,
+      "features": [
+        {
+          "id": "woodpile",
+          "name": "Woodpile",
+          "description": "Split logs stacked against the palisade.",
+          "discovery": "Behind the logs are a stoppered vial of red liquid and a shuttered lantern."
+        }
+      ],
+      "items": [
+        {
+          "id": "woodpile-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "woodpile"
+        },
+        {
+          "id": "hooded-lantern",
+          "name": "Hooded Lantern",
+          "description": "A shuttered lantern with a wire handle.",
+          "kind": "tool",
+          "hiddenIn": "woodpile"
+        }
+      ],
+      "creatures": [
+        {
+          "id": "brann",
+          "name": "Brann the Charcoal-burner",
+          "description": "A soot-black charcoal-burner with a pack of goods to sell.",
+          "topics": [
+            {
+              "id": "the-lodge",
+              "name": "the lodge",
+              "reply": "\"Captain Hesk took the king's lodge when he quit the war. His hound runs the kennel yard, and a bear baits in the hall.\""
+            },
+            {
+              "id": "the-poachers-path",
+              "name": "the poachers' path",
+              "reply": "\"Round the palisade to the left, there's a poachers' hide. They left in a hurry.\"",
+              "failure": "\"I don't know any poachers.\"",
+              "check": {
+                "approaches": [
+                  {
+                    "skill": "persuasion",
+                    "dc": 14
+                  },
+                  {
+                    "skill": "intimidation",
+                    "dc": 16
+                  }
+                ],
+                "bands": {
+                  "success": {
+                    "effects": [
+                      {
+                        "type": "open",
+                        "passage": "gate-to-hide"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "merchant": {
+            "stock": ["shield", "chain-mail", "longsword", "greatsword"],
+            "minutes": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "poachers-hide",
+      "name": "Poachers' Hide",
+      "description": "A hide of woven branches under the palisade, smelling of old smoke.",
+      "features": [
+        {
+          "id": "poachers-cache",
+          "name": "Poachers' Cache",
+          "description": "A sack hung from a branch, out of reach of foxes.",
+          "discovery": "In the sack are a stoppered vial of red liquid and a pair of iron tongs."
+        }
+      ],
+      "items": [
+        {
+          "id": "hide-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "poachers-cache"
+        },
+        {
+          "id": "trap-tongs",
+          "name": "Trapper's Tongs",
+          "description": "Long iron tongs for springing traps.",
+          "kind": "tool",
+          "hiddenIn": "poachers-cache"
+        }
+      ]
+    },
+    {
+      "id": "kennel-yard",
+      "name": "Kennel Yard",
+      "description": "A muddy yard ringed with kennels and strewn with gnawed antlers. A door leads into the lodge hall.",
+      "encounterId": "yard-hound",
+      "features": [
+        {
+          "id": "hounds-kennel",
+          "name": "Hound's Kennel",
+          "description": "The largest kennel, its straw matted flat.",
+          "discovery": "Under the straw are a gilt hunting cup and a purse of gold."
+        }
+      ],
+      "items": [
+        {
+          "id": "hunting-cup",
+          "name": "Gilt Hunting Cup",
+          "description": "A cup of gilt bronze chased with running deer.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "hounds-kennel"
+        },
+        {
+          "id": "kennel-gold",
+          "name": "Purse of Gold",
+          "description": "A purse of gold pieces.",
+          "kind": "coin",
+          "coins": {
+            "gp": 30
+          },
+          "hiddenIn": "hounds-kennel"
+        }
+      ]
+    },
+    {
+      "id": "lodge-hall",
+      "name": "Lodge Hall",
+      "description": "A long feasting hall under a hammerbeam roof, its walls hung with antlers. A chain runs from a post to a churned-up bear pit, and a hatch in the floor leads down to the ice house.",
+      "encounterId": "hall-bear",
+      "features": [
+        {
+          "id": "bear-pit",
+          "name": "Bear Pit",
+          "description": "A pit of churned earth at the end of the chain.",
+          "discovery": "Nothing but churned earth and bones."
+        },
+        {
+          "id": "trophy-wall",
+          "name": "Trophy Wall",
+          "description": "Antlers, boar tusks and the king's old hunting shields crowd the wall.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "perception",
+                "dc": 15
+              },
+              {
+                "skill": "history",
+                "dc": 13
+              }
+            ],
+            "retry": {
+              "after": {
+                "type": "holds",
+                "item": "hooded-lantern",
+                "name": "Hooded Lantern"
+              }
+            },
+            "bands": {
+              "failure-by-5": {
+                "text": "You tug at a shield and a rack of antlers crashes down on you.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 1,
+                    "sides": 6,
+                    "modifier": 0,
+                    "damageType": "piercing",
+                    "defeatEndingId": "fallen-in-the-thornwood"
+                  }
+                ]
+              },
+              "failure": {
+                "text": "Dust and cobwebs, and nothing behind them you can see."
+              },
+              "success": {
+                "text": "One shield bears no king's arms. Behind it, in a hollow in the wall, lies a jewel.",
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "trophy-topaz"
+                  }
+                ]
+              },
+              "success-by-5": {
+                "text": "One shield bears no king's arms. Behind it, in a hollow in the wall, lie a jewel and a stoppered vial.",
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "trophy-topaz"
+                  },
+                  {
+                    "type": "item",
+                    "item": "trophy-potion"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "ice-house-hatch",
+          "name": "Ice-house Hatch",
+          "description": "A heavy hatch in the hall floor, frozen shut over the ice-house steps.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "athletics",
+                "dc": 15
+              },
+              {
+                "skill": "perception",
+                "dc": 14
+              }
+            ],
+            "retry": {
+              "cost": {
+                "type": "damage",
+                "dice": 1,
+                "sides": 4,
+                "modifier": 0,
+                "damageType": "bludgeoning",
+                "defeatEndingId": "fallen-in-the-thornwood"
+              }
+            },
+            "bands": {
+              "failure": {
+                "text": "The ice holds the hatch fast."
+              },
+              "success": {
+                "text": "The ice cracks and the hatch lifts onto the ice-house steps.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "hall-to-ice-house"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "trophy-topaz",
+          "name": "Topaz",
+          "description": "A golden-yellow stone.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "trophy-wall"
+        },
+        {
+          "id": "trophy-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "trophy-wall"
+        }
+      ]
+    },
+    {
+      "id": "ice-house",
+      "name": "Ice House",
+      "description": "A domed ice house, half full of straw-packed ice. Something huge has made a nest in the back.",
+      "encounterId": "ice-house-owlbear",
+      "features": [
+        {
+          "id": "owlbear-nest",
+          "name": "Owlbear's Nest",
+          "description": "A nest of straw, feathers and bones.",
+          "discovery": "Among the bones are a stoppered vial of red liquid and a cloudy green stone."
+        }
+      ],
+      "items": [
+        {
+          "id": "nest-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "owlbear-nest"
+        },
+        {
+          "id": "nest-jade",
+          "name": "Jade",
+          "description": "A cloudy green stone.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "owlbear-nest"
+        }
+      ]
+    },
+    {
+      "id": "captains-solar",
+      "name": "Captain's Solar",
+      "description": "A panelled room above the hall, warm from a banked fire. Captain Hesk's strongbox sits at the foot of a carved bed.",
+      "encounterId": "solar-captain",
+      "features": [
+        {
+          "id": "hesk-strongbox",
+          "name": "Hesk's Strongbox",
+          "description": "An iron-bound strongbox with a broken lock.",
+          "discovery": "Inside are a gold-chased hunting horn and a bag of gold."
+        }
+      ],
+      "items": [
+        {
+          "id": "hunting-horn",
+          "name": "Gold-chased Hunting Horn",
+          "description": "An ivory hunting horn chased with gold, carved with the old king's hounds.",
+          "kind": "treasure",
+          "treasure": "art-250gp",
+          "hiddenIn": "hesk-strongbox"
+        },
+        {
+          "id": "hesk-gold",
+          "name": "Hesk's Gold",
+          "description": "A bag of gold pieces.",
+          "kind": "coin",
+          "coins": {
+            "gp": 30
+          },
+          "hiddenIn": "hesk-strongbox"
+        },
+        {
+          "id": "captain-hesk-coins",
+          "name": "Captain Hesk's Coins",
+          "description": "A heavy pouch of gold pieces.",
+          "kind": "coin",
+          "coins": {
+            "gp": 8
+          },
+          "hiddenIn": "captain-hesk"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "gate-to-yard",
+      "between": ["forest-gate", "kennel-yard"],
+      "description": "The path round the palisade to the kennels."
+    },
+    {
+      "id": "gate-to-hide",
+      "between": ["forest-gate", "poachers-hide"],
+      "description": "The poachers' path round the palisade.",
+      "hidden": true
+    },
+    {
+      "id": "yard-to-hall",
+      "between": ["kennel-yard", "lodge-hall"],
+      "description": "The kennel door into the hall."
+    },
+    {
+      "id": "hall-to-ice-house",
+      "between": ["lodge-hall", "ice-house"],
+      "description": "The steps down under the hatch.",
+      "hidden": true
+    },
+    {
+      "id": "hall-to-solar",
+      "between": ["lodge-hall", "captains-solar"],
+      "description": "The gallery stair.",
+      "trap": {
+        "id": "gallery-man-trap",
+        "name": "Man-trap",
+        "description": "Iron jaws hidden under the rushes on the gallery stair.",
+        "find": {
+          "skill": "perception",
+          "dc": 14
+        },
+        "disarm": {
+          "ability": "dexterity",
+          "dc": 14,
+          "advantage": [
+            {
+              "type": "holds",
+              "item": "trap-tongs",
+              "name": "Trapper's Tongs"
+            }
+          ]
+        },
+        "trigger": "Iron jaws slam shut on your leg.",
+        "save": {
+          "ability": "dexterity",
+          "dc": 13
+        },
+        "damage": {
+          "dice": 2,
+          "sides": 6,
+          "modifier": 0,
+          "type": "piercing"
+        },
+        "defeatEndingId": "fallen-in-the-thornwood"
+      }
+    }
+  ],
+  "encounters": [
+    {
+      "id": "yard-hound",
+      "opponents": [
+        {
+          "id": "hesks-hound",
+          "monster": "dire-wolf",
+          "name": "Hesk's Hound",
+          "description": "A dire wolf the size of a pony, wearing a studded war collar."
+        },
+        {
+          "id": "kennel-mastiff-1",
+          "monster": "mastiff",
+          "name": "Kennel Mastiff 1"
+        },
+        {
+          "id": "kennel-mastiff-2",
+          "monster": "mastiff",
+          "name": "Kennel Mastiff 2"
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-thornwood"
+    },
+    {
+      "id": "hall-bear",
+      "opponents": [
+        {
+          "id": "baiting-bear",
+          "monster": "brown-bear",
+          "name": "Baiting Bear",
+          "description": "A scarred brown bear dragging a broken chain, mad with rage."
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-thornwood"
+    },
+    {
+      "id": "ice-house-owlbear",
+      "opponents": [
+        {
+          "id": "ice-house-owlbear",
+          "monster": "owlbear"
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-thornwood"
+    },
+    {
+      "id": "solar-captain",
+      "opponents": [
+        {
+          "id": "captain-hesk",
+          "monster": "warrior-veteran",
+          "name": "Captain Hesk",
+          "description": "A grey deserter captain in splint armour, a greatsword held low and steady.",
+          "boss": true
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-thornwood"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-spoils",
+      "kind": "escape-with-loot",
+      "title": "Out with the spoils",
+      "text": "You leave the Thornwood by the forest gate with the captain's spoils.",
+      "xp": 2350
+    },
+    {
+      "id": "out-empty-handed",
+      "kind": "escape-without-loot",
+      "title": "Out empty-handed",
+      "text": "You leave the Thornwood by the forest gate with nothing to show for it."
+    },
+    {
+      "id": "fallen-in-the-thornwood",
+      "kind": "defeat",
+      "title": "Fallen in the Thornwood",
+      "text": "You fall in the Thornwood. Your adventuring ends here."
+    }
+  ]
+}

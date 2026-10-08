@@ -183,6 +183,13 @@ deleted. Creation needs no OpenAI key.
   Reaver's dire wolf guards the ditch. Past a rusted portcullis, a rope
   bridge to the keep can open or fall, a brown bear dens in the undercroft,
   and the Reaver (a Bandit Captain) holds the keep's strongbox.
+- _The Thornwood Lodge_ (`adventures/5e/thornwood-lodge.json`, levels 4–5,
+  Hard): six rooms in a deserter's hunting lodge. Brann the charcoal-burner
+  trades shield, chain mail, longsword and greatsword at the forest gate;
+  Captain Hesk's dire wolf and two mastiffs hold the kennel yard. A bear
+  baits in the hall, whose trophy wall hides a jewel, a frozen hatch opens on
+  an owlbear's ice house, and Captain Hesk (a Warrior Veteran) waits in the
+  solar beyond a man-trap. Its ending carries a career to level 5.
 
 A sheet offers only the modules that pass the balance gate; `npm.cmd run
 balance` shows each module's verdict.
