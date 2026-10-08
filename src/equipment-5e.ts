@@ -174,8 +174,8 @@ export const WEAPONS = {
     weight: 5,
     damage: { dice: 1, sides: 8 },
     damageType: "piercing",
-    // Loading limits attacks per action; without Extra Attack (level 5)
-    // it changes nothing.
+    // Loading limits attacks per action, so it matters only with Extra
+    // Attack (level 5).
     properties: ["ammunition", "loading", "two-handed"],
     mastery: "Slow",
     tier: "common",

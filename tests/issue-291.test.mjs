@@ -76,7 +76,7 @@ test("Loading: Extra Attack gives a crossbow no second shot; the attempt draws n
     rejection: {
       code: "action-used",
       reason:
-        "The Light crossbow fires once an action (Loading): you have already shot with this action.",
+        "The light crossbow fires once an action (Loading): you have already shot with this action.",
     },
   });
   assert.deepEqual(none.drawn, []);

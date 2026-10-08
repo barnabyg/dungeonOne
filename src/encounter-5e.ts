@@ -1839,7 +1839,7 @@ export function act(
           (actor.attacksPerAction ?? 1) === 1
             ? "You have already used your action this turn."
             : actor.attack.loading === true
-              ? `The ${actor.attack.name} fires once an action (Loading): you have already shot with this action.`
+              ? `The ${actor.attack.name.toLowerCase()} fires once an action (Loading): you have already shot with this action.`
               : "You have already made every attack your Attack actions allow this turn.",
         );
       }
