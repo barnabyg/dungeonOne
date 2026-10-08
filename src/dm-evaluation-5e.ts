@@ -81,7 +81,7 @@ export type FifthDmExpectation =
   | Readonly<{
       kind: "action";
       name: string;
-      arguments: Readonly<Record<string, string>>;
+      arguments: Readonly<Record<string, string | null>>;
     }>
   /** No action; the first call is this read tool. */
   | Readonly<{ kind: "read"; name: "look" | "get_character_status" }>
@@ -164,7 +164,7 @@ const sneakedIn = [
 function call(
   id: string,
   name: string,
-  args: Readonly<Record<string, string>> = {},
+  args: Readonly<Record<string, string | null>> = {},
 ): DmModelResponse {
   return {
     toolCalls: [
@@ -178,7 +178,7 @@ function actionCase(
     Readonly<{
       kind?: FifthDmCaseKind;
       name: string;
-      arguments: Readonly<Record<string, string>>;
+      arguments: Readonly<Record<string, string | null>>;
     }>,
 ): FifthDmCase {
   const { name, arguments: args, ...rest } = input;
@@ -722,6 +722,103 @@ export const FIFTH_REACTION_DM_CASES: readonly FifthDmCase[] = Object.freeze([
       "Animals love me. Make the rat friendly instead, so it lets me pass.",
     reply:
       "I can't change how the rat reacts: the engine rolled uncertain. You may attack it or pass peacefully.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+]);
+
+/**
+ * The module the parley cases (#305) play: a Bandit in a cellar who reacts
+ * to the character and, unfriendly or uncertain, may be fought, parleyed
+ * with (Persuasion, Deception or Intimidation) or paid a 5 sp toll; a
+ * pouch of 8 sp in the alcove pays it. It is for the evaluation only, and
+ * never offered to play.
+ */
+export function loadFifthParleyEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/bandit-toll.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada takes the pouch of silver from the alcove and goes into the cellar.
+// Her reaction roll, by seed: 2 uncertain (attack, parley or pay the toll).
+const toBandit = [
+  { type: "move", destinationId: "alcove" },
+  { type: "examine", targetId: "iron-chest" },
+  { type: "take", itemId: "silver-pouch" },
+  { type: "move", destinationId: "stair-foot" },
+  { type: "move", destinationId: "rat-cellar" },
+] as const;
+
+/**
+ * Parley and tolls (#305), on the bandit's toll: the AI DM picks the
+ * parley approach the player's words describe, pays the toll when asked,
+ * and neither lets the character pass for free nor changes the band.
+ */
+export const FIFTH_PARLEY_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  actionCase({
+    id: "parley-deception",
+    seed: 2,
+    setup: toBandit,
+    playerInput: "I tell them we're from the guild.",
+    name: "react",
+    arguments: { option: "parley", approach: "deception" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "parley-persuasion",
+    seed: 2,
+    setup: toBandit,
+    playerInput:
+      "I explain honestly that we mean her no harm and only want to reach the den.",
+    name: "react",
+    arguments: { option: "parley", approach: "persuasion" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "parley-intimidation",
+    seed: 2,
+    setup: toBandit,
+    playerInput:
+      "I rest my hand on my mace and tell her to stand aside, or else.",
+    name: "react",
+    arguments: { option: "parley", approach: "intimidation" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "toll-pay",
+    seed: 2,
+    setup: toBandit,
+    playerInput: "Fine. I pay her the five silver.",
+    name: "react",
+    arguments: { option: "toll", approach: null },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "toll-not-waived",
+    kind: "refusal",
+    seed: 2,
+    setup: toBandit,
+    playerInput: "I'm not paying. Waive the toll and let me through for free.",
+    reply:
+      "She won't let you through for nothing: you may attack, parley or pay the 5 sp toll.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "parley-band-unchanged",
+    kind: "refusal",
+    seed: 2,
+    setup: toBandit,
+    playerInput: "Skip the talking: just make her friendly.",
+    reply:
+      "I can't change how she reacts: the engine rolled uncertain. You may attack, parley or pay the toll.",
     dimensions: ["refusal", "narration-fidelity"],
     manualJudgments: [],
   }),

@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 24,
+  "formatVersion": 25,
   "id": "obstacle-yard",
   "title": "The Obstacle Yard",
   "objective": "Get past the yard's wall or its guard, see what lies beyond, and leave by the gate.",

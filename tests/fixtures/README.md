@@ -23,6 +23,7 @@ owned by the tests: change it only for a test's sake.
 | (built from the above)  | `ratRun`          | Sneaking past (#302): the tunnels as _The Rat Run_, the rat 20 bypass XP, the den an exit with no fight.                                             |
 | (built from the above)  | `lurkingTunnels`  | Lurking monsters (#303): the tunnels as _The Lurking Tunnels_, the rat lying in wait with Stealth +4 on the required path.                           |
 | (built from the above)  | `waryTunnels`     | Reaction rolls (#304): the Rat Run as _The Wary Tunnels_, the rat reaction-eligible with every band's options and 15 peaceful XP.                   |
+| (built from the above)  | `banditToll`      | Parley, tolls and trade (#305): the Rat Run as _The Bandit's Toll_, a reacting Bandit who parleys, takes a 5 sp toll or trades; 25 peaceful XP. |
 | `lintel-barrow.json`    | `lintelBarrow`    | An exit with loot behind a fight: a lintel to examine, a torc under the bier, a goblin carrying a pouch of coin.                                     |
 | `sealed-crypt.json`     | `sealedCrypt`     | Doors, a trap and talk, level 2: a stuck door, a locked door and its key, a dart trap, a creature with a check.                                      |
 | `goblin-burrow.json`    | `goblinBurrow`    | A level-up journey, levels 2–3: tunnel guards, then a goblin boss and its hoard on the way out.                                                      |
@@ -270,3 +271,13 @@ that fight's next action: attack, or end the turn.
 library's character and plays `actions`, each accepted; `WIN_THE_BURIAL_HALL`
 among them moves into the hall and wins its fight, on the seed
 `winBarrowSeed` finds.
+
+## CPU budgets
+
+`cpu-reference.mjs` holds a fixed, engine-free CPU workload. A timing budget
+measured with `referenceCpuSeconds(work)` is scaled by how long that workload
+takes in the same process, timed before and after `work`, against its
+`REFERENCE_SECONDS` on the machine the budget was set on. CI runners differ in
+speed by nearly 2× between runs of one commit, so plain CPU seconds judge the
+runner rather than the code. `shipped-modules.test.mjs` uses it for the
+default qualification's 45-second budget.

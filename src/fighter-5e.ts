@@ -9,12 +9,12 @@ import {
   FIGHTING_STYLES,
   improvementText,
   ABILITY_SCORE_CAP,
+  WEAPON_MASTERY_FEATURE,
   type Ability,
   type ClassDefinition,
   type DefaultChoices,
   type SkillId,
 } from "./class-5e.js";
-import { MASTERIES, WEAPONS } from "./equipment-5e.js";
 
 /** The skills a Fighter chooses its proficiencies from. */
 export const FIGHTER_SKILLS: readonly SkillId[] = [
@@ -70,15 +70,18 @@ export const FIGHTER: ClassDefinition = {
   skillChoices: { options: FIGHTER_SKILLS, count: 2 },
   armourTraining: ["light", "medium", "heavy", "shield"],
   weaponProficiencies: ["simple", "martial"],
+  toolProficiencies: [],
   weaponMasteries: { 1: 3, 2: 3, 3: 3, 4: 4, 5: 4 },
   features: [
     {
       id: "fighting-style",
       level: 1,
+      // A Fighter's sheet always has a Fighting Style, and its use with the
+      // gear held.
       name: ({ fightingStyle }) =>
-        `Fighting Style: ${FIGHTING_STYLES[fightingStyle].name}`,
+        `Fighting Style: ${FIGHTING_STYLES[fightingStyle!].name}`,
       text: ({ fightingStyle, fightingStyleUse }) =>
-        `${FIGHTING_STYLES[fightingStyle].text} ${fightingStyleUse.note}`,
+        `${FIGHTING_STYLES[fightingStyle!].text} ${fightingStyleUse!.note}`,
       effect: { kind: "fighting-style" },
     },
     {
@@ -91,22 +94,7 @@ export const FIGHTER: ClassDefinition = {
       recovery: "rest-between-adventures",
       effect: { kind: "second-wind", healing: { dice: 1, sides: 10 } },
     },
-    {
-      id: "weapon-mastery",
-      level: 1,
-      name: ({ weaponMasteries }) =>
-        `Weapon Mastery: ${weaponMasteries
-          .map((id) => WEAPONS[id].name)
-          .join(", ")}`,
-      text: ({ weaponMasteries }) =>
-        `${weaponMasteries
-          .map((id) => {
-            const mastery = WEAPONS[id].mastery;
-            return `${WEAPONS[id].name} (${mastery}): ${MASTERIES[mastery].text}`;
-          })
-          .join(" ")} A mastery applies only while you wield that weapon.`,
-      effect: { kind: "weapon-mastery" },
-    },
+    WEAPON_MASTERY_FEATURE,
     {
       id: "action-surge",
       level: 2,

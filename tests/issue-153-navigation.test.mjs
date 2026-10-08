@@ -74,9 +74,9 @@ for (const viewport of [
         // Creation is its own entry, titled, with a Cancel and a breadcrumb.
         await openCreation(page);
         const creation = await shown(page, "creation");
-        assert.equal(creation.title, "Create a Fighter · Dungeon One");
+        assert.equal(creation.title, "Create a character · Dungeon One");
         assert.equal(creation.hash, "#create");
-        assert.deepEqual(creation.crumbs, ["Characters", "Create a Fighter"]);
+        assert.deepEqual(creation.crumbs, ["Characters", "Create a character"]);
         assert.equal(creation.focused, "creation-title");
         assert.equal(
           await page.locator("#close-creation").textContent(),

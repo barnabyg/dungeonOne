@@ -114,6 +114,8 @@ export type CharacterStatus = Readonly<{
   resources?: readonly string[];
   /** The character's conditions in a fight, each with its source and how it ends. */
   conditions?: readonly string[];
+  /** The character's class features, each with what it does, for a runtime with classes. */
+  features?: readonly string[];
 }>;
 
 /** The AI DM's tools for reading the scene and acting in it. */

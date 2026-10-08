@@ -9,16 +9,17 @@
  * order a fresh creation fills its abilities in, its default choices and its
  * starting kits. `character-5e.ts` derives every number on a sheet from its
  * class's definition and never asks which class it is; each class's
- * definition lives in its own module (`fighter-5e.ts`).
+ * definition lives in its own module (`fighter-5e.ts`, `rogue-5e.ts`).
  */
 import {
+  MASTERIES,
   WEAPONS,
   type ArmourCategory,
   type EquipmentProfile,
   type FightingStyleId,
   type KitId,
-  type WeaponCategory,
   type WeaponId,
+  type WeaponProficiency,
 } from "./equipment-5e.js";
 
 export const ABILITIES = [
@@ -44,11 +45,14 @@ export const SKILLS = {
   acrobatics: { name: "Acrobatics", ability: "dexterity" },
   "animal-handling": { name: "Animal Handling", ability: "wisdom" },
   athletics: { name: "Athletics", ability: "strength" },
+  deception: { name: "Deception", ability: "charisma" },
   history: { name: "History", ability: "intelligence" },
   insight: { name: "Insight", ability: "wisdom" },
   intimidation: { name: "Intimidation", ability: "charisma" },
+  investigation: { name: "Investigation", ability: "intelligence" },
   perception: { name: "Perception", ability: "wisdom" },
   persuasion: { name: "Persuasion", ability: "charisma" },
+  "sleight-of-hand": { name: "Sleight of Hand", ability: "dexterity" },
   stealth: { name: "Stealth", ability: "dexterity" },
   survival: { name: "Survival", ability: "wisdom" },
 } as const satisfies Record<string, { name: string; ability: Ability }>;
@@ -157,15 +161,24 @@ export const FEATURE_USES_RULE =
 /** A number for each level, such as a feature's uses. */
 export type LevelTable = Readonly<Record<Level, number>>;
 
+/** The tools a class can be proficient with (#306). */
+export const TOOLS = {
+  "thieves-tools": { name: "Thieves' Tools" },
+} as const satisfies Record<string, { name: string }>;
+export type ToolId = keyof typeof TOOLS;
+
 /** What a feature's name and text are written from. */
 export type FeatureContext = Readonly<{
   level: Level;
   /** The feature's uses at this level, for a feature with limited uses. */
   uses: number;
   weaponMasteries: readonly WeaponId[];
-  fightingStyle: FightingStyle;
+  /** The Fighting Style, for a class that chooses one. */
+  fightingStyle?: FightingStyle;
   /** Whether the Fighting Style applies with the gear held, and why. */
-  fightingStyleUse: FightingStyleUse;
+  fightingStyleUse?: FightingStyleUse;
+  /** The skills chosen for Expertise, for a class that has it (#306). */
+  expertise: readonly SkillId[];
   abilityScoreImprovements: readonly AbilityScoreImprovement[];
 }>;
 
@@ -193,6 +206,16 @@ export type FeatureEffect = Readonly<
   | { kind: "fighting-style" }
   /** The kinds of weapon mastered (`ClassDefinition.weaponMasteries`). */
   | { kind: "weapon-mastery" }
+  /**
+   * Sneak Attack (#306): once per turn, `dice`d`sides` extra damage on a hit
+   * with a Finesse or ranged weapon made with advantage. Dice by level.
+   */
+  | { kind: "sneak-attack"; dice: LevelTable; sides: number }
+  /**
+   * Expertise (#306): `count` of the character's proficient skills, chosen
+   * at creation, double their proficiency bonus.
+   */
+  | { kind: "expertise"; count: number }
   /** An Ability Score Improvement, chosen with the level's new mastery. */
   | { kind: "ability-score-improvement" }
 >;
@@ -210,6 +233,27 @@ export type FeatureDefinition = Readonly<{
   effect?: FeatureEffect;
 }>;
 
+/**
+ * Weapon Mastery at level 1, as the Fighter and the Rogue (#306) both have
+ * it: the kinds of weapon mastered and what each mastery does.
+ */
+export const WEAPON_MASTERY_FEATURE: FeatureDefinition = {
+  id: "weapon-mastery",
+  level: 1,
+  name: ({ weaponMasteries }) =>
+    `Weapon Mastery: ${weaponMasteries
+      .map((id) => WEAPONS[id].name)
+      .join(", ")}`,
+  text: ({ weaponMasteries }) =>
+    `${weaponMasteries
+      .map((id) => {
+        const mastery = WEAPONS[id].mastery;
+        return `${WEAPONS[id].name} (${mastery}): ${MASTERIES[mastery].text}`;
+      })
+      .join(" ")} A mastery applies only while you wield that weapon.`,
+  effect: { kind: "weapon-mastery" },
+};
+
 export type SubclassDefinition = Readonly<{
   id: string;
   name: string;
@@ -217,13 +261,16 @@ export type SubclassDefinition = Readonly<{
   features: readonly FeatureDefinition[];
 }>;
 
-export type ClassId = "fighter";
+export type ClassId = "fighter" | "rogue";
 
 /** The choices a creation makes besides placing the rolls. */
 export type DefaultChoices = Readonly<{
   increase: Readonly<Partial<Record<Ability, 1 | 2>>>;
   skills: readonly SkillId[];
-  fightingStyle: FightingStyle;
+  /** For a class with a Fighting Style. */
+  fightingStyle?: FightingStyle;
+  /** For a class with Expertise (#306). */
+  expertise?: readonly SkillId[];
   kit: KitId;
   masteries: readonly WeaponId[];
 }>;
@@ -248,7 +295,9 @@ export type ClassDefinition = Readonly<{
   /** The armour it is trained with. */
   armourTraining: readonly ArmourCategory[];
   /** The weapons it adds its proficiency bonus to attacks with. */
-  weaponProficiencies: readonly WeaponCategory[];
+  weaponProficiencies: readonly WeaponProficiency[];
+  /** The tools it is proficient with (#306). */
+  toolProficiencies: readonly ToolId[];
   /** How many kinds of weapon it masters, by level. */
   weaponMasteries: LevelTable;
   /** Its features, in the order the sheet lists those of the same level. */

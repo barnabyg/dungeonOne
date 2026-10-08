@@ -90,12 +90,12 @@ const offered = (using, state, kind) =>
     .map(({ target }) => target.id);
 
 test("the module, save and trace formats bump; reactions are validated", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 24);
-  assert.equal(FIFTH_SESSION_FORMAT, 31);
-  assert.equal(FIFTH_TRACE_FORMAT, 25);
+  assert.equal(FIFTH_ADVENTURE_FORMAT, 25);
+  assert.equal(FIFTH_SESSION_FORMAT, 32);
+  assert.equal(FIFTH_TRACE_FORMAT, 26);
   assert.throws(
     () => validateModule({ ...moduleFile("rat-tunnels"), formatVersion: 23 }),
-    /format version 23 is not 24/u,
+    /format version 23 is not 25/u,
   );
   assert.deepEqual(waryTunnels.encounters[0].reaction.bands.friendly, {
     options: ["let-pass"],
@@ -122,8 +122,8 @@ test("the module, save and trace formats bump; reactions are validated", () => {
     /band hostile always fights/u,
   );
   rejects(
-    (_, fight) => (fight.reaction.bands.friendly.options = ["parley"]),
-    /option parley is not one of attack, let-pass/u,
+    (_, fight) => (fight.reaction.bands.friendly.options = ["bribe"]),
+    /option bribe is not one of attack, let-pass, parley, toll, trade/u,
   );
   rejects(
     (_, fight) =>
@@ -538,7 +538,7 @@ test("scripted DM: attacking anyway works where offered; no other option, and no
   ]);
   assert.match(
     session.runtime.projectDmScene(session.state).combatStatus,
-    /reaction roll is \d+, uncertain; react offers only attack and let-pass/u,
+    /reaction roll is \d+, uncertain; the character may only attack or pass peacefully\./u,
   );
   // The band can't be changed: an extra argument is refused.
   for (const argumentsJson of [

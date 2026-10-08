@@ -24,6 +24,7 @@ const CONTEXT = {
   dexterityScore: 14,
   proficiency: 2,
   weaponProficiencies: ["simple", "martial"],
+  armourTraining: ["light", "medium", "heavy", "shield"],
   masteries: [],
   criticalRange: 20,
 };

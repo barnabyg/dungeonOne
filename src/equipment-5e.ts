@@ -46,6 +46,34 @@ export type Dice = Readonly<{ dice: number; sides: number }>;
 /** SRD 5.2 weapon categories; a class is proficient with some (#300). */
 export type WeaponCategory = "simple" | "martial";
 
+/**
+ * Weapons a class is proficient with: a whole category, or the weapons of a
+ * category that have any of `properties`, such as the Rogue's martial
+ * weapons with Finesse or Light (#306).
+ */
+export type WeaponProficiency =
+  | WeaponCategory
+  | Readonly<{
+      category: WeaponCategory;
+      properties: readonly WeaponProperty[];
+    }>;
+
+/** Whether `proficiencies` cover the weapon `id`. */
+export function proficientWith(
+  proficiencies: readonly WeaponProficiency[],
+  id: WeaponId,
+): boolean {
+  const weapon: WeaponData = WEAPONS[id];
+  return proficiencies.some((proficiency) =>
+    typeof proficiency === "string"
+      ? proficiency === weapon.category
+      : proficiency.category === weapon.category &&
+        proficiency.properties.some((property) =>
+          weapon.properties.includes(property),
+        ),
+  );
+}
+
 export type WeaponData = Readonly<{
   name: string;
   category: WeaponCategory;
@@ -743,6 +771,13 @@ export type EquipmentProfile = Readonly<{
   strengthShortfall?: Readonly<{ armour: string; strength: number }>;
   /** Armour that gives disadvantage on Dexterity (Stealth) checks. */
   stealthDisadvantage: boolean;
+  /**
+   * Body armour worn without training, by name (SRD 5.2): disadvantage on
+   * every D20 Test with Strength or Dexterity, its attacks among them.
+   */
+  untrainedArmour?: string;
+  /** A shield carried without training (SRD 5.2): it adds no AC. */
+  untrainedShield?: true;
 }>;
 
 /** The SRD 5.2 Fighting Style feats. */
@@ -754,8 +789,10 @@ export type EquipmentContext = Readonly<{
   strengthScore: number;
   dexterityScore: number;
   proficiency: number;
-  /** The weapon categories whose attacks add `proficiency`. */
-  weaponProficiencies: readonly WeaponCategory[];
+  /** The weapons whose attacks add `proficiency`. */
+  weaponProficiencies: readonly WeaponProficiency[];
+  /** The armour categories the class is trained with (SRD 5.2). */
+  armourTraining: readonly ArmourCategory[];
   masteries: readonly WeaponId[];
   /**
    * Archery: +2 to hit with a ranged weapon. Defense: +1 AC while wearing
@@ -767,11 +804,36 @@ export type EquipmentContext = Readonly<{
   criticalRange: 19 | 20;
 }>;
 
+/**
+ * The source an untrained armour's disadvantage names, such as "Chain mail
+ * (untrained)".
+ */
+export const untrainedSource = (armour: string): string =>
+  `${armour} (untrained)`;
+
+/**
+ * The body armour in `equipment` its wearer is not trained with, by name, or
+ * undefined (SRD 5.2): every D20 Test with Strength or Dexterity, attack rolls
+ * among them, has disadvantage while it is worn.
+ */
+export function untrainedArmour(
+  equipment: readonly string[],
+  armourTraining: readonly ArmourCategory[],
+): string | undefined {
+  const id = readLoadout(equipment).armour;
+  if (id === undefined) {
+    return undefined;
+  }
+  const armour: ArmourData = ARMOUR[id];
+  return armourTraining.includes(armour.category) ? undefined : armour.name;
+}
+
 function attackWith(
   weaponId: WeaponId,
   grip: "one-handed" | "two-handed",
   extra: boolean,
   context: EquipmentContext,
+  untrained: string | undefined,
 ): AttackProfile {
   const weapon: WeaponData = WEAPONS[weaponId];
   const { strength, dexterity } = context.modifiers;
@@ -799,7 +861,7 @@ function attackWith(
     // Archery: +2 to hit with a ranged weapon, never to its damage.
     bonus:
       modifier +
-      (context.weaponProficiencies.includes(weapon.category)
+      (proficientWith(context.weaponProficiencies, weaponId)
         ? context.proficiency
         : 0) +
       (ranged && context.fightingStyle === "archery" ? 2 : 0),
@@ -822,12 +884,15 @@ function attackWith(
       ? { mastery: weapon.mastery as UsedMastery }
       : {}),
     // SRD 5.2 Heavy: Strength 13 for a melee weapon, Dexterity 13 for a
-    // ranged one.
-    disadvantage:
-      weapon.properties.includes("heavy") &&
+    // ranged one. Untrained armour: every weapon attack uses Strength or
+    // Dexterity.
+    disadvantage: [
+      ...(weapon.properties.includes("heavy") &&
       (ranged ? context.dexterityScore : context.strengthScore) < 13
         ? ["Heavy"]
-        : [],
+        : []),
+      ...(untrained === undefined ? [] : [untrainedSource(untrained)]),
+    ],
     ...(context.fightingStyle === "great-weapon-fighting" &&
     grip === "two-handed"
       ? { greatWeaponFighting: true as const }
@@ -845,7 +910,8 @@ function attackWith(
  * heavy ranged one below Dexterity 13, has disadvantage, and Great Weapon
  * Fighting marks a weapon in two hands); and the Light extra attack when a second light weapon is held
  * (with its ability modifier under Two-Weapon Fighting). A mastery applies only to a weapon the character has
- * mastered and is holding.
+ * mastered and is holding. Without the class's training (SRD 5.2), body
+ * armour gives every attack disadvantage and a shield adds no AC.
  */
 export function equipmentProfile(
   equipment: readonly string[],
@@ -862,9 +928,13 @@ export function equipmentProfile(
         ? armour.armorClass
         : armour.armorClass +
           Math.min(dexterity, armour.dexterityCap ?? Number.POSITIVE_INFINITY);
+  const untrained = untrainedArmour(equipment, context.armourTraining);
+  // SRD 5.2: a shield gives its AC only with training.
+  const untrainedShield =
+    loadout.shield && !context.armourTraining.includes("shield");
   const armorClass =
     body +
-    (loadout.shield ? ARMOUR.shield.armorClass : 0) +
+    (loadout.shield && !untrainedShield ? ARMOUR.shield.armorClass : 0) +
     (context.fightingStyle === "defense" && armour !== undefined ? 1 : 0);
   return {
     loadout,
@@ -874,11 +944,18 @@ export function equipmentProfile(
       loadout.twoHanded ? "two-handed" : "one-handed",
       false,
       context,
+      untrained,
     ),
     ...(loadout.offHand === undefined
       ? {}
       : {
-          lightAttack: attackWith(loadout.offHand, "one-handed", true, context),
+          lightAttack: attackWith(
+            loadout.offHand,
+            "one-handed",
+            true,
+            context,
+            untrained,
+          ),
         }),
     ...(armour?.strength !== undefined &&
     context.strengthScore < armour.strength
@@ -890,6 +967,8 @@ export function equipmentProfile(
         }
       : {}),
     stealthDisadvantage: armour?.stealthDisadvantage ?? false,
+    ...(untrained === undefined ? {} : { untrainedArmour: untrained }),
+    ...(untrainedShield ? { untrainedShield: true as const } : {}),
   };
 }
 
@@ -901,7 +980,9 @@ export type KitData = Readonly<{
 
 /**
  * The starting kits: common-tier items only, and a little of each. Early
- * levels are dangerous, so better gear is found, bought or earned.
+ * levels are dangerous, so better gear is found, bought or earned. Each
+ * class offers its own (`ClassDefinition.kits`): the Fighter the first
+ * three, the Rogue (#306) the shortsword kits.
  */
 export const STARTING_KITS = {
   mace: { name: "Mace and leather", equipment: ["leather", "mace"] },
@@ -913,12 +994,23 @@ export const STARTING_KITS = {
     name: "Club, dagger and leather",
     equipment: ["leather", "club", "dagger"],
   },
+  shortsword: {
+    name: "Shortsword and leather",
+    equipment: ["leather", "shortsword"],
+  },
+  "shortsword-and-dagger": {
+    name: "Shortsword, dagger and leather",
+    equipment: ["leather", "shortsword", "dagger"],
+  },
 } as const satisfies Record<string, KitData>;
 export type KitId = keyof typeof STARTING_KITS;
 /** Every starting kit's id, in the order creation offers them. */
 export const KIT_IDS = Object.keys(STARTING_KITS) as readonly KitId[];
 
-/** The most two kits' prices may differ by, in copper: they are of equal value. */
+/**
+ * The most two of one class's kits' prices may differ by, in copper: they
+ * are of equal value. Kits of different classes may differ more (#306).
+ */
 export const KIT_VALUE_TOLERANCE = 300;
 
 /** A kit's value: the sum of its items' prices, in copper. */

@@ -21,6 +21,7 @@ import {
   FIGHTING_STYLES,
   SKILLS,
   titleCase,
+  TOOLS,
   type Abilities,
   type Ability,
   type AbilityScoreImprovement,
@@ -44,9 +45,12 @@ import {
   loadWeight,
   MASTERIES,
   MASTERY_WEAPONS,
+  proficientWith,
   readLoadout,
   STARTING_KITS,
   TREASURE_WEIGHT,
+  untrainedArmour,
+  untrainedSource,
   WEAPONS,
   type Ammunition,
   type AmmunitionId,
@@ -57,15 +61,17 @@ import {
 } from "./equipment-5e.js";
 import { FIGHTER } from "./fighter-5e.js";
 import type { RandomSource } from "./random.js";
+import { ROGUE } from "./rogue-5e.js";
 
-/** Every class a sheet can name, by id. */
+/** Every class a sheet can name, by id, in the order creation offers them. */
 export const CLASSES: Readonly<Record<ClassId, ClassDefinition>> = {
   fighter: FIGHTER,
+  rogue: ROGUE,
 };
 
 /**
- * The class creation makes, and the balance harness, the gate and the career
- * simulation play, while there is only one.
+ * The class creation starts with, and the balance harness, the gate and the
+ * career simulation play unless told otherwise.
  */
 export const DEFAULT_CLASS: ClassId = "fighter";
 
@@ -74,7 +80,7 @@ export function classOf(sheet: Pick<CharacterSheet, "class">): ClassDefinition {
   return CLASSES[sheet.class];
 }
 
-function isClassId(value: unknown): value is ClassId {
+export function isClassId(value: unknown): value is ClassId {
   return typeof value === "string" && Object.hasOwn(CLASSES, value);
 }
 
@@ -112,7 +118,10 @@ export type CreationChoices = Readonly<{
   placement: Placement;
   increase: BackgroundIncrease;
   skills: readonly SkillId[];
-  fightingStyle: FightingStyle;
+  /** Exactly for a class with a Fighting Style. */
+  fightingStyle?: FightingStyle;
+  /** The skills chosen for Expertise, exactly for a class with it (#306). */
+  expertise?: readonly SkillId[];
   /** The starting kit, from `STARTING_KITS`. */
   kit: KitId;
   /** The kinds of weapon mastered, from `MASTERY_WEAPONS`. */
@@ -215,7 +224,13 @@ export type CharacterSheet = Readonly<{
    */
   abilities: Abilities;
   skills: readonly SkillId[];
-  fightingStyle: FightingStyle;
+  /** Its Fighting Style, present exactly when its class has one. */
+  fightingStyle?: FightingStyle;
+  /**
+   * Its proficient skills whose proficiency bonus is doubled, present
+   * exactly when its class has Expertise (#306).
+   */
+  expertise?: readonly SkillId[];
   /** The kinds of weapon whose mastery it can use. */
   weaponMasteries: readonly WeaponId[];
   /** What it has equipped; see `Possessions`. */
@@ -246,7 +261,6 @@ const SHEET_KEYS = [
   "abilityScoreImprovements",
   "abilities",
   "skills",
-  "fightingStyle",
   "weaponMasteries",
   "equipment",
   "stowed",
@@ -255,6 +269,11 @@ const SHEET_KEYS = [
   "purse",
   "finds",
   "xpAwards",
+];
+/** The keys a sheet has exactly when its class makes the choice (#306). */
+export const CLASS_CHOICE_KEYS: readonly string[] = [
+  "fightingStyle",
+  "expertise",
 ];
 
 export function abilityModifier(score: number): number {
@@ -377,6 +396,31 @@ function effects<K extends FeatureEffect["kind"]>(
           },
         ]
       : [],
+  );
+}
+
+/** Whether `definition` chooses a Fighting Style at level 1. */
+function hasFightingStyle(definition: ClassDefinition): boolean {
+  return effects(definition, 1, "fighting-style").length > 0;
+}
+
+/** How many skills a character of `level` has Expertise in (#306). */
+function expertiseCount(definition: ClassDefinition, level: Level): number {
+  return effects(definition, level, "expertise").reduce(
+    (sum, { effect }) => sum + effect.count,
+    0,
+  );
+}
+
+/**
+ * The weapons whose mastery `definition` can choose: every catalogue weapon
+ * whose mastery is used and that the class is proficient with (#306).
+ */
+export function classMasteryWeapons(
+  definition: ClassDefinition,
+): readonly WeaponId[] {
+  return MASTERY_WEAPONS.filter((id) =>
+    proficientWith(definition.weaponProficiencies, id),
   );
 }
 
@@ -575,6 +619,67 @@ function validateFightingStyle(value: unknown): FightingStyle {
   return value as FightingStyle;
 }
 
+/** A Fighting Style for a class with one; none for any other. */
+function validateClassStyle(
+  definition: ClassDefinition,
+  value: unknown,
+): FightingStyle | undefined {
+  if (hasFightingStyle(definition)) {
+    return validateFightingStyle(value);
+  }
+  if (value !== undefined) {
+    throw new Error(`A ${definition.name} has no Fighting Style.`);
+  }
+  return undefined;
+}
+
+const expertiseChoice = (count: number) =>
+  `Choose ${count} of your skill proficiencies for Expertise.`;
+
+/**
+ * Different skills of `skills` chosen for Expertise, however many of
+ * `count` are ticked so far; none for a class without it (#306).
+ */
+function validatePartialExpertise(
+  definition: ClassDefinition,
+  count: number,
+  skills: readonly SkillId[],
+  value: unknown,
+): readonly SkillId[] | undefined {
+  if (count === 0) {
+    if (value !== undefined) {
+      throw new Error(`A ${definition.name} has no Expertise.`);
+    }
+    return undefined;
+  }
+  if (
+    !Array.isArray(value) ||
+    value.length > count ||
+    new Set(value).size !== value.length ||
+    !value.every(
+      (skill) =>
+        typeof skill === "string" &&
+        (skills as readonly string[]).includes(skill),
+    )
+  ) {
+    throw new Error(expertiseChoice(count));
+  }
+  return [...(value as SkillId[])];
+}
+
+function validateExpertise(
+  definition: ClassDefinition,
+  count: number,
+  skills: readonly SkillId[],
+  value: unknown,
+): readonly SkillId[] | undefined {
+  const expertise = validatePartialExpertise(definition, count, skills, value);
+  if (expertise !== undefined && expertise.length !== count) {
+    throw new Error(expertiseChoice(count));
+  }
+  return expertise;
+}
+
 function validateKit(definition: ClassDefinition, value: unknown): KitId {
   if (!(definition.kits as readonly unknown[]).includes(value)) {
     throw new Error("Choose one of the starting kits.");
@@ -594,15 +699,12 @@ function validatePartialMasteries(
   value: unknown,
 ): readonly WeaponId[] {
   const count = definition.weaponMasteries[1];
+  const options: readonly string[] = classMasteryWeapons(definition);
   if (
     !Array.isArray(value) ||
     value.length > count ||
     new Set(value).size !== value.length ||
-    !value.every(
-      (id) =>
-        typeof id === "string" &&
-        (MASTERY_WEAPONS as readonly string[]).includes(id),
-    )
+    !value.every((id) => typeof id === "string" && options.includes(id))
   ) {
     throw new Error(masteryChoice(count));
   }
@@ -620,20 +722,21 @@ function validateMasteries(
   return masteries;
 }
 
-/** A sheet's masteries: `count` different weapons whose mastery is used. */
+/**
+ * A sheet's masteries: `count` different weapons whose mastery is used and
+ * that its class is proficient with.
+ */
 function validateSheetMasteries(
+  definition: ClassDefinition,
   value: unknown,
   count: number,
 ): readonly WeaponId[] {
+  const options: readonly string[] = classMasteryWeapons(definition);
   if (
     !Array.isArray(value) ||
     value.length !== count ||
     new Set(value).size !== value.length ||
-    !value.every(
-      (id) =>
-        typeof id === "string" &&
-        (MASTERY_WEAPONS as readonly string[]).includes(id),
-    )
+    !value.every((id) => typeof id === "string" && options.includes(id))
   ) {
     throw new Error("Unsupported weapon mastery.");
   }
@@ -739,6 +842,14 @@ export function buildCharacter(
   const abilityRolls = Object.fromEntries(
     ABILITIES.map((ability) => [ability, rolled[placement[ability]]!]),
   ) as Record<Ability, AbilityRoll>;
+  const skills = validateSkills(definition, choices.skills);
+  const fightingStyle = validateClassStyle(definition, choices.fightingStyle);
+  const expertise = validateExpertise(
+    definition,
+    expertiseCount(definition, 1),
+    skills,
+    choices.expertise,
+  );
   const base = {
     id,
     name: name.trim(),
@@ -755,8 +866,9 @@ export function buildCharacter(
         keptTotal(abilityRolls[ability]) + (increase[ability] ?? 0),
       ]),
     ) as Abilities,
-    skills: validateSkills(definition, choices.skills),
-    fightingStyle: validateFightingStyle(choices.fightingStyle),
+    skills,
+    ...(fightingStyle === undefined ? {} : { fightingStyle }),
+    ...(expertise === undefined ? {} : { expertise }),
     weaponMasteries: validateMasteries(definition, choices.masteries),
     equipment: STARTING_KITS[validateKit(definition, choices.kit)].equipment,
     stowed: [],
@@ -801,16 +913,25 @@ export type CreationProjection = Readonly<{
   /** Masteries ticked, the limit, and whether no more can be ticked. */
   masteries: Readonly<{ chosen: number; limit: number; full: boolean }>;
   /**
-   * Every starting kit with the AC and attacks it gives these scores, Fighting
-   * Style and the masteries ticked so far.
+   * Expertise ticked, the limit, and whether no more can be ticked, for a
+   * class with Expertise (#306).
+   */
+  expertise?: Readonly<{ chosen: number; limit: number; full: boolean }>;
+  /**
+   * Every starting kit of the class with the AC and attacks it gives these
+   * scores, Fighting Style and the masteries ticked so far.
    */
   kits: readonly KitPreview[];
-  /** Every Fighting Style, and whether it applies with the kit chosen. */
+  /**
+   * Every Fighting Style, and whether it applies with the kit chosen; none
+   * for a class without one.
+   */
   fightingStyles: readonly FightingStyleUse[];
   /** Why a choice is not finished yet, keyed by the choice; empty when saving can go ahead. */
   unfinished: Readonly<{
     increase?: string;
     skills?: string;
+    expertise?: string;
     masteries?: string;
   }>;
   /**
@@ -842,7 +963,16 @@ export function projectCreation(
   const placement = validatePlacement(choices.placement);
   const { increase, missing } = validatePartialIncrease(choices.increase);
   const skills = validatePartialSkills(definition, choices.skills);
-  const fightingStyle = validateFightingStyle(choices.fightingStyle);
+  const fightingStyle = validateClassStyle(definition, choices.fightingStyle);
+  const expertiseLimit = expertiseCount(definition, 1);
+  // Expertise is among the skills ticked so far; untick a skill and its
+  // Expertise must go too.
+  const expertise = validatePartialExpertise(
+    definition,
+    expertiseLimit,
+    skills,
+    choices.expertise,
+  );
   const kitChosen = validateKit(definition, choices.kit);
   const masteries = validatePartialMasteries(definition, choices.masteries);
   const rows = ABILITIES.map((ability) => {
@@ -866,6 +996,11 @@ export function projectCreation(
       : {
           skills: `Choose ${skillCount} skills; ${skills.length} chosen.`,
         }),
+    ...(expertise === undefined || expertise.length === expertiseLimit
+      ? {}
+      : {
+          expertise: `Choose ${expertiseLimit} skills for Expertise; ${expertise.length} chosen.`,
+        }),
     ...(masteries.length === masteryCount
       ? {}
       : {
@@ -874,7 +1009,7 @@ export function projectCreation(
   };
   const score = (ability: Ability) =>
     rows.find((row) => row.ability === ability)!.score;
-  const derive = (id: KitId, style: FightingStyle) =>
+  const derive = (id: KitId, style: FightingStyle | undefined) =>
     equipmentProfile(STARTING_KITS[id].equipment, {
       modifiers: {
         strength: abilityModifier(score("strength")),
@@ -884,8 +1019,9 @@ export function projectCreation(
       dexterityScore: score("dexterity"),
       proficiency: proficiencyBonus(1),
       weaponProficiencies: definition.weaponProficiencies,
+      armourTraining: definition.armourTraining,
       masteries,
-      fightingStyle: style,
+      ...(style === undefined ? {} : { fightingStyle: style }),
       criticalRange: criticalRange(definition, 1),
     });
   const kits = definition.kits.map((id) => {
@@ -916,10 +1052,22 @@ export function projectCreation(
       limit: masteryCount,
       full: masteries.length >= masteryCount,
     },
+    ...(expertise === undefined
+      ? {}
+      : {
+          expertise: {
+            chosen: expertise.length,
+            limit: expertiseLimit,
+            full: expertise.length >= expertiseLimit,
+          },
+        }),
     kits,
-    fightingStyles: (Object.keys(FIGHTING_STYLES) as FightingStyle[]).map(
-      (style) => fightingStyleUse(style, derive(kitChosen, style)),
-    ),
+    fightingStyles:
+      fightingStyle === undefined
+        ? []
+        : (Object.keys(FIGHTING_STYLES) as FightingStyle[]).map((style) =>
+            fightingStyleUse(style, derive(kitChosen, style)),
+          ),
     unfinished,
   };
   if (Object.keys(unfinished).length > 0) {
@@ -953,8 +1101,10 @@ function improvementTo(
 export function validateCharacter(value: unknown): CharacterSheet {
   if (
     !isRecord(value) ||
-    Object.keys(value).length !== SHEET_KEYS.length ||
-    !SHEET_KEYS.every((key) => Object.hasOwn(value, key))
+    !SHEET_KEYS.every((key) => Object.hasOwn(value, key)) ||
+    !Object.keys(value).every(
+      (key) => SHEET_KEYS.includes(key) || CLASS_CHOICE_KEYS.includes(key),
+    )
   ) {
     throw new Error("Invalid character sheet.");
   }
@@ -995,8 +1145,8 @@ export function validateCharacter(value: unknown): CharacterSheet {
   for (const ability of ABILITIES) {
     abilityModifier(sheet.abilities[ability]);
   }
-  validateSkills(definition, sheet.skills);
-  validateFightingStyle(sheet.fightingStyle);
+  const skills = validateSkills(definition, sheet.skills);
+  validateClassStyle(definition, sheet.fightingStyle);
   try {
     readLoadout(sheet.equipment);
   } catch {
@@ -1015,6 +1165,12 @@ export function validateCharacter(value: unknown): CharacterSheet {
   if (sheet.level !== levelForXp(sheet.xp)) {
     throw new Error("Character level differs from experience points.");
   }
+  validateExpertise(
+    definition,
+    expertiseCount(definition, sheet.level),
+    skills,
+    sheet.expertise,
+  );
   // Each level choice (#286) is an Ability Score Improvement and its level's
   // new masteries, made together; a sheet may still owe its latest one.
   if (
@@ -1023,6 +1179,7 @@ export function validateCharacter(value: unknown): CharacterSheet {
     throw new Error("Too many Ability Score Improvements for the level.");
   }
   validateSheetMasteries(
+    definition,
     sheet.weaponMasteries,
     masteriesHeld(definition, improvements.length),
   );
@@ -1059,17 +1216,33 @@ export type CharacterProfile = Readonly<{
     ability: Ability;
     bonus: number;
     proficient: boolean;
+    /** Expertise doubles the proficiency bonus in `bonus` (#306). */
+    expertise?: true;
   }>[];
+  /** The tools it is proficient with, by name (#306); absent with none. */
+  tools?: readonly string[];
   /** What it has equipped, by name, in the sheet's order. */
   equipment: readonly Readonly<{ id: ItemId; name: string }>[];
   /** The attack with the weapon it holds first. */
   attack: AttackProfile;
   /** The Light property's extra attack with a second light weapon. */
   lightAttack?: AttackProfile;
-  /** Whether the Fighting Style applies with what it has equipped. */
-  fightingStyle: FightingStyleUse;
+  /**
+   * Whether the Fighting Style applies with what it has equipped, for a
+   * class with one.
+   */
+  fightingStyle?: FightingStyleUse;
+  /** Sneak Attack's extra damage dice, for a class with it (#306). */
+  sneakAttack?: Readonly<{ dice: number; sides: number }>;
   /** Armour worn below its Strength requirement (speed -10 ft, not used without positions). */
   strengthShortfall?: Readonly<{ armour: string; strength: number }>;
+  /**
+   * Body armour worn without the class's training, by name: disadvantage on
+   * Strength and Dexterity rolls (see `abilityDisadvantages`).
+   */
+  untrainedArmour?: string;
+  /** A shield carried without the class's training: it adds no AC. */
+  untrainedShield?: true;
   /** Second Wind's uses and healing (dice + level), for a class that has it. */
   secondWind?: Readonly<{
     uses: number;
@@ -1106,6 +1279,27 @@ export function checkAdvantages(
     );
 }
 
+/**
+ * The named sources of disadvantage on every D20 Test `sheet` makes with
+ * `ability`: its checks, its saving throws and, for Dexterity, its
+ * initiative. Body armour worn without the class's training gives it on
+ * Strength and Dexterity (SRD 5.2), as "Chain mail (untrained)". Attack rolls
+ * get the same source from the equipment profile.
+ */
+export function abilityDisadvantages(
+  sheet: Pick<CharacterSheet, "class" | "equipment">,
+  ability: Ability,
+): readonly string[] {
+  if (ability !== "strength" && ability !== "dexterity") {
+    return [];
+  }
+  const armour = untrainedArmour(
+    sheet.equipment,
+    classOf(sheet).armourTraining,
+  );
+  return armour === undefined ? [] : [untrainedSource(armour)];
+}
+
 /** The fields a profile is derived from. */
 type ProfiledSheet = Pick<
   CharacterSheet,
@@ -1115,9 +1309,34 @@ type ProfiledSheet = Pick<
   | "level"
   | "skills"
   | "fightingStyle"
+  | "expertise"
   | "equipment"
   | "weaponMasteries"
 >;
+
+/** Whether `sheet` has Expertise in `skill` (#306). */
+export function hasExpertise(
+  sheet: Pick<CharacterSheet, "expertise">,
+  skill: SkillId,
+): boolean {
+  return sheet.expertise?.includes(skill) === true;
+}
+
+/**
+ * The proficiency bonus a check with `skill` adds: none without the skill,
+ * the bonus with it, and twice the bonus with Expertise in it (#306).
+ */
+export function skillProficiency(
+  sheet: Pick<CharacterSheet, "level" | "skills" | "expertise">,
+  skill: SkillId,
+): number {
+  const proficiency = proficiencyBonus(sheet.level);
+  return hasExpertise(sheet, skill)
+    ? proficiency * 2
+    : sheet.skills.includes(skill)
+      ? proficiency
+      : 0;
+}
 
 /**
  * Every number derived from a sheet's class, scores, level, equipment and
@@ -1139,18 +1358,26 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
     dexterityScore: sheet.abilities.dexterity,
     proficiency,
     weaponProficiencies: definition.weaponProficiencies,
+    armourTraining: definition.armourTraining,
     masteries: sheet.weaponMasteries,
-    fightingStyle: sheet.fightingStyle,
+    ...(sheet.fightingStyle === undefined
+      ? {}
+      : { fightingStyle: sheet.fightingStyle }),
     criticalRange: criticalRange(definition, level),
   });
-  const styleUse = fightingStyleUse(sheet.fightingStyle, gear);
+  const styleUse =
+    sheet.fightingStyle === undefined
+      ? undefined
+      : fightingStyleUse(sheet.fightingStyle, gear);
   const features = classFeatures(definition, level).map((feature) => {
     const context = {
       level,
       uses: feature.uses?.[level] ?? 0,
       weaponMasteries: sheet.weaponMasteries,
-      fightingStyle: sheet.fightingStyle,
-      fightingStyleUse: styleUse,
+      ...(sheet.fightingStyle === undefined || styleUse === undefined
+        ? {}
+        : { fightingStyle: sheet.fightingStyle, fightingStyleUse: styleUse }),
+      expertise: sheet.expertise ?? [],
       abilityScoreImprovements: sheet.abilityScoreImprovements,
     };
     const name =
@@ -1166,6 +1393,7 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
   });
   const [wind] = effects(definition, level, "second-wind");
   const [surge] = effects(definition, level, "action-surge");
+  const [sneak] = effects(definition, level, "sneak-attack");
   const hitDie = definition.hitDie;
   return {
     level,
@@ -1192,23 +1420,42 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
     ) as Record<Ability, { bonus: number; proficient: boolean }>,
     skills: (Object.keys(SKILLS) as SkillId[]).map((id) => {
       const { name, ability } = SKILLS[id];
-      const proficient = sheet.skills.includes(id);
       return {
         id,
         name,
         ability,
-        bonus: modifiers[ability] + (proficient ? proficiency : 0),
-        proficient,
+        bonus: modifiers[ability] + skillProficiency(sheet, id),
+        proficient: sheet.skills.includes(id),
+        ...(sheet.expertise?.includes(id) === true
+          ? { expertise: true as const }
+          : {}),
       };
     }),
+    ...(definition.toolProficiencies.length === 0
+      ? {}
+      : { tools: definition.toolProficiencies.map((id) => TOOLS[id].name) }),
     attack: gear.attack,
     ...(gear.lightAttack === undefined
       ? {}
       : { lightAttack: gear.lightAttack }),
-    fightingStyle: styleUse,
+    ...(styleUse === undefined ? {} : { fightingStyle: styleUse }),
+    ...(sneak === undefined
+      ? {}
+      : {
+          sneakAttack: {
+            dice: sneak.effect.dice[level],
+            sides: sneak.effect.sides,
+          },
+        }),
     ...(gear.strengthShortfall === undefined
       ? {}
       : { strengthShortfall: gear.strengthShortfall }),
+    ...(gear.untrainedArmour === undefined
+      ? {}
+      : { untrainedArmour: gear.untrainedArmour }),
+    ...(gear.untrainedShield === true
+      ? { untrainedShield: true as const }
+      : {}),
     ...(wind === undefined
       ? {}
       : {
@@ -1397,17 +1644,22 @@ export function pendingLevelUp(
 const capMessage = (ability: Ability, score: number) =>
   `${titleCase(ability)} is ${score}: an Ability Score Improvement can't raise a score above ${ABILITY_SCORE_CAP}.`;
 
-/** The weapons whose mastery `sheet` could add: every used one not yet mastered. */
+/**
+ * The weapons whose mastery `sheet` could add: every used one its class is
+ * proficient with and that it has not mastered yet.
+ */
 export function masteryOptions(
-  sheet: Pick<CharacterSheet, "weaponMasteries">,
+  sheet: Pick<CharacterSheet, "class" | "weaponMasteries">,
 ): readonly WeaponId[] {
-  return MASTERY_WEAPONS.filter((id) => !sheet.weaponMasteries.includes(id));
+  return classMasteryWeapons(classOf(sheet)).filter(
+    (id) => !sheet.weaponMasteries.includes(id),
+  );
 }
 
 function validateNewMastery(sheet: CharacterSheet, value: unknown): WeaponId {
   if (
     typeof value !== "string" ||
-    !(MASTERY_WEAPONS as readonly string[]).includes(value)
+    !(classMasteryWeapons(classOf(sheet)) as readonly string[]).includes(value)
   ) {
     throw new Error("Choose a kind of weapon to master.");
   }

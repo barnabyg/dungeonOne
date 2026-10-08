@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 24,
+  "formatVersion": 25,
   "id": "smugglers-cellar",
   "title": "The Smugglers' Cellar",
   "objective": "Find out what has moved into the old smugglers' cellar, and clear it out.",

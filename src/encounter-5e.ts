@@ -7,7 +7,8 @@
  * dice and returns the state unchanged.
  *
  * - Each combatant rolls its own initiative: d20 + its initiative bonus. A
- *   surprised combatant (#301, SRD 5.2) rolls it with disadvantage.
+ *   surprised combatant (#301, SRD 5.2) rolls it with disadvantage, as does
+ *   one whose Dexterity has disadvantage (`abilityDisadvantages`).
  *   Ties go to the higher Dexterity score, then to a seeded d20 roll-off
  *   among the combatants still tied, repeated until no two match.
  * - An attack hits when d20 + bonus meets the target's AC. A natural 20 (or
@@ -45,6 +46,13 @@
  *   round on (close combat); round 1 is the opening volley.
  * - Great Weapon Fighting: a weapon marked with it counts each 1 or 2 on a
  *   damage die as 3. The event keeps the dice as rolled.
+ * - Sneak Attack (#306): once per turn, a combatant with it deals its extra
+ *   dice of the weapon's damage type when it hits with a Finesse or ranged
+ *   weapon and has advantage on the roll (advantage and disadvantage
+ *   together cancel it). The dice follow the weapon's and are doubled by a
+ *   critical hit; a miss deals none. The engine applies it whenever its rules
+ *   are met. Without positions or companions, the ally-adjacent clause is
+ *   omitted.
  * - Conditions (`CONDITION_RULES`): a monster attack's rider may deal extra
  *   damage of its own type on a hit (its dice doubled by a critical hit) and
  *   give the target a condition, after a saving throw if it names one. A
@@ -219,6 +227,8 @@ export type Weapon = Readonly<{
   disadvantage?: readonly string[];
   /** Great Weapon Fighting: each 1 or 2 on a damage die counts as 3. */
   greatWeaponFighting?: true;
+  /** The Finesse property, which Sneak Attack needs unless it is ranged (#306). */
+  finesse?: true;
   /** What a hit does besides its damage. */
   rider?: AttackRider;
   /**
@@ -245,11 +255,22 @@ export type Combatant = DamageDefenses &
     surprised?: true;
     /** Its saving throw bonus for each ability. */
     saves: Readonly<Record<Ability, number>>;
+    /**
+     * Named sources of disadvantage on its D20 Tests with an ability: its
+     * saving throws, and its initiative for Dexterity. A character's body
+     * armour worn without training gives it on Strength and Dexterity
+     * (SRD 5.2); its attacks carry it on their weapons.
+     */
+    abilityDisadvantages?: Readonly<
+      Partial<Record<Ability, readonly string[]>>
+    >;
     attack: Weapon;
     /** A second light weapon, for the Light property's extra attack. */
     lightAttack?: Weapon;
     /** Attacks per Attack action: 2 with Extra Attack (#287), else 1. */
     attacksPerAction?: number;
+    /** Sneak Attack's extra damage dice (#306), dealt once per turn. */
+    sneakAttack?: Readonly<{ dice: number; sides: number }>;
     /** Class features with limited uses, with the uses left of their maximum. */
     secondWind?: FeatureUses & Readonly<{ healing: Healing }>;
     actionSurge?: FeatureUses;
@@ -305,7 +326,10 @@ export type InitiativeRoll = Readonly<{
   combatantId: string;
   /** The d20 kept: the lower of two for a surprised combatant (#301). */
   d20: number;
-  /** Present when it rolled with disadvantage for being surprised. */
+  /**
+   * Present when it rolled with disadvantage: for being surprised, or for
+   * its Dexterity's disadvantage (untrained armour).
+   */
   mode?: RollMode;
   bonus: number;
   total: number;
@@ -384,6 +408,8 @@ export type TurnEconomy = Readonly<{
    * attacked with a light weapon this turn, `used` once made.
    */
   lightAttack: "unready" | "ready" | "used";
+  /** Whether Sneak Attack can still be dealt this turn (#306). */
+  sneakAttack: boolean;
 }>;
 
 const FRESH_TURN: TurnEconomy = {
@@ -394,6 +420,7 @@ const FRESH_TURN: TurnEconomy = {
   reaction: true,
   interaction: true,
   lightAttack: "unready",
+  sneakAttack: true,
 };
 
 /**
@@ -476,6 +503,11 @@ export type AttackEvent = Readonly<{
   graze?: true;
   /** Great Weapon Fighting counted each 1 or 2 in `damageRolls` as 3. */
   greatWeaponFighting?: true;
+  /**
+   * Sneak Attack's dice (#306), rolled after `damageRolls`; `damage` counts
+   * them.
+   */
+  sneakAttack?: Readonly<{ damageRolls: readonly number[] }>;
   /** A hit that is critical only because the target is paralysed. */
   paralysedCritical?: true;
   /** A hit's extra damage from the attack's rider, also taken by `hpAfter`. */
@@ -522,7 +554,13 @@ export type SaveEvent = Readonly<
     /** A repeat save at the end of the combatant's turn. */
     repeat: boolean;
   } & (
-    | { d20: number; total: number; autoFail?: never }
+    | {
+        d20: number;
+        /** Present when it rolled with disadvantage (untrained armour). */
+        mode?: RollMode;
+        total: number;
+        autoFail?: never;
+      }
     | { autoFail: ConditionKind; d20?: never; total?: never }
   )
 >;
@@ -954,10 +992,14 @@ function rollInitiative(
   random: Roller,
 ): InitiativeRoll[] {
   const rolls = combatants.map((entrant) => {
+    // Initiative is a Dexterity check.
     const { d20, mode } = rollD20(
       random,
       [],
-      entrant.surprised === true ? [SURPRISED] : [],
+      [
+        ...(entrant.abilityDisadvantages?.dexterity ?? []),
+        ...(entrant.surprised === true ? [SURPRISED] : []),
+      ],
     );
     return {
       combatantId: entrant.id,
@@ -1242,9 +1284,19 @@ function rollSave(
   if (fails !== undefined) {
     return { ...common, success: false, autoFail: fails };
   }
-  const { d20 } = rollD20(random, [], []);
+  const { d20, mode } = rollD20(
+    random,
+    [],
+    entrant.abilityDisadvantages?.[save.ability] ?? [],
+  );
   const total = d20 + bonus;
-  return { ...common, d20, total, success: total >= save.dc };
+  return {
+    ...common,
+    d20,
+    ...(mode === undefined ? {} : { mode }),
+    total,
+    success: total >= save.dc,
+  };
 }
 
 /**
@@ -1437,6 +1489,24 @@ function resolveAttack(
       damageRolls.push(random.roll(weapon.damage.sides));
     }
   }
+  // Sneak Attack: once per turn, on a hit with a Finesse or ranged weapon
+  // rolled with advantage; its dice follow the weapon's, doubled by a
+  // critical hit.
+  const sneak =
+    hit &&
+    actor.sneakAttack !== undefined &&
+    state.economy.sneakAttack &&
+    (weapon.finesse === true || weapon.ammunition !== undefined) &&
+    mode !== undefined &&
+    mode.advantage.length > 0 &&
+    mode.disadvantage.length === 0
+      ? {
+          damageRolls: Array.from(
+            { length: actor.sneakAttack.dice * (critical ? 2 : 1) },
+            () => random.roll(actor.sneakAttack!.sides),
+          ),
+        }
+      : undefined;
   // Graze: a miss still deals the damage modifier, if above 0.
   const graze =
     !hit && weapon.mastery === "Graze" && weapon.damage.modifier > 0;
@@ -1448,7 +1518,7 @@ function resolveAttack(
             sum + countedDamageDie(value, weapon.greatWeaponFighting),
           0,
         ) + weapon.damage.modifier,
-      )
+      ) + (sneak?.damageRolls.reduce((sum, value) => sum + value, 0) ?? 0)
     : graze
       ? weapon.damage.modifier
       : 0;
@@ -1527,6 +1597,7 @@ function resolveAttack(
       ...(hit && weapon.greatWeaponFighting === true
         ? { greatWeaponFighting: true as const }
         : {}),
+      ...(sneak === undefined ? {} : { sneakAttack: sneak }),
       ...(paralysedCritical ? { paralysedCritical: true as const } : {}),
       ...(rider === undefined ? {} : { rider }),
     },
@@ -1588,6 +1659,10 @@ function resolveAttack(
       ...state.engaged,
       ...[actor.id, target.id].filter((id) => !state.engaged.includes(id)),
     ],
+    // Sneak Attack is dealt once a turn.
+    ...(sneak === undefined
+      ? {}
+      : { economy: { ...state.economy, sneakAttack: false } }),
   };
   const defeated = hpLeft === 0 && target.hp > 0;
   if (defeated) {
@@ -1866,7 +1941,7 @@ export function act(
       next = {
         ...resolved.state,
         economy: {
-          ...state.economy,
+          ...resolved.state.economy,
           // The first attack spends the action; Extra Attack's follow it,
           // unless a Loading weapon fired, which ends the action's attacks.
           ...(attacking
@@ -1903,7 +1978,7 @@ export function act(
       next = {
         ...resolved.state,
         economy: {
-          ...state.economy,
+          ...resolved.state.economy,
           lightAttack: "used",
           // Nick makes it part of the Attack action, sparing the bonus action.
           bonusAction:

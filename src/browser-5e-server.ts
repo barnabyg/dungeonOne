@@ -52,19 +52,21 @@ import {
   formatCoins,
   itemName,
   MASTERIES,
-  MASTERY_WEAPONS,
   STARTING_KITS,
   WEAPONS,
 } from "./equipment-5e.js";
 import {
   CLASSES,
+  classMasteryWeapons,
   classOf,
   DEFAULT_CLASS,
   defaultPlacement,
+  isClassId,
   droppedDie,
   characterCarrying,
   characterProfile,
   keptTotal,
+  CLASS_CHOICE_KEYS,
   levelUpChanges,
   masteryOptions,
   pendingLevelUp,
@@ -74,6 +76,7 @@ import {
   type CreationChoices,
   type TreasureRecord,
 } from "./character-5e.js";
+import type { ClassId } from "./class-5e.js";
 import {
   ABILITIES,
   ABILITY_SCORE_CAP,
@@ -208,29 +211,43 @@ function libraryView(
   adventures: readonly FifthAdventure[],
 ) {
   const pending = data.pendingCreation;
-  // Creation makes the default class while there is no choice of class.
-  const creating = CLASSES[DEFAULT_CLASS];
   return {
     revision: data.revision,
     adventures: adventures.map(adventureView),
     abilities: ABILITIES,
-    skills: creating.skillChoices.options.map((id) => ({
-      id,
-      ...SKILLS[id],
-    })),
+    // Each class creation offers (#306), the default first, with what its
+    // creation chooses from and starts with.
+    classes: CLASS_IDS.map((id) => {
+      const definition = CLASSES[id];
+      return {
+        id,
+        name: definition.name,
+        hitDie: definition.hitDie,
+        savingThrows: definition.savingThrows,
+        skills: definition.skillChoices.options.map((skill) => ({
+          id: skill,
+          ...SKILLS[skill],
+        })),
+        skillCount: definition.skillChoices.count,
+        expertiseCount: definition.defaults.expertise?.length ?? 0,
+        fightingStyle: definition.defaults.fightingStyle !== undefined,
+        kits: definition.kits.map((kit) => ({
+          id: kit,
+          name: STARTING_KITS[kit].name,
+        })),
+        masteryWeapons: classMasteryWeapons(definition).map((weapon) => ({
+          id: weapon,
+          name: WEAPONS[weapon].name,
+          mastery: WEAPONS[weapon].mastery,
+          text: MASTERIES[WEAPONS[weapon].mastery].text,
+        })),
+        masteryCount: definition.weaponMasteries[1],
+        defaults: definition.defaults,
+      };
+    }),
     fightingStyles: Object.entries(FIGHTING_STYLES).map(([id, style]) => ({
       id,
       ...style,
-    })),
-    kits: creating.kits.map((id) => ({
-      id,
-      name: STARTING_KITS[id].name,
-    })),
-    masteryWeapons: MASTERY_WEAPONS.map((id) => ({
-      id,
-      name: WEAPONS[id].name,
-      mastery: WEAPONS[id].mastery,
-      text: MASTERIES[WEAPONS[id].mastery].text,
     })),
     ...(pending === undefined
       ? {}
@@ -242,12 +259,14 @@ function libraryView(
               dropped: droppedDie(dice),
               total: keptTotal(dice),
             })),
-            defaultPlacement: defaultPlacement(pending.dice),
-            rules: {
-              scoreCap: ABILITY_SCORE_CAP,
-              skillCount: creating.skillChoices.count,
-              masteryCount: creating.weaponMasteries[1],
-            },
+            // Each class fills the abilities in its own order.
+            defaultPlacements: Object.fromEntries(
+              CLASS_IDS.map((id) => [
+                id,
+                defaultPlacement(pending.dice, CLASSES[id]),
+              ]),
+            ),
+            rules: { scoreCap: ABILITY_SCORE_CAP },
           },
         }),
     characters: data.characters.map(({ sheet, session, defeated }) => {
@@ -280,36 +299,74 @@ function libraryView(
   };
 }
 
-function choicesFrom(body: Record<string, unknown>): CreationChoices {
+/** Every class creation offers (#306), the default first. */
+const CLASS_IDS: readonly ClassId[] = [
+  DEFAULT_CLASS,
+  ...(Object.keys(CLASSES) as ClassId[]).filter((id) => id !== DEFAULT_CLASS),
+];
+
+/**
+ * A creation request's class (the default unless it names one, #306) and
+ * its choices. The character module validates them for that class.
+ */
+function choicesFrom(
+  body: Record<string, unknown>,
+): Readonly<{ classId: ClassId; choices: CreationChoices }> {
+  if (body.class !== undefined && !isClassId(body.class)) {
+    throw new Error("Choose a class to create.");
+  }
   return {
-    placement: body.placement as CreationChoices["placement"],
-    increase: body.increase as CreationChoices["increase"],
-    skills: body.skills as CreationChoices["skills"],
-    fightingStyle: body.fightingStyle as CreationChoices["fightingStyle"],
-    kit: body.kit as CreationChoices["kit"],
-    masteries: body.masteries as CreationChoices["masteries"],
+    classId: body.class ?? DEFAULT_CLASS,
+    choices: {
+      placement: body.placement as CreationChoices["placement"],
+      increase: body.increase as CreationChoices["increase"],
+      skills: body.skills as CreationChoices["skills"],
+      ...(body.fightingStyle === undefined
+        ? {}
+        : {
+            fightingStyle: body.fightingStyle as NonNullable<
+              CreationChoices["fightingStyle"]
+            >,
+          }),
+      ...(body.expertise === undefined
+        ? {}
+        : {
+            expertise: body.expertise as NonNullable<
+              CreationChoices["expertise"]
+            >,
+          }),
+      kit: body.kit as CreationChoices["kit"],
+      masteries: body.masteries as CreationChoices["masteries"],
+    },
   };
 }
 
-function hasExactKeys(body: Record<string, unknown>, keys: string[]): boolean {
-  return Object.keys(body).sort().join(",") === [...keys].sort().join(",");
+/** Whether `body` has every key of `keys`, and others only from `optional`. */
+function hasExactKeys(
+  body: Record<string, unknown>,
+  keys: string[],
+  optional: readonly string[] = [],
+): boolean {
+  return (
+    keys.every((key) => Object.hasOwn(body, key)) &&
+    Object.keys(body).every(
+      (key) => keys.includes(key) || optional.includes(key),
+    )
+  );
 }
 
-const CHOICE_KEYS = [
-  "placement",
-  "increase",
-  "skills",
-  "fightingStyle",
-  "kit",
-  "masteries",
-];
+const CHOICE_KEYS = ["placement", "increase", "skills", "kit", "masteries"];
+/** The choices only some classes make, and the class itself (#306). */
+const CLASS_KEYS = ["class", ...CLASS_CHOICE_KEYS];
 /** The clicked actions that take no target. */
 const CLICK_ACTIONS = ["second-wind", "action-surge", "end-turn"] as const;
 /**
  * The clicked actions that make a check, which may name its approach (#283)
- * and ask for another try (#284).
+ * and ask for another try (#284); a parley (#305) names its approach, and
+ * the engine refuses a retry.
  */
 const APPROACH_ACTIONS: readonly string[] = [
+  "react",
   "examine",
   "force",
   "pick",
@@ -670,29 +727,36 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         }
         return view(await serialized(() => library.startCreation()));
       case "/api/5e/creation/preview": {
-        if (!hasExactKeys(body, CHOICE_KEYS)) {
+        if (!hasExactKeys(body, CHOICE_KEYS, CLASS_KEYS)) {
           throw new Error("Invalid character creation request.");
         }
         const pending = (await library.read()).pendingCreation;
         if (pending === undefined) {
           throw new Error("There is no pending creation to preview.");
         }
-        return projectCreation(pending.dice, choicesFrom(body));
+        const { classId, choices } = choicesFrom(body);
+        return projectCreation(pending.dice, choices, classId);
       }
       case "/api/5e/characters":
         if (
-          !hasExactKeys(body, ["revision", "name", ...CHOICE_KEYS]) ||
+          !hasExactKeys(
+            body,
+            ["revision", "name", ...CHOICE_KEYS],
+            CLASS_KEYS,
+          ) ||
           typeof body.revision !== "string" ||
           typeof body.name !== "string"
         ) {
           throw new Error("Invalid character creation request.");
         }
+        const { classId, choices } = choicesFrom(body);
         return view(
           await serialized(() =>
             library.create(
               (body.name as string).trim(),
-              choicesFrom(body),
+              choices,
               body.revision as string,
+              classId,
             ),
           ),
         );

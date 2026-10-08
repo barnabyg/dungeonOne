@@ -365,6 +365,84 @@ export const waryTunnelsFile = (() => {
 })();
 export const waryTunnels = validateModule(structuredClone(waryTunnelsFile));
 
+/**
+ * Parley, tolls and trade (#305): the rat tunnels as _The Bandit's Toll_,
+ * level 1, hard, whose cellar holds a Bandit in the rat's place, reacting
+ * to the character. Unfriendly or uncertain, she fights, parleys
+ * (Persuasion DC 12, Deception DC 14, Intimidation DC 13) or takes a toll
+ * of 5 sp; indifferent, she lets the character pass, trades (a dagger, and
+ * arrows) or fights; friendly, she lets the character pass or trades. A
+ * parley's success moves her a band up and a success by 5 lets the
+ * character pass; a failure moves her a band down, and a failure by 5 she
+ * attacks with the character surprised. Ending it peacefully is worth 25
+ * XP, as beating her is. As in _The Rat Run_, the den is the way out.
+ */
+export const banditTollFile = (() => {
+  const module = structuredClone(ratRunFile);
+  module.id = "bandit-toll";
+  module.title = "The Bandit's Toll";
+  module.objective = "Get past the bandit in the cellar to the den and out.";
+  const [fight] = module.encounters;
+  delete fight.bypassXp;
+  fight.id = "cellar-bandit";
+  room(module, "rat-cellar").encounterId = "cellar-bandit";
+  fight.opponents = [
+    {
+      id: "bandit",
+      monster: "bandit",
+      description:
+        "A bandit in a patched cloak blocks the way to the den, scimitar drawn.",
+    },
+  ];
+  fight.reaction = {
+    peacefulXp: 25,
+    parley: {
+      approaches: [
+        { skill: "persuasion", dc: 12 },
+        { skill: "deception", dc: 14 },
+        { skill: "intimidation", dc: 13 },
+      ],
+      bands: {
+        "failure-by-5": {
+          text: "She laughs, and lunges before you finish.",
+          outcome: "surprise-attack",
+        },
+        failure: { text: "Her eyes narrow.", shift: -1 },
+        success: { text: "She lowers the blade a little.", shift: 1 },
+        "success-by-5": {
+          text: "She shrugs and steps aside.",
+          outcome: "let-pass",
+        },
+      },
+    },
+    toll: {
+      coins: { sp: 5 },
+      text: "She bites a coin and waves you on.",
+    },
+    trade: { stock: ["dagger", "arrows"], minutes: 10 },
+    bands: {
+      unfriendly: {
+        options: ["attack", "parley", "toll"],
+        text: '"Five silver, or blood."',
+      },
+      uncertain: {
+        options: ["attack", "parley", "toll"],
+        text: "She watches you, blade half raised.",
+      },
+      indifferent: {
+        options: ["let-pass", "trade", "attack"],
+        text: 'She shrugs: "Buying or passing?"',
+      },
+      friendly: {
+        options: ["let-pass", "trade"],
+        text: "She grins and sheathes her scimitar.",
+      },
+    },
+  };
+  return module;
+})();
+export const banditToll = validateModule(structuredClone(banditTollFile));
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,
@@ -383,4 +461,5 @@ export const FIXTURE_MODULES = [
   ratRun,
   lurkingTunnels,
   waryTunnels,
+  banditToll,
 ];

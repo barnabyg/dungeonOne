@@ -35,7 +35,11 @@
 //   equipped gear asks first in #sale-confirm, inside that entry. Gems and
 //   art objects (#239) show their value on their entry and sell for it in
 //   full, found here or brought in. Arrows and bolts (#230) have an entry
-//   each with their count, and sell there by the bundle of 20.
+//   each with their count, and sell there by the bundle of 20. Facing a
+//   reaction (#304), the bar holds only its options: a parley (#305) has a
+//   button per skill with the skill and DC under it, and a toll names its
+//   price; while the band offers trade, the reacting opponents are a
+//   merchant in #creatures, traded with as above.
 //   After an action, focus stays on the clicked control if it is still
 //   enabled, and otherwise moves to the newest history entry. When the
 //   adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
@@ -78,11 +82,8 @@
 // #feedback, a polite live region that show() moves under the current panel's
 // heading and route() clears on every navigation.
 import { FEATURE_USES_RULE } from "./class-5e.js";
-import { CLASSES, DEFAULT_CLASS } from "./character-5e.js";
+import { DEFAULT_CLASS } from "./character-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT } from "./runtime-5e.js";
-
-/** The class creation makes while there is no choice of class (#300). */
-const CREATING = CLASSES[DEFAULT_CLASS];
 
 /** The composer's notice when the server has no AI DM (#161). */
 export const FIFTH_DM_OFF_NOTICE =
@@ -96,16 +97,17 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <main id="content" tabindex="-1">
 <nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
 <section id="library" class="panel" aria-labelledby="library-title">
-<h2 id="library-title" tabindex="-1">Your ${CREATING.name}s</h2>
+<h2 id="library-title" tabindex="-1">Your characters</h2>
 <p id="feedback" role="status" aria-live="polite"></p>
 <ul id="characters" class="list"></ul>
 <p id="no-characters" class="hint" hidden>No characters yet.</p>
-<button id="open-creation" type="button" class="primary">Create a ${CREATING.name}</button>
+<button id="open-creation" type="button" class="primary">Create a character</button>
 </section>
 <section id="creation" class="panel" aria-labelledby="creation-title" hidden>
-<h2 id="creation-title" tabindex="-1">Create a ${CREATING.name}</h2>
-<p class="hint">Rolled once. No rerolls. Place the six rolls on your abilities in any order, then make your other choices.</p>
+<h2 id="creation-title" tabindex="-1">Create a character</h2>
+<p class="hint">Rolled once. No rerolls. Choose a class, place the six rolls on your abilities in any order, then make your other choices.</p>
 <form id="creation-form" novalidate>
+<fieldset id="classes" aria-describedby="class-hint"><legend>Class</legend><div id="class-fields" class="choice-row"></div><p id="class-hint" class="hint"></p></fieldset>
 <fieldset id="ability-scores" aria-describedby="ability-hint increase-error"><legend>Ability scores</legend>
 <p id="ability-hint" class="hint">Place one roll on each ability; choosing a roll that is already placed swaps the two. Your background then adds +2 and +1, or +1 to three abilities. To move a bonus, choose it on another ability. No score can exceed <span id="score-cap"></span>.</p>
 <fieldset id="increase-mode" class="choice-row"><legend>Background increase</legend><label><input type="radio" name="increase-mode" id="increase-mode-two" value="two"> +2 and +1</label><label><input type="radio" name="increase-mode" id="increase-mode-three" value="three"> +1 to three</label></fieldset>
@@ -113,6 +115,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <p id="increase-error" class="error" role="alert"></p>
 </fieldset>
 <fieldset id="skills" aria-describedby="skills-count skills-error"><legend id="skills-legend">Skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
+<fieldset id="expertise" aria-describedby="expertise-count expertise-error" hidden><legend id="expertise-legend">Expertise</legend><p id="expertise-hint" class="hint"></p><p id="expertise-count" class="hint" role="status"></p><div id="expertise-fields" class="checks"></div><p id="expertise-error" class="error" role="alert"></p></fieldset>
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
 <fieldset id="kits" aria-describedby="kits-hint"><legend>Starting kit</legend><p id="kits-hint" class="hint">Common gear only, each worth about the same. Better gear is found or bought in adventures.</p><div id="kit-fields" class="checks"></div></fieldset>
 <fieldset id="masteries" aria-describedby="masteries-count masteries-error"><legend id="masteries-legend">Weapon Mastery</legend><p class="hint">A mastery works only while you wield that weapon.</p><p id="masteries-count" class="hint" role="status"></p><div id="mastery-fields" class="checks"></div><p id="masteries-error" class="error" role="alert"></p></fieldset>
@@ -400,7 +403,7 @@ function renderLibrary() {
     return item;
   }));
   element("no-characters").hidden = library.characters.length > 0;
-  element("open-creation").textContent = library.pendingCreation ? "Continue creating your ${CREATING.name}" : "Create a ${CREATING.name}";
+  element("open-creation").textContent = library.pendingCreation ? "Continue creating your character" : "Create a character";
 }
 
 function abilityTable(abilities, profile, caption) {
@@ -434,6 +437,13 @@ function attackText(attack) {
   return signed(attack.bonus) + " to hit, " + damageText(attack.damage) + " " + attack.damage.type + (attack.mastery ? ", " + attack.mastery : "") + (attack.ammunition ? ", ranged (" + attack.ammunition + "; disadvantage from round 2)" : "") + attack.disadvantage.map((source) => ", disadvantage (" + source + ")").join("") + (attack.criticalRange === 19 ? ", critical on 19–20" : "");
 }
 
+/**
+ * "; disadvantage on Strength and Dexterity rolls (untrained in chain mail);
+ * the shield adds no AC (untrained)" for armour or a shield worn without the
+ * class's training (SRD 5.2), or "".
+ */
+const untrainedText = (gear) => (gear.untrainedArmour ? "; disadvantage on Strength and Dexterity rolls (untrained in " + gear.untrainedArmour.toLowerCase() + ")" : "") + (gear.untrainedShield ? "; the shield adds no AC (untrained)" : "");
+
 /** "17 arrows", "1 bolt". */
 const ammunitionText = ({ id, count }) => count + " " + (count === 1 ? id.slice(0, -1) : id);
 
@@ -441,7 +451,7 @@ function profileNodes(abilities, profile, hp, carrying) {
   const stats = make("ul", undefined, "stats");
   const entries = [
     ["HP", (hp === undefined ? profile.maxHp : hp) + "/" + profile.maxHp],
-    ["AC", profile.armorClass],
+    ["AC", profile.armorClass + untrainedText(profile)],
     // The engine weighs what is carried against Strength × 15 lb (#224).
     ["Carrying", carrying.weight + " of " + carrying.capacity + " lb"],
     ["Initiative", signed(profile.initiative)],
@@ -454,7 +464,7 @@ function profileNodes(abilities, profile, hp, carrying) {
     item.append(make("strong", value));
     stats.append(item);
   }
-  const skills = make("p", "Skills: " + profile.skills.filter((skill) => skill.proficient).map((skill) => skill.name + " " + signed(skill.bonus)).join(", ") + ".", "hint");
+  const skills = make("p", "Skills: " + profile.skills.filter((skill) => skill.proficient).map((skill) => skill.name + " " + signed(skill.bonus) + (skill.expertise ? " (Expertise)" : "")).join(", ") + "." + (profile.tools ? " Tools: " + profile.tools.join(", ") + "." : ""), "hint");
   const features = make("ul", undefined, "features");
   for (const feature of profile.features) {
     const item = make("li");
@@ -483,7 +493,7 @@ function openSheet(id) {
   const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
-  element("sheet-body").replaceChildren(summary, styleUseNode(profile.fightingStyle), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
+  element("sheet-body").replaceChildren(summary, ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
@@ -759,8 +769,10 @@ function rewardNodes(rewards, name) {
     heading.id = "level-up-title";
     card.setAttribute("aria-labelledby", heading.id);
     // Names only: the sheet explains each feature, and the dock stays short.
-    const wind = up.secondWind.before.uses === up.secondWind.after.uses ? "" : " Second Wind uses " + up.secondWind.before.uses + " → " + up.secondWind.after.uses + ".";
-    const gains = make("p", "Hit points " + up.maxHp.before + " → " + up.maxHp.after + "." + wind + " New: " + up.features.map((feature) => feature.name).join(", ") + ". See the sheet for what each does.");
+    const wind = !up.secondWind || up.secondWind.before.uses === up.secondWind.after.uses ? "" : " Second Wind uses " + up.secondWind.before.uses + " → " + up.secondWind.after.uses + ".";
+    // A level may bring no new feature yet (a Rogue's, until #307).
+    const gained = up.features.length ? " New: " + up.features.map((feature) => feature.name).join(", ") + ". See the sheet for what each does." : "";
+    const gains = make("p", "Hit points " + up.maxHp.before + " → " + up.maxHp.after + "." + wind + gained);
     card.append(heading, gains);
     // Level 4 (#286): the choices wait on the sheet, and block the next adventure.
     if (up.choices.length) {
@@ -1166,11 +1178,12 @@ function renderGear(gear) {
   const worn = gear.worn.map(({ name }) => name.toLowerCase()).join(", ");
   const shooting = gear.attack.ammunition;
   const ammunition = [...(shooting && !gear.ammunition.some(({ id }) => id === shooting) ? [{ id: shooting, count: 0 }] : []), ...gear.ammunition];
-  element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (ammunition.length ? "; " + ammunition.map(ammunitionText).join(", ") : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + ".";
+  element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (ammunition.length ? "; " + ammunition.map(ammunitionText).join(", ") : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + untrainedText(gear) + ".";
 }
 
-// A surprised combatant (#301) rolled two d20s and kept the lower.
-const rollText = (roll) => "d20 " + (roll.mode ? roll.mode.d20s.join(" and ") + " (surprised: disadvantage), kept " : "") + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
+// A surprised combatant (#301), or one in armour it isn't trained with,
+// rolled two d20s and kept the lower.
+const rollText = (roll) => "d20 " + (roll.mode ? roll.mode.d20s.join(" and ") + " (" + roll.mode.disadvantage.join(", ") + ": disadvantage), kept " : "") + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
 /** A condition (#232) as a tag, such as "Prone", with its source and how it ends spoken. */
 const conditionTag = (condition) => {
   const tag = make("span", condition.name, "tag condition");
@@ -1194,7 +1207,7 @@ function renderInitiative(encounter, fighting) {
     for (const condition of combatant.conditions) name.append(" ", conditionTag(condition));
     if (current) name.append(" ", make("span", "Now", "tag now"));
     if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
-    if (combatant.initiative.mode) name.append(" ", make("span", "Surprised", "tag surprised"));
+    if (combatant.initiative.mode?.disadvantage.includes("surprised")) name.append(" ", make("span", "Surprised", "tag surprised"));
     // Morale (#237): a fleeing opponent leaves on its turn; a fled one is gone.
     // One that may surrender (#238) yields on its turn instead.
     if (combatant.morale) name.append(" ", make("span", MORALE_TAGS[combatant.morale], "tag morale"));
@@ -1321,8 +1334,10 @@ function renderActions() {
     // Trades go on the merchant's wares and on "You carry" (#210).
     const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : action === "buy" ? "wares" : SALES.includes(action) ? "carried" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
     const words = wordsOf(action);
-    // A check with several approaches (#283) offers one button per skill.
-    const way = option.approach ? " with " + option.approach.name : "";
+    // A check with several approaches (#283) offers one button per skill;
+    // a parley (#305) names its DC too.
+    const dc = option.approach && option.approach.dc !== undefined ? " DC " + option.approach.dc : "";
+    const way = option.approach ? " with " + option.approach.name + dc : "";
     // Another try the module offers (#284) says so, and why, under it.
     const again = option.retry ? "Try again: " : "";
     // Extra Attack's second attack (#287) says so; any opponent may take it.
@@ -1330,10 +1345,12 @@ function renderActions() {
     const label = again + (second ? "Second attack on " : words.label) + named(action, target) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
-    button.append(make("span", option.retry ? (short ? "Try again" : label) : short ? ACTIONS[action].short : label));
+    // A parley's button keeps the verb; its skill and DC go under it (#305).
+    const parley = action === "react" && option.approach;
+    button.append(make("span", option.retry ? (short ? "Try again" : label) : short ? ACTIONS[action].short : parley ? target.name : label));
     button.dataset.busyLabel = words.busyLabel;
     button.type = "button";
-    if (short) button.setAttribute("aria-label", label);
+    if (short || parley) button.setAttribute("aria-label", label);
     // One opponent makes attacking the fight's primary action; several are peers.
     button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + " secondary";
     // "act" marks an action control, in the bar or on a carried item.
@@ -1347,7 +1364,7 @@ function renderActions() {
     const wrap = make("span", undefined, "action");
     wrap.append(button);
     // The approach's skill, under its button (the button keeps the verb).
-    if (option.approach) wrap.append(unspoken(make("span", option.approach.name, "approach")));
+    if (option.approach) wrap.append(unspoken(make("span", option.approach.name + dc, "approach")));
     // Why another try is offered: its cost, or what changed (#284).
     if (option.retry) {
       const why = make("span", option.retry.reason.charAt(0).toUpperCase() + option.retry.reason.slice(1), "retry");
@@ -1533,12 +1550,31 @@ function defaultIncrease(mode, current) {
   return mode === "two" ? { [order[0]]: 2, [order[1]]: 1 } : Object.fromEntries(order.slice(0, 3).map((ability) => [ability, 1]));
 }
 
-function defaultChoices() {
+/** The library's entry for a class, by id (#306). */
+const classEntry = (id) => library.classes.find((entry) => entry.id === id);
+/** The class being created. */
+const creating = () => classEntry(choices.class);
+
+/**
+ * A fresh creation of a class: its default placement and choices. A
+ * Fighter's carry its Fighting Style, a Rogue's its Expertise (#306).
+ */
+function defaultChoices(id = "${DEFAULT_CLASS}") {
   increaseMode = "two";
   return {
-    placement: { ...library.pendingCreation.defaultPlacement },
-    ...structuredClone(${JSON.stringify(CREATING.defaults)}),
+    class: id,
+    placement: { ...library.pendingCreation.defaultPlacements[id] },
+    ...structuredClone(classEntry(id).defaults),
   };
+}
+
+/** Choosing a class starts its creation afresh from its defaults (#306). */
+function changeClass(id) {
+  choices = defaultChoices(id);
+  projection = undefined;
+  renderChoices();
+  element("class-" + id).focus();
+  refresh();
 }
 
 /** Redraws the ability table, keeps focus on the control just used and updates the preview. */
@@ -1672,15 +1708,37 @@ function renderScores() {
 }
 
 function renderChoices() {
+  const chosen = creating();
+  element("class-fields").replaceChildren(...library.classes.map((entry) => {
+    const label = make("label");
+    const radio = make("input");
+    radio.type = "radio";
+    radio.name = "class";
+    radio.id = "class-" + entry.id;
+    radio.checked = entry.id === chosen.id;
+    radio.addEventListener("change", () => changeClass(entry.id));
+    label.append(radio, entry.name);
+    return label;
+  }));
+  element("class-hint").textContent = chosen.name + ": d" + chosen.hitDie + " hit die; " + chosen.savingThrows.map(titleCase).join(" and ") + " saving throws.";
+  element("skills-legend").textContent = "Skill proficiencies: choose " + chosen.skillCount;
+  element("masteries-legend").textContent = "Weapon Mastery: choose " + chosen.masteryCount;
+  element("expertise-legend").textContent = "Expertise: choose " + chosen.expertiseCount;
+  element("expertise-hint").textContent = "Doubles your proficiency bonus with " + chosen.expertiseCount + " of your skills.";
+  element("expertise").hidden = chosen.expertiseCount === 0;
+  element("styles").hidden = !chosen.fightingStyle;
   renderAbilities();
-  element("skill-fields").replaceChildren(...library.skills.map((skill) => {
+  element("skill-fields").replaceChildren(...chosen.skills.map((skill) => {
     const label = make("label");
     const box = make("input");
     box.type = "checkbox";
     box.id = "skill-" + skill.id;
     box.checked = choices.skills.includes(skill.id);
     box.addEventListener("change", () => {
-      choices.skills = library.skills.map(({ id }) => id).filter((id) => element("skill-" + id).checked);
+      choices.skills = chosen.skills.map(({ id }) => id).filter((id) => element("skill-" + id).checked);
+      // Expertise is in skills you are proficient in: unticking one drops it.
+      if (choices.expertise) choices.expertise = choices.expertise.filter((id) => choices.skills.includes(id));
+      renderExpertise();
       refresh();
     });
     const text = make("span", skill.name);
@@ -1688,7 +1746,8 @@ function renderChoices() {
     label.append(box, text);
     return label;
   }));
-  element("style-fields").replaceChildren(...library.fightingStyles.map((style) => {
+  renderExpertise();
+  element("style-fields").replaceChildren(...(chosen.fightingStyle ? library.fightingStyles : []).map((style) => {
     const label = make("label");
     const radio = make("input");
     radio.type = "radio";
@@ -1705,7 +1764,7 @@ function renderChoices() {
     label.append(radio, text);
     return label;
   }));
-  element("kit-fields").replaceChildren(...library.kits.map((kit) => {
+  element("kit-fields").replaceChildren(...chosen.kits.map((kit) => {
     const label = make("label");
     const radio = make("input");
     radio.type = "radio";
@@ -1720,14 +1779,14 @@ function renderChoices() {
     label.append(radio, text);
     return label;
   }));
-  element("mastery-fields").replaceChildren(...library.masteryWeapons.map((weapon) => {
+  element("mastery-fields").replaceChildren(...chosen.masteryWeapons.map((weapon) => {
     const label = make("label");
     const box = make("input");
     box.type = "checkbox";
     box.id = "mastery-" + weapon.id;
     box.checked = choices.masteries.includes(weapon.id);
     box.addEventListener("change", () => {
-      choices.masteries = library.masteryWeapons.map(({ id }) => id).filter((id) => element("mastery-" + id).checked);
+      choices.masteries = chosen.masteryWeapons.map(({ id }) => id).filter((id) => element("mastery-" + id).checked);
       refresh();
     });
     const text = make("span", weapon.name + " (" + weapon.mastery + ")");
@@ -1737,9 +1796,33 @@ function renderChoices() {
   }));
 }
 
+/**
+ * Expertise (#306): a tick for each skill proficiency chosen, for a class
+ * with it. The skills it can double change as skills are ticked.
+ */
+function renderExpertise() {
+  if (!choices.expertise) {
+    element("expertise-fields").replaceChildren();
+    return;
+  }
+  element("expertise-fields").replaceChildren(...creating().skills.filter(({ id }) => choices.skills.includes(id)).map((skill) => {
+    const label = make("label");
+    const box = make("input");
+    box.type = "checkbox";
+    box.id = "expertise-" + skill.id;
+    box.checked = choices.expertise.includes(skill.id);
+    box.addEventListener("change", () => {
+      choices.expertise = choices.skills.filter((id) => element("expertise-" + id).checked);
+      refresh();
+    });
+    label.append(box, make("span", skill.name));
+    return label;
+  }));
+}
+
 /** Each kit's items and value, with the AC and attacks the server projected for it. */
 function renderKits() {
-  for (const kit of library.kits) {
+  for (const kit of creating().kits) {
     const shown = projection && projection.kits.find(({ id }) => id === kit.id);
     element("kit-numbers-" + kit.id).textContent = shown
       ? shown.items.join(", ") + " (" + shown.value + "). AC " + shown.armorClass + "; " + shown.attack.weapon + " " + attackText(shown.attack) + (shown.lightAttack ? "; then " + shown.lightAttack.weapon + " " + attackText(shown.lightAttack) + " as an extra attack" : "") + "."
@@ -1760,7 +1843,7 @@ function renderStyleUses() {
 /** Like the skills: once the masteries are full, the unticked rest are disabled. */
 function renderMasteryLimit() {
   const { chosen, limit, full } = projection.masteries;
-  for (const { id } of library.masteryWeapons) {
+  for (const { id } of creating().masteryWeapons) {
     const box = element("mastery-" + id);
     box.disabled = full && !box.checked;
   }
@@ -1771,12 +1854,24 @@ function renderMasteryLimit() {
 /** Once the server says the skills are full, the unticked rest are disabled; the count is announced. */
 function renderSkillLimit() {
   const { chosen, limit, full } = projection.skills;
-  for (const { id } of library.skills) {
+  for (const { id } of creating().skills) {
     const box = element("skill-" + id);
     box.disabled = full && !box.checked;
   }
   const count = chosen + " of " + limit + " chosen";
   if (element("skills-count").textContent !== count) element("skills-count").textContent = count;
+}
+
+/** Like the skills, for Expertise (#306). */
+function renderExpertiseLimit() {
+  if (!projection.expertise) return;
+  const { chosen, limit, full } = projection.expertise;
+  for (const id of choices.skills) {
+    const box = document.getElementById("expertise-" + id);
+    if (box) box.disabled = full && !box.checked;
+  }
+  const count = chosen + " of " + limit + " chosen";
+  if (element("expertise-count").textContent !== count) element("expertise-count").textContent = count;
 }
 
 /**
@@ -1799,11 +1894,13 @@ async function preview() {
     projection = result;
     renderScores();
     renderSkillLimit();
+    renderExpertiseLimit();
     renderMasteryLimit();
     renderKits();
     renderStyleUses();
     element("increase-error").textContent = result.unfinished.increase || "";
     element("skills-error").textContent = result.unfinished.skills || "";
+    element("expertise-error").textContent = result.unfinished.expertise || "";
     element("masteries-error").textContent = result.unfinished.masteries || "";
     element("creation-error").textContent = "";
     if (result.sheet) {
@@ -1841,12 +1938,9 @@ async function openCreation(ticket) {
   if (ticket !== routeTicket) return;
   choices = choices || defaultChoices();
   projection = undefined;
-  const rules = library.pendingCreation.rules;
-  element("score-cap").textContent = rules.scoreCap;
-  element("skills-legend").textContent = "Skill proficiencies: choose " + rules.skillCount;
-  element("masteries-legend").textContent = "Weapon Mastery: choose " + rules.masteryCount;
+  element("score-cap").textContent = library.pendingCreation.rules.scoreCap;
   renderChoices();
-  show("creation", "Create a ${CREATING.name}", [{ label: "Create a ${CREATING.name}" }]);
+  show("creation", "Create a character", [{ label: "Create a character" }]);
   element("creation-title").focus();
   await refresh();
 }
@@ -1857,7 +1951,7 @@ async function saveCharacter(event) {
   if (isBusy(save)) return;
   const name = element("character-name").value.trim();
   if (!name) {
-    element("name-error").textContent = "Enter a name for your ${CREATING.name}.";
+    element("name-error").textContent = "Enter a name for your " + creating().name + ".";
     element("character-name").focus();
     return;
   }
@@ -1912,7 +2006,7 @@ function renderLevelChoice(entry) {
   element("level-up-changes").replaceChildren(...levelUpLines(levelUp, scoreCap).map((line) => make("li", line)));
   element("asi-mode-two").checked = levelDraft.mode === "two";
   element("asi-mode-split").checked = levelDraft.mode === "split";
-  element("new-mastery-fields").replaceChildren(...library.masteryWeapons.filter(({ id }) => masteries.includes(id)).map((weapon) => {
+  element("new-mastery-fields").replaceChildren(...classEntry(entry.sheet.class).masteryWeapons.filter(({ id }) => masteries.includes(id)).map((weapon) => {
     const label = make("label");
     const radio = make("input");
     radio.type = "radio";
@@ -2015,7 +2109,7 @@ async function confirmLevelChoice() {
   confirm.disabled = false;
   levelDraft = undefined;
   openSheet(characterId);
-  const weapon = library.masteryWeapons.find(({ id }) => id === mastery);
+  const weapon = classEntry(entry.sheet.class).masteryWeapons.find(({ id }) => id === mastery);
   feedback(entry.sheet.name + "'s level choices are saved: " + increaseText(increase) + ", and mastery of the " + weapon.name.toLowerCase() + ".");
 }
 

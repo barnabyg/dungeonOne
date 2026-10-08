@@ -47,6 +47,7 @@ import {
   FIGHTING_STYLES,
   type Ability,
   type AbilityScoreImprovement,
+  type ClassId,
   type FightingStyle,
   type Level,
 } from "./class-5e.js";
@@ -123,35 +124,45 @@ export function gateLevelChoice(
 }
 
 /**
- * A level-`level` character of the harness's class from one creation's dice, placed and chosen as a
- * fresh creation starts but with `kit`, at full health. An `archer` is
- * Dexterity-first instead (#230): the rolls placed on Strength and
- * Dexterity change places, and the +2 goes on Dexterity. From level 4 it
- * makes the gate's level choice (`gateLevelChoice`), preferring to master
- * `mastery`.
+ * A level-`level` character of `classId` (the harness's class unless named)
+ * from one creation's dice, placed and chosen as a fresh creation of that
+ * class starts but with `kit` (its default kit unless named), at full
+ * health: its skills, Expertise and masteries are its class's defaults, the
+ * harness's policy for a Rogue's (#306). An `archer` is Dexterity-first
+ * instead (#230): the rolls placed on Strength and Dexterity change places,
+ * and the +2 goes on Dexterity. From level 4 it makes the gate's level
+ * choice (`gateLevelChoice`), preferring to master `mastery`.
  */
 export function characterAtLevel(
   dice: RolledDice,
   level: Level,
-  kit: KitId = HARNESS_CLASS.defaults.kit,
+  kit?: KitId,
   archer = false,
   mastery?: WeaponId,
+  classId: ClassId = DEFAULT_CLASS,
 ): CharacterSheet {
-  const placement = defaultPlacement(dice);
-  const created = buildCharacter("0".repeat(32), "Balance", dice, {
-    ...HARNESS_CLASS.defaults,
-    ...(archer
-      ? {
-          placement: {
-            ...placement,
-            strength: placement.dexterity,
-            dexterity: placement.strength,
-          },
-          increase: { dexterity: 2, constitution: 1 },
-        }
-      : { placement }),
-    kit,
-  });
+  const definition = CLASSES[classId];
+  const placement = defaultPlacement(dice, definition);
+  const created = buildCharacter(
+    "0".repeat(32),
+    "Balance",
+    dice,
+    {
+      ...definition.defaults,
+      ...(archer
+        ? {
+            placement: {
+              ...placement,
+              strength: placement.dexterity,
+              dexterity: placement.strength,
+            },
+            increase: { dexterity: 2, constitution: 1 },
+          }
+        : { placement }),
+      kit: kit ?? definition.defaults.kit,
+    },
+    classId,
+  );
   const raised = { ...created, level, xp: LEVEL_XP[level] };
   const sheet = validateCharacter({
     ...raised,
@@ -664,8 +675,10 @@ const CAREFUL: readonly PlayStyle[] = ["cautious", "stealth-first"];
 /**
  * How a run answers a reaction roll's band (#304): `attack`, the default,
  * attacks whenever the band offers it; `peaceful` takes a peaceful option
- * (letting the character pass) whenever the band offers one. Each takes the
- * other kind of option when its own is not offered.
+ * whenever the band offers one: letting the character pass, then paying a
+ * toll it can afford, then a parley (#305) with the character's best
+ * offered skill (its bonus furthest above, or least below, its DC). Each
+ * takes the other kind of option when its own is not offered.
  */
 export const REACTION_POLICIES = ["attack", "peaceful"] as const;
 export type ReactionPolicy = (typeof REACTION_POLICIES)[number];
@@ -827,6 +840,10 @@ export function playAdventure(
   const winning = victoryRooms(adventure);
   const exits = exitRooms(adventure);
   const maxHp = characterProfile(runtime.sheet).maxHp;
+  /** Each skill's check bonus, for choosing a parley's approach (#305). */
+  const skillBonus = new Map<string, number>(
+    characterProfile(runtime.sheet).skills.map(({ id, bonus }) => [id, bonus]),
+  );
   const items = new Map(
     adventure.rooms.flatMap((room) =>
       room.items.map((item) => [item.id, { item, roomId: room.id }] as const),
@@ -1039,13 +1056,25 @@ export function playAdventure(
   const exploreChoice = (
     views: readonly ActionView[],
   ): ActionView | undefined => {
-    // Facing a reaction (#304), the policy's kind of option if offered.
+    // Facing a reaction (#304), the policy's kind of option if offered. A
+    // toll is offered (enabled) only when the purse holds it.
     const answers = offered(views, "react");
     if (answers.length > 0) {
-      const peaceful = answers.filter(({ target }) =>
-        PEACEFUL_OPTIONS.includes(target!.id as ReactionOption),
+      const of = (option: ReactionOption) =>
+        answers.filter(({ target }) => target!.id === option);
+      // The parley approach with the best margin over its DC (#305).
+      const margin = ({ approach }: ActionView) =>
+        skillBonus.get(approach!.id)! - approach!.dc!;
+      const parley = of("parley").reduce<ActionView | undefined>(
+        (best, view) =>
+          best === undefined || margin(view) > margin(best) ? view : best,
+        undefined,
       );
-      const attack = answers.filter(({ target }) => target!.id === "attack");
+      const peaceful = [
+        ...PEACEFUL_OPTIONS.flatMap(of),
+        ...(parley === undefined ? [] : [parley]),
+      ];
+      const attack = of("attack");
       return reactions === "peaceful"
         ? (peaceful[0] ?? attack[0])
         : (attack[0] ?? peaceful[0]);
@@ -1548,7 +1577,8 @@ export type OneHitKillCheck = Readonly<{
     chance: number;
     kit: KitId;
     gear?: WeaponId;
-    fightingStyle: FightingStyle;
+    /** For a class with a Fighting Style. */
+    fightingStyle?: FightingStyle;
   }>[];
   /** The ordinary enemies over the cap; more than half of them fails. */
   overCap: OneHitKillCheck["enemies"];
@@ -1647,7 +1677,8 @@ export type Attacker = Readonly<{
   kit: KitId;
   /** A weapon the module places or a merchant sells, wielded instead. */
   gear?: WeaponId;
-  fightingStyle: FightingStyle;
+  /** For a class with a Fighting Style. */
+  fightingStyle?: FightingStyle;
   sheet: CharacterSheet;
 }>;
 
@@ -1684,10 +1715,15 @@ export function strongestAttackers(
       };
     }),
   ];
+  const preferred = HARNESS_CLASS.defaults.fightingStyle;
+  // A class without a Fighting Style is tried as it is (#306).
+  if (preferred === undefined) {
+    return armed;
+  }
   const styles = [
-    HARNESS_CLASS.defaults.fightingStyle,
+    preferred,
     ...(Object.keys(FIGHTING_STYLES) as FightingStyle[]).filter(
-      (style) => style !== HARNESS_CLASS.defaults.fightingStyle,
+      (style) => style !== preferred,
     ),
   ];
   return armed.flatMap((entry) =>
@@ -1710,7 +1746,7 @@ export function bestOneHitKill(
   chance: number;
   kit: KitId;
   gear?: WeaponId;
-  fightingStyle: FightingStyle;
+  fightingStyle?: FightingStyle;
 }> {
   return attackers
     .map(({ sheet, ...found }) => ({
