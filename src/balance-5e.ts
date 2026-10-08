@@ -377,13 +377,38 @@ function keyOnly(passage: FifthPassage): boolean {
 }
 
 /**
+ * The hidden passages only a topic's check opens (#297). No style talks, so
+ * no style opens one.
+ */
+function talkOnlyPassages(adventure: FifthAdventure): ReadonlySet<string> {
+  const openers = authoredChecks(adventure).flatMap(({ kind, check }) =>
+    Object.values(check.bands ?? {}).flatMap((band) =>
+      effectsOf(band).flatMap((effect) =>
+        effect.type === "open" ? [{ kind, passage: effect.passage }] : [],
+      ),
+    ),
+  );
+  return new Set(
+    adventure.passages.flatMap(({ id, hidden }) =>
+      hidden === true &&
+      !openers.some(({ kind, passage }) => passage === id && kind !== "talk")
+        ? [id]
+        : [],
+    ),
+  );
+}
+
+/**
  * Plans routes on the adventure's map. A route costs one fight for each room
  * with a fight not yet won, and a little per move, so the planner prefers the
  * fewest fights, then the fewest moves. A door with a check counts as
  * passable until it blocks the passage; a door only a key opens counts as
  * passable only with its key carried, and otherwise the plan fetches the key.
+ * A hidden passage only talking opens is never passable (#297), unless
+ * `talking` is true.
  */
-function routePlanner(adventure: FifthAdventure) {
+function routePlanner(adventure: FifthAdventure, talking = false) {
+  const talkOnly = talking ? new Set<string>() : talkOnlyPassages(adventure);
   const roomById = new Map(adventure.rooms.map((room) => [room.id, room]));
   const keyRoom = new Map(
     adventure.rooms.flatMap(({ id, items }) =>
@@ -442,6 +467,7 @@ function routePlanner(adventure: FifthAdventure) {
           next === undefined ||
           done.has(next) ||
           !enterable(next) ||
+          talkOnly.has(passage.id) ||
           position.blockedPassageIds.includes(passage.id) ||
           (keys === "carried" &&
             keyOnly(passage) &&
@@ -532,8 +558,10 @@ function objectiveOf(adventure: FifthAdventure): Objective {
  * The adventure's objective and the rooms a character must go through to
  * reach it, in the order first entered: to the victory fight; or to the
  * loot behind the fewest fights and then out by the nearest exit; or
- * just out. Keys that open the way are fetched on the way. Every other room
- * is optional, and so is every fight in one.
+ * just out. Keys that open the way are fetched on the way. No route goes
+ * through a hidden passage that only a topic's check opens (#297): the
+ * path is the one a player who never talks must take. Every other room is optional, and
+ * so is every fight in one.
  */
 export function requiredPath(adventure: FifthAdventure): Readonly<{
   objective: Objective;
@@ -558,9 +586,18 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
     while (!targets.has(position.roomId)) {
       const path = plan(position, targets, () => true);
       if (path === undefined) {
+        // Name talking only when talking would have reached it.
+        const byTalking = routePlanner(adventure, true).plan(
+          position,
+          targets,
+          () => true,
+        );
         throw new BalanceError(
           "unreachable-objective",
-          `${adventure.id}: no route reaches its ${objective} objective.`,
+          `${adventure.id}: no route reaches its ${objective} objective` +
+            (byTalking === undefined
+              ? "."
+              : `: no style talks, and only talking opens the way through ${byTalking.join(" > ")}.`),
         );
       }
       const arrived = roomById.get(path.at(-1)!)!;
