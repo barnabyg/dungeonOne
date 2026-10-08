@@ -233,7 +233,7 @@ test("failing to win Wenna over leaves the track closed, and she won't be asked 
     { type: "talk", topicId: "the-sheep-track", approach: "persuasion" },
     dice(),
   );
-  assert.notEqual(again.rejection, undefined);
+  assert.equal(again.rejection?.code, "already-asked");
 });
 
 /**
@@ -337,7 +337,7 @@ test("failing the bridge by 5 drops you 2d6 and closes it for good: the undercro
     { ...CROSS, approach: "acrobatics", retry: true },
     dice(),
   );
-  assert.notEqual(again.rejection, undefined);
+  assert.equal(again.rejection?.code, "no-retry");
 });
 
 test("a plain failure on the bridge may be tried again for 1d4 bludgeoning damage", () => {
