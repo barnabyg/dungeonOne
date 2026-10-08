@@ -66,7 +66,12 @@ import {
   type FifthPassage,
   type FifthTrap,
 } from "./adventure-5e.js";
-import { abilityCheck, savingThrow, type CheckRoll } from "./checks-5e.js";
+import {
+  abilityCheck,
+  savingThrow,
+  type CheckRoll,
+  type CheckSpec,
+} from "./checks-5e.js";
 import {
   act,
   availableActions,
@@ -285,6 +290,19 @@ const DROPPED = "dropped:";
 /** The ways to open a door: three checks, and a key. */
 export type DoorApproach = "force" | "pick" | "break" | "unlock";
 const DOOR_CHECKS = ["force", "pick", "break"] as const;
+
+/**
+ * Where an authored check is made (#280): forcing, picking or breaking a
+ * door, searching a room for traps, disarming a trap or asking about a
+ * topic, with the id of the door, room, trap or topic.
+ */
+export type CheckSite = Readonly<{
+  kind: (typeof DOOR_CHECKS)[number] | "search" | "disarm" | "talk";
+  id: string;
+}>;
+
+/** The id a site's remembered outcome is kept under, such as `force:door-id`. */
+const checkSiteId = ({ kind, id }: CheckSite) => `${kind}:${id}`;
 
 /** The AI DM's tool for each action that takes no target. */
 const FEATURE_TOOLS = {
@@ -2266,8 +2284,9 @@ export function createFifthRuntime(
     );
   const isOpen = (state: FifthState, door: FifthDoor) =>
     state.openedDoorIds.includes(door.id);
-  const tried = (state: FifthState, checkId: string) =>
-    state.checks.find(({ id }) => id === checkId);
+  /** The remembered outcome of the check at `site`, once it is made. */
+  const outcomeAt = (state: FifthState, site: CheckSite) =>
+    state.checks.find(({ id }) => id === checkSiteId(site));
   const armed = (state: FifthState, trapId: string) =>
     !state.disarmedTrapIds.includes(trapId) &&
     !state.sprungTrapIds.includes(trapId);
@@ -2289,7 +2308,8 @@ export function createFifthRuntime(
   ): string | undefined =>
     !state.talkedTopicIds.includes(topic.id)
       ? undefined
-      : topic.check === undefined || tried(state, `talk:${topic.id}`)?.success
+      : topic.check === undefined ||
+          outcomeAt(state, { kind: "talk", id: topic.id })?.success
         ? topic.reply
         : topic.failure;
   const hasTraps = adventure.passages.some(({ trap }) => trap !== undefined);
@@ -2551,12 +2571,36 @@ export function createFifthRuntime(
     return random;
   };
 
-  /** Records a tried check, so it is never rolled again. */
-  const remember = (
+  /**
+   * The one check path (#280): rolls the authored check at `site` once from
+   * the seeded stream and remembers its outcome, so asking or typing again
+   * never rerolls it. Every site shows the check the same way: its `check`
+   * event, then the site's own event. A site refuses a remembered check
+   * (`outcomeAt`) before it gets here.
+   */
+  const resolveCheck = (
     state: FifthState,
-    id: string,
-    success: boolean,
-  ): FifthState => ({ ...state, checks: [...state.checks, { id, success }] });
+    site: CheckSite,
+    spec: CheckSpec,
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): Readonly<{
+    state: FifthState;
+    roll: CheckRoll;
+    event: FifthEvent;
+  }> => {
+    const roll = abilityCheck(sheet, spec, need(random, "A check"));
+    return {
+      state: {
+        ...state,
+        checks: [
+          ...state.checks,
+          { id: checkSiteId(site), success: roll.success },
+        ],
+      },
+      roll,
+      event: { type: "check", roll },
+    };
+  };
 
   /**
    * Every search's DC: the lowest find DC of any trap in the module. It is
@@ -2888,16 +2932,20 @@ export function createFifthRuntime(
             `The ${door.name} can't be ${{ force: "forced", pick: "picked", break: "broken" }[action.type]}.`,
           );
         }
-        const checkId = `${action.type}:${door.id}`;
-        if (tried(state, checkId) !== undefined) {
+        const site: CheckSite = { kind: action.type, id: door.id };
+        if (outcomeAt(state, site) !== undefined) {
           return reject(
             "already-tried",
             `You already tried to ${action.type} the ${door.name}; trying again would go no better.`,
           );
         }
-        const roll = abilityCheck(sheet, spec, need(random, "A check"));
+        const {
+          state: next,
+          roll,
+          event,
+        } = resolveCheck(state, site, spec, random);
         const events: FifthEvent[] = [
-          { type: "check", roll },
+          event,
           {
             type: "door",
             doorId: door.id,
@@ -2906,7 +2954,6 @@ export function createFifthRuntime(
             opened: roll.success,
           },
         ];
-        const next = remember(state, checkId, roll.success);
         return roll.success ? opened(next, events) : { state: next, events };
       }
       case "search": {
@@ -2922,18 +2969,23 @@ export function createFifthRuntime(
         if (action.roomId !== state.roomId) {
           return reject("not-here", "You can only search the room you are in.");
         }
-        const checkId = `search:${state.roomId}`;
-        if (tried(state, checkId) !== undefined) {
+        const site: CheckSite = { kind: "search", id: state.roomId };
+        if (outcomeAt(state, site) !== undefined) {
           return reject(
             "already-searched",
             "You have already searched this room.",
           );
         }
         // One Perception check against each hidden trap on the exits.
-        const roll = abilityCheck(
-          sheet,
+        const {
+          state: next,
+          roll,
+          event,
+        } = resolveCheck(
+          state,
+          site,
           { skill: "perception", dc: searchDc },
-          need(random, "A check"),
+          random,
         );
         const found = trapsHere(state).filter(
           ({ trap }) =>
@@ -2941,7 +2993,6 @@ export function createFifthRuntime(
             !state.foundTrapIds.includes(trap.id) &&
             roll.total >= trap.find.dc,
         );
-        const next = remember(state, checkId, roll.success);
         return {
           state: {
             ...next,
@@ -2951,7 +3002,7 @@ export function createFifthRuntime(
             ],
           },
           events: [
-            { type: "check", roll },
+            event,
             {
               type: "searched",
               found: found.map(({ trap, to }) => ({
@@ -2987,21 +3038,24 @@ export function createFifthRuntime(
         if (state.sprungTrapIds.includes(trap.id)) {
           return reject("trap-sprung", `The ${trap.name} has already sprung.`);
         }
-        const checkId = `disarm:${trap.id}`;
-        if (tried(state, checkId) !== undefined) {
+        const site: CheckSite = { kind: "disarm", id: trap.id };
+        if (outcomeAt(state, site) !== undefined) {
           return reject(
             "already-tried",
             `You already tried to disarm the ${trap.name}; trying again would go no better.`,
           );
         }
-        const roll = abilityCheck(sheet, trap.disarm, need(random, "A check"));
-        const next = remember(state, checkId, roll.success);
+        const {
+          state: next,
+          roll,
+          event,
+        } = resolveCheck(state, site, trap.disarm, random);
         return {
           state: roll.success
             ? { ...next, disarmedTrapIds: [...next.disarmedTrapIds, trap.id] }
             : next,
           events: [
-            { type: "check", roll },
+            event,
             {
               type: "disarmed",
               trapId: trap.id,
@@ -3047,11 +3101,17 @@ export function createFifthRuntime(
         if (topic.check === undefined) {
           return { state: talked, events: [words(true)] };
         }
-        const roll = abilityCheck(sheet, topic.check, need(random, "A check"));
-        return {
-          state: remember(talked, `talk:${topic.id}`, roll.success),
-          events: [{ type: "check", roll }, words(roll.success)],
-        };
+        const {
+          state: next,
+          roll,
+          event,
+        } = resolveCheck(
+          talked,
+          { kind: "talk", id: topic.id },
+          topic.check,
+          random,
+        );
+        return { state: next, events: [event, words(roll.success)] };
       }
       case "examine": {
         if (fighting(state)) {
