@@ -28,6 +28,7 @@ import {
   percentileCharacters,
   playAdventure,
   WEAKEST_PERCENTILE,
+  type GateOptions,
   type PlayStyle,
 } from "./balance-5e.js";
 import {
@@ -48,14 +49,11 @@ import type { KitId } from "./equipment-5e.js";
  */
 export const CAREER_REQUIRED_LEVEL: Level = 4;
 
-export type CareerOptions = Readonly<{
-  /** The careers' seeds, one career each: 0–199 by default. */
-  seeds?: readonly number[];
-  requiredLevel?: Level;
-  sampleSize?: number;
-  sampleSeed?: number;
-  stepLimit?: number;
-}>;
+export type CareerOptions = GateOptions &
+  Readonly<{
+    /** The level some career must reach: `CAREER_REQUIRED_LEVEL` by default. */
+    requiredLevel?: Level;
+  }>;
 
 /** One module a career played. */
 export type CareerStep = Readonly<{
@@ -99,7 +97,8 @@ export type CareerReport = Readonly<{
   percentile: number;
   kit: KitId;
   style: PlayStyle;
-  /** The share of careers that reached the required level. */
+  /** How many careers reached the required level, and what share. */
+  reaching: number;
   reached: number;
   modules: readonly CareerModule[];
   runs: readonly CareerRun[];
@@ -161,18 +160,18 @@ export function simulateCareer(
   });
 
   const modules = ordered.map((adventure): CareerModule => {
-    const steps = runs.flatMap(({ steps: played }) =>
-      played.filter(({ adventureId }) => adventureId === adventure.id),
+    const plays = runs.flatMap(({ steps }) =>
+      steps.filter(({ adventureId }) => adventureId === adventure.id),
     );
-    const survived = steps.filter(({ outcome }) => outcome !== "defeat");
-    const levels = steps.map(({ level }) => level);
+    const survived = plays.filter(({ outcome }) => outcome !== "defeat");
+    const levels = plays.map(({ level }) => level);
     return {
       adventureId: adventure.id,
       title: adventure.title,
       recommendedLevels: adventure.recommendedLevels,
-      played: steps.length,
+      played: plays.length,
       survived: survived.length,
-      fell: steps.length - survived.length,
+      fell: plays.length - survived.length,
       ...(levels.length === 0
         ? {}
         : {
@@ -196,6 +195,7 @@ export function simulateCareer(
     percentile: WEAKEST_PERCENTILE,
     kit,
     style: GATE_STYLE,
+    reaching,
     reached: runs.length === 0 ? 0 : reaching / runs.length,
     modules,
     runs,
@@ -214,10 +214,7 @@ const plural = (count: number, one: string) =>
  * and where they fell.
  */
 export function renderCareerResult(report: CareerReport): string {
-  const { runs } = report;
-  const reaching = runs.filter(
-    ({ sheet }) => sheet.level >= report.requiredLevel,
-  ).length;
+  const { runs, reaching } = report;
   let step = 0;
   const lines = report.modules.map((module) => {
     const recommended = module.recommendedLevels;
