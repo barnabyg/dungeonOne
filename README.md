@@ -147,6 +147,10 @@ deleted. Creation needs no OpenAI key.
   potion among the charms at the gate, a Goblin Warrior in the tunnel where
   another lies under the gnawed bones, then the SRD 5.2 Goblin Boss and its hoard, a gilded idol
   among it, and a way out.
+- _The Gravedigger's Lodge_ (`adventures/5e/gravediggers-lodge.json`, level 2,
+  Hard): two rooms in a churchyard. Two potions wait at the lychgate; in the
+  dead-house a false gravedigger (a Bandit) and a corpse he dug up (a Zombie)
+  fight together over a coffin packed with grave goods.
 - _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`, level 1,
   Medium): two rooms with a grave robber (a Bandit) guarding a silver torc and
   a garnet under the bier, a sack of grave gold and a way out.

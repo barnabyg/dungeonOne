@@ -64,6 +64,10 @@ const CONTENT_TESTS = new Map([
     "tests/drowned-chapel.test.mjs",
     "the Drowned Chapel's content, gate verdict and journeys",
   ],
+  [
+    "tests/gravediggers-lodge.test.mjs",
+    "the Gravedigger's Lodge's content, gate verdict and journeys",
+  ],
 ]);
 
 /**

@@ -99,11 +99,18 @@ export function journey(adventure, sheet, seed, route) {
 /**
  * The first seed from 0 whose journey ends as `wanted` says, searched up to
  * `limit`: the journey, with its seed. Searching keeps a content test from
- * pinning a seed that any change to the dice order would move.
+ * pinning a seed that any change to the dice order would move. A seed whose
+ * journey the runtime refuses partway (a foe that fled leaves no body to
+ * examine) is passed over.
  */
 export function firstJourney(adventure, sheet, route, wanted, limit = 100) {
   for (let seed = 0; seed < limit; seed += 1) {
-    const played = journey(adventure, sheet, seed, route);
+    let played;
+    try {
+      played = journey(adventure, sheet, seed, route);
+    } catch {
+      continue;
+    }
     if (wanted(played.state)) {
       return { ...played, seed };
     }

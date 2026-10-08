@@ -178,7 +178,9 @@ fixed route. `journey(adventure, sheet, seed, route)` plays the route's steps
 fights each fight as the handoffs do: Second Wind or a potion at half HP or
 less, else attack the first target, else end the turn. `firstJourney(…,
 wanted)` searches seeds from 0 for the first journey whose end state `wanted`
-accepts, so a content test pins no seed that a dice-order change would move.
+accepts, passing over a seed whose route the runtime refuses partway (a foe
+that fled leaves no body), so a content test pins no seed that a dice-order
+change would move.
 `xpOf(runtime, state)` lists the ending's XP awards.
 
 ## Surrendering goblins (issue 238)

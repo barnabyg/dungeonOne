@@ -1569,6 +1569,7 @@ export const FIFTH_ADVENTURE_FILES = {
   "abandoned-delve": "abandoned-delve.json",
   "drowned-chapel": "drowned-chapel.json",
   "goblin-warren": "goblin-warren.json",
+  "gravediggers-lodge": "gravediggers-lodge.json",
   "robbers-barrow": "robbers-barrow.json",
   "shepherds-bothy": "shepherds-bothy.json",
   "silvervein-mine": "silvervein-mine.json",
