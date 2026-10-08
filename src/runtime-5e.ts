@@ -3586,12 +3586,12 @@ export function createFifthRuntime(
     state: FifthState;
     event: Extract<FifthEvent, Readonly<{ type: "sneak" }>>;
   }> => {
+    const earlier = state.sneaks.find(
+      ({ encounterId }) => encounterId === fight.id,
+    );
     // A dry run stops at the first die: a new check rolls one at once, and
     // working it out first would only slow every projection.
-    if (
-      random === DRY_RUN &&
-      !state.sneaks.some(({ encounterId }) => encounterId === fight.id)
-    ) {
+    if (random === DRY_RUN && earlier === undefined) {
       throw WOULD_ROLL;
     }
     const watchers = opponents(state).map((opponent) => ({
@@ -3601,9 +3601,6 @@ export function createFifthRuntime(
     }));
     const watcher = watchers.reduce((best, next) =>
       next.passivePerception > best.passivePerception ? next : best,
-    );
-    const earlier = state.sneaks.find(
-      ({ encounterId }) => encounterId === fight.id,
     );
     const armour = readLoadout(state.possessions.equipment).armour;
     const roll =

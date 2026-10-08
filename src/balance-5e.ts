@@ -648,13 +648,13 @@ const HEAL_BELOW: Readonly<Record<PlayStyle, number>> = {
 };
 
 /**
- * Every kind of action the styles know how to play. A kind missing here
- * fails to compile; one the runtime offers that the harness has never heard
- * of fails the run as `unsupported-action`.
+ * Every kind of action the harness knows: the styles play them, or pass
+ * them over. A kind missing here fails to compile; one the runtime offers
+ * that the harness has never heard of fails the run as `unsupported-action`.
  */
 const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   attack: true,
-  // No style sneaks yet: each enters a fight by moving (#301).
+  // Passed over: no style sneaks yet, each enters a fight by moving (#301).
   sneak: true,
   "light-attack": true,
   use: true,

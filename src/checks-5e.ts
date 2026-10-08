@@ -20,7 +20,7 @@ import {
   checkAdvantages,
   type CharacterSheet,
 } from "./character-5e.js";
-import { SKILLS, type Ability, type SkillId } from "./class-5e.js";
+import { SKILLS, titleCase, type Ability, type SkillId } from "./class-5e.js";
 import type { RandomSource } from "./random.js";
 
 /** An authored check: a skill's, or a plain ability's, against a DC. */
@@ -79,9 +79,6 @@ export function bandOf(roll: Pick<CheckRoll, "total" | "dc">): Band {
   }
   return roll.total <= roll.dc - 5 ? "failure-by-5" : "failure";
 }
-
-const titleCase = (value: string) =>
-  value.charAt(0).toUpperCase() + value.slice(1);
 
 function rolled(
   kind: CheckRoll["kind"],

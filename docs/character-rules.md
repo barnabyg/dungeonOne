@@ -288,7 +288,7 @@ Combat (#128–#130) uses the numbers above. An encounter has two sides, the par
 
 **Stealth** is a Dexterity skill anyone can roll; a class's skill choices give proficiency in it (the Fighter's list does not include it). Armour whose SRD 5.2 entry gives disadvantage on Stealth (chain mail and plate) gives the check disadvantage.
 
-**Passive Perception.** Every stat block gives its passive Perception: in the bestiary (format 8) the SRD 5.2 value (for example Wolf 15, Giant Rat 12, Goblin Warrior 9, Zombie 8), and for a house stat block, or one authored inline in a module (module format 21), 10 + its Wisdom modifier unless the module says otherwise.
+**Passive Perception.** Every stat block gives its passive Perception: in the bestiary (format 8) the SRD 5.2 value (for example Wolf 15, Giant Rat 12, Goblin Warrior 9, Zombie 8), and for a house stat block, such as the Gnoll Ravager, 10 + its Wisdom modifier. A stat block authored inline in a module (module format 21) must give its own; the validator refuses one without it.
 
 **Sneaking in.** Beside each exit to a room where a fight not yet won waits, the browser offers **Sneak** next to **Go**, and the AI DM a `sneak` tool listing only those rooms; sneaking anywhere else is refused ("No fight waits in the Alcove: there is no one to sneak up on."). Sneaking takes the same way as going in (a door must be open, a trap on the way springs first), then rolls a Stealth check whose DC is the highest passive Perception among the fight's opponents (the first of them on a tie). Meeting it surprises every opponent; missing it starts the fight as usual. The engine alone decides: the AI DM has no tool or parameter that declares surprise or an ambush.
 
