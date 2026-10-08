@@ -1792,30 +1792,38 @@ export function gateAdventure(
                 : playAdventure(failing, GATE_STYLE, seed, limit),
             stealth: reportStealth
               ? playAdventure(seeded, STEALTH_STYLE, seed, limit)
-              : run,
+              : undefined,
             peaceful: reacting
               ? playAdventure(seeded, GATE_STYLE, seed, {
                   ...limit,
                   reactions: "peaceful",
                 })
-              : run,
+              : undefined,
           };
         });
         return { kit, level, runs };
       }),
     );
+    /** A branch's runs: none for a stealth or peaceful branch not played. */
+    const branchRuns = (
+      runs: (typeof played)[number]["runs"],
+      branch: "seeded" | "failing" | "stealth" | "peaceful",
+    ) => runs.flatMap((run) => run[branch] ?? []);
     const survivalOf = (
       checks: CheckPolicy,
       branch: "seeded" | "failing" | "stealth" | "peaceful",
       style: PlayStyle = GATE_STYLE,
     ): GateMeasures["survival"] => {
-      const kits = played.map(({ kit, level, runs }) => ({
-        kit,
-        level,
-        rate:
-          runs.filter((run) => run[branch].outcome !== "defeat").length /
-          runs.length,
-      }));
+      const kits = played.map(({ kit, level, runs }) => {
+        const each = branchRuns(runs, branch);
+        return {
+          kit,
+          level,
+          rate:
+            each.filter(({ outcome }) => outcome !== "defeat").length /
+            each.length,
+        };
+      });
       const weakestKit = kits.reduce((worst, entry) =>
         entry.rate < worst.rate ? entry : worst,
       );
@@ -1833,9 +1841,7 @@ export function gateAdventure(
     const survival = survivalOf("seeded", "seeded");
     const alwaysFail = survivalOf("always-fail", "failing");
     const objective = requiredPath(adventure).objective;
-    const stealthy = played.flatMap(({ runs }) =>
-      runs.map(({ stealth }) => stealth),
-    );
+    const stealthy = played.flatMap(({ runs }) => branchRuns(runs, "stealth"));
     const stealthFirst: StealthFirstReport | undefined = reportStealth
       ? {
           ...survivalOf("seeded", "stealth", STEALTH_STYLE),
@@ -1850,9 +1856,7 @@ export function gateAdventure(
       policy: ReactionPolicy,
       branch: "seeded" | "peaceful",
     ): ReactionPolicyReport => {
-      const runs = played.flatMap(({ runs: each }) =>
-        each.map((run) => run[branch]),
-      );
+      const runs = played.flatMap(({ runs: each }) => branchRuns(each, branch));
       return {
         ...survivalOf("seeded", branch),
         policy,

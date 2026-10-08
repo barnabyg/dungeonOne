@@ -325,6 +325,27 @@ export type FifthState = Readonly<{
   endingId?: string;
 }>;
 
+/** Who is surprised as a fight begins (#301, #303). */
+type Surprise = Readonly<{ opponents?: boolean; character?: boolean }>;
+
+/** The state without its `unseenBy` or `reactingTo` mark. */
+function cleared(
+  state: FifthState,
+  mark: "unseenBy" | "reactingTo",
+): FifthState {
+  const { [mark]: gone, ...rest } = state;
+  void gone;
+  return rest;
+}
+
+/** The roll remembered for an encounter: its sneak, lurk or reaction. */
+function rollFor<R>(
+  records: readonly Readonly<{ encounterId: string; roll: R }>[],
+  encounterId: string | undefined,
+): R | undefined {
+  return records.find((record) => record.encounterId === encounterId)?.roll;
+}
+
 export type FifthAction =
   | Readonly<{ type: "begin" }>
   | Readonly<{
@@ -3321,7 +3342,7 @@ export function createFifthRuntime(
     state: FifthState,
     random: Pick<RandomSource, "roll"> | undefined,
     events: readonly FifthEvent[],
-    surprise: Readonly<{ opponents?: boolean; character?: boolean }> = {},
+    surprise: Surprise = {},
   ): FifthResult => {
     const fight = encounterOf(state);
     if (fight === undefined || settled(state, fight.id)) {
@@ -3364,7 +3385,7 @@ export function createFifthRuntime(
     state: FifthState,
     random: Pick<RandomSource, "roll"> | undefined,
     events: readonly FifthEvent[],
-    surprise: Readonly<{ opponents?: boolean; character?: boolean }> = {},
+    surprise: Surprise = {},
   ): FifthResult => {
     const fight = encounterOf(state);
     const reaction = fight?.reaction;
@@ -3379,11 +3400,9 @@ export function createFifthRuntime(
     ) {
       return enter(state, random, events, surprise);
     }
-    const earlier = state.reactions.find(
-      ({ encounterId }) => encounterId === fight.id,
-    );
+    const earlier = rollFor(state.reactions, fight.id);
     const roll =
-      earlier?.roll ??
+      earlier ??
       rollReaction(
         characterProfile(sheetOf(state)).modifiers.charisma,
         need(random, "A reaction roll"),
@@ -3419,9 +3438,7 @@ export function createFifthRuntime(
   /** The options the band of the reaction under way offers (#304). */
   const reactionOptions = (state: FifthState): readonly ReactionOption[] => {
     const fight = encounterOf(state);
-    const roll = state.reactions.find(
-      ({ encounterId }) => encounterId === state.reactingTo,
-    )?.roll;
+    const roll = rollFor(state.reactions, state.reactingTo);
     return fight?.reaction === undefined ||
       roll === undefined ||
       roll.band === "hostile"
@@ -4013,11 +4030,9 @@ export function createFifthRuntime(
     if (fight?.lurking !== true || settled(state, fight.id)) {
       return { state, hidden: false };
     }
-    const earlier = state.lurks.find(
-      ({ encounterId }) => encounterId === fight.id,
-    );
+    const earlier = rollFor(state.lurks, fight.id);
     if (earlier !== undefined) {
-      return { state, hidden: earlier.roll.success };
+      return { state, hidden: earlier.success };
     }
     const lurkers = fight.opponents.map(({ name, statBlock }) => ({
       name,
@@ -4068,11 +4083,9 @@ export function createFifthRuntime(
     if (encounterId === undefined) {
       return undefined;
     }
-    const { unseenBy: gone, ...rest } = state;
-    void gone;
     return {
       state: {
-        ...rest,
+        ...cleared(state, "unseenBy"),
         bypassedEncounterIds: state.bypassedEncounterIds.includes(encounterId)
           ? state.bypassedEncounterIds
           : [...state.bypassedEncounterIds, encounterId],
@@ -4189,8 +4202,7 @@ export function createFifthRuntime(
             )}.`,
           );
         }
-        const { reactingTo: answered, ...rest } = state;
-        void answered;
+        const rest = cleared(state, "reactingTo");
         const reacted: FifthEvent = {
           type: "reacted",
           encounterId: fight.id,
@@ -4223,10 +4235,8 @@ export function createFifthRuntime(
             "No one here is unaware of you: there is no one to ambush.",
           );
         }
-        const { unseenBy: sprung, ...rest } = state;
-        void sprung;
         return enter(
-          rest,
+          cleared(state, "unseenBy"),
           random,
           [
             {
@@ -4298,7 +4308,7 @@ export function createFifthRuntime(
         if (
           action.type === "sneak" &&
           ahead!.sneakAgain !== true &&
-          state.sneaks.some(({ encounterId }) => encounterId === ahead!.id)
+          rollFor(state.sneaks, ahead!.id) !== undefined
         ) {
           return reject(
             "already-sneaked",
@@ -4341,9 +4351,9 @@ export function createFifthRuntime(
         // surprised, the character always and its foes if it sneaked in.
         const lurked = lurkIn(sneaked?.state ?? arrived, random);
         const sneakedIn = sneaked?.event.roll.success === true;
-        const { unseenBy: spotted, ...here } = lurked.state;
-        const next: FifthState = lurked.hidden ? here : lurked.state;
-        void spotted;
+        const next: FifthState = lurked.hidden
+          ? cleared(lurked.state, "unseenBy")
+          : lurked.state;
         const events: readonly FifthEvent[] = [
           ...before,
           ...sprung.events,
@@ -5605,9 +5615,7 @@ export function createFifthRuntime(
 
   /** "8, uncertain": the reaction roll under way (#304), for the scene. */
   const reactionRollOf = (state: FifthState) => {
-    const roll = state.reactions.find(
-      ({ encounterId }) => encounterId === state.reactingTo,
-    )!.roll;
+    const roll = rollFor(state.reactions, state.reactingTo)!;
     return `${roll.total}, ${roll.band}`;
   };
 
