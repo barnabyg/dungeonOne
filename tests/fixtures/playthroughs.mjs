@@ -109,7 +109,8 @@ function madeAction({ action, target }) {
     case "unlock":
       return { type: action, doorId: target.id };
     case "search":
-      return { type: "search", roomId: target.id };
+    case "ambush":
+      return { type: action, roomId: target.id };
     case "disarm":
       return { type: "disarm", trapId: target.id };
     case "talk":

@@ -121,7 +121,7 @@ Treasure and coin the character carries during an adventure but has not kept yet
 _Avoid_: Loot (when kept treasure is meant), Inventory
 
 **XP award**:
-One source of experience points a character can earn once: winning an encounter (its opponents' stat-block XP) or reaching an ending that awards XP. Awards are credited only on surviving completion.
+One source of experience points a character can earn once: winning an encounter (its opponents' stat-block XP), slipping past one whose module authors XP for it instead (the same award, so an encounter is credited once either way), or reaching an ending that awards XP. Awards are credited only on surviving completion.
 _Avoid_: Milestone, Score
 
 **Exit room**:
@@ -165,8 +165,16 @@ A d20 roll plus one ability's modifier, and the proficiency bonus when the check
 _Avoid_: Skill roll, Test
 
 **Sneaking in**:
-Entering a room where a fight waits with a Stealth check against the highest passive Perception among its opponents. Meeting it surprises every opponent; the check is remembered with that fight.
+Entering a room where a fight waits with a Stealth check against the highest passive Perception among its opponents. Meeting it leaves the character unseen; missing it starts the fight. The check is remembered with that fight and never rerolled.
 _Avoid_: Ambush roll, Sneak attack (a Rogue feature)
+
+**Unseen**:
+In a fight's room after sneaking in, before the fight begins: the character may spring an ambush, which surprises every opponent, or slip past. Anything else in the room would give it away, so it is refused.
+_Avoid_: Hidden (which a later Hide action means), Invisible
+
+**Bypassed encounter**:
+A fight the character slipped past unseen, through another way out or back the way it came. It stays unresolved: its opponents keep what they carry, and coming back meets it again, with a fresh sneak only where the module authors one. It gives no XP unless the module authors XP for slipping past.
+_Avoid_: Avoided fight, Skipped encounter, Cleared
 
 **Surprise**:
 Being caught unaware as a fight begins: a surprised combatant rolls initiative with disadvantage (SRD 5.2). Only the engine decides it.
@@ -275,6 +283,10 @@ _Avoid_: Challenge rating (a monster's, not a module's), DC
 **Check policy**:
 How the balance harness grades checks (#285): seeded rolls them as a player meets them; always-fail and always-succeed land every check in its worst or best reachable band. The balance gate requires a module to stay completable, and within its difficulty, when every check fails.
 _Avoid_: Check mode, Dice mode
+
+**Stealth-first**:
+The balance harness's play style that sneaks into every fight it can and slips past those that aren't its goal (#302). The balance gate reports it beside its checks but never judges it.
+_Avoid_: Sneaky style, Rogue style
 
 **Ordinary enemy**:
 An opponent a module doesn't mark as a boss. The balance gate's one-hit-kill cap applies only to ordinary enemies; a boss is exempt.

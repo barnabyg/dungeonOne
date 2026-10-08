@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 21) and its validator.
+ * The 5e adventure module format (format version 22) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -32,6 +32,8 @@
  * adventure then ends in its escape-with-loot ending when the character
  * carries treasure or found coin, and its escape-without-loot ending otherwise. A victory
  * or escape ending may award XP, on top of each won encounter's stat-block XP.
+ * An encounter may award XP for sneaking past it unfought (#302), and may let
+ * the character sneak up on it again after slipping past it once.
  *
  * A feature may have a check made when it is first examined (#281). Every
  * authored check (a feature's, a door's force, pick or break, a trap's
@@ -120,7 +122,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 21;
+export const FIFTH_ADVENTURE_FORMAT = 22;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -159,6 +161,16 @@ export type FifthEncounter = Readonly<{
   /** Winning ends the adventure here; without one, exploring goes on. */
   victoryEndingId?: string;
   defeatEndingId: string;
+  /**
+   * XP for sneaking past the fight unfought (#302), credited once on
+   * surviving completion; none when left out.
+   */
+  bypassXp?: number;
+  /**
+   * After slipping past it, the character may sneak up on it again, with a
+   * fresh Stealth check (#302). Without this, coming back starts the fight.
+   */
+  sneakAgain?: true;
 }>;
 
 /**
@@ -1207,9 +1219,12 @@ function validateModule(
       const encounter = knownKeys(
         entry,
         ["id", "opponents", "defeatEndingId"],
-        ["victoryEndingId"],
+        ["victoryEndingId", "bypassXp", "sneakAgain"],
         where,
       );
+      if (encounter.sneakAgain !== undefined && encounter.sneakAgain !== true) {
+        fail(`${where} sneakAgain must be true, or left out.`);
+      }
       const opponents = list(
         encounter.opponents,
         `${where} opponents`,
@@ -1333,6 +1348,17 @@ function validateModule(
               ),
             }),
         defeatEndingId: ending(encounter.defeatEndingId, "defeat", where),
+        ...(encounter.bypassXp === undefined
+          ? {}
+          : {
+              bypassXp: integer(
+                encounter.bypassXp,
+                `${where} bypassXp`,
+                1,
+                10000,
+              ),
+            }),
+        ...(encounter.sneakAgain === true ? { sneakAgain: true as const } : {}),
       };
     },
   );

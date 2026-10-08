@@ -347,11 +347,9 @@ test("a report has metrics for each level, character percentile and style", () =
     ]),
     [2, 3].flatMap((level) =>
       [5, 95].flatMap((percentile) =>
-        ["direct", "cautious", "avoid-optional"].map((style) => [
-          level,
-          percentile,
-          style,
-        ]),
+        ["direct", "cautious", "avoid-optional", "stealth-first"].map(
+          (style) => [level, percentile, style],
+        ),
       ),
     ),
   );

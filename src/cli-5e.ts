@@ -71,6 +71,7 @@ const LABELS: Readonly<Record<ActionView["action"], string>> = {
   use: "Drink ",
   move: "Go to ",
   sneak: "Sneak into ",
+  ambush: "Ambush in ",
   examine: "Examine ",
   take: "Take ",
   force: "Force ",

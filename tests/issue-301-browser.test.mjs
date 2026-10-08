@@ -19,9 +19,12 @@ import { firstJourney, xpOf } from "./fixtures/module-journey.mjs";
 import { ratTunnels } from "./fixtures/modules.mjs";
 import { readAda } from "./fixtures/save-files.mjs";
 
+// Each sneak leaves Ada unseen (#302), and she springs an ambush.
 const ROUTE = [
   ["sneak", "rat-cellar"],
+  ["ambush", "rat-cellar"],
   ["sneak", "den"],
+  ["ambush", "den"],
 ];
 const sheet = testFighterAt(1);
 
@@ -65,9 +68,16 @@ test(
       for (const [action, target] of ROUTE) {
         await clickAction(page, action, target);
         const card = await text(page.locator("#log li").last());
+        if (action === "sneak") {
+          assert.match(
+            card,
+            /^You sneak into the [^\n]+\. Stealth check: d20 \d+ \+ 2 = \d+ against DC \d+\. Success\. The best passive Perception is [^\n]+: [^\n]+ has not noticed you\. Ambush it, and it is surprised; or slip past through another way\./u,
+          );
+          continue;
+        }
         assert.match(
           card,
-          /^You sneak into the [^\n]+\. Stealth check: d20 \d+ \+ 2 = \d+ against DC \d+\. Success\. The best passive Perception is [^\n]+: [^\n]+ is surprised and rolls initiative with disadvantage\./u,
+          /^You spring your ambush: [^\n]+ is surprised and rolls initiative with disadvantage\./u,
         );
         // The initiative table tags each surprised opponent.
         assert.equal(

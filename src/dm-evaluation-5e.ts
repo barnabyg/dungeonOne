@@ -153,6 +153,13 @@ const hurtWithPotion = [
 ] as const;
 // Seed 1: the skeletons kill Ada when she ends her first turn.
 const defeated = hurtInBarracks;
+// Seed 0: Ada's Stealth beats the zombie's passive Perception, so she is
+// unseen in the guard post (#302); seed 7: it notices her, and the fight is
+// on.
+const sneakedIn = [
+  ...toHall,
+  { type: "sneak", destinationId: "guard-post" },
+] as const;
 
 function call(
   id: string,
@@ -379,6 +386,38 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     setup: [],
     playerInput: "I fly up to the top of the keep's tower.",
     reply: "You can't do that here.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  // Slipping past (#302): only while unseen, as a move.
+  actionCase({
+    id: "slip-past-unseen",
+    seed: 0,
+    setup: sneakedIn,
+    playerInput: "I slip past it to the narrow way to the well.",
+    name: "move",
+    arguments: { destination: "dry-well" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "ambush-from-unseen",
+    seed: 0,
+    setup: sneakedIn,
+    playerInput: "It hasn't seen me. I ambush the zombie.",
+    name: "ambush",
+    arguments: { room: "guard-post" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "no-slipping-past-a-fight",
+    kind: "refusal",
+    seed: 7,
+    setup: sneakedIn,
+    playerInput: "I slip past it to the narrow way to the well.",
+    reply:
+      "The zombie has noticed you and the fight is on: you can't slip past it now.",
     dimensions: ["refusal", "narration-fidelity"],
     manualJudgments: [],
   }),
@@ -613,6 +652,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   "end-turn": "end_turn",
   move: "move",
   sneak: "sneak",
+  ambush: "ambush",
   examine: "examine",
   take: "take",
   force: "force_door",

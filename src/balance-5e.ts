@@ -637,15 +637,28 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
  *   heals below half its hit points.
  * - `avoid-optional` enters only the required rooms, and heals below a
  *   quarter.
+ * - `stealth-first` (#302) plays as `cautious`, but sneaks into every fight
+ *   it can. Unseen, it slips past the fight unless its goal is in that room
+ *   (the victory fight, loot, a key) or the way on is shut: then it springs
+ *   an ambush. A fight it slipped past is met again if it comes back.
  */
-export const PLAY_STYLES = ["direct", "cautious", "avoid-optional"] as const;
+export const PLAY_STYLES = [
+  "direct",
+  "cautious",
+  "avoid-optional",
+  "stealth-first",
+] as const;
 export type PlayStyle = (typeof PLAY_STYLES)[number];
 
 const HEAL_BELOW: Readonly<Record<PlayStyle, number>> = {
   direct: 1 / 4,
   cautious: 1 / 2,
   "avoid-optional": 1 / 4,
+  "stealth-first": 1 / 2,
 };
+
+/** The styles that skip optional fights but look into rooms without one. */
+const CAREFUL: readonly PlayStyle[] = ["cautious", "stealth-first"];
 
 /**
  * Every kind of action the harness knows: the styles play them, or pass
@@ -654,8 +667,9 @@ const HEAL_BELOW: Readonly<Record<PlayStyle, number>> = {
  */
 const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   attack: true,
-  // Passed over: no style sneaks yet, each enters a fight by moving (#301).
+  // Only stealth-first sneaks, and springs an ambush from unseen (#302).
   sneak: true,
+  ambush: true,
   "light-attack": true,
   use: true,
   "second-wind": true,
@@ -722,6 +736,8 @@ export type RunRecord = Readonly<{
   actions: number;
   /** How many checks the run made (#285). */
   checks: number;
+  /** How many fights the run slipped past and left unfought (#302). */
+  bypassed: number;
   /**
    * How a surviving ending settles the character (what a career carries to
    * its next module, #290); absent after a defeat.
@@ -1023,7 +1039,7 @@ export function playAdventure(
     if (potion !== undefined && low(state.character.hp)) {
       return potion;
     }
-    if (style === "cautious") {
+    if (CAREFUL.includes(style)) {
       const careful = [
         ...offered(views, "search"),
         ...offered(views, "disarm"),
@@ -1044,23 +1060,36 @@ export function playAdventure(
         (!winning.has(id) || targets.has(id)) &&
         (style === "direct" ||
           required.has(id) ||
-          (style === "cautious" && !fightIn(position, id)));
+          (CAREFUL.includes(style) && !fightIn(position, id)));
       const aside = detours(position);
       const path =
         plan(position, aside, enterable(aside)) ??
         plan(position, goal, enterable(goal)) ??
         plan(position, exits, enterable(exits));
+      const ambush = offered(views, "ambush")[0];
       // Detours first; then, once the goal is a way out and it is reached,
-      // leave (if this room is no exit, nothing is left to do).
+      // leave (if this room is no exit, nothing is left to do). Unseen where
+      // the goal is anything but a way out, spring an ambush (#302).
       if (path === undefined || path.length < 2) {
-        return offered(views, "leave")[0];
+        return ambush === undefined || goal === exits
+          ? (offered(views, "leave")[0] ?? ambush)
+          : ambush;
       }
       const next = path[1]!;
-      const move = offered(views, "move").find(
-        ({ target }) => target!.id === next,
-      );
+      // Stealth-first sneaks into each fight it can (#302).
+      const sneak =
+        style === "stealth-first"
+          ? offered(views, "sneak").find(({ target }) => target!.id === next)
+          : undefined;
+      const move =
+        sneak ??
+        offered(views, "move").find(({ target }) => target!.id === next);
       if (move !== undefined) {
         return move;
+      }
+      // Unseen, nothing opens a door without giving the character away.
+      if (ambush !== undefined) {
+        return ambush;
       }
       const passage = passageBetween(adventure, state.roomId, next);
       const opening = (["unlock", "force", "pick", "break"] as const)
@@ -1113,6 +1142,7 @@ export function playAdventure(
         : settlement.finds.length + settlement.coin.length,
     actions,
     checks: state.checks.length,
+    bypassed: state.bypassedEncounterIds.length,
     ...(settlement === undefined ? {} : { settlement }),
   };
 }
@@ -1167,6 +1197,8 @@ export type BalanceCell = Readonly<{
   meanTrapDamage: number;
   meanXp: number;
   meanTreasure: number;
+  /** Fights slipped past and left unfought, a run (#302). */
+  meanBypassed: number;
   /** Each opponent, and the chance one attack kills it from full HP. */
   oneHitKill: readonly Readonly<{
     encounterId: string;
@@ -1241,6 +1273,7 @@ function summarise(
     meanTrapDamage: mean(runs.map(({ trapDamage }) => trapDamage)),
     meanXp: mean(runs.map(({ xp }) => xp)),
     meanTreasure: mean(runs.map(({ treasure }) => treasure)),
+    meanBypassed: mean(runs.map(({ bypassed }) => bypassed)),
     oneHitKill: adventure.encounters.flatMap(({ id: encounterId, opponents }) =>
       opponents.map(({ id, name, statBlock }) => ({
         encounterId,
@@ -1356,7 +1389,10 @@ export function renderBalanceResult(
       `  ${cell.style}: survived ${percent(cell.survivalRate)}, completed ${percent(cell.completionRate)} of ${cell.runs}; ` +
         `XP ${decimal(cell.meanXp)}, treasure ${decimal(cell.meanTreasure)}; ` +
         `healed ${decimal(cell.healing.meanHp)} HP (Second Wind ${decimal(cell.healing.meanSecondWinds)}, potions ${decimal(cell.healing.meanPotions)}); ` +
-        `trap damage ${decimal(cell.meanTrapDamage)}`,
+        `trap damage ${decimal(cell.meanTrapDamage)}` +
+        (cell.style === "stealth-first"
+          ? `; slipped past ${decimal(cell.meanBypassed)} fights`
+          : ""),
       ...cell.encounters.map(
         (fight) =>
           `    ${fight.id}: fought in ${fight.runs}, lost ${percent(fight.defeatRate)}, ` +
@@ -1391,6 +1427,8 @@ export const STRONGEST_PERCENTILE = 95;
 export const GATE_STYLE: PlayStyle = "cautious";
 /** The style the strongest character plays the always-succeed branch in. */
 export const XP_STYLE: PlayStyle = "direct";
+/** The style the gate reports beside the judged checks (#302). */
+export const STEALTH_STYLE: PlayStyle = "stealth-first";
 
 /**
  * The SRD 5.2 XP needed for levels 1–7. Characters stop at level 5; levels 6
@@ -1421,6 +1459,21 @@ export type SurvivalCheck = Readonly<{
   kits: readonly Readonly<{ kit: KitId; level: number; rate: number }>[];
   required: number;
 }>;
+
+/**
+ * The weakest character's stealth-first runs (#302) with each kit at each
+ * recommended level, on seeded checks: reported beside the judged checks,
+ * never judged itself. A module stealth could trivialise is judged by the
+ * other checks, whose XP limit counts the XP authored for slipping past.
+ * `rate`, `kit` and `level` are the kit and level it survives least with;
+ * the completion rate, fights slipped past and XP are over every run.
+ */
+export type StealthFirstReport = Omit<SurvivalCheck, "ok" | "required"> &
+  Readonly<{
+    completionRate: number;
+    meanBypassed: number;
+    meanXp: number;
+  }>;
 
 /** How often one attack kills each ordinary enemy, against the cap. */
 export type OneHitKillCheck = Readonly<{
@@ -1489,6 +1542,8 @@ export type GateVerdict = Readonly<{
   alwaysFail: SurvivalCheck;
   oneHitKill: OneHitKillCheck;
   xp: XpCheck;
+  /** Reported, not judged (#302); absent when not asked for. */
+  stealthFirst?: StealthFirstReport;
 }>;
 
 /**
@@ -1501,6 +1556,7 @@ export type GateMeasures = Readonly<{
   alwaysFail: Omit<SurvivalCheck, "ok" | "required">;
   oneHitKill: Omit<OneHitKillCheck, "ok" | "cap" | "overCap">;
   xp: XpCheck;
+  stealthFirst?: StealthFirstReport;
 }>;
 
 export type GateResult =
@@ -1513,7 +1569,14 @@ export type GateResult =
 export type GateOptions = Pick<
   BalanceOptions,
   "seeds" | "sampleSize" | "sampleSeed" | "stepLimit"
->;
+> &
+  Readonly<{
+    /**
+     * Whether to play and report the stealth-first runs (#302); true by
+     * default. They are never judged, so `passesGate` leaves them out.
+     */
+    reportStealth?: boolean;
+  }>;
 
 /** One way the strongest character may be armed, as the gate tries it. */
 export type Attacker = Readonly<{
@@ -1620,6 +1683,7 @@ export function gateAdventure(
     sampleSize,
     sampleSeed,
     stepLimit,
+    reportStealth = true,
   }: GateOptions = {},
 ): GateResult {
   const { min, max } = adventure.recommendedLevels;
@@ -1638,7 +1702,8 @@ export function gateAdventure(
      * The weakest character's cautious runs with each kit at each level, on
      * seeded checks and with every check failing. A seeded run that made no
      * check is the always-fail run on its seed too, so only runs that made
-     * one are played again.
+     * one are played again. Beside them, its stealth-first runs on seeded
+     * checks (#302).
      */
     const played = levels.flatMap((level) =>
       KITS.map((kit) => {
@@ -1655,6 +1720,9 @@ export function gateAdventure(
               run.checks === 0
                 ? run
                 : playAdventure(failing, GATE_STYLE, seed, limit),
+            stealth: reportStealth
+              ? playAdventure(seeded, STEALTH_STYLE, seed, limit)
+              : run,
           };
         });
         return { kit, level, runs };
@@ -1662,7 +1730,8 @@ export function gateAdventure(
     );
     const survivalOf = (
       checks: CheckPolicy,
-      branch: "seeded" | "failing",
+      branch: "seeded" | "failing" | "stealth",
+      style: PlayStyle = GATE_STYLE,
     ): GateMeasures["survival"] => {
       const kits = played.map(({ kit, level, runs }) => ({
         kit,
@@ -1678,7 +1747,7 @@ export function gateAdventure(
         checks,
         level: weakestKit.level,
         percentile: WEAKEST_PERCENTILE,
-        style: GATE_STYLE,
+        style,
         runs: seeds.length,
         rate: weakestKit.rate,
         kit: weakestKit.kit,
@@ -1687,6 +1756,20 @@ export function gateAdventure(
     };
     const survival = survivalOf("seeded", "seeded");
     const alwaysFail = survivalOf("always-fail", "failing");
+    const objective = requiredPath(adventure).objective;
+    const stealthy = played.flatMap(({ runs }) =>
+      runs.map(({ stealth }) => stealth),
+    );
+    const stealthFirst: StealthFirstReport | undefined = reportStealth
+      ? {
+          ...survivalOf("seeded", "stealth", STEALTH_STYLE),
+          completionRate:
+            stealthy.filter(({ outcome }) => outcome === objective).length /
+            stealthy.length,
+          meanBypassed: mean(stealthy.map(({ bypassed }) => bypassed)),
+          meanXp: mean(stealthy.map(({ xp }) => xp)),
+        }
+      : undefined;
 
     // Every weapon the module places or a merchant sells.
     const placed = [
@@ -1723,16 +1806,20 @@ export function gateAdventure(
 
     const available =
       adventure.encounters.reduce(
-        (sum, { opponents }) =>
+        (sum, { opponents, bypassXp }) =>
           sum +
-          opponents.reduce(
-            (total, { statBlock, surrender }) =>
-              total +
-              Math.max(
-                statBlock.xp,
-                Math.floor(statBlock.xp / 2) + (surrender?.xp ?? 0),
-              ),
-            0,
+          // An encounter is credited once: won, or slipped past (#302).
+          Math.max(
+            bypassXp ?? 0,
+            opponents.reduce(
+              (total, { statBlock, surrender }) =>
+                total +
+                Math.max(
+                  statBlock.xp,
+                  Math.floor(statBlock.xp / 2) + (surrender?.xp ?? 0),
+                ),
+              0,
+            ),
           ),
         0,
       ) + Math.max(0, ...adventure.endings.map(({ xp }) => xp ?? 0));
@@ -1779,7 +1866,14 @@ export function gateAdventure(
     return {
       ok: true,
       verdict: gateVerdictAt(
-        { adventureId: adventure.id, survival, alwaysFail, oneHitKill, xp },
+        {
+          adventureId: adventure.id,
+          survival,
+          alwaysFail,
+          oneHitKill,
+          xp,
+          ...(stealthFirst === undefined ? {} : { stealthFirst }),
+        },
         adventure.difficulty,
       ),
     };
@@ -1842,6 +1936,9 @@ export function gateVerdictAt(
     alwaysFail,
     oneHitKill,
     xp: measures.xp,
+    ...(measures.stealthFirst === undefined
+      ? {}
+      : { stealthFirst: measures.stealthFirst }),
   };
 }
 
@@ -1856,7 +1953,7 @@ export function passesGate(adventure: FifthAdventure): boolean {
   const key = JSON.stringify(adventure);
   let passed = gated.get(key);
   if (passed === undefined) {
-    const result = gateAdventure(adventure);
+    const result = gateAdventure(adventure, { reportStealth: false });
     passed = result.ok && result.verdict.qualified;
     gated.set(key, passed);
   }
@@ -1881,10 +1978,13 @@ export function renderGateResult(
   const mark = (ok: boolean) => (ok ? "pass" : "FAIL");
   const over = oneHitKill.overCap;
   const deadly = (check: SurvivalCheck, title: string) =>
-    `  ${title}, ${mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile character playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${check.kits
-      .map(({ kit, level, rate }) => `${kit} level ${level} ${percent(rate)}`)
-      .join(", ")}); ${verdict.difficulty} needs ${percent(check.required)}.`;
+    `  ${title}, ${mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile character playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${kits(check)}); ${verdict.difficulty} needs ${percent(check.required)}.`;
   const succeeded = xp.alwaysSucceed;
+  const stealth = verdict.stealthFirst;
+  const kits = (check: Pick<SurvivalCheck, "kits">) =>
+    check.kits
+      .map(({ kit, level, rate }) => `${kit} level ${level} ${percent(rate)}`)
+      .join(", ");
   return [
     `${name} ${verdict.qualified ? "qualifies" : "does not qualify"} as ${verdict.difficulty}.`,
     deadly(survival, "Too deadly"),
@@ -1900,5 +2000,10 @@ export function renderGateResult(
             .join(", ")}.${oneHitKill.ok ? "" : " No more than half may be."}`),
     `  XP, ${mark(xp.ok)}: its ${Math.max(xp.available, succeeded.mostXp)} XP takes a character from ${xp.startXp} XP to level ${xp.endLevel}; the limit is level ${xp.levelLimit}.`,
     `  When every check succeeds, the level ${succeeded.level}, ${succeeded.percentile}th percentile character playing ${succeeded.style} earned at most ${succeeded.mostXp} of the ${xp.available} XP offered in ${succeeded.runs} ${succeeded.runs === 1 ? "run" : "runs"}.`,
+    ...(stealth === undefined
+      ? []
+      : [
+          `  Stealth-first, reported (not judged): the level ${stealth.level}, ${stealth.percentile}th percentile character playing ${stealth.style} survived ${percent(stealth.rate)} of ${stealth.runs} runs with its weakest kit, ${stealth.kit} (${kits(stealth)}); over every kit and level it completed ${percent(stealth.completionRate)}, slipped past ${decimal(stealth.meanBypassed)} fights and earned ${decimal(stealth.meanXp)} XP a run.`,
+        ]),
   ].join("\n");
 }

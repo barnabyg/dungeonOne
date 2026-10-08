@@ -281,6 +281,35 @@ export const ropeCove = validateModule(moduleFile("rope-cove"));
  */
 export const tollYard = validateModule(moduleFile("toll-yard"));
 
+/**
+ * Sneaking past (#302): the rat tunnels as _The Rat Run_, level 1, hard,
+ * whose rat awards 20 XP for slipping past it, and whose den, its goblin
+ * gone, is a way out. No other XP is on offer: the rat's own 25 only for
+ * beating it.
+ */
+export const ratRunFile = (() => {
+  const module = moduleFile("rat-tunnels");
+  module.id = "rat-run";
+  module.title = "The Rat Run";
+  module.objective = "Get through the rat cellar to the den and out.";
+  module.encounters = module.encounters.filter(({ id }) => id !== "den-goblin");
+  module.encounters[0].bypassXp = 20;
+  const den = room(module, "den");
+  delete den.encounterId;
+  den.exit = true;
+  module.endings = [
+    {
+      id: "out-through-the-den",
+      kind: "escape-without-loot",
+      title: "Out through the den",
+      text: "You climb the den's back stair into the open air.",
+    },
+    module.endings.find(({ kind }) => kind === "defeat"),
+  ];
+  return module;
+})();
+export const ratRun = validateModule(structuredClone(ratRunFile));
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,
@@ -296,4 +325,5 @@ export const FIXTURE_MODULES = [
   obstacleYard,
   ropeCove,
   tollYard,
+  ratRun,
 ];

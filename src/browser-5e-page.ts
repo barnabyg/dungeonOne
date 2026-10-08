@@ -1247,6 +1247,7 @@ const ACTIONS = {
   use: { label: "Drink ", short: "Drink", busy: "Drinking ", busyLabel: "Drinking…" },
   move: { label: "Go to ", short: "Go", busy: "Going to ", busyLabel: "Going…" },
   sneak: { label: "Sneak into ", short: "Sneak", busy: "Sneaking into ", busyLabel: "Sneaking…" },
+  ambush: { label: "Ambush in ", short: "Ambush", busy: "Ambushing in ", busyLabel: "Ambushing…" },
   examine: { label: "Examine ", short: "Examine", busy: "Examining ", busyLabel: "Examining…" },
   take: { label: "Take ", short: "Take", busy: "Taking ", busyLabel: "Taking…" },
   force: { label: "Force ", short: "Force", busy: "Forcing ", busyLabel: "Forcing…" },
@@ -1288,7 +1289,7 @@ const GEAR_SALES = ["sell", "sell-equipped"];
 // Selling a gem or art object (#239): its entry has no slot, as only gear is
 // equipped or stowed.
 const SALES = [...GEAR_SALES, "sell-treasure"];
-const EXPLORING = ["move", "sneak", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
+const EXPLORING = ["ambush", "move", "sneak", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
 
 function renderActions() {
   // The ending (#158) takes the bar's place; an ended adventure projects no actions.
