@@ -886,6 +886,7 @@ function weaponOf(attack: AttackProfile): Weapon {
     ...(attack.ammunition === undefined
       ? {}
       : { ammunition: attack.ammunition }),
+    ...(attack.loading === true ? { loading: true as const } : {}),
   };
 }
 

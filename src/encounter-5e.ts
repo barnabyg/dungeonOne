@@ -225,6 +225,8 @@ export type Weapon = Readonly<{
    * and from the fight's second round it attacks at disadvantage.
    */
   ammunition?: AmmunitionId;
+  /** Loading (SRD 5.2): it fires once per action, whatever Extra Attack allows (#291). */
+  loading?: true;
 }>;
 
 export type Combatant = DamageDefenses &
@@ -1834,9 +1836,11 @@ export function act(
       if (!attacking && state.economy.actions === 0) {
         return reject(
           "action-used",
-          (actor.attacksPerAction ?? 1) > 1
-            ? "You have already made every attack your Attack actions allow this turn."
-            : "You have already used your action this turn.",
+          (actor.attacksPerAction ?? 1) === 1
+            ? "You have already used your action this turn."
+            : actor.attack.loading === true
+              ? `The ${actor.attack.name} fires once an action (Loading): you have already shot with this action.`
+              : "You have already made every attack your Attack actions allow this turn.",
         );
       }
       const empty = ammunitionRefusal(actor);
@@ -1849,12 +1853,15 @@ export function act(
         ...resolved.state,
         economy: {
           ...state.economy,
-          // The first attack spends the action; Extra Attack's follow it.
+          // The first attack spends the action; Extra Attack's follow it,
+          // unless a Loading weapon fired, which ends the action's attacks.
           ...(attacking
-            ? { attacks: state.economy.attacks - 1 }
+            ? { attacks: actor.attack.loading ? 0 : state.economy.attacks - 1 }
             : {
                 actions: state.economy.actions - 1,
-                attacks: (actor.attacksPerAction ?? 1) - 1,
+                attacks: actor.attack.loading
+                  ? 0
+                  : (actor.attacksPerAction ?? 1) - 1,
               }),
           // Holding two light weapons, every attack is with a light one.
           lightAttack:
