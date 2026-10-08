@@ -2601,17 +2601,21 @@ export function createFifthRuntime(
   const damageWords = (cost: Extract<RetryCost, { type: "damage" }>) =>
     `${cost.dice}d${cost.sides}${cost.modifier === 0 ? "" : ` ${signed(cost.modifier)}`} ${cost.damageType} damage`;
   /**
-   * Whether every way a success at `check` opens is closed (#289): a check
-   * whose success opens none is never in this state.
+   * Whether a success at `check` could give nothing now (#289): its success
+   * bands only open ways, and every one of them is closed. A success that
+   * also makes a discovery or reveals an item still has something to give.
    */
   const waysGone = (state: FifthState, check: AuthoredCheck | undefined) => {
-    const opens = (["success", "success-by-5"] as const).flatMap((band) =>
-      effectsOf(check?.bands?.[band]).flatMap((effect) =>
-        effect.type === "open" ? [effect.passage] : [],
-      ),
+    const effects = (["success", "success-by-5"] as const).flatMap((band) =>
+      effectsOf(check?.bands?.[band]),
     );
     const { closed } = revealedIn(state);
-    return opens.length > 0 && opens.every((id) => closed.has(id));
+    return (
+      effects.length > 0 &&
+      effects.every(
+        (effect) => effect.type === "open" && closed.has(effect.passage),
+      )
+    );
   };
   /**
    * Another try at the failed check at `site` (#284), when its module
