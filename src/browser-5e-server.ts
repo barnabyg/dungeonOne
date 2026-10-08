@@ -281,6 +281,15 @@ const CHOICE_KEYS = [
 ];
 /** The clicked actions that take no target. */
 const CLICK_ACTIONS = ["second-wind", "action-surge", "end-turn"] as const;
+/** The clicked actions that make a check, which may name its approach (#283). */
+const APPROACH_ACTIONS: readonly string[] = [
+  "examine",
+  "force",
+  "pick",
+  "break",
+  "disarm",
+  "talk",
+];
 /** The clicked exploring actions, and the action each makes from its target. */
 const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   move: (destinationId) => ({ type: "move", destinationId }),
@@ -566,16 +575,32 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           type: body.action as (typeof CLICK_ACTIONS)[number],
           actorId: PLAYER_ID,
         });
-      case "/api/5e/session/explore":
+      case "/api/5e/session/explore": {
+        // A check's approach (#283) comes with the actions that make checks.
+        const approach = typeof body.approach === "string";
         if (
-          !hasExactKeys(body, ["sessionId", "sequence", "action", "target"]) ||
+          !hasExactKeys(body, [
+            "sessionId",
+            "sequence",
+            "action",
+            "target",
+            ...(approach ? ["approach"] : []),
+          ]) ||
           typeof body.action !== "string" ||
           !Object.hasOwn(EXPLORE_ACTIONS, body.action) ||
-          typeof body.target !== "string"
+          typeof body.target !== "string" ||
+          (approach && !APPROACH_ACTIONS.includes(body.action))
         ) {
           throw new Error("Invalid exploring request.");
         }
-        return click(body, EXPLORE_ACTIONS[body.action]!(body.target));
+        const action = EXPLORE_ACTIONS[body.action]!(body.target);
+        return click(
+          body,
+          approach
+            ? ({ ...action, approach: body.approach } as FifthAction)
+            : action,
+        );
+      }
       case "/api/5e/session/message": {
         if (
           !hasExactKeys(body, ["sessionId", "sequence", "message"]) ||

@@ -207,7 +207,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares) button{display:inline-grid}:is(#action-bar,#inventory,.wares) button>span,:is(#action-bar,#inventory,.wares) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares) button{display:inline-grid}:is(#action-bar,#inventory,.wares) button>span,:is(#action-bar,#inventory,.wares) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1;min-height:8rem}#log{flex:1;max-height:none}#session-dock{overflow-y:auto}}
@@ -1275,7 +1275,9 @@ function renderActions() {
     // Trades go on the merchant's wares and on "You carry" (#210).
     const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : action === "buy" ? "wares" : SALES.includes(action) ? "carried" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
     const words = wordsOf(action);
-    const label = words.label + named(action, target) + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
+    // A check with several approaches (#283) offers one button per skill.
+    const way = option.approach ? " with " + option.approach.name : "";
+    const label = words.label + named(action, target) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
     button.append(make("span", short ? ACTIONS[action].short : label));
@@ -1288,10 +1290,13 @@ function renderActions() {
     button.classList.add("act");
     button.dataset.action = action;
     if (target) button.dataset.target = target.id;
+    if (option.approach) button.dataset.approach = option.approach.id;
     button.disabled = acting || !option.available;
     button.addEventListener("click", () => action === "leave" ? openLeave() : action === "sell-equipped" ? openSale(option) : perform(option));
     const wrap = make("span", undefined, "action");
     wrap.append(button);
+    // The approach's skill, under its button (the button keeps the verb).
+    if (option.approach) wrap.append(unspoken(make("span", option.approach.name, "approach")));
     // Waiting says why it is all the character can do.
     const why = !option.available ? option.reason : words === WAIT ? "You are paralysed, so you can only wait." : "";
     if (why) {
@@ -1419,14 +1424,14 @@ async function leaveAdventure() {
   element(session.ending ? "ending-title" : "confirm-leave").focus();
 }
 
-async function perform({ action, target }) {
+async function perform({ action, target, approach }) {
   const targetId = target ? target.id : "";
   // The clicked control, found again after the bar re-renders, shows busy.
-  const control = "button.act[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])");
+  const control = "button.act[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])") + (approach ? "[data-approach=" + JSON.stringify(approach.id) + "]" : "");
   const busy = busyName({ action, target });
   if (action === "attack" || action === "light-attack") await act("/api/5e/session/" + action, { actorId: session.encounter.playerId, targetId }, control, busy);
   else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action }, control, busy);
-  else await act("/api/5e/session/explore", { action, target: targetId }, control, busy);
+  else await act("/api/5e/session/explore", { action, target: targetId, ...(approach ? { approach: approach.id } : {}) }, control, busy);
   keepFocus(action, targetId);
 }
 

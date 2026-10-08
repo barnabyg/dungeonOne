@@ -57,7 +57,8 @@ function assertAgrees(runtime, state) {
     ["drop", "drop"],
   ]) {
     const offered = tools.get(tool);
-    const ids = enabled(kind);
+    // A check with several approaches (#283) has one view per approach.
+    const ids = [...new Set(enabled(kind))];
     assert.deepEqual(
       offered === undefined
         ? []

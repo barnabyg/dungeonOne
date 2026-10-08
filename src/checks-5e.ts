@@ -108,6 +108,16 @@ function rolled(
   };
 }
 
+/** How an approach is named in an action (#283): its skill's or ability's id. */
+export const approachId = (spec: CheckSpec): string =>
+  spec.skill ?? spec.ability;
+
+/** How an approach is shown: "Athletics", or "Strength" for a plain ability. */
+export const approachName = (spec: CheckSpec): string =>
+  spec.skill === undefined
+    ? titleCase(spec.ability)
+    : FIGHTER_SKILLS[spec.skill].name;
+
 /** Rolls an ability check, with the skill's proficiency where the sheet has it. */
 export function abilityCheck(
   sheet: FighterSheet,

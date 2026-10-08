@@ -64,7 +64,15 @@ export function veteran() {
  * The engine action a projected action stands for, as the browser server
  * makes it from a click: every `ActionKind` in `src/runtime-5e.ts`.
  */
-export function engineAction({ action, target }) {
+export function engineAction(view) {
+  const made = madeAction(view);
+  // A check's chosen approach (#283) goes with the click, as the browser sends it.
+  return view.approach === undefined
+    ? made
+    : { ...made, approach: view.approach.id };
+}
+
+function madeAction({ action, target }) {
   switch (action) {
     case "attack":
     case "light-attack":

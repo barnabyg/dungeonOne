@@ -200,15 +200,30 @@ export type CheckBand = Readonly<{
  * or success, and an unauthored plain band does nothing beyond the site's
  * own outcome.
  */
-export type AuthoredCheck = CheckSpec &
+export type AuthoredCheck = (
+  | CheckSpec
+  /**
+   * Alternative approaches to one obstacle (#283): 2–4 skills or abilities,
+   * each with its own DC. The bands belong to the obstacle.
+   */
+  | Readonly<{
+      approaches: readonly CheckSpec[];
+      skill?: never;
+      ability?: never;
+      dc?: never;
+    }>
+) &
   Readonly<{ bands?: Readonly<Partial<Record<Band, CheckBand>>> }>;
 
-/** The approaches an authored check can be made with. */
+/** The approaches an authored check can be made with, one or several. */
 export function approachesOf(check: AuthoredCheck): readonly CheckSpec[] {
+  if ("approaches" in check && check.approaches !== undefined) {
+    return check.approaches;
+  }
   return [
     check.skill === undefined
-      ? { ability: check.ability, dc: check.dc }
-      : { skill: check.skill, dc: check.dc },
+      ? { ability: check.ability!, dc: check.dc! }
+      : { skill: check.skill, dc: check.dc! },
   ];
 }
 
@@ -677,21 +692,52 @@ function effect(value: unknown, where: string): CheckEffect {
 }
 const EFFECT_TYPES = ["discovery", "item", "damage", "open", "close"] as const;
 
+/** The most approaches one check may offer (#283). */
+const MAX_APPROACHES = 4;
+
 /**
- * An authored check: `{ skill, dc }` or `{ ability, dc }`, with optional
+ * A check's approach or approaches: `{ skill, dc }`, `{ ability, dc }`, or
+ * `{ approaches: [...] }`, 2–4 of those, each with a different skill or
+ * ability (#283).
+ */
+function approaches(
+  spec: Record<string, unknown>,
+  where: string,
+): AuthoredCheck {
+  if (!("approaches" in spec)) {
+    return approach(spec, where);
+  }
+  const raw = exactKeys(spec, ["approaches"], where);
+  const offered = list(
+    raw.approaches,
+    `${where} approaches`,
+    MAX_APPROACHES,
+    2,
+  ).map((entry, index) => approach(entry, `${where} approach ${index + 1}`));
+  distinct(
+    offered,
+    (entry) => entry.skill ?? entry.ability,
+    (entry) =>
+      `${where} offers ${entry.skill ?? entry.ability} twice; each approach needs its own skill or ability.`,
+  );
+  return { approaches: offered };
+}
+
+/**
+ * An authored check: its approaches (see `approaches`), with optional
  * `bands` (#281), each with optional `text` and `effects`.
  */
 function check(value: unknown, where: string): AuthoredCheck {
   const { bands, ...spec } = isRecord(value) ? value : { value };
   if (bands === undefined) {
-    return approach(spec, where);
+    return approaches(spec, where);
   }
   const graded = knownKeys(bands, [], BANDS, `${where} bands`);
   if (Object.keys(graded).length === 0) {
     fail(`${where} bands must author at least one band.`);
   }
   return {
-    ...approach(spec, where),
+    ...approaches(spec, where),
     bands: Object.fromEntries(
       BANDS.flatMap((band) => {
         if (graded[band] === undefined) {
@@ -1558,8 +1604,14 @@ function validateModule(
       if (
         !approachesOf(site.check).some((spec) => bandReachable(band, spec, max))
       ) {
-        const [lowest, highest] = totals(approachesOf(site.check)[0]!, max);
-        const { dc } = approachesOf(site.check)[0]!;
+        // Named by the approach that comes closest: the lowest DC.
+        const closest = [...approachesOf(site.check)].sort(
+          (one, other) => one.dc - other.dc,
+        )[
+          band.startsWith("success") ? 0 : approachesOf(site.check).length - 1
+        ]!;
+        const [lowest, highest] = totals(closest, max);
+        const { dc } = closest;
         fail(
           `${on} can't be reached with DC ${dc}: ${
             band === "success-by-5"

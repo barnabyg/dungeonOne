@@ -1,0 +1,184 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 19,
+  "id": "obstacle-yard",
+  "title": "The Obstacle Yard",
+  "objective": "Get past the yard's wall or its guard, see what lies beyond, and leave by the gate.",
+  "recommendedLevels": {
+    "min": 1,
+    "max": 1
+  },
+  "difficulty": "hard",
+  "startRoomId": "yard-gate",
+  "rooms": [
+    {
+      "id": "yard-gate",
+      "name": "Yard Gate",
+      "description": "A muddy yard inside an old gate. A crumbling wall hides a garden, and a guard leans on a door to the guardhouse.",
+      "exit": true,
+      "features": [
+        {
+          "id": "crumbling-wall",
+          "name": "Crumbling Wall",
+          "description": "A wall of loose stone, a little over head height, with a garden beyond.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "athletics",
+                "dc": 12
+              },
+              {
+                "skill": "acrobatics",
+                "dc": 14
+              }
+            ],
+            "bands": {
+              "failure-by-5": {
+                "text": "The top stones give way and you land hard in the mud.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 1,
+                    "sides": 4,
+                    "modifier": 0,
+                    "damageType": "bludgeoning",
+                    "defeatEndingId": "fallen-in-the-yard"
+                  }
+                ]
+              },
+              "failure": {
+                "text": "You can't find a way over the loose stones."
+              },
+              "success": {
+                "text": "You get over the wall and drop into the garden's shadow.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "yard-to-garden"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "items": [],
+      "creatures": [
+        {
+          "id": "gate-guard",
+          "name": "Gate Guard",
+          "description": "A bored guard in a dented helmet, leaning on the guardhouse door.",
+          "topics": [
+            {
+              "id": "let-me-pass",
+              "name": "letting you pass",
+              "reply": "\"Fine. Go on in, and don't touch anything.\" The guard steps aside.",
+              "failure": "\"Not a chance.\" The guard folds his arms.",
+              "check": {
+                "approaches": [
+                  {
+                    "skill": "persuasion",
+                    "dc": 13
+                  },
+                  {
+                    "skill": "intimidation",
+                    "dc": 13
+                  }
+                ],
+                "bands": {
+                  "success": {
+                    "effects": [
+                      {
+                        "type": "open",
+                        "passage": "yard-to-guardhouse"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "herb-garden",
+      "name": "Herb Garden",
+      "description": "Overgrown beds of herbs behind the wall.",
+      "features": [
+        {
+          "id": "herb-bed",
+          "name": "Herb Bed",
+          "description": "A raised bed of sage and thyme.",
+          "discovery": "Someone has buried a small purse among the roots."
+        }
+      ],
+      "items": [
+        {
+          "id": "herb-purse",
+          "name": "Small Purse",
+          "description": "A purse of damp leather.",
+          "kind": "coin",
+          "coins": {
+            "sp": 30
+          },
+          "hiddenIn": "herb-bed"
+        }
+      ]
+    },
+    {
+      "id": "guardhouse",
+      "name": "Guardhouse",
+      "description": "A cramped guardhouse that smells of rats.",
+      "encounterId": "guardhouse-rat",
+      "features": [],
+      "items": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "yard-to-garden",
+      "between": ["yard-gate", "herb-garden"],
+      "description": "The way over the crumbling wall.",
+      "hidden": true
+    },
+    {
+      "id": "yard-to-guardhouse",
+      "between": ["yard-gate", "guardhouse"],
+      "description": "The guardhouse door.",
+      "hidden": true
+    }
+  ],
+  "encounters": [
+    {
+      "id": "guardhouse-rat",
+      "opponents": [
+        {
+          "id": "guardhouse-rat",
+          "monster": "giant-rat"
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-yard"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-purse",
+      "kind": "escape-with-loot",
+      "title": "Out with the purse",
+      "text": "You leave by the gate with the garden's purse."
+    },
+    {
+      "id": "out-empty-handed",
+      "kind": "escape-without-loot",
+      "title": "Out empty-handed",
+      "text": "You leave by the gate with nothing."
+    },
+    {
+      "id": "fallen-in-the-yard",
+      "kind": "defeat",
+      "title": "Fallen in the yard",
+      "text": "You fall in the yard's mud."
+    }
+  ]
+}

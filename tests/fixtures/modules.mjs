@@ -12,6 +12,7 @@ const NAMES = [
   "graded-cellar",
   "lintel-barrow",
   "lone-goblin",
+  "obstacle-yard",
   "rat-tunnels",
   "sealed-crypt",
   "shifting-ossuary",
@@ -152,6 +153,15 @@ export const gradedCellar = validateModule(moduleFile("graded-cellar"));
  */
 export const shiftingOssuary = validateModule(moduleFile("shifting-ossuary"));
 
+/**
+ * Alternative approaches (#283), level 1: a crumbling wall to get over with
+ * Athletics (DC 12) or Acrobatics (DC 14), whose success opens a hidden way
+ * to a garden, and a guard to get past with Persuasion or Intimidation (DC
+ * 13 each), whose success opens the guardhouse. A copy of the AI DM
+ * evaluation's own yard, owned by the tests.
+ */
+export const obstacleYard = validateModule(moduleFile("obstacle-yard"));
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,
@@ -164,4 +174,5 @@ export const FIXTURE_MODULES = [
   goblinBurrow,
   gradedCellar,
   shiftingOssuary,
+  obstacleYard,
 ];

@@ -407,7 +407,9 @@ These are for development, not play.
   evaluates the live AI DM on The Abandoned Delve's interpretation, refusal and
   narration-fidelity cases (`src/dm-evaluation-5e.ts`), within a stated call
   budget (`--max-calls`, by default four per case and repetition), and writes a
-  report under `.dm-evaluations`.
+  report under `.dm-evaluations`. `--suite approaches` runs the approach
+  selection cases (#283) instead, on _The Obstacle Yard_
+  (`adventures/eval/obstacle-yard.json`), a module for the evaluation only.
 - **Live delve qualification.** `node scripts/qualify-delve-live.mjs --live`
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.

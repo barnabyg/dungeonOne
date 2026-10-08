@@ -3,7 +3,9 @@ import path from "node:path";
 
 import {
   evaluationCallBudget,
+  FIFTH_APPROACH_DM_CASES,
   FIFTH_DM_CASES,
+  loadFifthApproachEvaluationAdventure,
   runFifthDmEvaluation,
 } from "../dist/dm-evaluation-5e.js";
 import { createOpenAiDmModel } from "../dist/openai-dm-model.js";
@@ -11,8 +13,9 @@ import { createOpenAiDmModel } from "../dist/openai-dm-model.js";
 const USAGE = [
   "Usage: npm run eval:dm -- --model <model-id> --live",
   "       [--repetitions <count>] [--judgments <path>] [--output <path>]",
-  "       [--max-calls <count>]",
-  "       Runs the abandoned-delve cases. It calls the live provider",
+  "       [--max-calls <count>] [--suite delve|approaches]",
+  "       Runs the abandoned-delve cases, or with --suite approaches the",
+  "       obstacle-yard approach-selection cases. It calls the live provider",
   "       only with --live, within --max-calls provider calls",
   "       (default: four per case and repetition).",
 ].join(" ");
@@ -26,7 +29,7 @@ function argumentValue(args, index) {
 }
 
 function parseArguments(args) {
-  const parsed = { repetitions: 3 };
+  const parsed = { repetitions: 3, suite: "delve" };
   const seen = new Set();
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
@@ -60,6 +63,8 @@ function parseArguments(args) {
       parsed.outputPath = value;
     } else if (name === "--max-calls") {
       parsed.maxCalls = Number(value);
+    } else if (name === "--suite" && ["delve", "approaches"].includes(value)) {
+      parsed.suite = value;
     } else {
       throw new Error(USAGE);
     }
@@ -135,16 +140,23 @@ const outputPath = configuration.outputPath;
 try {
   const live = (model) =>
     createOpenAiDmModel({ apiKey: process.env.OPENAI_API_KEY, model });
+  // The approach cases (#283) play their own module.
+  const approaches = configuration.suite === "approaches";
+  const cases = approaches ? FIFTH_APPROACH_DM_CASES : FIFTH_DM_CASES;
   // Every case, every repetition, at most four model responses each.
   const maxCalls =
-    configuration.maxCalls ?? evaluationCallBudget(configuration.repetitions);
+    configuration.maxCalls ??
+    evaluationCallBudget(configuration.repetitions, cases);
   process.stdout.write(
-    `Evaluating ${FIFTH_DM_CASES.length} cases × ${configuration.repetitions} repetitions on ${configuration.model}, at most ${maxCalls} provider calls.\n`,
+    `Evaluating ${cases.length} cases × ${configuration.repetitions} repetitions on ${configuration.model}, at most ${maxCalls} provider calls.\n`,
   );
   const report = await runFifthDmEvaluation({
     requestedModel: configuration.model,
     repetitions: configuration.repetitions,
     maxCalls,
+    ...(approaches
+      ? { cases, adventure: await loadFifthApproachEvaluationAdventure() }
+      : {}),
     ...(manualJudgments === undefined ? {} : { manualJudgments }),
     createModel: () => live(configuration.model),
   });
