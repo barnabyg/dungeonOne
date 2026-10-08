@@ -103,3 +103,26 @@ export function libraryAt(level: Level): FifthLibraryData {
 export function levelThreeLibrary(): FifthLibraryData {
   return libraryAt(3);
 }
+
+/**
+ * A character library holding only Ada at level 4 with 4,100 XP, her
+ * level-4 choices made (#291): about what a career holds after the modules
+ * below level 4, so the Thornwood Lodge takes her to level 5. Its release
+ * runs and its player handoff
+ * (docs/acceptance/inputs/increment-14/level-4-ada-4100-xp.json) start from it.
+ */
+export function levelFourCareerLibrary(): FifthLibraryData {
+  const library = libraryAt(4);
+  const sheet = testFighterAt(4);
+  return {
+    ...library,
+    characters: [
+      {
+        sheet: validateFighter(
+          applyLevelChoice({ ...sheet, xp: 4100 }, TEST_FIGHTER_LEVEL_CHOICE),
+        ),
+        revision: 1,
+      },
+    ],
+  };
+}

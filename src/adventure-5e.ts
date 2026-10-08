@@ -2423,6 +2423,7 @@ export const FIFTH_ADVENTURE_FILES = {
   "shepherds-bothy": "shepherds-bothy.json",
   "silvervein-mine": "silvervein-mine.json",
   "smugglers-cellar": "smugglers-cellar.json",
+  "thornwood-lodge": "thornwood-lodge.json",
   "tinkers-toll": "tinkers-toll.json",
   "warden-crypt": "warden-crypt.json",
   "wolfstone-hillfort": "wolfstone-hillfort.json",

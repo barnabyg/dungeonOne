@@ -100,6 +100,7 @@ test("each bestiary monster has the owner's treasure type; undead and beasts car
       "bandit-captain": "gold",
       owlbear: "none",
       "warrior-veteran": "gold",
+      mastiff: "none",
     },
   );
 });

@@ -174,8 +174,8 @@ export const WEAPONS = {
     weight: 5,
     damage: { dice: 1, sides: 8 },
     damageType: "piercing",
-    // Loading limits attacks per action; without Extra Attack (levels 1–3)
-    // it changes nothing.
+    // Loading limits attacks per action, so it matters only with Extra
+    // Attack (level 5).
     properties: ["ammunition", "loading", "two-handed"],
     mastery: "Slow",
     tier: "common",
@@ -687,6 +687,8 @@ export type AttackProfile = Readonly<{
    * second round it has disadvantage (close combat).
    */
   ammunition?: AmmunitionId;
+  /** Loading: one shot per action, whatever Extra Attack allows (#291). */
+  loading?: true;
   grip: "one-handed" | "two-handed";
   bonus: number;
   damage: Readonly<{
@@ -775,6 +777,9 @@ function attackWith(
     ...(weapon.ammunition === undefined
       ? {}
       : { ammunition: weapon.ammunition }),
+    ...(weapon.properties.includes("loading")
+      ? { loading: true as const }
+      : {}),
     grip,
     // Archery: +2 to hit with a ranged weapon, never to its damage.
     bonus:

@@ -11,9 +11,10 @@ const PLAYER = "pc";
 
 /**
  * The route's shorthand as engine actions: `["move", "bothy"]` and the rest,
- * with `["force", doorId]` (#289) forcing a stuck door.
+ * with `["force", doorId]` (#289) forcing a stuck door and
+ * `["talk", topicId, approach]` (#291) asking about a topic with a check.
  */
-export function routeAction([type, target]) {
+export function routeAction([type, target, approach]) {
   switch (type) {
     case "move":
       return { type, destinationId: target };
@@ -25,6 +26,8 @@ export function routeAction([type, target]) {
       return { type, roomId: target };
     case "force":
       return { type, doorId: target };
+    case "talk":
+      return { type, topicId: target, approach };
     default:
       throw new Error(`no route action ${type}`);
   }

@@ -1,0 +1,1275 @@
+{
+  "issue": 291,
+  "mode": "live",
+  "adventureId": "thornwood-lodge",
+  "runDirectory": ".verify-artifacts\\issue-291-live-VMWfmg",
+  "requestedModel": "gpt-5.6-luna",
+  "startedAt": "2026-10-08T14:58:23.127Z",
+  "seed": 2,
+  "maxProviderCalls": 80,
+  "providerCalls": 38,
+  "usage": {
+    "inputTokens": 125551,
+    "outputTokens": 1151,
+    "totalTokens": 126702
+  },
+  "promptVersions": [
+    "5e-dm-v17"
+  ],
+  "summary": {
+    "turns": 40,
+    "typed": 38,
+    "committed": 38,
+    "matched": 38,
+    "fallbacks": 1,
+    "skipped": 1,
+    "reviewClaims": 0,
+    "roomsVisited": 4
+  },
+  "turns": [
+    {
+      "phase": "explore",
+      "room": "forest-gate",
+      "intent": "examine woodpile",
+      "message": "Search the woodpile.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Woodpile: Split logs stacked against the palisade. Behind the logs are a stoppered vial of red liquid and a shuttered lantern. You find the Potion of Healing and Hooded Lantern.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Woodpile: Split logs stacked against the palisade. Behind the logs are a stoppered vial of red liquid and a shuttered lantern. You find the Potion of Healing and Hooded Lantern."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"woodpile\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "forest-gate",
+      "intent": "take woodpile-potion",
+      "message": "Take the vial from the woodpile.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Potion of Healing."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"woodpile-potion\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "forest-gate",
+      "intent": "take hooded-lantern",
+      "message": "Take the lantern.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Hooded Lantern.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Hooded Lantern."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"hooded-lantern\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "forest-gate",
+      "intent": "talk the-lodge",
+      "message": "Ask Brann about the lodge.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Brann the Charcoal-burner: \"Captain Hesk took the king's lodge when he quit the war. His hound runs the kennel yard, and a bear baits in the hall.\"",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Brann the Charcoal-burner: \"Captain Hesk took the king's lodge when he quit the war. His hound runs the kennel yard, and a bear baits in the hall.\""
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "talk",
+              "argumentsJson": "{\"topic\":\"the-lodge\",\"approach\":null}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "forest-gate",
+      "intent": "talk the-poachers-path (persuasion)",
+      "message": "Try to persuade Brann to tell me about the poachers' path.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Persuasion check: d20 19 − 1 = 18 against DC 14. Success.\nBrann the Charcoal-burner: \"Round the palisade to the left, there's a poachers' hide. They left in a hurry.\"\nThe way to the Poachers' Hide is open.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Persuasion check: d20 19 − 1 = 18 against DC 14. Success.\nBrann the Charcoal-burner: \"Round the palisade to the left, there's a poachers' hide. They left in a hurry.\"\nThe way to the Poachers' Hide is open."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "talk",
+              "argumentsJson": "{\"topic\":\"the-poachers-path\",\"approach\":\"persuasion\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "forest-gate",
+      "intent": "move poachers-hide",
+      "message": "Follow the poachers' path to their hide.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Poachers' Hide. A hide of woven branches under the palisade, smelling of old smoke.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Poachers' Hide. A hide of woven branches under the palisade, smelling of old smoke."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"poachers-hide\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "poachers-hide",
+      "intent": "examine poachers-cache",
+      "message": "Look in the sack hanging from the branch.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Poachers' Cache: A sack hung from a branch, out of reach of foxes. In the sack are a stoppered vial of red liquid and a pair of iron tongs. You find the Potion of Healing and Trapper's Tongs.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Poachers' Cache: A sack hung from a branch, out of reach of foxes. In the sack are a stoppered vial of red liquid and a pair of iron tongs. You find the Potion of Healing and Trapper's Tongs."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"poachers-cache\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "poachers-hide",
+      "intent": "take hide-potion",
+      "message": "Take the vial.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Potion of Healing."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"hide-potion\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "poachers-hide",
+      "intent": "take trap-tongs",
+      "message": "Take the iron tongs.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Trapper's Tongs.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Trapper's Tongs."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"trap-tongs\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "poachers-hide",
+      "intent": "move forest-gate",
+      "message": "Go back to the forest gate.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Forest Gate. A sagging gate in the lodge's palisade, where a charcoal-burner has made camp beside a woodpile.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Forest Gate. A sagging gate in the lodge's palisade, where a charcoal-burner has made camp beside a woodpile."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"forest-gate\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "forest-gate",
+      "intent": "move kennel-yard",
+      "message": "Head round the palisade to the kennels.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Kennel Yard. A muddy yard ringed with kennels and strewn with gnawed antlers. A door leads into the lodge hall. A dire wolf the size of a pony, wearing a studded war collar. A heavy-jawed mastiff, growling low, its hackles up. A heavy-jawed mastiff, growling low, its hackles up.\nInitiative: Ada 15 + 2 = 17; Kennel Mastiff 1 8 + 2 = 10; Kennel Mastiff 2 6 + 2 = 8; Hesk's Hound 3 + 2 = 5.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You enter the Kennel Yard. A muddy yard ringed with kennels and strewn with gnawed antlers. A door leads into the lodge hall. A dire wolf the size of a pony, wearing a studded war collar. A heavy-jawed mastiff, growling low, its hackles up. A heavy-jawed mastiff, growling low, its hackles up.\nInitiative: Ada 15 + 2 = 17; Kennel Mastiff 1 8 + 2 = 10; Kennel Mastiff 2 6 + 2 = 8; Hesk's Hound 3 + 2 = 5.\nIt is your turn."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"kennel-yard\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "kennel-yard",
+      "intent": "attack kennel-mastiff-1",
+      "message": "Attack the Kennel Mastiff 1.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Kennel Mastiff 1 with Mace: 18 + 6 = 24 against AC 12. Hit. Damage 6 + 4 = 10 bludgeoning; Kennel Mastiff 1 has 0/5 HP.\nKennel Mastiff 1 is defeated.\nKennel Mastiff 2 checks morale as the first of its side falls: a Wisdom saving throw, 14 + 1 = 15 against DC 8. Success: it stands its ground.\nHesk's Hound checks morale as the first of its side falls: a Wisdom saving throw, 6 + 1 = 7 against DC 6. Success: it stands its ground.\nIt is still your turn: you can use Action Surge or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Kennel Mastiff 1 with Mace: 18 + 6 = 24 against AC 12. Hit. Damage 6 + 4 = 10 bludgeoning; Kennel Mastiff 1 has 0/5 HP.\nKennel Mastiff 1 is defeated.\nKennel Mastiff 2 checks morale as the first of its side falls: a Wisdom saving throw, 14 + 1 = 15 against DC 8. Success: it stands its ground.\nHesk's Hound checks morale as the first of its side falls: a Wisdom saving throw, 6 + 1 = 7 against DC 6. Success: it stands its ground.\nIt is still your turn: you can use Action Surge or end your turn."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"kennel-mastiff-1\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "kennel-yard",
+      "intent": "action-surge",
+      "message": "Use Action Surge.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada uses Action Surge: one more action this turn. 0 uses left.\nIt is still your turn: you can attack or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada uses Action Surge: one more action this turn. 0 uses left.\nIt is still your turn: you can attack or end your turn."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "action_surge",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "kennel-yard",
+      "intent": "attack kennel-mastiff-2",
+      "message": "Attack the Kennel Mastiff 2.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Kennel Mastiff 2 with Mace: 17 + 6 = 23 against AC 12. Hit. Damage 6 + 4 = 10 bludgeoning; Kennel Mastiff 2 has 0/5 HP.\nKennel Mastiff 2 is defeated.\nHesk's Hound checks morale with its side at half strength: a Wisdom saving throw, 17 + 1 = 18 against DC 6. Success: it stands its ground.\nHesk's Hound attacks Ada with Bite: 8 + 5 = 13 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Kennel Mastiff 2 with Mace: 17 + 6 = 23 against AC 12. Hit. Damage 6 + 4 = 10 bludgeoning; Kennel Mastiff 2 has 0/5 HP.\nKennel Mastiff 2 is defeated.\nHesk's Hound checks morale with its side at half strength: a Wisdom saving throw, 17 + 1 = 18 against DC 6. Success: it stands its ground.\nHesk's Hound attacks Ada with Bite: 8 + 5 = 13 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 36,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"kennel-mastiff-2\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "kennel-yard",
+      "intent": "attack hesks-hound",
+      "message": "Attack the Hesk's Hound.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Hesk's Hound with Mace: 7 + 6 = 13 against AC 14. Miss.\nHesk's Hound attacks Ada with Bite: 11 + 5 = 16 against AC 14. Hit. Damage 9 + 3 = 12 piercing; Ada has 24/36 HP.\nAda makes a Strength saving throw against being prone: 19 + 6 = 25 against DC 13. Success.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Hesk's Hound with Mace: 7 + 6 = 13 against AC 14. Miss.\nHesk's Hound attacks Ada with Bite: 11 + 5 = 16 against AC 14. Hit. Damage 9 + 3 = 12 piercing; Ada has 24/36 HP.\nAda makes a Strength saving throw against being prone: 19 + 6 = 25 against DC 13. Success.\nIt is your turn."
+        }
+      ],
+      "hp": 24,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"hesks-hound\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "kennel-yard",
+      "intent": "attack hesks-hound",
+      "message": "Attack the Hesk's Hound.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Hesk's Hound with Mace: 9 + 6 = 15 against AC 14. Hit. Damage 6 + 4 = 10 bludgeoning; Hesk's Hound has 12/22 HP.\nHesk's Hound is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Hesk's Hound with Mace: 9 + 6 = 15 against AC 14. Hit. Damage 6 + 4 = 10 bludgeoning; Hesk's Hound has 12/22 HP.\nHesk's Hound is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 24,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"hesks-hound\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "kennel-yard",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nHesk's Hound attacks Ada with Bite, at disadvantage (Sap): 16 and 19, keeping 16; 16 + 5 = 21 against AC 14. Hit. Damage 6 + 3 = 9 piercing; Ada has 15/36 HP.\nAda makes a Strength saving throw against being prone: 11 + 6 = 17 against DC 13. Success.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nHesk's Hound attacks Ada with Bite, at disadvantage (Sap): 16 and 19, keeping 16; 16 + 5 = 21 against AC 14. Hit. Damage 6 + 3 = 9 piercing; Ada has 15/36 HP.\nAda makes a Strength saving throw against being prone: 11 + 6 = 17 against DC 13. Success.\nIt is your turn."
+        }
+      ],
+      "hp": 15,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "kennel-yard",
+      "intent": "second-wind",
+      "message": "Catch my breath with Second Wind.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada uses Second Wind: 2 + 4 = 6; Ada regains 6 HP and has 21/36 HP. 2 uses left.\nIt is still your turn: you can attack or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada uses Second Wind: 2 + 4 = 6; Ada regains 6 HP and has 21/36 HP. 2 uses left.\nIt is still your turn: you can attack or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "second_wind",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "kennel-yard",
+      "intent": "attack hesks-hound",
+      "message": "Attack the Hesk's Hound.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Hesk's Hound with Mace: 19 + 6 = 25 against AC 14. Critical hit! Damage 3 + 6 + 4 = 13 bludgeoning; Hesk's Hound has 0/22 HP.\nHesk's Hound is defeated.\nThe fight is over.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Hesk's Hound with Mace: 19 + 6 = 25 against AC 14. Critical hit! Damage 3 + 6 + 4 = 13 bludgeoning; Hesk's Hound has 0/22 HP.\nHesk's Hound is defeated.\nThe fight is over."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"hesks-hound\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "kennel-yard",
+      "intent": "examine hounds-kennel",
+      "message": "Search the hound's kennel.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Hound's Kennel: The largest kennel, its straw matted flat. Under the straw are a gilt hunting cup and a purse of gold. You find the Gilt Hunting Cup and Purse of Gold.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Hound's Kennel: The largest kennel, its straw matted flat. Under the straw are a gilt hunting cup and a purse of gold. You find the Gilt Hunting Cup and Purse of Gold."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"hounds-kennel\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "kennel-yard",
+      "intent": "take hunting-cup",
+      "message": "Take the gilt cup.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Gilt Hunting Cup.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Gilt Hunting Cup."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"hunting-cup\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "kennel-yard",
+      "intent": "take kennel-gold",
+      "message": "Take the purse of gold.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Purse of Gold and put 30 gp in your purse.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Purse of Gold and put 30 gp in your purse."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"kennel-gold\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "kennel-yard",
+      "intent": "move lodge-hall",
+      "message": "Go through the kennel door into the hall.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Lodge Hall. A long feasting hall under a hammerbeam roof, its walls hung with antlers. A chain runs from a post to a churned-up bear pit, and a hatch in the floor leads down to the ice house. A scarred brown bear dragging a broken chain, mad with rage.\nInitiative: Ada 11 + 2 = 13; Baiting Bear 1 + 1 = 2.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You enter the Lodge Hall. A long feasting hall under a hammerbeam roof, its walls hung with antlers. A chain runs from a post to a churned-up bear pit, and a hatch in the floor leads down to the ice house. A scarred brown bear dragging a broken chain, mad with rage.\nInitiative: Ada 11 + 2 = 13; Baiting Bear 1 + 1 = 2.\nIt is your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"lodge-hall\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "lodge-hall",
+      "intent": "attack baiting-bear",
+      "message": "Attack the Baiting Bear.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Baiting Bear with Mace: 16 + 6 = 22 against AC 11. Hit. Damage 3 + 4 = 7 bludgeoning; Baiting Bear has 15/22 HP.\nBaiting Bear is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Baiting Bear with Mace: 16 + 6 = 22 against AC 11. Hit. Damage 3 + 4 = 7 bludgeoning; Baiting Bear has 15/22 HP.\nBaiting Bear is sapped: disadvantage on its next attack roll before Ada's next turn.\nIt is still your turn: you can use Second Wind, drink a potion or end your turn."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"baiting-bear\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "lodge-hall",
+      "intent": "end-turn",
+      "message": "End my turn.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada ends the turn.\nBaiting Bear attacks Ada with Bite (attack chosen by a die: 1), at disadvantage (Sap): 19 and 14, keeping 14; 14 + 5 = 19 against AC 14. Hit. Damage 8 + 3 = 11 piercing; Ada has 10/36 HP.\nBaiting Bear attacks Ada with Claw (attack chosen by a die: 2): 4 + 5 = 9 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada ends the turn.\nBaiting Bear attacks Ada with Bite (attack chosen by a die: 1), at disadvantage (Sap): 19 and 14, keeping 14; 14 + 5 = 19 against AC 14. Hit. Damage 8 + 3 = 11 piercing; Ada has 10/36 HP.\nBaiting Bear attacks Ada with Claw (attack chosen by a die: 2): 4 + 5 = 9 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 10,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "end_turn",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "lodge-hall",
+      "intent": "second-wind",
+      "message": "Catch my breath with Second Wind.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada uses Second Wind: 3 + 4 = 7; Ada regains 7 HP and has 17/36 HP. 1 use left.\nIt is still your turn: you can attack or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada uses Second Wind: 3 + 4 = 7; Ada regains 7 HP and has 17/36 HP. 1 use left.\nIt is still your turn: you can attack or end your turn."
+        }
+      ],
+      "hp": 17,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "second_wind",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "lodge-hall",
+      "intent": "attack baiting-bear",
+      "message": "Attack the Baiting Bear.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Baiting Bear with Mace: 15 + 6 = 21 against AC 11. Hit. Damage 4 + 4 = 8 bludgeoning; Baiting Bear has 7/22 HP.\nBaiting Bear is sapped: disadvantage on its next attack roll before Ada's next turn.\nBaiting Bear attacks Ada with Claw (attack chosen by a die: 2), at disadvantage (Sap): 7 and 12, keeping 7; 7 + 5 = 12 against AC 14. Miss.\nBaiting Bear attacks Ada with Bite (attack chosen by a die: 1): 8 + 5 = 13 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Baiting Bear with Mace: 15 + 6 = 21 against AC 11. Hit. Damage 4 + 4 = 8 bludgeoning; Baiting Bear has 7/22 HP.\nBaiting Bear is sapped: disadvantage on its next attack roll before Ada's next turn.\nBaiting Bear attacks Ada with Claw (attack chosen by a die: 2), at disadvantage (Sap): 7 and 12, keeping 7; 7 + 5 = 12 against AC 14. Miss.\nBaiting Bear attacks Ada with Bite (attack chosen by a die: 1): 8 + 5 = 13 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 17,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"baiting-bear\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "lodge-hall",
+      "intent": "second-wind",
+      "message": "Catch my breath with Second Wind.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada uses Second Wind: 9 + 4 = 13; Ada regains 13 HP and has 30/36 HP. 0 uses left.\nIt is still your turn: you can attack or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada uses Second Wind: 9 + 4 = 13; Ada regains 13 HP and has 30/36 HP. 0 uses left.\nIt is still your turn: you can attack or end your turn."
+        }
+      ],
+      "hp": 30,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "second_wind",
+              "argumentsJson": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "lodge-hall",
+      "intent": "attack baiting-bear",
+      "message": "Attack the Baiting Bear.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Baiting Bear with Mace: 18 + 6 = 24 against AC 11. Hit. Damage 2 + 4 = 6 bludgeoning; Baiting Bear has 1/22 HP.\nBaiting Bear is sapped: disadvantage on its next attack roll before Ada's next turn.\nBaiting Bear attacks Ada with Claw (attack chosen by a die: 2), at disadvantage (Sap): 14 and 16, keeping 14; 14 + 5 = 19 against AC 14. Hit. Damage 4 + 3 = 7 slashing; Ada has 23/36 HP.\nAda makes a Strength saving throw against being prone: 18 + 6 = 24 against DC 13. Success.\nBaiting Bear attacks Ada with Bite (attack chosen by a die: 1): 4 + 5 = 9 against AC 14. Miss.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Baiting Bear with Mace: 18 + 6 = 24 against AC 11. Hit. Damage 2 + 4 = 6 bludgeoning; Baiting Bear has 1/22 HP.\nBaiting Bear is sapped: disadvantage on its next attack roll before Ada's next turn.\nBaiting Bear attacks Ada with Claw (attack chosen by a die: 2), at disadvantage (Sap): 14 and 16, keeping 14; 14 + 5 = 19 against AC 14. Hit. Damage 4 + 3 = 7 slashing; Ada has 23/36 HP.\nAda makes a Strength saving throw against being prone: 18 + 6 = 24 against DC 13. Success.\nBaiting Bear attacks Ada with Bite (attack chosen by a die: 1): 4 + 5 = 9 against AC 14. Miss.\nIt is your turn."
+        }
+      ],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"baiting-bear\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "lodge-hall",
+      "intent": "attack baiting-bear",
+      "message": "Attack the Baiting Bear.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Ada attacks Baiting Bear with Mace: 20 + 6 = 26 against AC 11. Critical hit! Damage 1 + 1 + 4 = 6 bludgeoning; Baiting Bear has 0/22 HP.\nBaiting Bear is defeated.\nThe fight is over.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Ada attacks Baiting Bear with Mace: 20 + 6 = 26 against AC 11. Critical hit! Damage 1 + 1 + 4 = 6 bludgeoning; Baiting Bear has 0/22 HP.\nBaiting Bear is defeated.\nThe fight is over."
+        }
+      ],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"baiting-bear\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "lodge-hall",
+      "intent": "examine trophy-wall (history)",
+      "message": "Study the old hunting shields on the trophy wall for anything out of place, using what I know of history.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "History check: d20 20 + 1 = 21 against DC 13. Success by 5 or more.\nTrophy Wall: Antlers, boar tusks and the king's old hunting shields crowd the wall.\nOne shield bears no king's arms. Behind it, in a hollow in the wall, lie a jewel and a stoppered vial.\nYou find the Topaz.\nYou find the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "History check: d20 20 + 1 = 21 against DC 13. Success by 5 or more.\nTrophy Wall: Antlers, boar tusks and the king's old hunting shields crowd the wall.\nOne shield bears no king's arms. Behind it, in a hollow in the wall, lie a jewel and a stoppered vial.\nYou find the Topaz.\nYou find the Potion of Healing."
+        }
+      ],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"trophy-wall\",\"approach\":\"history\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "lodge-hall",
+      "intent": "take trophy-topaz",
+      "message": "Take the jewel.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Topaz.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Topaz."
+        }
+      ],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"trophy-topaz\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "lodge-hall",
+      "intent": "take trophy-potion",
+      "message": "Take the vial too.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Potion of Healing."
+        }
+      ],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"trophy-potion\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "lodge-hall",
+      "intent": "examine ice-house-hatch (perception)",
+      "message": "Look the frozen hatch over for a release.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Perception check: d20 12 + 0 + 2 proficiency = 14 against DC 14. Success.\nIce-house Hatch: A heavy hatch in the hall floor, frozen shut over the ice-house steps.\nThe ice cracks and the hatch lifts onto the ice-house steps.\nThe way to the Ice House is open.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Perception check: d20 12 + 0 + 2 proficiency = 14 against DC 14. Success.\nIce-house Hatch: A heavy hatch in the hall floor, frozen shut over the ice-house steps.\nThe ice cracks and the hatch lifts onto the ice-house steps.\nThe way to the Ice House is open."
+        }
+      ],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"ice-house-hatch\",\"approach\":\"perception\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "lodge-hall",
+      "intent": "examine ice-house-hatch (perception, retry)",
+      "skipped": "Not offered",
+      "committed": false,
+      "matched": false,
+      "fallback": false,
+      "cards": [],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": []
+    },
+    {
+      "phase": "explore",
+      "room": "lodge-hall",
+      "intent": "search lodge-hall",
+      "message": "Check the gallery stair for traps.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Perception check: d20 18 + 0 + 2 proficiency = 20 against DC 14. Success.\nYou find a Man-trap on the way to the Captain's Solar: Iron jaws hidden under the rushes on the gallery stair.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Perception check: d20 18 + 0 + 2 proficiency = 20 against DC 14. Success.\nYou find a Man-trap on the way to the Captain's Solar: Iron jaws hidden under the rushes on the gallery stair."
+        }
+      ],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "search",
+              "argumentsJson": "{\"room\":\"lodge-hall\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "lodge-hall",
+      "intent": "disarm gallery-man-trap",
+      "message": "Disarm the man-trap with the tongs.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Dexterity check, at advantage (Trapper's Tongs): d20 20 and 14, keeping 20; 20 + 2 = 22 against DC 14. Success.\nYou disarm the Man-trap.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Dexterity check, at advantage (Trapper's Tongs): d20 20 and 14, keeping 20; 20 + 2 = 22 against DC 14. Success.\nYou disarm the Man-trap."
+        }
+      ],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "disarm",
+              "argumentsJson": "{\"trap\":\"gallery-man-trap\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "lodge-hall",
+      "intent": "move kennel-yard",
+      "message": "That's enough. Back out to the kennel yard.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Kennel Yard. A muddy yard ringed with kennels and strewn with gnawed antlers. A door leads into the lodge hall.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Kennel Yard. A muddy yard ringed with kennels and strewn with gnawed antlers. A door leads into the lodge hall."
+        }
+      ],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"kennel-yard\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "kennel-yard",
+      "intent": "move forest-gate",
+      "message": "Back to the forest gate.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Forest Gate. A sagging gate in the lodge's palisade, where a charcoal-burner has made camp beside a woodpile.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Forest Gate. A sagging gate in the lodge's palisade, where a charcoal-burner has made camp beside a woodpile."
+        }
+      ],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"forest-gate\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "forest-gate",
+      "intent": "leave forest-gate",
+      "committed": false,
+      "matched": false,
+      "fallback": true,
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Out with the spoils. You leave the Thornwood by the forest gate with spoils from the captain's lodge."
+        }
+      ],
+      "hp": 23,
+      "reviewClaim": false,
+      "calls": []
+    }
+  ],
+  "finalStatus": "escaped",
+  "finalRoom": "Forest Gate",
+  "ending": {
+    "kind": "escape-with-loot",
+    "title": "Out with the spoils",
+    "text": "You leave the Thornwood by the forest gate with spoils from the captain's lodge.",
+    "rewards": {
+      "xp": [
+        {
+          "name": "Defeated Hesk's Hound, Kennel Mastiff 1 and Kennel Mastiff 2",
+          "xp": 250
+        },
+        {
+          "name": "Defeated the Baiting Bear",
+          "xp": 200
+        },
+        {
+          "name": "Out with the spoils",
+          "xp": 2350
+        }
+      ],
+      "treasure": [
+        {
+          "name": "Gilt Hunting Cup",
+          "description": "A cup of gilt bronze chased with running deer.",
+          "value": "25 gp"
+        },
+        {
+          "name": "Topaz",
+          "description": "A golden-yellow stone.",
+          "value": "100 gp"
+        }
+      ],
+      "coin": "30 gp",
+      "purse": "30 gp",
+      "totalXp": 6900,
+      "level": 5,
+      "levelUp": {
+        "from": 4,
+        "to": 5,
+        "maxHp": {
+          "before": 36,
+          "after": 44
+        },
+        "proficiencyBonus": {
+          "before": 2,
+          "after": 3
+        },
+        "secondWind": {
+          "before": {
+            "uses": 3,
+            "modifier": 4
+          },
+          "after": {
+            "uses": 3,
+            "modifier": 5
+          }
+        },
+        "weaponMasteries": {
+          "before": 4,
+          "after": 4
+        },
+        "features": [
+          {
+            "id": "extra-attack",
+            "name": "Extra Attack",
+            "text": "Attack twice, instead of once, whenever you take the Attack action. Each attack may be at a different opponent."
+          }
+        ],
+        "choices": []
+      }
+    }
+  },
+  "finishedAt": "2026-10-08T14:59:26.888Z"
+}
