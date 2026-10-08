@@ -139,6 +139,10 @@ deleted. Creation needs no OpenAI key.
   an optional crypt and a Ghoul the vault, with a stuck door, a trapped stair, a
   goblin to question, treasure and coin hidden in features, and a
   second exit beside the vault where you choose to climb out or push on.
+- _The Drowned Chapel_ (`adventures/5e/drowned-chapel.json`, level 3, Easy):
+  three rooms in a flooded marsh chapel. The drowned sexton (a Zombie) guards
+  the chapel's silver reliquary at the altar, and the vestry beyond holds the
+  parish alms, a potion and a chrysoprase.
 - _The Goblin Warren_ (`adventures/5e/goblin-warren.json`, level 3, Medium): a
   potion among the charms at the gate, a Goblin Warrior in the tunnel where
   another lies under the gnawed bones, then the SRD 5.2 Goblin Boss and its hoard, a gilded idol

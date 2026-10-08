@@ -48,6 +48,7 @@ test("the built-in modules are the shipped ones (#252, #275)", () => {
     shipped.map(({ id }) => id),
     [
       "abandoned-delve",
+      "drowned-chapel",
       "goblin-warren",
       "robbers-barrow",
       "shepherds-bothy",
@@ -149,6 +150,7 @@ test("each module designed against the budget holds 75–100% of it as a mixed h
   // The Delve and the Mine keep their shipped treasure; the others were
   // designed against the budget with more than one class of gem or art object.
   for (const id of [
+    "drowned-chapel",
     "goblin-warren",
     "robbers-barrow",
     "shepherds-bothy",
@@ -217,6 +219,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["abandoned-delve", "2–2", "medium"],
       ["warden-crypt", "2–2", "medium"],
       ["silvervein-mine", "2–3", "medium"],
+      ["drowned-chapel", "3–3", "easy"],
       ["goblin-warren", "3–3", "medium"],
     ],
   );

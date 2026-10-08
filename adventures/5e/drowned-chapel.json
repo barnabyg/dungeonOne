@@ -1,0 +1,144 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 18,
+  "id": "drowned-chapel",
+  "title": "The Drowned Chapel",
+  "objective": "Recover the chapel's silver from the flooded nave and get back out alive. Leave by the porch when you are ready.",
+  "recommendedLevels": { "min": 3, "max": 3 },
+  "difficulty": "easy",
+  "startRoomId": "chapel-porch",
+  "rooms": [
+    {
+      "id": "chapel-porch",
+      "name": "Chapel Porch",
+      "description": "A stone porch at the edge of a marsh. The chapel's door hangs open, and dark water laps over its sill.",
+      "exit": true,
+      "features": [
+        {
+          "id": "notice-board",
+          "name": "Notice Board",
+          "description": "A weathered board nailed beside the door.",
+          "discovery": "A rain-smeared notice from the parish: the sexton drowned in the spring flood, and the chapel plate was never recovered."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "flooded-nave",
+      "name": "Flooded Nave",
+      "description": "Knee-deep black water fills the nave between rows of rotting pews. Something moves slowly near the altar.",
+      "encounterId": "drowned-sexton",
+      "features": [
+        {
+          "id": "sunken-altar",
+          "name": "Sunken Altar",
+          "description": "A stone altar, its top just clear of the water.",
+          "discovery": "Wedged behind the altar is the chapel's reliquary of chased silver, and a moss agate has fallen from its lid into the silt."
+        }
+      ],
+      "items": [
+        {
+          "id": "silver-reliquary",
+          "name": "Silver Reliquary",
+          "description": "A small casket of chased silver, its lid set with tiny pearls.",
+          "kind": "treasure",
+          "treasure": "art-250gp",
+          "hiddenIn": "sunken-altar"
+        },
+        {
+          "id": "moss-agate",
+          "name": "Moss Agate",
+          "description": "A milky stone threaded with green, like weed under ice.",
+          "kind": "treasure",
+          "treasure": "gem-10gp",
+          "hiddenIn": "sunken-altar"
+        }
+      ]
+    },
+    {
+      "id": "vestry",
+      "name": "Vestry",
+      "description": "A small room above the waterline, its cupboards swollen shut with damp.",
+      "features": [
+        {
+          "id": "alms-cupboard",
+          "name": "Alms Cupboard",
+          "description": "A tall cupboard with a slot cut in its door.",
+          "discovery": "Inside are the parish's alms in a leather bag, a stoppered vial of red liquid, and a ring of keys with a chrysoprase fob."
+        }
+      ],
+      "items": [
+        {
+          "id": "parish-alms",
+          "name": "Parish Alms",
+          "description": "A leather bag of gold and silver pieces.",
+          "kind": "coin",
+          "coins": { "gp": 60, "sp": 50 },
+          "hiddenIn": "alms-cupboard"
+        },
+        {
+          "id": "vestry-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "alms-cupboard"
+        },
+        {
+          "id": "chrysoprase-fob",
+          "name": "Chrysoprase Fob",
+          "description": "A translucent apple-green stone on a ring of rusted keys.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "alms-cupboard"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "porch-to-nave",
+      "between": ["chapel-porch", "flooded-nave"],
+      "description": "Through the open door and down into the water."
+    },
+    {
+      "id": "nave-to-vestry",
+      "between": ["flooded-nave", "vestry"],
+      "description": "Three worn steps climb out of the water to a side door."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "drowned-sexton",
+      "opponents": [
+        {
+          "id": "drowned-sexton",
+          "monster": "zombie",
+          "name": "Drowned Sexton",
+          "description": "The drowned sexton rises from the water by the altar, weed in its hair, and wades towards you."
+        }
+      ],
+      "defeatEndingId": "drowned-in-the-chapel"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-silver",
+      "kind": "escape-with-loot",
+      "title": "Out with the chapel silver",
+      "text": "You wade back out to the porch with the chapel's silver safe in your pack.",
+      "xp": 300
+    },
+    {
+      "id": "out-of-the-chapel",
+      "kind": "escape-without-loot",
+      "title": "Out of the chapel",
+      "text": "You wade back out to the porch with nothing but wet boots."
+    },
+    {
+      "id": "drowned-in-the-chapel",
+      "kind": "defeat",
+      "title": "Drowned in the chapel",
+      "text": "You go under the black water. Your adventuring ends here."
+    }
+  ]
+}

@@ -60,6 +60,10 @@ const CONTENT_TESTS = new Map([
     "tests/shepherds-bothy.test.mjs",
     "the Shepherd's Bothy's content, gate verdict and journeys",
   ],
+  [
+    "tests/drowned-chapel.test.mjs",
+    "the Drowned Chapel's content, gate verdict and journeys",
+  ],
 ]);
 
 /**
