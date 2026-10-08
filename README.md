@@ -447,6 +447,13 @@ replays a module with the CLI from the installed package. There is no separate
 license-policy analyzer; adding one would duplicate package metadata checks
 without a policy to enforce.
 
+Static bug analysis (`npm run static`) also rejects undefined identifiers in the
+plain JavaScript `.mjs` tests, scripts and configs, which `tsc` does not check.
+Tests may use a short list of page globals, such as `document`, inside
+Playwright `page.evaluate` callbacks; add a name to `PAGE_GLOBALS` in
+`eslint.bugs.config.mjs` when a test needs another, or declare a page-script
+function with a `/* global */` comment.
+
 In an interactive terminal, full verification starts an observational dashboard
 on `127.0.0.1` using an operating-system-assigned free port, prints
 `TEST_DASHBOARD_URL`, and attempts to open it. Each concurrent run receives its

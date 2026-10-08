@@ -6,6 +6,7 @@
 // a Full text disclosure; a card is no taller than its plain engine text. A
 // goblin band fight with Sap and typed messages to the scripted DM, at desktop
 // and phone widths.
+/* global focusNewestEntry -- defined by the browser page script */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
