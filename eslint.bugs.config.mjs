@@ -59,12 +59,12 @@ export default tseslint.config(
   // tsc already reports undefined names in TypeScript, but nothing checks the
   // plain JavaScript tests, scripts and configs (#271).
   {
-    files: ["**/*.mjs"],
+    files: ["**/*.{js,mjs}"],
     languageOptions: { globals: globals.node },
     rules: { "no-undef": "error" },
   },
   {
-    files: ["tests/**/*.mjs"],
+    files: ["tests/**/*.{js,mjs}"],
     languageOptions: { globals: PAGE_GLOBALS },
   },
 );

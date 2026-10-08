@@ -10,8 +10,9 @@ const eslint = new ESLint({ overrideConfigFile: "eslint.bugs.config.mjs" });
 async function undefinedNames(code, filePath) {
   const [result] = await eslint.lintText(code, { filePath });
   return result.messages.map(({ ruleId, message }) => {
-    assert.equal(ruleId, "no-undef", message);
-    return message.match(/'(\w+)'/)[1];
+    const name = message.match(/^'(\w+)' is not defined/)?.[1];
+    assert.ok(ruleId === "no-undef" && name, message);
+    return name;
   });
 }
 
