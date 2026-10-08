@@ -47,6 +47,7 @@ import {
   FIGHTING_STYLES,
   type Ability,
   type AbilityScoreImprovement,
+  type ClassId,
   type FightingStyle,
   type Level,
 } from "./class-5e.js";
@@ -123,35 +124,45 @@ export function gateLevelChoice(
 }
 
 /**
- * A level-`level` character of the harness's class from one creation's dice, placed and chosen as a
- * fresh creation starts but with `kit`, at full health. An `archer` is
- * Dexterity-first instead (#230): the rolls placed on Strength and
- * Dexterity change places, and the +2 goes on Dexterity. From level 4 it
- * makes the gate's level choice (`gateLevelChoice`), preferring to master
- * `mastery`.
+ * A level-`level` character of `classId` (the harness's class unless named)
+ * from one creation's dice, placed and chosen as a fresh creation of that
+ * class starts but with `kit` (its default kit unless named), at full
+ * health: its skills, Expertise and masteries are its class's defaults, the
+ * harness's policy for a Rogue's (#306). An `archer` is Dexterity-first
+ * instead (#230): the rolls placed on Strength and Dexterity change places,
+ * and the +2 goes on Dexterity. From level 4 it makes the gate's level
+ * choice (`gateLevelChoice`), preferring to master `mastery`.
  */
 export function characterAtLevel(
   dice: RolledDice,
   level: Level,
-  kit: KitId = HARNESS_CLASS.defaults.kit,
+  kit?: KitId,
   archer = false,
   mastery?: WeaponId,
+  classId: ClassId = DEFAULT_CLASS,
 ): CharacterSheet {
-  const placement = defaultPlacement(dice);
-  const created = buildCharacter("0".repeat(32), "Balance", dice, {
-    ...HARNESS_CLASS.defaults,
-    ...(archer
-      ? {
-          placement: {
-            ...placement,
-            strength: placement.dexterity,
-            dexterity: placement.strength,
-          },
-          increase: { dexterity: 2, constitution: 1 },
-        }
-      : { placement }),
-    kit,
-  });
+  const definition = CLASSES[classId];
+  const placement = defaultPlacement(dice, definition);
+  const created = buildCharacter(
+    "0".repeat(32),
+    "Balance",
+    dice,
+    {
+      ...definition.defaults,
+      ...(archer
+        ? {
+            placement: {
+              ...placement,
+              strength: placement.dexterity,
+              dexterity: placement.strength,
+            },
+            increase: { dexterity: 2, constitution: 1 },
+          }
+        : { placement }),
+      kit: kit ?? definition.defaults.kit,
+    },
+    classId,
+  );
   const raised = { ...created, level, xp: LEVEL_XP[level] };
   const sheet = validateCharacter({
     ...raised,
@@ -1566,7 +1577,8 @@ export type OneHitKillCheck = Readonly<{
     chance: number;
     kit: KitId;
     gear?: WeaponId;
-    fightingStyle: FightingStyle;
+    /** For a class with a Fighting Style. */
+    fightingStyle?: FightingStyle;
   }>[];
   /** The ordinary enemies over the cap; more than half of them fails. */
   overCap: OneHitKillCheck["enemies"];
@@ -1665,7 +1677,8 @@ export type Attacker = Readonly<{
   kit: KitId;
   /** A weapon the module places or a merchant sells, wielded instead. */
   gear?: WeaponId;
-  fightingStyle: FightingStyle;
+  /** For a class with a Fighting Style. */
+  fightingStyle?: FightingStyle;
   sheet: CharacterSheet;
 }>;
 
@@ -1702,10 +1715,15 @@ export function strongestAttackers(
       };
     }),
   ];
+  const preferred = HARNESS_CLASS.defaults.fightingStyle;
+  // A class without a Fighting Style is tried as it is (#306).
+  if (preferred === undefined) {
+    return armed;
+  }
   const styles = [
-    HARNESS_CLASS.defaults.fightingStyle,
+    preferred,
     ...(Object.keys(FIGHTING_STYLES) as FightingStyle[]).filter(
-      (style) => style !== HARNESS_CLASS.defaults.fightingStyle,
+      (style) => style !== preferred,
     ),
   ];
   return armed.flatMap((entry) =>
@@ -1728,7 +1746,7 @@ export function bestOneHitKill(
   chance: number;
   kit: KitId;
   gear?: WeaponId;
-  fightingStyle: FightingStyle;
+  fightingStyle?: FightingStyle;
 }> {
   return attackers
     .map(({ sheet, ...found }) => ({

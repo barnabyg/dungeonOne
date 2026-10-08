@@ -17,7 +17,7 @@ The record of a character's identity, abilities, capabilities, health, equipment
 _Avoid_: Player sheet, Combat profile
 
 **Class definition**:
-The data a class is made of: hit die, saving throws, skill choices, armour and weapon training, weapon masteries by level, features by level with their uses and recovery, subclasses, ability priority, default choices and starting kits. A character sheet names its class by id, and every derived number comes from its definition.
+The data a class is made of: hit die, saving throws, skill choices, armour, weapon and tool training, weapon masteries by level, features by level with their uses, recovery and effects, subclasses, ability priority, default choices and starting kits. A character sheet names its class by id (the Fighter or the Rogue), and every derived number comes from its definition.
 _Avoid_: Class rules, Hard-coded Fighter
 
 **Character library**:
@@ -85,12 +85,24 @@ The one free interaction a combatant has each turn (SRD 5.2). Drawing, stowing o
 _Avoid_: Free action, Utilize (the action a second interaction would take)
 
 **Starting kit**:
-One of the named sets of common-tier equipment a player chooses from at creation, of equal value within 3 gp. There is no starting coin.
+One of the named sets of common-tier equipment a class offers at creation, of equal value within 3 gp of the class's other kits; another class's kits may be worth more. There is no starting coin.
 _Avoid_: Starting gear package, Class equipment
 
 **Weapon mastery**:
-A Fighter's mastery of a kind of weapon, chosen at creation (three at levels 1–3), and a fourth chosen at level 4. The weapon's mastery property (Sap, Vex, Graze or Nick) applies only while the character wields that weapon.
-_Avoid_: Proficiency (Fighters are proficient with every weapon), Weapon skill
+A character's mastery of a kind of weapon it is proficient with, chosen at creation (a Fighter three at levels 1–3 and a fourth at level 4, a Rogue two). The weapon's mastery property (Sap, Vex, Graze or Nick) applies only while the character wields that weapon.
+_Avoid_: Proficiency (which adds the bonus to hit), Weapon skill
+
+**Expertise**:
+A Rogue's choice, at creation, of two of its skill proficiencies whose proficiency bonus is doubled on checks with them, and in passive Perception. The engine applies it; nothing asks for it.
+_Avoid_: Mastery (a weapon's), Double proficiency
+
+**Sneak Attack**:
+A Rogue's extra damage dice, dealt once per turn on a hit with a Finesse or ranged weapon made with advantage. The engine applies it whenever its rules are met; the player and the AI DM never ask for it. Its ally-adjacent clause is omitted.
+_Avoid_: Backstab, Sneaking in (which is about surprise)
+
+**Tool proficiency**:
+A class's training with a set of artisan's or thieves' tools, such as the Rogue's thieves' tools: recorded on the sheet. Picking locks with thieves' tools comes later.
+_Avoid_: Tool (a module's mundane item), Kit
 
 **Extra attack (light weapon)**:
 The SRD 5.2 Light property's one extra attack with a second light weapon after attacking with a light weapon on the same turn; a bonus action unless Nick makes it part of the Attack action.
@@ -249,7 +261,7 @@ A d20 roll plus one ability's modifier, and the proficiency bonus if proficient,
 _Avoid_: Save (which means a saved file), Resistance roll
 
 **Skill**:
-A named use of an ability, such as Athletics (Strength) or Perception (Wisdom). A skill check adds that ability's modifier, and the proficiency bonus if the character is proficient in the skill.
+A named use of an ability, such as Athletics (Strength) or Perception (Wisdom). A skill check adds that ability's modifier, and the proficiency bonus if the character is proficient in the skill (twice with Expertise).
 _Avoid_: Ability check (when a skill is meant), Talent
 
 **Encounter**:

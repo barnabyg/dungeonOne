@@ -14,6 +14,7 @@ import {
   STARTING_KITS,
   WEAPONS,
 } from "../dist/equipment-5e.js";
+import { CLASSES } from "../dist/character-5e.js";
 
 /** Strength +3 (16), Dexterity +1, no masteries, no Fighting Style. */
 const CONTEXT = {
@@ -445,26 +446,35 @@ test("within each table no item is both cheaper and strictly better than another
   );
 });
 
-test("kits hold only common-tier items, are legal loadouts and are of equal value", () => {
-  const kits = Object.keys(STARTING_KITS);
-  assert.ok(kits.length >= 3 && kits.length <= 4);
-  for (const kit of kits) {
-    assert.ok(isKitId(kit));
-    for (const item of STARTING_KITS[kit].equipment) {
-      assert.equal(itemTier(item), "common", `${kit}: ${item}`);
-    }
-    readLoadout(STARTING_KITS[kit].equipment);
-    for (const other of kits) {
-      assert.ok(
-        Math.abs(kitPrice(kit) - kitPrice(other)) <= KIT_VALUE_TOLERANCE,
-        `${kit} and ${other} differ in value by more than ${formatCoins(KIT_VALUE_TOLERANCE)}`,
-      );
-    }
-  }
-  assert.ok(
-    kits.some((kit) => readLoadout(STARTING_KITS[kit].equipment).offHand),
-    "one kit holds two light weapons",
+test("kits hold only common-tier items, are legal loadouts and are of equal value within each class", () => {
+  // Every kit belongs to a class; each class offers two to four.
+  assert.deepEqual(
+    Object.values(CLASSES)
+      .flatMap(({ kits }) => kits)
+      .sort(),
+    Object.keys(STARTING_KITS).sort(),
   );
+  for (const { name, kits } of Object.values(CLASSES)) {
+    assert.ok(kits.length >= 2 && kits.length <= 4, name);
+    for (const kit of kits) {
+      assert.ok(isKitId(kit));
+      for (const item of STARTING_KITS[kit].equipment) {
+        assert.equal(itemTier(item), "common", `${kit}: ${item}`);
+      }
+      readLoadout(STARTING_KITS[kit].equipment);
+      // The tolerance holds within a class's kits, not across classes (#306).
+      for (const other of kits) {
+        assert.ok(
+          Math.abs(kitPrice(kit) - kitPrice(other)) <= KIT_VALUE_TOLERANCE,
+          `${name}: ${kit} and ${other} differ in value by more than ${formatCoins(KIT_VALUE_TOLERANCE)}`,
+        );
+      }
+    }
+    assert.ok(
+      kits.some((kit) => readLoadout(STARTING_KITS[kit].equipment).offHand),
+      `one ${name} kit holds two light weapons`,
+    );
+  }
   assert.equal(isKitId("plate"), false);
 });
 

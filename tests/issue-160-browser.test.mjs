@@ -113,7 +113,7 @@ for (const viewport of [
         assert.deepEqual(await busyState(opener), {
           busy: null,
           disabled: false,
-          text: "Create a Fighter",
+          text: "Create a character",
         });
         await page
           .locator("#preview-body")

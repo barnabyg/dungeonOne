@@ -3,7 +3,7 @@
 Dungeon One is a TypeScript game played in a local desktop browser with an AI
 Dungeon Master, using the 2024 fifth-edition rules in SRD 5.2
 ([ADR 0005](docs/adr/0005-start-afresh-on-5e-and-suspend-compatibility.md)).
-Players keep persistent Fighters in a character library and bring them to
+Players keep persistent Fighters and Rogues in a character library and bring them to
 adventure modules aimed at a recommended level range, earning experience and
 levels as they go. The game engine rolls every die and decides every result;
 the AI Dungeon Master interprets what the player types, chooses only among the
@@ -95,12 +95,12 @@ view.
 
 ### The character library and sheet
 
-The library lists every saved Fighter. It tags each character **On an
+The library lists every saved character. It tags each character **On an
 adventure** or **Defeated** (a defeated character's row is dimmed); a character
 on an adventure has **Continue** on its row, which reopens the adventure
 directly, while the rest of the row opens the sheet.
 
-A character sheet shows the Fighter's abilities, skills, hit points, features,
+A character sheet shows the character's class, abilities, skills, hit points, features,
 the treasure it has kept and its purse. It leads with its adventures: a card for each
 built-in module that passes the balance gate at its declared difficulty, with
 **Start** beside its title (or **Continue** for the one in progress), tagged
@@ -114,22 +114,34 @@ ends. **Abandon adventure** gives up the adventure in progress, after asking:
 the character keeps its treasure, purse and XP as they were at the start and
 can start another.
 
-### Creating a Fighter
+### Creating a character
 
-Choose **Create a Fighter**. The six 4d6-drop-lowest rolls are saved to the
-library before they are shown, so reloading, restarting or leaving the screen
-shows the same dice; there are no rerolls. One table, a row per ability, places
-the rolls (choosing a placed roll swaps it, and each row shows its roll's four
-dice with the dropped one struck through) and the background increase (+2 and
-+1, or +1 to three). Each score and modifier updates from the server as you
-change them. Then choose two skills, a Fighting Style, a starting kit and
-three weapon masteries, check the derived numbers and save. The kits are a
-little common gear each, worth about the same: _Mace and leather_, _Two
-daggers and leather_, or _Club, dagger and leather_. Each kit shows the AC,
-attack and damage it gives your scores before you choose, and each Fighting
-Style is tagged with whether it applies to the kit chosen. Better gear is found
-or bought in adventures. A pending creation keeps its dice even if a character is
-deleted. Creation needs no OpenAI key.
+Choose **Create a character**, then a class: **Fighter** or **Rogue**. The six
+4d6-drop-lowest rolls are saved to the library before they are shown, so
+reloading, restarting or leaving the screen shows the same dice; there are no
+rerolls. Choosing a class starts its choices afresh from that class's defaults.
+One table, a row per ability, places the rolls (choosing a placed roll swaps
+it, and each row shows its roll's four dice with the dropped one struck
+through) and the background increase (+2 and +1, or +1 to three). Each score
+and modifier updates from the server as you change them. Then make the class's
+choices, check the derived numbers and save:
+
+- A **Fighter** chooses two skills, a Fighting Style, a starting kit and three
+  weapon masteries. Its kits are a little common gear each, worth about the
+  same: _Mace and leather_, _Two daggers and leather_, or _Club, dagger and
+  leather_. Each Fighting Style is tagged with whether it applies to the kit
+  chosen.
+- A **Rogue** (d8 hit die, Dexterity and Intelligence saves, thieves' tools)
+  chooses four skills, **Expertise** in two of them (their proficiency bonus is
+  doubled), a starting kit (_Shortsword, dagger and leather_ or _Shortsword and
+  leather_, worth a little more than the Fighter's) and two weapon masteries.
+  Its **Sneak Attack** adds 1d6 damage once a turn to a hit with a Finesse or
+  ranged weapon made with advantage, such as after a Vex hit; the engine adds
+  it, so you never ask for it. Thieves' Cant is flavour only.
+
+Each kit shows the AC, attack and damage it gives your scores before you
+choose. Better gear is found or bought in adventures. A pending creation keeps
+its dice even if a character is deleted. Creation needs no OpenAI key.
 
 ### Adventure modules
 
@@ -365,7 +377,7 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 13.
+- The character library (`characters.json` by default) is format version 14.
 - Each adventure session is saved after every action in the
   `characters-adventures` directory beside the library, in format version 32.
   Reloading the page or restarting with the same command returns to the
@@ -463,7 +475,8 @@ These are for development, not play.
 - `src/runtime-5e.ts` is the 5e runtime, over the encounter engine in
   `src/encounter-5e.ts`, characters in `src/character-5e.ts` (each derived
   from its class's definition: what classes share in `src/class-5e.ts`, the
-  Fighter in `src/fighter-5e.ts`), weapons, armour and kits in
+  Fighter in `src/fighter-5e.ts`, the Rogue in `src/rogue-5e.ts`), weapons,
+  armour and kits in
   `src/equipment-5e.ts`, and checks in `src/checks-5e.ts`. It implements the generic interface in
   `src/runtime-contract.ts`: create a session, project the player-safe scene and
   status, offer tools, and resolve an action.

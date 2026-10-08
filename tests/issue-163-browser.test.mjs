@@ -46,7 +46,8 @@ for (const [width, height, seed] of [
             headers: { "content-type": "application/json" },
             body: "{}",
           });
-          return (await response.json()).pendingCreation.defaultPlacement;
+          return (await response.json()).pendingCreation.defaultPlacements
+            .fighter;
         });
         assert.deepEqual(projected, expected);
 

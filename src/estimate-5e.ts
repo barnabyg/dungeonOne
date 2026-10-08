@@ -82,7 +82,7 @@ export type EstimateOneHitKill = Readonly<{
     name: string;
     chance: number;
     kit: KitId;
-    fightingStyle: FightingStyle;
+    fightingStyle?: FightingStyle;
     overCaps: readonly Difficulty[];
   }>[];
 }>;
@@ -333,7 +333,9 @@ export function estimateEncounter(
               name: monster.statBlock.name,
               chance: best.chance,
               kit: best.kit,
-              fightingStyle: best.fightingStyle,
+              ...(best.fightingStyle === undefined
+                ? {}
+                : { fightingStyle: best.fightingStyle }),
               overCaps: DIFFICULTIES.filter(
                 (difficulty) =>
                   best.chance > DIFFICULTY_THRESHOLDS[difficulty].oneHitKillCap,

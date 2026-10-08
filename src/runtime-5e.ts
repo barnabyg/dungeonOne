@@ -1099,7 +1099,7 @@ Where a merchant is, call trade with the one offer the player's words pick out: 
 
 The character's own gear (its catalogue weapons, armour and shield) is named by its id. To put on armour or a shield, or take a second light weapon in the other hand, call equip; to take armour or a shield off or put a second weapon away, call unequip; to wield a different carried weapon in place of the ones held, call swap_weapon; to leave carried gear behind, call drop. Gear found is taken with take, like any item. The engine decides what the character can hold, how long armour takes to don and what the change does to its AC and attacks.
 
-A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; when they end or pass their turn, call end_turn. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
+A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; when they end or pass their turn, call end_turn. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -1165,6 +1165,9 @@ function weaponOf(attack: AttackProfile): Weapon {
       ? {}
       : { ammunition: attack.ammunition }),
     ...(attack.loading === true ? { loading: true as const } : {}),
+    ...((WEAPONS[attack.weaponId] as WeaponData).properties.includes("finesse")
+      ? { finesse: true as const }
+      : {}),
   };
 }
 
@@ -1200,6 +1203,9 @@ export function playerCombatant(
     ...(profile.attacksPerAction === 1
       ? {}
       : { attacksPerAction: profile.attacksPerAction }),
+    ...(profile.sneakAttack === undefined
+      ? {}
+      : { sneakAttack: profile.sneakAttack }),
     // Uses start full: each adventure follows the between-adventure rest.
     ...(profile.secondWind === undefined
       ? {}
@@ -1292,7 +1298,9 @@ function checkText(roll: CheckRoll, band?: Band): string {
       ? `: d20 ${roll.d20}`
       : `${modeText(roll.mode, roll.d20).replace(": ", ": d20 ")} ${roll.d20}`;
   const proficiency =
-    roll.proficiency === 0 ? "" : ` + ${roll.proficiency} proficiency`;
+    roll.proficiency === 0
+      ? ""
+      : ` + ${roll.proficiency} proficiency${roll.expertise === true ? " (Expertise)" : ""}`;
   const outcome =
     band === undefined
       ? roll.success
@@ -1310,7 +1318,7 @@ function perceptionText(perception: PassivePerception): string {
   const proficiency =
     perception.proficiency === 0
       ? ""
-      : ` + ${perception.proficiency} proficiency`;
+      : ` + ${perception.proficiency} proficiency${perception.expertise === true ? " (Expertise)" : ""}`;
   const adjustment =
     perception.adjustment === 0
       ? ""
@@ -1450,6 +1458,13 @@ function damageDice(event: AttackEvent): string {
     .join(" + ");
 }
 
+/** " + Sneak Attack 4 + 2": a hit's Sneak Attack dice (#306), if any. */
+function sneakAttackDice(event: AttackEvent): string {
+  return event.sneakAttack === undefined
+    ? ""
+    : ` + Sneak Attack ${event.sneakAttack.damageRolls.join(" + ")}`;
+}
+
 function gearText(event: GearEvent): string {
   const lower = (id: ItemId) => itemName(id).toLowerCase();
   const item = lower(event.item);
@@ -1574,7 +1589,7 @@ export function renderFifthEvent(
         event.rider === undefined
           ? ""
           : `, plus ${event.rider.damageRolls.join(" + ")}${event.rider.damageModifier === 0 ? "" : ` ${signed(event.rider.damageModifier)}`} = ${rolledDamage(event.rider.damage, event.rider.damageAdjustment)} ${event.rider.damageType}${adjustedText(event.rider.damage, event.rider.damageAdjustment)}`;
-      return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. ${event.paralysedCritical === true ? `Critical hit: ${target.name} is paralysed!` : event.critical ? "Critical hit!" : "Hit."} Damage ${damageDice(event)} ${signed(event.damageModifier)} = ${dealt}${adjusted}${rider}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.${left}`;
+      return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. ${event.paralysedCritical === true ? `Critical hit: ${target.name} is paralysed!` : event.critical ? "Critical hit!" : "Hit."} Damage ${damageDice(event)} ${signed(event.damageModifier)}${sneakAttackDice(event)} = ${dealt}${adjusted}${rider}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.${left}`;
     }
     case "undead-fortitude": {
       const self = combatant(state.encounter!, event.combatantId);
@@ -1825,6 +1840,8 @@ export type ShownDie = Readonly<{
   dropped?: true;
   /** Great Weapon Fighting counted this 1 or 2 as 3. */
   countsAs?: 3;
+  /** A Sneak Attack die (#306). */
+  sneakAttack?: true;
 }>;
 
 /**
@@ -2101,12 +2118,18 @@ export function describeFifthResult(
             purpose: "damage",
             roller: name(event.actorId),
             target: name(event.targetId),
-            dice: take(event.damageRolls).map((die) =>
-              countedDamageDie(die.value, event.greatWeaponFighting) !==
-              die.value
-                ? { ...die, countsAs: 3 as const }
-                : die,
-            ),
+            dice: [
+              ...take(event.damageRolls).map((die) =>
+                countedDamageDie(die.value, event.greatWeaponFighting) !==
+                die.value
+                  ? { ...die, countsAs: 3 as const }
+                  : die,
+              ),
+              ...take(event.sneakAttack?.damageRolls ?? []).map((die) => ({
+                ...die,
+                sneakAttack: true as const,
+              })),
+            ],
             modifier: event.damageModifier,
             total: event.damage,
             damageType: event.damageType,
@@ -6213,6 +6236,10 @@ export function createFifthRuntime(
           }
         : {}),
       ...(turn === undefined ? {} : { combatTurn: turn.name }),
+      features: [
+        `Level ${profile.level} ${classOf(sheet).name}.`,
+        ...profile.features.map(({ name, text }) => `${name}: ${text}`),
+      ],
     };
   };
 
@@ -6421,6 +6448,13 @@ export function createFifthRuntime(
       },
     ];
   };
+
+  /** What the attack tools say of Sneak Attack, for a character with it (#306). */
+  const sneakAttack = characterProfile(sheet).sneakAttack;
+  const sneakAttackRule =
+    sneakAttack === undefined
+      ? ""
+      : ` Once per turn the engine adds Sneak Attack's ${sneakAttack.dice}d${sneakAttack.sides} to a hit with a Finesse or ranged weapon made with advantage; nothing asks for it.`;
 
   const getGameToolDefinitions = (
     state: FifthState,
@@ -6633,13 +6667,13 @@ export function createFifthRuntime(
       ),
       ...targetTool(
         "attack",
-        "Attack one opponent with the character's weapon on the character's turn. The engine rolls the attack and damage. Targets:",
+        `Attack one opponent with the character's weapon on the character's turn. The engine rolls the attack and damage.${sneakAttackRule} Targets:`,
         choices("attack"),
         "The id of the opponent to attack.",
       ),
       ...targetTool(
         "light_attack",
-        "Make the extra attack with the character's second light weapon, after an attack this turn. The engine rolls the attack and damage. Targets:",
+        `Make the extra attack with the character's second light weapon, after an attack this turn. The engine rolls the attack and damage.${sneakAttackRule} Targets:`,
         choices("light-attack"),
         "The id of the opponent to attack.",
       ),
