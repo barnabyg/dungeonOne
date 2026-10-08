@@ -33,7 +33,8 @@ const shipped = await loadBuiltInFifthAdventures();
 
 /**
  * Each module's handoff: the route Ada clicks (each fight fought out as it
- * starts), the card the adventure list shows, and what the ending credits.
+ * starts), the card the adventure list shows, and what the ending credits:
+ * each XP award as [name, xp], the treasure kept and the purse in copper.
  */
 const HANDOFFS = [
   {
@@ -56,7 +57,10 @@ const HANDOFFS = [
       ["move", "sheepfold"],
     ],
     ending: "Out with the takings",
-    xp: ["Defeated the Moor Bandit: +25 XP", "Out with the takings: +200 XP"],
+    xp: [
+      ["Defeated the Moor Bandit", 25],
+      ["Out with the takings", 200],
+    ],
     treasure: ["Enamelled Brooch", "Pallet Sapphire", "Bloodstone"],
     purse: 6110,
   },
@@ -78,8 +82,8 @@ const HANDOFFS = [
     ],
     ending: "Out with the chapel silver",
     xp: [
-      "Defeated the Drowned Sexton: +50 XP",
-      "Out with the chapel silver: +300 XP",
+      ["Defeated the Drowned Sexton", 50],
+      ["Out with the chapel silver", 300],
     ],
     treasure: ["Silver Reliquary", "Moss Agate", "Chrysoprase Fob"],
     purse: 6500,
@@ -103,8 +107,8 @@ const HANDOFFS = [
     ],
     ending: "Out with the grave goods",
     xp: [
-      "Defeated False Gravedigger and Risen Corpse: +75 XP",
-      "Out with the grave goods: +300 XP",
+      ["Defeated False Gravedigger and Risen Corpse", 75],
+      ["Out with the grave goods", 300],
     ],
     treasure: ["Gold Mourning Ring", "Jet Cameo", "Grave Tourmaline"],
     purse: 4110,
@@ -127,8 +131,8 @@ const HANDOFFS = [
     ],
     ending: "Out with the plunder",
     xp: [
-      "Defeated the Gnoll Ravager: +200 XP",
-      "Out with the plunder: +400 XP",
+      ["Defeated the Gnoll Ravager", 200],
+      ["Out with the plunder", 400],
     ],
     treasure: ["Gilt-bronze Icon", "Pearl Earrings"],
     purse: 4110,
@@ -201,14 +205,12 @@ for (const handoff of HANDOFFS) {
           ending,
           new RegExp(`^${handoff.ending}\nEscaped with loot\n`, "u"),
         );
-        assert.ok(ending.includes(handoff.xp.join("\n")), ending);
+        const awards = handoff.xp.map(([name, xp]) => `${name}: +${xp} XP`);
+        assert.ok(ending.includes(awards.join("\n")), ending);
 
         // Storage holds what the ending says.
         const record = await readAda(libraryPath);
-        const earned = handoff.xp.reduce(
-          (total, line) => total + Number(line.match(/\+(\d+) XP$/u)[1]),
-          0,
-        );
+        const earned = handoff.xp.reduce((total, [, xp]) => total + xp, 0);
         assert.equal(record.session, undefined);
         assert.equal(record.sheet.xp, sheet.xp + earned);
         assert.equal(record.sheet.purse, handoff.purse);
