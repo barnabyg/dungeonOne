@@ -320,6 +320,7 @@ const APPROACH_ACTIONS: readonly string[] = [
 /** The clicked exploring actions, and the action each makes from its target. */
 const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   move: (destinationId) => ({ type: "move", destinationId }),
+  sneak: (destinationId) => ({ type: "sneak", destinationId }),
   examine: (targetId) => ({ type: "examine", targetId }),
   take: (itemId) => ({ type: "take", itemId }),
   use: (itemId) => ({ type: "use-item", itemId }),

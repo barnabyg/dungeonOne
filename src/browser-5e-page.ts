@@ -895,7 +895,7 @@ function compactRoll(group) {
     case "initiative":
       // Initiative is always a d20, so its chip shows just the value; with
       // "d20" the line can be wider than its engine text (#196).
-      node.append(group.roller + " ", ...diceChips(group, ", ", false), withSign(group.modifier) + " = " + group.total + (group.rollOff ? " (roll-off " + group.rollOff.join(", ") + ")" : ""));
+      node.append(group.roller + " " + (group.mode ? group.mode + " " : ""), ...diceChips(group, ", ", false), withSign(group.modifier) + " = " + group.total + (group.rollOff ? " (roll-off " + group.rollOff.join(", ") + ")" : ""));
       break;
     case "target":
       node.append("target die ", ...diceChips(group));
@@ -1159,7 +1159,8 @@ function renderGear(gear) {
   element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (ammunition.length ? "; " + ammunition.map(ammunitionText).join(", ") : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + ".";
 }
 
-const rollText = (roll) => "d20 " + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
+// A surprised combatant (#301) rolled two d20s and kept the lower.
+const rollText = (roll) => "d20 " + (roll.mode ? roll.mode.d20s.join(" and ") + " (surprised: disadvantage), kept " : "") + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
 /** A condition (#232) as a tag, such as "Prone", with its source and how it ends spoken. */
 const conditionTag = (condition) => {
   const tag = make("span", condition.name, "tag condition");
@@ -1183,6 +1184,7 @@ function renderInitiative(encounter, fighting) {
     for (const condition of combatant.conditions) name.append(" ", conditionTag(condition));
     if (current) name.append(" ", make("span", "Now", "tag now"));
     if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
+    if (combatant.initiative.mode) name.append(" ", make("span", "Surprised", "tag surprised"));
     // Morale (#237): a fleeing opponent leaves on its turn; a fled one is gone.
     // One that may surrender (#238) yields on its turn instead.
     if (combatant.morale) name.append(" ", make("span", MORALE_TAGS[combatant.morale], "tag morale"));
@@ -1244,6 +1246,7 @@ const ACTIONS = {
   "light-attack": { label: "Extra attack ", busy: "Extra attack on ", busyLabel: "Attacking…" },
   use: { label: "Drink ", short: "Drink", busy: "Drinking ", busyLabel: "Drinking…" },
   move: { label: "Go to ", short: "Go", busy: "Going to ", busyLabel: "Going…" },
+  sneak: { label: "Sneak into ", short: "Sneak", busy: "Sneaking into ", busyLabel: "Sneaking…" },
   examine: { label: "Examine ", short: "Examine", busy: "Examining ", busyLabel: "Examining…" },
   take: { label: "Take ", short: "Take", busy: "Taking ", busyLabel: "Taking…" },
   force: { label: "Force ", short: "Force", busy: "Forcing ", busyLabel: "Forcing…" },
@@ -1285,7 +1288,7 @@ const GEAR_SALES = ["sell", "sell-equipped"];
 // Selling a gem or art object (#239): its entry has no slot, as only gear is
 // equipped or stowed.
 const SALES = [...GEAR_SALES, "sell-treasure"];
-const EXPLORING = ["move", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
+const EXPLORING = ["move", "sneak", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
 
 function renderActions() {
   // The ending (#158) takes the bar's place; an ended adventure projects no actions.

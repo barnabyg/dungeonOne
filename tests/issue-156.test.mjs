@@ -274,6 +274,7 @@ test("exploring, the bar holds each move, examination, take and drink; a potion 
     [
       ["move", "alcove", true],
       ["move", "rat-cellar", true],
+      ["sneak", "rat-cellar", true],
       ["examine", "rusted-lantern", true],
       ["unequip", "leather", true],
     ],
@@ -323,6 +324,7 @@ test("each entry in the bar gives back the action it stands for (#134)", () => {
   assert.deepEqual(runtime.projectActions(state).map(runtime.actionOf), [
     { type: "move", destinationId: "alcove" },
     { type: "move", destinationId: "rat-cellar" },
+    { type: "sneak", destinationId: "rat-cellar" },
     { type: "examine", targetId: "rusted-lantern" },
     { type: "unequip", itemId: "leather" },
   ]);

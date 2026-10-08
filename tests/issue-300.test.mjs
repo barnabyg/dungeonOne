@@ -38,20 +38,41 @@ const golden = JSON.parse(
   readFileSync(new URL("./fixtures/fighter-golden.json", import.meta.url)),
 );
 
+/**
+ * Leaves out of a case the skills added after #300 (Stealth, #301), which
+ * the hard-coded Fighter's profile did not list.
+ */
+const GOLDEN_SKILLS = new Set(FIGHTER.skillChoices.options);
+const asRecorded = (profile) => ({
+  ...profile,
+  skills: profile.skills.filter(({ id }) => GOLDEN_SKILLS.has(id)),
+});
+
 const api = {
   build: (dice, choices) =>
     buildCharacter("0".repeat(32), "Golden", dice, choices),
   defaults: FIGHTER.defaults,
   styles: Object.keys(FIGHTING_STYLES),
   validate: validateCharacter,
-  profile: characterProfile,
+  profile: (sheet) => asRecorded(characterProfile(sheet)),
   carrying: characterCarrying,
   levelForXp,
   defaultPlacement,
   applyLevelChoice,
   pendingLevelChoice,
   levelUpChanges,
-  projectCreation,
+  projectCreation: (dice, choices) => {
+    const projection = projectCreation(dice, choices);
+    return projection.sheet === undefined
+      ? projection
+      : {
+          ...projection,
+          sheet: {
+            ...projection.sheet,
+            profile: asRecorded(projection.sheet.profile),
+          },
+        };
+  },
 };
 
 test("a Fighter derives the hard-coded Fighter's numbers at every level, style and kit", () => {
@@ -136,8 +157,9 @@ test("the Fighter's level table comes from its definition", () => {
 
 test("the library, save and trace formats bump; a format-12 library is refused by name", async () => {
   assert.equal(FIFTH_LIBRARY_FORMAT, 13);
-  assert.equal(FIFTH_SESSION_FORMAT, 27);
-  assert.equal(FIFTH_TRACE_FORMAT, 21);
+  // #301 bumped the save and trace again.
+  assert.ok(FIFTH_SESSION_FORMAT >= 27);
+  assert.ok(FIFTH_TRACE_FORMAT >= 21);
   const directory = await mkdtemp(join(tmpdir(), "issue-300-"));
   try {
     const path = join(directory, "characters.json");

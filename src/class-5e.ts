@@ -49,6 +49,7 @@ export const SKILLS = {
   intimidation: { name: "Intimidation", ability: "charisma" },
   perception: { name: "Perception", ability: "wisdom" },
   persuasion: { name: "Persuasion", ability: "charisma" },
+  stealth: { name: "Stealth", ability: "dexterity" },
   survival: { name: "Survival", ability: "wisdom" },
 } as const satisfies Record<string, { name: string; ability: Ability }>;
 export type SkillId = keyof typeof SKILLS;

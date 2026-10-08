@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 20) and its validator.
+ * The 5e adventure module format (format version 21) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -120,7 +120,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 20;
+export const FIFTH_ADVENTURE_FORMAT = 21;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;

@@ -654,6 +654,8 @@ const HEAL_BELOW: Readonly<Record<PlayStyle, number>> = {
  */
 const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   attack: true,
+  // No style sneaks yet: each enters a fight by moving (#301).
+  sneak: true,
   "light-attack": true,
   use: true,
   "second-wind": true,

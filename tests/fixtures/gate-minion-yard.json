@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 20,
+  "formatVersion": 21,
   "id": "minion-yard",
   "title": "The Minion Yard",
   "objective": "Chase the goblin minions out of the farmyard.",
@@ -62,6 +62,7 @@
             },
             "challengeRating": "1/8",
             "xp": 25,
+            "passivePerception": 9,
             "morale": 8,
             "attacks": [
               {
@@ -106,6 +107,7 @@
             },
             "challengeRating": "1/8",
             "xp": 25,
+            "passivePerception": 9,
             "morale": 8,
             "attacks": [
               {

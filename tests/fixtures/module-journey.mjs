@@ -10,13 +10,15 @@ import { sessionSeed } from "../../dist/session-5e.js";
 const PLAYER = "pc";
 
 /**
- * The route's shorthand as engine actions: `["move", "bothy"]` and the rest,
+ * The route's shorthand as engine actions: `["move", "bothy"]` (or
+ * `["sneak", "bothy"]`, #301) and the rest,
  * with `["force", doorId]` (#289) forcing a stuck door and
  * `["talk", topicId, approach]` (#291) asking about a topic with a check.
  */
 export function routeAction([type, target, approach]) {
   switch (type) {
     case "move":
+    case "sneak":
       return { type, destinationId: target };
     case "examine":
       return { type, targetId: target };

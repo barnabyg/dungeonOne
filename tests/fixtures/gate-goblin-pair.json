@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 20,
+  "formatVersion": 21,
   "id": "goblin-pair",
   "title": "The Goblin Pair",
   "objective": "Drive two goblin warriors out of the woodshed.",
@@ -48,6 +48,7 @@
             },
             "challengeRating": "1/4",
             "xp": 50,
+            "passivePerception": 9,
             "morale": 8,
             "attacks": [
               {
@@ -86,6 +87,7 @@
             },
             "challengeRating": "1/4",
             "xp": 50,
+            "passivePerception": 9,
             "morale": 8,
             "attacks": [
               {

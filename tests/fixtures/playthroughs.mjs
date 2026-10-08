@@ -87,7 +87,8 @@ function madeAction({ action, target }) {
     case "use":
       return { type: "use-item", itemId: target.id };
     case "move":
-      return { type: "move", destinationId: target.id };
+    case "sneak":
+      return { type: action, destinationId: target.id };
     case "examine":
       return { type: "examine", targetId: target.id };
     case "take":

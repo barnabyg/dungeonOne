@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-bestiary",
-  "formatVersion": 7,
+  "formatVersion": 8,
   "monsters": [
     {
       "id": "zombie",
@@ -29,6 +29,7 @@
         },
         "challengeRating": "1/4",
         "xp": 50,
+        "passivePerception": 8,
         "attacks": [
           {
             "name": "Slam",
@@ -75,6 +76,7 @@
         },
         "challengeRating": "1/4",
         "xp": 50,
+        "passivePerception": 9,
         "attacks": [
           {
             "name": "Shortsword",
@@ -120,6 +122,7 @@
         },
         "challengeRating": "1",
         "xp": 200,
+        "passivePerception": 14,
         "attacks": [
           {
             "name": "Bite",
@@ -179,6 +182,7 @@
         },
         "challengeRating": "1",
         "xp": 200,
+        "passivePerception": 10,
         "attacks": [
           {
             "name": "Claw",
@@ -243,6 +247,7 @@
         },
         "challengeRating": "1/8",
         "xp": 25,
+        "passivePerception": 9,
         "attacks": [
           {
             "name": "Dagger",
@@ -286,6 +291,7 @@
         },
         "challengeRating": "1/4",
         "xp": 50,
+        "passivePerception": 9,
         "attacks": [
           {
             "name": "Scimitar",
@@ -329,6 +335,7 @@
         },
         "challengeRating": "1",
         "xp": 200,
+        "passivePerception": 9,
         "attacks": [
           {
             "name": "Scimitar",
@@ -372,6 +379,7 @@
         },
         "challengeRating": "1/4",
         "xp": 50,
+        "passivePerception": 15,
         "attacks": [
           {
             "name": "Bite",
@@ -424,6 +432,7 @@
         },
         "challengeRating": "1/8",
         "xp": 25,
+        "passivePerception": 10,
         "attacks": [
           {
             "name": "Scimitar",
@@ -466,6 +475,7 @@
         },
         "challengeRating": "1/8",
         "xp": 25,
+        "passivePerception": 12,
         "attacks": [
           {
             "name": "Bite",
@@ -509,6 +519,7 @@
         },
         "challengeRating": "1/8",
         "xp": 25,
+        "passivePerception": 8,
         "attacks": [
           {
             "name": "Spike",
@@ -552,6 +563,7 @@
         },
         "challengeRating": "1/2",
         "xp": 100,
+        "passivePerception": 10,
         "attacks": [
           {
             "name": "Longsword",
@@ -595,6 +607,7 @@
         },
         "challengeRating": "1",
         "xp": 200,
+        "passivePerception": 10,
         "attacks": [
           {
             "name": "Light Hammer",
@@ -637,6 +650,7 @@
         },
         "challengeRating": "1",
         "xp": 200,
+        "passivePerception": 10,
         "attacks": [
           {
             "name": "Spear",
@@ -691,6 +705,7 @@
         },
         "challengeRating": "2",
         "xp": 450,
+        "passivePerception": 8,
         "attacks": [
           {
             "name": "Greatclub",
@@ -733,6 +748,7 @@
         },
         "challengeRating": "1",
         "xp": 200,
+        "passivePerception": 15,
         "attacks": [
           {
             "name": "Bite",
@@ -785,6 +801,7 @@
         },
         "challengeRating": "1",
         "xp": 200,
+        "passivePerception": 13,
         "attacks": [
           {
             "name": "Bite",
@@ -847,6 +864,7 @@
         },
         "challengeRating": "2",
         "xp": 450,
+        "passivePerception": 10,
         "attacks": [
           {
             "name": "Scimitar",
@@ -891,6 +909,7 @@
         },
         "challengeRating": "3",
         "xp": 700,
+        "passivePerception": 15,
         "attacks": [
           {
             "name": "Rend",
@@ -934,6 +953,7 @@
         },
         "challengeRating": "3",
         "xp": 700,
+        "passivePerception": 12,
         "attacks": [
           {
             "name": "Greatsword",
@@ -977,6 +997,7 @@
         },
         "challengeRating": "1/8",
         "xp": 25,
+        "passivePerception": 15,
         "attacks": [
           {
             "name": "Bite",

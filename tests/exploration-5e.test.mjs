@@ -118,6 +118,8 @@ test("a quiet start room begins without dice and offers only what is visible", (
     look: [],
     get_character_status: [],
     move: ["alcove", "rat-cellar"],
+    // A fight waits in the cellar, so sneaking in is offered (#301).
+    sneak: ["rat-cellar"],
     examine: ["rusted-lantern"],
     unequip: ["leather"],
   });
