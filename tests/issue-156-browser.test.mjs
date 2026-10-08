@@ -197,7 +197,12 @@ const seed = findSeed();
             .evaluateAll((buttons) =>
               buttons.map((button) => button.getAttribute("aria-label")),
             ),
-          ["Go to Alcove", "Go to Rat-Gnawed Cellar", "Examine Rusted Lantern"],
+          [
+            "Go to Alcove",
+            "Go to Rat-Gnawed Cellar",
+            "Sneak into Rat-Gnawed Cellar",
+            "Examine Rusted Lantern",
+          ],
         );
 
         // Examining keeps focus on Examine: it is still enabled.

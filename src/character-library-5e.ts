@@ -1,8 +1,9 @@
 /**
- * The 5e character library (format version 12).
+ * The 5e character library (format version 13: a sheet names its class by
+ * id, #300).
  *
- * It holds saved 5e Fighters and at most one pending creation: the dice of a
- * Fighter being created. Each character record names its adventure session
+ * It holds saved 5e characters and at most one pending creation: the dice of
+ * a character being created. Each character record names its adventure session
  * while one is in progress. Settling an ended session frees the character in
  * the same write that settles it (a victory or an escape: its possessions
  * become what it held at the end, and what it earned is credited) or marks it
@@ -13,7 +14,7 @@
  * before anyone sees them and are
  * returned unchanged until a character is saved from them, so reloading,
  * restarting, backing out of creation or deleting a character never rolls
- * again (ADR 0005). A level-4 Fighter's Ability Score Improvement and fourth
+ * again (ADR 0005). A level-4 character's Ability Score Improvement and new
  * weapon mastery are chosen after settling (#286); until they are, its sheet
  * owes the choice and it cannot start another adventure, so the pending
  * choice is saved with it and survives a reload.
@@ -28,23 +29,23 @@ import { writeFileAtomically } from "./atomic-file.js";
 import { parseBoundedJson } from "./bounded-json.js";
 import { acquireFileLock } from "./file-lock.js";
 import {
-  ABILITIES,
   applyLevelChoice,
-  buildFighter,
-  fighterProfile,
+  buildCharacter,
+  characterProfile,
   pendingLevelChoice,
   rollAbilitySet,
-  settleFighter,
+  settleCharacter,
   validateDice,
-  validateFighter,
-  type FighterChoices,
-  type FighterSheet,
+  validateCharacter,
+  type CreationChoices,
+  type CharacterSheet,
   type RolledDice,
   type Settlement,
-} from "./fighter-5e.js";
+} from "./character-5e.js";
+import { ABILITIES } from "./class-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 12;
+export const FIFTH_LIBRARY_FORMAT = 13;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -57,7 +58,7 @@ export type PendingCreation = Readonly<{
 export type ActiveSession = Readonly<{ id: string; adventureId: string }>;
 
 export type FifthCharacterRecord = Readonly<{
-  sheet: FighterSheet;
+  sheet: CharacterSheet;
   revision: number;
   /** The adventure session in progress, if any. */
   session?: ActiveSession;
@@ -153,7 +154,8 @@ export class FifthCharacterLibrary {
       version === 8 ||
       version === 9 ||
       version === 10 ||
-      version === 11
+      version === 11 ||
+      version === 12
     ) {
       throw moveAside(
         this.path,
@@ -218,7 +220,7 @@ export class FifthCharacterLibrary {
       ) {
         throw new Error("Invalid character record.");
       }
-      const sheet = validateFighter(record.sheet);
+      const sheet = validateCharacter(record.sheet);
       if (ids.has(sheet.id)) {
         throw new Error("Invalid character record: duplicate identity.");
       }
@@ -304,17 +306,17 @@ export class FifthCharacterLibrary {
     return data as FifthLibraryData & { pendingCreation: PendingCreation };
   }
 
-  /** Saves a level 1 Fighter from the pending dice and the player's choices. */
+  /** Saves a level 1 character from the pending dice and the player's choices. */
   async create(
     name: string,
-    choices: FighterChoices,
+    choices: CreationChoices,
     revision: string,
   ): Promise<FifthLibraryData> {
     return this.update(revision, (data) => {
       const pending = this.pending(data);
       this.add(
         data,
-        buildFighter(
+        buildCharacter(
           randomBytes(16).toString("hex"),
           name,
           pending.dice,
@@ -462,7 +464,7 @@ export class FifthCharacterLibrary {
         sheet:
           outcome === "defeat"
             ? { ...record.sheet, hp: 0 }
-            : settleFighter(record.sheet, settlement!),
+            : settleCharacter(record.sheet, settlement!),
         revision: record.revision + 1,
         ...(outcome === "defeat" ? { defeated: true as const } : {}),
       };
@@ -539,7 +541,7 @@ export class FifthCharacterLibrary {
   }
 
   private add(data: FifthLibraryData, value: unknown): void {
-    const sheet = validateFighter(value);
+    const sheet = validateCharacter(value);
     if (sheet.level !== 1 || sheet.xp !== 0 || sheet.xpAwards.length > 0) {
       throw new Error("New characters start at level 1 with 0 XP.");
     }
@@ -550,7 +552,7 @@ export class FifthCharacterLibrary {
     ) {
       throw new Error("New characters start with no treasure or coin.");
     }
-    if (sheet.hp !== fighterProfile(sheet).maxHp) {
+    if (sheet.hp !== characterProfile(sheet).maxHp) {
       throw new Error("New characters start at full health.");
     }
     const dice = ABILITIES.map((ability) => sheet.abilityRolls[ability]);

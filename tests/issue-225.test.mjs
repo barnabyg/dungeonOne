@@ -8,12 +8,12 @@ import { gateAdventure, oneHitKillChance } from "../dist/balance-5e.js";
 import { act, startEncounter } from "../dist/encounter-5e.js";
 import { equipmentProfile } from "../dist/equipment-5e.js";
 import {
-  FIGHTER_DEFAULT_CHOICES,
-  FIGHTING_STYLES,
-  fighterProfile,
+  characterProfile,
   projectCreation,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  validateCharacter,
+} from "../dist/character-5e.js";
+import { FIGHTING_STYLES } from "../dist/class-5e.js";
+import { FIGHTER_DEFAULT_CHOICES } from "../dist/fighter-5e.js";
 import { playerCombatant } from "../dist/runtime-5e.js";
 import { archer, archeryBarrow } from "./fixtures/archery-barrow.mjs";
 
@@ -23,6 +23,7 @@ const CONTEXT = {
   strengthScore: 16,
   dexterityScore: 14,
   proficiency: 2,
+  weaponProficiencies: ["simple", "martial"],
   masteries: [],
   criticalRange: 20,
 };
@@ -35,7 +36,7 @@ test("Archery is offered as an SRD 5.2 Fighting Style", () => {
     text: "+2 to attack rolls with ranged weapons.",
   });
   assert.equal(
-    validateFighter({ ...archer(), fightingStyle: "archery" }).fightingStyle,
+    validateCharacter({ ...archer(), fightingStyle: "archery" }).fightingStyle,
     "archery",
   );
 });
@@ -76,7 +77,7 @@ test("Archery adds nothing to a melee attack, a dagger's included", () => {
 
 test("an Archery shot hits on a roll 2 lower than without it", () => {
   const wren = (fightingStyle) =>
-    playerCombatant(validateFighter({ ...archer(2), fightingStyle }));
+    playerCombatant(validateCharacter({ ...archer(2), fightingStyle }));
   const goblin = {
     id: "goblin",
     name: "Goblin Warrior",
@@ -114,9 +115,9 @@ test("an Archery shot hits on a roll 2 lower than without it", () => {
 });
 
 test("creation and the sheet say whether Archery applies with the gear held", () => {
-  const uses = (sheet) => fighterProfile(sheet).fightingStyle;
+  const uses = (sheet) => characterProfile(sheet).fightingStyle;
   assert.deepEqual(
-    uses(validateFighter({ ...archer(), fightingStyle: "archery" })),
+    uses(validateCharacter({ ...archer(), fightingStyle: "archery" })),
     {
       id: "archery",
       name: "Archery",
@@ -126,7 +127,7 @@ test("creation and the sheet say whether Archery applies with the gear held", ()
   );
   assert.deepEqual(
     uses(
-      validateFighter({
+      validateCharacter({
         ...archer(),
         fightingStyle: "archery",
         equipment: ["leather", "mace"],
@@ -172,7 +173,7 @@ test("creation and the sheet say whether Archery applies with the gear held", ()
 test("the one-hit-kill measure counts Archery", () => {
   const enemy = { armorClass: 15, hitPoints: { average: 5 } };
   const wren = (fightingStyle) =>
-    validateFighter({ ...archer(), fightingStyle });
+    validateCharacter({ ...archer(), fightingStyle });
   // +4 to hit AC 15 needs an 11 (10/20); +6 needs a 9 (12/20). 1d6 + 2 ≥ 5
   // needs a 3 (4/6); a 20 crits, 2d6 + 2 ≥ 5 always but for 1+1 (35/36).
   const chance = (hits) => ((hits - 1) / 20) * (4 / 6) + (1 / 20) * (35 / 36);

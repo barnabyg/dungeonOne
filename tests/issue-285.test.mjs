@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   CHECK_POLICIES,
-  fighterAtLevel,
+  characterAtLevel,
   gateAdventure,
   percentileCharacters,
   playAdventure,
@@ -98,7 +98,7 @@ test("always-fail lands every check in its worst band, and always-succeed in its
 });
 
 test("a search is a check too: always-fail finds no trap, always-succeed every one", () => {
-  const sheet = fighterAtLevel(WEAKEST.dice, 2);
+  const sheet = characterAtLevel(WEAKEST.dice, 2);
   const searched = (checks) =>
     played(createFifthRuntime(sealedCrypt, sheet, { checks }), [
       { type: "move", destinationId: "hall" },
@@ -181,7 +181,7 @@ test("the always-succeed branch counts toward the XP limit and is reported", () 
 });
 
 test("loot a failed check loses no longer holds the run: it heads out without it", () => {
-  const sheet = fighterAtLevel(WEAKEST.dice, 1);
+  const sheet = characterAtLevel(WEAKEST.dice, 1);
   const runtime = createFifthRuntime(coalStore, sheet, {
     checks: "always-fail",
   });
@@ -198,7 +198,7 @@ test("loot a failed check loses no longer holds the run: it heads out without it
 test("a run takes no retry whose damage could leave it low, so failing checks can't wear it down (#284)", () => {
   // The Rope Cove's swollen door may be forced again for 1d4 damage; when
   // every check fails, a run paying for try after try would fall at it.
-  const sheet = fighterAtLevel(WEAKEST.dice, 1);
+  const sheet = characterAtLevel(WEAKEST.dice, 1);
   const runtime = createFifthRuntime(ropeCove, sheet, {
     checks: "always-fail",
   });

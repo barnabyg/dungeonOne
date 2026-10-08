@@ -6,12 +6,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { act, availableActions, startEncounter } from "../dist/encounter-5e.js";
 import {
-  buildFighter,
+  buildCharacter,
   projectCreation,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  validateCharacter,
+} from "../dist/character-5e.js";
 import {
-  fighterAtLevel,
+  characterAtLevel,
   gateAdventure,
   KITS,
   oneHitKillChance,
@@ -250,7 +250,7 @@ const toolNames = (runtime, state) =>
   runtime.getGameToolDefinitions(state).map(({ name }) => name);
 
 test("the action bar and the AI DM offer the extra attack only with two light weapons, with its reason", () => {
-  const sheet = buildFighter("a".repeat(32), "Ada", DICE, CHOICES);
+  const sheet = buildCharacter("a".repeat(32), "Ada", DICE, CHOICES);
   const runtime = createFifthRuntime(loneGoblin, sheet);
   const begun = runtime.handleAction(
     runtime.createSession(),
@@ -302,7 +302,7 @@ test("the action bar and the AI DM offer the extra attack only with two light we
   // The mace kit holds one weapon: no extra attack in the bar.
   const mace = createFifthRuntime(
     loneGoblin,
-    buildFighter("a".repeat(32), "Ada", DICE, { ...CHOICES, kit: "mace" }),
+    buildCharacter("a".repeat(32), "Ada", DICE, { ...CHOICES, kit: "mace" }),
   );
   const maceBegun = mace.handleAction(
     mace.createSession(),
@@ -379,7 +379,7 @@ test("the gate checks every kit at every recommended level, and one-hit kills wi
       .flatMap(({ opponents }) => opponents)
       .find(({ id }) => id === enemy.opponentId).statBlock;
     const chances = KITS.map((kit) =>
-      oneHitKillChance(fighterAtLevel(strongest.dice, 3, kit), statBlock),
+      oneHitKillChance(characterAtLevel(strongest.dice, 3, kit), statBlock),
     );
     assert.equal(enemy.chance, Math.max(...chances));
     assert.equal(enemy.chance, chances[KITS.indexOf(enemy.kit)]);
@@ -388,8 +388,8 @@ test("the gate checks every kit at every recommended level, and one-hit kills wi
 
 test("the one-hit-kill chance counts Graze on a miss and a heavy weapon's disadvantage", () => {
   const wielding = (placement) =>
-    validateFighter({
-      ...buildFighter("a".repeat(32), "Ada", DICE, {
+    validateCharacter({
+      ...buildCharacter("a".repeat(32), "Ada", DICE, {
         ...CHOICES,
         placement: { ...CHOICES.placement, ...placement },
       }),
@@ -400,7 +400,7 @@ test("the one-hit-kill chance counts Graze on a miss and a heavy weapon's disadv
   const strong = wielding({});
   const frail = { armorClass: 30, hitPoints: { average: 3 } };
   assert.ok(Math.abs(oneHitKillChance(strong, frail) - 1) < 1e-9);
-  const unmastered = validateFighter({
+  const unmastered = validateCharacter({
     ...strong,
     weaponMasteries: ["dagger", "mace", "shortsword"],
   });

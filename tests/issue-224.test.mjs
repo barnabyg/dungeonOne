@@ -19,10 +19,10 @@ import {
 } from "../dist/equipment-5e.js";
 import { ITEM_KINDS } from "../dist/adventure-5e.js";
 import {
-  buildFighter,
-  fighterCarrying,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  buildCharacter,
+  characterCarrying,
+  validateCharacter,
+} from "../dist/character-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { armoury, room } from "./fixtures/armoury-barrow.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
@@ -37,7 +37,7 @@ const ROLLS = [
 ];
 /** A Fighter with the mace kit and the given die set on Strength: 0 is 16, 5 is 3. */
 const fighter = (strength, rolls = ROLLS) =>
-  buildFighter("a".repeat(32), "Ada", rolls, {
+  buildCharacter("a".repeat(32), "Ada", rolls, {
     placement: {
       strength,
       dexterity: 1,
@@ -167,14 +167,14 @@ test("no count limits a sheet's gear, and a sheet over capacity still loads", ()
   const strong = fighter(0);
   assert.equal(strong.abilities.strength, 16);
   // 21 daggers were over #209's 20-item stopgap; they weigh 21 lb.
-  validateFighter({ ...strong, stowed: Array(21).fill("dagger") });
+  validateCharacter({ ...strong, stowed: Array(21).fill("dagger") });
   // Under #209 a Strength 3 character could carry chain mail it can't now:
   // the sheet stays valid, so its library still loads, and only taking more
   // is refused.
   const weak = { ...fighter(5), stowed: ["chain-mail"] };
   assert.equal(weak.abilities.strength, 3);
-  validateFighter(weak);
-  assert.deepEqual(fighterCarrying(weak), { weight: 69, capacity: 45 });
+  validateCharacter(weak);
+  assert.deepEqual(characterCarrying(weak), { weight: 69, capacity: 45 });
   const runtime = createFifthRuntime(barrow, weak);
   assert.equal(
     runtime.handleAction(play(runtime, FIND).state, take("lintel-pouch"))
@@ -185,9 +185,9 @@ test("no count limits a sheet's gear, and a sheet over capacity still loads", ()
 
 test("a sheet's weight carried counts its gear, treasure and purse", () => {
   const weak = fighter(5);
-  assert.deepEqual(fighterCarrying(weak), { weight: 14, capacity: 45 });
+  assert.deepEqual(characterCarrying(weak), { weight: 14, capacity: 45 });
   assert.deepEqual(
-    fighterCarrying({
+    characterCarrying({
       ...weak,
       stowed: ["dagger"],
       treasure: [{ id: "a/b", name: "Seal", description: "A silver seal." }],

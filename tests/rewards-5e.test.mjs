@@ -3,11 +3,11 @@ import test from "node:test";
 import { readFile, writeFile } from "node:fs/promises";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
-  buildFighter,
-  fighterProfile,
+  buildCharacter,
+  characterProfile,
   levelUpChanges,
-  settleFighter,
-} from "../dist/fighter-5e.js";
+  settleCharacter,
+} from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import {
@@ -33,7 +33,7 @@ import { marketBarrow } from "./fixtures/market-barrow.mjs";
 
 const adventures = [barrow];
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 17 with Defense, 12 HP, mace +5.
-const sheet = buildFighter(
+const sheet = buildCharacter(
   "a".repeat(32),
   "Ada",
   [
@@ -249,7 +249,7 @@ test("a fallen opponent's treasure is found only by searching its body once the 
 test("treasure and XP already earned are not found or awarded again", () => {
   const first = createFifthRuntime(barrow, sheet);
   const out = play(first, [...WIN_THE_HALL, ...LOOT, LEAVE], WIN_DICE());
-  const veteran = settleFighter(sheet, first.projectSettlement(out));
+  const veteran = settleCharacter(sheet, first.projectSettlement(out));
   const runtime = createFifthRuntime(barrow, veteran);
   const won = play(runtime, WIN_THE_HALL, WIN_DICE());
   const examined = runtime.handleAction(won, LOOT[0]);
@@ -356,7 +356,7 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin b
   const warren = goblinBurrow;
   assert.deepEqual(warren.recommendedLevels, { min: 2, max: 3 });
   // The barrow's 300 XP makes Ada level 2.
-  const veteran = settleFighter(sheet, {
+  const veteran = settleCharacter(sheet, {
     possessions: {
       equipment: sheet.equipment,
       stowed: [],
@@ -447,7 +447,7 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin b
     { id: "goblin-burrow/stolen-coins", copper: 960 },
   ]);
   assert.equal(rewards.possessions.purse, 960);
-  const champion = settleFighter(veteran, rewards);
+  const champion = settleCharacter(veteran, rewards);
   assert.equal(champion.xp, 950);
   assert.equal(champion.level, 3);
   assert.deepEqual(
@@ -497,7 +497,7 @@ test("escaping with the torc credits it, the XP and a level once, however often 
     assert.equal(record.session, undefined);
     assert.equal(record.sheet.xp, 300);
     assert.equal(record.sheet.level, 2);
-    assert.equal(record.sheet.hp, fighterProfile(record.sheet).maxHp);
+    assert.equal(record.sheet.hp, characterProfile(record.sheet).maxHp);
     assert.deepEqual(
       record.sheet.treasure.map(({ id }) => id),
       ["lintel-barrow/silver-torc"],
@@ -616,7 +616,7 @@ const GEM = {
 function torcBearer() {
   const first = createFifthRuntime(barrow, sheet);
   const out = play(first, [...WIN_THE_HALL, ...LOOT, LEAVE], WIN_DICE());
-  return settleFighter(sheet, first.projectSettlement(out));
+  return settleCharacter(sheet, first.projectSettlement(out));
 }
 
 test("an adventure starts holding the character's equipment and kept treasure (#206)", () => {
@@ -642,7 +642,7 @@ test("settling replaces possessions: an item gone from the holdings is gone, one
   });
 
   const without = runtime.handleAction(holding([]), LEAVE).state;
-  const lost = settleFighter(veteran, runtime.projectSettlement(without));
+  const lost = settleCharacter(veteran, runtime.projectSettlement(without));
   assert.deepEqual(lost.treasure, []);
   assert.deepEqual(lost.finds, [TORC_ID]);
   assert.equal(lost.xp, veteran.xp);
@@ -661,7 +661,7 @@ test("settling replaces possessions: an item gone from the holdings is gone, one
   const settlement = runtime.projectSettlement(added);
   // Holding something is not finding it: nothing new is earned or shown.
   assert.deepEqual(settlement.finds, []);
-  const kept = settleFighter(veteran, settlement);
+  const kept = settleCharacter(veteran, settlement);
   assert.deepEqual(
     kept.treasure.map(({ id }) => id),
     [TORC_ID, GEM.id],
@@ -688,7 +688,7 @@ test("a surviving ending keeps treasure brought in beside coin found (#206, #208
     settlement.coin.map(({ id }) => id),
     ["lintel-barrow/coin-pouch"],
   );
-  const after = settleFighter(veteran, settlement);
+  const after = settleCharacter(veteran, settlement);
   assert.deepEqual(
     after.treasure.map(({ id }) => id),
     [TORC_ID],
@@ -696,7 +696,7 @@ test("a surviving ending keeps treasure brought in beside coin found (#206, #208
   assert.equal(after.purse, 250);
   assert.deepEqual(after.finds, [TORC_ID, "lintel-barrow/coin-pouch"]);
   // Settling the same ending again changes nothing.
-  assert.deepEqual(settleFighter(after, settlement), after);
+  assert.deepEqual(settleCharacter(after, settlement), after);
 });
 
 /**

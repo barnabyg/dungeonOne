@@ -4,9 +4,9 @@
  * difficulty (`gateAdventure`).
  *
  * Characters are sampled from the 4d6-drop-lowest distribution and placed
- * with the creation defaults (`defaultPlacement`, `FIGHTER_DEFAULT_CHOICES`),
- * so the harness plays the characters a player gets by default, with each
- * starting kit. "Weak" and "strong" are percentiles of that sample by total
+ * with the creation defaults of the default class (`defaultPlacement` and
+ * its definition's `defaults`, #300), so the harness plays the characters a
+ * player gets by default, with each of its starting kits. "Weak" and "strong" are percentiles of that sample by total
  * ability modifier.
  */
 import {
@@ -24,33 +24,35 @@ import {
   type StatBlock,
 } from "./adventure-5e.js";
 import {
-  ABILITY_SCORE_CAP,
   abilityModifier,
   applyLevelChoice,
-  buildFighter,
+  CLASSES,
+  classOf,
+  DEFAULT_CLASS,
+  buildCharacter,
   defaultPlacement,
-  FIGHTER_ABILITY_PRIORITY,
-  FIGHTER_DEFAULT_CHOICES,
-  fighterProfile,
-  FIGHTING_STYLES,
+  characterProfile,
   LEVEL_XP,
   masteryOptions,
   pendingLevelChoice,
   rollAbilitySet,
-  validateFighter,
-  type Ability,
-  type AbilityScoreImprovement,
-  type FighterSheet,
-  type FightingStyle,
-  type Level,
+  validateCharacter,
+  type CharacterSheet,
   type LevelChoice,
   type RolledDice,
   type Settlement,
-} from "./fighter-5e.js";
+} from "./character-5e.js";
+import {
+  ABILITY_SCORE_CAP,
+  FIGHTING_STYLES,
+  type Ability,
+  type AbilityScoreImprovement,
+  type FightingStyle,
+  type Level,
+} from "./class-5e.js";
 import { createSeededRandom } from "./random.js";
 import {
   isWeaponId,
-  KIT_IDS,
   STARTING_KITS,
   WEAPONS,
   type KitId,
@@ -78,26 +80,29 @@ import {
 
 export { CHECK_POLICIES, type CheckPolicy };
 
-/** Every starting kit, as creation offers them. */
-export const KITS = KIT_IDS;
+/** The class the harness, the gate and the career simulation play (#300). */
+const HARNESS_CLASS = CLASSES[DEFAULT_CLASS];
+
+/** Every starting kit of that class, as creation offers them. */
+export const KITS = HARNESS_CLASS.kits;
 
 /**
  * The gate's level-4 choice (#286). The Ability Score Improvement's two
  * points go one at a time to the first ability below 20 in the order: the
  * attack ability (Strength, or Dexterity for the Dexterity-first build), then
- * `FIGHTER_ABILITY_PRIORITY`; so +2 to the attack ability unless that passes
+ * the class's ability priority; so +2 to the attack ability unless that passes
  * 20. The fourth mastery is `preferred` (a placed weapon the gate tries)
  * when it can be mastered, or else the first of `MASTERY_WEAPONS` not
  * mastered yet: the longsword, after the default dagger, mace and shortsword.
  */
 export function gateLevelChoice(
-  sheet: FighterSheet,
+  sheet: CharacterSheet,
   archer = false,
   preferred?: WeaponId,
 ): LevelChoice {
   const order: readonly Ability[] = [
     archer ? "dexterity" : "strength",
-    ...FIGHTER_ABILITY_PRIORITY,
+    ...classOf(sheet).abilityPriority,
   ];
   const scores = { ...sheet.abilities };
   const increase: Partial<Record<Ability, 1 | 2>> = {};
@@ -117,23 +122,23 @@ export function gateLevelChoice(
 }
 
 /**
- * A level-`level` Fighter from one creation's dice, placed and chosen as a
+ * A level-`level` character of the harness's class from one creation's dice, placed and chosen as a
  * fresh creation starts but with `kit`, at full health. An `archer` is
  * Dexterity-first instead (#230): the rolls placed on Strength and
  * Dexterity change places, and the +2 goes on Dexterity. From level 4 it
  * makes the gate's level choice (`gateLevelChoice`), preferring to master
  * `mastery`.
  */
-export function fighterAtLevel(
+export function characterAtLevel(
   dice: RolledDice,
   level: Level,
-  kit: KitId = FIGHTER_DEFAULT_CHOICES.kit,
+  kit: KitId = HARNESS_CLASS.defaults.kit,
   archer = false,
   mastery?: WeaponId,
-): FighterSheet {
+): CharacterSheet {
   const placement = defaultPlacement(dice);
-  const created = buildFighter("0".repeat(32), "Balance", dice, {
-    ...FIGHTER_DEFAULT_CHOICES,
+  const created = buildCharacter("0".repeat(32), "Balance", dice, {
+    ...HARNESS_CLASS.defaults,
     ...(archer
       ? {
           placement: {
@@ -147,9 +152,9 @@ export function fighterAtLevel(
     kit,
   });
   const raised = { ...created, level, xp: LEVEL_XP[level] };
-  const sheet = validateFighter({
+  const sheet = validateCharacter({
     ...raised,
-    hp: fighterProfile(raised).maxHp,
+    hp: characterProfile(raised).maxHp,
   });
   return pendingLevelChoice(sheet) === undefined
     ? sheet
@@ -158,7 +163,7 @@ export function fighterAtLevel(
 
 /** The sum of a default creation's six ability modifiers. */
 function totalModifier(dice: RolledDice): number {
-  return Object.values(fighterAtLevel(dice, 1).abilities).reduce(
+  return Object.values(characterAtLevel(dice, 1).abilities).reduce(
     (sum, score) => sum + abilityModifier(score),
     0,
   );
@@ -228,7 +233,7 @@ export function percentileCharacters({
  * attack (the only attack Two-Weapon Fighting changes): it is a second one.
  */
 export function oneHitKillChance(
-  sheet: FighterSheet,
+  sheet: CharacterSheet,
   enemy: Pick<StatBlock, "armorClass"> &
     Readonly<{ hitPoints: Pick<StatBlock["hitPoints"], "average"> }> &
     Partial<
@@ -643,12 +648,14 @@ const HEAL_BELOW: Readonly<Record<PlayStyle, number>> = {
 };
 
 /**
- * Every kind of action the styles know how to play. A kind missing here
- * fails to compile; one the runtime offers that the harness has never heard
- * of fails the run as `unsupported-action`.
+ * Every kind of action the harness knows: the styles play them, or pass
+ * them over. A kind missing here fails to compile; one the runtime offers
+ * that the harness has never heard of fails the run as `unsupported-action`.
  */
 const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   attack: true,
+  // Passed over: no style sneaks yet, each enters a fight by moving (#301).
+  sneak: true,
   "light-attack": true,
   use: true,
   "second-wind": true,
@@ -783,7 +790,7 @@ export function playAdventure(
   const objective = objectiveOf(adventure);
   const winning = victoryRooms(adventure);
   const exits = exitRooms(adventure);
-  const maxHp = fighterProfile(runtime.sheet).maxHp;
+  const maxHp = characterProfile(runtime.sheet).maxHp;
   const items = new Map(
     adventure.rooms.flatMap((room) =>
       room.items.map((item) => [item.id, { item, roomId: room.id }] as const),
@@ -1192,7 +1199,7 @@ const mean = (values: readonly number[]) =>
 
 function summarise(
   adventure: FifthAdventure,
-  sheet: FighterSheet,
+  sheet: CharacterSheet,
   objective: Objective,
   runs: readonly RunRecord[],
 ): Omit<BalanceCell, "level" | "percentile" | "style"> {
@@ -1274,7 +1281,7 @@ export function qualifyAdventure(
     const cells: BalanceCell[] = [];
     for (let level = min as Level; level <= max; level++) {
       for (const { percentile, dice } of characters) {
-        const sheet = fighterAtLevel(dice, level);
+        const sheet = characterAtLevel(dice, level);
         const runtime = createFifthRuntime(adventure, sheet, { checks });
         for (const style of styles) {
           const runs = seeds.map((seed) =>
@@ -1514,7 +1521,7 @@ export type Attacker = Readonly<{
   /** A weapon the module places or a merchant sells, wielded instead. */
   gear?: WeaponId;
   fightingStyle: FightingStyle;
-  sheet: FighterSheet;
+  sheet: CharacterSheet;
 }>;
 
 /**
@@ -1531,16 +1538,16 @@ export function strongestAttackers(
   const armed = [
     ...KITS.map((kit) => ({
       kit,
-      sheet: fighterAtLevel(dice, level, kit),
+      sheet: characterAtLevel(dice, level, kit),
     })),
     ...placed.map((gear) => {
-      const kit = FIGHTER_DEFAULT_CHOICES.kit;
+      const kit = HARNESS_CLASS.defaults.kit;
       const ranged = (WEAPONS[gear] as WeaponData).ammunition !== undefined;
-      const sheet = fighterAtLevel(dice, level, kit, ranged, gear);
+      const sheet = characterAtLevel(dice, level, kit, ranged, gear);
       return {
         kit,
         gear,
-        sheet: validateFighter({
+        sheet: validateCharacter({
           ...sheet,
           equipment: [
             ...STARTING_KITS[kit].equipment.filter((item) => !isWeaponId(item)),
@@ -1551,16 +1558,16 @@ export function strongestAttackers(
     }),
   ];
   const styles = [
-    FIGHTER_DEFAULT_CHOICES.fightingStyle,
+    HARNESS_CLASS.defaults.fightingStyle,
     ...(Object.keys(FIGHTING_STYLES) as FightingStyle[]).filter(
-      (style) => style !== FIGHTER_DEFAULT_CHOICES.fightingStyle,
+      (style) => style !== HARNESS_CLASS.defaults.fightingStyle,
     ),
   ];
   return armed.flatMap((entry) =>
     styles.map((fightingStyle) => ({
       ...entry,
       fightingStyle,
-      sheet: validateFighter({ ...entry.sheet, fightingStyle }),
+      sheet: validateCharacter({ ...entry.sheet, fightingStyle }),
     })),
   );
 }
@@ -1635,7 +1642,7 @@ export function gateAdventure(
      */
     const played = levels.flatMap((level) =>
       KITS.map((kit) => {
-        const sheet = fighterAtLevel(weakest!.dice, level, kit);
+        const sheet = characterAtLevel(weakest!.dice, level, kit);
         const seeded = createFifthRuntime(adventure, sheet);
         const failing = createFifthRuntime(adventure, sheet, {
           checks: "always-fail",
@@ -1733,7 +1740,7 @@ export function gateAdventure(
     // character fights every fight it finds.
     const succeeding = createFifthRuntime(
       adventure,
-      fighterAtLevel(strongest!.dice, max as Level),
+      characterAtLevel(strongest!.dice, max as Level),
       { checks: "always-succeed" },
     );
     // Once a run earns everything offered, no other run can earn more.

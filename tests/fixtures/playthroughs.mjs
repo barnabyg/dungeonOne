@@ -6,11 +6,11 @@
 // test's copy behind.
 import assert from "node:assert/strict";
 import {
-  buildFighter,
-  fighterProfile,
+  buildCharacter,
+  characterProfile,
   levelForXp,
-  validateFighter,
-} from "../../dist/fighter-5e.js";
+  validateCharacter,
+} from "../../dist/character-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { archer, archeryBarrow } from "./archery-barrow.mjs";
@@ -45,10 +45,10 @@ const ADA_CHOICES = {
 };
 
 // The #156 fighter: Con 14 (+2), 12 HP at level 1.
-export const ada = buildFighter("a".repeat(32), "Ada", ADA_DICE, ADA_CHOICES);
+export const ada = buildCharacter("a".repeat(32), "Ada", ADA_DICE, ADA_CHOICES);
 
 /** Ada with two daggers and leather, for the light weapons' extra attack (#269). */
-export const twin = buildFighter("a".repeat(32), "Ada", ADA_DICE, {
+export const twin = buildCharacter("a".repeat(32), "Ada", ADA_DICE, {
   ...ADA_CHOICES,
   kit: "two-daggers",
 });
@@ -57,7 +57,7 @@ export const twin = buildFighter("a".repeat(32), "Ada", ADA_DICE, {
 export function veteran() {
   const xp = 300;
   const leveled = { ...ada, xp, level: levelForXp(xp) };
-  return validateFighter({ ...leveled, hp: fighterProfile(leveled).maxHp });
+  return validateCharacter({ ...leveled, hp: characterProfile(leveled).maxHp });
 }
 
 /**
@@ -87,7 +87,8 @@ function madeAction({ action, target }) {
     case "use":
       return { type: "use-item", itemId: target.id };
     case "move":
-      return { type: "move", destinationId: target.id };
+    case "sneak":
+      return { type: action, destinationId: target.id };
     case "examine":
       return { type: "examine", targetId: target.id };
     case "take":

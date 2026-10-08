@@ -3,13 +3,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  ABILITIES,
-  buildFighter,
+  buildCharacter,
   defaultPlacement,
-  fighterCarrying,
-  fighterProfile,
+  characterCarrying,
+  characterProfile,
   projectCreation,
-} from "../dist/fighter-5e.js";
+} from "../dist/character-5e.js";
+import { ABILITIES } from "../dist/class-5e.js";
 
 const dice = [
   [6, 6, 6, 1],
@@ -28,15 +28,15 @@ const complete = {
   masteries: ["dagger", "mace", "shortsword"],
 };
 
-test("complete choices project the same scores and modifiers as buildFighter", () => {
+test("complete choices project the same scores and modifiers as buildCharacter", () => {
   for (const increase of [
     { strength: 2, constitution: 1 },
     { dexterity: 1, wisdom: 1, charisma: 1 },
     { intelligence: 2, charisma: 1 },
   ]) {
     const choices = { ...complete, increase };
-    const sheet = buildFighter("0".repeat(32), "Preview", dice, choices);
-    const profile = fighterProfile(sheet);
+    const sheet = buildCharacter("0".repeat(32), "Preview", dice, choices);
+    const profile = characterProfile(sheet);
     const projection = projectCreation(dice, choices);
     assert.deepEqual(
       projection.rows.map(({ ability }) => ability),
@@ -51,7 +51,7 @@ test("complete choices project the same scores and modifiers as buildFighter", (
     assert.deepEqual(projection.sheet, {
       abilities: sheet.abilities,
       profile,
-      carrying: fighterCarrying(sheet),
+      carrying: characterCarrying(sheet),
     });
   }
 });

@@ -10,18 +10,18 @@ import {
 } from "./character-library-5e.js";
 import {
   applyLevelChoice,
-  buildFighter,
-  fighterProfile,
+  buildCharacter,
+  characterProfile,
   nextLevelXp,
-  validateFighter,
-  type FighterChoices,
-  type FighterSheet,
-  type Level,
+  validateCharacter,
+  type CreationChoices,
+  type CharacterSheet,
   type LevelChoice,
-} from "./fighter-5e.js";
+} from "./character-5e.js";
+import { type Level } from "./class-5e.js";
 
 /** Ada's choices, also for creating her from rolled dice over the browser API. */
-export const TEST_FIGHTER_CHOICES: FighterChoices = {
+export const TEST_FIGHTER_CHOICES: CreationChoices = {
   placement: {
     strength: 0,
     dexterity: 1,
@@ -41,7 +41,7 @@ export const TEST_FIGHTER_CHOICES: FighterChoices = {
  * Ada: Str 17 (+3), Dex 14 (+2), Con 15 (+2); Athletics and Perception; the
  * mace and leather kit (AC 14 with Defense).
  */
-export const TEST_FIGHTER: FighterSheet = buildFighter(
+export const TEST_FIGHTER: CharacterSheet = buildCharacter(
   "a".repeat(32),
   "Ada",
   [
@@ -69,12 +69,12 @@ export const TEST_FIGHTER_LEVEL_CHOICE: LevelChoice = {
  * Level 3 is the highest whose sheet owes no level choice; at level 5 she has
  * made `TEST_FIGHTER_LEVEL_CHOICE`, while a level-4 Ada still owes hers.
  */
-export function testFighterAt(level: Level): FighterSheet {
+export function testFighterAt(level: Level): CharacterSheet {
   const xp = level === 1 ? 0 : nextLevelXp((level - 1) as Level)!;
   const raised = { ...TEST_FIGHTER, level, xp };
-  const sheet = validateFighter({
+  const sheet = validateCharacter({
     ...raised,
-    hp: fighterProfile(raised).maxHp,
+    hp: characterProfile(raised).maxHp,
   });
   return level < 5 ? sheet : applyLevelChoice(sheet, TEST_FIGHTER_LEVEL_CHOICE);
 }
@@ -118,7 +118,7 @@ export function levelFourCareerLibrary(): FifthLibraryData {
     ...library,
     characters: [
       {
-        sheet: validateFighter(
+        sheet: validateCharacter(
           applyLevelChoice({ ...sheet, xp: 4100 }, TEST_FIGHTER_LEVEL_CHOICE),
         ),
         revision: 1,

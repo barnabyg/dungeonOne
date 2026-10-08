@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 20,
+  "formatVersion": 21,
   "id": "rat-tunnels",
   "title": "The Rat Tunnels",
   "objective": "Find out what has moved into the old smugglers' cellar, and clear it out.",
@@ -121,6 +121,7 @@
             },
             "challengeRating": "1/8",
             "xp": 25,
+            "passivePerception": 10,
             "morale": 8,
             "attacks": [
               {
@@ -165,6 +166,7 @@
             },
             "challengeRating": "1/4",
             "xp": 50,
+            "passivePerception": 9,
             "morale": 8,
             "attacks": [
               {

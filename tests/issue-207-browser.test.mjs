@@ -10,13 +10,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
-  buildFighter,
+  buildCharacter,
   defaultPlacement,
-  FIGHTER_DEFAULT_CHOICES,
-  fighterProfile,
+  characterProfile,
   projectCreation,
   rollAbilitySet,
-} from "../dist/fighter-5e.js";
+} from "../dist/character-5e.js";
+import { FIGHTER_DEFAULT_CHOICES } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
@@ -53,7 +53,7 @@ function findSeed() {
       const dice = creationDice(seed, index + 1);
       const runtime = createFifthRuntime(
         loneGoblin,
-        buildFighter("a".repeat(32), "Ada", dice, choicesFor(dice, kit)),
+        buildCharacter("a".repeat(32), "Ada", dice, choicesFor(dice, kit)),
       );
       const random = createSeededRandom(sessionSeed(seed, index + 1));
       let { state } = runtime.handleAction(
@@ -146,9 +146,9 @@ test(
         // The library keeps the kit's gear; the sheet shows its numbers.
         const saved = JSON.parse(await readFile(libraryPath, "utf8"));
         const { sheet } = saved.characters.at(-1);
-        const expected = buildFighter(sheet.id, name, dice, choices);
+        const expected = buildCharacter(sheet.id, name, dice, choices);
         assert.deepEqual(sheet, expected);
-        assert.deepEqual(fighterProfile(sheet), profile);
+        assert.deepEqual(characterProfile(sheet), profile);
         const body = await page.locator("#sheet-body").innerText();
         assert.match(
           body,

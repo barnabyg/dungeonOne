@@ -7,12 +7,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
-  ABILITIES,
-  buildFighter,
+  buildCharacter,
   defaultPlacement,
-  fighterProfile,
+  characterProfile,
   keptTotal,
-} from "../dist/fighter-5e.js";
+} from "../dist/character-5e.js";
+import { ABILITIES } from "../dist/class-5e.js";
 import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 import { PRE_5E_LIBRARY } from "./fixtures/pre-5e-library.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
@@ -191,8 +191,8 @@ test(
         kit: "two-daggers",
         masteries: ["dagger", "shortsword", "greatsword"],
       };
-      const expected = buildFighter("0".repeat(32), "Preview", dice, choices);
-      const profile = fighterProfile(expected);
+      const expected = buildCharacter("0".repeat(32), "Preview", dice, choices);
+      const profile = characterProfile(expected);
       const preview = page.locator("#preview-body");
       await preview
         .filter({ hasText: new RegExp(`AC:\\s*${profile.armorClass}`) })

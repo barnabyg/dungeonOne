@@ -10,7 +10,7 @@ import {
   renderCareerResult,
   simulateCareer,
 } from "../dist/career-5e.js";
-import { MAX_LEVEL } from "../dist/fighter-5e.js";
+import { MAX_LEVEL } from "../dist/character-5e.js";
 
 const USAGE = [
   "Usage: npm run career -- [--seeds <count>] [--required-level <level>]",

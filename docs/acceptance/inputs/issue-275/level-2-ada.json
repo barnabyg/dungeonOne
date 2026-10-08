@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-characters",
-  "formatVersion": 12,
+  "formatVersion": 13,
   "revision": "00000000000000000000000000000000",
   "creationsStarted": 1,
   "sessionsStarted": 0,
@@ -9,7 +9,7 @@
       "sheet": {
         "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "name": "Ada",
-        "class": "Fighter",
+        "class": "fighter",
         "level": 2,
         "xp": 300,
         "hp": 20,

@@ -6,7 +6,7 @@
  * kit) plays the modules in the browser's order (`orderFifthAdventures`), each
  * once, as soon as its level reaches the module's minimum recommended level,
  * in the gate's style. Between modules it is settled as the character
- * library settles it (`settleFighter`): it keeps what it holds at the end and
+ * library settles it (`settleCharacter`): it keeps what it holds at the end and
  * is credited its XP, and it makes any pending level-4 choice by the gate's
  * policy (`gateLevelChoice`). A defeat ends the career there, as it does in
  * the library. The check passes when some career reaches the required level.
@@ -22,7 +22,7 @@ import {
 } from "./adventure-5e.js";
 import {
   DEFAULT_SEED_COUNT,
-  fighterAtLevel,
+  characterAtLevel,
   GATE_STYLE,
   gateLevelChoice,
   percentileCharacters,
@@ -33,13 +33,14 @@ import {
 } from "./balance-5e.js";
 import {
   applyLevelChoice,
-  FIGHTER_DEFAULT_CHOICES,
+  CLASSES,
+  DEFAULT_CLASS,
   MAX_LEVEL,
   pendingLevelChoice,
-  settleFighter,
-  type FighterSheet,
-  type Level,
-} from "./fighter-5e.js";
+  settleCharacter,
+  type CharacterSheet,
+} from "./character-5e.js";
+import { type Level } from "./class-5e.js";
 import { createFifthRuntime } from "./runtime-5e.js";
 import type { KitId } from "./equipment-5e.js";
 
@@ -67,7 +68,7 @@ export type CareerRun = Readonly<{
   seed: number;
   steps: readonly CareerStep[];
   /** The sheet at the end: as last settled, or as it fell. */
-  sheet: FighterSheet;
+  sheet: CharacterSheet;
   /** The module it was defeated in, if it fell. */
   fellIn?: string;
 }>;
@@ -122,11 +123,11 @@ export function simulateCareer(
     ...(sampleSize === undefined ? {} : { sampleSize }),
     ...(sampleSeed === undefined ? {} : { sampleSeed }),
   });
-  const kit = FIGHTER_DEFAULT_CHOICES.kit;
+  const kit = CLASSES[DEFAULT_CLASS].defaults.kit;
   const limit = stepLimit === undefined ? {} : { stepLimit };
 
   const runs = seeds.map((seed): CareerRun => {
-    let sheet = fighterAtLevel(weakest!.dice, 1, kit);
+    let sheet = characterAtLevel(weakest!.dice, 1, kit);
     const steps: CareerStep[] = [];
     for (const adventure of ordered) {
       if (adventure.recommendedLevels.min > sheet.level) {
@@ -151,7 +152,7 @@ export function simulateCareer(
       if (run.settlement === undefined) {
         return { seed, steps, sheet, fellIn: adventure.id };
       }
-      sheet = settleFighter(sheet, run.settlement);
+      sheet = settleCharacter(sheet, run.settlement);
     }
     return { seed, steps, sheet };
   });
@@ -231,7 +232,7 @@ export function renderCareerResult(report: CareerReport): string {
     .map(({ level, count }) => `level ${level} ${count}`);
   const fallen = runs.filter(({ fellIn }) => fellIn !== undefined).length;
   return [
-    `Career of a level-1, ${report.percentile}th percentile Fighter with the ${report.kit} kit playing ${report.style} over ${plural(runs.length, "seed")}: ${reaching} of ${plural(runs.length, "career")} (${percent(report.reached)}) reach level ${report.requiredLevel}, the required level; ${report.ok ? "pass" : "FAIL"}.`,
+    `Career of a level-1, ${report.percentile}th percentile ${CLASSES[DEFAULT_CLASS].name} with the ${report.kit} kit playing ${report.style} over ${plural(runs.length, "seed")}: ${reaching} of ${plural(runs.length, "career")} (${percent(report.reached)}) reach level ${report.requiredLevel}, the required level; ${report.ok ? "pass" : "FAIL"}.`,
     ...lines,
     `  Levels reached: ${levels.join(", ")}; ${fallen} of ${runs.length} fell.`,
   ].join("\n");

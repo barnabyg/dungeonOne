@@ -24,7 +24,7 @@ import {
   DEFAULT_PERCENTILES,
   DEFAULT_SEED_COUNT,
   DIFFICULTY_THRESHOLDS,
-  fighterAtLevel,
+  characterAtLevel,
   gateAdventure,
   gateVerdictAt,
   KITS,
@@ -39,7 +39,8 @@ import {
   type PlayStyle,
 } from "./balance-5e.js";
 import type { FifthBestiary, FifthMonster } from "./bestiary-5e.js";
-import { MAX_LEVEL, type FightingStyle, type Level } from "./fighter-5e.js";
+import { MAX_LEVEL } from "./character-5e.js";
+import { type FightingStyle, type Level } from "./class-5e.js";
 import type { KitId } from "./equipment-5e.js";
 import { createFifthRuntime } from "./runtime-5e.js";
 
@@ -343,7 +344,7 @@ export function estimateEncounter(
         for (const kit of KITS) {
           const runtime = createFifthRuntime(
             adventure,
-            fighterAtLevel(dice, level, kit),
+            characterAtLevel(dice, level, kit),
           );
           for (const style of styles) {
             const runs = seeds.map((seed) =>

@@ -77,8 +77,12 @@
 // result; it is never saved. Confirmations go to
 // #feedback, a polite live region that show() moves under the current panel's
 // heading and route() clears on every navigation.
-import { FEATURE_USES_RULE, FIGHTER_DEFAULT_CHOICES } from "./fighter-5e.js";
+import { FEATURE_USES_RULE } from "./class-5e.js";
+import { CLASSES, DEFAULT_CLASS } from "./character-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT } from "./runtime-5e.js";
+
+/** The class creation makes while there is no choice of class (#300). */
+const CREATING = CLASSES[DEFAULT_CLASS];
 
 /** The composer's notice when the server has no AI DM (#161). */
 export const FIFTH_DM_OFF_NOTICE =
@@ -92,14 +96,14 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <main id="content" tabindex="-1">
 <nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
 <section id="library" class="panel" aria-labelledby="library-title">
-<h2 id="library-title" tabindex="-1">Your Fighters</h2>
+<h2 id="library-title" tabindex="-1">Your ${CREATING.name}s</h2>
 <p id="feedback" role="status" aria-live="polite"></p>
 <ul id="characters" class="list"></ul>
 <p id="no-characters" class="hint" hidden>No characters yet.</p>
-<button id="open-creation" type="button" class="primary">Create a Fighter</button>
+<button id="open-creation" type="button" class="primary">Create a ${CREATING.name}</button>
 </section>
 <section id="creation" class="panel" aria-labelledby="creation-title" hidden>
-<h2 id="creation-title" tabindex="-1">Create a Fighter</h2>
+<h2 id="creation-title" tabindex="-1">Create a ${CREATING.name}</h2>
 <p class="hint">Rolled once. No rerolls. Place the six rolls on your abilities in any order, then make your other choices.</p>
 <form id="creation-form" novalidate>
 <fieldset id="ability-scores" aria-describedby="ability-hint increase-error"><legend>Ability scores</legend>
@@ -383,7 +387,7 @@ function renderLibrary() {
     heading.append(make("strong", sheet.name));
     const status = characterStatus(entry);
     if (status) heading.append(" ", make("span", status, "tag"));
-    button.append(heading, make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass, "character-stats"));
+    button.append(heading, make("span", "Level " + sheet.level + " " + entry.className + " · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass, "character-stats"));
     button.addEventListener("click", () => go("#character-" + sheet.id));
     item.append(button);
     if (entry.session && !entry.defeated) {
@@ -396,7 +400,7 @@ function renderLibrary() {
     return item;
   }));
   element("no-characters").hidden = library.characters.length > 0;
-  element("open-creation").textContent = library.pendingCreation ? "Continue creating your Fighter" : "Create a Fighter";
+  element("open-creation").textContent = library.pendingCreation ? "Continue creating your ${CREATING.name}" : "Create a ${CREATING.name}";
 }
 
 function abilityTable(abilities, profile, caption) {
@@ -476,7 +480,7 @@ function openSheet(id) {
   const { sheet, profile, purse, stowed, ammunition, carrying, treasure } = entry;
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
-  const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
+  const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
   element("sheet-body").replaceChildren(summary, styleUseNode(profile.fightingStyle), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
@@ -891,7 +895,7 @@ function compactRoll(group) {
     case "initiative":
       // Initiative is always a d20, so its chip shows just the value; with
       // "d20" the line can be wider than its engine text (#196).
-      node.append(group.roller + " ", ...diceChips(group, ", ", false), withSign(group.modifier) + " = " + group.total + (group.rollOff ? " (roll-off " + group.rollOff.join(", ") + ")" : ""));
+      node.append(group.roller + " " + (group.mode ? group.mode + " " : ""), ...diceChips(group, ", ", false), withSign(group.modifier) + " = " + group.total + (group.rollOff ? " (roll-off " + group.rollOff.join(", ") + ")" : ""));
       break;
     case "target":
       node.append("target die ", ...diceChips(group));
@@ -1155,7 +1159,8 @@ function renderGear(gear) {
   element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (ammunition.length ? "; " + ammunition.map(ammunitionText).join(", ") : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + ".";
 }
 
-const rollText = (roll) => "d20 " + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
+// A surprised combatant (#301) rolled two d20s and kept the lower.
+const rollText = (roll) => "d20 " + (roll.mode ? roll.mode.d20s.join(" and ") + " (surprised: disadvantage), kept " : "") + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
 /** A condition (#232) as a tag, such as "Prone", with its source and how it ends spoken. */
 const conditionTag = (condition) => {
   const tag = make("span", condition.name, "tag condition");
@@ -1179,6 +1184,7 @@ function renderInitiative(encounter, fighting) {
     for (const condition of combatant.conditions) name.append(" ", conditionTag(condition));
     if (current) name.append(" ", make("span", "Now", "tag now"));
     if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
+    if (combatant.initiative.mode) name.append(" ", make("span", "Surprised", "tag surprised"));
     // Morale (#237): a fleeing opponent leaves on its turn; a fled one is gone.
     // One that may surrender (#238) yields on its turn instead.
     if (combatant.morale) name.append(" ", make("span", MORALE_TAGS[combatant.morale], "tag morale"));
@@ -1240,6 +1246,7 @@ const ACTIONS = {
   "light-attack": { label: "Extra attack ", busy: "Extra attack on ", busyLabel: "Attacking…" },
   use: { label: "Drink ", short: "Drink", busy: "Drinking ", busyLabel: "Drinking…" },
   move: { label: "Go to ", short: "Go", busy: "Going to ", busyLabel: "Going…" },
+  sneak: { label: "Sneak into ", short: "Sneak", busy: "Sneaking into ", busyLabel: "Sneaking…" },
   examine: { label: "Examine ", short: "Examine", busy: "Examining ", busyLabel: "Examining…" },
   take: { label: "Take ", short: "Take", busy: "Taking ", busyLabel: "Taking…" },
   force: { label: "Force ", short: "Force", busy: "Forcing ", busyLabel: "Forcing…" },
@@ -1281,7 +1288,7 @@ const GEAR_SALES = ["sell", "sell-equipped"];
 // Selling a gem or art object (#239): its entry has no slot, as only gear is
 // equipped or stowed.
 const SALES = [...GEAR_SALES, "sell-treasure"];
-const EXPLORING = ["move", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
+const EXPLORING = ["move", "sneak", "examine", "take", "force", "pick", "break", "unlock", "search", "disarm", "talk"];
 
 function renderActions() {
   // The ending (#158) takes the bar's place; an ended adventure projects no actions.
@@ -1517,7 +1524,7 @@ function defaultChoices() {
   increaseMode = "two";
   return {
     placement: { ...library.pendingCreation.defaultPlacement },
-    ...structuredClone(${JSON.stringify(FIGHTER_DEFAULT_CHOICES)}),
+    ...structuredClone(${JSON.stringify(CREATING.defaults)}),
   };
 }
 
@@ -1826,7 +1833,7 @@ async function openCreation(ticket) {
   element("skills-legend").textContent = "Skill proficiencies: choose " + rules.skillCount;
   element("masteries-legend").textContent = "Weapon Mastery: choose " + rules.masteryCount;
   renderChoices();
-  show("creation", "Create a Fighter", [{ label: "Create a Fighter" }]);
+  show("creation", "Create a ${CREATING.name}", [{ label: "Create a ${CREATING.name}" }]);
   element("creation-title").focus();
   await refresh();
 }
@@ -1837,7 +1844,7 @@ async function saveCharacter(event) {
   if (isBusy(save)) return;
   const name = element("character-name").value.trim();
   if (!name) {
-    element("name-error").textContent = "Enter a name for your Fighter.";
+    element("name-error").textContent = "Enter a name for your ${CREATING.name}.";
     element("character-name").focus();
     return;
   }

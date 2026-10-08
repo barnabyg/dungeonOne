@@ -8,7 +8,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { fighterProfile } from "../dist/fighter-5e.js";
+import { characterProfile } from "../dist/character-5e.js";
 import { longswordBarrow } from "./fixtures/armoury-barrow.mjs";
 import { explore, launch } from "./fixtures/session-layout.mjs";
 import { createFighter, startAdventure } from "./fixtures/browser-journey.mjs";
@@ -53,7 +53,7 @@ test(
       assert.deepEqual(start.equipment, ["leather", "mace"]);
 
       await startAdventure(page, "lintel-barrow");
-      const before = fighterProfile(start);
+      const before = characterProfile(start);
       // The status strip shows AC and attack from the gear worn and held.
       assert.match(
         await page.locator("#gear-numbers").textContent(),
@@ -88,7 +88,7 @@ test(
 
       // Wielding it changes the attack and damage on the page at once.
       await explore(page, "swap", "longsword");
-      const wielding = fighterProfile({
+      const wielding = characterProfile({
         ...start,
         equipment: ["leather", "longsword"],
       });

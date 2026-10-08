@@ -49,35 +49,37 @@ import { passesGate } from "./balance-5e.js";
 import {
   ammunitionCount,
   ammunitionHeld,
-  FIGHTER_MASTERY_COUNT,
   formatCoins,
   itemName,
-  KIT_IDS,
   MASTERIES,
   MASTERY_WEAPONS,
   STARTING_KITS,
   WEAPONS,
 } from "./equipment-5e.js";
 import {
-  ABILITIES,
-  ABILITY_SCORE_CAP,
+  CLASSES,
+  classOf,
+  DEFAULT_CLASS,
   defaultPlacement,
   droppedDie,
-  fighterCarrying,
-  fighterProfile,
-  FIGHTER_SKILL_COUNT,
-  FIGHTER_SKILLS,
-  FIGHTING_STYLES,
+  characterCarrying,
+  characterProfile,
   keptTotal,
   levelUpChanges,
   masteryOptions,
   pendingLevelUp,
   projectCreation,
   projectLevelChoice,
-  settleFighter,
-  type FighterChoices,
+  settleCharacter,
+  type CreationChoices,
   type TreasureRecord,
-} from "./fighter-5e.js";
+} from "./character-5e.js";
+import {
+  ABILITIES,
+  ABILITY_SCORE_CAP,
+  SKILLS,
+  FIGHTING_STYLES,
+} from "./class-5e.js";
 import {
   json,
   readBody,
@@ -148,7 +150,7 @@ function rewardsView(session: FifthSession) {
     return undefined;
   }
   const before = session.character;
-  const after = settleFighter(before, settlement);
+  const after = settleCharacter(before, settlement);
   const levelUp = levelUpChanges(before, after);
   return {
     xp: settlement.xp.map(({ name, xp }) => ({ name, xp })),
@@ -206,19 +208,21 @@ function libraryView(
   adventures: readonly FifthAdventure[],
 ) {
   const pending = data.pendingCreation;
+  // Creation makes the default class while there is no choice of class.
+  const creating = CLASSES[DEFAULT_CLASS];
   return {
     revision: data.revision,
     adventures: adventures.map(adventureView),
     abilities: ABILITIES,
-    skills: Object.entries(FIGHTER_SKILLS).map(([id, skill]) => ({
+    skills: creating.skillChoices.options.map((id) => ({
       id,
-      ...skill,
+      ...SKILLS[id],
     })),
     fightingStyles: Object.entries(FIGHTING_STYLES).map(([id, style]) => ({
       id,
       ...style,
     })),
-    kits: KIT_IDS.map((id) => ({
+    kits: creating.kits.map((id) => ({
       id,
       name: STARTING_KITS[id].name,
     })),
@@ -241,8 +245,8 @@ function libraryView(
             defaultPlacement: defaultPlacement(pending.dice),
             rules: {
               scoreCap: ABILITY_SCORE_CAP,
-              skillCount: FIGHTER_SKILL_COUNT,
-              masteryCount: FIGHTER_MASTERY_COUNT,
+              skillCount: creating.skillChoices.count,
+              masteryCount: creating.weaponMasteries[1],
             },
           },
         }),
@@ -250,9 +254,10 @@ function libraryView(
       const levelUp = pendingLevelUp(sheet);
       return {
         sheet,
-        profile: fighterProfile(sheet),
+        className: classOf(sheet).name,
+        profile: characterProfile(sheet),
         purse: formatCoins(sheet.purse),
-        carrying: fighterCarrying(sheet),
+        carrying: characterCarrying(sheet),
         stowed: sheet.stowed.map(itemName),
         ammunition: ammunitionHeld(sheet.ammunition).map(({ id, count }) =>
           ammunitionCount(id, count),
@@ -275,14 +280,14 @@ function libraryView(
   };
 }
 
-function choicesFrom(body: Record<string, unknown>): FighterChoices {
+function choicesFrom(body: Record<string, unknown>): CreationChoices {
   return {
-    placement: body.placement as FighterChoices["placement"],
-    increase: body.increase as FighterChoices["increase"],
-    skills: body.skills as FighterChoices["skills"],
-    fightingStyle: body.fightingStyle as FighterChoices["fightingStyle"],
-    kit: body.kit as FighterChoices["kit"],
-    masteries: body.masteries as FighterChoices["masteries"],
+    placement: body.placement as CreationChoices["placement"],
+    increase: body.increase as CreationChoices["increase"],
+    skills: body.skills as CreationChoices["skills"],
+    fightingStyle: body.fightingStyle as CreationChoices["fightingStyle"],
+    kit: body.kit as CreationChoices["kit"],
+    masteries: body.masteries as CreationChoices["masteries"],
   };
 }
 
@@ -315,6 +320,7 @@ const APPROACH_ACTIONS: readonly string[] = [
 /** The clicked exploring actions, and the action each makes from its target. */
 const EXPLORE_ACTIONS: Record<string, (target: string) => FifthAction> = {
   move: (destinationId) => ({ type: "move", destinationId }),
+  sneak: (destinationId) => ({ type: "sneak", destinationId }),
   examine: (targetId) => ({ type: "examine", targetId }),
   take: (itemId) => ({ type: "take", itemId }),
   use: (itemId) => ({ type: "use-item", itemId }),

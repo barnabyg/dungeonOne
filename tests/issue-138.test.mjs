@@ -62,7 +62,7 @@ const runCrypt = (args, lines, env) =>
 const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
 
 test("command mode lists the action bar, disabled actions with their reason, and refuses typing without an AI DM", () => {
-  const result = runCrypt(["--seed", "0"], ["2", "Open the door", "4", "quit"]);
+  const result = runCrypt(["--seed", "0"], ["2", "Open the door", "5", "quit"]);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /The Sealed Crypt\. Seed 0\./);
   // The same choices as the browser's action bar, in its order.
@@ -73,7 +73,8 @@ test("command mode lists the action bar, disabled actions with their reason, and
     /1\. Go to Flooded Cell — Door shut\n {2}2\. Go to Hall of Niches/,
   );
   assert.equal(actions[1].target.name, "Hall of Niches");
-  assert.match(result.stdout, /4\. Go to Strongroom — Door shut/);
+  // Sneak into Warden's Tomb (#301) sits beside Go to Warden's Tomb.
+  assert.match(result.stdout, /5\. Go to Strongroom — Door shut/);
   assert.match(
     result.stdout,
     /Typing to the Dungeon Master is off\. Choose an action by its number\./,

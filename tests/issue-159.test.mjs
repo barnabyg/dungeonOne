@@ -6,7 +6,7 @@ import test from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildFighter, rollAbilitySet } from "../dist/fighter-5e.js";
+import { buildCharacter, rollAbilitySet } from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import {
   createFifthRuntime,
@@ -21,7 +21,7 @@ const adventures = [goblinBand, ratlessTunnels];
 const END_TURN = { type: "end-turn", actorId: "pc" };
 
 const fighter = (seed) =>
-  buildFighter(
+  buildCharacter(
     "a".repeat(32),
     "Ada",
     rollAbilitySet(createSeededRandom(seed)),

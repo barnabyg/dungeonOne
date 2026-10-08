@@ -9,11 +9,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
-import {
-  buildFighter,
-  FIGHTER_DEFAULT_CHOICES,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+import { buildCharacter, validateCharacter } from "../dist/character-5e.js";
+import { FIGHTER_DEFAULT_CHOICES } from "../dist/fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
@@ -96,8 +93,8 @@ const DICE = [
   [3, 3, 3, 1],
 ];
 /** Ada with Great Weapon Fighting, holding a found longsword in both hands. */
-const sheet = validateFighter({
-  ...buildFighter("a".repeat(32), "Ada", DICE, {
+const sheet = validateCharacter({
+  ...buildCharacter("a".repeat(32), "Ada", DICE, {
     ...FIGHTER_DEFAULT_CHOICES,
     placement: {
       strength: 0,

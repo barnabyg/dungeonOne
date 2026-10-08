@@ -1,5 +1,5 @@
 /**
- * The 5e bestiary (format version 7): the shared monsters adventure modules
+ * The 5e bestiary (format version 8): the shared monsters adventure modules
  * fight, each an SRD 5.2 stat block (or a house one derived from it) under an
  * id, with the character levels it suits. A module's opponent names a
  * bestiary monster by id, or authors a one-off stat block inline. A stat
@@ -10,7 +10,9 @@
  * immunities, and give an attack a rider: extra damage on a hit and a
  * condition, after a saving throw if it names one. Every stat block gives a
  * morale DC (#237, a house rule) or `"never"` for one that never checks
- * morale; an Undead never does. Every monster has a treasure type
+ * morale; an Undead never does. Every stat block gives its passive
+ * Perception (#301): SRD 5.2's, or 10 + its Wisdom modifier for a house one,
+ * which a character sneaking up on it must meet. Every monster has a treasure type
  * (`treasure-5e.ts`, #240): what it carries for an authoring-time roll to
  * turn into loot.
  *
@@ -26,7 +28,7 @@ import {
   type ConditionKind,
   type DamageType,
 } from "./encounter-5e.js";
-import { ABILITIES, type Abilities, type Ability } from "./fighter-5e.js";
+import { ABILITIES, type Abilities, type Ability } from "./class-5e.js";
 import {
   isTreasureTypeId,
   TREASURE_TYPES,
@@ -46,7 +48,7 @@ import {
   fail,
 } from "./json-shape.js";
 
-export const FIFTH_BESTIARY_FORMAT = 7;
+export const FIFTH_BESTIARY_FORMAT = 8;
 
 /** The monster traits the engine applies. */
 export const MONSTER_TRAITS = [
@@ -89,6 +91,11 @@ export type StatBlock = Readonly<{
   abilities: Abilities;
   challengeRating: string;
   xp: number;
+  /**
+   * Its passive Perception (#301): the Stealth total a character sneaking up
+   * on it must meet.
+   */
+  passivePerception: number;
   /** Melee attacks only: ranged weapons are deferred. */
   attacks: readonly StatBlockAttack[];
   /**
@@ -271,6 +278,7 @@ export function statBlock(value: unknown, where: string): StatBlock {
       "abilities",
       "challengeRating",
       "xp",
+      "passivePerception",
       "attacks",
       "morale",
     ],
@@ -385,6 +393,12 @@ export function statBlock(value: unknown, where: string): StatBlock {
     abilities: abilities as Abilities,
     challengeRating: block.challengeRating,
     xp: integer(block.xp, `${where} xp`, 0, 155000),
+    passivePerception: integer(
+      block.passivePerception,
+      `${where} passivePerception`,
+      1,
+      30,
+    ),
     attacks,
     ...(block.multiattack === undefined
       ? {}

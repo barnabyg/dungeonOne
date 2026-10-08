@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 20) and its validator.
+ * The 5e adventure module format (format version 21) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -88,15 +88,14 @@ import {
   type PotionId,
   type TradeGoodId,
 } from "./treasure-5e.js";
+import { MAX_LEVEL, proficiencyBonus } from "./character-5e.js";
 import {
   ABILITIES,
-  FIGHTER_SKILLS,
-  MAX_LEVEL,
-  proficiencyBonus,
+  SKILLS,
   type Ability,
-  type FighterSkill,
+  type SkillId,
   type Level,
-} from "./fighter-5e.js";
+} from "./class-5e.js";
 import {
   distinct,
   exactKeys,
@@ -121,7 +120,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 20;
+export const FIFTH_ADVENTURE_FORMAT = 21;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -776,15 +775,10 @@ function approach(
         }),
   };
   if (skilled) {
-    if (
-      typeof raw.skill !== "string" ||
-      !Object.hasOwn(FIGHTER_SKILLS, raw.skill)
-    ) {
-      fail(
-        `${where} skill must be one of ${Object.keys(FIGHTER_SKILLS).join(", ")}.`,
-      );
+    if (typeof raw.skill !== "string" || !Object.hasOwn(SKILLS, raw.skill)) {
+      fail(`${where} skill must be one of ${Object.keys(SKILLS).join(", ")}.`);
     }
-    return { skill: raw.skill as FighterSkill, dc, ...modes };
+    return { skill: raw.skill as SkillId, dc, ...modes };
   }
   return { ability: ability(raw.ability, `${where} ability`), dc, ...modes };
 }

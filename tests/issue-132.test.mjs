@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { runDmTurn } from "../dist/dm-turn.js";
-import { buildFighter } from "../dist/fighter-5e.js";
+import { buildCharacter } from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import {
   createFifthRuntime,
@@ -21,7 +21,7 @@ const crypt = sealedCrypt;
 
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2), Int 10, Wis 10, Cha 10; Athletics
 // (+5) and Perception (+2); 12 HP.
-const sheet = buildFighter(
+const sheet = buildCharacter(
   "a".repeat(32),
   "Ada",
   [

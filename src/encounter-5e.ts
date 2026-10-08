@@ -6,7 +6,8 @@
  * in, and every die rolled appears in an event. A rejected action draws no
  * dice and returns the state unchanged.
  *
- * - Each combatant rolls its own initiative: d20 + its initiative bonus.
+ * - Each combatant rolls its own initiative: d20 + its initiative bonus. A
+ *   surprised combatant (#301, SRD 5.2) rolls it with disadvantage.
  *   Ties go to the higher Dexterity score, then to a seeded d20 roll-off
  *   among the combatants still tied, repeated until no two match.
  * - An attack hits when d20 + bonus meets the target's AC. A natural 20 (or
@@ -86,7 +87,7 @@
  * The state allows any number of combatants per side.
  */
 import type { Ammunition, AmmunitionId } from "./equipment-5e.js";
-import type { Ability } from "./fighter-5e.js";
+import type { Ability } from "./class-5e.js";
 import type { RandomSource } from "./random.js";
 
 export type Side = "party" | "opponents";
@@ -240,6 +241,8 @@ export type Combatant = DamageDefenses &
     /** The Dexterity score, which breaks initiative ties. */
     dexterity: number;
     initiativeBonus: number;
+    /** Surprised as the fight begins (#301): initiative with disadvantage. */
+    surprised?: true;
     /** Its saving throw bonus for each ability. */
     saves: Readonly<Record<Ability, number>>;
     attack: Weapon;
@@ -247,7 +250,7 @@ export type Combatant = DamageDefenses &
     lightAttack?: Weapon;
     /** Attacks per Attack action: 2 with Extra Attack (#287), else 1. */
     attacksPerAction?: number;
-    /** Fighter features, with the uses left of their maximum. */
+    /** Class features with limited uses, with the uses left of their maximum. */
     secondWind?: FeatureUses & Readonly<{ healing: Healing }>;
     actionSurge?: FeatureUses;
     /** Healing potions the combatant carries, which it can drink. */
@@ -300,7 +303,10 @@ export type FeatureUses = Readonly<{ uses: number; max: number }>;
 
 export type InitiativeRoll = Readonly<{
   combatantId: string;
+  /** The d20 kept: the lower of two for a surprised combatant (#301). */
   d20: number;
+  /** Present when it rolled with disadvantage for being surprised. */
+  mode?: RollMode;
   bonus: number;
   total: number;
   /** d20 roll-offs against combatants with the same total and Dexterity. */
@@ -940,15 +946,23 @@ function validateCombatants(combatants: readonly Combatant[]): void {
   }
 }
 
+/** The source a surprised combatant's initiative disadvantage names. */
+export const SURPRISED = "surprised";
+
 function rollInitiative(
   combatants: readonly Combatant[],
   random: Roller,
 ): InitiativeRoll[] {
   const rolls = combatants.map((entrant) => {
-    const d20 = random.roll(20);
+    const { d20, mode } = rollD20(
+      random,
+      [],
+      entrant.surprised === true ? [SURPRISED] : [],
+    );
     return {
       combatantId: entrant.id,
       d20,
+      ...(mode === undefined ? {} : { mode }),
       bonus: entrant.initiativeBonus,
       total: d20 + entrant.initiativeBonus,
       tieBreaks: [] as number[],

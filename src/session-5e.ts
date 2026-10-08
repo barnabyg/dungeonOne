@@ -1,5 +1,5 @@
 /**
- * A 5e adventure session and its save file (format version 26).
+ * A 5e adventure session and its save file (format version 28).
  *
  * The save holds the character as it started, the adventure module's digest,
  * the session's seed, every committed action with the dice it drew, the
@@ -24,7 +24,7 @@ import type {
 } from "./character-library-5e.js";
 import { runDmTurn, type DmModel, type DmTurnResult } from "./dm-turn.js";
 import { acquireFileLock } from "./file-lock.js";
-import { validateFighter, type FighterSheet } from "./fighter-5e.js";
+import { validateCharacter, type CharacterSheet } from "./character-5e.js";
 import { createSeededRandom, RANDOM_ALGORITHM } from "./random.js";
 import type { GameToolCall } from "./runtime-contract.js";
 import {
@@ -39,7 +39,7 @@ import {
   type ResultLine,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 26;
+export const FIFTH_SESSION_FORMAT = 28;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;
@@ -77,7 +77,7 @@ type SessionFile = Readonly<{
   kind: "dungeon-one-5e-session";
   formatVersion: typeof FIFTH_SESSION_FORMAT;
   id: string;
-  character: FighterSheet;
+  character: CharacterSheet;
   adventure: Readonly<{ id: string; digest: string }>;
   random: Readonly<{ algorithm: string; seed: number; position: number }>;
   transitions: readonly Transition[];
@@ -245,7 +245,7 @@ export class FifthSession {
     readonly id: string,
     readonly seed: number,
     adventure: FifthAdventure,
-    readonly character: FighterSheet,
+    readonly character: CharacterSheet,
     public state: FifthState,
     readonly transitions: Transition[],
     readonly history: HistoryEntry[],
@@ -481,7 +481,7 @@ export class FifthSession {
     id: string,
     seed: number,
     adventure: FifthAdventure,
-    character: FighterSheet,
+    character: CharacterSheet,
   ): Promise<FifthSession> {
     const session = FifthSession.start(path, id, seed, adventure, character);
     await session.persist();
@@ -495,7 +495,7 @@ export class FifthSession {
   static begin(
     seed: number,
     adventure: FifthAdventure,
-    character: FighterSheet,
+    character: CharacterSheet,
   ): FifthSession {
     return FifthSession.start(
       undefined,
@@ -511,14 +511,14 @@ export class FifthSession {
     id: string,
     seed: number,
     adventure: FifthAdventure,
-    character: FighterSheet,
+    character: CharacterSheet,
   ): FifthSession {
     const session = new FifthSession(
       path,
       id,
       seed,
       adventure,
-      validateFighter(character),
+      validateCharacter(character),
       createFifthRuntime(adventure, character).createSession(),
       [],
       [],
@@ -596,9 +596,9 @@ export class FifthSession {
         `${path} was started in a different version of ${adventure.title}, so this build cannot continue it. Move it aside; the file has not been changed.`,
       );
     }
-    let character: FighterSheet;
+    let character: CharacterSheet;
     try {
-      character = validateFighter(file.character);
+      character = validateCharacter(file.character);
     } catch {
       throw invalid(path);
     }

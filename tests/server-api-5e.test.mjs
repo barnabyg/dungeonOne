@@ -9,10 +9,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
-  buildFighter,
+  buildCharacter,
   defaultPlacement,
   rollAbilitySet,
-} from "../dist/fighter-5e.js";
+} from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
@@ -35,7 +35,7 @@ function firstFighter(seed) {
     .digest()
     .readUInt32LE(0);
   const dice = rollAbilitySet(createSeededRandom(stream));
-  return buildFighter("a".repeat(32), "Ada", dice, {
+  return buildCharacter("a".repeat(32), "Ada", dice, {
     ...DEFAULT_CHOICES,
     placement: defaultPlacement(dice),
   });

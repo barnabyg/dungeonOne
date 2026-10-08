@@ -2,7 +2,7 @@
 // fighter follows a fixed route of engine actions and fights each fight as
 // the release handoffs tell the owner to, or, for a browser test's seed, as
 // the browser tests click.
-import { fighterProfile } from "../../dist/fighter-5e.js";
+import { characterProfile } from "../../dist/character-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { sessionSeed } from "../../dist/session-5e.js";
@@ -10,13 +10,15 @@ import { sessionSeed } from "../../dist/session-5e.js";
 const PLAYER = "pc";
 
 /**
- * The route's shorthand as engine actions: `["move", "bothy"]` and the rest,
+ * The route's shorthand as engine actions: `["move", "bothy"]` (or
+ * `["sneak", "bothy"]`, #301) and the rest,
  * with `["force", doorId]` (#289) forcing a stuck door and
  * `["talk", topicId, approach]` (#291) asking about a topic with a check.
  */
 export function routeAction([type, target, approach]) {
   switch (type) {
     case "move":
+    case "sneak":
       return { type, destinationId: target };
     case "examine":
       return { type, targetId: target };
@@ -81,7 +83,7 @@ export function journey(
 ) {
   const runtime = createFifthRuntime(adventure, sheet);
   const random = createSeededRandom(browser ? sessionSeed(seed, 1) : seed);
-  const { maxHp } = fighterProfile(sheet);
+  const { maxHp } = characterProfile(sheet);
   const potions = new Set(
     adventure.rooms.flatMap(({ items }) =>
       items.flatMap(({ id, kind }) => (kind.startsWith("potion") ? [id] : [])),

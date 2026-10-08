@@ -11,10 +11,10 @@ import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
 import {
-  buildFighter,
-  fighterProfile,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  buildCharacter,
+  characterProfile,
+  validateCharacter,
+} from "../dist/character-5e.js";
 import {
   TEST_FIGHTER_CHOICES,
   testFighterAt,
@@ -25,10 +25,10 @@ import { lintelBarrow } from "./fixtures/modules.mjs";
 import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 
 // Ada: Str 17, Dex 14, Con 15, the mace kit; 10 XP short of level 4.
-const ada = validateFighter({ ...testFighterAt(3), xp: 2690 });
+const ada = validateCharacter({ ...testFighterAt(3), xp: 2690 });
 // Bea: an 18 on Strength, so Str 20 at level 4 with her choice still owed.
 const bea = (() => {
-  const created = buildFighter(
+  const created = buildCharacter(
     "b".repeat(32),
     "Bea",
     [
@@ -42,7 +42,7 @@ const bea = (() => {
     TEST_FIGHTER_CHOICES,
   );
   const raised = { ...created, level: 4, xp: 2700 };
-  return validateFighter({ ...raised, hp: fighterProfile(raised).maxHp });
+  return validateCharacter({ ...raised, hp: characterProfile(raised).maxHp });
 })();
 
 const stored = async (path, id) =>

@@ -16,6 +16,10 @@ _Avoid_: Player, Adventure save
 The record of a character's identity, abilities, capabilities, health, equipment, and advancement.
 _Avoid_: Player sheet, Combat profile
 
+**Class definition**:
+The data a class is made of: hit die, saving throws, skill choices, armour and weapon training, weapon masteries by level, features by level with their uses and recovery, subclasses, ability priority, default choices and starting kits. A character sheet names its class by id, and every derived number comes from its definition.
+_Avoid_: Class rules, Hard-coded Fighter
+
 **Character library**:
 The player's collection of independently saved characters, including characters not currently taking part in an adventure.
 _Avoid_: Save slots, Party
@@ -159,6 +163,18 @@ _Avoid_: Hazard
 **Ability check**:
 A d20 roll plus one ability's modifier, and the proficiency bonus when the check uses a skill the character is proficient in, against an authored DC. Each check is rolled once and its outcome remembered, so asking again never rerolls it; only an authored retry rolls it again.
 _Avoid_: Skill roll, Test
+
+**Sneaking in**:
+Entering a room where a fight waits with a Stealth check against the highest passive Perception among its opponents. Meeting it surprises every opponent; the check is remembered with that fight.
+_Avoid_: Ambush roll, Sneak attack (a Rogue feature)
+
+**Surprise**:
+Being caught unaware as a fight begins: a surprised combatant rolls initiative with disadvantage (SRD 5.2). Only the engine decides it.
+_Avoid_: Surprise round
+
+**Passive Perception**:
+A creature's constant alertness, 10 plus its Wisdom (Perception) bonus, given in every stat block; it is the DC of a Stealth check to sneak up on it.
+_Avoid_: Notice score
 
 **Retry**:
 Another try at a failed check, offered only when its adventure module authors one: after a cost, paid before the roll (damage, or a tool used up), or after a changed circumstance. Without one, a check is never tried again; asking for one changes nothing. A check whose success would only open ways that are now closed offers none: there is nothing left to try for.
