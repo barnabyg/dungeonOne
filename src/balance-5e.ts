@@ -992,13 +992,17 @@ export function playAdventure(
           : best,
       undefined,
     );
-    // A Rogue's bonus action (#307): Steady Aim, or else Hide, before an
-    // attack, for its advantage and so Sneak Attack; Hide after the attacks
-    // too, for the next turn's first.
+    // A Rogue's bonus action (#307): Steady Aim before an attack, unless
+    // already hidden, or else Hide before the action's attack (never before
+    // a Light extra attack, which may need the bonus action), for the
+    // advantage and so Sneak Attack; Hide after the attacks too, for the
+    // next turn's first.
+    const hidden = encounter.hidden.includes(PLAYER_ID);
     const aim =
       attack === undefined && light === undefined
         ? undefined
-        : (offered(views, "steady-aim")[0] ?? offered(views, "hide")[0]);
+        : ((hidden ? undefined : offered(views, "steady-aim")[0]) ??
+          (attack === undefined ? undefined : offered(views, "hide")[0]));
     return (
       aim ??
       attack ??

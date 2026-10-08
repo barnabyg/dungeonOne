@@ -1246,7 +1246,7 @@ export function playerCombatant(
     ...(profile.sneakAttack === undefined
       ? {}
       : { sneakAttack: profile.sneakAttack }),
-    ...(profile.hide === true ? { hide: stealthOf(sheet) } : {}),
+    ...(profile.cunningAction === true ? { hide: stealthOf(sheet) } : {}),
     ...(profile.steadyAim === true ? { steadyAim: true as const } : {}),
     ...(profile.fastHands === true ? { fastHands: true as const } : {}),
     // Uses start full: each adventure follows the between-adventure rest.
@@ -1333,10 +1333,6 @@ function signed(value: number): string {
   return value >= 0 ? `+ ${value}` : `− ${-value}`;
 }
 
-/**
- * "Athletics check: d20 8 + 3 + 2 proficiency = 13 against DC 15. Failure."
- * With advantage the d20s and the one kept come first.
- */
 /** A Hide event's Stealth check (#307), as a check roll. */
 function hideRoll(event: HideEvent): CheckRoll {
   return {
@@ -1355,6 +1351,10 @@ function hideRoll(event: HideEvent): CheckRoll {
   };
 }
 
+/**
+ * "Athletics check: d20 8 + 3 + 2 proficiency = 13 against DC 15. Failure."
+ * With advantage the d20s and the one kept come first.
+ */
 function checkText(roll: CheckRoll, band?: Band): string {
   const d20 =
     roll.mode === undefined

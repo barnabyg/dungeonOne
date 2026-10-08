@@ -73,7 +73,7 @@ test("table: a level-2 Rogue gains Cunning Action (Hide), and keeps 1d6 Sneak At
   assert.equal(profile.maxHp, 17);
   assert.equal(profile.proficiencyBonus, 2);
   assert.deepEqual(profile.sneakAttack, { dice: 1, sides: 6 });
-  assert.equal(profile.hide, true);
+  assert.equal(profile.cunningAction, true);
   assert.equal(profile.steadyAim, undefined);
   assert.equal(profile.fastHands, undefined);
   assert.equal(profile.secondStoryWork, undefined);
@@ -108,7 +108,7 @@ test("table: a level-3 Rogue gains Steady Aim, 2d6 Sneak Attack and the Thief's 
   assert.deepEqual(profile.sneakAttack, { dice: 2, sides: 6 });
   assert.deepEqual(
     [
-      profile.hide,
+      profile.cunningAction,
       profile.steadyAim,
       profile.fastHands,
       profile.secondStoryWork,
@@ -520,7 +520,6 @@ test("a module marks climbing and jumping only on Strength checks", () => {
     () => validateModule(yard),
     /approach 2 movement marks a climb or jump, which needs a Strength check/u,
   );
-  wall.check.approaches[1].movement = undefined;
   delete wall.check.approaches[1].movement;
   wall.check.approaches[0].movement = "swim";
   assert.throws(() => validateModule(yard), /movement must be climb or jump/u);

@@ -2188,10 +2188,14 @@ export function act(
       }
       // The best passive Perception among the foes still in the fight; the
       // first of them in initiative order on a tie.
-      const watcher = legalTargets(state, actor.id).reduce((best, foe) =>
-        (foe.passivePerception ?? 10) > (best.passivePerception ?? 10)
-          ? foe
-          : best,
+      // An ongoing fight always has a foe still in it.
+      const [first, ...rest] = legalTargets(state, actor.id);
+      const watcher = rest.reduce(
+        (best, foe) =>
+          (foe.passivePerception ?? 10) > (best.passivePerception ?? 10)
+            ? foe
+            : best,
+        first!,
       );
       const dc = watcher.passivePerception ?? 10;
       // Hide is a Dexterity (Stealth) check: untrained armour and poison

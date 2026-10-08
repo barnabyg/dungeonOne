@@ -301,8 +301,8 @@ bonus action for advantage on your next attack this turn); a turn has room for
 only one of them. At level 3 a Rogue becomes a Thief: Sneak Attack grows to
 2d6, **Fast Hands** lets the bonus action make a second weapon change in a
 turn, and **Second-Story Work** climbs and jumps with Dexterity where an
-adventure marks a check as a climb or a jump. From level 5, Extra Attack makes the Attack action
-two attacks: after the first, each living opponent's button reads **Second
+adventure marks a check as a climb or a jump. From level 5, Extra Attack makes
+the Attack action two attacks: after the first, each living opponent's button reads **Second
 attack on** its name, so the two can go to different opponents. A mastered weapon's mastery works while you wield
 it: Sap gives a creature it hits disadvantage on its next attack, Vex gives you
 advantage on your next attack against it, Graze deals damage even on a miss,

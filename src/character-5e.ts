@@ -1251,7 +1251,7 @@ export type CharacterProfile = Readonly<{
   /** Action Surge's uses, or 0. */
   actionSurgeUses: number;
   /** Cunning Action (#307): it can Hide as a bonus action. */
-  hide?: true;
+  cunningAction?: true;
   /** Steady Aim (#307): a bonus action for advantage on its next attack. */
   steadyAim?: true;
   /** Fast Hands (#307): a second object interaction takes the bonus action. */
@@ -1475,7 +1475,7 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
           },
         }),
     actionSurgeUses: surge?.feature.uses?.[level] ?? 0,
-    ...(has("cunning-action") ? { hide: true as const } : {}),
+    ...(has("cunning-action") ? { cunningAction: true as const } : {}),
     ...(has("steady-aim") ? { steadyAim: true as const } : {}),
     ...(has("fast-hands") ? { fastHands: true as const } : {}),
     ...(has("second-story-work") ? { secondStoryWork: true as const } : {}),
