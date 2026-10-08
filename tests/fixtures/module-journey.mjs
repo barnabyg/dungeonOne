@@ -32,6 +32,8 @@ export function routeAction([type, target, approach]) {
       return { type, doorId: target };
     case "talk":
       return { type, topicId: target, approach };
+    case "react":
+      return { type, option: target };
     default:
       throw new Error(`no route action ${type}`);
   }

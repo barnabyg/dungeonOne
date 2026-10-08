@@ -327,6 +327,44 @@ export const lurkingTunnels = validateModule(
   structuredClone(lurkingTunnelsFile),
 );
 
+/**
+ * Reaction rolls (#304): the rat tunnels as _The Wary Tunnels_, level 1,
+ * hard, whose Giant Rat reacts to the character: unfriendly it only fights,
+ * uncertain and indifferent it may fight or let the character pass, and
+ * friendly it lets the character pass, for 15 XP. As in _The Rat Run_, the
+ * den, its goblin gone, is the way out, so the gate's required path goes
+ * through the cellar.
+ */
+export const waryTunnelsFile = (() => {
+  const module = structuredClone(ratRunFile);
+  module.id = "wary-tunnels";
+  module.title = "The Wary Tunnels";
+  delete module.encounters[0].bypassXp;
+  module.encounters[0].reaction = {
+    peacefulXp: 15,
+    bands: {
+      unfriendly: {
+        options: ["attack"],
+        text: "The rat hisses and bares its yellow teeth.",
+      },
+      uncertain: {
+        options: ["attack", "let-pass"],
+        text: "The rat freezes, whiskers twitching.",
+      },
+      indifferent: {
+        options: ["let-pass", "attack"],
+        text: "The rat goes back to gnawing at a sack.",
+      },
+      friendly: {
+        options: ["let-pass"],
+        text: "The rat sniffs at your boots and wanders off.",
+      },
+    },
+  };
+  return module;
+})();
+export const waryTunnels = validateModule(structuredClone(waryTunnelsFile));
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,
@@ -344,4 +382,5 @@ export const FIXTURE_MODULES = [
   tollYard,
   ratRun,
   lurkingTunnels,
+  waryTunnels,
 ];

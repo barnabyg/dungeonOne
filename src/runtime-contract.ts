@@ -135,6 +135,7 @@ export type FifthToolName =
   | "light_attack"
   | "sneak"
   | "ambush"
+  | "react"
   | "end_turn"
   | "force_door"
   | "pick_lock"

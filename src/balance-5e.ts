@@ -51,6 +51,7 @@ import {
   type Level,
 } from "./class-5e.js";
 import { createSeededRandom } from "./random.js";
+import { PEACEFUL_OPTIONS, type ReactionOption } from "./reaction-5e.js";
 import {
   isWeaponId,
   STARTING_KITS,
@@ -661,6 +662,15 @@ const HEAL_BELOW: Readonly<Record<PlayStyle, number>> = {
 const CAREFUL: readonly PlayStyle[] = ["cautious", "stealth-first"];
 
 /**
+ * How a run answers a reaction roll's band (#304): `attack`, the default,
+ * attacks whenever the band offers it; `peaceful` takes a peaceful option
+ * (letting the character pass) whenever the band offers one. Each takes the
+ * other kind of option when its own is not offered.
+ */
+export const REACTION_POLICIES = ["attack", "peaceful"] as const;
+export type ReactionPolicy = (typeof REACTION_POLICIES)[number];
+
+/**
  * Every kind of action the harness knows: the styles play them, or pass
  * them over. A kind missing here fails to compile; one the runtime offers
  * that the harness has never heard of fails the run as `unsupported-action`.
@@ -670,6 +680,8 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   // Only stealth-first sneaks, and springs an ambush from unseen (#302).
   sneak: true,
   ambush: true,
+  // A reaction's options, chosen by the run's reaction policy (#304).
+  react: true,
   "light-attack": true,
   use: true,
   "second-wind": true,
@@ -740,6 +752,8 @@ export type RunRecord = Readonly<{
   bypassed: number;
   /** How many fights lurking opponents surprised the character in (#303). */
   surprised: number;
+  /** How many encounters ended peacefully after a reaction roll (#304). */
+  peaceful: number;
   /**
    * How a surviving ending settles the character (what a career carries to
    * its next module, #290); absent after a defeat.
@@ -779,7 +793,8 @@ function checksMade(
 
 /**
  * Plays one run of `runtime`'s adventure in `style` with dice from `seed`,
- * starting as a browser session does, with `begin`. Throws a `BalanceError`
+ * starting as a browser session does, with `begin`, answering reaction rolls
+ * (#304) by `reactions`, `attack` by default. Throws a `BalanceError`
  * when an opponent has a trait the engine does not apply (the run would not
  * be the fight a player meets), the runtime offers an action no style can
  * play, the run takes more than `stepLimit` actions, or it is stranded:
@@ -789,7 +804,10 @@ export function playAdventure(
   runtime: FifthRuntime,
   style: PlayStyle,
   seed: number,
-  { stepLimit = 2000 }: Readonly<{ stepLimit?: number }> = {},
+  {
+    stepLimit = 2000,
+    reactions = "attack",
+  }: Readonly<{ stepLimit?: number; reactions?: ReactionPolicy }> = {},
 ): RunRecord {
   const { adventure } = runtime;
   for (const { opponents } of adventure.encounters) {
@@ -1021,6 +1039,17 @@ export function playAdventure(
   const exploreChoice = (
     views: readonly ActionView[],
   ): ActionView | undefined => {
+    // Facing a reaction (#304), the policy's kind of option if offered.
+    const answers = offered(views, "react");
+    if (answers.length > 0) {
+      const peaceful = answers.filter(({ target }) =>
+        PEACEFUL_OPTIONS.includes(target!.id as ReactionOption),
+      );
+      const attack = answers.filter(({ target }) => target!.id === "attack");
+      return reactions === "peaceful"
+        ? (peaceful[0] ?? attack[0])
+        : (attack[0] ?? peaceful[0]);
+    }
     const room = roomById.get(state.roomId)!;
     const searchable = new Set([
       ...room.features.map(({ id }) => id),
@@ -1055,7 +1084,11 @@ export function playAdventure(
       const position: Position = {
         roomId: state.roomId,
         inventory: state.inventory,
-        clearedEncounterIds: state.clearedEncounterIds,
+        // An encounter ended peacefully (#304) has no fight left, like one won.
+        clearedEncounterIds: [
+          ...state.clearedEncounterIds,
+          ...state.peacefulEncounterIds,
+        ],
         blockedPassageIds: blocked,
       };
       const enterable = (targets: ReadonlySet<string>) => (id: string) =>
@@ -1146,6 +1179,7 @@ export function playAdventure(
     checks: state.checks.length,
     bypassed: state.bypassedEncounterIds.length,
     surprised: state.lurks.filter(({ roll }) => roll.success).length,
+    peaceful: state.peacefulEncounterIds.length,
     ...(settlement === undefined ? {} : { settlement }),
   };
 }
@@ -1478,6 +1512,22 @@ export type StealthFirstReport = Omit<SurvivalCheck, "ok" | "required"> &
     meanXp: number;
   }>;
 
+/**
+ * The weakest character's cautious runs answering reaction rolls (#304) by
+ * one policy, with each kit at each recommended level, on seeded checks:
+ * reported, never judged. The `attack` runs are the judged survival runs.
+ * `rate`, `kit` and `level` are the kit and level it survives least with;
+ * the completion rate, encounters ended peacefully and XP are over every
+ * run.
+ */
+export type ReactionPolicyReport = Omit<SurvivalCheck, "ok" | "required"> &
+  Readonly<{
+    policy: ReactionPolicy;
+    completionRate: number;
+    meanPeaceful: number;
+    meanXp: number;
+  }>;
+
 /** How often one attack kills each ordinary enemy, against the cap. */
 export type OneHitKillCheck = Readonly<{
   ok: boolean;
@@ -1547,6 +1597,11 @@ export type GateVerdict = Readonly<{
   xp: XpCheck;
   /** Reported, not judged (#302); absent when not asked for. */
   stealthFirst?: StealthFirstReport;
+  /**
+   * Reported, not judged (#304): each reaction policy, for a module with a
+   * reaction-eligible encounter; absent otherwise, or when not asked for.
+   */
+  reactions?: readonly ReactionPolicyReport[];
 }>;
 
 /**
@@ -1560,6 +1615,7 @@ export type GateMeasures = Readonly<{
   oneHitKill: Omit<OneHitKillCheck, "ok" | "cap" | "overCap">;
   xp: XpCheck;
   stealthFirst?: StealthFirstReport;
+  reactions?: readonly ReactionPolicyReport[];
 }>;
 
 export type GateResult =
@@ -1579,6 +1635,11 @@ export type GateOptions = Pick<
      * default. They are never judged, so `passesGate` leaves them out.
      */
     reportStealth?: boolean;
+    /**
+     * Whether to play and report both reaction policies (#304) for a module
+     * with a reaction-eligible encounter; true by default. Never judged.
+     */
+    reportReactions?: boolean;
   }>;
 
 /** One way the strongest character may be armed, as the gate tries it. */
@@ -1687,6 +1748,7 @@ export function gateAdventure(
     sampleSeed,
     stepLimit,
     reportStealth = true,
+    reportReactions = true,
   }: GateOptions = {},
 ): GateResult {
   const { min, max } = adventure.recommendedLevels;
@@ -1701,12 +1763,17 @@ export function gateAdventure(
       (_, index) => (min + index) as Level,
     );
     const limit = stepLimit === undefined ? {} : { stepLimit };
+    // Both reaction policies are reported where a reaction can be rolled.
+    const reacting =
+      reportReactions &&
+      adventure.encounters.some(({ reaction }) => reaction !== undefined);
     /**
      * The weakest character's cautious runs with each kit at each level, on
      * seeded checks and with every check failing. A seeded run that made no
      * check is the always-fail run on its seed too, so only runs that made
      * one are played again. Beside them, its stealth-first runs on seeded
-     * checks (#302).
+     * checks (#302), and its cautious runs taking the peaceful option of a
+     * reaction roll (#304).
      */
     const played = levels.flatMap((level) =>
       KITS.map((kit) => {
@@ -1726,6 +1793,12 @@ export function gateAdventure(
             stealth: reportStealth
               ? playAdventure(seeded, STEALTH_STYLE, seed, limit)
               : run,
+            peaceful: reacting
+              ? playAdventure(seeded, GATE_STYLE, seed, {
+                  ...limit,
+                  reactions: "peaceful",
+                })
+              : run,
           };
         });
         return { kit, level, runs };
@@ -1733,7 +1806,7 @@ export function gateAdventure(
     );
     const survivalOf = (
       checks: CheckPolicy,
-      branch: "seeded" | "failing" | "stealth",
+      branch: "seeded" | "failing" | "stealth" | "peaceful",
       style: PlayStyle = GATE_STYLE,
     ): GateMeasures["survival"] => {
       const kits = played.map(({ kit, level, runs }) => ({
@@ -1773,6 +1846,26 @@ export function gateAdventure(
           meanXp: mean(stealthy.map(({ xp }) => xp)),
         }
       : undefined;
+    const policyReport = (
+      policy: ReactionPolicy,
+      branch: "seeded" | "peaceful",
+    ): ReactionPolicyReport => {
+      const runs = played.flatMap(({ runs: each }) =>
+        each.map((run) => run[branch]),
+      );
+      return {
+        ...survivalOf("seeded", branch),
+        policy,
+        completionRate:
+          runs.filter(({ outcome }) => outcome === objective).length /
+          runs.length,
+        meanPeaceful: mean(runs.map(({ peaceful }) => peaceful)),
+        meanXp: mean(runs.map(({ xp }) => xp)),
+      };
+    };
+    const reactions: readonly ReactionPolicyReport[] | undefined = reacting
+      ? [policyReport("attack", "seeded"), policyReport("peaceful", "peaceful")]
+      : undefined;
 
     // Every weapon the module places or a merchant sells.
     const placed = [
@@ -1809,11 +1902,13 @@ export function gateAdventure(
 
     const available =
       adventure.encounters.reduce(
-        (sum, { opponents, bypassXp }) =>
+        (sum, { opponents, bypassXp, reaction }) =>
           sum +
-          // An encounter is credited once: won, or slipped past (#302).
+          // An encounter is credited once: won, slipped past (#302) or
+          // ended peacefully (#304).
           Math.max(
             bypassXp ?? 0,
+            reaction?.peacefulXp ?? 0,
             opponents.reduce(
               (total, { statBlock, surrender }) =>
                 total +
@@ -1876,6 +1971,7 @@ export function gateAdventure(
           oneHitKill,
           xp,
           ...(stealthFirst === undefined ? {} : { stealthFirst }),
+          ...(reactions === undefined ? {} : { reactions }),
         },
         adventure.difficulty,
       ),
@@ -1942,6 +2038,9 @@ export function gateVerdictAt(
     ...(measures.stealthFirst === undefined
       ? {}
       : { stealthFirst: measures.stealthFirst }),
+    ...(measures.reactions === undefined
+      ? {}
+      : { reactions: measures.reactions }),
   };
 }
 
@@ -1956,7 +2055,10 @@ export function passesGate(adventure: FifthAdventure): boolean {
   const key = JSON.stringify(adventure);
   let passed = gated.get(key);
   if (passed === undefined) {
-    const result = gateAdventure(adventure, { reportStealth: false });
+    const result = gateAdventure(adventure, {
+      reportStealth: false,
+      reportReactions: false,
+    });
     passed = result.ok && result.verdict.qualified;
     gated.set(key, passed);
   }
@@ -2008,5 +2110,9 @@ export function renderGateResult(
       : [
           `  Stealth-first, reported (not judged): the level ${stealth.level}, ${stealth.percentile}th percentile character playing ${stealth.style} survived ${percent(stealth.rate)} of ${stealth.runs} runs with its weakest kit, ${stealth.kit} (${kits(stealth)}); over every kit and level it completed ${percent(stealth.completionRate)}, slipped past ${decimal(stealth.meanBypassed)} fights and earned ${decimal(stealth.meanXp)} XP a run.`,
         ]),
+    ...(verdict.reactions ?? []).map(
+      (report) =>
+        `  Reactions, ${report.policy === "attack" ? "always attacking" : "taking the peaceful option"}, reported (not judged): the level ${report.level}, ${report.percentile}th percentile character playing ${report.style} survived ${percent(report.rate)} of ${report.runs} runs with its weakest kit, ${report.kit} (${kits(report)}); over every kit and level it completed ${percent(report.completionRate)}, ended ${decimal(report.meanPeaceful)} encounters peacefully and earned ${decimal(report.meanXp)} XP a run.`,
+    ),
   ].join("\n");
 }

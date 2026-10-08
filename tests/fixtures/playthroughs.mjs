@@ -117,6 +117,8 @@ function madeAction({ action, target }) {
       return { type: "talk", topicId: target.id };
     case "leave":
       return { type: "leave", roomId: target.id };
+    case "react":
+      return { type: "react", option: target.id };
     default:
       // A new kind must be mapped above, not guessed at.
       throw new Error(`no engine action for ${action}`);

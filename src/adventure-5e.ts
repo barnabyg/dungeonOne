@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 23) and its validator.
+ * The 5e adventure module format (format version 24) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -35,7 +35,10 @@
  * An encounter may award XP for sneaking past it unfought (#302), and may let
  * the character sneak up on it again after slipping past it once. An
  * encounter may be lurking (#303): its opponents lie in wait, and may
- * surprise the character as it comes in.
+ * surprise the character as it comes in. An encounter may be
+ * reaction-eligible (#304): its reaction authors the options each band of a
+ * reaction roll offers, and any XP for an encounter ended peacefully; it may
+ * name the opponents who react, and none of them may be mindless.
  *
  * A feature may have a check made when it is first examined (#281). Every
  * authored check (a feature's, a door's force, pick or break, a trap's
@@ -122,9 +125,16 @@ import {
   type StatBlock,
 } from "./bestiary-5e.js";
 
+import {
+  AUTHORED_REACTION_BANDS,
+  REACTION_OPTIONS,
+  type AuthoredReactionBand,
+  type ReactionOption,
+} from "./reaction-5e.js";
+
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 23;
+export const FIFTH_ADVENTURE_FORMAT = 24;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -145,6 +155,11 @@ export type FifthOpponent = Readonly<{
    * fleeing, and becomes a creature to talk to once its fight is won.
    */
   surrender?: FifthSurrender;
+  /**
+   * It reacts to the character (#304): only those marked react, or, when
+   * none is, every opponent of a reaction-eligible encounter.
+   */
+  reacts?: true;
 }>;
 
 /**
@@ -178,6 +193,28 @@ export type FifthEncounter = Readonly<{
    * Stealth against its passive Perception, and surprise it if they win.
    */
   lurking?: true;
+  /**
+   * Reaction-eligible (#304): when its fight would begin with no one
+   * surprised, a reaction roll picks a band, and the band offers these
+   * options. Off when left out.
+   */
+  reaction?: FifthReaction;
+}>;
+
+/**
+ * A reaction-eligible encounter's reaction (#304): the options each band but
+ * hostile (which always fights) offers, with optional words for it, and the
+ * XP for ending the encounter peacefully, credited once on surviving
+ * completion; none when left out.
+ */
+export type FifthReaction = Readonly<{
+  bands: Readonly<
+    Record<
+      AuthoredReactionBand,
+      Readonly<{ options: readonly ReactionOption[]; text?: string }>
+    >
+  >;
+  peacefulXp?: number;
 }>;
 
 /**
@@ -1098,6 +1135,67 @@ export function validateFifthAdventure(
   }
 }
 
+/**
+ * A reaction-eligible encounter's reaction (#304): each band but hostile
+ * authors 1–2 distinct options and optional words; hostile always fights,
+ * so it authors none.
+ */
+function reactionOf(value: unknown, where: string): FifthReaction {
+  const raw = knownKeys(value, ["bands"], ["peacefulXp"], where);
+  if (isRecord(raw.bands) && "hostile" in raw.bands) {
+    fail(`${where} band hostile always fights, so it authors no options.`);
+  }
+  const bands = knownKeys(
+    raw.bands,
+    AUTHORED_REACTION_BANDS,
+    [],
+    `${where} bands`,
+  );
+  const authored = (band: AuthoredReactionBand) => {
+    const on = `${where} band ${band}`;
+    const entry = knownKeys(bands[band], ["options"], ["text"], on);
+    if (Array.isArray(entry.options) && entry.options.length === 0) {
+      fail(`${on} authors no option: give it at least one.`);
+    }
+    const options = list(
+      entry.options,
+      `${on} options`,
+      REACTION_OPTIONS.length,
+    ).map((option) => {
+      if (!REACTION_OPTIONS.includes(option as ReactionOption)) {
+        fail(
+          `${on} option ${String(option)} is not one of ${REACTION_OPTIONS.join(", ")}.`,
+        );
+      }
+      return option as ReactionOption;
+    });
+    distinct(
+      options,
+      (option) => option,
+      (option) => `${on} offers ${option} twice.`,
+    );
+    return {
+      options,
+      ...(entry.text === undefined
+        ? {}
+        : { text: text(entry.text, `${on} text`) }),
+    };
+  };
+  return {
+    bands: {
+      unfriendly: authored("unfriendly"),
+      uncertain: authored("uncertain"),
+      indifferent: authored("indifferent"),
+      friendly: authored("friendly"),
+    },
+    ...(raw.peacefulXp === undefined
+      ? {}
+      : {
+          peacefulXp: integer(raw.peacefulXp, `${where} peacefulXp`, 1, 10000),
+        }),
+  };
+}
+
 function validateModule(
   value: unknown,
   bestiary: FifthBestiary,
@@ -1226,7 +1324,7 @@ function validateModule(
       const encounter = knownKeys(
         entry,
         ["id", "opponents", "defeatEndingId"],
-        ["victoryEndingId", "bypassXp", "sneakAgain", "lurking"],
+        ["victoryEndingId", "bypassXp", "sneakAgain", "lurking", "reaction"],
         where,
       );
       if (encounter.sneakAgain !== undefined && encounter.sneakAgain !== true) {
@@ -1246,20 +1344,38 @@ function validateModule(
           ? knownKeys(
               raw,
               ["id", "monster"],
-              ["name", "description", "boss", "statBlock", "surrender"],
+              [
+                "name",
+                "description",
+                "boss",
+                "statBlock",
+                "surrender",
+                "reacts",
+              ],
               at,
             )
           : knownKeys(
               raw,
               ["id", "name", "description", "statBlock"],
-              ["boss", "surrender"],
+              ["boss", "surrender", "reacts"],
               at,
             );
         if (opponent.boss !== undefined && opponent.boss !== true) {
           fail(`${at} boss must be true, or left out.`);
         }
+        if (opponent.reacts !== undefined && opponent.reacts !== true) {
+          fail(`${at} reacts must be true, or left out.`);
+        }
         const opponentId = id(opponent.id, `${at} id`);
-        const boss = opponent.boss === true ? { boss: true as const } : {};
+        if (opponent.reacts === true && encounter.reaction === undefined) {
+          fail(
+            `${at} (${opponentId}) reacts, but ${where} has no reaction: author one, with each band's options.`,
+          );
+        }
+        const boss = {
+          ...(opponent.boss === true ? { boss: true as const } : {}),
+          ...(opponent.reacts === true ? { reacts: true as const } : {}),
+        };
         /** Its surrender, if authored, for a monster that checks morale. */
         const yielding = (block: StatBlock) => {
           if (opponent.surrender === undefined) {
@@ -1345,6 +1461,25 @@ function validateModule(
       if (opponents.some(({ id: opponentId }) => opponentId === "pc")) {
         fail(`${where} opponent id pc is reserved for the player character.`);
       }
+      const reaction =
+        encounter.reaction === undefined
+          ? undefined
+          : reactionOf(encounter.reaction, `${where} reaction`);
+      if (reaction !== undefined) {
+        if (encounter.victoryEndingId !== undefined) {
+          fail(
+            `${where} is reaction-eligible, but its fight ends the adventure: it could never be won once its opponents let the character pass.`,
+          );
+        }
+        // Mindless opponents (undead, or never checking morale) never react.
+        for (const opponent of reactors(opponents)) {
+          if (isMindless(opponent.statBlock)) {
+            fail(
+              `${where} opponent ${opponent.id} is mindless (undead, or its morale is "never"), so it can't be reaction-eligible.`,
+            );
+          }
+        }
+      }
       return {
         id: id(encounter.id, `${where} id`),
         opponents,
@@ -1370,6 +1505,7 @@ function validateModule(
             }),
         ...(encounter.sneakAgain === true ? { sneakAgain: true as const } : {}),
         ...(encounter.lurking === true ? { lurking: true as const } : {}),
+        ...(reaction === undefined ? {} : { reaction }),
       };
     },
   );
@@ -2310,6 +2446,26 @@ export function statBlockInitiative(block: StatBlock): number {
  * A monster's Stealth bonus (#303): its stat block's, or else its Dexterity
  * modifier.
  */
+/**
+ * Whether a monster is mindless (#304): an Undead, or any stat block whose
+ * morale is "never", the mark the bestiary gives undead and mindless
+ * monsters. A mindless opponent never reacts.
+ */
+export function isMindless(block: Pick<StatBlock, "type" | "morale">): boolean {
+  return /^undead/iu.test(block.type) || block.morale === "never";
+}
+
+/**
+ * The opponents of a reaction-eligible encounter who react (#304): those
+ * marked `reacts`, or every one when none is.
+ */
+export function reactors<T extends Pick<FifthOpponent, "reacts">>(
+  opponents: readonly T[],
+): readonly T[] {
+  const marked = opponents.filter(({ reacts }) => reacts === true);
+  return marked.length === 0 ? opponents : marked;
+}
+
 export function statBlockStealth(
   block: Pick<StatBlock, "stealth" | "abilities">,
 ): number {

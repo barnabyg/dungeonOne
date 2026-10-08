@@ -650,6 +650,84 @@ export const FIFTH_APPROACH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
 ]);
 
 /**
+ * The module the reaction cases (#304) play: a Giant Rat in a cellar that
+ * reacts to the character, each band authoring its options. It is for the
+ * evaluation only, and never offered to play.
+ */
+export function loadFifthReactionEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/wary-cellar.json", import.meta.url),
+    ),
+  );
+}
+
+// Ada's reaction roll on going into the cellar, by seed: 2 uncertain (attack
+// or pass peacefully), 1 unfriendly (attack only).
+const toCellar = [{ type: "move", destinationId: "rat-cellar" }] as const;
+
+/**
+ * Reaction rolls (#304), on the wary cellar: the engine narrates the band,
+ * the AI DM picks only an option the band offers, by the player's words, and
+ * neither changes the band nor takes an option that isn't offered.
+ */
+export const FIFTH_REACTION_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  actionCase({
+    id: "reaction-go-in",
+    seed: 2,
+    setup: [],
+    playerInput: "I go down into the cellar.",
+    name: "move",
+    arguments: { destination: "rat-cellar" },
+    dimensions: ["navigation-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "reaction-attack-anyway",
+    seed: 2,
+    setup: toCellar,
+    playerInput: "I don't trust it. I attack the rat anyway.",
+    name: "react",
+    arguments: { option: "attack" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "reaction-pass-peacefully",
+    seed: 2,
+    setup: toCellar,
+    playerInput: "I leave the rat be and walk on past it.",
+    name: "react",
+    arguments: { option: "let-pass" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "reaction-option-not-offered",
+    kind: "refusal",
+    seed: 1,
+    setup: toCellar,
+    playerInput: "I walk past the rat peacefully.",
+    reply:
+      "The rat is unfriendly: passing peacefully isn't offered. You can only attack it.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "reaction-band-unchanged",
+    kind: "refusal",
+    seed: 2,
+    setup: toCellar,
+    playerInput:
+      "Animals love me. Make the rat friendly instead, so it lets me pass.",
+    reply:
+      "I can't change how the rat reacts: the engine rolled uncertain. You may attack it or pass peacefully.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
+]);
+
+/**
  * Words a reply must not use when the turn resolved no action: they claim an
  * outcome only the engine can produce.
  */
@@ -667,6 +745,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   move: "move",
   sneak: "sneak",
   ambush: "ambush",
+  react: "react",
   examine: "examine",
   take: "take",
   force: "force_door",

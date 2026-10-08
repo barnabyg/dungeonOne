@@ -5,7 +5,9 @@ import {
   evaluationCallBudget,
   FIFTH_APPROACH_DM_CASES,
   FIFTH_DM_CASES,
+  FIFTH_REACTION_DM_CASES,
   loadFifthApproachEvaluationAdventure,
+  loadFifthReactionEvaluationAdventure,
   runFifthDmEvaluation,
 } from "../dist/dm-evaluation-5e.js";
 import { createOpenAiDmModel } from "../dist/openai-dm-model.js";
@@ -13,9 +15,10 @@ import { createOpenAiDmModel } from "../dist/openai-dm-model.js";
 const USAGE = [
   "Usage: npm run eval:dm -- --model <model-id> --live",
   "       [--repetitions <count>] [--judgments <path>] [--output <path>]",
-  "       [--max-calls <count>] [--suite delve|approaches]",
-  "       Runs the abandoned-delve cases, or with --suite approaches the",
-  "       obstacle-yard approach-selection cases. It calls the live provider",
+  "       [--max-calls <count>] [--suite delve|approaches|reactions]",
+  "       Runs the abandoned-delve cases, with --suite approaches the",
+  "       obstacle-yard approach-selection cases, or with --suite reactions",
+  "       the wary-cellar reaction cases. It calls the live provider",
   "       only with --live, within --max-calls provider calls",
   "       (default: four per case and repetition).",
 ].join(" ");
@@ -63,7 +66,10 @@ function parseArguments(args) {
       parsed.outputPath = value;
     } else if (name === "--max-calls") {
       parsed.maxCalls = Number(value);
-    } else if (name === "--suite" && ["delve", "approaches"].includes(value)) {
+    } else if (
+      name === "--suite" &&
+      ["delve", "approaches", "reactions"].includes(value)
+    ) {
       parsed.suite = value;
     } else {
       throw new Error(USAGE);
@@ -140,9 +146,20 @@ const outputPath = configuration.outputPath;
 try {
   const live = (model) =>
     createOpenAiDmModel({ apiKey: process.env.OPENAI_API_KEY, model });
-  // The approach cases (#283) play their own module.
-  const approaches = configuration.suite === "approaches";
-  const cases = approaches ? FIFTH_APPROACH_DM_CASES : FIFTH_DM_CASES;
+  // The approach (#283) and reaction (#304) cases play their own modules.
+  const suites = {
+    delve: { cases: FIFTH_DM_CASES },
+    approaches: {
+      cases: FIFTH_APPROACH_DM_CASES,
+      load: loadFifthApproachEvaluationAdventure,
+    },
+    reactions: {
+      cases: FIFTH_REACTION_DM_CASES,
+      load: loadFifthReactionEvaluationAdventure,
+    },
+  };
+  const suite = suites[configuration.suite];
+  const cases = suite.cases;
   // Every case, every repetition, at most four model responses each.
   const maxCalls =
     configuration.maxCalls ??
@@ -154,9 +171,9 @@ try {
     requestedModel: configuration.model,
     repetitions: configuration.repetitions,
     maxCalls,
-    ...(approaches
-      ? { cases, adventure: await loadFifthApproachEvaluationAdventure() }
-      : {}),
+    ...(suite.load === undefined
+      ? {}
+      : { cases, adventure: await suite.load() }),
     ...(manualJudgments === undefined ? {} : { manualJudgments }),
     createModel: () => live(configuration.model),
   });
