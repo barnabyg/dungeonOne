@@ -1,6 +1,6 @@
 # D&D 5e Expansion — Implementation Plan (Increments 11–18)
 
-Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. Update, 6 October 2026: increment 12 is published as GitHub issues #206–#211 (see the [increment 12 ticket proposal](increment-12-ticket-proposal.md)), and is done: #211 released _The Tinker's Toll_ with a merchant and found gear, with the [increment 12 player handoff](docs/acceptance/increment-12-release.md). Increment 13 is published as GitHub issues #231–#241 (see the [increment 13 ticket proposal](increment-13-ticket-proposal.md)), and is done: #241 released _The Silvervein Mine_ with bestiary encounters and treasure-type loot, with the [increment 13 player handoff](docs/acceptance/increment-13-release.md). Update, 8 October 2026: increment 14 is published as GitHub issues #280–#291 (see the [increment 14 ticket proposal](increment-14-ticket-proposal.md)). It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
+Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. Update, 6 October 2026: increment 12 is published as GitHub issues #206–#211 (see the [increment 12 ticket proposal](increment-12-ticket-proposal.md)), and is done: #211 released _The Tinker's Toll_ with a merchant and found gear, with the [increment 12 player handoff](docs/acceptance/increment-12-release.md). Increment 13 is published as GitHub issues #231–#241 (see the [increment 13 ticket proposal](increment-13-ticket-proposal.md)), and is done: #241 released _The Silvervein Mine_ with bestiary encounters and treasure-type loot, with the [increment 13 player handoff](docs/acceptance/increment-13-release.md). Update, 8 October 2026: increment 14 is published as GitHub issues #280–#291 (see the [increment 14 ticket proposal](increment-14-ticket-proposal.md)), and is done: #291 released _The Thornwood Lodge_, with the [increment 14 player handoff](docs/acceptance/increment-14-release.md). Increment 15 is published as GitHub issues #300–#311 (see the [increment 15 ticket proposal](increment-15-ticket-proposal.md)). It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
 
 Baseline: `main` at `f68d221`.
 
@@ -608,6 +608,8 @@ Published as issues #280–#291, reworked into twelve slices; see the [increment
 
 **Playable result:** encounters begin with surprise and reactions. Not every monster attacks, and a sneaky character can avoid fights or strike first. A Rogue joins the Fighter.
 
+Published as issues #300–#311, reworked into twelve slices; see the [increment 15 ticket proposal](increment-15-ticket-proposal.md).
+
 ### 15.1 Roll surprise and allow sneaking past or ambushing
 
 **What to build.** An encounter-opening procedure using 2024 rules: a Stealth check against passive Perception, and a surprised creature has disadvantage on initiative. Sneaking lets the character avoid, ambush or approach an encounter. Stealth disadvantage comes from armour data (12.1).
@@ -788,6 +790,18 @@ Needs an ADR: a fourth record, the **campaign**, separate from character, advent
 | Graded check sites | Doors, traps and topics use the same graded model as feature checks                                                                                                                                  | #280, #281       |
 | Level 4 choices    | Settling credits the level; the level-up card asks for the ASI and fourth weapon mastery, and the character can't start another adventure until both are chosen                                      | #286             |
 | Content strategy   | Hand-author the level 3–4 and 4–5 modules; no 5e generator                                                                                                                                           | #289, #291       |
+
+### Settled by the owner, 8 October 2026 (increment 15)
+
+| Decision             | Outcome                                                                                      | Where it applies |
+| -------------------- | -------------------------------------------------------------------------------------------- | ---------------- |
+| Picking locks        | Needs thieves' tools; without them, force or break the door or find the key                  | #309             |
+| Steady Aim           | Kept as written, although "haven't moved" always holds without positions                     | #307             |
+| Hide                 | Bonus-action Stealth check against the best passive Perception; advantage on the next attack | #307             |
+| Sneak Attack ally    | The ally-adjacent clause is omitted until companions                                         | #306             |
+| Reaction eligibility | An explicit module flag, off by default; mindless opponents are never eligible               | #304             |
+| Talk-only gate gap   | #297 is fixed before the shipped modules are qualified for both classes                      | #310             |
+| Sneaking past        | No XP by default; an encounter may author an award                                           | #302             |
 
 ### Open
 
