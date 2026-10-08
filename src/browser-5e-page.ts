@@ -811,7 +811,9 @@ function renderStatus() {
   }));
   const items = [];
   if (turn) {
-    const actions = turn.actions === 0 ? "used" : turn.maxActions === 1 ? "available" : turn.actions + " of " + turn.maxActions + " left";
+    // Extra Attack (#287): the Attack action under way still has an attack.
+    const pending = turn.attacks > 0 ? "; second attack to make" : "";
+    const actions = (turn.actions === 0 ? "used" : turn.maxActions === 1 ? "available" : turn.actions + " of " + turn.maxActions + " left") + pending;
     items.push(
       resource("action", "Action", turn.actions, turn.maxActions, "Action: " + actions),
       resource("bonus-action", "Bonus", turn.bonusAction ? 1 : 0, 1, "Bonus action: " + (turn.bonusAction ? "available" : "used")),
@@ -1303,7 +1305,9 @@ function renderActions() {
     const way = option.approach ? " with " + option.approach.name : "";
     // Another try the module offers (#284) says so, and why, under it.
     const again = option.retry ? "Try again: " : "";
-    const label = again + words.label + named(action, target) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
+    // Extra Attack's second attack (#287) says so; any opponent may take it.
+    const second = action === "attack" && session.turn && session.turn.attacks > 0;
+    const label = again + (second ? "Second attack on " : words.label) + named(action, target) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
     button.append(make("span", option.retry ? (short ? "Try again" : label) : short ? ACTIONS[action].short : label));

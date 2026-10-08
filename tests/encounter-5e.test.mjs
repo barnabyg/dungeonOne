@@ -470,6 +470,7 @@ test("turn economy: an attack spends the action; the turn stays open while optio
   assert.deepEqual(state.economy, {
     actions: 1,
     maxActions: 1,
+    attacks: 0,
     bonusAction: true,
     reaction: true,
     interaction: true,
@@ -523,6 +524,7 @@ test("turn economy: an attack spends the action; the turn stays open while optio
   assert.deepEqual(ended.state.economy, {
     actions: 1,
     maxActions: 1,
+    attacks: 0,
     bonusAction: true,
     reaction: true,
     interaction: true,

@@ -116,7 +116,7 @@ test("the Fighter table, levels 1 to 4: XP, HP, proficiency, features and master
   }
   assert.equal(levelForXp(2699), 3);
   assert.equal(fighterProfile(atLevel(fighter(), 3)).nextLevelXp, 2700);
-  assert.equal(fighterProfile(atLevel(fighter(), 4)).nextLevelXp, undefined);
+  assert.equal(fighterProfile(atLevel(fighter(), 4)).nextLevelXp, 6500);
 });
 
 test("settling past 2,700 XP credits level 4 and leaves its choices pending", () => {
@@ -465,7 +465,7 @@ test("modules may recommend level 4, with a 600 gp budget and the same tiers as 
     min: 3,
     max: 4,
   });
-  module.recommendedLevels = { min: 4, max: 5 };
+  module.recommendedLevels = { min: 4, max: 6 };
   assert.throws(() => validateModule(module), /recommendedLevels max/u);
 });
 

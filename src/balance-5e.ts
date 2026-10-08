@@ -1342,10 +1342,11 @@ export const GATE_STYLE: PlayStyle = "cautious";
 export const XP_STYLE: PlayStyle = "direct";
 
 /**
- * The SRD 5.2 XP needed for levels 1–6. Characters stop at level 4; levels 5
- * and 6 are here only so the XP check can tell how far XP would carry one.
+ * The SRD 5.2 XP needed for levels 1–7. Characters stop at level 5; levels 6
+ * and 7 are here only so the XP check can tell how far XP would carry one
+ * (a level-5 module's limit is level 6, passed at 23,000 XP).
  */
-const SRD_LEVEL_XP = [0, 300, 900, 2700, 6500, 14000] as const;
+const SRD_LEVEL_XP = [0, 300, 900, 2700, 6500, 14000, 23000] as const;
 
 function srdLevelForXp(xp: number): number {
   return SRD_LEVEL_XP.filter((needed) => xp >= needed).length;

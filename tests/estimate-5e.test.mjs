@@ -197,7 +197,7 @@ test("a monster the harness can't simulate fails with a named reason", () => {
   });
 });
 
-test("an encounter must name 1 to 8 monsters and levels from 1 to 4", () => {
+test("an encounter must name 1 to 8 monsters and levels from 1 to 5", () => {
   for (const [spec, problem] of [
     [{ monsters: [], levels: { min: 1, max: 1 } }, /at least one monster/u],
     [
@@ -226,11 +226,11 @@ test("an encounter must name 1 to 8 monsters and levels from 1 to 4", () => {
     ],
     [
       { monsters: [{ id: "wolf", count: 1 }], levels: { min: 2, max: 1 } },
-      /levels must run from 1 to 4/u,
+      /levels must run from 1 to 5/u,
     ],
     [
-      { monsters: [{ id: "wolf", count: 1 }], levels: { min: 1, max: 5 } },
-      /levels must run from 1 to 4/u,
+      { monsters: [{ id: "wolf", count: 1 }], levels: { min: 1, max: 6 } },
+      /levels must run from 1 to 5/u,
     ],
   ]) {
     assert.throws(() => estimateEncounter(bestiary, spec), problem);

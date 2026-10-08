@@ -269,7 +269,9 @@ bar holds your whole toolkit: an **Attack** button for each living opponent,
 **Extra attack** for each with two light weapons (after an attack, with the
 second weapon), **Drink** for each potion you carry, **Second Wind** (a bonus
 action that heals 1d10 + level), **Action Surge** (from level 2) and **End
-turn**, with the uses left. A mastered weapon's mastery works while you wield
+turn**, with the uses left. From level 5, Extra Attack makes the Attack action
+two attacks: after the first, each living opponent's button reads **Second
+attack on** its name, so the two can go to different opponents. A mastered weapon's mastery works while you wield
 it: Sap gives a creature it hits disadvantage on its next attack, Vex gives you
 advantage on your next attack against it, Graze deals damage even on a miss,
 and Nick makes the extra attack without spending your bonus action. You can also type to the Dungeon Master ("attack the second goblin");
@@ -343,15 +345,16 @@ character, so playing an adventure again earns nothing twice. When the adventure
 ending takes the place of the action buttons and gets focus: Victory, Escaped
 with loot, Escaped empty-handed or Defeat, its title and text, what it earned
 (with the coin found and the purse kept, which differ once coin is spent) and
-any level-up (300 XP for level 2, 900 for level 3, 2,700 for level 4) with
+any level-up (300 XP for level 2, 900 for level 3, 2,700 for level 4, 6,500
+for level 5) with
 the new hit points and features, and **Back to _name_'s sheet**. The typing box is disabled with the
 reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 11.
+- The character library (`characters.json` by default) is format version 12.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 25.
+  `characters-adventures` directory beside the library, in format version 26.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or

@@ -9,6 +9,7 @@ import {
   type FifthLibraryData,
 } from "./character-library-5e.js";
 import {
+  applyLevelChoice,
   buildFighter,
   fighterProfile,
   nextLevelXp,
@@ -16,6 +17,7 @@ import {
   type FighterChoices,
   type FighterSheet,
   type Level,
+  type LevelChoice,
 } from "./fighter-5e.js";
 
 /** Ada's choices, also for creating her from rolled dice over the browser API. */
@@ -53,11 +55,28 @@ export const TEST_FIGHTER: FighterSheet = buildFighter(
   TEST_FIGHTER_CHOICES,
 );
 
-/** Ada raised to `level` with the least XP it needs, at full health (#241). */
+/**
+ * Ada's level-4 choice (#287): +1 Strength and +1 Constitution (Str 18, Con
+ * 16), and the longsword's mastery.
+ */
+export const TEST_FIGHTER_LEVEL_CHOICE: LevelChoice = {
+  increase: { strength: 1, constitution: 1 },
+  mastery: "longsword",
+};
+
+/**
+ * Ada raised to `level` with the least XP it needs, at full health (#241).
+ * Level 3 is the highest whose sheet owes no level choice; at level 5 she has
+ * made `TEST_FIGHTER_LEVEL_CHOICE`, while a level-4 Ada still owes hers.
+ */
 export function testFighterAt(level: Level): FighterSheet {
   const xp = level === 1 ? 0 : nextLevelXp((level - 1) as Level)!;
   const raised = { ...TEST_FIGHTER, level, xp };
-  return validateFighter({ ...raised, hp: fighterProfile(raised).maxHp });
+  const sheet = validateFighter({
+    ...raised,
+    hp: fighterProfile(raised).maxHp,
+  });
+  return level < 5 ? sheet : applyLevelChoice(sheet, TEST_FIGHTER_LEVEL_CHOICE);
 }
 
 /**

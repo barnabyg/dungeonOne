@@ -823,7 +823,7 @@ Where a merchant is, call trade with the one offer the player's words pick out: 
 
 The character's own gear (its catalogue weapons, armour and shield) is named by its id. To put on armour or a shield, or take a second light weapon in the other hand, call equip; to take armour or a shield off or put a second weapon away, call unequip; to wield a different carried weapon in place of the ones held, call swap_weapon; to leave carried gear behind, call drop. Gear found is taken with take, like any item. The engine decides what the character can hold, how long armour takes to don and what the change does to its AC and attacks.
 
-A turn in a fight has one action (an attack), one bonus action and one reaction. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; when they end or pass their turn, call end_turn. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
+A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; when they end or pass their turn, call end_turn. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -918,6 +918,9 @@ export function playerCombatant(
     ...(profile.lightAttack === undefined
       ? {}
       : { lightAttack: weaponOf(profile.lightAttack) }),
+    ...(profile.attacksPerAction === 1
+      ? {}
+      : { attacksPerAction: profile.attacksPerAction }),
     // Uses start full: each adventure follows the between-adventure rest.
     secondWind: {
       uses: resources.secondWindUses,
@@ -4895,7 +4898,7 @@ export function createFifthRuntime(
                 ),
                 ...(turn.id === PLAYER_ID
                   ? [
-                      `The player has ${encounter.economy.actions} ${encounter.economy.actions === 1 ? "action" : "actions"} and ${encounter.economy.bonusAction ? "a" : "no"} bonus action left this turn.`,
+                      `The player has ${encounter.economy.actions} ${encounter.economy.actions === 1 ? "action" : "actions"}${encounter.economy.attacks === 0 ? "" : `, ${encounter.economy.attacks} more ${encounter.economy.attacks === 1 ? "attack" : "attacks"} of the Attack action under way,`} and ${encounter.economy.bonusAction ? "a" : "no"} bonus action left this turn.`,
                     ]
                   : []),
               ].join(" "),
