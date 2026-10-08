@@ -162,6 +162,105 @@ export const shiftingOssuary = validateModule(moduleFile("shifting-ossuary"));
  */
 export const obstacleYard = validateModule(moduleFile("obstacle-yard"));
 
+/**
+ * A check that fails into a dead end (#285): the shifting ossuary as _The
+ * Collapsing Ossuary_, its side crypt open (no rotten door), and the urn
+ * shelf's Athletics check (DC 5) bringing the ceiling down across the way
+ * back on a failure by 5 or more. A Fighter, proficient in Athletics, never
+ * fails it by 5, but the validator counts the band reachable and always-fail lands there, so a
+ * cautious run that looks into the side crypt is shut in.
+ */
+export const collapsingOssuary = (() => {
+  const module = moduleFile("shifting-ossuary");
+  module.id = "collapsing-ossuary";
+  module.title = "The Collapsing Ossuary";
+  const side = module.passages.find(({ id }) => id === "hall-to-side");
+  delete side.door;
+  side.description = "A low doorway.";
+  room(module, "side-crypt").features[0].check = {
+    skill: "athletics",
+    dc: 5,
+    bands: {
+      "failure-by-5": {
+        text: "The shelf tips as you heave at it, and the ceiling comes down across the doorway behind you.",
+        effects: [{ type: "close", passage: "hall-to-side" }],
+      },
+      success: { effects: [{ type: "item", item: "urn-potion" }] },
+    },
+  };
+  return validateModule(module);
+})();
+
+/**
+ * A completable but deadly failure (#285): the shifting ossuary as _The
+ * Falling Arch_, with a cracked arch at the gate whose Athletics check (DC
+ * 5) drops it on the character for 4d6 on a failure by 5 or more, and its
+ * rat a boss. Seeded checks never fail by 5, so it qualifies as hard on
+ * them; always-fail lands every examination of the arch there.
+ */
+export const fallingArch = (() => {
+  const module = moduleFile("shifting-ossuary");
+  module.id = "falling-arch";
+  module.title = "The Falling Arch";
+  // A boss, so only survival judges it: the rat is no one-hit-kill question.
+  module.encounters[0].opponents[0].boss = true;
+  room(module, "ossuary-gate").features.push({
+    id: "cracked-arch",
+    name: "Cracked Arch",
+    description: "The arch over the stair is cracked from side to side.",
+    check: {
+      skill: "athletics",
+      dc: 5,
+      bands: {
+        "failure-by-5": {
+          text: "You put your shoulder to the wrong stone, and the arch comes down on you.",
+          effects: [
+            {
+              type: "damage",
+              dice: 4,
+              sides: 6,
+              modifier: 0,
+              damageType: "bludgeoning",
+              defeatEndingId: "lost-in-the-ossuary",
+            },
+          ],
+        },
+        success: { text: "The crack is old; the arch will hold." },
+      },
+    },
+  });
+  return validateModule(module);
+})();
+
+/**
+ * Loot a failed check loses (#285): the graded cellar with its rubble heap
+ * and silver ring moved to a coal store off the steps, which is no exit, so
+ * a run whose heap check fails must give the ring up and head out.
+ */
+export const coalStore = (() => {
+  const module = moduleFile("graded-cellar");
+  module.id = "coal-store";
+  module.title = "The Coal Store";
+  const steps = room(module, "cellar-steps");
+  const heap = steps.features.find(({ id }) => id === "rubble-heap");
+  const ring = steps.items.find(({ id }) => id === "silver-ring");
+  steps.features = steps.features.filter((feature) => feature !== heap);
+  steps.items = steps.items.filter((item) => item !== ring);
+  module.rooms.push({
+    id: "coal-store",
+    name: "Coal Store",
+    description: "A low bay heaped with coal dust and fallen stone.",
+    features: [heap],
+    items: [ring],
+  });
+  module.passages.push({
+    id: "steps-to-store",
+    between: ["cellar-steps", "coal-store"],
+    description: "A low bay beside the steps.",
+  });
+  return validateModule(module);
+})();
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,

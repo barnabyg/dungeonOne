@@ -236,6 +236,10 @@ _Avoid_: Dead character, Unconscious
 An adventure module's declared challenge for its recommended level range: Easy, Medium or Hard. The balance gate checks that the module is neither more lethal nor easier than it declares; a shipped module is declared at the strictest difficulty whose survival threshold it clears by at least 3 points (#252). Not to be confused with the Difficulty Class (DC) of a single check.
 _Avoid_: Challenge rating (a monster's, not a module's), DC
 
+**Check policy**:
+How the balance harness grades checks (#285): seeded rolls them as a player meets them; always-fail and always-succeed land every check in its worst or best reachable band. The balance gate requires a module to stay completable, and within its difficulty, when every check fails.
+_Avoid_: Check mode, Dice mode
+
 **Ordinary enemy**:
 An opponent a module doesn't mark as a boss. The balance gate's one-hit-kill cap applies only to ordinary enemies; a boss is exempt.
 _Avoid_: Average enemy, Minion (a stat block's name)

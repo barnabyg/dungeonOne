@@ -794,16 +794,21 @@ function siteLabel({ kind, id: siteId }: Omit<AuthoredSite, "check">): string {
  * The lowest and highest totals an approach can make for a character of
  * `level` or below: a natural 1 at the lowest ability modifier (−4, a score
  * of 3), and a natural 20 at the highest (+5), plus the proficiency bonus
- * for a skill.
+ * for a skill. The bands between them are the ones the validator counts
+ * reachable, and the balance harness's always-fail and always-succeed
+ * check policies (#285) make every check at one end.
  */
-function totals(spec: CheckSpec, level: number): [number, number] {
+export function extremeTotals(
+  spec: CheckSpec,
+  level: number,
+): readonly [number, number] {
   const proficiency = proficiencyBonus(level as Level);
   return [1 - 4, 20 + 5 + (spec.skill === undefined ? 0 : proficiency)];
 }
 
 /** Whether some character of `level` or below can roll `band` on `spec`. */
 function bandReachable(band: Band, spec: CheckSpec, level: number): boolean {
-  const [lowest, highest] = totals(spec, level);
+  const [lowest, highest] = extremeTotals(spec, level);
   switch (band) {
     case "failure-by-5":
       return lowest <= spec.dc - 5;
@@ -1613,7 +1618,7 @@ function validateModule(
         )[
           band.startsWith("success") ? 0 : approachesOf(site.check).length - 1
         ]!;
-        const [lowest, highest] = totals(closest, max);
+        const [lowest, highest] = extremeTotals(closest, max);
         const { dc } = closest;
         fail(
           `${on} can't be reached with DC ${dc}: ${

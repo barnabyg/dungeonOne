@@ -5,6 +5,7 @@ import {
   loadFifthAdventure,
 } from "../dist/adventure-5e.js";
 import {
+  CHECK_POLICIES,
   DEFAULT_PERCENTILES,
   DEFAULT_SEED_COUNT,
   gateAdventure,
@@ -16,7 +17,8 @@ import {
 
 const USAGE = [
   "Usage: npm run balance -- [--seeds <count>] [--percentiles <p,p>]",
-  "       [--styles <style,style>] [--json] [module.json ...]",
+  "       [--styles <style,style>] [--checks <policy>] [--json]",
+  "       [module.json ...]",
 ].join("\n");
 
 function list(value, parse) {
@@ -37,6 +39,7 @@ export function parseArguments(args) {
     seeds: DEFAULT_SEED_COUNT,
     percentiles: [...DEFAULT_PERCENTILES],
     styles: [...PLAY_STYLES],
+    checks: "seeded",
     json: false,
     paths: [],
   };
@@ -64,6 +67,11 @@ export function parseArguments(args) {
         }
         return style;
       });
+    } else if (argument === "--checks") {
+      parsed.checks = value();
+      if (!CHECK_POLICIES.includes(parsed.checks)) {
+        throw new Error(USAGE);
+      }
     } else if (argument === "--json") {
       parsed.json = true;
     } else if (argument.startsWith("--")) {
@@ -76,8 +84,9 @@ export function parseArguments(args) {
 }
 
 /**
- * Qualifies each module and gates it on its declared difficulty, over the
- * same seeds; the exit code is 1 if any fails with a named reason or does
+ * Qualifies each module, with its checks graded by `--checks` (seeded by
+ * default), and gates it on its declared difficulty, which plays every
+ * check policy, over the same seeds; the exit code is 1 if any fails with a named reason or does
  * not qualify.
  */
 export async function main(args, output = process.stdout) {
@@ -92,6 +101,7 @@ export async function main(args, output = process.stdout) {
     seeds: Array.from({ length: options.seeds }, (_, seed) => seed),
     percentiles: options.percentiles,
     styles: options.styles,
+    checks: options.checks,
   };
   const results = adventures.map((adventure) => ({
     adventure,

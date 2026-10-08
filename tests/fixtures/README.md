@@ -103,6 +103,20 @@ kits of #207) is too deadly for medium and passes as hard. _The Minion Yard_ (tw
 safe enough for medium, but a strong level-1 Fighter usually kills each
 minion with one attack, so it fails as too easy at every difficulty.
 
+## Check policies (issue 285)
+
+`modules.mjs` also builds three variants for `tests/issue-285.test.mjs`, which
+are not in `FIXTURE_MODULES`. `collapsingOssuary` (_The Collapsing Ossuary_)
+is the shifting ossuary with its side crypt open and an urn shelf whose
+Athletics check (DC 5) closes the way back on a failure by 5 or more: no
+Fighter fails it by 5, but always-fail does, so the gate rejects it as
+stranded, naming the check. `fallingArch` (_The Falling Arch_) adds a cracked
+arch at the gate whose Athletics check (DC 5) deals 4d6 on a failure by 5 or
+more, and makes the rat a boss: it qualifies as hard on seeded checks and is
+far too deadly when every check fails. `coalStore` (_The Coal Store_) is the
+graded cellar with its rubble heap and ring in a room that is no exit, so a
+run whose heap check fails must leave without the ring.
+
 ## Browser launch
 
 `default-launch.mjs` runs the built browser launcher as a player would,

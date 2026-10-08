@@ -381,11 +381,14 @@ These are for development, not play.
   that differs; replay a trace recorded with `--adventure-file` with the same
   file.
 - **Balance harness.** `npm.cmd run balance -- [--seeds <count>] [--percentiles
-<p,p>] [--styles <style,style>] [--json] [module.json ...]` plays each built-in
-  module (or the files named) through the real runtime with weak and strong
-  rolled Fighters at every recommended level, in three play styles, and reports
+<p,p>] [--styles <style,style>] [--checks <policy>] [--json] [module.json ...]`
+  plays each built-in module (or the files named) through the real runtime with
+  weak and strong rolled Fighters at every recommended level, in three play
+  styles, with checks rolled (`seeded`, the default), always in their worst band
+  (`always-fail`) or always in their best (`always-succeed`), and reports
   survival, HP lost and rounds per fight, healing, XP, treasure, one-hit-kill
-  chances and each module's balance-gate verdict. See
+  chances and each module's balance-gate verdict, which plays every check
+  policy. See
   [the rules document](docs/character-rules.md#balance-harness).
 - **Encounter estimate.** `npm.cmd run estimate -- [--levels <min>-<max>]
 [--seeds <count>] [--percentiles <p,p>] [--styles <style,style>] [--bestiary

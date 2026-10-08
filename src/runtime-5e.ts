@@ -53,6 +53,7 @@ import {
   authoredBand,
   authoredChecks,
   effectsOf,
+  extremeTotals,
   FOUND_ONCE_KINDS,
   ITEM_KINDS,
   LOOT_KINDS,
@@ -1984,6 +1985,8 @@ export type FifthRuntime = Omit<
   Readonly<{
     adventure: FifthAdventure;
     sheet: FighterSheet;
+    /** How its checks are graded (#285): `seeded` but in the harness. */
+    checks: CheckPolicy;
     createSession(): FifthState;
     handleAction(
       state: FifthState,
@@ -2183,10 +2186,30 @@ function projectFight(
   };
 }
 
-/** A test hook that observes the runtime's internal work. */
+/**
+ * How a runtime grades its checks (#285). `seeded` rolls them, as players
+ * meet them. The balance harness's `always-fail` and `always-succeed` make
+ * every check (feature, door, trap disarm, topic and search) total the
+ * lowest or the highest any character of the module's maximum recommended
+ * level could make (`extremeTotals`), so it lands in its worst or best
+ * reachable band, as the validator counts them. The d20 is still drawn, so
+ * the rest of the dice stream is the seeded one.
+ */
+export const CHECK_POLICIES = [
+  "seeded",
+  "always-fail",
+  "always-succeed",
+] as const;
+export type CheckPolicy = (typeof CHECK_POLICIES)[number];
+
+/**
+ * Test and harness hooks: `dryRun` observes the runtime's internal work,
+ * and `checks` is the check policy, `seeded` by default.
+ */
 export type FifthRuntimeProbe = Readonly<{
   /** Called each time the projection dry-runs an action. */
   dryRun?: (action: FifthAction) => void;
+  checks?: CheckPolicy;
 }>;
 
 export function createFifthRuntime(
@@ -2194,6 +2217,7 @@ export function createFifthRuntime(
   sheet: FighterSheet,
   probe: FifthRuntimeProbe = {},
 ): FifthRuntime {
+  const checkPolicy = probe.checks ?? "seeded";
   const maxHp = fighterProfile(sheet).maxHp;
   const roomById = (roomId: string) =>
     adventure.rooms.find(({ id }) => id === roomId)!;
@@ -2762,6 +2786,21 @@ export function createFifthRuntime(
   };
 
   /**
+   * The roll as the check policy makes it (#285): as rolled when seeded, or
+   * else at the lowest or highest total any character could make.
+   */
+  const policyRoll = (roll: CheckRoll, spec: CheckSpec): CheckRoll => {
+    if (checkPolicy === "seeded") {
+      return roll;
+    }
+    const fail = checkPolicy === "always-fail";
+    const total = extremeTotals(spec, adventure.recommendedLevels.max)[
+      fail ? 0 : 1
+    ];
+    return { ...roll, d20: fail ? 1 : 20, total, success: total >= roll.dc };
+  };
+
+  /**
    * The one check path (#280): rolls the check at `site` once from the
    * seeded stream, grades it into the band whose outcome applies (#281) and
    * remembers that band, so asking or typing again never rerolls it. Then it
@@ -2788,7 +2827,7 @@ export function createFifthRuntime(
     around: (siteEvents: readonly FifthEvent[]) => FifthEvent[];
   }> => {
     const dice = need(random, "A check");
-    const roll = abilityCheck(sheet, spec, dice);
+    const roll = policyRoll(abilityCheck(sheet, spec, dice), spec);
     const band = authoredBand(check, bandOf(roll));
     const outcome = check.bands?.[band];
     let next: FifthState = {
@@ -5107,6 +5146,7 @@ export function createFifthRuntime(
     mutationToolNames: MUTATION_TOOLS,
     adventure,
     sheet,
+    checks: checkPolicy,
     createSession: () => ({
       status: "playing",
       adventureId: adventure.id,
