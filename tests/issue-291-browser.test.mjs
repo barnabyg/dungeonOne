@@ -20,11 +20,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadBuiltInFifthAdventures } from "../dist/adventure-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { applyLevelChoice, validateFighter } from "../dist/fighter-5e.js";
-import {
-  libraryAt,
-  TEST_FIGHTER_LEVEL_CHOICE,
-} from "../dist/test-fighter-5e.js";
+import { levelFourCareerLibrary } from "../dist/test-fighter-5e.js";
 import { launch } from "./fixtures/session-layout.mjs";
 import {
   clickAction,
@@ -43,20 +39,10 @@ const LIBRARY = fileURLToPath(
   ),
 );
 
-/** Ada at level 4, her level-4 choices made, with 4,100 XP. */
-function levelFourLibrary() {
-  const library = libraryAt(4);
-  const [{ sheet: raised }] = library.characters;
-  const sheet = validateFighter(
-    applyLevelChoice({ ...raised, xp: 4100 }, TEST_FIGHTER_LEVEL_CHOICE),
-  );
-  return { ...library, characters: [{ sheet, revision: 1 }] };
-}
-
 const lodge = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "thornwood-lodge",
 );
-const [{ sheet }] = levelFourLibrary().characters;
+const [{ sheet }] = levelFourCareerLibrary().characters;
 
 const ROUTE = [
   ["examine", "woodpile"],
@@ -99,7 +85,7 @@ test(
     // The input library is the one the handoff gives the owner.
     assert.deepEqual(
       JSON.parse(await readFile(LIBRARY, "utf8")),
-      JSON.parse(JSON.stringify(levelFourLibrary())),
+      JSON.parse(JSON.stringify(levelFourCareerLibrary())),
     );
     const directory = await mkdtemp(join(tmpdir(), "issue-291-browser-"));
     const libraryPath = join(directory, "characters.json");

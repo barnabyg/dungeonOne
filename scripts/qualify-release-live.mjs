@@ -2,7 +2,9 @@
 // the 5e browser server, its API and its saves (The Abandoned Delve for #140
 // by default, The Tinker's Toll for #211 with --adventure tinkers-toll, or
 // The Silvervein Mine for #241 with --adventure silvervein-mine, played by a
-// saved level-3 Ada as the mine is for levels 2–3),
+// saved level-3 Ada as the mine is for levels 2–3, or The Thornwood Lodge for
+// #291 with --adventure thornwood-lodge, played by a saved level-4 Ada with
+// 4,100 XP),
 // every step typed to the configured OpenAI provider (src/release-run-5e.ts). A
 // step the AI DM's turn leaves undone is taken with its button and flagged,
 // so the run always reaches an ending. Each turn records the message, what
@@ -31,11 +33,15 @@ import {
 } from "../dist/openai-dm-model.js";
 import {
   DELVE_FULL_ROUTE,
+  LODGE_ROUTE,
   MINE_FULL_ROUTE,
   playReleaseRun,
   TOLL_FULL_ROUTE,
 } from "../dist/release-run-5e.js";
-import { levelThreeLibrary } from "../dist/test-fighter-5e.js";
+import {
+  levelFourCareerLibrary,
+  levelThreeLibrary,
+} from "../dist/test-fighter-5e.js";
 
 const USAGE =
   "Usage: node scripts/qualify-release-live.mjs --live|--dry-run [--adventure <id>] [--output <report.json>] [--max-calls <count>] [--seed <seed>]";
@@ -51,6 +57,12 @@ const RUNS = {
     route: MINE_FULL_ROUTE,
     seed: "26",
     character: levelThreeLibrary,
+  },
+  "thornwood-lodge": {
+    issue: 291,
+    route: LODGE_ROUTE,
+    seed: "2",
+    character: levelFourCareerLibrary,
   },
 };
 const usage = () => {

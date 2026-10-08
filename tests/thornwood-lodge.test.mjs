@@ -7,16 +7,28 @@
 // it qualifies at its declared difficulty.
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
 import { gateAdventure, requiredPath } from "../dist/balance-5e.js";
+import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { startSavedAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
+import { LODGE_ROUTE, playReleaseRun } from "../dist/release-run-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
-import { testFighterAt } from "../dist/test-fighter-5e.js";
+import {
+  levelFourCareerLibrary,
+  testFighterAt,
+} from "../dist/test-fighter-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { dice } from "./fixtures/engine-dice.mjs";
 import { firstJourney, xpOf } from "./fixtures/module-journey.mjs";
+import { narratingDm } from "./fixtures/session-layout.mjs";
 
 const lodge = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "thornwood-lodge",
@@ -459,4 +471,112 @@ test("a level-5 Fighter can win the yard and the hall, and leave with the cup", 
   );
   assert.equal(state.endingId, "out-with-the-spoils");
   assert.ok(state.clearedEncounterIds.includes("hall-bear"));
+});
+
+/** The release run's browser seed, the handoff's scenario 2 seed. */
+const RELEASE_SEED = 2;
+
+test("the release run takes the 4,100 XP Ada through the lodge's checks to level 5, through the server to the library file", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "issue-291-"));
+  const libraryPath = join(directory, "characters.json");
+  await writeFile(libraryPath, JSON.stringify(levelFourCareerLibrary()));
+  const server = await startFifthBrowserServer({
+    libraryPath,
+    seed: RELEASE_SEED,
+    dmModel: narratingDm(),
+    // shipped-modules.test.mjs gates every shipped module; skip it here.
+    qualifies: () => true,
+  });
+  try {
+    const { session, turns } = await playReleaseRun({
+      url: server.url,
+      session: await startSavedAdventureOverHttp(server.url, "thornwood-lodge"),
+      route: LODGE_ROUTE,
+    });
+    assert.equal(session.status, "escaped");
+    assert.equal(session.ending.kind, "escape-with-loot");
+    // The hatch opened at the first try, so its retry was not offered.
+    assert.deepEqual(
+      turns.flatMap(({ intent, skipped }) =>
+        skipped === undefined ? [] : [intent],
+      ),
+      ["examine ice-house-hatch (perception, retry)"],
+    );
+    assert.equal(new Set(turns.map(({ room }) => room)).size, 4);
+    const checks = turns.flatMap(({ phase, intent, cards }) =>
+      (phase === "fight" ? [] : cards)
+        .filter(({ text }) => /check/u.test(text))
+        .map(({ text }) => [intent, text.split("\n")[0]]),
+    );
+    assert.deepEqual(checks, [
+      [
+        "talk the-poachers-path (persuasion)",
+        "Persuasion check: d20 19 − 1 = 18 against DC 14. Success.",
+      ],
+      [
+        "examine trophy-wall (history)",
+        "History check: d20 20 + 1 = 21 against DC 13. Success by 5 or more.",
+      ],
+      [
+        "examine ice-house-hatch (perception)",
+        "Perception check: d20 12 + 0 + 2 proficiency = 14 against DC 14. Success.",
+      ],
+      [
+        "search lodge-hall",
+        "Perception check: d20 18 + 0 + 2 proficiency = 20 against DC 14. Success.",
+      ],
+      [
+        "disarm gallery-man-trap",
+        "Dexterity check, at advantage (Trapper's Tongs): d20 20 and 14, keeping 20; 20 + 2 = 22 against DC 14. Success.",
+      ],
+    ]);
+    // 4,100 XP before; the fights' 450 and the ending's 2,350.
+    assert.equal(session.ending.rewards.totalXp, 4100 + 450 + 2350);
+    assert.equal(session.ending.rewards.level, 5);
+    assert.deepEqual(
+      session.ending.rewards.treasure.map(({ name }) => name),
+      ["Gilt Hunting Cup", "Topaz"],
+    );
+    const [ada] = JSON.parse(await readFile(libraryPath, "utf8")).characters;
+    assert.equal(ada.session, undefined);
+    assert.deepEqual([ada.sheet.level, ada.sheet.xp], [5, 6900]);
+  } finally {
+    await server.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("the live release script plays the lodge with --adventure thornwood-lodge from the 4,100 XP Ada", async () => {
+  const script = fileURLToPath(
+    new URL("../scripts/qualify-release-live.mjs", import.meta.url),
+  );
+  const env = { ...process.env, OPENAI_API_KEY: "" };
+  const directory = await mkdtemp(join(tmpdir(), "issue-291-script-"));
+  try {
+    const output = join(directory, "report.json");
+    const result = spawnSync(
+      process.execPath,
+      [
+        script,
+        "--dry-run",
+        "--adventure",
+        "thornwood-lodge",
+        "--output",
+        output,
+        "--max-calls",
+        "10",
+      ],
+      { encoding: "utf8", env, timeout: 60000 },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(await readFile(output, "utf8"));
+    assert.equal(report.issue, 291);
+    assert.equal(report.adventureId, "thornwood-lodge");
+    assert.equal(report.seed, RELEASE_SEED);
+    assert.equal(report.providerCalls, 10);
+    assert.equal(report.ending.kind, "escape-with-loot");
+    assert.equal(report.summary.roomsVisited, 4);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

@@ -26,6 +26,10 @@ import {
 export type ReleaseStep = Readonly<{
   action: ActionKind;
   target?: string;
+  /** The approach of a check with several (#283), such as "persuasion". */
+  approach?: string;
+  /** Another try at a check already made (#284). */
+  retry?: true;
   /** Undefined for a button-only action (Leave). */
   say?: string;
 }>;
@@ -446,6 +450,112 @@ export const MINE_FULL_ROUTE: readonly ReleaseStep[] = Object.freeze([
   { action: "leave", target: "mine-mouth" },
 ]);
 
+/**
+ * The Thornwood Lodge (#291) from the gate to the hall and out: Brann's
+ * topics, the poachers' path by Persuasion, the kennel yard and the bear,
+ * the trophy wall by History, the hatch by Perception (and its retry when it
+ * holds), the man-trap found and disarmed. It leaves the Owlbear and Captain
+ * Hesk alone, as a cautious player would. A step a check's band leaves
+ * unoffered (the hide when Brann says no, the potion the wall keeps) is
+ * recorded as skipped.
+ */
+export const LODGE_ROUTE: readonly ReleaseStep[] = Object.freeze([
+  { action: "examine", target: "woodpile", say: "Search the woodpile." },
+  {
+    action: "take",
+    target: "woodpile-potion",
+    say: "Take the vial from the woodpile.",
+  },
+  { action: "take", target: "hooded-lantern", say: "Take the lantern." },
+  {
+    action: "talk",
+    target: "the-lodge",
+    say: "Ask Brann about the lodge.",
+  },
+  {
+    action: "talk",
+    target: "the-poachers-path",
+    approach: "persuasion",
+    say: "Try to persuade Brann to tell me about the poachers' path.",
+  },
+  {
+    action: "move",
+    target: "poachers-hide",
+    say: "Follow the poachers' path to their hide.",
+  },
+  {
+    action: "examine",
+    target: "poachers-cache",
+    say: "Look in the sack hanging from the branch.",
+  },
+  { action: "take", target: "hide-potion", say: "Take the vial." },
+  { action: "take", target: "trap-tongs", say: "Take the iron tongs." },
+  {
+    action: "move",
+    target: "forest-gate",
+    say: "Go back to the forest gate.",
+  },
+  {
+    action: "move",
+    target: "kennel-yard",
+    say: "Head round the palisade to the kennels.",
+  },
+  {
+    action: "examine",
+    target: "hounds-kennel",
+    say: "Search the hound's kennel.",
+  },
+  { action: "take", target: "hunting-cup", say: "Take the gilt cup." },
+  { action: "take", target: "kennel-gold", say: "Take the purse of gold." },
+  {
+    action: "move",
+    target: "lodge-hall",
+    say: "Go through the kennel door into the hall.",
+  },
+  {
+    action: "examine",
+    target: "trophy-wall",
+    approach: "history",
+    say: "Study the old hunting shields on the trophy wall for anything out of place, using what I know of history.",
+  },
+  { action: "take", target: "trophy-topaz", say: "Take the jewel." },
+  { action: "take", target: "trophy-potion", say: "Take the vial too." },
+  {
+    action: "examine",
+    target: "ice-house-hatch",
+    approach: "perception",
+    say: "Look the frozen hatch over for a release.",
+  },
+  {
+    action: "examine",
+    target: "ice-house-hatch",
+    approach: "perception",
+    retry: true,
+    say: "Try the hatch again.",
+  },
+  {
+    action: "search",
+    target: "lodge-hall",
+    say: "Check the gallery stair for traps.",
+  },
+  {
+    action: "disarm",
+    target: "gallery-man-trap",
+    say: "Disarm the man-trap with the tongs.",
+  },
+  {
+    action: "move",
+    target: "kennel-yard",
+    say: "That's enough. Back out to the kennel yard.",
+  },
+  {
+    action: "move",
+    target: "forest-gate",
+    say: "Back to the forest gate.",
+  },
+  { action: "leave", target: "forest-gate" },
+]);
+
 /** Whether the action bar is a fight's: it always offers End turn. */
 const inFight = (view: ReleaseSessionView): boolean =>
   view.actions.some(({ action }) => action === "end-turn");
@@ -496,8 +606,11 @@ const newestCards = (view: ReleaseSessionView): ReleaseTurn["cards"] =>
 
 const findAction = (view: ReleaseSessionView, step: ReleaseStep) =>
   view.actions.find(
-    ({ action, target }) =>
-      action === step.action && target?.id === step.target,
+    ({ action, target, approach, retry }) =>
+      action === step.action &&
+      target?.id === step.target &&
+      approach?.id === step.approach &&
+      (retry !== undefined) === (step.retry === true),
   );
 
 /**
@@ -505,7 +618,8 @@ const findAction = (view: ReleaseSessionView, step: ReleaseStep) =>
  * examination (which stays offered, to read again) once the room shows what
  * it found; a trade (whose Buy stays offered while coin lasts) once the purse
  * changed; anything else once its action is no longer available in the room
- * it was taken in. A fight step is done by any committed action.
+ * it was taken in. A check step (an approach or a retry) is done once its
+ * button is withdrawn. A fight step is done by any committed action.
  */
 function stepDone(
   before: ReleaseSessionView,
@@ -518,6 +632,11 @@ function stepDone(
   }
   if (step.action === "move") {
     return after.room.id === step.target;
+  }
+  if (step.approach !== undefined || step.retry === true) {
+    return (
+      after.sequence > before.sequence && !findAction(after, step)?.available
+    );
   }
   if (step.action === "examine") {
     return after.room.features.some(
@@ -550,7 +669,15 @@ async function click(
         ? ["/api/5e/session/action", { ...base, action: step.action }]
         : [
             "/api/5e/session/explore",
-            { ...base, action: step.action, target: step.target },
+            {
+              ...base,
+              action: step.action,
+              target: step.target,
+              ...(step.approach === undefined
+                ? {}
+                : { approach: step.approach }),
+              ...(step.retry === true ? { retry: true } : {}),
+            },
           ];
   return post(url, path, body);
 }
@@ -597,7 +724,10 @@ export async function playReleaseRun(options: {
     step: ReleaseStep,
     phase: ReleaseTurn["phase"],
   ): Promise<ReleaseSessionView> => {
-    const intent = `${step.action}${step.target === undefined ? "" : ` ${step.target}`}`;
+    const how = [step.approach, step.retry === true ? "retry" : undefined]
+      .filter((part) => part !== undefined)
+      .join(", ");
+    const intent = `${step.action}${step.target === undefined ? "" : ` ${step.target}`}${how === "" ? "" : ` (${how})`}`;
     const room = current.room.id;
     const offered = findAction(current, step);
     if (!offered?.available) {
