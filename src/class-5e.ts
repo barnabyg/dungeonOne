@@ -216,6 +216,24 @@ export type FeatureEffect = Readonly<
    * at creation, double their proficiency bonus.
    */
   | { kind: "expertise"; count: number }
+  /**
+   * Cunning Action (#307): Hide as a bonus action, a Stealth check against
+   * the opponents' best passive Perception; success gives advantage on the
+   * next attack roll. Dash and Disengage need positions and are omitted.
+   */
+  | { kind: "cunning-action" }
+  /** Steady Aim (#307): a bonus action for advantage on the next attack this turn. */
+  | { kind: "steady-aim" }
+  /**
+   * Fast Hands (#307): the bonus action can use an object, so a second weapon
+   * draw, stow or swap in a turn takes it.
+   */
+  | { kind: "fast-hands" }
+  /**
+   * Second-Story Work (#307): Dexterity in place of Strength on a check a
+   * module marks as climbing or jumping.
+   */
+  | { kind: "second-story-work" }
   /** An Ability Score Improvement, chosen with the level's new mastery. */
   | { kind: "ability-score-improvement" }
 >;

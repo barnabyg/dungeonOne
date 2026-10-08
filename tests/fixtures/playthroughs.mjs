@@ -1,5 +1,6 @@
-// Seeded playthroughs of every fixture module (#156), and of merchants and a
-// fighter holding two daggers (#269): a fighter picks a random enabled action
+// Seeded playthroughs of every fixture module (#156), of merchants and a
+// fighter holding two daggers (#269), and of a level-3 Thief's fights (#307):
+// a character picks a random enabled action
 // from the bar at each step. The bar-projection tests (#156, #182, #183)
 // check each state these reach, and the engine action each projected action
 // stands for is mapped here once, so a new kind of action can't leave one
@@ -8,14 +9,16 @@ import assert from "node:assert/strict";
 import {
   buildCharacter,
   characterProfile,
+  defaultPlacement,
   levelForXp,
   validateCharacter,
 } from "../../dist/character-5e.js";
+import { ROGUE } from "../../dist/rogue-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { archer, archeryBarrow } from "./archery-barrow.mjs";
 import { gemMarket } from "./gem-market.mjs";
-import { FIXTURE_MODULES, sealedCrypt } from "./modules.mjs";
+import { FIXTURE_MODULES, goblinTrio, sealedCrypt } from "./modules.mjs";
 
 export const PLAYER = "pc";
 
@@ -60,6 +63,20 @@ export function veteran() {
   return validateCharacter({ ...leveled, hp: characterProfile(leveled).maxHp });
 }
 
+/** A level-3 Thief at full health, so it can Hide and use Steady Aim (#307). */
+export function thief() {
+  const xp = 900;
+  const rogue = buildCharacter(
+    "c".repeat(32),
+    "Vex",
+    ADA_DICE,
+    { ...ROGUE.defaults, placement: defaultPlacement(ADA_DICE, ROGUE) },
+    "rogue",
+  );
+  const leveled = { ...rogue, xp, level: levelForXp(xp) };
+  return validateCharacter({ ...leveled, hp: characterProfile(leveled).maxHp });
+}
+
 /**
  * The engine action a projected action stands for, as the browser server
  * makes it from a click: every `ActionKind` in `src/runtime-5e.ts`.
@@ -82,6 +99,8 @@ function madeAction({ action, target }) {
       return { type: action, actorId: PLAYER, targetId: target.id };
     case "second-wind":
     case "action-surge":
+    case "hide":
+    case "steady-aim":
     case "end-turn":
       return { type: action, actorId: PLAYER };
     case "use":
@@ -130,7 +149,8 @@ function madeAction({ action, target }) {
  * every fixture module with Ada at level 1 and the veteran (#156), then
  * trade, two light weapons and traps (#269): a merchant who buys treasure,
  * one who sells ammunition with an archer who has a stowed weapon and too
- * few arrows to sell, and more tries at the sealed crypt's trap.
+ * few arrows to sell, and more tries at the sealed crypt's trap; then a
+ * level-3 Thief's fights with Hide and Steady Aim (#307).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -140,6 +160,7 @@ const PLAYTHROUGHS = [
   { adventure: gemMarket, fighters: [ada, twin] },
   { adventure: archeryBarrow, fighters: [twin, archer()] },
   { adventure: sealedCrypt, fighters: [twin] },
+  { adventure: goblinTrio, fighters: [thief()] },
 ];
 
 /**

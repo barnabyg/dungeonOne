@@ -1,11 +1,12 @@
 /**
- * The SRD 5.2 Rogue at level 1, as class data (#306). The character module
- * (`character-5e.ts`) derives a Rogue's hit points, saves, skills,
- * Expertise, masteries, Sneak Attack and attacks from this definition alone.
- * Its level 2–5 features come later (#307, #308): until then a Rogue that
- * reaches a higher level gains its hit points, proficiency bonus and Sneak
- * Attack dice, and nothing else. `docs/character-rules.md` records the
- * numbers.
+ * The SRD 5.2 Rogue at levels 1–3, as class data (#306, #307). The character
+ * module (`character-5e.ts`) derives a Rogue's hit points, saves, skills,
+ * Expertise, masteries, Sneak Attack, bonus actions and attacks from this
+ * definition alone. Level 2 brings Cunning Action (Hide only), level 3 Steady
+ * Aim and the Thief subclass. Its level 4–5 features come later (#308): until
+ * then a Rogue that reaches a higher level gains its hit points, proficiency
+ * bonus and Sneak Attack dice, and nothing else. `docs/character-rules.md`
+ * records the numbers and the abstractions.
  */
 import {
   WEAPON_MASTERY_FEATURE,
@@ -116,8 +117,50 @@ export const ROGUE: ClassDefinition = {
       text: "You know Thieves' Cant, the secret mix of jargon, signs and symbols rogues use. It is flavour only and changes nothing in play.",
     },
     WEAPON_MASTERY_FEATURE,
+    {
+      // Dash and Disengage need positions: only Hide is offered (#307).
+      id: "cunning-action",
+      level: 2,
+      name: "Cunning Action",
+      text: "Bonus action: Hide. The engine rolls your Stealth against the best passive Perception among your opponents; on a success your next attack roll has advantage, which sets up Sneak Attack. Hiding lasts until you attack; it doesn't stop your foes attacking you. Dash and Disengage need positions, so they are not offered.",
+      effect: { kind: "cunning-action" },
+    },
+    {
+      // With no positions the character never moves, so the "haven't moved
+      // this turn" condition always holds (owner decision, #307).
+      id: "steady-aim",
+      level: 3,
+      name: "Steady Aim",
+      text: "Bonus action, while you still have an attack to make this turn: advantage on your next attack roll this turn. There are no positions, so you have always not moved and can use it every turn.",
+      effect: { kind: "steady-aim" },
+    },
   ],
-  subclasses: [],
+  subclasses: [
+    {
+      id: "thief",
+      name: "Thief",
+      features: [
+        {
+          // Sleight of Hand checks and thieves' tools are used outside
+          // fights, where nothing is timed by actions (#307).
+          id: "fast-hands",
+          level: 3,
+          name: "Fast Hands",
+          text: "Your bonus action can use an object: in a fight, once you have drawn, stowed or swapped a weapon this turn, you can do it again with your bonus action. Sleight of Hand checks and thieves' tools are used outside fights, where they take no action.",
+          effect: { kind: "fast-hands" },
+        },
+        {
+          // Its climb speed and jump distance need positions: a module marks
+          // the checks that climb or jump instead (#307).
+          id: "second-story-work",
+          level: 3,
+          name: "Second-Story Work",
+          text: "On a check the adventure marks as climbing or jumping, you use Dexterity in place of Strength.",
+          effect: { kind: "second-story-work" },
+        },
+      ],
+    },
+  ],
   defaults: ROGUE_DEFAULT_CHOICES,
   kits: ["shortsword-and-dagger", "shortsword"],
 };

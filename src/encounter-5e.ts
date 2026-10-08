@@ -53,6 +53,17 @@
  *   critical hit; a miss deals none. The engine applies it whenever its rules
  *   are met. Without positions or companions, the ally-adjacent clause is
  *   omitted.
+ * - Hide (#307, Cunning Action): a bonus action. A Stealth check against the
+ *   best passive Perception among the opponents still in the fight; on a
+ *   success the combatant is hidden, and its next attack roll has advantage.
+ *   Hiding ends with that attack or the fight; it doesn't change how foes
+ *   attack it. A hidden combatant can't hide again.
+ * - Steady Aim (#307): a bonus action, while the combatant still has an
+ *   attack to make this turn, giving advantage on its next attack roll this
+ *   turn. Without positions it has never moved, so it is always allowed.
+ * - Fast Hands (#307): once the turn's object interaction is spent, a
+ *   combatant with it can draw, stow or swap a weapon again with its bonus
+ *   action.
  * - Conditions (`CONDITION_RULES`): a monster attack's rider may deal extra
  *   damage of its own type on a hit (its dice doubled by a critical hit) and
  *   give the target a condition, after a saving throw if it names one. A
@@ -271,6 +282,24 @@ export type Combatant = DamageDefenses &
     attacksPerAction?: number;
     /** Sneak Attack's extra damage dice (#306), dealt once per turn. */
     sneakAttack?: Readonly<{ dice: number; sides: number }>;
+    /**
+     * Cunning Action's Hide (#307): its Stealth check's Dexterity modifier
+     * and proficiency bonus, doubled by Expertise.
+     */
+    hide?: Readonly<{
+      modifier: number;
+      proficiency: number;
+      expertise?: true;
+    }>;
+    /** Steady Aim (#307): a bonus action for advantage on its next attack. */
+    steadyAim?: true;
+    /** Fast Hands (#307): a second object interaction takes the bonus action. */
+    fastHands?: true;
+    /**
+     * Its passive Perception, which a hiding foe's Stealth must meet (#307);
+     * 10 when not given.
+     */
+    passivePerception?: number;
     /** Class features with limited uses, with the uses left of their maximum. */
     secondWind?: FeatureUses & Readonly<{ healing: Healing }>;
     actionSurge?: FeatureUses;
@@ -367,6 +396,11 @@ export type EncounterState = Readonly<{
   /** The conditions on living combatants. */
   conditions: readonly Condition[];
   /**
+   * Combatants hidden by Hide (#307): each has advantage on its next attack
+   * roll, which ends it.
+   */
+  hidden: readonly string[];
+  /**
    * Combatants that failed a morale saving throw; each leaves on its next
    * turn, fleeing or, when it may (#238), surrendering.
    */
@@ -410,6 +444,8 @@ export type TurnEconomy = Readonly<{
   lightAttack: "unready" | "ready" | "used";
   /** Whether Sneak Attack can still be dealt this turn (#306). */
   sneakAttack: boolean;
+  /** Steady Aim taken this turn (#307): advantage on the next attack. */
+  steadyAim: boolean;
 }>;
 
 const FRESH_TURN: TurnEconomy = {
@@ -421,6 +457,7 @@ const FRESH_TURN: TurnEconomy = {
   interaction: true,
   lightAttack: "unready",
   sneakAttack: true,
+  steadyAim: false,
 };
 
 /**
@@ -438,6 +475,8 @@ export type EncounterActionType =
   | "light-attack"
   | "second-wind"
   | "action-surge"
+  | "hide"
+  | "steady-aim"
   | "drink-potion"
   | "end-turn";
 
@@ -448,7 +487,7 @@ export type EncounterAction =
       targetId: string;
     }>
   | Readonly<{
-      type: "second-wind" | "action-surge" | "end-turn";
+      type: "second-wind" | "action-surge" | "hide" | "steady-aim" | "end-turn";
       actorId: string;
     }>
   | Readonly<{ type: "drink-potion"; actorId: string; itemId: string }>
@@ -565,6 +604,26 @@ export type SaveEvent = Readonly<
   )
 >;
 
+/**
+ * A combatant's Hide (#307): its Stealth check against the best passive
+ * Perception among its foes, `watcherId`'s.
+ */
+export type HideEvent = Readonly<{
+  type: "hide";
+  combatantId: string;
+  d20: number;
+  /** Present when it rolled with disadvantage (untrained armour, poisoned). */
+  mode?: RollMode;
+  modifier: number;
+  proficiency: number;
+  /** Expertise doubled `proficiency`. */
+  expertise?: true;
+  total: number;
+  dc: number;
+  watcherId: string;
+  success: boolean;
+}>;
+
 /** A combatant's Wisdom saving throw against its morale DC (#237). */
 export type MoraleEvent = Readonly<{
   type: "morale";
@@ -616,6 +675,8 @@ export type EncounterEvent =
       usesLeft: number;
     }>
   | Readonly<{ type: "action-surge"; combatantId: string; usesLeft: number }>
+  | HideEvent
+  | Readonly<{ type: "steady-aim"; combatantId: string }>
   | PotionEvent
   | Readonly<{ type: "turn-ended"; combatantId: string }>
   | Readonly<{ type: "defeated"; combatantId: string }>
@@ -652,6 +713,10 @@ export type EncounterRefusalCode =
   | "light-attack-used"
   | "no-second-wind"
   | "no-action-surge"
+  | "no-hide"
+  | "already-hidden"
+  | "no-steady-aim"
+  | "no-attack-left"
   | "no-potion"
   | "no-uses-left"
   | "full-hp"
@@ -888,6 +953,12 @@ function lightAttackRefusal(
 /** The name of disadvantage on a ranged attack once foes have closed in. */
 export const CLOSE_COMBAT = "Close combat";
 
+/** The advantage a hidden combatant's next attack has (#307). */
+export const HIDDEN = "Hidden";
+
+/** The advantage Steady Aim gives (#307). */
+export const STEADY_AIM = "Steady Aim";
+
 /** Why the combatant's weapon can't shoot: it has no ammunition left. */
 function ammunitionRefusal(actor: Combatant): EncounterRejection | undefined {
   const kind = actor.attack.ammunition;
@@ -907,6 +978,50 @@ function actionSurgeRefusal(actor: Combatant): EncounterRejection | undefined {
   return actor.actionSurge.uses === 0
     ? refused("no-uses-left", "You have no uses of Action Surge left.")
     : undefined;
+}
+
+function hideRefusal(
+  state: EncounterState,
+  actor: Combatant,
+): EncounterRejection | undefined {
+  if (actor.hide === undefined) {
+    return refused("no-hide", "You can't Hide as a bonus action.");
+  }
+  if (state.hidden.includes(actor.id)) {
+    return refused(
+      "already-hidden",
+      "You are already hidden: your next attack has advantage.",
+    );
+  }
+  return state.economy.bonusAction ? undefined : BONUS_ACTION_USED;
+}
+
+/** Whether `actor` still has an attack it can make this turn. */
+function attackLeft(state: EncounterState, actor: Combatant): boolean {
+  const { actions, attacks, lightAttack } = state.economy;
+  return (
+    ((actions > 0 || attacks > 0) && ammunitionRefusal(actor) === undefined) ||
+    // Nick's extra attack spends no bonus action, so Steady Aim can precede it.
+    (lightAttack === "ready" && actor.lightAttack?.mastery === "Nick")
+  );
+}
+
+function steadyAimRefusal(
+  state: EncounterState,
+  actor: Combatant,
+): EncounterRejection | undefined {
+  if (actor.steadyAim === undefined) {
+    return refused("no-steady-aim", "You don't have Steady Aim.");
+  }
+  if (!state.economy.bonusAction) {
+    return BONUS_ACTION_USED;
+  }
+  return attackLeft(state, actor)
+    ? undefined
+    : refused(
+        "no-attack-left",
+        "You have no attack left this turn for Steady Aim to steady.",
+      );
 }
 
 type ConditionRule = (typeof CONDITION_RULES)[ConditionKind];
@@ -960,6 +1075,10 @@ export function availableActions(
       : []),
     ...(actionSurgeRefusal(actor) === undefined
       ? (["action-surge"] as const)
+      : []),
+    ...(hideRefusal(state, actor) === undefined ? (["hide"] as const) : []),
+    ...(steadyAimRefusal(state, actor) === undefined
+      ? (["steady-aim"] as const)
       : []),
     ...(potionRefusal(state, actor) === undefined
       ? (["drink-potion"] as const)
@@ -1239,7 +1358,7 @@ function ableToAct(state: EncounterState, entrant: Combatant): boolean {
 function conditionSources(
   state: EncounterState,
   entrantId: string,
-  effect: "attacks" | "attacked",
+  effect: "attacks" | "attacked" | "checks",
 ): string[] {
   return [
     ...new Set(
@@ -1442,6 +1561,11 @@ function resolveAttack(
   const vexing = state.vexed.some(
     ({ sourceId, targetId }) => sourceId === actor.id && targetId === target.id,
   );
+  // Hiding and Steady Aim (#307) give the combatant's own next attack
+  // advantage, never a Rampage or opponent attack.
+  const own = origin.kind === "attack" || origin.kind === "light";
+  const hidden = own && state.hidden.includes(actor.id);
+  const aimed = own && state.economy.steadyAim;
   const packTactics =
     actor.packTactics === true &&
     state.combatants.some(
@@ -1454,6 +1578,8 @@ function resolveAttack(
     random,
     [
       ...(vexing ? ["Vex"] : []),
+      ...(hidden ? [HIDDEN] : []),
+      ...(aimed ? [STEADY_AIM] : []),
       ...(packTactics ? ["Pack Tactics"] : []),
       ...conditionSources(state, target.id, "attacked").map(
         (name) => `target ${name.toLowerCase()}`,
@@ -1633,8 +1759,9 @@ function resolveAttack(
       hpAfter: hpLeft,
     });
   }
-  // The attack spends any disadvantage Sap gave the attacker, and any
-  // advantage Vex gave it against this target.
+  // The attack spends any disadvantage Sap gave the attacker, any
+  // advantage Vex gave it against this target, and its hiding and Steady
+  // Aim (#307).
   let next: EncounterState = {
     ...state,
     combatants: state.combatants.map((candidate) =>
@@ -1655,14 +1782,17 @@ function resolveAttack(
       ({ sourceId, targetId }) =>
         sourceId !== actor.id || targetId !== target.id,
     ),
+    hidden: state.hidden.filter((id) => !hidden || id !== actor.id),
     engaged: [
       ...state.engaged,
       ...[actor.id, target.id].filter((id) => !state.engaged.includes(id)),
     ],
-    // Sneak Attack is dealt once a turn.
-    ...(sneak === undefined
-      ? {}
-      : { economy: { ...state.economy, sneakAttack: false } }),
+    economy: {
+      ...state.economy,
+      // Sneak Attack is dealt once a turn.
+      sneakAttack: sneak === undefined && state.economy.sneakAttack,
+      steadyAim: !aimed && state.economy.steadyAim,
+    },
   };
   const defeated = hpLeft === 0 && target.hp > 0;
   if (defeated) {
@@ -1846,6 +1976,7 @@ export function startEncounter(
       sapped: [],
       vexed: [],
       conditions: [],
+      hidden: [],
       fleeing: [],
       fled: [],
       surrendered: [],
@@ -2050,6 +2181,64 @@ export function act(
       };
       break;
     }
+    case "hide": {
+      const refusal = hideRefusal(state, actor);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      // The best passive Perception among the foes still in the fight; the
+      // first of them in initiative order on a tie.
+      const watcher = legalTargets(state, actor.id).reduce((best, foe) =>
+        (foe.passivePerception ?? 10) > (best.passivePerception ?? 10)
+          ? foe
+          : best,
+      );
+      const dc = watcher.passivePerception ?? 10;
+      // Hide is a Dexterity (Stealth) check: untrained armour and poison
+      // give it disadvantage.
+      const { d20, mode } = rollD20(
+        random,
+        [],
+        [
+          ...(actor.abilityDisadvantages?.dexterity ?? []),
+          ...conditionSources(state, actor.id, "checks"),
+        ],
+      );
+      const { modifier, proficiency, expertise } = actor.hide!;
+      const total = d20 + modifier + proficiency;
+      const success = total >= dc;
+      events.push({
+        type: "hide",
+        combatantId: actor.id,
+        d20,
+        ...(mode === undefined ? {} : { mode }),
+        modifier,
+        proficiency,
+        ...(expertise === true ? { expertise } : {}),
+        total,
+        dc,
+        watcherId: watcher.id,
+        success,
+      });
+      next = {
+        ...state,
+        hidden: success ? [...state.hidden, actor.id] : state.hidden,
+        economy: { ...state.economy, bonusAction: false },
+      };
+      break;
+    }
+    case "steady-aim": {
+      const refusal = steadyAimRefusal(state, actor);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      events.push({ type: "steady-aim", combatantId: actor.id });
+      next = {
+        ...state,
+        economy: { ...state.economy, bonusAction: false, steadyAim: true },
+      };
+      break;
+    }
     case "drink-potion": {
       const refusal = potionRefusal(state, actor, action.itemId);
       if (refusal !== undefined) {
@@ -2080,10 +2269,17 @@ export function act(
       break;
     }
     case "interact": {
-      if (!state.economy.interaction) {
+      // Fast Hands (#307): a second interaction takes the bonus action.
+      const fastHands =
+        !state.economy.interaction &&
+        actor.fastHands === true &&
+        state.economy.bonusAction;
+      if (!state.economy.interaction && !fastHands) {
         return reject(
           "interaction-used",
-          "You have already drawn or stowed a weapon this turn.",
+          actor.fastHands === true
+            ? "You have already drawn or stowed a weapon this turn, and used your bonus action."
+            : "You have already drawn or stowed a weapon this turn.",
         );
       }
       const { lightAttack: _old, ...rest } = actor;
@@ -2101,7 +2297,11 @@ export function act(
               }
             : candidate,
         ),
-        economy: { ...state.economy, interaction: false },
+        economy: {
+          ...state.economy,
+          interaction: false,
+          bonusAction: !fastHands && state.economy.bonusAction,
+        },
       };
       break;
     }

@@ -134,6 +134,8 @@ export type GameToolName =
 export type FifthToolName =
   | "second_wind"
   | "action_surge"
+  | "hide"
+  | "steady_aim"
   | "light_attack"
   | "sneak"
   | "ambush"

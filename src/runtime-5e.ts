@@ -58,7 +58,7 @@
  * The AI DM reads with `look` and `get_character_status`, and acts with
  * `move`, `sneak`, `ambush`, `react`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
  * `break_door`, `unlock`, `search`, `disarm`, `talk`, `trade`, `attack`,
- * `light_attack`, `second_wind`, `action_surge` and `end_turn`. Each is offered only while the engine would
+ * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim` and `end_turn`. Each is offered only while the engine would
  * accept it, listing only what is visible and legal: the tools come from the
  * same projection (`projectActions`) as the browser's action bar, which asks
  * the engine about each action. The engine authors the
@@ -143,6 +143,7 @@ import {
   type EncounterAction,
   type EncounterActionType,
   type EncounterEvent,
+  type HideEvent,
   type EncounterRefusalCode,
   type EncounterState,
   type FeatureUses,
@@ -200,6 +201,8 @@ import { tradeGoodValue } from "./treasure-5e.js";
 import { ABILITIES } from "./class-5e.js";
 import {
   abilityDisadvantages,
+  hasExpertise,
+  skillProficiency,
   characterProfile,
   classOf,
   type Carrying,
@@ -225,7 +228,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v18";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v19";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -373,7 +376,7 @@ export type FifthAction =
       targetId: string;
     }>
   | Readonly<{
-      type: "second-wind" | "action-surge" | "end-turn";
+      type: "second-wind" | "action-surge" | "hide" | "steady-aim" | "end-turn";
       actorId: string;
     }>
   | Readonly<{ type: "move"; destinationId: string }>
@@ -476,9 +479,14 @@ const checkSiteId = ({ kind, id }: CheckSite) => `${kind}:${id}`;
 const FEATURE_TOOLS = {
   second_wind: "second-wind",
   action_surge: "action-surge",
+  hide: "hide",
+  steady_aim: "steady-aim",
   end_turn: "end-turn",
 } as const satisfies Record<
-  Extract<FifthToolName, "second_wind" | "action_surge" | "end_turn">,
+  Extract<
+    FifthToolName,
+    "second_wind" | "action_surge" | "hide" | "steady_aim" | "end_turn"
+  >,
   EncounterActionType
 >;
 type FeatureTool = keyof typeof FEATURE_TOOLS;
@@ -977,6 +985,11 @@ export type GearEvent = Readonly<{
   minutes: Readonly<{ doff: number; don: number }>;
   /** In a fight: the change used the turn's object interaction. */
   interaction?: true;
+  /**
+   * In a fight, with the object interaction already spent: Fast Hands
+   * (#307) made the change with the bonus action instead.
+   */
+  fastHands?: true;
   strengthShortfall?: Readonly<{ armour: string; strength: number }>;
   /** Body armour worn without training, by name (SRD 5.2). */
   untrainedArmour?: string;
@@ -1105,7 +1118,7 @@ Where a merchant is, call trade with the one offer the player's words pick out: 
 
 The character's own gear (its catalogue weapons, armour and shield) is named by its id. To put on armour or a shield, or take a second light weapon in the other hand, call equip; to take armour or a shield off or put a second weapon away, call unequip; to wield a different carried weapon in place of the ones held, call swap_weapon; to leave carried gear behind, call drop. Gear found is taken with take, like any item. The engine decides what the character can hold, how long armour takes to don and what the change does to its AC and attacks.
 
-A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; when they end or pass their turn, call end_turn. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
+A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; to hide ("I hide behind the crates", "duck out of sight"), call hide; to steady their aim or take careful aim before attacking, call steady_aim; when they end or pass their turn, call end_turn. Hide and Steady Aim each take the bonus action, so a turn has at most one of them; the engine alone rolls the Stealth check for Hide against the opponents' passive Perception and decides whether the character is hidden, and the advantage either gives lasts for one attack. Never declare the character hidden, or give it advantage, yourself. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -1116,6 +1129,9 @@ const featureDescriptions = (
   second_wind: `Use Second Wind, the character's bonus action: the engine rolls 1d10 + ${className} level and restores that many hit points, up to the maximum.`,
   action_surge:
     "Use Action Surge: the character takes one more action this turn.",
+  hide: "Hide, with the character's bonus action (Cunning Action): the engine rolls Stealth against the opponents' best passive Perception; on a success the character's next attack roll has advantage.",
+  steady_aim:
+    "Use Steady Aim, the character's bonus action: advantage on its next attack roll this turn.",
   end_turn:
     "End the character's turn; the opponents then act until the character's next turn.",
 });
@@ -1177,6 +1193,16 @@ function weaponOf(attack: AttackProfile): Weapon {
   };
 }
 
+/** Hide's Stealth check (#307): its modifier and proficiency, as `abilityCheck` makes it. */
+function stealthOf(sheet: CharacterSheet): NonNullable<Combatant["hide"]> {
+  const profile = characterProfile(sheet);
+  return {
+    modifier: profile.modifiers.dexterity,
+    proficiency: skillProficiency(sheet, "stealth"),
+    ...(hasExpertise(sheet, "stealth") ? { expertise: true as const } : {}),
+  };
+}
+
 /**
  * The player character as a combatant, from a validated sheet, with what it
  * has left (by default, everything) and the potions it carries.
@@ -1220,6 +1246,9 @@ export function playerCombatant(
     ...(profile.sneakAttack === undefined
       ? {}
       : { sneakAttack: profile.sneakAttack }),
+    ...(profile.hide === true ? { hide: stealthOf(sheet) } : {}),
+    ...(profile.steadyAim === true ? { steadyAim: true as const } : {}),
+    ...(profile.fastHands === true ? { fastHands: true as const } : {}),
     // Uses start full: each adventure follows the between-adventure rest.
     ...(profile.secondWind === undefined
       ? {}
@@ -1248,6 +1277,8 @@ const OPTION_TEXT: Record<EncounterActionType, string> = {
   "light-attack": "make the extra attack with your second light weapon",
   "second-wind": "use Second Wind",
   "action-surge": "use Action Surge",
+  hide: "hide",
+  "steady-aim": "use Steady Aim",
   "drink-potion": "drink a potion",
   "end-turn": "end your turn",
 };
@@ -1306,6 +1337,24 @@ function signed(value: number): string {
  * "Athletics check: d20 8 + 3 + 2 proficiency = 13 against DC 15. Failure."
  * With advantage the d20s and the one kept come first.
  */
+/** A Hide event's Stealth check (#307), as a check roll. */
+function hideRoll(event: HideEvent): CheckRoll {
+  return {
+    kind: "check",
+    ability: "dexterity",
+    skill: "stealth",
+    label: "Stealth check",
+    d20: event.d20,
+    ...(event.mode === undefined ? {} : { mode: event.mode }),
+    modifier: event.modifier,
+    proficiency: event.proficiency,
+    ...(event.expertise === true ? { expertise: true as const } : {}),
+    total: event.total,
+    dc: event.dc,
+    success: event.success,
+  };
+}
+
 function checkText(roll: CheckRoll, band?: Band): string {
   const d20 =
     roll.mode === undefined
@@ -1482,7 +1531,11 @@ function sneakAttackDice(event: AttackEvent): string {
 function gearText(event: GearEvent): string {
   const lower = (id: ItemId) => itemName(id).toLowerCase();
   const item = lower(event.item);
-  const using = event.interaction ? ", using your object interaction" : "";
+  const using = event.interaction
+    ? ", using your object interaction"
+    : event.fastHands
+      ? ", using your bonus action (Fast Hands)"
+      : "";
   const body = isArmourId(event.item) && event.item !== "shield";
   let done: string;
   switch (event.change) {
@@ -1645,6 +1698,18 @@ export function renderFifthEvent(
     }
     case "action-surge":
       return `${name(event.combatantId)} uses Action Surge: one more action this turn. ${uses(event.usesLeft)}.`;
+    case "hide": {
+      const watcher = combatant(state.encounter!, event.watcherId);
+      const check = checkText(hideRoll(event)).replace(
+        / against DC \d+\./u,
+        ` against ${watcher.name}'s passive Perception ${event.dc}.`,
+      );
+      return event.success
+        ? `You try to hide. ${check} You are hidden: your next attack roll has advantage.`
+        : `You try to hide. ${check} ${watcher.name} still sees you.`;
+    }
+    case "steady-aim":
+      return "You steady your aim: your next attack roll this turn has advantage.";
     case "potion": {
       const rolled =
         event.rolls.reduce((sum, value) => sum + value, 0) + event.modifier;
@@ -2069,6 +2134,24 @@ export function describeFifthResult(
           },
         ];
       }
+      case "hide": {
+        const roll = hideRoll(event);
+        return [
+          {
+            purpose: "check",
+            roller: playerName,
+            target: name(event.watcherId),
+            label: roll.label,
+            dice: d20Dice(roll.mode, roll.d20),
+            modifier: roll.modifier,
+            proficiency: roll.proficiency,
+            total: roll.total,
+            ...(roll.mode === undefined ? {} : { mode: modeLabel(roll.mode) }),
+            dc: roll.dc,
+            outcome: roll.success ? "success" : "failure",
+          },
+        ];
+      }
       case "reaction": {
         // 2d6 + the character's Charisma modifier (#304); a remembered roll
         // draws no dice and shows none.
@@ -2398,6 +2481,8 @@ export type ActionKind =
   | "use"
   | "second-wind"
   | "action-surge"
+  | "hide"
+  | "steady-aim"
   | "end-turn"
   | "move"
   | "sneak"
@@ -2424,6 +2509,8 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   use: true,
   "second-wind": true,
   "action-surge": true,
+  hide: true,
+  "steady-aim": true,
   "end-turn": true,
   move: true,
   sneak: true,
@@ -2499,6 +2586,10 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "light-attack-used": "Extra attack used",
   "no-second-wind": "No Second Wind",
   "no-action-surge": "No Action Surge",
+  "no-hide": "Can't hide",
+  "already-hidden": "Already hidden",
+  "no-steady-aim": "No Steady Aim",
+  "no-attack-left": "No attack left",
   "no-potion": "No potion",
   "no-uses-left": "No uses left",
   "full-hp": "Full HP",
@@ -2671,6 +2762,8 @@ export type FightView = Readonly<{
       morale?: MoraleStatus;
       /** Disadvantage on its next attack roll, from Sap. */
       sapped: boolean;
+      /** Hidden (#307): advantage on its next attack roll. */
+      hidden: boolean;
       /** Its conditions, each with what gave it and how it ends. */
       conditions: readonly ConditionView[];
       initiative: Omit<InitiativeRoll, "combatantId">;
@@ -2777,6 +2870,8 @@ function projectFight(
                   sapped: encounter.sapped.some(
                     ({ targetId }) => targetId === entrant.id,
                   ),
+                  // Hidden by Hide (#307): advantage on its next attack.
+                  hidden: encounter.hidden.includes(entrant.id),
                   conditions: conditionsOf(encounter, entrant.id),
                   // A surprised combatant's two d20s (#301).
                   initiative: {
@@ -3363,6 +3458,8 @@ export function createFifthRuntime(
           dexterity: statBlock.abilities.dexterity,
           initiativeBonus: statBlockInitiative(statBlock),
           saves: statBlockSaves(statBlock),
+          // A hiding character's Stealth must meet it (#307).
+          passivePerception: statBlock.passivePerception,
           // Without Multiattack it makes one attack, its first.
           attack: weapons[0]!,
           ...(statBlock.multiattack === undefined
@@ -4228,6 +4325,8 @@ export function createFifthRuntime(
       }
       case "second-wind":
       case "action-surge":
+      case "hide":
+      case "steady-aim":
       case "end-turn":
         return actorId === undefined
           ? undefined
@@ -4693,6 +4792,8 @@ export function createFifthRuntime(
       case "light-attack":
       case "second-wind":
       case "action-surge":
+      case "hide":
+      case "steady-aim":
       case "end-turn":
         return fightAction(state, action, random, reject);
       case "move":
@@ -5462,7 +5563,11 @@ export function createFifthRuntime(
                   ),
             don: action.type === "equip" ? timing(id).don : 0,
           },
-          ...(fighting(state) ? { interaction: true as const } : {}),
+          ...(!fighting(state)
+            ? {}
+            : state.encounter!.economy.interaction
+              ? { interaction: true as const }
+              : { fastHands: true as const }),
           ...(profile.strengthShortfall === undefined
             ? {}
             : { strengthShortfall: profile.strengthShortfall }),
@@ -5850,8 +5955,10 @@ export function createFifthRuntime(
     };
     if (fighting(state)) {
       const pc = combatant(state.encounter!, PLAYER_ID);
-      const feature = (kind: "second-wind" | "action-surge" | "end-turn") =>
-        view(kind, { type: kind, actorId: PLAYER_ID });
+      const feature = (
+        kind:
+          "second-wind" | "action-surge" | "hide" | "steady-aim" | "end-turn",
+      ) => view(kind, { type: kind, actorId: PLAYER_ID });
       // Paralysed (#234), the character can only wait for its turn to end.
       if (incapacitatedBy(state.encounter!, PLAYER_ID) !== undefined) {
         return [feature("end-turn")];
@@ -5872,6 +5979,8 @@ export function createFifthRuntime(
         ...potions(state).map(use),
         ...(pc.secondWind === undefined ? [] : [feature("second-wind")]),
         ...(pc.actionSurge === undefined ? [] : [feature("action-surge")]),
+        ...(pc.hide === undefined ? [] : [feature("hide")]),
+        ...(pc.steadyAim === undefined ? [] : [feature("steady-aim")]),
         ...gearViews(true),
         feature("end-turn"),
       ];

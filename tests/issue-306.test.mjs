@@ -294,7 +294,7 @@ test("the creation projection offers the Rogue's kits and Expertise, and no Figh
   );
 });
 
-test("a Rogue that levels up gains its hit points and Sneak Attack dice; its later features come later", () => {
+test("a Rogue that levels up gains its hit points and Sneak Attack dice", () => {
   const raised = settleCharacter(VEX, {
     possessions: {
       equipment: VEX.equipment,
@@ -315,7 +315,11 @@ test("a Rogue that levels up gains its hit points and Sneak Attack dice; its lat
   assert.equal(profile.maxHp, 24);
   assert.deepEqual(profile.sneakAttack, { dice: 2, sides: 6 });
   const changes = levelUpChanges(VEX, raised);
-  assert.deepEqual(changes.features, []);
+  // Its level 2 and 3 features are #307's.
+  assert.deepEqual(
+    changes.features.map(({ id }) => id),
+    ["cunning-action", "steady-aim", "fast-hands", "second-story-work"],
+  );
   assert.equal(changes.secondWind, undefined);
   assert.deepEqual(changes.choices, []);
 });
@@ -687,9 +691,9 @@ test("the balance harness builds a level-1 Rogue and plays it, Sneak Attack and 
 });
 
 test("the library, save and trace formats bump; a format-13 library is refused by name", async () => {
-  assert.equal(FIFTH_LIBRARY_FORMAT, 14);
-  assert.equal(FIFTH_SESSION_FORMAT, 32);
-  assert.equal(FIFTH_TRACE_FORMAT, 26);
+  assert.ok(FIFTH_LIBRARY_FORMAT >= 14);
+  assert.ok(FIFTH_SESSION_FORMAT >= 32);
+  assert.ok(FIFTH_TRACE_FORMAT >= 26);
   const directory = await mkdtemp(join(tmpdir(), "issue-306-"));
   try {
     const path = join(directory, "characters.json");

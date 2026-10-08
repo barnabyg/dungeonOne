@@ -68,7 +68,15 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
-import { BANDS, isSuccess, type Band, type CheckSpec } from "./checks-5e.js";
+import {
+  BANDS,
+  isSuccess,
+  MOVEMENTS,
+  specAbility,
+  type Band,
+  type CheckSpec,
+  type Movement,
+} from "./checks-5e.js";
 import type { Combatant, DamageDefenses, DamageType } from "./encounter-5e.js";
 import {
   COIN_VALUES,
@@ -142,7 +150,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 25;
+export const FIFTH_ADVENTURE_FORMAT = 26;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -853,7 +861,7 @@ function approach(
   const raw = knownKeys(
     value,
     [skilled ? "skill" : "ability", "dc"],
-    circumstanced ? ["advantage", "disadvantage"] : [],
+    circumstanced ? ["advantage", "disadvantage", "movement"] : [],
     where,
   );
   const dc = integer(raw.dc, `${where} dc`, 5, 30);
@@ -870,13 +878,31 @@ function approach(
           ),
         }),
   };
-  if (skilled) {
-    if (typeof raw.skill !== "string" || !Object.hasOwn(SKILLS, raw.skill)) {
-      fail(`${where} skill must be one of ${Object.keys(SKILLS).join(", ")}.`);
-    }
-    return { skill: raw.skill as SkillId, dc, ...modes };
+  const made: AuthoredApproach = skilled
+    ? { skill: skillId(raw.skill, where), dc, ...modes }
+    : { ability: ability(raw.ability, `${where} ability`), dc, ...modes };
+  if (raw.movement === undefined) {
+    return made;
   }
-  return { ability: ability(raw.ability, `${where} ability`), dc, ...modes };
+  // Second-Story Work (#307) swaps Strength for Dexterity on a marked climb
+  // or jump; no other ability's check is one.
+  if (!(MOVEMENTS as readonly unknown[]).includes(raw.movement)) {
+    fail(`${where} movement must be ${MOVEMENTS.join(" or ")}.`);
+  }
+  if (specAbility(made) !== "strength") {
+    fail(
+      `${where} movement marks a climb or jump, which needs a Strength check (Athletics or Strength).`,
+    );
+  }
+  return { ...made, movement: raw.movement as Movement };
+}
+
+/** An approach's skill, one the game knows. */
+function skillId(value: unknown, where: string): SkillId {
+  if (typeof value !== "string" || !Object.hasOwn(SKILLS, value)) {
+    fail(`${where} skill must be one of ${Object.keys(SKILLS).join(", ")}.`);
+  }
+  return value as SkillId;
 }
 
 /** A damage effect's or a damage cost's fields (#281, #284). */

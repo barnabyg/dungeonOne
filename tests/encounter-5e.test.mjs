@@ -476,6 +476,7 @@ test("turn economy: an attack spends the action; the turn stays open while optio
     interaction: true,
     lightAttack: "unready",
     sneakAttack: true,
+    steadyAim: false,
   });
   assert.deepEqual(availableActions(state, "pc"), [
     "attack",
@@ -531,6 +532,7 @@ test("turn economy: an attack spends the action; the turn stays open while optio
     interaction: true,
     lightAttack: "unready",
     sneakAttack: true,
+    steadyAim: false,
   });
   assert.match(
     act(ended.state, { type: "end-turn", actorId: "goblin" }, none).rejection
