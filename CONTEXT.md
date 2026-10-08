@@ -165,7 +165,7 @@ A d20 roll plus one ability's modifier, and the proficiency bonus when the check
 _Avoid_: Skill roll, Test
 
 **Sneaking in**:
-Entering a room where a fight waits with a Stealth check against the highest passive Perception among its opponents. Meeting it leaves the character unseen; missing it starts the fight. The check is remembered with that fight and never rerolled.
+Entering a room where a fight waits with a Stealth check against the highest passive Perception among its opponents. Meeting it leaves the character unseen; missing it starts the fight. The check is made once per fight, and sneaking up on it again is refused, unless the module lets the character sneak up on it again after slipping past it (see Bypassed encounter): then a fresh check is rolled.
 _Avoid_: Ambush roll, Sneak attack (a Rogue feature)
 
 **Unseen**:

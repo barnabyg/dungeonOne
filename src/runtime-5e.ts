@@ -52,7 +52,7 @@
  * so (the browser asks the player first).
  *
  * The AI DM reads with `look` and `get_character_status`, and acts with
- * `move`, `sneak`, `ambush`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
+ * `move`, `sneak`, `ambush`, `react`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
  * `break_door`, `unlock`, `search`, `disarm`, `talk`, `trade`, `attack`,
  * `light_attack`, `second_wind`, `action_surge` and `end_turn`. Each is offered only while the engine would
  * accept it, listing only what is visible and legal: the tools come from the

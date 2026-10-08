@@ -2444,10 +2444,6 @@ export function statBlockInitiative(block: StatBlock): number {
 }
 
 /**
- * A monster's Stealth bonus (#303): its stat block's, or else its Dexterity
- * modifier.
- */
-/**
  * Whether a monster is mindless (#304): an Undead, or any stat block whose
  * morale is "never", the mark the bestiary gives undead and mindless
  * monsters. A mindless opponent never reacts.
@@ -2467,6 +2463,10 @@ export function reactors<T extends Pick<FifthOpponent, "reacts">>(
   return marked.length === 0 ? opponents : marked;
 }
 
+/**
+ * A monster's Stealth bonus (#303): its stat block's, or else its Dexterity
+ * modifier.
+ */
 export function statBlockStealth(
   block: Pick<StatBlock, "stealth" | "abilities">,
 ): number {
