@@ -414,7 +414,7 @@ These are for development, not play.
   Fighter through the built-in modules (or the files named) in the browser's
   order, carrying its possessions and XP between them, and reports each
   module's survival and XP, the level each career reached and where it fell. It
-  exits with code 1 if no career reaches the required level (4 by default). See
+  exits with code 1 if no career reaches the required level (5 by default). See
   [the rules document](docs/character-rules.md#career-simulation).
 - **Encounter estimate.** `npm.cmd run estimate -- [--levels <min>-<max>]
 [--seeds <count>] [--percentiles <p,p>] [--styles <style,style>] [--bestiary

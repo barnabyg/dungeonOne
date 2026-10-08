@@ -30,8 +30,8 @@ function barrowGiving(id, xp) {
   return validateModule(module);
 }
 
-test("the required level is 4 until the level 4–5 module ships", () => {
-  assert.equal(CAREER_REQUIRED_LEVEL, 4);
+test("the required level is 5, the top level, since the level 4–5 module shipped (#291)", () => {
+  assert.equal(CAREER_REQUIRED_LEVEL, 5);
 });
 
 test("a career plays the modules in the browser's order, each once its level is reached, carrying its XP", () => {
@@ -169,7 +169,7 @@ test("the report names each module played, its XP and its survival", () => {
 test("the career script reads its options and fails on a set that can't reach the level", async () => {
   assert.deepEqual(parseArguments([]), {
     seeds: 200,
-    requiredLevel: 4,
+    requiredLevel: 5,
     json: false,
     paths: [],
   });

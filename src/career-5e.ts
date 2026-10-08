@@ -43,11 +43,8 @@ import {
 import { createFifthRuntime } from "./runtime-5e.js";
 import type { KitId } from "./equipment-5e.js";
 
-/**
- * The level some career must reach: 4 until the level 4–5 module ships
- * (#291), when it becomes 5.
- */
-export const CAREER_REQUIRED_LEVEL: Level = 4;
+/** The level some career must reach: the top level, 5, since #291. */
+export const CAREER_REQUIRED_LEVEL: Level = 5;
 
 export type CareerOptions = GateOptions &
   Readonly<{
