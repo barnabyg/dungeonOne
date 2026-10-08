@@ -317,6 +317,15 @@ function masteriesHeld(
 type HeldFeature = FeatureDefinition & Readonly<{ subclass?: string }>;
 
 /**
+ * Each definition's features by level, worked out once: a profile is
+ * derived many times a step while the runtime dry-runs actions.
+ */
+const featuresByLevel = new WeakMap<
+  ClassDefinition,
+  Map<Level, readonly HeldFeature[]>
+>();
+
+/**
  * The class's features and its subclass's, gained by `level`: by level,
  * the class's before the subclass's at the same level, each in the order
  * the definition lists them. The first subclass is taken until there is a
@@ -326,16 +335,26 @@ function classFeatures(
   definition: ClassDefinition,
   level: Level,
 ): readonly HeldFeature[] {
-  const subclass = definition.subclasses[0];
-  return [
-    ...definition.features,
-    ...(subclass?.features.map((feature) => ({
-      ...feature,
-      subclass: subclass.name,
-    })) ?? []),
-  ]
-    .filter((feature) => feature.level <= level)
-    .sort((a, b) => a.level - b.level);
+  let byLevel = featuresByLevel.get(definition);
+  if (byLevel === undefined) {
+    byLevel = new Map();
+    featuresByLevel.set(definition, byLevel);
+  }
+  let held = byLevel.get(level);
+  if (held === undefined) {
+    const subclass = definition.subclasses[0];
+    held = [
+      ...definition.features,
+      ...(subclass?.features.map((feature) => ({
+        ...feature,
+        subclass: subclass.name,
+      })) ?? []),
+    ]
+      .filter((feature) => feature.level <= level)
+      .sort((a, b) => a.level - b.level);
+    byLevel.set(level, held);
+  }
+  return held;
 }
 
 /** The effects of the features a character of `level` has, of one kind. */
