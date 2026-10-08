@@ -437,6 +437,13 @@ function attackText(attack) {
   return signed(attack.bonus) + " to hit, " + damageText(attack.damage) + " " + attack.damage.type + (attack.mastery ? ", " + attack.mastery : "") + (attack.ammunition ? ", ranged (" + attack.ammunition + "; disadvantage from round 2)" : "") + attack.disadvantage.map((source) => ", disadvantage (" + source + ")").join("") + (attack.criticalRange === 19 ? ", critical on 19–20" : "");
 }
 
+/**
+ * "; disadvantage on Strength and Dexterity rolls (untrained in chain mail);
+ * the shield adds no AC (untrained)" for armour or a shield worn without the
+ * class's training (SRD 5.2), or "".
+ */
+const untrainedText = (gear) => (gear.untrainedArmour ? "; disadvantage on Strength and Dexterity rolls (untrained in " + gear.untrainedArmour.toLowerCase() + ")" : "") + (gear.untrainedShield ? "; the shield adds no AC (untrained)" : "");
+
 /** "17 arrows", "1 bolt". */
 const ammunitionText = ({ id, count }) => count + " " + (count === 1 ? id.slice(0, -1) : id);
 
@@ -444,7 +451,7 @@ function profileNodes(abilities, profile, hp, carrying) {
   const stats = make("ul", undefined, "stats");
   const entries = [
     ["HP", (hp === undefined ? profile.maxHp : hp) + "/" + profile.maxHp],
-    ["AC", profile.armorClass],
+    ["AC", profile.armorClass + untrainedText(profile)],
     // The engine weighs what is carried against Strength × 15 lb (#224).
     ["Carrying", carrying.weight + " of " + carrying.capacity + " lb"],
     ["Initiative", signed(profile.initiative)],
@@ -1171,11 +1178,12 @@ function renderGear(gear) {
   const worn = gear.worn.map(({ name }) => name.toLowerCase()).join(", ");
   const shooting = gear.attack.ammunition;
   const ammunition = [...(shooting && !gear.ammunition.some(({ id }) => id === shooting) ? [{ id: shooting, count: 0 }] : []), ...gear.ammunition];
-  element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (ammunition.length ? "; " + ammunition.map(ammunitionText).join(", ") : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + ".";
+  element("gear-numbers").textContent = "AC " + gear.armorClass + (worn ? " (" + worn + ")" : "") + " · " + gear.attack.weapon + " " + attackText(gear.attack) + (gear.attack.grip === "two-handed" ? ", two-handed" : "") + (gear.lightAttack ? "; " + gear.lightAttack.weapon + " " + attackText(gear.lightAttack) + " as an extra attack" : "") + (ammunition.length ? "; " + ammunition.map(ammunitionText).join(", ") : "") + (gear.strengthShortfall ? "; speed −10 ft (Strength below " + gear.strengthShortfall.strength + ")" : "") + untrainedText(gear) + ".";
 }
 
-// A surprised combatant (#301) rolled two d20s and kept the lower.
-const rollText = (roll) => "d20 " + (roll.mode ? roll.mode.d20s.join(" and ") + " (surprised: disadvantage), kept " : "") + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
+// A surprised combatant (#301), or one in armour it isn't trained with,
+// rolled two d20s and kept the lower.
+const rollText = (roll) => "d20 " + (roll.mode ? roll.mode.d20s.join(" and ") + " (" + roll.mode.disadvantage.join(", ") + ": disadvantage), kept " : "") + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
 /** A condition (#232) as a tag, such as "Prone", with its source and how it ends spoken. */
 const conditionTag = (condition) => {
   const tag = make("span", condition.name, "tag condition");
@@ -1199,7 +1207,7 @@ function renderInitiative(encounter, fighting) {
     for (const condition of combatant.conditions) name.append(" ", conditionTag(condition));
     if (current) name.append(" ", make("span", "Now", "tag now"));
     if (combatant.defeated) name.append(" ", make("span", "Defeated", "tag"));
-    if (combatant.initiative.mode) name.append(" ", make("span", "Surprised", "tag surprised"));
+    if (combatant.initiative.mode?.disadvantage.includes("surprised")) name.append(" ", make("span", "Surprised", "tag surprised"));
     // Morale (#237): a fleeing opponent leaves on its turn; a fled one is gone.
     // One that may surrender (#238) yields on its turn instead.
     if (combatant.morale) name.append(" ", make("span", MORALE_TAGS[combatant.morale], "tag morale"));

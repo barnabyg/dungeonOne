@@ -7,7 +7,8 @@
  * dice and returns the state unchanged.
  *
  * - Each combatant rolls its own initiative: d20 + its initiative bonus. A
- *   surprised combatant (#301, SRD 5.2) rolls it with disadvantage.
+ *   surprised combatant (#301, SRD 5.2) rolls it with disadvantage, as does
+ *   one whose Dexterity has disadvantage (`abilityDisadvantages`).
  *   Ties go to the higher Dexterity score, then to a seeded d20 roll-off
  *   among the combatants still tied, repeated until no two match.
  * - An attack hits when d20 + bonus meets the target's AC. A natural 20 (or
@@ -254,6 +255,15 @@ export type Combatant = DamageDefenses &
     surprised?: true;
     /** Its saving throw bonus for each ability. */
     saves: Readonly<Record<Ability, number>>;
+    /**
+     * Named sources of disadvantage on its D20 Tests with an ability: its
+     * saving throws, and its initiative for Dexterity. A character's body
+     * armour worn without training gives it on Strength and Dexterity
+     * (SRD 5.2); its attacks carry it on their weapons.
+     */
+    abilityDisadvantages?: Readonly<
+      Partial<Record<Ability, readonly string[]>>
+    >;
     attack: Weapon;
     /** A second light weapon, for the Light property's extra attack. */
     lightAttack?: Weapon;
@@ -316,7 +326,10 @@ export type InitiativeRoll = Readonly<{
   combatantId: string;
   /** The d20 kept: the lower of two for a surprised combatant (#301). */
   d20: number;
-  /** Present when it rolled with disadvantage for being surprised. */
+  /**
+   * Present when it rolled with disadvantage: for being surprised, or for
+   * its Dexterity's disadvantage (untrained armour).
+   */
   mode?: RollMode;
   bonus: number;
   total: number;
@@ -541,7 +554,13 @@ export type SaveEvent = Readonly<
     /** A repeat save at the end of the combatant's turn. */
     repeat: boolean;
   } & (
-    | { d20: number; total: number; autoFail?: never }
+    | {
+        d20: number;
+        /** Present when it rolled with disadvantage (untrained armour). */
+        mode?: RollMode;
+        total: number;
+        autoFail?: never;
+      }
     | { autoFail: ConditionKind; d20?: never; total?: never }
   )
 >;
@@ -973,10 +992,14 @@ function rollInitiative(
   random: Roller,
 ): InitiativeRoll[] {
   const rolls = combatants.map((entrant) => {
+    // Initiative is a Dexterity check.
     const { d20, mode } = rollD20(
       random,
       [],
-      entrant.surprised === true ? [SURPRISED] : [],
+      [
+        ...(entrant.abilityDisadvantages?.dexterity ?? []),
+        ...(entrant.surprised === true ? [SURPRISED] : []),
+      ],
     );
     return {
       combatantId: entrant.id,
@@ -1261,9 +1284,19 @@ function rollSave(
   if (fails !== undefined) {
     return { ...common, success: false, autoFail: fails };
   }
-  const { d20 } = rollD20(random, [], []);
+  const { d20, mode } = rollD20(
+    random,
+    [],
+    entrant.abilityDisadvantages?.[save.ability] ?? [],
+  );
   const total = d20 + bonus;
-  return { ...common, d20, total, success: total >= save.dc };
+  return {
+    ...common,
+    d20,
+    ...(mode === undefined ? {} : { mode }),
+    total,
+    success: total >= save.dc,
+  };
 }
 
 /**

@@ -116,6 +116,7 @@ test("weapon proficiency follows the class's training", () => {
     strengthScore: 17,
     dexterityScore: 14,
     proficiency: 2,
+    armourTraining: FIGHTER.armourTraining,
     masteries: [],
     criticalRange: 20,
   };

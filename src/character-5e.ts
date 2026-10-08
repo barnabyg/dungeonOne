@@ -49,6 +49,8 @@ import {
   readLoadout,
   STARTING_KITS,
   TREASURE_WEIGHT,
+  untrainedArmour,
+  untrainedSource,
   WEAPONS,
   type Ammunition,
   type AmmunitionId,
@@ -1017,6 +1019,7 @@ export function projectCreation(
       dexterityScore: score("dexterity"),
       proficiency: proficiencyBonus(1),
       weaponProficiencies: definition.weaponProficiencies,
+      armourTraining: definition.armourTraining,
       masteries,
       ...(style === undefined ? {} : { fightingStyle: style }),
       criticalRange: criticalRange(definition, 1),
@@ -1233,6 +1236,13 @@ export type CharacterProfile = Readonly<{
   sneakAttack?: Readonly<{ dice: number; sides: number }>;
   /** Armour worn below its Strength requirement (speed -10 ft, not used without positions). */
   strengthShortfall?: Readonly<{ armour: string; strength: number }>;
+  /**
+   * Body armour worn without the class's training, by name: disadvantage on
+   * Strength and Dexterity rolls (see `abilityDisadvantages`).
+   */
+  untrainedArmour?: string;
+  /** A shield carried without the class's training: it adds no AC. */
+  untrainedShield?: true;
   /** Second Wind's uses and healing (dice + level), for a class that has it. */
   secondWind?: Readonly<{
     uses: number;
@@ -1267,6 +1277,27 @@ export function checkAdvantages(
     .map(({ feature }) =>
       typeof feature.name === "string" ? feature.name : feature.id,
     );
+}
+
+/**
+ * The named sources of disadvantage on every D20 Test `sheet` makes with
+ * `ability`: its checks, its saving throws and, for Dexterity, its
+ * initiative. Body armour worn without the class's training gives it on
+ * Strength and Dexterity (SRD 5.2), as "Chain mail (untrained)". Attack rolls
+ * get the same source from the equipment profile.
+ */
+export function abilityDisadvantages(
+  sheet: Pick<CharacterSheet, "class" | "equipment">,
+  ability: Ability,
+): readonly string[] {
+  if (ability !== "strength" && ability !== "dexterity") {
+    return [];
+  }
+  const armour = untrainedArmour(
+    sheet.equipment,
+    classOf(sheet).armourTraining,
+  );
+  return armour === undefined ? [] : [untrainedSource(armour)];
 }
 
 /** The fields a profile is derived from. */
@@ -1327,6 +1358,7 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
     dexterityScore: sheet.abilities.dexterity,
     proficiency,
     weaponProficiencies: definition.weaponProficiencies,
+    armourTraining: definition.armourTraining,
     masteries: sheet.weaponMasteries,
     ...(sheet.fightingStyle === undefined
       ? {}
@@ -1418,6 +1450,12 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
     ...(gear.strengthShortfall === undefined
       ? {}
       : { strengthShortfall: gear.strengthShortfall }),
+    ...(gear.untrainedArmour === undefined
+      ? {}
+      : { untrainedArmour: gear.untrainedArmour }),
+    ...(gear.untrainedShield === true
+      ? { untrainedShield: true as const }
+      : {}),
     ...(wind === undefined
       ? {}
       : {

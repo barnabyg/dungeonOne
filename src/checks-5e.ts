@@ -10,13 +10,15 @@
  * Athletics, #300), and a module's
  * circumstances (#284) may give advantage or disadvantage on any check: the
  * caller names them, and they combine as SRD 5.2 says (any advantage and any
- * disadvantage cancel).
+ * disadvantage cancel). Body armour worn without training gives disadvantage
+ * on Strength and Dexterity checks and saves (SRD 5.2, `abilityDisadvantages`).
  *
  * An authored check grades its outcome into bands (#281): failure by 5 or
  * more, failure, success, and success by 5 or more.
  */
 import { rollD20, type RollMode } from "./encounter-5e.js";
 import {
+  abilityDisadvantages,
   characterProfile,
   checkAdvantages,
   hasExpertise,
@@ -133,7 +135,7 @@ const NO_CIRCUMSTANCES: Circumstances = { advantage: [], disadvantage: [] };
 /**
  * Rolls an ability check, with the skill's proficiency where the sheet has
  * it (doubled with Expertise, #306), and the advantage and disadvantage `circumstances` name (#284) beside
- * any its class's features give.
+ * any its class's features and its armour give.
  */
 export function abilityCheck(
   sheet: CharacterSheet,
@@ -153,7 +155,10 @@ export function abilityCheck(
       spec.dc,
       circumstances.advantage,
       random,
-      circumstances.disadvantage,
+      [
+        ...abilityDisadvantages(sheet, spec.ability),
+        ...circumstances.disadvantage,
+      ],
     );
   }
   const { name, ability } = SKILLS[spec.skill];
@@ -167,12 +172,15 @@ export function abilityCheck(
     spec.dc,
     [...checkAdvantages(sheet, spec.skill), ...circumstances.advantage],
     random,
-    circumstances.disadvantage,
+    [...abilityDisadvantages(sheet, ability), ...circumstances.disadvantage],
   );
   return hasExpertise(sheet, spec.skill) ? { ...roll, expertise: true } : roll;
 }
 
-/** Rolls a saving throw, with proficiency in the class's saves. */
+/**
+ * Rolls a saving throw, with proficiency in the class's saves and
+ * disadvantage from untrained armour on Strength and Dexterity.
+ */
 export function savingThrow(
   sheet: CharacterSheet,
   ability: Ability,
@@ -191,6 +199,7 @@ export function savingThrow(
     dc,
     [],
     random,
+    abilityDisadvantages(sheet, ability),
   );
 }
 

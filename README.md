@@ -315,7 +315,9 @@ armour (the result says how many minutes donning took), straps on a shield or
 takes a second light weapon in your other hand; **Unequip** takes it off again;
 **Wield** swaps the weapon you hold for a stowed one; **Drop** leaves stowed
 gear in the room, where **Take** picks it back up. In a fight you can only
-swap or draw a weapon, once a turn, with your object interaction. Your AC and
+swap or draw a weapon, once a turn, with your object interaction. Armour your
+class isn't trained with gives disadvantage on Strength and Dexterity rolls,
+and a shield without training adds no AC (SRD 5.2). Your AC and
 attack update at once in the status strip and the result card, and the sheet
 shows your gear after the adventure. Like treasure, gear is kept only on
 getting out alive: what you dropped or left behind is gone, and a defeat or an

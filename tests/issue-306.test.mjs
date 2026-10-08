@@ -27,7 +27,11 @@ import {
   FIFTH_LIBRARY_FORMAT,
   FifthCharacterLibrary,
 } from "../dist/character-library-5e.js";
-import { abilityCheck, passivePerception } from "../dist/checks-5e.js";
+import {
+  abilityCheck,
+  passivePerception,
+  savingThrow,
+} from "../dist/checks-5e.js";
 import { act, startEncounter } from "../dist/encounter-5e.js";
 import { kitPrice, KIT_VALUE_TOLERANCE } from "../dist/equipment-5e.js";
 import { ROGUE } from "../dist/rogue-5e.js";
@@ -35,6 +39,7 @@ import {
   createFifthRuntime,
   FIFTH_DM_SYSTEM_PROMPT,
   playerCombatant,
+  renderFifthResult,
 } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
 import { libraryAt, TEST_FIGHTER } from "../dist/test-fighter-5e.js";
@@ -815,4 +820,215 @@ test("the API offers both classes and creates a Rogue; another class's choices a
     await server.close();
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+// SRD 5.2 armour training (owner decision, 8 October 2026): body armour
+// without training gives disadvantage on every D20 Test with Strength or
+// Dexterity, and a shield without training gives no AC.
+const UNTRAINED = ["Chain mail (untrained)"];
+const inChainMail = validateCharacter({
+  ...VEX,
+  equipment: ["chain-mail", "shortsword"],
+});
+const fighterInChainMail = validateCharacter({
+  ...TEST_FIGHTER,
+  equipment: ["chain-mail", "longsword"],
+});
+
+test("untrained armour: a Rogue in chain mail attacks with disadvantage, and the profile names it", () => {
+  const profile = characterProfile(inChainMail);
+  assert.equal(profile.untrainedArmour, "Chain mail");
+  assert.deepEqual(profile.attack.disadvantage, UNTRAINED);
+  // Chain mail's AC is untouched: 16, no Dexterity.
+  assert.equal(profile.armorClass, 16);
+  const self = playerCombatant(inChainMail);
+  assert.deepEqual(self.attack.disadvantage, UNTRAINED);
+  // Vex rolls initiative first: two d20s for the armour, keeping 19.
+  const { state } = startEncounter(
+    [self, ogre],
+    dice([20, 20], [20, 19], [20, 2]),
+  );
+  // The miss ends Vex's turn; the ogre then misses on a 1.
+  const attack = attackEvent(
+    act(state, ATTACK, dice([20, 15], [20, 4], [20, 1])),
+  );
+  assert.deepEqual(attack.mode, {
+    d20s: [15, 4],
+    advantage: [],
+    disadvantage: UNTRAINED,
+  });
+  assert.equal(attack.d20, 4);
+  assert.equal(attack.hit, false);
+});
+
+test("untrained armour: Strength and Dexterity checks and saves have disadvantage, others don't", () => {
+  const check = (skill) =>
+    abilityCheck(inChainMail, { skill, dc: 10 }, dice([20, 15], [20, 4]));
+  for (const skill of [
+    "stealth",
+    "athletics",
+    "acrobatics",
+    "sleight-of-hand",
+  ]) {
+    const roll = check(skill);
+    assert.deepEqual(roll.mode?.disadvantage, UNTRAINED, skill);
+    assert.equal(roll.d20, 4, skill);
+  }
+  // A plain Strength check too; a Charisma skill rolls one d20.
+  assert.deepEqual(
+    abilityCheck(
+      inChainMail,
+      { ability: "strength", dc: 10 },
+      dice([20, 15], [20, 4]),
+    ).mode?.disadvantage,
+    UNTRAINED,
+  );
+  const persuasion = abilityCheck(
+    inChainMail,
+    { skill: "persuasion", dc: 10 },
+    dice([20, 15]),
+  );
+  assert.equal(persuasion.mode, undefined);
+  assert.equal(persuasion.d20, 15);
+  const dexterity = savingThrow(
+    inChainMail,
+    "dexterity",
+    12,
+    dice([20, 15], [20, 4]),
+  );
+  assert.deepEqual(dexterity.mode?.disadvantage, UNTRAINED);
+  assert.equal(dexterity.d20, 4);
+  const wisdom = savingThrow(inChainMail, "wisdom", 12, dice([20, 15]));
+  assert.equal(wisdom.mode, undefined);
+  // Leather is light armour, which the Rogue is trained with.
+  assert.equal(
+    abilityCheck(VEX, { skill: "stealth", dc: 10 }, dice([20, 15])).mode,
+    undefined,
+  );
+});
+
+test("untrained armour: initiative and a Strength save in a fight have disadvantage", () => {
+  const self = playerCombatant(inChainMail);
+  assert.deepEqual(self.abilityDisadvantages, {
+    strength: UNTRAINED,
+    dexterity: UNTRAINED,
+  });
+  const wolf = {
+    ...ogre,
+    id: "wolf",
+    name: "Wolf",
+    dexterity: 15,
+    initiativeBonus: 2,
+    attack: {
+      name: "Bite",
+      bonus: 4,
+      damage: { dice: 1, sides: 6, modifier: 2, type: "piercing" },
+      criticalRange: 20,
+      rider: {
+        condition: { kind: "prone", save: { ability: "strength", dc: 11 } },
+      },
+    },
+  };
+  // Vex keeps the lower of 15 and 5; the wolf goes first, bites (19 hits
+  // AC 16) and Vex saves with two d20s, keeping 3.
+  const { events } = startEncounter(
+    [self, wolf],
+    dice([20, 15], [20, 5], [20, 18], [20, 15], [6, 2], [20, 12], [20, 3]),
+  );
+  const initiative = events.find(({ type }) => type === "initiative");
+  const vex = initiative.order.find(({ combatantId }) => combatantId === "pc");
+  assert.deepEqual(vex.mode, {
+    d20s: [15, 5],
+    advantage: [],
+    disadvantage: UNTRAINED,
+  });
+  assert.equal(vex.d20, 5);
+  const save = events.find(({ type }) => type === "save");
+  assert.deepEqual(
+    [save.ability, save.d20, save.mode, save.success],
+    [
+      "strength",
+      3,
+      { d20s: [12, 3], advantage: [], disadvantage: UNTRAINED },
+      false,
+    ],
+  );
+});
+
+test("untrained shield: a Rogue's shield adds no AC", () => {
+  const shielded = characterProfile(
+    validateCharacter({
+      ...VEX,
+      equipment: ["leather", "shortsword", "shield"],
+    }),
+  );
+  assert.equal(shielded.armorClass, characterProfile(VEX).armorClass);
+  assert.equal(shielded.untrainedShield, true);
+  assert.equal(shielded.untrainedArmour, undefined);
+  // Leather is trained: no disadvantage from it.
+  assert.deepEqual(shielded.attack.disadvantage, []);
+  // A Fighter's shield adds 2.
+  const fighter = (equipment) =>
+    characterProfile(validateCharacter({ ...TEST_FIGHTER, equipment }));
+  const withShield = fighter(["leather", "mace", "shield"]);
+  assert.equal(
+    withShield.armorClass,
+    fighter(["leather", "mace"]).armorClass + 2,
+  );
+  assert.equal(withShield.untrainedShield, undefined);
+});
+
+test("trained armour: a Fighter in chain mail rolls one d20 everywhere", () => {
+  const profile = characterProfile(fighterInChainMail);
+  assert.equal(profile.untrainedArmour, undefined);
+  assert.deepEqual(profile.attack.disadvantage, []);
+  const self = playerCombatant(fighterInChainMail);
+  assert.equal(self.abilityDisadvantages, undefined);
+  for (const skill of ["athletics", "acrobatics"]) {
+    assert.equal(
+      abilityCheck(fighterInChainMail, { skill, dc: 10 }, dice([20, 15])).mode,
+      undefined,
+    );
+  }
+  assert.equal(
+    savingThrow(fighterInChainMail, "strength", 12, dice([20, 15])).mode,
+    undefined,
+  );
+  const { events } = startEncounter([self, ogre], dice([20, 15], [20, 2]));
+  assert.equal(
+    events.find(({ type }) => type === "initiative").order[0].mode,
+    undefined,
+  );
+});
+
+test("donning untrained armour or a shield says what it costs, in the result and the status", () => {
+  const sheet = validateCharacter({
+    ...VEX,
+    equipment: ["leather", "shortsword"],
+    stowed: ["chain-mail", "shield"],
+  });
+  const runtime = createFifthRuntime(ratTunnels, sheet);
+  let state = runtime.handleAction(runtime.createSession(), {
+    type: "begin",
+  }).state;
+  const shield = runtime.handleAction(state, {
+    type: "equip",
+    itemId: "shield",
+  });
+  assert.match(
+    renderFifthResult(shield),
+    /You are not trained with shields: it adds no AC\. AC 14;/u,
+  );
+  state = shield.state;
+  const mail = runtime.handleAction(state, {
+    type: "equip",
+    itemId: "chain-mail",
+  });
+  assert.match(
+    renderFifthResult(mail),
+    /You are not trained with chain mail: disadvantage on Strength and Dexterity rolls\./u,
+  );
+  const gear = runtime.projectRoom(mail.state).gear;
+  assert.equal(gear.untrainedArmour, "Chain mail");
+  assert.equal(gear.untrainedShield, true);
 });

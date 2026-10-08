@@ -197,7 +197,9 @@ import {
   type WeaponData,
 } from "./equipment-5e.js";
 import { tradeGoodValue } from "./treasure-5e.js";
+import { ABILITIES } from "./class-5e.js";
 import {
+  abilityDisadvantages,
   characterProfile,
   classOf,
   type Carrying,
@@ -976,6 +978,10 @@ export type GearEvent = Readonly<{
   /** In a fight: the change used the turn's object interaction. */
   interaction?: true;
   strengthShortfall?: Readonly<{ armour: string; strength: number }>;
+  /** Body armour worn without training, by name (SRD 5.2). */
+  untrainedArmour?: string;
+  /** A shield carried without training: it adds no AC (SRD 5.2). */
+  untrainedShield?: true;
   armorClass: number;
   attack: ShownAttack;
   lightAttack?: ShownAttack;
@@ -1181,6 +1187,11 @@ export function playerCombatant(
   potions: readonly Potion[] = [],
 ): Combatant {
   const profile = characterProfile(sheet);
+  // Untrained armour's disadvantage on its saves and initiative (SRD 5.2).
+  const disadvantages = ABILITIES.flatMap((ability) => {
+    const sources = abilityDisadvantages(sheet, ability);
+    return sources.length === 0 ? [] : [[ability, sources] as const];
+  });
   return {
     id: PLAYER_ID,
     name: sheet.name,
@@ -1196,6 +1207,9 @@ export function playerCombatant(
         bonus,
       ]),
     ) as Combatant["saves"],
+    ...(disadvantages.length === 0
+      ? {}
+      : { abilityDisadvantages: Object.fromEntries(disadvantages) }),
     attack: weaponOf(profile.attack),
     ...(profile.lightAttack === undefined
       ? {}
@@ -1498,11 +1512,22 @@ function gearText(event: GearEvent): string {
     event.strengthShortfall === undefined || event.change !== "equip"
       ? ""
       : ` Your Strength is below the ${event.strengthShortfall.armour.toLowerCase()}'s ${event.strengthShortfall.strength}: your speed drops by 10 feet, which has no effect without positions.`;
+  // SRD 5.2 armour training, said as the armour or shield goes on.
+  const untrained =
+    event.change !== "equip"
+      ? ""
+      : event.item === "shield"
+        ? event.untrainedShield === true
+          ? " You are not trained with shields: it adds no AC."
+          : ""
+        : event.untrainedArmour === undefined || isWeaponId(event.item)
+          ? ""
+          : ` You are not trained with ${event.untrainedArmour.toLowerCase()}: disadvantage on Strength and Dexterity rolls.`;
   const light =
     event.lightAttack === undefined
       ? ""
       : `; ${shownAttackText(event.lightAttack)} (extra attack)`;
-  return `${done}${shortfall} AC ${event.armorClass}; ${shownAttackText(event.attack)}${light}.`;
+  return `${done}${shortfall}${untrained} AC ${event.armorClass}; ${shownAttackText(event.attack)}${light}.`;
 }
 
 const titleCase = (value: string) =>
@@ -1556,7 +1581,7 @@ export function renderFifthEvent(
       return `Initiative: ${event.order
         .map(
           (roll) =>
-            `${name(roll.combatantId)} ${roll.mode === undefined ? "" : `(surprised, d20s ${roll.mode.d20s.join(" and ")}, kept) `}${roll.d20} ${signed(roll.bonus)} = ${roll.total}${roll.tieBreaks.length === 0 ? "" : ` (roll-off ${roll.tieBreaks.join(", ")})`}`,
+            `${name(roll.combatantId)} ${roll.mode === undefined ? "" : `(${roll.mode.disadvantage.join(", ")}, d20s ${roll.mode.d20s.join(" and ")}, kept) `}${roll.d20} ${signed(roll.bonus)} = ${roll.total}${roll.tieBreaks.length === 0 ? "" : ` (roll-off ${roll.tieBreaks.join(", ")})`}`,
         )
         .join("; ")}.`;
     case "turn":
@@ -1605,7 +1630,7 @@ export function renderFifthEvent(
       if (event.autoFail !== undefined) {
         return `${name(event.combatantId)} fails a ${titleCase(event.ability)} saving throw against being ${event.condition} without a roll: it is ${event.autoFail}.`;
       }
-      return `${name(event.combatantId)} ${event.repeat ? "repeats" : "makes"} a ${titleCase(event.ability)} saving throw against being ${event.condition}: ${event.d20} ${signed(event.bonus)} = ${event.total} against DC ${event.dc}. ${event.success ? "Success" : "Failure"}.`;
+      return `${name(event.combatantId)} ${event.repeat ? "repeats" : "makes"} a ${titleCase(event.ability)} saving throw against being ${event.condition}${event.mode === undefined ? ":" : modeText(event.mode, event.d20)} ${event.d20} ${signed(event.bonus)} = ${event.total} against DC ${event.dc}. ${event.success ? "Success" : "Failure"}.`;
     case "condition":
       return `${name(event.combatantId)} is ${event.kind === "prone" ? "knocked prone" : event.kind} by ${name(event.sourceId)}'s ${event.source}: ${conditionText(event)}`;
     case "condition-ended":
@@ -2173,10 +2198,13 @@ export function describeFifthResult(
             purpose: "save",
             roller: name(event.combatantId),
             label: `${titleCase(event.ability)} saving throw`,
-            dice: take([event.d20]),
+            dice: d20Dice(event.mode, event.d20),
             modifier: event.bonus,
             proficiency: 0,
             total: event.total,
+            ...(event.mode === undefined
+              ? {}
+              : { mode: modeLabel(event.mode) }),
             dc: event.dc,
             outcome: event.success ? "success" : "failure",
           },
@@ -2347,6 +2375,10 @@ export type RoomView = Readonly<{
     attack: AttackProfile;
     lightAttack?: AttackProfile;
     strengthShortfall?: Readonly<{ armour: string; strength: number }>;
+    /** Body armour worn without training, by name (SRD 5.2). */
+    untrainedArmour?: string;
+    /** A shield carried without training: it adds no AC (SRD 5.2). */
+    untrainedShield?: true;
   }>;
   character: Readonly<{ hp: number; maxHp: number; health: Health }>;
   /** Everything the character carries and the most it can, in pounds (#224). */
@@ -3920,7 +3952,7 @@ export function createFifthRuntime(
     const dice = need(random, "A check");
     // The module's circumstances give advantage or disadvantage (#284).
     const roll = policyRoll(
-      abilityCheck(sheet, spec, dice, circumstancesOf(state, spec)),
+      abilityCheck(sheetOf(state), spec, dice, circumstancesOf(state, spec)),
       spec,
     );
     const band = authoredBand(check, bandOf(roll));
@@ -4106,7 +4138,12 @@ export function createFifthRuntime(
     trap: FifthTrap,
     random: Pick<RandomSource, "roll">,
   ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
-    const save = savingThrow(sheet, trap.save.ability, trap.save.dc, random);
+    const save = savingThrow(
+      sheetOf(state),
+      trap.save.ability,
+      trap.save.dc,
+      random,
+    );
     const rolls = Array.from({ length: trap.damage.dice }, () =>
       random.roll(trap.damage.sides),
     );
@@ -5429,6 +5466,12 @@ export function createFifthRuntime(
           ...(profile.strengthShortfall === undefined
             ? {}
             : { strengthShortfall: profile.strengthShortfall }),
+          ...(profile.untrainedArmour === undefined
+            ? {}
+            : { untrainedArmour: profile.untrainedArmour }),
+          ...(profile.untrainedShield === true
+            ? { untrainedShield: true as const }
+            : {}),
           armorClass: profile.armorClass,
           attack: shown(profile.attack),
           ...(profile.lightAttack === undefined
@@ -6343,6 +6386,12 @@ export function createFifthRuntime(
           ...(profile.strengthShortfall === undefined
             ? {}
             : { strengthShortfall: profile.strengthShortfall }),
+          ...(profile.untrainedArmour === undefined
+            ? {}
+            : { untrainedArmour: profile.untrainedArmour }),
+          ...(profile.untrainedShield === true
+            ? { untrainedShield: true as const }
+            : {}),
         };
       })(),
       character: {
