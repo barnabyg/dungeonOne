@@ -45,6 +45,7 @@ import {
   type Level,
   type LevelChoice,
   type RolledDice,
+  type Settlement,
 } from "./fighter-5e.js";
 import { createSeededRandom } from "./random.js";
 import {
@@ -677,6 +678,11 @@ export type RunRecord = Readonly<{
   actions: number;
   /** How many checks the run made (#285). */
   checks: number;
+  /**
+   * How a surviving ending settles the character (what a career carries to
+   * its next module, #290); absent after a defeat.
+   */
+  settlement?: Settlement;
 }>;
 
 /**
@@ -1063,6 +1069,7 @@ export function playAdventure(
         : settlement.finds.length + settlement.coin.length,
     actions,
     checks: state.checks.length,
+    ...(settlement === undefined ? {} : { settlement }),
   };
 }
 

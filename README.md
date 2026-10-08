@@ -402,6 +402,13 @@ These are for development, not play.
   chances and each module's balance-gate verdict, which plays every check
   policy. See
   [the rules document](docs/character-rules.md#balance-harness).
+- **Career simulation.** `npm.cmd run career -- [--seeds <count>]
+[--required-level <level>] [--json] [module.json ...]` plays a new level-1
+  Fighter through the built-in modules (or the files named) in the browser's
+  order, carrying its possessions and XP between them, and reports each
+  module's survival and XP, the level each career reached and where it fell. It
+  exits with code 1 if no career reaches the required level (4 by default). See
+  [the rules document](docs/character-rules.md#career-simulation).
 - **Encounter estimate.** `npm.cmd run estimate -- [--levels <min>-<max>]
 [--seeds <count>] [--percentiles <p,p>] [--styles <style,style>] [--bestiary
 <file>] [--json] <monster>[:<count>] ...` estimates a fight before you write

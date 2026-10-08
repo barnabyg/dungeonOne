@@ -25,7 +25,7 @@ const CONTENT_TESTS = new Map([
   ],
   [
     "tests/shipped-modules.test.mjs",
-    "loads and validates every shipped module, its budget and tiers, the gate's verdict on each, and the browser's adventure list",
+    "loads and validates every shipped module, its budget and tiers, the gate's verdict on each, the browser's adventure list and the career through them (#290)",
   ],
   [
     "tests/abandoned-delve.test.mjs",
