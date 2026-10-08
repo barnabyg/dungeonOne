@@ -113,3 +113,35 @@ test("a level-5 character wielding a light crossbow fights with a Loading weapon
   assert.equal(combatant.attack.loading, true);
   assert.equal("loading" in playerCombatant(level5).attack, false);
 });
+
+test("the bestiary holds the SRD 5.2 Mastiff, with the Wolf's house knockdown save", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const bestiary = JSON.parse(
+    await readFile(new URL("../adventures/5e/bestiary.json", import.meta.url)),
+  );
+  const mastiff = bestiary.monsters.find(({ id }) => id === "mastiff");
+  assert.equal(mastiff.treasureType, "none");
+  assert.deepEqual(mastiff.levelBand, { min: 1, max: 2 });
+  const block = mastiff.statBlock;
+  assert.deepEqual(
+    [block.name, block.size, block.type, block.armorClass, block.hitPoints],
+    ["Mastiff", "Medium", "Beast", 12, { average: 5, formula: "1d8 + 1" }],
+  );
+  assert.deepEqual(
+    [block.challengeRating, block.xp, block.morale],
+    ["1/8", 25, 8],
+  );
+  assert.deepEqual(block.attacks, [
+    {
+      name: "Bite",
+      bonus: 3,
+      damage: { dice: 1, sides: 6, modifier: 1, type: "piercing" },
+      rider: {
+        condition: {
+          kind: "prone",
+          save: { ability: "strength", dc: 11 },
+        },
+      },
+    },
+  ]);
+});

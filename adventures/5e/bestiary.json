@@ -949,6 +949,57 @@
         "multiattack": 2,
         "morale": 4
       }
+    },
+    {
+      "id": "mastiff",
+      "description": "A heavy-jawed mastiff, growling low, its hackles up.",
+      "levelBand": {
+        "min": 1,
+        "max": 2
+      },
+      "treasureType": "none",
+      "statBlock": {
+        "name": "Mastiff",
+        "size": "Medium",
+        "type": "Beast",
+        "armorClass": 12,
+        "hitPoints": {
+          "average": 5,
+          "formula": "1d8 + 1"
+        },
+        "abilities": {
+          "strength": 13,
+          "dexterity": 14,
+          "constitution": 12,
+          "intelligence": 3,
+          "wisdom": 12,
+          "charisma": 7
+        },
+        "challengeRating": "1/8",
+        "xp": 25,
+        "attacks": [
+          {
+            "name": "Bite",
+            "bonus": 3,
+            "damage": {
+              "dice": 1,
+              "sides": 6,
+              "modifier": 1,
+              "type": "piercing"
+            },
+            "rider": {
+              "condition": {
+                "kind": "prone",
+                "save": {
+                  "ability": "strength",
+                  "dc": 11
+                }
+              }
+            }
+          }
+        ],
+        "morale": 8
+      }
     }
   ]
 }

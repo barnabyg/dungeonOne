@@ -324,6 +324,7 @@ Twelve modules ship (#252, #275, #289). _The Goblin in the Cellar_ and _The Gobl
 | Goblin Minion (`goblin-minion`)         | SRD 5.2              | 1/8 (25)  | 1      | Dagger                                                                                                                 | Nimble Escape               |
 | Kobold (`kobold`)                       | House                | 1/8 (25)  | 1      | Spike, +4, 1d4 + 2 piercing                                                                                            | Nimble Escape, Pack Tactics |
 | Bandit (`bandit`)                       | SRD 5.2              | 1/8 (25)  | 1–2    | Scimitar                                                                                                               |                             |
+| Mastiff (`mastiff`)                     | SRD 5.2, house rider | 1/8 (25)  | 1–2    | Bite, +3, 1d6 + 1 piercing; prone on a failed DC 11 Strength save                                                      |                             |
 | Goblin Warrior (`goblin-warrior`)       | SRD 5.2              | 1/4 (50)  | 1–2    | Scimitar                                                                                                               | Nimble Escape               |
 | Zombie (`zombie`)                       | SRD 5.2              | 1/4 (50)  | 1–2    | Slam                                                                                                                   | Undead Fortitude            |
 | Skeleton (`skeleton`)                   | SRD 5.2              | 1/4 (50)  | 1–2    | Shortsword                                                                                                             |                             |
@@ -355,6 +356,7 @@ SRD 5.2 monsters left out because their blocks need what the engine lacks: the H
 - the Bugbear Warrior's Grab and its Abduct trait (the grappled condition is out of scope), its Light Hammer's advantage against a grappled target, and its 10-foot reach (no positions);
 - the Kobold's Sunlight Sensitivity (the game does not model light), and the Gnoll Ravager's Rampage move of half its speed;
 - the Dire Wolf's and Brown Bear's knockdown save (#288): SRD 5.2 knocks a Large or smaller target prone on any hit, with no save. A prone character spends its next turn getting up, so a no-save knockdown would cost a turn on nearly every hit; like the Wolf's, each is a derived house rider with a DC 13 Strength save;
+- the Mastiff's knockdown save (#291): SRD 5.2 knocks a Medium or smaller target prone on any hit; like the Wolf's, it is a derived house rider with a DC 11 Strength save;
 - the Brown Bear's Multiattack makes one Bite and one Claw in SRD 5.2; the engine picks each of its two attacks by a die, so it may bite or claw twice (#288);
 - the Bandit Captain's Pistol and the Warrior Veteran's Heavy Crossbow (ranged attacks are deferred), and both monsters' Parry reaction (nothing uses a reaction yet) (#288);
 - every monster's skills, senses, languages, speed and gear: nothing in a fight uses them.

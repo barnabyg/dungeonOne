@@ -25,7 +25,7 @@ const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the bestiary holds the shipped monsters, the Giant Rat (#232), the #235 additions and the level 4–5 monsters (#288)", () => {
+test("the bestiary holds the shipped monsters, the Giant Rat (#232), the #235 additions, the level 4–5 monsters (#288) and the Mastiff (#291)", () => {
   assert.equal(bestiary.formatVersion, FIFTH_BESTIARY_FORMAT);
   assert.deepEqual(
     bestiary.monsters.map(({ id, statBlock }) => [id, statBlock.name]),
@@ -50,6 +50,7 @@ test("the bestiary holds the shipped monsters, the Giant Rat (#232), the #235 ad
       ["bandit-captain", "Bandit Captain"],
       ["owlbear", "Owlbear"],
       ["warrior-veteran", "Warrior Veteran"],
+      ["mastiff", "Mastiff"],
     ],
   );
 });
