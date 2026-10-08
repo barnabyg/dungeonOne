@@ -685,6 +685,14 @@ test("the validator rejects circumstances and retries naming what is not there",
   rejects((m) => {
     cliffCheck(m).retry.cost = { type: "item", item: "iron-spike" };
   }, /room 1 feature 1 check retry must have exactly after\./);
+  // A retry that uses up the tool giving its advantage would cancel it.
+  rejects(
+    (m) =>
+      (cliffCheck(m).retry = {
+        cost: { type: "item", item: "knotted-rope" },
+      }),
+    /feature sheer-cliff check's retry uses up knotted-rope, which its advantage 1 needs held\./,
+  );
 });
 
 test("a module from before retries (format 19) is refused by name and left unchanged", async () => {

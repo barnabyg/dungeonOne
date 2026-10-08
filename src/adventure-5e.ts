@@ -1938,6 +1938,25 @@ function validateModule(
           `${label}'s retry costs ${placed.id}, which is ${placed.kind}; only a tool is used up.`,
         );
       }
+      // The cost is paid before the roll, so a tool used up can't also be
+      // the one held for advantage on that roll.
+      approachesOf(site.check).forEach((spec, index) => {
+        const needed = (spec.advantage ?? []).findIndex(
+          (entry) =>
+            entry.type === "holds" &&
+            entry.item === placed.id &&
+            entry.not !== true,
+        );
+        if (needed !== -1) {
+          const way =
+            approachesOf(site.check).length === 1
+              ? label
+              : `${label}'s approach ${index + 1}`;
+          fail(
+            `${way}'s retry uses up ${placed.id}, which its advantage ${needed + 1} needs held.`,
+          );
+        }
+      });
     } else if (again?.cost.type === "damage") {
       ending(again.cost.defeatEndingId, "defeat", `${label}'s retry`);
     }
