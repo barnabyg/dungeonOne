@@ -116,12 +116,38 @@ in the #291 worktree on the branch's final commit, ending "Verification
 passed with zero warnings." It was not rerun from a clean clone; CI on the PR
 runs it from a fresh checkout.
 
-**No live AI run.** Earlier increments recorded a bounded live run of the
-release module with the AI DM, using `scripts/qualify-release-live.mjs`. That
-harness has routes only for the Delve, the Toll and the Mine; neither the
-Hillfort nor the Lodge has one yet, and a live run spends provider calls on a
-budget the owner approves first. The scripted-DM and browser journeys above
-cover the engine; scenario 4 asks the owner to try the DM by hand.
+**Bounded live AI run.** The owner approved a live run in the #291 session;
+the implementer set the budget at 80 provider calls on `gpt-5.6-luna` (the
+default), as #241's run had. The live harness gained a Lodge route for it
+(`LODGE_ROUTE`): a step can name a check's approach or ask for a retry. It
+starts from the handoff's level-4 Ada with 4,100 XP, on seed 2, the seed of
+scenario 2. Command:
+
+```powershell
+node scripts/qualify-release-live.mjs --live --adventure thornwood-lodge --max-calls 80 --seed 2 --output docs/acceptance/evidence/increment-14-live-release-run.json
+```
+
+The full report is in
+[`evidence/increment-14-live-release-run.json`](evidence/increment-14-live-release-run.json).
+It holds every message, the DM's tool calls, the engine's cards and the
+replies, but no credentials or prompts. Result:
+
+| Measure                        | Result                                                                                                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ending                         | _Out with the spoils_, 6,900 XP, level 5 (Gilt Hunting Cup, Topaz, 30 gp)                                                                            |
+| Turns / typed to the AI DM     | 40 / 38 (Leave is button-only by design)                                                                                                             |
+| Typed steps the DM carried out | 38 of 38; none needed its button                                                                                                                     |
+| Checks with approaches         | The DM passed the approach each time: `talk` Persuasion, `examine` History (trophy wall) and Perception (hatch)                                      |
+| Tools the DM called            | `attack` 9, `take` 8, `move` 6, `examine` 5, `second_wind` 3, `talk` 2, `end_turn` 2, `action_surge`, `search` and `disarm` 1 each                   |
+| Steps skipped                  | 1: the hatch's retry, not offered because the hatch opened at the first try; 4 rooms visited (the Owlbear and Captain Hesk are left alone by design) |
+| Provider calls                 | 38 of at most 80                                                                                                                                     |
+| Tokens                         | 125,551 input, 1,151 output                                                                                                                          |
+| Replies claiming an outcome    | 0 flagged on uncommitted turns                                                                                                                       |
+| Prompt version                 | `5e-dm-v17`                                                                                                                                          |
+
+The run's dice match the scripted release run in
+`tests/thornwood-lodge.test.mjs`, which plays the same route on seed 2 with a
+DM that only narrates, so every step falls back to its button.
 
 **Balance note.** The gate judges the cautious route: the kennel yard, its
 loot and out. A heavier required path failed: the yard's fight with the bear
@@ -303,9 +329,8 @@ you, separately from the evidence above.
 
 ## Limits
 
-- No live AI run was made for this release, and the live harness has no
-  route for the Lodge (see _Implementer evidence_).
-  `npm.cmd run eval:dm` measures the DM across cases.
+- The live run is a single sample on one seed. AI interpretation varies
+  between runs; `npm.cmd run eval:dm` measures it across cases.
 - Unfamiliar-player testing has not been done.
 - The scenarios start from prepared libraries rather than one character
   played from level 1. The career simulation (`npm.cmd run career`) plays
