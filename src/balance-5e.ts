@@ -900,10 +900,13 @@ export function playAdventure(
     state.usedItemIds.some((id) => items.get(id)!.item.kind === "coin");
   /**
    * Whether an item hidden in a feature with a check can no longer be found:
-   * the check is made, and its band did not reveal the item (#285).
+   * the check is made, and the band of its last try (#284) did not reveal
+   * the item (#285).
    */
   const lost = (itemId: string, hiddenIn: string | undefined) => {
-    const made = state.checks.find(({ id }) => id === `examine:${hiddenIn}`);
+    const made = state.checks.findLast(
+      ({ id }) => id === `examine:${hiddenIn}`,
+    );
     return (
       made !== undefined &&
       !effectsOf(siteChecks.get(made.id)?.bands?.[made.band]).some(
