@@ -44,7 +44,12 @@ import {
   type WeaponData,
   type WeaponId,
 } from "./equipment-5e.js";
-import { combatant, countedDamageDie, damageTaken } from "./encounter-5e.js";
+import {
+  combatant,
+  countedDamageDie,
+  damageTaken,
+  type ConditionKind,
+} from "./encounter-5e.js";
 import {
   createFifthRuntime,
   PLAYER_ID,
@@ -586,6 +591,8 @@ export type FightRecord = Readonly<{
   fled: number;
   /** Opponents that surrendered (#238), giving half their XP or none. */
   surrendered: number;
+  /** Conditions opponents' riders put on the character (#232), by kind. */
+  conditions: Readonly<Partial<Record<ConditionKind, number>>>;
   rounds: number;
   outcome: "victory" | "defeat";
 }>;
@@ -648,7 +655,13 @@ export function playAdventure(
   const roomIds = [state.roomId];
   const fights: FightRecord[] = [];
   let fight:
-    | { id: string; hpLost: number; fled: number; surrendered: number }
+    | {
+        id: string;
+        hpLost: number;
+        fled: number;
+        surrendered: number;
+        conditions: Partial<Record<ConditionKind, number>>;
+      }
     | undefined;
   const healing = { secondWinds: 0, potions: 0, hp: 0 };
   let trapDamage = 0;
@@ -683,6 +696,7 @@ export function playAdventure(
             hpLost: 0,
             fled: 0,
             surrendered: 0,
+            conditions: {},
           };
           break;
         case "attack":
@@ -696,6 +710,12 @@ export function playAdventure(
           break;
         case "surrendered":
           fight!.surrendered += 1;
+          break;
+        case "condition":
+          if (event.combatantId === PLAYER_ID) {
+            fight!.conditions[event.kind] =
+              (fight!.conditions[event.kind] ?? 0) + 1;
+          }
           break;
         case "second-wind":
           healing.secondWinds += 1;
