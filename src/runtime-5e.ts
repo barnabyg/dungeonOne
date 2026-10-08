@@ -2601,8 +2601,8 @@ export function createFifthRuntime(
    * Another try at the failed check at `site` (#284), when its module
    * authors a retry that allows one now, with why: its cost, paid before
    * the roll, or the circumstance that changed since the check was last
-   * made (each change gives one more try). A trap no longer armed has
-   * nothing left to try.
+   * made (one more try, unless the last was made while it held). A trap
+   * no longer armed has nothing left to try.
    */
   const retryOffer = (
     state: FifthState,
