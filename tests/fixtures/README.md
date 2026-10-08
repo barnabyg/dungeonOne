@@ -21,6 +21,7 @@ owned by the tests: change it only for a test's sake.
 | `rat-tunnels.json`      | `ratTunnels`      | Exploration: passages, examined features, a hidden potion, a Giant Rat fight that leaves the adventure going.                                        |
 | (built from the above)  | `ratlessTunnels`  | The tunnels without the rat, as _The Quiet Tunnels_: exploring rooms with one fight, in the den.                                                     |
 | (built from the above)  | `ratRun`          | Sneaking past (#302): the tunnels as _The Rat Run_, the rat 20 bypass XP, the den an exit with no fight.                                             |
+| (built from the above)  | `lurkingTunnels`  | Lurking monsters (#303): the tunnels as _The Lurking Tunnels_, the rat lying in wait with Stealth +4 on the required path.                           |
 | `lintel-barrow.json`    | `lintelBarrow`    | An exit with loot behind a fight: a lintel to examine, a torc under the bier, a goblin carrying a pouch of coin.                                     |
 | `sealed-crypt.json`     | `sealedCrypt`     | Doors, a trap and talk, level 2: a stuck door, a locked door and its key, a dart trap, a creature with a check.                                      |
 | `goblin-burrow.json`    | `goblinBurrow`    | A level-up journey, levels 2–3: tunnel guards, then a goblin boss and its hoard on the way out.                                                      |

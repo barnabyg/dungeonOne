@@ -310,6 +310,23 @@ export const ratRunFile = (() => {
 })();
 export const ratRun = validateModule(structuredClone(ratRunFile));
 
+/**
+ * Lurking monsters (#303): the rat tunnels as _The Lurking Tunnels_, level
+ * 1, hard, whose Giant Rat lies in wait in the cellar with Stealth +4. The
+ * gate's required path, to the den's goblin, goes through it.
+ */
+export const lurkingTunnelsFile = (() => {
+  const module = moduleFile("rat-tunnels");
+  module.id = "lurking-tunnels";
+  module.title = "The Lurking Tunnels";
+  module.encounters[0].lurking = true;
+  module.encounters[0].opponents[0].statBlock.stealth = 4;
+  return module;
+})();
+export const lurkingTunnels = validateModule(
+  structuredClone(lurkingTunnelsFile),
+);
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,
@@ -326,4 +343,5 @@ export const FIXTURE_MODULES = [
   ropeCove,
   tollYard,
   ratRun,
+  lurkingTunnels,
 ];

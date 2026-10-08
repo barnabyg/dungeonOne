@@ -738,6 +738,8 @@ export type RunRecord = Readonly<{
   checks: number;
   /** How many fights the run slipped past and left unfought (#302). */
   bypassed: number;
+  /** How many fights lurking opponents surprised the character in (#303). */
+  surprised: number;
   /**
    * How a surviving ending settles the character (what a career carries to
    * its next module, #290); absent after a defeat.
@@ -1143,6 +1145,7 @@ export function playAdventure(
     actions,
     checks: state.checks.length,
     bypassed: state.bypassedEncounterIds.length,
+    surprised: state.lurks.filter(({ roll }) => roll.success).length,
     ...(settlement === undefined ? {} : { settlement }),
   };
 }

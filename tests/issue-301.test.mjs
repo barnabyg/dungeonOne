@@ -57,7 +57,7 @@ test("Stealth is a Dexterity skill anyone can roll; the Fighter is not proficien
 });
 
 test("every bestiary monster has its SRD 5.2 passive Perception", () => {
-  assert.equal(FIFTH_BESTIARY_FORMAT, 8);
+  assert.ok(FIFTH_BESTIARY_FORMAT >= 8);
   const perception = Object.fromEntries(
     bestiary.monsters.map(({ id, statBlock }) => [
       id,

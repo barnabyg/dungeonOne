@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 22) and its validator.
+ * The 5e adventure module format (format version 23) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -33,7 +33,9 @@
  * carries treasure or found coin, and its escape-without-loot ending otherwise. A victory
  * or escape ending may award XP, on top of each won encounter's stat-block XP.
  * An encounter may award XP for sneaking past it unfought (#302), and may let
- * the character sneak up on it again after slipping past it once.
+ * the character sneak up on it again after slipping past it once. An
+ * encounter may be lurking (#303): its opponents lie in wait, and may
+ * surprise the character as it comes in.
  *
  * A feature may have a check made when it is first examined (#281). Every
  * authored check (a feature's, a door's force, pick or break, a trap's
@@ -122,7 +124,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 22;
+export const FIFTH_ADVENTURE_FORMAT = 23;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -171,6 +173,11 @@ export type FifthEncounter = Readonly<{
    * fresh Stealth check (#302). Without this, coming back starts the fight.
    */
   sneakAgain?: true;
+  /**
+   * Its opponents lie in wait (#303): as the character comes in, they roll
+   * Stealth against its passive Perception, and surprise it if they win.
+   */
+  lurking?: true;
 }>;
 
 /**
@@ -1219,11 +1226,14 @@ function validateModule(
       const encounter = knownKeys(
         entry,
         ["id", "opponents", "defeatEndingId"],
-        ["victoryEndingId", "bypassXp", "sneakAgain"],
+        ["victoryEndingId", "bypassXp", "sneakAgain", "lurking"],
         where,
       );
       if (encounter.sneakAgain !== undefined && encounter.sneakAgain !== true) {
         fail(`${where} sneakAgain must be true, or left out.`);
+      }
+      if (encounter.lurking !== undefined && encounter.lurking !== true) {
+        fail(`${where} lurking must be true, or left out.`);
       }
       const opponents = list(
         encounter.opponents,
@@ -1359,6 +1369,7 @@ function validateModule(
               ),
             }),
         ...(encounter.sneakAgain === true ? { sneakAgain: true as const } : {}),
+        ...(encounter.lurking === true ? { lurking: true as const } : {}),
       };
     },
   );
@@ -2293,6 +2304,16 @@ const statBlockModifier = (score: number) => Math.floor((score - 10) / 2);
 
 export function statBlockInitiative(block: StatBlock): number {
   return statBlockModifier(block.abilities.dexterity);
+}
+
+/**
+ * A monster's Stealth bonus (#303): its stat block's, or else its Dexterity
+ * modifier.
+ */
+export function statBlockStealth(
+  block: Pick<StatBlock, "stealth" | "abilities">,
+): number {
+  return block.stealth ?? statBlockModifier(block.abilities.dexterity);
 }
 
 /** A monster's proficiency bonus, from its challenge rating (SRD 5.2). */

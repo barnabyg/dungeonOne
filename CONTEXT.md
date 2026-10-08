@@ -180,8 +180,12 @@ _Avoid_: Avoided fight, Skipped encounter, Cleared
 Being caught unaware as a fight begins: a surprised combatant rolls initiative with disadvantage (SRD 5.2). Only the engine decides it.
 _Avoid_: Surprise round
 
+**Lurking encounter**:
+An encounter whose opponents lie in wait (#303). The first time the character comes into its room, the least stealthy of them rolls Stealth against the character's passive Perception; meeting it surprises the character. The roll is remembered with the fight. When the character also sneaks in, each side's check decides whether it noticed the other, and both hidden means everyone is surprised.
+_Avoid_: Ambush (the character's), Hidden monsters, Trap
+
 **Passive Perception**:
-A creature's constant alertness, 10 plus its Wisdom (Perception) bonus, given in every stat block; it is the DC of a Stealth check to sneak up on it.
+A creature's constant alertness, 10 plus its Wisdom (Perception) bonus, given in every stat block; it is the DC of a Stealth check to sneak up on it. The character's (10 + Wisdom modifier + proficiency if proficient in Perception, ±5 for advantage or disadvantage) is the DC lurking opponents' Stealth must meet.
 _Avoid_: Notice score
 
 **Retry**:

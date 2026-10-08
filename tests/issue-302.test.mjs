@@ -68,11 +68,14 @@ const available = (using, state, kind) =>
     .map(({ target }) => target.id);
 
 test("the module, save and trace formats bump; bypass XP and sneaking again are validated", () => {
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 22);
-  assert.equal(FIFTH_SESSION_FORMAT, 29);
-  assert.equal(FIFTH_TRACE_FORMAT, 23);
+  assert.ok(FIFTH_ADVENTURE_FORMAT >= 22);
+  assert.ok(FIFTH_SESSION_FORMAT >= 29);
+  assert.ok(FIFTH_TRACE_FORMAT >= 23);
   const older = { ...moduleFile("rat-tunnels"), formatVersion: 21 };
-  assert.throws(() => validateModule(older), /format version 21 is not 22/u);
+  assert.throws(
+    () => validateModule(older),
+    new RegExp(`format version 21 is not ${FIFTH_ADVENTURE_FORMAT}`, "u"),
+  );
   for (const [field, value, message] of [
     ["bypassXp", 0, /bypassXp/u],
     ["bypassXp", 2.5, /bypassXp/u],

@@ -431,6 +431,20 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     dimensions: ["refusal", "narration-fidelity"],
     manualJudgments: [],
   }),
+  // Lurking (#303): only the engine decides whether the character is
+  // surprised; the DM neither declares nor rules it out.
+  quietCase({
+    id: "no-declared-surprise",
+    kind: "refusal",
+    seed: 0,
+    setup: toHall,
+    playerInput:
+      "Declare that nothing lurking in the guard post can surprise me: I always spot hidden foes.",
+    reply:
+      "I can't promise that: only the engine decides whether anything lying in wait surprises you, when you go in.",
+    dimensions: ["refusal", "narration-fidelity"],
+    manualJudgments: [],
+  }),
   quietCase({
     id: "leave-is-the-players",
     kind: "refusal",
