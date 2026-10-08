@@ -105,7 +105,7 @@ test("the sheet names its class by id, and only a known class is valid", () => {
     /Unsupported character class/u,
   );
   assert.throws(
-    () => validateCharacter({ ...TEST_FIGHTER, class: "rogue" }),
+    () => validateCharacter({ ...TEST_FIGHTER, class: "wizard" }),
     /Unsupported character class/u,
   );
 });
@@ -156,8 +156,8 @@ test("the Fighter's level table comes from its definition", () => {
 });
 
 test("the library, save and trace formats bump; a format-12 library is refused by name", async () => {
-  assert.equal(FIFTH_LIBRARY_FORMAT, 13);
-  // #301 bumped the save and trace again.
+  // #306 bumped the library again, and #301 the save and trace.
+  assert.ok(FIFTH_LIBRARY_FORMAT >= 13);
   assert.ok(FIFTH_SESSION_FORMAT >= 27);
   assert.ok(FIFTH_TRACE_FORMAT >= 21);
   const directory = await mkdtemp(join(tmpdir(), "issue-300-"));

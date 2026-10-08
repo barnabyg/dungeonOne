@@ -46,6 +46,34 @@ export type Dice = Readonly<{ dice: number; sides: number }>;
 /** SRD 5.2 weapon categories; a class is proficient with some (#300). */
 export type WeaponCategory = "simple" | "martial";
 
+/**
+ * Weapons a class is proficient with: a whole category, or the weapons of a
+ * category that have any of `properties`, such as the Rogue's martial
+ * weapons with Finesse or Light (#306).
+ */
+export type WeaponProficiency =
+  | WeaponCategory
+  | Readonly<{
+      category: WeaponCategory;
+      properties: readonly WeaponProperty[];
+    }>;
+
+/** Whether `proficiencies` cover the weapon `id`. */
+export function proficientWith(
+  proficiencies: readonly WeaponProficiency[],
+  id: WeaponId,
+): boolean {
+  const weapon: WeaponData = WEAPONS[id];
+  return proficiencies.some((proficiency) =>
+    typeof proficiency === "string"
+      ? proficiency === weapon.category
+      : proficiency.category === weapon.category &&
+        proficiency.properties.some((property) =>
+          weapon.properties.includes(property),
+        ),
+  );
+}
+
 export type WeaponData = Readonly<{
   name: string;
   category: WeaponCategory;
@@ -754,8 +782,8 @@ export type EquipmentContext = Readonly<{
   strengthScore: number;
   dexterityScore: number;
   proficiency: number;
-  /** The weapon categories whose attacks add `proficiency`. */
-  weaponProficiencies: readonly WeaponCategory[];
+  /** The weapons whose attacks add `proficiency`. */
+  weaponProficiencies: readonly WeaponProficiency[];
   masteries: readonly WeaponId[];
   /**
    * Archery: +2 to hit with a ranged weapon. Defense: +1 AC while wearing
@@ -799,7 +827,7 @@ function attackWith(
     // Archery: +2 to hit with a ranged weapon, never to its damage.
     bonus:
       modifier +
-      (context.weaponProficiencies.includes(weapon.category)
+      (proficientWith(context.weaponProficiencies, weaponId)
         ? context.proficiency
         : 0) +
       (ranged && context.fightingStyle === "archery" ? 2 : 0),
@@ -901,7 +929,9 @@ export type KitData = Readonly<{
 
 /**
  * The starting kits: common-tier items only, and a little of each. Early
- * levels are dangerous, so better gear is found, bought or earned.
+ * levels are dangerous, so better gear is found, bought or earned. Each
+ * class offers its own (`ClassDefinition.kits`): the Fighter the first
+ * three, the Rogue (#306) the shortsword kits.
  */
 export const STARTING_KITS = {
   mace: { name: "Mace and leather", equipment: ["leather", "mace"] },
@@ -913,12 +943,23 @@ export const STARTING_KITS = {
     name: "Club, dagger and leather",
     equipment: ["leather", "club", "dagger"],
   },
+  shortsword: {
+    name: "Shortsword and leather",
+    equipment: ["leather", "shortsword"],
+  },
+  "shortsword-and-dagger": {
+    name: "Shortsword, dagger and leather",
+    equipment: ["leather", "shortsword", "dagger"],
+  },
 } as const satisfies Record<string, KitData>;
 export type KitId = keyof typeof STARTING_KITS;
 /** Every starting kit's id, in the order creation offers them. */
 export const KIT_IDS = Object.keys(STARTING_KITS) as readonly KitId[];
 
-/** The most two kits' prices may differ by, in copper: they are of equal value. */
+/**
+ * The most two of one class's kits' prices may differ by, in copper: they
+ * are of equal value. Kits of different classes may differ more (#306).
+ */
 export const KIT_VALUE_TOLERANCE = 300;
 
 /** A kit's value: the sum of its items' prices, in copper. */

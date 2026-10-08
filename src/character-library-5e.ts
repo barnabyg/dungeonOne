@@ -1,6 +1,6 @@
 /**
- * The 5e character library (format version 13: a sheet names its class by
- * id, #300).
+ * The 5e character library (format version 14: a sheet may be a Rogue, with
+ * Expertise and no Fighting Style, #306).
  *
  * It holds saved 5e characters and at most one pending creation: the dice of
  * a character being created. Each character record names its adventure session
@@ -32,6 +32,7 @@ import {
   applyLevelChoice,
   buildCharacter,
   characterProfile,
+  DEFAULT_CLASS,
   pendingLevelChoice,
   rollAbilitySet,
   settleCharacter,
@@ -42,10 +43,10 @@ import {
   type RolledDice,
   type Settlement,
 } from "./character-5e.js";
-import { ABILITIES } from "./class-5e.js";
+import { ABILITIES, type ClassId } from "./class-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 13;
+export const FIFTH_LIBRARY_FORMAT = 14;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -155,7 +156,8 @@ export class FifthCharacterLibrary {
       version === 9 ||
       version === 10 ||
       version === 11 ||
-      version === 12
+      version === 12 ||
+      version === 13
     ) {
       throw moveAside(
         this.path,
@@ -306,11 +308,15 @@ export class FifthCharacterLibrary {
     return data as FifthLibraryData & { pendingCreation: PendingCreation };
   }
 
-  /** Saves a level 1 character from the pending dice and the player's choices. */
+  /**
+   * Saves a level 1 character of `classId` (#306) from the pending dice and
+   * the player's choices.
+   */
   async create(
     name: string,
     choices: CreationChoices,
     revision: string,
+    classId: ClassId = DEFAULT_CLASS,
   ): Promise<FifthLibraryData> {
     return this.update(revision, (data) => {
       const pending = this.pending(data);
@@ -321,6 +327,7 @@ export class FifthCharacterLibrary {
           name,
           pending.dice,
           choices,
+          classId,
         ),
       );
     });
