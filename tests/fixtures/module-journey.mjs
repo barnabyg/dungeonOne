@@ -1,9 +1,11 @@
 // Engine journeys through a shipped module for its content test (#275): a
 // fighter follows a fixed route of engine actions and fights each fight as
-// the release handoffs tell the owner to.
+// the release handoffs tell the owner to, or, for a browser test's seed, as
+// the browser tests click.
 import { fighterProfile } from "../../dist/fighter-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
+import { sessionSeed } from "../../dist/session-5e.js";
 
 const PLAYER = "pc";
 
@@ -28,11 +30,11 @@ export function routeAction([type, target]) {
  * otherwise attack the first opponent offered, and end the turn once the
  * action is spent. The first of these the runtime accepts.
  */
-function fightTurn(runtime, state, random, maxHp, potions) {
+function fightTurn(runtime, state, random, maxHp, potions, heal) {
   const [target] = runtime.attackTargets(state);
   const potion = state.inventory.find((id) => potions.has(id));
   const choices = [
-    ...(state.character.hp * 2 <= maxHp
+    ...(heal && state.character.hp * 2 <= maxHp
       ? [
           { type: "second-wind", actorId: PLAYER },
           ...(potion === undefined
@@ -57,11 +59,20 @@ function fightTurn(runtime, state, random, maxHp, potions) {
 /**
  * Plays `route` on `seed` from a new session of `adventure` with `sheet`,
  * fighting each fight to its end as it starts. Stops once the adventure
- * ends; throws if the runtime refuses a route step.
+ * ends; throws if the runtime refuses a route step. With `browser`, `seed`
+ * is the browser server's: the dice are its first session's, and each fight
+ * is clicked as `fight` in browser-journey.mjs clicks it, attacking the
+ * first target or ending the turn, never healing.
  */
-export function journey(adventure, sheet, seed, route) {
+export function journey(
+  adventure,
+  sheet,
+  seed,
+  route,
+  { browser = false } = {},
+) {
   const runtime = createFifthRuntime(adventure, sheet);
-  const random = createSeededRandom(seed);
+  const random = createSeededRandom(browser ? sessionSeed(seed, 1) : seed);
   const { maxHp } = fighterProfile(sheet);
   const potions = new Set(
     adventure.rooms.flatMap(({ items }) =>
@@ -74,7 +85,7 @@ export function journey(adventure, sheet, seed, route) {
       state.status === "playing" &&
       state.encounter?.outcome === "ongoing"
     ) {
-      state = fightTurn(runtime, state, random, maxHp, potions);
+      state = fightTurn(runtime, state, random, maxHp, potions, !browser);
     }
     return state;
   };
@@ -103,11 +114,17 @@ export function journey(adventure, sheet, seed, route) {
  * journey the runtime refuses partway (a foe that fled leaves no body to
  * examine) is passed over.
  */
-export function firstJourney(adventure, sheet, route, wanted, limit = 100) {
+export function firstJourney(
+  adventure,
+  sheet,
+  route,
+  wanted,
+  { limit = 100, browser = false } = {},
+) {
   for (let seed = 0; seed < limit; seed += 1) {
     let played;
     try {
-      played = journey(adventure, sheet, seed, route);
+      played = journey(adventure, sheet, seed, route, { browser });
     } catch {
       continue;
     }

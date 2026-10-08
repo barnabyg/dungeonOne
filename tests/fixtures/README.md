@@ -181,6 +181,10 @@ wanted)` searches seeds from 0 for the first journey whose end state `wanted`
 accepts, passing over a seed whose route the runtime refuses partway (a foe
 that fled leaves no body), so a content test pins no seed that a dice-order
 change would move.
+With `{ browser: true }`, the seed is the browser server's: the dice are its
+first session's (`sessionSeed(seed, 1)`) and each fight is fought as
+`fight` in `browser-journey.mjs` clicks it, attacking and never healing, so a
+browser test can search for the seed its clicks need.
 `xpOf(runtime, state)` lists the ending's XP awards.
 
 ## Surrendering goblins (issue 238)

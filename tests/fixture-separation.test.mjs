@@ -72,6 +72,10 @@ const CONTENT_TESTS = new Map([
     "tests/ravagers-tower.test.mjs",
     "the Ravager's Tower's content, gate verdict and journeys",
   ],
+  [
+    "tests/issue-275-browser.test.mjs",
+    "the #275 modules' handoff runs through the browser",
+  ],
 ]);
 
 /**
