@@ -24,7 +24,7 @@
     "smoke:ai": "npm run build && node scripts/openai-smoke.mjs",
     "static": "eslint . --config eslint.bugs.config.mjs --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test tests/*.test.mjs",
+    "test": "npm run build && node scripts/run-tests.mjs",
     "verify": "node scripts/verify.mjs"
   },
   "devDependencies": {
