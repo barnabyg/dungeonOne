@@ -1,4 +1,20 @@
+import globals from "globals";
 import tseslint from "typescript-eslint";
+
+// Browser globals that tests use inside Playwright page.evaluate callbacks.
+// Not globals.browser: it defines names such as focus, close, find and name,
+// which would hide a call to a missing test helper (#267).
+const PAGE_GLOBALS = Object.fromEntries(
+  [
+    "document",
+    "getComputedStyle",
+    "location",
+    "Node",
+    "NodeFilter",
+    "requestAnimationFrame",
+    "window",
+  ].map((name) => [name, "readonly"]),
+);
 
 export default tseslint.config(
   {
@@ -39,5 +55,16 @@ export default tseslint.config(
       "use-isnan": "error",
       "valid-typeof": "error",
     },
+  },
+  // tsc already reports undefined names in TypeScript, but nothing checks the
+  // plain JavaScript tests, scripts and configs (#271).
+  {
+    files: ["**/*.{js,mjs}"],
+    languageOptions: { globals: globals.node },
+    rules: { "no-undef": "error" },
+  },
+  {
+    files: ["tests/**/*.{js,mjs}"],
+    languageOptions: { globals: PAGE_GLOBALS },
   },
 );

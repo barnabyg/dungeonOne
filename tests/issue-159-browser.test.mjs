@@ -411,7 +411,7 @@ for (const viewport of [
         assert.equal(await page.locator("#log > li.newest").count(), 1);
         assert.equal(
           await page.evaluate(() => {
-            focusNewestEntry();
+            window.focusNewestEntry();
             return (
               document.activeElement ===
               document.querySelector("#log > li:last-child")
