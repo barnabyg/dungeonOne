@@ -61,17 +61,26 @@ export function testFighterAt(level: Level): FighterSheet {
 }
 
 /**
- * A character library holding only Ada at level 3 (#241). The Silvervein
- * Mine is for levels 2–3, so its release runs and its player handoff
- * (docs/acceptance/inputs/increment-13/level-3-ada.json) start from it.
+ * A character library holding only Ada at `level` (#275), as
+ * `testFighterAt` raises her: the player handoffs for modules above level 1
+ * start from it (docs/acceptance/inputs/issue-275/level-2-ada.json).
  */
-export function levelThreeLibrary(): FifthLibraryData {
+export function libraryAt(level: Level): FifthLibraryData {
   return {
     kind: "dungeon-one-characters",
     formatVersion: FIFTH_LIBRARY_FORMAT,
     revision: "0".repeat(32),
     creationsStarted: 1,
     sessionsStarted: 0,
-    characters: [{ sheet: testFighterAt(3), revision: 1 }],
+    characters: [{ sheet: testFighterAt(level), revision: 1 }],
   };
+}
+
+/**
+ * A character library holding only Ada at level 3 (#241). The Silvervein
+ * Mine is for levels 2–3, so its release runs and its player handoff
+ * (docs/acceptance/inputs/increment-13/level-3-ada.json) start from it.
+ */
+export function levelThreeLibrary(): FifthLibraryData {
+  return libraryAt(3);
 }

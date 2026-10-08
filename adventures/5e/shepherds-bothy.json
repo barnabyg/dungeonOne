@@ -1,0 +1,158 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 18,
+  "id": "shepherds-bothy",
+  "title": "The Shepherd's Bothy",
+  "objective": "Find the market takings a bandit carried off to the old bothy on the moor, and get back out alive. Leave by the sheepfold gate when you are ready.",
+  "recommendedLevels": { "min": 2, "max": 2 },
+  "difficulty": "easy",
+  "startRoomId": "sheepfold",
+  "rooms": [
+    {
+      "id": "sheepfold",
+      "name": "Sheepfold",
+      "description": "A ring of dry-stone walls on the open moor, empty of sheep. A squat stone bothy stands against the far wall, smoke leaking from its roof.",
+      "exit": true,
+      "features": [
+        {
+          "id": "trampled-gate",
+          "name": "Trampled Gate",
+          "description": "The fold's hurdle gate lies flat in the mud.",
+          "discovery": "Boot prints, one pair, lead from the gate to the bothy door. Whoever came here came alone."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "bothy",
+      "name": "Bothy",
+      "description": "A single smoky room with a peat fire in the hearth, a straw pallet and a strongbox kicked open on the floor. A low door leads through to a lean-to at the back.",
+      "encounterId": "bothy-bandit",
+      "features": [
+        {
+          "id": "open-strongbox",
+          "name": "Open Strongbox",
+          "description": "A market strongbox, its lock smashed with a stone.",
+          "discovery": "The box still holds the market's takings in gold, and a brooch of enamelled silver tucked in its lid."
+        },
+        {
+          "id": "straw-pallet",
+          "name": "Straw Pallet",
+          "description": "A lumpy straw pallet by the fire.",
+          "discovery": "Sewn into the ticking is a cut sapphire, wrapped in a scrap of wool."
+        }
+      ],
+      "items": [
+        {
+          "id": "market-gold",
+          "name": "Market Takings",
+          "description": "Sixty gold pieces in a canvas market bag.",
+          "kind": "coin",
+          "coins": { "gp": 60 },
+          "hiddenIn": "open-strongbox"
+        },
+        {
+          "id": "enamel-brooch",
+          "name": "Enamelled Brooch",
+          "description": "A silver brooch enamelled with a blue heron.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "open-strongbox"
+        },
+        {
+          "id": "pallet-sapphire",
+          "name": "Pallet Sapphire",
+          "description": "A cut sapphire, deep blue, the size of a fingernail.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "straw-pallet"
+        },
+        {
+          "id": "bothy-bandit-coins",
+          "name": "Moor Bandit's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": { "sp": 11 },
+          "hiddenIn": "bothy-bandit"
+        }
+      ]
+    },
+    {
+      "id": "lean-to",
+      "name": "Lean-to",
+      "description": "A cramped peat store under a sagging roof, stacked with turves and old shepherd's tools.",
+      "features": [
+        {
+          "id": "peat-stack",
+          "name": "Peat Stack",
+          "description": "A head-high stack of dried turves.",
+          "discovery": "Behind the turves the bandit hid a stoppered vial of red liquid and a polished bloodstone."
+        }
+      ],
+      "items": [
+        {
+          "id": "lean-to-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "peat-stack"
+        },
+        {
+          "id": "bloodstone",
+          "name": "Bloodstone",
+          "description": "A dark green stone flecked with red, polished smooth.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "peat-stack"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "fold-to-bothy",
+      "between": ["sheepfold", "bothy"],
+      "description": "A few steps across the fold to the bothy's door."
+    },
+    {
+      "id": "bothy-to-lean-to",
+      "between": ["bothy", "lean-to"],
+      "description": "A low door at the back of the bothy."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "bothy-bandit",
+      "opponents": [
+        {
+          "id": "bothy-bandit",
+          "monster": "bandit",
+          "name": "Moor Bandit",
+          "description": "A rain-soaked bandit jumps up from the fire, scimitar in hand, and backs towards the strongbox."
+        }
+      ],
+      "defeatEndingId": "fallen-at-the-bothy"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-takings",
+      "kind": "escape-with-loot",
+      "title": "Out with the takings",
+      "text": "You walk back out across the moor with the market's gold and the bandit's hoard.",
+      "xp": 200
+    },
+    {
+      "id": "out-of-the-bothy",
+      "kind": "escape-without-loot",
+      "title": "Out of the bothy",
+      "text": "You walk back out across the moor with nothing to show for it."
+    },
+    {
+      "id": "fallen-at-the-bothy",
+      "kind": "defeat",
+      "title": "Fallen at the bothy",
+      "text": "You fall by the peat fire. Your adventuring ends here."
+    }
+  ]
+}

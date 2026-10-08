@@ -170,6 +170,23 @@ until the fight ends, with the events on the way; `recordingRandom(source,
 drawn)` records each roll in the newest list in `drawn`, so a test can
 group the dice by action.
 
+## Module journeys (issue 275)
+
+`module-journey.mjs` is for content tests that play a shipped module along a
+fixed route. `journey(adventure, sheet, seed, route)` plays the route's steps
+(`["move", "bothy"]`, `["examine", …]`, `["take", …]`, `["leave", …]`) and
+fights each fight as the handoffs do: Second Wind or a potion at half HP or
+less, else attack the first target, else end the turn. `firstJourney(…,
+wanted)` searches seeds from 0 for the first journey whose end state `wanted`
+accepts, passing over a seed whose route the runtime refuses partway (a foe
+that fled leaves no body), so a content test pins no seed that a dice-order
+change would move.
+With `{ browser: true }`, the seed is the browser server's: the dice are its
+first session's (`sessionSeed(seed, 1)`) and each fight is fought as
+`fight` in `browser-journey.mjs` clicks it, attacking and never healing, so a
+browser test can search for the seed its clicks need.
+`xpOf(runtime, state)` lists the ending's XP awards.
+
 ## Surrendering goblins (issue 238)
 
 `surrendering-goblins.mjs` is the lintel barrow with three numbered Goblin

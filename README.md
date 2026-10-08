@@ -139,13 +139,28 @@ deleted. Creation needs no OpenAI key.
   an optional crypt and a Ghoul the vault, with a stuck door, a trapped stair, a
   goblin to question, treasure and coin hidden in features, and a
   second exit beside the vault where you choose to climb out or push on.
+- _The Drowned Chapel_ (`adventures/5e/drowned-chapel.json`, level 3, Easy):
+  three rooms in a flooded marsh chapel. The drowned sexton (a Zombie) guards
+  the chapel's silver reliquary at the altar, and the vestry beyond holds the
+  parish alms, a potion and a chrysoprase.
 - _The Goblin Warren_ (`adventures/5e/goblin-warren.json`, level 3, Medium): a
   potion among the charms at the gate, a Goblin Warrior in the tunnel where
   another lies under the gnawed bones, then the SRD 5.2 Goblin Boss and its hoard, a gilded idol
   among it, and a way out.
+- _The Gravedigger's Lodge_ (`adventures/5e/gravediggers-lodge.json`, level 2,
+  Hard): two rooms in a churchyard. Two potions wait at the lychgate; in the
+  dead-house a false gravedigger (a Bandit) and a corpse he dug up (a Zombie)
+  fight together over a coffin packed with grave goods.
+- _The Ravager's Tower_ (`adventures/5e/ravagers-tower.json`, level 3, Hard):
+  two rooms in a ruined watchtower. A dead pedlar at the tower's foot still
+  has two potions; at the top a Gnoll Ravager guards the plunder of the road.
 - _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`, level 1,
   Medium): two rooms with a grave robber (a Bandit) guarding a silver torc and
   a garnet under the bier, a sack of grave gold and a way out.
+- _The Shepherd's Bothy_ (`adventures/5e/shepherds-bothy.json`, level 2,
+  Easy): three rooms on the moor. A lone bandit (a Bandit) holds the bothy
+  with the market's takings, a brooch and a sapphire, and a lean-to behind it
+  hides a potion and a bloodstone.
 - _The Silvervein Mine_ (`adventures/5e/silvervein-mine.json`, levels 2–3, Medium):
   six rooms in an old silver mine. Two kobolds in the sorting shed may flee or
   surrender, and the one that surrenders gives up the key to the overseer's

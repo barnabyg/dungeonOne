@@ -1,0 +1,146 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 18,
+  "id": "gravediggers-lodge",
+  "title": "The Gravedigger's Lodge",
+  "objective": "Find what the false gravedigger has dug up from the churchyard, and get out alive. Leave by the lychgate when you are ready.",
+  "recommendedLevels": { "min": 2, "max": 2 },
+  "difficulty": "hard",
+  "startRoomId": "lychgate",
+  "rooms": [
+    {
+      "id": "lychgate",
+      "name": "Lychgate",
+      "description": "A roofed gate into an overgrown churchyard. A lamp burns in the gravedigger's lodge beyond the yews.",
+      "exit": true,
+      "features": [
+        {
+          "id": "coffin-rest",
+          "name": "Coffin Rest",
+          "description": "A stone slab under the gate's roof where coffins wait for the priest.",
+          "discovery": "Someone has left two stoppered vials of red liquid on the slab, with a note: \"For whoever goes in after him.\""
+        }
+      ],
+      "items": [
+        {
+          "id": "lychgate-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "coffin-rest"
+        },
+        {
+          "id": "lychgate-second-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "coffin-rest"
+        }
+      ]
+    },
+    {
+      "id": "dead-house",
+      "name": "Dead-house",
+      "description": "The lodge's cold back room, where the dead are laid out. Coffins stand open along the walls, and one has been dragged into the middle of the floor.",
+      "encounterId": "dead-house-fight",
+      "features": [
+        {
+          "id": "dragged-coffin",
+          "name": "Dragged Coffin",
+          "description": "A cheap pine coffin, its lid prised off.",
+          "discovery": "The coffin is packed with grave goods: a gold mourning ring, a jet cameo, a pouch of old coin and a dark tourmaline."
+        }
+      ],
+      "items": [
+        {
+          "id": "mourning-ring",
+          "name": "Gold Mourning Ring",
+          "description": "A heavy gold ring engraved with a name and a date.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "dragged-coffin"
+        },
+        {
+          "id": "jet-cameo",
+          "name": "Jet Cameo",
+          "description": "A carved jet cameo of a woman's profile in a silver frame.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "dragged-coffin"
+        },
+        {
+          "id": "grave-tourmaline",
+          "name": "Grave Tourmaline",
+          "description": "A long dark-green tourmaline, cut to catch the lamplight.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "dragged-coffin"
+        },
+        {
+          "id": "grave-coin",
+          "name": "Grave Coin",
+          "description": "Old gold coins, pressed onto the eyes of the dead.",
+          "kind": "coin",
+          "coins": { "gp": 40 },
+          "hiddenIn": "dragged-coffin"
+        },
+        {
+          "id": "false-gravedigger-coins",
+          "name": "False Gravedigger's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": { "sp": 11 },
+          "hiddenIn": "false-gravedigger"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "gate-to-dead-house",
+      "between": ["lychgate", "dead-house"],
+      "description": "A path between the yews to the lodge's back door."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "dead-house-fight",
+      "opponents": [
+        {
+          "id": "false-gravedigger",
+          "monster": "bandit",
+          "name": "False Gravedigger",
+          "description": "A bandit in a gravedigger's smock throws down a spade and draws a scimitar."
+        },
+        {
+          "id": "risen-corpse",
+          "monster": "zombie",
+          "name": "Risen Corpse",
+          "description": "A corpse he dug up has climbed out of its coffin and lurches towards the light."
+        }
+      ],
+      "defeatEndingId": "laid-out-in-the-dead-house"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-grave-goods",
+      "kind": "escape-with-loot",
+      "title": "Out with the grave goods",
+      "text": "You walk back out through the lychgate with the stolen grave goods, to return them or not as you please.",
+      "xp": 300
+    },
+    {
+      "id": "out-of-the-churchyard",
+      "kind": "escape-without-loot",
+      "title": "Out of the churchyard",
+      "text": "You walk back out through the lychgate with nothing to show for it."
+    },
+    {
+      "id": "laid-out-in-the-dead-house",
+      "kind": "defeat",
+      "title": "Laid out in the dead-house",
+      "text": "You fall among the open coffins. Your adventuring ends here."
+    }
+  ]
+}

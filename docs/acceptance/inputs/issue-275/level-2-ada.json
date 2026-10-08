@@ -1,0 +1,53 @@
+{
+  "kind": "dungeon-one-characters",
+  "formatVersion": 10,
+  "revision": "00000000000000000000000000000000",
+  "creationsStarted": 1,
+  "sessionsStarted": 0,
+  "characters": [
+    {
+      "sheet": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "name": "Ada",
+        "class": "Fighter",
+        "level": 2,
+        "xp": 300,
+        "hp": 20,
+        "abilityRolls": {
+          "strength": [5, 5, 5, 1],
+          "dexterity": [5, 5, 4, 1],
+          "constitution": [5, 4, 4, 1],
+          "intelligence": [4, 4, 4, 1],
+          "wisdom": [3, 3, 4, 1],
+          "charisma": [3, 3, 3, 1]
+        },
+        "backgroundIncrease": {
+          "strength": 2,
+          "constitution": 1
+        },
+        "abilities": {
+          "strength": 17,
+          "dexterity": 14,
+          "constitution": 14,
+          "intelligence": 12,
+          "wisdom": 10,
+          "charisma": 9
+        },
+        "skills": ["athletics", "perception"],
+        "fightingStyle": "defense",
+        "weaponMasteries": ["dagger", "mace", "shortsword"],
+        "equipment": ["leather", "mace"],
+        "stowed": [],
+        "ammunition": {
+          "arrows": 0,
+          "bolts": 0
+        },
+        "treasure": [],
+        "purse": 0,
+        "finds": [],
+        "xpAwards": []
+      },
+      "revision": 1
+    }
+  ]
+}

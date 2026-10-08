@@ -56,6 +56,26 @@ const CONTENT_TESTS = new Map([
     "tests/issue-241-browser.test.mjs",
     "the Silvervein Mine's handoff run through the browser",
   ],
+  [
+    "tests/shepherds-bothy.test.mjs",
+    "the Shepherd's Bothy's content, gate verdict and journeys",
+  ],
+  [
+    "tests/drowned-chapel.test.mjs",
+    "the Drowned Chapel's content, gate verdict and journeys",
+  ],
+  [
+    "tests/gravediggers-lodge.test.mjs",
+    "the Gravedigger's Lodge's content, gate verdict and journeys",
+  ],
+  [
+    "tests/ravagers-tower.test.mjs",
+    "the Ravager's Tower's content, gate verdict and journeys",
+  ],
+  [
+    "tests/issue-275-browser.test.mjs",
+    "the #275 modules' handoff runs through the browser",
+  ],
 ]);
 
 /**
