@@ -23,6 +23,7 @@ owned by the tests: change it only for a test's sake.
 | `lintel-barrow.json`   | `lintelBarrow`   | An exit with loot behind a fight: a lintel to examine, a torc under the bier, a goblin carrying a pouch of coin. |
 | `sealed-crypt.json`    | `sealedCrypt`    | Doors, a trap and talk, level 2: a stuck door, a locked door and its key, a dart trap, a creature with a check.  |
 | `goblin-burrow.json`   | `goblinBurrow`   | A level-up journey, levels 2–3: tunnel guards, then a goblin boss and its hoard on the way out.                  |
+| `graded-cellar.json`   | `gradedCellar`   | Graded checks (#281): a rubble heap's bands (damage, words, a ring revealed, a discovery), a topic and a door's. |
 
 `moduleFile(name)` returns a fresh copy of a fixture's JSON to change and
 validate, and `fightRoomFile(id, title, opponents)` builds a one-room fight

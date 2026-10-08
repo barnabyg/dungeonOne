@@ -1,0 +1,189 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 19,
+  "id": "graded-cellar",
+  "title": "The Graded Cellar",
+  "objective": "Search the old cellar for what was buried in it, and get out alive. Leave by the steps when you are ready.",
+  "recommendedLevels": {
+    "min": 1,
+    "max": 1
+  },
+  "difficulty": "hard",
+  "startRoomId": "cellar-steps",
+  "rooms": [
+    {
+      "id": "cellar-steps",
+      "name": "Cellar Steps",
+      "description": "Worn steps lead down from a trapdoor into a cellar. Half the far wall has fallen in.",
+      "exit": true,
+      "features": [
+        {
+          "id": "rubble-heap",
+          "name": "Rubble Heap",
+          "description": "A heap of fallen stone and rotten beams against the far wall.",
+          "discovery": "Pinned under a beam is a crushed lantern, its glass still warm: someone was here not long ago.",
+          "check": {
+            "skill": "perception",
+            "dc": 12,
+            "bands": {
+              "failure-by-5": {
+                "text": "The heap shifts as you dig, and stones crash down onto your hands.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 1,
+                    "sides": 6,
+                    "modifier": 0,
+                    "damageType": "bludgeoning",
+                    "defeatEndingId": "buried-in-the-cellar"
+                  }
+                ]
+              },
+              "failure": {
+                "text": "You shift stone after stone and find nothing but dust."
+              },
+              "success": {
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "silver-ring"
+                  }
+                ]
+              },
+              "success-by-5": {
+                "text": "You clear the heap down to the floor.",
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "silver-ring"
+                  },
+                  {
+                    "type": "discovery",
+                    "feature": "rubble-heap"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "cracked-cask",
+          "name": "Cracked Cask",
+          "description": "A wine cask split along its staves, long since dry.",
+          "discovery": "A rag stuffed into the split hides nothing."
+        }
+      ],
+      "items": [
+        {
+          "id": "silver-ring",
+          "name": "Silver Ring",
+          "description": "A plain silver ring set with a chip of jet.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "rubble-heap"
+        }
+      ],
+      "creatures": [
+        {
+          "id": "cellar-cat",
+          "name": "Cellar Cat",
+          "description": "A one-eared cat watches you from the top step.",
+          "topics": [
+            {
+              "id": "the-cask",
+              "name": "the cask",
+              "reply": "The cat pads to the cracked cask and paws at the rag.",
+              "failure": "The cat yawns and looks away.",
+              "check": {
+                "skill": "animal-handling",
+                "dc": 10,
+                "bands": {
+                  "success-by-5": {
+                    "effects": [
+                      {
+                        "type": "discovery",
+                        "feature": "cracked-cask"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rat-hole",
+      "name": "Rat Hole",
+      "description": "A crawl space behind the cellar, its floor gnawed bones and straw.",
+      "encounterId": "hole-rat",
+      "features": [],
+      "items": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "steps-to-hole",
+      "between": ["cellar-steps", "rat-hole"],
+      "description": "A gap low in the wall, behind a warped hatch.",
+      "door": {
+        "id": "warped-hatch",
+        "name": "Warped Hatch",
+        "description": "A wooden hatch warped tight in its frame.",
+        "state": "stuck",
+        "force": {
+          "skill": "athletics",
+          "dc": 12,
+          "bands": {
+            "failure-by-5": {
+              "text": "The hatch springs back and cracks against your shin.",
+              "effects": [
+                {
+                  "type": "damage",
+                  "dice": 1,
+                  "sides": 4,
+                  "modifier": 0,
+                  "damageType": "bludgeoning",
+                  "defeatEndingId": "buried-in-the-cellar"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "encounters": [
+    {
+      "id": "hole-rat",
+      "opponents": [
+        {
+          "id": "hole-rat",
+          "monster": "giant-rat"
+        }
+      ],
+      "defeatEndingId": "buried-in-the-cellar"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-ring",
+      "kind": "escape-with-loot",
+      "title": "Out with the ring",
+      "text": "You climb the steps into daylight with the silver ring."
+    },
+    {
+      "id": "out-empty-handed",
+      "kind": "escape-without-loot",
+      "title": "Out empty-handed",
+      "text": "You climb the steps into daylight with nothing to show for it."
+    },
+    {
+      "id": "buried-in-the-cellar",
+      "kind": "defeat",
+      "title": "Buried in the cellar",
+      "text": "You fall among the cellar's stones. Your adventuring ends here."
+    }
+  ]
+}

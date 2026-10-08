@@ -6,6 +6,9 @@
  * proficient in the skill or the save. A check or save succeeds when its total
  * meets the DC; a natural 20 or 1 has no special effect. The only source of
  * advantage so far is the Champion's Remarkable Athlete, on Athletics checks.
+ *
+ * An authored check grades its outcome into bands (#281): failure by 5 or
+ * more, failure, success, and success by 5 or more.
  */
 import { rollD20, type RollMode } from "./encounter-5e.js";
 import {
@@ -41,6 +44,38 @@ export type CheckRoll = Readonly<{
   dc: number;
   success: boolean;
 }>;
+
+/** A check's outcome bands, worst first (#281). */
+export const BANDS = [
+  "failure-by-5",
+  "failure",
+  "success",
+  "success-by-5",
+] as const;
+export type Band = (typeof BANDS)[number];
+
+/** Each band as a card and the AI DM name it. */
+export const BAND_NAMES: Readonly<Record<Band, string>> = {
+  "failure-by-5": "Failure by 5 or more",
+  failure: "Failure",
+  success: "Success",
+  "success-by-5": "Success by 5 or more",
+};
+
+/** Whether a band is a success. */
+export const isSuccess = (band: Band): boolean =>
+  band === "success" || band === "success-by-5";
+
+/**
+ * The band a total falls in against its DC: failure by 5 or more at DC − 5
+ * or less, success by 5 or more at DC + 5 or more.
+ */
+export function bandOf(roll: Pick<CheckRoll, "total" | "dc">): Band {
+  if (roll.total >= roll.dc) {
+    return roll.total >= roll.dc + 5 ? "success-by-5" : "success";
+  }
+  return roll.total <= roll.dc - 5 ? "failure-by-5" : "failure";
+}
 
 const titleCase = (value: string) =>
   value.charAt(0).toUpperCase() + value.slice(1);

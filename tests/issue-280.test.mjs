@@ -36,7 +36,7 @@ function checkOnce(state, action, { site, event, d20, success, tool, again }) {
   assert.equal(result.events[0].roll.success, success);
   assert.deepEqual(result.state.checks, [
     ...state.checks,
-    { id: site, success },
+    { id: site, band: success ? "success" : "failure" },
   ]);
 
   const random = dice();

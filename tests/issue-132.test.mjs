@@ -208,7 +208,7 @@ test("a failed check is remembered: forcing again is refused, not rerolled", () 
   );
   const failed = result.state;
   assert.deepEqual(failed.checks, [
-    { id: "force:swollen-door", success: false },
+    { id: "force:swollen-door", band: "failure" },
   ]);
   const actions = assertAgrees(runtime, failed);
   assert.deepEqual(find(actions, "force", "swollen-door"), {

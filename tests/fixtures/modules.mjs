@@ -9,6 +9,7 @@ const NAMES = [
   "goblin-band",
   "goblin-burrow",
   "goblin-trio",
+  "graded-cellar",
   "lintel-barrow",
   "lone-goblin",
   "rat-tunnels",
@@ -134,6 +135,14 @@ export const withoutRiders = (statBlock) => {
   }));
 };
 
+/**
+ * Graded checks (#281), level 1: a rubble heap whose Perception check reveals
+ * a silver ring (and on a success by 5 or more its discovery) or, failing by
+ * 5 or more, drops stones on the character; a cat whose topic's success by 5
+ * makes the cask's discovery; and a warped hatch whose force can bruise.
+ */
+export const gradedCellar = validateModule(moduleFile("graded-cellar"));
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,
@@ -144,4 +153,5 @@ export const FIXTURE_MODULES = [
   lintelBarrow,
   sealedCrypt,
   goblinBurrow,
+  gradedCellar,
 ];

@@ -828,6 +828,9 @@ function part(tag, kind, text) {
 }
 
 const OUTCOME_TAGS = { hit: "Hit", critical: "Critical hit", miss: "Miss", success: "Success", failure: "Failure" };
+// An authored check's failure or success by 5 or more (#281), shortened for
+// the compact line; the engine text names it in full.
+const BAND_TAGS = { "failure-by-5": "Failure by 5+", "success-by-5": "Success by 5+" };
 const ADJUSTMENTS = ${JSON.stringify(DAMAGE_ADJUSTMENT_TEXT)};
 const withSign = (value) => (value >= 0 ? " + " : " − ") + Math.abs(value);
 
@@ -898,9 +901,9 @@ function compactLine(line) {
   } else if (line.rolls[0].purpose === "healing") {
     node.append(make("span", line.rolls[0].roller, "who"), " heals ", compactRoll(line.rolls[0]));
   } else if (line.rolls[0].purpose === "check" || line.rolls[0].purpose === "save") {
-    // A check or saving throw (#132): its label, outcome and roll against the DC.
+    // A check or saving throw (#132): its label, outcome (or band, #281) and roll against the DC.
     const check = line.rolls[0];
-    node.append(make("span", check.roller, "who"), " ", make("span", check.label, "roll-label"), " ", make("span", OUTCOME_TAGS[check.outcome], "tag " + check.outcome), " ", compactRoll(check));
+    node.append(make("span", check.roller, "who"), " ", make("span", check.label, "roll-label"), " ", make("span", check.band ? BAND_TAGS[check.band] : OUTCOME_TAGS[check.outcome], "tag " + check.outcome), " ", compactRoll(check));
   } else if (line.rolls[0].purpose === "damage") {
     node.append(make("span", line.rolls[0].roller + " → " + line.rolls[0].target, "who"), " ", compactRoll(line.rolls[0]));
   } else {
