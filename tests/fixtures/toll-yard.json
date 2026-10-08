@@ -1,0 +1,148 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 20,
+  "id": "toll-yard",
+  "title": "The Toll Yard",
+  "objective": "Talk your way into the strongroom, or take the rat cellar's coins, and leave by the gate.",
+  "recommendedLevels": {
+    "min": 1,
+    "max": 1
+  },
+  "difficulty": "hard",
+  "startRoomId": "toll-yard",
+  "rooms": [
+    {
+      "id": "toll-yard",
+      "name": "Toll Yard",
+      "description": "A cobbled yard inside a toll gate. A keeper sits by a barred strongroom, and steps lead down to a cellar.",
+      "exit": true,
+      "features": [],
+      "items": [],
+      "creatures": [
+        {
+          "id": "toll-keeper",
+          "name": "Toll Keeper",
+          "description": "A stout keeper with a ring of keys at her belt.",
+          "topics": [
+            {
+              "id": "the-strongroom",
+              "name": "the strongroom",
+              "reply": "\"Go on, then. Quick about it.\" She unbars the strongroom.",
+              "failure": "\"That's the lord's money, not yours.\"",
+              "check": {
+                "skill": "persuasion",
+                "dc": 13,
+                "bands": {
+                  "success": {
+                    "effects": [
+                      {
+                        "type": "open",
+                        "passage": "yard-to-strongroom"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "strongroom",
+      "name": "Strongroom",
+      "description": "A windowless room of iron-bound chests.",
+      "features": [
+        {
+          "id": "toll-chest",
+          "name": "Toll Chest",
+          "description": "An iron-bound chest of tolls.",
+          "discovery": "Among the ledgers lies a purse of tolls."
+        }
+      ],
+      "items": [
+        {
+          "id": "toll-purse",
+          "name": "Toll Purse",
+          "description": "A heavy purse of tolls.",
+          "kind": "coin",
+          "coins": {
+            "sp": 30
+          },
+          "hiddenIn": "toll-chest"
+        }
+      ]
+    },
+    {
+      "id": "rat-cellar",
+      "name": "Rat Cellar",
+      "description": "A damp cellar that reeks of rats.",
+      "encounterId": "cellar-rat",
+      "features": [
+        {
+          "id": "rat-nest",
+          "name": "Rat Nest",
+          "description": "A nest of straw and rags.",
+          "discovery": "A few lost coins glint in the straw."
+        }
+      ],
+      "items": [
+        {
+          "id": "nest-coins",
+          "name": "Lost Coins",
+          "description": "Coins dropped by careless travellers.",
+          "kind": "coin",
+          "coins": {
+            "sp": 10
+          },
+          "hiddenIn": "rat-nest"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "yard-to-strongroom",
+      "between": ["toll-yard", "strongroom"],
+      "description": "The strongroom's barred door.",
+      "hidden": true
+    },
+    {
+      "id": "yard-to-cellar",
+      "between": ["toll-yard", "rat-cellar"],
+      "description": "Steps down to the cellar."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "cellar-rat",
+      "opponents": [
+        {
+          "id": "cellar-rat",
+          "monster": "giant-rat"
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-cellar"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-coin",
+      "kind": "escape-with-loot",
+      "title": "Out with coin",
+      "text": "You leave by the gate with coin in your pouch."
+    },
+    {
+      "id": "out-empty-handed",
+      "kind": "escape-without-loot",
+      "title": "Out empty-handed",
+      "text": "You leave by the gate with nothing."
+    },
+    {
+      "id": "fallen-in-the-cellar",
+      "kind": "defeat",
+      "title": "Fallen in the cellar",
+      "text": "You fall among the rats."
+    }
+  ]
+}

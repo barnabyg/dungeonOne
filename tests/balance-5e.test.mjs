@@ -26,6 +26,7 @@ import {
   loneGoblin,
   ratTunnels,
   sealedCrypt,
+  tollYard,
 } from "./fixtures/modules.mjs";
 
 const STRONG_DICE = [
@@ -127,6 +128,39 @@ test("the required path leads to a victory, or else out with treasure, through t
     objective: "victory",
     roomIds: ["cellar"],
   });
+});
+
+test("the required path never goes through a way only talking opens, as no style talks", () => {
+  // The strongroom's purse is the only loot with no fight on the way, but
+  // only the keeper's topic opens its door (#297).
+  assert.deepEqual(requiredPath(tollYard), {
+    objective: "escape-with-loot",
+    roomIds: ["toll-yard", "rat-cellar"],
+  });
+  const runs = [0, 1, 2].map((seed) => play(tollYard, "cautious", seed));
+  assert.ok(runs.every(({ outcome }) => outcome === "escape-with-loot"));
+  assert.ok(runs.every(({ roomIds }) => !roomIds.includes("strongroom")));
+  // The gate judges the cellar: its cautious runs reach the objective.
+  const { report } = qualifyAdventure(tollYard, {
+    seeds: Array.from({ length: 20 }, (_, seed) => seed),
+    styles: ["cautious"],
+  });
+  assert.ok(report.cells.every(({ completionRate }) => completionRate > 0.5));
+});
+
+test("a module whose objective only talking reaches fails the gate with a named reason", () => {
+  const talkOnly = variant(tollYard, (module) => {
+    const cellar = module.rooms.find(({ id }) => id === "rat-cellar");
+    cellar.items = [];
+    cellar.features = [];
+  });
+  const result = qualifyAdventure(talkOnly, { seeds: [0] });
+  assert.equal(result.ok, false);
+  assert.equal(result.failure.code, "unreachable-objective");
+  assert.equal(
+    result.failure.message,
+    "toll-yard: no route reaches its escape-with-loot objective: no style talks, and only talking opens the way through toll-yard > strongroom.",
+  );
 });
 
 const MEDIAN = percentileCharacters({ percentiles: [50] })[0].dice;
