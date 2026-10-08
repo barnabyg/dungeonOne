@@ -184,7 +184,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v15";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v16";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -763,7 +763,7 @@ Act only through the offered tools, and only with the ids each tool lists. To go
 
 Leaving the adventure is the player's own final choice, made with the Leave button in an exit room; you have no tool for it. If the player asks to leave, tell them to use that button when they are ready, without calling a tool.
 
-Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, or damage. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
+Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, damage, or a way opened or closed. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage, way opened or closed, or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -4412,7 +4412,7 @@ export function createFifthRuntime(
         exits: projectRoom(state).exits.map(
           ({ id, name, description, door, trap, route }) => ({
             destinationId: id,
-            name: `${name} (${description}${trap === undefined ? "" : ` ${trap.name}, ${trap.state}.`}${route === "closed" ? " The way is closed." : ""})`,
+            name: `${name} (${description}${trap === undefined ? "" : ` ${trap.name}, ${trap.state}.`}${route === "closed" ? " The way is closed." : route === "opened" ? " A check opened this way." : ""})`,
             ...(door === undefined
               ? {}
               : {
@@ -4671,7 +4671,6 @@ export function createFifthRuntime(
     };
   }
 
-  /** A tool that takes one id from `choices`, offered only when there are some. */
   /**
    * A tool that takes one id from `choices`, offered only when there are
    * some. A check tool whose targets include one with several approaches

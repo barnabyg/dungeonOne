@@ -51,7 +51,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
-import { BANDS, type Band, type CheckSpec } from "./checks-5e.js";
+import { BANDS, isSuccess, type Band, type CheckSpec } from "./checks-5e.js";
 import type { Combatant, DamageDefenses, DamageType } from "./encounter-5e.js";
 import {
   COIN_VALUES,
@@ -84,8 +84,10 @@ import {
 import {
   ABILITIES,
   FIGHTER_SKILLS,
+  proficiencyBonus,
   type Ability,
   type FighterSkill,
+  type Level,
 } from "./fighter-5e.js";
 import {
   distinct,
@@ -795,7 +797,7 @@ function siteLabel({ kind, id: siteId }: Omit<AuthoredSite, "check">): string {
  * for a skill.
  */
 function totals(spec: CheckSpec, level: number): [number, number] {
-  const proficiency = 2 + Math.floor((level - 1) / 4);
+  const proficiency = proficiencyBonus(level as Level);
   return [1 - 4, 20 + 5 + (spec.skill === undefined ? 0 : proficiency)];
 }
 
@@ -1604,7 +1606,8 @@ function validateModule(
       if (
         !approachesOf(site.check).some((spec) => bandReachable(band, spec, max))
       ) {
-        // Named by the approach that comes closest: the lowest DC.
+        // Named by the approach that comes closest: the lowest DC for a
+        // success, the highest for a failure.
         const closest = [...approachesOf(site.check)].sort(
           (one, other) => one.dc - other.dc,
         )[
@@ -1763,8 +1766,7 @@ function validateModule(
       ...effectsOf(site.check.bands?.[band]).flatMap((entry) =>
         entry.type === "open" ? [entry.passage] : [],
       ),
-      ...(["force", "pick", "break"].includes(site.kind) &&
-      (band === "success" || band === "success-by-5")
+      ...(["force", "pick", "break"].includes(site.kind) && isSuccess(band)
         ? passages.flatMap(({ id: passageId, door: shut }) =>
             shut?.id === site.id ? [passageId] : [],
           )
