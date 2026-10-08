@@ -1,9 +1,9 @@
 {
   "kind": "dungeon-one-5e-adventure",
   "formatVersion": 25,
-  "id": "wary-cellar",
-  "title": "The Wary Cellar",
-  "objective": "Get through the rat cellar to the den and out.",
+  "id": "bandit-toll",
+  "title": "The Bandit's Toll",
+  "objective": "Get past the bandit in the cellar to the den and out.",
   "recommendedLevels": {
     "min": 1,
     "max": 1
@@ -20,7 +20,7 @@
           "id": "rusted-lantern",
           "name": "Rusted Lantern",
           "description": "A rusted lantern hangs from a hook by the stair, its glass cracked.",
-          "discovery": "Scratched into the lantern's base: \"Rats in the cellar. Boss in the den.\""
+          "discovery": "Scratched into the lantern's base: \"Toll in the cellar. Pay her or pay for it.\""
         }
       ],
       "items": []
@@ -34,7 +34,7 @@
           "id": "iron-chest",
           "name": "Iron-Bound Chest",
           "description": "A squat iron-bound chest sits in the corner, its lock long since broken.",
-          "discovery": "Under a mouldy blanket in the chest lies a stoppered vial of red liquid."
+          "discovery": "Under a mouldy blanket in the chest lie a stoppered vial of red liquid and a small leather pouch."
         }
       ],
       "items": [
@@ -44,6 +44,16 @@
           "description": "A stoppered vial of red liquid that glimmers when shaken.",
           "kind": "potion-of-healing",
           "hiddenIn": "iron-chest"
+        },
+        {
+          "id": "silver-pouch",
+          "name": "Leather Pouch",
+          "description": "A small leather pouch that clinks with silver.",
+          "kind": "coin",
+          "coins": {
+            "sp": 8
+          },
+          "hiddenIn": "iron-chest"
         }
       ]
     },
@@ -51,7 +61,7 @@
       "id": "rat-cellar",
       "name": "Rat-Gnawed Cellar",
       "description": "Grain sacks slump against the walls, chewed open. Droppings cover the floor.",
-      "encounterId": "cellar-rat",
+      "encounterId": "cellar-bandit",
       "features": [
         {
           "id": "gnawed-sacks",
@@ -96,67 +106,77 @@
   ],
   "encounters": [
     {
-      "id": "cellar-rat",
+      "id": "cellar-bandit",
       "opponents": [
         {
-          "id": "giant-rat",
-          "name": "Giant Rat",
-          "description": "A rat the size of a dog rears up from the sacks, teeth bared.",
-          "statBlock": {
-            "name": "Giant Rat",
-            "size": "Small",
-            "type": "Beast",
-            "armorClass": 13,
-            "hitPoints": {
-              "average": 7,
-              "formula": "2d6"
-            },
-            "abilities": {
-              "strength": 7,
-              "dexterity": 16,
-              "constitution": 11,
-              "intelligence": 2,
-              "wisdom": 10,
-              "charisma": 4
-            },
-            "challengeRating": "1/8",
-            "xp": 25,
-            "passivePerception": 10,
-            "morale": 8,
-            "attacks": [
-              {
-                "name": "Bite",
-                "bonus": 5,
-                "damage": {
-                  "dice": 1,
-                  "sides": 4,
-                  "modifier": 3,
-                  "type": "piercing"
-                }
-              }
-            ]
-          }
+          "id": "bandit",
+          "monster": "bandit",
+          "description": "A bandit in a patched cloak blocks the way to the den, scimitar drawn."
         }
       ],
       "defeatEndingId": "fallen-in-the-cellar",
       "reaction": {
-        "peacefulXp": 15,
+        "peacefulXp": 25,
+        "parley": {
+          "approaches": [
+            {
+              "skill": "persuasion",
+              "dc": 12
+            },
+            {
+              "skill": "deception",
+              "dc": 14
+            },
+            {
+              "skill": "intimidation",
+              "dc": 13
+            }
+          ],
+          "bands": {
+            "failure-by-5": {
+              "text": "She laughs, and lunges before you finish.",
+              "outcome": "surprise-attack"
+            },
+            "failure": {
+              "text": "Her eyes narrow.",
+              "shift": -1
+            },
+            "success": {
+              "text": "She lowers the blade a little.",
+              "shift": 1
+            },
+            "success-by-5": {
+              "text": "She shrugs and steps aside.",
+              "outcome": "let-pass"
+            }
+          }
+        },
+        "toll": {
+          "coins": {
+            "sp": 5
+          },
+          "text": "She bites a coin and waves you on."
+        },
+        "trade": {
+          "stock": ["dagger", "arrows"],
+          "minutes": 10
+        },
         "bands": {
           "unfriendly": {
-            "options": ["attack"],
-            "text": "The rat hisses and bares its yellow teeth."
+            "options": ["attack", "parley", "toll"],
+            "text": "\"Five silver, or blood.\""
           },
           "uncertain": {
-            "options": ["attack", "let-pass"],
-            "text": "The rat freezes, whiskers twitching."
+            "options": ["attack", "parley", "toll"],
+            "text": "She watches you, blade half raised."
           },
           "indifferent": {
-            "options": ["let-pass", "attack"],
-            "text": "The rat goes back to gnawing at a sack."
+            "options": ["let-pass", "trade", "attack"],
+            "text": "She shrugs: \"Buying or passing?\""
           },
           "friendly": {
-            "options": ["let-pass"],
-            "text": "The rat sniffs at your boots and wanders off."
+            "options": ["let-pass", "trade"],
+            "text": "She grins and sheathes her scimitar."
           }
         }
       }
@@ -168,6 +188,12 @@
       "kind": "escape-without-loot",
       "title": "Out through the den",
       "text": "You climb the den's back stair into the open air."
+    },
+    {
+      "id": "away-with-silver",
+      "kind": "escape-with-loot",
+      "title": "Away with the silver",
+      "text": "You climb the den's back stair into the open air, silver in your pouch."
     },
     {
       "id": "fallen-in-the-cellar",

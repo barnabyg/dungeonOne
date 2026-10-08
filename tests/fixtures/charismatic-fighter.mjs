@@ -30,12 +30,12 @@ export const BEA = buildCharacter(
   },
 );
 
-/** A character library holding only Bea. */
-export const beaLibrary = () => ({
+/** A character library holding only Bea, or `sheet` (her, changed). */
+export const beaLibrary = (sheet = BEA) => ({
   kind: "dungeon-one-characters",
   formatVersion: FIFTH_LIBRARY_FORMAT,
   revision: "0".repeat(32),
   creationsStarted: 1,
   sessionsStarted: 0,
-  characters: [{ sheet: BEA, revision: 1 }],
+  characters: [{ sheet, revision: 1 }],
 });

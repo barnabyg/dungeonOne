@@ -367,12 +367,12 @@ reason, the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 13.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 31.
+  `characters-adventures` directory beside the library, in format version 32.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 24. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 25. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 9, or author a one-off stat block inline.
 
@@ -438,9 +438,10 @@ These are for development, not play.
   budget (`--max-calls`, by default four per case and repetition), and writes a
   report under `.dm-evaluations`. `--suite approaches` runs the approach
   selection cases (#283) instead, on _The Obstacle Yard_
-  (`adventures/eval/obstacle-yard.json`), and `--suite reactions` the reaction
-  cases (#304), on _The Wary Cellar_ (`adventures/eval/wary-cellar.json`),
-  modules for the evaluation only.
+  (`adventures/eval/obstacle-yard.json`), `--suite reactions` the reaction
+  cases (#304), on _The Wary Cellar_ (`adventures/eval/wary-cellar.json`), and
+  `--suite parley` the parley and toll cases (#305), on _The Bandit's Toll_
+  (`adventures/eval/bandit-toll.json`), modules for the evaluation only.
 - **Live delve qualification.** `node scripts/qualify-delve-live.mjs --live`
   (with `--max-calls`, default 40) plays typed turns through the browser server
   for review; `--dry-run` checks the harness offline.

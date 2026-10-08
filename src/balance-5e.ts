@@ -664,8 +664,10 @@ const CAREFUL: readonly PlayStyle[] = ["cautious", "stealth-first"];
 /**
  * How a run answers a reaction roll's band (#304): `attack`, the default,
  * attacks whenever the band offers it; `peaceful` takes a peaceful option
- * (letting the character pass) whenever the band offers one. Each takes the
- * other kind of option when its own is not offered.
+ * whenever the band offers one: letting the character pass, then paying a
+ * toll it can afford, then a parley (#305) with the character's best
+ * offered skill (its bonus furthest above, or least below, its DC). Each
+ * takes the other kind of option when its own is not offered.
  */
 export const REACTION_POLICIES = ["attack", "peaceful"] as const;
 export type ReactionPolicy = (typeof REACTION_POLICIES)[number];
@@ -827,6 +829,10 @@ export function playAdventure(
   const winning = victoryRooms(adventure);
   const exits = exitRooms(adventure);
   const maxHp = characterProfile(runtime.sheet).maxHp;
+  /** Each skill's check bonus, for choosing a parley's approach (#305). */
+  const skillBonus = new Map<string, number>(
+    characterProfile(runtime.sheet).skills.map(({ id, bonus }) => [id, bonus]),
+  );
   const items = new Map(
     adventure.rooms.flatMap((room) =>
       room.items.map((item) => [item.id, { item, roomId: room.id }] as const),
@@ -1039,13 +1045,25 @@ export function playAdventure(
   const exploreChoice = (
     views: readonly ActionView[],
   ): ActionView | undefined => {
-    // Facing a reaction (#304), the policy's kind of option if offered.
+    // Facing a reaction (#304), the policy's kind of option if offered. A
+    // toll is offered (enabled) only when the purse holds it.
     const answers = offered(views, "react");
     if (answers.length > 0) {
-      const peaceful = answers.filter(({ target }) =>
-        PEACEFUL_OPTIONS.includes(target!.id as ReactionOption),
+      const of = (option: ReactionOption) =>
+        answers.filter(({ target }) => target!.id === option);
+      // The parley approach with the best margin over its DC (#305).
+      const margin = ({ approach }: ActionView) =>
+        skillBonus.get(approach!.id)! - approach!.dc!;
+      const parley = of("parley").reduce<ActionView | undefined>(
+        (best, view) =>
+          best === undefined || margin(view) > margin(best) ? view : best,
+        undefined,
       );
-      const attack = answers.filter(({ target }) => target!.id === "attack");
+      const peaceful = [
+        ...PEACEFUL_OPTIONS.flatMap(of),
+        ...(parley === undefined ? [] : [parley]),
+      ];
+      const attack = of("attack");
       return reactions === "peaceful"
         ? (peaceful[0] ?? attack[0])
         : (attack[0] ?? peaceful[0]);

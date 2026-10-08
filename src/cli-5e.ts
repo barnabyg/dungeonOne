@@ -275,7 +275,7 @@ function renderView(session: FifthSession): string {
     "Actions:",
     ...actions.map(
       ({ action, target, approach, retry, available, reason }, index) =>
-        `  ${index + 1}. ${retry === undefined ? "" : "Try again: "}${LABELS[action]}${target === undefined || action === "leave" ? "" : target.name}${approach === undefined ? "" : ` with ${approach.name}`}${retry === undefined ? "" : ` (${retry.reason})`}${available ? "" : ` — ${String(reason)}`}`,
+        `  ${index + 1}. ${retry === undefined ? "" : "Try again: "}${LABELS[action]}${target === undefined || action === "leave" ? "" : target.name}${approach === undefined ? "" : ` with ${approach.name}${approach.dc === undefined ? "" : ` DC ${approach.dc}`}`}${retry === undefined ? "" : ` (${retry.reason})`}${available ? "" : ` — ${String(reason)}`}`,
     ),
   ].join("\n");
 }

@@ -44,6 +44,7 @@ export const SKILLS = {
   acrobatics: { name: "Acrobatics", ability: "dexterity" },
   "animal-handling": { name: "Animal Handling", ability: "wisdom" },
   athletics: { name: "Athletics", ability: "strength" },
+  deception: { name: "Deception", ability: "charisma" },
   history: { name: "History", ability: "intelligence" },
   insight: { name: "Insight", ability: "wisdom" },
   intimidation: { name: "Intimidation", ability: "charisma" },

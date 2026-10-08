@@ -35,7 +35,11 @@
 //   equipped gear asks first in #sale-confirm, inside that entry. Gems and
 //   art objects (#239) show their value on their entry and sell for it in
 //   full, found here or brought in. Arrows and bolts (#230) have an entry
-//   each with their count, and sell there by the bundle of 20.
+//   each with their count, and sell there by the bundle of 20. Facing a
+//   reaction (#304), the bar holds only its options: a parley (#305) has a
+//   button per skill with the skill and DC under it, and a toll names its
+//   price; while the band offers trade, the reacting opponents are a
+//   merchant in #creatures, traded with as above.
 //   After an action, focus stays on the clicked control if it is still
 //   enabled, and otherwise moves to the newest history entry. When the
 //   adventure is over the bar is hidden and #ending (#158) takes its place: data-kind victory,
@@ -1321,8 +1325,10 @@ function renderActions() {
     // Trades go on the merchant's wares and on "You carry" (#210).
     const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : action === "buy" ? "wares" : SALES.includes(action) ? "carried" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
     const words = wordsOf(action);
-    // A check with several approaches (#283) offers one button per skill.
-    const way = option.approach ? " with " + option.approach.name : "";
+    // A check with several approaches (#283) offers one button per skill;
+    // a parley (#305) names its DC too.
+    const dc = option.approach && option.approach.dc !== undefined ? " DC " + option.approach.dc : "";
+    const way = option.approach ? " with " + option.approach.name + dc : "";
     // Another try the module offers (#284) says so, and why, under it.
     const again = option.retry ? "Try again: " : "";
     // Extra Attack's second attack (#287) says so; any opponent may take it.
@@ -1330,10 +1336,12 @@ function renderActions() {
     const label = again + (second ? "Second attack on " : words.label) + named(action, target) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
-    button.append(make("span", option.retry ? (short ? "Try again" : label) : short ? ACTIONS[action].short : label));
+    // A parley's button keeps the verb; its skill and DC go under it (#305).
+    const parley = action === "react" && option.approach;
+    button.append(make("span", option.retry ? (short ? "Try again" : label) : short ? ACTIONS[action].short : parley ? target.name : label));
     button.dataset.busyLabel = words.busyLabel;
     button.type = "button";
-    if (short) button.setAttribute("aria-label", label);
+    if (short || parley) button.setAttribute("aria-label", label);
     // One opponent makes attacking the fight's primary action; several are peers.
     button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + " secondary";
     // "act" marks an action control, in the bar or on a carried item.
@@ -1347,7 +1355,7 @@ function renderActions() {
     const wrap = make("span", undefined, "action");
     wrap.append(button);
     // The approach's skill, under its button (the button keeps the verb).
-    if (option.approach) wrap.append(unspoken(make("span", option.approach.name, "approach")));
+    if (option.approach) wrap.append(unspoken(make("span", option.approach.name + dc, "approach")));
     // Why another try is offered: its cost, or what changed (#284).
     if (option.retry) {
       const why = make("span", option.retry.reason.charAt(0).toUpperCase() + option.retry.reason.slice(1), "retry");

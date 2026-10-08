@@ -307,9 +307,11 @@ const CHOICE_KEYS = [
 const CLICK_ACTIONS = ["second-wind", "action-surge", "end-turn"] as const;
 /**
  * The clicked actions that make a check, which may name its approach (#283)
- * and ask for another try (#284).
+ * and ask for another try (#284); a parley (#305) names its approach, and
+ * the engine refuses a retry.
  */
 const APPROACH_ACTIONS: readonly string[] = [
+  "react",
   "examine",
   "force",
   "pick",

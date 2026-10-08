@@ -101,7 +101,7 @@ The level-5 Fighter feature: the Attack action makes two attacks, each at any li
 _Avoid_: Extra attack (the light weapon's), Multiattack (a monster's)
 
 **Merchant**:
-A creature in a module that trades: it sells the catalogue gear it stocks at catalogue prices, buys carried gear at half price, and buys gems and art objects at their full value. Each trade takes its authored minutes. Merchants exist only inside adventures.
+A creature in a module that trades: it sells the catalogue gear it stocks at catalogue prices, buys carried gear at half price, and buys gems and art objects at their full value. Each trade takes its authored minutes. Merchants exist only inside adventures. Reacting opponents whose band offers trade are a merchant while the band holds (#305).
 _Avoid_: Shop, Market (there is none between adventures), Vendor
 
 **Trade**:
@@ -185,15 +185,23 @@ An encounter whose opponents lie in wait (#303). The first time the character co
 _Avoid_: Ambush (the character's), Hidden monsters, Trap
 
 **Reaction roll**:
-A house rule (#304): when a reaction-eligible encounter's fight would begin with no one surprised, the engine rolls 2d6 + the character's Charisma modifier and looks it up in the reaction table for a band: hostile, unfriendly, uncertain, indifferent or friendly. Hostile always fights; every other band offers only the options its module authors (attack, or let pass). It is remembered with the fight and never rerolled. Mindless opponents never react.
+A house rule (#304): when a reaction-eligible encounter's fight would begin with no one surprised, the engine rolls 2d6 + the character's Charisma modifier and looks it up in the reaction table for a band: hostile, unfriendly, uncertain, indifferent or friendly. Hostile always fights; every other band offers only the options its module authors (attack, let pass, and from #305 parley, toll and trade), always including attack or let pass. It is remembered with the fight and never rerolled; only a parley's band moves it. Mindless opponents never react.
 _Avoid_: Reaction (a 5e action-economy term), Attitude check, Morale
 
 **Reaction-eligible**:
 An encounter whose module gives it a reaction (#304): the options each band offers and any peaceful XP. Off by default; it may mark single opponents to react, and none of its opponents may be mindless (an Undead, or a stat block whose morale is "never").
 _Avoid_: Talkative, Peaceful encounter
 
+**Parley**:
+Talking reacting opponents round (#305): one Persuasion, Deception or Intimidation check, an approach the band offers with its own DC, graded into bands that may move the reaction up or down, let the character pass, or start the fight (on a failure by 5 or more, perhaps with the character surprised). One per encounter, remembered and never rerolled.
+_Avoid_: Diplomacy, Negotiation, Social check
+
+**Toll**:
+The coin reacting opponents let the character pass for (#305), set by the module and paid from the purse: it ends the encounter peacefully. It rolls back with the adventure, and nothing lowers or waives it.
+_Avoid_: Bribe, Fee
+
 **Peaceful resolution**:
-An encounter ended by a reaction band's let-pass option (#304): settled with no fight, its room free to explore and never fought on coming back; its opponents keep what they carry. It gives the XP its module authors for it, once.
+An encounter ended by a reaction band's let-pass option (#304), a toll paid or a parley's band (#305): settled with no fight, its room free to explore and never fought on coming back; its opponents keep what they carry. It gives the XP its module authors for it, once.
 _Avoid_: Cleared (which means won), Bypassed encounter
 
 **Passive Perception**:
@@ -305,7 +313,7 @@ The balance harness's play style that sneaks into every fight it can and slips p
 _Avoid_: Sneaky style, Rogue style
 
 **Reaction policy**:
-How the balance harness answers a reaction roll's band (#304): attack, the default and the gate's judged runs, attacks whenever offered; peaceful takes a peaceful option whenever offered. The gate reports both for a module with a reaction-eligible encounter.
+How the balance harness answers a reaction roll's band (#304): attack, the default and the gate's judged runs, attacks whenever offered; peaceful takes a peaceful option whenever offered: let pass, then a toll it can afford, then a parley with the character's best offered skill (#305). The gate reports both for a module with a reaction-eligible encounter.
 _Avoid_: Diplomacy style
 
 **Ordinary enemy**:

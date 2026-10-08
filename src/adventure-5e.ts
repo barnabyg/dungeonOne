@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 24) and its validator.
+ * The 5e adventure module format (format version 25) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -39,6 +39,9 @@
  * reaction-eligible (#304): its reaction authors the options each band of a
  * reaction roll offers, and any XP for an encounter ended peacefully; it may
  * name the opponents who react, and none of its opponents may be mindless.
+ * A reaction may author a parley (#305), a Persuasion, Deception or
+ * Intimidation check whose bands move the reaction or end it, a toll in
+ * coin to pass, and trade: the opponents' stock, as a merchant's.
  *
  * A feature may have a check made when it is first examined (#281). Every
  * authored check (a feature's, a door's force, pick or break, a trap's
@@ -127,14 +130,19 @@ import {
 
 import {
   AUTHORED_REACTION_BANDS,
+  PARLEY_OUTCOMES,
+  PARLEY_SKILLS,
+  REACTION_BANDS,
   REACTION_OPTIONS,
   type AuthoredReactionBand,
+  type ParleyOutcome,
+  type ParleySkill,
   type ReactionOption,
 } from "./reaction-5e.js";
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 24;
+export const FIFTH_ADVENTURE_FORMAT = 25;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -205,7 +213,8 @@ export type FifthEncounter = Readonly<{
  * A reaction-eligible encounter's reaction (#304): the options each band but
  * hostile (which always fights) offers, with optional words for it, and the
  * XP for ending the encounter peacefully, credited once on surviving
- * completion; none when left out.
+ * completion; none when left out. A band offering parley, toll or trade
+ * (#305) offers the reaction's own.
  */
 export type FifthReaction = Readonly<{
   bands: Readonly<
@@ -215,7 +224,38 @@ export type FifthReaction = Readonly<{
     >
   >;
   peacefulXp?: number;
+  parley?: FifthParley;
+  /** The coin the opponents let the character pass for, with their words. */
+  toll?: FifthToll;
+  /** What the opponents sell and buy while a band offering trade holds. */
+  trade?: FifthMerchant;
 }>;
+
+/**
+ * A parley (#305): one to three approaches, Persuasion, Deception or
+ * Intimidation, each with its own DC, and the bands its outcome is graded
+ * into (#281). A band may move the reaction `shift` bands up (toward
+ * friendly) or down (toward hostile, which fights), or have an `outcome`:
+ * the opponents let the character pass, the fight begins, or (failing by
+ * 5 or more only) it begins with the character surprised. A failure or
+ * success by 5 or more left out counts as plain failure or success; a band
+ * left out, or with only words, leaves the reaction as it was. One parley
+ * is made per encounter, and remembered.
+ */
+export type FifthParley = Readonly<{
+  approaches: readonly Readonly<{ skill: ParleySkill; dc: number }>[];
+  bands: Readonly<Partial<Record<Band, ParleyBand>>>;
+}>;
+
+/** What one band of a parley does: its words, and a shift or an outcome. */
+export type ParleyBand = Readonly<{
+  text?: string;
+  shift?: number;
+  outcome?: ParleyOutcome;
+}>;
+
+/** A toll (#305): the coin to pass, and the opponents' words asking it. */
+export type FifthToll = Readonly<{ coins: Coins; text?: string }>;
 
 /**
  * Something in a room to examine. Examining it makes its discovery; one with
@@ -1137,11 +1177,23 @@ export function validateFifthAdventure(
 
 /**
  * A reaction-eligible encounter's reaction (#304): each band but hostile
- * authors 1–2 distinct options and optional words; hostile always fights,
- * so it authors none.
+ * authors 1–5 distinct options and optional words; hostile always fights,
+ * so it authors none. Every band offers attack or let pass, so the
+ * character can always end the reaction (#305). Parley, toll and trade are
+ * the reaction's own (`merchant` reads its trade), offered only by the
+ * bands that name them, and each one authored is offered by some band.
  */
-function reactionOf(value: unknown, where: string): FifthReaction {
-  const raw = knownKeys(value, ["bands"], ["peacefulXp"], where);
+function reactionOf(
+  value: unknown,
+  where: string,
+  merchant: (value: unknown, where: string) => FifthMerchant,
+): FifthReaction {
+  const raw = knownKeys(
+    value,
+    ["bands"],
+    ["peacefulXp", ...OWN_OPTIONS],
+    where,
+  );
   if (isRecord(raw.bands) && "hostile" in raw.bands) {
     fail(`${where} band hostile always fights, so it authors no options.`);
   }
@@ -1167,6 +1219,10 @@ function reactionOf(value: unknown, where: string): FifthReaction {
           `${on} option ${String(option)} is not one of ${REACTION_OPTIONS.join(", ")}.`,
         );
       }
+      const own = OWN_OPTIONS.find((entry) => entry === option);
+      if (own !== undefined && raw[own] === undefined) {
+        fail(`${on} offers ${own}, but ${where} authors no ${own}.`);
+      }
       return option as ReactionOption;
     });
     distinct(
@@ -1174,6 +1230,11 @@ function reactionOf(value: unknown, where: string): FifthReaction {
       (option) => option,
       (option) => `${on} offers ${option} twice.`,
     );
+    if (!options.includes("attack") && !options.includes("let-pass")) {
+      fail(
+        `${on} offers neither attack nor let-pass, so the character could never end the reaction: give it one.`,
+      );
+    }
     return {
       options,
       ...(entry.text === undefined
@@ -1181,7 +1242,7 @@ function reactionOf(value: unknown, where: string): FifthReaction {
         : { text: text(entry.text, `${on} text`) }),
     };
   };
-  return {
+  const reaction: FifthReaction = {
     bands: {
       unfriendly: authored("unfriendly"),
       uncertain: authored("uncertain"),
@@ -1193,6 +1254,138 @@ function reactionOf(value: unknown, where: string): FifthReaction {
       : {
           peacefulXp: integer(raw.peacefulXp, `${where} peacefulXp`, 1, 10000),
         }),
+    ...(raw.parley === undefined
+      ? {}
+      : { parley: parleyOf(raw.parley, `${where} parley`) }),
+    ...(raw.toll === undefined
+      ? {}
+      : { toll: tollOf(raw.toll, `${where} toll`) }),
+    ...(raw.trade === undefined
+      ? {}
+      : { trade: merchant(raw.trade, `${where} trade`) }),
+  };
+  for (const own of OWN_OPTIONS) {
+    if (
+      raw[own] !== undefined &&
+      !AUTHORED_REACTION_BANDS.some((band) =>
+        reaction.bands[band].options.includes(own),
+      )
+    ) {
+      fail(`${where} authors a ${own}, but no band offers it.`);
+    }
+  }
+  return reaction;
+}
+
+/** The options a reaction authors itself (#305), each offered by name. */
+const OWN_OPTIONS = ["parley", "toll", "trade"] as const;
+
+/** The most bands a parley's band may move a reaction, up or down (#305). */
+const MAX_SHIFT = REACTION_BANDS.length - 1;
+
+/**
+ * A reaction's parley (#305): `{ approaches: [...], bands: {...} }`, 1–3
+ * approaches `{ skill, dc }`, each a different one of Persuasion, Deception
+ * and Intimidation, and its bands, each with optional `text` and one of
+ * `shift` (−4 to 4, not 0) or `outcome`.
+ */
+function parleyOf(value: unknown, where: string): FifthParley {
+  const raw = exactKeys(value, ["approaches", "bands"], where);
+  const approaches = list(
+    raw.approaches,
+    `${where} approaches`,
+    PARLEY_SKILLS.length,
+  ).map((entry, index) => {
+    const on = `${where} approach ${index + 1}`;
+    const spec = exactKeys(entry, ["skill", "dc"], on);
+    if (!PARLEY_SKILLS.includes(spec.skill as ParleySkill)) {
+      fail(`${on} skill must be one of ${PARLEY_SKILLS.join(", ")}.`);
+    }
+    return {
+      skill: spec.skill as ParleySkill,
+      dc: integer(spec.dc, `${on} dc`, 5, 30),
+    };
+  });
+  distinct(
+    approaches,
+    ({ skill }) => skill,
+    ({ skill }) =>
+      `${where} offers ${skill} twice; each approach needs its own skill.`,
+  );
+  const graded = knownKeys(raw.bands, [], BANDS, `${where} bands`);
+  if (Object.keys(graded).length === 0) {
+    fail(`${where} bands must author at least one band.`);
+  }
+  return {
+    approaches,
+    bands: Object.fromEntries(
+      BANDS.flatMap((band) => {
+        if (graded[band] === undefined) {
+          return [];
+        }
+        const on = `${where} ${band} band`;
+        const entry = knownKeys(
+          graded[band],
+          [],
+          ["text", "shift", "outcome"],
+          on,
+        );
+        if (Object.keys(entry).length === 0) {
+          fail(`${on} needs text, a shift or an outcome.`);
+        }
+        if (entry.shift !== undefined && entry.outcome !== undefined) {
+          fail(`${on} has a shift and an outcome: give it one.`);
+        }
+        if (entry.shift === 0) {
+          fail(`${on} shift 0 moves nothing: leave it out.`);
+        }
+        if (
+          entry.outcome !== undefined &&
+          !PARLEY_OUTCOMES.includes(entry.outcome as ParleyOutcome)
+        ) {
+          fail(`${on} outcome must be one of ${PARLEY_OUTCOMES.join(", ")}.`);
+        }
+        if (entry.outcome === "surprise-attack" && band !== "failure-by-5") {
+          fail(
+            `${on} outcome surprise-attack is only for the failure-by-5 band.`,
+          );
+        }
+        return [
+          [
+            band,
+            {
+              ...(entry.text === undefined
+                ? {}
+                : { text: text(entry.text, `${on} text`) }),
+              ...(entry.shift === undefined
+                ? {}
+                : {
+                    shift: integer(
+                      entry.shift,
+                      `${on} shift`,
+                      -MAX_SHIFT,
+                      MAX_SHIFT,
+                    ),
+                  }),
+              ...(entry.outcome === undefined
+                ? {}
+                : { outcome: entry.outcome as ParleyOutcome }),
+            },
+          ],
+        ];
+      }),
+    ),
+  };
+}
+
+/** A reaction's toll (#305): `{ coins: {...}, text? }`. */
+function tollOf(value: unknown, where: string): FifthToll {
+  const raw = knownKeys(value, ["coins"], ["text"], where);
+  return {
+    coins: coins(raw.coins, `${where} coins`),
+    ...(raw.text === undefined
+      ? {}
+      : { text: text(raw.text, `${where} text`) }),
   };
 }
 
@@ -1464,7 +1657,7 @@ function validateModule(
       const reaction =
         encounter.reaction === undefined
           ? undefined
-          : reactionOf(encounter.reaction, `${where} reaction`);
+          : reactionOf(encounter.reaction, `${where} reaction`, merchant);
       if (reaction !== undefined) {
         if (encounter.victoryEndingId !== undefined) {
           fail(
