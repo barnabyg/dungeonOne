@@ -175,10 +175,11 @@ test(
         await page.locator("#confirm-level-choice").isDisabled(),
         true,
       );
-      assert.equal(
-        await page.locator("#level-choice-status").textContent(),
-        "Finish both choices to see what they change.",
-      );
+      // The status follows the preview's answer, so wait for it.
+      await page
+        .locator("#level-choice-status")
+        .filter({ hasText: /^Finish both choices to see what they change\.$/u })
+        .waitFor();
 
       // Bea's Strength is 20: the page won't offer it, and the server refuses it.
       await page.goto(`${server.url}#character-${bea.id}`);
@@ -234,10 +235,11 @@ test(
       // Switching to +1 to two clears the improvement until two are ticked.
       await page.locator("#asi-mode-split").check();
       await page.locator("#confirm-level-choice:disabled").waitFor();
-      assert.equal(
-        await page.locator("#asi-error").textContent(),
-        "Choose the ability score to improve.",
-      );
+      // Confirm is disabled at once; the error follows the preview's answer.
+      await page
+        .locator("#asi-error")
+        .filter({ hasText: /^Choose the ability score to improve\.$/u })
+        .waitFor();
       await page.locator("#asi-mode-two").check();
       await page.locator("#asi-strength").check();
       await page.locator("#confirm-level-choice:enabled").click();
