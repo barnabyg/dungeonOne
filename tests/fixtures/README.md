@@ -27,6 +27,7 @@ owned by the tests: change it only for a test's sake.
 | `rope-cove.json`        | `ropeCove`        | Retries and circumstances (#284): a cliff the rope gives advantage and a retry, a door retried for damage, a trap for a spike, a topic and a burrow. |
 | `shifting-ossuary.json` | `shiftingOssuary` | Routes (#282): a skull wall's success opens a hidden passage; a rotten door's failed force closes its passage.                                       |
 | `graded-cellar.json`    | `gradedCellar`    | Graded checks (#281): a rubble heap's bands (damage, words, a ring revealed, a discovery), a topic and a door's.                                     |
+| `toll-yard.json`        | `tollYard`        | Loot behind talk (#297): a keeper's topic opens a hidden way to a strongroom's purse; a rat cellar holds a few coins.                                |
 
 `moduleFile(name)` returns a fresh copy of a fixture's JSON to change and
 validate, and `fightRoomFile(id, title, opponents)` builds a one-room fight

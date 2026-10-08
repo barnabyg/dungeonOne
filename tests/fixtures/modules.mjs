@@ -17,6 +17,7 @@ const NAMES = [
   "rope-cove",
   "sealed-crypt",
   "shifting-ossuary",
+  "toll-yard",
 ];
 
 const FILES = Object.fromEntries(
@@ -273,6 +274,13 @@ export const coalStore = (() => {
  */
 export const ropeCove = validateModule(moduleFile("rope-cove"));
 
+/**
+ * Loot behind talk (#297), level 1: a keeper whose Persuasion topic (DC 13)
+ * opens a hidden way to a strongroom's purse, the only loot with no fight
+ * on the way, and a rat cellar whose nest holds a few coins.
+ */
+export const tollYard = validateModule(moduleFile("toll-yard"));
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,
@@ -287,4 +295,5 @@ export const FIXTURE_MODULES = [
   shiftingOssuary,
   obstacleYard,
   ropeCove,
+  tollYard,
 ];
