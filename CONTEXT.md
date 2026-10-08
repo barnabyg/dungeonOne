@@ -161,7 +161,7 @@ A d20 roll plus one ability's modifier, and the proficiency bonus when the check
 _Avoid_: Skill roll, Test
 
 **Retry**:
-Another try at a failed check, offered only when its adventure module authors one: after a cost, paid before the roll (damage, or a tool used up), or after a changed circumstance. Without one, a check is never tried again; asking for one changes nothing.
+Another try at a failed check, offered only when its adventure module authors one: after a cost, paid before the roll (damage, or a tool used up), or after a changed circumstance. Without one, a check is never tried again; asking for one changes nothing. A check whose success would only open ways that are now closed offers none: there is nothing left to try for.
 _Avoid_: Reroll, Second chance
 
 **Circumstance**:

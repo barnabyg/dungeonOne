@@ -177,6 +177,12 @@ deleted. Creation needs no OpenAI key.
   six rooms with a stuck door, a locked door and its key, a dart trap, a bound
   smuggler to question, the warden's hoard in the strongroom and the warden
   risen as a Zombie in the tomb.
+- _The Wolfstone Hillfort_ (`adventures/5e/wolfstone-hillfort.json`, levels
+  3–4, Hard): six rooms in a bandit-held hillfort. Wenna the drover trades
+  shield, chain shirt, longsword and chain mail at the camp below; the
+  Reaver's dire wolf guards the ditch. Past a rusted portcullis, a rope
+  bridge to the keep can open or fall, a brown bear dens in the undercroft,
+  and the Reaver (a Bandit Captain) holds the keep's strongbox.
 
 A sheet offers only the modules that pass the balance gate; `npm.cmd run
 balance` shows each module's verdict.

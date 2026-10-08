@@ -9,7 +9,10 @@ import { sessionSeed } from "../../dist/session-5e.js";
 
 const PLAYER = "pc";
 
-/** The route's shorthand as engine actions: `["move", "bothy"]` and the rest. */
+/**
+ * The route's shorthand as engine actions: `["move", "bothy"]` and the rest,
+ * with `["force", doorId]` (#289) forcing a stuck door.
+ */
 export function routeAction([type, target]) {
   switch (type) {
     case "move":
@@ -20,6 +23,8 @@ export function routeAction([type, target]) {
       return { type, itemId: target };
     case "leave":
       return { type, roomId: target };
+    case "force":
+      return { type, doorId: target };
     default:
       throw new Error(`no route action ${type}`);
   }
