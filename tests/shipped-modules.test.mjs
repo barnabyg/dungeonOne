@@ -43,7 +43,7 @@ const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the built-in modules are the shipped ones (#252, #275)", () => {
+test("the built-in modules are the shipped ones (#252, #275, #289)", () => {
   assert.deepEqual(
     shipped.map(({ id }) => id),
     [
@@ -58,6 +58,7 @@ test("the built-in modules are the shipped ones (#252, #275)", () => {
       "smugglers-cellar",
       "tinkers-toll",
       "warden-crypt",
+      "wolfstone-hillfort",
     ],
   );
 });
@@ -161,6 +162,7 @@ test("each module designed against the budget holds 75–100% of it as a mixed h
     "smugglers-cellar",
     "tinkers-toll",
     "warden-crypt",
+    "wolfstone-hillfort",
   ]) {
     const module = shipped.find((adventure) => adventure.id === id);
     const budget = treasureBudget(module.recommendedLevels.max);
@@ -205,6 +207,7 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
     "silvervein-mine/iron-key@kobold-tunneller",
     "silvervein-mine/kobold-lookout-coins@kobold-lookout",
     "silvervein-mine/kobold-tunneller-coins@kobold-tunneller",
+    "wolfstone-hillfort/wolfstone-reaver-coins@wolfstone-reaver",
   ]);
 });
 
@@ -229,6 +232,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["drowned-chapel", "3–3", "easy"],
       ["goblin-warren", "3–3", "medium"],
       ["ravagers-tower", "3–3", "hard"],
+      ["wolfstone-hillfort", "3–4", "hard"],
     ],
   );
 });

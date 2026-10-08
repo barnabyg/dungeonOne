@@ -76,6 +76,14 @@ const CONTENT_TESTS = new Map([
     "tests/issue-275-browser.test.mjs",
     "the #275 modules' handoff runs through the browser",
   ],
+  [
+    "tests/wolfstone-hillfort.test.mjs",
+    "the Wolfstone Hillfort's content, gate verdict, checks and journeys",
+  ],
+  [
+    "tests/issue-289-browser.test.mjs",
+    "the Wolfstone Hillfort's handoff runs through the browser",
+  ],
 ]);
 
 /**

@@ -1,0 +1,437 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 20,
+  "id": "wolfstone-hillfort",
+  "title": "The Wolfstone Hillfort",
+  "objective": "Get past the Reaver's dire wolf into the old hillfort, take what you can from it, and leave by the drovers' camp.",
+  "recommendedLevels": {
+    "min": 3,
+    "max": 4
+  },
+  "difficulty": "hard",
+  "startRoomId": "drovers-camp",
+  "rooms": [
+    {
+      "id": "drovers-camp",
+      "name": "Drovers' Camp",
+      "description": "A cold camp below the hillfort's ditch. A drover sits by a cart, and a sheep track winds up the hill behind it.",
+      "exit": true,
+      "features": [
+        {
+          "id": "drovers-cart",
+          "name": "Drover's Cart",
+          "description": "A two-wheeled cart loaded with sacks.",
+          "discovery": "Wedged under the sacks are a stoppered vial of red liquid and an iron crowbar."
+        }
+      ],
+      "items": [
+        {
+          "id": "cart-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "drovers-cart"
+        },
+        {
+          "id": "crowbar",
+          "name": "Crowbar",
+          "description": "An iron crowbar, flattened at one end.",
+          "kind": "tool",
+          "hiddenIn": "drovers-cart"
+        }
+      ],
+      "creatures": [
+        {
+          "id": "wenna",
+          "name": "Wenna the Drover",
+          "description": "A weathered drover with a crook across her knees and a pack of goods to sell.",
+          "topics": [
+            {
+              "id": "the-hillfort",
+              "name": "the hillfort",
+              "reply": "\"The Reaver took the keep. His wolf runs the ditch, and there's a bear in the old undercroft.\""
+            },
+            {
+              "id": "the-sheep-track",
+              "name": "the sheep track",
+              "reply": "\"Up past the thorn and you'll find the old watchtower. Mind the stair.\"",
+              "failure": "\"That track's for sheep, not strangers.\"",
+              "check": {
+                "approaches": [
+                  {
+                    "skill": "persuasion",
+                    "dc": 13
+                  },
+                  {
+                    "skill": "intimidation",
+                    "dc": 15
+                  }
+                ],
+                "bands": {
+                  "success": {
+                    "effects": [
+                      {
+                        "type": "open",
+                        "passage": "camp-to-watchtower"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "merchant": {
+            "stock": ["shield", "chain-shirt", "longsword", "chain-mail"],
+            "minutes": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "outer-ditch",
+      "name": "Outer Ditch",
+      "description": "A deep ditch below the rampart, littered with gnawed bones. A rusted portcullis blocks the gate passage.",
+      "encounterId": "ditch-wolf",
+      "features": [
+        {
+          "id": "wolf-lair",
+          "name": "Wolf's Lair",
+          "description": "A hollow under the rampart, matted with fur.",
+          "discovery": "Among the bones lie a drover's purse and a silver sheep bell."
+        }
+      ],
+      "items": [
+        {
+          "id": "drovers-purse",
+          "name": "Drover's Purse",
+          "description": "A purse of gold pieces.",
+          "kind": "coin",
+          "coins": {
+            "gp": 25
+          },
+          "hiddenIn": "wolf-lair"
+        },
+        {
+          "id": "silver-bell",
+          "name": "Silver Sheep Bell",
+          "description": "A silver bell engraved with a running wolf.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "wolf-lair"
+        }
+      ]
+    },
+    {
+      "id": "watchtower",
+      "name": "Old Watchtower",
+      "description": "A roofless tower on the hill's shoulder, looking down into the fort.",
+      "features": [
+        {
+          "id": "lookout-niche",
+          "name": "Lookout's Niche",
+          "description": "A niche in the wall, out of the wind.",
+          "discovery": "A coil of knotted rope and a stoppered vial of red liquid lie in the niche."
+        }
+      ],
+      "items": [
+        {
+          "id": "knotted-rope",
+          "name": "Knotted Rope",
+          "description": "Fifty feet of hempen rope, knotted every foot.",
+          "kind": "tool",
+          "hiddenIn": "lookout-niche"
+        },
+        {
+          "id": "watchtower-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "lookout-niche"
+        }
+      ]
+    },
+    {
+      "id": "gatehouse",
+      "name": "Gatehouse",
+      "description": "A broken gatehouse inside the rampart. A rope bridge sags across a ravine towards the keep, and steps lead down into the undercroft.",
+      "features": [
+        {
+          "id": "rope-bridge",
+          "name": "Rope Bridge",
+          "description": "Frayed ropes and rotten planks over a deep ravine.",
+          "check": {
+            "approaches": [
+              {
+                "skill": "acrobatics",
+                "dc": 13,
+                "advantage": [
+                  {
+                    "type": "holds",
+                    "item": "knotted-rope",
+                    "name": "Knotted Rope"
+                  }
+                ]
+              },
+              {
+                "skill": "athletics",
+                "dc": 15
+              }
+            ],
+            "retry": {
+              "cost": {
+                "type": "damage",
+                "dice": 1,
+                "sides": 4,
+                "modifier": 0,
+                "damageType": "bludgeoning",
+                "defeatEndingId": "fallen-at-wolfstone"
+              }
+            },
+            "bands": {
+              "failure-by-5": {
+                "text": "Planks snap under you. You catch a rope and swing into the ravine wall, and the bridge falls away behind you.",
+                "effects": [
+                  {
+                    "type": "damage",
+                    "dice": 2,
+                    "sides": 6,
+                    "modifier": 0,
+                    "damageType": "bludgeoning",
+                    "defeatEndingId": "fallen-at-wolfstone"
+                  },
+                  {
+                    "type": "close",
+                    "passage": "gatehouse-to-keep-bridge"
+                  }
+                ]
+              },
+              "failure": {
+                "text": "The bridge bucks and sways, and you scramble back to the gatehouse."
+              },
+              "success": {
+                "text": "You cross the bridge plank by plank to the keep's door.",
+                "effects": [
+                  {
+                    "type": "open",
+                    "passage": "gatehouse-to-keep-bridge"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "guard-locker",
+          "name": "Guard Locker",
+          "description": "A dented iron locker against the wall.",
+          "discovery": "At the back of the locker is a red-veined bloodstone."
+        }
+      ],
+      "items": [
+        {
+          "id": "bloodstone",
+          "name": "Bloodstone",
+          "description": "A dark green stone flecked with red.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "guard-locker"
+        }
+      ]
+    },
+    {
+      "id": "undercroft",
+      "name": "Undercroft",
+      "description": "A collapsed undercroft that stinks of bear. A stair at the far end climbs towards the keep.",
+      "encounterId": "undercroft-bear",
+      "features": [
+        {
+          "id": "bear-bones",
+          "name": "Heap of Bones",
+          "description": "Bones and rags dragged into a corner.",
+          "discovery": "Under the rags are a stoppered vial of red liquid and a milky moonstone."
+        }
+      ],
+      "items": [
+        {
+          "id": "undercroft-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "bear-bones"
+        },
+        {
+          "id": "moonstone",
+          "name": "Moonstone",
+          "description": "A milky, glowing moonstone.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "bear-bones"
+        }
+      ]
+    },
+    {
+      "id": "keep-hall",
+      "name": "Keep Hall",
+      "description": "The hall of the old keep, hung with stolen banners. The Reaver's strongbox sits under the high table.",
+      "encounterId": "keep-reaver",
+      "features": [
+        {
+          "id": "reaver-strongbox",
+          "name": "Reaver's Strongbox",
+          "description": "An iron-bound strongbox under the high table.",
+          "discovery": "Inside are a silver-gilt drinking horn and a bag of gold."
+        }
+      ],
+      "items": [
+        {
+          "id": "drinking-horn",
+          "name": "Silver-gilt Drinking Horn",
+          "description": "A drinking horn bound in silver-gilt and carved with hunting scenes.",
+          "kind": "treasure",
+          "treasure": "art-250gp",
+          "hiddenIn": "reaver-strongbox"
+        },
+        {
+          "id": "reaver-gold",
+          "name": "Reaver's Gold",
+          "description": "A bag of gold pieces.",
+          "kind": "coin",
+          "coins": {
+            "gp": 30
+          },
+          "hiddenIn": "reaver-strongbox"
+        },
+        {
+          "id": "wolfstone-reaver-coins",
+          "name": "Reaver's Coins",
+          "description": "A heavy pouch of gold pieces.",
+          "kind": "coin",
+          "coins": {
+            "gp": 6
+          },
+          "hiddenIn": "wolfstone-reaver"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "camp-to-ditch",
+      "between": ["drovers-camp", "outer-ditch"],
+      "description": "The track down into the ditch."
+    },
+    {
+      "id": "camp-to-watchtower",
+      "between": ["drovers-camp", "watchtower"],
+      "description": "The sheep track up the hill.",
+      "hidden": true
+    },
+    {
+      "id": "ditch-to-gatehouse",
+      "between": ["outer-ditch", "gatehouse"],
+      "description": "The gate passage.",
+      "door": {
+        "id": "rusted-portcullis",
+        "name": "Rusted Portcullis",
+        "description": "A rusted portcullis, jammed a foot off the ground.",
+        "state": "stuck",
+        "force": {
+          "skill": "athletics",
+          "dc": 15,
+          "disadvantage": [
+            {
+              "type": "holds",
+              "item": "crowbar",
+              "not": true,
+              "name": "without a lever"
+            }
+          ],
+          "retry": {
+            "cost": {
+              "type": "damage",
+              "dice": 1,
+              "sides": 4,
+              "modifier": 0,
+              "damageType": "bludgeoning",
+              "defeatEndingId": "fallen-at-wolfstone"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "gatehouse-to-undercroft",
+      "between": ["gatehouse", "undercroft"],
+      "description": "The steps down into the undercroft."
+    },
+    {
+      "id": "undercroft-to-keep",
+      "between": ["undercroft", "keep-hall"],
+      "description": "The undercroft stair."
+    },
+    {
+      "id": "gatehouse-to-keep-bridge",
+      "between": ["gatehouse", "keep-hall"],
+      "description": "The rope bridge over the ravine.",
+      "hidden": true
+    }
+  ],
+  "encounters": [
+    {
+      "id": "ditch-wolf",
+      "opponents": [
+        {
+          "id": "reavers-wolf",
+          "monster": "dire-wolf",
+          "name": "Reaver's Wolf",
+          "description": "A dire wolf the size of a pony, a spiked collar round its neck."
+        }
+      ],
+      "defeatEndingId": "fallen-at-wolfstone"
+    },
+    {
+      "id": "undercroft-bear",
+      "opponents": [
+        {
+          "id": "undercroft-bear",
+          "monster": "brown-bear"
+        }
+      ],
+      "defeatEndingId": "fallen-at-wolfstone"
+    },
+    {
+      "id": "keep-reaver",
+      "opponents": [
+        {
+          "id": "wolfstone-reaver",
+          "monster": "bandit-captain",
+          "name": "The Wolfstone Reaver",
+          "description": "A scarred bandit captain in a wolfskin cloak, a scimitar in each hand.",
+          "boss": true
+        }
+      ],
+      "defeatEndingId": "fallen-at-wolfstone"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-plunder",
+      "kind": "escape-with-loot",
+      "title": "Out with the plunder",
+      "text": "You leave the hillfort by the drovers' camp with the Reaver's plunder.",
+      "xp": 500
+    },
+    {
+      "id": "out-empty-handed",
+      "kind": "escape-without-loot",
+      "title": "Out empty-handed",
+      "text": "You leave the hillfort by the drovers' camp with nothing to show for it."
+    },
+    {
+      "id": "fallen-at-wolfstone",
+      "kind": "defeat",
+      "title": "Fallen at Wolfstone",
+      "text": "You fall in the hillfort's shadow. Your adventuring ends here."
+    }
+  ]
+}

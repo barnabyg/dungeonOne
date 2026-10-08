@@ -2425,6 +2425,7 @@ export const FIFTH_ADVENTURE_FILES = {
   "smugglers-cellar": "smugglers-cellar.json",
   "tinkers-toll": "tinkers-toll.json",
   "warden-crypt": "warden-crypt.json",
+  "wolfstone-hillfort": "wolfstone-hillfort.json",
 } as const;
 export type FifthAdventureId = keyof typeof FIFTH_ADVENTURE_FILES;
 
