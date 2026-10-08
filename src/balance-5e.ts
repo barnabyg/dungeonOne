@@ -597,6 +597,13 @@ export type FightRecord = Readonly<{
   outcome: "victory" | "defeat";
 }>;
 
+/** A fight's record while it is under way, before its rounds and outcome. */
+type FightTally = {
+  -readonly [
+    K in Exclude<keyof FightRecord, "rounds" | "outcome">
+  ]: FightRecord[K];
+};
+
 /** One playthrough, to its ending. */
 export type RunRecord = Readonly<{
   outcome: EndingKind;
@@ -654,15 +661,7 @@ export function playAdventure(
   let state = runtime.createSession();
   const roomIds = [state.roomId];
   const fights: FightRecord[] = [];
-  let fight:
-    | {
-        id: string;
-        hpLost: number;
-        fled: number;
-        surrendered: number;
-        conditions: Partial<Record<ConditionKind, number>>;
-      }
-    | undefined;
+  let fight: FightTally | undefined;
   const healing = { secondWinds: 0, potions: 0, hp: 0 };
   let trapDamage = 0;
   /** The character's hit points, so a blow costs only what was left. */
@@ -713,8 +712,10 @@ export function playAdventure(
           break;
         case "condition":
           if (event.combatantId === PLAYER_ID) {
-            fight!.conditions[event.kind] =
-              (fight!.conditions[event.kind] ?? 0) + 1;
+            fight!.conditions = {
+              ...fight!.conditions,
+              [event.kind]: (fight!.conditions[event.kind] ?? 0) + 1,
+            };
           }
           break;
         case "second-wind":
