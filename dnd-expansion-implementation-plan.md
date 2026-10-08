@@ -1,6 +1,6 @@
 # D&D 5e Expansion — Implementation Plan (Increments 11–18)
 
-Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. Update, 6 October 2026: increment 12 is published as GitHub issues #206–#211 (see the [increment 12 ticket proposal](increment-12-ticket-proposal.md)), and is done: #211 released _The Tinker's Toll_ with a merchant and found gear, with the [increment 12 player handoff](docs/acceptance/increment-12-release.md). Increment 13 is published as GitHub issues #231–#241 (see the [increment 13 ticket proposal](increment-13-ticket-proposal.md)), and is done: #241 released _The Silvervein Mine_ with bestiary encounters and treasure-type loot, with the [increment 13 player handoff](docs/acceptance/increment-13-release.md). It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
+Status, 4 October 2026: increment 11 is published as GitHub issues #125–#140 (see the [increment 11 ticket proposal](increment-11-ticket-proposal.md)); increments 12–18 are not yet ticketed. Update, 6 October 2026: increment 12 is published as GitHub issues #206–#211 (see the [increment 12 ticket proposal](increment-12-ticket-proposal.md)), and is done: #211 released _The Tinker's Toll_ with a merchant and found gear, with the [increment 12 player handoff](docs/acceptance/increment-12-release.md). Increment 13 is published as GitHub issues #231–#241 (see the [increment 13 ticket proposal](increment-13-ticket-proposal.md)), and is done: #241 released _The Silvervein Mine_ with bestiary encounters and treasure-type loot, with the [increment 13 player handoff](docs/acceptance/increment-13-release.md). Update, 8 October 2026: increment 14 is published as GitHub issues #280–#291 (see the [increment 14 ticket proposal](increment-14-ticket-proposal.md)). It turns the project owner's prioritised D&D feature list into eight increments of ticket-sized slices. Each slice below has a title, what to build, acceptance criteria and blockers, in the shape used by the [increment 9 ticket proposal](increment-9-ticket-proposal.md). Section 10 records the owner's decisions and the ones still open.
 
 Baseline: `main` at `f68d221`.
 
@@ -541,6 +541,8 @@ Each level band has a treasure value budget per adventure. Decide whether +1 wea
 
 **Playable result:** checks have consequences beyond flavour text, and characters advance past level 3 into new adventures.
 
+Published as issues #280–#291, reworked into twelve slices; see the [increment 14 ticket proposal](increment-14-ticket-proposal.md). The clock and NPC attitude effects, and conditions given outside a fight, are not in this increment (see the 8 October decisions).
+
 ### 14.1 Give checks graded outcomes with consequences
 
 **What to build.** The check model gains:
@@ -778,16 +780,25 @@ Needs an ADR: a fourth record, the **campaign**, separate from character, advent
 | Conditions         | Only poisoned, prone and paralysed in increment 13; frightened, restrained and unconscious wait until a monster needs them                                                                                                                                                                                        | #232, #234       |
 | Monster names      | Need not match SRD 5.2 exactly; SRD 5.2 stat blocks where they exist, otherwise derived house versions; never an exact copy of a protected stat block                                                                                                                                                             | #235             |
 
+### Settled by the owner, 8 October 2026
+
+| Decision           | Outcome                                                                                                                                                                                              | Where it applies |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Check effects      | Discovery, item, damage and route opened or closed. NPC attitude moves to reaction rolls (increment 15); conditions outside a fight wait for in-adventure rests (increment 16); the clock is dropped | #281, #282       |
+| Graded check sites | Doors, traps and topics use the same graded model as feature checks                                                                                                                                  | #280, #281       |
+| Level 4 choices    | Settling credits the level; the level-up card asks for the ASI and fourth weapon mastery, and the character can't start another adventure until both are chosen                                      | #286             |
+| Content strategy   | Hand-author the level 3–4 and 4–5 modules; no 5e generator                                                                                                                                           | #289, #291       |
+
 ### Open
 
-Number 1 was settled while working ticket 11.8 (#135; see the 5 October decisions), numbers 2, 3 and 8 when increment 12 was ticketed, and numbers 4 and 5 when increment 13 was ticketed (see the 6 October decisions); the rest can wait until their increment.
+Number 1 was settled while working ticket 11.8 (#135; see the 5 October decisions), numbers 2, 3 and 8 when increment 12 was ticketed, numbers 4 and 5 when increment 13 was ticketed (see the 6 October decisions), and number 6 when increment 14 was ticketed (see the 8 October decisions); the rest can wait until their increment.
 
 1. ~~**"Too easy" measure details**~~: settled, with the XP limit.
 2. ~~**Currency**~~: settled, copper/silver/gold stored as copper.
 3. ~~**Starting equipment**~~: settled, common-tier kits only.
 4. ~~**XP and loot for fled or surrendered monsters**~~: settled, no XP and the loot leaves with it.
 5. ~~**+1 gear**~~: settled, waits for magic in increment 16.
-6. **Content strategy:** hand-author every adventure, or build a 5e generator before 14.5.
+6. ~~**Content strategy**~~: settled, hand-authored adventures.
 7. **Companions:** engine-controlled hirelings or a player-controlled party of library characters.
 8. ~~**Market location**~~: settled, in-adventure merchants only.
 9. **Long-term level cap** after 5.
