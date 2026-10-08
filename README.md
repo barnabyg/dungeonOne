@@ -151,6 +151,9 @@ deleted. Creation needs no OpenAI key.
   Hard): two rooms in a churchyard. Two potions wait at the lychgate; in the
   dead-house a false gravedigger (a Bandit) and a corpse he dug up (a Zombie)
   fight together over a coffin packed with grave goods.
+- _The Ravager's Tower_ (`adventures/5e/ravagers-tower.json`, level 3, Hard):
+  two rooms in a ruined watchtower. A dead pedlar at the tower's foot still
+  has two potions; at the top a Gnoll Ravager guards the plunder of the road.
 - _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`, level 1,
   Medium): two rooms with a grave robber (a Bandit) guarding a silver torc and
   a garnet under the bier, a sack of grave gold and a way out.

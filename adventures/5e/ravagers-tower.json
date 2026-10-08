@@ -1,0 +1,131 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 18,
+  "id": "ravagers-tower",
+  "title": "The Ravager's Tower",
+  "objective": "Climb the ruined watchtower where a gnoll has laired with its plunder, take what you can, and get back out alive. Leave by the tower door when you are ready.",
+  "recommendedLevels": { "min": 3, "max": 3 },
+  "difficulty": "hard",
+  "startRoomId": "tower-foot",
+  "rooms": [
+    {
+      "id": "tower-foot",
+      "name": "Tower Foot",
+      "description": "The ground floor of a broken watchtower, open to the sky where the upper floors have fallen in. A spiral stair climbs the wall. Bones crunch underfoot.",
+      "exit": true,
+      "features": [
+        {
+          "id": "dead-pedlar",
+          "name": "Dead Pedlar",
+          "description": "A pedlar's body lies at the foot of the stair, half gnawed.",
+          "discovery": "The gnoll missed two stoppered vials of red liquid, one in the pedlar's boot and one sewn into the pedlar's coat."
+        }
+      ],
+      "items": [
+        {
+          "id": "pedlar-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "dead-pedlar"
+        },
+        {
+          "id": "pedlar-second-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "dead-pedlar"
+        }
+      ]
+    },
+    {
+      "id": "gnoll-roost",
+      "name": "Gnoll's Roost",
+      "description": "The last floor still standing, high above the moor. Plunder from the road lies heaped among stinking furs.",
+      "encounterId": "ravager",
+      "features": [
+        {
+          "id": "plunder-heap",
+          "name": "Plunder Heap",
+          "description": "Torn packs, broken crates and bloodied cloth piled against the parapet.",
+          "discovery": "Among the rubbish are a pedlar's cashbox, a gilt-bronze icon still in its travelling case, and a pair of pearl earrings."
+        }
+      ],
+      "items": [
+        {
+          "id": "pedlar-cashbox",
+          "name": "Pedlar's Cashbox",
+          "description": "A tin cashbox of gold pieces.",
+          "kind": "coin",
+          "coins": { "gp": 40 },
+          "hiddenIn": "plunder-heap"
+        },
+        {
+          "id": "gilt-icon",
+          "name": "Gilt-bronze Icon",
+          "description": "A hinged icon of gilded bronze, painted with a saint.",
+          "kind": "treasure",
+          "treasure": "art-250gp",
+          "hiddenIn": "plunder-heap"
+        },
+        {
+          "id": "pearl-earrings",
+          "name": "Pearl Earrings",
+          "description": "A pair of small pearls on gold wires.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "plunder-heap"
+        },
+        {
+          "id": "tower-gnoll-coins",
+          "name": "Gnoll Ravager's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": { "sp": 11 },
+          "hiddenIn": "tower-gnoll"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "foot-to-roost",
+      "between": ["tower-foot", "gnoll-roost"],
+      "description": "The spiral stair, missing every third step, climbs to the top floor."
+    }
+  ],
+  "encounters": [
+    {
+      "id": "ravager",
+      "opponents": [
+        {
+          "id": "tower-gnoll",
+          "monster": "gnoll",
+          "description": "A hyena-headed gnoll rises from its furs, spear in hand, laughing its high, mad laugh."
+        }
+      ],
+      "defeatEndingId": "fallen-in-the-tower"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-plunder",
+      "kind": "escape-with-loot",
+      "title": "Out with the plunder",
+      "text": "You climb down out of the tower with the gnoll's plunder on your back.",
+      "xp": 400
+    },
+    {
+      "id": "out-of-the-tower",
+      "kind": "escape-without-loot",
+      "title": "Out of the tower",
+      "text": "You climb down out of the tower with nothing to show for it."
+    },
+    {
+      "id": "fallen-in-the-tower",
+      "kind": "defeat",
+      "title": "Fallen in the tower",
+      "text": "You fall among the bones. Your adventuring ends here."
+    }
+  ]
+}

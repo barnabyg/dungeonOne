@@ -51,6 +51,7 @@ test("the built-in modules are the shipped ones (#252, #275)", () => {
       "drowned-chapel",
       "goblin-warren",
       "gravediggers-lodge",
+      "ravagers-tower",
       "robbers-barrow",
       "shepherds-bothy",
       "silvervein-mine",
@@ -154,6 +155,7 @@ test("each module designed against the budget holds 75–100% of it as a mixed h
     "drowned-chapel",
     "goblin-warren",
     "gravediggers-lodge",
+    "ravagers-tower",
     "robbers-barrow",
     "shepherds-bothy",
     "smugglers-cellar",
@@ -195,6 +197,7 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
   assert.deepEqual(carriers.sort(), [
     "goblin-warren/boss-chain@goblin-boss",
     "gravediggers-lodge/false-gravedigger-coins@false-gravedigger",
+    "ravagers-tower/tower-gnoll-coins@tower-gnoll",
     "robbers-barrow/barrow-robber-coins@barrow-robber",
     "shepherds-bothy/bothy-bandit-coins@bothy-bandit",
     "silvervein-mine/bugbear-overseer-coins@bugbear-overseer",
@@ -225,6 +228,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["silvervein-mine", "2–3", "medium"],
       ["drowned-chapel", "3–3", "easy"],
       ["goblin-warren", "3–3", "medium"],
+      ["ravagers-tower", "3–3", "hard"],
     ],
   );
 });

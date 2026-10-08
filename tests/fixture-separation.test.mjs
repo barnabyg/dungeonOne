@@ -68,6 +68,10 @@ const CONTENT_TESTS = new Map([
     "tests/gravediggers-lodge.test.mjs",
     "the Gravedigger's Lodge's content, gate verdict and journeys",
   ],
+  [
+    "tests/ravagers-tower.test.mjs",
+    "the Ravager's Tower's content, gate verdict and journeys",
+  ],
 ]);
 
 /**
