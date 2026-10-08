@@ -19,6 +19,7 @@ import { rollD20, type RollMode } from "./encounter-5e.js";
 import {
   characterProfile,
   checkAdvantages,
+  hasExpertise,
   skillProficiency,
   type CharacterSheet,
 } from "./character-5e.js";
@@ -168,9 +169,7 @@ export function abilityCheck(
     random,
     circumstances.disadvantage,
   );
-  return sheet.expertise?.includes(spec.skill) === true
-    ? { ...roll, expertise: true }
-    : roll;
+  return hasExpertise(sheet, spec.skill) ? { ...roll, expertise: true } : roll;
 }
 
 /** Rolls a saving throw, with proficiency in the class's saves. */
@@ -238,9 +237,7 @@ export function passivePerception(
     total: 10 + wisdom + proficiency + adjustment,
     wisdom,
     proficiency,
-    ...(sheet.expertise?.includes("perception") === true
-      ? { expertise: true as const }
-      : {}),
+    ...(hasExpertise(sheet, "perception") ? { expertise: true as const } : {}),
     adjustment,
     sources,
   };

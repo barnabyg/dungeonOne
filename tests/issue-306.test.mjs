@@ -683,8 +683,8 @@ test("the balance harness builds a level-1 Rogue and plays it, Sneak Attack and 
 
 test("the library, save and trace formats bump; a format-13 library is refused by name", async () => {
   assert.equal(FIFTH_LIBRARY_FORMAT, 14);
-  assert.ok(FIFTH_SESSION_FORMAT >= 32);
-  assert.ok(FIFTH_TRACE_FORMAT >= 26);
+  assert.equal(FIFTH_SESSION_FORMAT, 32);
+  assert.equal(FIFTH_TRACE_FORMAT, 26);
   const directory = await mkdtemp(join(tmpdir(), "issue-306-"));
   try {
     const path = join(directory, "characters.json");

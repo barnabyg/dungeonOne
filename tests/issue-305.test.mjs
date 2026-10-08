@@ -9,6 +9,7 @@ import test from "node:test";
 
 import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import { playAdventure } from "../dist/balance-5e.js";
+import { buildCharacter, defaultPlacement } from "../dist/character-5e.js";
 import { SKILLS } from "../dist/class-5e.js";
 import {
   FIFTH_PARLEY_DM_CASES,
@@ -18,6 +19,7 @@ import {
   setUpCase,
 } from "../dist/dm-evaluation-5e.js";
 import { PEACEFUL_OPTIONS, shiftedBand } from "../dist/reaction-5e.js";
+import { ROGUE } from "../dist/rogue-5e.js";
 import {
   createFifthRuntime,
   FIFTH_DM_SYSTEM_PROMPT,
@@ -670,4 +672,57 @@ test("the harness parleys with its best skill and pays tolls it can afford", () 
         settlement === undefined || settlement.possessions.purse === 200,
     ),
   );
+});
+
+test("a Rogue's Expertise doubles its proficiency on a parley, and the harness counts it", () => {
+  const dieRolls = [
+    [6, 5, 4, 1],
+    [5, 5, 4, 2],
+    [3, 6, 4, 2],
+    [4, 4, 4, 4],
+    [1, 3, 3, 4],
+    [2, 2, 4, 2],
+  ];
+  // Charisma 12 (+1); Expertise in Intimidation makes it +5 against DC 13,
+  // the best margin over Persuasion (+1, DC 12) and Deception (+1, DC 14).
+  const vex = buildCharacter(
+    "c".repeat(32),
+    "Vex",
+    dieRolls,
+    {
+      ...ROGUE.defaults,
+      placement: defaultPlacement(dieRolls, ROGUE),
+      skills: ["acrobatics", "intimidation", "perception", "stealth"],
+      expertise: ["intimidation", "stealth"],
+    },
+    "rogue",
+  );
+  const rich = createFifthRuntime(banditToll, { ...vex, purse: 200 });
+  const check = accepted(
+    // 2d6 + 1 = 4: unfriendly.
+    accepted(start(rich), MOVE, dice(...d6s(2, 1)), rich).state,
+    parley("intimidation"),
+    dice([20, 10]),
+    rich,
+  ).events.find(({ type }) => type === "check");
+  assert.equal(check.roll.proficiency, 4);
+  assert.equal(check.roll.expertise, true);
+  assert.equal(check.roll.total, 10 + 1 + 4);
+
+  const poorRogue = createFifthRuntime(banditToll, vex);
+  const parleyed = [];
+  const watching = {
+    ...poorRogue,
+    handleAction(state, action, random) {
+      if (action.type === "react" && action.option === "parley") {
+        parleyed.push(action.approach);
+      }
+      return poorRogue.handleAction(state, action, random);
+    },
+  };
+  for (let seed = 0; seed < 30; seed++) {
+    playAdventure(watching, "cautious", seed, { reactions: "peaceful" });
+  }
+  assert.ok(parleyed.length > 0);
+  assert.ok(parleyed.every((approach) => approach === "intimidation"));
 });

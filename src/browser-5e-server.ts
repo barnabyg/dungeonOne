@@ -66,6 +66,7 @@ import {
   characterCarrying,
   characterProfile,
   keptTotal,
+  CLASS_CHOICE_KEYS,
   levelUpChanges,
   masteryOptions,
   pendingLevelUp,
@@ -356,7 +357,7 @@ function hasExactKeys(
 
 const CHOICE_KEYS = ["placement", "increase", "skills", "kit", "masteries"];
 /** The choices only some classes make, and the class itself (#306). */
-const CLASS_CHOICE_KEYS = ["class", "fightingStyle", "expertise"];
+const CLASS_KEYS = ["class", ...CLASS_CHOICE_KEYS];
 /** The clicked actions that take no target. */
 const CLICK_ACTIONS = ["second-wind", "action-surge", "end-turn"] as const;
 /**
@@ -726,7 +727,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         }
         return view(await serialized(() => library.startCreation()));
       case "/api/5e/creation/preview": {
-        if (!hasExactKeys(body, CHOICE_KEYS, CLASS_CHOICE_KEYS)) {
+        if (!hasExactKeys(body, CHOICE_KEYS, CLASS_KEYS)) {
           throw new Error("Invalid character creation request.");
         }
         const pending = (await library.read()).pendingCreation;
@@ -741,7 +742,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           !hasExactKeys(
             body,
             ["revision", "name", ...CHOICE_KEYS],
-            CLASS_CHOICE_KEYS,
+            CLASS_KEYS,
           ) ||
           typeof body.revision !== "string" ||
           typeof body.name !== "string"

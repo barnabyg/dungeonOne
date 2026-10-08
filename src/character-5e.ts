@@ -269,7 +269,10 @@ const SHEET_KEYS = [
   "xpAwards",
 ];
 /** The keys a sheet has exactly when its class makes the choice (#306). */
-const CLASS_CHOICE_KEYS = ["fightingStyle", "expertise"];
+export const CLASS_CHOICE_KEYS: readonly string[] = [
+  "fightingStyle",
+  "expertise",
+];
 
 export function abilityModifier(score: number): number {
   if (!Number.isInteger(score) || score < 3 || score > ABILITY_SCORE_CAP) {
@@ -1280,6 +1283,14 @@ type ProfiledSheet = Pick<
   | "weaponMasteries"
 >;
 
+/** Whether `sheet` has Expertise in `skill` (#306). */
+export function hasExpertise(
+  sheet: Pick<CharacterSheet, "expertise">,
+  skill: SkillId,
+): boolean {
+  return sheet.expertise?.includes(skill) === true;
+}
+
 /**
  * The proficiency bonus a check with `skill` adds: none without the skill,
  * the bonus with it, and twice the bonus with Expertise in it (#306).
@@ -1289,7 +1300,7 @@ export function skillProficiency(
   skill: SkillId,
 ): number {
   const proficiency = proficiencyBonus(sheet.level);
-  return sheet.expertise?.includes(skill) === true
+  return hasExpertise(sheet, skill)
     ? proficiency * 2
     : sheet.skills.includes(skill)
       ? proficiency
