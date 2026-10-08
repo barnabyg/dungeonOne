@@ -13,6 +13,7 @@
     "browser": "node dist/browser-cli.js",
     "cli": "node dist/cli-5e.js",
     "check:package": "node scripts/package-checks.mjs",
+    "career": "npm run build && node scripts/career-5e.mjs",
     "check:security": "node scripts/security-checks.mjs",
     "eval:dm": "npm run build && node scripts/eval-dm.mjs",
     "estimate": "npm run build && node scripts/estimate-5e.mjs",

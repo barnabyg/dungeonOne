@@ -1,7 +1,8 @@
 // The shipped adventure modules in adventures/5e/ (#251): each loads and
 // validates, names its monsters from the bestiary, fits its treasure budget,
 // qualifies at its declared difficulty, and takes its place in the browser's
-// adventure list. Besides each released module's own content and release
+// adventure list; and a new character's career through them reaches the
+// required level (#290). Besides each released module's own content and release
 // tests, these are the only tests that read a shipped module; engine tests
 // play the fixtures in tests/fixtures/.
 import assert from "node:assert/strict";
@@ -23,6 +24,11 @@ import {
   qualifyAdventure,
   renderGateResult,
 } from "../dist/balance-5e.js";
+import {
+  CAREER_REQUIRED_LEVEL,
+  renderCareerResult,
+  simulateCareer,
+} from "../dist/career-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
 
@@ -88,6 +94,17 @@ test("every shipped module qualifies at its declared difficulty", () => {
       assert.fail(renderGateResult(adventure, gateAdventure(adventure)));
     }
   }
+});
+
+test("a new character's career through the shipped modules reaches the required level (#290)", () => {
+  const report = simulateCareer(shipped);
+  assert.equal(report.requiredLevel, CAREER_REQUIRED_LEVEL);
+  assert.equal(report.ok, true, renderCareerResult(report));
+  // Every shipped module is played by some career.
+  assert.ok(
+    report.modules.every(({ played }) => played > 0),
+    renderCareerResult(report),
+  );
 });
 
 test("every shipped module declares the strictest difficulty it passes with 3 points of slack (#252)", () => {
