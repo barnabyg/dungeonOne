@@ -146,6 +146,10 @@ deleted. Creation needs no OpenAI key.
 - _The Robbers' Barrow_ (`adventures/5e/robbers-barrow.json`, level 1,
   Medium): two rooms with a grave robber (a Bandit) guarding a silver torc and
   a garnet under the bier, a sack of grave gold and a way out.
+- _The Shepherd's Bothy_ (`adventures/5e/shepherds-bothy.json`, level 2,
+  Easy): three rooms on the moor. A lone bandit (a Bandit) holds the bothy
+  with the market's takings, a brooch and a sapphire, and a lean-to behind it
+  hides a potion and a bloodstone.
 - _The Silvervein Mine_ (`adventures/5e/silvervein-mine.json`, levels 2–3, Medium):
   six rooms in an old silver mine. Two kobolds in the sorting shed may flee or
   surrender, and the one that surrenders gives up the key to the overseer's

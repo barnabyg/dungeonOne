@@ -43,13 +43,14 @@ const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the built-in modules are the seven shipped ones (#252)", () => {
+test("the built-in modules are the shipped ones (#252, #275)", () => {
   assert.deepEqual(
     shipped.map(({ id }) => id),
     [
       "abandoned-delve",
       "goblin-warren",
       "robbers-barrow",
+      "shepherds-bothy",
       "silvervein-mine",
       "smugglers-cellar",
       "tinkers-toll",
@@ -145,11 +146,12 @@ test("every shipped module's treasure fits its budget (#239)", () => {
 });
 
 test("each module designed against the budget holds 75–100% of it as a mixed hoard (#252)", () => {
-  // The Delve and the Mine keep their shipped treasure; the other five were
+  // The Delve and the Mine keep their shipped treasure; the others were
   // designed against the budget with more than one class of gem or art object.
   for (const id of [
     "goblin-warren",
     "robbers-barrow",
+    "shepherds-bothy",
     "smugglers-cellar",
     "tinkers-toll",
     "warden-crypt",
@@ -189,6 +191,7 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
   assert.deepEqual(carriers.sort(), [
     "goblin-warren/boss-chain@goblin-boss",
     "robbers-barrow/barrow-robber-coins@barrow-robber",
+    "shepherds-bothy/bothy-bandit-coins@bothy-bandit",
     "silvervein-mine/bugbear-overseer-coins@bugbear-overseer",
     "silvervein-mine/bugbear-overseer-trinket@bugbear-overseer",
     "silvervein-mine/iron-key@kobold-tunneller",
@@ -210,6 +213,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["robbers-barrow", "1–1", "medium"],
       ["smugglers-cellar", "1–1", "hard"],
       ["tinkers-toll", "1–1", "hard"],
+      ["shepherds-bothy", "2–2", "easy"],
       ["abandoned-delve", "2–2", "medium"],
       ["warden-crypt", "2–2", "medium"],
       ["silvervein-mine", "2–3", "medium"],
