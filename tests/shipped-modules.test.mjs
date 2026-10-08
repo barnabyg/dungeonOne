@@ -31,6 +31,7 @@ import {
 } from "../dist/career-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
+import { referenceCpuSeconds } from "./fixtures/cpu-reference.mjs";
 
 const shipped = await loadBuiltInFifthAdventures();
 const moduleFiles = Object.fromEntries(
@@ -71,20 +72,19 @@ test("the built-in modules are the shipped ones (#252, #275, #289, #291)", () =>
 });
 
 test("the default run qualifies every shipped module within its time budget", () => {
-  // CPU time, not elapsed time: this file runs in its own process, so other
-  // test files running alongside it cannot push it over the budget.
-  const started = process.cpuUsage();
-  for (const adventure of shipped) {
-    const result = qualifyAdventure(adventure);
-    assert.equal(result.ok, true, adventure.id);
-    assert.ok(result.report.cells.every(({ runs }) => runs === 200));
-  }
-  const { user, system } = process.cpuUsage(started);
-  const seconds = (user + system) / 1_000_000;
+  // CPU time scaled to the reference machine (cpu-reference.mjs): runners
+  // differ in speed by nearly 2×, so plain CPU seconds judge the runner.
+  const seconds = referenceCpuSeconds(() => {
+    for (const adventure of shipped) {
+      const result = qualifyAdventure(adventure);
+      assert.equal(result.ok, true, adventure.id);
+      assert.ok(result.report.cells.every(({ runs }) => runs === 200));
+    }
+  });
   // docs/character-rules.md records the budget: well inside verify.
   assert.ok(
     seconds < 45,
-    `the default run took ${seconds.toFixed(1)} s of CPU`,
+    `the default run took ${seconds.toFixed(1)} s of reference CPU`,
   );
 });
 

@@ -271,3 +271,13 @@ that fight's next action: attack, or end the turn.
 library's character and plays `actions`, each accepted; `WIN_THE_BURIAL_HALL`
 among them moves into the hall and wins its fight, on the seed
 `winBarrowSeed` finds.
+
+## CPU budgets
+
+`cpu-reference.mjs` holds a fixed, engine-free CPU workload. A timing budget
+measured with `referenceCpuSeconds(work)` is scaled by how long that workload
+takes in the same process, timed before and after `work`, against its
+`REFERENCE_SECONDS` on the machine the budget was set on. CI runners differ in
+speed by nearly 2× between runs of one commit, so plain CPU seconds judge the
+runner rather than the code. `shipped-modules.test.mjs` uses it for the
+default qualification's 45-second budget.
