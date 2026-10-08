@@ -7,12 +7,12 @@ import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import {
-  FEATURE_USES_RULE,
-  buildFighter,
-  fighterProfile,
+  buildCharacter,
+  characterProfile,
   levelForXp,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  validateCharacter,
+} from "../dist/character-5e.js";
+import { FEATURE_USES_RULE } from "../dist/class-5e.js";
 import { saveFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 const RULE =
@@ -21,7 +21,7 @@ const STALE = /short rest|long rest|return after the adventure/i;
 
 test("Second Wind and Action Surge state the rule that applies now (#166)", () => {
   assert.equal(FEATURE_USES_RULE, RULE);
-  const sheet = buildFighter(
+  const sheet = buildCharacter(
     "a".repeat(32),
     "Ada",
     [
@@ -49,12 +49,12 @@ test("Second Wind and Action Surge state the rule that applies now (#166)", () =
     },
   );
   const raised = { ...sheet, level: levelForXp(300), xp: 300 };
-  const second = validateFighter({
+  const second = validateCharacter({
     ...raised,
-    hp: fighterProfile(raised).maxHp,
+    hp: characterProfile(raised).maxHp,
   });
   const text = (id) =>
-    fighterProfile(second).features.find((feature) => feature.id === id).text;
+    characterProfile(second).features.find((feature) => feature.id === id).text;
   assert.equal(
     text("second-wind"),
     `Bonus action: regain 1d10 + 2 HP. 2 uses. ${RULE}`,

@@ -1,5 +1,5 @@
 /**
- * A 5e session trace (format version 20) and its exact replay.
+ * A 5e session trace (format version 21) and its exact replay.
  *
  * The command-line adapter records every turn of a run: each clicked action
  * with the dice it drew and its card, and each typed message with the AI DM's
@@ -27,7 +27,7 @@ import type {
   DmModelResponse,
   DmTurnResult,
 } from "./dm-turn.js";
-import { validateFighter, type FighterSheet } from "./fighter-5e.js";
+import { validateCharacter, type CharacterSheet } from "./character-5e.js";
 import { RANDOM_ALGORITHM } from "./random.js";
 import type { FifthAction, FifthResult, FifthState } from "./runtime-5e.js";
 import {
@@ -37,7 +37,7 @@ import {
   type RollRecord,
 } from "./session-5e.js";
 
-export const FIFTH_TRACE_FORMAT = 20;
+export const FIFTH_TRACE_FORMAT = 21;
 const MAX_TRACE_BYTES = 16 * 1024 * 1024;
 const MAX_TURNS = 5000;
 
@@ -76,7 +76,7 @@ export type TraceTurn = ClickTurn | MessageTurn;
 export type FifthTrace = Readonly<{
   kind: "dungeon-one-5e-trace";
   formatVersion: typeof FIFTH_TRACE_FORMAT;
-  character: FighterSheet;
+  character: CharacterSheet;
   adventure: Readonly<{ id: string; digest: string }>;
   random: Readonly<{ algorithm: string; seed: number }>;
   opening: Readonly<{ rolls: readonly RollRecord[]; entry: HistoryEntry }>;
@@ -271,9 +271,9 @@ export async function replayFifthTrace(
       `${path} was recorded in a different version of ${adventure.title}, so this build cannot replay it.`,
     );
   }
-  let character: FighterSheet;
+  let character: CharacterSheet;
   try {
-    character = validateFighter(trace.character);
+    character = validateCharacter(trace.character);
   } catch {
     throw invalid();
   }

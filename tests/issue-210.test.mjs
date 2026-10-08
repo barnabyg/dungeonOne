@@ -9,7 +9,7 @@ import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import { gateAdventure } from "../dist/balance-5e.js";
 import { buyItem, salePrice, sellItem } from "../dist/equipment-5e.js";
 import { offeredToolsMatchActions } from "../dist/dm-evaluation-5e.js";
-import { buildFighter, settleFighter } from "../dist/fighter-5e.js";
+import { buildCharacter, settleCharacter } from "../dist/character-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { createSeededRandom } from "../dist/random.js";
@@ -218,7 +218,7 @@ test("a room has at most one merchant", () => {
 });
 
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2), with leather and a mace.
-const ada = buildFighter(
+const ada = buildCharacter(
   "a".repeat(32),
   "Ada",
   [
@@ -506,7 +506,7 @@ test("a surviving ending keeps what was bought and the change; found coin spent 
   assert.deepEqual(settlement.possessions.equipment, ["leather", "shortsword"]);
   assert.deepEqual(settlement.possessions.stowed, []);
   assert.equal(settlement.possessions.purse, 250);
-  const after = settleFighter(ada, settlement);
+  const after = settleCharacter(ada, settlement);
   assert.equal(after.purse, 250);
   assert.ok(after.finds.includes("lintel-barrow/coin-pouch"));
 

@@ -30,10 +30,10 @@ import {
   WEAPONS,
 } from "../dist/equipment-5e.js";
 import {
-  fighterCarrying,
-  fighterProfile,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  characterCarrying,
+  characterProfile,
+  validateCharacter,
+} from "../dist/character-5e.js";
 import { settleFifthSession, startFifthAdventure } from "../dist/session-5e.js";
 import {
   createFifthRuntime,
@@ -67,6 +67,7 @@ const CONTEXT = {
   strengthScore: 16,
   dexterityScore: 12,
   proficiency: 2,
+  weaponProficiencies: ["simple", "martial"],
   masteries: [],
   criticalRange: 20,
 };
@@ -158,7 +159,7 @@ test("a ranged attack uses Dexterity; a longbow below Dexterity 13 has disadvant
       .disadvantage,
     ["Heavy"],
   );
-  const sheet = fighterProfile(archer());
+  const sheet = characterProfile(archer());
   assert.equal(sheet.attack.weapon, "Shortbow");
   assert.equal(sheet.attack.ammunition, "arrows");
   assert.equal(sheet.attack.bonus, 4);
@@ -410,7 +411,7 @@ test("ammunition weighs 1 lb a bundle of arrows and 1.5 lb of bolts, summed exac
   // 3 copper coins and an arrow.
   assert.equal(load(1, 0, 3), 0.11);
   // Leather 10 lb, a shortbow 2 lb and a mace 4 lb, and two arrows.
-  assert.equal(fighterCarrying(archer(2)).weight, 16.1);
+  assert.equal(characterCarrying(archer(2)).weight, 16.1);
 });
 
 test("arrows and bolts are bought by the 20, refused over capacity, and sold by the 20", () => {
@@ -524,7 +525,7 @@ test("a quiver behind the lintel adds 20 arrows; the bowyer buys them back by th
 
 test("taking found arrows over capacity is refused like other gear", () => {
   // Str 17 carries 255 lb: 243 lb stowed and 12 lb worn and held fill it.
-  const laden = validateFighter({
+  const laden = validateCharacter({
     ...archer(0),
     stowed: [
       "plate",
@@ -537,7 +538,7 @@ test("taking found arrows over capacity is refused like other gear", () => {
       "shortbow",
     ],
   });
-  assert.equal(fighterCarrying(laden).weight, 255);
+  assert.equal(characterCarrying(laden).weight, 255);
   const runtime = createFifthRuntime(archeryBarrow, laden);
   const state = accept(runtime, runtime.createSession(), {
     type: "examine",
@@ -672,7 +673,7 @@ test("a sheet holds a count of each kind of ammunition, and nothing else", () =>
     undefined,
   ]) {
     assert.throws(
-      () => validateFighter({ ...archer(), ammunition }),
+      () => validateCharacter({ ...archer(), ammunition }),
       /Invalid (ammunition|character sheet)/,
     );
   }

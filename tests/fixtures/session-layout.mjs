@@ -4,11 +4,11 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { chromium } from "playwright";
 import {
-  buildFighter,
+  buildCharacter,
   defaultPlacement,
-  FIGHTER_DEFAULT_CHOICES,
   rollAbilitySet,
-} from "../../dist/fighter-5e.js";
+} from "../../dist/character-5e.js";
+import { FIGHTER_DEFAULT_CHOICES } from "../../dist/fighter-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { actionButton, settled } from "./browser-journey.mjs";
 
@@ -30,7 +30,7 @@ export function firstFighter(seed) {
     .digest()
     .readUInt32LE(0);
   const dice = rollAbilitySet(createSeededRandom(stream));
-  return buildFighter("a".repeat(32), "Ada", dice, {
+  return buildCharacter("a".repeat(32), "Ada", dice, {
     ...FIGHTER_DEFAULT_CHOICES,
     placement: defaultPlacement(dice),
   });

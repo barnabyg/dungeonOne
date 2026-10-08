@@ -10,10 +10,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadFifthAdventure, unsimulatedTraits } from "../dist/adventure-5e.js";
-import { fighterAtLevel, gateAdventure } from "../dist/balance-5e.js";
+import { characterAtLevel, gateAdventure } from "../dist/balance-5e.js";
 import { MONSTER_TRAITS, validateFifthBestiary } from "../dist/bestiary-5e.js";
 import { act, startEncounter } from "../dist/encounter-5e.js";
-import { rollAbilitySet } from "../dist/fighter-5e.js";
+import { rollAbilitySet } from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
@@ -405,7 +405,7 @@ test("the bestiary validator checks Multiattack and level bands", () => {
 });
 
 /** A level-3 Fighter, the strongest a player can have yet. */
-const sheet = fighterAtLevel(rollAbilitySet(createSeededRandom(7)), 3);
+const sheet = characterAtLevel(rollAbilitySet(createSeededRandom(7)), 3);
 
 /** Begins, goes into `room` and attacks the first target until it ends. */
 function playLair(session, room) {

@@ -43,8 +43,12 @@ export type WeaponDamageType = Extract<
 
 export type Dice = Readonly<{ dice: number; sides: number }>;
 
+/** SRD 5.2 weapon categories; a class is proficient with some (#300). */
+export type WeaponCategory = "simple" | "martial";
+
 export type WeaponData = Readonly<{
   name: string;
+  category: WeaponCategory;
   /** In copper pieces. */
   price: number;
   /** In pounds. */
@@ -98,6 +102,7 @@ export const NO_AMMUNITION: Ammunition = { arrows: 0, bolts: 0 };
 export const WEAPONS = {
   club: {
     name: "Club",
+    category: "simple",
     price: 10,
     weight: 2,
     damage: { dice: 1, sides: 4 },
@@ -108,6 +113,7 @@ export const WEAPONS = {
   },
   dagger: {
     name: "Dagger",
+    category: "simple",
     price: 200,
     weight: 1,
     damage: { dice: 1, sides: 4 },
@@ -118,6 +124,7 @@ export const WEAPONS = {
   },
   mace: {
     name: "Mace",
+    category: "simple",
     price: 500,
     weight: 4,
     damage: { dice: 1, sides: 6 },
@@ -128,6 +135,7 @@ export const WEAPONS = {
   },
   shortsword: {
     name: "Shortsword",
+    category: "martial",
     price: 1000,
     weight: 2,
     damage: { dice: 1, sides: 6 },
@@ -138,6 +146,7 @@ export const WEAPONS = {
   },
   longsword: {
     name: "Longsword",
+    category: "martial",
     price: 1500,
     weight: 3,
     damage: { dice: 1, sides: 8 },
@@ -149,6 +158,7 @@ export const WEAPONS = {
   },
   greatsword: {
     name: "Greatsword",
+    category: "martial",
     price: 5000,
     weight: 6,
     damage: { dice: 2, sides: 6 },
@@ -159,6 +169,7 @@ export const WEAPONS = {
   },
   shortbow: {
     name: "Shortbow",
+    category: "simple",
     price: 2500,
     weight: 2,
     damage: { dice: 1, sides: 6 },
@@ -170,6 +181,7 @@ export const WEAPONS = {
   },
   "light-crossbow": {
     name: "Light crossbow",
+    category: "simple",
     price: 2500,
     weight: 5,
     damage: { dice: 1, sides: 8 },
@@ -183,6 +195,7 @@ export const WEAPONS = {
   },
   longbow: {
     name: "Longbow",
+    category: "martial",
     price: 5000,
     weight: 2,
     damage: { dice: 1, sides: 8 },
@@ -195,13 +208,16 @@ export const WEAPONS = {
 } as const satisfies Record<string, WeaponData>;
 export type WeaponId = keyof typeof WEAPONS;
 
+/** SRD 5.2 armour categories; a class is trained with some (#300). */
+export type ArmourCategory = "light" | "medium" | "heavy" | "shield";
+
 export type ArmourData = Readonly<{
   name: string;
   /** In copper pieces. */
   price: number;
   /** In pounds. */
   weight: number;
-  category: "light" | "medium" | "heavy" | "shield";
+  category: ArmourCategory;
   /** Base AC for body armour; the bonus for a shield. */
   armorClass: number;
   /** The most Dexterity modifier it adds; absent for no limit. Heavy armour adds none, not even a penalty. */
@@ -394,15 +410,12 @@ export const MASTERIES: Readonly<
 };
 
 /**
- * The weapons a Fighter can choose a mastery for: every catalogue weapon
+ * The weapons a character can choose a mastery for: every catalogue weapon
  * whose mastery is used. The club's Slow needs positions.
  */
 export const MASTERY_WEAPONS = (Object.keys(WEAPONS) as WeaponId[]).filter(
   (id) => MASTERIES[WEAPONS[id].mastery].used,
 );
-
-/** SRD 5.2: a level 1–3 Fighter masters three kinds of weapon (four from level 4, `weaponMasteryCount`). */
-export const FIGHTER_MASTERY_COUNT = 3;
 
 /** What a character has equipped, read from its equipment list. */
 export type Loadout = Readonly<{
@@ -732,7 +745,7 @@ export type EquipmentProfile = Readonly<{
   stealthDisadvantage: boolean;
 }>;
 
-/** The SRD 5.2 Fighting Style feats a Fighter can take. */
+/** The SRD 5.2 Fighting Style feats. */
 export type FightingStyleId =
   "archery" | "defense" | "great-weapon-fighting" | "two-weapon-fighting";
 
@@ -741,6 +754,8 @@ export type EquipmentContext = Readonly<{
   strengthScore: number;
   dexterityScore: number;
   proficiency: number;
+  /** The weapon categories whose attacks add `proficiency`. */
+  weaponProficiencies: readonly WeaponCategory[];
   masteries: readonly WeaponId[];
   /**
    * Archery: +2 to hit with a ranged weapon. Defense: +1 AC while wearing
@@ -784,7 +799,9 @@ function attackWith(
     // Archery: +2 to hit with a ranged weapon, never to its damage.
     bonus:
       modifier +
-      context.proficiency +
+      (context.weaponProficiencies.includes(weapon.category)
+        ? context.proficiency
+        : 0) +
       (ranged && context.fightingStyle === "archery" ? 2 : 0),
     damage: {
       dice: dice.dice,

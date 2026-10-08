@@ -8,6 +8,22 @@ This work includes material from the System Reference Document 5.2 ("SRD 5.2") b
 
 Ability modifiers, proficiency bonus, saving throws, skills, advantage and disadvantage, action, bonus action and reaction, the 5e XP table and SRD 5.2 stat blocks. Feats beyond the level-4 Ability Score Improvement, multiclassing, species and backgrounds' features other than the ability increase are not used.
 
+## Where class rules live (#300)
+
+A class is data. `src/class-5e.ts` holds what every class shares (the abilities, levels, the skill list, the Fighting Style feats, the Ability Score Improvement) and the shape of a class definition. Each class's definition lives in its own module (the Fighter's in `src/fighter-5e.ts`) and gives:
+
+- its hit die: the die's maximum + the Constitution modifier at level 1, then half the die + 1 + the Constitution modifier for each level after (the Fighter's d10 gives 10, then 6);
+- its saving throw proficiencies, and the skills and how many it chooses proficiency in;
+- its armour training and weapon proficiencies: an attack adds the proficiency bonus only with a weapon of a category the class is proficient with (the catalogue marks each weapon simple or martial). The Fighter is trained with all armour and shields and proficient with simple and martial weapons. Armour training is recorded but changes nothing yet: no class lacks any;
+- how many kinds of weapon it masters at each level;
+- its features by level, each with its uses by level, how spent uses recover, and the effect the engine applies (Second Wind, Action Surge, a critical range, attacks per Attack action, advantage on a skill's checks, the Fighting Style, Weapon Mastery or an Ability Score Improvement). A feature with no effect is described on the sheet only;
+- its subclasses and their features. The first is taken until there is a choice of subclass;
+- its ability priority (how a fresh creation places the rolls, and how the balance harness spends an Ability Score Improvement), its default creation choices and its starting kits.
+
+`src/character-5e.ts` builds, validates and derives every sheet from its class's definition and never asks which class it is. A sheet names its class by id (`"class": "fighter"`, library format 13). The browser's creation screen and sheet, the runtime's offered actions and the AI DM's tool descriptions, ability checks, the balance harness, the gate and the career simulation all read the definition. Until a second class arrives, creation makes, and the harness plays, the default class: the Fighter.
+
+The Fighter's definition describes two features whose effects the engine does not apply yet: Tactical Mind, and Remarkable Athlete's advantage on initiative (its advantage on Athletics checks is applied).
+
 ## Creating a Fighter
 
 Every character is a Fighter created at level 1 with 0 XP, with a starting kit and three weapon masteries chosen at creation (below). The library refuses any new sheet at another level, with XP, below full health, or not made from its pending dice.

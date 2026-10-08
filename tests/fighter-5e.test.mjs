@@ -1,20 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  ABILITIES,
   abilityModifier,
-  buildFighter,
+  buildCharacter,
   droppedDie,
-  fighterProfile,
+  characterProfile,
   keptTotal,
   levelForXp,
   levelUpChanges,
   nextLevelXp,
   proficiencyBonus,
-  settleFighter,
+  settleCharacter,
   rollAbilitySet,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  validateCharacter,
+} from "../dist/character-5e.js";
+import { ABILITIES } from "../dist/class-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 
 const ID = "a".repeat(32);
@@ -44,11 +44,11 @@ const CHOICES = {
   masteries: ["dagger", "mace", "shortsword"],
 };
 const fighter = (choices = {}) =>
-  buildFighter(ID, "Ada", DICE, { ...CHOICES, ...choices });
+  buildCharacter(ID, "Ada", DICE, { ...CHOICES, ...choices });
 const atLevel = (sheet, xp) => {
   const level = levelForXp(xp);
   const raised = { ...sheet, level, xp };
-  return validateFighter({ ...raised, hp: fighterProfile(raised).maxHp });
+  return validateCharacter({ ...raised, hp: characterProfile(raised).maxHp });
 };
 
 test("4d6-drop-lowest rolls six sets of four dice from the seeded stream", () => {
@@ -138,7 +138,7 @@ test("placement and the background increase set the six scores", () => {
 });
 
 test("the level 1 Fighter has 5e numbers from its kit and choices", () => {
-  const profile = fighterProfile(fighter());
+  const profile = characterProfile(fighter());
   assert.equal(profile.proficiencyBonus, 2);
   // 10 + Con 14 (+2).
   assert.equal(profile.maxHp, 12);
@@ -146,7 +146,7 @@ test("the level 1 Fighter has 5e numbers from its kit and choices", () => {
   // Leather 11 + Dex (+2) + Defense 1.
   assert.equal(profile.armorClass, 14);
   assert.equal(
-    fighterProfile(fighter({ fightingStyle: "great-weapon-fighting" }))
+    characterProfile(fighter({ fightingStyle: "great-weapon-fighting" }))
       .armorClass,
     13,
   );
@@ -213,7 +213,7 @@ test("Dexterity below 10 lowers armour class; a weak Strength weakens the mace",
   // Dex 10, Str 8.
   assert.equal(weak.abilities.dexterity, 10);
   assert.equal(weak.abilities.strength, 8);
-  const profile = fighterProfile(weak);
+  const profile = characterProfile(weak);
   assert.equal(profile.armorClass, 12);
   assert.equal(profile.attack.bonus, 1);
   assert.equal(profile.attack.damage.modifier, -1);
@@ -222,7 +222,7 @@ test("Dexterity below 10 lowers armour class; a weak Strength weakens the mace",
     increase: { strength: 2, wisdom: 1 },
   });
   assert.equal(clumsy.abilities.dexterity, 8);
-  assert.equal(fighterProfile(clumsy).armorClass, 11);
+  assert.equal(characterProfile(clumsy).armorClass, 11);
 });
 
 test("each kit gives its own AC and attacks; masteries apply only to weapons held", () => {
@@ -250,14 +250,14 @@ test("each kit gives its own AC and attacks; masteries apply only to weapons hel
       : `${attack.weapon} +${attack.bonus} ${attack.damage.dice}d${attack.damage.sides}+${attack.damage.modifier} ${attack.mastery ?? "-"}`;
   for (const [kit, equipment, armorClass, attack, light] of rows) {
     const sheet = fighter({ kit });
-    const profile = fighterProfile(sheet);
+    const profile = characterProfile(sheet);
     assert.deepEqual(sheet.equipment, equipment, kit);
     assert.equal(profile.armorClass, armorClass, kit);
     assert.equal(text(profile.attack), attack, kit);
     assert.equal(text(profile.lightAttack), light, kit);
   }
   // Without the dagger's mastery, the daggers have no Nick.
-  const unmastered = fighterProfile(
+  const unmastered = characterProfile(
     fighter({
       kit: "two-daggers",
       masteries: ["mace", "shortsword", "greatsword"],
@@ -286,7 +286,7 @@ test("creation refuses an unknown kit and anything but three different masteries
 
 test("levels 2 and 3 add hit points, Action Surge, Tactical Mind and Champion", () => {
   const second = atLevel(fighter(), 300);
-  const two = fighterProfile(second);
+  const two = characterProfile(second);
   assert.equal(second.level, 2);
   // + 6 + Con (+2).
   assert.equal(two.maxHp, 20);
@@ -305,7 +305,7 @@ test("levels 2 and 3 add hit points, Action Surge, Tactical Mind and Champion", 
   );
   assert.equal(two.attack.criticalRange, 20);
   assert.equal(two.nextLevelXp, 900);
-  const three = fighterProfile(atLevel(fighter(), 900));
+  const three = characterProfile(atLevel(fighter(), 900));
   assert.equal(three.maxHp, 28);
   assert.equal(three.attack.criticalRange, 19);
   assert.deepEqual(
@@ -320,7 +320,7 @@ test("levels 2 and 3 add hit points, Action Surge, Tactical Mind and Champion", 
 test("validation rejects malformed sheets and illegal choices", () => {
   const sheet = fighter();
   const rejects = (value, pattern) =>
-    assert.throws(() => validateFighter(value), pattern);
+    assert.throws(() => validateCharacter(value), pattern);
   rejects(null, /sheet/);
   rejects({ ...sheet, id: "x" }, /identity/);
   rejects({ ...sheet, name: " Ada" }, /name/);
@@ -355,14 +355,14 @@ test("validation rejects malformed sheets and illegal choices", () => {
   rejects({ ...sheet, weaponMasteries: ["club", "mace", "dagger"] }, /mastery/);
   // Gear found later is any legal loadout, not only a kit.
   assert.deepEqual(
-    validateFighter({ ...sheet, equipment: ["chain-mail", "longsword"] })
+    validateCharacter({ ...sheet, equipment: ["chain-mail", "longsword"] })
       .equipment,
     ["chain-mail", "longsword"],
   );
   rejects({ ...sheet, level: 2 }, /level/);
   rejects({ ...sheet, hp: 13 }, /health/);
   rejects({ ...sheet, hp: -1 }, /health/);
-  assert.equal(validateFighter({ ...sheet, hp: 0 }).hp, 0);
+  assert.equal(validateCharacter({ ...sheet, hp: 0 }).hp, 0);
 
   assert.throws(
     () => fighter({ placement: { ...IN_ORDER, charisma: 0 } }),
@@ -377,16 +377,19 @@ test("validation rejects malformed sheets and illegal choices", () => {
     /increase/,
   );
   assert.throws(() => fighter({ increase: { strength: 3 } }), /increase/);
-  assert.throws(() => buildFighter(ID, "Ada", DICE.slice(1), CHOICES), /dice/);
   assert.throws(
-    () => buildFighter(ID, "Ada", [[6, 6, 6, 0], ...DICE.slice(1)], CHOICES),
+    () => buildCharacter(ID, "Ada", DICE.slice(1), CHOICES),
+    /dice/,
+  );
+  assert.throws(
+    () => buildCharacter(ID, "Ada", [[6, 6, 6, 0], ...DICE.slice(1)], CHOICES),
     /dice/,
   );
 });
 
 test("no score rises above 20", () => {
   const dice = [[6, 6, 6, 6], ...DICE.slice(1)];
-  const sheet = buildFighter(ID, "Ada", dice, CHOICES);
+  const sheet = buildCharacter(ID, "Ada", dice, CHOICES);
   assert.equal(sheet.abilities.strength, 20);
   assert.equal(abilityModifier(20), 5);
 });
@@ -426,10 +429,10 @@ const settlement = (xp, finds = [], treasure = finds) => ({
 
 test("settling credits XP and finds once, keeps what is held, levels up at 300 XP and rests to full HP", () => {
   const hurt = { ...fighter(), hp: 3 };
-  const rewarded = settleFighter(hurt, settlement(AWARDS, [TORC]));
+  const rewarded = settleCharacter(hurt, settlement(AWARDS, [TORC]));
   assert.equal(rewarded.xp, 300);
   assert.equal(rewarded.level, 2);
-  assert.equal(rewarded.hp, fighterProfile(rewarded).maxHp);
+  assert.equal(rewarded.hp, characterProfile(rewarded).maxHp);
   assert.deepEqual(rewarded.treasure, [TORC]);
   assert.deepEqual(rewarded.finds, [TORC.id]);
   assert.deepEqual(
@@ -438,28 +441,28 @@ test("settling credits XP and finds once, keeps what is held, levels up at 300 X
   );
   // Settling the same adventure again changes nothing.
   assert.deepEqual(
-    settleFighter(rewarded, settlement(AWARDS, [TORC])),
+    settleCharacter(rewarded, settlement(AWARDS, [TORC])),
     rewarded,
   );
   // With nothing to credit, the rest still restores HP.
-  const rested = settleFighter(hurt, settlement([]));
-  assert.equal(rested.hp, fighterProfile(rested).maxHp);
+  const rested = settleCharacter(hurt, settlement([]));
+  assert.equal(rested.hp, characterProfile(rested).maxHp);
   assert.equal(rested.xp, 0);
   // What is no longer held is gone, but stays found.
-  const parted = settleFighter(rewarded, settlement([], [], []));
+  const parted = settleCharacter(rewarded, settlement([], [], []));
   assert.deepEqual(parted.treasure, []);
   assert.deepEqual(parted.finds, [TORC.id]);
 });
 
 test("the level-up changes name the new level, hit points and features", () => {
   const before = fighter();
-  const after = settleFighter(before, settlement(AWARDS));
+  const after = settleCharacter(before, settlement(AWARDS));
   const changes = levelUpChanges(before, after);
   assert.equal(changes.from, 1);
   assert.equal(changes.to, 2);
   assert.deepEqual(changes.maxHp, {
-    before: fighterProfile(before).maxHp,
-    after: fighterProfile(after).maxHp,
+    before: characterProfile(before).maxHp,
+    after: characterProfile(after).maxHp,
   });
   assert.deepEqual(
     changes.features.map(({ name }) => name),
@@ -469,15 +472,15 @@ test("the level-up changes name the new level, hit points and features", () => {
 });
 
 test("reaching 900 XP raises a level 2 Fighter to 3 with the Champion's features", () => {
-  const second = settleFighter(fighter(), settlement(AWARDS));
-  const third = settleFighter(
+  const second = settleCharacter(fighter(), settlement(AWARDS));
+  const third = settleCharacter(
     second,
     settlement([
       { id: "sealed-crypt/ending/crypt-cleared", name: "Crypt", xp: 600 },
     ]),
   );
   assert.equal(third.level, 3);
-  assert.equal(third.hp, fighterProfile(third).maxHp);
+  assert.equal(third.hp, characterProfile(third).maxHp);
   const changes = levelUpChanges(second, third);
   assert.equal(changes.from, 2);
   assert.equal(changes.to, 3);
@@ -503,10 +506,10 @@ test("validation rejects malformed treasure and repeated awards", () => {
     { finds: ["torc"] },
     { finds: undefined },
   ]) {
-    assert.throws(() => validateFighter({ ...sheet, ...change }));
+    assert.throws(() => validateCharacter({ ...sheet, ...change }));
   }
   assert.deepEqual(
-    validateFighter({ ...sheet, treasure: [TORC], xpAwards: [AWARDS[0].id] })
+    validateCharacter({ ...sheet, treasure: [TORC], xpAwards: [AWARDS[0].id] })
       .treasure,
     [TORC],
   );

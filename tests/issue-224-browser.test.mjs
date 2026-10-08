@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
-import { buildFighter, validateFighter } from "../dist/fighter-5e.js";
+import { buildCharacter, validateCharacter } from "../dist/character-5e.js";
 import { barrowFile, room } from "./fixtures/armoury-barrow.mjs";
 import { explore, launch } from "./fixtures/session-layout.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
@@ -32,8 +32,8 @@ room(mailed, "barrow-mouth").items.push({
 const barrow = validateModule(mailed);
 
 // Str 5 (75 lb): leather and mace (14 lb), and a shield and dagger stowed (7 lb).
-const sheet = validateFighter({
-  ...buildFighter(
+const sheet = validateCharacter({
+  ...buildCharacter(
     "b".repeat(32),
     "Wren",
     [

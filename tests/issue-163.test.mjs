@@ -2,7 +2,7 @@
 // the documented Fighter priority order; tied rolls keep their roll order.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { defaultPlacement, keptTotal } from "../dist/fighter-5e.js";
+import { defaultPlacement, keptTotal } from "../dist/character-5e.js";
 
 /** A roll whose kept total is `total` (3–18): three dice plus a dropped 1. */
 const rollOf = (total) => {

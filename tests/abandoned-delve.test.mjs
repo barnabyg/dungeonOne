@@ -20,7 +20,7 @@ import {
   setUpCase,
 } from "../dist/dm-evaluation-5e.js";
 import { runDmTurn } from "../dist/dm-turn.js";
-import { buildFighter } from "../dist/fighter-5e.js";
+import { buildCharacter } from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { IN_ORDER_CHOICES as CHOICES } from "./fixtures/fighter-choices.mjs";
@@ -30,7 +30,7 @@ const delve = (await loadBuiltInFifthAdventures()).find(
 );
 
 // Str 17 (+3), Dex 14 (+2), Con 15 (+2): a sturdy level-1 Fighter.
-const STRONG = buildFighter(
+const STRONG = buildCharacter(
   "a".repeat(32),
   "Ada",
   [
@@ -45,7 +45,7 @@ const STRONG = buildFighter(
 );
 
 // Every score 10: a feeble level-1 Fighter.
-const WEAK = buildFighter(
+const WEAK = buildCharacter(
   "b".repeat(32),
   "Bo",
   Array.from({ length: 6 }, () => [3, 3, 4, 1]),

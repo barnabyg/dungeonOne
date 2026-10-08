@@ -14,7 +14,7 @@ import {
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fighterAtLevel, gateAdventure } from "../dist/balance-5e.js";
+import { characterAtLevel, gateAdventure } from "../dist/balance-5e.js";
 import {
   FIFTH_LIBRARY_FORMAT,
   FifthCharacterLibrary,
@@ -22,15 +22,15 @@ import {
 import { runDmTurn } from "../dist/dm-turn.js";
 import {
   applyLevelChoice,
-  buildFighter,
-  fighterProfile,
+  buildCharacter,
+  characterProfile,
   LEVEL_XP,
   levelForXp,
   levelUpChanges,
   pendingLevelChoice,
-  settleFighter,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  settleCharacter,
+  validateCharacter,
+} from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime, playerCombatant } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT } from "../dist/session-5e.js";
@@ -266,18 +266,18 @@ const CHOICES = {
 const LEVEL_CHOICE = { increase: { wisdom: 2 }, mastery: "longsword" };
 /** Ada at `level` with that level's least XP, her level-4 choice made. */
 const adaAt = (level) => {
-  const created = buildFighter("a".repeat(32), "Ada", DICE, CHOICES);
+  const created = buildCharacter("a".repeat(32), "Ada", DICE, CHOICES);
   const raised = { ...created, level, xp: LEVEL_XP[level] };
-  const sheet = validateFighter({
+  const sheet = validateCharacter({
     ...raised,
-    hp: fighterProfile(raised).maxHp,
+    hp: characterProfile(raised).maxHp,
   });
   return pendingLevelChoice(sheet) === undefined
     ? sheet
     : applyLevelChoice(sheet, LEVEL_CHOICE);
 };
 const credited = (sheet, xp) =>
-  settleFighter(sheet, {
+  settleCharacter(sheet, {
     possessions: {
       equipment: sheet.equipment,
       stowed: [],
@@ -297,8 +297,8 @@ test("the Fighter table at level 5: 6,500 XP, HP, proficiency +3 and Extra Attac
   assert.equal(levelForXp(6499), 4);
   assert.equal(levelForXp(6500), 5);
   assert.equal(levelForXp(1_000_000), 5);
-  const fourth = fighterProfile(adaAt(4));
-  const fifth = fighterProfile(adaAt(5));
+  const fourth = characterProfile(adaAt(4));
+  const fifth = characterProfile(adaAt(5));
   // Con 14 (+2): 10 + 2, then 6 + 2 a level.
   assert.equal(fifth.maxHp, 44);
   assert.equal(fourth.proficiencyBonus, 2);
@@ -454,10 +454,10 @@ test("modules may recommend level 5, with a 750 gp budget", () => {
 });
 
 test("the gate builds level-5 Fighters with Extra Attack and plays it", () => {
-  const built = fighterAtLevel(DICE, 5);
+  const built = characterAtLevel(DICE, 5);
   assert.equal(built.level, 5);
   assert.equal(pendingLevelChoice(built), undefined);
-  assert.equal(fighterProfile(built).attacksPerAction, 2);
+  assert.equal(characterProfile(built).attacksPerAction, 2);
   const module = moduleFile("lintel-barrow");
   module.recommendedLevels = { min: 5, max: 5 };
   module.difficulty = "hard";
@@ -473,9 +473,10 @@ test("the gate builds level-5 Fighters with Extra Attack and plays it", () => {
 });
 
 test("the library, save and trace formats bump; an older library is refused", async () => {
-  assert.equal(FIFTH_LIBRARY_FORMAT, 12);
-  assert.equal(FIFTH_SESSION_FORMAT, 26);
-  assert.equal(FIFTH_TRACE_FORMAT, 20);
+  // #287 bumped them to 12, 26 and 20; later tickets bump them again.
+  assert.ok(FIFTH_LIBRARY_FORMAT >= 12);
+  assert.ok(FIFTH_SESSION_FORMAT >= 26);
+  assert.ok(FIFTH_TRACE_FORMAT >= 20);
   const directory = await mkdtemp(join(tmpdir(), "issue-287-"));
   try {
     const path = join(directory, "characters.json");

@@ -11,12 +11,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
-  ABILITIES,
-  buildFighter,
+  buildCharacter,
   defaultPlacement,
-  fighterProfile,
+  characterProfile,
   keptTotal,
-} from "../dist/fighter-5e.js";
+} from "../dist/character-5e.js";
+import { ABILITIES } from "../dist/class-5e.js";
 import { launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
 
@@ -325,9 +325,14 @@ for (const [width, height, seed] of [
           kit: "mace",
           masteries: ["dagger", "mace", "shortsword"],
         };
-        const expected = buildFighter("0".repeat(32), "Preview", dice, choices);
+        const expected = buildCharacter(
+          "0".repeat(32),
+          "Preview",
+          dice,
+          choices,
+        );
         assert.deepEqual(projection.sheet.abilities, expected.abilities);
-        const profile = fighterProfile(expected);
+        const profile = characterProfile(expected);
         await page
           .locator("#preview-body")
           .filter({ hasText: new RegExp(`AC:\\s*${profile.armorClass}`) })

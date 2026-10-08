@@ -7,7 +7,7 @@ import {
   FIFTH_LIBRARY_FORMAT,
   FifthCharacterLibrary,
 } from "../dist/character-library-5e.js";
-import { buildFighter, keptTotal } from "../dist/fighter-5e.js";
+import { buildCharacter, keptTotal } from "../dist/character-5e.js";
 import { PRE_5E_LIBRARY } from "./fixtures/pre-5e-library.mjs";
 
 const IN_ORDER = {
@@ -98,7 +98,7 @@ test("the library accepts only level 1, 0 XP sheets made from the pending dice",
     const library = new FifthCharacterLibrary(path, 7);
     const { pendingCreation, revision } = await library.startCreation();
     const id = "b".repeat(32);
-    const sheet = buildFighter(id, "Ada", pendingCreation.dice, CHOICES);
+    const sheet = buildCharacter(id, "Ada", pendingCreation.dice, CHOICES);
     await assert.rejects(
       library.save({ ...sheet, level: 2, xp: 300 }, revision),
       /level 1 with 0 XP/,
@@ -115,7 +115,7 @@ test("the library accepts only level 1, 0 XP sheets made from the pending dice",
       roll.map((die) => (die === 6 ? 6 : die + 1)),
     );
     await assert.rejects(
-      library.save(buildFighter(id, "Ada", otherDice, CHOICES), revision),
+      library.save(buildCharacter(id, "Ada", otherDice, CHOICES), revision),
       /pending creation's dice/,
     );
     await assert.rejects(
@@ -161,9 +161,15 @@ test("a pre-5e library is refused by name and left byte-identical", async () => 
 
     await writeFile(
       path,
-      JSON.stringify({ ...JSON.parse(before), formatVersion: 13 }),
+      JSON.stringify({
+        ...JSON.parse(before),
+        formatVersion: FIFTH_LIBRARY_FORMAT + 1,
+      }),
     );
-    await assert.rejects(library.read(), /format version 13.*Move it aside/);
+    await assert.rejects(
+      library.read(),
+      new RegExp(`format version ${FIFTH_LIBRARY_FORMAT + 1}.*Move it aside`),
+    );
     // A library from before level 4 (#286), whose sheets have no Ability
     // Score Improvements.
     const beforeLevelFour = JSON.stringify({

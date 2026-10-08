@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  buildFighter,
-  fighterProfile,
+  buildCharacter,
+  characterProfile,
   levelForXp,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  validateCharacter,
+} from "../dist/character-5e.js";
 import { createFifthRuntime, healthOf } from "../dist/runtime-5e.js";
 import { loneGoblin as adventure } from "./fixtures/modules.mjs";
 import { uncheckedDice as dice } from "./fixtures/engine-dice.mjs";
 
 // Con 14 (+2): 12 HP at level 1.
-const sheet = buildFighter(
+const sheet = buildCharacter(
   "a".repeat(32),
   "Ada",
   [
@@ -90,9 +90,9 @@ test("the room view projects the character's health with its HP (#155)", () => {
 test("the turn view counts the actions this turn: two after Action Surge (#155)", () => {
   const xp = 300;
   const leveled = { ...sheet, xp, level: levelForXp(xp) };
-  const veteran = validateFighter({
+  const veteran = validateCharacter({
     ...leveled,
-    hp: fighterProfile(leveled).maxHp,
+    hp: characterProfile(leveled).maxHp,
   });
   const runtime = createFifthRuntime(adventure, veteran);
   // Ada first (15 against 3).

@@ -77,8 +77,12 @@
 // result; it is never saved. Confirmations go to
 // #feedback, a polite live region that show() moves under the current panel's
 // heading and route() clears on every navigation.
-import { FEATURE_USES_RULE, FIGHTER_DEFAULT_CHOICES } from "./fighter-5e.js";
+import { FEATURE_USES_RULE } from "./class-5e.js";
+import { CLASSES, DEFAULT_CLASS } from "./character-5e.js";
 import { DAMAGE_ADJUSTMENT_TEXT } from "./runtime-5e.js";
+
+/** The class creation makes while there is no choice of class (#300). */
+const CREATING = CLASSES[DEFAULT_CLASS];
 
 /** The composer's notice when the server has no AI DM (#161). */
 export const FIFTH_DM_OFF_NOTICE =
@@ -92,14 +96,14 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <main id="content" tabindex="-1">
 <nav id="breadcrumb" aria-label="Breadcrumb"><ol id="breadcrumb-list"></ol></nav>
 <section id="library" class="panel" aria-labelledby="library-title">
-<h2 id="library-title" tabindex="-1">Your Fighters</h2>
+<h2 id="library-title" tabindex="-1">Your ${CREATING.name}s</h2>
 <p id="feedback" role="status" aria-live="polite"></p>
 <ul id="characters" class="list"></ul>
 <p id="no-characters" class="hint" hidden>No characters yet.</p>
-<button id="open-creation" type="button" class="primary">Create a Fighter</button>
+<button id="open-creation" type="button" class="primary">Create a ${CREATING.name}</button>
 </section>
 <section id="creation" class="panel" aria-labelledby="creation-title" hidden>
-<h2 id="creation-title" tabindex="-1">Create a Fighter</h2>
+<h2 id="creation-title" tabindex="-1">Create a ${CREATING.name}</h2>
 <p class="hint">Rolled once. No rerolls. Place the six rolls on your abilities in any order, then make your other choices.</p>
 <form id="creation-form" novalidate>
 <fieldset id="ability-scores" aria-describedby="ability-hint increase-error"><legend>Ability scores</legend>
@@ -383,7 +387,7 @@ function renderLibrary() {
     heading.append(make("strong", sheet.name));
     const status = characterStatus(entry);
     if (status) heading.append(" ", make("span", status, "tag"));
-    button.append(heading, make("span", "Level " + sheet.level + " Fighter · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass, "character-stats"));
+    button.append(heading, make("span", "Level " + sheet.level + " " + entry.className + " · HP " + sheet.hp + "/" + profile.maxHp + " · AC " + profile.armorClass, "character-stats"));
     button.addEventListener("click", () => go("#character-" + sheet.id));
     item.append(button);
     if (entry.session && !entry.defeated) {
@@ -396,7 +400,7 @@ function renderLibrary() {
     return item;
   }));
   element("no-characters").hidden = library.characters.length > 0;
-  element("open-creation").textContent = library.pendingCreation ? "Continue creating your Fighter" : "Create a Fighter";
+  element("open-creation").textContent = library.pendingCreation ? "Continue creating your ${CREATING.name}" : "Create a ${CREATING.name}";
 }
 
 function abilityTable(abilities, profile, caption) {
@@ -476,7 +480,7 @@ function openSheet(id) {
   const { sheet, profile, purse, stowed, ammunition, carrying, treasure } = entry;
   shownSheetId = sheet.id;
   element("sheet-name").textContent = sheet.name;
-  const summary = make("p", "Level " + sheet.level + " Fighter · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
+  const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
   element("sheet-body").replaceChildren(summary, styleUseNode(profile.fightingStyle), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
@@ -1517,7 +1521,7 @@ function defaultChoices() {
   increaseMode = "two";
   return {
     placement: { ...library.pendingCreation.defaultPlacement },
-    ...structuredClone(${JSON.stringify(FIGHTER_DEFAULT_CHOICES)}),
+    ...structuredClone(${JSON.stringify(CREATING.defaults)}),
   };
 }
 
@@ -1826,7 +1830,7 @@ async function openCreation(ticket) {
   element("skills-legend").textContent = "Skill proficiencies: choose " + rules.skillCount;
   element("masteries-legend").textContent = "Weapon Mastery: choose " + rules.masteryCount;
   renderChoices();
-  show("creation", "Create a Fighter", [{ label: "Create a Fighter" }]);
+  show("creation", "Create a ${CREATING.name}", [{ label: "Create a ${CREATING.name}" }]);
   element("creation-title").focus();
   await refresh();
 }
@@ -1837,7 +1841,7 @@ async function saveCharacter(event) {
   if (isBusy(save)) return;
   const name = element("character-name").value.trim();
   if (!name) {
-    element("name-error").textContent = "Enter a name for your Fighter.";
+    element("name-error").textContent = "Enter a name for your ${CREATING.name}.";
     element("character-name").focus();
     return;
   }

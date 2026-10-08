@@ -1,11 +1,12 @@
 /**
- * Ability checks and saving throws (SRD 5.2) for the 5e Fighter.
+ * Ability checks and saving throws (SRD 5.2) for a 5e character.
  *
  * Pure rules: one d20 (two with advantage) from the `RandomSource` passed in,
  * plus the ability modifier, plus the proficiency bonus when the character is
  * proficient in the skill or the save. A check or save succeeds when its total
- * meets the DC; a natural 20 or 1 has no special effect. The Champion's
- * Remarkable Athlete gives advantage on Athletics checks, and a module's
+ * meets the DC; a natural 20 or 1 has no special effect. A class feature may
+ * give advantage on a skill's checks (the Champion's Remarkable Athlete on
+ * Athletics, #300), and a module's
  * circumstances (#284) may give advantage or disadvantage on any check: the
  * caller names them, and they combine as SRD 5.2 says (any advantage and any
  * disadvantage cancel).
@@ -15,17 +16,16 @@
  */
 import { rollD20, type RollMode } from "./encounter-5e.js";
 import {
-  FIGHTER_SKILLS,
-  fighterProfile,
-  type Ability,
-  type FighterSheet,
-  type FighterSkill,
-} from "./fighter-5e.js";
+  characterProfile,
+  checkAdvantages,
+  type CharacterSheet,
+} from "./character-5e.js";
+import { SKILLS, type Ability, type SkillId } from "./class-5e.js";
 import type { RandomSource } from "./random.js";
 
 /** An authored check: a skill's, or a plain ability's, against a DC. */
 export type CheckSpec = Readonly<
-  | { skill: FighterSkill; ability?: never; dc: number }
+  | { skill: SkillId; ability?: never; dc: number }
   | { ability: Ability; skill?: never; dc: number }
 >;
 
@@ -33,7 +33,7 @@ export type CheckSpec = Readonly<
 export type CheckRoll = Readonly<{
   kind: "check" | "save";
   ability: Ability;
-  skill?: FighterSkill;
+  skill?: SkillId;
   /** Such as "Athletics check" or "Dexterity saving throw". */
   label: string;
   /** The d20 kept. */
@@ -86,7 +86,7 @@ const titleCase = (value: string) =>
 function rolled(
   kind: CheckRoll["kind"],
   ability: Ability,
-  skill: FighterSkill | undefined,
+  skill: SkillId | undefined,
   label: string,
   modifier: number,
   proficiency: number,
@@ -118,9 +118,7 @@ export const approachId = (spec: CheckSpec): string =>
 
 /** How an approach is shown: "Athletics", or "Strength" for a plain ability. */
 export const approachName = (spec: CheckSpec): string =>
-  spec.skill === undefined
-    ? titleCase(spec.ability)
-    : FIGHTER_SKILLS[spec.skill].name;
+  spec.skill === undefined ? titleCase(spec.ability) : SKILLS[spec.skill].name;
 
 /** Named sources of advantage and disadvantage on one roll (#284). */
 export type Circumstances = Readonly<{
@@ -133,15 +131,15 @@ const NO_CIRCUMSTANCES: Circumstances = { advantage: [], disadvantage: [] };
 /**
  * Rolls an ability check, with the skill's proficiency where the sheet has
  * it, and the advantage and disadvantage `circumstances` name (#284) beside
- * Remarkable Athlete's.
+ * any its class's features give.
  */
 export function abilityCheck(
-  sheet: FighterSheet,
+  sheet: CharacterSheet,
   spec: CheckSpec,
   random: Pick<RandomSource, "roll">,
   circumstances: Circumstances = NO_CIRCUMSTANCES,
 ): CheckRoll {
-  const profile = fighterProfile(sheet);
+  const profile = characterProfile(sheet);
   if (spec.skill === undefined) {
     return rolled(
       "check",
@@ -156,7 +154,7 @@ export function abilityCheck(
       circumstances.disadvantage,
     );
   }
-  const { name, ability } = FIGHTER_SKILLS[spec.skill];
+  const { name, ability } = SKILLS[spec.skill];
   const proficient = sheet.skills.includes(spec.skill);
   return rolled(
     "check",
@@ -166,26 +164,20 @@ export function abilityCheck(
     profile.modifiers[ability],
     proficient ? profile.proficiencyBonus : 0,
     spec.dc,
-    [
-      ...(spec.skill === "athletics" &&
-      profile.features.some(({ id }) => id === "remarkable-athlete")
-        ? ["Remarkable Athlete"]
-        : []),
-      ...circumstances.advantage,
-    ],
+    [...checkAdvantages(sheet, spec.skill), ...circumstances.advantage],
     random,
     circumstances.disadvantage,
   );
 }
 
-/** Rolls a saving throw, with proficiency in the Fighter's saves. */
+/** Rolls a saving throw, with proficiency in the class's saves. */
 export function savingThrow(
-  sheet: FighterSheet,
+  sheet: CharacterSheet,
   ability: Ability,
   dc: number,
   random: Pick<RandomSource, "roll">,
 ): CheckRoll {
-  const profile = fighterProfile(sheet);
+  const profile = characterProfile(sheet);
   const save = profile.savingThrows[ability];
   return rolled(
     "save",

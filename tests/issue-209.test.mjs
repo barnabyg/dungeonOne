@@ -14,10 +14,10 @@ import {
   unequipItem,
 } from "../dist/equipment-5e.js";
 import {
-  buildFighter,
-  settleFighter,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  buildCharacter,
+  settleCharacter,
+  validateCharacter,
+} from "../dist/character-5e.js";
 import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
 
 import {
@@ -37,7 +37,7 @@ const ROLLS = [
   [3, 3, 3, 1],
 ];
 const fighter = (strength) =>
-  buildFighter("a".repeat(32), "Ada", ROLLS, {
+  buildCharacter("a".repeat(32), "Ada", ROLLS, {
     placement: {
       strength,
       dexterity: 1,
@@ -293,7 +293,7 @@ test("gear found behind the lintel is taken, wielded and carried out; the mace d
   assert.deepEqual(settlement.possessions.equipment, ["leather", "longsword"]);
   assert.deepEqual(settlement.possessions.stowed, []);
   assert.deepEqual(settlement.gear, ["lintel-barrow/lintel-longsword"]);
-  const after = settleFighter(ada, settlement);
+  const after = settleCharacter(ada, settlement);
   assert.deepEqual(after.equipment, ["leather", "longsword"]);
   assert.deepEqual(after.stowed, []);
   assert.ok(after.finds.includes("lintel-barrow/lintel-longsword"));
@@ -468,7 +468,7 @@ test("the validator places gear only as a catalogue item, and keeps catalogue id
 
 test("stowed gear must be catalogue gear; weight, not a count, limits it (#224)", () => {
   assert.throws(
-    () => validateFighter({ ...ada, stowed: ["halberd"] }),
+    () => validateCharacter({ ...ada, stowed: ["halberd"] }),
     /Invalid stowed gear\./,
   );
 });

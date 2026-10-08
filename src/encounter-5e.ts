@@ -86,7 +86,7 @@
  * The state allows any number of combatants per side.
  */
 import type { Ammunition, AmmunitionId } from "./equipment-5e.js";
-import type { Ability } from "./fighter-5e.js";
+import type { Ability } from "./class-5e.js";
 import type { RandomSource } from "./random.js";
 
 export type Side = "party" | "opponents";
@@ -247,7 +247,7 @@ export type Combatant = DamageDefenses &
     lightAttack?: Weapon;
     /** Attacks per Attack action: 2 with Extra Attack (#287), else 1. */
     attacksPerAction?: number;
-    /** Fighter features, with the uses left of their maximum. */
+    /** Class features with limited uses, with the uses left of their maximum. */
     secondWind?: FeatureUses & Readonly<{ healing: Healing }>;
     actionSurge?: FeatureUses;
     /** Healing potions the combatant carries, which it can drink. */

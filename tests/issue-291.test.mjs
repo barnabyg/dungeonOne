@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { act, availableActions, startEncounter } from "../dist/encounter-5e.js";
-import { validateFighter } from "../dist/fighter-5e.js";
+import { validateCharacter } from "../dist/character-5e.js";
 import { playerCombatant } from "../dist/runtime-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 import { dice } from "./fixtures/engine-dice.mjs";
@@ -103,7 +103,7 @@ test("a weapon without Loading keeps Extra Attack's second attack", () => {
 
 test("a level-5 character wielding a light crossbow fights with a Loading weapon", () => {
   const level5 = testFighterAt(5);
-  const sheet = validateFighter({
+  const sheet = validateCharacter({
     ...level5,
     equipment: ["light-crossbow", "leather"],
     ammunition: { arrows: 0, bolts: 20 },

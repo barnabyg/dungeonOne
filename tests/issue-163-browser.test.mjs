@@ -7,12 +7,9 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import {
-  ABILITIES,
-  FIGHTER_ABILITY_PRIORITY,
-  defaultPlacement,
-  keptTotal,
-} from "../dist/fighter-5e.js";
+import { defaultPlacement, keptTotal } from "../dist/character-5e.js";
+import { ABILITIES } from "../dist/class-5e.js";
+import { FIGHTER_ABILITY_PRIORITY } from "../dist/fighter-5e.js";
 import { launch } from "./fixtures/session-layout.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
 import { openCreation, saveFighter } from "./fixtures/browser-journey.mjs";

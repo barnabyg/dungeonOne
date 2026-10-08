@@ -12,10 +12,10 @@ import {
   loadFifthAdventure,
 } from "../dist/adventure-5e.js";
 import {
-  buildFighter,
-  settleFighter,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  buildCharacter,
+  settleCharacter,
+  validateCharacter,
+} from "../dist/character-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { lintelBarrow as barrow, moduleFile } from "./fixtures/modules.mjs";
@@ -34,7 +34,7 @@ const POUCH = 250; // 2 gp 5 sp
 const POUCH_ID = "lintel-barrow/coin-pouch";
 
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): the rewards tests' Ada.
-const sheet = buildFighter(
+const sheet = buildCharacter(
   "a".repeat(32),
   "Ada",
   [
@@ -218,11 +218,11 @@ test("carrying coin out is escaping with loot; the settlement keeps the purse an
   assert.equal(settlement.possessions.purse, POUCH);
   assert.deepEqual(settlement.finds, []);
   assert.deepEqual(settlement.coin, [{ id: POUCH_ID, copper: POUCH }]);
-  const after = settleFighter(sheet, settlement);
+  const after = settleCharacter(sheet, settlement);
   assert.equal(after.purse, POUCH);
   assert.deepEqual(after.treasure, []);
   assert.deepEqual(after.finds, [POUCH_ID]);
-  assert.deepEqual(settleFighter(after, settlement), after);
+  assert.deepEqual(settleCharacter(after, settlement), after);
 
   // Found once: the body holds nothing of value next time, and the purse
   // comes along into the next adventure.
@@ -240,7 +240,7 @@ test("carrying coin out is escaping with loot; the settlement keeps the purse an
   assert.equal(left.endingId, "out-empty-handed");
   const nothing = again.projectSettlement(left);
   assert.deepEqual(nothing.coin, []);
-  assert.equal(settleFighter(after, nothing).purse, POUCH);
+  assert.equal(settleCharacter(after, nothing).purse, POUCH);
 });
 
 test("the AI DM cannot narrate coin into existence: take only reveals authored coin it lists", () => {
@@ -282,7 +282,7 @@ test("the AI DM cannot narrate coin into existence: take only reveals authored c
 test("a sheet's purse is a whole number of copper, and new characters start with none", () => {
   assert.equal(sheet.purse, 0);
   for (const purse of [-1, 1.5, "10", undefined]) {
-    assert.throws(() => validateFighter({ ...sheet, purse }), /purse/i);
+    assert.throws(() => validateCharacter({ ...sheet, purse }), /purse/i);
   }
-  assert.equal(validateFighter({ ...sheet, purse: 12345 }).purse, 12345);
+  assert.equal(validateCharacter({ ...sheet, purse: 12345 }).purse, 12345);
 });

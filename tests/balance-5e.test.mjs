@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   DIFFICULTY_THRESHOLDS,
-  fighterAtLevel,
+  characterAtLevel,
   gateAdventure,
   gateVerdictAt,
   oneHitKillChance,
@@ -39,7 +39,7 @@ const STRONG_DICE = [
 ];
 
 test("a character is placed with the creation defaults at the level asked for", () => {
-  const sheet = fighterAtLevel(STRONG_DICE, 2);
+  const sheet = characterAtLevel(STRONG_DICE, 2);
   assert.equal(sheet.level, 2);
   assert.equal(sheet.xp, 300);
   assert.deepEqual(sheet.abilities, {
@@ -71,7 +71,7 @@ test("percentile characters come from the 4d6-drop-lowest distribution by total 
   assert.ok(weak <= 2, `5th percentile ${weak}`);
   assert.ok(strong >= 8, `95th percentile ${strong}`);
   for (const { dice, totalModifier } of characters) {
-    const sheet = fighterAtLevel(dice, 1);
+    const sheet = characterAtLevel(dice, 1);
     const total = Object.values(sheet.abilities).reduce(
       (sum, score) => sum + Math.floor((score - 10) / 2),
       0,
@@ -89,7 +89,7 @@ test("the same sample gives the same characters", () => {
 
 test("the chance of killing an enemy with one attack counts hit chance and critical hits", () => {
   // Strength 20 at level 1: mace +7 to hit, 1d6 + 5, critical on a 20.
-  const strong = fighterAtLevel(STRONG_DICE, 1);
+  const strong = characterAtLevel(STRONG_DICE, 1);
   const minion = { armorClass: 12, hitPoints: { average: 7 } };
   const warrior = { armorClass: 15, hitPoints: { average: 10 } };
   // Minion: 5–19 hit and kill on a d6 of 2+ (15/20 × 5/6); a 20 always kills.
@@ -100,7 +100,7 @@ test("the chance of killing an enemy with one attack counts hit chance and criti
       1e-9,
   );
   // Level 3's Improved Critical makes a 19 a critical hit too.
-  const champion = fighterAtLevel(STRONG_DICE, 3);
+  const champion = characterAtLevel(STRONG_DICE, 3);
   assert.ok(
     Math.abs(oneHitKillChance(champion, minion) - (14 / 20) * (5 / 6) - 0.1) <
       1e-9,
@@ -190,7 +190,7 @@ const RAT_IN_ALCOVE = (() => {
 
 function play(adventure, style, seed, dice = STRONG_DICE, level = 1) {
   return playAdventure(
-    createFifthRuntime(adventure, fighterAtLevel(dice, level)),
+    createFifthRuntime(adventure, characterAtLevel(dice, level)),
     style,
     seed,
   );
@@ -296,7 +296,7 @@ test("a trap sprung on the way is counted apart from the fights", () => {
 test("an action the harness can't play fails the run with a named reason", () => {
   const runtime = createFifthRuntime(
     loneGoblin,
-    fighterAtLevel(STRONG_DICE, 1),
+    characterAtLevel(STRONG_DICE, 1),
   );
   const casting = {
     ...runtime,
@@ -314,7 +314,7 @@ test("an action the harness can't play fails the run with a named reason", () =>
 test("a run left with no way on and no way out fails with a named reason", () => {
   const runtime = createFifthRuntime(
     ratTunnels,
-    fighterAtLevel(STRONG_DICE, 1),
+    characterAtLevel(STRONG_DICE, 1),
   );
   // As if the stair foot's ways out needed something no style does.
   const walled = {

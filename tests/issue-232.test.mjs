@@ -7,7 +7,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  fighterAtLevel,
+  characterAtLevel,
   GATE_STYLE,
   gateAdventure,
   KITS,
@@ -550,7 +550,7 @@ function conditionsGiven(adventure, kind, count) {
     for (const kit of KITS) {
       const runtime = createFifthRuntime(
         adventure,
-        fighterAtLevel(weakest.dice, level, kit),
+        characterAtLevel(weakest.dice, level, kit),
       );
       for (let seed = 0; seed < count; seed++) {
         for (const { conditions } of playAdventure(runtime, GATE_STYLE, seed)

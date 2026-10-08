@@ -2,7 +2,7 @@
 // fighter follows a fixed route of engine actions and fights each fight as
 // the release handoffs tell the owner to, or, for a browser test's seed, as
 // the browser tests click.
-import { fighterProfile } from "../../dist/fighter-5e.js";
+import { characterProfile } from "../../dist/character-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
 import { sessionSeed } from "../../dist/session-5e.js";
@@ -81,7 +81,7 @@ export function journey(
 ) {
   const runtime = createFifthRuntime(adventure, sheet);
   const random = createSeededRandom(browser ? sessionSeed(seed, 1) : seed);
-  const { maxHp } = fighterProfile(sheet);
+  const { maxHp } = characterProfile(sheet);
   const potions = new Set(
     adventure.rooms.flatMap(({ items }) =>
       items.flatMap(({ id, kind }) => (kind.startsWith("potion") ? [id] : [])),

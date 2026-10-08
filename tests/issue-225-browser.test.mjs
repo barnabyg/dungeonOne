@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
-import { validateFighter } from "../dist/fighter-5e.js";
+import { validateCharacter } from "../dist/character-5e.js";
 import { archer } from "./fixtures/archery-barrow.mjs";
 import { saveFighter } from "./fixtures/browser-journey.mjs";
 import { loneGoblin } from "./fixtures/modules.mjs";
@@ -18,7 +18,7 @@ test(
   "creation offers Archery, and creation and the sheet say whether it applies",
   { timeout: 60000 },
   async () => {
-    const wren = validateFighter({ ...archer(), fightingStyle: "archery" });
+    const wren = validateCharacter({ ...archer(), fightingStyle: "archery" });
     const directory = await mkdtemp(join(tmpdir(), "issue-225-"));
     const libraryPath = join(directory, "characters.json");
     await writeFile(

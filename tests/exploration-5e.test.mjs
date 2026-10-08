@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { runDmTurn } from "../dist/dm-turn.js";
-import { buildFighter } from "../dist/fighter-5e.js";
+import { buildCharacter } from "../dist/character-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { ratTunnels } from "./fixtures/modules.mjs";
@@ -9,7 +9,7 @@ import { ratTunnels } from "./fixtures/modules.mjs";
 // The rat tunnels: an alcove's chest, the Giant Rat's fight, the goblin's den.
 const adventure = ratTunnels;
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 13 in leather with Defense, 12 HP, mace +5.
-const sheet = buildFighter(
+const sheet = buildCharacter(
   "a".repeat(32),
   "Ada",
   [

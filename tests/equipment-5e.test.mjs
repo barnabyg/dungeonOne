@@ -20,6 +20,7 @@ const CONTEXT = {
   modifiers: { strength: 3, dexterity: 1 },
   strengthScore: 16,
   proficiency: 2,
+  weaponProficiencies: ["simple", "martial"],
   masteries: [],
   criticalRange: 20,
 };

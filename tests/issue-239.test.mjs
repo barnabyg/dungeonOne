@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { findableValue } from "../dist/adventure-5e.js";
 import { itemPrice } from "../dist/equipment-5e.js";
-import { settleFighter, validateFighter } from "../dist/fighter-5e.js";
+import { settleCharacter, validateCharacter } from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime, renderFifthResult } from "../dist/runtime-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
@@ -334,7 +334,7 @@ test("a sold find stays in the ledger, and escaping after selling it is escaping
   const settlement = runtime.projectSettlement(left);
   assert.deepEqual(settlement.finds, []);
   assert.deepEqual(settlement.sold, ["lintel-barrow/blue-opal"]);
-  const after = settleFighter(TEST_FIGHTER, settlement);
+  const after = settleCharacter(TEST_FIGHTER, settlement);
   assert.ok(after.finds.includes("lintel-barrow/blue-opal"));
   assert.deepEqual(after.treasure, []);
   assert.equal(after.purse, sold.possessions.purse);
@@ -350,7 +350,7 @@ test("kept treasure carries its value onto the sheet, and a later merchant pays 
     type: "leave",
     roomId: "barrow-mouth",
   }).state;
-  const after = settleFighter(TEST_FIGHTER, runtime.projectSettlement(left));
+  const after = settleCharacter(TEST_FIGHTER, runtime.projectSettlement(left));
   assert.deepEqual(after.treasure, [
     {
       id: "lintel-barrow/blue-opal",
@@ -361,7 +361,7 @@ test("kept treasure carries its value onto the sheet, and a later merchant pays 
   ]);
   assert.throws(
     () =>
-      validateFighter({
+      validateCharacter({
         ...after,
         treasure: [{ ...after.treasure[0], value: -1 }],
       }),
@@ -387,7 +387,7 @@ test("kept treasure carries its value onto the sheet, and a later merchant pays 
     type: "leave",
     roomId: "barrow-mouth",
   }).state;
-  const settled = settleFighter(after, later.projectSettlement(out));
+  const settled = settleCharacter(after, later.projectSettlement(out));
   assert.deepEqual(settled.treasure, []);
   assert.equal(settled.purse, after.purse + 5000);
   assert.ok(settled.finds.includes("lintel-barrow/blue-opal"));

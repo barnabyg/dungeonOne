@@ -25,7 +25,7 @@
  * with it, and gives half its XP if it exchanged blows with the character
  * first, or none. One whose module authors a surrender (#238) yields instead:
  * it leaves no body either, and once the fight is won it is a creature to
- * talk to, whose topics may offer what it carried. Hit points, Fighter
+ * talk to, whose topics may offer what it carried. Hit points, class
  * feature uses and carried items last from fight to fight. In an exit room
  * the player may choose to leave, ending the adventure with or without the
  * loot it carries (treasure, or coin found here); leaving is the player's
@@ -167,15 +167,16 @@ import {
 } from "./equipment-5e.js";
 import { tradeGoodValue } from "./treasure-5e.js";
 import {
-  fighterProfile,
+  characterProfile,
+  classOf,
   type Carrying,
-  type FighterSheet,
+  type CharacterSheet,
   possessionsOf,
   type Possessions,
   type TreasureRecord,
   type Settlement,
   type XpAward,
-} from "./fighter-5e.js";
+} from "./character-5e.js";
 import type { RandomSource } from "./random.js";
 import type {
   AdventureRuntime,
@@ -827,14 +828,16 @@ A turn in a fight has one action (an attack), one bonus action and one reaction.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
-const FEATURE_DESCRIPTIONS: Record<FeatureTool, string> = {
-  second_wind:
-    "Use Second Wind, the character's bonus action: the engine rolls 1d10 + Fighter level and restores that many hit points, up to the maximum.",
+/** Each feature tool's description, naming the character's class (#300). */
+const featureDescriptions = (
+  className: string,
+): Record<FeatureTool, string> => ({
+  second_wind: `Use Second Wind, the character's bonus action: the engine rolls 1d10 + ${className} level and restores that many hit points, up to the maximum.`,
   action_surge:
     "Use Action Surge: the character takes one more action this turn.",
   end_turn:
     "End the character's turn; the opponents then act until the character's next turn.",
-};
+});
 
 /** What searching a body that carried nothing finds. */
 const NOTHING_OF_VALUE = "Nothing of value.";
@@ -851,11 +854,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** The character's resources at the start of an adventure. */
-export function startingResources(sheet: FighterSheet): CharacterResources {
-  const profile = fighterProfile(sheet);
+export function startingResources(sheet: CharacterSheet): CharacterResources {
+  const profile = characterProfile(sheet);
   return {
     hp: sheet.hp,
-    secondWindUses: profile.secondWind.uses,
+    secondWindUses: profile.secondWind?.uses ?? 0,
     actionSurgeUses: profile.actionSurgeUses,
   };
 }
@@ -895,11 +898,11 @@ function weaponOf(attack: AttackProfile): Weapon {
  * has left (by default, everything) and the potions it carries.
  */
 export function playerCombatant(
-  sheet: FighterSheet,
+  sheet: CharacterSheet,
   resources: CharacterResources = startingResources(sheet),
   potions: readonly Potion[] = [],
 ): Combatant {
-  const profile = fighterProfile(sheet);
+  const profile = characterProfile(sheet);
   return {
     id: PLAYER_ID,
     name: sheet.name,
@@ -923,11 +926,15 @@ export function playerCombatant(
       ? {}
       : { attacksPerAction: profile.attacksPerAction }),
     // Uses start full: each adventure follows the between-adventure rest.
-    secondWind: {
-      uses: resources.secondWindUses,
-      max: profile.secondWind.uses,
-      healing: profile.secondWind.healing,
-    },
+    ...(profile.secondWind === undefined
+      ? {}
+      : {
+          secondWind: {
+            uses: resources.secondWindUses,
+            max: profile.secondWind.uses,
+            healing: profile.secondWind.healing,
+          },
+        }),
     ...(profile.actionSurgeUses === 0
       ? {}
       : {
@@ -2052,7 +2059,7 @@ export type FifthRuntime = Omit<
 > &
   Readonly<{
     adventure: FifthAdventure;
-    sheet: FighterSheet;
+    sheet: CharacterSheet;
     /** How its checks are graded (#285): `seeded` but in the harness. */
     checks: CheckPolicy;
     createSession(): FifthState;
@@ -2282,11 +2289,11 @@ export type FifthRuntimeProbe = Readonly<{
 
 export function createFifthRuntime(
   adventure: FifthAdventure,
-  sheet: FighterSheet,
+  sheet: CharacterSheet,
   probe: FifthRuntimeProbe = {},
 ): FifthRuntime {
   const checkPolicy = probe.checks ?? "seeded";
-  const maxHp = fighterProfile(sheet).maxHp;
+  const maxHp = characterProfile(sheet).maxHp;
   const roomById = (roomId: string) =>
     adventure.rooms.find(({ id }) => id === roomId)!;
   const room = (state: FifthState) => roomById(state.roomId);
@@ -2757,7 +2764,7 @@ export function createFifthRuntime(
     });
 
   /** The sheet with the gear and ammunition the character holds now. */
-  const sheetOf = (state: FifthState): FighterSheet => ({
+  const sheetOf = (state: FifthState): CharacterSheet => ({
     ...sheet,
     equipment: state.possessions.equipment,
     stowed: state.possessions.stowed,
@@ -4227,7 +4234,7 @@ export function createFifthRuntime(
               }
             : {}),
         };
-        const profile = fighterProfile(sheetOf(next));
+        const profile = characterProfile(sheetOf(next));
         const event: GearEvent = {
           type: "gear",
           change: action.type,
@@ -4315,7 +4322,7 @@ export function createFifthRuntime(
           ...state,
           possessions: { ...state.possessions, ...trade.holding },
         };
-        const profile = fighterProfile(sheetOf(next));
+        const profile = characterProfile(sheetOf(next));
         const event: TradeEvent = {
           type: "traded",
           deal: action.type,
@@ -4931,7 +4938,7 @@ export function createFifthRuntime(
       state.encounter === undefined
         ? undefined
         : currentCombatant(state.encounter);
-    const profile = fighterProfile(sheetOf(state));
+    const profile = characterProfile(sheetOf(state));
     return {
       hp: state.character.hp,
       maxHp,
@@ -5063,7 +5070,7 @@ export function createFifthRuntime(
         ? {}
         : { purse: formatCoins(state.possessions.purse) }),
       gear: (() => {
-        const profile = fighterProfile(sheetOf(state));
+        const profile = characterProfile(sheetOf(state));
         const item = (id: ItemId) => ({ id, name: itemName(id) });
         return {
           worn: state.possessions.equipment
@@ -5233,7 +5240,7 @@ export function createFifthRuntime(
       .map(([name]) => ({
         type: "function" as const,
         name,
-        description: FEATURE_DESCRIPTIONS[name],
+        description: featureDescriptions(classOf(sheet).name)[name],
         strict: true as const,
         parameters: EMPTY_PARAMETERS,
       }));

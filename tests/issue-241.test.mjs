@@ -21,7 +21,7 @@ import { gateAdventure, requiredPath } from "../dist/balance-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { startSavedAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
 import { runDmTurn } from "../dist/dm-turn.js";
-import { fighterProfile } from "../dist/fighter-5e.js";
+import { characterProfile } from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { MINE_FULL_ROUTE, playReleaseRun } from "../dist/release-run-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
@@ -188,7 +188,7 @@ const call = (name, args = {}) => ({
 async function journey(sheet, seed, steps, target) {
   const runtime = createFifthRuntime(mine, sheet);
   const random = createSeededRandom(seed);
-  const { maxHp } = fighterProfile(sheet);
+  const { maxHp } = characterProfile(sheet);
   const offered = (state, name) =>
     runtime.getGameToolDefinitions(state).find((tool) => tool.name === name);
   const dm = async (state, name, args = {}) => {
@@ -395,7 +395,7 @@ test("the handoff's level-3 library is Ada at level 3, as the release runs start
   );
   const [{ sheet }] = levelThreeLibrary().characters;
   assert.deepEqual([sheet.name, sheet.level, sheet.xp], ["Ada", 3, 900]);
-  assert.equal(sheet.hp, fighterProfile(sheet).maxHp);
+  assert.equal(sheet.hp, characterProfile(sheet).maxHp);
 });
 
 /** A browser seed on which the release run clears the mine and gets out. */

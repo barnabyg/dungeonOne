@@ -26,7 +26,7 @@ import {
   type ConditionKind,
   type DamageType,
 } from "./encounter-5e.js";
-import { ABILITIES, type Abilities, type Ability } from "./fighter-5e.js";
+import { ABILITIES, type Abilities, type Ability } from "./class-5e.js";
 import {
   isTreasureTypeId,
   TREASURE_TYPES,

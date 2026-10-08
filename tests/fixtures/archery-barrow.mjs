@@ -2,7 +2,7 @@
 // shortbow, the light crossbow and bundles of arrows and bolts, ten minutes a
 // trade, and a quiver of 20 arrows lies behind the lintel, found by examining
 // it. Wren, an archer with a shortbow, two arrows and a stowed mace, plays it.
-import { validateFighter } from "../../dist/fighter-5e.js";
+import { validateCharacter } from "../../dist/character-5e.js";
 import { TEST_FIGHTER } from "../../dist/test-fighter-5e.js";
 import { barrowFile, room } from "./armoury-barrow.mjs";
 import { validateModule } from "./bestiary.mjs";
@@ -47,7 +47,7 @@ export const archeryBarrow = validateModule(archeryFile);
  * (+4 to hit, 1d6 + 2 piercing), a mace stowed and `arrows` arrows.
  */
 export const archer = (arrows = 2, bolts = 0) =>
-  validateFighter({
+  validateCharacter({
     ...TEST_FIGHTER,
     id: "c".repeat(32),
     name: "Wren",

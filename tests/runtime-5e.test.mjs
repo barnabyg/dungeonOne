@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { runDmTurn } from "../dist/dm-turn.js";
 import {
-  buildFighter,
-  fighterProfile,
+  buildCharacter,
+  characterProfile,
   levelForXp,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  validateCharacter,
+} from "../dist/character-5e.js";
 import {
   createFifthRuntime,
   playerCombatant,
@@ -20,7 +20,7 @@ import { uncheckedDice as dice } from "./fixtures/engine-dice.mjs";
 
 // The engine's targeting tests use the goblin trio: two numbered minions.
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2): AC 13 in leather with Defense, 12 HP, mace +5.
-const sheet = buildFighter(
+const sheet = buildCharacter(
   "a".repeat(32),
   "Ada",
   [
@@ -494,7 +494,7 @@ const ATTACK = { type: "attack", actorId: "pc", targetId: "goblin" };
 /** Ada at `xp`, at full health for her level. */
 function atXp(xp) {
   const leveled = { ...sheet, xp, level: levelForXp(xp) };
-  return validateFighter({ ...leveled, hp: fighterProfile(leveled).maxHp });
+  return validateCharacter({ ...leveled, hp: characterProfile(leveled).maxHp });
 }
 
 /** The goblin goes first and hits Ada for 3 + 2, leaving her 7/12 HP. */

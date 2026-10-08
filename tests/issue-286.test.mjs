@@ -9,7 +9,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  fighterAtLevel,
+  characterAtLevel,
   gateAdventure,
   gateLevelChoice,
   strongestAttackers,
@@ -20,8 +20,8 @@ import {
 } from "../dist/character-library-5e.js";
 import {
   applyLevelChoice,
-  buildFighter,
-  fighterProfile,
+  buildCharacter,
+  characterProfile,
   LEVEL_XP,
   levelChoiceChanges,
   levelForXp,
@@ -29,9 +29,9 @@ import {
   pendingLevelChoice,
   pendingLevelUp,
   projectLevelChoice,
-  settleFighter,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  settleCharacter,
+  validateCharacter,
+} from "../dist/character-5e.js";
 import { startFifthAdventure } from "../dist/session-5e.js";
 import { libraryAt } from "../dist/test-fighter-5e.js";
 import { tierAllowed, treasureBudget } from "../dist/treasure-5e.js";
@@ -65,11 +65,11 @@ const CHOICES = {
   kit: "mace",
   masteries: ["dagger", "mace", "shortsword"],
 };
-const fighter = (dice = DICE) => buildFighter(ID, "Ada", dice, CHOICES);
+const fighter = (dice = DICE) => buildCharacter(ID, "Ada", dice, CHOICES);
 /** The sheet at `level` with that level's least XP, at full health. */
 const atLevel = (sheet, level) => {
   const raised = { ...sheet, level, xp: LEVEL_XP[level] };
-  return validateFighter({ ...raised, hp: fighterProfile(raised).maxHp });
+  return validateCharacter({ ...raised, hp: characterProfile(raised).maxHp });
 };
 const FEATURES = [
   "fighting-style",
@@ -100,7 +100,7 @@ test("the Fighter table, levels 1 to 4: XP, HP, proficiency, features and master
         mastery: "longsword",
       });
     }
-    const profile = fighterProfile(sheet);
+    const profile = characterProfile(sheet);
     assert.equal(profile.maxHp, row.maxHp, `level ${row.level} HP`);
     assert.equal(profile.proficiencyBonus, 2, `level ${row.level} proficiency`);
     assert.deepEqual(
@@ -115,14 +115,14 @@ test("the Fighter table, levels 1 to 4: XP, HP, proficiency, features and master
     assert.equal(profile.attack.criticalRange, row.level >= 3 ? 19 : 20);
   }
   assert.equal(levelForXp(2699), 3);
-  assert.equal(fighterProfile(atLevel(fighter(), 3)).nextLevelXp, 2700);
-  assert.equal(fighterProfile(atLevel(fighter(), 4)).nextLevelXp, 6500);
+  assert.equal(characterProfile(atLevel(fighter(), 3)).nextLevelXp, 2700);
+  assert.equal(characterProfile(atLevel(fighter(), 4)).nextLevelXp, 6500);
 });
 
 test("settling past 2,700 XP credits level 4 and leaves its choices pending", () => {
   const third = atLevel(fighter(), 3);
   assert.equal(pendingLevelChoice(third), undefined);
-  const fourth = settleFighter(third, {
+  const fourth = settleCharacter(third, {
     possessions: {
       equipment: third.equipment,
       stowed: [],
@@ -142,7 +142,7 @@ test("settling past 2,700 XP credits level 4 and leaves its choices pending", ()
   assert.equal(pendingLevelChoice(fourth), 4);
   assert.deepEqual(fourth.abilityScoreImprovements, []);
   assert.equal(fourth.weaponMasteries.length, 3);
-  const profile = fighterProfile(fourth);
+  const profile = characterProfile(fourth);
   assert.match(
     profile.features.at(-1).text,
     /Not chosen yet: \+2 to one ability score or \+1 to two, to a maximum of 20\./u,
@@ -190,8 +190,8 @@ test("the level choice raises scores and recomputes every number from them", () 
     "shortsword",
     "longsword",
   ]);
-  const was = fighterProfile(owed);
-  const now = fighterProfile(strong);
+  const was = characterProfile(owed);
+  const now = characterProfile(strong);
   assert.equal(now.attack.bonus, was.attack.bonus + 1);
   assert.equal(now.attack.damage.modifier, was.attack.damage.modifier + 1);
   assert.equal(now.savingThrows.strength.bonus, 6);
@@ -220,13 +220,13 @@ test("the level choice raises scores and recomputes every number from them", () 
   });
   assert.equal(tough.abilities.constitution, 15);
   assert.equal(tough.abilities.dexterity, 15);
-  assert.equal(fighterProfile(tough).maxHp, 36);
+  assert.equal(characterProfile(tough).maxHp, 36);
   const hardy = applyLevelChoice(owed, {
     increase: { constitution: 2 },
     mastery: "greatsword",
   });
   // Con 16 (+3): 10 + 3, then 3 × (6 + 3).
-  assert.equal(fighterProfile(hardy).maxHp, 40);
+  assert.equal(characterProfile(hardy).maxHp, 40);
   assert.equal(hardy.hp, 40);
   assert.ok(
     levelChoiceChanges(owed, hardy).includes(
@@ -290,7 +290,7 @@ test("an illegal level choice is refused: past 20, the wrong shape, a known mast
   // Nothing but the level choice adds an improvement or a mastery.
   assert.throws(
     () =>
-      validateFighter({
+      validateCharacter({
         ...atLevel(fighter(), 3),
         abilityScoreImprovements: [{ wisdom: 2 }],
         abilities: { ...atLevel(fighter(), 3).abilities, wisdom: 12 },
@@ -300,7 +300,7 @@ test("an illegal level choice is refused: past 20, the wrong shape, a known mast
   );
   assert.throws(
     () =>
-      validateFighter({
+      validateCharacter({
         ...owed,
         weaponMasteries: [...owed.weaponMasteries, "longsword"],
       }),
@@ -308,7 +308,7 @@ test("an illegal level choice is refused: past 20, the wrong shape, a known mast
   );
   assert.throws(
     () =>
-      validateFighter({
+      validateCharacter({
         ...made,
         abilities: { ...made.abilities, dexterity: 14 },
       }),
@@ -479,7 +479,7 @@ test("the gate builds level-4 Fighters with its stated level choice", () => {
   const capped = atLevel(fighter(STRONG_DICE), 4);
   assert.deepEqual(gateLevelChoice(capped).increase, { constitution: 2 });
   const nineteen = atLevel(
-    buildFighter(ID, "Ada", STRONG_DICE, {
+    buildCharacter(ID, "Ada", STRONG_DICE, {
       ...CHOICES,
       increase: { strength: 1, constitution: 1, wisdom: 1 },
     }),
@@ -496,7 +496,7 @@ test("the gate builds level-4 Fighters with its stated level choice", () => {
   });
   assert.equal(gateLevelChoice(owed, false, "mace").mastery, "longsword");
 
-  const built = fighterAtLevel(DICE, 4);
+  const built = characterAtLevel(DICE, 4);
   assert.equal(built.level, 4);
   assert.equal(pendingLevelChoice(built), undefined);
   assert.equal(built.weaponMasteries.length, 4);
@@ -539,7 +539,7 @@ test("the handoff's input library is Ada at level 3, 10 XP short of level 4", as
     import.meta.url,
   );
   const expected = libraryAt(3);
-  expected.characters[0].sheet = validateFighter({
+  expected.characters[0].sheet = validateCharacter({
     ...expected.characters[0].sheet,
     xp: 2690,
   });

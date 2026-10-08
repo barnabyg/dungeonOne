@@ -3,15 +3,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { abilityCheck, savingThrow } from "../dist/checks-5e.js";
 import {
-  buildFighter,
-  fighterProfile,
+  buildCharacter,
+  characterProfile,
   levelForXp,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  validateCharacter,
+} from "../dist/character-5e.js";
 
 // Str 16 (+3), Dex 12 (+1), Con 14 (+2), Int 10, Wis 10, Cha 10;
 // Athletics and Perception; proficiency +2.
-const sheet = buildFighter(
+const sheet = buildCharacter(
   "a".repeat(32),
   "Ada",
   [
@@ -42,7 +42,7 @@ const sheet = buildFighter(
 function at(level) {
   const xp = { 1: 0, 2: 300, 3: 900 }[level];
   const leveled = { ...sheet, xp, level: levelForXp(xp) };
-  return validateFighter({ ...leveled, hp: fighterProfile(leveled).maxHp });
+  return validateCharacter({ ...leveled, hp: characterProfile(leveled).maxHp });
 }
 
 function dice(...queue) {

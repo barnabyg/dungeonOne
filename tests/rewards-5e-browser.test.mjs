@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
-import { settleFighter } from "../dist/fighter-5e.js";
+import { settleCharacter } from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { sessionSeed } from "../dist/session-5e.js";
@@ -62,7 +62,7 @@ function findSeed() {
     if (first === undefined) {
       continue;
     }
-    const veteran = settleFighter(
+    const veteran = settleCharacter(
       firstFighter(seed),
       first.runtime.projectSettlement(first.state),
     );

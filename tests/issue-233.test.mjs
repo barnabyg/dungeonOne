@@ -7,9 +7,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { statBlockSaves } from "../dist/adventure-5e.js";
-import { fighterAtLevel, oneHitKillChance } from "../dist/balance-5e.js";
+import { characterAtLevel, oneHitKillChance } from "../dist/balance-5e.js";
 import { act, startEncounter } from "../dist/encounter-5e.js";
-import { validateFighter } from "../dist/fighter-5e.js";
+import { validateCharacter } from "../dist/character-5e.js";
 import { validateFifthBestiary } from "../dist/bestiary-5e.js";
 import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
@@ -351,8 +351,8 @@ const STRONG_DICE = [
 
 /** Strength 20 at level 1, in leather with `weapon`: +7 to hit, 1d6 + 5. */
 const holding = (weapon) => {
-  const sheet = fighterAtLevel(STRONG_DICE, 1);
-  return validateFighter({ ...sheet, equipment: ["leather", weapon] });
+  const sheet = characterAtLevel(STRONG_DICE, 1);
+  return validateCharacter({ ...sheet, equipment: ["leather", weapon] });
 };
 
 test("one-hit kill: a mace against a Skeleton beats a shortsword of the same average damage", () => {

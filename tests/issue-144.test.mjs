@@ -10,11 +10,11 @@ import { gateAdventure, oneHitKillChance } from "../dist/balance-5e.js";
 import { act, startEncounter } from "../dist/encounter-5e.js";
 import { equipmentProfile } from "../dist/equipment-5e.js";
 import {
-  buildFighter,
-  fighterProfile,
+  buildCharacter,
+  characterProfile,
   projectCreation,
-  validateFighter,
-} from "../dist/fighter-5e.js";
+  validateCharacter,
+} from "../dist/character-5e.js";
 import {
   createFifthRuntime,
   describeFifthResult,
@@ -33,6 +33,7 @@ const CONTEXT = {
   modifiers: { strength: 3, dexterity: 2 },
   strengthScore: 16,
   proficiency: 2,
+  weaponProficiencies: ["simple", "martial"],
   masteries: [],
   criticalRange: 20,
 };
@@ -191,13 +192,13 @@ const CHOICES = {
 };
 /** Ada with `choices`, then holding `equipment` as if found and equipped. */
 const ada = (choices = {}, equipment) => {
-  const sheet = buildFighter("a".repeat(32), "Ada", DICE, {
+  const sheet = buildCharacter("a".repeat(32), "Ada", DICE, {
     ...CHOICES,
     ...choices,
   });
   return equipment === undefined
     ? sheet
-    : validateFighter({ ...sheet, equipment });
+    : validateCharacter({ ...sheet, equipment });
 };
 /** Plain values, in order, recording each die. */
 const rolls = (...queue) => {
@@ -298,7 +299,7 @@ test("Two-Weapon Fighting's extra attack adds the modifier in the fight, and the
   });
   const runtime = createFifthRuntime(
     loneGoblin,
-    validateFighter({ ...unnicked, xp: 300, level: 2 }),
+    validateCharacter({ ...unnicked, xp: 300, level: 2 }),
   );
   let state = runtime.handleAction(
     runtime.createSession(),
@@ -332,7 +333,7 @@ test("Two-Weapon Fighting's extra attack adds the modifier in the fight, and the
 });
 
 test("the sheet and creation say whether the Fighting Style applies with the current gear", () => {
-  const uses = (sheet) => fighterProfile(sheet).fightingStyle;
+  const uses = (sheet) => characterProfile(sheet).fightingStyle;
   assert.deepEqual(uses(ada()), {
     id: "great-weapon-fighting",
     name: "Great Weapon Fighting",
@@ -372,7 +373,7 @@ test("the sheet and creation say whether the Fighting Style applies with the cur
     "No effect without armour.",
   );
   // The feature text no longer calls the styles unused.
-  const feature = fighterProfile(ada()).features.find(
+  const feature = characterProfile(ada()).features.find(
     ({ id }) => id === "fighting-style",
   );
   assert.doesNotMatch(feature.text, /Not used yet/);

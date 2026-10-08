@@ -365,9 +365,9 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 12.
+- The character library (`characters.json` by default) is format version 13.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 26.
+  `characters-adventures` directory beside the library, in format version 27.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
@@ -458,9 +458,10 @@ These are for development, not play.
 ## Architecture
 
 - `src/runtime-5e.ts` is the 5e runtime, over the encounter engine in
-  `src/encounter-5e.ts`, the Fighter rules in `src/fighter-5e.ts`, weapons,
-  armour and kits in `src/equipment-5e.ts`, and checks in
-  `src/checks-5e.ts`. It implements the generic interface in
+  `src/encounter-5e.ts`, characters in `src/character-5e.ts` (each derived
+  from its class's definition: what classes share in `src/class-5e.ts`, the
+  Fighter in `src/fighter-5e.ts`), weapons, armour and kits in
+  `src/equipment-5e.ts`, and checks in `src/checks-5e.ts`. It implements the generic interface in
   `src/runtime-contract.ts`: create a session, project the player-safe scene and
   status, offer tools, and resolve an action.
 - `src/session-5e.ts` saves and continues adventure sessions,
