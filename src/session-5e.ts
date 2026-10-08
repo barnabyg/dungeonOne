@@ -1,5 +1,5 @@
 /**
- * A 5e adventure session and its save file (format version 21).
+ * A 5e adventure session and its save file (format version 23).
  *
  * The save holds the character as it started, the adventure module's digest,
  * the session's seed, every committed action with the dice it drew, the
@@ -39,7 +39,7 @@ import {
   type ResultLine,
 } from "./runtime-5e.js";
 
-export const FIFTH_SESSION_FORMAT = 22;
+export const FIFTH_SESSION_FORMAT = 23;
 const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const MAX_TRANSITIONS = 5000;
 const MAX_HISTORY = 5000;
@@ -170,6 +170,7 @@ const OPTIONAL_GROUP_KEYS = [
   "proficiency",
   "dc",
   "outcome",
+  "band",
   "halved",
   "adjustment",
   "damageType",
@@ -216,6 +217,9 @@ function validRollGroup(value: unknown): boolean {
       ["hit", "critical", "miss", "success", "failure"].includes(
         String(outcome),
       ),
+    ) &&
+    optional(value.band, (band) =>
+      ["failure-by-5", "success-by-5"].includes(String(band)),
     ) &&
     optional(value.label, label) &&
     optional(value.proficiency, integer) &&

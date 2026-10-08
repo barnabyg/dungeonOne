@@ -24,9 +24,11 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import {
   loadBuiltInFifthAdventures,
+  loadFifthAdventure,
   type FifthAdventure,
 } from "./adventure-5e.js";
 import { FIFTH_DM_OFF_NOTICE } from "./browser-5e-page.js";
@@ -485,6 +487,91 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     reply: "Fallen banners, a swollen door, and an arch to the barracks.",
     dimensions: ["narration-fidelity"],
     manualJudgments: ["no-fabricated-outcomes"],
+  }),
+]);
+
+/**
+ * The module the approach cases (#283) play: a wall to get over with
+ * Athletics or Acrobatics, and a guard to get past with Persuasion or
+ * Intimidation. It is for the evaluation only, and never offered to play.
+ */
+export function loadFifthApproachEvaluationAdventure(): Promise<FifthAdventure> {
+  return loadFifthAdventure(
+    fileURLToPath(
+      new URL("../adventures/eval/obstacle-yard.json", import.meta.url),
+    ),
+  );
+}
+
+/**
+ * Approach selection (#283), on the obstacle yard: the AI DM picks the
+ * offered approach the player's words name, asks when they fit none or
+ * several, and never makes up one that isn't offered.
+ */
+export const FIFTH_APPROACH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
+  actionCase({
+    id: "approach-climb",
+    seed: 0,
+    setup: [],
+    playerInput: "I climb the crumbling wall.",
+    name: "examine",
+    arguments: { target: "crumbling-wall", approach: "athletics" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "approach-vault",
+    seed: 0,
+    setup: [],
+    playerInput:
+      "I take a running jump and vault nimbly over the crumbling wall.",
+    name: "examine",
+    arguments: { target: "crumbling-wall", approach: "acrobatics" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "approach-persuade",
+    seed: 0,
+    setup: [],
+    playerInput:
+      "Ask the guard politely to let me through; tell him I mean no harm.",
+    name: "talk",
+    arguments: { topic: "let-me-pass", approach: "persuasion" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
+  actionCase({
+    id: "approach-intimidate",
+    seed: 0,
+    setup: [],
+    playerInput:
+      "I grab the guard by the collar and tell him to stand aside, or else.",
+    name: "talk",
+    arguments: { topic: "let-me-pass", approach: "intimidation" },
+    dimensions: ["synonym-accuracy"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "approach-not-offered",
+    kind: "refusal",
+    seed: 0,
+    setup: [],
+    playerInput: "I sneak past the guard while he looks the other way.",
+    reply:
+      "Sneaking past isn't an option here: you can persuade the guard or intimidate him.",
+    dimensions: ["refusal"],
+    manualJudgments: [],
+  }),
+  quietCase({
+    id: "approach-ambiguous",
+    kind: "interpretation",
+    seed: 0,
+    setup: [],
+    playerInput: "Get me over that wall.",
+    reply: "Climb it (Athletics) or vault it (Acrobatics)?",
+    dimensions: ["ambiguous-clarification", "refusal"],
+    manualJudgments: ["clarification-relevance"],
   }),
 ]);
 

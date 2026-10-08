@@ -13,16 +13,19 @@ bestiary (`bestiary.mjs`), which holds SRD stat blocks rather than content.
 module's content at the time of #251, under its own id and title, and is now
 owned by the tests: change it only for a test's sake.
 
-| Fixture                | Export           | Mechanic                                                                                                         |
-| ---------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `lone-goblin.json`     | `loneGoblin`     | A one-room fight: one Goblin Warrior, level 1, hard. Victory and defeat endings.                                 |
-| `goblin-band.json`     | `goblinBand`     | A group fight: a Goblin Minion and a Goblin Warrior, level 2, medium.                                            |
-| `goblin-trio.json`     | `goblinTrio`     | A group fight with numbered opponents of one kind, for multi-target and ordinal targeting.                       |
-| `rat-tunnels.json`     | `ratTunnels`     | Exploration: passages, examined features, a hidden potion, a Giant Rat fight that leaves the adventure going.    |
-| (built from the above) | `ratlessTunnels` | The tunnels without the rat, as _The Quiet Tunnels_: exploring rooms with one fight, in the den.                 |
-| `lintel-barrow.json`   | `lintelBarrow`   | An exit with loot behind a fight: a lintel to examine, a torc under the bier, a goblin carrying a pouch of coin. |
-| `sealed-crypt.json`    | `sealedCrypt`    | Doors, a trap and talk, level 2: a stuck door, a locked door and its key, a dart trap, a creature with a check.  |
-| `goblin-burrow.json`   | `goblinBurrow`   | A level-up journey, levels 2–3: tunnel guards, then a goblin boss and its hoard on the way out.                  |
+| Fixture                 | Export            | Mechanic                                                                                                                 |
+| ----------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `lone-goblin.json`      | `loneGoblin`      | A one-room fight: one Goblin Warrior, level 1, hard. Victory and defeat endings.                                         |
+| `goblin-band.json`      | `goblinBand`      | A group fight: a Goblin Minion and a Goblin Warrior, level 2, medium.                                                    |
+| `goblin-trio.json`      | `goblinTrio`      | A group fight with numbered opponents of one kind, for multi-target and ordinal targeting.                               |
+| `rat-tunnels.json`      | `ratTunnels`      | Exploration: passages, examined features, a hidden potion, a Giant Rat fight that leaves the adventure going.            |
+| (built from the above)  | `ratlessTunnels`  | The tunnels without the rat, as _The Quiet Tunnels_: exploring rooms with one fight, in the den.                         |
+| `lintel-barrow.json`    | `lintelBarrow`    | An exit with loot behind a fight: a lintel to examine, a torc under the bier, a goblin carrying a pouch of coin.         |
+| `sealed-crypt.json`     | `sealedCrypt`     | Doors, a trap and talk, level 2: a stuck door, a locked door and its key, a dart trap, a creature with a check.          |
+| `goblin-burrow.json`    | `goblinBurrow`    | A level-up journey, levels 2–3: tunnel guards, then a goblin boss and its hoard on the way out.                          |
+| `obstacle-yard.json`    | `obstacleYard`    | Approaches (#283): a wall (Athletics or Acrobatics) and a guard (Persuasion or Intimidation), each opening a hidden way. |
+| `shifting-ossuary.json` | `shiftingOssuary` | Routes (#282): a skull wall's success opens a hidden passage; a rotten door's failed force closes its passage.           |
+| `graded-cellar.json`    | `gradedCellar`    | Graded checks (#281): a rubble heap's bands (damage, words, a ring revealed, a discovery), a topic and a door's.         |
 
 `moduleFile(name)` returns a fresh copy of a fixture's JSON to change and
 validate, and `fightRoomFile(id, title, opponents)` builds a one-room fight

@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 18) and its validator.
+ * The 5e adventure module format (format version 19) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -33,6 +33,17 @@
  * carries treasure or found coin, and its escape-without-loot ending otherwise. A victory
  * or escape ending may award XP, on top of each won encounter's stat-block XP.
  *
+ * A feature may have a check made when it is first examined (#281). Every
+ * authored check (a feature's, a door's force, pick or break, a trap's
+ * disarm, a topic's) may grade its outcome into bands, each with words and
+ * typed effects: a feature's discovery made, an item hidden in a feature
+ * revealed, damage that can defeat the character, or a passage opened or
+ * closed (#282). An item hidden in a feature with a check is found only
+ * through an item effect, and a hidden passage is a way only once a band
+ * opens it. Each essential room, and some exit, must be reachable by a
+ * route without a check, or through checks every band of which leaves a way
+ * forward, whatever any band may close.
+ *
  * Validation names the first problem it finds. A module in any other format
  * version is refused with a message naming the file.
  */
@@ -40,7 +51,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
-import type { CheckSpec } from "./checks-5e.js";
+import { BANDS, isSuccess, type Band, type CheckSpec } from "./checks-5e.js";
 import type { Combatant, DamageDefenses, DamageType } from "./encounter-5e.js";
 import {
   COIN_VALUES,
@@ -73,8 +84,10 @@ import {
 import {
   ABILITIES,
   FIGHTER_SKILLS,
+  proficiencyBonus,
   type Ability,
   type FighterSkill,
+  type Level,
 } from "./fighter-5e.js";
 import {
   distinct,
@@ -100,7 +113,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 18;
+export const FIFTH_ADVENTURE_FORMAT = 19;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -141,13 +154,143 @@ export type FifthEncounter = Readonly<{
   defeatEndingId: string;
 }>;
 
-/** Something in a room to examine; examining it makes its discovery. */
+/**
+ * Something in a room to examine. Examining it makes its discovery; one with
+ * a check (#281) instead makes the check, once, whose bands decide what it
+ * reveals.
+ */
 export type FifthFeature = Readonly<{
   id: string;
   name: string;
   description: string;
   discovery?: string;
+  check?: AuthoredCheck;
 }>;
+
+/**
+ * One effect of a check's band (#281): a feature's discovery made, an item
+ * hidden in a feature revealed (found once per character, like other
+ * finds), damage of a type, which can defeat the character, or a passage
+ * opened (a hidden one becomes a way) or closed for the rest of the
+ * adventure (#282).
+ */
+export type CheckEffect = Readonly<
+  | { type: "discovery"; feature: string }
+  | { type: "item"; item: string }
+  | { type: "open" | "close"; passage: string }
+  | {
+      type: "damage";
+      dice: number;
+      sides: number;
+      modifier: number;
+      damageType: DamageType;
+      /** Where the adventure ends if the damage drops the character. */
+      defeatEndingId: string;
+    }
+>;
+
+/** What one band of an authored check does: its words and its effects. */
+export type CheckBand = Readonly<{
+  text?: string;
+  effects?: readonly CheckEffect[];
+}>;
+
+/**
+ * An authored check (#281): its approach, a skill or an ability against a
+ * DC, and the bands its outcome is graded into. Any band may be left out;
+ * an unauthored failure or success by 5 or more falls back to plain failure
+ * or success, and an unauthored plain band does nothing beyond the site's
+ * own outcome.
+ */
+export type AuthoredCheck = (
+  | CheckSpec
+  /**
+   * Alternative approaches to one obstacle (#283): 2–4 skills or abilities,
+   * each with its own DC. The bands belong to the obstacle.
+   */
+  | Readonly<{
+      approaches: readonly CheckSpec[];
+      skill?: never;
+      ability?: never;
+      dc?: never;
+    }>
+) &
+  Readonly<{ bands?: Readonly<Partial<Record<Band, CheckBand>>> }>;
+
+/** The approaches an authored check can be made with, one or several. */
+export function approachesOf(check: AuthoredCheck): readonly CheckSpec[] {
+  if ("approaches" in check && check.approaches !== undefined) {
+    return check.approaches;
+  }
+  return [
+    check.skill === undefined
+      ? { ability: check.ability!, dc: check.dc! }
+      : { skill: check.skill, dc: check.dc! },
+  ];
+}
+
+/** A band's effects, none when it authors only words. */
+export const effectsOf = (outcome: CheckBand | undefined) =>
+  outcome?.effects ?? [];
+
+/**
+ * The band whose outcome applies to a rolled band: a failure or success by
+ * 5 or more that the check doesn't author counts as plain failure or
+ * success.
+ */
+export function authoredBand(check: AuthoredCheck, rolled: Band): Band {
+  if (check.bands?.[rolled] !== undefined) {
+    return rolled;
+  }
+  return rolled === "failure-by-5"
+    ? "failure"
+    : rolled === "success-by-5"
+      ? "success"
+      : rolled;
+}
+
+/** Where an authored check is made, by the id of the thing it is made on. */
+export type AuthoredSite = Readonly<{
+  kind: "examine" | "force" | "pick" | "break" | "disarm" | "talk";
+  id: string;
+  check: AuthoredCheck;
+}>;
+
+/**
+ * Every authored check in a module (#281): each feature's, each door's
+ * force, pick and break, each trap's disarm, and each topic's, a
+ * surrender's included.
+ */
+export function authoredChecks(
+  adventure: Pick<FifthAdventure, "rooms" | "passages" | "encounters">,
+): readonly AuthoredSite[] {
+  const topicChecks = (topics: readonly FifthTopic[]): AuthoredSite[] =>
+    topics.flatMap(({ id, check }) =>
+      check === undefined ? [] : [{ kind: "talk" as const, id, check }],
+    );
+  return [
+    ...adventure.rooms.flatMap(({ features, creatures }) => [
+      ...features.flatMap(({ id, check }) =>
+        check === undefined ? [] : [{ kind: "examine" as const, id, check }],
+      ),
+      ...creatures.flatMap(({ topics }) => topicChecks(topics)),
+    ]),
+    ...adventure.encounters.flatMap(({ opponents }) =>
+      opponents.flatMap(({ surrender }) =>
+        topicChecks(surrender?.topics ?? []),
+      ),
+    ),
+    ...adventure.passages.flatMap(({ door, trap }) => [
+      ...(["force", "pick", "break"] as const).flatMap((kind) => {
+        const check = door?.[kind];
+        return check === undefined ? [] : [{ kind, id: door!.id, check }];
+      }),
+      ...(trap === undefined
+        ? []
+        : [{ kind: "disarm" as const, id: trap.id, check: trap.disarm }]),
+    ]),
+  ];
+}
 
 /**
  * What each kind of item does: the SRD 5.2 healing potions heal, a key
@@ -208,7 +351,7 @@ export type FifthTopic = Readonly<{
   name: string;
   /** What the creature says, after a passed check when there is one. */
   reply: string;
-  check?: CheckSpec;
+  check?: AuthoredCheck;
   /** What it says after a failed check; present exactly with `check`. */
   failure?: string;
   /**
@@ -265,23 +408,24 @@ export type FifthDoor = Readonly<{
   name: string;
   description: string;
   state: "stuck" | "locked";
-  force?: CheckSpec;
-  pick?: CheckSpec;
-  break?: CheckSpec;
+  force?: AuthoredCheck;
+  pick?: AuthoredCheck;
+  break?: AuthoredCheck;
   keyItemId?: string;
 }>;
 
 /**
  * A hidden trap in a passage: found by a check (searching either room),
  * disarmed by a check once found, or sprung by going through while armed,
- * with a saving throw for half damage.
+ * with a saving throw for half damage. The search is one roll for the whole
+ * room, so `find` is a DC and never graded; `disarm` may be.
  */
 export type FifthTrap = Readonly<{
   id: string;
   name: string;
   description: string;
   find: CheckSpec;
-  disarm: CheckSpec;
+  disarm: AuthoredCheck;
   trigger: string;
   save: Readonly<{ ability: Ability; dc: number }>;
   damage: Readonly<{
@@ -294,11 +438,15 @@ export type FifthTrap = Readonly<{
   defeatEndingId: string;
 }>;
 
-/** A two-way way between two rooms. */
+/**
+ * A two-way way between two rooms. A hidden one (#282) is no way at all
+ * until a check's band opens it.
+ */
 export type FifthPassage = Readonly<{
   id: string;
   between: readonly [string, string];
   description: string;
+  hidden?: true;
   door?: FifthDoor;
   trap?: FifthTrap;
 }>;
@@ -481,8 +629,8 @@ function ability(value: unknown, where: string): Ability {
   return value as Ability;
 }
 
-/** An authored check: `{ skill, dc }` or `{ ability, dc }`. */
-function check(value: unknown, where: string): CheckSpec {
+/** A check's approach: `{ skill, dc }` or `{ ability, dc }`. */
+function approach(value: unknown, where: string): CheckSpec {
   const raw =
     isRecord(value) && "skill" in value
       ? exactKeys(value, ["skill", "dc"], where)
@@ -500,6 +648,172 @@ function check(value: unknown, where: string): CheckSpec {
     return { skill: raw.skill as FighterSkill, dc };
   }
   return { ability: ability(raw.ability, `${where} ability`), dc };
+}
+
+/** The most effects one band may have. */
+const MAX_EFFECTS = 6;
+
+/**
+ * A band's effect (#281). What it names (a feature, an item or an ending)
+ * is checked once the whole module is read.
+ */
+function effect(value: unknown, where: string): CheckEffect {
+  const type = isRecord(value) ? value.type : undefined;
+  switch (type) {
+    case "discovery": {
+      const raw = exactKeys(value, ["type", "feature"], where);
+      return { type, feature: id(raw.feature, `${where} feature`) };
+    }
+    case "item": {
+      const raw = exactKeys(value, ["type", "item"], where);
+      return { type, item: id(raw.item, `${where} item`) };
+    }
+    case "open":
+    case "close": {
+      const raw = exactKeys(value, ["type", "passage"], where);
+      return { type, passage: id(raw.passage, `${where} passage`) };
+    }
+    case "damage": {
+      const raw = exactKeys(
+        value,
+        ["type", "dice", "sides", "modifier", "damageType", "defeatEndingId"],
+        where,
+      );
+      return {
+        type,
+        dice: integer(raw.dice, `${where} dice`, 1, 10),
+        sides: integer(raw.sides, `${where} sides`, 2, 12),
+        modifier: integer(raw.modifier, `${where} modifier`, -5, 20),
+        damageType: damageType(raw.damageType, `${where} damageType`),
+        defeatEndingId: id(raw.defeatEndingId, `${where} defeatEndingId`),
+      };
+    }
+    default:
+      return fail(`${where} type must be ${EFFECT_TYPES.join(", ")}.`);
+  }
+}
+const EFFECT_TYPES = ["discovery", "item", "damage", "open", "close"] as const;
+
+/** The most approaches one check may offer (#283). */
+const MAX_APPROACHES = 4;
+
+/**
+ * A check's approach or approaches: `{ skill, dc }`, `{ ability, dc }`, or
+ * `{ approaches: [...] }`, 2–4 of those, each with a different skill or
+ * ability (#283).
+ */
+function approaches(
+  spec: Record<string, unknown>,
+  where: string,
+): AuthoredCheck {
+  if (!("approaches" in spec)) {
+    return approach(spec, where);
+  }
+  const raw = exactKeys(spec, ["approaches"], where);
+  const offered = list(
+    raw.approaches,
+    `${where} approaches`,
+    MAX_APPROACHES,
+    2,
+  ).map((entry, index) => approach(entry, `${where} approach ${index + 1}`));
+  distinct(
+    offered,
+    (entry) => entry.skill ?? entry.ability,
+    (entry) =>
+      `${where} offers ${entry.skill ?? entry.ability} twice; each approach needs its own skill or ability.`,
+  );
+  return { approaches: offered };
+}
+
+/**
+ * An authored check: its approaches (see `approaches`), with optional
+ * `bands` (#281), each with optional `text` and `effects`.
+ */
+function check(value: unknown, where: string): AuthoredCheck {
+  const { bands, ...spec } = isRecord(value) ? value : { value };
+  if (bands === undefined) {
+    return approaches(spec, where);
+  }
+  const graded = knownKeys(bands, [], BANDS, `${where} bands`);
+  if (Object.keys(graded).length === 0) {
+    fail(`${where} bands must author at least one band.`);
+  }
+  return {
+    ...approaches(spec, where),
+    bands: Object.fromEntries(
+      BANDS.flatMap((band) => {
+        if (graded[band] === undefined) {
+          return [];
+        }
+        const on = `${where} ${band} band`;
+        const raw = knownKeys(graded[band], [], ["text", "effects"], on);
+        if (raw.text === undefined && raw.effects === undefined) {
+          fail(`${on} needs text or effects.`);
+        }
+        return [
+          [
+            band,
+            {
+              ...(raw.text === undefined
+                ? {}
+                : { text: text(raw.text, `${on} text`) }),
+              ...(raw.effects === undefined
+                ? {}
+                : {
+                    effects: list(
+                      raw.effects,
+                      `${on} effects`,
+                      MAX_EFFECTS,
+                    ).map((entry, index) =>
+                      effect(entry, `${on} effect ${index + 1}`),
+                    ),
+                  }),
+            },
+          ],
+        ];
+      }),
+    ),
+  };
+}
+
+/** How an authored check's site is named in a problem. */
+function siteLabel({ kind, id: siteId }: Omit<AuthoredSite, "check">): string {
+  switch (kind) {
+    case "examine":
+      return `feature ${siteId} check`;
+    case "talk":
+      return `topic ${siteId} check`;
+    case "disarm":
+      return `trap ${siteId} disarm`;
+    default:
+      return `door ${siteId} ${kind}`;
+  }
+}
+
+/**
+ * The lowest and highest totals an approach can make for a character of
+ * `level` or below: a natural 1 at the lowest ability modifier (−4, a score
+ * of 3), and a natural 20 at the highest (+5), plus the proficiency bonus
+ * for a skill.
+ */
+function totals(spec: CheckSpec, level: number): [number, number] {
+  const proficiency = proficiencyBonus(level as Level);
+  return [1 - 4, 20 + 5 + (spec.skill === undefined ? 0 : proficiency)];
+}
+
+/** Whether some character of `level` or below can roll `band` on `spec`. */
+function bandReachable(band: Band, spec: CheckSpec, level: number): boolean {
+  const [lowest, highest] = totals(spec, level);
+  switch (band) {
+    case "failure-by-5":
+      return lowest <= spec.dc - 5;
+    case "failure":
+      return lowest < spec.dc;
+    case "success":
+      return highest >= spec.dc;
+    case "success-by-5":
+      return highest >= spec.dc + 5;
+  }
 }
 
 /**
@@ -856,7 +1170,7 @@ function validateModule(
         const feature = knownKeys(
           raw,
           ["id", "name", "description"],
-          ["discovery"],
+          ["discovery", "check"],
           at,
         );
         return {
@@ -866,6 +1180,9 @@ function validateModule(
           ...(feature.discovery === undefined
             ? {}
             : { discovery: text(feature.discovery, `${at} discovery`) }),
+          ...(feature.check === undefined
+            ? {}
+            : { check: check(feature.check, `${at} check`) }),
         };
       },
     );
@@ -941,7 +1258,9 @@ function validateModule(
               `${at} is hidden in unknown feature ${String(item.hiddenIn)}.`,
             );
           }
-          if (holder.discovery === undefined) {
+          // A checked feature's items are found by its bands' item
+          // effects, checked below.
+          if (holder.discovery === undefined && holder.check === undefined) {
             fail(
               `${at} is hidden in ${holder.id}, which has no discovery to reveal it.`,
             );
@@ -1135,7 +1454,7 @@ function validateModule(
       id: id(raw.id, `${where} id`),
       name: text(raw.name, `${where} name`, 60),
       description: text(raw.description, `${where} description`),
-      find: check(raw.find, `${where} find`),
+      find: approach(raw.find, `${where} find`),
       disarm: check(raw.disarm, `${where} disarm`),
       trigger: text(raw.trigger, `${where} trigger`),
       save: {
@@ -1157,9 +1476,12 @@ function validateModule(
       const passage = knownKeys(
         entry,
         ["id", "between", "description"],
-        ["door", "trap"],
+        ["door", "trap", "hidden"],
         where,
       );
+      if (passage.hidden !== undefined && passage.hidden !== true) {
+        fail(`${where} hidden must be true, or left out.`);
+      }
       if (!Array.isArray(passage.between) || passage.between.length !== 2) {
         fail(`${where} between must name two rooms.`);
       }
@@ -1176,6 +1498,7 @@ function validateModule(
         id: id(passage.id, `${where} id`),
         between: [from as string, to as string] as const,
         description: text(passage.description, `${where} description`, 200),
+        ...(passage.hidden === true ? { hidden: true as const } : {}),
         ...(passage.door === undefined
           ? {}
           : { door: door(passage.door, `${where} door`) }),
@@ -1259,6 +1582,120 @@ function validateModule(
       }
     }
   }
+  // Each authored check's bands (#281): each band can be reached, and each
+  // effect names a feature with a discovery, an item hidden in a feature, or
+  // a defeat ending. An item hidden in a feature with a check must be
+  // revealed by some item effect, or it could never be found.
+  const featureById = new Map(
+    rooms.flatMap(({ features }) =>
+      features.map((feature) => [feature.id, feature] as const),
+    ),
+  );
+  const revealed = new Set<string>();
+  /** Hidden passages some band opens, and who can close each passage. */
+  const openable = new Set<string>();
+  const closers = new Map<string, string[]>();
+  for (const site of authoredChecks({ rooms, passages, encounters })) {
+    const label = siteLabel(site);
+    for (const band of BANDS) {
+      const outcome = site.check.bands?.[band];
+      if (outcome === undefined) {
+        continue;
+      }
+      const on = `${label}'s ${band} band`;
+      if (
+        !approachesOf(site.check).some((spec) => bandReachable(band, spec, max))
+      ) {
+        // Named by the approach that comes closest: the lowest DC for a
+        // success, the highest for a failure.
+        const closest = [...approachesOf(site.check)].sort(
+          (one, other) => one.dc - other.dc,
+        )[
+          band.startsWith("success") ? 0 : approachesOf(site.check).length - 1
+        ]!;
+        const [lowest, highest] = totals(closest, max);
+        const { dc } = closest;
+        fail(
+          `${on} can't be reached with DC ${dc}: ${
+            band === "success-by-5"
+              ? `it needs a total of ${dc + 5}`
+              : band === "success"
+                ? `it needs a total of ${dc}`
+                : `it needs a total of ${band === "failure" ? dc - 1 : dc - 5}`
+          }, and a character of level ${max} totals ${lowest} to ${highest}.`,
+        );
+      }
+      for (const entry of effectsOf(outcome)) {
+        switch (entry.type) {
+          case "discovery": {
+            const feature = featureById.get(entry.feature);
+            if (feature === undefined) {
+              fail(`${on} names unknown discovery ${entry.feature}.`);
+            }
+            if (feature.discovery === undefined) {
+              fail(
+                `${on} names ${feature.id}'s discovery, but it has no discovery.`,
+              );
+            }
+            break;
+          }
+          case "item": {
+            const placed = itemRooms.get(entry.item)?.item;
+            if (placed === undefined) {
+              fail(`${on} names unknown item ${entry.item}.`);
+            }
+            if (
+              placed.hiddenIn === undefined ||
+              !featureById.has(placed.hiddenIn)
+            ) {
+              fail(
+                `${on} reveals ${placed.id}, which is not hidden in a feature.`,
+              );
+            }
+            revealed.add(placed.id);
+            break;
+          }
+          case "damage":
+            ending(entry.defeatEndingId, "defeat", on);
+            break;
+          case "open":
+          case "close": {
+            const way = passages.find(
+              ({ id: passageId }) => passageId === entry.passage,
+            );
+            if (way === undefined) {
+              fail(`${on} names unknown passage ${entry.passage}.`);
+            }
+            if (entry.type === "open" && way.hidden !== true) {
+              fail(
+                `${on} opens passage ${way.id}, which is not hidden; only a hidden passage is opened.`,
+              );
+            }
+            if (entry.type === "open") {
+              openable.add(way.id);
+            } else {
+              closers.set(way.id, [...(closers.get(way.id) ?? []), `${on}`]);
+            }
+            break;
+          }
+        }
+      }
+    }
+  }
+  for (const { id: passageId, hidden } of passages) {
+    if (hidden === true && !openable.has(passageId)) {
+      fail(`passage ${passageId} is hidden, but no check's band opens it.`);
+    }
+  }
+  for (const { item } of itemRooms.values()) {
+    const holder =
+      item.hiddenIn === undefined ? undefined : featureById.get(item.hiddenIn);
+    if (holder?.check !== undefined && !revealed.has(item.id)) {
+      fail(
+        `${item.id} is hidden in ${holder.id}, which has a check, but no check's item effect reveals it.`,
+      );
+    }
+  }
   distinct(
     passages,
     ({ between }) => [...between].sort().join(" "),
@@ -1285,24 +1722,130 @@ function validateModule(
     }
   }
   // An essential room (one whose fight wins the adventure) must be reachable
-  // without a check or a trap. A locked door counts as open when its key can
-  // be reached that way.
-  const free = new Set([module.startRoomId as string]);
-  const passable = ({ door: shut, trap: armed }: FifthPassage) =>
-    armed === undefined &&
-    (shut === undefined ||
-      (shut.keyItemId !== undefined &&
-        free.has(itemRooms.get(shut.keyItemId)!.roomId)));
-  for (let grew = true; grew;) {
-    grew = false;
-    for (const entry of passages) {
-      const [from, to] = entry.between;
-      if (free.has(from) !== free.has(to) && passable(entry)) {
-        free.add(from).add(to);
-        grew = true;
+  // without a check or a trap, or through checks that go forward on every
+  // band (#282). A locked door counts as open when its key can be reached
+  // that way. `excluded` passages are never counted on: those a band can
+  // close.
+  const sites = authoredChecks({ rooms, passages, encounters });
+  const siteRooms = (site: AuthoredSite): readonly string[] => {
+    switch (site.kind) {
+      case "examine":
+        return rooms.flatMap(({ id: roomId, features }) =>
+          features.some(({ id: featureId }) => featureId === site.id)
+            ? [roomId]
+            : [],
+        );
+      case "talk":
+        // A surrender's topics need it to surrender, which is never sure.
+        return rooms.flatMap(({ id: roomId, creatures }) =>
+          creatures.some(({ topics: said }) =>
+            said.some(({ id: topicId }) => topicId === site.id),
+          )
+            ? [roomId]
+            : [],
+        );
+      case "disarm":
+        return [];
+      default:
+        return passages.flatMap(({ door: shut, between }) =>
+          shut?.id === site.id ? [...between] : [],
+        );
+    }
+  };
+  /** The effective bands some character can roll on a check. */
+  const outcomesOf = (site: AuthoredSite): readonly Band[] => [
+    ...new Set(
+      BANDS.filter((band) =>
+        approachesOf(site.check).some((spec) => bandReachable(band, spec, max)),
+      ).map((band) => authoredBand(site.check, band)),
+    ),
+  ];
+  /** The passages a band makes a way: its opens, and a door it opens. */
+  const opensOn = (site: AuthoredSite, band: Band): ReadonlySet<string> =>
+    new Set([
+      ...effectsOf(site.check.bands?.[band]).flatMap((entry) =>
+        entry.type === "open" ? [entry.passage] : [],
+      ),
+      ...(["force", "pick", "break"].includes(site.kind) && isSuccess(band)
+        ? passages.flatMap(({ id: passageId, door: shut }) =>
+            shut?.id === site.id ? [passageId] : [],
+          )
+        : []),
+    ]);
+  const reachable = (excluded: ReadonlySet<string>): Set<string> => {
+    // The rooms reached from `from` through ways needing no check, and the
+    // passages in `extra` a band has made ways.
+    const closure = (
+      from: ReadonlySet<string>,
+      extra: ReadonlySet<string>,
+    ): Set<string> => {
+      const reached = new Set(from);
+      // A key in a feature with a check is found only on some bands.
+      const keyed = (shut: FifthDoor) =>
+        shut.keyItemId !== undefined &&
+        reached.has(itemRooms.get(shut.keyItemId)!.roomId) &&
+        featureById.get(itemRooms.get(shut.keyItemId)!.item.hiddenIn ?? "")
+          ?.check === undefined;
+      const passable = (entry: FifthPassage) =>
+        !excluded.has(entry.id) &&
+        entry.trap === undefined &&
+        (extra.has(entry.id) ||
+          (entry.hidden !== true &&
+            (entry.door === undefined || keyed(entry.door))));
+      for (let grew = true; grew;) {
+        grew = false;
+        for (const entry of passages) {
+          const [from, to] = entry.between;
+          if (reached.has(from) !== reached.has(to) && passable(entry)) {
+            reached.add(from).add(to);
+            grew = true;
+          }
+        }
+      }
+      return reached;
+    };
+    let sure = closure(new Set([module.startRoomId as string]), new Set());
+    // A check reached for sure adds what every band of it reaches.
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const site of sites) {
+        if (!siteRooms(site).some((roomId) => sure.has(roomId))) {
+          continue;
+        }
+        const ways = outcomesOf(site).map((band) =>
+          closure(sure, opensOn(site, band)),
+        );
+        const forward = new Set(
+          [...ways[0]!].filter((roomId) =>
+            ways.every((way) => way.has(roomId)),
+          ),
+        );
+        if (forward.size > sure.size) {
+          sure = forward;
+          grew = true;
+        }
       }
     }
-  }
+    return sure;
+  };
+  const free = reachable(new Set());
+  const safe = reachable(new Set(closers.keys()));
+  /**
+   * Fails naming the check whose close can cut `what` off, when one alone
+   * can; otherwise the checks that can between them.
+   */
+  const cutOff = (what: string, gone: (sure: Set<string>) => boolean) => {
+    for (const [passageId, who] of closers) {
+      if (gone(reachable(new Set([passageId])))) {
+        fail(
+          `${who[0]!} closes passage ${passageId}, which can cut off ${what}.`,
+        );
+      }
+    }
+    fail(
+      `${[...closers.values()].flat().join(", ")} can between them cut off ${what}.`,
+    );
+  };
   const winning = new Set(
     encounters.flatMap(({ id: encounterId, victoryEndingId }) =>
       victoryEndingId === undefined ? [] : [encounterId],
@@ -1335,27 +1878,38 @@ function validateModule(
         const [from, to] = entry.between;
         return (free.has(from) && beyond.has(to)) ||
           (free.has(to) && beyond.has(from))
-          ? [entry.door?.id, entry.trap?.id].filter(
-              (guard): guard is string => guard !== undefined,
-            )
+          ? [
+              entry.door?.id,
+              entry.trap?.id,
+              entry.hidden === true ? entry.id : undefined,
+            ].filter((guard): guard is string => guard !== undefined)
           : [];
       });
       fail(
         `room ${roomId} is essential, but every route to it needs a check or passes a trap (${guards.join(", ")}).`,
       );
     }
+    if (
+      encounterId !== undefined &&
+      winning.has(encounterId) &&
+      !safe.has(roomId)
+    ) {
+      cutOff(`essential room ${roomId}`, (sure) => !sure.has(roomId));
+    }
   }
   // Leaving from an exit reaches the escape endings: with loot only when
   // there is treasure to carry out. Like an essential room, some exit must
   // be reachable without a check or a trap.
   const hasExit = rooms.some(({ exit }) => exit === true);
-  if (
-    hasExit &&
-    !rooms.some(({ id: roomId, exit }) => exit && free.has(roomId))
-  ) {
+  const exitIn = (sure: Set<string>) =>
+    rooms.some(({ id: roomId, exit }) => exit && sure.has(roomId));
+  if (hasExit && !exitIn(free)) {
     fail(
       "every exit needs a check or passes a trap; one must be free to reach.",
     );
+  }
+  if (hasExit && !exitIn(safe)) {
+    cutOff("every exit room", (sure) => !exitIn(sure));
   }
   const hasTreasure = rooms.some(({ items }) =>
     items.some(({ kind }) => LOOT_KINDS.includes(kind)),
@@ -1383,7 +1937,17 @@ function validateModule(
       }
     }
   }
-  // Every other ending must be reachable: an encounter or a trap names it.
+  // Every other ending must be reachable: an encounter, a trap or a check's
+  // damage names it.
+  const damageEndings = new Set(
+    authoredChecks({ rooms, passages, encounters }).flatMap(({ check: c }) =>
+      Object.values(c.bands ?? {}).flatMap((outcome) =>
+        effectsOf(outcome).flatMap((entry) =>
+          entry.type === "damage" ? [entry.defeatEndingId] : [],
+        ),
+      ),
+    ),
+  );
   for (const { id: endingId, kind } of endings) {
     if (
       kind !== "escape-with-loot" &&
@@ -1392,10 +1956,11 @@ function validateModule(
         ({ victoryEndingId, defeatEndingId }) =>
           victoryEndingId === endingId || defeatEndingId === endingId,
       ) &&
-      !passages.some(({ trap: armed }) => armed?.defeatEndingId === endingId)
+      !passages.some(({ trap: armed }) => armed?.defeatEndingId === endingId) &&
+      !damageEndings.has(endingId)
     ) {
       fail(
-        `ending ${endingId} cannot be reached: no encounter or trap names it.`,
+        `ending ${endingId} cannot be reached: no encounter, trap or check names it.`,
       );
     }
   }

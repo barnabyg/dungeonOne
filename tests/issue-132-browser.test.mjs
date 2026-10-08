@@ -56,7 +56,8 @@ function simulate(seed) {
   if (found) {
     state = run(state, DISARM);
   }
-  const passed = (id) => state.checks.find((entry) => entry.id === id)?.success;
+  const passed = (id) =>
+    state.checks.find((entry) => entry.id === id)?.band.startsWith("success");
   const outcome = {
     forced: passed("force:swollen-door"),
     found,

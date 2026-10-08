@@ -9,10 +9,13 @@ const NAMES = [
   "goblin-band",
   "goblin-burrow",
   "goblin-trio",
+  "graded-cellar",
   "lintel-barrow",
   "lone-goblin",
+  "obstacle-yard",
   "rat-tunnels",
   "sealed-crypt",
+  "shifting-ossuary",
 ];
 
 const FILES = Object.fromEntries(
@@ -134,6 +137,31 @@ export const withoutRiders = (statBlock) => {
   }));
 };
 
+/**
+ * Graded checks (#281), level 1: a rubble heap whose Perception check reveals
+ * a silver ring (and on a success by 5 or more its discovery) or, failing by
+ * 5 or more, drops stones on the character; a cat whose topic's success by 5
+ * makes the cask's discovery; and a warped hatch whose force can bruise.
+ */
+export const gradedCellar = validateModule(moduleFile("graded-cellar"));
+
+/**
+ * Routes opened and closed (#282), level 1: a skull wall whose Perception
+ * success opens a hidden passage to a reliquary, and a rotten door whose
+ * failed force brings the ceiling down and closes its passage for good. The
+ * tomb, the module's essential room, is reached freely.
+ */
+export const shiftingOssuary = validateModule(moduleFile("shifting-ossuary"));
+
+/**
+ * Alternative approaches (#283), level 1: a crumbling wall to get over with
+ * Athletics (DC 12) or Acrobatics (DC 14), whose success opens a hidden way
+ * to a garden, and a guard to get past with Persuasion or Intimidation (DC
+ * 13 each), whose success opens the guardhouse. A copy of the AI DM
+ * evaluation's own yard, owned by the tests.
+ */
+export const obstacleYard = validateModule(moduleFile("obstacle-yard"));
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,
@@ -144,4 +172,7 @@ export const FIXTURE_MODULES = [
   lintelBarrow,
   sealedCrypt,
   goblinBurrow,
+  gradedCellar,
+  shiftingOssuary,
+  obstacleYard,
 ];
