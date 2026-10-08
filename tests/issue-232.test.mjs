@@ -10,6 +10,7 @@ import {
   fighterAtLevel,
   GATE_STYLE,
   gateAdventure,
+  KITS,
   percentileCharacters,
   playAdventure,
   WEAKEST_PERCENTILE,
@@ -536,36 +537,47 @@ function survival(adventure, count) {
 }
 
 /**
- * How often gate play of `adventure`, on its first `count` seeds, leaves the
- * gate's weakest character prone: the 5th percentile at the lowest
- * recommended level, in the gate's style.
+ * How often the runs the gate's survival check plays of `adventure`, on its
+ * first `count` seeds, put condition `kind` on the character: the 5th
+ * percentile character in each kit at each recommended level, in the gate's
+ * style.
  */
-function knockdowns(adventure, count) {
+function conditionsGiven(adventure, kind, count) {
   const [weakest] = percentileCharacters({ percentiles: [WEAKEST_PERCENTILE] });
-  const runtime = createFifthRuntime(
-    adventure,
-    fighterAtLevel(weakest.dice, adventure.recommendedLevels.min),
-  );
+  const { min, max } = adventure.recommendedLevels;
   let total = 0;
-  for (let seed = 0; seed < count; seed++) {
-    for (const { conditions } of playAdventure(runtime, GATE_STYLE, seed)
-      .encounters) {
-      total += conditions.prone ?? 0;
+  for (let level = min; level <= max; level++) {
+    for (const kit of KITS) {
+      const runtime = createFifthRuntime(
+        adventure,
+        fighterAtLevel(weakest.dice, level, kit),
+      );
+      for (let seed = 0; seed < count; seed++) {
+        for (const { conditions } of playAdventure(runtime, GATE_STYLE, seed)
+          .encounters) {
+          total += conditions[kind] ?? 0;
+        }
+      }
     }
   }
   return total;
 }
 
 test("the balance gate plays the riders and Pack Tactics", () => {
-  // A lone Wolf: its knockdown makes it deadlier.
+  // A lone Wolf knocks the character prone.
   const wolf = fightRoom("wolf-cellar", "The Wolf Cellar", [
     { id: "wolf", monster: "wolf" },
   ]);
   // The knockdown changes survival by less than the seeds do (#270), so the
   // gate's play is checked to knock the character down instead.
-  assert.ok(knockdowns(wolf, 20) > 0, "the wolf knocks Ada prone");
-  assert.equal(knockdowns(withStatBlocks(wolf, withoutRiders), 20), 0);
-  // The Giant Spider's poison makes it deadlier, clearly so on 60 seeds.
+  assert.ok(conditionsGiven(wolf, "prone", 20) > 0, "the wolf knocks it down");
+  assert.equal(
+    conditionsGiven(withStatBlocks(wolf, withoutRiders), "prone", 20),
+    0,
+  );
+  // The Giant Spider poisons the character, and its poison makes it
+  // deadlier, clearly so on 60 seeds.
+  assert.ok(conditionsGiven(spiderCellar, "poisoned", 20) > 0);
   assert.ok(
     survival(spiderCellar, 60) <
       survival(withStatBlocks(spiderCellar, withoutRiders), 60),
