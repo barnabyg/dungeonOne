@@ -245,11 +245,11 @@ In the same library, **Start** _The Silvervein Mine_. Fight by the rule above.
 10. **Examine** Cocooned Prospector, **Take** Uncut Sapphire and the Potion of
     Healing. **Go** Main Gallery, Sorting Shed, Mine Mouth, then **Leave the
     adventure** and **Leave now**.
-11. Expect **Out with the silver**, _Escaped with loot_, with Defeated the
-    Kobold Lookout; spared the Kobold Tunneller +62 XP (25 for the lookout,
+11. Expect **Out with the silver**, _Escaped with loot_, with Defeated
+    Kobold Lookout; spared Kobold Tunneller +62 XP (25 for the lookout,
     half the tunneller's 25 as Ada struck it, and 25 for sparing it), Defeated
-    Drowned Miner and Miner's Bones +100 XP, Defeated the Bugbear Overseer
-    +200 XP, Defeated the Giant Spider +200 XP and Out with the silver +300 XP.
+    Drowned Miner and Miner's Bones +100 XP, Defeated Bugbear Overseer
+    +200 XP, Defeated Giant Spider +200 XP and Out with the silver +300 XP.
     Treasure kept: Silver Locket (25 gp), Bugbear Overseer's Rough Gem (10 gp)
     and Uncut Sapphire (100 gp). "Coin found: 65 gp 2 sp 9 cp. Purse: 65 gp 2
     sp 9 cp." and "Ada has 1762 XP." There is no level up: level 3 is the
