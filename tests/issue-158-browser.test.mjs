@@ -238,7 +238,7 @@ for (const viewport of [
             text: viewed.body.session.ending.text,
             // A victory credits the fight's XP (#133).
             rewards: {
-              xp: [{ name: "Defeated the Goblin Warrior", xp: 50 }],
+              xp: [{ name: "Defeated Goblin Warrior", xp: 50 }],
               treasure: [],
               totalXp: 50,
               level: 1,

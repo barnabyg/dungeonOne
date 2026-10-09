@@ -175,7 +175,7 @@ test(
       assert.match(ending, /^Back with the takings\nEscaped with loot\n/u);
       assert.match(
         ending,
-        /Defeated the Wolf: \+50 XP\nDefeated Scarred Bandit and Young Bandit: \+50 XP\nBack with the takings: \+200 XP/,
+        /Defeated Wolf: \+50 XP\nDefeated Scarred Bandit and Young Bandit: \+50 XP\nBack with the takings: \+200 XP/,
       );
       assert.match(ending, /Treasure kept\nSilver Toll Seal \(25 gp\)\./);
       assert.match(ending, /Coin found: 14 gp 5 sp\. Purse: 6 gp\./);

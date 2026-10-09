@@ -120,7 +120,7 @@ test(
       assert.match(ending, /^Out with the plunder\nEscaped with loot\n/u);
       assert.ok(
         ending.includes(
-          "Defeated the Reaver's Wolf: +200 XP\nOut with the plunder: +500 XP",
+          "Defeated Reaver's Wolf: +200 XP\nOut with the plunder: +500 XP",
         ),
         ending,
       );

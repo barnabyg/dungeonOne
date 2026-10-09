@@ -289,7 +289,7 @@ test(
       await page.locator("#ending").waitFor({ state: "visible" });
       assert.ok(
         (await text(page.locator("#ending"))).includes(
-          "Defeated the Hesk's Hound; drove off the Kennel Mastiff: +212 XP\nDefeated the Baiting Bear: +200 XP\nOut with the spoils: +2350 XP",
+          "Defeated Hesk's Hound; drove off Kennel Mastiff: +212 XP\nDefeated Baiting Bear: +200 XP\nOut with the spoils: +2350 XP",
         ),
       );
       const record = await readAda(libraryPath);

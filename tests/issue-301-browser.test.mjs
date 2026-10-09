@@ -88,7 +88,7 @@ test(
       }
       await page.locator("#ending").waitFor({ state: "visible" });
       const ending = await text(page.locator("#ending"));
-      assert.match(ending, /Defeated the Giant Rat: \+25 XP/u);
+      assert.match(ending, /Defeated Giant Rat: \+25 XP/u);
 
       // Storage holds what the ending credits.
       const xp = xpOf(runtime, state).reduce((sum, [, each]) => sum + each, 0);

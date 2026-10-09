@@ -140,7 +140,7 @@ test("a level-2 Fighter clears the bothy and walks out with the takings", () => 
   // 60 gp and 11 sp, in copper: the test fighter brings an empty purse.
   assert.equal(state.possessions.purse, 6000 + 110);
   assert.deepEqual(xpOf(runtime, state), [
-    ["Defeated the Moor Bandit", 25],
+    ["Defeated Moor Bandit", 25],
     ["Out with the takings", 200],
   ]);
 });

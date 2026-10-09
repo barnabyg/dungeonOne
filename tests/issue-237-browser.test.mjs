@@ -89,7 +89,7 @@ test(
       assert.match(
         ending,
         new RegExp(
-          `Defeated ${names.join(" and ")}; drove off the ${goneName}: \\+${goblinXp} XP\\n`,
+          `Defeated ${names.join(" and ")}; drove off ${goneName}: \\+${goblinXp} XP\\n`,
         ),
       );
       // Goblin n carries n sp.

@@ -58,7 +58,7 @@ const HANDOFFS = [
     ],
     ending: "Out with the takings",
     xp: [
-      ["Defeated the Moor Bandit", 25],
+      ["Defeated Moor Bandit", 25],
       ["Out with the takings", 200],
     ],
     treasure: ["Enamelled Brooch", "Pallet Sapphire", "Bloodstone"],
@@ -82,7 +82,7 @@ const HANDOFFS = [
     ],
     ending: "Out with the chapel silver",
     xp: [
-      ["Defeated the Drowned Sexton", 50],
+      ["Defeated Drowned Sexton", 50],
       ["Out with the chapel silver", 300],
     ],
     treasure: ["Silver Reliquary", "Moss Agate", "Chrysoprase Fob"],
@@ -131,7 +131,7 @@ const HANDOFFS = [
     ],
     ending: "Out with the plunder",
     xp: [
-      ["Defeated the Gnoll Ravager", 200],
+      ["Defeated Gnoll Ravager", 200],
       ["Out with the plunder", 400],
     ],
     treasure: ["Gilt-bronze Icon", "Pearl Earrings"],

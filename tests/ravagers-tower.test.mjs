@@ -142,7 +142,7 @@ test("a level-3 Fighter kills the gnoll and climbs down with the plunder", () =>
   // 40 gp and 11 sp, in copper: the test fighter brings an empty purse.
   assert.equal(state.possessions.purse, 4000 + 110);
   assert.deepEqual(xpOf(runtime, state), [
-    ["Defeated the Gnoll Ravager", 200],
+    ["Defeated Gnoll Ravager", 200],
     ["Out with the plunder", 400],
   ]);
 });

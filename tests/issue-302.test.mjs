@@ -330,7 +330,7 @@ test("slipping past and then winning the fight earns the fight's XP alone", () =
   assert.deepEqual(state.bypassedEncounterIds, ["cellar-rat"]);
   assert.deepEqual(
     run.projectSettlement(state).xp.map(({ id, name, xp }) => [id, name, xp]),
-    [["rat-run/encounter/cellar-rat", "Defeated the Giant Rat", 25]],
+    [["rat-run/encounter/cellar-rat", "Defeated Giant Rat", 25]],
   );
 });
 

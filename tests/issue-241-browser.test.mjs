@@ -226,7 +226,7 @@ test(
       assert.match(ending, /^Out with the silver\nEscaped with loot\n/u);
       assert.match(
         ending,
-        /Defeated the Kobold Lookout; spared the Kobold Tunneller: \+62 XP\nDefeated Drowned Miner and Miner's Bones: \+100 XP\nDefeated the Bugbear Overseer: \+200 XP\nDefeated the Giant Spider: \+200 XP\nOut with the silver: \+300 XP/u,
+        /Defeated Kobold Lookout; spared Kobold Tunneller: \+62 XP\nDefeated Drowned Miner and Miner's Bones: \+100 XP\nDefeated Bugbear Overseer: \+200 XP\nDefeated Giant Spider: \+200 XP\nOut with the silver: \+300 XP/u,
       );
       assert.match(
         ending,

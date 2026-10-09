@@ -247,7 +247,7 @@ test("a fled goblin's pouch is absent at settlement, it leaves no body, and it g
   assert.equal(won.fledOpponents[0].engaged, true);
   assert.deepEqual(encounter, {
     id: "fleeing-goblins/encounter/barrow-goblin",
-    name: `Defeated ${names.join(" and ")}; drove off the Goblin ${gone.slice(-1)}`,
+    name: `Defeated ${names.join(" and ")}; drove off Goblin ${gone.slice(-1)}`,
     xp: 25 * fallen.length + 12,
   });
   assert.deepEqual(
