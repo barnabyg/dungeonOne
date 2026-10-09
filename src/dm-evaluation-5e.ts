@@ -878,6 +878,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   // Selling equipped gear is confirmed by the player in the panel.
   "sell-equipped": undefined,
   leave: undefined,
+  "tactical-mind": "tactical_mind",
 };
 const READ_TOOLS = ["look", "get_character_status"];
 
@@ -917,6 +918,7 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
         "end-turn",
         "uncanny-dodge",
         "take-hit",
+        "tactical-mind",
       ].includes(action)
         ? TOOL_OF[action]!
         : action === "buy" || action === "sell"

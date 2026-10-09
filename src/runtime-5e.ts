@@ -58,7 +58,7 @@
  * The AI DM reads with `look` and `get_character_status`, and acts with
  * `move`, `sneak`, `ambush`, `react`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
  * `break_door`, `unlock`, `search`, `disarm`, `talk`, `trade`, `attack`,
- * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge` and `take_hit`. Each is offered only while the engine would
+ * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge`, `take_hit` and `tactical_mind`. Each is offered only while the engine would
  * accept it, listing only what is visible and legal: the tools come from the
  * same projection (`projectActions`) as the browser's action bar, which asks
  * the engine about each action. The engine authors the
@@ -85,6 +85,7 @@ import {
   statBlockSaves,
   type AuthoredCheck,
   type AuthoredSite,
+  type CheckBand,
   type FifthAdventure,
   type FifthCreature,
   type FifthOpponent,
@@ -205,6 +206,8 @@ import { tradeGoodValue } from "./treasure-5e.js";
 import { ABILITIES, type SkillId } from "./class-5e.js";
 import {
   abilityDisadvantages,
+  initiativeAdvantages,
+  tacticalMindDie,
   hasExpertise,
   skillProficiency,
   characterProfile,
@@ -232,7 +235,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v20";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v21";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -287,10 +290,22 @@ export type FifthState = Readonly<{
    * `disarm:` and a trap id, `talk:` and a topic id, or `examine:` and a
    * feature id. Each is tried once, unless the module authors a retry
    * (#284): then each try adds an entry, and the last is the outcome that
-   * stands. `held` marks a try made while the retry's circumstance held. The
-   * discoveries and items every try's band revealed follow from them.
+   * stands. `held` marks a try made while the retry's circumstance held, and
+   * `tacticalMind` a try Tactical Mind added 1d10 to (#315), graded again.
+   * The discoveries and items every try's band revealed follow from them.
    */
-  checks: readonly Readonly<{ id: string; band: Band; held?: true }>[];
+  checks: readonly Readonly<{
+    id: string;
+    band: Band;
+    held?: true;
+    tacticalMind?: true;
+  }>[];
+  /**
+   * The check the character has just failed (#315), while it has Tactical
+   * Mind and a use of Second Wind left: Tactical Mind may add 1d10 to it.
+   * The next accepted action of any other kind takes the offer away.
+   */
+  tacticalMind?: Readonly<{ site: CheckSite; roll: CheckRoll }>;
   foundTrapIds: readonly string[];
   disarmedTrapIds: readonly string[];
   sprungTrapIds: readonly string[];
@@ -354,10 +369,10 @@ export type FifthState = Readonly<{
 /** Who is surprised as a fight begins (#301, #303). */
 type Surprise = Readonly<{ opponents?: boolean; character?: boolean }>;
 
-/** The state without its `unseenBy` or `reactingTo` mark. */
+/** The state without its `unseenBy`, `reactingTo` or `tacticalMind` mark. */
 function cleared(
   state: FifthState,
-  mark: "unseenBy" | "reactingTo",
+  mark: "unseenBy" | "reactingTo" | "tacticalMind",
 ): FifthState {
   const { [mark]: gone, ...rest } = state;
   void gone;
@@ -434,7 +449,12 @@ export type FifthAction =
    */
   | Readonly<{ type: "sell"; itemId: string; equipped?: true }>
   /** The player's final choice to leave from an exit room. */
-  | Readonly<{ type: "leave"; roomId: string }>;
+  | Readonly<{ type: "leave"; roomId: string }>
+  /**
+   * Tactical Mind (#315): a use of Second Wind adds 1d10 to the check just
+   * failed, spent only if the check then succeeds.
+   */
+  | Readonly<{ type: "tactical-mind" }>;
 
 /** How an action making a check chooses it: its approach, and a retry. */
 export type CheckChoice = Readonly<{ approach?: string; retry?: true }>;
@@ -719,6 +739,7 @@ type TargetTool = keyof typeof TARGET_TOOLS;
 const MUTATION_TOOLS: readonly string[] = [
   ...Object.keys(TARGET_TOOLS),
   ...Object.keys(FEATURE_TOOLS),
+  "tactical_mind",
 ];
 
 export type FifthEvent =
@@ -802,6 +823,23 @@ export type FifthEvent =
   | Readonly<{ type: "retry"; name: string; reason: string }>
   /** An item a retry used up (#284). */
   | Readonly<{ type: "used-up"; itemId: string; name: string }>
+  /**
+   * Tactical Mind (#315): 1d10 added to the check just failed, which is
+   * graded again. `roll` is the check with the new total; a use of Second
+   * Wind is spent only when it now succeeds.
+   */
+  | Readonly<{
+      type: "tactical-mind";
+      roll: CheckRoll;
+      /** The die added: a d10 for the Fighter. */
+      die: Readonly<{ sides: number; value: number }>;
+      /** The total before the die. */
+      before: number;
+      band: Band;
+      spent: boolean;
+      /** Second Wind's uses afterwards. */
+      secondWind: Readonly<{ uses: number; max: number }>;
+    }>
   /** Damage a check's band, or a retry's cost, dealt the character (#281). */
   | Readonly<{
       type: "check-damage";
@@ -1107,6 +1145,8 @@ export type FifthRefusalCode =
   | "choose-approach"
   | "unknown-approach"
   | "no-retry"
+  | "no-tactical-mind"
+  | "no-failed-check"
   | "not-here"
   | "no-traps"
   | "already-searched"
@@ -1147,6 +1187,8 @@ Act only through the offered tools, and only with the ids each tool lists. To go
 Leaving the adventure is the player's own final choice, made with the Leave button in an exit room; you have no tool for it. If the player asks to leave, tell them to use that button when they are ready, without calling a tool.
 
 Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. A module may allow another try at a failed check, after a cost (damage, or a mundane tool the module placed, such as a rope or an iron spike, used up) or once something has changed (the character holds an item, has made a discovery or has won a fight): only then does the tool take retry and list the targets that offer another try, with why. Call it with retry true only when the player asks to try again and the target is listed, and false otherwise; the engine takes the cost before it rolls. Asking for another try, or for advantage, where none is offered changes nothing: say so without calling a tool. The engine alone decides advantage and disadvantage on a check, from the module's circumstances, and its result names them; never claim or promise either. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, damage, or a way opened or closed. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage, way opened or closed, or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone, unless the tool offers a retry: then any approach it lists may be tried again. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. Searching for traps ("search for traps", "I study the flagstones for pressure plates") is one search: the engine rolls the character's better of Perception and Investigation. Picking a lock needs thieves' tools, and so may disarming a trap: pick_lock, and a disarm that needs them, is offered only while the character carries them. If the player asks to pick a lock and pick_lock is not offered for that door, say the character has no thieves' tools and name the ways still offered (forcing or breaking the door, or unlocking it with its key), without calling a tool; never pick it, or open the door, in your words. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
+
+Right after the character fails an ability check, a character with Tactical Mind may spend a use of Second Wind to add 1d10 to that check: only then is tactical_mind offered. Call it only when the player asks to use Tactical Mind, or to push themselves to succeed at the check they just failed. The engine rolls the d10 and grades the check again, without rerolling it, and says whether the use was spent; it is spent only if the check now succeeds. If tactical_mind is not offered, say so without calling a tool. Never add to a check, change its band or claim it now succeeds in your words.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -1251,11 +1293,13 @@ export function playerCombatant(
   potions: readonly Potion[] = [],
 ): Combatant {
   const profile = characterProfile(sheet);
-  // Untrained armour's disadvantage on its saves and initiative (SRD 5.2).
+  // Untrained armour's disadvantage on its saves and initiative (SRD 5.2),
+  // and features' advantage on its initiative (#315).
   const disadvantages = ABILITIES.flatMap((ability) => {
     const sources = abilityDisadvantages(sheet, ability);
     return sources.length === 0 ? [] : [[ability, sources] as const];
   });
+  const initiative = initiativeAdvantages(sheet);
   return {
     id: PLAYER_ID,
     name: sheet.name,
@@ -1274,6 +1318,7 @@ export function playerCombatant(
     ...(disadvantages.length === 0
       ? {}
       : { abilityDisadvantages: Object.fromEntries(disadvantages) }),
+    ...(initiative.length === 0 ? {} : { initiativeAdvantages: initiative }),
     attack: weaponOf(profile.attack),
     ...(profile.lightAttack === undefined
       ? {}
@@ -1367,6 +1412,23 @@ function modeText(mode: RollMode, kept: number): string {
   }
   const kind = mode.advantage.length > 0 ? "advantage" : "disadvantage";
   return `, at ${kind} ${sources(mode.advantage.length > 0 ? mode.advantage : mode.disadvantage)}: ${mode.d20s.join(" and ")}, keeping ${kept};`;
+}
+
+/**
+ * How an initiative roll's d20 was rolled: "surprised, d20s 18 and 4, kept"
+ * (#301), "advantage: Remarkable Athlete, d20s 4 and 15, kept" (#315), or
+ * the two cancelling.
+ */
+function initiativeModeText(mode: RollMode): string {
+  const { advantage, disadvantage, d20s } = mode;
+  if (advantage.length > 0 && disadvantage.length > 0) {
+    return `advantage: ${advantage.join(", ")} and disadvantage: ${disadvantage.join(", ")} cancel`;
+  }
+  const sources =
+    advantage.length > 0
+      ? `advantage: ${advantage.join(", ")}`
+      : disadvantage.join(", ");
+  return `${sources}, d20s ${d20s.join(" and ")}, kept`;
 }
 
 function uses(count: number): string {
@@ -1721,7 +1783,7 @@ export function renderFifthEvent(
       return `Initiative: ${event.order
         .map(
           (roll) =>
-            `${name(roll.combatantId)} ${roll.mode === undefined ? "" : `(${roll.mode.disadvantage.join(", ")}, d20s ${roll.mode.d20s.join(" and ")}, kept) `}${roll.d20} ${signed(roll.bonus)} = ${roll.total}${roll.tieBreaks.length === 0 ? "" : ` (roll-off ${roll.tieBreaks.join(", ")})`}`,
+            `${name(roll.combatantId)} ${roll.mode === undefined ? "" : `(${initiativeModeText(roll.mode)}) `}${roll.d20} ${signed(roll.bonus)} = ${roll.total}${roll.tieBreaks.length === 0 ? "" : ` (roll-off ${roll.tieBreaks.join(", ")})`}`,
         )
         .join("; ")}.`;
     case "turn":
@@ -1942,6 +2004,11 @@ export function renderFifthEvent(
       return `Another try at the ${event.name} (${event.reason}).`;
     case "used-up":
       return `The ${event.name} is used up.`;
+    case "tactical-mind": {
+      const { roll, secondWind } = event;
+      const left = `${secondWind.uses} of ${secondWind.max} left`;
+      return `Tactical Mind: you add 1d${event.die.sides} to the ${roll.label}. ${event.before} + ${event.die.value} = ${roll.total} against DC ${roll.dc}. ${BAND_NAMES[event.band]}: ${event.spent ? `a use of Second Wind is spent (${left})` : `the use of Second Wind is kept (${left})`}.`;
+    }
     case "check-damage":
       return `The ${event.source} deals ${event.rolls.join(" + ")}${event.modifier === 0 ? "" : ` ${signed(event.modifier)}`} = ${event.damage} ${event.damageType}; you have ${event.hpAfter}/${event.maxHp} HP.`;
     case "door":
@@ -2216,6 +2283,26 @@ export function describeFifthResult(
           },
         ];
       }
+      case "tactical-mind": {
+        // Only the added die is drawn: the check's d20 was rolled before.
+        const { roll } = event;
+        return [
+          {
+            purpose: "check",
+            roller: playerName,
+            label: `${roll.label} (Tactical Mind)`,
+            dice: take([event.die.value]),
+            modifier: event.before,
+            proficiency: 0,
+            total: roll.total,
+            dc: roll.dc,
+            outcome: roll.success ? "success" : "failure",
+            ...(event.band === "failure-by-5" || event.band === "success-by-5"
+              ? { band: event.band }
+              : {}),
+          },
+        ];
+      }
       case "check-damage":
         return [
           {
@@ -2247,7 +2334,8 @@ export function describeFifthResult(
         ];
       case "initiative":
         // Every initiative die is a d20, drawn in combatant order before
-        // any roll-off; a surprised combatant draws two (#301).
+        // any roll-off; a surprised combatant (#301), or one with
+        // advantage (#315), draws two, and one with both draws one.
         next += event.order.reduce(
           (count, roll) =>
             count + (roll.mode?.d20s.length ?? 1) + roll.tieBreaks.length,
@@ -2622,7 +2710,9 @@ export type ActionKind =
   | "sell-equipped"
   /** Selling a gem or art object for its full value. */
   | "sell-treasure"
-  | "leave";
+  | "leave"
+  /** Tactical Mind on the check just failed (#315). */
+  | "tactical-mind";
 
 const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   attack: true,
@@ -2657,6 +2747,7 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   "sell-equipped": true,
   "sell-treasure": true,
   leave: true,
+  "tactical-mind": true,
 };
 
 /**
@@ -2756,6 +2847,8 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "choose-approach": "Choose how",
   "unknown-approach": "Not offered",
   "no-retry": "No other try",
+  "no-tactical-mind": "No Tactical Mind",
+  "no-failed-check": "No failed check",
   "not-here": "Not here",
   "no-traps": "No traps here",
   "already-searched": "Already searched",
@@ -3042,7 +3135,8 @@ function projectFight(
                   // Hidden by Hide (#307): advantage on its next attack.
                   hidden: encounter.hidden.includes(entrant.id),
                   conditions: conditionsOf(encounter, entrant.id),
-                  // A surprised combatant's two d20s (#301).
+                  // A surprised combatant's two d20s (#301), or two with
+                  // advantage (#315).
                   initiative: {
                     d20,
                     ...(mode === undefined ? {} : { mode }),
@@ -4192,6 +4286,230 @@ export function createFifthRuntime(
   };
 
   /**
+   * What a search for traps with `total` finds (#309): each armed trap on
+   * the exits not yet found whose find DC it meets.
+   */
+  const searchFinds = (
+    state: FifthState,
+    total: number,
+  ): Readonly<{
+    state: FifthState;
+    event: Extract<FifthEvent, Readonly<{ type: "searched" }>>;
+  }> => {
+    const found = trapsHere(state).filter(
+      ({ trap }) =>
+        armed(state, trap.id) &&
+        !state.foundTrapIds.includes(trap.id) &&
+        total >= trap.find.dc,
+    );
+    return {
+      state: {
+        ...state,
+        foundTrapIds: [
+          ...state.foundTrapIds,
+          ...found.map(({ trap }) => trap.id),
+        ],
+      },
+      event: {
+        type: "searched",
+        found: found.map(({ trap, to }) => ({
+          trapId: trap.id,
+          name: trap.name,
+          description: trap.description,
+          destination: roomById(to).name,
+        })),
+      },
+    };
+  };
+
+  /**
+   * A creature's words about a topic: its reply on a success, with what a
+   * surrendered opponent gives with it (#238), or its failure words.
+   */
+  const topicWords = (
+    state: FifthState,
+    creature: FifthCreature,
+    topic: FifthCreature["topics"][number],
+    success: boolean,
+  ): FifthEvent => ({
+    type: "talked",
+    topicId: topic.id,
+    creature: creature.name,
+    words: success ? topic.reply : topic.failure!,
+    given: success
+      ? hiddenIn(state, creature.id)
+          .filter((item) => topic.gives?.includes(item.id) === true)
+          .map(({ name }) => name)
+      : [],
+  });
+
+  /**
+   * Tactical Mind (#315): adds its die to the check just failed, without
+   * rerolling it, and grades it again. The new band is remembered in place
+   * of the old; the site's outcome follows the new total, and when the band
+   * changes, its words and effects apply. What the failure already did, such
+   * as its damage, stands. A use of Second Wind is spent only on a success.
+   */
+  const tacticalMind = (
+    state: FifthState,
+    offer: NonNullable<FifthState["tacticalMind"]>,
+    sides: number,
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): FifthResult => {
+    const dice = need(random, "Tactical Mind");
+    const value = dice.roll(sides);
+    const { site } = offer;
+    const total = offer.roll.total + value;
+    const roll: CheckRoll = {
+      ...offer.roll,
+      total,
+      success: total >= offer.roll.dc,
+    };
+    const id = checkSiteId(site);
+    const check = siteChecks.get(id);
+    const band =
+      check === undefined ? bandOf(roll) : authoredBand(check, bandOf(roll));
+    const index = state.checks.findLastIndex((entry) => entry.id === id);
+    const was = state.checks[index]!;
+    const spent = isSuccess(band);
+    const uses = state.character.secondWindUses - (spent ? 1 : 0);
+    const graded: FifthState = {
+      ...cleared(state, "tacticalMind"),
+      character: { ...state.character, secondWindUses: uses },
+      checks: state.checks.with(index, { ...was, band, tacticalMind: true }),
+    };
+    const at = siteOutcome(graded, site, roll);
+    // A failure graded into a lesser failure keeps the damage it dealt, and
+    // deals none again.
+    const outcome = check?.bands?.[band];
+    const after =
+      was.band === band
+        ? { state: at.state, events: [] }
+        : bandOutcome(
+            at.state,
+            spent || outcome === undefined
+              ? outcome
+              : {
+                  ...outcome,
+                  effects: effectsOf(outcome).filter(
+                    ({ type }) => type !== "damage",
+                  ),
+                },
+            at.source,
+            dice,
+          );
+    return {
+      state: after.state,
+      events: [
+        {
+          type: "tactical-mind",
+          roll,
+          die: { sides, value },
+          before: offer.roll.total,
+          band,
+          spent,
+          secondWind: {
+            uses,
+            max: characterProfile(sheetOf(state)).secondWind!.uses,
+          },
+        },
+        ...at.events,
+        ...after.events,
+      ],
+    };
+  };
+
+  /**
+   * What a check at `site` does with `roll` beyond its band (#315): a door
+   * opens, a search finds traps, a trap is disarmed, a creature answers or
+   * a feature is examined. `source` names what the check was made on.
+   */
+  const siteOutcome = (
+    state: FifthState,
+    site: CheckSite,
+    roll: CheckRoll,
+  ): Readonly<{
+    state: FifthState;
+    events: readonly FifthEvent[];
+    source: string;
+  }> => {
+    const { success } = roll;
+    switch (site.kind) {
+      case "force":
+      case "pick":
+      case "break": {
+        const door = adventure.passages.find(
+          (passage) => passage.door?.id === site.id,
+        )!.door!;
+        return {
+          state: success
+            ? { ...state, openedDoorIds: [...state.openedDoorIds, door.id] }
+            : state,
+          events: [
+            {
+              type: "door",
+              doorId: door.id,
+              name: door.name,
+              approach: site.kind,
+              opened: success,
+            },
+          ],
+          source: door.name,
+        };
+      }
+      case "search": {
+        const searched = searchFinds(state, roll.total);
+        return {
+          state: searched.state,
+          events: [searched.event],
+          source: room(state).name,
+        };
+      }
+      case "disarm": {
+        const trap = adventure.passages.find(
+          (passage) => passage.trap?.id === site.id,
+        )!.trap!;
+        return {
+          state: success
+            ? { ...state, disarmedTrapIds: [...state.disarmedTrapIds, trap.id] }
+            : state,
+          events: [
+            { type: "disarmed", trapId: trap.id, name: trap.name, success },
+          ],
+          source: trap.name,
+        };
+      }
+      case "talk": {
+        const creature = creaturesHere(state).find(({ topics }) =>
+          topics.some((topic) => topic.id === site.id),
+        )!;
+        const topic = creature.topics.find((entry) => entry.id === site.id)!;
+        return {
+          state,
+          events: [topicWords(state, creature, topic, success)],
+          source: creature.name,
+        };
+      }
+      case "examine": {
+        const feature = featureById.get(site.id)!;
+        return {
+          state,
+          events: [
+            {
+              type: "examined",
+              targetId: feature.id,
+              name: feature.name,
+              description: feature.description,
+              found: [],
+            },
+          ],
+          source: feature.name,
+        };
+      }
+    }
+  };
+
+  /**
    * The one check path (#280): rolls the check at `site` once from the
    * seeded stream, grades it into the band whose outcome applies (#281) and
    * remembers that band, so asking or typing again never rerolls it. Then it
@@ -4224,22 +4542,61 @@ export function createFifthRuntime(
       spec,
     );
     const band = authoredBand(check, bandOf(roll));
-    const outcome = check.bands?.[band];
     // A try made while a retry's circumstance holds is not followed by
     // another for it (#284).
     const held =
       check.retry?.after !== undefined && holds(state, check.retry.after);
-    let next: FifthState = {
-      ...state,
-      checks: [
-        ...state.checks,
-        {
-          id: checkSiteId(site),
-          band,
-          ...(held ? { held: true as const } : {}),
-        },
+    const graded = bandOutcome(
+      {
+        ...state,
+        checks: [
+          ...state.checks,
+          {
+            id: checkSiteId(site),
+            band,
+            ...(held ? { held: true as const } : {}),
+          },
+        ],
+      },
+      check.bands?.[band],
+      source,
+      dice,
+    );
+    // A failure Tactical Mind may add to, while a use of Second Wind is
+    // left (#315).
+    const next =
+      !isSuccess(band) &&
+      graded.state.status === "playing" &&
+      tacticalMindDie(sheetOf(state)) !== undefined &&
+      graded.state.character.secondWindUses > 0
+        ? { ...graded.state, tacticalMind: { site, roll } }
+        : graded.state;
+    return {
+      state: next,
+      roll,
+      success: isSuccess(band),
+      around: (siteEvents) => [
+        { type: "check", roll, band },
+        ...siteEvents,
+        ...graded.events,
       ],
     };
+  };
+
+  /**
+   * A band's outcome (#281): its words, then its effects. Its discoveries
+   * and items are revealed (and stay revealed, as they follow from the
+   * remembered band, already in `state`), its passages opened or closed,
+   * and its damage rolled and dealt, which can end the adventure in the
+   * effect's defeat. `source` names what the check was made on.
+   */
+  const bandOutcome = (
+    state: FifthState,
+    outcome: CheckBand | undefined,
+    source: string,
+    dice: Pick<RandomSource, "roll">,
+  ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
+    let next = state;
     const effects: FifthEvent[] =
       outcome?.text === undefined
         ? []
@@ -4301,16 +4658,7 @@ export function createFifthRuntime(
         }
       }
     }
-    return {
-      state: next,
-      roll,
-      success: isSuccess(band),
-      around: (siteEvents) => [
-        { type: "check", roll, band },
-        ...siteEvents,
-        ...effects,
-      ],
-    };
+    return { state: next, events: effects };
   };
 
   /**
@@ -4642,6 +4990,8 @@ export function createFifthRuntime(
         const roomId = field("roomId");
         return roomId === undefined ? undefined : { type: "leave", roomId };
       }
+      case "tactical-mind":
+        return { type: "tactical-mind" };
       case "react": {
         // A parley's approach (#305), when given, is a string; nothing
         // retries a reaction.
@@ -4874,6 +5224,23 @@ export function createFifthRuntime(
     requested: FifthAction,
     random?: Pick<RandomSource, "roll">,
   ): FifthResult => {
+    const result = perform(state, requested, random);
+    // Tactical Mind is offered only right after the failed check (#315):
+    // any other accepted action takes the offer away. A check that fails
+    // makes a fresh one.
+    return result.rejection === undefined &&
+      result.state.tacticalMind !== undefined &&
+      result.state.tacticalMind === state.tacticalMind
+      ? { ...result, state: cleared(result.state, "tacticalMind") }
+      : result;
+  };
+
+  /** `handleAction` before an earlier Tactical Mind offer is taken away. */
+  const perform = (
+    state: FifthState,
+    requested: FifthAction,
+    random?: Pick<RandomSource, "roll">,
+  ): FifthResult => {
     const reject = (code: FifthRefusalCode, reason: string): FifthResult => ({
       state,
       rejection: { code, reason },
@@ -4917,6 +5284,19 @@ export function createFifthRuntime(
       );
     }
     switch (action.type) {
+      case "tactical-mind": {
+        const sides = tacticalMindDie(sheetOf(state));
+        if (sides === undefined) {
+          return reject("no-tactical-mind", "You don't have Tactical Mind.");
+        }
+        if (state.tacticalMind === undefined) {
+          return reject(
+            "no-failed-check",
+            "Tactical Mind adds to an ability check you have just failed, and there is none.",
+          );
+        }
+        return tacticalMind(state, state.tacticalMind, sides, random);
+      }
       case "react": {
         const fight = encounterOf(state);
         if (state.reactingTo === undefined || fight === undefined) {
@@ -5308,32 +5688,8 @@ export function createFifthRuntime(
           roll,
           around,
         } = resolveCheck(state, site, spec, spec, room(state).name, random);
-        const found = trapsHere(state).filter(
-          ({ trap }) =>
-            armed(state, trap.id) &&
-            !state.foundTrapIds.includes(trap.id) &&
-            roll.total >= trap.find.dc,
-        );
-        return {
-          state: {
-            ...next,
-            foundTrapIds: [
-              ...next.foundTrapIds,
-              ...found.map(({ trap }) => trap.id),
-            ],
-          },
-          events: around([
-            {
-              type: "searched",
-              found: found.map(({ trap, to }) => ({
-                trapId: trap.id,
-                name: trap.name,
-                description: trap.description,
-                destination: roomById(to).name,
-              })),
-            },
-          ]),
-        };
+        const searched = searchFinds(next, roll.total);
+        return { state: searched.state, events: around([searched.event]) };
       }
       case "disarm": {
         if (fighting(state)) {
@@ -5446,18 +5802,8 @@ export function createFifthRuntime(
             ? paid.state.talkedTopicIds
             : [...paid.state.talkedTopicIds, topic.id],
         };
-        // A surrendered opponent offers what the topic gives with its reply.
-        const words = (success: boolean): FifthEvent => ({
-          type: "talked",
-          topicId: topic.id,
-          creature: creature.name,
-          words: success ? topic.reply : topic.failure!,
-          given: success
-            ? hiddenIn(state, creature.id)
-                .filter((item) => topic.gives?.includes(item.id) === true)
-                .map(({ name }) => name)
-            : [],
-        });
+        const words = (success: boolean) =>
+          topicWords(state, creature, topic, success);
         if (topic.check === undefined) {
           return { state: talked, events: [words(true)] };
         }
@@ -6355,6 +6701,10 @@ export function createFifthRuntime(
     }
     const here = room(state);
     return [
+      // Tactical Mind on the check just failed (#315), offered only now.
+      ...(state.tacticalMind === undefined
+        ? []
+        : [view("tactical-mind", { type: "tactical-mind" })]),
       // Unseen (#302): ambush the fight here, or slip past by any exit.
       ...(state.unseenBy === undefined
         ? []
@@ -7236,6 +7586,20 @@ export function createFifthRuntime(
         strikeChoices("light-attack"),
       ),
       ...features,
+      // Only right after a failed check (#315).
+      ...(actions.some(
+        ({ action, available }) => action === "tactical-mind" && available,
+      )
+        ? [
+            {
+              type: "function" as const,
+              name: "tactical_mind" as const,
+              description: `Only when the player asks to use Tactical Mind, or to push themselves to succeed at the check they just failed: spend a use of Second Wind to add 1d10 to that check (${checkText(state.tacticalMind!.roll)}). The engine rolls the d10 and grades the check again; the use is spent only if the check now succeeds. It never rerolls the check.`,
+              strict: true as const,
+              parameters: EMPTY_PARAMETERS,
+            },
+          ]
+        : []),
     ];
   };
 
@@ -7304,19 +7668,24 @@ export function createFifthRuntime(
           };
     }
     const action: FifthAction =
-      parameter === undefined
-        ? { type: FEATURE_TOOLS[call.name as FeatureTool], actorId: PLAYER_ID }
-        : TARGET_TOOLS[call.name as TargetTool].action(
-            parsed[parameter] as string,
-            attackTool
-              ? typeof strike === "string"
-                ? strike
-                : undefined
-              : typeof approach === "string"
-                ? approach
-                : undefined,
-            retry === true,
-          );
+      call.name === "tactical_mind"
+        ? { type: "tactical-mind" }
+        : parameter === undefined
+          ? {
+              type: FEATURE_TOOLS[call.name as FeatureTool],
+              actorId: PLAYER_ID,
+            }
+          : TARGET_TOOLS[call.name as TargetTool].action(
+              parsed[parameter] as string,
+              attackTool
+                ? typeof strike === "string"
+                  ? strike
+                  : undefined
+                : typeof approach === "string"
+                  ? approach
+                  : undefined,
+              retry === true,
+            );
     const result = handleAction(state, action, random);
     if (result.rejection !== undefined) {
       return {

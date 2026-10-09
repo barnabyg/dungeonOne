@@ -91,10 +91,11 @@ test("the gate qualifies it as Hard, mid-band, with the figures the proposal quo
   assert.equal(result.ok, true);
   const { verdict } = result;
   assert.equal(verdict.qualified, true);
-  // 7 points over Hard's 75%, and 6 under the 88% that would make it Medium.
+  // 6.5 points over Hard's 75%, and 6.5 under the 88% that would make it
+  // Medium (82.0% until the Champion's initiative advantage, #315).
   assert.deepEqual(
     [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
-    [3, "two-daggers", 0.82],
+    [3, "mace", 0.815],
   );
   assert.deepEqual(verdict.oneHitKill.overCap, []);
   assert.deepEqual(

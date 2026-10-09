@@ -18,7 +18,8 @@
 //   #initiative-toggle once the fight is over.
 // - #session-actions: #adventure-error and the action bar (#156), #action-bar:
 //   #attack-controls, #feature-controls (Drink in a fight, Second Wind, Action
-//   Surge, End turn; only Wait, with why, while paralysed, #234) and
+//   Surge, End turn; only Wait, with why, while paralysed, #234; Tactical
+//   Mind right after a failed check, #315) and
 //   #explore-controls (Go, Examine, Take, Drink, Force, Pick, Break, Unlock,
 //   Search, Disarm and Talk, grouped by target with the
 //   full name as each button's accessible name) and #leave-controls (Leave
@@ -1188,7 +1189,12 @@ function renderGear(gear) {
 
 // A surprised combatant (#301), or one in armour it isn't trained with,
 // rolled two d20s and kept the lower.
-const rollText = (roll) => "d20 " + (roll.mode ? roll.mode.d20s.join(" and ") + " (" + roll.mode.disadvantage.join(", ") + ": disadvantage), kept " : "") + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
+// Initiative's advantage (#315) and disadvantage (#301) name their sources; together they cancel.
+const initiativeMode = ({ d20s, advantage, disadvantage }) =>
+  advantage.length && disadvantage.length
+    ? "(" + advantage.join(", ") + ": advantage, and " + disadvantage.join(", ") + ": disadvantage, cancel) "
+    : d20s.join(" and ") + " (" + (advantage.length ? advantage.join(", ") + ": advantage" : disadvantage.join(", ") + ": disadvantage") + "), kept ";
+const rollText = (roll) => "d20 " + (roll.mode ? initiativeMode(roll.mode) : "") + roll.d20 + withSign(roll.bonus) + " = " + roll.total + (roll.tieBreaks.length ? ", roll-off " + roll.tieBreaks.join(", ") : "");
 /** A condition (#232) as a tag, such as "Prone", with its source and how it ends spoken. */
 const conditionTag = (condition) => {
   const tag = make("span", condition.name, "tag condition");
@@ -1303,6 +1309,8 @@ const ACTIONS = {
   "uncanny-dodge": { label: "Uncanny Dodge", busy: "Using Uncanny Dodge", busyLabel: "Dodging…" },
   "take-hit": { label: "Take the hit", busy: "Taking the hit", busyLabel: "Taking…" },
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
+  // On the check just failed (#315): a use of Second Wind adds 1d10.
+  "tactical-mind": { label: "Tactical Mind: add 1d10", busy: "Using Tactical Mind", busyLabel: "Adding…" },
   leave: { label: "Leave the adventure", busy: "Leaving the adventure", busyLabel: "Leaving…" },
 };
 // Paralysed (#234), the character's only action is ending its turn: waiting.
@@ -1361,7 +1369,7 @@ function renderActions() {
     const again = option.retry ? "Try again: " : "";
     // Extra Attack's second attack (#287) says so; any opponent may take it.
     const second = action === "attack" && session.turn && session.turn.attacks > 0;
-    const label = again + (second ? "Second attack on " : words.label) + named(action, target) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : "");
+    const label = again + (second ? "Second attack on " : words.label) + named(action, target) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
     // A parley's button keeps the verb; its skill and DC go under it (#305).
@@ -1555,7 +1563,7 @@ async function perform({ action, target, approach, retry, cunningStrike: effect 
   if (action === "attack" || action === "light-attack") {
     cunningStrike = "";
     await act("/api/5e/session/" + action, { actorId: session.encounter.playerId, targetId, ...(effect ? { cunningStrike: effect } : {}) }, control, busy);
-  } else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action }, control, busy);
+  } else if (FIGHT_FEATURES.includes(action) || action === "tactical-mind") await act("/api/5e/session/action", { action }, control, busy);
   else await act("/api/5e/session/explore", { action, target: targetId, ...(approach ? { approach: approach.id } : {}), ...(retry ? { retry: true } : {}) }, control, busy);
   keepFocus(action, targetId);
 }

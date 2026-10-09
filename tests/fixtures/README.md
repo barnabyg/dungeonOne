@@ -110,7 +110,8 @@ and left byte-identical.
 `gate-goblin-pair.json` and `gate-minion-yard.json` are 5e adventure modules
 for `tests/balance-5e.test.mjs`, built from the SRD 5.2 goblin stat blocks.
 _The Goblin Pair_ (two Goblin Warriors, level 3 since the leather starting
-kits of #207) is too deadly for medium and passes as hard. _The Minion Yard_ (two Goblin Minions in turn, level 1) is
+kits of #207, their Scimitars at +6 rather than +4 since the Champion's
+initiative advantage of #315) is too deadly for medium and passes as hard. _The Minion Yard_ (two Goblin Minions in turn, level 1) is
 safe enough for medium, but a strong level-1 Fighter usually kills each
 minion with one attack, so it fails as too easy at every difficulty.
 

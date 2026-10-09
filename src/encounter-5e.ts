@@ -8,7 +8,9 @@
  *
  * - Each combatant rolls its own initiative: d20 + its initiative bonus. A
  *   surprised combatant (#301, SRD 5.2) rolls it with disadvantage, as does
- *   one whose Dexterity has disadvantage (`abilityDisadvantages`).
+ *   one whose Dexterity has disadvantage (`abilityDisadvantages`). A feature
+ *   may give it advantage (`initiativeAdvantages`, the Champion's Remarkable
+ *   Athlete, #315); any advantage and any disadvantage cancel.
  *   Ties go to the higher Dexterity score, then to a seeded d20 roll-off
  *   among the combatants still tied, repeated until no two match.
  * - An attack hits when d20 + bonus meets the target's AC. A natural 20 (or
@@ -321,6 +323,8 @@ export type Combatant = DamageDefenses &
     initiativeBonus: number;
     /** Surprised as the fight begins (#301): initiative with disadvantage. */
     surprised?: true;
+    /** Named features giving its initiative roll advantage (#315). */
+    initiativeAdvantages?: readonly string[];
     /** Its saving throw bonus for each ability. */
     saves: Readonly<Record<Ability, number>>;
     /**
@@ -419,11 +423,15 @@ export type FeatureUses = Readonly<{ uses: number; max: number }>;
 
 export type InitiativeRoll = Readonly<{
   combatantId: string;
-  /** The d20 kept: the lower of two for a surprised combatant (#301). */
+  /**
+   * The d20 kept: the lower of two for a surprised combatant (#301), the
+   * higher of two with advantage (#315), the only one when they cancel.
+   */
   d20: number;
   /**
-   * Present when it rolled with disadvantage: for being surprised, or for
-   * its Dexterity's disadvantage (untrained armour).
+   * Present when it rolled with advantage or disadvantage: advantage from a
+   * feature (#315); disadvantage for being surprised, or for its
+   * Dexterity's disadvantage (untrained armour).
    */
   mode?: RollMode;
   bonus: number;
@@ -1441,14 +1449,10 @@ function rollInitiative(
 ): InitiativeRoll[] {
   const rolls = combatants.map((entrant) => {
     // Initiative is a Dexterity check.
-    const { d20, mode } = rollD20(
-      random,
-      [],
-      [
-        ...(entrant.abilityDisadvantages?.dexterity ?? []),
-        ...(entrant.surprised === true ? [SURPRISED] : []),
-      ],
-    );
+    const { d20, mode } = rollD20(random, entrant.initiativeAdvantages ?? [], [
+      ...(entrant.abilityDisadvantages?.dexterity ?? []),
+      ...(entrant.surprised === true ? [SURPRISED] : []),
+    ]);
     return {
       combatantId: entrant.id,
       d20,

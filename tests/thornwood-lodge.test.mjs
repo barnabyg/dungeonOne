@@ -195,10 +195,11 @@ test("the gate qualifies it as Hard for both classes on seeded and always-failin
   const gate = gateModule(lodge);
   assert.equal(gate.qualified, true);
   const [fighter, rogue] = gate.classes.map(({ result }) => result.verdict);
-  // The Fighter is 4 points over the 88% that would make it Medium; the
-  // Rogue, 10.5 over Hard's 75% and 2.5 under 88%, keeps it Hard.
+  // The Fighter is 8.5 points over the 88% that would make it Medium (4
+  // until the Champion's initiative advantage, #315); the Rogue, 10.5 over
+  // Hard's 75% and 2.5 under 88%, keeps it Hard.
   for (const [verdict, kit, rate] of [
-    [fighter, "mace", 0.92],
+    [fighter, "mace", 0.965],
     [rogue, "shortsword", 0.855],
   ]) {
     assert.deepEqual(
@@ -431,10 +432,12 @@ test("a level-4 Fighter wins the kennel yard and walks out with the hunting cup 
   assert.equal(state.endingId, "out-with-the-spoils");
   assert.ok(state.inventory.includes("hunting-cup"));
   assert.equal(state.possessions.purse, 3000);
-  // 2,475 XP, the hound fleeing for half its XP: what takes a career that
-  // ends the earlier modules near 4,100 XP past level 5's 6,500.
+  // 2,562 XP, the mastiff fleeing for half its XP (the hound fled instead
+  // until the Champion's initiative advantage, #315, moved the dice): what
+  // takes a career that ends the earlier modules near 4,100 XP past level
+  // 5's 6,500.
   assert.deepEqual(xpOf(played, state), [
-    ["Defeated Kennel Mastiff; drove off Hesk's Hound", 125],
+    ["Defeated Hesk's Hound; drove off Kennel Mastiff", 212],
     ["Out with the spoils", 2350],
   ]);
 });
@@ -501,12 +504,13 @@ test("the release run takes the 4,100 XP Ada through the lodge's checks to level
     });
     assert.equal(session.status, "escaped");
     assert.equal(session.ending.kind, "escape-with-loot");
-    // The hatch opened at the first try, so its retry was not offered.
+    // The hatch failed at the first try and opened at the second (at the
+    // first, until the Champion's initiative advantage, #315, moved the dice).
     assert.deepEqual(
       turns.flatMap(({ intent, skipped }) =>
         skipped === undefined ? [] : [intent],
       ),
-      ["examine ice-house-hatch (perception, retry)"],
+      [],
     );
     assert.equal(new Set(turns.map(({ room }) => room)).size, 4);
     const checks = turns.flatMap(({ phase, intent, cards }) =>
@@ -525,15 +529,19 @@ test("the release run takes the 4,100 XP Ada through the lodge's checks to level
       ],
       [
         "examine ice-house-hatch (perception)",
-        "Perception check: d20 12 + 0 + 2 proficiency = 14 against DC 14. Success.",
+        "Perception check: d20 1 + 0 + 2 proficiency = 3 against DC 14. Failure.",
+      ],
+      [
+        "examine ice-house-hatch (perception, retry)",
+        "Another try at the Ice-house Hatch (costs 1d4 bludgeoning damage).",
       ],
       [
         "search lodge-hall",
-        "Perception check: d20 18 + 0 + 2 proficiency = 20 against DC 14. Success.",
+        "Perception check: d20 12 + 0 + 2 proficiency = 14 against DC 14. Success.",
       ],
       [
         "disarm gallery-man-trap",
-        "Dexterity check, at advantage (Trapper's Tongs): d20 20 and 14, keeping 20; 20 + 2 = 22 against DC 14. Success.",
+        "Dexterity check, at advantage (Trapper's Tongs): d20 18 and 20, keeping 20; 20 + 2 = 22 against DC 14. Success.",
       ],
     ]);
     // 4,100 XP before; the fights' 425 and the ending's 2,350.

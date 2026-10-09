@@ -8,7 +8,7 @@
 //   Brann over with Persuasion (a check with two approaches) to open the
 //   poachers' hide, wins the kennel yard and walks out with its loot; the
 //   ending's 2,575 XP takes her to level 5 with Extra Attack.
-// - Scenario 3 (on seed 92 since #310): the level-5 Ada of #287 fails the
+// - Scenario 3 (on seed 220 since #315, 92 since #310): the level-5 Ada of #287 fails the
 //   trophy wall, fetches the lantern for another try, succeeds by 5, opens
 //   the hatch at advantage and finds and disarms the man-trap.
 // The library file holds what each ending says.
@@ -63,8 +63,9 @@ const ROUTE = [
 
 // The handoff's seed for scenario 2: Ada's clicks win Brann over, kill both
 // beasts (neither flees, so each gives its full XP) and walk out with the
-// loot. The engine journey checks that before the browser plays it.
-const seed = 2;
+// loot. The engine journey checks that before the browser plays it. Seed 1
+// since the Champion's initiative advantage (#315) moved the dice (2 before).
+const seed = 1;
 
 test(
   `Thornwood Lodge handoff: a level-4 Fighter talks her way to the poachers' hide, wins the kennel yard and reaches level 5 (seed ${seed})`,
@@ -179,11 +180,12 @@ const LEVEL_FIVE = fileURLToPath(
 );
 /**
  * The checks scenario's seed. The handoff quoted seed 1's numbers; with one
- * kennel mastiff (#310) seed 1 no longer tells the story, and seed 92 is the
- * first that does (a failed trophy wall, success by 5 with the lantern, the
- * hatch opened, the man-trap found and disarmed).
+ * kennel mastiff (#310) seed 1 no longer tells the story, and seed 92 was
+ * the first that did (a failed trophy wall, success by 5 with the lantern,
+ * the hatch opened, the man-trap found and disarmed). Since the Champion's
+ * initiative advantage (#315) moved the dice, seed 220 is the first.
  */
-const CHECKS_SEED = 92;
+const CHECKS_SEED = 220;
 
 /** A check's button: by approach, and the retry's own button. */
 const checkButton = (page, action, target, { approach, retry } = {}) =>
@@ -226,8 +228,8 @@ test(
       await fight(page);
       assert.match(
         await text(page.locator("#character-hp")),
-        /20\/44/u,
-        "Ada wins the kennel yard at 20/44 HP",
+        /44\/44/u,
+        "Ada wins the kennel yard unhurt",
       );
       await clickAction(page, "move", "lodge-hall");
       await fight(page);
@@ -242,7 +244,7 @@ test(
       await click("examine", "trophy-wall", { approach: "perception" });
       assert.match(
         await lastEntry(page),
-        /^Perception check: d20 9 \+ 0 \+ 3 proficiency = 12 against DC 15\. Failure\./u,
+        /^Perception check: d20 11 \+ 0 \+ 3 proficiency = 14 against DC 15\. Failure\./u,
       );
       // No lantern yet: no other try.
       assert.equal(
@@ -264,7 +266,7 @@ test(
       const retried = await lastEntry(page);
       assert.match(
         retried,
-        /Another try at the Trophy Wall \(Hooded Lantern\)\.\nPerception check: d20 17 \+ 0 \+ 3 proficiency = 20 against DC 15\. Success by 5 or more\./u,
+        /Another try at the Trophy Wall \(Hooded Lantern\)\.\nPerception check: d20 20 \+ 0 \+ 3 proficiency = 23 against DC 15\. Success by 5 or more\./u,
       );
       assert.match(
         retried,
@@ -274,7 +276,7 @@ test(
       await click("examine", "ice-house-hatch", { approach: "athletics" });
       assert.match(
         await lastEntry(page),
-        /^Athletics check, at advantage \(Remarkable Athlete\): d20 15 and 10, keeping 15; 15 \+ 4 \+ 3 proficiency = 22 against DC 15\. Success\.[\s\S]*The way to the Ice House is open\./u,
+        /^Athletics check, at advantage \(Remarkable Athlete\): d20 18 and 11, keeping 18; 18 \+ 4 \+ 3 proficiency = 25 against DC 15\. Success\.[\s\S]*The way to the Ice House is open\./u,
       );
       await clickAction(page, "search", "lodge-hall");
       assert.match(await lastEntry(page), /You find a Man-trap/u);
@@ -289,11 +291,11 @@ test(
       await page.locator("#ending").waitFor({ state: "visible" });
       assert.ok(
         (await text(page.locator("#ending"))).includes(
-          "Defeated Hesk's Hound; drove off Kennel Mastiff: +212 XP\nDefeated Baiting Bear: +200 XP\nOut with the spoils: +2350 XP",
+          "Defeated Hesk's Hound and Kennel Mastiff: +225 XP\nDefeated Baiting Bear: +200 XP\nOut with the spoils: +2350 XP",
         ),
       );
       const record = await readAda(libraryPath);
-      assert.equal(record.sheet.xp, 6500 + 2762);
+      assert.equal(record.sheet.xp, 6500 + 2775);
       assert.deepEqual(
         record.sheet.treasure.map(({ name }) => name),
         ["Topaz"],
@@ -340,7 +342,7 @@ test(
       await clickAction(page, "move", "flooded-nave");
       assert.match(
         await lastEntry(page),
-        /Initiative: Ada 12 \+ 2 = 14; Drowned Sexton 11 − 2 = 9\./u,
+        /Initiative: Ada \(advantage: Remarkable Athlete, d20s 12 and 11, kept\) 12 \+ 2 = 14; Drowned Sexton 5 − 2 = 3\./u,
       );
       await fight(page);
       await clickAction(page, "examine", "sunken-altar");

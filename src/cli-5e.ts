@@ -98,6 +98,7 @@ const LABELS: Readonly<Record<ActionView["action"], string>> = {
   "take-hit": "Take the hit",
   "end-turn": "End turn",
   leave: "Leave the adventure",
+  "tactical-mind": "Tactical Mind",
 };
 
 type Options = Readonly<

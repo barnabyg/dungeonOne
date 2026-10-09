@@ -53,7 +53,7 @@
             "attacks": [
               {
                 "name": "Scimitar",
-                "bonus": 4,
+                "bonus": 6,
                 "damage": {
                   "dice": 1,
                   "sides": 6,
@@ -92,7 +92,7 @@
             "attacks": [
               {
                 "name": "Scimitar",
-                "bonus": 4,
+                "bonus": 6,
                 "damage": {
                   "dice": 1,
                   "sides": 6,
