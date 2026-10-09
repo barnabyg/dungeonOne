@@ -788,7 +788,8 @@ export type ReactionPolicy = (typeof REACTION_POLICIES)[number];
  * false for those every style passes over, which the harness doesn't ask the
  * runtime to project (#321: dry-running gear changes and trade at every step
  * was a fifth of the gate's time). A kind missing here fails to compile; one
- * the runtime offers that the harness has never heard of fails the run as
+ * a runtime offers anyway that the harness has never heard of (a wrapped
+ * runtime that ignores the kinds asked for) fails the run as
  * `unsupported-action`.
  */
 const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {

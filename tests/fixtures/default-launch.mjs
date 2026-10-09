@@ -29,8 +29,8 @@ export async function launchDefault(cwd, args, apiKey = "") {
   const url = await new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       child.kill();
-      reject(new Error(`No URL within 90 s:\n${output}`));
-    }, 90000);
+      reject(new Error(`No URL within 150 s:\n${output}`));
+    }, 150000);
     child.once("exit", () => clearTimeout(timer));
     child.stdout.on("data", (chunk) => {
       output += chunk;

@@ -1375,18 +1375,21 @@ export function toolProficiency(
     : 0;
 }
 
-/** The fields `characterProfile` reads, in a fixed order. */
-const PROFILED_FIELDS = [
-  "class",
-  "abilities",
-  "abilityScoreImprovements",
-  "level",
-  "skills",
-  "fightingStyle",
-  "expertise",
-  "equipment",
-  "weaponMasteries",
-] as const satisfies readonly (keyof ProfiledSheet)[];
+/**
+ * The fields `characterProfile` reads, in a fixed order. A field missing
+ * here fails to compile, so the cache below never ignores one.
+ */
+const PROFILED_FIELDS = Object.keys({
+  class: true,
+  abilities: true,
+  abilityScoreImprovements: true,
+  level: true,
+  skills: true,
+  fightingStyle: true,
+  expertise: true,
+  equipment: true,
+  weaponMasteries: true,
+} satisfies Record<keyof ProfiledSheet, true>) as (keyof ProfiledSheet)[];
 
 /**
  * The last profile made for each equipment list, with the fields it was made
