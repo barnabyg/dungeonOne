@@ -185,7 +185,7 @@ for (const viewport of [
         const sheetText = await text(page.locator("#sheet-body"));
         assert.match(sheetText, /^Level 1 Rogue/u);
         assert.match(sheetText, /Stealth \+\d+ \(Expertise\)/u);
-        assert.match(sheetText, /Tools: Thieves' Tools\./u);
+        assert.match(sheetText, /Tools: Thieves' tools\./u);
         assert.match(sheetText, /Sneak Attack\. Once per turn/u);
         assert.doesNotMatch(sheetText, /Fighting Style/u);
         // Storage holds the Rogue exactly as the engine builds it.

@@ -138,7 +138,7 @@ test("the Rogue's kits pack thieves' tools, 45 and 47 gp, within the class's tol
     kits.find(({ id }) => id === "shortsword-and-dagger").items,
     ["Leather armour", "Shortsword", "Dagger", "Thieves' tools"],
   );
-  assert.deepEqual(characterProfile(ROGUE_SHEET).tools, ["Thieves' Tools"]);
+  assert.deepEqual(characterProfile(ROGUE_SHEET).tools, ["Thieves' tools"]);
 });
 
 test("pick is offered only with thieves' tools; without them the door is broken or unlocked", () => {

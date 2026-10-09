@@ -21,7 +21,6 @@ import {
   FIGHTING_STYLES,
   SKILLS,
   titleCase,
-  TOOLS,
   type Abilities,
   type Ability,
   type AbilityScoreImprovement,
@@ -49,6 +48,7 @@ import {
   proficientWith,
   readLoadout,
   STARTING_KITS,
+  TOOL_ITEMS,
   TREASURE_WEIGHT,
   untrainedArmour,
   untrainedSource,
@@ -1473,7 +1473,9 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
     }),
     ...(definition.toolProficiencies.length === 0
       ? {}
-      : { tools: definition.toolProficiencies.map((id) => TOOLS[id].name) }),
+      : {
+          tools: definition.toolProficiencies.map((id) => TOOL_ITEMS[id].name),
+        }),
     attack: gear.attack,
     ...(gear.lightAttack === undefined
       ? {}

@@ -163,13 +163,10 @@ export const FEATURE_USES_RULE =
 export type LevelTable = Readonly<Record<Level, number>>;
 
 /**
- * The tools a class can be proficient with (#306), by the catalogue's tool
- * ids (#309): proficiency adds the proficiency bonus to a check made with
- * the tool.
+ * The tools a class can be proficient with (#306) are the catalogue's tools
+ * (#309, `TOOL_ITEMS`), named as the item is: proficiency adds the
+ * proficiency bonus to a check made with the tool.
  */
-export const TOOLS = {
-  "thieves-tools": { name: "Thieves' Tools" },
-} as const satisfies Record<ToolId, { name: string }>;
 export type { ToolId };
 
 /** What a feature's name and text are written from. */

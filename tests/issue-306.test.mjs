@@ -133,7 +133,7 @@ test("a level-1 Rogue: d8 hit points, Dexterity and Intelligence saves, four ski
       ["charisma", 1, false],
     ],
   );
-  assert.deepEqual(profile.tools, ["Thieves' Tools"]);
+  assert.deepEqual(profile.tools, ["Thieves' tools"]);
   assert.equal(profile.fightingStyle, undefined);
   assert.deepEqual(profile.sneakAttack, { dice: 1, sides: 6 });
   assert.deepEqual(
