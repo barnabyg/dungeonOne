@@ -94,7 +94,11 @@ const CONTENT_TESTS = new Map([
   ],
   [
     "tests/mallow-counting-house.test.mjs",
-    "the Counting-House on Mallow Quay's content, gate verdict, reactions, locks, trap and journeys",
+    "the Counting-House on Mallow Quay's content, gate verdict, reactions, locks, trap, journeys and release run",
+  ],
+  [
+    "tests/issue-311-browser.test.mjs",
+    "the increment 15 handoff runs through the browser",
   ],
 ]);
 

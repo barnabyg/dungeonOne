@@ -7,17 +7,30 @@
 // shipped-modules.test.mjs checks it qualifies at its declared difficulty.
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
 import { gateModule, requiredPath } from "../dist/balance-5e.js";
+import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
+import { startSavedAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
+import {
+  COUNTING_HOUSE_ROUTE,
+  playReleaseRun,
+} from "../dist/release-run-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
+import { rogueLibrary } from "../dist/test-rogue-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { dice } from "./fixtures/engine-dice.mjs";
 import { firstJourney, xpOf } from "./fixtures/module-journey.mjs";
 import { thief } from "./fixtures/playthroughs.mjs";
+import { narratingDm } from "./fixtures/session-layout.mjs";
 
 const quay = (await loadBuiltInFifthAdventures()).find(
   ({ id }) => id === "mallow-counting-house",
@@ -563,4 +576,106 @@ test("taking the potion and leaving is escaping without loot", () => {
   );
   assert.equal(state.endingId, "out-empty-handed");
   assert.deepEqual(xpOf(runtime, state), []);
+});
+
+/** The release run's browser seed, the handoff's scenario 2 seed. */
+const RELEASE_SEED = 8;
+
+test("the release run takes the level-3 Rogue through a parley, a toll, a sneak, an ambush and a picked lock, through the server to the library file", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "issue-311-"));
+  const libraryPath = join(directory, "characters.json");
+  await writeFile(libraryPath, JSON.stringify(rogueLibrary()));
+  const server = await startFifthBrowserServer({
+    libraryPath,
+    seed: RELEASE_SEED,
+    dmModel: narratingDm(),
+    // shipped-modules.test.mjs gates every shipped module; skip it here.
+    qualifies: () => true,
+  });
+  try {
+    const { session, turns } = await playReleaseRun({
+      url: server.url,
+      session: await startSavedAdventureOverHttp(
+        server.url,
+        "mallow-counting-house",
+      ),
+      route: COUNTING_HOUSE_ROUTE,
+    });
+    assert.equal(session.status, "escaped");
+    assert.equal(session.ending.kind, "escape-with-loot");
+    assert.deepEqual(
+      turns.flatMap(({ intent, skipped }) =>
+        skipped === undefined ? [] : [intent],
+      ),
+      [],
+    );
+    // The DM only narrates, so every step is its button.
+    assert.ok(
+      turns.every(({ message, fallback }) => message === undefined || fallback),
+    );
+    assert.equal(new Set(turns.map(({ room }) => room)).size, 5);
+    const rolls = turns.flatMap(({ phase, intent, cards }) =>
+      (phase === "fight" ? [] : cards)
+        .filter(({ text }) => /check|Reaction roll/u.test(text))
+        .map(({ text }) => [intent, text.split("\n")[0]]),
+    );
+    assert.deepEqual(
+      rolls.map(([intent]) => intent),
+      [
+        "move toll-arch",
+        "react parley (persuasion)",
+        "sneak counting-hall",
+        "examine tally-desk",
+        "sneak counting-hall",
+        "pick strongroom-door",
+      ],
+    );
+    // 900 XP before; the goblin's 50, the peaceful 125 and the ending's 400.
+    assert.equal(session.ending.rewards.totalXp, 900 + 575);
+    assert.deepEqual(
+      session.ending.rewards.treasure.map(({ name }) => name),
+      ["Garnet", "Second Garnet", "Chain of Office"],
+    );
+    const [vex] = JSON.parse(await readFile(libraryPath, "utf8")).characters;
+    assert.equal(vex.session, undefined);
+    assert.deepEqual([vex.sheet.level, vex.sheet.xp], [3, 1475]);
+  } finally {
+    await server.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("the live release script plays the counting-house with --adventure mallow-counting-house from the level-3 Rogue", async () => {
+  const script = fileURLToPath(
+    new URL("../scripts/qualify-release-live.mjs", import.meta.url),
+  );
+  const env = { ...process.env, OPENAI_API_KEY: "" };
+  const directory = await mkdtemp(join(tmpdir(), "issue-311-script-"));
+  try {
+    const output = join(directory, "report.json");
+    const result = spawnSync(
+      process.execPath,
+      [
+        script,
+        "--dry-run",
+        "--adventure",
+        "mallow-counting-house",
+        "--output",
+        output,
+        "--max-calls",
+        "10",
+      ],
+      { encoding: "utf8", env, timeout: 60000 },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(await readFile(output, "utf8"));
+    assert.equal(report.issue, 311);
+    assert.equal(report.adventureId, "mallow-counting-house");
+    assert.equal(report.seed, RELEASE_SEED);
+    assert.equal(report.providerCalls, 10);
+    assert.equal(report.ending.kind, "escape-with-loot");
+    assert.equal(report.summary.roomsVisited, 5);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

@@ -14,11 +14,12 @@ const PLAYER = "pc";
  * `["sneak", "bothy"]`, #301) and the rest,
  * with `["ambush", roomId]` (#302) springing an ambush from unseen,
  * `["force", doorId]` (#289) forcing a stuck door, `["pick", doorId]`,
- * `["break", doorId]` and `["unlock", doorId]` (#311) opening a locked one,
+ * `["break", doorId]` and `["unlock", doorId]` (#311) opening a locked one
+ * (with `undefined, true` after the door, another try at it),
  * `["talk", topicId, approach]` (#291) asking about a topic with a check and
- * `["react", option]` (#311) answering a reaction.
+ * `["react", option, approach]` (#311) answering a reaction.
  */
-export function routeAction([type, target, approach]) {
+export function routeAction([type, target, approach, retry]) {
   switch (type) {
     case "move":
     case "sneak":
@@ -34,11 +35,15 @@ export function routeAction([type, target, approach]) {
     case "pick":
     case "break":
     case "unlock":
-      return { type, doorId: target };
+      return { type, doorId: target, ...(retry ? { retry: true } : {}) };
     case "talk":
       return { type, topicId: target, approach };
     case "react":
-      return { type, option: target };
+      return {
+        type,
+        option: target,
+        ...(approach === undefined ? {} : { approach }),
+      };
     default:
       throw new Error(`no route action ${type}`);
   }
@@ -46,11 +51,17 @@ export function routeAction([type, target, approach]) {
 
 /**
  * One fight turn: at half HP or less, Second Wind, or else drink a potion;
- * otherwise attack the first opponent offered, and end the turn once the
- * action is spent. The first of these the runtime accepts.
+ * otherwise attack the first opponent offered, then make the extra attack
+ * with a second light weapon (#311, as the browser's first attack button
+ * does), and end the turn once both are spent. The first of these the
+ * runtime accepts.
  */
 function fightTurn(runtime, state, random, maxHp, potions, heal) {
   const [target] = runtime.attackTargets(state);
+  // The extra attack's target, offered once the attack is spent.
+  const light = runtime
+    .projectActions(state)
+    .find(({ action, available }) => action === "light-attack" && available);
   const potion = state.inventory.find((id) => potions.has(id));
   const choices = [
     ...(heal && state.character.hp * 2 <= maxHp
@@ -64,6 +75,9 @@ function fightTurn(runtime, state, random, maxHp, potions, heal) {
     ...(target === undefined
       ? []
       : [{ type: "attack", actorId: PLAYER, targetId: target.id }]),
+    ...(light === undefined
+      ? []
+      : [{ type: "light-attack", actorId: PLAYER, targetId: light.target.id }]),
     { type: "end-turn", actorId: PLAYER },
   ];
   for (const action of choices) {

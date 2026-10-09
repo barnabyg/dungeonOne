@@ -4,7 +4,9 @@
  * The #140 run visits every room of The Abandoned Delve, fights every
  * encounter, loots every treasure and coin and climbs out. The #211 run
  * clears The Tinker's Toll, equips the shield it finds, buys and wields a
- * shortsword with the coin it finds, sells its mace and walks out.
+ * shortsword with the coin it finds, sells its mace and walks out. The #311
+ * run takes a Rogue through The Counting-House on Mallow Quay: a parley and a
+ * toll, a sneak past a lurking goblin and an ambush, and a picked lock.
  *
  * Each route step names the action-bar action it wants and the words a
  * player would type for it. When the AI DM's turn leaves that action still
@@ -12,7 +14,8 @@
  * takes it with its button instead and records the fallback, so one miss
  * never strands the rest of the run. Leave has no AI tool (#156), so the
  * last step is a button press. Fights pick from the action bar each turn:
- * heal at half HP or less, otherwise attack the first opponent offered.
+ * heal at half HP or less, otherwise attack the first opponent offered, then
+ * make the extra attack with a second light weapon.
  */
 import { postToServer } from "./dm-evaluation-5e.js";
 import {
@@ -555,15 +558,127 @@ export const LODGE_ROUTE: readonly ReleaseStep[] = Object.freeze([
   { action: "leave", target: "forest-gate" },
 ]);
 
+/**
+ * The Counting-House on Mallow Quay (#311) with the level-3 Rogue Vex: the
+ * bollard's potion, Snikk talked round with Persuasion and paid his toll, a
+ * sneak into the counting hall and out past the goblin to the gallery (and
+ * the scything blade), the tally-master's desk, a sneak back and an ambush,
+ * the till, the strongroom lock picked with thieves' tools, the coffer, and
+ * out. It leaves the Clerk-Eater alone, as a cautious player would. A step a
+ * roll leaves unoffered (the toll when the parley lets Vex pass) is recorded
+ * as skipped.
+ */
+export const COUNTING_HOUSE_ROUTE: readonly ReleaseStep[] = Object.freeze([
+  {
+    action: "examine",
+    target: "mooring-bollard",
+    say: "Read the chalk on the bollard.",
+  },
+  {
+    action: "take",
+    target: "bollard-potion",
+    say: "Take the vial from the crack.",
+  },
+  {
+    action: "move",
+    target: "toll-arch",
+    say: "Climb the steps to the arch.",
+  },
+  {
+    action: "react",
+    target: "parley",
+    approach: "persuasion",
+    say: "Talk him round honestly: I'm only here for the guild's old ledgers and want no trouble with him.",
+  },
+  { action: "react", target: "toll", say: "Fine. Pay him the five gold." },
+  {
+    action: "sneak",
+    target: "counting-hall",
+    say: "Sneak into the counting hall.",
+  },
+  {
+    action: "move",
+    target: "clerks-gallery",
+    say: "Slip past it, up the gallery stair.",
+  },
+  {
+    action: "examine",
+    target: "tally-desk",
+    say: "Search the tally-master's desk.",
+  },
+  {
+    action: "sneak",
+    target: "counting-hall",
+    say: "Creep back down into the hall.",
+  },
+  {
+    action: "ambush",
+    target: "counting-hall",
+    say: "Ambush the goblin before it sees me.",
+  },
+  {
+    action: "examine",
+    target: "smashed-till",
+    say: "Look in the smashed till.",
+  },
+  { action: "take", target: "till-silver", say: "Take the silver." },
+  {
+    action: "pick",
+    target: "strongroom-door",
+    say: "Pick the strongroom door's lock with my thieves' tools.",
+  },
+  {
+    action: "move",
+    target: "strongroom",
+    say: "Go into the strongroom.",
+  },
+  {
+    action: "examine",
+    target: "iron-coffer",
+    say: "Open the iron coffer.",
+  },
+  { action: "take", target: "coffer-garnet", say: "Take the first garnet." },
+  {
+    action: "take",
+    target: "coffer-garnet-2",
+    say: "Take the second garnet.",
+  },
+  {
+    action: "take",
+    target: "chain-of-office",
+    say: "Take the chain of office.",
+  },
+  { action: "take", target: "guild-gold", say: "Take the bag of gold." },
+  {
+    action: "move",
+    target: "counting-hall",
+    say: "Back out into the hall.",
+  },
+  { action: "move", target: "toll-arch", say: "Out through the arch." },
+  {
+    action: "move",
+    target: "quay-steps",
+    say: "Down to the quay steps.",
+  },
+  { action: "leave", target: "quay-steps" },
+]);
+
 /** Whether the action bar is a fight's: it always offers End turn. */
 const inFight = (view: ReleaseSessionView): boolean =>
   view.actions.some(({ action }) => action === "end-turn");
 
-type FightKind = "attack" | "use" | "second-wind" | "action-surge" | "end-turn";
+type FightKind =
+  | "attack"
+  | "light-attack"
+  | "use"
+  | "second-wind"
+  | "action-surge"
+  | "end-turn";
 
 /** What a player types for each fight action, given its target's name. */
 const FIGHT_WORDS: Readonly<Record<FightKind, (name: string) => string>> = {
   attack: (name) => `Attack the ${name}.`,
+  "light-attack": (name) => `Strike the ${name} with my other blade.`,
   use: (name) => `Drink the ${name}.`,
   "second-wind": () => "Catch my breath with Second Wind.",
   "action-surge": () => "Use Action Surge.",
@@ -573,8 +688,8 @@ const FIGHT_WORDS: Readonly<Record<FightKind, (name: string) => string>> = {
 /**
  * The fight action to take now: at half HP or less, Second Wind or else a
  * potion (each a bonus action); otherwise an attack on the first opponent
- * offered; with the action spent, Action Surge; and End turn when nothing
- * else is left.
+ * offered; with the action spent, the extra attack with a second light
+ * weapon (#311), then Action Surge; and End turn when nothing else is left.
  */
 export function chooseFightStep(view: ReleaseSessionView): ReleaseStep {
   const offered = (kind: FightKind) => {
@@ -587,7 +702,11 @@ export function chooseFightStep(view: ReleaseSessionView): ReleaseStep {
   const heal =
     hp * 2 <= maxHp ? (offered("second-wind") ?? offered("use")) : undefined;
   const chosen =
-    heal ?? offered("attack") ?? offered("action-surge") ?? offered("end-turn");
+    heal ??
+    offered("attack") ??
+    offered("light-attack") ??
+    offered("action-surge") ??
+    offered("end-turn");
   if (chosen === undefined) {
     throw new Error("The fight offers no action.");
   }
@@ -613,7 +732,7 @@ const findAction = (view: ReleaseSessionView, step: ReleaseStep) =>
   );
 
 /**
- * Whether `step` is done in `after`: a move is done in its destination; an
+ * Whether `step` is done in `after`: a move or a sneak is done in its destination; an
  * examination (which stays offered, to read again) once the room shows what
  * it found; a trade (whose Buy stays offered while coin lasts) once the purse
  * changed; anything else once its action is no longer available in the room
@@ -629,7 +748,7 @@ function stepDone(
   if (phase === "fight") {
     return after.sequence > before.sequence;
   }
-  if (step.action === "move") {
+  if (step.action === "move" || step.action === "sneak") {
     return after.room.id === step.target;
   }
   if (step.approach !== undefined || step.retry === true) {
@@ -659,9 +778,9 @@ async function click(
 ): Promise<ReleaseSessionView> {
   const base = { sessionId: view.id, sequence: view.sequence };
   const [path, body] =
-    step.action === "attack"
+    step.action === "attack" || step.action === "light-attack"
       ? [
-          "/api/5e/session/attack",
+          `/api/5e/session/${step.action}`,
           { ...base, actorId: PLAYER_ID, targetId: step.target },
         ]
       : step.target === undefined
