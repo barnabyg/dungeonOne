@@ -153,6 +153,13 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
   an optional crypt and a Ghoul the vault, with a stuck door, a trapped stair, a
   goblin to question, treasure and coin hidden in features, and a
   second exit beside the vault where you choose to climb out or push on.
+- _The Counting-House on Mallow Quay_ (`adventures/5e/mallow-counting-house.json`,
+  levels 3–4, Hard): six rooms in a burned guild counting-house held by
+  goblins. Snikk the Toll-Taker (a Goblin Boss) reacts at the arch: pay his
+  toll, talk him round, trade, or fight. A goblin lurks in the counting hall,
+  a scything blade guards the gallery stair, and a bugbear lurks in the
+  records loft with the key to the strongroom's iron door, which a rogue can
+  pick and anyone can try to break.
 - _The Drowned Chapel_ (`adventures/5e/drowned-chapel.json`, level 3, Easy):
   three rooms in a flooded marsh chapel. The drowned sexton (a Zombie) guards
   the chapel's silver reliquary at the altar, and the vestry beyond holds the
