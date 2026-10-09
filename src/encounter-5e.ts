@@ -1961,6 +1961,23 @@ function resolveAttack(
 }
 
 /**
+ * Uncanny Dodge's halving (#308): the attack's damage, its weapon's part and
+ * its rider's, halved once as a whole, rounding down. Each part is halved
+ * rounding down, and the point that rounding the parts separately loses, if
+ * any, goes back to the larger part (the weapon's on a tie), so the parts
+ * sum to the halved total and each keeps its damage type. It comes after
+ * resistances, which no player character has.
+ */
+function halvedOnce(weapon: number, rider: number): readonly [number, number] {
+  const halfWeapon = Math.floor(weapon / 2);
+  const halfRider = Math.floor(rider / 2);
+  const lost = Math.floor((weapon + rider) / 2) - halfWeapon - halfRider;
+  return weapon >= rider
+    ? [halfWeapon + lost, halfRider]
+    : [halfWeapon, halfRider + lost];
+}
+
+/**
  * How an attack lands once rolled: the Cunning Strike chosen with it (#308),
  * and for a hit offered for Uncanny Dodge first, whether the target halved
  * it (`dodged`).
@@ -2040,10 +2057,7 @@ function landAttack(
       ? weapon.damage.modifier
       : 0;
   const defended = damageTaken(target, weapon.damage.type, rolled);
-  // Uncanny Dodge (#308) halves each of the hit's damage, rounding down.
   const dodged = landing.resumed?.dodged === true;
-  const halve = (value: number) => (dodged ? Math.floor(value / 2) : value);
-  const damage = halve(defended.damage);
   const damageAdjustment = defended.damageAdjustment;
   // A hit's rider deals its extra damage, its dice doubled by a critical.
   const extra = hit ? weapon.rider?.damage : undefined;
@@ -2073,10 +2087,14 @@ function landAttack(
               : { damageAdjustment: taken.damageAdjustment }),
           };
         })();
+  // Uncanny Dodge (#308) halves the attack's damage once, rounding down.
+  const [damage, riderDamage] = dodged
+    ? halvedOnce(defended.damage, riderRolled?.damage ?? 0)
+    : [defended.damage, riderRolled?.damage ?? 0];
   const rider =
     riderRolled === undefined
       ? undefined
-      : { ...riderRolled, damage: halve(riderRolled.damage) };
+      : { ...riderRolled, damage: riderDamage };
   const taken = damage + (rider?.damage ?? 0);
   const hpAfter = Math.max(0, target.hp - taken);
   // A ranged attack spends one of the attacker's arrows or bolts.

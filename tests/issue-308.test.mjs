@@ -583,6 +583,31 @@ test("Uncanny Dodge: a hit waits for the answer, halves the damage, and only onc
   assert.equal(combatant(dodged.state, "pc").hp, 21);
 });
 
+test("Uncanny Dodge halves the attack's total damage once, not each damage type", () => {
+  // 1d8 + 4 slashing with 1d6 poison: 7 slashing + 3 poison = 10, halved
+  // to 5. Each type halved alone would give 3 + 1 = 4; the point lost to
+  // rounding goes to the larger part, the slashing.
+  const poisoner = foe("lookout", "Lookout", {
+    size: "Medium",
+    attack: {
+      name: "Shortsword",
+      bonus: 6,
+      damage: { dice: 1, sides: 8, modifier: 4, type: "slashing" },
+      criticalRange: 20,
+      rider: { damage: { dice: 1, sides: 6, modifier: 0, type: "poison" } },
+    },
+  });
+  const hit = act(fightWith(rogue, [ogre, poisoner]), END, dice([20, 15]));
+  assert.equal(hit.state.pendingReaction.attackerId, "lookout");
+  const dodged = act(hit.state, DODGE, dice([8, 3], [6, 3], [20, 2]));
+  const event = attackEvent(dodged);
+  assert.deepEqual(
+    [event.damage, event.rider.damage, event.uncannyDodge, event.hpAfter],
+    [4, 1, { damage: 7, riderDamage: 3 }, 33],
+  );
+  assert.equal(combatant(dodged.state, "pc").hp, 33);
+});
+
 test("Uncanny Dodge: taking the hit keeps the reaction for the next hit; a miss asks nothing", () => {
   const hit = act(fightWith(), END, dice([20, 15])).state;
   // Taken in full (1 + 1 + 4); the ogre's hit then asks again.
