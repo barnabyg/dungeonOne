@@ -771,7 +771,7 @@ test("the validator rejects circumstances and retries naming what is not there",
       (m.passages[2].trap.find.advantage = [
         { type: "holds", item: "knotted-rope", name: "Knotted Rope" },
       ]),
-    /passage 3 trap find must have skill, dc, and nothing else\./,
+    /passage 3 trap find must have exactly dc\./,
   );
   // A retry is a cost or a circumstance, not both.
   rejects((m) => {

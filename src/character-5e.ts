@@ -41,6 +41,7 @@ import {
   formatCoins,
   isItemId,
   itemName,
+  kitItems,
   kitPrice,
   loadWeight,
   MASTERIES,
@@ -56,7 +57,9 @@ import {
   type AmmunitionId,
   type AttackProfile,
   type ItemId,
+  type KitData,
   type KitId,
+  type ToolId,
   type WeaponId,
 } from "./equipment-5e.js";
 import { FIGHTER } from "./fighter-5e.js";
@@ -874,8 +877,10 @@ export function buildCharacter(
     ...(fightingStyle === undefined ? {} : { fightingStyle }),
     ...(expertise === undefined ? {} : { expertise }),
     weaponMasteries: validateMasteries(definition, choices.masteries),
-    equipment: STARTING_KITS[validateKit(definition, choices.kit)].equipment,
-    stowed: [],
+    ...(() => {
+      const kit: KitData = STARTING_KITS[validateKit(definition, choices.kit)];
+      return { equipment: kit.equipment, stowed: kit.stowed ?? [] };
+    })(),
     ammunition: { arrows: 0, bolts: 0 },
     treasure: [],
     purse: 0,
@@ -1036,7 +1041,7 @@ export function projectCreation(
       name: kit.name,
       price: kitPrice(id),
       value: formatCoins(kitPrice(id)),
-      items: kit.equipment.map(itemName),
+      items: kitItems(id).map(itemName),
       armorClass: derived.armorClass,
       attack: derived.attack,
       ...(derived.lightAttack === undefined
@@ -1355,6 +1360,19 @@ export function skillProficiency(
     : sheet.skills.includes(skill)
       ? proficiency
       : 0;
+}
+
+/**
+ * The proficiency bonus a check with `tool` adds (#309): the bonus when the
+ * sheet's class is proficient with it, none otherwise.
+ */
+export function toolProficiency(
+  sheet: Pick<CharacterSheet, "class" | "level">,
+  tool: ToolId,
+): number {
+  return classOf(sheet).toolProficiencies.includes(tool)
+    ? proficiencyBonus(sheet.level)
+    : 0;
 }
 
 /**

@@ -134,7 +134,9 @@ choices, check the derived numbers and save:
 - A **Rogue** (d8 hit die, Dexterity and Intelligence saves, thieves' tools)
   chooses four skills, **Expertise** in two of them (their proficiency bonus is
   doubled), a starting kit (_Shortsword, dagger and leather_ or _Shortsword and
-  leather_, worth a little more than the Fighter's) and two weapon masteries.
+  leather_, each with thieves' tools, worth more than the Fighter's) and two
+  weapon masteries. Its thieves' tools pick locks and disarm traps, adding its
+  proficiency bonus.
   Its **Sneak Attack** adds 1d6 damage once a turn to a hit with a Finesse or
   ranged weapon made with advantage, such as after a Vex hit; the engine adds
   it, so you never ask for it. Thieves' Cant is flavour only.
@@ -274,9 +276,11 @@ another character's adventure clears it.
 Examining a feature makes its discovery and can reveal a hidden item. A Potion
 of Healing restores 2d4 + 2 HP, never above your maximum; in a fight it takes
 your bonus action. A shut door blocks its exit until you **Force** it (stuck),
-or **Pick**, **Break** or **Unlock** it (locked; Unlock appears while you carry
-its key). In a module with traps every room has **Search**, a Perception check
-that finds traps on its exits; a found trap has **Disarm**. Going through an
+or **Pick**, **Break** or **Unlock** it (locked; Pick appears while you carry
+thieves' tools, and Unlock while you carry its key). In a module with traps
+every room has **Search**, a Perception or Investigation check, whichever you
+are better at, that finds traps on its exits; a found trap has **Disarm**, with
+thieves' tools where the module allows them. Going through an
 armed trap springs it: a saving throw for half damage. **Talk** asks a creature
 about one of its topics; some need a check. Each check is rolled once, so
 retyping never rerolls it; only a module's authored retry offers **Try again**,
@@ -393,14 +397,14 @@ reason, the history stays readable, and reloading shows the same ending.
 
 ### Saved files
 
-- The character library (`characters.json` by default) is format version 14.
+- The character library (`characters.json` by default) is format version 15.
 - Each adventure session is saved after every action in the
   `characters-adventures` directory beside the library, in format version 34.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 26. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 27. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 9, or author a one-off stat block inline.
 

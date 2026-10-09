@@ -250,8 +250,9 @@ test("Rogue creation is refused outside its class's choices", () => {
 
 test("the Rogue's starting kits are of equal value with each other, and richer than the Fighter's by design", () => {
   assert.deepEqual(ROGUE.kits, ["shortsword-and-dagger", "shortsword"]);
-  assert.equal(kitPrice("shortsword"), 2000);
-  assert.equal(kitPrice("shortsword-and-dagger"), 2200);
+  // Each packs thieves' tools (25 gp) since #309.
+  assert.equal(kitPrice("shortsword"), 4500);
+  assert.equal(kitPrice("shortsword-and-dagger"), 4700);
   assert.ok(
     Math.abs(kitPrice("shortsword") - kitPrice("shortsword-and-dagger")) <=
       KIT_VALUE_TOLERANCE,
@@ -276,8 +277,8 @@ test("the creation projection offers the Rogue's kits and Expertise, and no Figh
   assert.deepEqual(
     partial.kits.map(({ id, value }) => [id, value]),
     [
-      ["shortsword-and-dagger", "22 gp"],
-      ["shortsword", "20 gp"],
+      ["shortsword-and-dagger", "47 gp"],
+      ["shortsword", "45 gp"],
     ],
   );
   const done = projectCreation(DICE, ROGUE_CHOICES, "rogue");

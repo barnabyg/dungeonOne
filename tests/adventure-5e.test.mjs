@@ -340,7 +340,11 @@ test("the crypt fixture has a stuck door, a locked door with a key, a trap and a
   const iron = passage(adventure, "hall-to-strongroom").door;
   assert.equal(iron.state, "locked");
   assert.equal(iron.keyItemId, "iron-key");
-  assert.deepEqual(iron.pick, { ability: "dexterity", dc: 15 });
+  assert.deepEqual(iron.pick, {
+    ability: "dexterity",
+    tool: "thieves-tools",
+    dc: 15,
+  });
   const trap = passage(adventure, "hall-to-offerings").trap;
   assert.deepEqual(trap.save, { ability: "dexterity", dc: 12 });
   assert.equal(trap.defeatEndingId, "fallen-in-the-crypt");
@@ -417,6 +421,7 @@ test("the validator rejects malformed doors, traps and creatures", () => {
       (m) =>
         (passage(m, "stair-to-cell").door.pick = {
           ability: "dexterity",
+          tool: "thieves-tools",
           dc: 10,
         }),
       /a stuck door is opened only by force/,

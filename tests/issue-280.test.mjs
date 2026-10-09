@@ -4,12 +4,17 @@
 // nor a typed request rolls it again.
 import assert from "node:assert/strict";
 import test from "node:test";
+import { validateCharacter } from "../dist/character-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { dice } from "./fixtures/engine-dice.mjs";
 import { sealedCrypt } from "./fixtures/modules.mjs";
 
-const runtime = createFifthRuntime(sealedCrypt, TEST_FIGHTER);
+// The test Fighter carrying thieves' tools (#309), so it can pick and disarm.
+const runtime = createFifthRuntime(
+  sealedCrypt,
+  validateCharacter({ ...TEST_FIGHTER, stowed: ["thieves-tools"] }),
+);
 
 function accepted(state, action, random = dice()) {
   const result = runtime.handleAction(state, action, random);
@@ -123,7 +128,8 @@ test("searching a room and disarming a found trap are remembered checks", () => 
   assert.deepEqual(searched.foundTrapIds, ["dart-trap"]);
   const tried = checkOnce(
     searched,
-    { type: "disarm", trapId: "dart-trap" },
+    // With thieves' tools the trap offers them or bare hands (#309).
+    { type: "disarm", trapId: "dart-trap", approach: "thieves-tools" },
     {
       site: "disarm:dart-trap",
       event: "disarmed",

@@ -16,7 +16,6 @@ import {
   gateLevelChoice,
   playAdventure,
 } from "../dist/balance-5e.js";
-import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import { renderCareerResult, simulateCareer } from "../dist/career-5e.js";
 import {
   FIFTH_LIBRARY_FORMAT,
@@ -940,11 +939,9 @@ test("the balance harness plays a level-5 Rogue with Cunning Strike and Uncanny 
   assert.ok(seen.dodge > 0, "the harness uses Uncanny Dodge");
 });
 
-test("the save and trace formats bump; the module and library formats hold", () => {
+test("the save and trace formats bump", () => {
   assert.equal(FIFTH_SESSION_FORMAT, 34);
   assert.equal(FIFTH_TRACE_FORMAT, 28);
-  assert.equal(FIFTH_ADVENTURE_FORMAT, 26);
-  assert.equal(FIFTH_LIBRARY_FORMAT, 14);
   assert.match(FIFTH_PROMPT_VERSION, /^5e-dm-v20$/u);
 });
 

@@ -161,7 +161,7 @@ for (const viewport of [
         );
         assert.match(
           await text(page.locator("#kit-fields")),
-          /Shortsword, dagger and leather\nLeather armour, Shortsword, Dagger \(22 gp\)/u,
+          /Shortsword, dagger and leather\nLeather armour, Shortsword, Dagger, Thieves' tools \(47 gp\)/u,
         );
         // Unticking a skill drops its Expertise until another is chosen.
         await page.locator("#skill-stealth").uncheck();

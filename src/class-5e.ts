@@ -18,6 +18,7 @@ import {
   type EquipmentProfile,
   type FightingStyleId,
   type KitId,
+  type ToolId,
   type WeaponId,
   type WeaponProficiency,
 } from "./equipment-5e.js";
@@ -161,11 +162,15 @@ export const FEATURE_USES_RULE =
 /** A number for each level, such as a feature's uses. */
 export type LevelTable = Readonly<Record<Level, number>>;
 
-/** The tools a class can be proficient with (#306). */
+/**
+ * The tools a class can be proficient with (#306), by the catalogue's tool
+ * ids (#309): proficiency adds the proficiency bonus to a check made with
+ * the tool.
+ */
 export const TOOLS = {
   "thieves-tools": { name: "Thieves' Tools" },
-} as const satisfies Record<string, { name: string }>;
-export type ToolId = keyof typeof TOOLS;
+} as const satisfies Record<ToolId, { name: string }>;
+export type { ToolId };
 
 /** What a feature's name and text are written from. */
 export type FeatureContext = Readonly<{

@@ -1,0 +1,76 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 27,
+  "id": "picklock-cellar",
+  "title": "The Picklock Cellar",
+  "objective": "Drive out the goblin that has locked itself in the inn's cellar.",
+  "recommendedLevels": {
+    "min": 1,
+    "max": 1
+  },
+  "difficulty": "hard",
+  "startRoomId": "cellar-stair",
+  "rooms": [
+    {
+      "id": "cellar-stair",
+      "name": "Cellar Stair",
+      "description": "Worn steps end at a stout oak door. Someone has locked it from the far side.",
+      "features": [],
+      "items": []
+    },
+    {
+      "id": "cellar",
+      "name": "Inn Cellar",
+      "description": "A low stone cellar lit by one guttering lantern. Broken casks line the walls.",
+      "encounterId": "lone-goblin",
+      "features": [],
+      "items": []
+    }
+  ],
+  "passages": [
+    {
+      "id": "stair-to-cellar",
+      "between": ["cellar-stair", "cellar"],
+      "description": "The stout oak door.",
+      "door": {
+        "id": "oak-door",
+        "name": "Oak Door",
+        "description": "A stout oak door banded with iron. Its lock is the only way through.",
+        "state": "locked",
+        "pick": {
+          "ability": "dexterity",
+          "tool": "thieves-tools",
+          "dc": 12
+        }
+      }
+    }
+  ],
+  "encounters": [
+    {
+      "id": "lone-goblin",
+      "opponents": [
+        {
+          "id": "goblin",
+          "monster": "goblin-warrior",
+          "description": "A small, sharp-toothed goblin in scraps of leather, scimitar already drawn."
+        }
+      ],
+      "victoryEndingId": "goblin-defeated",
+      "defeatEndingId": "fallen-in-the-cellar"
+    }
+  ],
+  "endings": [
+    {
+      "id": "goblin-defeated",
+      "kind": "victory",
+      "title": "The cellar is clear",
+      "text": "The goblin falls among the broken casks. The cellar is quiet again."
+    },
+    {
+      "id": "fallen-in-the-cellar",
+      "kind": "defeat",
+      "title": "Fallen in the cellar",
+      "text": "You fall to the wet stone floor. Your adventuring ends here."
+    }
+  ]
+}

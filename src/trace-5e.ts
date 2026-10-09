@@ -1,5 +1,5 @@
 /**
- * A 5e session trace (format version 26) and its exact replay.
+ * A 5e session trace (format version 28) and its exact replay.
  *
  * The command-line adapter records every turn of a run: each clicked action
  * with the dice it drew and its card, and each typed message with the AI DM's

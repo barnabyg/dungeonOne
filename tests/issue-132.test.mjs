@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { runDmTurn } from "../dist/dm-turn.js";
-import { buildCharacter } from "../dist/character-5e.js";
+import { buildCharacter, validateCharacter } from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import {
   createFifthRuntime,
@@ -49,7 +49,11 @@ const sheet = buildCharacter(
   },
 );
 
-const runtimeFor = (adventure = crypt) => createFifthRuntime(adventure, sheet);
+// The same Fighter carrying thieves' tools (#309), to pick and disarm.
+const tooled = validateCharacter({ ...sheet, stowed: ["thieves-tools"] });
+
+const runtimeFor = (adventure = crypt, who = sheet) =>
+  createFifthRuntime(adventure, who);
 
 /** Applies actions in order, each drawing from its own queue. */
 function play(runtime, steps, state = runtime.createSession()) {
@@ -268,7 +272,7 @@ test("a passed check opens the door for good", () => {
 });
 
 test("a locked door is picked or broken by checks, or opened with its key", () => {
-  const runtime = runtimeFor();
+  const runtime = runtimeFor(crypt, tooled);
   const hall = play(runtime, [BEGIN, TO_HALL]);
   const actions = assertAgrees(runtime, hall);
   assert.deepEqual(
@@ -287,7 +291,7 @@ test("a locked door is picked or broken by checks, or opened with its key", () =
   );
   assert.equal(
     renderFifthResult(picked),
-    "Dexterity check: d20 3 + 1 = 4 against DC 15. Failure.\nThe Iron Door's lock defeats you.",
+    "Dexterity check with thieves' tools: d20 3 + 1 = 4 against DC 15. Failure.\nThe Iron Door's lock defeats you.",
   );
   assert.equal(
     find(assertAgrees(runtime, picked.state), "pick", "iron-door").reason,
@@ -307,7 +311,7 @@ test("a locked door is picked or broken by checks, or opened with its key", () =
     BEGIN,
     TO_HALL,
     [{ type: "search", roomId: "hall" }, 15],
-    [{ type: "disarm", trapId: "dart-trap" }, 15],
+    [{ type: "disarm", trapId: "dart-trap", approach: "thieves-tools" }, 15],
     TO_OFFERINGS,
     [{ type: "examine", targetId: "offering-bowl" }],
     [{ type: "take", itemId: "iron-key" }],

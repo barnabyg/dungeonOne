@@ -176,6 +176,7 @@ import {
   isArmourId,
   isCatalogueId,
   isItemId,
+  isToolId,
   isWeaponId,
   itemName,
   readLoadout,
@@ -201,7 +202,7 @@ import {
   type WeaponData,
 } from "./equipment-5e.js";
 import { tradeGoodValue } from "./treasure-5e.js";
-import { ABILITIES } from "./class-5e.js";
+import { ABILITIES, type SkillId } from "./class-5e.js";
 import {
   abilityDisadvantages,
   hasExpertise,
@@ -1101,6 +1102,7 @@ export type FifthRefusalCode =
   | "door-open"
   | "no-approach"
   | "no-key"
+  | "no-tools"
   | "already-tried"
   | "choose-approach"
   | "unknown-approach"
@@ -1144,7 +1146,7 @@ Act only through the offered tools, and only with the ids each tool lists. To go
 
 Leaving the adventure is the player's own final choice, made with the Leave button in an exit room; you have no tool for it. If the player asks to leave, tell them to use that button when they are ready, without calling a tool.
 
-Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. A module may allow another try at a failed check, after a cost (damage, or a tool used up) or once something has changed (the character holds an item, has made a discovery or has won a fight): only then does the tool take retry and list the targets that offer another try, with why. Call it with retry true only when the player asks to try again and the target is listed, and false otherwise; the engine takes the cost before it rolls. Asking for another try, or for advantage, where none is offered changes nothing: say so without calling a tool. The engine alone decides advantage and disadvantage on a check, from the module's circumstances, and its result names them; never claim or promise either. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, damage, or a way opened or closed. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage, way opened or closed, or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone, unless the tool offers a retry: then any approach it lists may be tried again. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
+Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. A module may allow another try at a failed check, after a cost (damage, or a tool used up) or once something has changed (the character holds an item, has made a discovery or has won a fight): only then does the tool take retry and list the targets that offer another try, with why. Call it with retry true only when the player asks to try again and the target is listed, and false otherwise; the engine takes the cost before it rolls. Asking for another try, or for advantage, where none is offered changes nothing: say so without calling a tool. The engine alone decides advantage and disadvantage on a check, from the module's circumstances, and its result names them; never claim or promise either. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, damage, or a way opened or closed. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage, way opened or closed, or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone, unless the tool offers a retry: then any approach it lists may be tried again. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. Searching for traps ("search for traps", "I study the flagstones for pressure plates") is one search: the engine rolls the character's better of Perception and Investigation. Picking a lock needs thieves' tools, and so may disarming a trap: pick_lock, and a disarm that needs them, is offered only while the character carries them. If the player asks to pick a lock and pick_lock is not offered for that door, say the character has no thieves' tools and name the ways still offered (forcing or breaking the door, or unlocking it with its key), without calling a tool; never pick it, or open the door, in your words. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -2749,6 +2751,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "door-open": "Already open",
   "no-approach": "Can't be done",
   "no-key": "No key",
+  "no-tools": "No thieves' tools",
   "already-tried": "Already tried",
   "choose-approach": "Choose how",
   "unknown-approach": "Not offered",
@@ -2765,6 +2768,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "interaction-used": "Interaction used",
   "too-heavy": "Too heavy",
   "not-a-weapon": "Not a weapon",
+  "not-equippable": "Not equippable",
   "already-held": "Already equipped",
   "two-handed": "Needs both hands",
   "hands-full": "Hands full",
@@ -4305,18 +4309,82 @@ export function createFifthRuntime(
   };
 
   /**
-   * The approach `requested` names among a check's (#283), or why it is
-   * refused: a check with several approaches needs one chosen, and only one
-   * it offers is accepted. With none requested, a check with one approach
-   * is made with it, and a site without a check needs none.
+   * Why a character without thieves' tools can't pick `door`'s lock (#309),
+   * naming the ways it still has: forcing or breaking it while untried, and
+   * its key.
+   */
+  const withoutTools = (state: FifthState, door: FifthDoor): string => {
+    const ways = [
+      ...(["force", "break"] as const).flatMap((kind) =>
+        door[kind] !== undefined &&
+        outcomeAt(state, { kind, id: door.id }) === undefined
+          ? [kind === "force" ? "force it" : "break it open"]
+          : [],
+      ),
+      ...(door.keyItemId === undefined
+        ? []
+        : [
+            state.inventory.includes(door.keyItemId)
+              ? `unlock it with the ${items.get(door.keyItemId)!.name}`
+              : "find its key",
+          ]),
+    ];
+    return `You carry no thieves' tools, so you can't pick the ${door.name}'s lock. ${
+      ways.length === 0
+        ? "There is no other way through it."
+        : `You could ${listed(ways)}.`
+    }`;
+  };
+
+  /**
+   * The approaches to a check the character can take now: one with thieves'
+   * tools only while it carries them (#309).
+   */
+  const takeable = (
+    state: FifthState,
+    check: AuthoredCheck | undefined,
+  ): readonly AuthoredApproach[] =>
+    check === undefined
+      ? []
+      : approachesOf(check).filter(
+          ({ tool }) =>
+            tool === undefined || state.possessions.stowed.includes(tool),
+        );
+
+  /**
+   * The approach `requested` names among those of a check the character
+   * can take (#283, #309), or why it is refused: a check with several
+   * approaches needs one chosen, and only one it offers is accepted. With
+   * none requested, a check with one approach is made with it, and a site
+   * without a check needs none. One needing thieves' tools the character
+   * doesn't carry is refused with `noTools`.
    */
   const chooseApproach = (
+    state: FifthState,
     check: AuthoredCheck | undefined,
     requested: string | undefined,
+    noTools?: string,
   ):
     | Readonly<{ spec?: AuthoredApproach; refused?: never }>
     | Readonly<{ refused: FifthRejection; spec?: never }> => {
-    const offered = check === undefined ? [] : approachesOf(check);
+    const offered = takeable(state, check);
+    // Every approach left needs the tools, or the one asked for does.
+    const authored = check === undefined ? [] : approachesOf(check);
+    if (
+      authored.length > offered.length &&
+      (offered.length === 0 ||
+        authored.some(
+          (entry) =>
+            entry.tool !== undefined && approachId(entry) === requested,
+        ))
+    ) {
+      return {
+        refused: {
+          code: "no-tools",
+          reason: noTools ?? "You carry no thieves' tools.",
+        },
+      };
+    }
     const names = listed(offered.map(approachName));
     if (requested === undefined) {
       return offered.length > 1
@@ -4386,6 +4454,23 @@ export function createFifthRuntime(
       trap === undefined ? [] : [trap.find.dc],
     ),
   );
+  /**
+   * A search for traps (#309): spotting them with Perception, or working
+   * out where they must be with Investigation, whichever the character is
+   * better at (Perception on a tie), at the search's DC.
+   */
+  const searchSpec = (state: FifthState): CheckSpec => {
+    const bonus = (skill: SkillId) =>
+      characterProfile(sheetOf(state)).skills.find(({ id }) => id === skill)!
+        .bonus;
+    return {
+      skill:
+        bonus("investigation") > bonus("perception")
+          ? "investigation"
+          : "perception",
+      dc: searchDc,
+    };
+  };
 
   /**
    * Springs an armed trap on the character: a saving throw, then its damage,
@@ -5152,7 +5237,12 @@ export function createFifthRuntime(
             `You already tried to ${action.type} the ${door.name}; trying again would go no better.`,
           );
         }
-        const choice = chooseApproach(spec, action.approach);
+        const choice = chooseApproach(
+          state,
+          spec,
+          action.approach,
+          withoutTools(state, door),
+        );
         if (choice.refused !== undefined) {
           return { state, rejection: choice.refused };
         }
@@ -5205,19 +5295,14 @@ export function createFifthRuntime(
             "You have already searched this room.",
           );
         }
-        // One Perception check against each hidden trap on the exits.
+        // One check, Perception or Investigation (#309), against each
+        // hidden trap on the exits.
+        const spec = searchSpec(state);
         const {
           state: next,
           roll,
           around,
-        } = resolveCheck(
-          state,
-          site,
-          { skill: "perception", dc: searchDc },
-          { skill: "perception", dc: searchDc },
-          room(state).name,
-          random,
-        );
+        } = resolveCheck(state, site, spec, spec, room(state).name, random);
         const found = trapsHere(state).filter(
           ({ trap }) =>
             armed(state, trap.id) &&
@@ -5279,7 +5364,12 @@ export function createFifthRuntime(
             `You already tried to disarm the ${trap.name}; trying again would go no better.`,
           );
         }
-        const choice = chooseApproach(trap.disarm, action.approach);
+        const choice = chooseApproach(
+          state,
+          trap.disarm,
+          action.approach,
+          `You carry no thieves' tools, so you can't disarm the ${trap.name}. You could go another way, or go through and take your chances with it.`,
+        );
         if (choice.refused !== undefined) {
           return { state, rejection: choice.refused };
         }
@@ -5337,7 +5427,7 @@ export function createFifthRuntime(
             `You already asked the ${creature.name} about ${topic.name}.`,
           );
         }
-        const choice = chooseApproach(topic.check, action.approach);
+        const choice = chooseApproach(state, topic.check, action.approach);
         if (choice.refused !== undefined) {
           return { state, rejection: choice.refused };
         }
@@ -5436,7 +5526,7 @@ export function createFifthRuntime(
               ],
             };
           }
-          const choice = chooseApproach(authored.check, action.approach);
+          const choice = chooseApproach(state, authored.check, action.approach);
           if (choice.refused !== undefined) {
             return { state, rejection: choice.refused };
           }
@@ -6016,11 +6106,15 @@ export function createFifthRuntime(
       check: AuthoredCheck | undefined,
       site: CheckSite,
     ): readonly ActionView[] => {
+      // A check only thieves' tools can make isn't offered without them (#309).
+      if (check !== undefined && takeable(state, check).length === 0) {
+        return [];
+      }
       const each = (
         authored: AuthoredCheck,
         retry?: string,
       ): readonly ActionView[] =>
-        approachesOf(authored).map((spec) =>
+        takeable(state, authored).map((spec) =>
           view(
             kind,
             {
@@ -6034,7 +6128,7 @@ export function createFifthRuntime(
         );
       const first =
         check === undefined ||
-        approachesOf(check).length < 2 ||
+        takeable(state, check).length < 2 ||
         outcomeAt(state, site) !== undefined
           ? [view(kind, action, target)]
           : each(check);
@@ -6045,7 +6139,7 @@ export function createFifthRuntime(
       }
       return [
         ...first,
-        ...(approachesOf(authored).length < 2
+        ...(takeable(state, authored).length < 2
           ? [
               view(
                 kind,
@@ -6069,7 +6163,7 @@ export function createFifthRuntime(
     /**
      * The character's own gear: Unequip on armour, a shield and a second
      * weapon; Wield on a stowed weapon, Equip on stowed armour, a shield or a
-     * light weapon; Drop on stowed gear. In a fight, only Wield and Equip on stowed weapons. The
+     * light weapon (never a tool, #309); Drop on stowed gear. In a fight, only Wield and Equip on stowed weapons. The
      * engine accepts the others too, but the bar stays short.
      */
     const gearViews = (fight = false): readonly ActionView[] => {
@@ -6086,10 +6180,13 @@ export function createFifthRuntime(
           .filter((id) => !fight || isWeaponId(id))
           .flatMap((id) => [
             ...(isWeaponId(id) ? [gear("swap", id)] : []),
-            ...(!isWeaponId(id) ||
-            (WEAPONS[id] as WeaponData).properties.includes("light")
-              ? [gear("equip", id)]
-              : []),
+            // Tools (#309) are carried, never equipped.
+            ...(isToolId(id)
+              ? []
+              : !isWeaponId(id) ||
+                  (WEAPONS[id] as WeaponData).properties.includes("light")
+                ? [gear("equip", id)]
+                : []),
             ...(fight ? [] : [gear("drop", id)]),
           ]),
       ];
@@ -6995,7 +7092,7 @@ export function createFifthRuntime(
       ),
       ...targetTool(
         "pick_lock",
-        "Only when the player explicitly asks to pick a door's lock: the engine rolls the check, once. Doors:",
+        "Only when the player explicitly asks to pick a door's lock, which needs the thieves' tools the character carries: the engine rolls the Dexterity check, adding the proficiency bonus when the character is proficient with the tools, once. Doors:",
         choices("pick"),
         "The id of the door whose lock to pick.",
         approachChoices("pick"),
@@ -7017,7 +7114,7 @@ export function createFifthRuntime(
       ),
       ...targetTool(
         "search",
-        "Only when the player explicitly asks to search for traps: the engine rolls a Wisdom (Perception) check, once per room, and says what it finds. Room:",
+        "Only when the player explicitly asks to search for traps: the engine rolls the character's better of Wisdom (Perception), to spot them, and Intelligence (Investigation), to work out where they must be, once per room, and says what it finds. Room:",
         choices("search"),
         "The id of the room to search.",
       ),
