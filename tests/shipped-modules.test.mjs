@@ -88,10 +88,10 @@ test("the default run qualifies every shipped module for every class within its 
       }
     }
   });
-  // docs/character-rules.md records the budget: 45 s for the Fighter alone,
-  // 150 s for both classes (owner decision, 9 October 2026).
+  // docs/character-rules.md records the budget: 90 s for both classes
+  // since #321 (150 s from #310, 45 s for the Fighter alone before it).
   assert.ok(
-    seconds < 150,
+    seconds < 90,
     `the default run took ${seconds.toFixed(1)} s of reference CPU`,
   );
 });

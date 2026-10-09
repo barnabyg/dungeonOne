@@ -2848,9 +2848,14 @@ export type FifthRuntime = Omit<
      * disabled with its reason.
      * Each says whether the engine would accept it now, and why not. It
      * dry-runs `handleAction` once per state; see the promises in that
-     * function's doc.
+     * function's doc. Given `kinds`, it lists and dry-runs only actions of
+     * those kinds, in the same order, and keeps nothing for the next call:
+     * the balance harness asks for the kinds it plays (#321).
      */
-    projectActions(state: FifthState): readonly ActionView[];
+    projectActions(
+      state: FifthState,
+      kinds?: ReadonlySet<ActionKind>,
+    ): readonly ActionView[];
     /**
      * How the adventure settles the character once it has ended with the
      * character alive (a victory or an escape): what it holds at the end
@@ -6039,8 +6044,28 @@ export function createFifthRuntime(
   /** The action each projected entry dry-ran, for `actionOf`. */
   const projectedActions = new WeakMap<ActionView, FifthAction>();
 
-  /** Dry-runs every action the character might take now; see `refusal`. */
-  const dryRunActions = (state: FifthState): readonly ActionView[] => {
+  /**
+   * Dry-runs every action of `kinds` the character might take now (every
+   * kind when omitted); see `refusal`. Entries of other kinds are listed
+   * without a dry run, then dropped (#321).
+   */
+  const dryRunActions = (
+    state: FifthState,
+    kinds?: ReadonlySet<ActionKind>,
+  ): readonly ActionView[] => {
+    const unasked = new WeakSet<ActionView>();
+    const listed = listActions(state, kinds, unasked);
+    return kinds === undefined
+      ? listed
+      : listed.filter((entry) => !unasked.has(entry));
+  };
+
+  /** Every action `dryRunActions` lists, adding each unasked one to `unasked`. */
+  const listActions = (
+    state: FifthState,
+    kinds: ReadonlySet<ActionKind> | undefined,
+    unasked: WeakSet<ActionView>,
+  ): readonly ActionView[] => {
     if (state.status !== "playing") {
       return [];
     }
@@ -6056,6 +6081,11 @@ export function createFifthRuntime(
       approach?: CheckSpec,
       retry?: string,
     ): ActionView => {
+      if (kinds !== undefined && !kinds.has(kind)) {
+        const entry: ActionView = { action: kind, available: false };
+        unasked.add(entry);
+        return entry;
+      }
       const refused = refusal(state, action);
       const entry: ActionView = {
         action: kind,
@@ -6419,7 +6449,17 @@ export function createFifthRuntime(
    * are immutable, so a state's projection never goes stale.
    */
   const projections = new WeakMap<FifthState, readonly ActionView[]>();
-  const projectActions = (state: FifthState): readonly ActionView[] => {
+  const projectActions = (
+    state: FifthState,
+    kinds?: ReadonlySet<ActionKind>,
+  ): readonly ActionView[] => {
+    // A projection of some kinds (the balance harness's, #321) isn't kept.
+    if (kinds !== undefined) {
+      return (
+        projections.get(state)?.filter(({ action }) => kinds.has(action)) ??
+        dryRunActions(state, kinds)
+      );
+    }
     let actions = projections.get(state);
     if (actions === undefined) {
       actions = dryRunActions(state);
