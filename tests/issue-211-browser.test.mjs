@@ -181,7 +181,7 @@ test(
       assert.match(ending, /Coin found: 14 gp 5 sp\. Purse: 6 gp\./);
       assert.match(
         ending,
-        /Level up: Ada is now level 2\nHit points 13 → 22\. New: Action Surge, Tactical Mind\./,
+        /Level up: Ada is now level 2\nHit points 13 → 22\. New features:\n+Action Surge\n+Tactical Mind$/m,
       );
 
       // Storage and the sheet hold the purchases and the change.
