@@ -1406,6 +1406,9 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
     sheet.fightingStyle === undefined
       ? undefined
       : fightingStyleUse(sheet.fightingStyle, gear);
+  // The DC of a save against the character's Dexterity-based features,
+  // such as Cunning Strike (#308): 8 + Dexterity modifier + proficiency.
+  const dexterityDc = 8 + modifiers.dexterity + proficiency;
   const features = classFeatures(definition, level).map((feature) => {
     const context = {
       level,
@@ -1416,7 +1419,7 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
         : { fightingStyle: sheet.fightingStyle, fightingStyleUse: styleUse }),
       expertise: sheet.expertise ?? [],
       abilityScoreImprovements: sheet.abilityScoreImprovements,
-      dexterityDc: 8 + modifiers.dexterity + proficiency,
+      dexterityDc,
     };
     const name =
       typeof feature.name === "string" ? feature.name : feature.name(context);
@@ -1511,9 +1514,7 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
     ...(has("steady-aim") ? { steadyAim: true as const } : {}),
     ...(has("fast-hands") ? { fastHands: true as const } : {}),
     ...(has("second-story-work") ? { secondStoryWork: true as const } : {}),
-    ...(has("cunning-strike")
-      ? { cunningStrike: { dc: 8 + modifiers.dexterity + proficiency } }
-      : {}),
+    ...(has("cunning-strike") ? { cunningStrike: { dc: dexterityDc } } : {}),
     ...(has("uncanny-dodge") ? { uncannyDodge: true as const } : {}),
     attacksPerAction: effects(definition, level, "extra-attack").reduce(
       (most, { effect }) => Math.max(most, effect.attacks),
