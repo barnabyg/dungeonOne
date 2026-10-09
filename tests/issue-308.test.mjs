@@ -683,6 +683,49 @@ test("Uncanny Dodge mid-Multiattack: the opponent's other attacks follow the ans
   assert.equal(currentCombatant(after.state).id, "pc");
 });
 
+test("Uncanny Dodge on a Rampage hit: the Multiattack goes on after the answer", () => {
+  // The brute's first attack drops Bo; Rampage's bonus attack hits Vex and
+  // waits. Answered, the turn resumes with the Multiattack's second attack,
+  // and no second Rampage.
+  const { uncannyDodge: _u, ...plain } = rogue;
+  void _u;
+  const bo = { ...plain, id: "bo", name: "Bo", hp: 4, initiativeBonus: 0 };
+  const brute = foe("brute", "Brute", {
+    initiativeBonus: -1,
+    multiattack: { attacks: 2, weapons: [ogre.attack] },
+    rampage: true,
+  });
+  const start = startEncounter(
+    [rogue, bo, brute],
+    dice([20, 15], [20, 2], [20, 10]),
+  ).state;
+  // Bo: target die 2, 15 + 6 hits, 1 + 1 + 4 = 6. Then Rampage on Vex.
+  const hit = act(start, END, dice([2, 2], [20, 15], [8, 1], [8, 1], [20, 15]));
+  assert.equal(combatant(hit.state, "bo").hp, 0);
+  assert.deepEqual(hit.state.pendingReaction.progress, {
+    made: 0,
+    bonusAction: false,
+    rampage: true,
+  });
+  // Halved: 2 + 2 + 4 = 8 to 4; then the second attack, 1 + 1 + 4 in full.
+  const after = act(
+    hit.state,
+    DODGE,
+    dice([8, 2], [8, 2], [20, 15], [8, 1], [8, 1]),
+  );
+  const attacks = after.events.filter(({ type }) => type === "attack");
+  assert.deepEqual(
+    attacks.map(({ damage, rampage }) => [damage, rampage]),
+    [
+      [4, true],
+      [6, undefined],
+    ],
+  );
+  assert.equal(combatant(after.state, "pc").hp, 38 - 10);
+  assert.equal(currentCombatant(after.state).id, "pc");
+  assert.equal(after.state.round, 2);
+});
+
 // The runtime, the AI DM's tools and the balance harness.
 
 /** A scripted AI DM that makes one tool call, then answers with `text`. */
