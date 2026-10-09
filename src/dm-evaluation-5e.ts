@@ -837,6 +837,8 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   use: "use_item",
   "second-wind": "second_wind",
   "action-surge": "action_surge",
+  hide: "hide",
+  "steady-aim": "steady_aim",
   "light-attack": "light_attack",
   "end-turn": "end_turn",
   move: "move",
@@ -889,7 +891,13 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
     .projectActions(state)
     .filter(({ available, action }) => available && TOOL_OF[action])
     .map(({ action, target }) =>
-      ["second-wind", "action-surge", "end-turn"].includes(action)
+      [
+        "second-wind",
+        "action-surge",
+        "hide",
+        "steady-aim",
+        "end-turn",
+      ].includes(action)
         ? TOOL_OF[action]!
         : action === "buy" || action === "sell"
           ? `trade:${action}:${target!.id}`

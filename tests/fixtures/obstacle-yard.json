@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 25,
+  "formatVersion": 26,
   "id": "obstacle-yard",
   "title": "The Obstacle Yard",
   "objective": "Get past the yard's wall or its guard, see what lies beyond, and leave by the gate.",
@@ -25,7 +25,8 @@
             "approaches": [
               {
                 "skill": "athletics",
-                "dc": 12
+                "dc": 12,
+                "movement": "climb"
               },
               {
                 "skill": "acrobatics",

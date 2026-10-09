@@ -12,6 +12,8 @@
  * caller names them, and they combine as SRD 5.2 says (any advantage and any
  * disadvantage cancel). Body armour worn without training gives disadvantage
  * on Strength and Dexterity checks and saves (SRD 5.2, `abilityDisadvantages`).
+ * A module may mark a Strength check as climbing or jumping (#307): a
+ * character with Second-Story Work (the Thief) makes it with Dexterity.
  *
  * An authored check grades its outcome into bands (#281): failure by 5 or
  * more, failure, success, and success by 5 or more.
@@ -28,11 +30,27 @@ import {
 import { SKILLS, titleCase, type Ability, type SkillId } from "./class-5e.js";
 import type { RandomSource } from "./random.js";
 
-/** An authored check: a skill's, or a plain ability's, against a DC. */
+/**
+ * An authored check: a skill's, or a plain ability's, against a DC. A
+ * Strength check may be marked as climbing or jumping (#307).
+ */
 export type CheckSpec = Readonly<
-  | { skill: SkillId; ability?: never; dc: number }
-  | { ability: Ability; skill?: never; dc: number }
+  (
+    | { skill: SkillId; ability?: never; dc: number }
+    | { ability: Ability; skill?: never; dc: number }
+  ) & { movement?: Movement }
 >;
+
+/** What a Strength check marked for Second-Story Work does (#307). */
+export const MOVEMENTS = ["climb", "jump"] as const;
+export type Movement = (typeof MOVEMENTS)[number];
+
+/** The feature that lets a marked climb or jump use Dexterity (#307). */
+export const SECOND_STORY_WORK = "Second-Story Work";
+
+/** The ability a check uses before any feature changes it. */
+export const specAbility = (spec: CheckSpec): Ability =>
+  spec.skill === undefined ? spec.ability : SKILLS[spec.skill].ability;
 
 /** One check or saving throw as rolled. */
 export type CheckRoll = Readonly<{
@@ -50,6 +68,11 @@ export type CheckRoll = Readonly<{
   proficiency: number;
   /** Expertise doubled `proficiency` (#306). */
   expertise?: true;
+  /**
+   * The feature that made it with another ability: Second-Story Work, for a
+   * marked climb or jump with Dexterity in place of Strength (#307).
+   */
+  substitute?: typeof SECOND_STORY_WORK;
   total: number;
   dc: number;
   success: boolean;
@@ -144,35 +167,47 @@ export function abilityCheck(
   circumstances: Circumstances = NO_CIRCUMSTANCES,
 ): CheckRoll {
   const profile = characterProfile(sheet);
+  // Second-Story Work: a marked climb or jump with Dexterity (#307).
+  const substitute =
+    spec.movement !== undefined &&
+    profile.secondStoryWork === true &&
+    specAbility(spec) === "strength";
+  const ability = substitute ? "dexterity" : specAbility(spec);
+  const using = substitute ? ` (Dexterity, ${SECOND_STORY_WORK})` : "";
+  const made = (roll: CheckRoll): CheckRoll =>
+    substitute ? { ...roll, substitute: SECOND_STORY_WORK } : roll;
   if (spec.skill === undefined) {
-    return rolled(
-      "check",
-      spec.ability,
-      undefined,
-      `${titleCase(spec.ability)} check`,
-      profile.modifiers[spec.ability],
-      0,
-      spec.dc,
-      circumstances.advantage,
-      random,
-      [
-        ...abilityDisadvantages(sheet, spec.ability),
-        ...circumstances.disadvantage,
-      ],
+    return made(
+      rolled(
+        "check",
+        ability,
+        undefined,
+        `${titleCase(spec.ability)} check${using}`,
+        profile.modifiers[ability],
+        0,
+        spec.dc,
+        circumstances.advantage,
+        random,
+        [
+          ...abilityDisadvantages(sheet, ability),
+          ...circumstances.disadvantage,
+        ],
+      ),
     );
   }
-  const { name, ability } = SKILLS[spec.skill];
-  const roll = rolled(
-    "check",
-    ability,
-    spec.skill,
-    `${name} check`,
-    profile.modifiers[ability],
-    skillProficiency(sheet, spec.skill),
-    spec.dc,
-    [...checkAdvantages(sheet, spec.skill), ...circumstances.advantage],
-    random,
-    [...abilityDisadvantages(sheet, ability), ...circumstances.disadvantage],
+  const roll = made(
+    rolled(
+      "check",
+      ability,
+      spec.skill,
+      `${SKILLS[spec.skill].name} check${using}`,
+      profile.modifiers[ability],
+      skillProficiency(sheet, spec.skill),
+      spec.dc,
+      [...checkAdvantages(sheet, spec.skill), ...circumstances.advantage],
+      random,
+      [...abilityDisadvantages(sheet, ability), ...circumstances.disadvantage],
+    ),
   );
   return hasExpertise(sheet, spec.skill) ? { ...roll, expertise: true } : roll;
 }

@@ -699,6 +699,9 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   use: true,
   "second-wind": true,
   "action-surge": true,
+  // Hide and Steady Aim, by the Rogue policy (#307).
+  hide: true,
+  "steady-aim": true,
   "end-turn": true,
   move: true,
   examine: true,
@@ -989,10 +992,23 @@ export function playAdventure(
           : best,
       undefined,
     );
+    // A Rogue's bonus action (#307): Steady Aim before an attack, unless
+    // already hidden, or else Hide before the action's attack (never before
+    // a Light extra attack, which may need the bonus action), for the
+    // advantage and so Sneak Attack; Hide after the attacks too, for the
+    // next turn's first.
+    const hidden = encounter.hidden.includes(PLAYER_ID);
+    const aim =
+      attack === undefined && light === undefined
+        ? undefined
+        : ((hidden ? undefined : offered(views, "steady-aim")[0]) ??
+          (attack === undefined ? undefined : offered(views, "hide")[0]));
     return (
+      aim ??
       attack ??
       light ??
       offered(views, "action-surge")[0] ??
+      offered(views, "hide")[0] ??
       offered(views, "end-turn")[0]!
     );
   };

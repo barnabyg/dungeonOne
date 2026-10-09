@@ -359,7 +359,13 @@ const CHOICE_KEYS = ["placement", "increase", "skills", "kit", "masteries"];
 /** The choices only some classes make, and the class itself (#306). */
 const CLASS_KEYS = ["class", ...CLASS_CHOICE_KEYS];
 /** The clicked actions that take no target. */
-const CLICK_ACTIONS = ["second-wind", "action-surge", "end-turn"] as const;
+const CLICK_ACTIONS = [
+  "second-wind",
+  "action-surge",
+  "hide",
+  "steady-aim",
+  "end-turn",
+] as const;
 /**
  * The clicked actions that make a check, which may name its approach (#283)
  * and ask for another try (#284); a parley (#305) names its approach, and

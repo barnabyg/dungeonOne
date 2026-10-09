@@ -294,8 +294,15 @@ bar holds your whole toolkit: an **Attack** button for each living opponent,
 **Extra attack** for each with two light weapons (after an attack, with the
 second weapon), **Drink** for each potion you carry, **Second Wind** (a bonus
 action that heals 1d10 + level), **Action Surge** (from level 2) and **End
-turn**, with the uses left. From level 5, Extra Attack makes the Attack action
-two attacks: after the first, each living opponent's button reads **Second
+turn**, with the uses left. A Rogue has **Hide** from level 2 (a bonus action:
+your Stealth against the foes' best passive Perception; on a success your next
+attack has advantage, and so Sneak Attack) and **Steady Aim** from level 3 (a
+bonus action for advantage on your next attack this turn); a turn has room for
+only one of them. At level 3 a Rogue becomes a Thief: Sneak Attack grows to
+2d6, **Fast Hands** lets the bonus action make a second weapon change in a
+turn, and **Second-Story Work** climbs and jumps with Dexterity where an
+adventure marks a check as a climb or a jump. From level 5, Extra Attack makes
+the Attack action two attacks: after the first, each living opponent's button reads **Second
 attack on** its name, so the two can go to different opponents. A mastered weapon's mastery works while you wield
 it: Sap gives a creature it hits disadvantage on its next attack, Vex gives you
 advantage on your next attack against it, Graze deals damage even on a miss,
@@ -381,12 +388,12 @@ reason, the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 14.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 32.
+  `characters-adventures` directory beside the library, in format version 33.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 25. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 26. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 9, or author a one-off stat block inline.
 

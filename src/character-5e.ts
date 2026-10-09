@@ -1250,6 +1250,14 @@ export type CharacterProfile = Readonly<{
   }>;
   /** Action Surge's uses, or 0. */
   actionSurgeUses: number;
+  /** Cunning Action (#307): it can Hide as a bonus action. */
+  cunningAction?: true;
+  /** Steady Aim (#307): a bonus action for advantage on its next attack. */
+  steadyAim?: true;
+  /** Fast Hands (#307): a second object interaction takes the bonus action. */
+  fastHands?: true;
+  /** Second-Story Work (#307): Dexterity for Strength to climb and jump. */
+  secondStoryWork?: true;
   /** Attacks per Attack action: 2 with Extra Attack from level 5 (#287). */
   attacksPerAction: number;
   features: readonly Feature[];
@@ -1394,6 +1402,8 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
   const [wind] = effects(definition, level, "second-wind");
   const [surge] = effects(definition, level, "action-surge");
   const [sneak] = effects(definition, level, "sneak-attack");
+  const has = (kind: FeatureEffect["kind"]) =>
+    effects(definition, level, kind).length > 0;
   const hitDie = definition.hitDie;
   return {
     level,
@@ -1465,6 +1475,10 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
           },
         }),
     actionSurgeUses: surge?.feature.uses?.[level] ?? 0,
+    ...(has("cunning-action") ? { cunningAction: true as const } : {}),
+    ...(has("steady-aim") ? { steadyAim: true as const } : {}),
+    ...(has("fast-hands") ? { fastHands: true as const } : {}),
+    ...(has("second-story-work") ? { secondStoryWork: true as const } : {}),
     attacksPerAction: effects(definition, level, "extra-attack").reduce(
       (most, { effect }) => Math.max(most, effect.attacks),
       1,
@@ -1560,6 +1574,8 @@ export type LevelUpChanges = Readonly<{
     before: Readonly<{ uses: number; modifier: number }>;
     after: Readonly<{ uses: number; modifier: number }>;
   }>;
+  /** Sneak Attack's dice, for a class with it, when they grow (#307). */
+  sneakAttack?: Readonly<{ before: number; after: number }>;
   /** How many kinds of weapon the character masters. */
   weaponMasteries: Readonly<{ before: number; after: number }>;
   /** The class features gained, in the sheet's order. */
@@ -1598,6 +1614,15 @@ export function levelUpChanges(
     ...(now.secondWind === undefined
       ? {}
       : { secondWind: { before: wind(was), after: wind(now) } }),
+    ...(now.sneakAttack === undefined ||
+    now.sneakAttack.dice === was.sneakAttack?.dice
+      ? {}
+      : {
+          sneakAttack: {
+            before: was.sneakAttack?.dice ?? 0,
+            after: now.sneakAttack.dice,
+          },
+        }),
     weaponMasteries: {
       before: definition.weaponMasteries[before.level],
       after: definition.weaponMasteries[after.level],

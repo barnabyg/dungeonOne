@@ -770,9 +770,10 @@ function rewardNodes(rewards, name) {
     card.setAttribute("aria-labelledby", heading.id);
     // Names only: the sheet explains each feature, and the dock stays short.
     const wind = !up.secondWind || up.secondWind.before.uses === up.secondWind.after.uses ? "" : " Second Wind uses " + up.secondWind.before.uses + " → " + up.secondWind.after.uses + ".";
-    // A level may bring no new feature yet (a Rogue's, until #307).
+    const sneak = up.sneakAttack ? " Sneak Attack " + up.sneakAttack.before + "d6 → " + up.sneakAttack.after + "d6." : "";
+    // A level may bring no new feature (a Rogue's level 4 and 5, until #308).
     const gained = up.features.length ? " New: " + up.features.map((feature) => feature.name).join(", ") + ". See the sheet for what each does." : "";
-    const gains = make("p", "Hit points " + up.maxHp.before + " → " + up.maxHp.after + "." + wind + gained);
+    const gains = make("p", "Hit points " + up.maxHp.before + " → " + up.maxHp.after + "." + wind + sneak + gained);
     card.append(heading, gains);
     // Level 4 (#286): the choices wait on the sheet, and block the next adventure.
     if (up.choices.length) {
@@ -1202,7 +1203,7 @@ function renderInitiative(encounter, fighting) {
     const row = make("tr", undefined, (current ? "current" : "") + (combatant.defeated || combatant.morale === "fled" || combatant.morale === "surrendered" ? " defeated" : ""));
     row.dataset.combatant = combatant.id;
     if (current) row.setAttribute("aria-current", "true");
-    const name = make("th", combatantName(encounter, combatant) + (combatant.sapped ? " (sapped)" : ""));
+    const name = make("th", combatantName(encounter, combatant) + (combatant.sapped ? " (sapped)" : "") + (combatant.hidden ? " (hidden)" : ""));
     name.scope = "row";
     for (const condition of combatant.conditions) name.append(" ", conditionTag(condition));
     if (current) name.append(" ", make("span", "Now", "tag now"));
@@ -1292,6 +1293,8 @@ const ACTIONS = {
   "sell-treasure": { label: "Sell ", short: "Sell", busy: "Selling ", busyLabel: "Selling…" },
   "second-wind": { label: "Second Wind", busy: "Using Second Wind", busyLabel: "Using Second Wind…" },
   "action-surge": { label: "Action Surge", busy: "Using Action Surge", busyLabel: "Using Action Surge…" },
+  hide: { label: "Hide", busy: "Hiding", busyLabel: "Hiding…" },
+  "steady-aim": { label: "Steady Aim", busy: "Steadying your aim", busyLabel: "Aiming…" },
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
   leave: { label: "Leave the adventure", busy: "Leaving the adventure", busyLabel: "Leaving…" },
 };
@@ -1306,7 +1309,7 @@ const wordsOf = (action) => action === "end-turn" && paralysed() ? WAIT : ACTION
 // Leave names the adventure, not the room it is taken from.
 const named = (action, target) => target && action !== "leave" ? target.name : "";
 const busyName = ({ action, target }) => wordsOf(action).busy + named(action, target) + "…";
-const FIGHT_FEATURES = ["second-wind", "action-surge", "end-turn"];
+const FIGHT_FEATURES = ["second-wind", "action-surge", "hide", "steady-aim", "end-turn"];
 const GEAR = ["equip", "unequip", "swap", "drop"];
 // The "You carry" slot each verb on the character's gear goes on.
 const EQUIPPED_VERBS = ["unequip", "sell-equipped"];
