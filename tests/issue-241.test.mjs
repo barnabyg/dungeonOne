@@ -278,9 +278,10 @@ const FULL_CLEAR = MINE_FULL_ROUTE.map(({ action, target }) =>
 /**
  * Seeds the scripted-DM journeys below are played on, found by search: a
  * change to these monsters or the dice order moves them. About 1 seed in 100
- * clears the whole mine at level 3 with the tunneller surrendering.
+ * clears the whole mine at level 3 with the tunneller surrendering; the
+ * Champion's initiative advantage (#315) moved the full clear from 30 to 144.
  */
-const SEEDS = { fullClear: 30, flee: 8, defeat: 0 };
+const SEEDS = { fullClear: 144, flee: 8, defeat: 0 };
 
 const xpOf = (runtime, state) =>
   runtime.projectSettlement(state).xp.map(({ name, xp }) => [name, xp]);
@@ -307,9 +308,9 @@ test("scripted DM: a level-3 Fighter clears the mine, sparing the tunneller for 
     "office-bugbear",
     "winze-spider",
   ]);
+  // The shed's potion was drunk in a fight on the way.
   assert.deepEqual(state.inventory, [
     "iron-key",
-    "shed-potion",
     "silver-locket",
     "bugbear-overseer-trinket",
     "uncut-sapphire",
@@ -398,8 +399,11 @@ test("the handoff's level-3 library is Ada at level 3, as the release runs start
   assert.equal(sheet.hp, characterProfile(sheet).maxHp);
 });
 
-/** A browser seed on which the release run clears the mine and gets out. */
-const RELEASE_SEED = 26;
+/**
+ * A browser seed on which the release run clears the mine and gets out: 47
+ * since the Champion's initiative advantage (#315) moved the dice; 26 before.
+ */
+const RELEASE_SEED = 47;
 
 test("the release run clears the mine through the server to the library file", async () => {
   const directory = await mkdtemp(join(tmpdir(), "issue-241-"));

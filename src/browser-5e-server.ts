@@ -371,6 +371,8 @@ const CLICK_ACTIONS = [
   // The answers to a hit Uncanny Dodge could halve (#308).
   "uncanny-dodge",
   "take-hit",
+  // On the check just failed (#315).
+  "tactical-mind",
 ] as const;
 /**
  * The clicked actions that make a check, which may name its approach (#283)
@@ -678,10 +680,18 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         ) {
           throw new Error("Invalid action request.");
         }
-        return click(body, {
-          type: body.action as (typeof CLICK_ACTIONS)[number],
-          actorId: PLAYER_ID,
-        });
+        return click(
+          body,
+          body.action === "tactical-mind"
+            ? { type: "tactical-mind" }
+            : {
+                type: body.action as Exclude<
+                  (typeof CLICK_ACTIONS)[number],
+                  "tactical-mind"
+                >,
+                actorId: PLAYER_ID,
+              },
+        );
       case "/api/5e/session/explore": {
         // A check's approach (#283) and a retry (#284) come with the
         // actions that make checks.

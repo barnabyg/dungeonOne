@@ -822,6 +822,9 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   disarm: true,
   // Talking changes nothing the harness measures, so no style talks.
   talk: false,
+  // Tactical Mind (#315) trades a Second Wind's healing for a check: the
+  // harness keeps every use for healing, so the gate stays a lower bound.
+  "tactical-mind": false,
   // Gear changes are never needed to get through, so no style makes one.
   equip: false,
   unequip: false,

@@ -138,6 +138,7 @@ export type FifthToolName =
   | "steady_aim"
   | "uncanny_dodge"
   | "take_hit"
+  | "tactical_mind"
   | "light_attack"
   | "sneak"
   | "ambush"

@@ -92,10 +92,11 @@ test("the gate qualifies it as Easy with the figures the proposal quotes", () =>
   assert.equal(result.ok, true);
   const { verdict } = result;
   assert.equal(verdict.qualified, true);
-  // 1.5 points over the 98% the #252 slack rule asks of an Easy module.
+  // 1 point over the 98% the #252 slack rule asks of an Easy module (1.5
+  // until the Champion's initiative advantage, #315, moved the dice).
   assert.deepEqual(
     [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
-    [3, "mace", 0.995],
+    [3, "two-daggers", 0.99],
   );
   assert.deepEqual(verdict.oneHitKill.overCap, []);
   assert.deepEqual(

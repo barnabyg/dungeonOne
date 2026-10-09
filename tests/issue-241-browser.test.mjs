@@ -1,8 +1,9 @@
-// #241, browser → API → storage: the increment 13 player handoff on seed 26.
+// #241, browser → API → storage: the increment 13 player handoff, on seed 47
+// since the Champion's initiative advantage (#315) moved the dice (26 before).
 // Ada at level 3, from the handoff's input library, clears The Silvervein
 // Mine with the buttons alone: the kobold tunneller surrenders and gives up
-// the iron key, the drowned miners show Undead Fortitude and a Skeleton's
-// vulnerability, the bugbear overseer falls behind the iron door, and the
+// the iron key, the drowned miners show a Skeleton's vulnerability and an
+// Undead Fortitude save, the bugbear overseer falls behind the iron door, and the
 // spider's bite carries poison. She walks out with the silver, and the
 // library file holds what the ending says.
 import assert from "node:assert/strict";
@@ -22,7 +23,7 @@ import {
 import { readAda } from "./fixtures/save-files.mjs";
 
 /** The handoff's seed: Ada clears the mine taking exactly these steps. */
-const SEED = 26;
+const SEED = 47;
 
 const LIBRARY = fileURLToPath(
   new URL(
@@ -108,12 +109,12 @@ test(
       await clickAction(page, "move", "sorting-shed");
       assert.match(
         await newest(page),
-        /Initiative: Kobold Lookout 8 \+ 2 = 10; Ada 4 \+ 2 = 6; Kobold Tunneller 1 \+ 2 = 3\.\n[\s\S]*Kobold Lookout attacks Ada with Spike, at advantage \(Pack Tactics\): 15 and 20, keeping 20; 20 \+ 4 = 24 against AC 14\. Critical hit! Damage 4 \+ 1 \+ 2 = 7 piercing; Ada has 21\/28 HP\./u,
+        /Initiative: Kobold Lookout 20 \+ 2 = 22; Ada \(advantage: Remarkable Athlete, d20s 16 and 6, kept\) 16 \+ 2 = 18; Kobold Tunneller 15 \+ 2 = 17\.\n[\s\S]*Kobold Lookout attacks Ada with Spike, at advantage \(Pack Tactics\): 18 and 19, keeping 19; 19 \+ 4 = 23 against AC 14\. Hit\. Damage 1 \+ 2 = 3 piercing; Ada has 25\/28 HP\./u,
       );
       await fight(page);
       const shed = await text(page.locator("#log"));
       for (const line of [
-        /Kobold Lookout has 0\/5 HP\.\n[\s\S]*Kobold Lookout is defeated\.\nKobold Tunneller checks morale as the first of its side falls: a Wisdom saving throw, 1 − 2 = -1 against DC 8\. Failure: it will surrender on its turn\./u,
+        /Kobold Lookout has 0\/5 HP\.\n[\s\S]*Kobold Lookout is defeated\.\nKobold Tunneller checks morale as the first of its side falls: a Wisdom saving throw, 6 − 2 = 4 against DC 8\. Failure: it will surrender on its turn\./u,
         /Ada uses Action Surge: one more action this turn\. 0 uses left\./u,
         /Kobold Tunneller has 1\/5 HP\./u,
         /Ada ends the turn\.\nKobold Tunneller throws down its arms and surrenders\.\nThe fight is over\./u,
@@ -143,22 +144,20 @@ test(
       await clickAction(page, "move", "flooded-drift");
       assert.match(
         await newest(page),
-        /Initiative: Miner's Bones 9 \+ 3 = 12; Ada 5 \+ 2 = 7; Drowned Miner 1 − 2 = -1\./u,
+        /Initiative: Ada \(advantage: Remarkable Athlete, d20s 2 and 20, kept\) 20 \+ 2 = 22; Miner's Bones 7 \+ 3 = 10; Drowned Miner 2 − 2 = 0\./u,
       );
       await fight(page);
       const drift = await text(page.locator("#log"));
       for (const line of [
-        /Critical hit! Damage 6 \+ 3 \+ 3 = 12 bludgeoning, doubled to 24 \(vulnerable\); Miner's Bones has 0\/13 HP\./u,
-        /Undead Fortitude: Drowned Miner makes a Constitution saving throw against DC 5 \+ 9 damage taken: 17 \+ 3 = 20 against DC 14\. Success: Drowned Miner refuses to fall and has 1\/15 HP\./u,
-        /Failure: Drowned Miner stays down\./u,
+        /Damage 5 \+ 3 = 8 bludgeoning, doubled to 16 \(vulnerable\); Miner's Bones has 0\/13 HP\./u,
+        /Ada uses Second Wind: 1 \+ 3 = 4; Ada regains 4 HP and has 16\/28 HP\. 1 use left\./u,
+        /Undead Fortitude: Drowned Miner makes a Constitution saving throw against DC 5 \+ 7 damage taken: 5 \+ 3 = 8 against DC 12\. Failure: Drowned Miner stays down\./u,
       ]) {
         assert.match(drift, line);
       }
-      // It gets up twice in all, and Ada comes through unhurt.
-      assert.equal(drift.match(/Success: Drowned Miner refuses/gu).length, 2);
       assert.match(
         await page.locator("#character-hp").innerText(),
-        /HP 21\/28/u,
+        /HP 16\/28/u,
       );
       await clickAction(page, "examine", "burial-niche");
       await clickAction(page, "take", "silver-locket");
@@ -171,19 +170,19 @@ test(
       await clickAction(page, "move", "overseers-office");
       assert.match(
         await newest(page),
-        /Initiative: Bugbear Overseer 14 \+ 2 = 16; Ada 9 \+ 2 = 11\./u,
+        /Initiative: Ada \(advantage: Remarkable Athlete, d20s 7 and 18, kept\) 18 \+ 2 = 20; Bugbear Overseer 15 \+ 2 = 17\./u,
       );
       await fight(page);
       const office = await text(page.locator("#log"));
-      // The overseer hits once.
+      // The overseer hits twice, sapped both times.
       assert.equal(
         office.match(/Bugbear Overseer attacks Ada[^\n]*\. Hit\./gu).length,
-        1,
+        2,
       );
       for (const line of [
-        /Bugbear Overseer attacks Ada with Light Hammer: 16 \+ 4 = 20 against AC 14\. Hit\. Damage 4 \+ 3 \+ 4 \+ 2 = 13 bludgeoning; Ada has 8\/28 HP\./u,
-        /Ada uses Second Wind: 3 \+ 3 = 6; Ada regains 6 HP and has 14\/28 HP\. 1 use left\./u,
-        /Ada uses Second Wind: 2 \+ 3 = 5; Ada regains 5 HP and has 19\/28 HP\. 0 uses left\./u,
+        /Bugbear Overseer attacks Ada with Light Hammer, at disadvantage \(Sap\): 20 and 19, keeping 19; 19 \+ 4 = 23 against AC 14\. Hit\. Damage 1 \+ 2 \+ 4 \+ 2 = 9 bludgeoning; Ada has 7\/28 HP\./u,
+        /Ada uses Second Wind: 8 \+ 3 = 11; Ada regains 11 HP and has 18\/28 HP\. 0 uses left\./u,
+        /You drink the Potion of Healing: 2 \+ 4 \+ 2 = 8; you regain 8 HP and have 19\/28 HP\./u,
         /Bugbear Overseer has 0\/33 HP\.\n[\s\S]*Bugbear Overseer is defeated\./u,
       ]) {
         assert.match(office, line);
@@ -202,13 +201,13 @@ test(
       await clickAction(page, "move", "webbed-winze");
       assert.match(
         await newest(page),
-        /Initiative: Ada 14 \+ 2 = 16; Giant Spider 10 \+ 3 = 13\./u,
+        /Initiative: Ada \(advantage: Remarkable Athlete, d20s 12 and 11, kept\) 12 \+ 2 = 14; Giant Spider 10 \+ 3 = 13\./u,
       );
       await fight(page);
       const winze = await text(page.locator("#log"));
       for (const line of [
-        /Damage 6 \+ 3 = 9 piercing, plus 6 = 6 poison; Ada has 4\/28 HP\.\n[\s\S]*?Ada makes a Constitution saving throw against being poisoned: 7 \+ 4 = 11 against DC 11\. Success\./u,
-        /You drink the Potion of Healing: 3 \+ 2 \+ 2 = 7; you regain 7 HP and have 11\/28 HP\./u,
+        /Damage 1 \+ 3 = 4 piercing, plus 5 = 5 poison; Ada has 10\/28 HP\.\n[\s\S]*?Ada makes a Constitution saving throw against being poisoned: 11 \+ 4 = 15 against DC 11\. Success\./u,
+        /Ada makes a Constitution saving throw against being poisoned: 6 \+ 4 = 10 against DC 11\. Failure\.\n[\s\S]*?Ada is poisoned by Giant Spider's Bite/u,
         /Giant Spider has 0\/26 HP\.\n[\s\S]*Giant Spider is defeated\./u,
       ]) {
         assert.match(winze, line);

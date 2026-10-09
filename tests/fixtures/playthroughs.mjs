@@ -158,6 +158,9 @@ function madeAction({ action, target }) {
       return { type: "leave", roomId: target.id };
     case "react":
       return { type: "react", option: target.id };
+    // Tactical Mind on the check just failed (#315).
+    case "tactical-mind":
+      return { type: "tactical-mind" };
     default:
       // A new kind must be mapped above, not guessed at.
       throw new Error(`no engine action for ${action}`);

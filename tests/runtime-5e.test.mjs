@@ -530,7 +530,8 @@ test("Improved Critical: a level 3 Champion's 19 is a critical hit", () => {
   const { state } = runtime.handleAction(
     runtime.createSession(),
     { type: "begin" },
-    dice(15, 3),
+    // Remarkable Athlete's advantage: two initiative d20s (#315).
+    dice(15, 4, 3),
   );
   // 19 crits for 2d6 1 + 1 + 3; Action Surge keeps the turn open.
   const result = runtime.handleAction(state, ATTACK, dice(19, 1, 1));

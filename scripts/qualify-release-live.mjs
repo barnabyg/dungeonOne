@@ -58,7 +58,7 @@ const RUNS = {
   "silvervein-mine": {
     issue: 241,
     route: MINE_FULL_ROUTE,
-    seed: "26",
+    seed: "47",
     character: levelThreeLibrary,
   },
   "thornwood-lodge": {

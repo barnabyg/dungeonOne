@@ -79,13 +79,14 @@ test("the bestiary holds each new monster with its band, treasure type, XP and m
 });
 
 /**
- * Ada at level 5 against one `id`, which wins initiative (her 1 to its 20)
- * and takes its first turn with `values`, the dice after initiative.
+ * Ada at level 5 against one `id`, which wins initiative (her 1 and 1, with
+ * Remarkable Athlete's advantage, to its 20) and takes its first turn with
+ * `values`, the dice after initiative.
  */
 function monsterTurn(id, ...values) {
   const room = fightRoom("lair", "The Lair", [{ id: "beast", monster: id }]);
   const runtime = createFifthRuntime(room, testFighterAt(5));
-  const random = dice(1, 20, ...values);
+  const random = dice(1, 1, 20, ...values);
   const result = runtime.handleAction(
     runtime.createSession(),
     { type: "begin" },

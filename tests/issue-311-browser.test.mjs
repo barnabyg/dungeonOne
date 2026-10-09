@@ -306,9 +306,11 @@ const FIGHTER_ROUTE = [
   ...COFFER,
 ];
 // The handoff's seed for scenario 3: Snikk is indifferent and Ada attacks
-// anyway, the goblin surprises her, the first break fails and the second
-// succeeds.
-const FIGHTER_SEED = 6;
+// anyway, the goblin surprises her (cancelling Remarkable Athlete's
+// initiative advantage), the first break fails and the second succeeds. Seed
+// 10 since the Champion's initiative advantage (#315) moved the dice (6
+// before).
+const FIGHTER_SEED = 10;
 
 test(
   `increment 15 handoff 3: a Fighter is surprised by the lurking goblin and breaks the strongroom door on a second try (seed ${FIGHTER_SEED})`,
@@ -354,23 +356,23 @@ test(
           seen.some((entry) => pattern.test(entry)),
           `${pattern} in:\n${seen.join("\n---\n")}`,
         );
-      said(/Reaction roll: 2d6 \(6 \+ 4\) − 1 Charisma = 9: indifferent\./u);
+      said(/Reaction roll: 2d6 \(4 \+ 6\) − 1 Charisma = 9: indifferent\./u);
       said(
-        /Soot Goblin's Stealth check: d20 9 \+ 6 = 15 against your passive Perception 12[^]*you are surprised and roll initiative with disadvantage\./u,
+        /Soot Goblin's Stealth check: d20 18 \+ 6 = 24 against your passive Perception 12[^]*you are surprised and roll initiative with disadvantage\./u,
       );
       said(
-        /Athletics check, at advantage \(Remarkable Athlete\): d20 2 and 6, keeping 6; 6 \+ 3 \+ 2 proficiency = 11 against DC 17\. Failure\./u,
+        /Athletics check, at advantage \(Remarkable Athlete\): d20 6 and 8, keeping 8; 8 \+ 3 \+ 2 proficiency = 13 against DC 17\. Failure\./u,
       );
       said(
-        /Another try at the Strongroom Door \(costs 1d4 bludgeoning damage\)\.[^]*you have 4\/28 HP\.[^]*= 24 against DC 17\. Success\.[^]*You break the Strongroom Door open\./u,
+        /Another try at the Strongroom Door \(costs 1d4 bludgeoning damage\)\.[^]*you have 18\/28 HP\.[^]*= 24 against DC 17\. Success\.[^]*You break the Strongroom Door open\./u,
       );
       // The rest of what the handoff quotes, fights included.
       const log = await text(page.locator("#log"));
       for (const quoted of [
-        /Initiative: Snikk the Toll-Taker 20 \+ 2 = 22; Ada 17 \+ 2 = 19\./u,
-        /Ada has 11\/28 HP[^]*Snikk the Toll-Taker is defeated\./u,
-        /Initiative: Soot Goblin 14 \+ 2 = 16; Ada \(surprised, d20s 7 and 1, kept\) 1 \+ 2 = 3\./u,
-        /Ada has 8\/28 HP[^]*Soot Goblin is defeated\./u,
+        /Initiative: Ada \(advantage: Remarkable Athlete, d20s 16 and 18, kept\) 18 \+ 2 = 20; Snikk the Toll-Taker 8 \+ 2 = 10\./u,
+        /Ada has 24\/28 HP[^]*Snikk the Toll-Taker is defeated\./u,
+        /Initiative: Ada \(advantage: Remarkable Athlete and disadvantage: surprised cancel\) 18 \+ 2 = 20; Soot Goblin 12 \+ 2 = 14\./u,
+        /Ada has 20\/28 HP[^]*Soot Goblin is defeated\./u,
         /d20 19 and 8, keeping 19; 19 \+ 3 \+ 2 proficiency = 24/u,
       ]) {
         assert.match(log, quoted);

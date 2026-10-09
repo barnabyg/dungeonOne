@@ -406,7 +406,7 @@ reason, the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 15.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 34.
+  `characters-adventures` directory beside the library, in format version 35.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
@@ -489,7 +489,7 @@ These are for development, not play.
   `--max-calls`, default 160) plays the whole of The Abandoned Delve (seed 1443
   by default), or with `--adventure tinkers-toll` The Tinker's Toll with its
   trades (seed 0), or with `--adventure silvervein-mine` The Silvervein Mine
-  (seed 26) from a saved level-3 Ada, through the browser server, typing every
+  (seed 47) from a saved level-3 Ada, through the browser server, typing every
   step to the AI DM
   and pressing a step's button only when the DM's turn left it undone, and
   writes a turn-by-turn report (`src/release-run-5e.ts`); `--seed` changes the

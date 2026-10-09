@@ -105,11 +105,12 @@ export const FIGHTER: ClassDefinition = {
       effect: { kind: "action-surge" },
     },
     {
-      // Described only: the engine does not yet offer it on a failed check.
+      // Offered right after a failed check at a check site (#315).
       id: "tactical-mind",
       level: 2,
       name: "Tactical Mind",
       text: "When you fail an ability check, spend a use of Second Wind to add 1d10 to it instead of healing; the use is kept if the check still fails.",
+      effect: { kind: "tactical-mind", sides: 10 },
     },
     {
       id: "ability-score-improvement",
@@ -142,13 +143,16 @@ export const FIGHTER: ClassDefinition = {
           effect: { kind: "critical-range", range: 19 },
         },
         {
-          // Its initiative advantage and its movement after a critical hit
-          // are not applied.
+          // Its movement after a critical hit is omitted: there are no
+          // positions (#287).
           id: "remarkable-athlete",
           level: 3,
           name: "Remarkable Athlete",
           text: "Advantage on initiative rolls and Strength (Athletics) checks.",
-          effect: { kind: "check-advantage", skills: ["athletics"] },
+          effect: [
+            { kind: "check-advantage", skills: ["athletics"] },
+            { kind: "initiative-advantage" },
+          ],
         },
       ],
     },

@@ -207,7 +207,7 @@ type Words = string | ((context: FeatureContext) => string);
 
 /**
  * What a feature does that the engine applies. A feature without one is
- * described on the sheet only.
+ * described on the sheet only; one may have several (#315).
  */
 export type FeatureEffect = Readonly<
   | {
@@ -217,12 +217,20 @@ export type FeatureEffect = Readonly<
     }
   /** One additional action on the turn. */
   | { kind: "action-surge" }
+  /**
+   * Tactical Mind (#315): right after a failed ability check, a use of
+   * Second Wind adds 1d`sides` to it; the use is spent only if the check
+   * then succeeds.
+   */
+  | { kind: "tactical-mind"; sides: number }
   /** Critical hits from `range` up. */
   | { kind: "critical-range"; range: 19 | 20 }
   /** `attacks` attacks per Attack action. */
   | { kind: "extra-attack"; attacks: number }
   /** Advantage on checks with these skills. */
   | { kind: "check-advantage"; skills: readonly SkillId[] }
+  /** Advantage on initiative rolls (#315). */
+  | { kind: "initiative-advantage" }
   /** The Fighting Style chosen at creation. */
   | { kind: "fighting-style" }
   /** The kinds of weapon mastered (`ClassDefinition.weaponMasteries`). */
@@ -281,7 +289,8 @@ export type FeatureDefinition = Readonly<{
   uses?: LevelTable;
   /** How its spent uses come back (FEATURE_USES_RULE). */
   recovery?: "rest-between-adventures";
-  effect?: FeatureEffect;
+  /** What the engine applies: one effect, or several (#315). */
+  effect?: FeatureEffect | readonly FeatureEffect[];
 }>;
 
 /**

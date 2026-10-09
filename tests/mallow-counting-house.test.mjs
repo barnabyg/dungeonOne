@@ -239,9 +239,10 @@ test("the gate qualifies it as Hard for both classes on seeded and always-failin
   const gate = gateModule(quay);
   assert.equal(gate.qualified, true);
   const [fighter, rogue] = gate.classes.map(({ result }) => result.verdict);
-  // The Fighter is 6.5 points over Hard's 75% and 6.5 under Medium's 88%.
+  // The Fighter is 8 points over Hard's 75% and 5 under Medium's 88% (81.5%
+  // until the Champion's initiative advantage, #315).
   for (const [verdict, kit, rate, failing] of [
-    [fighter, "mace", 0.815, 0.81],
+    [fighter, "mace", 0.83, 0.815],
     [rogue, "shortsword", 0.94, 0.925],
   ]) {
     assert.deepEqual(

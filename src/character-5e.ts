@@ -314,9 +314,9 @@ export function nextLevelXp(level: Level): number | undefined {
 
 /** The levels at which `definition` brings an Ability Score Improvement. */
 function improvementLevels(definition: ClassDefinition): readonly Level[] {
-  return classFeatures(definition, MAX_LEVEL)
-    .filter(({ effect }) => effect?.kind === "ability-score-improvement")
-    .map(({ level }) => level);
+  return effects(definition, MAX_LEVEL, "ability-score-improvement").map(
+    ({ feature }) => feature.level,
+  );
 }
 
 /** How many Ability Score Improvements a character of `level` has. */
@@ -395,14 +395,13 @@ function effects<K extends FeatureEffect["kind"]>(
   effect: Extract<FeatureEffect, { kind: K }>;
 }>[] {
   return classFeatures(definition, level).flatMap((feature) =>
-    feature.effect?.kind === kind
-      ? [
-          {
-            feature,
-            effect: feature.effect as Extract<FeatureEffect, { kind: K }>,
-          },
-        ]
-      : [],
+    ([] as readonly FeatureEffect[])
+      .concat(feature.effect ?? [])
+      .filter(
+        (effect): effect is Extract<FeatureEffect, { kind: K }> =>
+          effect.kind === kind,
+      )
+      .map((effect) => ({ feature, effect })),
   );
 }
 
@@ -1301,6 +1300,29 @@ export function checkAdvantages(
     .map(({ feature }) =>
       typeof feature.name === "string" ? feature.name : feature.id,
     );
+}
+
+/**
+ * The sides of Tactical Mind's die (#315), for a character with it: a use of
+ * Second Wind adds one such die to a check it has just failed.
+ */
+export function tacticalMindDie(
+  sheet: Pick<CharacterSheet, "class" | "level">,
+): number | undefined {
+  return effects(classOf(sheet), sheet.level, "tactical-mind")[0]?.effect.sides;
+}
+
+/**
+ * The features that give a character advantage on its initiative rolls
+ * (#315), by name, such as the Champion's Remarkable Athlete.
+ */
+export function initiativeAdvantages(
+  sheet: Pick<CharacterSheet, "class" | "level">,
+): readonly string[] {
+  return effects(classOf(sheet), sheet.level, "initiative-advantage").map(
+    ({ feature }) =>
+      typeof feature.name === "string" ? feature.name : feature.id,
+  );
 }
 
 /**
