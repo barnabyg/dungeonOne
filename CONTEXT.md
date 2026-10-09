@@ -101,7 +101,7 @@ A Rogue's extra damage dice, dealt once per turn on a hit with a Finesse or rang
 _Avoid_: Backstab, Sneaking in (which is about surprise)
 
 **Tool proficiency**:
-A class's training with a set of artisan's or thieves' tools, such as the Rogue's thieves' tools: recorded on the sheet. Picking locks with thieves' tools comes later.
+A class's training with a set of artisan's or thieves' tools, such as the Rogue's thieves' tools: recorded on the sheet, it adds the proficiency bonus to a check made with the tools.
 _Avoid_: Tool (a module's mundane item), Kit
 
 **Extra attack (light weapon)**:
@@ -165,11 +165,11 @@ The authored fact a character learns by first examining a feature, which may rev
 _Avoid_: Clue, Journal entry
 
 **Door**:
-A barrier in a passage between two rooms, stuck or locked. A stuck door is forced open with a check; a locked one opens with its key, or is picked or broken open with a check. Once open it stays open.
+A barrier in a passage between two rooms, stuck or locked. A stuck door is forced open with a check; a locked one opens with its key, is picked with thieves' tools, or is broken open with a check. Once open it stays open.
 _Avoid_: Gate, Exit (the way itself)
 
 **Trap**:
-A hidden danger in a passage. Searching a room may find it, and a found trap may be disarmed; going through an armed trap springs it once, with a saving throw against its damage.
+A hidden danger in a passage. Searching a room (Perception or Investigation, the better) may find it, and a found trap may be disarmed, with thieves' tools where the module says so; going through an armed trap springs it once, with a saving throw against its damage.
 _Avoid_: Hazard
 
 **Ability check**:
@@ -230,7 +230,11 @@ _Avoid_: Situational modifier, Condition (which is a fight's)
 
 **Tool**:
 A mundane item a module places, such as a rope or an iron spike, that does nothing by itself: a circumstance or a retry's cost names it. It is not kept after the adventure.
-_Avoid_: Gear (a catalogue weapon, armour or shield), Kit
+_Avoid_: Gear (a catalogue weapon, armour, shield or thieves' tools), Kit
+
+**Thieves' tools**:
+SRD 5.2 catalogue gear (25 gp) that is carried, never equipped, and kept like other gear. Picking a lock needs them, as may disarming a trap: a Dexterity check, adding the proficiency bonus with Tool proficiency. Without them the check is not offered. The Rogue's kits pack a set.
+_Avoid_: Lockpicks, Tool (a module's mundane item)
 
 **Topic**:
 Something a creature can be asked about, with its authored answer. Some need a check, with an answer for success and one for failure. The AI DM offers only these topics.

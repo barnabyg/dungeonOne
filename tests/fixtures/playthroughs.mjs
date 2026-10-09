@@ -159,7 +159,8 @@ const PLAYTHROUGHS = [
   })),
   { adventure: gemMarket, fighters: [ada, twin] },
   { adventure: archeryBarrow, fighters: [twin, archer()] },
-  { adventure: sealedCrypt, fighters: [twin] },
+  // The Thief carries thieves' tools, so it picks the iron door (#309).
+  { adventure: sealedCrypt, fighters: [twin, thief()] },
   { adventure: goblinTrio, fighters: [thief()] },
 ];
 

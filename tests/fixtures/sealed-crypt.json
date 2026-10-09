@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 26,
+  "formatVersion": 27,
   "id": "sealed-crypt",
   "title": "The Sealed Crypt",
   "objective": "Get past the crypt's doors and traps and put an end to whatever guards the warden's tomb.",
@@ -166,12 +166,20 @@
         "name": "Dart Trap",
         "description": "A tripwire is strung low across the archway, wired to holes in the wall.",
         "find": {
-          "skill": "perception",
           "dc": 13
         },
         "disarm": {
-          "ability": "dexterity",
-          "dc": 12
+          "approaches": [
+            {
+              "ability": "dexterity",
+              "tool": "thieves-tools",
+              "dc": 12
+            },
+            {
+              "ability": "dexterity",
+              "dc": 12
+            }
+          ]
         },
         "trigger": "A wire snaps underfoot and darts hiss from the wall.",
         "save": {
@@ -199,6 +207,7 @@
         "keyItemId": "iron-key",
         "pick": {
           "ability": "dexterity",
+          "tool": "thieves-tools",
           "dc": 15
         },
         "break": {

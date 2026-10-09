@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 26,
+  "formatVersion": 27,
   "id": "abandoned-delve",
   "title": "The Abandoned Delve",
   "objective": "Loot the old dungeon under the ruined keep and get out alive, by the gate or the shaft.",
@@ -314,12 +314,20 @@
         "name": "Loose Step",
         "description": "One step is set loose over a drop, wired to give way.",
         "find": {
-          "skill": "perception",
           "dc": 13
         },
         "disarm": {
-          "ability": "dexterity",
-          "dc": 12
+          "approaches": [
+            {
+              "ability": "dexterity",
+              "tool": "thieves-tools",
+              "dc": 12
+            },
+            {
+              "ability": "dexterity",
+              "dc": 12
+            }
+          ]
         },
         "trigger": "A step gives way and the stair drops you down onto broken stone.",
         "save": {
@@ -362,6 +370,7 @@
         "keyItemId": "bronze-key",
         "pick": {
           "ability": "dexterity",
+          "tool": "thieves-tools",
           "dc": 15
         },
         "break": {

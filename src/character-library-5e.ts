@@ -1,6 +1,6 @@
 /**
- * The 5e character library (format version 14: a sheet may be a Rogue, with
- * Expertise and no Fighting Style, #306).
+ * The 5e character library (format version 15: a sheet may be a Rogue, with
+ * Expertise and no Fighting Style, #306, and may carry thieves' tools, #309).
  *
  * It holds saved 5e characters and at most one pending creation: the dice of
  * a character being created. Each character record names its adventure session
@@ -46,7 +46,7 @@ import {
 import { ABILITIES, type ClassId } from "./class-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 14;
+export const FIFTH_LIBRARY_FORMAT = 15;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 

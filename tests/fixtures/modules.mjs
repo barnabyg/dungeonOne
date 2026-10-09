@@ -13,6 +13,7 @@ const NAMES = [
   "lintel-barrow",
   "lone-goblin",
   "obstacle-yard",
+  "picklock-cellar",
   "rat-tunnels",
   "rope-cove",
   "sealed-crypt",

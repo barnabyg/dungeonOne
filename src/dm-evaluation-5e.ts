@@ -327,6 +327,18 @@ export const FIFTH_DM_CASES: readonly FifthDmCase[] = Object.freeze([
     dimensions: ["clear-accuracy"],
     manualJudgments: [],
   }),
+  // Studying the room for traps is a search too (#309).
+  actionCase({
+    id: "study-for-traps",
+    seed: 0,
+    setup: toWell,
+    playerInput:
+      "I study the flagstones and work out where a trap would have to be.",
+    name: "search",
+    arguments: { room: "dry-well" },
+    dimensions: ["clear-accuracy"],
+    manualJudgments: [],
+  }),
   actionCase({
     id: "talk-topic",
     seed: 0,
