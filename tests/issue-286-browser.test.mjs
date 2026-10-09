@@ -122,7 +122,7 @@ test(
       );
       assert.match(
         await page.locator("#level-up").innerText(),
-        /Hit points 28 → 36\. Second Wind uses 2 → 3\. New: Ability Score Improvement\. See the sheet for what each does\./u,
+        /Hit points 28 → 36\. Second Wind uses 2 → 3\. New features:\n+Ability Score Improvement\n/u,
       );
       assert.equal(
         await page.locator("#level-up-choices").textContent(),

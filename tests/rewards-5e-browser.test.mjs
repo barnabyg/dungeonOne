@@ -222,7 +222,7 @@ test(
       assert.match(ending, /Level up: Ada is now level 2/);
       assert.match(
         ending,
-        /Hit points \d+ → \d+\. New: Action Surge, Tactical Mind\./,
+        /Hit points \d+ → \d+\. New features:\n+Action Surge\n+Tactical Mind$/m,
       );
       // The level-up and the way back fit the dock without covering the
       // history at a desktop size.
