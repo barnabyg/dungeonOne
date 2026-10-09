@@ -79,6 +79,7 @@ import {
   type FifthAction,
   type FifthRuntime,
   type FifthState,
+  type LeftFight,
 } from "./runtime-5e.js";
 
 export { CHECK_POLICIES, type CheckPolicy };
@@ -970,6 +971,23 @@ export function playAdventure(
       room.items.map((item) => [item.id, { item, roomId: room.id }] as const),
     ),
   );
+  /** The encounter and opponent carrying each item an opponent carries. */
+  const carriers = new Map(
+    [...items.values()].flatMap(({ item, roomId }) => {
+      const encounterId = roomById.get(roomId)!.encounterId;
+      const carried = adventure.encounters
+        .find(({ id }) => id === encounterId)
+        ?.opponents.some(({ id }) => id === item.hiddenIn);
+      return carried === true
+        ? [
+            [
+              item.id,
+              { encounterId: encounterId!, opponentId: item.hiddenIn! },
+            ] as const,
+          ]
+        : [];
+    }),
+  );
   const random = createSeededRandom(seed);
   const siteChecks = new Map(
     authoredChecks(adventure).map((site) => [
@@ -1168,11 +1186,33 @@ export function playAdventure(
     state.inventory.some((id) => items.get(id)!.item.kind === "treasure") ||
     state.usedItemIds.some((id) => items.get(id)!.item.kind === "coin");
   /**
-   * Whether an item hidden in a feature with a check can no longer be found:
-   * the check is made, and the band of its last try (#284) did not reveal
-   * the item (#285).
+   * Whether an item an opponent carries left with it (#324): the opponent
+   * fled (#237) or surrendered (#238; no style talks, so it never hands the
+   * item over), or its encounter ended peacefully (#304), so no body is left
+   * to search.
+   */
+  const carrierGone = (itemId: string) => {
+    const carrier = carriers.get(itemId);
+    if (carrier === undefined) {
+      return false;
+    }
+    const left = ({ encounterId, opponentId }: LeftFight) =>
+      encounterId === carrier.encounterId && opponentId === carrier.opponentId;
+    return (
+      state.peacefulEncounterIds.includes(carrier.encounterId) ||
+      state.fledOpponents.some(left) ||
+      state.surrenderedOpponents.some(left)
+    );
+  };
+  /**
+   * Whether an item can no longer be found: its carrier left without a body
+   * (#324), or it is hidden in a feature with a check that is made, and the
+   * band of its last try (#284) did not reveal the item (#285).
    */
   const lost = (itemId: string, hiddenIn: string | undefined) => {
+    if (carrierGone(itemId)) {
+      return true;
+    }
     const made = state.checks.findLast(
       ({ id }) => id === `examine:${hiddenIn}`,
     );
