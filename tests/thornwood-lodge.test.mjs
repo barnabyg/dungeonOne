@@ -16,7 +16,7 @@ import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
-import { gateAdventure, requiredPath } from "../dist/balance-5e.js";
+import { gateModule, requiredPath } from "../dist/balance-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { startSavedAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
 import { LODGE_ROUTE, playReleaseRun } from "../dist/release-run-5e.js";
@@ -88,7 +88,7 @@ test("the lodge is a six-room level 4–5 Hard module, entered and left by the f
   );
 });
 
-test("its fights are the hound and two mastiffs, a brown bear, an owlbear and Captain Hesk, its one boss", () => {
+test("its fights are the hound and a mastiff, a brown bear, an owlbear and Captain Hesk, its one boss", () => {
   assert.deepEqual(
     lodge.encounters.map(({ id, opponents, victoryEndingId }) => [
       id,
@@ -107,8 +107,9 @@ test("its fights are the hound and two mastiffs, a brown bear, an owlbear and Ca
         undefined,
         [
           ["Hesk's Hound", undefined, "1"],
-          ["Kennel Mastiff 1", undefined, "1/8"],
-          ["Kennel Mastiff 2", undefined, "1/8"],
+          // One mastiff since #310: two made the yard too deadly for a
+          // level-4 Rogue.
+          ["Kennel Mastiff", undefined, "1/8"],
         ],
       ],
       [
@@ -190,27 +191,32 @@ test("its treasure is 99% of the level-5 budget, the captain's gold rolled from 
   assert.equal(treasureBudget(5), 75000);
 });
 
-test("the gate qualifies it as Hard on seeded and always-failing checks, with the figures the proposal quotes", () => {
-  const result = gateAdventure(lodge);
-  assert.equal(result.ok, true);
-  const { verdict } = result;
-  assert.equal(verdict.qualified, true);
-  // 12 points over Hard's 75%, and 1 under the 88% that would make it Medium.
-  assert.deepEqual(
-    [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
-    [4, "mace", 0.87],
-  );
-  assert.deepEqual(
-    [verdict.alwaysFail.level, verdict.alwaysFail.rate],
-    [4, 0.87],
-  );
-  // Two of five ordinary enemies, under the more-than-half that fails it.
-  assert.deepEqual(
-    verdict.oneHitKill.overCap.map(({ name }) => name),
-    ["Kennel Mastiff 1", "Kennel Mastiff 2"],
-  );
-  // Every fight's XP and the spoils' 2,350.
-  assert.equal(verdict.xp.available, 200 + 25 + 25 + 200 + 700 + 700 + 2350);
+test("the gate qualifies it as Hard for both classes on seeded and always-failing checks (#310)", () => {
+  const gate = gateModule(lodge);
+  assert.equal(gate.qualified, true);
+  const [fighter, rogue] = gate.classes.map(({ result }) => result.verdict);
+  // The Fighter is 4 points over the 88% that would make it Medium; the
+  // Rogue, 10.5 over Hard's 75% and 2.5 under 88%, keeps it Hard.
+  for (const [verdict, kit, rate] of [
+    [fighter, "mace", 0.92],
+    [rogue, "shortsword", 0.855],
+  ]) {
+    assert.deepEqual(
+      [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
+      [4, kit, rate],
+    );
+    assert.deepEqual(
+      [verdict.alwaysFail.level, verdict.alwaysFail.rate],
+      [4, rate],
+    );
+    // One of four ordinary enemies, under the more-than-half that fails it.
+    assert.deepEqual(
+      verdict.oneHitKill.overCap.map(({ name }) => name),
+      ["Kennel Mastiff"],
+    );
+    // Every fight's XP and the spoils' 2,350.
+    assert.equal(verdict.xp.available, 200 + 25 + 200 + 700 + 700 + 2350);
+  }
 });
 
 // The checks, with scripted dice. testFighterAt(5): Perception +3,
@@ -425,10 +431,10 @@ test("a level-4 Fighter wins the kennel yard and walks out with the hunting cup 
   assert.equal(state.endingId, "out-with-the-spoils");
   assert.ok(state.inventory.includes("hunting-cup"));
   assert.equal(state.possessions.purse, 3000);
-  // 2,600 XP: what takes a career that ends the earlier modules near 4,100
-  // XP past level 5's 6,500.
+  // 2,475 XP, the hound fleeing for half its XP: what takes a career that
+  // ends the earlier modules near 4,100 XP past level 5's 6,500.
   assert.deepEqual(xpOf(played, state), [
-    ["Defeated Hesk's Hound, Kennel Mastiff 1 and Kennel Mastiff 2", 250],
+    ["Defeated the Kennel Mastiff; drove off the Hesk's Hound", 125],
     ["Out with the spoils", 2350],
   ]);
 });
@@ -530,8 +536,8 @@ test("the release run takes the 4,100 XP Ada through the lodge's checks to level
         "Dexterity check, at advantage (Trapper's Tongs): d20 20 and 14, keeping 20; 20 + 2 = 22 against DC 14. Success.",
       ],
     ]);
-    // 4,100 XP before; the fights' 450 and the ending's 2,350.
-    assert.equal(session.ending.rewards.totalXp, 4100 + 450 + 2350);
+    // 4,100 XP before; the fights' 425 and the ending's 2,350.
+    assert.equal(session.ending.rewards.totalXp, 4100 + 425 + 2350);
     assert.equal(session.ending.rewards.level, 5);
     assert.deepEqual(
       session.ending.rewards.treasure.map(({ name }) => name),
@@ -539,7 +545,7 @@ test("the release run takes the 4,100 XP Ada through the lodge's checks to level
     );
     const [ada] = JSON.parse(await readFile(libraryPath, "utf8")).characters;
     assert.equal(ada.session, undefined);
-    assert.deepEqual([ada.sheet.level, ada.sheet.xp], [5, 6900]);
+    assert.deepEqual([ada.sheet.level, ada.sheet.xp], [5, 6875]);
   } finally {
     await server.close();
     await rm(directory, { recursive: true, force: true });

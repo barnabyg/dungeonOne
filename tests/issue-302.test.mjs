@@ -481,6 +481,6 @@ test("the gate reports stealth-first beside its checks, and its XP limit counts 
   );
   assert.match(
     renderGateResult(ratRun, result),
-    /^ {2}Stealth-first, reported \(not judged\): the level 1, 5th percentile character playing stealth-first survived \d+\.\d% of 8 runs with its weakest kit, [a-z-]+ \(.*\); over every kit and level it completed \d+\.\d%, slipped past \d\.\d fights and earned \d+\.\d XP a run\.$/mu,
+    /^ {2}Stealth-first, reported \(not judged\): the level 1, 5th percentile Fighter playing stealth-first survived \d+\.\d% of 8 runs with its weakest kit, [a-z-]+ \(.*\); over every kit and level it completed \d+\.\d%, slipped past \d\.\d fights and earned \d+\.\d XP a run\.$/mu,
   );
 });

@@ -66,8 +66,16 @@ test("the shield and the first coin lie in the reeds after the wolf; the purse a
       ...(coins === undefined ? {} : { coins }),
       hiddenIn,
     }));
-  // Nothing at the shrine: the gate's cautious run must fight for its loot.
-  assert.deepEqual(found("wayside-shrine"), []);
+  // No loot at the shrine: the gate's cautious run must fight for it. A
+  // potion lies in its niche, so a level-1 Rogue meets the wolf with a
+  // second chance (#310).
+  assert.deepEqual(found("wayside-shrine"), [
+    {
+      id: "shrine-potion",
+      kind: "potion-of-healing",
+      hiddenIn: "shrine-niche",
+    },
+  ]);
   assert.deepEqual(found("ford"), [
     { id: "reed-shield", kind: "gear", gear: "shield", hiddenIn: "reeds" },
     {
@@ -82,11 +90,11 @@ test("the shield and the first coin lie in the reeds after the wolf; the purse a
     {
       id: "bandit-purse",
       kind: "coin",
-      coins: { gp: 12 },
+      coins: { gp: 11 },
       hiddenIn: "strongbox",
     },
-    // #252: designed against the budget, 125 gp 5 sp of 150 gp.
-    { id: "toll-chain", kind: "treasure", hiddenIn: "strongbox" },
+    // #252: designed against the budget; with the shrine's potion (#310),
+    // 149 gp 5 sp of 150 gp.
     { id: "travellers-carnelian", kind: "treasure", hiddenIn: "strongbox" },
   ]);
 });
@@ -133,15 +141,15 @@ test("the release run clears the toll, trades with the tinker and walks out, thr
     assert.equal(session.ending.rewards.level, 2);
     assert.deepEqual(
       session.ending.rewards.treasure.map(({ name }) => name),
-      ["Silver Toll Seal", "Silver Toll Chain", "Traveller's Carnelian"],
+      ["Silver Toll Seal", "Traveller's Carnelian"],
     );
-    // 3 gp 5 sp and 12 gp found, 10 gp on the shortsword, 2 gp 5 sp for
+    // 3 gp 5 sp and 11 gp found, 10 gp on the shortsword, 2 gp 5 sp for
     // the mace: the purse and the gear the sheet keeps.
-    assert.equal(session.ending.rewards.coin, "15 gp 5 sp");
-    assert.equal(session.ending.rewards.purse, "8 gp");
+    assert.equal(session.ending.rewards.coin, "14 gp 5 sp");
+    assert.equal(session.ending.rewards.purse, "7 gp");
     const [ada] = JSON.parse(await readFile(libraryPath, "utf8")).characters;
     assert.equal(ada.session, undefined);
-    assert.equal(ada.sheet.purse, 800);
+    assert.equal(ada.sheet.purse, 700);
     assert.deepEqual(ada.sheet.equipment, ["leather", "shield", "shortsword"]);
     assert.deepEqual(ada.sheet.stowed, []);
     assert.equal(ada.sheet.xp, 300);

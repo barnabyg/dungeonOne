@@ -432,18 +432,19 @@ These are for development, not play.
   that differs; replay a trace recorded with `--adventure-file` with the same
   file.
 - **Balance harness.** `npm.cmd run balance -- [--seeds <count>] [--percentiles
-<p,p>] [--styles <style,style>] [--checks <policy>] [--json] [module.json ...]`
+<p,p>] [--styles <style,style>] [--checks <policy>] [--classes <class,class>]
+[--json] [module.json ...]`
   plays each built-in module (or the files named) through the real runtime with
-  weak and strong rolled Fighters at every recommended level, in three play
+  weak and strong rolled Fighters and Rogues at every recommended level, in four play
   styles, with checks rolled (`seeded`, the default), always in their worst band
   (`always-fail`) or always in their best (`always-succeed`), and reports
   survival, HP lost and rounds per fight, healing, XP, treasure, one-hit-kill
-  chances and each module's balance-gate verdict, which plays every check
-  policy. See
+  chances and each module's balance-gate verdict for both classes, which plays
+  every check policy. See
   [the rules document](docs/character-rules.md#balance-harness).
 - **Career simulation.** `npm.cmd run career -- [--seeds <count>]
-[--required-level <level>] [--json] [module.json ...]` plays a new level-1
-  Fighter through the built-in modules (or the files named) in the browser's
+[--required-level <level>] [--class <class>] [--json] [module.json ...]` plays
+  a new level-1 Fighter (or Rogue, with `--class rogue`) through the built-in modules (or the files named) in the browser's
   order, carrying its possessions and XP between them, and reports each
   module's survival and XP, the level each career reached and where it fell. It
   exits with code 1 if no career reaches the required level (5 by default). See

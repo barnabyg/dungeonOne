@@ -4,7 +4,10 @@
   "id": "robbers-barrow",
   "title": "The Robbers' Barrow",
   "objective": "Find what the grave robber has gathered in the old barrow, and get out alive. Leave by the way you came in when you are ready.",
-  "recommendedLevels": { "min": 1, "max": 1 },
+  "recommendedLevels": {
+    "min": 1,
+    "max": 1
+  },
   "difficulty": "medium",
   "startRoomId": "barrow-mouth",
   "rooms": [
@@ -19,9 +22,23 @@
           "name": "Scratched Lintel",
           "description": "The stone over the doorway is scored with fresh knife marks.",
           "discovery": "Someone has scratched a warning into the stone: \"Robber on the bier. Silver underneath.\""
+        },
+        {
+          "id": "delvers-pack",
+          "name": "Delver's Pack",
+          "description": "A rotten leather pack lies just inside the doorway, where the daylight gives out.",
+          "discovery": "Some earlier grave-robber never came back for it. Under the mouldering straps is a stoppered vial of red liquid, still sealed."
         }
       ],
-      "items": []
+      "items": [
+        {
+          "id": "delvers-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "delvers-pack"
+        }
+      ]
     },
     {
       "id": "burial-hall",
@@ -62,9 +79,11 @@
         {
           "id": "grave-gold",
           "name": "Grave Gold",
-          "description": "Fifty old gold coins, worn smooth and stamped with a forgotten king.",
+          "description": "Twenty-three old gold coins, worn smooth and stamped with a forgotten king.",
           "kind": "coin",
-          "coins": { "gp": 50 },
+          "coins": {
+            "gp": 23
+          },
           "hiddenIn": "robbers-sack"
         },
         {
@@ -72,7 +91,9 @@
           "name": "Grave Robber's Coins",
           "description": "A small pouch of silver pieces.",
           "kind": "coin",
-          "coins": { "sp": 14 },
+          "coins": {
+            "sp": 14
+          },
           "hiddenIn": "barrow-robber"
         }
       ]

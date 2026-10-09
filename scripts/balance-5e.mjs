@@ -8,17 +8,18 @@ import {
   CHECK_POLICIES,
   DEFAULT_PERCENTILES,
   DEFAULT_SEED_COUNT,
-  gateAdventure,
+  GATE_CLASSES,
+  gateModule,
   PLAY_STYLES,
   qualifyAdventure,
   renderBalanceResult,
-  renderGateResult,
+  renderModuleGateResult,
 } from "../dist/balance-5e.js";
 
 const USAGE = [
   "Usage: npm run balance -- [--seeds <count>] [--percentiles <p,p>]",
-  "       [--styles <style,style>] [--checks <policy>] [--json]",
-  "       [module.json ...]",
+  "       [--styles <style,style>] [--checks <policy>] [--classes <class,class>]",
+  "       [--json] [module.json ...]",
 ].join("\n");
 
 function list(value, parse) {
@@ -40,6 +41,7 @@ export function parseArguments(args) {
     percentiles: [...DEFAULT_PERCENTILES],
     styles: [...PLAY_STYLES],
     checks: "seeded",
+    classes: [...GATE_CLASSES],
     json: false,
     paths: [],
   };
@@ -72,6 +74,13 @@ export function parseArguments(args) {
       if (!CHECK_POLICIES.includes(parsed.checks)) {
         throw new Error(USAGE);
       }
+    } else if (argument === "--classes") {
+      parsed.classes = list(value(), (classId) => {
+        if (!GATE_CLASSES.includes(classId)) {
+          throw new Error(USAGE);
+        }
+        return classId;
+      });
     } else if (argument === "--json") {
       parsed.json = true;
     } else if (argument.startsWith("--")) {
@@ -84,10 +93,11 @@ export function parseArguments(args) {
 }
 
 /**
- * Qualifies each module, with its checks graded by `--checks` (seeded by
- * default), and gates it on its declared difficulty, which plays every
- * check policy, over the same seeds; the exit code is 1 if any fails with a named reason or does
- * not qualify.
+ * Qualifies each module for each class in `--classes` (every class the gate
+ * judges by default, #310), with its checks graded by `--checks` (seeded by
+ * default), and gates it on its declared difficulty for every class, which
+ * plays every check policy, over the same seeds; the exit code is 1 if any
+ * fails with a named reason or does not qualify.
  */
 export async function main(args, output = process.stdout) {
   const options = parseArguments(args);
@@ -105,31 +115,40 @@ export async function main(args, output = process.stdout) {
   };
   const results = adventures.map((adventure) => ({
     adventure,
-    result: qualifyAdventure(adventure, qualification),
-    gate: gateAdventure(adventure, { seeds: qualification.seeds }),
+    reports: options.classes.map((classId) => ({
+      classId,
+      result: qualifyAdventure(adventure, { ...qualification, classId }),
+    })),
+    gate: gateModule(adventure, { seeds: qualification.seeds }),
   }));
   output.write(
     options.json
       ? `${JSON.stringify(
-          results.map(({ adventure, result, gate }) => ({
+          results.map(({ adventure, reports, gate }) => ({
             adventureId: adventure.id,
-            ...result,
+            reports: reports.map(({ classId, result }) => ({
+              classId,
+              ...result,
+            })),
             gate,
           })),
           null,
           2,
         )}\n`
       : `${results
-          .map(
-            ({ adventure, result, gate }) =>
-              `${renderBalanceResult(adventure, result)}
-
-${renderGateResult(adventure, gate)}`,
+          .map(({ adventure, reports, gate }) =>
+            [
+              ...reports.map(({ result }) =>
+                renderBalanceResult(adventure, result),
+              ),
+              renderModuleGateResult(adventure, gate),
+            ].join("\n\n"),
           )
           .join("\n\n")}\n`,
   );
   return results.every(
-    ({ result, gate }) => result.ok && gate.ok && gate.verdict.qualified,
+    ({ reports, gate }) =>
+      reports.every(({ result }) => result.ok) && gate.qualified,
   )
     ? 0
     : 1;

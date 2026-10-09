@@ -1518,8 +1518,9 @@ export function renderBalanceResult(
     return `${adventure.title} (${adventure.id}) fails: ${result.failure.code}. ${result.failure.message}`;
   }
   const { report } = result;
+  const className = CLASSES[report.classId].name;
   const lines = [
-    `${adventure.title} (${report.adventureId})${report.checks === "seeded" ? "" : `, with ${report.checks} checks`}`,
+    `${adventure.title} (${report.adventureId}) for the ${className}${report.checks === "seeded" ? "" : `, with ${report.checks} checks`}`,
     `Objective: ${report.objective}, through ${report.requiredRoomIds.join(" > ")}`,
   ];
   for (const cell of report.cells) {
@@ -1530,7 +1531,7 @@ export function renderBalanceResult(
     if (first === cell) {
       lines.push(
         "",
-        `Level ${cell.level}, ${cell.percentile}th percentile character. One-hit kill: ${cell.oneHitKill
+        `Level ${cell.level}, ${cell.percentile}th percentile ${className}. One-hit kill: ${cell.oneHitKill
           .map(({ name, chance }) => `${name} ${percent(chance)}`)
           .join(", ")}`,
       );
@@ -2205,46 +2206,85 @@ export function gateVerdictAt(
   };
 }
 
+/**
+ * The classes the gate qualifies every module for (#310), in the order
+ * creation offers them: a module qualifies only if it qualifies for each.
+ */
+export const GATE_CLASSES: readonly ClassId[] = ["fighter", "rogue"];
+
+/** The gate's verdict on a module for every class in `GATE_CLASSES`. */
+export type ModuleGateResult = Readonly<{
+  adventureId: string;
+  /** Whether the module qualifies for every class. */
+  qualified: boolean;
+  /** Each class's result, in `GATE_CLASSES` order. */
+  classes: readonly Readonly<{ classId: ClassId; result: GateResult }>[];
+}>;
+
+/**
+ * Gates `adventure` for every class in `GATE_CLASSES` (`gateAdventure` for
+ * each, with `options`): it qualifies only if every class qualifies.
+ */
+export function gateModule(
+  adventure: FifthAdventure,
+  options: Omit<GateOptions, "classId"> = {},
+): ModuleGateResult {
+  const classes = GATE_CLASSES.map((classId) => ({
+    classId,
+    result: gateAdventure(adventure, { ...options, classId }),
+  }));
+  return {
+    adventureId: adventure.id,
+    qualified: classes.every(
+      ({ result }) => result.ok && result.verdict.qualified,
+    ),
+    classes,
+  };
+}
+
 /** Each module gated so far, by its content: the verdict never changes. */
 const gated = new Map<string, boolean>();
 
 /**
- * Whether `adventure` passes the gate at its declared difficulty with the
- * default options, as the browser offers modules.
+ * Whether `adventure` passes the gate at its declared difficulty for every
+ * class with the default options (`gateModule`), as the browser offers
+ * modules.
  */
 export function passesGate(adventure: FifthAdventure): boolean {
   const key = JSON.stringify(adventure);
   let passed = gated.get(key);
   if (passed === undefined) {
-    const result = gateAdventure(adventure, {
+    passed = gateModule(adventure, {
       reportStealth: false,
       reportReactions: false,
-    });
-    passed = result.ok && result.verdict.qualified;
+    }).qualified;
     gated.set(key, passed);
   }
   return passed;
 }
 
 /**
- * The gate's verdict as plain text: whether the module qualifies at its
- * declared difficulty, then each check, naming the ordinary enemies over
- * the one-hit-kill cap.
+ * One class's gate verdict as plain text: whether the module qualifies at
+ * its declared difficulty for the class, then each check, naming the
+ * ordinary enemies over the one-hit-kill cap. A failure names `classId`,
+ * the class it was gated for, when given.
  */
 export function renderGateResult(
   adventure: Pick<FifthAdventure, "id" | "title">,
   result: GateResult,
+  classId?: ClassId,
 ): string {
   const name = `${adventure.title} (${adventure.id})`;
   if (!result.ok) {
-    return `${name} does not qualify: ${result.failure.code}. ${result.failure.message}`;
+    return `${name} does not qualify${classId === undefined ? "" : ` for the ${CLASSES[classId].name}`}: ${result.failure.code}. ${result.failure.message}`;
   }
   const { verdict } = result;
+  const who = CLASSES[verdict.classId].name;
   const { survival, alwaysFail, oneHitKill, xp } = verdict;
   const mark = (ok: boolean) => (ok ? "pass" : "FAIL");
   const over = oneHitKill.overCap;
   const deadly = (check: SurvivalCheck, title: string) =>
-    `  ${title}, ${mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile character playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${kits(check)}); ${verdict.difficulty} needs ${percent(check.required)}.`;
+    `  ${title}, ${mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile ${who} playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${kits(check)}); ${verdict.difficulty} needs ${percent(check.required)}.`;
   const succeeded = xp.alwaysSucceed;
   const stealth = verdict.stealthFirst;
   const kits = (check: Pick<SurvivalCheck, "kits">) =>
@@ -2252,10 +2292,10 @@ export function renderGateResult(
       .map(({ kit, level, rate }) => `${kit} level ${level} ${percent(rate)}`)
       .join(", ");
   return [
-    `${name} ${verdict.qualified ? "qualifies" : "does not qualify"} as ${verdict.difficulty}.`,
+    `${name} ${verdict.qualified ? "qualifies" : "does not qualify"} as ${verdict.difficulty} for the ${who}.`,
     deadly(survival, "Too deadly"),
     deadly(alwaysFail, "Too deadly when every check fails"),
-    `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile character kills ` +
+    `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile ${who} kills ` +
       (over.length === 0
         ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`
         : `${over.length} of ${oneHitKill.enemies.length} ordinary enemies with one attack more than ${percent(oneHitKill.cap)} of the time: ${over
@@ -2265,15 +2305,30 @@ export function renderGateResult(
             )
             .join(", ")}.${oneHitKill.ok ? "" : " No more than half may be."}`),
     `  XP, ${mark(xp.ok)}: its ${Math.max(xp.available, succeeded.mostXp)} XP takes a character from ${xp.startXp} XP to level ${xp.endLevel}; the limit is level ${xp.levelLimit}.`,
-    `  When every check succeeds, the level ${succeeded.level}, ${succeeded.percentile}th percentile character playing ${succeeded.style} earned at most ${succeeded.mostXp} of the ${xp.available} XP offered in ${succeeded.runs} ${succeeded.runs === 1 ? "run" : "runs"}.`,
+    `  When every check succeeds, the level ${succeeded.level}, ${succeeded.percentile}th percentile ${who} playing ${succeeded.style} earned at most ${succeeded.mostXp} of the ${xp.available} XP offered in ${succeeded.runs} ${succeeded.runs === 1 ? "run" : "runs"}.`,
     ...(stealth === undefined
       ? []
       : [
-          `  Stealth-first, reported (not judged): the level ${stealth.level}, ${stealth.percentile}th percentile character playing ${stealth.style} survived ${percent(stealth.rate)} of ${stealth.runs} runs with its weakest kit, ${stealth.kit} (${kits(stealth)}); over every kit and level it completed ${percent(stealth.completionRate)}, slipped past ${decimal(stealth.meanBypassed)} fights and earned ${decimal(stealth.meanXp)} XP a run.`,
+          `  Stealth-first, reported (not judged): the level ${stealth.level}, ${stealth.percentile}th percentile ${who} playing ${stealth.style} survived ${percent(stealth.rate)} of ${stealth.runs} runs with its weakest kit, ${stealth.kit} (${kits(stealth)}); over every kit and level it completed ${percent(stealth.completionRate)}, slipped past ${decimal(stealth.meanBypassed)} fights and earned ${decimal(stealth.meanXp)} XP a run.`,
         ]),
     ...(verdict.reactions ?? []).map(
       (report) =>
-        `  Reactions, ${report.policy === "attack" ? "always attacking" : "taking the peaceful option"}, reported (not judged): the level ${report.level}, ${report.percentile}th percentile character playing ${report.style} survived ${percent(report.rate)} of ${report.runs} runs with its weakest kit, ${report.kit} (${kits(report)}); over every kit and level it completed ${percent(report.completionRate)}, ended ${decimal(report.meanPeaceful)} encounters peacefully and earned ${decimal(report.meanXp)} XP a run.`,
+        `  Reactions, ${report.policy === "attack" ? "always attacking" : "taking the peaceful option"}, reported (not judged): the level ${report.level}, ${report.percentile}th percentile ${who} playing ${report.style} survived ${percent(report.rate)} of ${report.runs} runs with its weakest kit, ${report.kit} (${kits(report)}); over every kit and level it completed ${percent(report.completionRate)}, ended ${decimal(report.meanPeaceful)} encounters peacefully and earned ${decimal(report.meanXp)} XP a run.`,
     ),
   ].join("\n");
+}
+
+/**
+ * The gate's verdict on a module for every class as plain text: each
+ * class's `renderGateResult`, in `GATE_CLASSES` order.
+ */
+export function renderModuleGateResult(
+  adventure: Pick<FifthAdventure, "id" | "title">,
+  result: ModuleGateResult,
+): string {
+  return result.classes
+    .map(({ classId, result: gate }) =>
+      renderGateResult(adventure, gate, classId),
+    )
+    .join("\n");
 }

@@ -144,7 +144,7 @@ test(
       await clickAction(page, "take", "bandit-purse");
       assert.equal(
         await page.locator("#purse").textContent(),
-        "Purse: 13 gp 5 sp",
+        "Purse: 12 gp 5 sp",
       );
 
       await clickAction(page, "move", "ford");
@@ -159,12 +159,12 @@ test(
       await clickAction(page, "sell", "mace");
       assert.equal(
         await newest(page),
-        "You sell the mace to Merrow the Tinker for 2 gp 5 sp. The trade takes 10 minutes. Purse: 6 gp.",
+        "You sell the mace to Merrow the Tinker for 2 gp 5 sp. The trade takes 10 minutes. Purse: 5 gp.",
       );
       await clickAction(page, "sell", "dagger");
       assert.equal(
         await newest(page),
-        "You sell the dagger to Merrow the Tinker for 1 gp. The trade takes 10 minutes. Purse: 7 gp.",
+        "You sell the dagger to Merrow the Tinker for 1 gp. The trade takes 10 minutes. Purse: 6 gp.",
       );
 
       await clickAction(page, "move", "wayside-shrine");
@@ -178,7 +178,7 @@ test(
         /Defeated the Wolf: \+50 XP\nDefeated Scarred Bandit and Young Bandit: \+50 XP\nBack with the takings: \+200 XP/,
       );
       assert.match(ending, /Treasure kept\nSilver Toll Seal \(25 gp\)\./);
-      assert.match(ending, /Coin found: 15 gp 5 sp\. Purse: 7 gp\./);
+      assert.match(ending, /Coin found: 14 gp 5 sp\. Purse: 6 gp\./);
       assert.match(
         ending,
         /Level up: Ada is now level 2\nHit points 13 → 22\. New: Action Surge, Tactical Mind\./,
@@ -193,7 +193,7 @@ test(
         "shortsword",
       ]);
       assert.deepEqual(record.sheet.stowed, []);
-      assert.equal(record.sheet.purse, 700);
+      assert.equal(record.sheet.purse, 600);
       await page.locator("#ending-next").click();
       await page.locator("#sheet").waitFor({ state: "visible" });
       const sheet = await text(page.locator("#sheet-body"));
@@ -203,7 +203,7 @@ test(
       );
       assert.match(sheet, /Shortsword: \+6 to hit, 1d6 \+ 4 piercing, Vex/);
       assert.match(sheet, /Treasure\nSilver Toll Seal \(25 gp\)\./);
-      assert.match(sheet, /Purse\n7 gp\n/);
+      assert.match(sheet, /Purse\n6 gp\n/);
 
       // Buying and dropping gear, then abandoning, changes nothing.
       const before = record.sheet;
@@ -212,7 +212,7 @@ test(
       await clickAction(page, "buy", "dagger");
       await clickAction(page, "unequip", "shield");
       await clickAction(page, "drop", "shield");
-      assert.equal(await page.locator("#purse").textContent(), "Purse: 5 gp");
+      assert.equal(await page.locator("#purse").textContent(), "Purse: 4 gp");
       assert.match(
         await text(page.locator("#room")),
         /Items here\nShield — You dropped it here\.\nYou carry\nLeather armour — Worn\.\n[\s\S]*Shortsword — In hand\.\n[\s\S]*Dagger — Carried, not equipped\./u,
@@ -233,7 +233,7 @@ test(
       assert.deepEqual(record.sheet, before);
       assert.match(
         await text(page.locator("#sheet-body")),
-        /· Leather armour, Shield, Shortsword\n[\s\S]*Purse\n7 gp\n/u,
+        /· Leather armour, Shield, Shortsword\n[\s\S]*Purse\n6 gp\n/u,
       );
     } finally {
       await browser.close();

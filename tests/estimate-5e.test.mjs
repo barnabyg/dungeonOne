@@ -256,7 +256,7 @@ test("the estimate renders per level, character and kit, and the gate per diffic
     assert.match(
       text,
       new RegExp(
-        `^Wolf ×2 \\(encounter-estimate\\) (qualifies|does not qualify) as ${difficulty}\\.$`,
+        `^Wolf ×2 \\(encounter-estimate\\) (qualifies|does not qualify) as ${difficulty} for the Fighter\\.$`,
         "mu",
       ),
     );
