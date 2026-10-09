@@ -732,9 +732,9 @@ const findAction = (view: ReleaseSessionView, step: ReleaseStep) =>
   );
 
 /**
- * Whether `step` is done in `after`: a move or a sneak is done in its destination; an
- * examination (which stays offered, to read again) once the room shows what
- * it found; a trade (whose Buy stays offered while coin lasts) once the purse
+ * Whether `step` is done in `after`: a move or a sneak is done in its
+ * destination; an examination (which stays offered, to read again) once the
+ * room shows what it found; a trade (whose Buy stays offered while coin lasts) once the purse
  * changed; anything else once its action is no longer available in the room
  * it was taken in. A check step (an approach or a retry) is done once its
  * button is withdrawn. A fight step is done by any committed action.

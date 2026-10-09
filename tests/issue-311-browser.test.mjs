@@ -247,6 +247,18 @@ test(
         /You slip out of the Counting Hall unseen, past Soot Goblin\.[^]*halved to 2; you have 19\/21 HP\./u,
       );
       said(/Investigation check: d20 4 − 1 = 3 against DC 13\. Failure\./u);
+      // The rest of what the handoff quotes, fights included.
+      const log = await text(page.locator("#log"));
+      for (const quoted of [
+        /Soot Goblin's Stealth check: d20 3 \+ 6 = 9 against your passive Perception 15/u,
+        /d20 19 \+ 4 \+ 4 proficiency \(Expertise\) = 27 against DC 9\. Success\./u,
+        /Dexterity saving throw: d20 15 \+ 4 \+ 2 proficiency = 21 against DC 13\. Success\./u,
+        /Initiative: Vex 20 \+ 4 = 24/u,
+        /Damage 4 \+ 4 = 8 piercing; Soot Goblin has 2\/10 HP\./u,
+        /Sneak Attack/u,
+      ]) {
+        assert.match(log, quoted);
+      }
       said(
         /You spring your ambush: Soot Goblin is surprised and rolls initiative with disadvantage\./u,
       );
@@ -352,6 +364,17 @@ test(
       said(
         /Another try at the Strongroom Door \(costs 1d4 bludgeoning damage\)\.[^]*you have 4\/28 HP\.[^]*= 24 against DC 17\. Success\.[^]*You break the Strongroom Door open\./u,
       );
+      // The rest of what the handoff quotes, fights included.
+      const log = await text(page.locator("#log"));
+      for (const quoted of [
+        /Initiative: Snikk the Toll-Taker 20 \+ 2 = 22; Ada 17 \+ 2 = 19\./u,
+        /Ada has 11\/28 HP[^]*Snikk the Toll-Taker is defeated\./u,
+        /Initiative: Soot Goblin 14 \+ 2 = 16; Ada \(surprised, d20s 7 and 1, kept\) 1 \+ 2 = 3\./u,
+        /Ada has 8\/28 HP[^]*Soot Goblin is defeated\./u,
+        /d20 19 and 8, keeping 19; 19 \+ 3 \+ 2 proficiency = 24/u,
+      ]) {
+        assert.match(log, quoted);
+      }
       const ending = await leave(page);
       assert.match(ending, /^Out with the guild's gold\nEscaped with loot\n/u);
       const record = await readAda(libraryPath);

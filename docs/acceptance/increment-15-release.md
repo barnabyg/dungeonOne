@@ -35,7 +35,7 @@ The evidence comes in three kinds, kept apart below:
   went up to the records loft with the gang's bugbear. The module has six
   rooms, and you enter and leave by the quay steps:
   - **Quay Steps** (start and exit): a mooring bollard hides a Potion of
-    Healing. There is no loot here.
+    Healing; a potion is not loot, so there is nothing here to carry out.
   - **Toll Arch** (required path): **Snikk the Toll-Taker** (a Goblin Boss)
     reacts to the character.
     - _Unfriendly_ or _uncertain_: attack, parley or a 5 gp toll.
@@ -164,7 +164,7 @@ replies, but no credentials or prompts. Result:
 
 | Measure                        | Result                                                                                                                                     |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Ending                         | _Out with the guild's gold_, 1,475 XP, level 3 (two garnets, the chain of office, 156 gp)                                                  |
+| Ending                         | _Out with the guild's gold_, 1,475 XP, level 3 (two garnets, the chain of office, 156 gp found; purse 171 gp)                              |
 | Turns / typed to the AI DM     | 25 / 24 (Leave has only a button, by design)                                                                                               |
 | Typed steps the DM carried out | 24 of 24. One step (the desk) was also pressed by its button: see below.                                                                   |
 | New increment 15 tools         | `react` with a parley approach (Persuasion) and with the toll, `sneak` twice, `ambush`, `light_attack`, `pick_lock` — each called as typed |
