@@ -24,13 +24,13 @@ export async function launchDefault(cwd, args, apiKey = "") {
     child.once("exit", resolve);
   });
   // Startup gates every built-in module on every check policy for both
-  // classes (about 37 s idle since #310, 20 before); under the full parallel
-  // suite it takes far longer.
+  // classes (about 24 s on a busy machine since #321, 52 before it); under
+  // the full parallel suite it takes far longer.
   const url = await new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       child.kill();
-      reject(new Error(`No URL within 150 s:\n${output}`));
-    }, 150000);
+      reject(new Error(`No URL within 90 s:\n${output}`));
+    }, 90000);
     child.once("exit", () => clearTimeout(timer));
     child.stdout.on("data", (chunk) => {
       output += chunk;
