@@ -262,6 +262,13 @@ export function percentileCharacters({
  * also fail its Constitution save unless the hit is critical or radiant.
  * Advantage from a previous hit (Vex) is not counted, nor is the Light extra
  * attack (the only attack Two-Weapon Fighting changes): it is a second one.
+ * With `bonusAction`, a Rogue's bonus action before the attack is counted
+ * too (#310), as the harness plays it: Steady Aim gives advantage, or else
+ * Hide gives it as often as its Stealth check meets `hideDc`, the best
+ * passive Perception in the enemy's fight. Advantage brings Sneak Attack's
+ * dice, doubled on a critical hit, with a Finesse or ranged weapon; the
+ * weapon's own disadvantage cancels both. The gate judges the plain attack
+ * and only reports this one (owner decision, 9 October 2026).
  */
 export function oneHitKillChance(
   sheet: CharacterSheet,
@@ -279,8 +286,10 @@ export function oneHitKillChance(
         | "challengeRating"
       >
     >,
+  bonusAction?: Readonly<{ hideDc: number }>,
 ): number {
-  const attack = playerCombatant(sheet).attack;
+  const combatant = playerCombatant(sheet);
+  const { attack } = combatant;
   const hp = enemy.hitPoints.average;
   const defenses = statBlockDefenses(enemy);
   /** Its Constitution save, if Undead Fortitude can keep it standing. */
@@ -310,21 +319,30 @@ export function oneHitKillChance(
       ? 1
       : Math.min(20, Math.max(0, 5 + damage - fortitude - 1)) / 20;
   };
-  /** P(a kill) with `dice` dice of the weapon plus its modifier. */
-  const kills = (dice: number, critical: boolean) => {
+  /**
+   * P(a kill) with `dice` dice of the weapon and `sneak` Sneak Attack dice
+   * plus the weapon's modifier. Great Weapon Fighting counts only the
+   * weapon's dice.
+   */
+  const kills = (dice: number, sneak: number, critical: boolean) => {
     let totals = new Map([[attack.damage.modifier, 1]]);
-    for (let die = 0; die < dice; die++) {
+    const add = (sides: number, counted: (face: number) => number) => {
       const next = new Map<number, number>();
       for (const [total, chance] of totals) {
-        for (let face = 1; face <= attack.damage.sides; face++) {
-          const counted = countedDamageDie(face, attack.greatWeaponFighting);
-          next.set(
-            total + counted,
-            (next.get(total + counted) ?? 0) + chance / attack.damage.sides,
-          );
+        for (let face = 1; face <= sides; face++) {
+          const value = total + counted(face);
+          next.set(value, (next.get(value) ?? 0) + chance / sides);
         }
       }
       totals = next;
+    };
+    for (let die = 0; die < dice; die++) {
+      add(attack.damage.sides, (face) =>
+        countedDamageDie(face, attack.greatWeaponFighting),
+      );
+    }
+    for (let die = 0; die < sneak; die++) {
+      add(combatant.sneakAttack!.sides, (face) => face);
     }
     return [...totals].reduce(
       (sum, [total, chance]) =>
@@ -332,27 +350,90 @@ export function oneHitKillChance(
       0,
     );
   };
-  /** P(the kept d20 is `d20`), with disadvantage keeping the lower of two. */
-  const rolled = (d20: number) =>
-    (attack.disadvantage ?? []).length === 0
-      ? 1 / 20
-      : ((21 - d20) ** 2 - (20 - d20) ** 2) / 400;
   // Graze: a miss deals the damage modifier, if above 0.
   const grazeKills =
     attack.mastery === "Graze" && attack.damage.modifier > 0
       ? killedBy(attack.damage.modifier, false)
       : 0;
-  let chance = 0;
-  for (let d20 = 1; d20 <= 20; d20++) {
-    if (d20 !== 1 && d20 >= attack.criticalRange) {
-      chance += kills(attack.damage.dice * 2, true) * rolled(d20);
-    } else if (d20 !== 1 && d20 + attack.bonus >= enemy.armorClass) {
-      chance += kills(attack.damage.dice, false) * rolled(d20);
-    } else {
-      chance += grazeKills * rolled(d20);
+  /**
+   * P(a kill) with the d20 rolled `mode`: two kept higher or lower, or one;
+   * with `sneak` Sneak Attack dice on a hit.
+   */
+  const chanceWith = (
+    mode: "advantage" | "disadvantage" | "straight",
+    sneak: number,
+  ) => {
+    /** P(the kept d20 is `d20`). */
+    const rolled = (d20: number) =>
+      mode === "straight"
+        ? 1 / 20
+        : mode === "advantage"
+          ? (d20 ** 2 - (d20 - 1) ** 2) / 400
+          : ((21 - d20) ** 2 - (20 - d20) ** 2) / 400;
+    let chance = 0;
+    for (let d20 = 1; d20 <= 20; d20++) {
+      if (d20 !== 1 && d20 >= attack.criticalRange) {
+        chance += kills(attack.damage.dice * 2, sneak * 2, true) * rolled(d20);
+      } else if (d20 !== 1 && d20 + attack.bonus >= enemy.armorClass) {
+        chance += kills(attack.damage.dice, sneak, false) * rolled(d20);
+      } else {
+        chance += grazeKills * rolled(d20);
+      }
     }
+    return chance;
+  };
+  const hindered = (attack.disadvantage ?? []).length > 0;
+  /** P(the bonus action before the attack gives it advantage). */
+  const aided =
+    bonusAction === undefined
+      ? 0
+      : combatant.steadyAim === true
+        ? 1
+        : combatant.hide === undefined
+          ? 0
+          : (() => {
+              const { modifier, proficiency } = combatant.hide;
+              const once =
+                Math.min(
+                  20,
+                  Math.max(
+                    0,
+                    21 - (bonusAction.hideDc - modifier - proficiency),
+                  ),
+                ) / 20;
+              // Untrained armour gives the Stealth check disadvantage.
+              return (combatant.abilityDisadvantages?.dexterity ?? []).length >
+                0
+                ? once ** 2
+                : once;
+            })();
+  const plain = chanceWith(hindered ? "disadvantage" : "straight", 0);
+  if (aided === 0) {
+    return plain;
   }
-  return chance;
+  // The weapon's own disadvantage cancels the advantage, and Sneak Attack.
+  const sneak =
+    !hindered &&
+    combatant.sneakAttack !== undefined &&
+    (attack.finesse === true || attack.ammunition !== undefined)
+      ? combatant.sneakAttack.dice
+      : 0;
+  return (
+    (1 - aided) * plain +
+    aided * chanceWith(hindered ? "straight" : "advantage", sneak)
+  );
+}
+
+/**
+ * The best passive Perception among a fight's opponents: what a Rogue's
+ * Hide must meet (#307, #310).
+ */
+function watching(
+  opponents: FifthAdventure["encounters"][number]["opponents"],
+): number {
+  return Math.max(
+    ...opponents.map(({ statBlock }) => statBlock.passivePerception),
+  );
 }
 
 /** Why the harness can't qualify a module: a named reason, never a pass. */
@@ -1667,6 +1748,16 @@ export type OneHitKillCheck = Readonly<{
   }>[];
   /** The ordinary enemies over the cap; more than half of them fails. */
   overCap: OneHitKillCheck["enemies"];
+  /**
+   * Reported, not judged (#310): for a class with a bonus action that gives
+   * its first attack advantage (the Rogue's Hide or Steady Aim), the same
+   * chances with that bonus action and its Sneak Attack, and the enemies
+   * over the cap with them. Absent for a class without one.
+   */
+  bonusAction?: Readonly<{
+    enemies: OneHitKillCheck["enemies"];
+    overCap: OneHitKillCheck["enemies"];
+  }>;
 }>;
 
 /**
@@ -1730,7 +1821,10 @@ export type GateMeasures = Readonly<{
   classId: ClassId;
   survival: Omit<SurvivalCheck, "ok" | "required">;
   alwaysFail: Omit<SurvivalCheck, "ok" | "required">;
-  oneHitKill: Omit<OneHitKillCheck, "ok" | "cap" | "overCap">;
+  oneHitKill: Omit<OneHitKillCheck, "ok" | "cap" | "overCap" | "bonusAction"> &
+    Readonly<{
+      bonusAction?: Readonly<{ enemies: OneHitKillCheck["enemies"] }>;
+    }>;
   xp: XpCheck;
   stealthFirst?: StealthFirstReport;
   reactions?: readonly ReactionPolicyReport[];
@@ -1840,6 +1934,7 @@ export function strongestAttackers(
 export function bestOneHitKill(
   attackers: readonly Attacker[],
   enemy: StatBlock,
+  bonusAction?: Readonly<{ hideDc: number }>,
 ): Readonly<{
   chance: number;
   kit: KitId;
@@ -1848,7 +1943,7 @@ export function bestOneHitKill(
 }> {
   return attackers
     .map(({ sheet, ...found }) => ({
-      chance: oneHitKillChance(sheet, enemy),
+      chance: oneHitKillChance(sheet, enemy, bonusAction),
       ...found,
     }))
     .reduce((best, entry) => (entry.chance > best.chance ? entry : best));
@@ -2047,10 +2142,33 @@ export function gateAdventure(
               ],
         ),
     );
+    // With a bonus action before the attack (#310): reported, not judged.
+    const prepared = strong.some(({ sheet }) => {
+      const { hide, steadyAim } = playerCombatant(sheet);
+      return hide !== undefined || steadyAim === true;
+    });
+    const withBonusAction = adventure.encounters.flatMap(
+      ({ id: encounterId, opponents }) =>
+        opponents.flatMap(({ id, name, statBlock, boss }) =>
+          boss === true
+            ? []
+            : [
+                {
+                  encounterId,
+                  opponentId: id,
+                  name,
+                  ...bestOneHitKill(strong, statBlock, {
+                    hideDc: watching(opponents),
+                  }),
+                },
+              ],
+        ),
+    );
     const oneHitKill: GateMeasures["oneHitKill"] = {
       level: max,
       percentile: STRONGEST_PERCENTILE,
       enemies,
+      ...(prepared ? { bonusAction: { enemies: withBonusAction } } : {}),
     };
 
     const available =
@@ -2180,6 +2298,7 @@ export function gateVerdictAt(
   const overCap = enemies.filter(
     ({ chance }) => chance > thresholds.oneHitKillCap,
   );
+  const prepared = measures.oneHitKill.bonusAction;
   const oneHitKill: OneHitKillCheck = {
     ok: overCap.length * 2 <= enemies.length,
     level: measures.oneHitKill.level,
@@ -2187,6 +2306,16 @@ export function gateVerdictAt(
     cap: thresholds.oneHitKillCap,
     enemies,
     overCap,
+    ...(prepared === undefined
+      ? {}
+      : {
+          bonusAction: {
+            enemies: prepared.enemies,
+            overCap: prepared.enemies.filter(
+              ({ chance }) => chance > thresholds.oneHitKillCap,
+            ),
+          },
+        }),
   };
   return {
     adventureId: measures.adventureId,
@@ -2304,6 +2433,19 @@ export function renderGateResult(
                 `${enemy} ${percent(chance)} (${gear === undefined ? kit : `found ${gear}`})`,
             )
             .join(", ")}.${oneHitKill.ok ? "" : " No more than half may be."}`),
+    ...(oneHitKill.bonusAction === undefined
+      ? []
+      : [
+          `  Too easy with Sneak Attack, reported (not judged): with Hide or Steady Aim before the attack, the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile ${who} kills ` +
+            (oneHitKill.bonusAction.overCap.length === 0
+              ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`
+              : `${oneHitKill.bonusAction.overCap.length} of ${oneHitKill.bonusAction.enemies.length} ordinary enemies with one attack more than ${percent(oneHitKill.cap)} of the time: ${oneHitKill.bonusAction.overCap
+                  .map(
+                    ({ name: enemy, chance, kit, gear }) =>
+                      `${enemy} ${percent(chance)} (${gear === undefined ? kit : `found ${gear}`})`,
+                  )
+                  .join(", ")}.`),
+        ]),
     `  XP, ${mark(xp.ok)}: its ${Math.max(xp.available, succeeded.mostXp)} XP takes a character from ${xp.startXp} XP to level ${xp.endLevel}; the limit is level ${xp.levelLimit}.`,
     `  When every check succeeds, the level ${succeeded.level}, ${succeeded.percentile}th percentile ${who} playing ${succeeded.style} earned at most ${succeeded.mostXp} of the ${xp.available} XP offered in ${succeeded.runs} ${succeeded.runs === 1 ? "run" : "runs"}.`,
     ...(stealth === undefined
