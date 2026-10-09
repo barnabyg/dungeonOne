@@ -776,13 +776,12 @@ function rewardNodes(rewards, name) {
     const sneak = up.sneakAttack ? " Sneak Attack " + up.sneakAttack.before + "d6 → " + up.sneakAttack.after + "d6." : "";
     // A level with no new feature names none.
     const gains = make("p", "Hit points " + up.maxHp.before + " → " + up.maxHp.after + "." + wind + sneak + (up.features.length ? " New features:" : ""));
-    gains.id = "level-up-gains";
     card.append(heading, gains);
     // #319: each name opens to the sheet's text, so the dock stays short until asked.
     if (up.features.length) {
       const features = make("ul");
       features.id = "level-up-features";
-      features.setAttribute("aria-labelledby", gains.id);
+      features.setAttribute("aria-label", "New features");
       features.append(...up.features.map((feature) => {
         const disclosure = make("details");
         disclosure.append(make("summary", feature.name), make("p", feature.text));
