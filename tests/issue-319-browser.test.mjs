@@ -17,6 +17,7 @@ import { testRogueAt } from "../dist/test-rogue-5e.js";
 import { clickAction } from "./fixtures/browser-journey.mjs";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { moduleFile, room } from "./fixtures/modules.mjs";
+import { readAda } from "./fixtures/save-files.mjs";
 import { assertNoSideScroll, launch } from "./fixtures/session-layout.mjs";
 
 // The barrow with its goblin moved to a side crypt the test never enters:
@@ -152,6 +153,12 @@ for (const { sheet, from, to, names } of CASES) {
             .locator("#sheet-name")
             .filter({ hasText: sheet.name })
             .waitFor();
+          // The library holds the new level the card announced.
+          const record = await readAda(libraryPath);
+          assert.deepEqual(
+            [record.sheet.level, record.sheet.xp],
+            [to.level, sheet.xp + 250],
+          );
         } finally {
           await browser.close();
           await server.close();
