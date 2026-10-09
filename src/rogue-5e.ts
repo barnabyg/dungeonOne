@@ -17,7 +17,9 @@ import {
   type DefaultChoices,
   type LevelTable,
   type SkillId,
+  titleCase,
 } from "./class-5e.js";
+import { CUNNING_STRIKES, TRIP_LARGEST_SIZE } from "./encounter-5e.js";
 
 /** The skills a Rogue chooses its proficiencies from. */
 export const ROGUE_SKILLS: readonly SkillId[] = [
@@ -67,6 +69,10 @@ export const ROGUE_DEFAULT_CHOICES = {
 
 /** Sneak Attack's d6s by level (SRD 5.2). */
 const SNEAK_ATTACK_DICE: LevelTable = { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3 };
+const SNEAK_ATTACK_SIDES = 6;
+
+/** Cunning Strike's effects (#308), whose numbers its text gives. */
+const { poison: POISON, trip: TRIP } = CUNNING_STRIKES;
 
 /** "Perception and Stealth": the skills chosen for Expertise. */
 const skillNames = (skills: readonly SkillId[]) =>
@@ -103,11 +109,11 @@ export const ROGUE: ClassDefinition = {
       level: 1,
       name: "Sneak Attack",
       text: ({ level }) =>
-        `Once per turn, when you hit with an attack roll that uses a Finesse or ranged weapon and you have advantage on the roll, you deal an extra ${SNEAK_ATTACK_DICE[level]}d6 damage of the weapon's type. The engine adds it; you never need to ask.`,
+        `Once per turn, when you hit with an attack roll that uses a Finesse or ranged weapon and you have advantage on the roll, you deal an extra ${SNEAK_ATTACK_DICE[level]}d${SNEAK_ATTACK_SIDES} damage of the weapon's type. The engine adds it; you never need to ask.`,
       effect: {
         kind: "sneak-attack",
         dice: SNEAK_ATTACK_DICE,
-        sides: 6,
+        sides: SNEAK_ATTACK_SIDES,
       },
     },
     {
@@ -152,7 +158,7 @@ export const ROGUE: ClassDefinition = {
       level: 5,
       name: "Cunning Strike",
       text: ({ dexterityDc }) =>
-        `When you deal Sneak Attack damage, you can give up Sneak Attack dice for one effect; the dice go before the damage is rolled. Poison (1d6): the target makes a DC ${dexterityDc} Constitution saving throw or is poisoned for up to 10 of its turns, repeating the save at the end of each. Trip (1d6): a Large or smaller target makes a DC ${dexterityDc} Dexterity saving throw or is knocked prone. Choose it with the attack; it applies only if the attack deals Sneak Attack, once per Sneak Attack. Withdraw needs positions, so it is not offered.`,
+        `When you deal Sneak Attack damage, you can give up Sneak Attack dice for one effect; the dice go before the damage is rolled. Poison (${POISON.dice}d${SNEAK_ATTACK_SIDES}): the target makes a DC ${dexterityDc} ${titleCase(POISON.save)} saving throw or is poisoned for up to ${POISON.turns} of its turns, repeating the save at the end of each. Trip (${TRIP.dice}d${SNEAK_ATTACK_SIDES}): a ${TRIP_LARGEST_SIZE} or smaller target makes a DC ${dexterityDc} ${titleCase(TRIP.save)} saving throw or is knocked prone. Choose it with the attack; it applies only if the attack deals Sneak Attack, once per Sneak Attack. Withdraw needs positions, so it is not offered.`,
       effect: { kind: "cunning-strike" },
     },
     {

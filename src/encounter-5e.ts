@@ -245,7 +245,10 @@ export const CUNNING_STRIKES = {
 >;
 export type CunningStrikeId = keyof typeof CUNNING_STRIKES;
 
-/** The sizes too large for Trip, which needs a Large or smaller target. */
+/** The largest size Trip can knock prone (#308). */
+export const TRIP_LARGEST_SIZE = "Large";
+
+/** The sizes too large for Trip: those above TRIP_LARGEST_SIZE. */
 const UNTRIPPABLE_SIZES: readonly string[] = ["Huge", "Gargantuan"];
 
 /**
@@ -1328,7 +1331,7 @@ function cunningStrikeRefusal(
     UNTRIPPABLE_SIZES.includes(target.size)
     ? refused(
         "cunning-strike-target",
-        `${target.name} is too large to trip: Trip needs a Large or smaller target.`,
+        `${target.name} is too large to trip: Trip needs a ${TRIP_LARGEST_SIZE} or smaller target.`,
       )
     : undefined;
 }
