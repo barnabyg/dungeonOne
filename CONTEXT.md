@@ -33,7 +33,7 @@ The stage of a character's advancement that determines its supported class capab
 _Avoid_: Content version, Story milestone, Hint level
 
 **Level choice**:
-The Ability Score Improvement (+2 to one ability or +1 to two, none above 20) and fourth weapon mastery a Fighter chooses on its sheet after settling at level 4. Until it is made the character owes it, saved in the character library, and cannot start another adventure.
+The Ability Score Improvement (+2 to one ability or +1 to two, none above 20) a character chooses on its sheet after settling at level 4, with a fourth weapon mastery for a Fighter (a Rogue's level 4 brings none). Until it is made the character owes it, saved in the character library, and cannot start another adventure.
 _Avoid_: Level-up (the card that shows a new level), Feat
 
 **Experience points**:
@@ -99,6 +99,14 @@ _Avoid_: Mastery (a weapon's), Double proficiency
 **Sneak Attack**:
 A Rogue's extra damage dice, dealt once per turn on a hit with a Finesse or ranged weapon made with advantage. The engine applies it whenever its rules are met; the player and the AI DM never ask for it. Its ally-adjacent clause is omitted.
 _Avoid_: Backstab, Sneaking in (which is about surprise)
+
+**Cunning Strike**:
+A level-5 Rogue's choice, made with an attack that would deal Sneak Attack, to give up a Sneak Attack die for an effect: Poison (a Constitution save or poisoned) or Trip (a Dexterity save or prone). It applies only if the attack hits; a miss spends nothing. The engine offers it, rolls the save and decides the condition.
+_Avoid_: Trip attack (a monster's rider), Special attack
+
+**Uncanny Dodge**:
+A level-5 Rogue's reaction: when an opponent's attack roll hits it, the fight waits before the damage is rolled for the player to halve that damage or take the hit. It halves at most one hit a round. It is the only reaction the game plays.
+_Avoid_: Reaction roll (the house rule), Dodge (the action)
 
 **Tool proficiency**:
 A class's training with a set of artisan's or thieves' tools, such as the Rogue's thieves' tools: recorded on the sheet. Picking locks with thieves' tools comes later.

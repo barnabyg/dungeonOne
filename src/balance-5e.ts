@@ -33,6 +33,7 @@ import {
   defaultPlacement,
   characterProfile,
   LEVEL_XP,
+  levelChoicesOwed,
   masteryOptions,
   pendingLevelChoice,
   rollAbilitySet,
@@ -91,20 +92,24 @@ export const KITS = HARNESS_CLASS.kits;
 /**
  * The gate's level-4 choice (#286). The Ability Score Improvement's two
  * points go one at a time to the first ability below 20 in the order: the
- * attack ability (Strength, or Dexterity for the Dexterity-first build), then
- * the class's ability priority; so +2 to the attack ability unless that passes
- * 20. The fourth mastery is `preferred` (a placed weapon the gate tries)
- * when it can be mastered, or else the first of `MASTERY_WEAPONS` not
- * mastered yet: the longsword, after the default dagger, mace and shortsword.
+ * attack ability (the class's first primary ability, Strength for the
+ * Fighter and Dexterity for the Rogue, or Dexterity for the Dexterity-first
+ * build), then the class's ability priority; so +2 to the attack ability
+ * unless that passes 20. For a level that brings a new mastery (the
+ * Fighter's fourth; the Rogue's level 4 brings none, #308), it is
+ * `preferred` (a placed weapon the gate tries) when it can be mastered, or
+ * else the first of `MASTERY_WEAPONS` not mastered yet: the longsword, after
+ * the default dagger, mace and shortsword.
  */
 export function gateLevelChoice(
   sheet: CharacterSheet,
   archer = false,
   preferred?: WeaponId,
 ): LevelChoice {
+  const definition = classOf(sheet);
   const order: readonly Ability[] = [
-    archer ? "dexterity" : "strength",
-    ...classOf(sheet).abilityPriority,
+    archer ? "dexterity" : definition.primaryAbilities[0]!,
+    ...definition.abilityPriority,
   ];
   const scores = { ...sheet.abilities };
   const increase: Partial<Record<Ability, 1 | 2>> = {};
@@ -112,6 +117,9 @@ export function gateLevelChoice(
     const ability = order.find((entry) => scores[entry] < ABILITY_SCORE_CAP)!;
     scores[ability] += 1;
     increase[ability] = increase[ability] === undefined ? 1 : 2;
+  }
+  if (!levelChoicesOwed(sheet).includes("weapon-mastery")) {
+    return { increase: increase as AbilityScoreImprovement };
   }
   const options = masteryOptions(sheet);
   return {
@@ -703,6 +711,9 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   hide: true,
   "steady-aim": true,
   "end-turn": true,
+  // Uncanny Dodge, by the Rogue policy: every hit it can halve (#308).
+  "uncanny-dodge": true,
+  "take-hit": true,
   move: true,
   examine: true,
   take: true,
@@ -968,6 +979,11 @@ export function playAdventure(
   /** The fight action to take now. */
   const fightChoice = (views: readonly ActionView[]): ActionView => {
     const encounter = state.encounter!;
+    // Uncanny Dodge (#308): the harness halves every hit it can.
+    const dodge = offered(views, "uncanny-dodge")[0];
+    if (dodge !== undefined) {
+      return dodge;
+    }
     const hpOf = (id: string) => combatant(encounter, id).hp;
     const heal = [
       ...offered(views, "second-wind"),
@@ -976,8 +992,13 @@ export function playAdventure(
     if (heal !== undefined && low(hpOf(PLAYER_ID))) {
       return heal;
     }
+    // Plain attacks; Cunning Strike's (#308) are chosen below.
+    const plain = (kind: ActionKind) =>
+      offered(views, kind).filter(
+        ({ cunningStrike }) => cunningStrike === undefined,
+      );
     // The weakest opponent first; ties go to the first listed.
-    const attack = offered(views, "attack").reduce<ActionView | undefined>(
+    const attack = plain("attack").reduce<ActionView | undefined>(
       (best, view) =>
         best === undefined || hpOf(view.target!.id) < hpOf(best.target!.id)
           ? view
@@ -985,7 +1006,7 @@ export function playAdventure(
       undefined,
     );
     // The Light extra attack follows an attack, on the weakest opponent too.
-    const light = offered(views, "light-attack").reduce<ActionView | undefined>(
+    const light = plain("light-attack").reduce<ActionView | undefined>(
       (best, view) =>
         best === undefined || hpOf(view.target!.id) < hpOf(best.target!.id)
           ? view
@@ -1003,10 +1024,32 @@ export function playAdventure(
         ? undefined
         : ((hidden ? undefined : offered(views, "steady-aim")[0]) ??
           (attack === undefined ? undefined : offered(views, "hide")[0]));
+    // Cunning Strike (#308): Poison a target not yet poisoned, or else
+    // Trip one not prone, whenever the engine offers it with the attack.
+    const struck = (view: ActionView | undefined) => {
+      if (view === undefined) {
+        return undefined;
+      }
+      const has = (kind: ConditionKind) =>
+        encounter.conditions.some(
+          (condition) =>
+            condition.targetId === view.target!.id && condition.kind === kind,
+        );
+      const strike = (id: string) =>
+        offered(views, view.action).find(
+          ({ target, cunningStrike }) =>
+            target!.id === view.target!.id && cunningStrike?.id === id,
+        );
+      return (
+        (has("poisoned") ? undefined : strike("poison")) ??
+        (has("prone") ? undefined : strike("trip")) ??
+        view
+      );
+    };
     return (
       aim ??
-      attack ??
-      light ??
+      struck(attack) ??
+      struck(light) ??
       offered(views, "action-surge")[0] ??
       offered(views, "hide")[0] ??
       offered(views, "end-turn")[0]!

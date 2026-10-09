@@ -1,12 +1,13 @@
 // Seeded playthroughs of every fixture module (#156), of merchants and a
-// fighter holding two daggers (#269), and of a level-3 Thief's fights (#307):
-// a character picks a random enabled action
+// fighter holding two daggers (#269), and of a level-3 Thief's and a level-5
+// Rogue's fights (#307, #308): a character picks a random enabled action
 // from the bar at each step. The bar-projection tests (#156, #182, #183)
 // check each state these reach, and the engine action each projected action
 // stands for is mapped here once, so a new kind of action can't leave one
 // test's copy behind.
 import assert from "node:assert/strict";
 import {
+  applyLevelChoice,
   buildCharacter,
   characterProfile,
   defaultPlacement,
@@ -78,6 +79,19 @@ export function thief() {
 }
 
 /**
+ * The level-3 Thief raised to level 5 at full health, with +2 Dexterity at
+ * level 4, so it has Cunning Strike and Uncanny Dodge (#308).
+ */
+export function rogueAt5() {
+  const xp = 6500;
+  const leveled = { ...thief(), xp, level: levelForXp(xp) };
+  return applyLevelChoice(
+    validateCharacter({ ...leveled, hp: characterProfile(leveled).maxHp }),
+    { increase: { dexterity: 2 } },
+  );
+}
+
+/**
  * The engine action a projected action stands for, as the browser server
  * makes it from a click: every `ActionKind` in `src/runtime-5e.ts`.
  */
@@ -89,6 +103,10 @@ export function engineAction(view) {
     ...made,
     ...(view.approach === undefined ? {} : { approach: view.approach.id }),
     ...(view.retry === undefined ? {} : { retry: true }),
+    // Cunning Strike's effect (#308) goes with its attack.
+    ...(view.cunningStrike === undefined
+      ? {}
+      : { cunningStrike: view.cunningStrike.id }),
   };
 }
 
@@ -102,6 +120,8 @@ function madeAction({ action, target }) {
     case "hide":
     case "steady-aim":
     case "end-turn":
+    case "uncanny-dodge":
+    case "take-hit":
       return { type: action, actorId: PLAYER };
     case "use":
       return { type: "use-item", itemId: target.id };
@@ -150,7 +170,8 @@ function madeAction({ action, target }) {
  * trade, two light weapons and traps (#269): a merchant who buys treasure,
  * one who sells ammunition with an archer who has a stowed weapon and too
  * few arrows to sell, and more tries at the sealed crypt's trap; then a
- * level-3 Thief's fights with Hide and Steady Aim (#307).
+ * level-3 Thief's fights with Hide and Steady Aim (#307); then a level-5
+ * Rogue's, with Cunning Strike and Uncanny Dodge (#308).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -161,6 +182,7 @@ const PLAYTHROUGHS = [
   { adventure: archeryBarrow, fighters: [twin, archer()] },
   { adventure: sealedCrypt, fighters: [twin] },
   { adventure: goblinTrio, fighters: [thief()] },
+  { adventure: goblinTrio, fighters: [rogueAt5()] },
 ];
 
 /**

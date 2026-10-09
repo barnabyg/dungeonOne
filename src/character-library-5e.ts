@@ -33,6 +33,7 @@ import {
   buildCharacter,
   characterProfile,
   DEFAULT_CLASS,
+  levelChoiceWords,
   pendingLevelChoice,
   rollAbilitySet,
   settleCharacter,
@@ -375,7 +376,7 @@ export class FifthCharacterLibrary {
     const level = pendingLevelChoice(record.sheet);
     if (level !== undefined) {
       throw new Error(
-        `${record.sheet.name} must choose the level ${level} Ability Score Improvement and weapon mastery on the character sheet before starting another adventure.`,
+        `${record.sheet.name} must choose the level ${level} ${levelChoiceWords(record.sheet)} on the character sheet before starting another adventure.`,
       );
     }
     return index;

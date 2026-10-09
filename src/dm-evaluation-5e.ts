@@ -839,6 +839,8 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   "action-surge": "action_surge",
   hide: "hide",
   "steady-aim": "steady_aim",
+  "uncanny-dodge": "uncanny_dodge",
+  "take-hit": "take_hit",
   "light-attack": "light_attack",
   "end-turn": "end_turn",
   move: "move",
@@ -889,7 +891,11 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
     .sort();
   const enabled = runtime
     .projectActions(state)
-    .filter(({ available, action }) => available && TOOL_OF[action])
+    // Cunning Strike's attacks (#308) are the attack tool's argument.
+    .filter(
+      ({ available, action, cunningStrike }) =>
+        available && TOOL_OF[action] && cunningStrike === undefined,
+    )
     .map(({ action, target }) =>
       [
         "second-wind",
@@ -897,6 +903,8 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
         "hide",
         "steady-aim",
         "end-turn",
+        "uncanny-dodge",
+        "take-hit",
       ].includes(action)
         ? TOOL_OF[action]!
         : action === "buy" || action === "sell"

@@ -104,12 +104,16 @@ export const LEVEL_XP: Readonly<Record<Level, number>> = {
 export type BackgroundIncrease = Readonly<Partial<Record<Ability, 1 | 2>>>;
 /**
  * The choices a level with an Ability Score Improvement asks for after
- * settling (#286): the improvement and its level's new weapon mastery.
+ * settling (#286): the improvement and, when the level brings one (the
+ * Fighter's level 4, not the Rogue's, #308), its new weapon mastery.
  */
 export type LevelChoice = Readonly<{
   increase: AbilityScoreImprovement;
-  /** The new kind of weapon mastered, from `MASTERY_WEAPONS`. */
-  mastery: WeaponId;
+  /**
+   * The new kind of weapon mastered, from `MASTERY_WEAPONS`: exactly when
+   * the level brings one.
+   */
+  mastery?: WeaponId;
 }>;
 export type Placement = Readonly<Record<Ability, number>>;
 
@@ -1258,6 +1262,13 @@ export type CharacterProfile = Readonly<{
   fastHands?: true;
   /** Second-Story Work (#307): Dexterity for Strength to climb and jump. */
   secondStoryWork?: true;
+  /**
+   * Cunning Strike (#308): Sneak Attack dice can be given up for an effect,
+   * whose saving throw is against `dc` (8 + Dexterity modifier + proficiency).
+   */
+  cunningStrike?: Readonly<{ dc: number }>;
+  /** Uncanny Dodge (#308): its reaction halves a hit's damage. */
+  uncannyDodge?: true;
   /** Attacks per Attack action: 2 with Extra Attack from level 5 (#287). */
   attacksPerAction: number;
   features: readonly Feature[];
@@ -1387,6 +1398,7 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
         : { fightingStyle: sheet.fightingStyle, fightingStyleUse: styleUse }),
       expertise: sheet.expertise ?? [],
       abilityScoreImprovements: sheet.abilityScoreImprovements,
+      dexterityDc: 8 + modifiers.dexterity + proficiency,
     };
     const name =
       typeof feature.name === "string" ? feature.name : feature.name(context);
@@ -1479,6 +1491,10 @@ export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
     ...(has("steady-aim") ? { steadyAim: true as const } : {}),
     ...(has("fast-hands") ? { fastHands: true as const } : {}),
     ...(has("second-story-work") ? { secondStoryWork: true as const } : {}),
+    ...(has("cunning-strike")
+      ? { cunningStrike: { dc: 8 + modifiers.dexterity + proficiency } }
+      : {}),
+    ...(has("uncanny-dodge") ? { uncannyDodge: true as const } : {}),
     attacksPerAction: effects(definition, level, "extra-attack").reduce(
       (most, { effect }) => Math.max(most, effect.attacks),
       1,
@@ -1628,11 +1644,35 @@ export function levelUpChanges(
       after: definition.weaponMasteries[after.level],
     },
     features: now.features.filter(({ id }) => !known.has(id)),
-    choices:
-      pendingLevelChoice(after) === undefined
-        ? []
-        : ["ability-score-improvement", "weapon-mastery"],
+    choices: levelChoicesOwed(after),
   };
+}
+
+/**
+ * The choices the sheet's pending level choice asks for: an Ability Score
+ * Improvement and, when that level brings one, a new weapon mastery (#308:
+ * the Rogue's level 4 brings none). Empty when no choice is owed.
+ */
+export function levelChoicesOwed(
+  sheet: Pick<CharacterSheet, "class" | "level" | "abilityScoreImprovements">,
+): readonly LevelUpChoice[] {
+  if (pendingLevelChoice(sheet) === undefined) {
+    return [];
+  }
+  const definition = classOf(sheet);
+  const made = sheet.abilityScoreImprovements.length;
+  return masteriesHeld(definition, made + 1) > masteriesHeld(definition, made)
+    ? ["ability-score-improvement", "weapon-mastery"]
+    : ["ability-score-improvement"];
+}
+
+/** "Ability Score Improvement and weapon mastery", or the improvement alone. */
+export function levelChoiceWords(
+  sheet: Pick<CharacterSheet, "class" | "level" | "abilityScoreImprovements">,
+): string {
+  return levelChoicesOwed(sheet).includes("weapon-mastery")
+    ? "Ability Score Improvement and weapon mastery"
+    : "Ability Score Improvement";
 }
 
 /**
@@ -1730,19 +1770,23 @@ export function applyLevelChoice(
   if (pendingLevelChoice(sheet) === undefined) {
     throw new Error(`${sheet.name} has no level choice to make.`);
   }
+  // A level that brings no new mastery (#308) takes the improvement alone.
+  const mastering = levelChoicesOwed(sheet).includes("weapon-mastery");
   if (
     !isRecord(choice) ||
-    Object.keys(choice).sort().join(",") !== "increase,mastery"
+    Object.keys(choice).sort().join(",") !==
+      (mastering ? "increase,mastery" : "increase")
   ) {
     throw new Error("Invalid level choice.");
   }
   const increase = validateImprovement(choice.increase);
-  const mastery = validateNewMastery(sheet, choice.mastery);
   const improved = {
     ...sheet,
     abilityScoreImprovements: [...sheet.abilityScoreImprovements, increase],
     abilities: improvedAbilities(sheet.abilities, increase),
-    weaponMasteries: [...sheet.weaponMasteries, mastery],
+    weaponMasteries: mastering
+      ? [...sheet.weaponMasteries, validateNewMastery(sheet, choice.mastery)]
+      : sheet.weaponMasteries,
   };
   const maxHp = characterProfile(improved).maxHp;
   const gained = maxHp - characterProfile(sheet).maxHp;
@@ -1789,7 +1833,11 @@ export function projectLevelChoice(
     throw new Error(`${sheet.name} has no level choice to make.`);
   }
   const { increase, missing } = validatePartialImprovement(choice.increase);
+  const mastering = levelChoicesOwed(sheet).includes("weapon-mastery");
   if (choice.mastery !== null) {
+    if (!mastering) {
+      throw new Error("Invalid level choice.");
+    }
     validateNewMastery(sheet, choice.mastery);
   }
   const rows = ABILITIES.map((ability) => {
@@ -1815,14 +1863,14 @@ export function projectLevelChoice(
                 ? "Choose the ability score to improve."
                 : "Choose one more ability for +1.",
           }),
-    ...(choice.mastery === null
+    ...(mastering && choice.mastery === null
       ? { mastery: "Choose a fourth kind of weapon to master." }
       : {}),
   };
   const projection = {
     level,
     rows,
-    masteries: masteryOptions(sheet),
+    masteries: mastering ? masteryOptions(sheet) : [],
     unfinished,
   };
   if (Object.keys(unfinished).length > 0) {
@@ -1832,7 +1880,10 @@ export function projectLevelChoice(
     ...projection,
     changes: levelChoiceChanges(
       sheet,
-      applyLevelChoice(sheet, { increase, mastery: choice.mastery }),
+      applyLevelChoice(sheet, {
+        increase,
+        ...(mastering ? { mastery: choice.mastery } : {}),
+      }),
     ),
   };
 }

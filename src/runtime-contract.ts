@@ -136,6 +136,8 @@ export type FifthToolName =
   | "action_surge"
   | "hide"
   | "steady_aim"
+  | "uncanny_dodge"
+  | "take_hit"
   | "light_attack"
   | "sneak"
   | "ambush"

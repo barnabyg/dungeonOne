@@ -180,6 +180,11 @@ export type FeatureContext = Readonly<{
   /** The skills chosen for Expertise, for a class that has it (#306). */
   expertise: readonly SkillId[];
   abilityScoreImprovements: readonly AbilityScoreImprovement[];
+  /**
+   * 8 + the Dexterity modifier + the proficiency bonus: the DC of Cunning
+   * Strike's saving throws (#308).
+   */
+  dexterityDc: number;
 }>;
 
 type Words = string | ((context: FeatureContext) => string);
@@ -234,6 +239,18 @@ export type FeatureEffect = Readonly<
    * module marks as climbing or jumping.
    */
   | { kind: "second-story-work" }
+  /**
+   * Cunning Strike (#308): when it deals Sneak Attack, the combatant may
+   * forgo Sneak Attack dice for an effect (`CUNNING_STRIKES` in
+   * `encounter-5e.ts`), against a DC of 8 + its Dexterity modifier + its
+   * proficiency bonus.
+   */
+  | { kind: "cunning-strike" }
+  /**
+   * Uncanny Dodge (#308): its reaction, when an attacker it can see hits it,
+   * halves the attack's damage.
+   */
+  | { kind: "uncanny-dodge" }
   /** An Ability Score Improvement, chosen with the level's new mastery. */
   | { kind: "ability-score-improvement" }
 >;

@@ -22,8 +22,8 @@
  *   combatant's turn lasts until it ends it or nothing it could do is left:
  *   an attack takes the action, Second Wind the bonus action, and Action
  *   Surge adds an action. Drinking a potion takes the bonus action (SRD 5.2).
- *   Nothing uses a reaction yet. Drawing, stowing or swapping a weapon uses
- *   the turn's one object interaction; it takes no action.
+ *   Only Uncanny Dodge uses a reaction (below). Drawing, stowing or swapping
+ *   a weapon uses the turn's one object interaction; it takes no action.
  * - Extra Attack (#287): a combatant with it makes two attacks, not one,
  *   whenever it takes the Attack action. Each attack is its own action call,
  *   at any living opponent; the first spends the action and the second
@@ -64,6 +64,23 @@
  * - Fast Hands (#307): once the turn's object interaction is spent, a
  *   combatant with it can draw, stow or swap a weapon again with its bonus
  *   action.
+ * - Cunning Strike (#308): an attack by a combatant with it may name one
+ *   effect (`CUNNING_STRIKES`), accepted only when the attack would deal
+ *   Sneak Attack on a hit (its weapon, its advantage, and Sneak Attack not
+ *   yet dealt this turn) and the effect can work on the target. On a hit
+ *   the effect's Sneak Attack dice are forgone before the damage is rolled,
+ *   and once the damage is dealt the target, unless it fell, saves against
+ *   the combatant's DC or has the effect's condition. A miss spends nothing.
+ *   One effect per attack, so once per Sneak Attack.
+ * - Uncanny Dodge (#308): when an opponent's attack roll hits a combatant
+ *   with it that can still react this round (and isn't incapacitated), the
+ *   fight pauses before the damage is rolled (`pendingReaction`): that
+ *   combatant either halves the attack's damage with its reaction, rounding
+ *   each damage type down, or takes the hit; nothing else can be done until
+ *   it answers. Then the opponent's turn, and the fight, go on. A combatant
+ *   that took the hit still has its reaction; one used comes back at the
+ *   start of its next turn. Without positions or unseen attackers, every
+ *   attacker can be seen.
  * - Conditions (`CONDITION_RULES`): a monster attack's rider may deal extra
  *   damage of its own type on a hit (its dice doubled by a critical hit) and
  *   give the target a condition, after a saving throw if it names one. A
@@ -195,6 +212,43 @@ export const CONDITION_RULES: Readonly<
 export type SaveSpec = Readonly<{ ability: Ability; dc: number }>;
 
 /**
+ * Cunning Strike's effects (#308, SRD 5.2): the Sneak Attack dice each
+ * forgoes, and the saving throw the target makes against the attacker's DC
+ * or has the condition. Poison lasts up to 10 of the target's turns (1
+ * minute), with a repeat save at the end of each; a tripped target gets up
+ * on its next turn. Withdraw needs positions and is omitted.
+ */
+export const CUNNING_STRIKES = {
+  poison: {
+    name: "Poison",
+    dice: 1,
+    save: "constitution",
+    condition: "poisoned",
+    turns: 10,
+  },
+  trip: {
+    name: "Trip",
+    dice: 1,
+    save: "dexterity",
+    condition: "prone",
+    turns: 1,
+  },
+} as const satisfies Record<
+  string,
+  Readonly<{
+    name: string;
+    dice: number;
+    save: Ability;
+    condition: ConditionKind;
+    turns: number;
+  }>
+>;
+export type CunningStrikeId = keyof typeof CUNNING_STRIKES;
+
+/** The sizes too large for Trip, which needs a Large or smaller target. */
+const UNTRIPPABLE_SIZES: readonly string[] = ["Huge", "Gargantuan"];
+
+/**
  * What a hit with a monster's attack does besides its damage: extra damage
  * of its own type, and a condition, avoided by a successful save if it names
  * one. A prone target always gets up on its next turn; any other condition
@@ -295,6 +349,15 @@ export type Combatant = DamageDefenses &
     steadyAim?: true;
     /** Fast Hands (#307): a second object interaction takes the bonus action. */
     fastHands?: true;
+    /**
+     * Cunning Strike (#308): its Sneak Attack may forgo dice for an effect
+     * whose saving throw is against `dc`.
+     */
+    cunningStrike?: Readonly<{ dc: number }>;
+    /** Uncanny Dodge (#308): its reaction halves a hit's damage. */
+    uncannyDodge?: true;
+    /** Its size, such as "Medium"; Trip can't knock over a Huge one (#308). */
+    size?: string;
     /**
      * Its passive Perception, which a hiding foe's Stealth must meet (#307);
      * 10 when not given.
@@ -417,6 +480,54 @@ export type EncounterState = Readonly<{
   engaged: readonly string[];
   /** The morale checks each side has made; each is made once. */
   moraleChecks: readonly Readonly<{ side: Side; trigger: MoraleTrigger }>[];
+  /**
+   * Combatants that have used their reaction (#308); each gets it back at
+   * the start of its turn.
+   */
+  reacted: readonly string[];
+  /**
+   * A hit waiting for its target's answer (#308): Uncanny Dodge or take the
+   * hit. Nothing else happens until it is answered.
+   */
+  pendingReaction?: PendingReaction;
+}>;
+
+/**
+ * How far an opponent's turn had got (#308): the attacks of its Multiattack
+ * made before the one under way, whether its bonus action (Rampage) is
+ * still free, and whether the attack under way is Rampage's.
+ */
+export type OpponentProgress = Readonly<{
+  made: number;
+  bonusAction: boolean;
+  rampage: boolean;
+}>;
+
+/** An attack roll as rolled, before its damage. */
+export type AttackRoll = Readonly<{
+  d20: number;
+  mode?: RollMode;
+  total: number;
+  hit: boolean;
+  critical: boolean;
+  /** A hit that is critical only because the target is paralysed. */
+  paralysedCritical: boolean;
+}>;
+
+/**
+ * An opponent's hit on a combatant that may answer it with Uncanny Dodge
+ * (#308): the attack as rolled and chosen, and how far the opponent's turn
+ * had got.
+ */
+export type PendingReaction = Readonly<{
+  reaction: "uncanny-dodge";
+  reactorId: string;
+  attackerId: string;
+  weapon: Weapon;
+  targetRoll?: number;
+  weaponRoll?: number;
+  roll: AttackRoll;
+  progress: OpponentProgress;
 }>;
 
 export type TurnEconomy = Readonly<{
@@ -430,8 +541,6 @@ export type TurnEconomy = Readonly<{
    */
   attacks: number;
   bonusAction: boolean;
-  /** Reset each turn; nothing uses a reaction yet. */
-  reaction: boolean;
   /**
    * The turn's object interaction, which draws, stows or swaps a weapon. A
    * second weapon interaction in one turn is refused.
@@ -453,7 +562,6 @@ const FRESH_TURN: TurnEconomy = {
   maxActions: 1,
   attacks: 0,
   bonusAction: true,
-  reaction: true,
   interaction: true,
   lightAttack: "unready",
   sneakAttack: true,
@@ -478,16 +586,28 @@ export type EncounterActionType =
   | "hide"
   | "steady-aim"
   | "drink-potion"
-  | "end-turn";
+  | "end-turn"
+  | ReactionAnswer;
+
+/** The answers to a hit that Uncanny Dodge could halve (#308). */
+export type ReactionAnswer = "uncanny-dodge" | "take-hit";
 
 export type EncounterAction =
   | Readonly<{
       type: "attack" | "light-attack";
       actorId: string;
       targetId: string;
+      /** Cunning Strike's effect (#308), dealt with its Sneak Attack. */
+      cunningStrike?: CunningStrikeId;
     }>
   | Readonly<{
-      type: "second-wind" | "action-surge" | "hide" | "steady-aim" | "end-turn";
+      type:
+        | "second-wind"
+        | "action-surge"
+        | "hide"
+        | "steady-aim"
+        | "end-turn"
+        | ReactionAnswer;
       actorId: string;
     }>
   | Readonly<{ type: "drink-potion"; actorId: string; itemId: string }>
@@ -557,6 +677,42 @@ export type AttackEvent = Readonly<{
     damageType: DamageType;
     damageAdjustment?: DamageAdjustment;
   }>;
+  /**
+   * Cunning Strike (#308): the effect, and the Sneak Attack dice forgone
+   * for it (doubled by a critical hit, as the rest are).
+   */
+  cunningStrike?: Readonly<{ effect: CunningStrikeId; dice: number }>;
+  /**
+   * A hit offered for a reaction first (#308): its d20 and any target or
+   * attack die were rolled then, in the `reaction-offered` event.
+   */
+  resumed?: true;
+  /**
+   * Uncanny Dodge (#308) halved the hit: `damage` and `rider.damage` are
+   * what the target took, and these what it would have taken.
+   */
+  uncannyDodge?: Readonly<{ damage: number; riderDamage?: number }>;
+}>;
+
+/**
+ * An opponent's hit that its target may halve with Uncanny Dodge (#308):
+ * the attack roll, rolled before the damage, which waits for the answer.
+ */
+export type ReactionOfferedEvent = Readonly<{
+  type: "reaction-offered";
+  reaction: "uncanny-dodge";
+  combatantId: string;
+  attackerId: string;
+  weapon: string;
+  d20: number;
+  mode?: RollMode;
+  bonus: number;
+  total: number;
+  armorClass: number;
+  critical: boolean;
+  targetRoll?: number;
+  weaponRoll?: number;
+  rampage?: true;
 }>;
 
 /**
@@ -677,6 +833,7 @@ export type EncounterEvent =
   | Readonly<{ type: "action-surge"; combatantId: string; usesLeft: number }>
   | HideEvent
   | Readonly<{ type: "steady-aim"; combatantId: string }>
+  | ReactionOfferedEvent
   | PotionEvent
   | Readonly<{ type: "turn-ended"; combatantId: string }>
   | Readonly<{ type: "defeated"; combatantId: string }>
@@ -717,6 +874,12 @@ export type EncounterRefusalCode =
   | "already-hidden"
   | "no-steady-aim"
   | "no-attack-left"
+  | "no-cunning-strike"
+  | "no-sneak-attack"
+  | "cunning-strike-target"
+  | "reaction-pending"
+  | "no-uncanny-dodge"
+  | "no-reaction-trigger"
   | "no-potion"
   | "no-uses-left"
   | "full-hp"
@@ -1024,6 +1187,147 @@ function steadyAimRefusal(
       );
 }
 
+/**
+ * The engine rules that give an attack advantage and disadvantage, by name,
+ * before it is rolled.
+ */
+function attackModes(
+  state: EncounterState,
+  actor: Combatant,
+  target: Combatant,
+  weapon: Weapon,
+  origin: AttackOrigin,
+): Readonly<{ advantage: string[]; disadvantage: string[] }> {
+  const sapped = state.sapped.some(({ targetId }) => targetId === actor.id);
+  const vexing = state.vexed.some(
+    ({ sourceId, targetId }) => sourceId === actor.id && targetId === target.id,
+  );
+  // Hiding and Steady Aim (#307) give the combatant's own next attack
+  // advantage, never a Rampage or opponent attack.
+  const own = origin.kind === "attack" || origin.kind === "light";
+  const hidden = own && state.hidden.includes(actor.id);
+  const aimed = own && state.economy.steadyAim;
+  const packTactics =
+    actor.packTactics === true &&
+    state.combatants.some(
+      (ally) =>
+        ally.side === actor.side &&
+        ally.id !== actor.id &&
+        ableToAct(state, ally),
+    );
+  return {
+    advantage: [
+      ...(vexing ? ["Vex"] : []),
+      ...(hidden ? [HIDDEN] : []),
+      ...(aimed ? [STEADY_AIM] : []),
+      ...(packTactics ? ["Pack Tactics"] : []),
+      ...conditionSources(state, target.id, "attacked").map(
+        (name) => `target ${name.toLowerCase()}`,
+      ),
+    ],
+    disadvantage: [
+      ...(sapped ? ["Sap"] : []),
+      ...(weapon.disadvantage ?? []),
+      // Round 1 is the opening volley; then every foe is close (#230).
+      ...(weapon.ammunition !== undefined && state.round >= 2
+        ? [CLOSE_COMBAT]
+        : []),
+      ...conditionSources(state, actor.id, "attacks"),
+    ],
+  };
+}
+
+/**
+ * Why an attack with `weapon` wouldn't deal Sneak Attack on a hit, for
+ * Cunning Strike (#308): its weapon, its advantage, or Sneak Attack already
+ * dealt this turn.
+ */
+function sneakAttackRefusal(
+  state: EncounterState,
+  actor: Combatant,
+  target: Combatant,
+  weapon: Weapon,
+  origin: AttackOrigin,
+): EncounterRejection | undefined {
+  if (!state.economy.sneakAttack) {
+    return refused(
+      "no-sneak-attack",
+      "You have already dealt Sneak Attack this turn, and Cunning Strike needs it.",
+    );
+  }
+  if (weapon.finesse !== true && weapon.ammunition === undefined) {
+    return refused(
+      "no-sneak-attack",
+      `Cunning Strike needs Sneak Attack, and the ${weapon.name.toLowerCase()} is neither a Finesse nor a ranged weapon.`,
+    );
+  }
+  const { advantage, disadvantage } = attackModes(
+    state,
+    actor,
+    target,
+    weapon,
+    origin,
+  );
+  if (advantage.length === 0) {
+    return refused(
+      "no-sneak-attack",
+      "Cunning Strike needs Sneak Attack, and this attack has no advantage.",
+    );
+  }
+  return disadvantage.length === 0
+    ? undefined
+    : refused(
+        "no-sneak-attack",
+        `Cunning Strike needs Sneak Attack, and this attack's advantage is cancelled by disadvantage (${disadvantage.join(", ")}).`,
+      );
+}
+
+/**
+ * Why `actor` can't add Cunning Strike's `effect` (#308) to this attack on
+ * `target`: it lacks the feature, the attack wouldn't deal Sneak Attack, or
+ * the effect can't work on the target.
+ */
+function cunningStrikeRefusal(
+  state: EncounterState,
+  actor: Combatant,
+  target: Combatant,
+  origin: AttackOrigin,
+  effect: CunningStrikeId,
+): EncounterRejection | undefined {
+  if (actor.cunningStrike === undefined || actor.sneakAttack === undefined) {
+    return refused("no-cunning-strike", "You don't have Cunning Strike.");
+  }
+  const weapon = origin.kind === "light" ? actor.lightAttack! : actor.attack;
+  const sneak = sneakAttackRefusal(state, actor, target, weapon, origin);
+  if (sneak !== undefined) {
+    return sneak;
+  }
+  const strike = CUNNING_STRIKES[effect];
+  if (target.conditionImmunities?.includes(strike.condition) === true) {
+    return refused(
+      "cunning-strike-target",
+      `${target.name} can't be ${strike.condition === "prone" ? "knocked prone" : strike.condition}.`,
+    );
+  }
+  return effect === "trip" &&
+    target.size !== undefined &&
+    UNTRIPPABLE_SIZES.includes(target.size)
+    ? refused(
+        "cunning-strike-target",
+        `${target.name} is too large to trip: Trip needs a Large or smaller target.`,
+      )
+    : undefined;
+}
+
+/** Whether `target` can answer a hit with Uncanny Dodge now (#308). */
+function canDodge(state: EncounterState, target: Combatant): boolean {
+  return (
+    target.uncannyDodge === true &&
+    !state.reacted.includes(target.id) &&
+    incapacitatedBy(state, target.id) === undefined
+  );
+}
+
 type ConditionRule = (typeof CONDITION_RULES)[ConditionKind];
 
 /** The kind of the first condition on `entrantId` whose rule passes `test`. */
@@ -1055,6 +1359,14 @@ export function availableActions(
   state: EncounterState,
   actorId: string,
 ): readonly EncounterActionType[] {
+  // A hit waiting for Uncanny Dodge (#308): its target answers it, and no
+  // one does anything else.
+  if (state.pendingReaction !== undefined) {
+    return state.outcome === "ongoing" &&
+      state.pendingReaction.reactorId === actorId
+      ? ["uncanny-dodge", "take-hit"]
+      : [];
+  }
   const actor = currentCombatant(state);
   if (actor?.id !== actorId) {
     return [];
@@ -1419,23 +1731,20 @@ function rollSave(
 }
 
 /**
- * A hit's rider condition: the target saves if the rider names a save, and
- * on a failure (or with no save) has the condition, replacing any of the
- * same kind.
+ * A condition a hit gives, from a rider or Cunning Strike (#308), named by
+ * `source`: the target saves if it names a save, and on a failure (or with
+ * no save) has the condition, replacing any of the same kind.
  */
-function applyRiderCondition(
+function applyCondition(
   state: EncounterState,
   actor: Combatant,
   target: Combatant,
-  weapon: Weapon,
+  condition: NonNullable<AttackRider["condition"]>,
+  source: string,
   random: Roller,
   events: EncounterEvent[],
 ): EncounterState {
-  const condition = weapon.rider?.condition;
-  if (
-    condition === undefined ||
-    target.conditionImmunities?.includes(condition.kind) === true
-  ) {
+  if (target.conditionImmunities?.includes(condition.kind) === true) {
     return state;
   }
   if (condition.save !== undefined) {
@@ -1462,7 +1771,7 @@ function applyRiderCondition(
     combatantId: target.id,
     kind: condition.kind,
     sourceId: actor.id,
-    source: weapon.name,
+    source,
     turns,
     ...repeat,
   });
@@ -1477,7 +1786,7 @@ function applyRiderCondition(
         kind: condition.kind,
         targetId: target.id,
         sourceId: actor.id,
-        source: weapon.name,
+        source,
         turnsLeft: turns,
         ...repeat,
       },
@@ -1536,7 +1845,7 @@ function endTurn(
 /**
  * What kind of attack it is: a combatant's own attack, the Light property's
  * extra attack, or an opponent's (Rampage's bonus attack among them), with
- * the weapon its dice chose and those dice.
+ * the weapon its dice chose, those dice and how far its turn had got.
  */
 type AttackOrigin =
   | Readonly<{ kind: "attack" | "light" }>
@@ -1545,56 +1854,35 @@ type AttackOrigin =
       weapon: Weapon;
       targetRoll: number | undefined;
       weaponRoll: number | undefined;
+      progress: OpponentProgress;
     }>;
 
-function resolveAttack(
+/** The weapon an attack of `origin` is made with. */
+function originWeapon(actor: Combatant, origin: AttackOrigin): Weapon {
+  return "weapon" in origin
+    ? origin.weapon
+    : origin.kind === "light"
+      ? actor.lightAttack!
+      : actor.attack;
+}
+
+/** Rolls an attack's d20 against `target`: whether it hits, and how well. */
+function rollAttack(
   state: EncounterState,
   actor: Combatant,
   target: Combatant,
   random: Roller,
-  origin: AttackOrigin = { kind: "attack" },
-): { state: EncounterState; events: EncounterEvent[] } {
-  const light = origin.kind === "light";
-  const chosen = "weapon" in origin ? origin : undefined;
-  const weapon = chosen?.weapon ?? (light ? actor.lightAttack! : actor.attack);
-  const sapped = state.sapped.some(({ targetId }) => targetId === actor.id);
-  const vexing = state.vexed.some(
-    ({ sourceId, targetId }) => sourceId === actor.id && targetId === target.id,
+  origin: AttackOrigin,
+): AttackRoll {
+  const weapon = originWeapon(actor, origin);
+  const { advantage, disadvantage } = attackModes(
+    state,
+    actor,
+    target,
+    weapon,
+    origin,
   );
-  // Hiding and Steady Aim (#307) give the combatant's own next attack
-  // advantage, never a Rampage or opponent attack.
-  const own = origin.kind === "attack" || origin.kind === "light";
-  const hidden = own && state.hidden.includes(actor.id);
-  const aimed = own && state.economy.steadyAim;
-  const packTactics =
-    actor.packTactics === true &&
-    state.combatants.some(
-      (ally) =>
-        ally.side === actor.side &&
-        ally.id !== actor.id &&
-        ableToAct(state, ally),
-    );
-  const { d20, mode } = rollD20(
-    random,
-    [
-      ...(vexing ? ["Vex"] : []),
-      ...(hidden ? [HIDDEN] : []),
-      ...(aimed ? [STEADY_AIM] : []),
-      ...(packTactics ? ["Pack Tactics"] : []),
-      ...conditionSources(state, target.id, "attacked").map(
-        (name) => `target ${name.toLowerCase()}`,
-      ),
-    ],
-    [
-      ...(sapped ? ["Sap"] : []),
-      ...(weapon.disadvantage ?? []),
-      // Round 1 is the opening volley; then every foe is close (#230).
-      ...(weapon.ammunition !== undefined && state.round >= 2
-        ? [CLOSE_COMBAT]
-        : []),
-      ...conditionSources(state, actor.id, "attacks"),
-    ],
-  );
+  const { d20, mode } = rollD20(random, advantage, disadvantage);
   const natural = d20 >= weapon.criticalRange;
   const total = d20 + weapon.bonus;
   const hit = d20 !== 1 && (natural || total >= target.armorClass);
@@ -1607,7 +1895,102 @@ function resolveAttack(
       target.id,
       ({ criticalHits }) => criticalHits === true,
     ) !== undefined;
-  const critical = natural || paralysedCritical;
+  return {
+    d20,
+    ...(mode === undefined ? {} : { mode }),
+    total,
+    hit,
+    critical: natural || paralysedCritical,
+    paralysedCritical,
+  };
+}
+
+/**
+ * Rolls an attack. An opponent's hit on a combatant that can answer it with
+ * Uncanny Dodge (#308) stops before its damage: the fight waits on the
+ * answer (`pendingReaction`), and `landAttack` finishes it.
+ */
+function resolveAttack(
+  state: EncounterState,
+  actor: Combatant,
+  target: Combatant,
+  random: Roller,
+  origin: AttackOrigin = { kind: "attack" },
+  cunningStrike?: CunningStrikeId,
+): { state: EncounterState; events: EncounterEvent[] } {
+  const roll = rollAttack(state, actor, target, random, origin);
+  if (roll.hit && "progress" in origin && canDodge(state, target)) {
+    const { weapon, targetRoll, weaponRoll, progress } = origin;
+    return {
+      state: {
+        ...state,
+        pendingReaction: {
+          reaction: "uncanny-dodge",
+          reactorId: target.id,
+          attackerId: actor.id,
+          weapon,
+          ...(targetRoll === undefined ? {} : { targetRoll }),
+          ...(weaponRoll === undefined ? {} : { weaponRoll }),
+          roll,
+          progress,
+        },
+      },
+      events: [
+        {
+          type: "reaction-offered",
+          reaction: "uncanny-dodge",
+          combatantId: target.id,
+          attackerId: actor.id,
+          weapon: weapon.name,
+          d20: roll.d20,
+          ...(roll.mode === undefined ? {} : { mode: roll.mode }),
+          bonus: weapon.bonus,
+          total: roll.total,
+          armorClass: target.armorClass,
+          critical: roll.critical,
+          ...(targetRoll === undefined ? {} : { targetRoll }),
+          ...(weaponRoll === undefined ? {} : { weaponRoll }),
+          ...(origin.kind === "rampage" ? { rampage: true as const } : {}),
+        },
+      ],
+    };
+  }
+  return landAttack(state, actor, target, random, origin, roll, {
+    ...(cunningStrike === undefined ? {} : { cunningStrike }),
+  });
+}
+
+/**
+ * How an attack lands once rolled: the Cunning Strike chosen with it (#308),
+ * and for a hit offered for Uncanny Dodge first, whether the target halved
+ * it (`dodged`).
+ */
+type Landing = Readonly<{
+  cunningStrike?: CunningStrikeId;
+  resumed?: Readonly<{ dodged: boolean }>;
+}>;
+
+/**
+ * An attack's damage and everything after it: Sneak Attack (less any dice
+ * Cunning Strike forgoes), Graze, resistances, Uncanny Dodge's halving,
+ * the rider's damage, Undead Fortitude, falling and morale, Sap and Vex,
+ * then Cunning Strike's and the rider's conditions.
+ */
+function landAttack(
+  state: EncounterState,
+  actor: Combatant,
+  target: Combatant,
+  random: Roller,
+  origin: AttackOrigin,
+  { d20, mode, total, hit, critical, paralysedCritical }: AttackRoll,
+  landing: Landing,
+): { state: EncounterState; events: EncounterEvent[] } {
+  const light = origin.kind === "light";
+  const chosen = "weapon" in origin ? origin : undefined;
+  const weapon = originWeapon(actor, origin);
+  const own = origin.kind === "attack" || origin.kind === "light";
+  const hidden = own && state.hidden.includes(actor.id);
+  const aimed = own && state.economy.steadyAim;
   const damageRolls: number[] = [];
   if (hit) {
     const dice = weapon.damage.dice * (critical ? 2 : 1);
@@ -1617,22 +2000,30 @@ function resolveAttack(
   }
   // Sneak Attack: once per turn, on a hit with a Finesse or ranged weapon
   // rolled with advantage; its dice follow the weapon's, doubled by a
-  // critical hit.
-  const sneak =
+  // critical hit. Cunning Strike (#308) forgoes some before they are rolled.
+  const strike =
+    landing.cunningStrike === undefined
+      ? undefined
+      : CUNNING_STRIKES[landing.cunningStrike];
+  const sneaking =
     hit &&
     actor.sneakAttack !== undefined &&
     state.economy.sneakAttack &&
     (weapon.finesse === true || weapon.ammunition !== undefined) &&
     mode !== undefined &&
     mode.advantage.length > 0 &&
-    mode.disadvantage.length === 0
-      ? {
-          damageRolls: Array.from(
-            { length: actor.sneakAttack.dice * (critical ? 2 : 1) },
-            () => random.roll(actor.sneakAttack!.sides),
-          ),
-        }
-      : undefined;
+    mode.disadvantage.length === 0;
+  const forgone = sneaking && strike !== undefined ? strike.dice : 0;
+  const sneak = sneaking
+    ? {
+        damageRolls: Array.from(
+          {
+            length: (actor.sneakAttack!.dice - forgone) * (critical ? 2 : 1),
+          },
+          () => random.roll(actor.sneakAttack!.sides),
+        ),
+      }
+    : undefined;
   // Graze: a miss still deals the damage modifier, if above 0.
   const graze =
     !hit && weapon.mastery === "Graze" && weapon.damage.modifier > 0;
@@ -1648,14 +2039,15 @@ function resolveAttack(
     : graze
       ? weapon.damage.modifier
       : 0;
-  const { damage, damageAdjustment } = damageTaken(
-    target,
-    weapon.damage.type,
-    rolled,
-  );
+  const defended = damageTaken(target, weapon.damage.type, rolled);
+  // Uncanny Dodge (#308) halves each of the hit's damage, rounding down.
+  const dodged = landing.resumed?.dodged === true;
+  const halve = (value: number) => (dodged ? Math.floor(value / 2) : value);
+  const damage = halve(defended.damage);
+  const damageAdjustment = defended.damageAdjustment;
   // A hit's rider deals its extra damage, its dice doubled by a critical.
   const extra = hit ? weapon.rider?.damage : undefined;
-  const rider =
+  const riderRolled =
     extra === undefined
       ? undefined
       : (() => {
@@ -1681,6 +2073,10 @@ function resolveAttack(
               : { damageAdjustment: taken.damageAdjustment }),
           };
         })();
+  const rider =
+    riderRolled === undefined
+      ? undefined
+      : { ...riderRolled, damage: halve(riderRolled.damage) };
   const taken = damage + (rider?.damage ?? 0);
   const hpAfter = Math.max(0, target.hp - taken);
   // A ranged attack spends one of the attacker's arrows or bolts.
@@ -1726,6 +2122,25 @@ function resolveAttack(
       ...(sneak === undefined ? {} : { sneakAttack: sneak }),
       ...(paralysedCritical ? { paralysedCritical: true as const } : {}),
       ...(rider === undefined ? {} : { rider }),
+      ...(forgone === 0 || landing.cunningStrike === undefined
+        ? {}
+        : {
+            cunningStrike: {
+              effect: landing.cunningStrike,
+              dice: forgone * (critical ? 2 : 1),
+            },
+          }),
+      ...(landing.resumed === undefined ? {} : { resumed: true as const }),
+      ...(dodged
+        ? {
+            uncannyDodge: {
+              damage: defended.damage,
+              ...(riderRolled === undefined
+                ? {}
+                : { riderDamage: riderRolled.damage }),
+            },
+          }
+        : {}),
     },
   ];
   // Undead Fortitude: reduced to 0 HP by damage that isn't radiant or from
@@ -1828,8 +2243,35 @@ function resolveAttack(
     };
     events.push({ type: "vexed", targetId: target.id, sourceId: actor.id });
   }
-  if (hit && !defeated) {
-    next = applyRiderCondition(next, actor, target, weapon, random, events);
+  // Cunning Strike's effect (#308) follows the damage, on a target still up.
+  if (sneak !== undefined && strike !== undefined && !defeated) {
+    next = applyCondition(
+      next,
+      actor,
+      target,
+      {
+        kind: strike.condition,
+        save: { ability: strike.save, dc: actor.cunningStrike!.dc },
+        turns: strike.turns,
+        ...(strike.condition === "poisoned"
+          ? { repeatSave: true as const }
+          : {}),
+      },
+      `Cunning Strike (${strike.name})`,
+      random,
+      events,
+    );
+  }
+  if (hit && !defeated && weapon.rider?.condition !== undefined) {
+    next = applyCondition(
+      next,
+      actor,
+      target,
+      weapon.rider.condition,
+      weapon.name,
+      random,
+      events,
+    );
   }
   return { state: concludeIfOver(next, events), events };
 }
@@ -1846,7 +2288,8 @@ function advance(
 ): EncounterState {
   let next = state;
   let first = startWithCurrent;
-  while (next.outcome === "ongoing") {
+  // A hit waiting for Uncanny Dodge (#308) stops the fight until answered.
+  while (next.outcome === "ongoing" && next.pendingReaction === undefined) {
     if (!first) {
       const ending = combatant(next, next.order[next.turn]!.combatantId);
       if (!isOut(next, ending)) {
@@ -1860,12 +2303,13 @@ function advance(
     if (isOut(next, actor)) {
       continue;
     }
-    // A turn starts afresh, and ends any Sap this combatant gave and any
-    // Vex it gave before its last turn.
+    // A turn starts afresh, gives back the combatant's reaction (#308), and
+    // ends any Sap it gave and any Vex it gave before its last turn.
     const round = next.round;
     next = {
       ...next,
       economy: FRESH_TURN,
+      reacted: next.reacted.filter((id) => id !== actor.id),
       sapped: next.sapped.filter(({ sourceId }) => sourceId !== actor.id),
       vexed: next.vexed.filter(
         (vex) => vex.sourceId !== actor.id || round < vex.round + 2,
@@ -1901,7 +2345,7 @@ function opponentAttack(
   state: EncounterState,
   actor: Combatant,
   random: Roller,
-  rampage: boolean,
+  progress: OpponentProgress,
 ): { state: EncounterState; events: EncounterEvent[] } {
   const targets = legalTargets(state, actor.id);
   const targetRoll =
@@ -1910,48 +2354,104 @@ function opponentAttack(
   const weaponRoll =
     weapons.length > 1 ? random.roll(weapons.length) : undefined;
   return resolveAttack(state, actor, targets[(targetRoll ?? 1) - 1]!, random, {
-    kind: rampage ? "rampage" : "opponent",
+    kind: progress.rampage ? "rampage" : "opponent",
     weapon: weapons[(weaponRoll ?? 1) - 1]!,
     targetRoll,
     weaponRoll,
+    progress,
   });
 }
 
 /**
  * An opponent's turn: its attacks (several with Multiattack), and Rampage's
  * bonus attack when one of them drops a combatant. It stops when the fight
- * ends.
+ * ends, or while a hit waits for Uncanny Dodge (#308). `resumed` goes on
+ * from such a hit once it has landed: how far the turn had got, and whether
+ * that hit dropped its target.
  */
 function opponentTurn(
   state: EncounterState,
   actor: Combatant,
   random: Roller,
   events: EncounterEvent[],
+  resumed?: Readonly<{ progress: OpponentProgress; dropped: boolean }>,
 ): EncounterState {
   let next = state;
-  let bonusAction = true;
+  let { made, bonusAction } = resumed?.progress ?? {
+    made: 0,
+    bonusAction: true,
+  };
+  const going = () =>
+    next.outcome === "ongoing" && next.pendingReaction === undefined;
   const attack = (rampage: boolean) => {
-    const resolved = opponentAttack(next, actor, random, rampage);
+    const resolved = opponentAttack(next, actor, random, {
+      made,
+      bonusAction,
+      rampage,
+    });
     events.push(...resolved.events);
     next = resolved.state;
     return resolved.events.some(({ type }) => type === "defeated");
   };
-  for (
-    let made = 0;
-    made < (actor.multiattack?.attacks ?? 1) && next.outcome === "ongoing";
-    made++
-  ) {
-    if (
-      attack(false) &&
-      actor.rampage === true &&
-      bonusAction &&
-      next.outcome === "ongoing"
-    ) {
+  const rampageAfter = (dropped: boolean) => {
+    if (dropped && actor.rampage === true && bonusAction && going()) {
       bonusAction = false;
       attack(true);
     }
+  };
+  if (resumed !== undefined) {
+    if (!resumed.progress.rampage) {
+      rampageAfter(resumed.dropped);
+    }
+    made += 1;
+  }
+  for (; made < (actor.multiattack?.attacks ?? 1) && going(); made++) {
+    rampageAfter(attack(false));
   }
   return next;
+}
+
+/**
+ * Answers the hit waiting for Uncanny Dodge (#308): halved with the
+ * reactor's reaction, or taken in full. The hit lands, then the opponent's
+ * turn and the fight go on until a party combatant is to act, another hit
+ * waits, or the fight ends.
+ */
+function answerReaction(
+  state: EncounterState,
+  pending: PendingReaction,
+  dodged: boolean,
+  random: Roller,
+): EncounterResult {
+  const { pendingReaction: _answered, ...rest } = state;
+  void _answered;
+  const attacker = combatant(state, pending.attackerId);
+  const target = combatant(state, pending.reactorId);
+  const events: EncounterEvent[] = [];
+  const landed = landAttack(
+    dodged ? { ...rest, reacted: [...rest.reacted, target.id] } : rest,
+    attacker,
+    target,
+    random,
+    {
+      kind: pending.progress.rampage ? "rampage" : "opponent",
+      weapon: pending.weapon,
+      targetRoll: pending.targetRoll,
+      weaponRoll: pending.weaponRoll,
+      progress: pending.progress,
+    },
+    pending.roll,
+    { resumed: { dodged } },
+  );
+  events.push(...landed.events);
+  let next = opponentTurn(landed.state, attacker, random, events, {
+    progress: pending.progress,
+    dropped: landed.events.some(({ type }) => type === "defeated"),
+  });
+  if (next.outcome === "ongoing" && next.pendingReaction === undefined) {
+    next = advance(next, random, events, false);
+  }
+  return { state: next, events };
 }
 
 /**
@@ -1982,6 +2482,7 @@ export function startEncounter(
       surrendered: [],
       engaged: [],
       moraleChecks: [],
+      reacted: [],
     },
     random,
     events,
@@ -2011,6 +2512,33 @@ export function act(
   const current = currentCombatant(state)!;
   if (actor === undefined) {
     return reject("no-combatant", "There is no such combatant in this fight.");
+  }
+  // Uncanny Dodge (#308): a hit waiting for its target's answer takes only
+  // that answer; outside its trigger, there is nothing to answer.
+  const pending = state.pendingReaction;
+  const answer = action.type === "uncanny-dodge" || action.type === "take-hit";
+  if (pending !== undefined) {
+    const attacker = combatant(state, pending.attackerId);
+    if (!answer || actor.id !== pending.reactorId) {
+      return reject(
+        "reaction-pending",
+        `${attacker.name}'s ${pending.weapon.name.toLowerCase()} has hit ${combatant(state, pending.reactorId).name}: first use Uncanny Dodge to halve its damage, or take the hit.`,
+      );
+    }
+    return answerReaction(
+      state,
+      pending,
+      action.type === "uncanny-dodge",
+      random,
+    );
+  }
+  if (answer) {
+    return actor.uncannyDodge === true
+      ? reject(
+          "no-reaction-trigger",
+          "Uncanny Dodge answers an attacker's hit, and nothing has hit you just now.",
+        )
+      : reject("no-uncanny-dodge", "You don't have Uncanny Dodge.");
   }
   if (actor.id !== current.id) {
     return reject(
@@ -2067,7 +2595,27 @@ export function act(
       if (empty !== undefined) {
         return { state, rejection: empty };
       }
-      const resolved = resolveAttack(state, actor, target, random);
+      const strike =
+        action.cunningStrike === undefined
+          ? undefined
+          : cunningStrikeRefusal(
+              state,
+              actor,
+              target,
+              { kind: "attack" },
+              action.cunningStrike,
+            );
+      if (strike !== undefined) {
+        return { state, rejection: strike };
+      }
+      const resolved = resolveAttack(
+        state,
+        actor,
+        target,
+        random,
+        { kind: "attack" },
+        action.cunningStrike,
+      );
       events.push(...resolved.events);
       next = {
         ...resolved.state,
@@ -2098,13 +2646,28 @@ export function act(
       if ("code" in target) {
         return { state, rejection: target };
       }
-      const refusal = lightAttackRefusal(state, actor);
+      const refusal =
+        lightAttackRefusal(state, actor) ??
+        (action.cunningStrike === undefined
+          ? undefined
+          : cunningStrikeRefusal(
+              state,
+              actor,
+              target,
+              { kind: "light" },
+              action.cunningStrike,
+            ));
       if (refusal !== undefined) {
         return { state, rejection: refusal };
       }
-      const resolved = resolveAttack(state, actor, target, random, {
-        kind: "light",
-      });
+      const resolved = resolveAttack(
+        state,
+        actor,
+        target,
+        random,
+        { kind: "light" },
+        action.cunningStrike,
+      );
       events.push(...resolved.events);
       next = {
         ...resolved.state,
