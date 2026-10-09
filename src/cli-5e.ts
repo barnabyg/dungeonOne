@@ -94,6 +94,8 @@ const LABELS: Readonly<Record<ActionView["action"], string>> = {
   "action-surge": "Action Surge",
   hide: "Hide",
   "steady-aim": "Steady Aim",
+  "uncanny-dodge": "Uncanny Dodge",
+  "take-hit": "Take the hit",
   "end-turn": "End turn",
   leave: "Leave the adventure",
 };
@@ -276,8 +278,11 @@ function renderView(session: FifthSession): string {
     ...(room.purse === undefined ? [] : [`Purse: ${room.purse}`]),
     "Actions:",
     ...actions.map(
-      ({ action, target, approach, retry, available, reason }, index) =>
-        `  ${index + 1}. ${retry === undefined ? "" : "Try again: "}${LABELS[action]}${target === undefined || action === "leave" ? "" : target.name}${approach === undefined ? "" : ` with ${approach.name}${approach.dc === undefined ? "" : ` DC ${approach.dc}`}`}${retry === undefined ? "" : ` (${retry.reason})`}${available ? "" : ` — ${String(reason)}`}`,
+      (
+        { action, target, approach, retry, cunningStrike, available, reason },
+        index,
+      ) =>
+        `  ${index + 1}. ${retry === undefined ? "" : "Try again: "}${LABELS[action]}${target === undefined || action === "leave" ? "" : target.name}${approach === undefined ? "" : ` with ${approach.name}${approach.dc === undefined ? "" : ` DC ${approach.dc}`}`}${cunningStrike === undefined ? "" : ` with Cunning Strike (${cunningStrike.name})`}${retry === undefined ? "" : ` (${retry.reason})`}${available ? "" : ` — ${String(reason)}`}`,
     ),
   ].join("\n");
 }

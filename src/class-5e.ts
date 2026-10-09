@@ -18,6 +18,7 @@ import {
   type EquipmentProfile,
   type FightingStyleId,
   type KitId,
+  type ToolId,
   type WeaponId,
   type WeaponProficiency,
 } from "./equipment-5e.js";
@@ -69,10 +70,24 @@ export function titleCase(value: string): string {
 }
 
 /** "+2 Strength" or "+1 Strength, +1 Constitution", in ABILITIES order. */
-export function improvementText(increase: AbilityScoreImprovement): string {
+function improvementText(increase: AbilityScoreImprovement): string {
   return ABILITIES.filter((ability) => increase[ability] !== undefined)
     .map((ability) => `+${increase[ability]} ${titleCase(ability)}`)
     .join(", ");
+}
+
+/**
+ * The Ability Score Improvement feature's text (#286, #308): the improvement
+ * chosen, or that it is still to choose, with `alsoChoose` (the Fighter's
+ * fourth weapon mastery) when the level brings another choice with it.
+ */
+export function abilityScoreImprovementText(
+  chosen: AbilityScoreImprovement | undefined,
+  alsoChoose?: string,
+): string {
+  return chosen === undefined
+    ? `Not chosen yet: +2 to one ability score or +1 to two, to a maximum of ${ABILITY_SCORE_CAP}. Choose it${alsoChoose === undefined ? "" : `, with ${alsoChoose},`} before the next adventure.`
+    : `${improvementText(chosen)}, to a maximum of ${ABILITY_SCORE_CAP}.`;
 }
 
 /** The SRD 5.2 Fighting Style feats. */
@@ -161,11 +176,12 @@ export const FEATURE_USES_RULE =
 /** A number for each level, such as a feature's uses. */
 export type LevelTable = Readonly<Record<Level, number>>;
 
-/** The tools a class can be proficient with (#306). */
-export const TOOLS = {
-  "thieves-tools": { name: "Thieves' Tools" },
-} as const satisfies Record<string, { name: string }>;
-export type ToolId = keyof typeof TOOLS;
+/**
+ * The tools a class can be proficient with (#306) are the catalogue's tools
+ * (#309, `TOOL_ITEMS`), named as the item is: proficiency adds the
+ * proficiency bonus to a check made with the tool.
+ */
+export type { ToolId };
 
 /** What a feature's name and text are written from. */
 export type FeatureContext = Readonly<{
@@ -180,6 +196,11 @@ export type FeatureContext = Readonly<{
   /** The skills chosen for Expertise, for a class that has it (#306). */
   expertise: readonly SkillId[];
   abilityScoreImprovements: readonly AbilityScoreImprovement[];
+  /**
+   * 8 + the Dexterity modifier + the proficiency bonus: the DC of Cunning
+   * Strike's saving throws (#308).
+   */
+  dexterityDc: number;
 }>;
 
 type Words = string | ((context: FeatureContext) => string);
@@ -234,6 +255,18 @@ export type FeatureEffect = Readonly<
    * module marks as climbing or jumping.
    */
   | { kind: "second-story-work" }
+  /**
+   * Cunning Strike (#308): when it deals Sneak Attack, the combatant may
+   * forgo Sneak Attack dice for an effect (`CUNNING_STRIKES` in
+   * `encounter-5e.ts`), against a DC of 8 + its Dexterity modifier + its
+   * proficiency bonus.
+   */
+  | { kind: "cunning-strike" }
+  /**
+   * Uncanny Dodge (#308): its reaction, when an attacker it can see hits it,
+   * halves the attack's damage.
+   */
+  | { kind: "uncanny-dodge" }
   /** An Ability Score Improvement, chosen with the level's new mastery. */
   | { kind: "ability-score-improvement" }
 >;

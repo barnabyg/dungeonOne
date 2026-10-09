@@ -161,7 +161,7 @@ for (const viewport of [
         );
         assert.match(
           await text(page.locator("#kit-fields")),
-          /Shortsword, dagger and leather\nLeather armour, Shortsword, Dagger \(22 gp\)/u,
+          /Shortsword, dagger and leather\nLeather armour, Shortsword, Dagger, Thieves' tools \(47 gp\)/u,
         );
         // Unticking a skill drops its Expertise until another is chosen.
         await page.locator("#skill-stealth").uncheck();
@@ -185,7 +185,7 @@ for (const viewport of [
         const sheetText = await text(page.locator("#sheet-body"));
         assert.match(sheetText, /^Level 1 Rogue/u);
         assert.match(sheetText, /Stealth \+\d+ \(Expertise\)/u);
-        assert.match(sheetText, /Tools: Thieves' Tools\./u);
+        assert.match(sheetText, /Tools: Thieves' tools\./u);
         assert.match(sheetText, /Sneak Attack\. Once per turn/u);
         assert.doesNotMatch(sheetText, /Fighting Style/u);
         // Storage holds the Rogue exactly as the engine builds it.

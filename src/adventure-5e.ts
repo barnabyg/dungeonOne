@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 25) and its validator.
+ * The 5e adventure module format (format version 27) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -52,7 +52,12 @@
  * through an item effect, and a hidden passage is a way only once a band
  * opens it. Each essential room, and some exit, must be reachable by a
  * route without a check, or through checks every band of which leaves a way
- * forward, whatever any band may close.
+ * forward, whatever any band may close, and without thieves' tools.
+ *
+ * A Dexterity check may be made with thieves' tools (#309), which only a
+ * character carrying them can make: a door's pick always is, and a trap's
+ * disarm may be, alone or as one of its approaches. Nothing else uses them.
+ * A trap's find is only a DC: the search rolls Perception or Investigation.
  *
  * A check may author a retry (#284): never (the default), after a cost
  * (damage, or using up a carried tool), or after a changed circumstance
@@ -69,6 +74,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parseBoundedJson } from "./bounded-json.js";
 import {
+  approachId,
   BANDS,
   isSuccess,
   MOVEMENTS,
@@ -91,6 +97,7 @@ import {
   type Coins,
   type CatalogueId,
   type Tier,
+  type ToolId,
 } from "./equipment-5e.js";
 import {
   isTradeGoodId,
@@ -150,7 +157,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 26;
+export const FIFTH_ADVENTURE_FORMAT = 27;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -369,7 +376,9 @@ export type AuthoredCheck = (
       approaches: readonly AuthoredApproach[];
       skill?: never;
       ability?: never;
+      tool?: never;
       dc?: never;
+      movement?: never;
       advantage?: never;
       disadvantage?: never;
     }>
@@ -391,10 +400,16 @@ export function approachesOf(
     ...(check.disadvantage === undefined
       ? {}
       : { disadvantage: check.disadvantage }),
+    ...(check.movement === undefined ? {} : { movement: check.movement }),
   };
   return [
     check.skill === undefined
-      ? { ability: check.ability!, dc: check.dc!, ...circumstances }
+      ? {
+          ability: check.ability!,
+          dc: check.dc!,
+          ...(check.tool === undefined ? {} : { tool: check.tool }),
+          ...circumstances,
+        }
       : { skill: check.skill, dc: check.dc!, ...circumstances },
   ];
 }
@@ -588,16 +603,17 @@ export type FifthDoor = Readonly<{
 }>;
 
 /**
- * A hidden trap in a passage: found by a check (searching either room),
- * disarmed by a check once found, or sprung by going through while armed,
- * with a saving throw for half damage. The search is one roll for the whole
- * room, so `find` is a DC and never graded; `disarm` may be.
+ * A hidden trap in a passage: found by a check (searching either room, with
+ * Perception or Investigation, #309), disarmed by a check once found, or
+ * sprung by going through while armed, with a saving throw for half damage.
+ * The search is one roll for the whole room, so `find` is only a DC and
+ * never graded; `disarm` may be, and may need thieves' tools (#309).
  */
 export type FifthTrap = Readonly<{
   id: string;
   name: string;
   description: string;
-  find: CheckSpec;
+  find: Readonly<{ dc: number }>;
   disarm: AuthoredCheck;
   trigger: string;
   save: Readonly<{ ability: Ability; dc: number }>;
@@ -849,19 +865,16 @@ function circumstances(value: unknown, where: string): readonly Circumstance[] {
 
 /**
  * A check's approach: `{ skill, dc }` or `{ ability, dc }`, each with
- * optional `advantage` and `disadvantage` circumstances (#284), unless it
- * is a trap's find, which a room's one search rolls.
+ * optional `advantage` and `disadvantage` circumstances (#284). A Dexterity
+ * approach may name `"tool": "thieves-tools"` (#309): only a character
+ * carrying them may take it.
  */
-function approach(
-  value: unknown,
-  where: string,
-  circumstanced = true,
-): AuthoredApproach {
+function approach(value: unknown, where: string): AuthoredApproach {
   const skilled = isRecord(value) && "skill" in value;
   const raw = knownKeys(
     value,
     [skilled ? "skill" : "ability", "dc"],
-    circumstanced ? ["advantage", "disadvantage", "movement"] : [],
+    ["advantage", "disadvantage", "movement", ...(skilled ? [] : ["tool"])],
     where,
   );
   const dc = integer(raw.dc, `${where} dc`, 5, 30);
@@ -880,7 +893,16 @@ function approach(
   };
   const made: AuthoredApproach = skilled
     ? { skill: skillId(raw.skill, where), dc, ...modes }
-    : { ability: ability(raw.ability, `${where} ability`), dc, ...modes };
+    : {
+        ability: ability(raw.ability, `${where} ability`),
+        dc,
+        ...modes,
+        ...(raw.tool === undefined ? {} : { tool: toolOf(raw.tool, where) }),
+      };
+  // Thieves' tools (#309) are used with Dexterity (SRD 5.2).
+  if (made.tool !== undefined && made.ability !== "dexterity") {
+    fail(`${where} uses thieves' tools, which make a Dexterity check.`);
+  }
   if (raw.movement === undefined) {
     return made;
   }
@@ -895,6 +917,14 @@ function approach(
     );
   }
   return { ...made, movement: raw.movement as Movement };
+}
+
+/** An approach's tool (#309): thieves' tools, the only one checks use. */
+function toolOf(value: unknown, where: string): ToolId {
+  if (value !== "thieves-tools") {
+    fail(`${where} tool must be thieves-tools.`);
+  }
+  return value;
 }
 
 /** An approach's skill, one the game knows. */
@@ -1012,9 +1042,9 @@ function approaches(
   ).map((entry, index) => approach(entry, `${where} approach ${index + 1}`));
   distinct(
     offered,
-    (entry) => entry.skill ?? entry.ability,
+    approachId,
     (entry) =>
-      `${where} offers ${entry.skill ?? entry.ability} twice; each approach needs its own skill or ability.`,
+      `${where} offers ${approachId(entry)} twice; each approach needs its own skill or ability.`,
   );
   return { approaches: offered };
 }
@@ -1101,7 +1131,7 @@ function siteLabel({ kind, id: siteId }: Omit<AuthoredSite, "check">): string {
  * The lowest and highest totals an approach can make for a character of
  * `level` or below: a natural 1 at the lowest ability modifier (−4, a score
  * of 3), and a natural 20 at the highest (+5), plus the proficiency bonus
- * for a skill. The bands between them are the ones the validator counts
+ * for a skill or a tool (#309). The bands between them are the ones the validator counts
  * reachable, and the balance harness's always-fail and always-succeed
  * check policies (#285) make every check at one end.
  */
@@ -1110,7 +1140,12 @@ export function extremeTotals(
   level: number,
 ): readonly [number, number] {
   const proficiency = proficiencyBonus(level as Level);
-  return [1 - 4, 20 + 5 + (spec.skill === undefined ? 0 : proficiency)];
+  return [
+    1 - 4,
+    20 +
+      5 +
+      (spec.skill === undefined && spec.tool === undefined ? 0 : proficiency),
+  ];
 }
 
 /** Whether some character of `level` or below can roll `band` on `spec`. */
@@ -1975,6 +2010,15 @@ function validateModule(
         ? {}
         : { break: check(raw.break, `${where} break`) }),
     };
+    // Picking a lock needs thieves' tools (#309), on every approach.
+    if (
+      checks.pick !== undefined &&
+      approachesOf(checks.pick).some(({ tool }) => tool === undefined)
+    ) {
+      fail(
+        `door ${doorId}: picking a lock needs thieves' tools; make its pick a Dexterity check with "tool": "thieves-tools".`,
+      );
+    }
     if (raw.state === "stuck") {
       if (
         checks.pick !== undefined ||
@@ -2037,7 +2081,14 @@ function validateModule(
       id: id(raw.id, `${where} id`),
       name: text(raw.name, `${where} name`, 60),
       description: text(raw.description, `${where} description`),
-      find: approach(raw.find, `${where} find`, false),
+      find: {
+        dc: integer(
+          exactKeys(raw.find, ["dc"], `${where} find`).dc,
+          `${where} find dc`,
+          5,
+          30,
+        ),
+      },
       disarm: check(raw.disarm, `${where} disarm`),
       trigger: text(raw.trigger, `${where} trigger`),
       save: {
@@ -2180,6 +2231,16 @@ function validateModule(
   const closers = new Map<string, string[]>();
   for (const site of authoredChecks({ rooms, passages, encounters })) {
     const label = siteLabel(site);
+    // Thieves' tools (#309) pick locks and disarm traps, and nothing else.
+    if (
+      site.kind !== "pick" &&
+      site.kind !== "disarm" &&
+      approachesOf(site.check).some(({ tool }) => tool !== undefined)
+    ) {
+      fail(
+        `${label} uses thieves' tools, which only pick a lock or disarm a trap.`,
+      );
+    }
     for (const band of BANDS) {
       const outcome = site.check.bands?.[band];
       if (outcome === undefined) {
@@ -2418,11 +2479,17 @@ function validateModule(
         );
     }
   };
+  /**
+   * The approaches a character can take: without thieves' tools (#309),
+   * none that needs them.
+   */
+  const takeable = (site: AuthoredSite, tools: boolean) =>
+    approachesOf(site.check).filter(({ tool }) => tools || tool === undefined);
   /** The effective bands some character can roll on a check. */
-  const outcomesOf = (site: AuthoredSite): readonly Band[] => [
+  const outcomesOf = (site: AuthoredSite, tools: boolean): readonly Band[] => [
     ...new Set(
       BANDS.filter((band) =>
-        approachesOf(site.check).some((spec) => bandReachable(band, spec, max)),
+        takeable(site, tools).some((spec) => bandReachable(band, spec, max)),
       ).map((band) => authoredBand(site.check, band)),
     ),
   ];
@@ -2438,7 +2505,10 @@ function validateModule(
           )
         : []),
     ]);
-  const reachable = (excluded: ReadonlySet<string>): Set<string> => {
+  const reachable = (
+    excluded: ReadonlySet<string>,
+    tools = false,
+  ): Set<string> => {
     // The rooms reached from `from` through ways needing no check, and the
     // passages in `extra` a band has made ways.
     const closure = (
@@ -2475,10 +2545,15 @@ function validateModule(
     for (let grew = true; grew;) {
       grew = false;
       for (const site of sites) {
-        if (!siteRooms(site).some((roomId) => sure.has(roomId))) {
+        // A character may carry no thieves' tools (#309): a check only
+        // they can make is never counted on.
+        if (
+          !siteRooms(site).some((roomId) => sure.has(roomId)) ||
+          takeable(site, tools).length === 0
+        ) {
           continue;
         }
-        const ways = outcomesOf(site).map((band) =>
+        const ways = outcomesOf(site, tools).map((band) =>
           closure(sure, opensOn(site, band)),
         );
         const forward = new Set(
@@ -2496,6 +2571,14 @@ function validateModule(
   };
   const free = reachable(new Set());
   const safe = reachable(new Set(closers.keys()));
+  /** A door only thieves' tools open (#309): no key, force or break. */
+  const toolsOnly = (shut: FifthDoor) =>
+    shut.pick !== undefined &&
+    shut.keyItemId === undefined &&
+    shut.force === undefined &&
+    shut.break === undefined;
+  /** What thieves' tools would reach (#309), to name a tools-only route. */
+  const tooled = reachable(new Set(), true);
   /**
    * Fails naming the check whose close can cut `what` off, when one alone
    * can; otherwise the checks that can between them.
@@ -2545,14 +2628,20 @@ function validateModule(
         return (free.has(from) && beyond.has(to)) ||
           (free.has(to) && beyond.has(from))
           ? [
-              entry.door?.id,
+              entry.door === undefined
+                ? undefined
+                : toolsOnly(entry.door)
+                  ? `${entry.door.id}, which only thieves' tools open`
+                  : entry.door.id,
               entry.trap?.id,
               entry.hidden === true ? entry.id : undefined,
             ].filter((guard): guard is string => guard !== undefined)
           : [];
       });
       fail(
-        `room ${roomId} is essential, but every route to it needs a check or passes a trap (${guards.join(", ")}).`,
+        tooled.has(roomId)
+          ? `room ${roomId} is essential, but its only route needs thieves' tools (${guards.join(", ")}); add a key, another way through, or another passage.`
+          : `room ${roomId} is essential, but every route to it needs a check or passes a trap (${guards.join(", ")}).`,
       );
     }
     if (
@@ -2571,7 +2660,9 @@ function validateModule(
     rooms.some(({ id: roomId, exit }) => exit && sure.has(roomId));
   if (hasExit && !exitIn(free)) {
     fail(
-      "every exit needs a check or passes a trap; one must be free to reach.",
+      exitIn(tooled)
+        ? "every exit needs thieves' tools to reach; one must be reachable without them."
+        : "every exit needs a check or passes a trap; one must be free to reach.",
     );
   }
   if (hasExit && !exitIn(safe)) {

@@ -40,7 +40,7 @@ import {
   settleCharacter,
   type CharacterSheet,
 } from "./character-5e.js";
-import { type Level } from "./class-5e.js";
+import { type ClassId, type Level } from "./class-5e.js";
 import { createFifthRuntime } from "./runtime-5e.js";
 import type { KitId } from "./equipment-5e.js";
 
@@ -51,6 +51,12 @@ export type CareerOptions = GateOptions &
   Readonly<{
     /** The level some career must reach: `CAREER_REQUIRED_LEVEL` by default. */
     requiredLevel?: Level;
+    /**
+     * The class the career plays: the default class, the Fighter, unless
+     * named. A Rogue career builds Rogues up to level 5 (#308); verify still
+     * runs the Fighter's (#310 adds the Rogue's).
+     */
+    classId?: ClassId;
   }>;
 
 /** One module a career played. */
@@ -92,6 +98,7 @@ export type CareerReport = Readonly<{
   /** Whether some career reached the required level. */
   ok: boolean;
   requiredLevel: Level;
+  classId: ClassId;
   percentile: number;
   kit: KitId;
   style: PlayStyle;
@@ -112,6 +119,7 @@ export function simulateCareer(
   {
     seeds = Array.from({ length: DEFAULT_SEED_COUNT }, (_, seed) => seed),
     requiredLevel = CAREER_REQUIRED_LEVEL,
+    classId = DEFAULT_CLASS,
     sampleSize,
     sampleSeed,
     stepLimit,
@@ -123,11 +131,18 @@ export function simulateCareer(
     ...(sampleSize === undefined ? {} : { sampleSize }),
     ...(sampleSeed === undefined ? {} : { sampleSeed }),
   });
-  const kit = CLASSES[DEFAULT_CLASS].defaults.kit;
+  const kit = CLASSES[classId].defaults.kit;
   const limit = stepLimit === undefined ? {} : { stepLimit };
 
   const runs = seeds.map((seed): CareerRun => {
-    let sheet = characterAtLevel(weakest!.dice, 1, kit);
+    let sheet = characterAtLevel(
+      weakest!.dice,
+      1,
+      kit,
+      false,
+      undefined,
+      classId,
+    );
     const steps: CareerStep[] = [];
     for (const adventure of ordered) {
       if (adventure.recommendedLevels.min > sheet.level) {
@@ -190,6 +205,7 @@ export function simulateCareer(
   return {
     ok: reaching > 0,
     requiredLevel,
+    classId,
     percentile: WEAKEST_PERCENTILE,
     kit,
     style: GATE_STYLE,
@@ -232,7 +248,7 @@ export function renderCareerResult(report: CareerReport): string {
     .map(({ level, count }) => `level ${level} ${count}`);
   const fallen = runs.filter(({ fellIn }) => fellIn !== undefined).length;
   return [
-    `Career of a level-1, ${report.percentile}th percentile ${CLASSES[DEFAULT_CLASS].name} with the ${report.kit} kit playing ${report.style} over ${plural(runs.length, "seed")}: ${reaching} of ${plural(runs.length, "career")} (${percent(report.reached)}) reach level ${report.requiredLevel}, the required level; ${report.ok ? "pass" : "FAIL"}.`,
+    `Career of a level-1, ${report.percentile}th percentile ${CLASSES[report.classId].name} with the ${report.kit} kit playing ${report.style} over ${plural(runs.length, "seed")}: ${reaching} of ${plural(runs.length, "career")} (${percent(report.reached)}) reach level ${report.requiredLevel}, the required level; ${report.ok ? "pass" : "FAIL"}.`,
     ...lines,
     `  Levels reached: ${levels.join(", ")}; ${fallen} of ${runs.length} fell.`,
   ].join("\n");

@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-5e-adventure",
-  "formatVersion": 26,
+  "formatVersion": 27,
   "id": "thornwood-lodge",
   "title": "The Thornwood Lodge",
   "objective": "Get past Captain Hesk's beasts into the old hunting lodge, take what you can from it, and leave by the forest gate.",
@@ -394,17 +394,32 @@
         "name": "Man-trap",
         "description": "Iron jaws hidden under the rushes on the gallery stair.",
         "find": {
-          "skill": "perception",
           "dc": 14
         },
         "disarm": {
-          "ability": "dexterity",
-          "dc": 14,
-          "advantage": [
+          "approaches": [
             {
-              "type": "holds",
-              "item": "trap-tongs",
-              "name": "Trapper's Tongs"
+              "ability": "dexterity",
+              "tool": "thieves-tools",
+              "dc": 14,
+              "advantage": [
+                {
+                  "type": "holds",
+                  "item": "trap-tongs",
+                  "name": "Trapper's Tongs"
+                }
+              ]
+            },
+            {
+              "ability": "dexterity",
+              "dc": 14,
+              "advantage": [
+                {
+                  "type": "holds",
+                  "item": "trap-tongs",
+                  "name": "Trapper's Tongs"
+                }
+              ]
             }
           ]
         },

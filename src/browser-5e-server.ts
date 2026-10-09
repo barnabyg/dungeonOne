@@ -290,7 +290,10 @@ function libraryView(
           : {
               levelChoice: {
                 levelUp,
-                masteries: masteryOptions(sheet),
+                // A level with no new mastery offers none (#308).
+                masteries: levelUp.choices.includes("weapon-mastery")
+                  ? masteryOptions(sheet)
+                  : [],
                 scoreCap: ABILITY_SCORE_CAP,
               },
             }),
@@ -365,6 +368,9 @@ const CLICK_ACTIONS = [
   "hide",
   "steady-aim",
   "end-turn",
+  // The answers to a hit Uncanny Dodge could halve (#308).
+  "uncanny-dodge",
+  "take-hit",
 ] as const;
 /**
  * The clicked actions that make a check, which may name its approach (#283)
@@ -639,16 +645,22 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             : save(session);
         });
       case "/api/5e/session/attack":
-      case "/api/5e/session/light-attack":
+      case "/api/5e/session/light-attack": {
+        // Cunning Strike's effect (#308) may come with an attack; the
+        // runtime refuses one it doesn't know, and the engine one it
+        // wouldn't offer.
+        const strike = body.cunningStrike !== undefined;
         if (
           !hasExactKeys(body, [
             "sessionId",
             "sequence",
             "actorId",
             "targetId",
+            ...(strike ? ["cunningStrike"] : []),
           ]) ||
           typeof body.actorId !== "string" ||
-          typeof body.targetId !== "string"
+          typeof body.targetId !== "string" ||
+          (strike && typeof body.cunningStrike !== "string")
         ) {
           throw new Error("Invalid attack request.");
         }
@@ -656,7 +668,9 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           type: path.endsWith("/light-attack") ? "light-attack" : "attack",
           actorId: body.actorId,
           targetId: body.targetId,
-        });
+          ...(strike ? { cunningStrike: body.cunningStrike } : {}),
+        } as FifthAction);
+      }
       case "/api/5e/session/action":
         if (
           !hasExactKeys(body, ["sessionId", "sequence", "action"]) ||
@@ -801,7 +815,11 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           await serialized(() =>
             library.chooseLevel(
               body.characterId as string,
-              { increase: body.increase, mastery: body.mastery },
+              // A Rogue's level 4 (#308) has no mastery to choose: null.
+              {
+                increase: body.increase,
+                ...(body.mastery === null ? {} : { mastery: body.mastery }),
+              },
               body.revision as string,
             ),
           ),

@@ -13,7 +13,9 @@
  * effect. Ranged weapons (#230) shoot arrows or bolts, counted one by one and
  * sold and found in bundles of 20; the encounter engine gives them
  * disadvantage from a fight's second round, when foes have closed. The
- * dagger's Thrown property stays deferred.
+ * dagger's Thrown property stays deferred. Thieves' tools (#309) are carried,
+ * never equipped: holding them is what lets a character pick a lock or
+ * disarm a trap a module authors for them.
  */
 import type { DamageType } from "./encounter-5e.js";
 
@@ -311,8 +313,28 @@ export const ARMOUR = {
 } as const satisfies Record<string, ArmourData>;
 export type ArmourId = keyof typeof ARMOUR;
 
-/** A weapon, armour or the shield: gear a character equips or stows. */
-export type ItemId = WeaponId | ArmourId;
+/**
+ * SRD 5.2 tools (#309): carried, never equipped. Thieves' tools let a
+ * character pick a lock or disarm a trap a module authors for them.
+ */
+export const TOOL_ITEMS = {
+  "thieves-tools": {
+    name: "Thieves' tools",
+    price: 2500,
+    weight: 1,
+    tier: "common",
+  },
+} as const satisfies Record<
+  string,
+  Readonly<{ name: string; price: number; weight: number; tier: Tier }>
+>;
+export type ToolId = keyof typeof TOOL_ITEMS;
+
+/**
+ * A weapon, armour, the shield or a tool: gear a character carries. Weapons,
+ * armour and the shield are equipped or stowed; a tool is always stowed.
+ */
+export type ItemId = WeaponId | ArmourId | ToolId;
 /** Anything in the catalogue: gear, or a bundle of ammunition. */
 export type CatalogueId = ItemId | AmmunitionId;
 
@@ -326,9 +348,17 @@ export const DONNING_MINUTES = {
   heavy: { don: 10, doff: 5 },
 } as const;
 
-/** Whether `value` names a catalogue weapon, armour or the shield. */
+/** Whether `value` names a catalogue weapon, armour, the shield or a tool. */
 export function isItemId(value: unknown): value is ItemId {
-  return typeof value === "string" && (isWeaponId(value) || isArmourId(value));
+  return (
+    typeof value === "string" &&
+    (isWeaponId(value) || isArmourId(value) || isToolId(value))
+  );
+}
+
+/** Whether `id` names a catalogue tool (#309). */
+export function isToolId(id: string): id is ToolId {
+  return Object.hasOwn(TOOL_ITEMS, id);
 }
 
 /** Whether `id` names a catalogue weapon. */
@@ -360,7 +390,13 @@ type CatalogueEntry = Readonly<{
   tier: Tier;
 }>;
 const entry = (id: CatalogueId): CatalogueEntry =>
-  isWeaponId(id) ? WEAPONS[id] : isArmourId(id) ? ARMOUR[id] : AMMUNITION[id];
+  isWeaponId(id)
+    ? WEAPONS[id]
+    : isArmourId(id)
+      ? ARMOUR[id]
+      : isToolId(id)
+        ? TOOL_ITEMS[id]
+        : AMMUNITION[id];
 
 /**
  * An item's SRD 5.2 name, such as "Leather armour"; a bundle of ammunition
@@ -532,6 +568,7 @@ export type Gear = Readonly<{
 export type GearRefusalCode =
   | "not-carried"
   | "not-a-weapon"
+  | "not-equippable"
   | "already-held"
   | "two-handed"
   | "hands-full"
@@ -632,6 +669,12 @@ export function equipItem(gear: Gear, id: ItemId): GearChange {
     return gear.equipment.includes(id)
       ? refuse("already-held", `You already have the ${lower(id)} equipped.`)
       : refuse("not-carried", `You don't carry a ${lower(id)} to equip.`);
+  }
+  if (isToolId(id)) {
+    return refuse(
+      "not-equippable",
+      `${itemName(id)} are carried, not equipped: you use them from your pack.`,
+    );
   }
   const stowed = withoutOne(gear.stowed, id);
   const held = heldWeapons(gear);
@@ -976,13 +1019,16 @@ export type KitData = Readonly<{
   name: string;
   /** Armour first, then the weapon attacked with, then any second weapon. */
   equipment: readonly ItemId[];
+  /** What the kit packs, carried but not equipped: a Rogue's thieves' tools (#309). */
+  stowed?: readonly ItemId[];
 }>;
 
 /**
  * The starting kits: common-tier items only, and a little of each. Early
  * levels are dangerous, so better gear is found, bought or earned. Each
  * class offers its own (`ClassDefinition.kits`): the Fighter the first
- * three, the Rogue (#306) the shortsword kits.
+ * three, the Rogue (#306) the shortsword kits, each with thieves' tools
+ * (#309).
  */
 export const STARTING_KITS = {
   mace: { name: "Mace and leather", equipment: ["leather", "mace"] },
@@ -997,10 +1043,12 @@ export const STARTING_KITS = {
   shortsword: {
     name: "Shortsword and leather",
     equipment: ["leather", "shortsword"],
+    stowed: ["thieves-tools"],
   },
   "shortsword-and-dagger": {
     name: "Shortsword, dagger and leather",
     equipment: ["leather", "shortsword", "dagger"],
+    stowed: ["thieves-tools"],
   },
 } as const satisfies Record<string, KitData>;
 export type KitId = keyof typeof STARTING_KITS;
@@ -1013,12 +1061,15 @@ export const KIT_IDS = Object.keys(STARTING_KITS) as readonly KitId[];
  */
 export const KIT_VALUE_TOLERANCE = 300;
 
+/** Everything a kit holds: its equipment, then what it packs. */
+export function kitItems(kit: KitId): readonly ItemId[] {
+  const data: KitData = STARTING_KITS[kit];
+  return [...data.equipment, ...(data.stowed ?? [])];
+}
+
 /** A kit's value: the sum of its items' prices, in copper. */
 export function kitPrice(kit: KitId): number {
-  return STARTING_KITS[kit].equipment.reduce(
-    (sum, id) => sum + itemPrice(id),
-    0,
-  );
+  return kitItems(kit).reduce((sum, id) => sum + itemPrice(id), 0);
 }
 
 /** Whether `value` names a starting kit. */

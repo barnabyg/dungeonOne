@@ -1,14 +1,15 @@
 /**
- * The SRD 5.2 Rogue at levels 1–3, as class data (#306, #307). The character
- * module (`character-5e.ts`) derives a Rogue's hit points, saves, skills,
- * Expertise, masteries, Sneak Attack, bonus actions and attacks from this
- * definition alone. Level 2 brings Cunning Action (Hide only), level 3 Steady
- * Aim and the Thief subclass. Its level 4–5 features come later (#308): until
- * then a Rogue that reaches a higher level gains its hit points, proficiency
- * bonus and Sneak Attack dice, and nothing else. `docs/character-rules.md`
- * records the numbers and the abstractions.
+ * The SRD 5.2 Rogue at levels 1–5, as class data (#306, #307, #308). The
+ * character module (`character-5e.ts`) derives a Rogue's hit points, saves,
+ * skills, Expertise, masteries, Sneak Attack, bonus actions, reaction and
+ * attacks from this definition alone. Level 2 brings Cunning Action (Hide
+ * only), level 3 Steady Aim and the Thief subclass, level 4 an Ability Score
+ * Improvement (with no new weapon mastery), and level 5 Cunning Strike
+ * (Poison and Trip) and Uncanny Dodge. `docs/character-rules.md` records the
+ * numbers and the abstractions.
  */
 import {
+  abilityScoreImprovementText,
   WEAPON_MASTERY_FEATURE,
   SKILLS,
   type Ability,
@@ -16,7 +17,9 @@ import {
   type DefaultChoices,
   type LevelTable,
   type SkillId,
+  titleCase,
 } from "./class-5e.js";
+import { CUNNING_STRIKES, TRIP_LARGEST_SIZE } from "./encounter-5e.js";
 
 /** The skills a Rogue chooses its proficiencies from. */
 export const ROGUE_SKILLS: readonly SkillId[] = [
@@ -66,6 +69,10 @@ export const ROGUE_DEFAULT_CHOICES = {
 
 /** Sneak Attack's d6s by level (SRD 5.2). */
 const SNEAK_ATTACK_DICE: LevelTable = { 1: 1, 2: 1, 3: 2, 4: 2, 5: 3 };
+const SNEAK_ATTACK_SIDES = 6;
+
+/** Cunning Strike's effects (#308), whose numbers its text gives. */
+const { poison: POISON, trip: TRIP } = CUNNING_STRIKES;
 
 /** "Perception and Stealth": the skills chosen for Expertise. */
 const skillNames = (skills: readonly SkillId[]) =>
@@ -102,11 +109,11 @@ export const ROGUE: ClassDefinition = {
       level: 1,
       name: "Sneak Attack",
       text: ({ level }) =>
-        `Once per turn, when you hit with an attack roll that uses a Finesse or ranged weapon and you have advantage on the roll, you deal an extra ${SNEAK_ATTACK_DICE[level]}d6 damage of the weapon's type. The engine adds it; you never need to ask.`,
+        `Once per turn, when you hit with an attack roll that uses a Finesse or ranged weapon and you have advantage on the roll, you deal an extra ${SNEAK_ATTACK_DICE[level]}d${SNEAK_ATTACK_SIDES} damage of the weapon's type. The engine adds it; you never need to ask.`,
       effect: {
         kind: "sneak-attack",
         dice: SNEAK_ATTACK_DICE,
-        sides: 6,
+        sides: SNEAK_ATTACK_SIDES,
       },
     },
     {
@@ -133,6 +140,34 @@ export const ROGUE: ClassDefinition = {
       name: "Steady Aim",
       text: "Bonus action, while you still have an attack to make this turn: advantage on your next attack roll this turn. There are no positions, so you have always not moved and can use it every turn.",
       effect: { kind: "steady-aim" },
+    },
+    {
+      // Unlike the Fighter's, the Rogue's level 4 brings no new weapon
+      // mastery, so the choice is the improvement alone (#308).
+      id: "ability-score-improvement",
+      level: 4,
+      name: "Ability Score Improvement",
+      text: ({ abilityScoreImprovements: [chosen] }) =>
+        abilityScoreImprovementText(chosen),
+      effect: { kind: "ability-score-improvement" },
+    },
+    {
+      // Withdraw moves the Rogue, and there are no positions; Poison needs
+      // no Poisoner's Kit, which the game doesn't have (#308).
+      id: "cunning-strike",
+      level: 5,
+      name: "Cunning Strike",
+      text: ({ dexterityDc }) =>
+        `When you deal Sneak Attack damage, you can give up Sneak Attack dice for one effect; the dice go before the damage is rolled. Poison (${POISON.dice}d${SNEAK_ATTACK_SIDES}): the target makes a DC ${dexterityDc} ${titleCase(POISON.save)} saving throw or is poisoned for up to ${POISON.turns} of its turns, repeating the save at the end of each. Trip (${TRIP.dice}d${SNEAK_ATTACK_SIDES}): a ${TRIP_LARGEST_SIZE} or smaller target makes a DC ${dexterityDc} ${titleCase(TRIP.save)} saving throw or is knocked prone. Choose it with the attack; it applies only if the attack deals Sneak Attack, once per Sneak Attack. Withdraw needs positions, so it is not offered.`,
+      effect: { kind: "cunning-strike" },
+    },
+    {
+      // "An attacker you can see": no attacker is ever unseen (#308).
+      id: "uncanny-dodge",
+      level: 5,
+      name: "Uncanny Dodge",
+      text: "Reaction: when an attacker hits you with an attack roll, you can halve the attack's damage against you (rounded down). The game asks at the moment it hits; once per round, as your reaction comes back at the start of your turn.",
+      effect: { kind: "uncanny-dodge" },
     },
   ],
   subclasses: [

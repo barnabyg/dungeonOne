@@ -13,7 +13,9 @@
  * disadvantage cancel). Body armour worn without training gives disadvantage
  * on Strength and Dexterity checks and saves (SRD 5.2, `abilityDisadvantages`).
  * A module may mark a Strength check as climbing or jumping (#307): a
- * character with Second-Story Work (the Thief) makes it with Dexterity.
+ * character with Second-Story Work (the Thief) makes it with Dexterity. A
+ * Dexterity check made with thieves' tools (#309) adds the proficiency bonus
+ * when the character's class is proficient with them.
  *
  * An authored check grades its outcome into bands (#281): failure by 5 or
  * more, failure, success, and success by 5 or more.
@@ -25,19 +27,23 @@ import {
   checkAdvantages,
   hasExpertise,
   skillProficiency,
+  toolProficiency,
   type CharacterSheet,
 } from "./character-5e.js";
 import { SKILLS, titleCase, type Ability, type SkillId } from "./class-5e.js";
+import { itemName, type ToolId } from "./equipment-5e.js";
 import type { RandomSource } from "./random.js";
 
 /**
  * An authored check: a skill's, or a plain ability's, against a DC. A
- * Strength check may be marked as climbing or jumping (#307).
+ * Strength check may be marked as climbing or jumping (#307). A Dexterity
+ * check may be made with thieves' tools (#309): only a character carrying
+ * them can make it, and proficiency with them adds the proficiency bonus.
  */
 export type CheckSpec = Readonly<
   (
-    | { skill: SkillId; ability?: never; dc: number }
-    | { ability: Ability; skill?: never; dc: number }
+    | { skill: SkillId; ability?: never; tool?: never; dc: number }
+    | { ability: Ability; skill?: never; tool?: ToolId; dc: number }
   ) & { movement?: Movement }
 >;
 
@@ -68,6 +74,8 @@ export type CheckRoll = Readonly<{
   proficiency: number;
   /** Expertise doubled `proficiency` (#306). */
   expertise?: true;
+  /** The tool the check was made with (#309); `proficiency` is its. */
+  tool?: ToolId;
   /**
    * The feature that made it with another ability: Second-Story Work, for a
    * marked climb or jump with Dexterity in place of Strength (#307).
@@ -139,13 +147,23 @@ function rolled(
   };
 }
 
-/** How an approach is named in an action (#283): its skill's or ability's id. */
+/**
+ * How an approach is named in an action (#283): its tool's (#309), skill's
+ * or ability's id.
+ */
 export const approachId = (spec: CheckSpec): string =>
-  spec.skill ?? spec.ability;
+  spec.tool ?? spec.skill ?? spec.ability;
 
-/** How an approach is shown: "Athletics", or "Strength" for a plain ability. */
+/**
+ * How an approach is shown: "Athletics", "Strength" for a plain ability, or
+ * "Thieves' tools" for a tool (#309).
+ */
 export const approachName = (spec: CheckSpec): string =>
-  spec.skill === undefined ? titleCase(spec.ability) : SKILLS[spec.skill].name;
+  spec.tool !== undefined
+    ? itemName(spec.tool)
+    : spec.skill === undefined
+      ? titleCase(spec.ability)
+      : SKILLS[spec.skill].name;
 
 /** Named sources of advantage and disadvantage on one roll (#284). */
 export type Circumstances = Readonly<{
@@ -177,14 +195,16 @@ export function abilityCheck(
   const made = (roll: CheckRoll): CheckRoll =>
     substitute ? { ...roll, substitute: SECOND_STORY_WORK } : roll;
   if (spec.skill === undefined) {
-    return made(
+    // With a tool (#309), proficiency with it adds the bonus.
+    const tool = spec.tool;
+    const roll = made(
       rolled(
         "check",
         ability,
         undefined,
-        `${titleCase(spec.ability)} check${using}`,
+        `${titleCase(spec.ability)} check${tool === undefined ? "" : ` with ${itemName(tool).toLowerCase()}`}${using}`,
         profile.modifiers[ability],
-        0,
+        tool === undefined ? 0 : toolProficiency(sheet, tool),
         spec.dc,
         circumstances.advantage,
         random,
@@ -194,6 +214,7 @@ export function abilityCheck(
         ],
       ),
     );
+    return tool === undefined ? roll : { ...roll, tool };
   }
   const roll = made(
     rolled(

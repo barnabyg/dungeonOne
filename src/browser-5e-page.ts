@@ -63,11 +63,12 @@
 // in two columns (status and scene left, the dock right, each scrolling on its
 // own); narrower, it is one column with the dock sticky at the bottom.
 //
-// A level-4 Fighter's sheet (#286) leads with #level-choice, the level-up
+// A level-4 character's sheet (#286) leads with #level-choice, the level-up
 // card that asks for its Ability Score Improvement (#asi-mode-two or
-// #asi-mode-split, then #asi-<ability>) and fourth weapon mastery
-// (#new-mastery-<id>). The server projects every score and lists every
-// change in #level-choice-changes; #confirm-level-choice makes the choice.
+// #asi-mode-split, then #asi-<ability>) and, for a Fighter, its fourth weapon
+// mastery (#new-mastery-<id>; a Rogue's level 4 brings none, #308). The
+// server projects every score and lists every change in
+// #level-choice-changes; #confirm-level-choice makes the choice.
 // Until it is made the sheet offers no adventure.
 //
 // Busy states (#160): while a request runs, the control that started it has
@@ -540,7 +541,7 @@ function renderAdventureChoices(entry) {
     return;
   }
   if (entry.levelChoice) {
-    choices.replaceChildren(make("p", "Choose " + entry.sheet.name + "'s level " + entry.levelChoice.levelUp.to + " Ability Score Improvement and weapon mastery above before starting another adventure.", "hint level-choice-notice"));
+    choices.replaceChildren(make("p", "Choose " + entry.sheet.name + "'s level " + entry.levelChoice.levelUp.to + " " + choiceWords(entry.levelChoice.levelUp) + " above before starting another adventure.", "hint level-choice-notice"));
     return;
   }
   if (entry.session) {
@@ -622,6 +623,8 @@ let acting = false;
 let confirmingLeave = false;
 // The equipped item whose sale is asking for confirmation, if any (#210).
 let confirmingSale = null;
+// The Cunning Strike effect chosen for the next attack (#308), or "".
+let cunningStrike = "";
 
 const levelText = ({ min, max }) => min === max ? "Level " + min : "Levels " + min + "–" + max;
 
@@ -771,13 +774,13 @@ function rewardNodes(rewards, name) {
     // Names only: the sheet explains each feature, and the dock stays short.
     const wind = !up.secondWind || up.secondWind.before.uses === up.secondWind.after.uses ? "" : " Second Wind uses " + up.secondWind.before.uses + " → " + up.secondWind.after.uses + ".";
     const sneak = up.sneakAttack ? " Sneak Attack " + up.sneakAttack.before + "d6 → " + up.sneakAttack.after + "d6." : "";
-    // A level may bring no new feature (a Rogue's level 4 and 5, until #308).
+    // A level with no new feature names none.
     const gained = up.features.length ? " New: " + up.features.map((feature) => feature.name).join(", ") + ". See the sheet for what each does." : "";
     const gains = make("p", "Hit points " + up.maxHp.before + " → " + up.maxHp.after + "." + wind + sneak + gained);
     card.append(heading, gains);
     // Level 4 (#286): the choices wait on the sheet, and block the next adventure.
     if (up.choices.length) {
-      const owed = make("p", "Choose an Ability Score Improvement and a fourth weapon mastery on " + name + "'s sheet before the next adventure.");
+      const owed = make("p", "Choose " + (up.choices.includes("weapon-mastery") ? "an Ability Score Improvement and a fourth weapon mastery" : "an Ability Score Improvement") + " on " + name + "'s sheet before the next adventure.");
       owed.id = "level-up-choices";
       card.append(owed);
     }
@@ -816,7 +819,8 @@ function renderStatus() {
   element("hp-fill").style.width = (maxHp > 0 ? (100 * hp) / maxHp : 0) + "%";
   const { encounter, turn, features } = session;
   const current = encounter && encounter.combatants.find(({ id }) => id === encounter.currentTurn);
-  element("turn").textContent = !encounter ? "" : current ? "Round " + encounter.round + ": " + (current.id === encounter.playerId ? "your turn." : current.name + "'s turn.") : "The fight is over.";
+  // A hit waiting for Uncanny Dodge (#308) says so.
+  element("turn").textContent = !encounter ? "" : current ? "Round " + encounter.round + ": " + (current.id === encounter.playerId ? "your turn." : encounter.pendingReaction ? encounter.pendingReaction.attacker + " hits you." : current.name + "'s turn.") : "The fight is over.";
   // The character's conditions in the fight (#232), each a tag with its
   // source and how it ends for screen readers.
   const self = encounter && encounter.combatants.find(({ id }) => id === encounter.playerId);
@@ -1295,6 +1299,9 @@ const ACTIONS = {
   "action-surge": { label: "Action Surge", busy: "Using Action Surge", busyLabel: "Using Action Surge…" },
   hide: { label: "Hide", busy: "Hiding", busyLabel: "Hiding…" },
   "steady-aim": { label: "Steady Aim", busy: "Steadying your aim", busyLabel: "Aiming…" },
+  // The answers to a hit Uncanny Dodge could halve (#308).
+  "uncanny-dodge": { label: "Uncanny Dodge", busy: "Using Uncanny Dodge", busyLabel: "Dodging…" },
+  "take-hit": { label: "Take the hit", busy: "Taking the hit", busyLabel: "Taking…" },
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
   leave: { label: "Leave the adventure", busy: "Leaving the adventure", busyLabel: "Leaving…" },
 };
@@ -1309,7 +1316,7 @@ const wordsOf = (action) => action === "end-turn" && paralysed() ? WAIT : ACTION
 // Leave names the adventure, not the room it is taken from.
 const named = (action, target) => target && action !== "leave" ? target.name : "";
 const busyName = ({ action, target }) => wordsOf(action).busy + named(action, target) + "…";
-const FIGHT_FEATURES = ["second-wind", "action-surge", "hide", "steady-aim", "end-turn"];
+const FIGHT_FEATURES = ["second-wind", "action-surge", "hide", "steady-aim", "end-turn", "uncanny-dodge", "take-hit"];
 const GEAR = ["equip", "unequip", "swap", "drop"];
 // The "You carry" slot each verb on the character's gear goes on.
 const EQUIPPED_VERBS = ["unequip", "sell-equipped"];
@@ -1324,13 +1331,22 @@ function renderActions() {
   element("action-bar").hidden = session.status !== "playing";
   const { encounter, features } = session;
   const fighting = Boolean(encounter && encounter.currentTurn !== null);
-  const attacks = session.actions.filter(({ action }) => action === "attack").length;
+  const attacks = session.actions.filter(({ action, cunningStrike: effect }) => action === "attack" && !effect).length;
   const ATTACKS = ["attack", "light-attack"];
   const left = (feature) => " (" + feature.uses + " of " + feature.max + " left)";
   const groups = { attack: [], feature: [], explore: [], leave: [], carried: [], wares: [] };
   const carried = new Set(session.room.inventory.map(({ id }) => id));
+  // Cunning Strike (#308): the effects the engine offers with some attack
+  // go in one choice beside the turn's features, not on buttons of their
+  // own; an attack that can't take the chosen one is disabled.
+  const strikes = session.actions.filter((option) => option.cunningStrike);
+  const effects = [...new Map(strikes.map(({ cunningStrike: effect }) => [effect.id, effect])).values()];
+  if (!effects.some(({ id }) => id === cunningStrike)) cunningStrike = "";
+  if (effects.length) groups.feature.push(strikeChoice(effects));
+  const struck = (action, target) => strikes.some((option) => option.action === action && option.target.id === target.id && option.cunningStrike.id === cunningStrike);
   session.actions.forEach((option, index) => {
     const { action, target } = option;
+    if (option.cunningStrike) return;
     const exploring = EXPLORING.includes(action) || (action === "use" && !fighting);
     // Gear changes go on the gear's entry in "You carry" (#209), or in a
     // fight with the turn's other options, as Drink does.
@@ -1362,8 +1378,10 @@ function renderActions() {
     if (target) button.dataset.target = target.id;
     if (option.approach) button.dataset.approach = option.approach.id;
     if (option.retry) button.dataset.retry = "true";
-    button.disabled = acting || !option.available;
-    button.addEventListener("click", () => action === "leave" ? openLeave() : action === "sell-equipped" ? openSale(option) : perform(option));
+    // An attack the chosen Cunning Strike can't go with (#308).
+    const unstruck = cunningStrike && ATTACKS.includes(action) && option.available && !struck(action, target);
+    button.disabled = acting || !option.available || unstruck;
+    button.addEventListener("click", () => action === "leave" ? openLeave() : action === "sell-equipped" ? openSale(option) : perform(ATTACKS.includes(action) && cunningStrike ? { ...option, cunningStrike } : option));
     const wrap = make("span", undefined, "action");
     wrap.append(button);
     // The approach's skill, under its button (the button keeps the verb).
@@ -1376,7 +1394,7 @@ function renderActions() {
       wrap.append(why);
     }
     // Waiting says why it is all the character can do.
-    const why = !option.available ? option.reason : words === WAIT ? "You are paralysed, so you can only wait." : "";
+    const why = !option.available ? option.reason : unstruck ? "Not with " + effects.find(({ id }) => id === cunningStrike).name : words === WAIT ? "You are paralysed, so you can only wait." : "";
     if (why) {
       const reason = make("span", why, "reason");
       reason.id = "action-reason-" + index;
@@ -1502,13 +1520,42 @@ async function leaveAdventure() {
   element(session.ending ? "ending-title" : "confirm-leave").focus();
 }
 
-async function perform({ action, target, approach, retry }) {
+/**
+ * Cunning Strike's choice (#308): none, or one of the effects the engine
+ * offers with an attack now. It applies to the next attack clicked.
+ */
+function strikeChoice(effects) {
+  const wrap = make("span", undefined, "action strike-choice");
+  const select = make("select");
+  select.id = "cunning-strike";
+  select.setAttribute("aria-label", "Cunning Strike");
+  select.disabled = acting;
+  for (const [value, text] of [["", "No Cunning Strike"], ...effects.map(({ id, name }) => [id, name + " (−1d6)"])]) {
+    const choice = make("option", text);
+    choice.value = value;
+    choice.selected = value === cunningStrike;
+    select.append(choice);
+  }
+  select.addEventListener("change", () => {
+    cunningStrike = select.value;
+    renderActions();
+    element("cunning-strike").focus();
+  });
+  // No caption under it: the bar has little height to spare at phone width.
+  wrap.append(select);
+  return wrap;
+}
+
+async function perform({ action, target, approach, retry, cunningStrike: effect }) {
   const targetId = target ? target.id : "";
   // The clicked control, found again after the bar re-renders, shows busy.
   const control = "button.act[data-action=" + JSON.stringify(action) + "]" + (targetId ? "[data-target=" + JSON.stringify(targetId) + "]" : ":not([data-target])") + (approach ? "[data-approach=" + JSON.stringify(approach.id) + "]" : "") + (retry ? "[data-retry]" : ":not([data-retry])");
   const busy = busyName({ action, target });
-  if (action === "attack" || action === "light-attack") await act("/api/5e/session/" + action, { actorId: session.encounter.playerId, targetId }, control, busy);
-  else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action }, control, busy);
+  // The chosen Cunning Strike (#308) goes with this attack only.
+  if (action === "attack" || action === "light-attack") {
+    cunningStrike = "";
+    await act("/api/5e/session/" + action, { actorId: session.encounter.playerId, targetId, ...(effect ? { cunningStrike: effect } : {}) }, control, busy);
+  } else if (FIGHT_FEATURES.includes(action)) await act("/api/5e/session/action", { action }, control, busy);
   else await act("/api/5e/session/explore", { action, target: targetId, ...(approach ? { approach: approach.id } : {}), ...(retry ? { retry: true } : {}) }, control, busy);
   keepFocus(action, targetId);
 }
@@ -1986,15 +2033,18 @@ let levelPreviewRequest = 0;
 /** "+2 Strength" or "+1 Strength, +1 Constitution". */
 const increaseText = (increase) => library.abilities.filter((ability) => increase[ability]).map((ability) => "+" + increase[ability] + " " + titleCase(ability)).join(", ");
 
+/** "Ability Score Improvement and weapon mastery", or the improvement alone (#308). */
+const choiceWords = (up) => up.choices.includes("weapon-mastery") ? "Ability Score Improvement and weapon mastery" : "Ability Score Improvement";
+
 /** The level's changes in words, from the server's level-up view. */
-function levelUpLines(up, scoreCap) {
-  const lines = ["Hit points " + up.maxHp.before + " → " + up.maxHp.after + " (+6 + Constitution modifier)."];
+function levelUpLines(up, scoreCap, hitDie) {
+  const lines = ["Hit points " + up.maxHp.before + " → " + up.maxHp.after + " (+" + (hitDie / 2 + 1) + " + Constitution modifier)."];
   if (up.proficiencyBonus.before !== up.proficiencyBonus.after) lines.push("Proficiency bonus " + signed(up.proficiencyBonus.before) + " → " + signed(up.proficiencyBonus.after) + ".");
   const wind = up.secondWind;
-  lines.push("Second Wind: " + wind.after.uses + " uses" + (wind.before.uses === wind.after.uses ? "" : " (was " + wind.before.uses + ")") + ", healing 1d10 + " + wind.after.modifier + " (was 1d10 + " + wind.before.modifier + ").");
+  if (wind) lines.push("Second Wind: " + wind.after.uses + " uses" + (wind.before.uses === wind.after.uses ? "" : " (was " + wind.before.uses + ")") + ", healing 1d10 + " + wind.after.modifier + " (was 1d10 + " + wind.before.modifier + ").");
   if (up.weaponMasteries.before !== up.weaponMasteries.after) lines.push("Weapon Mastery: " + up.weaponMasteries.after + " kinds of weapon (was " + up.weaponMasteries.before + "); choose the new one below.");
   if (up.choices.includes("ability-score-improvement")) lines.push("Ability Score Improvement: +2 to one ability score or +1 to two, to a maximum of " + scoreCap + "; choose it below.");
-  lines.push("Both choices are needed before the next adventure.");
+  lines.push(up.choices.length > 1 ? "Both choices are needed before the next adventure." : "It is needed before the next adventure.");
   return lines;
 }
 
@@ -2005,8 +2055,10 @@ function renderLevelChoice(entry) {
   const { levelUp, masteries, scoreCap } = entry.levelChoice;
   if (!levelDraft || levelDraft.characterId !== entry.sheet.id) levelDraft = { characterId: entry.sheet.id, mode: "two", increase: {}, mastery: null, scoreCap };
   levelProjection = undefined;
-  element("level-choice-title").textContent = "Level " + levelUp.to + ": choose an Ability Score Improvement and a weapon mastery";
-  element("level-up-changes").replaceChildren(...levelUpLines(levelUp, scoreCap).map((line) => make("li", line)));
+  element("level-choice-title").textContent = "Level " + levelUp.to + ": choose an " + choiceWords(levelUp).replace(" and weapon", " and a weapon");
+  element("level-up-changes").replaceChildren(...levelUpLines(levelUp, scoreCap, classEntry(entry.sheet.class).hitDie).map((line) => make("li", line)));
+  // A Rogue's level 4 brings no new mastery (#308).
+  element("new-mastery").hidden = !levelUp.choices.includes("weapon-mastery");
   element("asi-mode-two").checked = levelDraft.mode === "two";
   element("asi-mode-split").checked = levelDraft.mode === "split";
   element("new-mastery-fields").replaceChildren(...classEntry(entry.sheet.class).masteryWeapons.filter(({ id }) => masteries.includes(id)).map((weapon) => {
@@ -2084,7 +2136,7 @@ async function previewLevelChoice() {
     element("asi-error").textContent = result.unfinished.increase || "";
     element("new-mastery-error").textContent = result.unfinished.mastery || "";
     element("level-choice-error").textContent = "";
-    element("level-choice-status").textContent = result.changes ? "" : "Finish both choices to see what they change.";
+    element("level-choice-status").textContent = result.changes ? "" : entry.levelChoice.levelUp.choices.length > 1 ? "Finish both choices to see what they change." : "Choose the improvement to see what it changes.";
     element("level-choice-changes").replaceChildren(...(result.changes || []).map((line) => make("li", line)));
     confirm.disabled = !result.changes || isBusy(confirm);
   } catch (error) {
@@ -2113,7 +2165,7 @@ async function confirmLevelChoice() {
   levelDraft = undefined;
   openSheet(characterId);
   const weapon = classEntry(entry.sheet.class).masteryWeapons.find(({ id }) => id === mastery);
-  feedback(entry.sheet.name + "'s level choices are saved: " + increaseText(increase) + ", and mastery of the " + weapon.name.toLowerCase() + ".");
+  feedback(entry.sheet.name + "'s level choices are saved: " + increaseText(increase) + (weapon ? ", and mastery of the " + weapon.name.toLowerCase() : "") + ".");
 }
 
 // The delete dialog opens only from a shown sheet, which is in the library.

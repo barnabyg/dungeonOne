@@ -58,7 +58,7 @@
  * The AI DM reads with `look` and `get_character_status`, and acts with
  * `move`, `sneak`, `ambush`, `react`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
  * `break_door`, `unlock`, `search`, `disarm`, `talk`, `trade`, `attack`,
- * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim` and `end_turn`. Each is offered only while the engine would
+ * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge` and `take_hit`. Each is offered only while the engine would
  * accept it, listing only what is visible and legal: the tools come from the
  * same projection (`projectActions`) as the browser's action bar, which asks
  * the engine about each action. The engine authors the
@@ -127,6 +127,7 @@ import {
   combatant,
   CONDITION_RULES,
   countedDamageDie,
+  CUNNING_STRIKES,
   currentCombatant,
   drinkPotion,
   hasFled,
@@ -139,6 +140,7 @@ import {
   type AttackEvent,
   type Combatant,
   type ConditionKind,
+  type CunningStrikeId,
   type DamageAdjustment,
   type EncounterAction,
   type EncounterActionType,
@@ -149,6 +151,7 @@ import {
   type FeatureUses,
   type InitiativeRoll,
   type Potion,
+  type ReactionAnswer,
   type RollMode,
   type TurnEconomy,
   type Weapon,
@@ -173,6 +176,7 @@ import {
   isArmourId,
   isCatalogueId,
   isItemId,
+  isToolId,
   isWeaponId,
   itemName,
   readLoadout,
@@ -198,7 +202,7 @@ import {
   type WeaponData,
 } from "./equipment-5e.js";
 import { tradeGoodValue } from "./treasure-5e.js";
-import { ABILITIES } from "./class-5e.js";
+import { ABILITIES, type SkillId } from "./class-5e.js";
 import {
   abilityDisadvantages,
   hasExpertise,
@@ -228,7 +232,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v19";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v20";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -374,9 +378,14 @@ export type FifthAction =
       type: "attack" | "light-attack";
       actorId: string;
       targetId: string;
+      /**
+       * Cunning Strike's effect (#308), accepted only where the engine
+       * offers it: an attack that would deal Sneak Attack.
+       */
+      cunningStrike?: CunningStrikeId;
     }>
   | Readonly<{
-      type: "second-wind" | "action-surge" | "hide" | "steady-aim" | "end-turn";
+      type: FeatureActionType;
       actorId: string;
     }>
   | Readonly<{ type: "move"; destinationId: string }>
@@ -475,6 +484,15 @@ export type CheckSite = Readonly<{
 /** The id a site's remembered outcome is kept under, such as `force:door-id`. */
 const checkSiteId = ({ kind, id }: CheckSite) => `${kind}:${id}`;
 
+/** The fight actions that take no target, as clicked or as an AI DM tool. */
+export type FeatureActionType =
+  | "second-wind"
+  | "action-surge"
+  | "hide"
+  | "steady-aim"
+  | "end-turn"
+  | ReactionAnswer;
+
 /** The AI DM's tool for each action that takes no target. */
 const FEATURE_TOOLS = {
   second_wind: "second-wind",
@@ -482,14 +500,27 @@ const FEATURE_TOOLS = {
   hide: "hide",
   steady_aim: "steady-aim",
   end_turn: "end-turn",
+  uncanny_dodge: "uncanny-dodge",
+  take_hit: "take-hit",
 } as const satisfies Record<
   Extract<
     FifthToolName,
-    "second_wind" | "action_surge" | "hide" | "steady_aim" | "end_turn"
+    | "second_wind"
+    | "action_surge"
+    | "hide"
+    | "steady_aim"
+    | "end_turn"
+    | "uncanny_dodge"
+    | "take_hit"
   >,
-  EncounterActionType
+  FeatureActionType
 >;
 type FeatureTool = keyof typeof FEATURE_TOOLS;
+
+/** Cunning Strike's effects (#308), as the AI DM and the browser name them. */
+const CUNNING_STRIKE_IDS = Object.keys(CUNNING_STRIKES) as CunningStrikeId[];
+const isCunningStrike = (value: unknown): value is CunningStrikeId =>
+  (CUNNING_STRIKE_IDS as readonly unknown[]).includes(value);
 
 /**
  * An action's `approach` (#283) and `retry` (#284) fields, when they were
@@ -521,18 +552,20 @@ const APPROACH_TOOLS: readonly string[] = [
 const TARGET_TOOLS = {
   attack: {
     parameter: "target",
-    action: (targetId: string): FifthAction => ({
+    action: (targetId: string, cunningStrike?: string): FifthAction => ({
       type: "attack",
       actorId: PLAYER_ID,
       targetId,
+      ...(isCunningStrike(cunningStrike) ? { cunningStrike } : {}),
     }),
   },
   light_attack: {
     parameter: "target",
-    action: (targetId: string): FifthAction => ({
+    action: (targetId: string, cunningStrike?: string): FifthAction => ({
       type: "light-attack",
       actorId: PLAYER_ID,
       targetId,
+      ...(isCunningStrike(cunningStrike) ? { cunningStrike } : {}),
     }),
   },
   move: {
@@ -1069,6 +1102,7 @@ export type FifthRefusalCode =
   | "door-open"
   | "no-approach"
   | "no-key"
+  | "no-tools"
   | "already-tried"
   | "choose-approach"
   | "unknown-approach"
@@ -1112,13 +1146,13 @@ Act only through the offered tools, and only with the ids each tool lists. To go
 
 Leaving the adventure is the player's own final choice, made with the Leave button in an exit room; you have no tool for it. If the player asks to leave, tell them to use that button when they are ready, without calling a tool.
 
-Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. A module may allow another try at a failed check, after a cost (damage, or a tool used up) or once something has changed (the character holds an item, has made a discovery or has won a fight): only then does the tool take retry and list the targets that offer another try, with why. Call it with retry true only when the player asks to try again and the target is listed, and false otherwise; the engine takes the cost before it rolls. Asking for another try, or for advantage, where none is offered changes nothing: say so without calling a tool. The engine alone decides advantage and disadvantage on a check, from the module's circumstances, and its result names them; never claim or promise either. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, damage, or a way opened or closed. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage, way opened or closed, or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone, unless the tool offers a retry: then any approach it lists may be tried again. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
+Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. A module may allow another try at a failed check, after a cost (damage, or a mundane tool the module placed, such as a rope or an iron spike, used up) or once something has changed (the character holds an item, has made a discovery or has won a fight): only then does the tool take retry and list the targets that offer another try, with why. Call it with retry true only when the player asks to try again and the target is listed, and false otherwise; the engine takes the cost before it rolls. Asking for another try, or for advantage, where none is offered changes nothing: say so without calling a tool. The engine alone decides advantage and disadvantage on a check, from the module's circumstances, and its result names them; never claim or promise either. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, damage, or a way opened or closed. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage, way opened or closed, or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone, unless the tool offers a retry: then any approach it lists may be tried again. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. Searching for traps ("search for traps", "I study the flagstones for pressure plates") is one search: the engine rolls the character's better of Perception and Investigation. Picking a lock needs thieves' tools, and so may disarming a trap: pick_lock, and a disarm that needs them, is offered only while the character carries them. If the player asks to pick a lock and pick_lock is not offered for that door, say the character has no thieves' tools and name the ways still offered (forcing or breaking the door, or unlocking it with its key), without calling a tool; never pick it, or open the door, in your words. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
 The character's own gear (its catalogue weapons, armour and shield) is named by its id. To put on armour or a shield, or take a second light weapon in the other hand, call equip; to take armour or a shield off or put a second weapon away, call unequip; to wield a different carried weapon in place of the ones held, call swap_weapon; to leave carried gear behind, call drop. Gear found is taken with take, like any item. The engine decides what the character can hold, how long armour takes to don and what the change does to its AC and attacks.
 
-A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; to hide ("I hide behind the crates", "duck out of sight"), call hide; to steady their aim or take careful aim before attacking, call steady_aim; when they end or pass their turn, call end_turn. Hide and Steady Aim each take the bonus action, so a turn has at most one of them; the engine alone rolls the Stealth check for Hide against the opponents' passive Perception and decides whether the character is hidden, and the advantage either gives lasts for one attack. Never declare the character hidden, or give it advantage, yourself. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
+A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; to hide ("I hide behind the crates", "duck out of sight"), call hide; to steady their aim or take careful aim before attacking, call steady_aim; when they end or pass their turn, call end_turn. A character with Cunning Strike may trade Sneak Attack dice for an effect when an attack would deal Sneak Attack: then attack and light_attack take cunning_strike, listing the effects the engine offers against each target. Give the effect only when the player asks for it ("trip him", "poison the blade"), and null otherwise; the engine alone decides whether the attack hits, deals Sneak Attack and whether the target saves. When an opponent's hit on a character with Uncanny Dodge waits for an answer, only uncanny_dodge and take_hit are offered: say what hit the character and ask whether they use Uncanny Dodge to halve its damage, then call uncanny_dodge when they do ("dodge", "roll with it") and take_hit when they decline; nothing else can be done until they answer, and neither is offered at any other time. Hide and Steady Aim each take the bonus action, so a turn has at most one of them; the engine alone rolls the Stealth check for Hide against the opponents' passive Perception and decides whether the character is hidden, and the advantage either gives lasts for one attack. Never declare the character hidden, or give it advantage, yourself. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -1132,6 +1166,10 @@ const featureDescriptions = (
   hide: "Hide, with the character's bonus action (Cunning Action): the engine rolls Stealth against the opponents' best passive Perception; on a success the character's next attack roll has advantage.",
   steady_aim:
     "Use Steady Aim, the character's bonus action: advantage on its next attack roll this turn.",
+  uncanny_dodge:
+    "Use Uncanny Dodge, the character's reaction, on the hit waiting for an answer: the engine halves its damage.",
+  take_hit:
+    "Decline Uncanny Dodge: the hit waiting for an answer deals its full damage, and the character keeps its reaction.",
   end_turn:
     "End the character's turn; the opponents then act until the character's next turn.",
 });
@@ -1249,6 +1287,10 @@ export function playerCombatant(
     ...(profile.cunningAction === true ? { hide: stealthOf(sheet) } : {}),
     ...(profile.steadyAim === true ? { steadyAim: true as const } : {}),
     ...(profile.fastHands === true ? { fastHands: true as const } : {}),
+    ...(profile.cunningStrike === undefined
+      ? {}
+      : { cunningStrike: profile.cunningStrike }),
+    ...(profile.uncannyDodge === true ? { uncannyDodge: true as const } : {}),
     // Uses start full: each adventure follows the between-adventure rest.
     ...(profile.secondWind === undefined
       ? {}
@@ -1281,6 +1323,8 @@ const OPTION_TEXT: Record<EncounterActionType, string> = {
   "steady-aim": "use Steady Aim",
   "drink-potion": "drink a potion",
   "end-turn": "end your turn",
+  "uncanny-dodge": "use Uncanny Dodge",
+  "take-hit": "take the hit",
 };
 
 function listed(items: readonly string[], conjunction = "or"): string {
@@ -1521,11 +1565,54 @@ function damageDice(event: AttackEvent): string {
     .join(" + ");
 }
 
-/** " + Sneak Attack 4 + 2": a hit's Sneak Attack dice (#306), if any. */
+/**
+ * " + Sneak Attack 4 + 2": a hit's Sneak Attack dice (#306), if any, and
+ * the dice Cunning Strike forgoes for its effect (#308).
+ */
 function sneakAttackDice(event: AttackEvent): string {
-  return event.sneakAttack === undefined
-    ? ""
-    : ` + Sneak Attack ${event.sneakAttack.damageRolls.join(" + ")}`;
+  if (event.sneakAttack === undefined) {
+    return "";
+  }
+  const strike = event.cunningStrike;
+  const forgone =
+    strike === undefined
+      ? ""
+      : ` (Cunning Strike: ${CUNNING_STRIKES[strike.effect].name}, ${strike.dice} Sneak Attack ${strike.dice === 1 ? "die" : "dice"} forgone)`;
+  return ` + Sneak Attack ${event.sneakAttack.damageRolls.join(" + ") || "none"}${forgone}`;
+}
+
+/**
+ * ": 15 + 6 = 21 against AC 14. Hit.": an attack roll and whether it hit,
+ * from an attack or a hit waiting for a reaction (#308).
+ */
+function attackRollText(
+  attacker: string,
+  target: string,
+  event: Pick<
+    AttackEvent,
+    | "weapon"
+    | "d20"
+    | "mode"
+    | "bonus"
+    | "total"
+    | "armorClass"
+    | "targetRoll"
+    | "weaponRoll"
+    | "rampage"
+    | "light"
+  >,
+): string {
+  const chosen = [
+    ...(event.targetRoll === undefined
+      ? []
+      : [` (target chosen by a die: ${event.targetRoll})`]),
+    ...(event.weaponRoll === undefined
+      ? []
+      : [` (attack chosen by a die: ${event.weaponRoll})`]),
+  ].join("");
+  const mode = event.mode === undefined ? ":" : modeText(event.mode, event.d20);
+  const weapon = `${event.weapon}${event.light === true ? " (extra attack)" : event.rampage === true ? " (Rampage bonus attack)" : ""}`;
+  return `${attacker} attacks ${target} with ${weapon}${chosen}${mode} ${event.d20} ${signed(event.bonus)} = ${event.total} against AC ${event.armorClass}`;
 }
 
 function gearText(event: GearEvent): string {
@@ -1640,35 +1727,44 @@ export function renderFifthEvent(
     case "turn":
       return undefined;
     case "attack": {
-      const chosen = [
-        ...(event.targetRoll === undefined
-          ? []
-          : [` (target chosen by a die: ${event.targetRoll})`]),
-        ...(event.weaponRoll === undefined
-          ? []
-          : [` (attack chosen by a die: ${event.weaponRoll})`]),
-      ].join("");
-      const mode =
-        event.mode === undefined ? ":" : modeText(event.mode, event.d20);
-      const roll = `${event.d20} ${signed(event.bonus)} = ${event.total} against AC ${event.armorClass}`;
-      const weapon = `${event.weapon}${event.light === true ? " (extra attack)" : event.rampage === true ? " (Rampage bonus attack)" : ""}`;
       const target = combatant(state.encounter!, event.targetId);
-      const dealt = `${rolledDamage(event.damage, event.damageAdjustment)} ${event.damageType}`;
-      const adjusted = adjustedText(event.damage, event.damageAdjustment);
+      const roll = attackRollText(
+        name(event.actorId),
+        name(event.targetId),
+        event,
+      );
+      // Uncanny Dodge (#308) halved what the hit would have dealt.
+      const dodged = event.uncannyDodge;
+      const weaponDamage = dodged?.damage ?? event.damage;
+      const dealt = `${rolledDamage(weaponDamage, event.damageAdjustment)} ${event.damageType}`;
+      const adjusted = adjustedText(weaponDamage, event.damageAdjustment);
       // A ranged attack says what its shot left (#230).
       const left =
         event.ammunition === undefined
           ? ""
           : ` ${ammunitionCount(event.ammunition.kind, event.ammunition.left)} left.`;
       if (!event.hit) {
-        return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. Miss.${event.graze === true ? ` Graze: ${dealt} damage${adjusted}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.` : ""}${left}`;
+        return `${roll}. Miss.${event.graze === true ? ` Graze: ${dealt} damage${adjusted}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.` : ""}${left}`;
       }
+      const riderDamage = dodged?.riderDamage ?? event.rider?.damage ?? 0;
       const rider =
         event.rider === undefined
           ? ""
-          : `, plus ${event.rider.damageRolls.join(" + ")}${event.rider.damageModifier === 0 ? "" : ` ${signed(event.rider.damageModifier)}`} = ${rolledDamage(event.rider.damage, event.rider.damageAdjustment)} ${event.rider.damageType}${adjustedText(event.rider.damage, event.rider.damageAdjustment)}`;
-      return `${name(event.actorId)} attacks ${name(event.targetId)} with ${weapon}${chosen}${mode} ${roll}. ${event.paralysedCritical === true ? `Critical hit: ${target.name} is paralysed!` : event.critical ? "Critical hit!" : "Hit."} Damage ${damageDice(event)} ${signed(event.damageModifier)}${sneakAttackDice(event)} = ${dealt}${adjusted}${rider}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.${left}`;
+          : `, plus ${event.rider.damageRolls.join(" + ")}${event.rider.damageModifier === 0 ? "" : ` ${signed(event.rider.damageModifier)}`} = ${rolledDamage(riderDamage, event.rider.damageAdjustment)} ${event.rider.damageType}${adjustedText(riderDamage, event.rider.damageAdjustment)}`;
+      const halved =
+        dodged === undefined
+          ? ""
+          : `, halved to ${event.damage + (event.rider?.damage ?? 0)} by Uncanny Dodge`;
+      const damage = `Damage ${damageDice(event)} ${signed(event.damageModifier)}${sneakAttackDice(event)} = ${dealt}${adjusted}${rider}${halved}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.${left}`;
+      // A hit offered for Uncanny Dodge first (#308) said its roll then.
+      if (event.resumed === true) {
+        return `${dodged === undefined ? `${target.name} takes the hit` : `${target.name} uses Uncanny Dodge`} from ${name(event.actorId)}'s ${event.weapon}. ${damage}`;
+      }
+      return `${roll}. ${event.paralysedCritical === true ? `Critical hit: ${target.name} is paralysed!` : event.critical ? "Critical hit!" : "Hit."} ${damage}`;
     }
+    case "reaction-offered":
+      // Uncanny Dodge (#308): the hit waits for the answer.
+      return `${attackRollText(name(event.attackerId), name(event.combatantId), event)}. ${event.critical ? "Critical hit!" : "Hit."} Before its damage is rolled, ${name(event.combatantId)} can use Uncanny Dodge to halve it, or take the hit.`;
     case "undead-fortitude": {
       const self = combatant(state.encounter!, event.combatantId);
       return `Undead Fortitude: ${self.name} makes a Constitution saving throw against DC 5 + ${event.damage} damage taken: ${event.d20} ${signed(event.bonus)} = ${event.total} against DC ${event.dc}. ${event.success ? `Success: ${self.name} refuses to fall and has ${event.hpAfter}/${self.maxHp} HP.` : `Failure: ${self.name} stays down.`}`;
@@ -2039,6 +2135,65 @@ export function describeFifthResult(
       return { ...die, dropped: true as const };
     });
   };
+  /**
+   * An attack's damage roll groups: the weapon's dice with Sneak Attack's,
+   * then the rider's. Totals Uncanny Dodge halved (#308) say so.
+   */
+  const damageGroups = (event: AttackEvent): RollGroup[] => {
+    const shown: RollGroup[] = [];
+    const halved =
+      event.uncannyDodge === undefined ? {} : { halved: true as const };
+    if (event.hit || event.graze === true) {
+      shown.push({
+        purpose: "damage",
+        roller: name(event.actorId),
+        target: name(event.targetId),
+        dice: [
+          ...take(event.damageRolls).map((die) =>
+            countedDamageDie(die.value, event.greatWeaponFighting) !== die.value
+              ? { ...die, countsAs: 3 as const }
+              : die,
+          ),
+          ...take(event.sneakAttack?.damageRolls ?? []).map((die) => ({
+            ...die,
+            sneakAttack: true as const,
+          })),
+        ],
+        modifier: event.damageModifier,
+        total: event.damage,
+        damageType: event.damageType,
+        ...(event.damageAdjustment === undefined
+          ? {}
+          : { adjustment: event.damageAdjustment.by }),
+        ...halved,
+        // With a rider, the HP after is shown once both have landed.
+        ...(event.rider === undefined
+          ? {
+              hpAfter: event.hpAfter,
+              maxHp: combatant(state.encounter!, event.targetId).maxHp,
+            }
+          : {}),
+      });
+    }
+    if (event.rider !== undefined) {
+      shown.push({
+        purpose: "damage",
+        roller: name(event.actorId),
+        target: name(event.targetId),
+        dice: take(event.rider.damageRolls),
+        modifier: event.rider.damageModifier,
+        total: event.rider.damage,
+        damageType: event.rider.damageType,
+        ...(event.rider.damageAdjustment === undefined
+          ? {}
+          : { adjustment: event.rider.damageAdjustment.by }),
+        ...halved,
+        hpAfter: event.hpAfter,
+        maxHp: combatant(state.encounter!, event.targetId).maxHp,
+      });
+    }
+    return shown;
+  };
   const groups = (event: FifthEvent | undefined): RollGroup[] => {
     switch (event?.type) {
       case "check": {
@@ -2188,13 +2343,23 @@ export function describeFifthResult(
           },
         ];
       }
+      case "reaction-offered":
       case "attack": {
+        // A hit offered for Uncanny Dodge (#308) drew its d20 and any
+        // target or attack die then; the answer draws only the damage.
+        if (event.type === "attack" && event.resumed === true) {
+          return damageGroups(event);
+        }
+        const actorId =
+          event.type === "attack" ? event.actorId : event.attackerId;
+        const targetId =
+          event.type === "attack" ? event.targetId : event.combatantId;
         const shown: RollGroup[] = [];
         if (event.targetRoll !== undefined) {
           shown.push({
             purpose: "target",
-            roller: name(event.actorId),
-            target: name(event.targetId),
+            roller: name(actorId),
+            target: name(targetId),
             dice: take([event.targetRoll]),
             modifier: 0,
             total: event.targetRoll,
@@ -2203,73 +2368,28 @@ export function describeFifthResult(
         if (event.weaponRoll !== undefined) {
           shown.push({
             purpose: "weapon",
-            roller: name(event.actorId),
-            target: name(event.targetId),
+            roller: name(actorId),
+            target: name(targetId),
             dice: take([event.weaponRoll]),
             modifier: 0,
             total: event.weaponRoll,
           });
         }
+        const hit = event.type === "reaction-offered" || event.hit;
         shown.push({
           purpose: "attack",
-          roller: name(event.actorId),
-          target: name(event.targetId),
+          roller: name(actorId),
+          target: name(targetId),
           dice: d20Dice(event.mode, event.d20),
           modifier: event.bonus,
           total: event.total,
           ...(event.mode === undefined ? {} : { mode: modeLabel(event.mode) }),
           armorClass: event.armorClass,
-          outcome: !event.hit ? "miss" : event.critical ? "critical" : "hit",
+          outcome: !hit ? "miss" : event.critical ? "critical" : "hit",
         });
-        if (event.hit || event.graze === true) {
-          shown.push({
-            purpose: "damage",
-            roller: name(event.actorId),
-            target: name(event.targetId),
-            dice: [
-              ...take(event.damageRolls).map((die) =>
-                countedDamageDie(die.value, event.greatWeaponFighting) !==
-                die.value
-                  ? { ...die, countsAs: 3 as const }
-                  : die,
-              ),
-              ...take(event.sneakAttack?.damageRolls ?? []).map((die) => ({
-                ...die,
-                sneakAttack: true as const,
-              })),
-            ],
-            modifier: event.damageModifier,
-            total: event.damage,
-            damageType: event.damageType,
-            ...(event.damageAdjustment === undefined
-              ? {}
-              : { adjustment: event.damageAdjustment.by }),
-            // With a rider, the HP after is shown once both have landed.
-            ...(event.rider === undefined
-              ? {
-                  hpAfter: event.hpAfter,
-                  maxHp: combatant(state.encounter!, event.targetId).maxHp,
-                }
-              : {}),
-          });
-        }
-        if (event.rider !== undefined) {
-          shown.push({
-            purpose: "damage",
-            roller: name(event.actorId),
-            target: name(event.targetId),
-            dice: take(event.rider.damageRolls),
-            modifier: event.rider.damageModifier,
-            total: event.rider.damage,
-            damageType: event.rider.damageType,
-            ...(event.rider.damageAdjustment === undefined
-              ? {}
-              : { adjustment: event.rider.damageAdjustment.by }),
-            hpAfter: event.hpAfter,
-            maxHp: combatant(state.encounter!, event.targetId).maxHp,
-          });
-        }
-        return shown;
+        return event.type === "attack"
+          ? [...shown, ...damageGroups(event)]
+          : shown;
       }
       case "save":
         // A save failed without a roll has no dice to show; its text says so.
@@ -2484,6 +2604,7 @@ export type ActionKind =
   | "hide"
   | "steady-aim"
   | "end-turn"
+  | ReactionAnswer
   | "move"
   | "sneak"
   | "ambush"
@@ -2512,6 +2633,8 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   hide: true,
   "steady-aim": true,
   "end-turn": true,
+  "uncanny-dodge": true,
+  "take-hit": true,
   move: true,
   sneak: true,
   ambush: true,
@@ -2563,6 +2686,11 @@ export type ActionView = Readonly<{
    * "uses up the Iron Wedge") or the circumstance that changed.
    */
   retry?: Readonly<{ reason: string }>;
+  /**
+   * An attack with Cunning Strike's effect (#308): listed only while the
+   * engine would accept it, beside the plain attack on the same target.
+   */
+  cunningStrike?: Readonly<{ id: CunningStrikeId; name: string }>;
   available: boolean;
   /** Present exactly when the action is unavailable. */
   reason?: string;
@@ -2590,6 +2718,12 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "already-hidden": "Already hidden",
   "no-steady-aim": "No Steady Aim",
   "no-attack-left": "No attack left",
+  "no-cunning-strike": "No Cunning Strike",
+  "no-sneak-attack": "No Sneak Attack",
+  "cunning-strike-target": "Not against this foe",
+  "reaction-pending": "Answer the hit first",
+  "no-uncanny-dodge": "No Uncanny Dodge",
+  "no-reaction-trigger": "Nothing to dodge",
   "no-potion": "No potion",
   "no-uses-left": "No uses left",
   "full-hp": "Full HP",
@@ -2617,6 +2751,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "door-open": "Already open",
   "no-approach": "Can't be done",
   "no-key": "No key",
+  "no-tools": "No thieves' tools",
   "already-tried": "Already tried",
   "choose-approach": "Choose how",
   "unknown-approach": "Not offered",
@@ -2633,6 +2768,7 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "interaction-used": "Interaction used",
   "too-heavy": "Too heavy",
   "not-a-weapon": "Not a weapon",
+  "not-equippable": "Not equippable",
   "already-held": "Already equipped",
   "two-handed": "Needs both hands",
   "hands-full": "Hands full",
@@ -2737,7 +2873,12 @@ export type FifthRuntime = Omit<
  * player's turn, what it has left and may do; and its feature uses.
  */
 export type FightView = Readonly<{
-  turn?: TurnEconomy & Readonly<{ options: readonly EncounterActionType[] }>;
+  turn?: TurnEconomy &
+    Readonly<{
+      /** Whether the character's reaction is free (#308). */
+      reaction: boolean;
+      options: readonly EncounterActionType[];
+    }>;
   features?: Readonly<{
     secondWind: Readonly<{ uses: number; max: number }>;
     actionSurge?: Readonly<{ uses: number; max: number }>;
@@ -2746,6 +2887,11 @@ export type FightView = Readonly<{
     round: number;
     playerId: string;
     currentTurn: string | null;
+    /**
+     * A hit waiting for the character's answer (#308): who hit it, with
+     * what. Uncanny Dodge halves its damage, or the character takes it.
+     */
+    pendingReaction?: Readonly<{ attacker: string; weapon: string }>;
     combatants: readonly Readonly<{
       id: string;
       name: string;
@@ -2835,7 +2981,14 @@ function projectFight(
   return {
     ...(encounter === undefined || options.length === 0
       ? {}
-      : { turn: { ...encounter.economy, options } }),
+      : {
+          turn: {
+            ...encounter.economy,
+            // The character's reaction (#308), back at its turn's start.
+            reaction: !encounter.reacted.includes(PLAYER_ID),
+            options,
+          },
+        }),
     ...(self.secondWind === undefined
       ? {}
       : {
@@ -2853,6 +3006,17 @@ function projectFight(
             round: encounter.round,
             playerId: PLAYER_ID,
             currentTurn: currentCombatant(encounter)?.id ?? null,
+            ...(encounter.pendingReaction === undefined
+              ? {}
+              : {
+                  pendingReaction: {
+                    attacker: combatant(
+                      encounter,
+                      encounter.pendingReaction.attackerId,
+                    ).name,
+                    weapon: encounter.pendingReaction.weapon.name,
+                  },
+                }),
             combatants: encounter.order.map(
               ({ combatantId, d20, mode, bonus, total, tieBreaks }) => {
                 const entrant = combatant(encounter, combatantId);
@@ -3460,6 +3624,8 @@ export function createFifthRuntime(
           saves: statBlockSaves(statBlock),
           // A hiding character's Stealth must meet it (#307).
           passivePerception: statBlock.passivePerception,
+          // Trip can't knock over a Huge one (#308).
+          size: statBlock.size,
           // Without Multiattack it makes one attack, its first.
           attack: weapons[0]!,
           ...(statBlock.multiattack === undefined
@@ -4143,18 +4309,82 @@ export function createFifthRuntime(
   };
 
   /**
-   * The approach `requested` names among a check's (#283), or why it is
-   * refused: a check with several approaches needs one chosen, and only one
-   * it offers is accepted. With none requested, a check with one approach
-   * is made with it, and a site without a check needs none.
+   * Why a character without thieves' tools can't pick `door`'s lock (#309),
+   * naming the ways it still has: forcing or breaking it while untried, and
+   * its key.
+   */
+  const withoutTools = (state: FifthState, door: FifthDoor): string => {
+    const ways = [
+      ...(["force", "break"] as const).flatMap((kind) =>
+        door[kind] !== undefined &&
+        outcomeAt(state, { kind, id: door.id }) === undefined
+          ? [kind === "force" ? "force it" : "break it open"]
+          : [],
+      ),
+      ...(door.keyItemId === undefined
+        ? []
+        : [
+            state.inventory.includes(door.keyItemId)
+              ? `unlock it with the ${items.get(door.keyItemId)!.name}`
+              : "find its key",
+          ]),
+    ];
+    return `You carry no thieves' tools, so you can't pick the ${door.name}'s lock. ${
+      ways.length === 0
+        ? "There is no other way through it."
+        : `You could ${listed(ways)}.`
+    }`;
+  };
+
+  /**
+   * The approaches to a check the character can take now: one with thieves'
+   * tools only while it carries them (#309).
+   */
+  const takeable = (
+    state: FifthState,
+    check: AuthoredCheck | undefined,
+  ): readonly AuthoredApproach[] =>
+    check === undefined
+      ? []
+      : approachesOf(check).filter(
+          ({ tool }) =>
+            tool === undefined || state.possessions.stowed.includes(tool),
+        );
+
+  /**
+   * The approach `requested` names among those of a check the character
+   * can take (#283, #309), or why it is refused: a check with several
+   * approaches needs one chosen, and only one it offers is accepted. With
+   * none requested, a check with one approach is made with it, and a site
+   * without a check needs none. One needing thieves' tools the character
+   * doesn't carry is refused with `noTools`.
    */
   const chooseApproach = (
+    state: FifthState,
     check: AuthoredCheck | undefined,
     requested: string | undefined,
+    noTools?: string,
   ):
     | Readonly<{ spec?: AuthoredApproach; refused?: never }>
     | Readonly<{ refused: FifthRejection; spec?: never }> => {
-    const offered = check === undefined ? [] : approachesOf(check);
+    const offered = takeable(state, check);
+    // Every approach left needs the tools, or the one asked for does.
+    const authored = check === undefined ? [] : approachesOf(check);
+    if (
+      authored.length > offered.length &&
+      (offered.length === 0 ||
+        authored.some(
+          (entry) =>
+            entry.tool !== undefined && approachId(entry) === requested,
+        ))
+    ) {
+      return {
+        refused: {
+          code: "no-tools",
+          reason: noTools ?? "You carry no thieves' tools.",
+        },
+      };
+    }
     const names = listed(offered.map(approachName));
     if (requested === undefined) {
       return offered.length > 1
@@ -4224,6 +4454,23 @@ export function createFifthRuntime(
       trap === undefined ? [] : [trap.find.dc],
     ),
   );
+  /**
+   * A search for traps (#309): spotting them with Perception, or working
+   * out where they must be with Investigation, whichever the character is
+   * better at (Perception on a tie), at the search's DC.
+   */
+  const searchSpec = (state: FifthState): CheckSpec => {
+    const bonus = (skill: SkillId) =>
+      characterProfile(sheetOf(state)).skills.find(({ id }) => id === skill)!
+        .bonus;
+    return {
+      skill:
+        bonus("investigation") > bonus("perception")
+          ? "investigation"
+          : "perception",
+      dc: searchDc,
+    };
+  };
 
   /**
    * Springs an armed trap on the character: a saving throw, then its damage,
@@ -4319,15 +4566,26 @@ export function createFifthRuntime(
       case "attack":
       case "light-attack": {
         const targetId = field("targetId");
-        return actorId === undefined || targetId === undefined
+        // Cunning Strike (#308), when given, names one of its effects.
+        const strike = action.cunningStrike;
+        return actorId === undefined ||
+          targetId === undefined ||
+          (strike !== undefined && !isCunningStrike(strike))
           ? undefined
-          : { type: action.type, actorId, targetId };
+          : {
+              type: action.type,
+              actorId,
+              targetId,
+              ...(strike === undefined ? {} : { cunningStrike: strike }),
+            };
       }
       case "second-wind":
       case "action-surge":
       case "hide":
       case "steady-aim":
       case "end-turn":
+      case "uncanny-dodge":
+      case "take-hit":
         return actorId === undefined
           ? undefined
           : { type: action.type, actorId };
@@ -4795,6 +5053,8 @@ export function createFifthRuntime(
       case "hide":
       case "steady-aim":
       case "end-turn":
+      case "uncanny-dodge":
+      case "take-hit":
         return fightAction(state, action, random, reject);
       case "move":
       case "sneak": {
@@ -4977,7 +5237,12 @@ export function createFifthRuntime(
             `You already tried to ${action.type} the ${door.name}; trying again would go no better.`,
           );
         }
-        const choice = chooseApproach(spec, action.approach);
+        const choice = chooseApproach(
+          state,
+          spec,
+          action.approach,
+          withoutTools(state, door),
+        );
         if (choice.refused !== undefined) {
           return { state, rejection: choice.refused };
         }
@@ -5030,19 +5295,14 @@ export function createFifthRuntime(
             "You have already searched this room.",
           );
         }
-        // One Perception check against each hidden trap on the exits.
+        // One check, Perception or Investigation (#309), against each
+        // hidden trap on the exits.
+        const spec = searchSpec(state);
         const {
           state: next,
           roll,
           around,
-        } = resolveCheck(
-          state,
-          site,
-          { skill: "perception", dc: searchDc },
-          { skill: "perception", dc: searchDc },
-          room(state).name,
-          random,
-        );
+        } = resolveCheck(state, site, spec, spec, room(state).name, random);
         const found = trapsHere(state).filter(
           ({ trap }) =>
             armed(state, trap.id) &&
@@ -5104,7 +5364,12 @@ export function createFifthRuntime(
             `You already tried to disarm the ${trap.name}; trying again would go no better.`,
           );
         }
-        const choice = chooseApproach(trap.disarm, action.approach);
+        const choice = chooseApproach(
+          state,
+          trap.disarm,
+          action.approach,
+          `You carry no thieves' tools, so you can't disarm the ${trap.name}. You could go another way, or go through and take your chances with it.`,
+        );
         if (choice.refused !== undefined) {
           return { state, rejection: choice.refused };
         }
@@ -5162,7 +5427,7 @@ export function createFifthRuntime(
             `You already asked the ${creature.name} about ${topic.name}.`,
           );
         }
-        const choice = chooseApproach(topic.check, action.approach);
+        const choice = chooseApproach(state, topic.check, action.approach);
         if (choice.refused !== undefined) {
           return { state, rejection: choice.refused };
         }
@@ -5261,7 +5526,7 @@ export function createFifthRuntime(
               ],
             };
           }
-          const choice = chooseApproach(authored.check, action.approach);
+          const choice = chooseApproach(state, authored.check, action.approach);
           if (choice.refused !== undefined) {
             return { state, rejection: choice.refused };
           }
@@ -5808,6 +6073,16 @@ export function createFifthRuntime(
               },
             }),
         ...(retry === undefined ? {} : { retry: { reason: retry } }),
+        // Cunning Strike's effect with an attack (#308).
+        ...((action.type === "attack" || action.type === "light-attack") &&
+        action.cunningStrike !== undefined
+          ? {
+              cunningStrike: {
+                id: action.cunningStrike,
+                name: CUNNING_STRIKES[action.cunningStrike].name,
+              },
+            }
+          : {}),
         available: refused === undefined,
         ...(refused === undefined
           ? {}
@@ -5831,11 +6106,15 @@ export function createFifthRuntime(
       check: AuthoredCheck | undefined,
       site: CheckSite,
     ): readonly ActionView[] => {
+      // A check only thieves' tools can make isn't offered without them (#309).
+      if (check !== undefined && takeable(state, check).length === 0) {
+        return [];
+      }
       const each = (
         authored: AuthoredCheck,
         retry?: string,
       ): readonly ActionView[] =>
-        approachesOf(authored).map((spec) =>
+        takeable(state, authored).map((spec) =>
           view(
             kind,
             {
@@ -5849,7 +6128,7 @@ export function createFifthRuntime(
         );
       const first =
         check === undefined ||
-        approachesOf(check).length < 2 ||
+        takeable(state, check).length < 2 ||
         outcomeAt(state, site) !== undefined
           ? [view(kind, action, target)]
           : each(check);
@@ -5860,7 +6139,7 @@ export function createFifthRuntime(
       }
       return [
         ...first,
-        ...(approachesOf(authored).length < 2
+        ...(takeable(state, authored).length < 2
           ? [
               view(
                 kind,
@@ -5884,7 +6163,7 @@ export function createFifthRuntime(
     /**
      * The character's own gear: Unequip on armour, a shield and a second
      * weapon; Wield on a stowed weapon, Equip on stowed armour, a shield or a
-     * light weapon; Drop on stowed gear. In a fight, only Wield and Equip on stowed weapons. The
+     * light weapon (never a tool, #309); Drop on stowed gear. In a fight, only Wield and Equip on stowed weapons. The
      * engine accepts the others too, but the bar stays short.
      */
     const gearViews = (fight = false): readonly ActionView[] => {
@@ -5901,10 +6180,13 @@ export function createFifthRuntime(
           .filter((id) => !fight || isWeaponId(id))
           .flatMap((id) => [
             ...(isWeaponId(id) ? [gear("swap", id)] : []),
-            ...(!isWeaponId(id) ||
-            (WEAPONS[id] as WeaponData).properties.includes("light")
-              ? [gear("equip", id)]
-              : []),
+            // Tools (#309) are carried, never equipped.
+            ...(isToolId(id)
+              ? []
+              : !isWeaponId(id) ||
+                  (WEAPONS[id] as WeaponData).properties.includes("light")
+                ? [gear("equip", id)]
+                : []),
             ...(fight ? [] : [gear("drop", id)]),
           ]),
       ];
@@ -5955,23 +6237,41 @@ export function createFifthRuntime(
     };
     if (fighting(state)) {
       const pc = combatant(state.encounter!, PLAYER_ID);
-      const feature = (
-        kind:
-          "second-wind" | "action-surge" | "hide" | "steady-aim" | "end-turn",
-      ) => view(kind, { type: kind, actorId: PLAYER_ID });
+      const feature = (kind: FeatureActionType) =>
+        view(kind, { type: kind, actorId: PLAYER_ID });
+      // A hit waiting for Uncanny Dodge (#308): only its two answers.
+      if (state.encounter!.pendingReaction !== undefined) {
+        return [feature("uncanny-dodge"), feature("take-hit")];
+      }
       // Paralysed (#234), the character can only wait for its turn to end.
       if (incapacitatedBy(state.encounter!, PLAYER_ID) !== undefined) {
         return [feature("end-turn")];
       }
       const targets = legalTargets(state.encounter!, PLAYER_ID);
+      // Each attack, and with Cunning Strike (#308) each effect the engine
+      // would accept with it on that target.
       const attack = (kind: "attack" | "light-attack") =>
-        targets.map((target) =>
+        targets.flatMap((target) => [
           view(
             kind,
             { type: kind, actorId: PLAYER_ID, targetId: target.id },
             target,
           ),
-        );
+          ...(pc.cunningStrike === undefined
+            ? []
+            : CUNNING_STRIKE_IDS.map((cunningStrike) =>
+                view(
+                  kind,
+                  {
+                    type: kind,
+                    actorId: PLAYER_ID,
+                    targetId: target.id,
+                    cunningStrike,
+                  },
+                  target,
+                ),
+              ).filter(({ available }) => available)),
+        ]);
       return [
         ...attack("attack"),
         // Offered only to a character holding two light weapons.
@@ -6327,6 +6627,12 @@ export function createFifthRuntime(
                       `${name} is ${condition.name.toLowerCase()} (${condition.text}).`,
                   ),
                 ),
+                // A hit waiting for Uncanny Dodge (#308).
+                ...(encounter.pendingReaction === undefined
+                  ? []
+                  : [
+                      `${combatant(encounter, encounter.pendingReaction.attackerId).name}'s ${encounter.pendingReaction.weapon.name.toLowerCase()} has hit the character, and waits for the player's answer before its damage: uncanny_dodge to halve it, or take_hit.`,
+                    ]),
                 ...(turn.id === PLAYER_ID
                   ? [
                       `The player has ${encounter.economy.actions} ${encounter.economy.actions === 1 ? "action" : "actions"}${encounter.economy.attacks === 0 ? "" : `, ${encounter.economy.attacks} more ${encounter.economy.attacks === 1 ? "attack" : "attacks"} of the Attack action under way,`} and ${encounter.economy.bonusAction ? "a" : "no"} bonus action left this turn.`,
@@ -6523,7 +6829,9 @@ export function createFifthRuntime(
    * some. A check tool whose targets include one with several approaches
    * (#283) also takes the approach: one of `approaches`, or null. One whose
    * targets include one offering another try (#284) also takes `retry`,
-   * listing those targets and why.
+   * listing those targets and why. An attack tool whose targets include one
+   * Cunning Strike can be added to (#308) also takes `cunning_strike`: one
+   * of the effects offered against that target, or null.
    */
   const targetTool = (
     name: TargetTool,
@@ -6535,6 +6843,10 @@ export function createFifthRuntime(
       approaches: readonly Readonly<{ id: string; name: string }>[];
     }>[] = [],
     retries: readonly Readonly<{ target: string; reason: string }>[] = [],
+    strikes: readonly Readonly<{
+      target: string;
+      effects: readonly Readonly<{ id: string; name: string }>[];
+    }>[] = [],
   ): GameToolDefinition[] => {
     if (choices.length === 0) {
       return [];
@@ -6544,6 +6856,9 @@ export function createFifthRuntime(
       ...new Set(
         approaches.flatMap((entry) => entry.approaches.map(({ id }) => id)),
       ),
+    ];
+    const effects = [
+      ...new Set(strikes.flatMap((entry) => entry.effects.map(({ id }) => id))),
     ];
     return [
       {
@@ -6566,6 +6881,19 @@ export function createFifthRuntime(
             : ` Another try, only when the player asks to try again: ${retries
                 .map(({ target, reason }) => `${target} (${reason})`)
                 .join("; ")}; give retry true for it, and false otherwise.`
+        }${
+          strikes.length === 0
+            ? ""
+            : ` Cunning Strike, only when the player asks for its effect: this attack would deal Sneak Attack on a hit, and may give up one Sneak Attack die for ${strikes
+                .map(
+                  ({ target, effects: offered }) =>
+                    `${target}: ${listed(
+                      offered.map(({ id, name: label }) => `${id} (${label})`),
+                    )}`,
+                )
+                .join(
+                  "; ",
+                )}. Poison: a Constitution save or poisoned; Trip: a Dexterity save or knocked prone. Give null otherwise.`
         }`,
         strict: true,
         parameters: {
@@ -6595,11 +6923,22 @@ export function createFifthRuntime(
                       "True only when the player asks to try a listed target again; false otherwise.",
                   },
                 }),
+            ...(effects.length === 0
+              ? {}
+              : {
+                  cunning_strike: {
+                    type: ["string", "null"],
+                    enum: [...effects, null],
+                    description:
+                      "The Cunning Strike effect the player asked for, offered against that target; null otherwise.",
+                  },
+                }),
           },
           required: [
             parameter,
             ...(ids.length === 0 ? [] : ["approach"]),
             ...(retries.length === 0 ? [] : ["retry"]),
+            ...(effects.length === 0 ? [] : ["cunning_strike"]),
           ],
           additionalProperties: false,
         },
@@ -6636,6 +6975,21 @@ export function createFifthRuntime(
           }, new Map<string, Readonly<{ id: string; name: string }>[]>())
           .entries(),
       ].map(([target, offered]) => ({ target, approaches: offered }));
+    /** The Cunning Strike effects each target of `kind` offers now (#308). */
+    const strikeChoices = (kind: ActionKind) =>
+      [
+        ...actions
+          .reduce((byTarget, { action, target, cunningStrike, available }) => {
+            if (action === kind && available && cunningStrike !== undefined) {
+              byTarget.set(target!.id, [
+                ...(byTarget.get(target!.id) ?? []),
+                cunningStrike,
+              ]);
+            }
+            return byTarget;
+          }, new Map<string, Readonly<{ id: string; name: string }>[]>())
+          .entries(),
+      ].map(([target, effects]) => ({ target, effects }));
     /** The targets of `kind` that offer another try now (#284), and why. */
     const retryChoices = (kind: ActionKind) => [
       ...new Map(
@@ -6738,7 +7092,7 @@ export function createFifthRuntime(
       ),
       ...targetTool(
         "pick_lock",
-        "Only when the player explicitly asks to pick a door's lock: the engine rolls the check, once. Doors:",
+        "Only when the player explicitly asks to pick a door's lock, which needs the thieves' tools the character carries: the engine rolls the Dexterity check, adding the proficiency bonus when the character is proficient with the tools, once. Doors:",
         choices("pick"),
         "The id of the door whose lock to pick.",
         approachChoices("pick"),
@@ -6760,7 +7114,7 @@ export function createFifthRuntime(
       ),
       ...targetTool(
         "search",
-        "Only when the player explicitly asks to search for traps: the engine rolls a Wisdom (Perception) check, once per room, and says what it finds. Room:",
+        "Only when the player explicitly asks to search for traps: the engine rolls the character's better of Wisdom (Perception), to spot them, and Intelligence (Investigation), to work out where they must be, once per room, and says what it finds. Room:",
         choices("search"),
         "The id of the room to search.",
       ),
@@ -6828,12 +7182,18 @@ export function createFifthRuntime(
         `Attack one opponent with the character's weapon on the character's turn. The engine rolls the attack and damage.${sneakAttackRule} Targets:`,
         choices("attack"),
         "The id of the opponent to attack.",
+        [],
+        [],
+        strikeChoices("attack"),
       ),
       ...targetTool(
         "light_attack",
         `Make the extra attack with the character's second light weapon, after an attack this turn. The engine rolls the attack and damage.${sneakAttackRule} Targets:`,
         choices("light-attack"),
         "The id of the opponent to attack.",
+        [],
+        [],
+        strikeChoices("light-attack"),
       ),
       ...features,
     ];
@@ -6869,15 +7229,21 @@ export function createFifthRuntime(
     // never retried.
     const approach = isRecord(parsed) ? parsed.approach : undefined;
     const retry = isRecord(parsed) ? parsed.retry : undefined;
+    // An attack tool may give Cunning Strike's effect (#308), or null.
+    const strike = isRecord(parsed) ? parsed.cunning_strike : undefined;
+    const attackTool = call.name === "attack" || call.name === "light_attack";
     const checkTool =
       parameter !== undefined && APPROACH_TOOLS.includes(call.name);
     const extraOk = (key: string) =>
-      checkTool &&
-      ((key === "approach" &&
-        (approach === null || typeof approach === "string")) ||
-        (key === "retry" &&
-          typeof retry === "boolean" &&
-          call.name !== "react"));
+      (attackTool &&
+        key === "cunning_strike" &&
+        (strike === null || isCunningStrike(strike))) ||
+      (checkTool &&
+        ((key === "approach" &&
+          (approach === null || typeof approach === "string")) ||
+          (key === "retry" &&
+            typeof retry === "boolean" &&
+            call.name !== "react")));
     if (
       !isRecord(parsed) ||
       (parameter === undefined
@@ -6902,7 +7268,13 @@ export function createFifthRuntime(
         ? { type: FEATURE_TOOLS[call.name as FeatureTool], actorId: PLAYER_ID }
         : TARGET_TOOLS[call.name as TargetTool].action(
             parsed[parameter] as string,
-            typeof approach === "string" ? approach : undefined,
+            attackTool
+              ? typeof strike === "string"
+                ? strike
+                : undefined
+              : typeof approach === "string"
+                ? approach
+                : undefined,
             retry === true,
           );
     const result = handleAction(state, action, random);
