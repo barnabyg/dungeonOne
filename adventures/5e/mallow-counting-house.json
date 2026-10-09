@@ -1,0 +1,427 @@
+{
+  "kind": "dungeon-one-5e-adventure",
+  "formatVersion": 27,
+  "id": "mallow-counting-house",
+  "title": "The Counting-House on Mallow Quay",
+  "objective": "Get past Snikk's goblins into the burned counting-house on Mallow Quay, open the guild's strongroom, and leave by the quay steps.",
+  "recommendedLevels": {
+    "min": 3,
+    "max": 4
+  },
+  "difficulty": "hard",
+  "startRoomId": "quay-steps",
+  "rooms": [
+    {
+      "id": "quay-steps",
+      "name": "Quay Steps",
+      "description": "Slimy stone steps climb out of the river to a burned archway. A mooring bollard leans at the top, scrawled with chalk.",
+      "exit": true,
+      "features": [
+        {
+          "id": "mooring-bollard",
+          "name": "Mooring Bollard",
+          "description": "An iron bollard scrawled with boatmen's chalk marks.",
+          "discovery": "The chalk reads: \"Goblin toll at the arch. Mind the gallery stair.\" A stoppered vial of red liquid is wedged in a crack at its foot."
+        }
+      ],
+      "items": [
+        {
+          "id": "bollard-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "mooring-bollard"
+        }
+      ]
+    },
+    {
+      "id": "toll-arch",
+      "name": "Toll Arch",
+      "description": "The counting-house gate, its doors burned away. A chain hung with stolen coins and bells is strung across the arch.",
+      "encounterId": "arch-toll",
+      "features": [
+        {
+          "id": "toll-chain",
+          "name": "Toll Chain",
+          "description": "A rusty chain hung with bent coins, buttons and bells.",
+          "discovery": "Every coin on it has been bitten and bent. Nothing here is worth taking."
+        }
+      ],
+      "items": []
+    },
+    {
+      "id": "counting-hall",
+      "name": "Counting Hall",
+      "description": "A long hall of scorched ledger presses and toppled counting tables, thick with soot. A gallery stair climbs one wall, and an iron door stands in the far end.",
+      "encounterId": "hall-goblin",
+      "features": [
+        {
+          "id": "smashed-till",
+          "name": "Smashed Till",
+          "description": "A clerk's till, its drawer prised open and dropped behind a table.",
+          "discovery": "Silver the goblins missed is still caught in the drawer's slots."
+        }
+      ],
+      "items": [
+        {
+          "id": "till-silver",
+          "name": "Till Silver",
+          "description": "A double handful of guild silver.",
+          "kind": "coin",
+          "coins": {
+            "sp": 60
+          },
+          "hiddenIn": "smashed-till"
+        },
+        {
+          "id": "soot-goblin-coins",
+          "name": "Soot Goblin's Coins",
+          "description": "A greasy pouch of copper pieces.",
+          "kind": "coin",
+          "coins": {
+            "cp": 4
+          },
+          "hiddenIn": "soot-goblin"
+        }
+      ]
+    },
+    {
+      "id": "clerks-gallery",
+      "name": "Clerks' Gallery",
+      "description": "A narrow gallery of clerks' desks above the hall, half its rail burned away. A ladder climbs to the loft.",
+      "features": [
+        {
+          "id": "tally-desk",
+          "name": "Tally-Master's Desk",
+          "description": "A heavy desk carved with the guild's scales, its drawers already turned out.",
+          "check": {
+            "skill": "investigation",
+            "dc": 13,
+            "bands": {
+              "failure": {
+                "text": "Empty drawers and scorched tally sticks. Whatever the tally-master kept here is gone."
+              },
+              "success": {
+                "text": "One drawer is shallower than the rest. Behind its false back lies a bloodstone.",
+                "effects": [
+                  {
+                    "type": "item",
+                    "item": "desk-bloodstone"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "items": [
+        {
+          "id": "desk-bloodstone",
+          "name": "Bloodstone",
+          "description": "A dark green stone flecked with red.",
+          "kind": "treasure",
+          "treasure": "gem-50gp",
+          "hiddenIn": "tally-desk"
+        }
+      ]
+    },
+    {
+      "id": "records-loft",
+      "name": "Records Loft",
+      "description": "Charred bales of records under the roof beams, and a nest of torn ledgers that smells of something large.",
+      "encounterId": "loft-bugbear",
+      "features": [],
+      "items": [
+        {
+          "id": "strongroom-key",
+          "name": "Iron Key",
+          "description": "A heavy iron key stamped with the guild's scales.",
+          "kind": "key",
+          "hiddenIn": "clerk-eater"
+        },
+        {
+          "id": "clerk-eater-coins",
+          "name": "The Clerk-Eater's Coins",
+          "description": "A small pouch of silver pieces.",
+          "kind": "coin",
+          "coins": {
+            "sp": 9
+          },
+          "hiddenIn": "clerk-eater"
+        },
+        {
+          "id": "clerk-eater-trinket",
+          "name": "The Clerk-Eater's Silver Trinket",
+          "description": "A small silver ornament, dented but valuable.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "clerk-eater"
+        }
+      ]
+    },
+    {
+      "id": "strongroom",
+      "name": "Strongroom",
+      "description": "An iron-lined vault the fire never reached. An iron coffer is bolted to the floor.",
+      "features": [
+        {
+          "id": "iron-coffer",
+          "name": "Iron Coffer",
+          "description": "An iron coffer bolted to the floor, its lid unlocked.",
+          "discovery": "Inside lie two garnets in a twist of velvet, a gold chain of office and a sealed bag of guild gold."
+        }
+      ],
+      "items": [
+        {
+          "id": "coffer-garnet",
+          "name": "Garnet",
+          "description": "A deep red garnet.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "iron-coffer"
+        },
+        {
+          "id": "coffer-garnet-2",
+          "name": "Second Garnet",
+          "description": "A deep red garnet, a twin to the first.",
+          "kind": "treasure",
+          "treasure": "gem-100gp",
+          "hiddenIn": "iron-coffer"
+        },
+        {
+          "id": "chain-of-office",
+          "name": "Chain of Office",
+          "description": "A gold chain hung with the guild's scales.",
+          "kind": "treasure",
+          "treasure": "art-25gp",
+          "hiddenIn": "iron-coffer"
+        },
+        {
+          "id": "guild-gold",
+          "name": "Bag of Guild Gold",
+          "description": "A sealed canvas bag of gold pieces.",
+          "kind": "coin",
+          "coins": {
+            "gp": 150
+          },
+          "hiddenIn": "iron-coffer"
+        }
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "quay-to-arch",
+      "between": ["quay-steps", "toll-arch"],
+      "description": "The steps up to the arch."
+    },
+    {
+      "id": "arch-to-hall",
+      "between": ["toll-arch", "counting-hall"],
+      "description": "The scorched doorway into the hall."
+    },
+    {
+      "id": "hall-to-gallery",
+      "between": ["counting-hall", "clerks-gallery"],
+      "description": "The gallery stair.",
+      "trap": {
+        "id": "scything-blade",
+        "name": "Scything Blade",
+        "description": "A spring-loaded blade under a loose tread of the gallery stair.",
+        "find": {
+          "dc": 13
+        },
+        "disarm": {
+          "approaches": [
+            {
+              "ability": "dexterity",
+              "tool": "thieves-tools",
+              "dc": 13
+            },
+            {
+              "ability": "dexterity",
+              "dc": 15
+            }
+          ]
+        },
+        "trigger": "A tread sinks under your foot and a blade scythes out of the stair.",
+        "save": {
+          "ability": "dexterity",
+          "dc": 13
+        },
+        "damage": {
+          "dice": 2,
+          "sides": 4,
+          "modifier": 0,
+          "type": "slashing"
+        },
+        "defeatEndingId": "fallen-on-mallow-quay"
+      }
+    },
+    {
+      "id": "gallery-to-loft",
+      "between": ["clerks-gallery", "records-loft"],
+      "description": "The ladder to the loft."
+    },
+    {
+      "id": "hall-to-strongroom",
+      "between": ["counting-hall", "strongroom"],
+      "description": "The iron door.",
+      "door": {
+        "id": "strongroom-door",
+        "name": "Strongroom Door",
+        "description": "A squat iron door with a lock the size of a fist.",
+        "state": "locked",
+        "keyItemId": "strongroom-key",
+        "pick": {
+          "ability": "dexterity",
+          "tool": "thieves-tools",
+          "dc": 15
+        },
+        "break": {
+          "skill": "athletics",
+          "dc": 17,
+          "retry": {
+            "cost": {
+              "type": "damage",
+              "dice": 1,
+              "sides": 4,
+              "modifier": 0,
+              "damageType": "bludgeoning",
+              "defeatEndingId": "fallen-on-mallow-quay"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "encounters": [
+    {
+      "id": "arch-toll",
+      "opponents": [
+        {
+          "id": "snikk",
+          "monster": "goblin-boss",
+          "name": "Snikk the Toll-Taker",
+          "description": "A goblin in a burned clerk's coat steps out under the chain, scimitar on his shoulder and a ledger under his arm."
+        }
+      ],
+      "defeatEndingId": "fallen-on-mallow-quay",
+      "reaction": {
+        "peacefulXp": 125,
+        "parley": {
+          "approaches": [
+            {
+              "skill": "persuasion",
+              "dc": 13
+            },
+            {
+              "skill": "deception",
+              "dc": 14
+            },
+            {
+              "skill": "intimidation",
+              "dc": 15
+            }
+          ],
+          "bands": {
+            "failure-by-5": {
+              "text": "Snikk snaps his ledger shut and swings before you finish.",
+              "outcome": "surprise-attack"
+            },
+            "failure": {
+              "text": "Snikk licks his pencil and writes something unkind about you.",
+              "shift": -1
+            },
+            "success": {
+              "text": "Snikk scratches his chin with the pencil.",
+              "shift": 1
+            },
+            "success-by-5": {
+              "text": "Snikk ticks a line in his ledger and lifts the chain for you.",
+              "outcome": "let-pass"
+            }
+          }
+        },
+        "toll": {
+          "coins": {
+            "gp": 5
+          },
+          "text": "Snikk bites each coin, writes you into his ledger and lifts the chain."
+        },
+        "trade": {
+          "stock": ["dagger", "shortbow", "arrows"],
+          "minutes": 10
+        },
+        "bands": {
+          "unfriendly": {
+            "options": ["attack", "parley", "toll"],
+            "text": "\"Five gold to pass the arch, or you go back in the river.\""
+          },
+          "uncertain": {
+            "options": ["attack", "parley", "toll"],
+            "text": "Snikk looks you up and down and taps the ledger: \"Toll's five gold.\""
+          },
+          "indifferent": {
+            "options": ["let-pass", "trade", "attack"],
+            "text": "Snikk shrugs: \"Buying, or just passing?\""
+          },
+          "friendly": {
+            "options": ["let-pass", "trade"],
+            "text": "Snikk grins and waves you under the chain: \"Got knives, if you need knives.\""
+          }
+        }
+      }
+    },
+    {
+      "id": "hall-goblin",
+      "lurking": true,
+      "sneakAgain": true,
+      "bypassXp": 25,
+      "opponents": [
+        {
+          "id": "soot-goblin",
+          "monster": "goblin-warrior",
+          "name": "Soot Goblin",
+          "description": "A soot-blackened goblin uncurls from behind a ledger press, scimitar first."
+        }
+      ],
+      "defeatEndingId": "fallen-on-mallow-quay"
+    },
+    {
+      "id": "loft-bugbear",
+      "lurking": true,
+      "sneakAgain": true,
+      "opponents": [
+        {
+          "id": "clerk-eater",
+          "monster": "bugbear-warrior",
+          "name": "The Clerk-Eater",
+          "description": "The nest of ledgers heaves, and a bugbear with an iron key on a thong at its neck rises out of it, hammer in hand."
+        }
+      ],
+      "defeatEndingId": "fallen-on-mallow-quay"
+    }
+  ],
+  "endings": [
+    {
+      "id": "out-with-the-guild-gold",
+      "kind": "escape-with-loot",
+      "title": "Out with the guild's gold",
+      "text": "You go down the quay steps with the counting-house's silver in your pack, and nobody asks you for a toll.",
+      "xp": 400
+    },
+    {
+      "id": "out-empty-handed",
+      "kind": "escape-without-loot",
+      "title": "Out empty-handed",
+      "text": "You go down the quay steps with nothing but soot to show for the counting-house."
+    },
+    {
+      "id": "fallen-on-mallow-quay",
+      "kind": "defeat",
+      "title": "Fallen on Mallow Quay",
+      "text": "You fall among the burned ledgers. Your adventuring ends here."
+    }
+  ]
+}

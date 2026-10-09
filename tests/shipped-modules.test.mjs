@@ -53,7 +53,7 @@ const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
 
-test("the built-in modules are the shipped ones (#252, #275, #289, #291)", () => {
+test("the built-in modules are the shipped ones (#252, #275, #289, #291, #311)", () => {
   assert.deepEqual(
     shipped.map(({ id }) => id),
     [
@@ -61,6 +61,7 @@ test("the built-in modules are the shipped ones (#252, #275, #289, #291)", () =>
       "drowned-chapel",
       "goblin-warren",
       "gravediggers-lodge",
+      "mallow-counting-house",
       "ravagers-tower",
       "robbers-barrow",
       "shepherds-bothy",
@@ -234,6 +235,7 @@ test("each module designed against the budget holds 75–100% of it as a mixed h
     "drowned-chapel",
     "goblin-warren",
     "gravediggers-lodge",
+    "mallow-counting-house",
     "ravagers-tower",
     "robbers-barrow",
     "shepherds-bothy",
@@ -278,6 +280,10 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
   assert.deepEqual(carriers.sort(), [
     "goblin-warren/boss-chain@goblin-boss",
     "gravediggers-lodge/false-gravedigger-coins@false-gravedigger",
+    "mallow-counting-house/clerk-eater-coins@clerk-eater",
+    "mallow-counting-house/clerk-eater-trinket@clerk-eater",
+    "mallow-counting-house/soot-goblin-coins@soot-goblin",
+    "mallow-counting-house/strongroom-key@clerk-eater",
     "ravagers-tower/tower-gnoll-coins@tower-gnoll",
     "robbers-barrow/barrow-robber-coins@barrow-robber",
     "shepherds-bothy/bothy-bandit-coins@bothy-bandit",
@@ -312,6 +318,7 @@ test("the browser offers the shipped modules by level, then difficulty (#165)", 
       ["drowned-chapel", "3–3", "easy"],
       ["goblin-warren", "3–3", "medium"],
       ["ravagers-tower", "3–3", "hard"],
+      ["mallow-counting-house", "3–4", "hard"],
       ["wolfstone-hillfort", "3–4", "hard"],
       ["thornwood-lodge", "4–5", "hard"],
     ],

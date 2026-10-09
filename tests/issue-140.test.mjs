@@ -161,6 +161,23 @@ test("a fight heals at half HP or less, otherwise attacks, and ends the turn whe
     ).action,
     "end-turn",
   );
+  // With the action spent, the Light extra attack comes before Action Surge
+  // (#311).
+  assert.deepEqual(
+    chooseFightStep(
+      view(12, [
+        action("attack", false, zombie),
+        action("light-attack", true, zombie),
+        action("action-surge"),
+        action("end-turn"),
+      ]),
+    ),
+    {
+      action: "light-attack",
+      target: "zombie",
+      say: "Strike the Zombie with my other blade.",
+    },
+  );
 });
 
 test("the live release script needs --live or --dry-run, and a dry run records every turn within its call budget", async () => {

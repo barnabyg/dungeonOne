@@ -1,0 +1,817 @@
+{
+  "issue": 311,
+  "mode": "live",
+  "adventureId": "mallow-counting-house",
+  "runDirectory": ".verify-artifacts\\issue-311-live-wsSt6d",
+  "requestedModel": "gpt-5.6-luna",
+  "startedAt": "2026-10-09T13:41:19.947Z",
+  "seed": 8,
+  "maxProviderCalls": 80,
+  "providerCalls": 24,
+  "usage": {
+    "inputTokens": 114014,
+    "outputTokens": 641,
+    "totalTokens": 114655
+  },
+  "promptVersions": [
+    "5e-dm-v20"
+  ],
+  "summary": {
+    "turns": 25,
+    "typed": 24,
+    "committed": 24,
+    "matched": 23,
+    "fallbacks": 2,
+    "skipped": 0,
+    "reviewClaims": 0,
+    "roomsVisited": 5
+  },
+  "turns": [
+    {
+      "phase": "explore",
+      "room": "quay-steps",
+      "intent": "examine mooring-bollard",
+      "message": "Read the chalk on the bollard.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Mooring Bollard: An iron bollard scrawled with boatmen's chalk marks. The chalk reads: \"Goblin toll at the arch. Mind the gallery stair.\" A stoppered vial of red liquid is wedged in a crack at its foot. You find the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Mooring Bollard: An iron bollard scrawled with boatmen's chalk marks. The chalk reads: \"Goblin toll at the arch. Mind the gallery stair.\" A stoppered vial of red liquid is wedged in a crack at its foot. You find the Potion of Healing."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"mooring-bollard\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "quay-steps",
+      "intent": "take bollard-potion",
+      "message": "Take the vial from the crack.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Potion of Healing.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Potion of Healing."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"bollard-potion\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "quay-steps",
+      "intent": "move toll-arch",
+      "message": "Climb the steps to the arch.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Toll Arch. The counting-house gate, its doors burned away. A chain hung with stolen coins and bells is strung across the arch. A goblin in a burned clerk's coat steps out under the chain, scimitar on his shoulder and a ledger under his arm.\nSnikk the Toll-Taker sees you. Reaction roll: 2d6 (3 + 1) − 1 Charisma = 3: unfriendly. \"Five gold to pass the arch, or you go back in the river.\" You may attack, parley (Persuasion DC 13, Deception DC 14, Intimidation DC 15) or pay the toll (5 gp).",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You enter the Toll Arch. The counting-house gate, its doors burned away. A chain hung with stolen coins and bells is strung across the arch. A goblin in a burned clerk's coat steps out under the chain, scimitar on his shoulder and a ledger under his arm.\nSnikk the Toll-Taker sees you. Reaction roll: 2d6 (3 + 1) − 1 Charisma = 3: unfriendly. \"Five gold to pass the arch, or you go back in the river.\" You may attack, parley (Persuasion DC 13, Deception DC 14, Intimidation DC 15) or pay the toll (5 gp)."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"toll-arch\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "toll-arch",
+      "intent": "react parley (persuasion)",
+      "message": "Talk him round honestly: I'm only here for the guild's old ledgers and want no trouble with him.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Persuasion check: d20 16 − 1 + 2 proficiency = 17 against DC 13. Success.\nSnikk scratches his chin with the pencil.\nSnikk the Toll-Taker is now uncertain (was unfriendly). You may attack or pay the toll (5 gp).",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Persuasion check: d20 16 − 1 + 2 proficiency = 17 against DC 13. Success.\nSnikk scratches his chin with the pencil.\nSnikk the Toll-Taker is now uncertain (was unfriendly). You may attack or pay the toll (5 gp)."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "react",
+              "argumentsJson": "{\"option\":\"parley\",\"approach\":\"persuasion\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "toll-arch",
+      "intent": "react toll",
+      "message": "Fine. Pay him the five gold.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You pay the toll of 5 gp. Snikk bites each coin, writes you into his ledger and lifts the chain. Snikk the Toll-Taker lets you pass: the encounter ends peacefully. Purse: 15 gp.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You pay the toll of 5 gp. Snikk bites each coin, writes you into his ledger and lifts the chain. Snikk the Toll-Taker lets you pass: the encounter ends peacefully. Purse: 15 gp."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "react",
+              "argumentsJson": "{\"option\":\"toll\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "toll-arch",
+      "intent": "sneak counting-hall",
+      "message": "Sneak into the counting hall.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You sneak into the Counting Hall. Stealth check: d20 17 + 4 + 4 proficiency (Expertise) = 25 against DC 9. Success. The best passive Perception is Soot Goblin's 9: Soot Goblin has not noticed you. Ambush it, and it is surprised; or slip past through another way.\nYou enter the Counting Hall. A long hall of scorched ledger presses and toppled counting tables, thick with soot. A gallery stair climbs one wall, and an iron door stands in the far end. A soot-blackened goblin uncurls from behind a ledger press, scimitar first.\nSoot Goblin is lying in wait in the Counting Hall. Soot Goblin's Stealth check: d20 3 + 6 = 9 against your passive Perception 15 (10 + 1 Wisdom + 4 proficiency (Expertise)). Failure: you spot it, and you are not surprised.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You sneak into the Counting Hall. Stealth check: d20 17 + 4 + 4 proficiency (Expertise) = 25 against DC 9. Success. The best passive Perception is Soot Goblin's 9: Soot Goblin has not noticed you. Ambush it, and it is surprised; or slip past through another way.\nYou enter the Counting Hall. A long hall of scorched ledger presses and toppled counting tables, thick with soot. A gallery stair climbs one wall, and an iron door stands in the far end. A soot-blackened goblin uncurls from behind a ledger press, scimitar first.\nSoot Goblin is lying in wait in the Counting Hall. Soot Goblin's Stealth check: d20 3 + 6 = 9 against your passive Perception 15 (10 + 1 Wisdom + 4 proficiency (Expertise)). Failure: you spot it, and you are not surprised."
+        }
+      ],
+      "hp": 21,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "sneak",
+              "argumentsJson": "{\"destination\":\"counting-hall\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "counting-hall",
+      "intent": "move clerks-gallery",
+      "message": "Slip past it, up the gallery stair.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You slip out of the Counting Hall unseen, past Soot Goblin. The fight there is left unfought.\nScything Blade: A tread sinks under your foot and a blade scythes out of the stair.\nDexterity saving throw: d20 15 + 4 + 2 proficiency = 21 against DC 13. Success.\nThe Scything Blade deals 3 + 1 = 4 slashing, halved to 2; you have 19/21 HP.\nYou enter the Clerks' Gallery. A narrow gallery of clerks' desks above the hall, half its rail burned away. A ladder climbs to the loft.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You slip out of the Counting Hall unseen, past Soot Goblin. The fight there is left unfought.\nScything Blade: A tread sinks under your foot and a blade scythes out of the stair.\nDexterity saving throw: d20 15 + 4 + 2 proficiency = 21 against DC 13. Success.\nThe Scything Blade deals 3 + 1 = 4 slashing, halved to 2; you have 19/21 HP.\nYou enter the Clerks' Gallery. A narrow gallery of clerks' desks above the hall, half its rail burned away. A ladder climbs to the loft."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"clerks-gallery\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "clerks-gallery",
+      "intent": "examine tally-desk",
+      "message": "Search the tally-master's desk.",
+      "committed": true,
+      "matched": false,
+      "fallback": true,
+      "reply": "Investigation check: d20 4 − 1 = 3 against DC 13. Failure.\nTally-Master's Desk: A heavy desk carved with the guild's scales, its drawers already turned out.\nEmpty drawers and scorched tally sticks. Whatever the tally-master kept here is gone.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Investigation check: d20 4 − 1 = 3 against DC 13. Failure.\nTally-Master's Desk: A heavy desk carved with the guild's scales, its drawers already turned out.\nEmpty drawers and scorched tally sticks. Whatever the tally-master kept here is gone."
+        },
+        {
+          "kind": "result",
+          "text": "Tally-Master's Desk: A heavy desk carved with the guild's scales, its drawers already turned out."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"tally-desk\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "clerks-gallery",
+      "intent": "sneak counting-hall",
+      "message": "Creep back down into the hall.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You sneak into the Counting Hall. Stealth check: d20 19 + 4 + 4 proficiency (Expertise) = 27 against DC 9. Success. The best passive Perception is Soot Goblin's 9: Soot Goblin has not noticed you. Ambush it, and it is surprised; or slip past through another way.\nYou enter the Counting Hall. A long hall of scorched ledger presses and toppled counting tables, thick with soot. A gallery stair climbs one wall, and an iron door stands in the far end. A soot-blackened goblin uncurls from behind a ledger press, scimitar first.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You sneak into the Counting Hall. Stealth check: d20 19 + 4 + 4 proficiency (Expertise) = 27 against DC 9. Success. The best passive Perception is Soot Goblin's 9: Soot Goblin has not noticed you. Ambush it, and it is surprised; or slip past through another way.\nYou enter the Counting Hall. A long hall of scorched ledger presses and toppled counting tables, thick with soot. A gallery stair climbs one wall, and an iron door stands in the far end. A soot-blackened goblin uncurls from behind a ledger press, scimitar first."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "sneak",
+              "argumentsJson": "{\"destination\":\"counting-hall\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "counting-hall",
+      "intent": "ambush counting-hall",
+      "message": "Ambush the goblin before it sees me.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You spring your ambush: Soot Goblin is surprised and rolls initiative with disadvantage.\nInitiative: Vex 20 + 4 = 24; Soot Goblin (surprised, d20s 14 and 14, kept) 14 + 2 = 16.\nIt is your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You spring your ambush: Soot Goblin is surprised and rolls initiative with disadvantage.\nInitiative: Vex 20 + 4 = 24; Soot Goblin (surprised, d20s 14 and 14, kept) 14 + 2 = 16.\nIt is your turn."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "ambush",
+              "argumentsJson": "{\"room\":\"counting-hall\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "counting-hall",
+      "intent": "attack soot-goblin",
+      "message": "Attack the Soot Goblin.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Vex attacks Soot Goblin with Shortsword: 13 + 6 = 19 against AC 15. Hit. Damage 4 + 4 = 8 piercing; Soot Goblin has 2/10 HP.\nSoot Goblin is vexed: Vex has advantage on the next attack roll against it before the end of Vex's next turn.\nIt is still your turn: you can make the extra attack with your second light weapon, hide, use Steady Aim, drink a potion or end your turn.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Vex attacks Soot Goblin with Shortsword: 13 + 6 = 19 against AC 15. Hit. Damage 4 + 4 = 8 piercing; Soot Goblin has 2/10 HP.\nSoot Goblin is vexed: Vex has advantage on the next attack roll against it before the end of Vex's next turn.\nIt is still your turn: you can make the extra attack with your second light weapon, hide, use Steady Aim, drink a potion or end your turn."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "attack",
+              "argumentsJson": "{\"target\":\"soot-goblin\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "fight",
+      "room": "counting-hall",
+      "intent": "light-attack soot-goblin",
+      "message": "Strike the Soot Goblin with my other blade.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Vex attacks Soot Goblin with Dagger (extra attack), at advantage (Vex): 15 and 19, keeping 19; 19 + 6 = 25 against AC 15. Hit. Damage 3 + 0 + Sneak Attack 2 + 4 = 9 piercing; Soot Goblin has 0/10 HP.\nSoot Goblin is defeated.\nThe fight is over.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Vex attacks Soot Goblin with Dagger (extra attack), at advantage (Vex): 15 and 19, keeping 19; 19 + 6 = 25 against AC 15. Hit. Damage 3 + 0 + Sneak Attack 2 + 4 = 9 piercing; Soot Goblin has 0/10 HP.\nSoot Goblin is defeated.\nThe fight is over."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "light_attack",
+              "argumentsJson": "{\"target\":\"soot-goblin\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "counting-hall",
+      "intent": "examine smashed-till",
+      "message": "Look in the smashed till.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Smashed Till: A clerk's till, its drawer prised open and dropped behind a table. Silver the goblins missed is still caught in the drawer's slots. You find the Till Silver.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Smashed Till: A clerk's till, its drawer prised open and dropped behind a table. Silver the goblins missed is still caught in the drawer's slots. You find the Till Silver."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"smashed-till\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "counting-hall",
+      "intent": "take till-silver",
+      "message": "Take the silver.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Till Silver and put 6 gp in your purse.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Till Silver and put 6 gp in your purse."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"till-silver\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "counting-hall",
+      "intent": "pick strongroom-door",
+      "message": "Pick the strongroom door's lock with my thieves' tools.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Dexterity check with thieves' tools: d20 13 + 4 + 2 proficiency = 19 against DC 15. Success.\nYou pick the Strongroom Door's lock.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Dexterity check with thieves' tools: d20 13 + 4 + 2 proficiency = 19 against DC 15. Success.\nYou pick the Strongroom Door's lock."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "pick_lock",
+              "argumentsJson": "{\"door\":\"strongroom-door\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "counting-hall",
+      "intent": "move strongroom",
+      "message": "Go into the strongroom.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Strongroom. An iron-lined vault the fire never reached. An iron coffer is bolted to the floor.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Strongroom. An iron-lined vault the fire never reached. An iron coffer is bolted to the floor."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"strongroom\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "strongroom",
+      "intent": "examine iron-coffer",
+      "message": "Open the iron coffer.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "Iron Coffer: An iron coffer bolted to the floor, its lid unlocked. Inside lie two garnets in a twist of velvet, a gold chain of office and a sealed bag of guild gold. You find the Garnet, Second Garnet, Chain of Office and Bag of Guild Gold.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Iron Coffer: An iron coffer bolted to the floor, its lid unlocked. Inside lie two garnets in a twist of velvet, a gold chain of office and a sealed bag of guild gold. You find the Garnet, Second Garnet, Chain of Office and Bag of Guild Gold."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "examine",
+              "argumentsJson": "{\"target\":\"iron-coffer\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "strongroom",
+      "intent": "take coffer-garnet",
+      "message": "Take the first garnet.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Garnet.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Garnet."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"coffer-garnet\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "strongroom",
+      "intent": "take coffer-garnet-2",
+      "message": "Take the second garnet.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Second Garnet.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Second Garnet."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"coffer-garnet-2\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "strongroom",
+      "intent": "take chain-of-office",
+      "message": "Take the chain of office.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Chain of Office.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Chain of Office."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"chain-of-office\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "strongroom",
+      "intent": "take guild-gold",
+      "message": "Take the bag of gold.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You take the Bag of Guild Gold and put 150 gp in your purse.",
+      "cards": [
+        {
+          "kind": "result",
+          "text": "You take the Bag of Guild Gold and put 150 gp in your purse."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "take",
+              "argumentsJson": "{\"item\":\"guild-gold\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "strongroom",
+      "intent": "move counting-hall",
+      "message": "Back out into the hall.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Counting Hall. A long hall of scorched ledger presses and toppled counting tables, thick with soot. A gallery stair climbs one wall, and an iron door stands in the far end.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Counting Hall. A long hall of scorched ledger presses and toppled counting tables, thick with soot. A gallery stair climbs one wall, and an iron door stands in the far end."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"counting-hall\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "counting-hall",
+      "intent": "move toll-arch",
+      "message": "Out through the arch.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Toll Arch. The counting-house gate, its doors burned away. A chain hung with stolen coins and bells is strung across the arch.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Toll Arch. The counting-house gate, its doors burned away. A chain hung with stolen coins and bells is strung across the arch."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"toll-arch\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "toll-arch",
+      "intent": "move quay-steps",
+      "message": "Down to the quay steps.",
+      "committed": true,
+      "matched": true,
+      "fallback": false,
+      "reply": "You enter the Quay Steps. Slimy stone steps climb out of the river to a burned archway. A mooring bollard leans at the top, scrawled with chalk.",
+      "cards": [
+        {
+          "kind": "narration",
+          "text": "You enter the Quay Steps. Slimy stone steps climb out of the river to a burned archway. A mooring bollard leans at the top, scrawled with chalk."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": [
+        {
+          "phase": "interpretation",
+          "model": "gpt-5.6-luna",
+          "toolCalls": [
+            {
+              "name": "move",
+              "argumentsJson": "{\"destination\":\"quay-steps\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "explore",
+      "room": "quay-steps",
+      "intent": "leave quay-steps",
+      "committed": false,
+      "matched": false,
+      "fallback": true,
+      "cards": [
+        {
+          "kind": "result",
+          "text": "Out with the guild's gold. You go down the quay steps with the counting-house's silver in your pack, and nobody asks you for a toll."
+        }
+      ],
+      "hp": 19,
+      "reviewClaim": false,
+      "calls": []
+    }
+  ],
+  "finalStatus": "escaped",
+  "finalRoom": "Quay Steps",
+  "ending": {
+    "kind": "escape-with-loot",
+    "title": "Out with the guild's gold",
+    "text": "You go down the quay steps with the counting-house's silver in your pack, and nobody asks you for a toll.",
+    "rewards": {
+      "xp": [
+        {
+          "name": "Defeated the Soot Goblin",
+          "xp": 50
+        },
+        {
+          "name": "Parted peacefully with the Snikk the Toll-Taker",
+          "xp": 125
+        },
+        {
+          "name": "Out with the guild's gold",
+          "xp": 400
+        }
+      ],
+      "treasure": [
+        {
+          "name": "Garnet",
+          "description": "A deep red garnet.",
+          "value": "100 gp"
+        },
+        {
+          "name": "Second Garnet",
+          "description": "A deep red garnet, a twin to the first.",
+          "value": "100 gp"
+        },
+        {
+          "name": "Chain of Office",
+          "description": "A gold chain hung with the guild's scales.",
+          "value": "25 gp"
+        }
+      ],
+      "coin": "156 gp",
+      "purse": "171 gp",
+      "totalXp": 1475,
+      "level": 3
+    }
+  },
+  "finishedAt": "2026-10-09T13:42:01.124Z"
+}

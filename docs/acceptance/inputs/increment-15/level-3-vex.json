@@ -1,0 +1,54 @@
+{
+  "kind": "dungeon-one-characters",
+  "formatVersion": 15,
+  "revision": "00000000000000000000000000000000",
+  "creationsStarted": 1,
+  "sessionsStarted": 0,
+  "characters": [
+    {
+      "sheet": {
+        "id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "name": "Vex",
+        "class": "rogue",
+        "level": 3,
+        "xp": 900,
+        "hp": 21,
+        "abilityRolls": {
+          "strength": [3, 3, 3, 1],
+          "dexterity": [6, 6, 4, 1],
+          "constitution": [4, 4, 4, 1],
+          "intelligence": [3, 3, 3, 1],
+          "wisdom": [4, 4, 4, 1],
+          "charisma": [3, 3, 3, 1]
+        },
+        "backgroundIncrease": {
+          "dexterity": 2,
+          "constitution": 1
+        },
+        "abilityScoreImprovements": [],
+        "abilities": {
+          "strength": 9,
+          "dexterity": 18,
+          "constitution": 13,
+          "intelligence": 9,
+          "wisdom": 12,
+          "charisma": 9
+        },
+        "skills": ["athletics", "perception", "persuasion", "stealth"],
+        "expertise": ["perception", "stealth"],
+        "weaponMasteries": ["shortsword", "dagger"],
+        "equipment": ["leather", "shortsword", "dagger"],
+        "stowed": ["thieves-tools"],
+        "ammunition": {
+          "arrows": 0,
+          "bolts": 0
+        },
+        "treasure": [],
+        "purse": 2000,
+        "finds": [],
+        "xpAwards": []
+      },
+      "revision": 1
+    }
+  ]
+}

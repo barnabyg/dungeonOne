@@ -2926,6 +2926,7 @@ export const FIFTH_ADVENTURE_FILES = {
   "drowned-chapel": "drowned-chapel.json",
   "goblin-warren": "goblin-warren.json",
   "gravediggers-lodge": "gravediggers-lodge.json",
+  "mallow-counting-house": "mallow-counting-house.json",
   "ravagers-tower": "ravagers-tower.json",
   "robbers-barrow": "robbers-barrow.json",
   "shepherds-bothy": "shepherds-bothy.json",

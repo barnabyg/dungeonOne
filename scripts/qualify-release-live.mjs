@@ -4,7 +4,8 @@
 // The Silvervein Mine for #241 with --adventure silvervein-mine, played by a
 // saved level-3 Ada as the mine is for levels 2–3, or The Thornwood Lodge for
 // #291 with --adventure thornwood-lodge, played by a saved level-4 Ada with
-// 4,100 XP),
+// 4,100 XP, or The Counting-House on Mallow Quay for #311 with --adventure
+// mallow-counting-house, played by a saved level-3 Rogue, Vex, with 20 gp),
 // every step typed to the configured OpenAI provider (src/release-run-5e.ts). A
 // step the AI DM's turn leaves undone is taken with its button and flagged,
 // so the run always reaches an ending. Each turn records the message, what
@@ -32,6 +33,7 @@ import {
   OPENAI_DM_DEFAULT_MODEL,
 } from "../dist/openai-dm-model.js";
 import {
+  COUNTING_HOUSE_ROUTE,
   DELVE_FULL_ROUTE,
   LODGE_ROUTE,
   MINE_FULL_ROUTE,
@@ -42,12 +44,13 @@ import {
   levelFourCareerLibrary,
   levelThreeLibrary,
 } from "../dist/test-fighter-5e.js";
+import { rogueLibrary } from "../dist/test-rogue-5e.js";
 
 const USAGE =
   "Usage: node scripts/qualify-release-live.mjs --live|--dry-run [--adventure <id>] [--output <report.json>] [--max-calls <count>] [--seed <seed>]";
 
-// Each release run's issue, route and default seed, on which Ada clears the
-// route and walks out when each step is taken as planned. A run with a
+// Each release run's issue, route and default seed, on which its character
+// clears the route and walks out when each step is taken as planned. A run with a
 // `character` starts from a library holding it, already saved.
 const RUNS = {
   "abandoned-delve": { issue: 140, route: DELVE_FULL_ROUTE, seed: "1443" },
@@ -63,6 +66,12 @@ const RUNS = {
     route: LODGE_ROUTE,
     seed: "2",
     character: levelFourCareerLibrary,
+  },
+  "mallow-counting-house": {
+    issue: 311,
+    route: COUNTING_HOUSE_ROUTE,
+    seed: "8",
+    character: rogueLibrary,
   },
 };
 const usage = () => {
