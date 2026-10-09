@@ -467,6 +467,8 @@ type Position = Readonly<{
   clearedEncounterIds: readonly string[];
   /** Passages that can't be gone through: a door that held every try. */
   blockedPassageIds: readonly string[];
+  /** Keys that can no longer be found (#331): their doors stay shut. */
+  lostKeyIds: readonly string[];
 }>;
 
 /** Rooms a route may pass through or end in; the start is always allowed. */
@@ -521,7 +523,8 @@ function talkOnlyPassages(adventure: FifthAdventure): ReadonlySet<string> {
  * with a fight not yet won, and a little per move, so the planner prefers the
  * fewest fights, then the fewest moves. A door with a check counts as
  * passable until it blocks the passage; a door only a key opens counts as
- * passable only with its key carried, and otherwise the plan fetches the key.
+ * passable only with its key carried, and otherwise the plan fetches the key,
+ * unless the key is lost (#331).
  * A hidden passage only talking opens is never passable (#297), unless
  * `talking` is true.
  */
@@ -546,7 +549,8 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
   /**
    * The cheapest route from the character's room to the nearest target, as
    * the rooms along it, starting with the character's; undefined if none.
-   * With `keys` "any", key-only doors count as open.
+   * With `keys` "any", key-only doors count as open, unless their keys are
+   * lost.
    */
   const route = (
     position: Position,
@@ -581,15 +585,19 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
       for (const passage of adventure.passages) {
         const [a, b] = passage.between;
         const next = a === here ? b : b === here ? a : undefined;
+        const keyId = passage.door?.keyItemId;
+        const locked =
+          keyOnly(passage) &&
+          (keyId === undefined || !position.inventory.includes(keyId));
         if (
           next === undefined ||
           done.has(next) ||
           !enterable(next) ||
           talkOnly.has(passage.id) ||
           position.blockedPassageIds.includes(passage.id) ||
-          (keys === "carried" &&
-            keyOnly(passage) &&
-            !position.inventory.includes(passage.door!.keyItemId!))
+          (locked &&
+            (keys === "carried" ||
+              (keyId !== undefined && position.lostKeyIds.includes(keyId))))
         ) {
           continue;
         }
@@ -698,6 +706,7 @@ export function requiredPath(adventure: FifthAdventure): Readonly<{
     inventory: [],
     clearedEncounterIds: [],
     blockedPassageIds: [],
+    lostKeyIds: [],
   };
   const roomIds = [adventure.startRoomId];
   for (const targets of legs) {
@@ -1188,43 +1197,69 @@ export function playAdventure(
     state.inventory.some((id) => items.get(id)!.item.kind === "treasure") ||
     state.usedItemIds.some((id) => items.get(id)!.item.kind === "coin");
   /**
-   * Whether an item an opponent carries left with it (#324): the opponent
-   * fled (#237) or surrendered (#238; no style talks, so it never hands the
-   * item over), or its encounter ended peacefully (#304), so no body is left
-   * to search.
+   * How an item an opponent carries left with it (#324), if it did: the
+   * opponent fled (#237) or surrendered (#238; no style talks, so it never
+   * hands the item over), or its encounter ended peacefully (#304), so no
+   * body is left to search.
    */
-  const carrierGone = (itemId: string) => {
+  const carrierGone = (itemId: string): string | undefined => {
     const carrier = carriers.get(itemId);
     if (carrier === undefined) {
-      return false;
+      return undefined;
     }
     const left = ({ encounterId, opponentId }: LeftFight) =>
       encounterId === carrier.encounterId && opponentId === carrier.opponentId;
-    return (
-      state.peacefulEncounterIds.includes(carrier.encounterId) ||
-      state.fledOpponents.some(left) ||
-      state.surrenderedOpponents.some(left)
-    );
+    const how = state.peacefulEncounterIds.includes(carrier.encounterId)
+      ? "let the character pass"
+      : state.fledOpponents.some(left)
+        ? "fled"
+        : state.surrenderedOpponents.some(left)
+          ? "surrendered"
+          : undefined;
+    return how === undefined
+      ? undefined
+      : `its carrier ${carrier.opponentId} ${how}`;
   };
   /**
-   * Whether an item can no longer be found: its carrier left without a body
-   * (#324), or it is hidden in a feature with a check that is made, and the
-   * band of its last try (#284) did not reveal the item (#285).
+   * Why an item can no longer be found, if it can't: its carrier left
+   * without a body (#324), or it is hidden in a feature with a check that is
+   * made, and the band of its last try (#284) did not reveal the item (#285).
    */
-  const lost = (itemId: string, hiddenIn: string | undefined) => {
-    if (carrierGone(itemId)) {
-      return true;
+  const whyLost = (itemId: string, hiddenIn: string | undefined) => {
+    const gone = carrierGone(itemId);
+    if (gone !== undefined) {
+      return gone;
     }
     const made = state.checks.findLast(
       ({ id }) => id === `examine:${hiddenIn}`,
     );
-    return (
-      made !== undefined &&
-      !effectsOf(siteChecks.get(made.id)?.bands?.[made.band]).some(
+    return made === undefined ||
+      effectsOf(siteChecks.get(made.id)?.bands?.[made.band]).some(
         (effect) => effect.type === "item" && effect.item === itemId,
       )
-    );
+      ? undefined
+      : `feature ${hiddenIn} check ${made.band} did not reveal it`;
   };
+  /** The keys to doors only a key opens. */
+  const doorKeyIds = new Set(
+    adventure.passages.flatMap((passage) =>
+      keyOnly(passage) && passage.door?.keyItemId !== undefined
+        ? [passage.door.keyItemId]
+        : [],
+    ),
+  );
+  /**
+   * The keys to doors only a key opens that are not carried and can no
+   * longer be found (#331), and why.
+   */
+  const lostKeys = () =>
+    [...items.values()].flatMap(({ item }) => {
+      const why =
+        doorKeyIds.has(item.id) && !state.inventory.includes(item.id)
+          ? whyLost(item.id, item.hiddenIn)
+          : undefined;
+      return why === undefined ? [] : [{ id: item.id, why }];
+    });
   /** Where the objective lies from here. */
   const objectiveRooms = (): ReadonlySet<string> => {
     if (objective === "victory") {
@@ -1235,7 +1270,7 @@ export function playAdventure(
         LOOT_KINDS.includes(item.kind) &&
         !state.inventory.includes(item.id) &&
         !state.usedItemIds.includes(item.id) &&
-        !lost(item.id, item.hiddenIn)
+        whyLost(item.id, item.hiddenIn) === undefined
           ? [roomId]
           : [],
       ),
@@ -1317,6 +1352,7 @@ export function playAdventure(
       }
     }
     const goal = objectiveRooms();
+    const lostKeyIds = lostKeys().map(({ id }) => id);
     for (;;) {
       const position: Position = {
         roomId: state.roomId,
@@ -1327,6 +1363,7 @@ export function playAdventure(
           ...state.peacefulEncounterIds,
         ],
         blockedPassageIds: blocked,
+        lostKeyIds,
       };
       const enterable = (targets: ReadonlySet<string>) => (id: string) =>
         (!winning.has(id) || targets.has(id)) &&
@@ -1392,9 +1429,10 @@ export function playAdventure(
     const choice = fighting ? fightChoice(views) : exploreChoice(views);
     if (choice === undefined) {
       const made = checksMade(state, siteChecks);
+      const keys = lostKeys().map(({ id, why }) => `key ${id} lost (${why})`);
       throw new BalanceError(
         "stranded",
-        `${adventure.id}: a ${style} run${runtime.checks === "seeded" ? "" : ` with ${runtime.checks} checks`} was stranded in ${state.roomId}${made.length === 0 ? "" : `, after ${made.join(", ")}`}.`,
+        `${adventure.id}: a ${style} run${runtime.checks === "seeded" ? "" : ` with ${runtime.checks} checks`} was stranded in ${state.roomId}${made.length === 0 ? "" : `, after ${made.join(", ")}`}${keys.length === 0 ? "" : `, with ${keys.join(", ")}`}.`,
       );
     }
     apply(runtime.actionOf(choice)!);
