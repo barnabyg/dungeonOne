@@ -385,7 +385,7 @@ test("a level-3 Fighter kills the wolf and walks out with the drover's purse and
   assert.ok(state.inventory.includes("silver-bell"));
   assert.equal(state.possessions.purse, 2500);
   assert.deepEqual(xpOf(played, state), [
-    ["Defeated the Reaver's Wolf", 200],
+    ["Defeated Reaver's Wolf", 200],
     ["Out with the plunder", 500],
   ]);
 });

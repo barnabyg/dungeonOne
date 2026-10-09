@@ -378,7 +378,7 @@ test("the captive offers its ring when asked for mercy; it is found once, and th
       );
   assert.deepEqual(award(escaped), {
     id: "surrendering-goblins/encounter/barrow-goblin",
-    name: `Defeated ${fallen.join(" and ")}; spared the ${name}`,
+    name: `Defeated ${fallen.join(" and ")}; spared ${name}`,
     xp: 25 * fallen.length + 12 + SPARED_XP,
   });
 

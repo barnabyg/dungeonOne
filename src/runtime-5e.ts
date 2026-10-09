@@ -7359,7 +7359,8 @@ export function createFifthRuntime(
         // A fled or surrendered opponent gives half its XP, rounded down, if
         // it exchanged blows with the character first, and none if it did
         // not (#237, #238); one spared gives any XP the module awards for
-        // sparing it, too, earned once with the fight.
+        // sparing it, too, earned once with the fight. Opponents are named
+        // as the fight log names them, with no article, one or several (#323).
         const defeated = fight.opponents.filter(({ id }) =>
           fellIn(state, fight.id, id),
         );
@@ -7374,8 +7375,6 @@ export function createFifthRuntime(
             : [{ opponent, engaged: record.engaged }];
         });
         const spared = yielded.map(({ opponent }) => opponent);
-        const the = (names: readonly string[]) =>
-          `${names.length === 1 ? "the " : ""}${listed(names, "and")}`;
         const parts = [
           ["Defeated", defeated],
           ["Drove off", drivenOff],
@@ -7389,7 +7388,10 @@ export function createFifthRuntime(
             .filter(([, who]) => who.length > 0)
             .map(
               ([verb, who], index) =>
-                `${index === 0 ? verb : verb.toLowerCase()} ${the(who.map(({ name }) => name))}`,
+                `${index === 0 ? verb : verb.toLowerCase()} ${listed(
+                  who.map(({ name }) => name),
+                  "and",
+                )}`,
             )
             .join("; "),
           xp:

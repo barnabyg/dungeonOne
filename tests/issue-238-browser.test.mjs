@@ -113,7 +113,7 @@ test(
       assert.match(
         ending,
         new RegExp(
-          `Defeated ${names.join(" and ")}; spared the ${captiveName}: \\+${fightXp} XP\\n`,
+          `Defeated ${names.join(" and ")}; spared ${captiveName}: \\+${fightXp} XP\\n`,
         ),
       );
       assert.match(

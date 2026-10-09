@@ -140,7 +140,7 @@ test("a level-3 Fighter puts the sexton down and wades out with the silver", () 
   // 60 gp and 50 sp, in copper: the test fighter brings an empty purse.
   assert.equal(state.possessions.purse, 6000 + 500);
   assert.deepEqual(xpOf(runtime, state), [
-    ["Defeated the Drowned Sexton", 50],
+    ["Defeated Drowned Sexton", 50],
     ["Out with the chapel silver", 300],
   ]);
 });

@@ -168,7 +168,7 @@ test("treasure found by examining and carried out earns the loot ending, its XP 
     xp: [
       {
         id: "lintel-barrow/encounter/barrow-goblin",
-        name: "Defeated the Goblin Warrior",
+        name: "Defeated Goblin Warrior",
         xp: 50,
       },
       {
@@ -328,7 +328,7 @@ test("a victory credits the fight that ended it; a defeat or an unfinished adven
     xp: [
       {
         id: "lone-goblin/encounter/lone-goblin",
-        name: "Defeated the Goblin Warrior",
+        name: "Defeated Goblin Warrior",
         xp: 50,
       },
     ],
@@ -433,8 +433,8 @@ test("a level 2 Fighter from the barrow reaches level 3 by escaping the goblin b
   assert.deepEqual(
     rewards.xp.map(({ name, xp }) => [name, xp]),
     [
-      ["Defeated the Goblin Warrior", 50],
-      ["Defeated the Goblin Boss", 200],
+      ["Defeated Goblin Warrior", 50],
+      ["Defeated Goblin Boss", 200],
       ["Out with the hoard", 400],
     ],
   );

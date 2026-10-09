@@ -434,7 +434,7 @@ test("a level-4 Fighter wins the kennel yard and walks out with the hunting cup 
   // 2,475 XP, the hound fleeing for half its XP: what takes a career that
   // ends the earlier modules near 4,100 XP past level 5's 6,500.
   assert.deepEqual(xpOf(played, state), [
-    ["Defeated the Kennel Mastiff; drove off the Hesk's Hound", 125],
+    ["Defeated Kennel Mastiff; drove off Hesk's Hound", 125],
     ["Out with the spoils", 2350],
   ]);
 });

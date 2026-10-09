@@ -319,10 +319,10 @@ test("scripted DM: a level-3 Fighter clears the mine, sparing the tunneller for 
   assert.equal(state.possessions.purse, 400 + 9 + 120 + 6000);
   // The spared tunneller exchanged no blows: its sparing XP, not half its own.
   assert.deepEqual(xpOf(runtime, state), [
-    ["Defeated the Kobold Lookout; spared the Kobold Tunneller", 50],
+    ["Defeated Kobold Lookout; spared Kobold Tunneller", 50],
     ["Defeated Drowned Miner and Miner's Bones", 100],
-    ["Defeated the Bugbear Overseer", 200],
-    ["Defeated the Giant Spider", 200],
+    ["Defeated Bugbear Overseer", 200],
+    ["Defeated Giant Spider", 200],
     ["Out with the silver", 300],
   ]);
 });
@@ -357,7 +357,7 @@ test("scripted DM: cut down first, the tunneller leaves the key on its body, and
   assert.equal(state.possessions.purse, 8 + 400);
   // A fled lookout that fought gives half its 25 XP, rounded down.
   assert.deepEqual(xpOf(runtime, state), [
-    ["Defeated the Kobold Tunneller; drove off the Kobold Lookout", 37],
+    ["Defeated Kobold Tunneller; drove off Kobold Lookout", 37],
     ["Out with the silver", 300],
   ]);
 });
@@ -439,7 +439,7 @@ test("the release run clears the mine through the server to the library file", a
     // The run hit the tunneller before it yielded: half its 25 XP and its
     // sparing XP.
     assert.deepEqual(session.ending.rewards.xp[0], {
-      name: "Defeated the Kobold Lookout; spared the Kobold Tunneller",
+      name: "Defeated Kobold Lookout; spared Kobold Tunneller",
       xp: 25 + 12 + 25,
     });
     // 900 XP before; the fights' 562 and the ending's 300.

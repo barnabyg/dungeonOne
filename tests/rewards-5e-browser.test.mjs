@@ -210,7 +210,7 @@ test(
       });
       assert.equal(border, token);
       const ending = await page.locator("#ending").innerText();
-      assert.match(ending, /Defeated the Goblin Warrior: \+50 XP/);
+      assert.match(ending, /Defeated Goblin Warrior: \+50 XP/);
       assert.match(ending, /Out with the silver: \+250 XP/);
       assert.match(
         ending,

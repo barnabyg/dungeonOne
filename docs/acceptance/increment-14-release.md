@@ -291,7 +291,7 @@ npm.cmd run browser -- --seed 1 --characters .\.scratch\release-291\checks\chara
    Success. You disarm the Man-trap."
 7. **Take** Topaz and Potion of Healing, **Go** Kennel Yard, **Go** Forest
    Gate, **Leave the adventure** and **Leave now**. Expect +250 XP for the
-   kennel yard, "Defeated the Baiting Bear: +200 XP" and "Out with the
+   kennel yard, "Defeated Baiting Bear: +200 XP" and "Out with the
    spoils: +2350 XP". The sheet keeps the Topaz. Ada stays level 5, the
    highest.
 
