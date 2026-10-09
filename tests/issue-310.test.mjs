@@ -4,8 +4,10 @@ import test from "node:test";
 import {
   characterAtLevel,
   gateAdventure,
+  gateModule,
   percentileCharacters,
   qualifyAdventure,
+  renderModuleGateResult,
   strongestAttackers,
 } from "../dist/balance-5e.js";
 import { CLASSES } from "../dist/character-5e.js";
@@ -108,4 +110,46 @@ test("the harness report and the gate play the class asked for, the Fighter by d
         CLASSES.rogue.kits.includes(kit) && fightingStyle === undefined,
     ),
   );
+});
+
+test("a module qualifies only if every class qualifies, and the verdict names each class", () => {
+  // On these four seeds the lone goblin kills the weakest Rogue too often,
+  // and not the weakest Fighter.
+  const gate = gateModule(loneGoblin, { seeds: [0, 1, 2, 3] });
+  assert.deepEqual(
+    gate.classes.map(({ classId, result }) => [
+      classId,
+      result.ok && result.verdict.qualified,
+    ]),
+    [
+      ["fighter", true],
+      ["rogue", false],
+    ],
+  );
+  assert.equal(gate.qualified, false);
+  const text = renderModuleGateResult(loneGoblin, gate);
+  assert.match(
+    text,
+    /^The Lone Goblin \(lone-goblin\) qualifies as hard for the Fighter\.$/mu,
+  );
+  assert.match(
+    text,
+    /^The Lone Goblin \(lone-goblin\) does not qualify as hard for the Rogue\.$/mu,
+  );
+  assert.match(text, /5th percentile Rogue playing cautious/u);
+});
+
+test("a class the harness can't play is named in the failure", () => {
+  const gate = gateModule(loneGoblin, { seeds: [0], stepLimit: 1 });
+  assert.equal(gate.qualified, false);
+  const text = renderModuleGateResult(loneGoblin, gate);
+  for (const name of ["Fighter", "Rogue"]) {
+    assert.match(
+      text,
+      new RegExp(
+        `^The Lone Goblin \\(lone-goblin\\) does not qualify for the ${name}: step-limit\\. `,
+        "mu",
+      ),
+    );
+  }
 });

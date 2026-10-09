@@ -1751,7 +1751,7 @@ export type GateOptions = Pick<
     /**
      * The class `gateAdventure` judges (#310): the harness's class, the
      * Fighter, unless named. `gateModule` judges every class in
-     * `GATE_CLASSES` and ignores it.
+     * `GATE_CLASSES`, so it takes no class.
      */
     classId?: ClassId;
     /**

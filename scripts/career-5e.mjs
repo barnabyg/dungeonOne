@@ -10,7 +10,7 @@ import {
   renderCareerResult,
   simulateCareer,
 } from "../dist/career-5e.js";
-import { MAX_LEVEL } from "../dist/character-5e.js";
+import { DEFAULT_CLASS, MAX_LEVEL } from "../dist/character-5e.js";
 
 const USAGE = [
   "Usage: npm run career -- [--seeds <count>] [--required-level <level>]",
@@ -30,7 +30,7 @@ export function parseArguments(args) {
   const parsed = {
     seeds: DEFAULT_SEED_COUNT,
     requiredLevel: CAREER_REQUIRED_LEVEL,
-    classId: "fighter",
+    classId: DEFAULT_CLASS,
     json: false,
     paths: [],
   };

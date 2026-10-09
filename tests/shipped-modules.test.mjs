@@ -31,6 +31,7 @@ import {
   renderCareerResult,
   simulateCareer,
 } from "../dist/career-5e.js";
+import { CLASSES } from "../dist/character-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
 import { referenceCpuSeconds } from "./fixtures/cpu-reference.mjs";
@@ -167,7 +168,7 @@ test("the gate names both classes and reports the stealth-first style for every 
     );
     const text = renderModuleGateResult(adventure, gate);
     for (const { classId, result } of gate.classes) {
-      const name = classId === "fighter" ? "Fighter" : "Rogue";
+      const { name } = CLASSES[classId];
       assert.match(
         text,
         new RegExp(
