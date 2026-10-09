@@ -228,7 +228,8 @@ unless you have scrolled up to read older ones.
 
 The status strip shows your HP as numbers and a bar with its health in words
 (Healthy, Bloodied at half or fewer, Critical at a quarter or fewer, Defeated at
-0), and a pip for each Second Wind and Action Surge use. In a fight it adds the
+0), a pip for each Second Wind and Action Surge use, and outside a fight's turns
+a pip for each hit die (one per level). In a fight it adds the
 round, whose turn it is, and pips for your Action (two after Action Surge),
 Bonus action and Reaction, filled while unused. Screen readers hear each in
 words, such as "HP 6 of 11" and "Bonus action: used".
@@ -407,7 +408,7 @@ reason, the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 15.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 35.
+  `characters-adventures` directory beside the library, in format version 36.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or

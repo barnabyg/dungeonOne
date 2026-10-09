@@ -108,10 +108,13 @@ test("the Fighter table, levels 1 to 4: XP, HP, proficiency, features and master
       FEATURES.slice(0, row.features),
       `level ${row.level} features`,
     );
-    assert.equal(profile.secondWind.uses, row.secondWind);
+    assert.equal(profile.featureUses["second-wind"].max, row.secondWind);
     assert.equal(profile.secondWind.healing.modifier, row.level);
     assert.equal(sheet.weaponMasteries.length, row.masteries);
-    assert.equal(profile.actionSurgeUses, row.level >= 2 ? 1 : 0);
+    assert.equal(
+      profile.featureUses["action-surge"]?.max ?? 0,
+      row.level >= 2 ? 1 : 0,
+    );
     assert.equal(profile.attack.criticalRange, row.level >= 3 ? 19 : 20);
   }
   assert.equal(levelForXp(2699), 3);

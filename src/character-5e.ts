@@ -28,6 +28,7 @@ import {
   type ClassId,
   type FeatureDefinition,
   type FeatureEffect,
+  type FeatureRecovery,
   type FightingStyle,
   type FightingStyleUse,
   type Level,
@@ -1251,13 +1252,17 @@ export type CharacterProfile = Readonly<{
   untrainedArmour?: string;
   /** A shield carried without the class's training: it adds no AC. */
   untrainedShield?: true;
-  /** Second Wind's uses and healing (dice + level), for a class that has it. */
+  /** Second Wind's healing (dice + level), for a class that has it. */
   secondWind?: Readonly<{
-    uses: number;
     healing: Readonly<{ dice: number; sides: number; modifier: number }>;
   }>;
-  /** Action Surge's uses, or 0. */
-  actionSurgeUses: number;
+  /**
+   * Each feature with uses at this level, by feature id (#333): how many,
+   * and what a short and a long rest restore.
+   */
+  featureUses: Readonly<Record<string, FeatureUsesProfile>>;
+  /** The hit-dice pool (#333): one die of the class's hit die per level. */
+  hitDice: Readonly<{ count: number; sides: number }>;
   /** Cunning Action (#307): it can Hide as a bonus action. */
   cunningAction?: true;
   /** Steady Aim (#307): a bonus action for advantage on its next attack. */
@@ -1493,7 +1498,6 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
     };
   });
   const [wind] = effects(definition, level, "second-wind");
-  const [surge] = effects(definition, level, "action-surge");
   const [sneak] = effects(definition, level, "sneak-attack");
   const has = (kind: FeatureEffect["kind"]) =>
     effects(definition, level, kind).length > 0;
@@ -1564,12 +1568,16 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
     ...(wind === undefined
       ? {}
       : {
-          secondWind: {
-            uses: wind.feature.uses?.[level] ?? 0,
-            healing: { ...wind.effect.healing, modifier: level },
-          },
+          secondWind: { healing: { ...wind.effect.healing, modifier: level } },
         }),
-    actionSurgeUses: surge?.feature.uses?.[level] ?? 0,
+    featureUses: Object.fromEntries(
+      classFeatures(definition, level).flatMap(({ id, uses, recovery }) =>
+        uses === undefined || uses[level] === 0
+          ? []
+          : [[id, { max: uses[level], recovery }]],
+      ),
+    ),
+    hitDice: { count: level, sides: hitDie },
     ...(has("cunning-action") ? { cunningAction: true as const } : {}),
     ...(has("steady-aim") ? { steadyAim: true as const } : {}),
     ...(has("fast-hands") ? { fastHands: true as const } : {}),
@@ -1657,6 +1665,12 @@ export function settleCharacter(
   });
 }
 
+/** A feature's uses at a level and how they come back (#333). */
+export type FeatureUsesProfile = Readonly<{
+  max: number;
+  recovery: FeatureRecovery;
+}>;
+
 /** A choice a new level asks for, made on the sheet (#286). */
 export type LevelUpChoice = "ability-score-improvement" | "weapon-mastery";
 
@@ -1696,10 +1710,13 @@ export function levelUpChanges(
   const was = characterProfile(before);
   const now = characterProfile(after);
   const known = new Set(was.features.map(({ id }) => id));
-  const wind = ({ secondWind }: CharacterProfile) =>
+  const wind = ({ secondWind, featureUses }: CharacterProfile) =>
     secondWind === undefined
       ? { uses: 0, modifier: 0 }
-      : { uses: secondWind.uses, modifier: secondWind.healing.modifier };
+      : {
+          uses: featureUses["second-wind"]?.max ?? 0,
+          modifier: secondWind.healing.modifier,
+        };
   return {
     from: before.level,
     to: after.level,

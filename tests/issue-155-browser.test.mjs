@@ -226,7 +226,7 @@ for (const viewport of [
           file.transitions.map(({ action }) => action.type),
           ["begin", "attack", "second-wind", "second-wind"],
         );
-        assert.equal(file.state.character.secondWindUses, 0);
+        assert.equal(file.state.character.featureUses["second-wind"], 0);
         shown = await status(page);
         await reload();
         assert.deepEqual(await status(page), shown);

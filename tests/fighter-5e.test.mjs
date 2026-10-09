@@ -188,10 +188,11 @@ test("the level 1 Fighter has 5e numbers from its kit and choices", () => {
   assert.equal(skill("intimidation").bonus, -1);
   assert.equal(skill("intimidation").proficient, false);
   assert.deepEqual(profile.secondWind, {
-    uses: 2,
     healing: { dice: 1, sides: 10, modifier: 1 },
   });
-  assert.equal(profile.actionSurgeUses, 0);
+  assert.deepEqual(profile.featureUses, {
+    "second-wind": { max: 2, recovery: { shortRest: 1, longRest: "all" } },
+  });
   assert.deepEqual(
     profile.features.map(({ id }) => id),
     ["fighting-style", "second-wind", "weapon-mastery"],
@@ -291,7 +292,7 @@ test("levels 2 and 3 add hit points, Action Surge, Tactical Mind and Champion", 
   // + 6 + Con (+2).
   assert.equal(two.maxHp, 20);
   assert.equal(two.proficiencyBonus, 2);
-  assert.equal(two.actionSurgeUses, 1);
+  assert.equal(two.featureUses["action-surge"].max, 1);
   assert.equal(two.secondWind.healing.modifier, 2);
   assert.deepEqual(
     two.features.map(({ id }) => id),

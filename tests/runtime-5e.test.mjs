@@ -602,7 +602,11 @@ test("Second Wind, Action Surge and End turn are offered only when legal", () =>
   });
   assert.deepEqual(
     veteran.runtime.projectCharacterStatus(veteran.state).resources,
-    ["Second Wind: 2 of 2 uses left", "Action Surge: 1 of 1 use left"],
+    [
+      "Second Wind: 2 of 2 uses left",
+      "Action Surge: 1 of 1 use left",
+      "Hit dice: 2 of 2 d10 left",
+    ],
   );
 });
 
@@ -657,6 +661,7 @@ test("scripted DM: a typed Second Wind resolves through the engine, which writes
   assert.equal(result.state.encounter.combatants[0].hp, 12);
   assert.deepEqual(runtime.projectCharacterStatus(result.state).resources, [
     "Second Wind: 1 of 2 uses left",
+    "Hit dice: 1 of 1 d10 left",
   ]);
 });
 

@@ -201,6 +201,7 @@ function sessionView(session: FifthSession) {
           },
         }),
     ...runtime.projectFight(state),
+    hitDice: runtime.projectHitDice(state),
     actions: runtime.projectActions(state),
     history: session.history,
   };

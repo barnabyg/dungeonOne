@@ -148,7 +148,7 @@ test(
       assert.deepEqual(file.state.checks, [
         { id: "examine:rubble-heap", band: "success", tacticalMind: true },
       ]);
-      assert.equal(file.state.character.secondWindUses, 1);
+      assert.equal(file.state.character.featureUses["second-wind"], 1);
       assert.equal(file.state.tacticalMind, undefined);
       assert.deepEqual(
         file.transitions.map(({ action }) => action.type),

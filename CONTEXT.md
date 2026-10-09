@@ -20,6 +20,14 @@ _Avoid_: Player sheet, Combat profile
 The data a class is made of: hit die, saving throws, skill choices, armour, weapon and tool training, weapon masteries by level, features by level with their uses, recovery and effects, subclasses, ability priority, default choices and starting kits. A character sheet names its class by id (the Fighter or the Rogue), and every derived number comes from its definition.
 _Avoid_: Class rules, Hard-coded Fighter
 
+**Feature uses**:
+How many more times the character can use each class feature with limited uses (Second Wind, Action Surge) in the current adventure, tracked by feature id. Its class definition gives the most at each level and what a short rest and a long rest each restore.
+_Avoid_: Charges, Second Wind counter
+
+**Hit dice**:
+The character's pool of its class's hit die, one per level, tracked by the adventure session: all available at the start of an adventure. Rests will spend and regain them.
+_Avoid_: Hit points, HD (in player-facing text)
+
 **Character library**:
 The player's collection of independently saved characters, including characters not currently taking part in an adventure.
 _Avoid_: Save slots, Party

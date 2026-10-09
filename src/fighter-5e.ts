@@ -90,7 +90,7 @@ export const FIGHTER: ClassDefinition = {
       text: ({ level, uses }) =>
         `Bonus action: regain 1d10 + ${level} HP. ${uses} uses. ${FEATURE_USES_RULE}`,
       uses: { 1: 2, 2: 2, 3: 2, 4: 3, 5: 3 },
-      recovery: "rest-between-adventures",
+      recovery: { shortRest: 1, longRest: "all" },
       effect: { kind: "second-wind", healing: { dice: 1, sides: 10 } },
     },
     WEAPON_MASTERY_FEATURE,
@@ -101,7 +101,7 @@ export const FIGHTER: ClassDefinition = {
       text: ({ uses }) =>
         `Take one additional action on your turn, except Magic. ${uses} use. ${FEATURE_USES_RULE}`,
       uses: { 1: 0, 2: 1, 3: 1, 4: 1, 5: 1 },
-      recovery: "rest-between-adventures",
+      recovery: { shortRest: "all", longRest: "all" },
       effect: { kind: "action-surge" },
     },
     {

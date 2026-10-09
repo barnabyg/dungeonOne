@@ -278,8 +278,8 @@ test("hit points and feature uses last from one fight to the next", () => {
   state = accepted(state, ATTACK_RAT, killRat()).state;
   assert.deepEqual(state.character, {
     hp: 9,
-    secondWindUses: 1,
-    actionSurgeUses: 0,
+    featureUses: { "second-wind": 1 },
+    hitDice: 1,
   });
   // The goblin's fight starts with Ada as she is: 9 HP, one Second Wind.
   state = accepted(

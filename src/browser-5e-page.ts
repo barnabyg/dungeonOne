@@ -7,8 +7,8 @@
 // - #session-status: the status strip (#155): HP with its bar and health,
 //   the round and whose turn it is (#turn), the character's conditions in a
 //   fight (#conditions, #232), and #resources, a pip for each
-//   turn resource and class feature use. It shows only what the session view
-//   projects.
+//   turn resource and class feature use, and outside a fight's turns for
+//   each hit die (#333). It shows only what the session view projects.
 // - #session-scene: the room and the fight. The room lists only
 //   what is there (#157); in a fight its details collapse behind #room-toggle.
 //   The fight's initiative table shows totals, marks the current turn, tags
@@ -857,6 +857,12 @@ function renderStatus() {
   if (features) {
     items.push(resource("second-wind", "Second Wind", features.secondWind.uses, features.secondWind.max, usesLeft("Second Wind", features.secondWind)));
     if (features.actionSurge) items.push(resource("action-surge", "Action Surge", features.actionSurge.uses, features.actionSurge.max, usesLeft("Action Surge", features.actionSurge)));
+  }
+  // The hit-dice pool (#333), outside a fight's turns: they can't be spent
+  // in a fight, and the strip there holds the turn's resources.
+  if (!turn) {
+    const { available, total, sides } = session.hitDice;
+    items.push(resource("hit-dice", "Hit dice", available, total, "Hit dice: " + available + " of " + total + " d" + sides + " left"));
   }
   element("resources").replaceChildren(...items);
 }
