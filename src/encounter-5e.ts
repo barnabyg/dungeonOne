@@ -2431,6 +2431,10 @@ function opponentTurn(
     }
   };
   if (resumed !== undefined) {
+    // The paused hit was attack `made` of the Multiattack, or Rampage's
+    // bonus attack after it: Rampage reuses its parent attack's `made` and
+    // has spent the bonus action, so either way the turn goes on with the
+    // next attack, and only a Multiattack hit can still bring Rampage.
     if (!resumed.progress.rampage) {
       rampageAfter(resumed.dropped);
     }
