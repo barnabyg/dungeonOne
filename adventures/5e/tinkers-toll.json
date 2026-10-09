@@ -22,9 +22,23 @@
           "name": "Offering Bowl",
           "description": "A shallow stone bowl at the shrine's foot, green with moss.",
           "discovery": "The bowl is empty but for moss and dead leaves. Someone has taken the offerings, and wet boot prints lead down toward the ford."
+        },
+        {
+          "id": "shrine-niche",
+          "name": "Shrine Niche",
+          "description": "A niche behind the shrine's carved face, out of the rain.",
+          "discovery": "Tucked at the back of the niche, where some pilgrim left it for the next traveller, is a stoppered vial of red liquid."
         }
       ],
-      "items": []
+      "items": [
+        {
+          "id": "shrine-potion",
+          "name": "Potion of Healing",
+          "description": "A stoppered vial of red liquid that glimmers when shaken.",
+          "kind": "potion-of-healing",
+          "hiddenIn": "shrine-niche"
+        }
+      ]
     },
     {
       "id": "tinkers-cart",
@@ -101,7 +115,7 @@
           "id": "strongbox",
           "name": "Strongbox",
           "description": "An iron-bound box, its lock long since broken.",
-          "discovery": "Inside, wrapped in a rag, is the old toll keeper's seal of office, cast in silver, and beside it a leather purse heavy with the bandits' tolls. Under the purse lie a silver chain and a red stone the bandits took from some traveller."
+          "discovery": "Inside, wrapped in a rag, is the old toll keeper's seal of office, cast in silver, and beside it a leather purse heavy with the bandits' tolls. Under the purse lies a red stone the bandits took from some traveller."
         }
       ],
       "items": [
@@ -119,16 +133,8 @@
           "description": "A leather purse heavy with the bandits' tolls.",
           "kind": "coin",
           "coins": {
-            "gp": 12
+            "gp": 11
           },
-          "hiddenIn": "strongbox"
-        },
-        {
-          "id": "toll-chain",
-          "name": "Silver Toll Chain",
-          "description": "The toll keeper's chain of office, fine silver links gone dark with neglect.",
-          "kind": "treasure",
-          "treasure": "art-25gp",
           "hiddenIn": "strongbox"
         },
         {

@@ -143,7 +143,7 @@ test("a module completable but too deadly when its checks fail is rejected", () 
   );
   assert.match(
     renderGateResult(fallingArch, result),
-    /^ {2}Too deadly when every check fails, FAIL: the level 1, 5th percentile character playing cautious survived \d+\.\d% of 200 runs with its weakest kit, [a-z-]+ \(.*\); hard needs 75\.0%\.$/mu,
+    /^ {2}Too deadly when every check fails, FAIL: the level 1, 5th percentile Fighter playing cautious survived \d+\.\d% of 200 runs with its weakest kit, [a-z-]+ \(.*\); hard needs 75\.0%\.$/mu,
   );
 });
 
@@ -174,7 +174,7 @@ test("the always-succeed branch counts toward the XP limit and is reported", () 
   assert.match(
     renderGateResult(gradedCellar, result),
     new RegExp(
-      `^ {2}When every check succeeds, the level 1, 95th percentile character playing direct earned at most ${available} of the ${available} XP offered in ${alwaysSucceed.runs} runs?\.$`,
+      `^ {2}When every check succeeds, the level 1, 95th percentile Fighter playing direct earned at most ${available} of the ${available} XP offered in ${alwaysSucceed.runs} runs?\.$`,
       "mu",
     ),
   );
@@ -225,7 +225,7 @@ test("npm run balance plays the check policy asked for", async () => {
   );
   assert.match(
     written,
-    /^The Graded Cellar \(graded-cellar\), with always-succeed checks$/mu,
+    /^The Graded Cellar \(graded-cellar\) for the Fighter, with always-succeed checks$/mu,
   );
   assert.match(written, /^ {2}Too deadly when every check fails, /mu);
   const report = qualifyAdventure(gradedCellar, {
@@ -236,7 +236,7 @@ test("npm run balance plays the check policy asked for", async () => {
   assert.equal(report.report.checks, "always-fail");
   assert.match(
     renderBalanceResult(gradedCellar, report),
-    /^The Graded Cellar \(graded-cellar\), with always-fail checks$/mu,
+    /^The Graded Cellar \(graded-cellar\) for the Fighter, with always-fail checks$/mu,
   );
   await assert.rejects(
     main(["--checks", "sometimes"], write),

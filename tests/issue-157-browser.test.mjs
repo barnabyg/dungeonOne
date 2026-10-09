@@ -84,6 +84,9 @@ for (const viewport of [
       const directory = await mkdtemp(join(tmpdir(), "issue-157-"));
       const server = await startFifthBrowserServer({
         adventures: [loneGoblin],
+        // Fixtures are engine material, not gated content: the gate is
+        // tested in balance-5e.test.mjs (#310).
+        qualifies: () => true,
         libraryPath: join(directory, "characters.json"),
         seed: rollOff,
       });

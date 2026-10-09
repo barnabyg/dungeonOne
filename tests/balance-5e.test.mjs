@@ -420,11 +420,11 @@ test("the report reads as text, and a failure names its reason", () => {
   );
   assert.match(
     text,
-    /^The Lone Goblin \(lone-goblin\)\nObjective: victory, through cellar$/mu,
+    /^The Lone Goblin \(lone-goblin\) for the Fighter\nObjective: victory, through cellar$/mu,
   );
   assert.match(
     text,
-    /Level 1, 5th percentile character\. One-hit kill: Goblin Warrior \d+\.\d%/u,
+    /Level 1, 5th percentile Fighter\. One-hit kill: Goblin Warrior \d+\.\d%/u,
   );
   assert.match(text, /cautious: survived \d+\.\d%, completed \d+\.\d% of 2;/u);
   assert.match(text, /lone-goblin: fought in 2, lost \d+\.\d%/u);
@@ -437,34 +437,59 @@ test("the report reads as text, and a failure names its reason", () => {
   );
 });
 
-test("npm run balance qualifies the modules it is given", async () => {
+test("npm run balance qualifies the modules it is given for every class, or the classes asked for (#310)", async () => {
   let written = "";
-  const code = await main(
-    [
-      "--seeds",
-      "3",
-      "--styles",
-      "direct",
-      "--json",
-      "tests/fixtures/lone-goblin.json",
-    ],
-    { write: (text) => (written += text) },
-  );
-  assert.equal(code, 0);
-  const [result] = JSON.parse(written);
+  const run = async (args) => {
+    written = "";
+    const code = await main(args, { write: (text) => (written += text) });
+    const [result] = JSON.parse(written);
+    // The gate judges every class, whatever --classes says.
+    assert.deepEqual(
+      result.gate.classes.map(({ classId }) => classId),
+      ["fighter", "rogue"],
+    );
+    assert.equal(code, result.gate.qualified ? 0 : 1);
+    return result;
+  };
+  const args = [
+    "--seeds",
+    "3",
+    "--styles",
+    "direct",
+    "--json",
+    "tests/fixtures/lone-goblin.json",
+  ];
+  const result = await run(args);
   assert.equal(result.adventureId, "lone-goblin");
-  assert.equal(result.ok, true);
   assert.deepEqual(
-    result.report.cells.map(({ percentile, style, runs }) => [
-      percentile,
-      style,
-      runs,
-    ]),
+    result.reports.map(({ classId, ok }) => [classId, ok]),
     [
-      [5, "direct", 3],
-      [95, "direct", 3],
+      ["fighter", true],
+      ["rogue", true],
     ],
   );
+  for (const { report } of result.reports) {
+    assert.deepEqual(
+      report.cells.map(({ percentile, style, runs }) => [
+        percentile,
+        style,
+        runs,
+      ]),
+      [
+        [5, "direct", 3],
+        [95, "direct", 3],
+      ],
+    );
+  }
+  const rogue = await run(["--classes", "rogue", ...args]);
+  assert.deepEqual(
+    rogue.reports.map(({ classId, report }) => [classId, report.classId]),
+    [["rogue", "rogue"]],
+  );
+  assert.deepEqual(parseArguments(["--classes", "rogue,fighter"]).classes, [
+    "rogue",
+    "fighter",
+  ]);
   assert.deepEqual(
     parseArguments(["--percentiles", "10,50"]).percentiles,
     [10, 50],
@@ -472,6 +497,7 @@ test("npm run balance qualifies the modules it is given", async () => {
   for (const bad of [
     ["--seeds", "0"],
     ["--styles", "reckless"],
+    ["--classes", "wizard"],
     ["--fast"],
     ["--seeds"],
   ]) {
@@ -532,14 +558,14 @@ test("a module too deadly for its difficulty is rejected, and passes declared on
   assert.equal(verdict.xp.ok, true);
   assert.match(
     renderGateResult(GOBLIN_PAIR, medium),
-    /^The Goblin Pair \(goblin-pair\) does not qualify as medium\.\n {2}Too deadly, FAIL: the level 3, 5th percentile character playing cautious survived \d+\.\d% of 200 runs with its weakest kit, mace \(mace level 3 \d+\.\d%, two-daggers level 3 \d+\.\d%, club-and-dagger level 3 \d+\.\d%\); medium needs 85\.0%\.$/mu,
+    /^The Goblin Pair \(goblin-pair\) does not qualify as medium for the Fighter\.\n {2}Too deadly, FAIL: the level 3, 5th percentile Fighter playing cautious survived \d+\.\d% of 200 runs with its weakest kit, mace \(mace level 3 \d+\.\d%, two-daggers level 3 \d+\.\d%, club-and-dagger level 3 \d+\.\d%\); medium needs 85\.0%\.$/mu,
   );
 
   assert.equal(hard.verdict.qualified, true);
   assert.equal(hard.verdict.survival.rate, verdict.survival.rate);
   assert.match(
     renderGateResult(GOBLIN_PAIR, hard),
-    /^The Goblin Pair \(goblin-pair\) qualifies as hard\.$/mu,
+    /^The Goblin Pair \(goblin-pair\) qualifies as hard for the Fighter\.$/mu,
   );
 });
 
@@ -566,7 +592,7 @@ test("a module whose ordinary enemies a strong level-1 Fighter usually one-shots
   assert.equal(medium.verdict.survival.ok, true);
   assert.match(
     renderGateResult(MINION_YARD, medium),
-    /^ {2}Too easy, FAIL: the level 1, 95th percentile character kills 2 of 2 ordinary enemies with one attack more than 40\.0% of the time: Goblin Minion 1 \d+\.\d% \(mace\), Goblin Minion 2 \d+\.\d% \(mace\)\. No more than half may be\.$/mu,
+    /^ {2}Too easy, FAIL: the level 1, 95th percentile Fighter kills 2 of 2 ordinary enemies with one attack more than 40\.0% of the time: Goblin Minion 1 \d+\.\d% \(mace\), Goblin Minion 2 \d+\.\d% \(mace\)\. No more than half may be\.$/mu,
   );
 });
 
@@ -670,7 +696,7 @@ test("npm run balance reports the gate and fails when a module doesn't qualify",
   );
   assert.match(
     written,
-    /^The Goblin Pair \(goblin-pair\) does not qualify as medium\.$/mu,
+    /^The Goblin Pair \(goblin-pair\) does not qualify as medium for the Fighter\.$/mu,
   );
   written = "";
   assert.equal(
@@ -681,9 +707,12 @@ test("npm run balance reports the gate and fails when a module doesn't qualify",
     0,
   );
   const [result] = JSON.parse(written);
-  assert.equal(result.gate.ok, true);
-  assert.equal(result.gate.verdict.qualified, true);
-  assert.equal(result.gate.verdict.survival.runs, 20);
+  assert.equal(result.gate.qualified, true);
+  for (const { result: gate } of result.gate.classes) {
+    assert.equal(gate.ok, true);
+    assert.equal(gate.verdict.qualified, true);
+    assert.equal(gate.verdict.survival.runs, 20);
+  }
 });
 
 test("passesGate is the gate's verdict at the defaults, as the browser offers modules", () => {

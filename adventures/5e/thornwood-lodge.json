@@ -449,14 +449,9 @@
           "description": "A dire wolf the size of a pony, wearing a studded war collar."
         },
         {
-          "id": "kennel-mastiff-1",
+          "id": "kennel-mastiff",
           "monster": "mastiff",
-          "name": "Kennel Mastiff 1"
-        },
-        {
-          "id": "kennel-mastiff-2",
-          "monster": "mastiff",
-          "name": "Kennel Mastiff 2"
+          "name": "Kennel Mastiff"
         }
       ],
       "defeatEndingId": "fallen-in-the-thornwood"

@@ -75,6 +75,9 @@ for (const viewport of [
       const dm = gate();
       const server = await startFifthBrowserServer({
         adventures: [goblinBand],
+        // Fixtures are engine material, not gated content: the gate is
+        // tested in balance-5e.test.mjs (#310).
+        qualifies: () => true,
         libraryPath: join(directory, "characters.json"),
         seed: 0,
         dmModel: {
@@ -309,6 +312,9 @@ test(
     const directory = await mkdtemp(join(tmpdir(), "issue-160-"));
     const server = await startFifthBrowserServer({
       adventures: [goblinBand],
+      // Fixtures are engine material, not gated content: the gate is
+      // tested in balance-5e.test.mjs (#310).
+      qualifies: () => true,
       libraryPath: join(directory, "characters.json"),
       seed: 0,
       dmModel: await loadScriptedDmModel(

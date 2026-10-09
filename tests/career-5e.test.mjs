@@ -170,14 +170,30 @@ test("the career script reads its options and fails on a set that can't reach th
   assert.deepEqual(parseArguments([]), {
     seeds: 200,
     requiredLevel: 5,
+    classId: "fighter",
     json: false,
     paths: [],
   });
   assert.deepEqual(
-    parseArguments(["--seeds", "5", "--required-level", "2", "a.json"]),
-    { seeds: 5, requiredLevel: 2, json: false, paths: ["a.json"] },
+    parseArguments([
+      "--seeds",
+      "5",
+      "--required-level",
+      "2",
+      "--class",
+      "rogue",
+      "a.json",
+    ]),
+    {
+      seeds: 5,
+      requiredLevel: 2,
+      classId: "rogue",
+      json: false,
+      paths: ["a.json"],
+    },
   );
   assert.throws(() => parseArguments(["--required-level", "9"]), /Usage/u);
+  assert.throws(() => parseArguments(["--class", "wizard"]), /Usage/u);
   assert.throws(() => parseArguments(["--seeds", "0"]), /Usage/u);
   assert.throws(() => parseArguments(["--bogus"]), /Usage/u);
 
@@ -206,6 +222,8 @@ test("the career script reads its options and fails on a set that can't reach th
         "4",
         "--required-level",
         "2",
+        "--class",
+        "rogue",
         "--json",
         fixture("lintel-barrow"),
       ],
@@ -216,5 +234,6 @@ test("the career script reads its options and fails on a set that can't reach th
   const report = JSON.parse(passing.text());
   assert.equal(report.ok, true);
   assert.equal(report.requiredLevel, 2);
+  assert.equal(report.classId, "rogue");
   assert.equal(report.modules[0].adventureId, "lintel-barrow");
 });

@@ -94,7 +94,8 @@ const libraryFile = async (path) => JSON.parse(await readFile(path, "utf8"));
 
 test(
   "the default launch plays a 5e adventure from creation to a level-up at 375×812",
-  { timeout: 180000 },
+  // Two launches, each gating every module for both classes (#310).
+  { timeout: 360000 },
   async () => {
     const seed = String(findSeed());
     const directory = await mkdtemp(join(tmpdir(), "issue-137-browser-"));

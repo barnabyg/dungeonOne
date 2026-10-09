@@ -66,6 +66,9 @@ async function withServer(options, run) {
   const directory = await mkdtemp(join(tmpdir(), "issue-161-"));
   const server = await startFifthBrowserServer({
     adventures: [loneGoblin],
+    // Fixtures are engine material, not gated content: the gate is
+    // tested in balance-5e.test.mjs (#310).
+    qualifies: () => true,
     libraryPath: join(directory, "characters.json"),
     seed: 4,
     ...options,

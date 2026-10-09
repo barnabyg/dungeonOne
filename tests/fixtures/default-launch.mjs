@@ -23,13 +23,14 @@ export async function launchDefault(cwd, args, apiKey = "") {
   const exited = new Promise((resolve) => {
     child.once("exit", resolve);
   });
-  // Startup gates every built-in module on every check policy (about 9 s
-  // idle since #285); under the full parallel suite it has taken over 30 s.
+  // Startup gates every built-in module on every check policy for both
+  // classes (about 37 s idle since #310, 20 before); under the full parallel
+  // suite it takes far longer.
   const url = await new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       child.kill();
-      reject(new Error(`No URL within 60 s:\n${output}`));
-    }, 60000);
+      reject(new Error(`No URL within 150 s:\n${output}`));
+    }, 150000);
     child.once("exit", () => clearTimeout(timer));
     child.stdout.on("data", (chunk) => {
       output += chunk;

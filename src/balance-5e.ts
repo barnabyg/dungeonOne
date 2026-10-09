@@ -138,7 +138,8 @@ export function gateLevelChoice(
  * health: its skills, Expertise and masteries are its class's defaults, the
  * harness's policy for a Rogue's (#306). An `archer` is Dexterity-first
  * instead (#230): the rolls placed on Strength and Dexterity change places,
- * and the +2 goes on Dexterity. From level 4 it makes the gate's level
+ * and the +2 goes on Dexterity; a class that places Dexterity first already
+ * is (the Rogue), so its archer is its usual build. From level 4 it makes the gate's level
  * choice (`gateLevelChoice`), preferring to master `mastery`.
  */
 export function characterAtLevel(
@@ -157,7 +158,7 @@ export function characterAtLevel(
     dice,
     {
       ...definition.defaults,
-      ...(archer
+      ...(archer && definition.primaryAbilities[0] !== "dexterity"
         ? {
             placement: {
               ...placement,
@@ -181,12 +182,11 @@ export function characterAtLevel(
     : applyLevelChoice(sheet, gateLevelChoice(sheet, archer, mastery));
 }
 
-/** The sum of a default creation's six ability modifiers. */
-function totalModifier(dice: RolledDice): number {
-  return Object.values(characterAtLevel(dice, 1).abilities).reduce(
-    (sum, score) => sum + abilityModifier(score),
-    0,
-  );
+/** The sum of a default creation's six ability modifiers, in `classId`. */
+function totalModifier(dice: RolledDice, classId: ClassId): number {
+  return Object.values(
+    characterAtLevel(dice, 1, undefined, false, undefined, classId).abilities,
+  ).reduce((sum, score) => sum + abilityModifier(score), 0);
 }
 
 export type CharacterSample = Readonly<{
@@ -195,6 +195,11 @@ export type CharacterSample = Readonly<{
   sampleSize?: number;
   /** The seed the creations are rolled from. */
   sampleSeed?: number;
+  /**
+   * The class whose default creation ranks them (#310), placing the rolls
+   * by its own priority: the harness's class unless named.
+   */
+  classId?: ClassId;
 }>;
 
 export type PercentileCharacter = Readonly<{
@@ -203,7 +208,10 @@ export type PercentileCharacter = Readonly<{
   totalModifier: number;
 }>;
 
-/** Each sample rolled so far, ranked, by size and seed: the same every time. */
+/**
+ * Each sample rolled so far, ranked, by size, seed and class: the same every
+ * time.
+ */
 const rankedSamples = new Map<
   string,
   readonly Omit<PercentileCharacter, "percentile">[]
@@ -211,21 +219,24 @@ const rankedSamples = new Map<
 
 /**
  * Rolls `sampleSize` creations from `sampleSeed` and returns the creation at
- * each percentile, ranked by total ability modifier. Creations with the same
+ * each percentile, ranked by total ability modifier as `classId` creates
+ * them (a class's background increase may land on an odd or an even score,
+ * so the classes rank one sample differently). Creations with the same
  * total keep the order they were rolled in, so the result is deterministic.
  */
 export function percentileCharacters({
   percentiles,
   sampleSize = 10_000,
   sampleSeed = 134,
+  classId = DEFAULT_CLASS,
 }: CharacterSample): readonly PercentileCharacter[] {
-  const key = `${sampleSize}:${sampleSeed}`;
+  const key = `${sampleSize}:${sampleSeed}:${classId}`;
   let ranked = rankedSamples.get(key);
   if (ranked === undefined) {
     const random = createSeededRandom(sampleSeed);
     ranked = Array.from({ length: sampleSize }, () => {
       const dice = rollAbilitySet(random);
-      return { dice, totalModifier: totalModifier(dice) };
+      return { dice, totalModifier: totalModifier(dice, classId) };
     }).sort((a, b) => a.totalModifier - b.totalModifier);
     rankedSamples.set(key, ranked);
   }
@@ -251,6 +262,13 @@ export function percentileCharacters({
  * also fail its Constitution save unless the hit is critical or radiant.
  * Advantage from a previous hit (Vex) is not counted, nor is the Light extra
  * attack (the only attack Two-Weapon Fighting changes): it is a second one.
+ * With `bonusAction`, a Rogue's bonus action before the attack is counted
+ * too (#310), as the harness plays it: Steady Aim gives advantage, or else
+ * Hide gives it as often as its Stealth check meets `hideDc`, the best
+ * passive Perception in the enemy's fight. Advantage brings Sneak Attack's
+ * dice, doubled on a critical hit, with a Finesse or ranged weapon; the
+ * weapon's own disadvantage cancels both. The gate judges the plain attack
+ * and only reports this one (owner decision, 9 October 2026).
  */
 export function oneHitKillChance(
   sheet: CharacterSheet,
@@ -268,8 +286,10 @@ export function oneHitKillChance(
         | "challengeRating"
       >
     >,
+  bonusAction?: Readonly<{ hideDc: number }>,
 ): number {
-  const attack = playerCombatant(sheet).attack;
+  const combatant = playerCombatant(sheet);
+  const { attack } = combatant;
   const hp = enemy.hitPoints.average;
   const defenses = statBlockDefenses(enemy);
   /** Its Constitution save, if Undead Fortitude can keep it standing. */
@@ -299,21 +319,30 @@ export function oneHitKillChance(
       ? 1
       : Math.min(20, Math.max(0, 5 + damage - fortitude - 1)) / 20;
   };
-  /** P(a kill) with `dice` dice of the weapon plus its modifier. */
-  const kills = (dice: number, critical: boolean) => {
+  /**
+   * P(a kill) with `dice` dice of the weapon and `sneak` Sneak Attack dice
+   * plus the weapon's modifier. Great Weapon Fighting counts only the
+   * weapon's dice.
+   */
+  const kills = (dice: number, sneak: number, critical: boolean) => {
     let totals = new Map([[attack.damage.modifier, 1]]);
-    for (let die = 0; die < dice; die++) {
+    const add = (sides: number, counted: (face: number) => number) => {
       const next = new Map<number, number>();
       for (const [total, chance] of totals) {
-        for (let face = 1; face <= attack.damage.sides; face++) {
-          const counted = countedDamageDie(face, attack.greatWeaponFighting);
-          next.set(
-            total + counted,
-            (next.get(total + counted) ?? 0) + chance / attack.damage.sides,
-          );
+        for (let face = 1; face <= sides; face++) {
+          const value = total + counted(face);
+          next.set(value, (next.get(value) ?? 0) + chance / sides);
         }
       }
       totals = next;
+    };
+    for (let die = 0; die < dice; die++) {
+      add(attack.damage.sides, (face) =>
+        countedDamageDie(face, attack.greatWeaponFighting),
+      );
+    }
+    for (let die = 0; die < sneak; die++) {
+      add(combatant.sneakAttack!.sides, (face) => face);
     }
     return [...totals].reduce(
       (sum, [total, chance]) =>
@@ -321,27 +350,90 @@ export function oneHitKillChance(
       0,
     );
   };
-  /** P(the kept d20 is `d20`), with disadvantage keeping the lower of two. */
-  const rolled = (d20: number) =>
-    (attack.disadvantage ?? []).length === 0
-      ? 1 / 20
-      : ((21 - d20) ** 2 - (20 - d20) ** 2) / 400;
   // Graze: a miss deals the damage modifier, if above 0.
   const grazeKills =
     attack.mastery === "Graze" && attack.damage.modifier > 0
       ? killedBy(attack.damage.modifier, false)
       : 0;
-  let chance = 0;
-  for (let d20 = 1; d20 <= 20; d20++) {
-    if (d20 !== 1 && d20 >= attack.criticalRange) {
-      chance += kills(attack.damage.dice * 2, true) * rolled(d20);
-    } else if (d20 !== 1 && d20 + attack.bonus >= enemy.armorClass) {
-      chance += kills(attack.damage.dice, false) * rolled(d20);
-    } else {
-      chance += grazeKills * rolled(d20);
+  /**
+   * P(a kill) with the d20 rolled `mode`: two kept higher or lower, or one;
+   * with `sneak` Sneak Attack dice on a hit.
+   */
+  const chanceWith = (
+    mode: "advantage" | "disadvantage" | "straight",
+    sneak: number,
+  ) => {
+    /** P(the kept d20 is `d20`). */
+    const rolled = (d20: number) =>
+      mode === "straight"
+        ? 1 / 20
+        : mode === "advantage"
+          ? (d20 ** 2 - (d20 - 1) ** 2) / 400
+          : ((21 - d20) ** 2 - (20 - d20) ** 2) / 400;
+    let chance = 0;
+    for (let d20 = 1; d20 <= 20; d20++) {
+      if (d20 !== 1 && d20 >= attack.criticalRange) {
+        chance += kills(attack.damage.dice * 2, sneak * 2, true) * rolled(d20);
+      } else if (d20 !== 1 && d20 + attack.bonus >= enemy.armorClass) {
+        chance += kills(attack.damage.dice, sneak, false) * rolled(d20);
+      } else {
+        chance += grazeKills * rolled(d20);
+      }
     }
+    return chance;
+  };
+  const hindered = (attack.disadvantage ?? []).length > 0;
+  /** P(the bonus action before the attack gives it advantage). */
+  const aided =
+    bonusAction === undefined
+      ? 0
+      : combatant.steadyAim === true
+        ? 1
+        : combatant.hide === undefined
+          ? 0
+          : (() => {
+              const { modifier, proficiency } = combatant.hide;
+              const once =
+                Math.min(
+                  20,
+                  Math.max(
+                    0,
+                    21 - (bonusAction.hideDc - modifier - proficiency),
+                  ),
+                ) / 20;
+              // Untrained armour gives the Stealth check disadvantage.
+              return (combatant.abilityDisadvantages?.dexterity ?? []).length >
+                0
+                ? once ** 2
+                : once;
+            })();
+  const plain = chanceWith(hindered ? "disadvantage" : "straight", 0);
+  if (aided === 0) {
+    return plain;
   }
-  return chance;
+  // The weapon's own disadvantage cancels the advantage, and Sneak Attack.
+  const sneak =
+    !hindered &&
+    combatant.sneakAttack !== undefined &&
+    (attack.finesse === true || attack.ammunition !== undefined)
+      ? combatant.sneakAttack.dice
+      : 0;
+  return (
+    (1 - aided) * plain +
+    aided * chanceWith(hindered ? "straight" : "advantage", sneak)
+  );
+}
+
+/**
+ * The best passive Perception among a fight's opponents: what a Rogue's
+ * Hide must meet (#307, #310).
+ */
+function watching(
+  opponents: FifthAdventure["encounters"][number]["opponents"],
+): number {
+  return Math.max(
+    ...opponents.map(({ statBlock }) => statBlock.passivePerception),
+  );
 }
 
 /** Why the harness can't qualify a module: a named reason, never a pass. */
@@ -1287,6 +1379,8 @@ export type BalanceOptions = Readonly<{
   stepLimit?: number;
   /** How checks are graded (#285): `seeded` by default. */
   checks?: CheckPolicy;
+  /** The class played (#310): the harness's class, the Fighter, unless named. */
+  classId?: ClassId;
 }>;
 
 export const DEFAULT_SEED_COUNT = 200;
@@ -1335,6 +1429,8 @@ export type BalanceCell = Readonly<{
 
 export type BalanceReport = Readonly<{
   adventureId: string;
+  /** The class the report plays (#310). */
+  classId: ClassId;
   /** The check policy the runs played (#285). */
   checks: CheckPolicy;
   objective: Objective;
@@ -1426,12 +1522,14 @@ export function qualifyAdventure(
     sampleSeed,
     stepLimit,
     checks = "seeded",
+    classId = DEFAULT_CLASS,
   }: BalanceOptions = {},
 ): BalanceResult {
   try {
     const { objective, roomIds } = requiredPath(adventure);
     const characters = percentileCharacters({
       percentiles,
+      classId,
       ...(sampleSize === undefined ? {} : { sampleSize }),
       ...(sampleSeed === undefined ? {} : { sampleSeed }),
     });
@@ -1439,7 +1537,14 @@ export function qualifyAdventure(
     const cells: BalanceCell[] = [];
     for (let level = min as Level; level <= max; level++) {
       for (const { percentile, dice } of characters) {
-        const sheet = characterAtLevel(dice, level);
+        const sheet = characterAtLevel(
+          dice,
+          level,
+          undefined,
+          false,
+          undefined,
+          classId,
+        );
         const runtime = createFifthRuntime(adventure, sheet, { checks });
         for (const style of styles) {
           const runs = seeds.map((seed) =>
@@ -1460,6 +1565,7 @@ export function qualifyAdventure(
       ok: true,
       report: {
         adventureId: adventure.id,
+        classId,
         checks,
         objective,
         requiredRoomIds: roomIds,
@@ -1493,8 +1599,9 @@ export function renderBalanceResult(
     return `${adventure.title} (${adventure.id}) fails: ${result.failure.code}. ${result.failure.message}`;
   }
   const { report } = result;
+  const className = CLASSES[report.classId].name;
   const lines = [
-    `${adventure.title} (${report.adventureId})${report.checks === "seeded" ? "" : `, with ${report.checks} checks`}`,
+    `${adventure.title} (${report.adventureId}) for the ${className}${report.checks === "seeded" ? "" : `, with ${report.checks} checks`}`,
     `Objective: ${report.objective}, through ${report.requiredRoomIds.join(" > ")}`,
   ];
   for (const cell of report.cells) {
@@ -1505,7 +1612,7 @@ export function renderBalanceResult(
     if (first === cell) {
       lines.push(
         "",
-        `Level ${cell.level}, ${cell.percentile}th percentile character. One-hit kill: ${cell.oneHitKill
+        `Level ${cell.level}, ${cell.percentile}th percentile ${className}. One-hit kill: ${cell.oneHitKill
           .map(({ name, chance }) => `${name} ${percent(chance)}`)
           .join(", ")}`,
       );
@@ -1641,6 +1748,16 @@ export type OneHitKillCheck = Readonly<{
   }>[];
   /** The ordinary enemies over the cap; more than half of them fails. */
   overCap: OneHitKillCheck["enemies"];
+  /**
+   * Reported, not judged (#310): for a class with a bonus action that gives
+   * its first attack advantage (the Rogue's Hide or Steady Aim), the same
+   * chances with that bonus action and its Sneak Attack, and the enemies
+   * over the cap with them. Absent for a class without one.
+   */
+  bonusAction?: Readonly<{
+    enemies: OneHitKillCheck["enemies"];
+    overCap: OneHitKillCheck["enemies"];
+  }>;
 }>;
 
 /**
@@ -1676,6 +1793,8 @@ export type XpCheck = Readonly<{
 
 export type GateVerdict = Readonly<{
   adventureId: string;
+  /** The class the verdict judges (#310). */
+  classId: ClassId;
   difficulty: Difficulty;
   qualified: boolean;
   /** The survival check on seeded checks. */
@@ -1699,9 +1818,13 @@ export type GateVerdict = Readonly<{
  */
 export type GateMeasures = Readonly<{
   adventureId: string;
+  classId: ClassId;
   survival: Omit<SurvivalCheck, "ok" | "required">;
   alwaysFail: Omit<SurvivalCheck, "ok" | "required">;
-  oneHitKill: Omit<OneHitKillCheck, "ok" | "cap" | "overCap">;
+  oneHitKill: Omit<OneHitKillCheck, "ok" | "cap" | "overCap" | "bonusAction"> &
+    Readonly<{
+      bonusAction?: Readonly<{ enemies: OneHitKillCheck["enemies"] }>;
+    }>;
   xp: XpCheck;
   stealthFirst?: StealthFirstReport;
   reactions?: readonly ReactionPolicyReport[];
@@ -1719,6 +1842,12 @@ export type GateOptions = Pick<
   "seeds" | "sampleSize" | "sampleSeed" | "stepLimit"
 > &
   Readonly<{
+    /**
+     * The class `gateAdventure` judges (#310): the harness's class, the
+     * Fighter, unless named. `gateModule` judges every class in
+     * `GATE_CLASSES`, so it takes no class.
+     */
+    classId?: ClassId;
     /**
      * Whether to play and report the stealth-first runs (#302); true by
      * default. They are never judged, so `passesGate` leaves them out.
@@ -1742,25 +1871,29 @@ export type Attacker = Readonly<{
 }>;
 
 /**
- * The ways the gate arms the character rolled with `dice` at `level`: every
- * starting kit, and every weapon in `placed` wielded with the default kit's
- * armour, each with every Fighting Style, the default first. A placed ranged
- * weapon is wielded by the Dexterity-first build of the same dice (#230).
+ * The ways the gate arms the `classId` character (the harness's class unless
+ * named) rolled with `dice` at `level`: every starting kit of its class, and
+ * every weapon in `placed` wielded with the default kit's armour, each with
+ * every Fighting Style, the default first, for a class with one. A placed
+ * ranged weapon is wielded by the Dexterity-first build of the same dice
+ * (#230).
  */
 export function strongestAttackers(
   dice: RolledDice,
   level: Level,
   placed: readonly WeaponId[] = [],
+  classId: ClassId = DEFAULT_CLASS,
 ): readonly Attacker[] {
+  const definition = CLASSES[classId];
   const armed = [
-    ...KITS.map((kit) => ({
+    ...definition.kits.map((kit) => ({
       kit,
-      sheet: characterAtLevel(dice, level, kit),
+      sheet: characterAtLevel(dice, level, kit, false, undefined, classId),
     })),
     ...placed.map((gear) => {
-      const kit = HARNESS_CLASS.defaults.kit;
+      const kit = definition.defaults.kit;
       const ranged = (WEAPONS[gear] as WeaponData).ammunition !== undefined;
-      const sheet = characterAtLevel(dice, level, kit, ranged, gear);
+      const sheet = characterAtLevel(dice, level, kit, ranged, gear, classId);
       return {
         kit,
         gear,
@@ -1774,7 +1907,7 @@ export function strongestAttackers(
       };
     }),
   ];
-  const preferred = HARNESS_CLASS.defaults.fightingStyle;
+  const preferred = definition.defaults.fightingStyle;
   // A class without a Fighting Style is tried as it is (#306).
   if (preferred === undefined) {
     return armed;
@@ -1801,6 +1934,7 @@ export function strongestAttackers(
 export function bestOneHitKill(
   attackers: readonly Attacker[],
   enemy: StatBlock,
+  bonusAction?: Readonly<{ hideDc: number }>,
 ): Readonly<{
   chance: number;
   kit: KitId;
@@ -1809,7 +1943,7 @@ export function bestOneHitKill(
 }> {
   return attackers
     .map(({ sheet, ...found }) => ({
-      chance: oneHitKillChance(sheet, enemy),
+      chance: oneHitKillChance(sheet, enemy, bonusAction),
       ...found,
     }))
     .reduce((best, entry) => (entry.chance > best.chance ? entry : best));
@@ -1844,12 +1978,15 @@ export function gateAdventure(
     stepLimit,
     reportStealth = true,
     reportReactions = true,
+    classId = DEFAULT_CLASS,
   }: GateOptions = {},
 ): GateResult {
   const { min, max } = adventure.recommendedLevels;
+  const classKits = CLASSES[classId].kits;
   try {
     const [weakest, strongest] = percentileCharacters({
       percentiles: [WEAKEST_PERCENTILE, STRONGEST_PERCENTILE],
+      classId,
       ...(sampleSize === undefined ? {} : { sampleSize }),
       ...(sampleSeed === undefined ? {} : { sampleSeed }),
     });
@@ -1871,8 +2008,15 @@ export function gateAdventure(
      * reaction roll (#304).
      */
     const played = levels.flatMap((level) =>
-      KITS.map((kit) => {
-        const sheet = characterAtLevel(weakest!.dice, level, kit);
+      classKits.map((kit) => {
+        const sheet = characterAtLevel(
+          weakest!.dice,
+          level,
+          kit,
+          false,
+          undefined,
+          classId,
+        );
         const seeded = createFifthRuntime(adventure, sheet);
         const failing = createFifthRuntime(adventure, sheet, {
           checks: "always-fail",
@@ -1977,7 +2121,12 @@ export function gateAdventure(
         ),
       ),
     ];
-    const strong = strongestAttackers(strongest!.dice, max as Level, placed);
+    const strong = strongestAttackers(
+      strongest!.dice,
+      max as Level,
+      placed,
+      classId,
+    );
     const enemies = adventure.encounters.flatMap(
       ({ id: encounterId, opponents }) =>
         opponents.flatMap(({ id, name, statBlock, boss }) =>
@@ -1993,10 +2142,33 @@ export function gateAdventure(
               ],
         ),
     );
+    // With a bonus action before the attack (#310): reported, not judged.
+    const prepared = strong.some(({ sheet }) => {
+      const { hide, steadyAim } = playerCombatant(sheet);
+      return hide !== undefined || steadyAim === true;
+    });
+    const withBonusAction = adventure.encounters.flatMap(
+      ({ id: encounterId, opponents }) =>
+        opponents.flatMap(({ id, name, statBlock, boss }) =>
+          boss === true
+            ? []
+            : [
+                {
+                  encounterId,
+                  opponentId: id,
+                  name,
+                  ...bestOneHitKill(strong, statBlock, {
+                    hideDc: watching(opponents),
+                  }),
+                },
+              ],
+        ),
+    );
     const oneHitKill: GateMeasures["oneHitKill"] = {
       level: max,
       percentile: STRONGEST_PERCENTILE,
       enemies,
+      ...(prepared ? { bonusAction: { enemies: withBonusAction } } : {}),
     };
 
     const available =
@@ -2024,7 +2196,14 @@ export function gateAdventure(
     // character fights every fight it finds.
     const succeeding = createFifthRuntime(
       adventure,
-      characterAtLevel(strongest!.dice, max as Level),
+      characterAtLevel(
+        strongest!.dice,
+        max as Level,
+        undefined,
+        false,
+        undefined,
+        classId,
+      ),
       { checks: "always-succeed" },
     );
     // Once a run earns everything offered, no other run can earn more.
@@ -2065,6 +2244,7 @@ export function gateAdventure(
       verdict: gateVerdictAt(
         {
           adventureId: adventure.id,
+          classId,
           survival,
           alwaysFail,
           oneHitKill,
@@ -2118,6 +2298,7 @@ export function gateVerdictAt(
   const overCap = enemies.filter(
     ({ chance }) => chance > thresholds.oneHitKillCap,
   );
+  const prepared = measures.oneHitKill.bonusAction;
   const oneHitKill: OneHitKillCheck = {
     ok: overCap.length * 2 <= enemies.length,
     level: measures.oneHitKill.level,
@@ -2125,9 +2306,20 @@ export function gateVerdictAt(
     cap: thresholds.oneHitKillCap,
     enemies,
     overCap,
+    ...(prepared === undefined
+      ? {}
+      : {
+          bonusAction: {
+            enemies: prepared.enemies,
+            overCap: prepared.enemies.filter(
+              ({ chance }) => chance > thresholds.oneHitKillCap,
+            ),
+          },
+        }),
   };
   return {
     adventureId: measures.adventureId,
+    classId: measures.classId,
     difficulty,
     qualified: survival.ok && alwaysFail.ok && oneHitKill.ok && measures.xp.ok,
     survival,
@@ -2143,46 +2335,85 @@ export function gateVerdictAt(
   };
 }
 
+/**
+ * The classes the gate qualifies every module for (#310), in the order
+ * creation offers them: a module qualifies only if it qualifies for each.
+ */
+export const GATE_CLASSES: readonly ClassId[] = ["fighter", "rogue"];
+
+/** The gate's verdict on a module for every class in `GATE_CLASSES`. */
+export type ModuleGateResult = Readonly<{
+  adventureId: string;
+  /** Whether the module qualifies for every class. */
+  qualified: boolean;
+  /** Each class's result, in `GATE_CLASSES` order. */
+  classes: readonly Readonly<{ classId: ClassId; result: GateResult }>[];
+}>;
+
+/**
+ * Gates `adventure` for every class in `GATE_CLASSES` (`gateAdventure` for
+ * each, with `options`): it qualifies only if every class qualifies.
+ */
+export function gateModule(
+  adventure: FifthAdventure,
+  options: Omit<GateOptions, "classId"> = {},
+): ModuleGateResult {
+  const classes = GATE_CLASSES.map((classId) => ({
+    classId,
+    result: gateAdventure(adventure, { ...options, classId }),
+  }));
+  return {
+    adventureId: adventure.id,
+    qualified: classes.every(
+      ({ result }) => result.ok && result.verdict.qualified,
+    ),
+    classes,
+  };
+}
+
 /** Each module gated so far, by its content: the verdict never changes. */
 const gated = new Map<string, boolean>();
 
 /**
- * Whether `adventure` passes the gate at its declared difficulty with the
- * default options, as the browser offers modules.
+ * Whether `adventure` passes the gate at its declared difficulty for every
+ * class with the default options (`gateModule`), as the browser offers
+ * modules.
  */
 export function passesGate(adventure: FifthAdventure): boolean {
   const key = JSON.stringify(adventure);
   let passed = gated.get(key);
   if (passed === undefined) {
-    const result = gateAdventure(adventure, {
+    passed = gateModule(adventure, {
       reportStealth: false,
       reportReactions: false,
-    });
-    passed = result.ok && result.verdict.qualified;
+    }).qualified;
     gated.set(key, passed);
   }
   return passed;
 }
 
 /**
- * The gate's verdict as plain text: whether the module qualifies at its
- * declared difficulty, then each check, naming the ordinary enemies over
- * the one-hit-kill cap.
+ * One class's gate verdict as plain text: whether the module qualifies at
+ * its declared difficulty for the class, then each check, naming the
+ * ordinary enemies over the one-hit-kill cap. A failure names `classId`,
+ * the class it was gated for, when given.
  */
 export function renderGateResult(
   adventure: Pick<FifthAdventure, "id" | "title">,
   result: GateResult,
+  classId?: ClassId,
 ): string {
   const name = `${adventure.title} (${adventure.id})`;
   if (!result.ok) {
-    return `${name} does not qualify: ${result.failure.code}. ${result.failure.message}`;
+    return `${name} does not qualify${classId === undefined ? "" : ` for the ${CLASSES[classId].name}`}: ${result.failure.code}. ${result.failure.message}`;
   }
   const { verdict } = result;
+  const who = CLASSES[verdict.classId].name;
   const { survival, alwaysFail, oneHitKill, xp } = verdict;
   const mark = (ok: boolean) => (ok ? "pass" : "FAIL");
   const over = oneHitKill.overCap;
   const deadly = (check: SurvivalCheck, title: string) =>
-    `  ${title}, ${mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile character playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${kits(check)}); ${verdict.difficulty} needs ${percent(check.required)}.`;
+    `  ${title}, ${mark(check.ok)}: the level ${check.level}, ${check.percentile}th percentile ${who} playing ${check.style} survived ${percent(check.rate)} of ${check.runs} runs with its weakest kit, ${check.kit} (${kits(check)}); ${verdict.difficulty} needs ${percent(check.required)}.`;
   const succeeded = xp.alwaysSucceed;
   const stealth = verdict.stealthFirst;
   const kits = (check: Pick<SurvivalCheck, "kits">) =>
@@ -2190,10 +2421,10 @@ export function renderGateResult(
       .map(({ kit, level, rate }) => `${kit} level ${level} ${percent(rate)}`)
       .join(", ");
   return [
-    `${name} ${verdict.qualified ? "qualifies" : "does not qualify"} as ${verdict.difficulty}.`,
+    `${name} ${verdict.qualified ? "qualifies" : "does not qualify"} as ${verdict.difficulty} for the ${who}.`,
     deadly(survival, "Too deadly"),
     deadly(alwaysFail, "Too deadly when every check fails"),
-    `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile character kills ` +
+    `  Too easy, ${mark(oneHitKill.ok)}: the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile ${who} kills ` +
       (over.length === 0
         ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`
         : `${over.length} of ${oneHitKill.enemies.length} ordinary enemies with one attack more than ${percent(oneHitKill.cap)} of the time: ${over
@@ -2202,16 +2433,44 @@ export function renderGateResult(
                 `${enemy} ${percent(chance)} (${gear === undefined ? kit : `found ${gear}`})`,
             )
             .join(", ")}.${oneHitKill.ok ? "" : " No more than half may be."}`),
+    ...(oneHitKill.bonusAction === undefined
+      ? []
+      : [
+          `  Too easy with Sneak Attack, reported (not judged): with Hide or Steady Aim before the attack, the level ${oneHitKill.level}, ${oneHitKill.percentile}th percentile ${who} kills ` +
+            (oneHitKill.bonusAction.overCap.length === 0
+              ? `no ordinary enemy with one attack more than ${percent(oneHitKill.cap)} of the time.`
+              : `${oneHitKill.bonusAction.overCap.length} of ${oneHitKill.bonusAction.enemies.length} ordinary enemies with one attack more than ${percent(oneHitKill.cap)} of the time: ${oneHitKill.bonusAction.overCap
+                  .map(
+                    ({ name: enemy, chance, kit, gear }) =>
+                      `${enemy} ${percent(chance)} (${gear === undefined ? kit : `found ${gear}`})`,
+                  )
+                  .join(", ")}.`),
+        ]),
     `  XP, ${mark(xp.ok)}: its ${Math.max(xp.available, succeeded.mostXp)} XP takes a character from ${xp.startXp} XP to level ${xp.endLevel}; the limit is level ${xp.levelLimit}.`,
-    `  When every check succeeds, the level ${succeeded.level}, ${succeeded.percentile}th percentile character playing ${succeeded.style} earned at most ${succeeded.mostXp} of the ${xp.available} XP offered in ${succeeded.runs} ${succeeded.runs === 1 ? "run" : "runs"}.`,
+    `  When every check succeeds, the level ${succeeded.level}, ${succeeded.percentile}th percentile ${who} playing ${succeeded.style} earned at most ${succeeded.mostXp} of the ${xp.available} XP offered in ${succeeded.runs} ${succeeded.runs === 1 ? "run" : "runs"}.`,
     ...(stealth === undefined
       ? []
       : [
-          `  Stealth-first, reported (not judged): the level ${stealth.level}, ${stealth.percentile}th percentile character playing ${stealth.style} survived ${percent(stealth.rate)} of ${stealth.runs} runs with its weakest kit, ${stealth.kit} (${kits(stealth)}); over every kit and level it completed ${percent(stealth.completionRate)}, slipped past ${decimal(stealth.meanBypassed)} fights and earned ${decimal(stealth.meanXp)} XP a run.`,
+          `  Stealth-first, reported (not judged): the level ${stealth.level}, ${stealth.percentile}th percentile ${who} playing ${stealth.style} survived ${percent(stealth.rate)} of ${stealth.runs} runs with its weakest kit, ${stealth.kit} (${kits(stealth)}); over every kit and level it completed ${percent(stealth.completionRate)}, slipped past ${decimal(stealth.meanBypassed)} fights and earned ${decimal(stealth.meanXp)} XP a run.`,
         ]),
     ...(verdict.reactions ?? []).map(
       (report) =>
-        `  Reactions, ${report.policy === "attack" ? "always attacking" : "taking the peaceful option"}, reported (not judged): the level ${report.level}, ${report.percentile}th percentile character playing ${report.style} survived ${percent(report.rate)} of ${report.runs} runs with its weakest kit, ${report.kit} (${kits(report)}); over every kit and level it completed ${percent(report.completionRate)}, ended ${decimal(report.meanPeaceful)} encounters peacefully and earned ${decimal(report.meanXp)} XP a run.`,
+        `  Reactions, ${report.policy === "attack" ? "always attacking" : "taking the peaceful option"}, reported (not judged): the level ${report.level}, ${report.percentile}th percentile ${who} playing ${report.style} survived ${percent(report.rate)} of ${report.runs} runs with its weakest kit, ${report.kit} (${kits(report)}); over every kit and level it completed ${percent(report.completionRate)}, ended ${decimal(report.meanPeaceful)} encounters peacefully and earned ${decimal(report.meanXp)} XP a run.`,
     ),
   ].join("\n");
+}
+
+/**
+ * The gate's verdict on a module for every class as plain text: each
+ * class's `renderGateResult`, in `GATE_CLASSES` order.
+ */
+export function renderModuleGateResult(
+  adventure: Pick<FifthAdventure, "id" | "title">,
+  result: ModuleGateResult,
+): string {
+  return result.classes
+    .map(({ classId, result: gate }) =>
+      renderGateResult(adventure, gate, classId),
+    )
+    .join("\n");
 }
