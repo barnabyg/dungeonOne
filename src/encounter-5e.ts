@@ -1238,6 +1238,35 @@ function attackModes(
 }
 
 /**
+ * What keeps an attack with `weapon`, rolled with `modes`, from dealing
+ * Sneak Attack on a hit (#306), or undefined when nothing does: Sneak
+ * Attack already dealt this turn, a weapon neither Finesse nor ranged, no
+ * advantage, or advantage cancelled by disadvantage. Both the hit's damage
+ * and Cunning Strike's refusal (#308) ask it.
+ */
+function sneakAttackBar(
+  state: EncounterState,
+  weapon: Weapon,
+  modes:
+    | Readonly<{
+        advantage: readonly string[];
+        disadvantage: readonly string[];
+      }>
+    | undefined,
+): "spent" | "weapon" | "no-advantage" | "cancelled" | undefined {
+  if (!state.economy.sneakAttack) {
+    return "spent";
+  }
+  if (weapon.finesse !== true && weapon.ammunition === undefined) {
+    return "weapon";
+  }
+  if (modes === undefined || modes.advantage.length === 0) {
+    return "no-advantage";
+  }
+  return modes.disadvantage.length === 0 ? undefined : "cancelled";
+}
+
+/**
  * Why an attack with `weapon` wouldn't deal Sneak Attack on a hit, for
  * Cunning Strike (#308): its weapon, its advantage, or Sneak Attack already
  * dealt this turn.
@@ -1249,37 +1278,22 @@ function sneakAttackRefusal(
   weapon: Weapon,
   origin: AttackOrigin,
 ): EncounterRejection | undefined {
-  if (!state.economy.sneakAttack) {
-    return refused(
-      "no-sneak-attack",
-      "You have already dealt Sneak Attack this turn, and Cunning Strike needs it.",
-    );
+  const modes = attackModes(state, actor, target, weapon, origin);
+  const bar = sneakAttackBar(state, weapon, modes);
+  if (bar === undefined) {
+    return undefined;
   }
-  if (weapon.finesse !== true && weapon.ammunition === undefined) {
-    return refused(
-      "no-sneak-attack",
-      `Cunning Strike needs Sneak Attack, and the ${weapon.name.toLowerCase()} is neither a Finesse nor a ranged weapon.`,
-    );
-  }
-  const { advantage, disadvantage } = attackModes(
-    state,
-    actor,
-    target,
-    weapon,
-    origin,
+  return refused(
+    "no-sneak-attack",
+    {
+      spent:
+        "You have already dealt Sneak Attack this turn, and Cunning Strike needs it.",
+      weapon: `Cunning Strike needs Sneak Attack, and the ${weapon.name.toLowerCase()} is neither a Finesse nor a ranged weapon.`,
+      "no-advantage":
+        "Cunning Strike needs Sneak Attack, and this attack has no advantage.",
+      cancelled: `Cunning Strike needs Sneak Attack, and this attack's advantage is cancelled by disadvantage (${modes.disadvantage.join(", ")}).`,
+    }[bar],
   );
-  if (advantage.length === 0) {
-    return refused(
-      "no-sneak-attack",
-      "Cunning Strike needs Sneak Attack, and this attack has no advantage.",
-    );
-  }
-  return disadvantage.length === 0
-    ? undefined
-    : refused(
-        "no-sneak-attack",
-        `Cunning Strike needs Sneak Attack, and this attack's advantage is cancelled by disadvantage (${disadvantage.join(", ")}).`,
-      );
 }
 
 /**
@@ -1297,7 +1311,7 @@ function cunningStrikeRefusal(
   if (actor.cunningStrike === undefined || actor.sneakAttack === undefined) {
     return refused("no-cunning-strike", "You don't have Cunning Strike.");
   }
-  const weapon = origin.kind === "light" ? actor.lightAttack! : actor.attack;
+  const weapon = originWeapon(actor, origin);
   const sneak = sneakAttackRefusal(state, actor, target, weapon, origin);
   if (sneak !== undefined) {
     return sneak;
@@ -2025,11 +2039,7 @@ function landAttack(
   const sneaking =
     hit &&
     actor.sneakAttack !== undefined &&
-    state.economy.sneakAttack &&
-    (weapon.finesse === true || weapon.ammunition !== undefined) &&
-    mode !== undefined &&
-    mode.advantage.length > 0 &&
-    mode.disadvantage.length === 0;
+    sneakAttackBar(state, weapon, mode) === undefined;
   const forgone = sneaking && strike !== undefined ? strike.dice : 0;
   const sneak = sneaking
     ? {
