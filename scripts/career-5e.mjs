@@ -4,7 +4,7 @@ import {
   loadBuiltInFifthAdventures,
   loadFifthAdventure,
 } from "../dist/adventure-5e.js";
-import { DEFAULT_SEED_COUNT } from "../dist/balance-5e.js";
+import { DEFAULT_SEED_COUNT, GATE_CLASSES } from "../dist/balance-5e.js";
 import {
   CAREER_REQUIRED_LEVEL,
   renderCareerResult,
@@ -14,7 +14,7 @@ import { MAX_LEVEL } from "../dist/character-5e.js";
 
 const USAGE = [
   "Usage: npm run career -- [--seeds <count>] [--required-level <level>]",
-  "       [--json] [module.json ...]",
+  "       [--class <class>] [--json] [module.json ...]",
 ].join("\n");
 
 function count(text, min, max) {
@@ -30,6 +30,7 @@ export function parseArguments(args) {
   const parsed = {
     seeds: DEFAULT_SEED_COUNT,
     requiredLevel: CAREER_REQUIRED_LEVEL,
+    classId: "fighter",
     json: false,
     paths: [],
   };
@@ -47,6 +48,11 @@ export function parseArguments(args) {
       parsed.seeds = count(value(), 1, Number.MAX_SAFE_INTEGER);
     } else if (argument === "--required-level") {
       parsed.requiredLevel = count(value(), 1, MAX_LEVEL);
+    } else if (argument === "--class") {
+      parsed.classId = value();
+      if (!GATE_CLASSES.includes(parsed.classId)) {
+        throw new Error(USAGE);
+      }
     } else if (argument === "--json") {
       parsed.json = true;
     } else if (argument.startsWith("--")) {
@@ -73,6 +79,7 @@ export async function main(args, output = process.stdout) {
   const report = simulateCareer(adventures, {
     seeds: Array.from({ length: options.seeds }, (_, seed) => seed),
     requiredLevel: options.requiredLevel,
+    classId: options.classId,
   });
   output.write(
     options.json

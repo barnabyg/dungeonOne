@@ -2,8 +2,8 @@
  * The career simulation (#290): can a new level-1 character reach the top
  * level by playing the shipped modules?
  *
- * Over each seed, one new character (the gate's weakest, with the default
- * kit) plays the modules in the browser's order (`orderFifthAdventures`), each
+ * Over each seed, one new character of the class asked for (the gate's
+ * weakest of that class, with its default kit) plays the modules in the browser's order (`orderFifthAdventures`), each
  * once, as soon as its level reaches the module's minimum recommended level,
  * in the gate's style. Between modules it is settled as the character
  * library settles it (`settleCharacter`): it keeps what it holds at the end and
@@ -53,8 +53,7 @@ export type CareerOptions = GateOptions &
     requiredLevel?: Level;
     /**
      * The class the career plays: the default class, the Fighter, unless
-     * named. A Rogue career builds Rogues up to level 5 (#308); verify still
-     * runs the Fighter's (#310 adds the Rogue's).
+     * named. Verify runs a career of each class in `GATE_CLASSES` (#310).
      */
     classId?: ClassId;
   }>;
