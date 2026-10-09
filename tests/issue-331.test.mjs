@@ -104,7 +104,8 @@ test("a run with no way on past a lost key is stranded naming the key", () => {
 });
 
 test("a run heads out when a failed check leaves the vault key unfound", () => {
-  // The key lies in the burial hall's rubble, found only on a success.
+  // The key lies in the burial hall's rubble, found only on a success. (The
+  // validator refuses the same with the vault as the only way out.)
   const module = lockedVault((file) => {
     const hall = room(file, "burial-hall");
     hall.features.push({

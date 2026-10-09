@@ -585,16 +585,19 @@ function routePlanner(adventure: FifthAdventure, talking = false) {
       for (const passage of adventure.passages) {
         const [a, b] = passage.between;
         const next = a === here ? b : b === here ? a : undefined;
+        const keyId = passage.door?.keyItemId;
+        const locked =
+          keyOnly(passage) &&
+          (keyId === undefined || !position.inventory.includes(keyId));
         if (
           next === undefined ||
           done.has(next) ||
           !enterable(next) ||
           talkOnly.has(passage.id) ||
           position.blockedPassageIds.includes(passage.id) ||
-          (keyOnly(passage) &&
-            !position.inventory.includes(passage.door!.keyItemId!) &&
+          (locked &&
             (keys === "carried" ||
-              position.lostKeyIds.includes(passage.door!.keyItemId!)))
+              (keyId !== undefined && position.lostKeyIds.includes(keyId))))
         ) {
           continue;
         }
@@ -1237,13 +1240,22 @@ export function playAdventure(
       ? undefined
       : `feature ${hiddenIn} check ${made.band} did not reveal it`;
   };
-  const lost = (itemId: string, hiddenIn: string | undefined) =>
-    whyLost(itemId, hiddenIn) !== undefined;
-  /** The keys not carried that can no longer be found (#331), and why. */
+  /** The keys to doors only a key opens. */
+  const doorKeyIds = new Set(
+    adventure.passages.flatMap((passage) =>
+      keyOnly(passage) && passage.door?.keyItemId !== undefined
+        ? [passage.door.keyItemId]
+        : [],
+    ),
+  );
+  /**
+   * The keys to doors only a key opens that are not carried and can no
+   * longer be found (#331), and why.
+   */
   const lostKeys = () =>
     [...items.values()].flatMap(({ item }) => {
       const why =
-        item.kind === "key" && !state.inventory.includes(item.id)
+        doorKeyIds.has(item.id) && !state.inventory.includes(item.id)
           ? whyLost(item.id, item.hiddenIn)
           : undefined;
       return why === undefined ? [] : [{ id: item.id, why }];
@@ -1258,7 +1270,7 @@ export function playAdventure(
         LOOT_KINDS.includes(item.kind) &&
         !state.inventory.includes(item.id) &&
         !state.usedItemIds.includes(item.id) &&
-        !lost(item.id, item.hiddenIn)
+        whyLost(item.id, item.hiddenIn) === undefined
           ? [roomId]
           : [],
       ),
