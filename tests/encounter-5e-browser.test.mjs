@@ -108,6 +108,9 @@ test(
     const libraryPath = join(directory, "characters.json");
     let server = await startFifthBrowserServer({
       adventures: ADVENTURES,
+      // Fixtures are engine material, not gated content: the gate is
+      // tested in balance-5e.test.mjs (#310).
+      qualifies: () => true,
       libraryPath,
       seed,
       dmModel: attackingDm(),
@@ -153,6 +156,9 @@ test(
       await server.close();
       server = await startFifthBrowserServer({
         adventures: ADVENTURES,
+        // Fixtures are engine material, not gated content: the gate is
+        // tested in balance-5e.test.mjs (#310).
+        qualifies: () => true,
         libraryPath,
         seed: seed + 1,
         dmModel: attackingDm(),
@@ -291,6 +297,9 @@ test(
     const libraryPath = join(directory, "characters.json");
     const server = await startFifthBrowserServer({
       adventures: ADVENTURES,
+      // Fixtures are engine material, not gated content: the gate is
+      // tested in balance-5e.test.mjs (#310).
+      qualifies: () => true,
       libraryPath,
       seed,
       dmModel: targetingDm(),
@@ -452,6 +461,9 @@ test(
     const libraryPath = join(directory, "characters.json");
     const server = await startFifthBrowserServer({
       adventures: ADVENTURES,
+      // Fixtures are engine material, not gated content: the gate is
+      // tested in balance-5e.test.mjs (#310).
+      qualifies: () => true,
       libraryPath,
       seed,
     });

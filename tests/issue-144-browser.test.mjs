@@ -26,6 +26,9 @@ test(
     const libraryPath = join(directory, "characters.json");
     const server = await startFifthBrowserServer({
       adventures: [loneGoblin],
+      // Fixtures are engine material, not gated content: the gate is
+      // tested in balance-5e.test.mjs (#310).
+      qualifies: () => true,
       libraryPath,
       seed: 0,
     });
@@ -157,6 +160,9 @@ test(
     );
     const server = await startFifthBrowserServer({
       adventures: [loneGoblin],
+      // Fixtures are engine material, not gated content: the gate is
+      // tested in balance-5e.test.mjs (#310).
+      qualifies: () => true,
       libraryPath,
       seed,
     });

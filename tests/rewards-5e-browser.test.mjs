@@ -109,6 +109,9 @@ test(
       libraryPath,
       seed,
       adventures: [barrow],
+      // Fixtures are engine material, not gated content: the gate is
+      // tested in balance-5e.test.mjs (#310).
+      qualifies: () => true,
     });
     const browser = await launch();
     const page = await browser.newPage({
