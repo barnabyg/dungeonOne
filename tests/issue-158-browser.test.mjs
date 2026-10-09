@@ -359,7 +359,7 @@ test(
         shown: `HP 0/${maxHp} Defeated`,
         health: "down",
         turn: "The fight is over.",
-        resources: ["second-wind"],
+        resources: ["second-wind", "hit-dice"],
         fill: "0%",
       });
 

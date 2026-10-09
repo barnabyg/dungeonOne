@@ -173,6 +173,19 @@ export function fightingStyleUse(
 export const FEATURE_USES_RULE =
   "Spent uses stay spent for the rest of the adventure; a rest between adventures restores them and every hit point.";
 
+/** What a rest restores of a feature's spent uses: a number of them, or all. */
+export type RestRecovery = number | "all";
+
+/**
+ * How a feature's spent uses come back (#333), as SRD 5.2 gives it: what a
+ * short rest and a long rest each restore. No rest is offered yet: every use
+ * comes back between adventures (FEATURE_USES_RULE).
+ */
+export type FeatureRecovery = Readonly<{
+  shortRest: RestRecovery;
+  longRest: RestRecovery;
+}>;
+
 /** A number for each level, such as a feature's uses. */
 export type LevelTable = Readonly<Record<Level, number>>;
 
@@ -285,13 +298,18 @@ export type FeatureDefinition = Readonly<{
   level: Level;
   name: Words;
   text: Words;
-  /** Its uses by level, for a feature with limited uses. */
-  uses?: LevelTable;
-  /** How its spent uses come back (FEATURE_USES_RULE). */
-  recovery?: "rest-between-adventures";
   /** What the engine applies: one effect, or several (#315). */
   effect?: FeatureEffect | readonly FeatureEffect[];
-}>;
+}> &
+  (
+    | Readonly<{ uses?: undefined; recovery?: undefined }>
+    | Readonly<{
+        /** Its uses by level, for a feature with limited uses. */
+        uses: LevelTable;
+        /** How its spent uses come back on a rest (#333). */
+        recovery: FeatureRecovery;
+      }>
+  );
 
 /**
  * Weapon Mastery at level 1, as the Fighter and the Rogue (#306) both have

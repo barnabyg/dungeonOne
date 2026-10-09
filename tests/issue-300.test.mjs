@@ -40,13 +40,27 @@ const golden = JSON.parse(
 
 /**
  * Leaves out of a case the skills added after #300 (Stealth, #301), which
- * the hard-coded Fighter's profile did not list.
+ * the hard-coded Fighter's profile did not list, and reads the two
+ * hard-coded counters back out of the feature-uses map (#333), without the
+ * hit-dice pool it added.
  */
 const GOLDEN_SKILLS = new Set(FIGHTER.skillChoices.options);
-const asRecorded = (profile) => ({
-  ...profile,
-  skills: profile.skills.filter(({ id }) => GOLDEN_SKILLS.has(id)),
-});
+const asRecorded = ({ featureUses, ...profile }) => {
+  delete profile.hitDice;
+  return {
+    ...profile,
+    skills: profile.skills.filter(({ id }) => GOLDEN_SKILLS.has(id)),
+    ...(profile.secondWind === undefined
+      ? {}
+      : {
+          secondWind: {
+            uses: featureUses["second-wind"]?.max ?? 0,
+            ...profile.secondWind,
+          },
+        }),
+    actionSurgeUses: featureUses["action-surge"]?.max ?? 0,
+  };
+};
 
 const api = {
   build: (dice, choices) =>
@@ -143,8 +157,11 @@ test("the Fighter's level table comes from its definition", () => {
       xp: [0, 300, 900, 2700, 6500][level - 1],
     };
     const profile = characterProfile(raised);
-    assert.equal(profile.secondWind.uses, level >= 4 ? 3 : 2);
-    assert.equal(profile.actionSurgeUses, level >= 2 ? 1 : 0);
+    assert.equal(profile.featureUses["second-wind"].max, level >= 4 ? 3 : 2);
+    assert.equal(
+      profile.featureUses["action-surge"]?.max ?? 0,
+      level >= 2 ? 1 : 0,
+    );
     assert.equal(profile.attack.criticalRange, level >= 3 ? 19 : 20);
     assert.equal(profile.attacksPerAction, level >= 5 ? 2 : 1);
     assert.equal(

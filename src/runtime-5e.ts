@@ -242,9 +242,26 @@ export const PLAYER_ID = "pc";
 /** What the character has left: it lasts from fight to fight. */
 export type CharacterResources = Readonly<{
   hp: number;
-  secondWindUses: number;
-  actionSurgeUses: number;
+  /**
+   * The uses left of each feature with uses, by feature id (#333), such as
+   * `second-wind`: they start full and stay spent for the adventure.
+   */
+  featureUses: Readonly<Record<string, number>>;
+  /** The hit dice left in the pool (#333): one per level at the start. */
+  hitDice: number;
 }>;
+
+/** The character's hit-dice pool (#333): left of the total, and their size. */
+export type HitDiceView = Readonly<{
+  available: number;
+  total: number;
+  sides: number;
+}>;
+
+/** "Hit dice: 2 of 3 d10 left". */
+export function hitDiceText({ available, total, sides }: HitDiceView): string {
+  return `Hit dice: ${available} of ${total} d${sides} left`;
+}
 
 /** An opponent that fled or surrendered in a won fight (#237, #238). */
 export type LeftFight = Readonly<{
@@ -1235,8 +1252,33 @@ export function startingResources(sheet: CharacterSheet): CharacterResources {
   const profile = characterProfile(sheet);
   return {
     hp: sheet.hp,
-    secondWindUses: profile.secondWind?.uses ?? 0,
-    actionSurgeUses: profile.actionSurgeUses,
+    featureUses: Object.fromEntries(
+      Object.entries(profile.featureUses).map(([id, { max }]) => [id, max]),
+    ),
+    hitDice: profile.hitDice.count,
+  };
+}
+
+/**
+ * The resources after a fight's step: the combatant's HP, and the feature
+ * uses it tracks copied back into the map.
+ */
+function resourcesAfter(
+  resources: CharacterResources,
+  pc: Combatant,
+): CharacterResources {
+  return {
+    ...resources,
+    hp: pc.hp,
+    featureUses: {
+      ...resources.featureUses,
+      ...(pc.secondWind === undefined
+        ? {}
+        : { "second-wind": pc.secondWind.uses }),
+      ...(pc.actionSurge === undefined
+        ? {}
+        : { "action-surge": pc.actionSurge.uses }),
+    },
   };
 }
 
@@ -1300,6 +1342,8 @@ export function playerCombatant(
     return sources.length === 0 ? [] : [[ability, sources] as const];
   });
   const initiative = initiativeAdvantages(sheet);
+  const wind = profile.featureUses["second-wind"];
+  const surge = profile.featureUses["action-surge"];
   return {
     id: PLAYER_ID,
     name: sheet.name,
@@ -1337,21 +1381,21 @@ export function playerCombatant(
       : { cunningStrike: profile.cunningStrike }),
     ...(profile.uncannyDodge === true ? { uncannyDodge: true as const } : {}),
     // Uses start full: each adventure follows the between-adventure rest.
-    ...(profile.secondWind === undefined
+    ...(profile.secondWind === undefined || wind === undefined
       ? {}
       : {
           secondWind: {
-            uses: resources.secondWindUses,
-            max: profile.secondWind.uses,
+            uses: resources.featureUses["second-wind"] ?? 0,
+            max: wind.max,
             healing: profile.secondWind.healing,
           },
         }),
-    ...(profile.actionSurgeUses === 0
+    ...(surge === undefined
       ? {}
       : {
           actionSurge: {
-            uses: resources.actionSurgeUses,
-            max: profile.actionSurgeUses,
+            uses: resources.featureUses["action-surge"] ?? 0,
+            max: surge.max,
           },
         }),
     ...(potions.length === 0 ? {} : { potions }),
@@ -2927,6 +2971,8 @@ export type FifthRuntime = Omit<
     attackTargets(state: FifthState): readonly Combatant[];
     /** The player-safe fight for the browser's encounter panel. */
     projectFight(state: FifthState): FightView;
+    /** The character's hit-dice pool (#333), for the status strip. */
+    projectHitDice(state: FifthState): HitDiceView;
     /** The player-safe room for the browser's room panel. */
     projectRoom(state: FifthState): RoomView;
     /**
@@ -3804,11 +3850,7 @@ export function createFifthRuntime(
     const next: FifthState = {
       ...state,
       encounter,
-      character: {
-        hp: pc.hp,
-        secondWindUses: pc.secondWind?.uses ?? 0,
-        actionSurgeUses: pc.actionSurge?.uses ?? 0,
-      },
+      character: resourcesAfter(state.character, pc),
       inventory: state.inventory.filter((id) => !drunk.includes(id)),
       usedItemIds: [...state.usedItemIds, ...drunk],
     };
@@ -4372,10 +4414,14 @@ export function createFifthRuntime(
     const index = state.checks.findLastIndex((entry) => entry.id === id);
     const was = state.checks[index]!;
     const spent = isSuccess(band);
-    const uses = state.character.secondWindUses - (spent ? 1 : 0);
+    const uses =
+      (state.character.featureUses["second-wind"] ?? 0) - (spent ? 1 : 0);
     const graded: FifthState = {
       ...cleared(state, "tacticalMind"),
-      character: { ...state.character, secondWindUses: uses },
+      character: {
+        ...state.character,
+        featureUses: { ...state.character.featureUses, "second-wind": uses },
+      },
       checks: state.checks.with(index, { ...was, band, tacticalMind: true }),
     };
     const at = siteOutcome(graded, site, roll);
@@ -4410,7 +4456,8 @@ export function createFifthRuntime(
           spent,
           secondWind: {
             uses,
-            max: characterProfile(sheetOf(state)).secondWind!.uses,
+            max: characterProfile(sheetOf(state)).featureUses["second-wind"]!
+              .max,
           },
         },
         ...at.events,
@@ -4568,7 +4615,7 @@ export function createFifthRuntime(
       !isSuccess(band) &&
       graded.state.status === "playing" &&
       tacticalMindDie(sheetOf(state)) !== undefined &&
-      graded.state.character.secondWindUses > 0
+      (graded.state.character.featureUses["second-wind"] ?? 0) > 0
         ? { ...graded.state, tacticalMind: { site, roll } }
         : graded.state;
     return {
@@ -7032,6 +7079,11 @@ export function createFifthRuntime(
     };
   };
 
+  const projectHitDice = (state: FifthState): HitDiceView => {
+    const { count, sides } = characterProfile(sheet).hitDice;
+    return { available: state.character.hitDice, total: count, sides };
+  };
+
   const projectCharacterStatus = (state: FifthState): CharacterStatus => {
     const turn =
       state.encounter === undefined
@@ -7075,7 +7127,10 @@ export function createFifthRuntime(
       ],
       carrying: `${formatWeight(weightOf(state))} of the ${formatWeight(capacity)} its Strength allows`,
       outcome: state.status,
-      resources: featureUses(self(state)),
+      resources: [
+        ...featureUses(self(state)),
+        hitDiceText(projectHitDice(state)),
+      ],
       ...(fighting(state)
         ? {
             conditions: conditionsOf(state.encounter!, PLAYER_ID).map(
@@ -7913,6 +7968,7 @@ export function createFifthRuntime(
     attackTargets,
     projectFight: (state) =>
       projectFight(state, self(state), options(state), attackTargets(state)),
+    projectHitDice,
     projectRoom,
     projectActions,
     actionOf: (view) => projectedActions.get(view),

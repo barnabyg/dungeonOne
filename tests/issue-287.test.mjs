@@ -308,9 +308,9 @@ test("the Fighter table at level 5: 6,500 XP, HP, proficiency +3 and Extra Attac
   assert.equal(fifth.attack.bonus, 6);
   assert.equal(fourth.attacksPerAction, 1);
   assert.equal(fifth.attacksPerAction, 2);
-  assert.equal(fifth.secondWind.uses, 3);
+  assert.equal(fifth.featureUses["second-wind"].max, 3);
   assert.equal(fifth.secondWind.healing.modifier, 5);
-  assert.equal(fifth.actionSurgeUses, 1);
+  assert.equal(fifth.featureUses["action-surge"].max, 1);
   assert.equal(adaAt(5).weaponMasteries.length, 4);
   assert.deepEqual(
     fifth.features.slice(-2).map(({ id }) => id),
