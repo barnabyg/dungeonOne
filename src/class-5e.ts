@@ -70,10 +70,24 @@ export function titleCase(value: string): string {
 }
 
 /** "+2 Strength" or "+1 Strength, +1 Constitution", in ABILITIES order. */
-export function improvementText(increase: AbilityScoreImprovement): string {
+function improvementText(increase: AbilityScoreImprovement): string {
   return ABILITIES.filter((ability) => increase[ability] !== undefined)
     .map((ability) => `+${increase[ability]} ${titleCase(ability)}`)
     .join(", ");
+}
+
+/**
+ * The Ability Score Improvement feature's text (#286, #308): the improvement
+ * chosen, or that it is still to choose, with `alsoChoose` (the Fighter's
+ * fourth weapon mastery) when the level brings another choice with it.
+ */
+export function abilityScoreImprovementText(
+  chosen: AbilityScoreImprovement | undefined,
+  alsoChoose?: string,
+): string {
+  return chosen === undefined
+    ? `Not chosen yet: +2 to one ability score or +1 to two, to a maximum of ${ABILITY_SCORE_CAP}. Choose it${alsoChoose === undefined ? "" : `, with ${alsoChoose},`} before the next adventure.`
+    : `${improvementText(chosen)}, to a maximum of ${ABILITY_SCORE_CAP}.`;
 }
 
 /** The SRD 5.2 Fighting Style feats. */

@@ -7,8 +7,7 @@
 import {
   FEATURE_USES_RULE,
   FIGHTING_STYLES,
-  improvementText,
-  ABILITY_SCORE_CAP,
+  abilityScoreImprovementText,
   WEAPON_MASTERY_FEATURE,
   type Ability,
   type ClassDefinition,
@@ -117,9 +116,7 @@ export const FIGHTER: ClassDefinition = {
       level: 4,
       name: "Ability Score Improvement",
       text: ({ abilityScoreImprovements: [chosen] }) =>
-        chosen === undefined
-          ? `Not chosen yet: +2 to one ability score or +1 to two, to a maximum of ${ABILITY_SCORE_CAP}. Choose it, with a fourth weapon mastery, before the next adventure.`
-          : `${improvementText(chosen)}, to a maximum of ${ABILITY_SCORE_CAP}.`,
+        abilityScoreImprovementText(chosen, "a fourth weapon mastery"),
       effect: { kind: "ability-score-improvement" },
     },
     {

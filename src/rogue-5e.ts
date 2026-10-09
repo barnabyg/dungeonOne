@@ -9,8 +9,7 @@
  * numbers and the abstractions.
  */
 import {
-  ABILITY_SCORE_CAP,
-  improvementText,
+  abilityScoreImprovementText,
   WEAPON_MASTERY_FEATURE,
   SKILLS,
   type Ability,
@@ -143,9 +142,7 @@ export const ROGUE: ClassDefinition = {
       level: 4,
       name: "Ability Score Improvement",
       text: ({ abilityScoreImprovements: [chosen] }) =>
-        chosen === undefined
-          ? `Not chosen yet: +2 to one ability score or +1 to two, to a maximum of ${ABILITY_SCORE_CAP}. Choose it before the next adventure.`
-          : `${improvementText(chosen)}, to a maximum of ${ABILITY_SCORE_CAP}.`,
+        abilityScoreImprovementText(chosen),
       effect: { kind: "ability-score-improvement" },
     },
     {
