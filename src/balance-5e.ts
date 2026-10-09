@@ -974,18 +974,20 @@ export function playAdventure(
   /** The encounter and opponent carrying each item an opponent carries. */
   const carriers = new Map(
     [...items.values()].flatMap(({ item, roomId }) => {
-      const encounterId = roomById.get(roomId)!.encounterId;
-      const carried = adventure.encounters
-        .find(({ id }) => id === encounterId)
-        ?.opponents.some(({ id }) => id === item.hiddenIn);
-      return carried === true
-        ? [
+      const encounter = adventure.encounters.find(
+        ({ id }) => id === roomById.get(roomId)!.encounterId,
+      );
+      const carrier = encounter?.opponents.find(
+        ({ id }) => id === item.hiddenIn,
+      );
+      return encounter === undefined || carrier === undefined
+        ? []
+        : [
             [
               item.id,
-              { encounterId: encounterId!, opponentId: item.hiddenIn! },
+              { encounterId: encounter.id, opponentId: carrier.id },
             ] as const,
-          ]
-        : [];
+          ];
     }),
   );
   const random = createSeededRandom(seed);

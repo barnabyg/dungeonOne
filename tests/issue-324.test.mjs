@@ -31,7 +31,7 @@ function soleCarrier(module, goblinId) {
   return validateModule(file);
 }
 
-/** The runs of `module` in every style on `seeds`, none stranded. */
+/** The runs of `module` in every style on `seeds`; a stranded run throws. */
 function playAll(module, seeds, options) {
   const runtime = createFifthRuntime(module, firstFighter(0));
   return PLAY_STYLES.flatMap((style) =>
