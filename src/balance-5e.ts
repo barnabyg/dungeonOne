@@ -784,11 +784,14 @@ export const REACTION_POLICIES = ["attack", "peaceful"] as const;
 export type ReactionPolicy = (typeof REACTION_POLICIES)[number];
 
 /**
- * Every kind of action the harness knows: the styles play them, or pass
- * them over. A kind missing here fails to compile; one the runtime offers
- * that the harness has never heard of fails the run as `unsupported-action`.
+ * Every kind of action the harness knows: true for those a style may play,
+ * false for those every style passes over, which the harness doesn't ask the
+ * runtime to project (#321: dry-running gear changes and trade at every step
+ * was a fifth of the gate's time). A kind missing here fails to compile; one
+ * the runtime offers that the harness has never heard of fails the run as
+ * `unsupported-action`.
  */
-const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
+const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   attack: true,
   // Only stealth-first sneaks, and springs an ambush from unseen (#302).
   sneak: true,
@@ -805,7 +808,8 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   "end-turn": true,
   // Uncanny Dodge, by the Rogue policy: every hit it can halve (#308).
   "uncanny-dodge": true,
-  "take-hit": true,
+  // Every hit Uncanny Dodge can halve is halved, so no style takes one.
+  "take-hit": false,
   move: true,
   examine: true,
   take: true,
@@ -816,19 +820,26 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, true>> = {
   search: true,
   disarm: true,
   // Talking changes nothing the harness measures, so no style talks.
-  talk: true,
+  talk: false,
   // Gear changes are never needed to get through, so no style makes one.
-  equip: true,
-  unequip: true,
-  swap: true,
-  drop: true,
+  equip: false,
+  unequip: false,
+  swap: false,
+  drop: false,
   // Trading only spends what the character found, so no style trades.
-  buy: true,
-  sell: true,
-  "sell-equipped": true,
-  "sell-treasure": true,
+  buy: false,
+  sell: false,
+  "sell-equipped": false,
+  "sell-treasure": false,
   leave: true,
 };
+
+/** The kinds of action the harness asks the runtime to project. */
+const CHOSEN_ACTIONS: ReadonlySet<ActionKind> = new Set(
+  (Object.keys(PLAYED_ACTIONS) as ActionKind[]).filter(
+    (kind) => PLAYED_ACTIONS[kind],
+  ),
+);
 
 /** One fight in a run. */
 export type FightRecord = Readonly<{
@@ -1320,7 +1331,7 @@ export function playAdventure(
 
   apply({ type: "begin" });
   while (state.status === "playing") {
-    const projected = runtime.projectActions(state);
+    const projected = runtime.projectActions(state, CHOSEN_ACTIONS);
     const unknown = projected.find(
       ({ action }) => !Object.hasOwn(PLAYED_ACTIONS, action),
     );

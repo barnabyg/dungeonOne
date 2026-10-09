@@ -1375,11 +1375,46 @@ export function toolProficiency(
     : 0;
 }
 
+/** The fields `characterProfile` reads, in a fixed order. */
+const PROFILED_FIELDS = [
+  "class",
+  "abilities",
+  "abilityScoreImprovements",
+  "level",
+  "skills",
+  "fightingStyle",
+  "expertise",
+  "equipment",
+  "weaponMasteries",
+] as const satisfies readonly (keyof ProfiledSheet)[];
+
+/**
+ * The last profile made for each equipment list, with the fields it was made
+ * from (#321). The engine builds a fresh sheet for each look at the
+ * character, but from the same field objects, and sheets are never mutated,
+ * so the same objects mean the same profile.
+ */
+const profiles = new WeakMap<
+  ProfiledSheet["equipment"],
+  Readonly<{ fields: readonly unknown[]; profile: CharacterProfile }>
+>();
+
 /**
  * Every number derived from a sheet's class, scores, level, equipment and
  * choices.
  */
 export function characterProfile(sheet: ProfiledSheet): CharacterProfile {
+  const fields = PROFILED_FIELDS.map((field) => sheet[field]);
+  const cached = profiles.get(sheet.equipment);
+  if (cached?.fields.every((value, i) => value === fields[i]) === true) {
+    return cached.profile;
+  }
+  const profile = profileOf(sheet);
+  profiles.set(sheet.equipment, { fields, profile });
+  return profile;
+}
+
+function profileOf(sheet: ProfiledSheet): CharacterProfile {
   const definition = classOf(sheet);
   const level = sheet.level;
   const proficiency = proficiencyBonus(level);
