@@ -128,6 +128,7 @@ export function simulateCareer(
   const ordered = orderFifthAdventures(adventures, () => true);
   const [weakest] = percentileCharacters({
     percentiles: [WEAKEST_PERCENTILE],
+    classId,
     ...(sampleSize === undefined ? {} : { sampleSize }),
     ...(sampleSeed === undefined ? {} : { sampleSeed }),
   });

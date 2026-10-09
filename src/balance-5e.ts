@@ -138,7 +138,8 @@ export function gateLevelChoice(
  * health: its skills, Expertise and masteries are its class's defaults, the
  * harness's policy for a Rogue's (#306). An `archer` is Dexterity-first
  * instead (#230): the rolls placed on Strength and Dexterity change places,
- * and the +2 goes on Dexterity. From level 4 it makes the gate's level
+ * and the +2 goes on Dexterity; a class that places Dexterity first already
+ * is (the Rogue), so its archer is its usual build. From level 4 it makes the gate's level
  * choice (`gateLevelChoice`), preferring to master `mastery`.
  */
 export function characterAtLevel(
@@ -157,7 +158,7 @@ export function characterAtLevel(
     dice,
     {
       ...definition.defaults,
-      ...(archer
+      ...(archer && definition.primaryAbilities[0] !== "dexterity"
         ? {
             placement: {
               ...placement,
@@ -181,12 +182,11 @@ export function characterAtLevel(
     : applyLevelChoice(sheet, gateLevelChoice(sheet, archer, mastery));
 }
 
-/** The sum of a default creation's six ability modifiers. */
-function totalModifier(dice: RolledDice): number {
-  return Object.values(characterAtLevel(dice, 1).abilities).reduce(
-    (sum, score) => sum + abilityModifier(score),
-    0,
-  );
+/** The sum of a default creation's six ability modifiers, in `classId`. */
+function totalModifier(dice: RolledDice, classId: ClassId): number {
+  return Object.values(
+    characterAtLevel(dice, 1, undefined, false, undefined, classId).abilities,
+  ).reduce((sum, score) => sum + abilityModifier(score), 0);
 }
 
 export type CharacterSample = Readonly<{
@@ -195,6 +195,11 @@ export type CharacterSample = Readonly<{
   sampleSize?: number;
   /** The seed the creations are rolled from. */
   sampleSeed?: number;
+  /**
+   * The class whose default creation ranks them (#310), placing the rolls
+   * by its own priority: the harness's class unless named.
+   */
+  classId?: ClassId;
 }>;
 
 export type PercentileCharacter = Readonly<{
@@ -203,7 +208,10 @@ export type PercentileCharacter = Readonly<{
   totalModifier: number;
 }>;
 
-/** Each sample rolled so far, ranked, by size and seed: the same every time. */
+/**
+ * Each sample rolled so far, ranked, by size, seed and class: the same every
+ * time.
+ */
 const rankedSamples = new Map<
   string,
   readonly Omit<PercentileCharacter, "percentile">[]
@@ -211,21 +219,24 @@ const rankedSamples = new Map<
 
 /**
  * Rolls `sampleSize` creations from `sampleSeed` and returns the creation at
- * each percentile, ranked by total ability modifier. Creations with the same
+ * each percentile, ranked by total ability modifier as `classId` creates
+ * them (a class's background increase may land on an odd or an even score,
+ * so the classes rank one sample differently). Creations with the same
  * total keep the order they were rolled in, so the result is deterministic.
  */
 export function percentileCharacters({
   percentiles,
   sampleSize = 10_000,
   sampleSeed = 134,
+  classId = DEFAULT_CLASS,
 }: CharacterSample): readonly PercentileCharacter[] {
-  const key = `${sampleSize}:${sampleSeed}`;
+  const key = `${sampleSize}:${sampleSeed}:${classId}`;
   let ranked = rankedSamples.get(key);
   if (ranked === undefined) {
     const random = createSeededRandom(sampleSeed);
     ranked = Array.from({ length: sampleSize }, () => {
       const dice = rollAbilitySet(random);
-      return { dice, totalModifier: totalModifier(dice) };
+      return { dice, totalModifier: totalModifier(dice, classId) };
     }).sort((a, b) => a.totalModifier - b.totalModifier);
     rankedSamples.set(key, ranked);
   }
@@ -1287,6 +1298,8 @@ export type BalanceOptions = Readonly<{
   stepLimit?: number;
   /** How checks are graded (#285): `seeded` by default. */
   checks?: CheckPolicy;
+  /** The class played (#310): the harness's class, the Fighter, unless named. */
+  classId?: ClassId;
 }>;
 
 export const DEFAULT_SEED_COUNT = 200;
@@ -1335,6 +1348,8 @@ export type BalanceCell = Readonly<{
 
 export type BalanceReport = Readonly<{
   adventureId: string;
+  /** The class the report plays (#310). */
+  classId: ClassId;
   /** The check policy the runs played (#285). */
   checks: CheckPolicy;
   objective: Objective;
@@ -1426,12 +1441,14 @@ export function qualifyAdventure(
     sampleSeed,
     stepLimit,
     checks = "seeded",
+    classId = DEFAULT_CLASS,
   }: BalanceOptions = {},
 ): BalanceResult {
   try {
     const { objective, roomIds } = requiredPath(adventure);
     const characters = percentileCharacters({
       percentiles,
+      classId,
       ...(sampleSize === undefined ? {} : { sampleSize }),
       ...(sampleSeed === undefined ? {} : { sampleSeed }),
     });
@@ -1439,7 +1456,14 @@ export function qualifyAdventure(
     const cells: BalanceCell[] = [];
     for (let level = min as Level; level <= max; level++) {
       for (const { percentile, dice } of characters) {
-        const sheet = characterAtLevel(dice, level);
+        const sheet = characterAtLevel(
+          dice,
+          level,
+          undefined,
+          false,
+          undefined,
+          classId,
+        );
         const runtime = createFifthRuntime(adventure, sheet, { checks });
         for (const style of styles) {
           const runs = seeds.map((seed) =>
@@ -1460,6 +1484,7 @@ export function qualifyAdventure(
       ok: true,
       report: {
         adventureId: adventure.id,
+        classId,
         checks,
         objective,
         requiredRoomIds: roomIds,
@@ -1676,6 +1701,8 @@ export type XpCheck = Readonly<{
 
 export type GateVerdict = Readonly<{
   adventureId: string;
+  /** The class the verdict judges (#310). */
+  classId: ClassId;
   difficulty: Difficulty;
   qualified: boolean;
   /** The survival check on seeded checks. */
@@ -1699,6 +1726,7 @@ export type GateVerdict = Readonly<{
  */
 export type GateMeasures = Readonly<{
   adventureId: string;
+  classId: ClassId;
   survival: Omit<SurvivalCheck, "ok" | "required">;
   alwaysFail: Omit<SurvivalCheck, "ok" | "required">;
   oneHitKill: Omit<OneHitKillCheck, "ok" | "cap" | "overCap">;
@@ -1719,6 +1747,12 @@ export type GateOptions = Pick<
   "seeds" | "sampleSize" | "sampleSeed" | "stepLimit"
 > &
   Readonly<{
+    /**
+     * The class `gateAdventure` judges (#310): the harness's class, the
+     * Fighter, unless named. `gateModule` judges every class in
+     * `GATE_CLASSES` and ignores it.
+     */
+    classId?: ClassId;
     /**
      * Whether to play and report the stealth-first runs (#302); true by
      * default. They are never judged, so `passesGate` leaves them out.
@@ -1742,25 +1776,29 @@ export type Attacker = Readonly<{
 }>;
 
 /**
- * The ways the gate arms the character rolled with `dice` at `level`: every
- * starting kit, and every weapon in `placed` wielded with the default kit's
- * armour, each with every Fighting Style, the default first. A placed ranged
- * weapon is wielded by the Dexterity-first build of the same dice (#230).
+ * The ways the gate arms the `classId` character (the harness's class unless
+ * named) rolled with `dice` at `level`: every starting kit of its class, and
+ * every weapon in `placed` wielded with the default kit's armour, each with
+ * every Fighting Style, the default first, for a class with one. A placed
+ * ranged weapon is wielded by the Dexterity-first build of the same dice
+ * (#230).
  */
 export function strongestAttackers(
   dice: RolledDice,
   level: Level,
   placed: readonly WeaponId[] = [],
+  classId: ClassId = DEFAULT_CLASS,
 ): readonly Attacker[] {
+  const definition = CLASSES[classId];
   const armed = [
-    ...KITS.map((kit) => ({
+    ...definition.kits.map((kit) => ({
       kit,
-      sheet: characterAtLevel(dice, level, kit),
+      sheet: characterAtLevel(dice, level, kit, false, undefined, classId),
     })),
     ...placed.map((gear) => {
-      const kit = HARNESS_CLASS.defaults.kit;
+      const kit = definition.defaults.kit;
       const ranged = (WEAPONS[gear] as WeaponData).ammunition !== undefined;
-      const sheet = characterAtLevel(dice, level, kit, ranged, gear);
+      const sheet = characterAtLevel(dice, level, kit, ranged, gear, classId);
       return {
         kit,
         gear,
@@ -1774,7 +1812,7 @@ export function strongestAttackers(
       };
     }),
   ];
-  const preferred = HARNESS_CLASS.defaults.fightingStyle;
+  const preferred = definition.defaults.fightingStyle;
   // A class without a Fighting Style is tried as it is (#306).
   if (preferred === undefined) {
     return armed;
@@ -1844,12 +1882,15 @@ export function gateAdventure(
     stepLimit,
     reportStealth = true,
     reportReactions = true,
+    classId = DEFAULT_CLASS,
   }: GateOptions = {},
 ): GateResult {
   const { min, max } = adventure.recommendedLevels;
+  const classKits = CLASSES[classId].kits;
   try {
     const [weakest, strongest] = percentileCharacters({
       percentiles: [WEAKEST_PERCENTILE, STRONGEST_PERCENTILE],
+      classId,
       ...(sampleSize === undefined ? {} : { sampleSize }),
       ...(sampleSeed === undefined ? {} : { sampleSeed }),
     });
@@ -1871,8 +1912,15 @@ export function gateAdventure(
      * reaction roll (#304).
      */
     const played = levels.flatMap((level) =>
-      KITS.map((kit) => {
-        const sheet = characterAtLevel(weakest!.dice, level, kit);
+      classKits.map((kit) => {
+        const sheet = characterAtLevel(
+          weakest!.dice,
+          level,
+          kit,
+          false,
+          undefined,
+          classId,
+        );
         const seeded = createFifthRuntime(adventure, sheet);
         const failing = createFifthRuntime(adventure, sheet, {
           checks: "always-fail",
@@ -1977,7 +2025,12 @@ export function gateAdventure(
         ),
       ),
     ];
-    const strong = strongestAttackers(strongest!.dice, max as Level, placed);
+    const strong = strongestAttackers(
+      strongest!.dice,
+      max as Level,
+      placed,
+      classId,
+    );
     const enemies = adventure.encounters.flatMap(
       ({ id: encounterId, opponents }) =>
         opponents.flatMap(({ id, name, statBlock, boss }) =>
@@ -2024,7 +2077,14 @@ export function gateAdventure(
     // character fights every fight it finds.
     const succeeding = createFifthRuntime(
       adventure,
-      characterAtLevel(strongest!.dice, max as Level),
+      characterAtLevel(
+        strongest!.dice,
+        max as Level,
+        undefined,
+        false,
+        undefined,
+        classId,
+      ),
       { checks: "always-succeed" },
     );
     // Once a run earns everything offered, no other run can earn more.
@@ -2065,6 +2125,7 @@ export function gateAdventure(
       verdict: gateVerdictAt(
         {
           adventureId: adventure.id,
+          classId,
           survival,
           alwaysFail,
           oneHitKill,
@@ -2128,6 +2189,7 @@ export function gateVerdictAt(
   };
   return {
     adventureId: measures.adventureId,
+    classId: measures.classId,
     difficulty,
     qualified: survival.ok && alwaysFail.ok && oneHitKill.ok && measures.xp.ok,
     survival,
