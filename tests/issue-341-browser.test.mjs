@@ -13,7 +13,7 @@ import {
   buildCharacter,
   defaultPlacement,
   settleCharacter,
-  withOwedSpells,
+  withOwedChoices,
 } from "../dist/character-5e.js";
 import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
 import { CLERIC } from "../dist/cleric-5e.js";
@@ -89,9 +89,9 @@ const mira = buildCharacter(
 );
 /** Mira one XP short of level 2, and of level 3 with five spells prepared. */
 const nearTwo = earn(mira, 299, "far");
-const nearThree = withOwedSpells(earn(mira, 899, "far"));
+const nearThree = withOwedChoices(earn(mira, 899, "far"));
 /** Mira at level 3 with every spell prepared. */
-const atThree = withOwedSpells(earn(nearThree, 1, "near"));
+const atThree = withOwedChoices(earn(nearThree, 1, "near"));
 
 /** Writes a library holding `sheet` alone, as the browser saves one. */
 async function libraryWith(directory, sheet) {

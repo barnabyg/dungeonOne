@@ -37,7 +37,7 @@ import {
   levelChoicesOwed,
   masteryOptions,
   pendingLevelChoice,
-  withOwedSpells,
+  withOwedChoices,
   alwaysPrepared,
   rollAbilitySet,
   validateCharacter,
@@ -201,7 +201,7 @@ export function characterAtLevel(
         }),
   };
   // A caster prepares the spells its level adds (#341) in its list's order.
-  const sheet = withOwedSpells(
+  const sheet = withOwedChoices(
     validateCharacter({
       ...raised,
       hp: characterProfile(raised).maxHp,

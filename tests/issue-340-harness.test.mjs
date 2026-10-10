@@ -25,7 +25,7 @@ const [weakest] = percentileCharacters({
 const wizard = (kit) =>
   characterAtLevel(weakest.dice, 1, kit, false, undefined, "wizard");
 
-test("the harness builds a level-1 Wizard from its defaults, and no higher level yet", () => {
+test("the harness builds a level-1 Wizard from its defaults, and none above level 3 yet", () => {
   const sheet = wizard();
   assert.equal(sheet.class, "wizard");
   assert.deepEqual(sheet.spells.prepared, [
@@ -38,8 +38,8 @@ test("the harness builds a level-1 Wizard from its defaults, and no higher level
   assert.deepEqual(wizard("daggers").equipment, ["dagger", "dagger"]);
   assert.throws(
     () =>
-      characterAtLevel(weakest.dice, 2, undefined, false, undefined, "wizard"),
-    /A Wizard reaches only level 1 yet\./u,
+      characterAtLevel(weakest.dice, 4, undefined, false, undefined, "wizard"),
+    /A Wizard reaches only level 3 yet\./u,
   );
 });
 
@@ -116,9 +116,10 @@ test("the gate reports the Wizard and never judges it", () => {
     renderModuleGateResult(ratTunnels, gate),
     /^The Rat Tunnels \(rat-tunnels\) for the Wizard, reported \(not judged\): the level 1, 5th percentile Wizard playing cautious survived \d+\.\d% of 2 runs with its weakest kit, [a-z-]+ \(quarterstaff-and-dagger level 1 \d+\.\d%, daggers level 1 \d+\.\d%\), casting \d+\.\d spells a run, 0\.0 of them healing\.$/mu,
   );
+  // Since #343 a level-2 module is played for the Wizard too.
   assert.match(
     renderModuleGateResult(goblinBand, gateModule(goblinBand, { seeds: [0] })),
-    /for the Wizard, not reported: the Wizard reaches only level 1 yet, and the module is for level 2\.$/mu,
+    /for the Wizard, reported \(not judged\): the level 2, 5th percentile Wizard/u,
   );
 });
 
