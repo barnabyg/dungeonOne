@@ -49,6 +49,23 @@ const moduleFiles = Object.fromEntries(
     ]),
   ),
 );
+/**
+ * The modules this run gates: those `npm test -- --modules <id,id>` names
+ * (scripts/run-tests.mjs passes them in DUNGEON_ONE_TEST_MODULES), or every
+ * shipped module. The other gate checks read the recorded verdicts.
+ */
+const named = (process.env.DUNGEON_ONE_TEST_MODULES ?? "")
+  .split(",")
+  .filter(Boolean);
+const gated =
+  named.length === 0
+    ? shipped
+    : named.map(
+        (id) =>
+          shipped.find((adventure) => adventure.id === id) ??
+          assert.fail(`${id} is not a shipped module`),
+      );
+const recorded = JSON.parse(await readFile(GATE_VERDICTS_PATH, "utf8"));
 /** The least survival margin over its difficulty's threshold a module keeps (#252). */
 const SURVIVAL_SLACK = 0.03;
 /** The reference CPU seconds the gate may take over every shipped module. */
@@ -94,27 +111,34 @@ test("every shipped module qualifies at its declared difficulty for every class 
   // differ in speed by nearly 2×, so plain CPU seconds judge the runner.
   // The other gate tests below read the results this fills.
   const seconds = referenceCpuSeconds(() => {
-    for (const adventure of shipped) {
+    for (const adventure of gated) {
       gateOf(adventure);
     }
   });
-  for (const adventure of shipped) {
+  for (const adventure of gated) {
     const gate = gateOf(adventure);
     if (!gate.qualified) {
       assert.fail(renderModuleGateResult(adventure, gate));
     }
   }
-  // docs/character-rules.md records the budget.
+  // docs/character-rules.md records the budget, for gating every module.
   assert.ok(
-    seconds < GATE_BUDGET_SECONDS,
+    gated !== shipped || seconds < GATE_BUDGET_SECONDS,
     `the gate took ${seconds.toFixed(1)} s of reference CPU`,
   );
 });
 
 test("the recorded gate verdicts the browser offers modules by are the gate's (#310)", async () => {
   assert.deepEqual(
-    JSON.parse(await readFile(GATE_VERDICTS_PATH, "utf8")),
-    recordGateVerdicts(shipped, (adventure) => gateOf(adventure).qualified),
+    {
+      ...recorded,
+      verdicts: Object.fromEntries(
+        Object.entries(recorded.verdicts).filter(([id]) =>
+          gated.some((adventure) => adventure.id === id),
+        ),
+      ),
+    },
+    recordGateVerdicts(gated, (adventure) => gateOf(adventure).qualified),
     "adventures/5e/gate-verdicts.json is out of date: run npm run gate:verdicts",
   );
 });
@@ -137,7 +161,7 @@ test("every shipped module declares the strictest difficulty every class passes 
   // Survival must clear the threshold by at least 3 points for every class,
   // and no stricter difficulty may also pass with that slack: the label is
   // what the weakest class measures.
-  for (const adventure of shipped) {
+  for (const adventure of gated) {
     const verdicts = gateOf(adventure).classes.map(({ classId, result }) => {
       assert.equal(result.ok, true, `${adventure.id} ${classId}`);
       return result.verdict;
@@ -272,7 +296,11 @@ const QUOTED_FIGURES = {
 
 test("the gate gives each released module the figures its proposal quotes (#241, #275, #289, #291, #311)", () => {
   for (const [id, classes] of Object.entries(QUOTED_FIGURES)) {
-    const gate = gateOf(shipped.find((adventure) => adventure.id === id));
+    const adventure = gated.find((entry) => entry.id === id);
+    if (adventure === undefined) {
+      continue;
+    }
+    const gate = gateOf(adventure);
     for (const [classId, quoted] of Object.entries(classes)) {
       const { verdict } = gate.classes.find(
         (entry) => entry.classId === classId,
@@ -318,7 +346,7 @@ test("the gate gives each released module the figures its proposal quotes (#241,
 const literal = (text) => text.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 
 test("the gate names both classes and reports the stealth-first style for every shipped module (#302, #310)", () => {
-  for (const adventure of shipped) {
+  for (const adventure of gated) {
     const gate = gateOf(adventure);
     assert.deepEqual(
       gate.classes.map(({ classId }) => classId),
@@ -456,9 +484,10 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
 
 test("the browser offers the shipped modules by level, then difficulty (#165)", () => {
   assert.deepEqual(
-    orderFifthAdventures(
-      shipped,
-      (adventure) => gateOf(adventure).qualified,
+    orderFifthAdventures(shipped, (adventure) =>
+      gated.includes(adventure)
+        ? gateOf(adventure).qualified
+        : recorded.verdicts[adventure.id].qualified,
     ).map(({ id, recommendedLevels: { min, max }, difficulty }) => [
       id,
       `${min}–${max}`,

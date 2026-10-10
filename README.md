@@ -578,8 +578,21 @@ verification.
   terminal and cannot change gate order, gate outcomes, or the final exit
   status.
 
-Focused tests can be run with `npm.cmd test -- --test-name-pattern "pattern"`;
-they do not start the dashboard.
+`npm.cmd test` runs every test file, as verify does. To run fewer while you
+work (none of these start the dashboard):
+
+- `npm.cmd test -- tests/x.test.mjs ...` runs those files, and
+  `--test-name-pattern "pattern"` only the tests it matches;
+- `npm.cmd test -- --tier quick` runs the engine, rules and server tests on
+  fixture modules, `--tier browser` the browser and launcher tests, and
+  `--tier content` the tests of the shipped modules (tiers combine:
+  `--tier quick,browser`);
+- `npm.cmd test -- --modules <id,id>` runs the content tests, gating only those
+  shipped modules;
+- `npm.cmd test -- --changed [<base>]` runs the tiers the changes since `base`
+  (by default `origin/main`) call for, or every test file when it can't tell.
+
+`AGENTS.md` says which to run for which change.
 
 ## SRD 5.2 attribution
 

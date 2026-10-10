@@ -3,9 +3,9 @@
 Engine, runtime, browser and harness tests play the adventure modules here,
 never the shipped modules in `adventures/5e/` (#251), so content can be
 rebalanced or pruned without touching engine tests. Only the content tests
-listed in `tests/fixture-separation.test.mjs` read a shipped module, and that
-test fails if any other test or fixture does. The fixtures use the built-in
-bestiary (`bestiary.mjs`), which holds SRD stat blocks rather than content.
+listed in `tests/fixtures/content-tests.mjs` read a shipped module, and
+`tests/fixture-separation.test.mjs` fails if any other test or fixture does.
+The fixtures use the built-in bestiary (`bestiary.mjs`), which holds SRD stat blocks rather than content.
 
 ## Adventure modules (issue 251)
 
