@@ -73,6 +73,9 @@ import {
   levelUpChanges,
   masteryOptions,
   pendingLevelUp,
+  preparableSpells,
+  spellCounts,
+  spellsOwed,
   projectCreation,
   projectLevelChoice,
   settleCharacter,
@@ -326,12 +329,19 @@ function libraryView(
               spells: {
                 cantrips: sheet.spells.cantrips.map((id) => spellView(id)),
                 prepared: sheet.spells.prepared.map((id) => spellView(id)),
-                // A Wizard prepares from its spellbook (#340).
-                preparable: (
-                  sheet.spellbook ??
-                  (classOf(sheet).spellcasting?.list ?? []).filter(
-                    (id) => SPELLS[id].level >= 1,
-                  )
+                // A Wizard prepares from its spellbook (#340); spells
+                // without a slot, or always prepared (#341), aren't offered.
+                preparable: preparableSpells(sheet).map(spellView),
+                // How many it prepares at its level, and how many more a
+                // new level lets it choose (#341).
+                limit: spellCounts(
+                  classOf(sheet),
+                  sheet.level,
+                  sheet.divineOrder,
+                ).prepared,
+                owed: spellsOwed(sheet).prepared,
+                alwaysPrepared: (
+                  characterProfile(sheet).spellcasting?.alwaysPrepared ?? []
                 ).map(spellView),
                 ...(sheet.spellbook === undefined
                   ? {}
@@ -456,6 +466,9 @@ const CLICK_ACTIONS = [
   "action-surge",
   "hide",
   "steady-aim",
+  // Channel Divinity (#341).
+  "turn-undead",
+  "preserve-life",
   "end-turn",
   // The answers to a hit Uncanny Dodge could halve (#308).
   "uncanny-dodge",
@@ -763,6 +776,35 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           ...(strike ? { cunningStrike: body.cunningStrike } : {}),
         } as FifthAction);
       }
+      case "/api/5e/session/divine-spark":
+        // Divine Spark (#341) at a target, with what it does; the runtime
+        // refuses a mode it doesn't know.
+        if (
+          !hasExactKeys(body, ["sessionId", "sequence", "targetId", "mode"]) ||
+          typeof body.targetId !== "string" ||
+          typeof body.mode !== "string"
+        ) {
+          throw new Error("Invalid Divine Spark request.");
+        }
+        return click(body, {
+          type: "divine-spark",
+          actorId: PLAYER_ID,
+          targetId: body.targetId,
+          mode: body.mode,
+        } as FifthAction);
+      case "/api/5e/session/spectral-attack":
+        // Spiritual Weapon's attack (#341).
+        if (
+          !hasExactKeys(body, ["sessionId", "sequence", "targetId"]) ||
+          typeof body.targetId !== "string"
+        ) {
+          throw new Error("Invalid attack request.");
+        }
+        return click(body, {
+          type: "spectral-attack",
+          actorId: PLAYER_ID,
+          targetId: body.targetId,
+        });
       case "/api/5e/session/action":
         if (
           !hasExactKeys(body, ["sessionId", "sequence", "action"]) ||

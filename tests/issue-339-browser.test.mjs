@@ -271,6 +271,20 @@ for (const viewport of [
         await page.locator("#prepared-shield-of-faith").check();
         await page.locator("#save-prepared").click();
         // The sheet redraws with the change saved: nothing left to save.
+        // The button is disabled while the save is in flight too, so wait
+        // for storage to hold the change.
+        for (
+          let tries = 0;
+          tries < 50 &&
+          !(await readAda(libraryPath)).sheet.spells.prepared.includes(
+            "shield-of-faith",
+          );
+          tries++
+        ) {
+          await new Promise((resolve) => {
+            setTimeout(resolve, 100);
+          });
+        }
         await page.locator("#save-prepared:disabled").waitFor();
         await page.locator("#prepared-shield-of-faith:checked").waitFor();
         assert.deepEqual((await readAda(libraryPath)).sheet.spells.prepared, [

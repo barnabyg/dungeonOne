@@ -37,6 +37,8 @@ import {
   levelChoicesOwed,
   masteryOptions,
   pendingLevelChoice,
+  withOwedSpells,
+  alwaysPrepared,
   rollAbilitySet,
   validateCharacter,
   type CharacterSheet,
@@ -181,11 +183,30 @@ export function characterAtLevel(
     },
     classId,
   );
-  const raised = { ...created, level, xp: LEVEL_XP[level] };
-  const sheet = validateCharacter({
-    ...raised,
-    hp: characterProfile(raised).maxHp,
-  });
+  // Spells its level always prepares (#341) leave its choices.
+  const always = alwaysPrepared(definition, level);
+  const raised = {
+    ...created,
+    level,
+    xp: LEVEL_XP[level],
+    ...(created.spells === undefined
+      ? {}
+      : {
+          spells: {
+            ...created.spells,
+            prepared: created.spells.prepared.filter(
+              (id) => !always.includes(id),
+            ),
+          },
+        }),
+  };
+  // A caster prepares the spells its level adds (#341) in its list's order.
+  const sheet = withOwedSpells(
+    validateCharacter({
+      ...raised,
+      hp: characterProfile(raised).maxHp,
+    }),
+  );
   return pendingLevelChoice(sheet) === undefined
     ? sheet
     : applyLevelChoice(sheet, gateLevelChoice(sheet, archer, mastery));
@@ -824,6 +845,13 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   // Hide and Steady Aim, by the Rogue policy (#307).
   hide: true,
   "steady-aim": true,
+  // Channel Divinity, by the Cleric policy (#341): Turn Undead against
+  // undead, Preserve Life when Bloodied, Divine Spark's radiant damage.
+  "divine-spark": true,
+  "turn-undead": true,
+  "preserve-life": true,
+  // Spiritual Weapon waits for the caster policies (#348).
+  "spectral-attack": false,
   "end-turn": true,
   // Uncanny Dodge, by the Rogue policy: every hit it can halve (#308).
   "uncanny-dodge": true,
@@ -919,6 +947,11 @@ export type RunRecord = Readonly<{
   }>;
   /** Spells the character cast, of any kind (#340). */
   spellsCast: number;
+  /**
+   * Channel Divinity uses spent (#341): Turn Undead, Divine Spark and
+   * Preserve Life.
+   */
+  channelDivinity: number;
   /** Hit points lost to traps sprung, outside the fights. */
   trapDamage: number;
   /** What a surviving ending credited: XP and how many finds of treasure or coin. */
@@ -1058,6 +1091,7 @@ export function playAdventure(
   };
   let trapDamage = 0;
   let spellsCast = 0;
+  let channelDivinity = 0;
   /** Whether a base-AC spell (Mage Armor, #340) was cast before a fight. */
   let warded = false;
   /** The character's hit points, so a blow costs only what was left. */
@@ -1144,6 +1178,16 @@ export function playAdventure(
           if (event.combatantId === PLAYER_ID) {
             spellsCast += 1;
           }
+          break;
+        // Channel Divinity (#341); Preserve Life heals the character.
+        case "turn-undead":
+        case "divine-spark":
+          channelDivinity += 1;
+          break;
+        case "preserve-life":
+          channelDivinity += 1;
+          healing.hp += event.healing;
+          hp = event.hpAfter;
           break;
         case "short-rest":
           healing.shortRests += 1;
@@ -1258,18 +1302,37 @@ export function playAdventure(
       return shield ?? offered(views, "take-hit")[0]!;
     }
     const hpOf = (id: string) => combatant(encounter, id).hp;
+    // Preserve Life (#341) heals after the spells, before a potion.
     const heal = [
       ...healingSpells(views, true),
       ...offered(views, "second-wind"),
+      ...offered(views, "preserve-life"),
       ...offered(views, "use"),
     ][0];
     if (heal !== undefined && low(hpOf(PLAYER_ID))) {
       return heal;
     }
+    // The Cleric policy (#341): Turn Undead whenever an undead foe is left
+    // to turn; turned foes are attacked only once every foe is turned, so
+    // the rest stay out of the fight.
+    const turn = offered(views, "turn-undead")[0];
+    if (turn !== undefined) {
+      return turn;
+    }
+    const turned = (id: string) =>
+      (combatant(encounter, id).effects ?? []).some(
+        ({ buff }) => buff.kind === "control" && buff.by === "turning",
+      );
+    const untouched = (list: readonly ActionView[]) => {
+      const active = list.filter(({ target }) => !turned(target!.id));
+      return active.length > 0 ? active : list;
+    };
     // Plain attacks; Cunning Strike's (#308) are chosen below.
     const plain = (kind: ActionKind) =>
-      offered(views, kind).filter(
-        ({ cunningStrike }) => cunningStrike === undefined,
+      untouched(
+        offered(views, kind).filter(
+          ({ cunningStrike }) => cunningStrike === undefined,
+        ),
       );
     // The weakest opponent first; ties go to the first listed.
     const attack = plain("attack").reduce<ActionView | undefined>(
@@ -1326,12 +1389,14 @@ export function playAdventure(
     const ranged = (view: ActionView) =>
       (SPELLS[view.spell!.id as SpellId].effect as { range?: string }).range ===
       "ranged";
-    const cantrips = offered(views, "cast").filter(
-      ({ spell, target }) =>
-        isSpellId(spell?.id) &&
-        SPELLS[spell.id].level === 0 &&
-        SPELLS[spell.id].effect.kind === "attack" &&
-        target !== undefined,
+    const cantrips = untouched(
+      offered(views, "cast").filter(
+        ({ spell, target }) =>
+          isSpellId(spell?.id) &&
+          SPELLS[spell.id].level === 0 &&
+          SPELLS[spell.id].effect.kind === "attack" &&
+          target !== undefined,
+      ),
     );
     const opening = encounter.round === 1;
     const preferred = cantrips.filter((view) => ranged(view) === opening);
@@ -1344,8 +1409,28 @@ export function playAdventure(
           : best,
       undefined,
     );
+    // Divine Spark's radiant damage (#341) on the weakest foe left
+    // untouched, while it leaves a use of Channel Divinity for Turn Undead
+    // or Preserve Life.
+    const uses = combatant(encounter, PLAYER_ID).channelDivinity?.uses ?? 0;
+    const spark =
+      uses > 1
+        ? untouched(
+            offered(views, "divine-spark").filter(
+              ({ mode }) => mode === "radiant",
+            ),
+          ).reduce<ActionView | undefined>(
+            (best, view) =>
+              best === undefined ||
+              hpOf(view.target!.id) < hpOf(best.target!.id)
+                ? view
+                : best,
+            undefined,
+          )
+        : undefined;
     return (
       aim ??
+      spark ??
       cantrip ??
       struck(attack) ??
       struck(light) ??
@@ -1635,6 +1720,7 @@ export function playAdventure(
     encounters: fights,
     healing,
     spellsCast,
+    channelDivinity,
     trapDamage,
     xp: settlement?.xp.reduce((sum, { xp }) => sum + xp, 0) ?? 0,
     treasure:
@@ -2678,10 +2764,18 @@ export const GATE_CLASSES: readonly ClassId[] = ["fighter", "rogue"];
 export const REPORTED_CLASSES: readonly ClassId[] = ["cleric", "wizard"];
 
 /**
+ * The seeds a reported class plays by default (#341, owner's choice for
+ * D12): fewer than a judged class's, so reporting a class at every level it
+ * reaches stays inside the gate's time budget. Its report judges nothing.
+ */
+export const REPORT_SEED_COUNT = 50;
+
+/**
  * A reported class's runs on a module (#339), never judged: at the module's
  * levels the class reaches yet (none when it reaches none of them), the
- * weakest character's cautious runs on seeded checks with each kit, and
- * the healing spells it cast a run; or why the harness couldn't play it.
+ * weakest character's cautious runs on seeded checks with each kit
+ * (`REPORT_SEED_COUNT` seeds unless the gate names its own), and the
+ * healing spells it cast a run; or why the harness couldn't play it.
  */
 export type ReportedClass = Readonly<{ classId: ClassId }> &
   (
@@ -2709,7 +2803,7 @@ export function reportClass(
   adventure: FifthAdventure,
   classId: ClassId,
   {
-    seeds = Array.from({ length: DEFAULT_SEED_COUNT }, (_, seed) => seed),
+    seeds = Array.from({ length: REPORT_SEED_COUNT }, (_, seed) => seed),
     sampleSize,
     sampleSeed,
     stepLimit,

@@ -1,9 +1,9 @@
 // #339: a level-1 Cleric. Creation makes a Cleric from its class data, with
 // its Divine Order (Protector or Thaumaturge), cantrips and prepared
 // spells; its numbers by table; the Thaumaturge's bonus on Arcana and
-// Religion checks; a Cleric stays at level 1 for now, keeping its XP; and
-// prepared spells change in the library between adventures, never during
-// one. Engine tests are in issue-339-engine.test.mjs.
+// Religion checks; and prepared spells change in the library between
+// adventures, never during one. Engine tests are in
+// issue-339-engine.test.mjs; levels 2 and 3 are #341's.
 import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -19,7 +19,6 @@ import {
   OFFERED_CLASS_IDS,
   prepareSpells,
   projectCreation,
-  settleCharacter,
   validateCharacter,
 } from "../dist/character-5e.js";
 import {
@@ -249,31 +248,6 @@ test("the creation preview counts cantrips and prepared spells as they are ticke
   assert.equal(done.sheet.profile.spellcasting.saveDc, 13);
 });
 
-test("a Cleric stays at level 1 for now, keeping the XP it earns", () => {
-  const mira = cleric();
-  assert.equal(characterProfile(mira).nextLevelXp, undefined);
-  const settled = settleCharacter(mira, {
-    possessions: {
-      equipment: mira.equipment,
-      stowed: mira.stowed,
-      ammunition: mira.ammunition,
-      treasure: [],
-      purse: 0,
-    },
-    xp: [{ id: "cellar/ending/out", name: "Out", xp: 1000 }],
-    finds: [],
-    sold: [],
-    coin: [],
-    gear: [],
-  });
-  assert.equal(settled.level, 1);
-  assert.equal(settled.xp, 1000);
-  assert.throws(
-    () => validateCharacter({ ...settled, level: 3 }),
-    /Character level differs from experience points\./u,
-  );
-});
-
 test("prepared spells change between adventures, from the class's list", () => {
   const mira = cleric();
   const changed = prepareSpells(mira, [
@@ -293,7 +267,7 @@ test("prepared spells change between adventures, from the class's list", () => {
   });
   assert.throws(
     () => prepareSpells(mira, ["bless", "cure-wounds", "guiding-bolt"]),
-    /prepares levelled spells it has slots for: 4 different/u,
+    /Choose 4 spells to prepare; 3 chosen./u,
   );
   assert.throws(
     () =>
@@ -368,12 +342,12 @@ test("a format-16 library is refused, naming the file", async () => {
         characters: [],
       }),
     );
-    assert.equal(FIFTH_LIBRARY_FORMAT, 18);
+    assert.equal(FIFTH_LIBRARY_FORMAT, 19);
     await assert.rejects(
       new FifthCharacterLibrary(path, 1).read(),
       (error) =>
         error.message.includes(path) &&
-        /format version 16, not 18/u.test(error.message),
+        /format version 16, not 19/u.test(error.message),
     );
   } finally {
     await rm(directory, { recursive: true, force: true });

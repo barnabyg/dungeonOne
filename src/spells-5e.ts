@@ -26,7 +26,20 @@
  * - `control` (#340): the target saves or has a condition until the end
  *   of its next turn, then saves again or has a worse one for as long as
  *   the caster concentrates (Sleep). Damage ends it on the target, and a
- *   creature immune to exhaustion succeeds without a roll.
+ *   creature immune to exhaustion succeeds without a roll. A hold (#341,
+ *   Hold Person) works on one creature type, keeps its condition until a
+ *   repeat save succeeds, and damage doesn't end it.
+ * - `restoration` (#341): ends a condition on the caster or an ally
+ *   (Lesser Restoration).
+ * - `spectral-weapon` (#341): a melee spell attack as it is cast, then one
+ *   more as a bonus action on each later turn while the caster
+ *   concentrates (Spiritual Weapon).
+ * - Buffs (#341) may also raise maximum and current hit points (Aid) or
+ *   ward against poison (Protection from Poison, which also ends being
+ *   poisoned).
+ * - A healing spell may heal its dice alone and give a short rest's
+ *   recovery of feature uses, once per long rest (#341, Prayer of Healing,
+ *   cast in minutes and so only outside a fight).
  * - An area spell (#338) declares its shape and size, and so the most
  *   opponents it can catch (`maxTargets`, D4); the caster chooses them.
  * - A spell may take a damage type chosen at casting (`damageTypes`, #339,
@@ -36,10 +49,18 @@
  * durations are abstracted; the rules document lists what that omits.
  */
 import type { Ability } from "./class-5e.js";
-import type { ConditionKind, DamageType } from "./encounter-5e.js";
+import type {
+  ConditionImmunity,
+  ConditionKind,
+  DamageType,
+} from "./encounter-5e.js";
 
-/** How long a spell takes to cast: the Magic action, a bonus action or a reaction. */
-export type CastingTime = "action" | "bonus-action" | "reaction";
+/**
+ * How long a spell takes to cast: the Magic action, a bonus action, a
+ * reaction, or minutes (#341: Prayer of Healing's ten), which only time
+ * outside a fight allows.
+ */
+export type CastingTime = "action" | "bonus-action" | "reaction" | "minutes";
 
 export type SpellSchool =
   | "abjuration"
@@ -72,10 +93,31 @@ export type Buff = Readonly<
   | { kind: "check-die"; sides: number }
   | { kind: "damage-reduction"; sides: number }
   /**
-   * A control spell's hold on an opponent (#340): Sleep's, while its
-   * conditions last. It ends when the target takes damage.
+   * A control effect's hold on an opponent (#340): Sleep's, while its
+   * conditions last. It ends when the target takes damage, unless it is a
+   * `hold` (#341, Hold Person), which only a save or the caster's
+   * concentration ends. Turn Undead's (#341) is a `turning`: damage, an
+   * attack on the target, or the turner being incapacitated ends it.
    */
-  | { kind: "control" }
+  | { kind: "control"; by?: "hold" | "turning" }
+  /** More maximum and current hit points while it lasts (#341, Aid). */
+  | { kind: "max-hp"; bonus: number }
+  /**
+   * Protection from Poison (#341): resistance to poison damage, and
+   * advantage on saving throws against being poisoned.
+   */
+  | { kind: "poison-ward" }
+  /**
+   * A spectral weapon the caster commands (#341, Spiritual Weapon): a
+   * bonus action makes its melee spell attack, dealing these dice of its
+   * type + the caster's spellcasting modifier.
+   */
+  | { kind: "spectral-weapon"; dice: number; sides: number; type: DamageType }
+  /**
+   * A spell its target can't benefit from again until a long rest (#341,
+   * Prayer of Healing): it does nothing else.
+   */
+  | { kind: "lockout" }
 >;
 
 /**
@@ -173,8 +215,18 @@ export type SpellEffect = Readonly<
       /** Each missile's damage: its dice, its flat bonus and its type. */
       damage: SpellDamage & Readonly<{ modifier: number }>;
     }
-  /** The dice plus the caster's spellcasting ability modifier. */
-  | { kind: "healing"; healing: SpellDice }
+  /**
+   * The dice plus the caster's spellcasting ability modifier, unless
+   * `noModifier` (#341, Prayer of Healing). A healing spell with
+   * `restBenefit` also gives a short rest's recovery of feature uses, and
+   * its target can't benefit from it again until a long rest (#341).
+   */
+  | {
+      kind: "healing";
+      healing: SpellDice;
+      noModifier?: true;
+      restBenefit?: true;
+    }
   /**
    * An ongoing effect on the caster or an ally (#337), for as long as its
    * duration's band, and while the caster concentrates on it if it needs
@@ -198,7 +250,37 @@ export type SpellEffect = Readonly<
       kind: "control";
       ability: Ability;
       condition: ConditionKind;
-      then: ConditionKind;
+      /**
+       * The worse condition a failed repeat save gives (Sleep's); without
+       * it (#341, Hold Person) a failed repeat save keeps the condition.
+       */
+      then?: ConditionKind;
+      duration: SpellDuration;
+      concentration: true;
+      /**
+       * What makes a creature succeed without a roll: exhaustion for Sleep,
+       * the condition itself for Hold Person (#341).
+       */
+      immunity: ConditionImmunity;
+      /** The only creature type it works on (#341: Hold Person's humanoid). */
+      creatureType?: string;
+      /** A hold (#341, Hold Person): damage doesn't end it. */
+      hold?: true;
+    }
+  /**
+   * Ends one of `conditions` on its target (#341, Lesser Restoration): the
+   * first it has, in this order.
+   */
+  | { kind: "restoration"; conditions: readonly ConditionKind[] }
+  /**
+   * A spectral weapon (#341, Spiritual Weapon): a melee spell attack as it
+   * is cast, dealing the damage + the spellcasting modifier; then the
+   * weapon stays while the caster concentrates, attacking again with a
+   * bonus action on each later turn.
+   */
+  | {
+      kind: "spectral-weapon";
+      damage: SpellDamage;
       duration: SpellDuration;
       concentration: true;
     }
@@ -208,7 +290,12 @@ export type SpellEffect = Readonly<
  * What each slot level above a levelled spell's own adds: more dice of its
  * damage or healing, or more missiles.
  */
-export type Upcast = Readonly<{ dice: number } | { missiles: number }>;
+export type Upcast = Readonly<
+  | { dice: number }
+  | { missiles: number }
+  /** More hit points for a max-hp buff (#341, Aid). */
+  | { maxHp: number }
+>;
 
 /** An area spell's shape and size in feet (SRD 5.2, #338). */
 export type SpellArea = Readonly<{
@@ -566,8 +653,93 @@ export const SPELLS = {
       then: "unconscious",
       duration: { minutes: 1 },
       concentration: true,
+      immunity: "exhaustion",
     },
     area: { shape: "sphere", feet: 5 },
+  },
+  // The Cleric's 2nd-level spells (#341, owner-approved). Aid and Lesser
+  // Restoration are also the Life Domain's always-prepared spells. Without
+  // companions Aid has one target, its caster. Spiritual Weapon's moving
+  // is omitted, and Hold Person's extra targets from a higher slot. Prayer
+  // of Healing takes ten minutes, so it is cast only outside a fight; its
+  // short rest gives feature uses back, not hit dice.
+  aid: {
+    id: "aid",
+    name: "Aid",
+    level: 2,
+    school: "abjuration",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "max-hp", bonus: 5 },
+      duration: { minutes: 480 },
+    },
+    upcast: { maxHp: 5 },
+  },
+  "lesser-restoration": {
+    id: "lesser-restoration",
+    name: "Lesser Restoration",
+    level: 2,
+    school: "abjuration",
+    castingTime: "bonus-action",
+    effect: { kind: "restoration", conditions: ["paralysed", "poisoned"] },
+  },
+  "spiritual-weapon": {
+    id: "spiritual-weapon",
+    name: "Spiritual Weapon",
+    level: 2,
+    school: "evocation",
+    castingTime: "bonus-action",
+    effect: {
+      kind: "spectral-weapon",
+      damage: { dice: 1, sides: 8, type: "force" },
+      duration: { minutes: 1 },
+      concentration: true,
+    },
+    upcast: { dice: 1 },
+  },
+  "hold-person": {
+    id: "hold-person",
+    name: "Hold Person",
+    level: 2,
+    school: "enchantment",
+    castingTime: "action",
+    effect: {
+      kind: "control",
+      ability: "wisdom",
+      condition: "paralysed",
+      duration: { minutes: 1 },
+      concentration: true,
+      immunity: "paralysed",
+      creatureType: "humanoid",
+      hold: true,
+    },
+  },
+  "protection-from-poison": {
+    id: "protection-from-poison",
+    name: "Protection from Poison",
+    level: 2,
+    school: "abjuration",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "poison-ward" },
+      duration: { minutes: 60 },
+    },
+  },
+  "prayer-of-healing": {
+    id: "prayer-of-healing",
+    name: "Prayer of Healing",
+    level: 2,
+    school: "abjuration",
+    castingTime: "minutes",
+    effect: {
+      kind: "healing",
+      healing: { dice: 2, sides: 8 },
+      noModifier: true,
+      restBenefit: true,
+    },
+    upcast: { dice: 1 },
   },
   // A reaction to being hit by an attack roll (#337): +5 AC until the start
   // of the caster's next turn, against that attack too.
@@ -634,6 +806,18 @@ export function effectAtSlot(
       ? { ...effect, missiles: effect.missiles + upcast.missiles * above }
       : effect;
   }
+  // Aid (#341): more hit points from each slot level above its own.
+  if ("maxHp" in upcast) {
+    return effect.kind === "buff" && effect.buff.kind === "max-hp"
+      ? {
+          ...effect,
+          buff: {
+            ...effect.buff,
+            bonus: effect.buff.bonus + upcast.maxHp * above,
+          },
+        }
+      : effect;
+  }
   const more = upcast.dice * above;
   switch (effect.kind) {
     case "healing":
@@ -645,6 +829,7 @@ export function effectAtSlot(
     case "buff":
     case "flavour":
     case "control":
+    case "restoration":
       return effect;
     default:
       return {

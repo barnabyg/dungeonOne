@@ -24,7 +24,7 @@ const [weakest] = percentileCharacters({
 const cleric = (kit) =>
   characterAtLevel(weakest.dice, 1, kit, false, undefined, "cleric");
 
-test("the harness builds a level-1 Cleric from its defaults, and no higher level yet", () => {
+test("the harness builds a level-1 Cleric from its defaults, and none above level 3 yet", () => {
   const sheet = cleric();
   assert.equal(sheet.class, "cleric");
   assert.equal(sheet.divineOrder, "protector");
@@ -37,8 +37,8 @@ test("the harness builds a level-1 Cleric from its defaults, and no higher level
   assert.equal(cleric("club-and-shield").equipment.includes("shield"), true);
   assert.throws(
     () =>
-      characterAtLevel(weakest.dice, 2, undefined, false, undefined, "cleric"),
-    /A Cleric reaches only level 1 yet\./u,
+      characterAtLevel(weakest.dice, 4, undefined, false, undefined, "cleric"),
+    /A Cleric reaches only level 3 yet\./u,
   );
 });
 
@@ -77,15 +77,19 @@ test("the gate reports the Cleric and never judges it", () => {
     renderModuleGateResult(ratTunnels, gate),
     /^The Rat Tunnels \(rat-tunnels\) for the Cleric, reported \(not judged\): the level 1, 5th percentile Cleric playing cautious survived \d+\.\d% of 2 runs with its weakest kit, [a-z-]+ \(mace-and-daggers level 1 \d+\.\d%, club-and-shield level 1 \d+\.\d%\), casting \d+\.\d spells a run, \d+\.\d of them healing\.$/mu,
   );
-  // A module above level 1 isn't played for the Cleric yet.
+  // A level-2 module is played for the Cleric since it reaches level 3
+  // (#341), not yet for the Wizard.
   const higher = gateModule(goblinBand, { seeds: [0] });
-  assert.deepEqual(higher.reported, [
-    { classId: "cleric", ok: true, levels: [] },
-    { classId: "wizard", ok: true, levels: [] },
-  ]);
+  assert.deepEqual(
+    higher.reported.map(({ classId, levels }) => [classId, levels]),
+    [
+      ["cleric", [2]],
+      ["wizard", []],
+    ],
+  );
   assert.match(
     renderModuleGateResult(goblinBand, higher),
-    /for the Cleric, not reported: the Cleric reaches only level 1 yet, and the module is for level 2\.$/mu,
+    /for the Wizard, not reported: the Wizard reaches only level 1 yet, and the module is for level 2\.$/mu,
   );
   // Leaving the report out changes no verdict.
   const plain = gateModule(ratTunnels, { seeds: [0, 1], reportClasses: false });

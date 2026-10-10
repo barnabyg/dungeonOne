@@ -1,11 +1,11 @@
 /**
- * The SRD 5.2 Cleric at level 1, as class data (#339). The character module
- * (`character-5e.ts`) derives a Cleric's hit points, saves, skills,
- * training, spellcasting and Divine Order from this definition alone. Its
- * spell tables follow SRD 5.2 at every level, but a Cleric stays at level 1
- * (`maxLevel`) until its level 2–5 features come (#341); XP above level 1's
- * is kept. `docs/character-rules.md` records the numbers and the
- * abstractions.
+ * The SRD 5.2 Cleric at levels 1–3, as class data (#339, #341). The
+ * character module (`character-5e.ts`) derives a Cleric's hit points,
+ * saves, skills, training, spellcasting, Divine Order, Channel Divinity and
+ * Life Domain from this definition alone. Its spell tables follow SRD 5.2
+ * at every level, but a Cleric stays at level 3 (`maxLevel`) until its
+ * level 4–5 features come (#342); XP above level 3's is kept.
+ * `docs/character-rules.md` records the numbers and the abstractions.
  */
 import {
   type Ability,
@@ -15,6 +15,7 @@ import {
   type DivineOrderId,
   type SkillId,
   type SpellcastingDefinition,
+  type SubclassDefinition,
 } from "./class-5e.js";
 
 /** The skills a Cleric chooses its proficiencies from. */
@@ -62,6 +63,50 @@ export const CLERIC_SPELLCASTING: SpellcastingDefinition = {
     "healing-word",
     "inflict-wounds",
     "shield-of-faith",
+    // 2nd level (#341, owner-approved).
+    "aid",
+    "lesser-restoration",
+    "spiritual-weapon",
+    "hold-person",
+    "protection-from-poison",
+    "prayer-of-healing",
+  ],
+};
+
+/**
+ * The Life Domain (SRD 5.2), the Cleric's subclass at level 3 (#341): its
+ * always-prepared spells, Disciple of Life and Preserve Life. Its later
+ * spells and features wait for their levels (#342).
+ */
+export const LIFE_DOMAIN: SubclassDefinition = {
+  id: "life-domain",
+  name: "Life Domain",
+  features: [
+    {
+      id: "life-domain-spells",
+      level: 3,
+      name: "Life Domain Spells",
+      text: "Aid, Bless, Cure Wounds and Lesser Restoration are always prepared, and don't count against the spells you prepare.",
+      effect: {
+        kind: "always-prepared",
+        spells: ["aid", "bless", "cure-wounds", "lesser-restoration"],
+      },
+    },
+    {
+      id: "disciple-of-life",
+      level: 3,
+      name: "Disciple of Life",
+      text: "When a spell you cast with a spell slot restores hit points, the creature regains 2 + the slot's level more.",
+      effect: { kind: "disciple-of-life" },
+    },
+    {
+      id: "preserve-life",
+      level: 3,
+      name: "Preserve Life",
+      text: ({ level }) =>
+        `As a Magic action, spend a use of Channel Divinity to restore up to ${5 * level} hit points (five times your Cleric level) to yourself while you are Bloodied, at half your hit points or fewer; it can't take you above half. Without companions it heals only you.`,
+      effect: { kind: "preserve-life", perLevel: 5 },
+    },
   ],
 };
 
@@ -132,11 +177,24 @@ export const CLERIC: ClassDefinition = {
         `Divine Order: ${DIVINE_ORDERS[divineOrder!].name}`,
       text: ({ divineOrder }) => DIVINE_ORDERS[divineOrder!].text,
     },
+    {
+      id: "channel-divinity",
+      level: 2,
+      name: "Channel Divinity",
+      text: ({ uses, modifiers }) =>
+        `${uses} uses; a short rest restores one, a long rest all. Each is a Magic action against your spell save DC. Divine Spark: roll 1d8 ${modifiers.wisdom >= 0 ? "+" : "−"} ${Math.abs(modifiers.wisdom)} (Wisdom) and heal another creature on your side by the total, or make an opponent save on Constitution or take that much radiant or necrotic damage, half on a success. Turn Undead: each undead opponent saves on Wisdom or is Frightened and Incapacitated for the fight's minute; damage, an attack on it, or your being Incapacitated ends it. Every undead foe is within range: there are no positions.`,
+      uses: { 1: 2, 2: 2, 3: 2, 4: 2, 5: 2 },
+      recovery: { shortRest: 1, longRest: "all" },
+      effect: {
+        kind: "channel-divinity",
+        divineSpark: { dice: { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 }, sides: 8 },
+      },
+    },
   ],
-  subclasses: [],
+  subclasses: [LIFE_DOMAIN],
   defaults: CLERIC_DEFAULT_CHOICES,
   kits: ["mace-and-daggers", "club-and-shield"],
   spellcasting: CLERIC_SPELLCASTING,
   divineOrders: DIVINE_ORDERS,
-  maxLevel: 1,
+  maxLevel: 3,
 };

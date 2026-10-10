@@ -37,6 +37,7 @@ import {
   DEFAULT_CLASS,
   MAX_LEVEL,
   pendingLevelChoice,
+  withOwedSpells,
   settleCharacter,
   type CharacterSheet,
 } from "./character-5e.js";
@@ -151,6 +152,8 @@ export function simulateCareer(
       if (pendingLevelChoice(sheet) !== undefined) {
         sheet = applyLevelChoice(sheet, gateLevelChoice(sheet));
       }
+      // A new level's spells (#341), in the class list's order.
+      sheet = withOwedSpells(sheet);
       const level = sheet.level;
       const run = playAdventure(
         createFifthRuntime(adventure, sheet),

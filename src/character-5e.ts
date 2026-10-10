@@ -494,6 +494,87 @@ function divineOrderOf(
 }
 
 /**
+ * The spells a character of `definition` and `level` always has prepared
+ * (#341, the Life Domain's): they don't count against its prepared spells.
+ */
+export function alwaysPrepared(
+  definition: ClassDefinition,
+  level: Level,
+): readonly SpellId[] {
+  return effects(definition, level, "always-prepared").flatMap(
+    ({ effect }) => effect.spells,
+  );
+}
+
+/**
+ * The levelled spells `sheet` may choose to prepare (#339, #341): those on
+ * its class's list (or in its spellbook, #340) that it has slots for and
+ * doesn't always have prepared.
+ */
+export function preparableSpells(
+  sheet: Pick<CharacterSheet, "class" | "level" | "spellbook">,
+): readonly SpellId[] {
+  const definition = classOf(sheet);
+  const casting = definition.spellcasting;
+  if (casting === undefined) {
+    return [];
+  }
+  const highest = casting.slots[sheet.level].length;
+  const always = alwaysPrepared(definition, sheet.level);
+  return (sheet.spellbook ?? casting.list).filter(
+    (id) =>
+      SPELLS[id].level >= 1 &&
+      SPELLS[id].level <= highest &&
+      !always.includes(id),
+  );
+}
+
+/**
+ * The cantrips and spells `sheet` still has to choose (#341): a new level
+ * may let it prepare more, and its choices are made on the sheet before the
+ * next adventure. Zeros when it owes none.
+ */
+export function spellsOwed(
+  sheet: Pick<CharacterSheet, "class" | "level" | "spells" | "divineOrder">,
+): Readonly<{ cantrips: number; prepared: number }> {
+  if (sheet.spells === undefined) {
+    return { cantrips: 0, prepared: 0 };
+  }
+  const counts = spellCounts(classOf(sheet), sheet.level, sheet.divineOrder);
+  return {
+    cantrips: Math.max(0, counts.cantrips - sheet.spells.cantrips.length),
+    prepared: Math.max(0, counts.prepared - sheet.spells.prepared.length),
+  };
+}
+
+/**
+ * `sheet` with the spells it owes (#341) prepared in its class list's
+ * order, the first it may prepare and hasn't: the balance harness's
+ * policy, and a player's default. Unchanged when it owes none.
+ */
+export function withOwedSpells(sheet: CharacterSheet): CharacterSheet {
+  const { prepared: owed } = spellsOwed(sheet);
+  if (owed === 0 || sheet.spells === undefined) {
+    return sheet;
+  }
+  const chosen = sheet.spells.prepared;
+  const more = preparableSpells(sheet)
+    .filter((id) => !chosen.includes(id))
+    .slice(0, owed);
+  return prepareSpells(sheet, [...chosen, ...more]);
+}
+
+/** "1 more spell to prepare": what `sheet` owes (#341), or undefined. */
+export function spellsOwedWords(
+  sheet: Pick<CharacterSheet, "class" | "level" | "spells" | "divineOrder">,
+): string | undefined {
+  const { prepared } = spellsOwed(sheet);
+  return prepared === 0
+    ? undefined
+    : `${prepared} more ${prepared === 1 ? "spell" : "spells"} to prepare`;
+}
+
+/**
  * The armour training and weapon proficiencies of a character of
  * `definition`: its class's, and its Divine Order's (#339).
  */
@@ -891,11 +972,18 @@ function validateSpellChoices(
     (id) => SPELLS[id].level === 0,
     "knows cantrips:",
   );
+  // Its always-prepared spells (#341) aren't chosen.
+  const always = alwaysPrepared(definition, level);
   const prepared = pick(
     choices.prepared,
     counts.prepared,
-    (id) => SPELLS[id].level >= 1 && SPELLS[id].level <= highest,
-    "prepares levelled spells it has slots for:",
+    (id) =>
+      SPELLS[id].level >= 1 &&
+      SPELLS[id].level <= highest &&
+      !always.includes(id),
+    always.length === 0
+      ? "prepares levelled spells it has slots for:"
+      : `prepares, besides ${always.map((id) => SPELLS[id].name).join(", ")}, levelled spells it has slots for:`,
   );
   // A Wizard prepares only spells in its spellbook (#340).
   if (
@@ -1531,9 +1619,11 @@ export function validateCharacter(value: unknown): CharacterSheet {
     skills,
     sheet.expertise,
   );
+  // A new level may leave spells still to choose (#341, `spellsOwed`).
   validateSpellChoices(definition, sheet.level, sheet.spells, {
     divineOrder: validateDivineOrder(definition, sheet.divineOrder),
     spellbook: validateSpellbook(definition, sheet.level, sheet.spellbook),
+    partial: true,
   });
   // Each level choice (#286) is an Ability Score Improvement and its level's
   // new masteries, made together; a sheet may still owe its latest one.
@@ -1625,6 +1715,16 @@ export type CharacterProfile = Readonly<{
    * spell slots totalling up to `slotLevels` levels.
    */
   arcaneRecovery?: Readonly<{ slotLevels: number }>;
+  /**
+   * Channel Divinity (#341): the spell save DC its effects use, Divine
+   * Spark's dice + Wisdom modifier, and Preserve Life's pool once it has
+   * it (five times the level).
+   */
+  channelDivinity?: Readonly<{
+    saveDc: number;
+    divineSpark: Readonly<{ dice: number; sides: number; modifier: number }>;
+    preserveLife?: number;
+  }>;
   /** Cunning Action (#307): it can Hide as a bonus action. */
   cunningAction?: true;
   /** Steady Aim (#307): a bonus action for advantage on its next attack. */
@@ -1855,6 +1955,7 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
         : { divineOrder: sheet.divineOrder }),
       abilityScoreImprovements: sheet.abilityScoreImprovements,
       dexterityDc,
+      modifiers,
     };
     const name =
       typeof feature.name === "string" ? feature.name : feature.name(context);
@@ -1869,6 +1970,9 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
   });
   const [wind] = effects(definition, level, "second-wind");
   const [sneak] = effects(definition, level, "sneak-attack");
+  const [channel] = effects(definition, level, "channel-divinity");
+  const [preserve] = effects(definition, level, "preserve-life");
+  const always = alwaysPrepared(definition, level);
   const casting = definition.spellcasting;
   const has = (kind: FeatureEffect["kind"]) =>
     effects(definition, level, kind).length > 0;
@@ -1973,6 +2077,27 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
             ...(sheet.spellbook === undefined
               ? {}
               : { spellbook: sheet.spellbook }),
+            // The Life Domain's (#341).
+            ...(always.length === 0 ? {} : { alwaysPrepared: always }),
+            ...(has("disciple-of-life")
+              ? { discipleOfLife: true as const }
+              : {}),
+          },
+        }),
+    // Channel Divinity (#341), against the spell save DC.
+    ...(channel === undefined || casting === undefined
+      ? {}
+      : {
+          channelDivinity: {
+            saveDc: 8 + proficiency + modifiers[casting.ability],
+            divineSpark: {
+              dice: channel.effect.divineSpark.dice[level],
+              sides: channel.effect.divineSpark.sides,
+              modifier: modifiers[casting.ability],
+            },
+            ...(preserve === undefined
+              ? {}
+              : { preserveLife: preserve.effect.perLevel * level }),
           },
         }),
     // Arcane Recovery (#340): spell slot levels a short rest regains.
@@ -2050,10 +2175,23 @@ export function settleCharacter(
     (id, index, all) => !sheet.finds.includes(id) && all.indexOf(id) === index,
   );
   const xp = sheet.xp + awards.reduce((sum, award) => sum + award.xp, 0);
+  const level = levelForXp(xp, classMaxLevel(classOf(sheet)));
+  // A spell its new level always prepares (#341) frees its choice.
+  const always = alwaysPrepared(classOf(sheet), level);
   const raised = {
     ...sheet,
     xp,
-    level: levelForXp(xp, classMaxLevel(classOf(sheet))),
+    level,
+    ...(sheet.spells === undefined
+      ? {}
+      : {
+          spells: {
+            cantrips: sheet.spells.cantrips,
+            prepared: sheet.spells.prepared.filter(
+              (id) => !always.includes(id),
+            ),
+          },
+        }),
   };
   return validateCharacter({
     ...raised,
@@ -2087,6 +2225,10 @@ export type SpellcastingProfile = Readonly<{
   slots: readonly number[];
   /** The spells in its spellbook (#340), for a class with one. */
   spellbook?: readonly SpellId[];
+  /** The spells always prepared (#341, the Life Domain's), when any. */
+  alwaysPrepared?: readonly SpellId[];
+  /** Disciple of Life (#341): slot healing heals 2 + the slot level more. */
+  discipleOfLife?: true;
 }>;
 
 /**
@@ -2209,6 +2351,19 @@ export type LevelUpChanges = Readonly<{
   sneakAttack?: Readonly<{ before: number; after: number }>;
   /** How many kinds of weapon the character masters. */
   weaponMasteries: Readonly<{ before: number; after: number }>;
+  /**
+   * A caster's spells (#341): its slots and prepared count before and
+   * after, the spells now always prepared, the spells of a new slot level
+   * it may now prepare, and how many more it must prepare before the next
+   * adventure.
+   */
+  spells?: Readonly<{
+    slots: Readonly<{ before: readonly number[]; after: readonly number[] }>;
+    prepared: Readonly<{ before: number; after: number }>;
+    alwaysPrepared: readonly SpellId[];
+    newSpells: readonly SpellId[];
+    owed: number;
+  }>;
   /** The class features gained, in the sheet's order. */
   features: readonly Feature[];
   /**
@@ -2261,8 +2416,39 @@ export function levelUpChanges(
       before: definition.weaponMasteries[before.level],
       after: definition.weaponMasteries[after.level],
     },
+    ...(definition.spellcasting === undefined || after.spells === undefined
+      ? {}
+      : { spells: spellChanges(definition, before, after) }),
     features: now.features.filter(({ id }) => !known.has(id)),
     choices: levelChoicesOwed(after),
+  };
+}
+
+/** A caster's spell changes from `before` to `after` (#341). */
+function spellChanges(
+  definition: ClassDefinition,
+  before: ProfiledSheet,
+  after: ProfiledSheet,
+): NonNullable<LevelUpChanges["spells"]> {
+  const casting = definition.spellcasting!;
+  const was = alwaysPrepared(definition, before.level);
+  const highest = casting.slots[before.level].length;
+  return {
+    slots: {
+      before: casting.slots[before.level],
+      after: casting.slots[after.level],
+    },
+    prepared: {
+      before: casting.prepared[before.level],
+      after: casting.prepared[after.level],
+    },
+    alwaysPrepared: alwaysPrepared(definition, after.level).filter(
+      (id) => !was.includes(id),
+    ),
+    newSpells: preparableSpells(after).filter(
+      (id) => SPELLS[id].level > highest,
+    ),
+    owed: spellsOwed({ ...after, spells: after.spells! }).prepared,
   };
 }
 
@@ -2429,6 +2615,17 @@ export function prepareSpells(
   }
   if (!Array.isArray(prepared)) {
     throw new Error("Invalid prepared spells.");
+  }
+  // Every spell the level allows is chosen (#341).
+  const { prepared: count } = spellCounts(
+    classOf(sheet),
+    sheet.level,
+    sheet.divineOrder,
+  );
+  if (prepared.length !== count) {
+    throw new Error(
+      `Choose ${count} spells to prepare; ${prepared.length} chosen.`,
+    );
   }
   return validateCharacter({
     ...sheet,
