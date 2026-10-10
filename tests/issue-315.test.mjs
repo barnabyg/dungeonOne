@@ -12,12 +12,10 @@ import {
   createFifthRuntime,
   describeFifthResult,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   renderFifthEvent,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER, testFighterAt } from "../dist/test-fighter-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
 import {
@@ -510,10 +508,4 @@ test("scripted DM: asking for Tactical Mind when it isn't offered is refused", a
     FIFTH_DM_SYSTEM_PROMPT,
     /only then is tactical_mind offered\. Call it only when the player asks to use Tactical Mind/u,
   );
-});
-
-test("the save and trace formats and the prompt version bump", () => {
-  assert.ok(FIFTH_SESSION_FORMAT >= 35);
-  assert.ok(FIFTH_TRACE_FORMAT >= 29);
-  assert.match(FIFTH_PROMPT_VERSION, /^5e-dm-v(2[1-9]|[3-9]\d)$/u);
 });

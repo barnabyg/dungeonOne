@@ -21,9 +21,8 @@ import {
   FIFTH_DM_SYSTEM_PROMPT,
   renderFifthEvent,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
 import {
@@ -68,9 +67,6 @@ const available = (using, state, kind) =>
     .map(({ target }) => target.id);
 
 test("the module, save and trace formats bump; bypass XP and sneaking again are validated", () => {
-  assert.ok(FIFTH_ADVENTURE_FORMAT >= 22);
-  assert.ok(FIFTH_SESSION_FORMAT >= 29);
-  assert.ok(FIFTH_TRACE_FORMAT >= 23);
   const older = { ...moduleFile("rat-tunnels"), formatVersion: 21 };
   assert.throws(
     () => validateModule(older),

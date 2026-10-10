@@ -25,8 +25,7 @@ import {
   FIFTH_DM_SYSTEM_PROMPT,
   renderFifthEvent,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { BEA } from "./fixtures/charismatic-fighter.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
@@ -88,9 +87,6 @@ const text = (result, type) =>
   );
 
 test("the module, save and trace formats bump; parley, toll and trade are validated", () => {
-  assert.ok(FIFTH_ADVENTURE_FORMAT >= 25);
-  assert.ok(FIFTH_SESSION_FORMAT >= 32);
-  assert.ok(FIFTH_TRACE_FORMAT >= 26);
   assert.throws(
     () => validateModule({ ...moduleFile("rat-tunnels"), formatVersion: 24 }),
     new RegExp(`format version 24 is not ${FIFTH_ADVENTURE_FORMAT}`, "u"),

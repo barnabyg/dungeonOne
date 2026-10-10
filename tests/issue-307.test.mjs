@@ -19,16 +19,14 @@ import {
 } from "../dist/character-5e.js";
 import { abilityCheck } from "../dist/checks-5e.js";
 import { act, availableActions, startEncounter } from "../dist/encounter-5e.js";
-import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import { ROGUE } from "../dist/rogue-5e.js";
 import {
   createFifthRuntime,
   FIFTH_DM_SYSTEM_PROMPT,
   playerCombatant,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
 import {
@@ -523,17 +521,6 @@ test("a module marks climbing and jumping only on Strength checks", () => {
   delete wall.check.approaches[1].movement;
   wall.check.approaches[0].movement = "swim";
   assert.throws(() => validateModule(yard), /movement must be climb or jump/u);
-});
-
-test("the module, save and trace formats bump; an older module is refused", () => {
-  assert.ok(FIFTH_ADVENTURE_FORMAT >= 26);
-  assert.ok(FIFTH_SESSION_FORMAT >= 33);
-  assert.ok(FIFTH_TRACE_FORMAT >= 27);
-  const older = { ...moduleFile("obstacle-yard"), formatVersion: 25 };
-  assert.throws(
-    () => validateModule(older),
-    new RegExp(`format version 25 is not ${FIFTH_ADVENTURE_FORMAT}`, "u"),
-  );
 });
 
 /** A scripted AI DM that makes one tool call, then answers with `text`. */

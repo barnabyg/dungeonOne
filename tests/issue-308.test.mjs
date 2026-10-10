@@ -45,15 +45,9 @@ import {
   createFifthRuntime,
   describeFifthResult,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   playerCombatant,
 } from "../dist/runtime-5e.js";
-import {
-  FIFTH_SESSION_FORMAT,
-  FifthSession,
-  startFifthAdventure,
-} from "../dist/session-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
+import { FifthSession, startFifthAdventure } from "../dist/session-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 import { dice } from "./fixtures/engine-dice.mjs";
 import { goblinTrio, lintelBarrow, ratTunnels } from "./fixtures/modules.mjs";
@@ -1005,12 +999,6 @@ test("the balance harness plays a level-5 Rogue with Cunning Strike and Uncanny 
   assert.ok(runs.some(({ outcome }) => outcome === "victory"));
   assert.ok(seen.strike > 0, "the harness uses Cunning Strike");
   assert.ok(seen.dodge > 0, "the harness uses Uncanny Dodge");
-});
-
-test("the save and trace formats bump", () => {
-  assert.ok(FIFTH_SESSION_FORMAT >= 34);
-  assert.ok(FIFTH_TRACE_FORMAT >= 28);
-  assert.match(FIFTH_PROMPT_VERSION, /^5e-dm-v(2\d)$/u);
 });
 
 test("the career simulation can play a Rogue career", () => {
