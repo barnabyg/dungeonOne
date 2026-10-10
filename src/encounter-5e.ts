@@ -345,7 +345,11 @@ export type Condition = Readonly<{
   sourceId: string;
   /** The attack that gave it. */
   source: string;
-  /** Ends of the target's turns left before it ends by itself. */
+  /**
+   * Ends of the target's turns left before it ends by itself. A control
+   * spell's condition with no save (#340: Sleep's Unconscious) never runs
+   * out by turns: it ends with the spell.
+   */
   turnsLeft: number;
   /** The save the target repeats at the end of each of its turns. */
   save?: SaveSpec;
@@ -693,7 +697,7 @@ export type AttackRoll = Readonly<{
    * A hit that is critical only because the target is paralysed, or
    * unconscious (#340): `criticalCondition` names which.
    */
-  paralysedCritical: boolean;
+  conditionCritical: boolean;
   criticalCondition?: ConditionKind;
   /** Dice the attacker's effects added to `total` (#337): Bless's. */
   effectDice?: readonly EffectDie[];
@@ -885,7 +889,7 @@ export type AttackEvent = Readonly<{
    * A hit that is critical only because the target is paralysed, or
    * unconscious (#340): `criticalCondition` names which.
    */
-  paralysedCritical?: true;
+  conditionCritical?: true;
   criticalCondition?: ConditionKind;
   /** A hit's extra damage from the attack's rider, also taken by `hpAfter`. */
   rider?: Readonly<{
@@ -2588,7 +2592,7 @@ function endTurn(
           targetId: entrant.id,
           sourceId: condition.sourceId,
           source: condition.source,
-          turnsLeft: CONTROL_TURNS,
+          turnsLeft: condition.turnsLeft,
           ...(condition.spellId === undefined
             ? {}
             : { spellId: condition.spellId }),
@@ -2606,6 +2610,12 @@ function endTurn(
         continue;
       }
     }
+    // Sleep's Unconscious (#340) lasts until the spell ends on it, whose
+    // minute is the fight (D9): it never runs out by turns.
+    if (condition.spellId !== undefined && condition.save === undefined) {
+      conditions.push(condition);
+      continue;
+    }
     if (condition.turnsLeft <= 1) {
       ended(condition.kind === "prone" ? "stood" : "expired");
       continue;
@@ -2617,13 +2627,6 @@ function endTurn(
     ? next
     : endControl(next, entrant.id, released, events);
 }
-
-/**
- * The turns a control spell's condition lasts at most (#340): its minute,
- * 10 turns, though the fight's end or the caster's concentration ends it
- * first.
- */
-const CONTROL_TURNS = 10;
 
 /** The `condition` event of a condition given (#340). */
 function conditionEvent(condition: Condition): EncounterEvent {
@@ -2697,15 +2700,15 @@ function rollAttack(
         ({ criticalHits }) => criticalHits === true,
       )
     : undefined;
-  const paralysedCritical = !natural && criticalCondition !== undefined;
+  const conditionCritical = !natural && criticalCondition !== undefined;
   return {
     d20,
     ...(mode === undefined ? {} : { mode }),
     total,
     hit,
-    critical: natural || paralysedCritical,
-    paralysedCritical,
-    ...(paralysedCritical ? { criticalCondition } : {}),
+    critical: natural || conditionCritical,
+    conditionCritical,
+    ...(conditionCritical ? { criticalCondition } : {}),
     ...(effectDice.length === 0 ? {} : { effectDice }),
   };
 }
@@ -2815,7 +2818,7 @@ function landAttack(
     total,
     hit,
     critical,
-    paralysedCritical,
+    conditionCritical,
     criticalCondition,
     effectDice,
   }: AttackRoll,
@@ -2996,9 +2999,9 @@ function landAttack(
         ? { greatWeaponFighting: true as const }
         : {}),
       ...(sneak === undefined ? {} : { sneakAttack: sneak }),
-      ...(paralysedCritical
+      ...(conditionCritical
         ? {
-            paralysedCritical: true as const,
+            conditionCritical: true as const,
             ...(criticalCondition === undefined ? {} : { criticalCondition }),
           }
         : {}),
@@ -3565,8 +3568,20 @@ function spellRefusal(
       "damage-type",
       choices === undefined
         ? `${spell.name} takes no damage type.`
-        : `Choose the damage type ${spell.name} ${isResistance(spell) ? "resists" : "deals"}: ${choices.join(", ")}.`,
+        : `Choose the damage type ${spell.name} ${reducesDamage(spell) ? "resists" : "deals"}: ${choices.join(", ")}.`,
     );
+  }
+  // Resistance resists only damage an opponent still in the fight deals;
+  // Chromatic Orb may deal any of its types.
+  if (reducesDamage(spell)) {
+    const dealt = dealtDamageTypes(legalTargets(state, actor.id));
+    if (!dealt.has(action.damageType!)) {
+      const resistible = (choices ?? []).filter((type) => dealt.has(type));
+      return refused(
+        "damage-type",
+        `${spell.name} resists only damage your opponents' attacks deal: ${resistible.length === 0 ? "none" : resistible.join(", ")}.`,
+      );
+    }
   }
   if ((spell.castingTime === "reaction") !== reacting) {
     return reacting
@@ -3736,11 +3751,35 @@ function castRefusal(
   return undefined;
 }
 
-/** Whether `spell` names a damage type when cast (#339): Resistance. */
-export function isResistance(spell: SpellDefinition): boolean {
+/**
+ * Whether `spell` is a damage-reduction buff (#339), Resistance: the damage
+ * type named when it is cast is one it resists, not one it deals.
+ */
+export function reducesDamage(spell: SpellDefinition): boolean {
   return (
     spell.effect.kind === "buff" &&
     spell.effect.buff.kind === "damage-reduction"
+  );
+}
+
+/**
+ * The damage types `foes`' attacks and their riders deal (#339): their
+ * weapon, light weapon and Multiattack weapons.
+ */
+export function dealtDamageTypes(
+  foes: readonly Combatant[],
+): ReadonlySet<DamageType> {
+  return new Set(
+    foes.flatMap(({ attack, lightAttack, multiattack }) =>
+      [
+        attack,
+        ...(lightAttack === undefined ? [] : [lightAttack]),
+        ...(multiattack?.weapons ?? []),
+      ].flatMap(({ damage, rider }) => [
+        damage.type,
+        ...(rider?.damage === undefined ? [] : [rider.damage.type]),
+      ]),
+    ),
   );
 }
 

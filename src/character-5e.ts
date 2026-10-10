@@ -26,6 +26,7 @@ import {
   type AbilityScoreImprovement,
   type ClassDefinition,
   type ClassId,
+  type DivineOrderDefinition,
   type DivineOrderId,
   type FeatureDefinition,
   type FeatureEffect,
@@ -482,6 +483,16 @@ function expertiseCount(definition: ClassDefinition, level: Level): number {
   );
 }
 
+/** The Divine Order (#339) `divineOrder` names in `definition`, if any. */
+function divineOrderOf(
+  definition: ClassDefinition,
+  divineOrder: DivineOrderId | undefined,
+): DivineOrderDefinition | undefined {
+  return divineOrder === undefined
+    ? undefined
+    : definition.divineOrders?.[divineOrder];
+}
+
 /**
  * The armour training and weapon proficiencies of a character of
  * `definition`: its class's, and its Divine Order's (#339).
@@ -493,10 +504,7 @@ export function trainingOf(
   armourTraining: readonly ArmourCategory[];
   weaponProficiencies: readonly WeaponProficiency[];
 }> {
-  const order =
-    divineOrder === undefined
-      ? undefined
-      : definition.divineOrders?.[divineOrder];
+  const order = divineOrderOf(definition, divineOrder);
   return {
     armourTraining: [
       ...definition.armourTraining,
@@ -518,10 +526,7 @@ export function orderCheckBonus(
   sheet: Pick<CharacterSheet, "class" | "divineOrder" | "abilities">,
   skill: SkillId,
 ): Readonly<{ source: string; value: number }> | undefined {
-  const order =
-    sheet.divineOrder === undefined
-      ? undefined
-      : classOf(sheet).divineOrders?.[sheet.divineOrder];
+  const order = divineOrderOf(classOf(sheet), sheet.divineOrder);
   const bonus = order?.checkBonus;
   if (order === undefined || bonus === undefined) {
     return undefined;
@@ -817,10 +822,7 @@ export function spellCounts(
   if (casting === undefined) {
     return { cantrips: 0, prepared: 0 };
   }
-  const order =
-    divineOrder === undefined
-      ? undefined
-      : definition.divineOrders?.[divineOrder];
+  const order = divineOrderOf(definition, divineOrder);
   return {
     cantrips: casting.cantrips[level] + (order?.extraCantrips ?? 0),
     prepared: casting.prepared[level],
@@ -838,9 +840,15 @@ function validateSpellChoices(
   definition: ClassDefinition,
   level: Level,
   value: unknown,
-  divineOrder?: DivineOrderId,
-  partial = false,
-  spellbook?: readonly SpellId[],
+  {
+    divineOrder,
+    partial = false,
+    spellbook,
+  }: Readonly<{
+    divineOrder?: DivineOrderId | undefined;
+    partial?: boolean;
+    spellbook?: readonly SpellId[] | undefined;
+  }> = {},
 ): SpellChoices | undefined {
   const casting = definition.spellcasting;
   if (casting === undefined) {
@@ -1134,14 +1142,10 @@ export function buildCharacter(
   );
   const divineOrder = validateDivineOrder(definition, choices.divineOrder);
   const spellbook = validateSpellbook(definition, 1, choices.spellbook);
-  const spells = validateSpellChoices(
-    definition,
-    1,
-    choices.spells,
+  const spells = validateSpellChoices(definition, 1, choices.spells, {
     divineOrder,
-    false,
     spellbook,
-  );
+  });
   const base = {
     id,
     name: name.trim(),
@@ -1288,14 +1292,11 @@ export function projectCreation(
   // Spells ticked so far (#339); the Divine Order may add a cantrip. A
   // Wizard prepares from the spells ticked for its spellbook (#340).
   const spellbook = validateSpellbook(definition, 1, choices.spellbook, true);
-  const spells = validateSpellChoices(
-    definition,
-    1,
-    choices.spells,
+  const spells = validateSpellChoices(definition, 1, choices.spells, {
     divineOrder,
-    true,
+    partial: true,
     spellbook,
-  );
+  });
   const spellLimits = spellCounts(definition, 1, divineOrder);
   const spellbookLimit = definition.spellcasting?.spellbook ?? 0;
   const rows = ABILITIES.map((ability) => {
@@ -1530,14 +1531,10 @@ export function validateCharacter(value: unknown): CharacterSheet {
     skills,
     sheet.expertise,
   );
-  validateSpellChoices(
-    definition,
-    sheet.level,
-    sheet.spells,
-    validateDivineOrder(definition, sheet.divineOrder),
-    false,
-    validateSpellbook(definition, sheet.level, sheet.spellbook),
-  );
+  validateSpellChoices(definition, sheet.level, sheet.spells, {
+    divineOrder: validateDivineOrder(definition, sheet.divineOrder),
+    spellbook: validateSpellbook(definition, sheet.level, sheet.spellbook),
+  });
   // Each level choice (#286) is an Ability Score Improvement and its level's
   // new masteries, made together; a sheet may still owe its latest one.
   if (

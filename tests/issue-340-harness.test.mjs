@@ -14,6 +14,7 @@ import {
   REPORTED_CLASSES,
   renderModuleGateResult,
 } from "../dist/balance-5e.js";
+import { armorClassOf, combatant } from "../dist/encounter-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { goblinBand, ratTunnels } from "./fixtures/modules.mjs";
 
@@ -119,4 +120,34 @@ test("the gate reports the Wizard and never judges it", () => {
     renderModuleGateResult(goblinBand, gateModule(goblinBand, { seeds: [0] })),
     /for the Wizard, not reported: the Wizard reaches only level 1 yet, and the module is for level 2\.$/mu,
   );
+});
+
+test("the harness casts Shield only when it turns the hit into a miss", () => {
+  let shields = 0;
+  let taken = 0;
+  for (let seed = 0; seed < 10; seed++) {
+    const runtime = createFifthRuntime(ratTunnels, wizard());
+    const record = {
+      ...runtime,
+      handleAction(state, action, random) {
+        const pending = state.encounter?.pendingReaction;
+        if (pending !== undefined) {
+          const ac = armorClassOf(combatant(state.encounter, "pc"));
+          const turned =
+            pending.roll.d20 < pending.weapon.criticalRange &&
+            pending.roll.total < ac + 5;
+          if (action.type === "cast" && action.spellId === "shield") {
+            shields++;
+            assert.ok(turned, `seed ${seed}: ${JSON.stringify(pending.roll)}`);
+          } else if (action.type === "take-hit" && !turned) {
+            taken++;
+          }
+        }
+        return runtime.handleAction(state, action, random);
+      },
+    };
+    playAdventure(record, "cautious", seed);
+  }
+  assert.ok(shields > 0);
+  assert.ok(taken > 0);
 });

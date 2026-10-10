@@ -245,6 +245,42 @@ test("Resistance needs a damage type it may resist, and no other spell takes one
   assert.equal(result.rejection.reason, "Guiding Bolt takes no damage type.");
 });
 
+test("Resistance resists only a damage type a foe still in the fight deals", () => {
+  // The goblin's scimitar deals slashing; nothing here deals fire.
+  const refused = act(
+    opening(),
+    cast("resistance", "pc", { damageType: "fire" }),
+    dice(),
+  );
+  assert.equal(refused.rejection?.code, "damage-type");
+  assert.equal(
+    refused.rejection.reason,
+    "Resistance resists only damage your opponents' attacks deal: slashing.",
+  );
+  // A rider's damage type counts too.
+  const { state } = startEncounter(
+    [
+      mira(),
+      {
+        ...goblin(),
+        attack: {
+          ...goblin().attack,
+          rider: {
+            damage: { dice: 1, sides: 4, modifier: 0, type: "poison" },
+          },
+        },
+      },
+    ],
+    dice([20, 15], [20, 3]),
+  );
+  const poisoned = act(
+    state,
+    cast("resistance", "pc", { damageType: "poison" }),
+    dice([20, 2]),
+  );
+  assert.equal(poisoned.rejection, undefined, poisoned.rejection?.reason);
+});
+
 test("Thaumaturgy is flavour only: never cast", () => {
   const result = act(opening(), cast("thaumaturgy", "goblin"), dice());
   assert.equal(result.rejection?.code, "no-effect");
@@ -337,4 +373,8 @@ test("in a fight Resistance is offered against the foes' damage types", () => {
   );
   assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v28");
   assert.match(FIFTH_DM_SYSTEM_PROMPT, /Thaumaturgy is flavour only/u);
+  assert.match(
+    FIFTH_DM_SYSTEM_PROMPT,
+    /they never change a check, a roll or an outcome/u,
+  );
 });

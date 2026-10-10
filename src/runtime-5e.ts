@@ -155,7 +155,8 @@ import {
   type CunningStrikeId,
   type DamageAdjustment,
   type DamageType,
-  isResistance,
+  dealtDamageTypes,
+  reducesDamage,
   type EncounterAction,
   type EncounterActionType,
   type EncounterEvent,
@@ -1398,7 +1399,7 @@ Outside a fight, in a room with no foes left to face, the character may take a s
 
 Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
 
-A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, and Chromatic Orb deals the damage type the player chooses: while either is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Thaumaturgy is flavour only: cast never offers it, so describe its harmless signs (a booming voice, flickering flames, a tremor) in your words without calling a tool. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so.
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, and Chromatic Orb deals the damage type the player chooses: while either is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Thaumaturgy is flavour only: cast never offers it, so describe its harmless signs (a booming voice, flickering flames, a tremor) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -2370,7 +2371,7 @@ export function renderFifthEvent(
           ? ` The next attack roll against ${target.name} has advantage before the end of ${event.actorId === PLAYER_ID ? "your" : `${name(event.actorId)}'s`} next turn (${GUIDING_BOLT}).`
           : "";
       // Paralysed, or unconscious (#340): every hit is critical.
-      return `${roll}. ${event.paralysedCritical === true ? `Critical hit: ${target.name} is ${event.criticalCondition ?? "paralysed"}!` : event.critical ? "Critical hit!" : "Hit."} ${damage}${guided}`;
+      return `${roll}. ${event.conditionCritical === true ? `Critical hit: ${target.name} is ${event.criticalCondition ?? "paralysed"}!` : event.critical ? "Critical hit!" : "Hit."} ${damage}${guided}`;
     }
     case "reaction-offered": {
       // Uncanny Dodge (#308) or a reaction spell (#337): the hit waits for
@@ -3882,11 +3883,14 @@ function conditionsOf(
       const ends =
         condition.kind === "prone"
           ? `gets up at ${turnEnd}`
-          : condition.save === undefined
-            ? condition.turnsLeft === 1
-              ? `ends at ${turnEnd}`
-              : turns
-            : `DC ${condition.save.dc} ${titleCase(condition.save.ability)} save at the end of each of its turns, up to ${turns}`;
+          : // Sleep's Unconscious (#340) lasts while the spell does.
+            condition.spellId !== undefined && condition.save === undefined
+            ? `until it takes damage or ${condition.source} ends`
+            : condition.save === undefined
+              ? condition.turnsLeft === 1
+                ? `ends at ${turnEnd}`
+                : turns
+              : `DC ${condition.save.dc} ${titleCase(condition.save.ability)} save at the end of each of its turns, up to ${turns}`;
       return {
         kind: condition.kind,
         name: CONDITION_RULES[condition.kind].name,
@@ -6359,7 +6363,8 @@ export function createFifthRuntime(
       case "cast": {
         // A cantrip names no slot level; a levelled spell names a whole one.
         // Its targets are a list of ids (#338).
-        // Resistance names a damage type (#339).
+        // Resistance (#339) names a damage type it resists, Chromatic Orb
+        // (#340) one it deals.
         const spellId = field("spellId");
         const damageType = field("damageType");
         const { slotLevel, targetIds } = action;
@@ -7953,7 +7958,7 @@ export function createFifthRuntime(
                   ? {}
                   : {
                       damageType: action.damageType,
-                      damageTypeUse: isResistance(SPELLS[action.spellId])
+                      damageTypeUse: reducesDamage(SPELLS[action.spellId])
                         ? ("resisted" as const)
                         : ("dealt" as const),
                     }),
@@ -8009,7 +8014,7 @@ export function createFifthRuntime(
           slotLevels(caster, spell).flatMap((slotLevel) =>
             // Resistance (#339): an entry for each damage type the foes'
             // attacks deal; Chromatic Orb (#340): for each it may deal.
-            (isResistance(spell)
+            (reducesDamage(spell)
               ? foeDamageTypes(foes)
               : (spell.damageTypes ?? [undefined])
             ).flatMap((damageType) =>
@@ -8022,21 +8027,13 @@ export function createFifthRuntime(
      * their riders deal (#339), in the spell's order.
      */
     const foeDamageTypes = (foes: readonly Combatant[]): DamageType[] => {
-      const dealt = new Set(
-        foes.flatMap(({ attack, lightAttack, multiattack }) =>
-          [
-            attack,
-            ...(lightAttack === undefined ? [] : [lightAttack]),
-            ...(multiattack?.weapons ?? []),
-          ].flatMap(({ damage, rider }) => [
-            damage.type,
-            ...(rider?.damage === undefined ? [] : [rider.damage.type]),
-          ]),
-        ),
-      );
+      const dealt = dealtDamageTypes(foes);
       return RESISTANCE_DAMAGE_TYPES.filter((type) => dealt.has(type));
     };
-    /** `spell`'s entries at `slotLevel` (and Resistance's `damageType`). */
+    /**
+     * `spell`'s entries at `slotLevel`, with the `damageType` Resistance
+     * resists (#339) or Chromatic Orb deals (#340).
+     */
     const spellCasts = (
       caster: Combatant,
       foes: readonly Combatant[],
@@ -9319,6 +9316,14 @@ export function createFifthRuntime(
     const unique = <T>(values: readonly T[]) => [...new Set(values)];
     // Each entry's targets: its one, or an area spell's choice (#338).
     const targetsOf = ({ target, targets }: ActionView) => targets ?? [target!];
+    // The damage types `views` name: those Resistance (#339) resists and
+    // Chromatic Orb (#340) deals.
+    const damageTypesOf = (views: readonly ActionView[]) =>
+      unique(
+        views.flatMap(({ spell }) =>
+          spell!.damageType === undefined ? [] : [spell!.damageType],
+        ),
+      );
     const described = spells.map((id) => {
       const mine = offers.filter(({ spell }) => spell!.id === id);
       const { name, level, maxTargets: most } = mine[0]!.spell!;
@@ -9334,21 +9339,13 @@ export function createFifthRuntime(
           : `up to ${most} different targets from ${listed(targets, "and")}`;
       // Resistance (#339) resists a damage type the player chooses, and
       // Chromatic Orb (#340) deals one.
-      const types = unique(
-        mine.flatMap(({ spell }) =>
-          spell!.damageType === undefined ? [] : [spell!.damageType],
-        ),
-      );
+      const types = damageTypesOf(mine);
       const resists =
         types.length === 0 ? "" : `; damage_type ${listed(types)}`;
       const summary = isSpellId(id) ? `: ${spellSummary(SPELLS[id])}` : "";
       return `${id} (${name}${summary}; ${level === 0 ? "a cantrip: slot_level null" : `${ordinal(level)} level: slot_level ${listed(slots.map(String))}`}; ${whom}${resists})`;
     });
-    const damageTypes = unique(
-      offers.flatMap(({ spell }) =>
-        spell!.damageType === undefined ? [] : [spell!.damageType],
-      ),
-    );
+    const damageTypes = damageTypesOf(offers);
     const slotLevelsOffered = unique(
       offers.flatMap(({ spell }) =>
         spell!.slotLevel === undefined ? [] : [spell!.slotLevel],

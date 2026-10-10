@@ -65,6 +65,7 @@ import {
 } from "./equipment-5e.js";
 import { isSpellId, SPELLS, type SpellId } from "./spells-5e.js";
 import {
+  armorClassOf,
   combatant,
   countedDamageDie,
   damageTaken,
@@ -826,8 +827,9 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   "end-turn": true,
   // Uncanny Dodge, by the Rogue policy: every hit it can halve (#308).
   "uncanny-dodge": true,
-  // Every hit Uncanny Dodge can halve is halved, so no style takes one.
-  "take-hit": false,
+  // Every hit Uncanny Dodge can halve is halved; a hit Shield can't turn
+  // into a miss is taken (#340).
+  "take-hit": true,
   move: true,
   examine: true,
   take: true,
@@ -1225,23 +1227,35 @@ export function playAdventure(
   const fightChoice = (views: readonly ActionView[]): ActionView => {
     const encounter = state.encounter!;
     // Uncanny Dodge (#308): the harness halves every hit it can; else a
-    // reaction spell (Shield, #340) answers it, at the lowest slot.
+    // reaction spell (Shield, #340) answers it, at the lowest slot, but
+    // only when its AC bonus turns the hit into a miss.
     const dodge = offered(views, "uncanny-dodge")[0];
     if (dodge !== undefined) {
       return dodge;
     }
-    if (encounter.pendingReaction !== undefined) {
+    const pending = encounter.pendingReaction;
+    if (pending !== undefined) {
+      const turnsHit = (bonus: number) =>
+        pending.roll.d20 < pending.weapon.criticalRange &&
+        pending.roll.total <
+          armorClassOf(combatant(encounter, PLAYER_ID)) + bonus;
       const shield = offered(views, "cast")
-        .filter(
-          ({ spell }) =>
-            isSpellId(spell?.id) && SPELLS[spell.id].castingTime === "reaction",
-        )
+        .filter(({ spell }) => {
+          if (!isSpellId(spell?.id)) {
+            return false;
+          }
+          const { castingTime, effect } = SPELLS[spell.id];
+          return (
+            castingTime === "reaction" &&
+            effect.kind === "buff" &&
+            effect.buff.kind === "armor-class" &&
+            turnsHit(effect.buff.bonus)
+          );
+        })
         .sort(
           (a, b) => (a.spell!.slotLevel ?? 0) - (b.spell!.slotLevel ?? 0),
         )[0];
-      if (shield !== undefined) {
-        return shield;
-      }
+      return shield ?? offered(views, "take-hit")[0]!;
     }
     const hpOf = (id: string) => combatant(encounter, id).hp;
     const heal = [

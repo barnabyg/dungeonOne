@@ -164,6 +164,21 @@ test("Sleep: a failed save incapacitates, a second failed save makes the target 
   assert.equal(asleep.state.round, 2);
 });
 
+test("Sleep: the target stays unconscious until the spell ends, however many turns pass", () => {
+  const slept = accepted(
+    opening(),
+    cast("sleep", "goblin", { slotLevel: 1 }),
+    dice([20, 5]),
+  );
+  let { state } = accepted(slept.state, endTurn, dice([20, 3]));
+  // Twelve more rounds: past the minute's 10 turns, but the fight goes on.
+  for (let round = 0; round < 12; round++) {
+    state = accepted(state, endTurn).state;
+  }
+  assert.deepEqual(conditionsOn(state, "goblin"), ["unconscious"]);
+  assert.equal(concentrationOf(state.combatants, "pc").spell, "Sleep");
+});
+
 test("Sleep: damage wakes the target; an attack on it has advantage and crits", () => {
   const slept = accepted(
     opening(),
@@ -547,5 +562,33 @@ test("the bar offers Sleep at each foe; a zombie is immune to it", () => {
   assert.equal(
     state.encounter.conditions.some(({ targetId }) => targetId === "zombie"),
     false,
+  );
+});
+
+test("the fight view says Sleep's Unconscious lasts until damage or the spell ends", () => {
+  const room = fightRoom("sleepy-cellar", "The Sleepy Cellar", [
+    { id: "goblin", monster: "goblin-warrior" },
+  ]);
+  const runtime = createFifthRuntime(room, VELA);
+  let { state } = runtime.handleAction(
+    runtime.createSession(),
+    { type: "begin" },
+    dice([20, 18], [20, 2]),
+  );
+  // The goblin fails both Wisdom saves (5 - 1, then 3 - 1 at the end of
+  // its turn, which follows Vela's at once, against 13).
+  const result = runtime.handleAction(
+    state,
+    cast("sleep", "goblin", { slotLevel: 1 }),
+    dice([20, 5], [20, 3]),
+  );
+  assert.equal(result.rejection, undefined, result.rejection?.reason);
+  state = result.state;
+  const goblin = runtime
+    .projectFight(state)
+    .encounter.combatants.find(({ id }) => id === "goblin");
+  assert.deepEqual(
+    goblin.conditions.map(({ text }) => text),
+    ["Vela's Sleep; until it takes damage or Sleep ends"],
   );
 });
