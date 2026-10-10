@@ -713,6 +713,32 @@ export function spellbookOptions(
 }
 
 /**
+ * The level each spell `sheet` owes its spellbook (#343) is owed for, and
+ * the highest spell level its slots at that level allow, in owing order.
+ */
+function owedSpellbookLevels(
+  sheet: Pick<CharacterSheet, "class" | "level" | "spellbook">,
+): readonly Readonly<{ level: Level; highest: number }>[] {
+  const casting = classOf(sheet).spellcasting;
+  const written = sheet.spellbook?.length ?? 0;
+  const owed: { level: Level; highest: number }[] = [];
+  for (let level = 2; level <= sheet.level; level++) {
+    const from = Math.max(
+      written,
+      spellbookSize(casting, (level - 1) as Level)!,
+    );
+    const to = spellbookSize(casting, level as Level)!;
+    for (let index = from; index < to; index++) {
+      owed.push({
+        level: level as Level,
+        highest: casting!.slots[level as Level].length,
+      });
+    }
+  }
+  return owed;
+}
+
+/**
  * The first spells `sheet` may write into its spellbook (#343) for each
  * level it owes them for, in turn: each level's of a level its slots at
  * that level allow, so a character raised two levels at once writes what
@@ -3015,6 +3041,22 @@ export function addToSpellbook(
   ) {
     throw new Error(
       `${sheet.name} writes into the spellbook only ${classOf(sheet).name} spells it lacks of a level it has slots for: ${open.map((id) => SPELLS[id].name).join(", ")}.`,
+    );
+  }
+  // Each level's spells are of a level its own slots allowed (#343): with
+  // several levels owed, the lowest spells fill the earliest levels.
+  const levels = owedSpellbookLevels(sheet);
+  const spellLevels = (written as SpellId[])
+    .map((id) => SPELLS[id].level)
+    .sort((a, b) => a - b);
+  const over = spellLevels.findIndex(
+    (level, index) => level > levels[index]!.highest,
+  );
+  if (over !== -1) {
+    const { level, highest } = levels[over]!;
+    const higher = levels.filter((owed) => owed.highest > highest).length;
+    throw new Error(
+      `${sheet.name}'s level ${level} spells are of a level its slots at level ${level} allow: at most ${higher} of these may be ${ordinal(highest + 1)}-level.`,
     );
   }
   return validateCharacter({

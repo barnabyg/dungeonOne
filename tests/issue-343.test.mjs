@@ -75,7 +75,7 @@ const level3 = () =>
 const names = (profile) => profile.features.map(({ name }) => name);
 const skill = (profile, id) => profile.skills.find((entry) => entry.id === id);
 
-async function withLibrary(sheet, run) {
+async function withLibrary(sheet, run, record = {}) {
   const directory = await mkdtemp(join(tmpdir(), "dungeon-343-"));
   try {
     const path = join(directory, "characters.json");
@@ -87,7 +87,7 @@ async function withLibrary(sheet, run) {
         revision: "a".repeat(32),
         creationsStarted: 1,
         sessionsStarted: 0,
-        characters: [{ sheet, revision: 1 }],
+        characters: [{ sheet, revision: 1, ...record }],
       }),
     );
     await run(new FifthCharacterLibrary(path, 3));
@@ -300,4 +300,66 @@ test("the library won't start an adventure until the new level's choices are mad
     assert.deepEqual(data.characters[0].sheet.expertise, ["investigation"]);
     await library.attachSession(sheet.id, session, 1, data.revision);
   });
+});
+
+test("a Wizard two levels up writes each level's spells of a level that level had slots for", () => {
+  // From level 1 to 3 at once: four spells owed, at most two of them 2nd-level.
+  const sheet = earn(vela(), 900);
+  assert.equal(spellbookOwed(sheet), 4);
+  assert.throws(
+    () =>
+      addToSpellbook(sheet, [
+        "scorching-ray",
+        "shatter",
+        "blur",
+        "thunderwave",
+      ]),
+    /Vela's level 2 spells are of a level its slots at level 2 allow: at most 2 of these may be 2nd-level\./u,
+  );
+  const written = addToSpellbook(sheet, [
+    "scorching-ray",
+    "thunderwave",
+    "blur",
+    "ice-knife",
+  ]);
+  assert.equal(written.spellbook.length, 10);
+});
+
+test("the library refuses spellbook spells and Expertise on an adventure, when defeated or when none is owed", async () => {
+  const sheet = level2();
+  const session = { id: "f".repeat(32), adventureId: "graded-cellar" };
+  await withLibrary(withOwedChoices(sheet), async (library) => {
+    const data = await library.read();
+    await assert.rejects(
+      library.addToSpellbook(sheet.id, ["thunderwave"], data.revision),
+      /Vela has no spells to write into the spellbook\./u,
+    );
+    await assert.rejects(
+      library.chooseExpertise(sheet.id, ["arcana"], data.revision),
+      /Vela has no Expertise to choose\./u,
+    );
+  });
+  for (const [record, refusal] of [
+    [{ defeated: true }, /Vela was defeated\./u],
+    [
+      { session },
+      /Vela is on an adventure: spells are written into the spellbook only between adventures\./u,
+    ],
+  ]) {
+    await withLibrary(
+      sheet,
+      async (library) => {
+        const data = await library.read();
+        await assert.rejects(
+          library.addToSpellbook(
+            sheet.id,
+            ["thunderwave", "ice-knife"],
+            data.revision,
+          ),
+          refusal,
+        );
+      },
+      record,
+    );
+  }
 });
