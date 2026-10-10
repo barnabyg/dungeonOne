@@ -76,6 +76,7 @@ import {
   preparableSpells,
   spellCounts,
   spellsOwed,
+  learnableCantrips,
   projectCreation,
   projectLevelChoice,
   settleCharacter,
@@ -340,6 +341,9 @@ function libraryView(
                   sheet.divineOrder,
                 ).prepared,
                 owed: spellsOwed(sheet).prepared,
+                // The cantrips a new level lets it learn (#342).
+                cantripsOwed: spellsOwed(sheet).cantrips,
+                learnable: learnableCantrips(sheet).map(spellView),
                 alwaysPrepared: (
                   characterProfile(sheet).spellcasting?.alwaysPrepared ?? []
                 ).map(spellView),
@@ -1029,6 +1033,24 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             library.prepareSpells(
               body.characterId as string,
               body.prepared,
+              body.revision as string,
+            ),
+          ),
+        );
+      case "/api/5e/characters/learn-cantrips":
+        // A new level's cantrips (#342), learned between adventures.
+        if (
+          !hasExactKeys(body, ["revision", "characterId", "cantrips"]) ||
+          typeof body.revision !== "string" ||
+          typeof body.characterId !== "string"
+        ) {
+          throw new Error("Invalid cantrips request.");
+        }
+        return view(
+          await serialized(() =>
+            library.learnCantrips(
+              body.characterId as string,
+              body.cantrips,
               body.revision as string,
             ),
           ),

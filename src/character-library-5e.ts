@@ -33,6 +33,7 @@ import {
   applyLevelChoice,
   buildCharacter,
   prepareSpells,
+  learnCantrips,
   characterProfile,
   DEFAULT_CLASS,
   levelChoiceWords,
@@ -50,7 +51,7 @@ import {
 import { ABILITIES, type ClassId } from "./class-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 19;
+export const FIFTH_LIBRARY_FORMAT = 20;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -453,6 +454,40 @@ export class FifthCharacterLibrary {
       }
       data.characters[index] = {
         sheet: prepareSpells(record.sheet, prepared),
+        revision: record.revision + 1,
+      };
+    });
+  }
+
+  /**
+   * Adds `learned` to `characterId`'s cantrips (#342): the ones a new level
+   * lets it learn, only between adventures. Refused for a character on an
+   * adventure, defeated, owing no cantrip, or with a choice its class
+   * doesn't allow; nothing is written then.
+   */
+  async learnCantrips(
+    characterId: string,
+    learned: unknown,
+    revision: string,
+  ): Promise<FifthLibraryData> {
+    return this.update(revision, (data) => {
+      const index = data.characters.findIndex(
+        ({ sheet }) => sheet.id === characterId,
+      );
+      const record = data.characters[index];
+      if (record === undefined) {
+        throw new Error("There is no such character in the library.");
+      }
+      if (record.defeated === true) {
+        throw new Error(`${record.sheet.name} was defeated.`);
+      }
+      if (record.session !== undefined) {
+        throw new Error(
+          `${record.sheet.name} is on an adventure: cantrips are learned only between adventures.`,
+        );
+      }
+      data.characters[index] = {
+        sheet: learnCantrips(record.sheet, learned),
         revision: record.revision + 1,
       };
     });

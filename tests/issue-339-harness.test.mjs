@@ -24,7 +24,7 @@ const [weakest] = percentileCharacters({
 const cleric = (kit) =>
   characterAtLevel(weakest.dice, 1, kit, false, undefined, "cleric");
 
-test("the harness builds a level-1 Cleric from its defaults, and none above level 3 yet", () => {
+test("the harness builds a level-1 Cleric from its defaults", () => {
   const sheet = cleric();
   assert.equal(sheet.class, "cleric");
   assert.equal(sheet.divineOrder, "protector");
@@ -35,11 +35,6 @@ test("the harness builds a level-1 Cleric from its defaults, and none above leve
     "healing-word",
   ]);
   assert.equal(cleric("club-and-shield").equipment.includes("shield"), true);
-  assert.throws(
-    () =>
-      characterAtLevel(weakest.dice, 4, undefined, false, undefined, "cleric"),
-    /A Cleric reaches only level 3 yet\./u,
-  );
 });
 
 test("a Cleric heals with its spells before it drinks a potion", () => {

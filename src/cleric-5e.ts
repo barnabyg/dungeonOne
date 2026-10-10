@@ -1,13 +1,13 @@
 /**
- * The SRD 5.2 Cleric at levels 1–3, as class data (#339, #341). The
+ * The SRD 5.2 Cleric at levels 1–5, as class data (#339, #341, #342). The
  * character module (`character-5e.ts`) derives a Cleric's hit points,
- * saves, skills, training, spellcasting, Divine Order, Channel Divinity and
- * Life Domain from this definition alone. Its spell tables follow SRD 5.2
- * at every level, but a Cleric stays at level 3 (`maxLevel`) until its
- * level 4–5 features come (#342); XP above level 3's is kept.
- * `docs/character-rules.md` records the numbers and the abstractions.
+ * saves, skills, training, spellcasting, Divine Order, Channel Divinity,
+ * Ability Score Improvement, Sear Undead and Life Domain from this
+ * definition alone. `docs/character-rules.md` records the numbers and the
+ * abstractions.
  */
 import {
+  abilityScoreImprovementText,
   type Ability,
   type ClassDefinition,
   type DefaultChoices,
@@ -70,13 +70,21 @@ export const CLERIC_SPELLCASTING: SpellcastingDefinition = {
     "hold-person",
     "protection-from-poison",
     "prayer-of-healing",
+    // 3rd level (#342, owner-approved), with Light, a flavour cantrip.
+    "mass-healing-word",
+    "spirit-guardians",
+    "beacon-of-hope",
+    "bestow-curse",
+    "protection-from-energy",
+    "light",
   ],
 };
 
 /**
  * The Life Domain (SRD 5.2), the Cleric's subclass at level 3 (#341): its
- * always-prepared spells, Disciple of Life and Preserve Life. Its later
- * spells and features wait for their levels (#342).
+ * always-prepared spells, Disciple of Life and Preserve Life; at level 5
+ * (#342), Mass Healing Word always prepared too. Revivify, its other
+ * level-5 spell, is omitted: without companions there is no one to revive.
  */
 export const LIFE_DOMAIN: SubclassDefinition = {
   id: "life-domain",
@@ -106,6 +114,15 @@ export const LIFE_DOMAIN: SubclassDefinition = {
       text: ({ level }) =>
         `As a Magic action, spend a use of Channel Divinity to restore up to ${5 * level} hit points (five times your Cleric level) to yourself while you are Bloodied, at half your hit points or fewer; it can't take you above half. Without companions it heals only you.`,
       effect: { kind: "preserve-life", perLevel: 5 },
+    },
+    {
+      // Revivify needs a creature that died within the minute, and the
+      // character has no companions (#342).
+      id: "life-domain-spells-5",
+      level: 5,
+      name: "Life Domain Spells: Mass Healing Word",
+      text: "Mass Healing Word is always prepared too, and doesn't count against the spells you prepare. Revivify, the domain's other level-5 spell, is omitted: without companions there is no one to revive.",
+      effect: { kind: "always-prepared", spells: ["mass-healing-word"] },
     },
   ],
 };
@@ -190,11 +207,28 @@ export const CLERIC: ClassDefinition = {
         divineSpark: { dice: { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 }, sides: 8 },
       },
     },
+    {
+      // The Cleric's level 4 brings no weapon mastery: the choice is the
+      // improvement alone (#342).
+      id: "ability-score-improvement",
+      level: 4,
+      name: "Ability Score Improvement",
+      text: ({ abilityScoreImprovements: [chosen] }) =>
+        abilityScoreImprovementText(chosen),
+      effect: { kind: "ability-score-improvement" },
+    },
+    {
+      id: "sear-undead",
+      level: 5,
+      name: "Sear Undead",
+      text: ({ modifiers }) =>
+        `When you use Turn Undead, roll ${Math.max(1, modifiers.wisdom)}d8 (your Wisdom modifier, at least one) once; each undead that fails its save takes that much radiant damage. The damage doesn't end its turning.`,
+      effect: { kind: "sear-undead", sides: 8 },
+    },
   ],
   subclasses: [LIFE_DOMAIN],
   defaults: CLERIC_DEFAULT_CHOICES,
   kits: ["mace-and-daggers", "club-and-shield"],
   spellcasting: CLERIC_SPELLCASTING,
   divineOrders: DIVINE_ORDERS,
-  maxLevel: 3,
 };
