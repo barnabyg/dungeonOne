@@ -265,10 +265,12 @@ export type FeatureEffect = Readonly<
    */
   | { kind: "sneak-attack"; dice: LevelTable; sides: number }
   /**
-   * Expertise (#306): `count` of the character's proficient skills, chosen
-   * at creation, double their proficiency bonus.
+   * Expertise (#306): `count` of the character's proficient skills double
+   * their proficiency bonus, chosen at creation for a level-1 feature and
+   * on the sheet for a later one (#343), from `skills` only when it names
+   * them (the Wizard's Scholar).
    */
-  | { kind: "expertise"; count: number }
+  | { kind: "expertise"; count: number; skills?: readonly SkillId[] }
   /**
    * Cunning Action (#307): Hide as a bonus action, a Stealth check against
    * the opponents' best passive Perception; success gives advantage on the
@@ -337,6 +339,11 @@ export type FeatureEffect = Readonly<
    * fails its save.
    */
   | { kind: "sear-undead"; sides: number }
+  /**
+   * Potent Cantrip (#343): a damaging cantrip that misses, or whose target
+   * succeeds on its save, deals half its damage.
+   */
+  | { kind: "potent-cantrip" }
 >;
 
 /** One class or subclass feature, gained at `level`. */
@@ -401,7 +408,8 @@ export type SlotTable = Readonly<Record<Level, readonly number[]>>;
  * spell slots by level, and the spells it may choose from. Spell slots come
  * back on a long rest, and between adventures. A class with a spellbook
  * (#340, the Wizard) writes `spellbook` levelled spells from its list into
- * it at creation, and prepares only spells in it.
+ * it at creation, and `spellbookPerLevel` more at each level after 1st
+ * (#343), and prepares only spells in it.
  */
 export type SpellcastingDefinition = Readonly<{
   ability: Ability;
@@ -411,6 +419,8 @@ export type SpellcastingDefinition = Readonly<{
   list: readonly SpellId[];
   /** The levelled spells its spellbook holds at creation (#340). */
   spellbook?: number;
+  /** The spells each level after 1st adds to its spellbook (#343). */
+  spellbookPerLevel?: number;
 }>;
 
 /** What a short and a long rest restore of spent spell slots (SRD 5.2). */

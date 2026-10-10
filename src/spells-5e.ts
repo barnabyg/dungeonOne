@@ -53,6 +53,13 @@
  * - Buffs (#342) may also give advantage on Wisdom saves and maximise
  *   healing (Beacon of Hope), or resistance to the damage type chosen at
  *   casting (Protection from Energy).
+ * - An attack (#343) may be several rays, each its own attack roll, split
+ *   among the targets chosen (Scorching Ray); deal half its damage on a
+ *   miss and more at the end of the target's next turn on a hit (Acid
+ *   Arrow); give its target a condition on a hit (Ray of Sickness); or
+ *   burst, hit or miss, for a saving throw against more damage (Ice Knife).
+ * - Buffs (#343) may also give attacks on their holder disadvantage (Blur)
+ *   or illusory duplicates that a hit may strike instead (Mirror Image).
  *
  * Without positions or a clock, ranges are left out and areas and
  * durations are abstracted; the rules document lists what that omits.
@@ -149,6 +156,19 @@ export type Buff = Readonly<
    * the damage, or half on a success.
    */
   | { kind: "guardians"; ability: Ability; damage: SpellDamage }
+  /** Blur (#343): attack rolls against its holder have disadvantage. */
+  | { kind: "blur" }
+  /**
+   * Mirror Image (#343): the `duplicates` left. Each hit on its holder by
+   * an attack roll rolls a d6 for each; any 3 or higher strikes a
+   * duplicate instead, which is destroyed.
+   */
+  | { kind: "mirror-image"; duplicates: number }
+  /**
+   * Acid Arrow's acid (#343) on the opponent it hit: the damage it takes
+   * at the end of its next turn.
+   */
+  | { kind: "later-damage"; damage: SpellDamage }
 >;
 
 /**
@@ -258,6 +278,27 @@ export type SpellEffect = Readonly<
        * of the caster's next turn has advantage (Guiding Bolt, #339).
        */
       nextAttackAdvantage?: true;
+      /**
+       * Rays (#343, Scorching Ray): this many attack rolls, split as evenly
+       * as they go among the targets chosen, the first ones taking any
+       * more; a ray whose target has fallen goes at the next one standing.
+       */
+      rays?: number;
+      /** A miss deals half the damage, rounded down (#343, Acid Arrow). */
+      missHalf?: true;
+      /** A hit deals this too at the end of the target's next turn (#343). */
+      later?: SpellDamage;
+      /**
+       * A hit gives the target this condition for `turns` of its turns
+       * (#343, Ray of Sickness's poison until the end of the caster's next
+       * turn).
+       */
+      condition?: Readonly<{ kind: ConditionKind; turns: number }>;
+      /**
+       * Hit or miss, the target then saves on `ability` or takes `damage`
+       * (#343, Ice Knife's burst; its 5 feet catch only the target, D4).
+       */
+      burst?: Readonly<{ ability: Ability; damage: SpellDamage }>;
     }
   | {
       kind: "save";
@@ -379,6 +420,10 @@ export type Upcast = Readonly<
   | { missiles: number }
   /** More hit points for a max-hp buff (#341, Aid). */
   | { maxHp: number }
+  /** More rays (#343, Scorching Ray). */
+  | { rays: number }
+  /** More dice of an attack's burst (#343, Ice Knife's cold). */
+  | { burstDice: number }
 >;
 
 /** An area spell's shape and size in feet (SRD 5.2, #338). */
@@ -428,14 +473,19 @@ const FEET_PER_TARGET: Readonly<Record<SpellArea["shape"], number>> = {
 
 /**
  * The most opponents `spell` can catch (#338): an area spell's size ÷ its
- * shape's feet per target (D4), rounded up and at least 1; any other spell
+ * shape's feet per target (D4), rounded up and at least 1; a spell of rays
+ * (#343) as many as its rays with a slot of `slotLevel`; any other spell
  * has one target.
  */
-export function maxTargets(spell: SpellDefinition): number {
+export function maxTargets(spell: SpellDefinition, slotLevel?: number): number {
   const { area } = spell;
-  return area === undefined
-    ? 1
-    : Math.max(1, Math.ceil(area.feet / FEET_PER_TARGET[area.shape]));
+  if (area !== undefined) {
+    return Math.max(1, Math.ceil(area.feet / FEET_PER_TARGET[area.shape]));
+  }
+  const effect = effectAtSlot(spell, slotLevel);
+  return effect.kind === "attack" && effect.rays !== undefined
+    ? effect.rays
+    : 1;
 }
 
 /** The character level at which a cantrip's damage grows (SRD 5.2). */
@@ -733,6 +783,39 @@ export const SPELLS = {
     area: { shape: "cube", feet: 15 },
     upcast: { dice: 1 },
   },
+  // The Wizard's 1st-level spells added at #343 (owner-approved), so a
+  // level-2 Wizard has two to write into its spellbook.
+  "ray-of-sickness": {
+    id: "ray-of-sickness",
+    name: "Ray of Sickness",
+    level: 1,
+    school: "necromancy",
+    castingTime: "action",
+    effect: {
+      kind: "attack",
+      range: "ranged",
+      damage: { dice: 2, sides: 8, type: "poison" },
+      condition: { kind: "poisoned", turns: 1 },
+    },
+    upcast: { dice: 1 },
+  },
+  "ice-knife": {
+    id: "ice-knife",
+    name: "Ice Knife",
+    level: 1,
+    school: "conjuration",
+    castingTime: "action",
+    effect: {
+      kind: "attack",
+      range: "ranged",
+      damage: { dice: 1, sides: 10, type: "piercing" },
+      burst: {
+        ability: "dexterity",
+        damage: { dice: 2, sides: 6, type: "cold" },
+      },
+    },
+    upcast: { burstDice: 1 },
+  },
   // A 5-foot sphere: one target (D4).
   sleep: {
     id: "sleep",
@@ -834,6 +917,79 @@ export const SPELLS = {
       restBenefit: true,
     },
     upcast: { dice: 1 },
+  },
+  // The Wizard's 2nd-level spells (#343, owner-approved), with Shatter and
+  // Hold Person. Mind Spike's knowing where its target is has no use
+  // without positions, so it keeps no concentration. Blur's and Mirror
+  // Image's minute is the fight (D9); no opponent has Blindsight or
+  // Truesight to see through them.
+  "scorching-ray": {
+    id: "scorching-ray",
+    name: "Scorching Ray",
+    level: 2,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "attack",
+      range: "ranged",
+      damage: { dice: 2, sides: 6, type: "fire" },
+      rays: 3,
+    },
+    upcast: { rays: 1 },
+  },
+  "acid-arrow": {
+    id: "acid-arrow",
+    name: "Acid Arrow",
+    level: 2,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "attack",
+      range: "ranged",
+      damage: { dice: 4, sides: 4, type: "acid" },
+      missHalf: true,
+      later: { dice: 2, sides: 4, type: "acid" },
+    },
+    upcast: { dice: 1 },
+  },
+  "mind-spike": {
+    id: "mind-spike",
+    name: "Mind Spike",
+    level: 2,
+    school: "divination",
+    castingTime: "action",
+    effect: {
+      kind: "save",
+      ability: "wisdom",
+      onSuccess: "half",
+      damage: { dice: 3, sides: 8, type: "psychic" },
+    },
+    upcast: { dice: 1 },
+  },
+  blur: {
+    id: "blur",
+    name: "Blur",
+    level: 2,
+    school: "illusion",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "blur" },
+      duration: { minutes: 1 },
+      concentration: true,
+    },
+  },
+  "mirror-image": {
+    id: "mirror-image",
+    name: "Mirror Image",
+    level: 2,
+    school: "illusion",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "mirror-image", duplicates: 3 },
+      duration: { minutes: 1 },
+    },
   },
   // The Cleric's 3rd-level spells (#342, owner-approved). Without
   // companions Mass Healing Word, Beacon of Hope and Protection from Energy
@@ -974,6 +1130,27 @@ export function effectAtSlot(
       ? { ...effect, missiles: effect.missiles + upcast.missiles * above }
       : effect;
   }
+  // Scorching Ray (#343): more rays.
+  if ("rays" in upcast) {
+    return effect.kind === "attack" && effect.rays !== undefined
+      ? { ...effect, rays: effect.rays + upcast.rays * above }
+      : effect;
+  }
+  // Ice Knife (#343): more dice of its burst, not of its attack.
+  if ("burstDice" in upcast) {
+    return effect.kind === "attack" && effect.burst !== undefined
+      ? {
+          ...effect,
+          burst: {
+            ...effect.burst,
+            damage: {
+              ...effect.burst.damage,
+              dice: effect.burst.damage.dice + upcast.burstDice * above,
+            },
+          },
+        }
+      : effect;
+  }
   // Aid (#341): more hit points from each slot level above its own.
   if ("maxHp" in upcast) {
     return effect.kind === "buff" && effect.buff.kind === "max-hp"
@@ -1000,6 +1177,15 @@ export function effectAtSlot(
     case "restoration":
     case "curse":
       return effect;
+    // Acid Arrow (#343): its later damage grows with its first.
+    case "attack":
+      return {
+        ...effect,
+        damage: { ...effect.damage, dice: effect.damage.dice + more },
+        ...(effect.later === undefined
+          ? {}
+          : { later: { ...effect.later, dice: effect.later.dice + more } }),
+      };
     default:
       return {
         ...effect,

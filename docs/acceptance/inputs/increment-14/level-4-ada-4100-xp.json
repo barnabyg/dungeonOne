@@ -1,6 +1,6 @@
 {
   "kind": "dungeon-one-characters",
-  "formatVersion": 20,
+  "formatVersion": 21,
   "revision": "00000000000000000000000000000000",
   "creationsStarted": 1,
   "sessionsStarted": 0,
@@ -14,42 +14,12 @@
         "xp": 4100,
         "hp": 36,
         "abilityRolls": {
-          "strength": [
-            5,
-            5,
-            5,
-            1
-          ],
-          "dexterity": [
-            5,
-            5,
-            4,
-            1
-          ],
-          "constitution": [
-            5,
-            4,
-            4,
-            1
-          ],
-          "intelligence": [
-            4,
-            4,
-            4,
-            1
-          ],
-          "wisdom": [
-            3,
-            3,
-            4,
-            1
-          ],
-          "charisma": [
-            3,
-            3,
-            3,
-            1
-          ]
+          "strength": [5, 5, 5, 1],
+          "dexterity": [5, 5, 4, 1],
+          "constitution": [5, 4, 4, 1],
+          "intelligence": [4, 4, 4, 1],
+          "wisdom": [3, 3, 4, 1],
+          "charisma": [3, 3, 3, 1]
         },
         "backgroundIncrease": {
           "strength": 2,
@@ -69,21 +39,10 @@
           "wisdom": 10,
           "charisma": 9
         },
-        "skills": [
-          "athletics",
-          "perception"
-        ],
+        "skills": ["athletics", "perception"],
         "fightingStyle": "defense",
-        "weaponMasteries": [
-          "dagger",
-          "mace",
-          "shortsword",
-          "longsword"
-        ],
-        "equipment": [
-          "leather",
-          "mace"
-        ],
+        "weaponMasteries": ["dagger", "mace", "shortsword", "longsword"],
+        "equipment": ["leather", "mace"],
         "stowed": [],
         "ammunition": {
           "arrows": 0,

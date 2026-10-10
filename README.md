@@ -165,14 +165,20 @@ choices, check the derived numbers and save:
 - A **Wizard** (d6 hit die, Intelligence and Wisdom saves, no armour, simple
   weapons) chooses two skills, three cantrips (from Fire Bolt, Ray of Frost,
   Shocking Grasp and Chill Touch), six 1st-level spells for its **spellbook**
-  (from Magic Missile, Shield, Mage Armor, Sleep, Burning Hands, Chromatic Orb
-  and Thunderwave), four of those to prepare, and a starting kit
+  (from Magic Missile, Shield, Mage Armor, Sleep, Burning Hands, Chromatic Orb,
+  Thunderwave, Ray of Sickness and Ice Knife), four of those to prepare, and a starting kit
   (_Quarterstaff and dagger_ or _Two daggers_). It casts with Intelligence from
   two 1st-level spell slots, and prepares only spells in its spellbook, at
   creation and on its sheet between adventures. Its **Arcane Recovery**
   regains a spent slot on its first short rest after a long rest, by itself.
-  A Wizard stays at level 1 for now, keeping the XP it earns. Ritual Adept is
-  omitted, as there is no time for rituals.
+  At level 2 it gains **Scholar** (Expertise in one of Arcana, History,
+  Investigation, Medicine, Nature or Religion) and at level 3 the **Evoker**
+  (Evocation Savant, flavour only, and **Potent Cantrip**: a missed or saved
+  cantrip still deals half) with 2nd-level spells (Scorching Ray, Shatter,
+  Hold Person, Acid Arrow, Mind Spike, Blur and Mirror Image). Each new level
+  writes two spells into its spellbook. A new level's choices are made on the
+  sheet before the next adventure. A Wizard stays at level 3 for now, keeping
+  the XP it earns. Ritual Adept is omitted, as there is no time for rituals.
 
 Each kit shows the AC, attack and damage it gives your scores before you
 choose. Better gear is found or bought in adventures. A pending creation keeps

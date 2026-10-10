@@ -1,18 +1,20 @@
 /**
- * The SRD 5.2 Wizard at level 1, as class data (#340). The character module
- * (`character-5e.ts`) derives a Wizard's hit points, saves, skills,
- * spellcasting, spellbook and Arcane Recovery from this definition alone.
- * Its spell tables follow SRD 5.2 at every level, but a Wizard stays at
- * level 1 (`maxLevel`) until its level 2–5 features come; XP above level
- * 1's is kept. `docs/character-rules.md` records the numbers and the
- * abstractions.
+ * The SRD 5.2 Wizard at levels 1–3, as class data (#340, #343). The
+ * character module (`character-5e.ts`) derives a Wizard's hit points,
+ * saves, skills, spellcasting, spellbook, Arcane Recovery, Scholar and the
+ * Evoker from this definition alone. Its spell tables follow SRD 5.2 at
+ * every level, but a Wizard stays at level 3 (`maxLevel`) until its level
+ * 4–5 features come; XP above level 3's is kept. `docs/character-rules.md`
+ * records the numbers and the abstractions.
  */
-import type {
-  Ability,
-  ClassDefinition,
-  DefaultChoices,
-  SkillId,
-  SpellcastingDefinition,
+import {
+  SKILLS,
+  type Ability,
+  type ClassDefinition,
+  type DefaultChoices,
+  type SkillId,
+  type SpellcastingDefinition,
+  type SubclassDefinition,
 } from "./class-5e.js";
 
 /** The skills a Wizard chooses its proficiencies from (SRD 5.2). */
@@ -20,6 +22,16 @@ export const WIZARD_SKILLS: readonly SkillId[] = [
   "arcana",
   "history",
   "insight",
+  "investigation",
+  "medicine",
+  "nature",
+  "religion",
+];
+
+/** The skills Scholar may give Expertise in (SRD 5.2, #343). */
+export const SCHOLAR_SKILLS: readonly SkillId[] = [
+  "arcana",
+  "history",
   "investigation",
   "medicine",
   "nature",
@@ -44,7 +56,8 @@ export const WIZARD_ABILITY_PRIORITY = [
 /**
  * The Wizard's spellcasting (SRD 5.2): Intelligence; cantrips known and
  * spells prepared by level; the full-caster slots; six 1st-level spells in
- * its spellbook at creation; and the owner's curated list (D3).
+ * its spellbook at creation and two more at each level after; and the
+ * owner's curated list (D3).
  */
 export const WIZARD_SPELLCASTING: SpellcastingDefinition = {
   ability: "intelligence",
@@ -63,17 +76,55 @@ export const WIZARD_SPELLCASTING: SpellcastingDefinition = {
     "burning-hands",
     "chromatic-orb",
     "thunderwave",
+    // Two more 1st-level spells (#343, owner-approved), so level 2 has two
+    // to write into the spellbook.
+    "ray-of-sickness",
+    "ice-knife",
+    // 2nd level (#343, owner-approved).
+    "scorching-ray",
+    "shatter",
+    "hold-person",
+    "acid-arrow",
+    "mind-spike",
+    "blur",
+    "mirror-image",
   ],
   spellbook: 6,
+  spellbookPerLevel: 2,
+};
+
+/**
+ * The Evoker (SRD 5.2), the Wizard's subclass at level 3 (#343):
+ * Evocation Savant is flavour only (owner's choice), and Potent Cantrip
+ * halves a damaging cantrip's miss or saved damage.
+ */
+export const EVOKER: SubclassDefinition = {
+  id: "evoker",
+  name: "Evoker",
+  features: [
+    {
+      id: "evocation-savant",
+      level: 3,
+      name: "Evocation Savant",
+      text: "Flavour only: you have made evocation your study. The free Evocation spells it would write into your spellbook are omitted.",
+    },
+    {
+      id: "potent-cantrip",
+      level: 3,
+      name: "Potent Cantrip",
+      text: "When a damaging cantrip of yours misses with its attack roll, or its target succeeds on its saving throw, the target still takes half the cantrip's damage, rounded down, and nothing else.",
+      effect: { kind: "potent-cantrip" },
+    },
+  ],
 };
 
 /**
  * The choices other than placement that a fresh creation starts with: +2
  * Intelligence and +1 Constitution; Arcana and Investigation; Fire Bolt,
- * Ray of Frost and Shocking Grasp; every 1st-level spell but Thunderwave
- * in the spellbook, with Mage Armor, Magic Missile, Shield and Sleep
- * prepared; the quarterstaff kit; no weapon mastery. The creation page and
- * the balance harness both start from these.
+ * Ray of Frost and Shocking Grasp; six of the 1st-level spells in the
+ * spellbook, with Mage Armor, Magic Missile, Shield and Sleep prepared; the
+ * quarterstaff kit; no weapon mastery. The creation page and the balance
+ * harness both start from these.
  */
 export const WIZARD_DEFAULT_CHOICES = {
   increase: { intelligence: 2, constitution: 1 },
@@ -111,7 +162,7 @@ export const WIZARD: ClassDefinition = {
       id: "spellcasting",
       level: 1,
       name: "Spellcasting",
-      text: "You cast the cantrips you know at will and your prepared spells with spell slots, one slot a turn, using Intelligence. Your spellbook holds the 1st-level spells you chose at creation, and you prepare spells only from it. A long rest restores every spent slot. You change your prepared spells only between adventures, in the library.",
+      text: "You cast the cantrips you know at will and your prepared spells with spell slots, one slot a turn, using Intelligence. Your spellbook holds the six 1st-level spells you chose at creation, and two more Wizard spells you write in at each level after 1st, of a level you have slots for; you prepare spells only from it. A long rest restores every spent slot. You change your prepared spells only between adventures, in the library.",
     },
     {
       id: "ritual-adept",
@@ -128,10 +179,20 @@ export const WIZARD: ClassDefinition = {
       recovery: { shortRest: 0, longRest: "all" },
       effect: { kind: "arcane-recovery" },
     },
+    {
+      id: "scholar",
+      level: 2,
+      name: "Scholar",
+      text: ({ expertise: [chosen] }) =>
+        chosen === undefined
+          ? "Not chosen yet: Expertise in one skill you are proficient in among Arcana, History, Investigation, Medicine, Nature and Religion, doubling your proficiency bonus with it. Choose it on the sheet before the next adventure."
+          : `Expertise in ${SKILLS[chosen].name}: your proficiency bonus is doubled for checks with it.`,
+      effect: { kind: "expertise", count: 1, skills: SCHOLAR_SKILLS },
+    },
   ],
-  subclasses: [],
+  subclasses: [EVOKER],
   defaults: WIZARD_DEFAULT_CHOICES,
   kits: ["quarterstaff-and-dagger", "daggers"],
   spellcasting: WIZARD_SPELLCASTING,
-  maxLevel: 1,
+  maxLevel: 3,
 };

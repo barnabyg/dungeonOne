@@ -73,7 +73,7 @@ _Avoid_: Memorising (Memorize Spell is a separate spell)
 A class the balance gate plays and reports beside the classes it judges, never judging it (#339): the Cleric and the Wizard (#340), until the caster policies (#348). No module's verdict depends on it.
 
 **Spellbook**:
-The Wizard's book of levelled spells (#340): six 1st-level spells from its list, chosen at creation and kept on the sheet, not carried as an item. It prepares spells only from it.
+The Wizard's book of levelled spells (#340): six 1st-level spells from its list, chosen at creation, and two more of a level it has slots for at each level after 1st (#343), kept on the sheet, not carried as an item. It prepares spells only from it.
 
 **Channel Divinity**:
 The Cleric's feature with uses from level 2 (#341): two uses, one back on a short rest and all on a long rest, each a Magic action spent on Divine Spark, Turn Undead or, in the Life Domain, Preserve Life.
@@ -86,10 +86,13 @@ _Avoid_: Fleeing (a turned undead never leaves the fight)
 A spell a feature keeps prepared (#341, the Life Domain's Aid, Bless, Cure Wounds and Lesser Restoration): it doesn't count against the spells the character chooses, and isn't offered to prepare.
 
 **Spells owed**:
-The spells a new level lets a caster prepare, and the cantrips it lets it learn (#342), that it hasn't chosen yet (#341): it chooses them on its sheet before the next adventure, which waits until then.
+The spells a new level lets a caster prepare, the cantrips it lets it learn (#342) and the spells it lets a Wizard write into its spellbook (#343), that it hasn't chosen yet (#341): it chooses them on its sheet before the next adventure, which waits until then. Scholar's Expertise (#343) waits the same way.
 
 **Curse**:
 Bestow Curse's lasting effect on an opponent (#342), chosen at casting: disadvantage on its attacks against the character, or extra necrotic damage from the character's attacks and spells. It ends with the caster's concentration or the fight.
+
+**Potent Cantrip**:
+The Evoker's level-3 feature (#343): a damaging cantrip that misses, or whose target succeeds on its save, still deals half its damage and nothing else.
 
 **Arcane Recovery**:
 The Wizard's once-per-long-rest recovery of spent spell slots on a short rest (#340): slot levels up to half its level, rounded up. The engine applies it by itself on the first short rest with a slot to regain.
@@ -183,7 +186,7 @@ A character's mastery of a kind of weapon it is proficient with, chosen at creat
 _Avoid_: Proficiency (which adds the bonus to hit), Weapon skill
 
 **Expertise**:
-A Rogue's choice, at creation, of two of its skill proficiencies whose proficiency bonus is doubled on checks with them, and in passive Perception. The engine applies it; nothing asks for it.
+A Rogue's choice, at creation, of two of its skill proficiencies whose proficiency bonus is doubled on checks with them, and in passive Perception; and a Wizard's at level 2 (#343, Scholar), of one among Arcana, History, Investigation, Medicine, Nature and Religion, made on the sheet. The engine applies it; nothing asks for it.
 _Avoid_: Mastery (a weapon's), Double proficiency
 
 **Sneak Attack**:

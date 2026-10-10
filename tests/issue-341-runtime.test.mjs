@@ -11,7 +11,7 @@ import {
   defaultPlacement,
   prepareSpells,
   settleCharacter,
-  withOwedSpells,
+  withOwedChoices,
 } from "../dist/character-5e.js";
 import { CLERIC } from "../dist/cleric-5e.js";
 import { currentCombatant } from "../dist/encounter-5e.js";
@@ -49,9 +49,9 @@ const earn = (sheet, xp, id) =>
     gear: [],
   });
 /** Mira, a level-3 Life Cleric with 24 HP and a mace (+3, 1d6 + 1). */
-const MIRA = withOwedSpells(
+const MIRA = withOwedChoices(
   earn(
-    withOwedSpells(
+    withOwedChoices(
       earn(
         buildCharacter(
           "d".repeat(32),
