@@ -1202,6 +1202,10 @@ function compactRoll(group) {
       // A rest's d100 against the wandering encounter's chance (#335).
       node.append(...diceChips(group), " vs " + group.dc + " or less");
       break;
+    case "duplicates":
+      // Mirror Image's d6s (#343): a 3 or higher strikes a duplicate.
+      node.append("Mirror Image ", ...diceChips(group, ", "), group.outcome === "success" ? ": a duplicate takes it" : ": no duplicate");
+      break;
   }
   return node;
 }

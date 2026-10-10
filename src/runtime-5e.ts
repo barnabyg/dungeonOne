@@ -280,7 +280,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v30";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v31";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -2460,7 +2460,12 @@ function spellText(
       const rolled =
         event.damageRolls.reduce((sum, value) => sum + value, 0) +
         event.damageModifier;
-      return `${event.spell}: ${event.missiles} missiles hit ${target}. Damage ${event.damageRolls.join(" + ")} ${signed(event.damageModifier)} = ${rolled} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}${cursed(event.curse)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
+      // Acid Arrow's acid at the end of its target's turn (#343).
+      const what =
+        event.later === true
+          ? `the acid burns ${target} as its turn ends`
+          : `${event.missiles ?? 1} missiles hit ${target}`;
+      return `${event.spell}: ${what}. Damage ${event.damageRolls.join(" + ")} ${signed(event.damageModifier)} = ${rolled} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}${cursed(event.curse)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
     }
     case "spell-curse": {
       // Bestow Curse's save (#342).
@@ -2633,16 +2638,28 @@ export function renderFifthEvent(
         event.ammunition === undefined
           ? ""
           : ` ${ammunitionCount(event.ammunition.kind, event.ammunition.left)} left.`;
+      // Acid Arrow's splash, or Potent Cantrip (#343): half on a miss.
       const graze =
         event.graze === true
           ? ` Graze: ${dealt} damage${adjusted}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.`
-          : "";
+          : event.missHalf === true
+            ? ` Half damage all the same: ${event.damageRolls.join(" + ")}, halved to ${dealt}${adjusted}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.`
+            : "";
       // A hit a reaction spell turned (#337): its roll was said when offered.
       if (!event.hit && event.resumed === true) {
         return `${name(event.actorId)}'s ${event.weapon} now misses ${target.name}: ${event.total} against AC ${event.armorClass}.${graze}`;
       }
       if (!event.hit) {
         return `${roll}. Miss.${graze}${left}`;
+      }
+      // Mirror Image (#343): a d6 for each duplicate.
+      const images = event.mirrorImage;
+      const imageRoll =
+        images === undefined
+          ? ""
+          : ` Mirror Image rolls ${images.rolls.join(", ")}: ${images.struck ? `a duplicate takes the hit and vanishes; ${images.left} ${images.left === 1 ? "duplicate is" : "duplicates are"} left.` : "no duplicate takes it."}`;
+      if (images?.struck === true) {
+        return `${event.resumed === true ? `${name(event.actorId)}'s ${event.weapon} hits.` : `${roll}. Hit.`}${imageRoll}${left}`;
       }
       const riderDamage =
         reduced?.part === "rider"
@@ -2663,7 +2680,7 @@ export function renderFifthEvent(
       const damage = `Damage ${damageDice(event)} ${signed(event.damageModifier)}${sneakAttackDice(event)} = ${dealt}${adjusted}${rider}${resisted}${halved}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.${left}`;
       // A hit offered for Uncanny Dodge first (#308) said its roll then.
       if (event.resumed === true) {
-        return `${dodged === undefined ? `${target.name} takes the hit` : `${target.name} uses Uncanny Dodge`} from ${name(event.actorId)}'s ${event.weapon}. ${damage}`;
+        return `${dodged === undefined ? `${target.name} takes the hit` : `${target.name} uses Uncanny Dodge`} from ${name(event.actorId)}'s ${event.weapon}.${imageRoll} ${damage}`;
       }
       // Guiding Bolt (#339) lights the target up.
       const guided =
@@ -2671,7 +2688,7 @@ export function renderFifthEvent(
           ? ` The next attack roll against ${target.name} has advantage before the end of ${event.actorId === PLAYER_ID ? "your" : `${name(event.actorId)}'s`} next turn (${GUIDING_BOLT}).`
           : "";
       // Paralysed, or unconscious (#340): every hit is critical.
-      return `${roll}. ${event.conditionCritical === true ? `Critical hit: ${target.name} is ${event.criticalCondition ?? "paralysed"}!` : event.critical ? "Critical hit!" : "Hit."} ${damage}${guided}`;
+      return `${roll}. ${event.conditionCritical === true ? `Critical hit: ${target.name} is ${event.criticalCondition ?? "paralysed"}!` : event.critical ? "Critical hit!" : "Hit."}${imageRoll} ${damage}${guided}`;
     }
     case "reaction-offered": {
       // Uncanny Dodge (#308) or a reaction spell (#337): the hit waits for
@@ -3048,7 +3065,12 @@ export type RollGroup = Readonly<{
     /** A rest's d100 against the wandering encounter (#335). */
     | "wandering"
     /** Resistance's die off damage (#339). */
-    | "reduction";
+    | "reduction"
+    /**
+     * Mirror Image's d6s (#343): `outcome` is a success when one struck a
+     * duplicate instead.
+     */
+    | "duplicates";
   roller: string;
   target?: string;
   dice: readonly ShownDie[];
@@ -3216,9 +3238,29 @@ export function describeFifthResult(
   });
   const damageGroups = (event: AttackEvent): RollGroup[] => {
     const shown: RollGroup[] = [];
+    // Mirror Image's d6s (#343), rolled before any damage.
+    const images = event.mirrorImage;
+    if (images !== undefined) {
+      shown.push({
+        purpose: "duplicates",
+        roller: "Mirror Image",
+        target: name(event.targetId),
+        dice: take(images.rolls),
+        modifier: 0,
+        total: Math.max(...images.rolls),
+        outcome: images.struck ? "success" : "failure",
+      });
+    }
+    // Uncanny Dodge (#308), or a miss that deals half (#343).
     const halved =
-      event.uncannyDodge === undefined ? {} : { halved: true as const };
-    if (event.hit || event.graze === true) {
+      event.uncannyDodge === undefined && event.missHalf !== true
+        ? {}
+        : { halved: true as const };
+    if (
+      (event.hit && images?.struck !== true) ||
+      event.graze === true ||
+      event.missHalf === true
+    ) {
       shown.push({
         purpose: "damage",
         roller: name(event.actorId),
@@ -3994,7 +4036,10 @@ export type ActionView = Readonly<{
     name: string;
     level: number;
     slotLevel?: number;
-    /** An area spell's most targets (#338), when above 1. */
+    /**
+     * An area spell's most targets (#338), or Scorching Ray's rays at its
+     * slot (#343), when above 1.
+     */
     maxTargets?: number;
     /**
      * The damage type chosen for it: the one Resistance resists (#339), or
@@ -8482,10 +8527,16 @@ export function createFifthRuntime(
                 ...(action.slotLevel === undefined
                   ? {}
                   : { slotLevel: action.slotLevel }),
-                // An area spell's most targets (#338).
-                ...(maxTargets(SPELLS[action.spellId]) === 1
+                // An area spell's most targets (#338), or Scorching Ray's
+                // rays at its slot (#343).
+                ...(maxTargets(SPELLS[action.spellId], action.slotLevel) === 1
                   ? {}
-                  : { maxTargets: maxTargets(SPELLS[action.spellId]) }),
+                  : {
+                      maxTargets: maxTargets(
+                        SPELLS[action.spellId],
+                        action.slotLevel,
+                      ),
+                    }),
                 // Resistance's damage type (#339), Chromatic Orb's (#340).
                 ...(action.damageType === undefined
                   ? {}
@@ -8599,11 +8650,13 @@ export function createFifthRuntime(
         ...(damageType === undefined ? {} : { damageType }),
         ...(curse === undefined ? {} : { curse }),
       });
-      // An area spell (#338): one entry, its targets chosen from the
-      // foes, up to its most; it dry-runs the first of them. One that
-      // catches only one (Sleep, #340) is offered at each foe instead.
-      if (spell.area !== undefined && maxTargets(spell) > 1) {
-        return foes.length === 0 ? [] : [areaCast(spell, foes, cast)];
+      // An area spell (#338), or Scorching Ray's rays (#343): one entry,
+      // its targets chosen from the foes, up to its most; it dry-runs the
+      // first of them. One that catches only one (Sleep, #340) is offered
+      // at each foe instead.
+      const most = maxTargets(spell, slotLevel);
+      if (most > 1) {
+        return foes.length === 0 ? [] : [areaCast(most, foes, cast)];
       }
       return (
         spell.effect.kind === "healing" ||
@@ -8615,15 +8668,16 @@ export function createFifthRuntime(
       ).map((target) => view("cast", cast([target.id]), target));
     };
     /**
-     * An area spell's entry (#338): the foes it may catch (`targets`), and
-     * the action it dry-runs, at the first of them up to its most.
+     * An area spell's entry (#338), or Scorching Ray's (#343): the foes it
+     * may catch (`targets`), and the action it dry-runs, at the first of
+     * them up to its `most`.
      */
     const areaCast = (
-      spell: SpellDefinition,
+      most: number,
       foes: readonly Combatant[],
       cast: (targetIds: readonly string[]) => CastAction,
     ): ActionView => {
-      const action = cast(foes.slice(0, maxTargets(spell)).map(({ id }) => id));
+      const action = cast(foes.slice(0, most).map(({ id }) => id));
       const entry = view("cast", action);
       if (unasked.has(entry)) {
         return entry;
@@ -9997,10 +10051,18 @@ export function createFifthRuntime(
           targetsOf(offer).map((target) => `${target.id} (${target.name})`),
         ),
       );
+      // Scorching Ray's rays (#343) grow with the slot, and split among
+      // its targets.
+      const definition: SpellDefinition | undefined = isSpellId(id)
+        ? SPELLS[id]
+        : undefined;
       const whom =
         most === undefined
           ? `one target: ${listed(targets)}`
-          : `up to ${most} different targets from ${listed(targets, "and")}`;
+          : definition?.effect.kind === "attack" &&
+              definition.effect.rays !== undefined
+            ? `up to ${most} different targets (one more for each slot level above ${ordinal(definition.level)}) from ${listed(targets, "and")}; its rays, one for each of those, are split as evenly as they go among the targets named, the first named taking any more`
+            : `up to ${most} different targets from ${listed(targets, "and")}`;
       // Resistance (#339) resists a damage type the player chooses, and
       // Chromatic Orb (#340) deals one.
       const types = damageTypesOf(mine);
@@ -10459,7 +10521,7 @@ export function createFifthRuntime(
     rulesVersion: FIFTH_RULES_VERSION,
     promptVersion: FIFTH_PROMPT_VERSION,
     systemPrompt: FIFTH_DM_SYSTEM_PROMPT,
-    toolSchemaVersion: "5e-tools-v13",
+    toolSchemaVersion: "5e-tools-v14",
     readToolNames: ["look", "get_character_status"],
     mutationToolNames: MUTATION_TOOLS,
     adventure,
