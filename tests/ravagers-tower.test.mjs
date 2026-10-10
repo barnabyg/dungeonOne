@@ -2,14 +2,14 @@
 // it: a dead pedlar's two potions at the foot of a ruined watchtower, and a
 // Gnoll Ravager at the top with the plunder of the road. Journeys reach its
 // endings; shipped-modules.test.mjs checks it qualifies at its declared
-// difficulty.
+// difficulty, with the gate figures its proposal quotes.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
-import { gateAdventure, requiredPath } from "../dist/balance-5e.js";
+import { requiredPath } from "../dist/balance-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { firstJourney, xpOf } from "./fixtures/module-journey.mjs";
@@ -84,28 +84,6 @@ test("its treasure is 98% of the level-3 budget, the gnoll's coins rolled from i
   // In copper: 441 gp 1 sp of 450 gp.
   assert.equal(findableValue(tower), 44110);
   assert.equal(treasureBudget(3), 45000);
-});
-
-test("the gate qualifies it as Hard, mid-band, with the figures the proposal quotes", () => {
-  const result = gateAdventure(tower);
-  assert.equal(result.ok, true);
-  const { verdict } = result;
-  assert.equal(verdict.qualified, true);
-  // 6.5 points over Hard's 75%, and 6.5 under the 88% that would make it
-  // Medium (82.0% until the Champion's initiative advantage, #315).
-  assert.deepEqual(
-    [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
-    [3, "mace", 0.815],
-  );
-  assert.deepEqual(verdict.oneHitKill.overCap, []);
-  assert.deepEqual(
-    verdict.oneHitKill.enemies.map(({ opponentId, chance }) => [
-      opponentId,
-      chance,
-    ]),
-    [["tower-gnoll", 0]],
-  );
-  assert.equal(verdict.xp.available, 600);
 });
 
 const POTIONS = [

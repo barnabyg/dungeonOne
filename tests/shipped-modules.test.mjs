@@ -161,6 +161,159 @@ test("every shipped module declares the strictest difficulty every class passes 
   }
 });
 
+/**
+ * The gate figures each module's proposal or handoff quotes, for each class
+ * named: the weakest character's survival as [level, kit, rate], its
+ * [level, rate] when every check fails, the ids of the ordinary enemies over
+ * the one-hit-kill cap, each enemy's one-hit-kill chance in percent, and the
+ * XP available. They are checked here, beside the gate run they read, rather
+ * than in each module's own tests, so the gate plays each module once.
+ */
+const QUOTED_FIGURES = {
+  // 1 point over the 98% the #252 slack rule asks of an Easy module (1.5
+  // until the Champion's initiative advantage, #315, moved the dice).
+  "drowned-chapel": {
+    fighter: {
+      survival: [3, "two-daggers", 0.99],
+      overCap: [],
+      enemies: [["drowned-sexton", 0.8]],
+      xp: 350,
+    },
+  },
+  // 8.5 points over Hard's 75%, and 4.5 under the 88% that would make it Medium.
+  "gravediggers-lodge": {
+    fighter: {
+      survival: [2, "two-daggers", 0.835],
+      overCap: [],
+      enemies: [
+        ["false-gravedigger", 2.9],
+        ["risen-corpse", 0.4],
+      ],
+      xp: 375,
+    },
+  },
+  // The Fighter is 5.5 points over Medium's 85% with its slack (83.0% and
+  // 81.5% when every check fails until short rests, #334; 81.5% until the
+  // Champion's initiative advantage, #315). Every fight's XP and the
+  // ending's 400.
+  "mallow-counting-house": {
+    fighter: {
+      survival: [3, "mace", 0.905],
+      alwaysFail: [3, 0.905],
+      overCap: [],
+      xp: 200 + 50 + 200 + 400,
+    },
+    rogue: {
+      survival: [3, "shortsword", 0.975],
+      alwaysFail: [3, 0.975],
+      overCap: [],
+      xp: 200 + 50 + 200 + 400,
+    },
+  },
+  // 6.5 points over Hard's 75%, and 6.5 under the 88% that would make it
+  // Medium (82.0% until the Champion's initiative advantage, #315).
+  "ravagers-tower": {
+    fighter: {
+      survival: [3, "mace", 0.815],
+      overCap: [],
+      enemies: [["tower-gnoll", 0]],
+      xp: 600,
+    },
+  },
+  "shepherds-bothy": {
+    fighter: {
+      survival: [2, "mace", 1],
+      overCap: [],
+      enemies: [["bothy-bandit", 2.9]],
+      xp: 225,
+    },
+  },
+  // Both kobolds and the Skeleton: three of six, no more than half.
+  "silvervein-mine": {
+    fighter: {
+      survival: [2, "mace", 0.925],
+      overCap: ["kobold-lookout", "kobold-tunneller", "miners-bones"],
+      enemyCount: 6,
+      xp: 862,
+    },
+  },
+  // The Fighter is 8.5 points over the 88% that would make it Medium (4
+  // until the Champion's initiative advantage, #315); the Rogue, 10.5 over
+  // Hard's 75% and 2.5 under 88%, keeps it Hard. One of four ordinary
+  // enemies is over the cap, under the more-than-half that fails it. Every
+  // fight's XP and the spoils' 2,350.
+  "thornwood-lodge": {
+    fighter: {
+      survival: [4, "mace", 0.965],
+      alwaysFail: [4, 0.965],
+      overCap: ["kennel-mastiff"],
+      xp: 200 + 25 + 200 + 700 + 700 + 2350,
+    },
+    rogue: {
+      survival: [4, "shortsword", 0.855],
+      alwaysFail: [4, 0.855],
+      overCap: ["kennel-mastiff"],
+      xp: 200 + 25 + 200 + 700 + 700 + 2350,
+    },
+  },
+  // 6 points over Hard's 75%, and 7 under the 88% that would make it
+  // Medium (80.5% until short rests, #334; 83.0% and 84.0% until the
+  // Champion's initiative advantage, #315, moved the dice). Every fight's
+  // XP and the plunder's 500.
+  "wolfstone-hillfort": {
+    fighter: {
+      survival: [3, "two-daggers", 0.81],
+      alwaysFail: [3, 0.81],
+      overCap: [],
+      xp: 200 + 200 + 450 + 500,
+    },
+  },
+};
+
+test("the gate gives each released module the figures its proposal quotes (#241, #275, #289, #291, #311)", () => {
+  for (const [id, classes] of Object.entries(QUOTED_FIGURES)) {
+    const gate = gateOf(shipped.find((adventure) => adventure.id === id));
+    for (const [classId, quoted] of Object.entries(classes)) {
+      const { verdict } = gate.classes.find(
+        (entry) => entry.classId === classId,
+      ).result;
+      const label = `${id} ${classId}`;
+      const { survival, alwaysFail, oneHitKill, xp } = verdict;
+      assert.deepEqual(
+        [survival.level, survival.kit, survival.rate],
+        quoted.survival,
+        label,
+      );
+      if (quoted.alwaysFail !== undefined) {
+        assert.deepEqual(
+          [alwaysFail.level, alwaysFail.rate],
+          quoted.alwaysFail,
+          label,
+        );
+      }
+      assert.deepEqual(
+        oneHitKill.overCap.map(({ opponentId }) => opponentId),
+        quoted.overCap,
+        label,
+      );
+      if (quoted.enemies !== undefined) {
+        assert.deepEqual(
+          oneHitKill.enemies.map(({ opponentId, chance }) => [
+            opponentId,
+            Math.round(chance * 1000) / 10,
+          ]),
+          quoted.enemies,
+          label,
+        );
+      }
+      if (quoted.enemyCount !== undefined) {
+        assert.equal(oneHitKill.enemies.length, quoted.enemyCount, label);
+      }
+      assert.equal(xp.available, quoted.xp, label);
+    }
+  }
+});
+
 /** `text` as a regular expression that matches it literally. */
 const literal = (text) => text.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 
