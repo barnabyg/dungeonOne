@@ -58,7 +58,7 @@
  * The AI DM reads with `look` and `get_character_status`, and acts with
  * `move`, `sneak`, `ambush`, `react`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
  * `break_door`, `unlock`, `search`, `disarm`, `talk`, `trade`, `attack`,
- * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge`, `take_hit` and `tactical_mind`. Each is offered only while the engine would
+ * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge`, `take_hit`, `tactical_mind` and `rest`. Each is offered only while the engine would
  * accept it, listing only what is visible and legal: the tools come from the
  * same projection (`projectActions`) as the browser's action bar, which asks
  * the engine about each action. The engine authors the
@@ -206,6 +206,7 @@ import { tradeGoodValue } from "./treasure-5e.js";
 import { ABILITIES, type SkillId } from "./class-5e.js";
 import {
   abilityDisadvantages,
+  abilityModifier,
   initiativeAdvantages,
   tacticalMindDie,
   hasExpertise,
@@ -235,7 +236,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v21";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v22";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -251,12 +252,26 @@ export type CharacterResources = Readonly<{
   hitDice: number;
 }>;
 
+/**
+ * How many short rests the character may take in one adventure (#334): a
+ * house rule, as SRD 5.2 has no limit but the clock this game leaves out.
+ */
+export const SHORT_RESTS_PER_ADVENTURE = 2;
+
 /** The character's hit-dice pool (#333): left of the total, and their size. */
 export type HitDiceView = Readonly<{
   available: number;
   total: number;
   sides: number;
 }>;
+
+/** The short rests left in the adventure, and the most (#334). */
+export type ShortRestsView = Readonly<{ left: number; max: number }>;
+
+/** "Short rests: 1 of 2 left" (#334). */
+export function shortRestsText({ left, max }: ShortRestsView): string {
+  return `Short rests: ${left} of ${max} left`;
+}
 
 /** "Hit dice: 2 of 3 d10 left". */
 export function hitDiceText({ available, total, sides }: HitDiceView): string {
@@ -378,6 +393,8 @@ export type FifthState = Readonly<{
   }>[];
   /** Gear the character dropped, in the room it lies in, in order. */
   dropped: readonly Readonly<{ roomId: string; item: ItemId }>[];
+  /** The short rests taken in this adventure (#334). */
+  shortRests: number;
   /** The fight in this room, under way or just won. */
   encounter?: EncounterState;
   endingId?: string;
@@ -471,7 +488,12 @@ export type FifthAction =
    * Tactical Mind (#315): a use of Second Wind adds 1d10 to the check just
    * failed, spent only if the check then succeeds.
    */
-  | Readonly<{ type: "tactical-mind" }>;
+  | Readonly<{ type: "tactical-mind" }>
+  /**
+   * A short rest (#334), spending up to `hitDice` hit dice one at a time:
+   * once HP is full, no more are spent.
+   */
+  | Readonly<{ type: "rest"; hitDice: number }>;
 
 /** How an action making a check chooses it: its approach, and a retry. */
 export type CheckChoice = Readonly<{ approach?: string; retry?: true }>;
@@ -757,6 +779,7 @@ const MUTATION_TOOLS: readonly string[] = [
   ...Object.keys(TARGET_TOOLS),
   ...Object.keys(FEATURE_TOOLS),
   "tactical_mind",
+  "rest",
 ];
 
 export type FifthEvent =
@@ -856,6 +879,40 @@ export type FifthEvent =
       spent: boolean;
       /** Second Wind's uses afterwards. */
       secondWind: Readonly<{ uses: number; max: number }>;
+    }>
+  /**
+   * A short rest begins (#334): how many hit dice it spent, the pool after,
+   * and the short rests left in the adventure.
+   */
+  | Readonly<{
+      type: "short-rest";
+      spent: number;
+      hitDice: HitDiceView;
+      shortRests: ShortRestsView;
+    }>
+  /**
+   * A hit die spent in a rest (#334): its roll plus the Constitution
+   * modifier, at least 0, is the healing, up to the maximum.
+   */
+  | Readonly<{
+      type: "hit-die";
+      sides: number;
+      value: number;
+      modifier: number;
+      healing: number;
+      hpAfter: number;
+      maxHp: number;
+    }>
+  /** The feature uses a rest restored (#334), each with its uses after. */
+  | Readonly<{
+      type: "uses-regained";
+      features: readonly Readonly<{
+        featureId: string;
+        name: string;
+        regained: number;
+        uses: number;
+        max: number;
+      }>[];
     }>
   /** Damage a check's band, or a retry's cost, dealt the character (#281). */
   | Readonly<{
@@ -1164,6 +1221,10 @@ export type FifthRefusalCode =
   | "no-retry"
   | "no-tactical-mind"
   | "no-failed-check"
+  | "hostile-here"
+  | "no-rests-left"
+  | "too-many-hit-dice"
+  | "nothing-to-recover"
   | "not-here"
   | "no-traps"
   | "already-searched"
@@ -1206,6 +1267,8 @@ Leaving the adventure is the player's own final choice, made with the Leave butt
 Checks are rolled by the engine, once each; a check already tried is not offered again, and asking again does not reroll it. A module may allow another try at a failed check, after a cost (damage, or a mundane tool the module placed, such as a rope or an iron spike, used up) or once something has changed (the character holds an item, has made a discovery or has won a fight): only then does the tool take retry and list the targets that offer another try, with why. Call it with retry true only when the player asks to try again and the target is listed, and false otherwise; the engine takes the cost before it rolls. Asking for another try, or for advantage, where none is offered changes nothing: say so without calling a tool. The engine alone decides advantage and disadvantage on a check, from the module's circumstances, and its result names them; never claim or promise either. The engine grades each check into a band (failure by 5 or more, failure, success, or success by 5 or more) and applies that band's effects: a discovery, an item revealed to take, damage, or a way opened or closed. Narrate only the band and the effects in the engine's result; never claim another band, discovery, item, damage, way opened or closed, or consequence, and never add arguments a tool does not list. Some checks offer several approaches, each its own skill or ability (for example Athletics or Acrobatics to get over a wall, Persuasion or Intimidation to get past a guard): then the tool lists them, and you call it with the approach the player's words pick out (climbing or hauling yourself up is Athletics; vaulting, balancing or tumbling is Acrobatics; reasoning or pleading is Persuasion; threatening is Intimidation), and null for a target that has none. If their words fit none of the offered approaches, or more than one, ask which, listing them, without calling a tool; never choose an approach that is not offered. Once one approach is tried, the others are gone, unless the tool offers a retry: then any approach it lists may be tried again. Call a check tool only when the player explicitly asks for that approach: force_door to force a stuck door ("shoulder it open", "force the door"), pick_lock to pick a lock, break_door to break a door down, search to search the room for traps, disarm to disarm a found trap. Searching for traps ("search for traps", "I study the flagstones for pressure plates") is one search: the engine rolls the character's better of Perception and Investigation. Picking a lock needs thieves' tools, and so may disarming a trap: pick_lock, and a disarm that needs them, is offered only while the character carries them. If the player asks to pick a lock and pick_lock is not offered for that door, say the character has no thieves' tools and name the ways still offered (forcing or breaking the door, or unlocking it with its key), without calling a tool; never pick it, or open the door, in your words. unlock opens a locked door with a key the character carries ("unlock the door", "use the key"). Words that name no approach, such as "open the door" or "get past the door", are not a request for a check: ask which of the offered approaches they want, without calling a tool. To ask a creature about something, call talk with the one offered topic the player's words pick out; the creature's words come only from the engine, and if the player asks about something no topic covers, say the creature has nothing to say about it without calling a tool.
 
 Right after the character fails an ability check, a character with Tactical Mind may spend a use of Second Wind to add 1d10 to that check: only then is tactical_mind offered. Call it only when the player asks to use Tactical Mind, or to push themselves to succeed at the check they just failed. The engine rolls the d10 and grades the check again, without rerolling it, and says whether the use was spent; it is spent only if the check now succeeds. If tactical_mind is not offered, say so without calling a tool. Never add to a check, change its band or claim it now succeeds in your words.
+
+Outside a fight, in a room with no foes left to face, the character may take a short rest, at most two short rests in an adventure: rest is offered only then. Call rest only when the player asks to rest, take a breather, bind their wounds or recover, with hit_dice the number of hit dice the player asks to spend, or the most rest lists when they name none. The engine rolls each hit die, adds the Constitution modifier, stops spending once the character is at full health, and restores the feature uses a short rest brings back. If rest is not offered, say why (a fight, foes here, both short rests taken, or nothing to recover) without calling a tool. Never heal, restore a use, or grant a rest in your words.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -2053,6 +2116,25 @@ export function renderFifthEvent(
       const left = `${secondWind.uses} of ${secondWind.max} left`;
       return `Tactical Mind: you add 1d${event.die.sides} to the ${roll.label}. ${event.before} + ${event.die.value} = ${roll.total} against DC ${roll.dc}. ${BAND_NAMES[event.band]}: ${event.spent ? `a use of Second Wind is spent (${left})` : `the use of Second Wind is kept (${left})`}.`;
     }
+    case "short-rest": {
+      const { spent, hitDice, shortRests } = event;
+      const dice =
+        spent === 0
+          ? "no hit dice"
+          : `${spent} ${spent === 1 ? "hit die" : "hit dice"}`;
+      return `You take a short rest and spend ${dice} (${hitDice.available} of ${hitDice.total} d${hitDice.sides} left). Short rests: ${shortRests.left} of ${shortRests.max} left in this adventure.`;
+    }
+    case "hit-die": {
+      const rolled = event.value + event.modifier;
+      return `You spend a hit die: d${event.sides} ${event.value} ${signed(event.modifier)} = ${rolled < 0 ? `−${-rolled}, at least 0` : rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
+    }
+    case "uses-regained":
+      return event.features
+        .map(
+          ({ name: feature, regained, uses, max }) =>
+            `${feature} regains ${regained} ${regained === 1 ? "use" : "uses"} (${uses} of ${max} left).`,
+        )
+        .join(" ");
     case "check-damage":
       return `The ${event.source} deals ${event.rolls.join(" + ")}${event.modifier === 0 ? "" : ` ${signed(event.modifier)}`} = ${event.damage} ${event.damageType}; you have ${event.hpAfter}/${event.maxHp} HP.`;
     case "door":
@@ -2597,6 +2679,18 @@ export function describeFifthResult(
           },
         ];
       }
+      case "hit-die":
+        return [
+          {
+            purpose: "healing",
+            roller: playerName,
+            dice: take([event.value]),
+            modifier: event.modifier,
+            total: event.healing,
+            hpAfter: event.hpAfter,
+            maxHp: event.maxHp,
+          },
+        ];
       case "potion":
         return [
           {
@@ -2756,7 +2850,9 @@ export type ActionKind =
   | "sell-treasure"
   | "leave"
   /** Tactical Mind on the check just failed (#315). */
-  | "tactical-mind";
+  | "tactical-mind"
+  /** A short rest (#334). */
+  | "rest";
 
 const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   attack: true,
@@ -2792,6 +2888,7 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   "sell-treasure": true,
   leave: true,
   "tactical-mind": true,
+  rest: true,
 };
 
 /**
@@ -2826,6 +2923,13 @@ export type ActionView = Readonly<{
    * engine would accept it, beside the plain attack on the same target.
    */
   cunningStrike?: Readonly<{ id: CunningStrikeId; name: string }>;
+  /**
+   * A short rest (#334), listed while it would restore something: the
+   * numbers of hit dice it may spend now, fewest first. The action spends
+   * the most; the engine may still refuse it (in a fight, with foes here,
+   * or after two short rests).
+   */
+  rest?: Readonly<{ hitDice: readonly number[] }>;
   available: boolean;
   /** Present exactly when the action is unavailable. */
   reason?: string;
@@ -2893,6 +2997,10 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "no-retry": "No other try",
   "no-tactical-mind": "No Tactical Mind",
   "no-failed-check": "No failed check",
+  "hostile-here": "Foes here",
+  "no-rests-left": "No short rests left",
+  "too-many-hit-dice": "Too few hit dice",
+  "nothing-to-recover": "Nothing to recover",
   "not-here": "Not here",
   "no-traps": "No traps here",
   "already-searched": "Already searched",
@@ -2973,6 +3081,8 @@ export type FifthRuntime = Omit<
     projectFight(state: FifthState): FightView;
     /** The character's hit-dice pool (#333), for the status strip. */
     projectHitDice(state: FifthState): HitDiceView;
+    /** The short rests left in the adventure (#334), and the most. */
+    projectShortRests(state: FifthState): ShortRestsView;
     /** The player-safe room for the browser's room panel. */
     projectRoom(state: FifthState): RoomView;
     /**
@@ -4386,6 +4496,115 @@ export function createFifthRuntime(
   });
 
   /**
+   * The feature uses a short rest would restore now (#334): each feature
+   * below its most regains what its class data gives, up to the most.
+   */
+  const restRecovery = (state: FifthState) => {
+    const profile = characterProfile(sheet);
+    return Object.entries(profile.featureUses).flatMap(
+      ([featureId, { max, recovery }]) => {
+        const uses = state.character.featureUses[featureId] ?? 0;
+        const restored = Math.min(
+          max,
+          uses + (recovery.shortRest === "all" ? max : recovery.shortRest),
+        );
+        return restored > uses
+          ? [
+              {
+                featureId,
+                name:
+                  profile.features.find(({ id }) => id === featureId)?.name ??
+                  featureId,
+                regained: restored - uses,
+                uses: restored,
+                max,
+              },
+            ]
+          : [];
+      },
+    );
+  };
+
+  /**
+   * The numbers of hit dice a short rest may spend now (#334), fewest
+   * first: none only when a feature would regain a use, and some (up to
+   * those left) only while hurt. Empty when a rest would restore nothing.
+   */
+  const restCounts = (state: FifthState): readonly number[] => {
+    const left = state.character.hitDice;
+    const recovers = restRecovery(state).length > 0;
+    const hurt = state.character.hp < maxHp && left > 0;
+    if (!hurt) {
+      // At full HP no die is spent: only a rest that spends none.
+      return recovers ? [0] : [];
+    }
+    return [...Array(left + 1).keys()].filter((count) => count > 0 || recovers);
+  };
+
+  /**
+   * A short rest (#334), once the engine has accepted it: up to `count` hit
+   * dice are spent one at a time, each healing its roll plus the
+   * Constitution modifier (at least 0), until HP is full; then each feature
+   * regains its short-rest uses.
+   */
+  const shortRest = (
+    state: FifthState,
+    count: number,
+    random: Pick<RandomSource, "roll"> | undefined,
+  ): FifthResult => {
+    const dice = need(random, "A short rest");
+    const { sides } = characterProfile(sheet).hitDice;
+    const modifier = abilityModifier(sheet.abilities.constitution);
+    const recovered = restRecovery(state);
+    const spent: Extract<FifthEvent, Readonly<{ type: "hit-die" }>>[] = [];
+    let { hp } = state.character;
+    while (spent.length < count && hp < maxHp) {
+      const value = dice.roll(sides);
+      const healing = Math.min(maxHp - hp, Math.max(0, value + modifier));
+      hp += healing;
+      spent.push({
+        type: "hit-die",
+        sides,
+        value,
+        modifier,
+        healing,
+        hpAfter: hp,
+        maxHp,
+      });
+    }
+    const next: FifthState = {
+      ...state,
+      shortRests: state.shortRests + 1,
+      character: {
+        ...state.character,
+        hp,
+        hitDice: state.character.hitDice - spent.length,
+        featureUses: {
+          ...state.character.featureUses,
+          ...Object.fromEntries(
+            recovered.map(({ featureId, uses }) => [featureId, uses]),
+          ),
+        },
+      },
+    };
+    return {
+      state: next,
+      events: [
+        {
+          type: "short-rest",
+          spent: spent.length,
+          hitDice: projectHitDice(next),
+          shortRests: projectShortRests(next),
+        },
+        ...spent,
+        ...(recovered.length === 0
+          ? []
+          : [{ type: "uses-regained" as const, features: recovered }]),
+      ],
+    };
+  };
+
+  /**
    * Tactical Mind (#315): adds its die to the check just failed, without
    * rerolling it, and grades it again. The new band is remembered in place
    * of the old; the site's outcome follows the new total, and when the band
@@ -5039,6 +5258,15 @@ export function createFifthRuntime(
       }
       case "tactical-mind":
         return { type: "tactical-mind" };
+      case "rest": {
+        // A whole number of hit dice, none or more.
+        const { hitDice } = action;
+        return typeof hitDice === "number" &&
+          Number.isInteger(hitDice) &&
+          hitDice >= 0
+          ? { type: "rest", hitDice }
+          : undefined;
+      }
       case "react": {
         // A parley's approach (#305), when given, is a string; nothing
         // retries a reaction.
@@ -5343,6 +5571,49 @@ export function createFifthRuntime(
           );
         }
         return tacticalMind(state, state.tacticalMind, sides, random);
+      }
+      case "rest": {
+        if (fighting(state)) {
+          return reject("fighting", "Not while you are fighting.");
+        }
+        const foes = encounterOf(state);
+        if (foes !== undefined && !settled(state, foes.id)) {
+          return reject(
+            "hostile-here",
+            `Not with ${listed(
+              foes.opponents.map(({ name }) => `the ${name}`),
+              "and",
+            )} here: you can rest only where no foes are left.`,
+          );
+        }
+        if (state.shortRests >= SHORT_RESTS_PER_ADVENTURE) {
+          return reject(
+            "no-rests-left",
+            "You have taken the two short rests an adventure allows.",
+          );
+        }
+        const left = state.character.hitDice;
+        if (action.hitDice > left) {
+          return reject(
+            "too-many-hit-dice",
+            left === 0
+              ? "You have no hit dice left to spend."
+              : `You have only ${left} ${left === 1 ? "hit die" : "hit dice"} left to spend.`,
+          );
+        }
+        if (!restCounts(state).includes(action.hitDice)) {
+          return reject(
+            "nothing-to-recover",
+            state.character.hp === maxHp
+              ? restRecovery(state).length > 0
+                ? "You are at full health: a rest spends no hit dice."
+                : "You are at full health with every feature use: a rest would restore nothing."
+              : left === 0
+                ? "You have no hit dice left and every feature use: a rest would restore nothing."
+                : "A rest that spends no hit dice would restore nothing: you have every feature use.",
+          );
+        }
+        return shortRest(state, action.hitDice, random);
       }
       case "react": {
         const fight = encounterOf(state);
@@ -6517,6 +6788,24 @@ export function createFifthRuntime(
     const use = (item: FifthItem) =>
       view("use", { type: "use-item", itemId: item.id }, item);
     /**
+     * A short rest (#334), listed while it would restore something, with the
+     * numbers of hit dice it may spend; the action spends the most.
+     */
+    const rest = (): readonly ActionView[] => {
+      const counts = restCounts(state);
+      if (counts.length === 0) {
+        return [];
+      }
+      const most: FifthAction = { type: "rest", hitDice: counts.at(-1)! };
+      const entry = view("rest", most);
+      if (unasked.has(entry)) {
+        return [entry];
+      }
+      const offered: ActionView = { ...entry, rest: { hitDice: counts } };
+      projectedActions.set(offered, most);
+      return [offered];
+    };
+    /**
      * A check site's action: one per approach while its check, having
      * several, is unmade (#283); otherwise one, without an approach. While
      * the module's retry offers another try (#284), the retry follows, one
@@ -6833,6 +7122,7 @@ export function createFifthRuntime(
       ),
       ...gearViews(),
       ...tradeViews(),
+      ...rest(),
       // The final choice comes last, and only where there is a way out.
       ...(here.exit === true
         ? [view("leave", { type: "leave", roomId: here.id }, here)]
@@ -7084,6 +7374,11 @@ export function createFifthRuntime(
     return { available: state.character.hitDice, total: count, sides };
   };
 
+  const projectShortRests = (state: FifthState): ShortRestsView => ({
+    left: SHORT_RESTS_PER_ADVENTURE - state.shortRests,
+    max: SHORT_RESTS_PER_ADVENTURE,
+  });
+
   const projectCharacterStatus = (state: FifthState): CharacterStatus => {
     const turn =
       state.encounter === undefined
@@ -7130,6 +7425,7 @@ export function createFifthRuntime(
       resources: [
         ...featureUses(self(state)),
         hitDiceText(projectHitDice(state)),
+        shortRestsText(projectShortRests(state)),
       ],
       ...(fighting(state)
         ? {
@@ -7655,6 +7951,43 @@ export function createFifthRuntime(
             },
           ]
         : []),
+      // Only where the engine would accept a short rest (#334).
+      ...restTool(state, actions),
+    ];
+  };
+
+  /** The rest tool (#334), with the numbers of hit dice the engine accepts. */
+  const restTool = (
+    state: FifthState,
+    actions: readonly ActionView[],
+  ): readonly GameToolDefinition[] => {
+    const offer = actions.find(
+      ({ action, available }) => action === "rest" && available,
+    );
+    if (offer?.rest === undefined) {
+      return [];
+    }
+    const { left, max } = projectShortRests(state);
+    return [
+      {
+        type: "function",
+        name: "rest",
+        description: `Only when the player asks to rest, take a breather, bind their wounds or recover: take a short rest (${left} of ${max} short rests left in this adventure). The engine spends up to hit_dice of the character's hit dice one at a time (${hitDiceText(projectHitDice(state)).toLowerCase()}), each healing its roll + the Constitution modifier, and stops once HP is full; then it restores the feature uses a short rest brings back.`,
+        strict: true,
+        parameters: {
+          type: "object",
+          properties: {
+            hit_dice: {
+              type: "integer",
+              enum: offer.rest.hitDice,
+              description:
+                "How many hit dice the player asks to spend; the most listed when they name no number.",
+            },
+          },
+          required: ["hit_dice"],
+          additionalProperties: false,
+        },
+      },
     ];
   };
 
@@ -7703,14 +8036,20 @@ export function createFifthRuntime(
           (key === "retry" &&
             typeof retry === "boolean" &&
             call.name !== "react")));
+    // The rest tool (#334) takes only its whole number of hit dice.
+    const isRest = call.name === "rest";
+    const hitDice = isRecord(parsed) ? parsed.hit_dice : undefined;
     if (
       !isRecord(parsed) ||
-      (parameter === undefined
-        ? Object.keys(parsed).length > 0
-        : typeof parsed[parameter] !== "string" ||
-          !Object.keys(parsed).every(
-            (key) => key === parameter || extraOk(key),
-          ))
+      (isRest
+        ? !Number.isInteger(hitDice) ||
+          !Object.keys(parsed).every((key) => key === "hit_dice")
+        : parameter === undefined
+          ? Object.keys(parsed).length > 0
+          : typeof parsed[parameter] !== "string" ||
+            !Object.keys(parsed).every(
+              (key) => key === parameter || extraOk(key),
+            ))
     ) {
       return invalid("invalid-arguments");
     }
@@ -7722,8 +8061,9 @@ export function createFifthRuntime(
             modelOutput: { ok: true, status: projectCharacterStatus(state) },
           };
     }
-    const action: FifthAction =
-      call.name === "tactical_mind"
+    const action: FifthAction = isRest
+      ? { type: "rest", hitDice: hitDice as number }
+      : call.name === "tactical_mind"
         ? { type: "tactical-mind" }
         : parameter === undefined
           ? {
@@ -7940,6 +8280,7 @@ export function createFifthRuntime(
       peacefulEncounterIds: [],
       parleys: [],
       dropped: [],
+      shortRests: 0,
     }),
     handleAction,
     renderResult: (result: RuntimeResult) =>
@@ -7969,6 +8310,7 @@ export function createFifthRuntime(
     projectFight: (state) =>
       projectFight(state, self(state), options(state), attackTargets(state)),
     projectHitDice,
+    projectShortRests,
     projectRoom,
     projectActions,
     actionOf: (view) => projectedActions.get(view),

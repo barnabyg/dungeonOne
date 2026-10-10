@@ -25,8 +25,12 @@ How many more times the character can use each class feature with limited uses (
 _Avoid_: Charges, Second Wind counter
 
 **Hit dice**:
-The character's pool of its class's hit die, one per level, tracked by the adventure session: all available at the start of an adventure. Rests will spend and regain them.
+The character's pool of its class's hit die, one per level, tracked by the adventure session: all available at the start of an adventure. A short rest spends them; a rest between adventures regains them.
 _Avoid_: Hit points, HD (in player-facing text)
+
+**Short rest**:
+A rest inside an adventure (#334), outside a fight in a room with no foes left, at most two per adventure: the character spends hit dice one at a time to heal and regains its features' short-rest uses.
+_Avoid_: Breather, Camp
 
 **Character library**:
 The player's collection of independently saved characters, including characters not currently taking part in an adventure.

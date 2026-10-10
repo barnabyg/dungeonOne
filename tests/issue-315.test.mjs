@@ -515,5 +515,5 @@ test("scripted DM: asking for Tactical Mind when it isn't offered is refused", a
 test("the save and trace formats and the prompt version bump", () => {
   assert.ok(FIFTH_SESSION_FORMAT >= 35);
   assert.ok(FIFTH_TRACE_FORMAT >= 29);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v21");
+  assert.match(FIFTH_PROMPT_VERSION, /^5e-dm-v(2[1-9]|[3-9]\d)$/u);
 });

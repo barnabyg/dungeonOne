@@ -879,8 +879,20 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   "sell-equipped": undefined,
   leave: undefined,
   "tactical-mind": "tactical_mind",
+  rest: "rest",
 };
 const READ_TOOLS = ["look", "get_character_status"];
+/** The actions whose tools take no argument. */
+const UNTARGETED: readonly ActionKind[] = [
+  "second-wind",
+  "action-surge",
+  "hide",
+  "steady-aim",
+  "end-turn",
+  "uncanny-dodge",
+  "take-hit",
+  "tactical-mind",
+];
 
 /**
  * Whether the AI DM is offered exactly the actions the action bar shows
@@ -894,8 +906,11 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
     .filter(({ name }) => !READ_TOOLS.includes(name))
     .flatMap(({ name, parameters }) => {
       const properties = Object.values(
-        (parameters as { properties: Record<string, { enum?: string[] }> })
-          .properties,
+        (
+          parameters as {
+            properties: Record<string, { enum?: (string | number)[] }>;
+          }
+        ).properties,
       );
       return properties.length === 0
         ? [name]
@@ -909,22 +924,18 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
       ({ available, action, cunningStrike }) =>
         available && TOOL_OF[action] && cunningStrike === undefined,
     )
-    .map(({ action, target }) =>
-      [
-        "second-wind",
-        "action-surge",
-        "hide",
-        "steady-aim",
-        "end-turn",
-        "uncanny-dodge",
-        "take-hit",
-        "tactical-mind",
-      ].includes(action)
-        ? TOOL_OF[action]!
-        : action === "buy" || action === "sell"
-          ? `trade:${action}:${target!.id}`
-          : `${TOOL_OF[action]!}:${target!.id}`,
-    )
+    .flatMap(({ action, target, rest }) => {
+      // A rest (#334) takes each number of hit dice the engine accepts.
+      if (action === "rest") {
+        return rest!.hitDice.map((count) => `rest:${count}`);
+      }
+      if (UNTARGETED.includes(action)) {
+        return [TOOL_OF[action]!];
+      }
+      return action === "buy" || action === "sell"
+        ? [`trade:${action}:${target!.id}`]
+        : [`${TOOL_OF[action]!}:${target!.id}`];
+    })
     .sort();
   return isDeepStrictEqual(offered, [...new Set(enabled)]);
 }

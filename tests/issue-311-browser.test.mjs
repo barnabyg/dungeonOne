@@ -219,7 +219,7 @@ test(
         .click();
       assert.match(
         await text(page.locator("#adventure-choices")),
-        /The Counting-House on Mallow Quay\nStart\nLevels 3–4\nHard\n/u,
+        /The Counting-House on Mallow Quay\nStart\nLevels 3–4\nMedium\n/u,
       );
       await startAdventure(page, "mallow-counting-house");
       const seen = [];

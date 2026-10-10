@@ -31,7 +31,11 @@
 //   #inventory, not the bar (#198): each carried item's Examine and Drink sit
 //   on its entry, and the character's own gear heads the list with its
 //   Unequip, Wield, Equip and Drop (#209), so a laden character's bar stays
-//   short enough for a phone. Where a merchant is (#210), Buy sits on each of
+//   short enough for a phone. A short rest (#334) sits in the room panel's
+//   #rest-group, never the bar: the short rests and hit dice left, a choice
+//   of how many hit dice to spend (#rest-dice) and its Rest button, disabled
+//   with its reason when the engine would refuse it. Rest and its choice show
+//   only while a rest would restore something. Where a merchant is (#210), Buy sits on each of
 //   its wares in #creatures and Sell on each "You carry" entry; selling
 //   equipped gear asks first in #sale-confirm, inside that entry. Gems and
 //   art objects (#239) show their value on their entry and sell for it in
@@ -154,6 +158,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <div id="room-items-group"><h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul></div>
 <p id="room-empty" class="hint" hidden>There is nothing else here.</p>
 <div id="inventory-group"><h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul><p id="purse"></p><p id="carrying"></p></div>
+<div id="rest-group" hidden><h4 id="rest-title">Short rest</h4><p id="rest-summary" class="hint"></p><div id="rest-controls" class="controls"></div></div>
 </div>
 </section>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
@@ -228,7 +233,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares) button{display:inline-grid}:is(#action-bar,#inventory,.wares) button>span,:is(#action-bar,#inventory,.wares) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+#rest-controls{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares,#rest-controls) button{display:inline-grid}:is(#action-bar,#inventory,.wares,#rest-controls) button>span,:is(#action-bar,#inventory,.wares,#rest-controls) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares,#rest-controls) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares,#rest-controls) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares,#rest-controls) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1;min-height:8rem}#log{flex:1;max-height:none}#session-dock{overflow-y:auto}}
@@ -626,6 +631,8 @@ let confirmingLeave = false;
 let confirmingSale = null;
 // The Cunning Strike effect chosen for the next attack (#308), or "".
 let cunningStrike = "";
+// How many hit dice the next short rest spends (#334), or null for the most.
+let restDice = null;
 
 const levelText = ({ min, max }) => min === max ? "Level " + min : "Levels " + min + "–" + max;
 
@@ -1329,6 +1336,8 @@ const ACTIONS = {
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
   // On the check just failed (#315): a use of Second Wind adds 1d10.
   "tactical-mind": { label: "Tactical Mind: add 1d10", busy: "Using Tactical Mind", busyLabel: "Adding…" },
+  // A short rest (#334), in the room panel with its choice of hit dice.
+  rest: { label: "Rest", busy: "Resting", busyLabel: "Resting…" },
   leave: { label: "Leave the adventure", busy: "Leaving the adventure", busyLabel: "Leaving…" },
 };
 // Paralysed (#234), the character's only action is ending its turn: waiting.
@@ -1370,9 +1379,10 @@ function renderActions() {
   if (!effects.some(({ id }) => id === cunningStrike)) cunningStrike = "";
   if (effects.length) groups.feature.push(strikeChoice(effects));
   const struck = (action, target) => strikes.some((option) => option.action === action && option.target.id === target.id && option.cunningStrike.id === cunningStrike);
+  renderRest(session.actions.find(({ action }) => action === "rest"), fighting);
   session.actions.forEach((option, index) => {
     const { action, target } = option;
-    if (option.cunningStrike) return;
+    if (option.cunningStrike || action === "rest") return;
     const exploring = EXPLORING.includes(action) || (action === "use" && !fighting);
     // Gear changes go on the gear's entry in "You carry" (#209), or in a
     // fight with the turn's other options, as Drink does.
@@ -1472,6 +1482,66 @@ function renderActions() {
   element("leave-question").textContent = "Leave " + session.adventure.title + "? This ends the adventure here. Any treasure or coin you carry out is yours to keep; you cannot come back to this adventure.";
   element("confirm-leave").disabled = acting;
   element("cancel-leave").disabled = acting;
+}
+
+// A short rest (#334) in the room panel while exploring: the short rests and
+// hit dice left and, while a rest would restore something, how many hit dice
+// to spend (the most the engine accepts unless the player chose fewer) and
+// Rest, disabled with the engine's reason when it would refuse.
+function renderRest(option, fighting) {
+  element("rest-group").hidden = fighting || session.status !== "playing";
+  const { left, max } = session.shortRests;
+  const { available, total, sides } = session.hitDice;
+  element("rest-summary").textContent = "Short rests: " + left + " of " + max + " left in this adventure. Hit dice: " + available + " of " + total + " d" + sides + " left; each heals its roll + your Constitution modifier, and you stop spending them at full HP.";
+  if (!option) {
+    element("rest-controls").replaceChildren();
+    return;
+  }
+  const counts = option.available ? option.rest.hitDice : [];
+  if (!counts.includes(restDice)) restDice = null;
+  const chosen = restDice === null ? counts[counts.length - 1] : restDice;
+  const controls = [];
+  if (counts.length) {
+    const label = make("label", "Hit dice to spend ");
+    const select = make("select");
+    select.id = "rest-dice";
+    select.disabled = acting;
+    for (const count of counts) {
+      const choice = make("option", String(count));
+      choice.value = String(count);
+      choice.selected = count === chosen;
+      select.append(choice);
+    }
+    select.addEventListener("change", () => {
+      restDice = Number(select.value);
+    });
+    label.append(select);
+    controls.push(label);
+  }
+  const wrap = make("span", undefined, "action");
+  const button = make("button");
+  button.append(make("span", ACTIONS.rest.label));
+  button.dataset.busyLabel = ACTIONS.rest.busyLabel;
+  button.type = "button";
+  button.className = "secondary act";
+  button.dataset.action = "rest";
+  button.disabled = acting || !option.available;
+  button.addEventListener("click", () => takeRest(Number(element("rest-dice").value)));
+  wrap.append(button);
+  if (!option.available) {
+    const reason = make("span", option.reason, "reason");
+    reason.id = "rest-reason";
+    button.setAttribute("aria-describedby", reason.id);
+    wrap.append(reason);
+  }
+  controls.push(wrap);
+  element("rest-controls").replaceChildren(...controls);
+}
+
+async function takeRest(hitDice) {
+  restDice = null;
+  await act("/api/5e/session/rest", { hitDice }, "button.act[data-action=rest]", ACTIONS.rest.busy + "…");
+  keepFocus("rest", "");
 }
 
 // The question an equipped item's Sell asks first, inside its entry (#210).

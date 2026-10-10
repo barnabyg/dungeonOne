@@ -154,7 +154,7 @@ its dice even if a character is deleted. Creation needs no OpenAI key.
   goblin to question, treasure and coin hidden in features, and a
   second exit beside the vault where you choose to climb out or push on.
 - _The Counting-House on Mallow Quay_ (`adventures/5e/mallow-counting-house.json`,
-  levels 3–4, Hard): six rooms in a burned guild counting-house held by
+  levels 3–4, Medium; Hard until #334): six rooms in a burned guild counting-house held by
   goblins. Snikk the Toll-Taker (a Goblin Boss) reacts at the arch: pay his
   toll, talk him round, trade, or fight. A goblin lurks in the counting hall,
   a scything blade guards the gallery stair, and a bugbear lurks in the
@@ -236,7 +236,11 @@ words, such as "HP 6 of 11" and "Bonus action: used".
 
 The room panel shows the current room, its exits, its features (with any
 discovery you have made), the items you can see and what you carry, leaving out
-any list that is empty. In a fight these details fold away behind a **Room
+any list that is empty. Outside a fight, under what you carry, **Short rest**
+shows the short rests (two per adventure) and hit dice you have left: choose how
+many hit dice to spend and press **Rest** to heal and regain Second Wind and
+Action Surge uses. Rest shows only while a rest would restore something, and is
+disabled, with why, in a room with foes or after two short rests. In a fight these details fold away behind a **Room
 details** button, and the encounter panel lists each combatant in initiative
 order with its roll, hit points, AC, whether it is defeated and whose turn it
 is.
@@ -408,7 +412,7 @@ reason, the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 15.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 36.
+  `characters-adventures` directory beside the library, in format version 37.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
