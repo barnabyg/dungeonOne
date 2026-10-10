@@ -45,7 +45,7 @@ import {
   startFifthAdventure,
 } from "./session-5e.js";
 import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
-import { passesGate } from "./balance-5e.js";
+import { loadGateVerdicts, recordedOrGated } from "./gate-verdicts-5e.js";
 import {
   ammunitionCount,
   ammunitionHeld,
@@ -105,7 +105,8 @@ export type FifthBrowserOptions = Readonly<{
   dmModel?: DmModel;
   /**
    * Which modules are offered; the balance gate at each module's declared
-   * difficulty unless replaced, for tests.
+   * difficulty (its recorded verdict where one matches the module) unless
+   * replaced, for tests.
    */
   qualifies?: (adventure: FifthAdventure) => boolean;
   /** The modules to offer in place of the built-in ones, for tests. */
@@ -438,10 +439,11 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
       ? undefined
       : createOpenAiDmModel({ apiKey, model: OPENAI_DM_DEFAULT_MODEL }));
   // Only modules that qualify at their declared difficulty are offered or
-  // can be started; a session already under way plays on.
+  // can be started; a session already under way plays on. The shipped
+  // modules' verdicts are recorded, so only a changed one is gated here.
   const offered = orderFifthAdventures(
     adventures,
-    options.qualifies ?? passesGate,
+    options.qualifies ?? recordedOrGated(await loadGateVerdicts()),
   );
   const view = (data: FifthLibraryData) => libraryView(data, offered);
   // The file lock fails rather than waits, so this server's own changes queue.

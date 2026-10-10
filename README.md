@@ -460,6 +460,11 @@ These are for development, not play.
   chances and each module's balance-gate verdict for both classes, which plays
   every check policy. See
   [the rules document](docs/character-rules.md#balance-harness).
+- **Recorded gate verdicts.** `npm.cmd run gate:verdicts` gates every built-in
+  module for both classes and records the verdicts in
+  `adventures/5e/gate-verdicts.json`, which the browser reads at startup in
+  place of gating them. Run it after changing a shipped module, or when
+  `npm.cmd test` reports the file out of date.
 - **Career simulation.** `npm.cmd run career -- [--seeds <count>]
 [--required-level <level>] [--class <class>] [--json] [module.json ...]` plays
   a new level-1 Fighter (or Rogue, with `--class rogue`) through the built-in modules (or the files named) in the browser's

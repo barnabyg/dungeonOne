@@ -30,6 +30,10 @@ import {
   simulateCareer,
 } from "../dist/career-5e.js";
 import { CLASSES } from "../dist/character-5e.js";
+import {
+  GATE_VERDICTS_PATH,
+  recordGateVerdicts,
+} from "../dist/gate-verdicts-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { bestiary } from "./fixtures/bestiary.mjs";
 import { referenceCpuSeconds } from "./fixtures/cpu-reference.mjs";
@@ -104,6 +108,14 @@ test("every shipped module qualifies at its declared difficulty for every class 
   assert.ok(
     seconds < GATE_BUDGET_SECONDS,
     `the gate took ${seconds.toFixed(1)} s of reference CPU`,
+  );
+});
+
+test("the recorded gate verdicts the browser offers modules by are the gate's (#310)", async () => {
+  assert.deepEqual(
+    JSON.parse(await readFile(GATE_VERDICTS_PATH, "utf8")),
+    recordGateVerdicts(shipped, (adventure) => gateOf(adventure).qualified),
+    "adventures/5e/gate-verdicts.json is out of date: run npm run gate:verdicts",
   );
 });
 
