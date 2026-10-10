@@ -19,7 +19,7 @@ import {
   prepareSpells,
   settleCharacter,
   spellsOwed,
-  withOwedSpells,
+  withOwedChoices,
 } from "../dist/character-5e.js";
 import {
   FIFTH_LIBRARY_FORMAT,
@@ -67,7 +67,7 @@ const earn = (sheet, xp, id = "cellar") =>
 
 const level2 = () => earn(mira(), 300);
 const level3 = () =>
-  withOwedSpells(earn(withOwedSpells(level2()), 600, "barrow"));
+  withOwedChoices(earn(withOwedChoices(level2()), 600, "barrow"));
 const names = (profile) => profile.features.map(({ name }) => name);
 
 test("a level-2 Cleric's numbers: Channel Divinity and three 1st-level slots", () => {
@@ -118,7 +118,7 @@ test("a new level's spell is chosen on the sheet before the next adventure", asy
   ]);
   assert.deepEqual(spellsOwed(ready), { cantrips: 0, prepared: 0 });
   // The harness's choice: the first on the list not yet prepared.
-  assert.deepEqual(withOwedSpells(sheet).spells.prepared, [
+  assert.deepEqual(withOwedChoices(sheet).spells.prepared, [
     ...sheet.spells.prepared,
     "inflict-wounds",
   ]);
@@ -196,7 +196,7 @@ test("a level-3 Cleric's numbers: the Life Domain and 2nd-level slots", () => {
 });
 
 test("reaching level 3 frees the choices that are now always prepared", () => {
-  const before = withOwedSpells(level2());
+  const before = withOwedChoices(level2());
   assert.deepEqual(before.spells.prepared, [
     "bless",
     "cure-wounds",

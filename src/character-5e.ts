@@ -36,6 +36,7 @@ import {
   type Level,
   type SkillId,
   type SpellChoices,
+  type SpellcastingDefinition,
   SPELL_SLOT_RECOVERY,
 } from "./class-5e.js";
 import {
@@ -477,11 +478,121 @@ function hasFightingStyle(definition: ClassDefinition): boolean {
 
 /** How many skills a character of `level` has Expertise in (#306). */
 function expertiseCount(definition: ClassDefinition, level: Level): number {
-  return effects(definition, level, "expertise").reduce(
-    (sum, { effect }) => sum + effect.count,
-    0,
+  return expertiseSlots(definition, level).length;
+}
+
+/**
+ * Each Expertise a character of `level` has (#306, #343), in the order its
+ * features give them: the feature's name, and the skills it may be in
+ * (any proficient one when it names none).
+ */
+type ExpertiseSlot = Readonly<{
+  feature: string;
+  skills: readonly SkillId[] | undefined;
+}>;
+
+function expertiseSlots(
+  definition: ClassDefinition,
+  level: Level,
+): readonly ExpertiseSlot[] {
+  return effects(definition, level, "expertise").flatMap(
+    ({ feature, effect }) =>
+      Array.from({ length: effect.count }, () => ({
+        feature: typeof feature.name === "string" ? feature.name : "Expertise",
+        skills: effect.skills,
+      })),
   );
 }
+
+/** "Arcana, History and Nature". */
+const skillNames = (skills: readonly SkillId[]) => {
+  const named = skills.map((id) => SKILLS[id].name);
+  return named.length <= 1
+    ? named.join("")
+    : `${named.slice(0, -1).join(", ")} and ${named.at(-1)!}`;
+};
+
+/**
+ * The skills `sheet`'s next Expertise may be in (#343): those it is
+ * proficient in, of the ones the feature names, without Expertise yet.
+ * Empty when it owes none.
+ */
+export function expertiseOptions(
+  sheet: Pick<CharacterSheet, "class" | "level" | "skills" | "expertise">,
+): readonly SkillId[] {
+  const chosen = sheet.expertise ?? [];
+  const slot = expertiseSlots(classOf(sheet), sheet.level)[chosen.length];
+  return slot === undefined
+    ? []
+    : (slot.skills ?? sheet.skills).filter(
+        (id) => sheet.skills.includes(id) && !chosen.includes(id),
+      );
+}
+
+/** How many Expertise choices a new level left `sheet` to make (#343). */
+export function expertiseOwed(
+  sheet: Pick<CharacterSheet, "class" | "level" | "expertise">,
+): number {
+  return Math.max(
+    0,
+    expertiseCount(classOf(sheet), sheet.level) -
+      (sheet.expertise?.length ?? 0),
+  );
+}
+
+/**
+ * A sheet's Expertise (#306, #343): its level-1 features' at least, and up
+ * to every one its level gives; each in a skill it is proficient in, once,
+ * and among the skills its feature names.
+ */
+function validateSheetExpertise(
+  definition: ClassDefinition,
+  level: Level,
+  skills: readonly SkillId[],
+  value: unknown,
+): void {
+  const slots = expertiseSlots(definition, level);
+  const atCreation = expertiseCount(definition, 1);
+  if (slots.length === 0) {
+    if (value !== undefined) {
+      throw new Error(`A ${definition.name} has no Expertise.`);
+    }
+    return;
+  }
+  if (value === undefined && atCreation === 0) {
+    return;
+  }
+  if (
+    !Array.isArray(value) ||
+    value.length < atCreation ||
+    value.length > slots.length ||
+    new Set(value).size !== value.length
+  ) {
+    throw new Error(expertiseChoice(atCreation));
+  }
+  value.forEach((skill: unknown, index) => {
+    const allowed = slots[index]!.skills;
+    if (
+      typeof skill !== "string" ||
+      !(skills as readonly string[]).includes(skill) ||
+      (allowed !== undefined && !(allowed as readonly string[]).includes(skill))
+    ) {
+      throw new Error(expertiseSlotChoice(slots[index]!, skills));
+    }
+  });
+}
+
+/** Why a skill can't have the Expertise of `slot` (#343). */
+const expertiseSlotChoice = (
+  slot: ExpertiseSlot,
+  proficient: readonly SkillId[],
+) =>
+  slot.skills === undefined
+    ? `${slot.feature} is in one of your skill proficiencies.`
+    : `${slot.feature}'s Expertise is one of the skills you're proficient in among ${skillNames(slot.skills)}: ${proficient
+        .filter((id) => slot.skills!.includes(id))
+        .map((id) => SKILLS[id].name)
+        .join(", ")}.`;
 
 /** The Divine Order (#339) `divineOrder` names in `definition`, if any. */
 function divineOrderOf(
@@ -565,16 +676,64 @@ export function learnableCantrips(
 }
 
 /**
- * `sheet` with the cantrips (#342) and spells (#341) it owes chosen in its
- * class list's order, the first it may choose and hasn't: the balance
- * harness's policy, and a player's default. Unchanged when it owes none.
+ * How many spells a new level left `sheet` to write into its spellbook
+ * (#343): none for a class without one.
  */
-export function withOwedSpells(sheet: CharacterSheet): CharacterSheet {
-  const { cantrips, prepared: owed } = spellsOwed(sheet);
+export function spellbookOwed(
+  sheet: Pick<CharacterSheet, "class" | "level" | "spellbook">,
+): number {
+  const size = spellbookSize(classOf(sheet).spellcasting, sheet.level);
+  return size === undefined || sheet.spellbook === undefined
+    ? 0
+    : Math.max(0, size - sheet.spellbook.length);
+}
+
+/**
+ * The spells `sheet` could write into its spellbook (#343): those on its
+ * class's list it lacks, of a level it has slots for, the highest level
+ * first and then in the list's order.
+ */
+export function spellbookOptions(
+  sheet: Pick<CharacterSheet, "class" | "level" | "spellbook">,
+): readonly SpellId[] {
+  const casting = classOf(sheet).spellcasting;
+  const book = sheet.spellbook;
+  if (casting === undefined || book === undefined) {
+    return [];
+  }
+  const highest = casting.slots[sheet.level].length;
+  return casting.list
+    .filter(
+      (id) =>
+        SPELLS[id].level >= 1 &&
+        SPELLS[id].level <= highest &&
+        !book.includes(id),
+    )
+    .sort((a, b) => SPELLS[b].level - SPELLS[a].level);
+}
+
+/**
+ * `sheet` with the choices a new level left it chosen, each the first it
+ * may make: Expertise (#343), spellbook spells (#343), cantrips (#342) and
+ * prepared spells (#341), the last two in its class list's order. The
+ * balance harness's policy, and a player's default. Unchanged when it owes
+ * none.
+ */
+export function withOwedChoices(sheet: CharacterSheet): CharacterSheet {
+  const expert =
+    expertiseOwed(sheet) === 0
+      ? sheet
+      : chooseExpertise(sheet, expertiseOptions(sheet).slice(0, 1));
+  const writing = spellbookOwed(expert);
+  const written =
+    writing === 0
+      ? expert
+      : addToSpellbook(expert, spellbookOptions(expert).slice(0, writing));
+  const { cantrips, prepared: owed } = spellsOwed(written);
   const learned =
     cantrips === 0
-      ? sheet
-      : learnCantrips(sheet, learnableCantrips(sheet).slice(0, cantrips));
+      ? written
+      : learnCantrips(written, learnableCantrips(written).slice(0, cantrips));
   if (owed === 0 || learned.spells === undefined) {
     return learned;
   }
@@ -586,24 +745,36 @@ export function withOwedSpells(sheet: CharacterSheet): CharacterSheet {
 }
 
 /**
- * "1 more cantrip to learn and 2 more spells to prepare": what `sheet`
- * owes (#341, #342), or undefined.
+ * "1 more cantrip to learn, 2 more spells to write into the spellbook and
+ * 2 more spells to prepare": what `sheet` owes (#341, #342, #343), or
+ * undefined.
  */
 export function spellsOwedWords(
-  sheet: Pick<CharacterSheet, "class" | "level" | "spells" | "divineOrder">,
+  sheet: Pick<
+    CharacterSheet,
+    "class" | "level" | "spells" | "divineOrder" | "spellbook"
+  >,
 ): string | undefined {
   const { cantrips, prepared } = spellsOwed(sheet);
+  const writing = spellbookOwed(sheet);
   const owed = [
     ...(cantrips === 0
       ? []
       : [
           `${cantrips} more ${cantrips === 1 ? "cantrip" : "cantrips"} to learn`,
         ]),
+    ...(writing === 0
+      ? []
+      : [
+          `${writing} more ${writing === 1 ? "spell" : "spells"} to write into the spellbook`,
+        ]),
     ...(prepared === 0
       ? []
       : [`${prepared} more ${prepared === 1 ? "spell" : "spells"} to prepare`]),
   ];
-  return owed.length === 0 ? undefined : owed.join(" and ");
+  return owed.length <= 1
+    ? owed[0]
+    : `${owed.slice(0, -1).join(", ")} and ${owed.at(-1)!}`;
 }
 
 /**
@@ -883,29 +1054,48 @@ function validateDivineOrder(
 }
 
 /**
- * A spellbook for a class with one (#340), none for any other: as many
- * different levelled spells from the class's list as its spellbook holds
- * (up to that many when `partial`), each of a level it has slots for at
- * `level`.
+ * How many levelled spells the spellbook of a caster of `casting` holds at
+ * `level` (#340, #343): those written at creation, and more at each level
+ * after 1st. Undefined for a class without one.
+ */
+function spellbookSize(
+  casting: SpellcastingDefinition | undefined,
+  level: Level,
+): number | undefined {
+  return casting?.spellbook === undefined
+    ? undefined
+    : casting.spellbook + (casting.spellbookPerLevel ?? 0) * (level - 1);
+}
+
+/**
+ * A spellbook for a class with one (#340), none for any other: different
+ * levelled spells from the class's list, each of a level it has slots for
+ * at `level`. As many as its spellbook holds at `level` (`exact`), or up to
+ * that many (`partial`, a creation in progress), or, on a sheet, from its
+ * creation's count up to that many: a new level may leave spells still to
+ * write (#343).
  */
 function validateSpellbook(
   definition: ClassDefinition,
   level: Level,
   value: unknown,
-  partial = false,
+  range: "exact" | "partial" | "sheet" = "exact",
 ): readonly SpellId[] | undefined {
   const casting = definition.spellcasting;
-  const count = casting?.spellbook;
+  const count = spellbookSize(casting, level);
   if (casting === undefined || count === undefined) {
     if (value !== undefined) {
       throw new Error(`A ${definition.name} has no spellbook.`);
     }
     return undefined;
   }
+  const least =
+    range === "exact" ? count : range === "sheet" ? casting.spellbook! : 0;
   const highest = casting.slots[level].length;
   if (
     !Array.isArray(value) ||
-    (partial ? value.length > count : value.length !== count) ||
+    value.length < least ||
+    value.length > count ||
     new Set(value).size !== value.length ||
     !value.every(
       (id) =>
@@ -916,7 +1106,7 @@ function validateSpellbook(
     )
   ) {
     throw new Error(
-      `A level ${level} ${definition.name}'s spellbook holds ${count} different levelled spells from its list that it has slots for.`,
+      `A level ${level} ${definition.name}'s spellbook holds ${least === count ? count : `${least} to ${count}`} different levelled spells from its list that it has slots for.`,
     );
   }
   return [...(value as SpellId[])];
@@ -1411,7 +1601,12 @@ export function projectCreation(
   const training = trainingOf(definition, divineOrder);
   // Spells ticked so far (#339); the Divine Order may add a cantrip. A
   // Wizard prepares from the spells ticked for its spellbook (#340).
-  const spellbook = validateSpellbook(definition, 1, choices.spellbook, true);
+  const spellbook = validateSpellbook(
+    definition,
+    1,
+    choices.spellbook,
+    "partial",
+  );
   const spells = validateSpellChoices(definition, 1, choices.spells, {
     divineOrder,
     partial: true,
@@ -1645,16 +1840,17 @@ export function validateCharacter(value: unknown): CharacterSheet {
   if (sheet.level !== levelForXp(sheet.xp, classMaxLevel(definition))) {
     throw new Error("Character level differs from experience points.");
   }
-  validateExpertise(
-    definition,
-    expertiseCount(definition, sheet.level),
-    skills,
-    sheet.expertise,
-  );
-  // A new level may leave spells still to choose (#341, `spellsOwed`).
+  // A new level may leave Expertise (#343) and spells (#341, `spellsOwed`)
+  // still to choose, and spells to write into a spellbook (#343).
+  validateSheetExpertise(definition, sheet.level, skills, sheet.expertise);
   validateSpellChoices(definition, sheet.level, sheet.spells, {
     divineOrder: validateDivineOrder(definition, sheet.divineOrder),
-    spellbook: validateSpellbook(definition, sheet.level, sheet.spellbook),
+    spellbook: validateSpellbook(
+      definition,
+      sheet.level,
+      sheet.spellbook,
+      "sheet",
+    ),
     partial: true,
   });
   // Each level choice (#286) is an Ability Score Improvement and its level's
@@ -2117,6 +2313,8 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
             ...(has("disciple-of-life")
               ? { discipleOfLife: true as const }
               : {}),
+            // The Evoker's (#343).
+            ...(has("potent-cantrip") ? { potentCantrip: true as const } : {}),
           },
         }),
     // Channel Divinity (#341), against the spell save DC.
@@ -2273,6 +2471,8 @@ export type SpellcastingProfile = Readonly<{
   alwaysPrepared?: readonly SpellId[];
   /** Disciple of Life (#341): slot healing heals 2 + the slot level more. */
   discipleOfLife?: true;
+  /** Potent Cantrip (#343): a cantrip's miss or saved damage is halved. */
+  potentCantrip?: true;
 }>;
 
 /**
@@ -2411,7 +2611,18 @@ export type LevelUpChanges = Readonly<{
     owed: number;
     /** Cantrips still to learn before the next adventure (#342). */
     cantripsOwed: number;
+    /**
+     * For a class with a spellbook (#343): the spells still to write into
+     * it before the next adventure, and those it may write.
+     */
+    spellbookOwed?: number;
+    spellbookOptions?: readonly SpellId[];
   }>;
+  /**
+   * Expertise a new feature asks for (#343, Scholar): how many to choose on
+   * the sheet before the next adventure, and the skills it may be in.
+   */
+  expertise?: Readonly<{ owed: number; options: readonly SkillId[] }>;
   /** The class features gained, in the sheet's order. */
   features: readonly Feature[];
   /**
@@ -2467,6 +2678,15 @@ export function levelUpChanges(
     ...(definition.spellcasting === undefined || after.spells === undefined
       ? {}
       : { spells: spellChanges(definition, before, after) }),
+    // Scholar's Expertise (#343), chosen on the sheet.
+    ...(expertiseOwed(after) === 0
+      ? {}
+      : {
+          expertise: {
+            owed: expertiseOwed(after),
+            options: expertiseOptions(after),
+          },
+        }),
     features: now.features.filter(({ id }) => !known.has(id)),
     choices: levelChoicesOwed(after),
   };
@@ -2504,6 +2724,13 @@ function spellChanges(
     ),
     owed: owed.prepared,
     cantripsOwed: owed.cantrips,
+    // A Wizard's spellbook (#343).
+    ...(after.spellbook === undefined
+      ? {}
+      : {
+          spellbookOwed: spellbookOwed(after),
+          spellbookOptions: spellbookOptions(after),
+        }),
   };
 }
 
@@ -2727,6 +2954,86 @@ export function learnCantrips(
       cantrips: [...sheet.spells.cantrips, ...(learned as SpellId[])],
       prepared: sheet.spells.prepared,
     },
+  });
+}
+
+/**
+ * `sheet` having written `written` into its spellbook (#343), the spells a
+ * new level adds: exactly as many as it owes, each on its class's list,
+ * not yet in the book, and of a level it has slots for.
+ */
+export function addToSpellbook(
+  sheet: CharacterSheet,
+  written: unknown,
+): CharacterSheet {
+  if (sheet.spellbook === undefined) {
+    throw new Error(`${sheet.name} has no spellbook.`);
+  }
+  if (!Array.isArray(written)) {
+    throw new Error("Invalid spellbook spells.");
+  }
+  const owed = spellbookOwed(sheet);
+  if (owed === 0) {
+    throw new Error(`${sheet.name} has no spells to write into the spellbook.`);
+  }
+  if (written.length !== owed) {
+    throw new Error(
+      `Choose ${owed} ${owed === 1 ? "spell" : "spells"} for your spellbook; ${written.length} chosen.`,
+    );
+  }
+  const open = spellbookOptions(sheet);
+  if (
+    new Set(written).size !== written.length ||
+    !written.every((id) => (open as readonly unknown[]).includes(id))
+  ) {
+    throw new Error(
+      `${sheet.name} writes into the spellbook only ${classOf(sheet).name} spells it lacks of a level it has slots for: ${open.map((id) => SPELLS[id].name).join(", ")}.`,
+    );
+  }
+  return validateCharacter({
+    ...sheet,
+    spellbook: [...sheet.spellbook, ...(written as SpellId[])],
+  });
+}
+
+/**
+ * `sheet` with `chosen` as the Expertise a new level gives (#343, Scholar):
+ * exactly as many as it owes, each a skill its feature allows that it is
+ * proficient in and has no Expertise in yet.
+ */
+export function chooseExpertise(
+  sheet: CharacterSheet,
+  chosen: unknown,
+): CharacterSheet {
+  const owed = expertiseOwed(sheet);
+  if (owed === 0) {
+    throw new Error(`${sheet.name} has no Expertise to choose.`);
+  }
+  if (!Array.isArray(chosen)) {
+    throw new Error("Invalid Expertise.");
+  }
+  if (chosen.length !== owed) {
+    throw new Error(
+      `Choose ${owed} ${owed === 1 ? "skill" : "skills"} for Expertise; ${chosen.length} chosen.`,
+    );
+  }
+  const had = sheet.expertise ?? [];
+  const slots = expertiseSlots(classOf(sheet), sheet.level);
+  chosen.forEach((skill: unknown, index) => {
+    const slot = slots[had.length + index]!;
+    if (
+      typeof skill !== "string" ||
+      !(sheet.skills as readonly string[]).includes(skill) ||
+      (had as readonly string[]).includes(skill) ||
+      (slot.skills !== undefined &&
+        !(slot.skills as readonly string[]).includes(skill))
+    ) {
+      throw new Error(expertiseSlotChoice(slot, sheet.skills));
+    }
+  });
+  return validateCharacter({
+    ...sheet,
+    expertise: [...had, ...(chosen as SkillId[])],
   });
 }
 

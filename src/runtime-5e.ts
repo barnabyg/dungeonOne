@@ -1788,6 +1788,8 @@ function combatSpellcasting(
     ...(casting.discipleOfLife === true
       ? { discipleOfLife: true as const }
       : {}),
+    // The Evoker's (#343).
+    ...(casting.potentCantrip === true ? { potentCantrip: true as const } : {}),
   };
 }
 

@@ -149,7 +149,8 @@ test("Mage Armor makes the Wizard's AC 13 + Dexterity", () => {
 test("creation offers the Fighter, the Rogue, the Cleric and the Wizard", () => {
   assert.deepEqual(OFFERED_CLASS_IDS, ["fighter", "rogue", "cleric", "wizard"]);
   assert.equal(SKILLS.nature.ability, "intelligence");
-  assert.equal(CLASSES.wizard.maxLevel, 1);
+  // Levels 2–3 came with #343.
+  assert.equal(CLASSES.wizard.maxLevel, 3);
   assert.deepEqual(CLASSES.wizard.armourTraining, []);
 });
 
@@ -327,12 +328,12 @@ test("a format-17 library is refused, naming the file", async () => {
         characters: [],
       }),
     );
-    assert.equal(FIFTH_LIBRARY_FORMAT, 20);
+    assert.equal(FIFTH_LIBRARY_FORMAT, 21);
     await assert.rejects(
       new FifthCharacterLibrary(path, 1).read(),
       (error) =>
         error.message.includes(path) &&
-        /format version 17, not 20/u.test(error.message),
+        /format version 17, not 21/u.test(error.message),
     );
   } finally {
     await rm(directory, { recursive: true, force: true });

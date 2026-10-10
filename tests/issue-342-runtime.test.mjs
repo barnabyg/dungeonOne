@@ -13,7 +13,7 @@ import {
   defaultPlacement,
   prepareSpells,
   settleCharacter,
-  withOwedSpells,
+  withOwedChoices,
 } from "../dist/character-5e.js";
 import { CLERIC } from "../dist/cleric-5e.js";
 import { currentCombatant } from "../dist/encounter-5e.js";
@@ -62,12 +62,12 @@ const MIRA = (() => {
     { ...CLERIC.defaults, placement: defaultPlacement(DICE, CLERIC) },
     "cleric",
   );
-  sheet = withOwedSpells(earn(sheet, 300, "cellar"));
-  sheet = withOwedSpells(earn(sheet, 600, "barrow"));
+  sheet = withOwedChoices(earn(sheet, 300, "cellar"));
+  sheet = withOwedChoices(earn(sheet, 600, "barrow"));
   sheet = applyLevelChoice(earn(sheet, 1800, "crypt"), {
     increase: { wisdom: 1, constitution: 1 },
   });
-  sheet = withOwedSpells(earn(withOwedSpells(sheet), 3800, "tomb"));
+  sheet = withOwedChoices(earn(withOwedChoices(sheet), 3800, "tomb"));
   return prepareSpells(sheet, [
     "guiding-bolt",
     "healing-word",

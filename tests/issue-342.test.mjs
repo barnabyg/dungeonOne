@@ -24,7 +24,7 @@ import {
   settleCharacter,
   spellsOwed,
   spellsOwedWords,
-  withOwedSpells,
+  withOwedChoices,
 } from "../dist/character-5e.js";
 import {
   FIFTH_LIBRARY_FORMAT,
@@ -76,16 +76,16 @@ const earn = (sheet, xp, id = "cellar") =>
 
 /** Level 3 with its spells chosen, 900 XP. */
 const level3 = (choices) =>
-  withOwedSpells(earn(withOwedSpells(earn(mira(choices), 300)), 600, "barrow"));
+  withOwedChoices(earn(withOwedChoices(earn(mira(choices), 300)), 600, "barrow"));
 /** Level 4 at 2,700 XP, its choices still owed. */
 const level4 = (choices) => earn(level3(choices), 1800, "crypt");
 /** Level 4 with +1 Wisdom and +1 Constitution, its spells chosen. */
 const level4Ready = () =>
-  withOwedSpells(
+  withOwedChoices(
     applyLevelChoice(level4(), { increase: { wisdom: 1, constitution: 1 } }),
   );
 /** Level 5 at 6,500 XP, its spells chosen. */
-const level5 = () => withOwedSpells(earn(level4Ready(), 3800, "tomb"));
+const level5 = () => withOwedChoices(earn(level4Ready(), 3800, "tomb"));
 const names = (profile) => profile.features.map(({ name }) => name);
 
 test("a level-4 Cleric owes its Ability Score Improvement, a cantrip and a spell", () => {
@@ -131,7 +131,7 @@ test("golden numbers for a level-4 Cleric after +1 Wisdom and +1 Constitution", 
   assert.equal(chosen.abilities.wisdom, 18);
   assert.equal(chosen.abilities.constitution, 16);
   assert.equal(pendingLevelChoice(chosen), undefined);
-  const sheet = withOwedSpells(chosen);
+  const sheet = withOwedChoices(chosen);
   // The harness's choices: the first cantrip and spell on the list.
   assert.deepEqual(sheet.spells.cantrips, [
     "sacred-flame",

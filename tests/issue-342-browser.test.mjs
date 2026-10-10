@@ -14,7 +14,7 @@ import {
   defaultPlacement,
   prepareSpells,
   settleCharacter,
-  withOwedSpells,
+  withOwedChoices,
 } from "../dist/character-5e.js";
 import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
 import { CLERIC } from "../dist/cleric-5e.js";
@@ -84,17 +84,17 @@ const mira = buildCharacter(
   "cleric",
 );
 /** Mira at level 3, one XP short of level 4, her spells chosen. */
-const nearFour = withOwedSpells(
-  earn(withOwedSpells(earn(mira, 300, "cellar")), 2399, "barrow"),
+const nearFour = withOwedChoices(
+  earn(withOwedChoices(earn(mira, 300, "cellar")), 2399, "barrow"),
 );
 /** Mira at level 5 with Bestow Curse prepared. */
 const atFive = (() => {
-  const four = withOwedSpells(
+  const four = withOwedChoices(
     applyLevelChoice(earn(nearFour, 1, "near"), {
       increase: { wisdom: 1, constitution: 1 },
     }),
   );
-  const five = withOwedSpells(earn(four, 3800, "tomb"));
+  const five = withOwedChoices(earn(four, 3800, "tomb"));
   return prepareSpells(five, [
     ...five.spells.prepared.filter((id) => id !== "spirit-guardians"),
     "bestow-curse",

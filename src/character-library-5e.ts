@@ -34,6 +34,9 @@ import {
   buildCharacter,
   prepareSpells,
   learnCantrips,
+  addToSpellbook,
+  chooseExpertise,
+  expertiseOwed,
   characterProfile,
   DEFAULT_CLASS,
   levelChoiceWords,
@@ -51,7 +54,7 @@ import {
 import { ABILITIES, type ClassId } from "./class-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 20;
+export const FIFTH_LIBRARY_FORMAT = 21;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 
@@ -390,6 +393,12 @@ export class FifthCharacterLibrary {
         `${record.sheet.name} has ${owed} on the character sheet before starting another adventure.`,
       );
     }
+    // And Scholar's Expertise (#343).
+    if (expertiseOwed(record.sheet) > 0) {
+      throw new Error(
+        `${record.sheet.name} must choose Scholar's Expertise on the character sheet before starting another adventure.`,
+      );
+    }
     return index;
   }
 
@@ -488,6 +497,77 @@ export class FifthCharacterLibrary {
       }
       data.characters[index] = {
         sheet: learnCantrips(record.sheet, learned),
+        revision: record.revision + 1,
+      };
+    });
+  }
+
+  /**
+   * Writes `written` into `characterId`'s spellbook (#343): the spells a new
+   * level adds, only between adventures. Refused for a character on an
+   * adventure, defeated, owing none, or with a choice its class doesn't
+   * allow; nothing is written then.
+   */
+  async addToSpellbook(
+    characterId: string,
+    written: unknown,
+    revision: string,
+  ): Promise<FifthLibraryData> {
+    return this.changeBetweenAdventures(
+      characterId,
+      revision,
+      "spells are written into the spellbook only between adventures",
+      (sheet) => addToSpellbook(sheet, written),
+    );
+  }
+
+  /**
+   * Chooses `characterId`'s Expertise a new level gives (#343, Scholar),
+   * only between adventures. Refused for a character on an adventure,
+   * defeated, owing none, or with a skill it may not choose; nothing is
+   * written then.
+   */
+  async chooseExpertise(
+    characterId: string,
+    chosen: unknown,
+    revision: string,
+  ): Promise<FifthLibraryData> {
+    return this.changeBetweenAdventures(
+      characterId,
+      revision,
+      "Expertise is chosen only between adventures",
+      (sheet) => chooseExpertise(sheet, chosen),
+    );
+  }
+
+  /**
+   * Changes `characterId`'s sheet by `change` (#343) when it is neither
+   * defeated nor on an adventure (`onAdventure` says why not).
+   */
+  private async changeBetweenAdventures(
+    characterId: string,
+    revision: string,
+    onAdventure: string,
+    change: (sheet: CharacterSheet) => CharacterSheet,
+  ): Promise<FifthLibraryData> {
+    return this.update(revision, (data) => {
+      const index = data.characters.findIndex(
+        ({ sheet }) => sheet.id === characterId,
+      );
+      const record = data.characters[index];
+      if (record === undefined) {
+        throw new Error("There is no such character in the library.");
+      }
+      if (record.defeated === true) {
+        throw new Error(`${record.sheet.name} was defeated.`);
+      }
+      if (record.session !== undefined) {
+        throw new Error(
+          `${record.sheet.name} is on an adventure: ${onAdventure}.`,
+        );
+      }
+      data.characters[index] = {
+        sheet: change(record.sheet),
         revision: record.revision + 1,
       };
     });
