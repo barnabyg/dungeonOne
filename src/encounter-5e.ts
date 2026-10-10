@@ -438,6 +438,11 @@ export type Weapon = Readonly<{
    * ranged weapon it attacks at disadvantage from the fight's second round.
    */
   ranged?: true;
+  /**
+   * A miss still deals half the damage dice, rounded down (#343): Acid
+   * Arrow's splash, and a cantrip's with Potent Cantrip.
+   */
+  missHalf?: true;
 }>;
 
 export type Combatant = DamageDefenses &
@@ -593,6 +598,11 @@ export type CombatSpellcasting = Readonly<{
   slots: readonly FeatureUses[];
   /** Disciple of Life (#341): slot healing heals 2 + the slot level more. */
   discipleOfLife?: true;
+  /**
+   * Potent Cantrip (#343): a damaging cantrip that misses, or whose target
+   * succeeds on its save, deals half its damage and nothing else.
+   */
+  potentCantrip?: true;
 }>;
 
 /**
@@ -646,6 +656,10 @@ export type EffectEndReason =
   | "attacked"
   /** A spell ended its condition (#341, Lesser Restoration). */
   | "cured"
+  /** Mirror Image's last duplicate was destroyed (#343). */
+  | "destroyed"
+  /** Acid Arrow's later acid was dealt (#343). */
+  | "dealt"
   | "next-turn"
   | "fight-over"
   | "rest"
@@ -974,6 +988,21 @@ export type AttackEvent = Readonly<{
   ammunition?: Readonly<{ kind: AmmunitionId; left: number }>;
   /** A miss that still dealt `damage` through the Graze mastery. */
   graze?: true;
+  /**
+   * A miss that still dealt half its `damageRolls` (#343): Acid Arrow's,
+   * or a cantrip's with Potent Cantrip.
+   */
+  missHalf?: true;
+  /**
+   * Mirror Image (#343): the hit's d6s, one for each duplicate. When one is
+   * 3 or higher (`struck`) a duplicate took the hit instead and was
+   * destroyed, and the target took no damage; `left` duplicates remain.
+   */
+  mirrorImage?: Readonly<{
+    rolls: readonly number[];
+    struck: boolean;
+    left: number;
+  }>;
   /** A spell attack (#336): `weapon` names the spell. */
   spell?: true;
   /** Great Weapon Fighting counted each 1 or 2 in `damageRolls` as 3. */
@@ -1239,7 +1268,10 @@ export type SpellDamageEvent = Readonly<{
   actorId: string;
   targetId: string;
   spell: string;
-  missiles: number;
+  /** Magic Missile's darts (#336). */
+  missiles?: number;
+  /** Acid Arrow's acid at the end of its target's turn (#343). */
+  later?: true;
 }> &
   SpellDamageDealt;
 
@@ -1938,6 +1970,8 @@ function attackModes(
   const aimed = own && state.economy.steadyAim;
   // Bestow Curse (#342): the cursed attacker's rolls against its curser.
   const cursed = curseOn(actor, target.id, "attacks");
+  // Blur (#343): attacks on its holder have disadvantage.
+  const blur = (target.effects ?? []).find(({ buff }) => buff.kind === "blur");
   const packTactics =
     actor.packTactics === true &&
     state.combatants.some(
@@ -1967,6 +2001,7 @@ function attackModes(
         ? [CLOSE_COMBAT]
         : []),
       ...(cursed === undefined ? [] : [cursed.spell]),
+      ...(blur === undefined ? [] : [blur.spell]),
       ...conditionSources(state, actor.id, "attacks"),
     ],
   };
@@ -2251,6 +2286,52 @@ function endEffects(
     ...state,
     combatants,
     conditions: state.conditions.filter((condition) => !isLinked(condition)),
+  };
+}
+
+/** `holder`'s Mirror Image (#343), while it has duplicates. */
+function mirrorImageOf(holder: Combatant): ActiveEffect | undefined {
+  return holder.effects?.find(
+    ({ buff }) => buff.kind === "mirror-image" && buff.duplicates > 0,
+  );
+}
+
+/**
+ * One of `holderId`'s Mirror Image duplicates destroyed by a hit (#343):
+ * the spell ends with the last.
+ */
+function destroyDuplicate(
+  state: EncounterState,
+  holderId: string,
+  events: EncounterEvent[],
+): EncounterState {
+  const images = mirrorImageOf(combatant(state, holderId));
+  if (images?.buff.kind !== "mirror-image") {
+    return state;
+  }
+  const left = images.buff.duplicates - 1;
+  if (left === 0) {
+    return endEffects(
+      state,
+      (effect, holder) => holder.id === holderId && effect === images,
+      "destroyed",
+      events,
+    );
+  }
+  return {
+    ...state,
+    combatants: state.combatants.map((holder) =>
+      holder.id === holderId
+        ? withEffects(
+            holder,
+            (holder.effects ?? []).map((effect) =>
+              effect === images
+                ? { ...effect, buff: { ...images.buff, duplicates: left } }
+                : effect,
+            ),
+          )
+        : holder,
+    ),
   };
 }
 
@@ -3396,7 +3477,7 @@ function landAttack(
     d20,
     mode,
     total,
-    hit,
+    hit: rolledHit,
     critical,
     conditionCritical,
     criticalCondition,
@@ -3413,9 +3494,22 @@ function landAttack(
   const own = ownAttack(origin);
   const hidden = own && state.hidden.includes(actor.id);
   const aimed = own && state.economy.steadyAim;
+  // Mirror Image (#343): a hit on its holder rolls a d6 for each duplicate,
+  // and one of 3 or higher strikes a duplicate instead: no damage, nothing
+  // else the hit would do.
+  const images = rolledHit ? mirrorImageOf(target) : undefined;
+  const imageRolls =
+    images?.buff.kind === "mirror-image"
+      ? rollDice(random, images.buff.duplicates, 6)
+      : undefined;
+  const struck = imageRolls?.some((roll) => roll >= 3) === true;
+  const hit = rolledHit && !struck;
+  // Acid Arrow's, or a cantrip's with Potent Cantrip (#343): a miss deals
+  // half the damage dice.
+  const missHalf = !rolledHit && weapon.missHalf === true;
   const damageRolls: number[] = [];
-  if (hit) {
-    const dice = weapon.damage.dice * (critical ? 2 : 1);
+  if (hit || missHalf) {
+    const dice = weapon.damage.dice * (hit && critical ? 2 : 1);
     for (let die = 0; die < dice; die++) {
       damageRolls.push(random.roll(weapon.damage.sides));
     }
@@ -3444,7 +3538,7 @@ function landAttack(
     : undefined;
   // Graze: a miss still deals the damage modifier, if above 0.
   const graze =
-    !hit && weapon.mastery === "Graze" && weapon.damage.modifier > 0;
+    !rolledHit && weapon.mastery === "Graze" && weapon.damage.modifier > 0;
   const rolled = hit
     ? Math.max(
         0,
@@ -3456,7 +3550,9 @@ function landAttack(
       ) + (sneak?.damageRolls.reduce((sum, value) => sum + value, 0) ?? 0)
     : graze
       ? weapon.damage.modifier
-      : 0;
+      : missHalf
+        ? Math.floor(sum(damageRolls) / 2)
+        : 0;
   const defended = damageTaken(defencesOf(target), weapon.damage.type, rolled);
   const dodged = landing.resumed?.dodged === true;
   const damageAdjustment = defended.damageAdjustment;
@@ -3566,8 +3662,8 @@ function landAttack(
       bonus: weapon.bonus,
       total,
       armorClass: armorClassOf(target),
-      hit,
-      critical: hit && critical,
+      hit: rolledHit,
+      critical: rolledHit && critical,
       ...(mode === undefined ? {} : { mode }),
       ...(effectDice === undefined ? {} : { effectDice }),
       ...(chosen?.targetRoll === undefined
@@ -3586,6 +3682,16 @@ function landAttack(
       ...(light ? { light: true as const } : {}),
       ...(spent === undefined ? {} : { ammunition: spent }),
       ...(graze ? { graze: true as const } : {}),
+      ...(missHalf ? { missHalf: true as const } : {}),
+      ...(imageRolls === undefined
+        ? {}
+        : {
+            mirrorImage: {
+              rolls: imageRolls,
+              struck,
+              left: imageRolls.length - (struck ? 1 : 0),
+            },
+          }),
       ...(origin.kind === "spell" ? { spell: true as const } : {}),
       ...(hit && weapon.greatWeaponFighting === true
         ? { greatWeaponFighting: true as const }
@@ -3695,6 +3801,11 @@ function landAttack(
       steadyAim: !aimed && state.economy.steadyAim,
     },
   };
+  // The duplicate a hit struck (#343) is destroyed; the spell ends with
+  // the last.
+  if (struck) {
+    next = destroyDuplicate(next, target.id, events);
+  }
   // Damage wakes a target from Sleep (#340) and ends its turning (#341).
   if (taken > 0) {
     next = wake(next, target.id, events);
@@ -3849,10 +3960,16 @@ function advance(
     if (!first) {
       const ending = combatant(next, next.order[next.turn]!.combatantId);
       if (!isOut(next, ending)) {
-        // Spirit Guardians (#342) strike as the turn ends.
-        next = guardiansStrike(
-          endTurn(next, ending, random, events),
-          ending,
+        // Spirit Guardians (#342) strike as the turn ends, and Acid Arrow's
+        // acid (#343) burns.
+        next = laterDamage(
+          guardiansStrike(
+            endTurn(next, ending, random, events),
+            ending,
+            random,
+            events,
+          ),
+          ending.id,
           random,
           events,
         );
@@ -4397,13 +4514,16 @@ function castRefusal(
       `${spell.name} can't catch the same creature twice.`,
     );
   }
-  const most = maxTargets(spell);
+  // Scorching Ray's rays (#343) grow with the slot.
+  const most = maxTargets(spell, action.slotLevel);
   if (targetIds.length > most) {
     return refused(
       "too-many-targets",
       most === 1
         ? `${spell.name} has one target.`
-        : `${spell.name} catches at most ${most} opponents.`,
+        : spell.effect.kind === "attack"
+          ? `${spell.name} has ${most} rays, so at most ${most} targets.`
+          : `${spell.name} catches at most ${most} opponents.`,
     );
   }
   if (reacting && targetIds[0] !== actor.id) {
@@ -4502,7 +4622,67 @@ function spellWeapon(
     },
     criticalRange: 20,
     ...(effect.range === "ranged" ? { ranged: true as const } : {}),
+    // Acid Arrow's splash, and a cantrip's with Potent Cantrip (#343).
+    ...(effect.missHalf === true ||
+    (spell.level === 0 && casting.potentCantrip === true)
+      ? { missHalf: true as const }
+      : {}),
+    // Ray of Sickness's poison (#343).
+    ...(effect.condition === undefined
+      ? {}
+      : { rider: { condition: { ...effect.condition } } }),
   };
+}
+
+/**
+ * Scorching Ray's rays (#343), each an attack roll with the spell made a
+ * weapon: split as evenly as they go among `action`'s targets in order, the
+ * first ones taking any more. A ray whose target is out of the fight goes
+ * at the next chosen target still in it; with none left the rest are lost.
+ */
+function hurlRays(
+  state: EncounterState,
+  actorId: string,
+  origin: AttackOrigin,
+  rays: number,
+  action: CastAction,
+  { random, events }: Readonly<{ random: Roller; events: EncounterEvent[] }>,
+): EncounterState {
+  const { targetIds } = action;
+  const aimed = targetIds.flatMap((_, index) =>
+    Array.from(
+      {
+        length:
+          Math.floor(rays / targetIds.length) +
+          (index < rays % targetIds.length ? 1 : 0),
+      },
+      () => index,
+    ),
+  );
+  let next = state;
+  for (const intended of aimed) {
+    if (next.outcome !== "ongoing") {
+      break;
+    }
+    const index = [...targetIds.keys()]
+      .map((offset) => (intended + offset) % targetIds.length)
+      .find(
+        (candidate) => !isOut(next, combatant(next, targetIds[candidate]!)),
+      );
+    if (index === undefined) {
+      break;
+    }
+    const resolved = resolveAttack(
+      next,
+      combatant(next, actorId),
+      combatant(next, targetIds[index]!),
+      random,
+      origin,
+    );
+    events.push(...resolved.events);
+    next = resolved.state;
+  }
+  return next;
 }
 
 /** Rolls `count` dice of `sides`, in order. */
@@ -4677,15 +4857,84 @@ function castSpell(
   const target = combatant(spent, action.targetIds[0]!);
   switch (effect.kind) {
     case "attack": {
-      const resolved = resolveAttack(spent, caster, target, random, {
+      const origin: AttackOrigin = {
         kind: "spell",
         weapon: spellWeapon(casting, spell, effect, action.damageType),
         ...(effect.nextAttackAdvantage === true
           ? { guides: true as const }
           : {}),
-      });
+      };
+      // Scorching Ray (#343): each ray its own attack.
+      if (effect.rays !== undefined) {
+        return hurlRays(spent, actor.id, origin, effect.rays, action, {
+          random,
+          events,
+        });
+      }
+      const resolved = resolveAttack(spent, caster, target, random, origin);
       events.push(...resolved.events);
-      return resolved.state;
+      const attack = resolved.events.find(
+        (event): event is AttackEvent => event.type === "attack",
+      );
+      let next = resolved.state;
+      const standing = () =>
+        next.outcome === "ongoing" && !isOut(next, combatant(next, target.id));
+      // Acid Arrow (#343): a hit leaves acid for the end of the target's
+      // next turn.
+      if (effect.later !== undefined && attack?.hit === true && standing()) {
+        const acid: ActiveEffect = {
+          spellId: spell.id,
+          spell: spell.name,
+          casterId: actor.id,
+          buff: { kind: "later-damage", damage: effect.later },
+          ends: "fight",
+        };
+        events.push({ type: "effect", targetId: target.id, ...acid });
+        next = {
+          ...next,
+          combatants: next.combatants.map((candidate) =>
+            candidate.id === target.id
+              ? withEffects(candidate, [...(candidate.effects ?? []), acid])
+              : candidate,
+          ),
+        };
+      }
+      // Ice Knife (#343): hit or miss, it bursts on a target still up.
+      if (effect.burst !== undefined && standing()) {
+        const { ability, damage } = effect.burst;
+        const burstTarget = combatant(next, target.id);
+        const save = savingThrow(
+          next,
+          burstTarget,
+          { ability, dc: casting.saveDc },
+          random,
+        );
+        const damageRolls = save.success
+          ? []
+          : rollDice(random, damage.dice, damage.sides);
+        next = spellDamage(
+          next,
+          combatant(next, actor.id),
+          burstTarget,
+          sum(damageRolls),
+          damage.type,
+          random,
+          events,
+          (dealt) => ({
+            type: "spell-save",
+            actorId: actor.id,
+            targetId: target.id,
+            spell: spell.name,
+            save,
+            onSuccess: "none",
+            damageRolls,
+            damageModifier: 0,
+            damageType: damage.type,
+            ...dealt,
+          }),
+        );
+      }
+      return next;
     }
     case "save": {
       if (spell.area !== undefined) {
@@ -4700,9 +4949,14 @@ function castSpell(
         { ability: effect.ability, dc: casting.saveDc },
         random,
       );
+      // Potent Cantrip (#343): a cantrip's success takes half, not none.
+      const onSuccess =
+        spell.level === 0 && casting.potentCantrip === true
+          ? "half"
+          : effect.onSuccess;
       // A success that takes no damage rolls no damage dice.
       const damageRolls =
-        save.success && effect.onSuccess === "none"
+        save.success && onSuccess === "none"
           ? []
           : rollDice(random, effect.damage.dice, effect.damage.sides);
       const full = sum(damageRolls);
@@ -4720,7 +4974,7 @@ function castSpell(
           targetId: target.id,
           spell: spell.name,
           save,
-          onSuccess: effect.onSuccess,
+          onSuccess,
           damageRolls,
           damageModifier: 0,
           damageType: effect.damage.type,
@@ -5226,6 +5480,60 @@ function guardiansStrike(
         events,
       );
     }
+  }
+  return next;
+}
+
+/**
+ * Acid Arrow's acid (#343) on `entrantId` as its turn ends: each burns
+ * once, then is gone.
+ */
+function laterDamage(
+  state: EncounterState,
+  entrantId: string,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  let next = state;
+  for (const effect of combatant(state, entrantId).effects ?? []) {
+    const { buff } = effect;
+    if (buff.kind !== "later-damage" || next.outcome !== "ongoing") {
+      continue;
+    }
+    next = endEffects(
+      next,
+      (ending, holder) => holder.id === entrantId && ending === effect,
+      "dealt",
+      events,
+    );
+    const target = combatant(next, entrantId);
+    if (isOut(next, target)) {
+      continue;
+    }
+    const damageRolls = rollDice(random, buff.damage.dice, buff.damage.sides);
+    next = concludeIfOver(
+      spellDamage(
+        next,
+        combatant(next, effect.casterId),
+        target,
+        sum(damageRolls),
+        buff.damage.type,
+        random,
+        events,
+        (dealt) => ({
+          type: "spell-damage",
+          actorId: effect.casterId,
+          targetId: entrantId,
+          spell: effect.spell,
+          later: true,
+          damageRolls,
+          damageModifier: 0,
+          damageType: buff.damage.type,
+          ...dealt,
+        }),
+      ),
+      events,
+    );
   }
   return next;
 }

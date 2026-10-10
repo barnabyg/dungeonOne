@@ -2143,7 +2143,11 @@ export function spellSummary(spell: SpellDefinition): string {
   }: Readonly<{ dice: number; sides: number }>) => `${count}d${sides}`;
   switch (effect.kind) {
     case "attack":
-      return `${effect.range} spell attack, ${dice(effect.damage)} ${effect.damage.type}${effect.nextAttackAdvantage === true ? "; a hit gives the next attack roll on the target advantage" : ""}`;
+      // Scorching Ray's rays, Acid Arrow's splash and acid, Ray of
+      // Sickness's poison and Ice Knife's burst (#343).
+      return effect.rays !== undefined
+        ? `${effect.rays} rays, each a ${effect.range} spell attack, ${dice(effect.damage)} ${effect.damage.type}; split among up to ${effect.rays} targets, the first taking any more`
+        : `${effect.range} spell attack, ${dice(effect.damage)} ${effect.damage.type}${effect.nextAttackAdvantage === true ? "; a hit gives the next attack roll on the target advantage" : ""}${effect.missHalf === true ? "; a miss deals half" : ""}${effect.later === undefined ? "" : `; a hit also deals ${dice(effect.later)} ${effect.later.type} at the end of the target's next turn`}${effect.condition === undefined ? "" : `; a hit leaves it ${effect.condition.kind} for its next turn`}${effect.burst === undefined ? "" : `; hit or miss, it bursts: ${titleCase(effect.burst.ability)} save or ${dice(effect.burst.damage)} ${effect.burst.damage.type}`}`;
     case "save":
       return `${titleCase(effect.ability)} save, ${dice(effect.damage)} ${effect.damage.type}, ${effect.onSuccess === "half" ? "half" : "none"} on a success`;
     case "auto-hit":
@@ -2214,6 +2218,13 @@ export function buffText(buff: Buff, damageType?: string): string {
       return `cursed: ${CURSE_NAMES[buff.curse]}`;
     case "guardians":
       return `spirit guardians: each foe they caught makes a ${titleCase(buff.ability)} saving throw at the end of its turns, taking ${buff.damage.dice}d${buff.damage.sides} ${buff.damage.type}, half on a success`;
+    // Blur, Mirror Image and Acid Arrow's acid (#343).
+    case "blur":
+      return "blurred: attack rolls against it have disadvantage";
+    case "mirror-image":
+      return `${buff.duplicates} illusory ${buff.duplicates === 1 ? "duplicate" : "duplicates"}: each hit rolls a d6 for each, and a 3 or higher strikes a duplicate instead`;
+    case "later-damage":
+      return `${buff.damage.dice}d${buff.damage.sides} ${buff.damage.type} more at the end of its next turn`;
   }
 }
 
@@ -2273,6 +2284,8 @@ function effectText(
         damaged: "it takes damage",
         attacked: "it is attacked",
         cured: "its condition is cured",
+        destroyed: "the last duplicate is gone",
+        dealt: "the acid has burned",
       }[event.reason];
       return `${event.spell} ends on ${who(event.targetId)}: ${why}.`;
     }
