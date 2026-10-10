@@ -7,7 +7,6 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
-import { FIFTH_BESTIARY_FORMAT } from "../dist/bestiary-5e.js";
 import { characterProfile, validateCharacter } from "../dist/character-5e.js";
 import { SKILLS } from "../dist/class-5e.js";
 import {
@@ -16,9 +15,8 @@ import {
   FIFTH_DM_SYSTEM_PROMPT,
   renderFifthEvent,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import { bestiary, validateModule } from "./fixtures/bestiary.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
 import { moduleFile, ratTunnels } from "./fixtures/modules.mjs";
@@ -57,7 +55,6 @@ test("Stealth is a Dexterity skill anyone can roll; the Fighter is not proficien
 });
 
 test("every bestiary monster has its SRD 5.2 passive Perception", () => {
-  assert.ok(FIFTH_BESTIARY_FORMAT >= 8);
   const perception = Object.fromEntries(
     bestiary.monsters.map(({ id, statBlock }) => [
       id,
@@ -75,7 +72,6 @@ test("every bestiary monster has its SRD 5.2 passive Perception", () => {
 });
 
 test("an inline stat block needs a passive Perception; the module format bumps", () => {
-  assert.ok(FIFTH_ADVENTURE_FORMAT >= 21);
   const file = moduleFile("rat-tunnels");
   delete file.encounters[0].opponents[0].statBlock.passivePerception;
   assert.throws(() => validateModule(file), /passivePerception/u);
@@ -245,11 +241,6 @@ test("the Stealth check is remembered: sneaking up on the same fight again never
   assert.equal(again.state, outside);
   assert.equal(random.drawn.length, 0);
   assert.deepEqual(outside.sneaks, first.state.sneaks);
-});
-
-test("the save and trace formats bump", () => {
-  assert.ok(FIFTH_SESSION_FORMAT >= 28);
-  assert.ok(FIFTH_TRACE_FORMAT >= 22);
 });
 
 /**

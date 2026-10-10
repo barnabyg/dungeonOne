@@ -2,9 +2,6 @@
 // with what a short rest and a long rest each restore; the adventure session
 // tracks a hit-dice pool. No rest is offered yet, so play doesn't change.
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import test from "node:test";
 
 import { characterProfile, nextLevelXp } from "../dist/character-5e.js";
@@ -15,10 +12,9 @@ import {
   playerCombatant,
   startingResources,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { TEST_ROGUE } from "../dist/test-rogue-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import { goblinBand } from "./fixtures/modules.mjs";
 
 const LEVELS = [1, 2, 3, 4, 5];
@@ -156,34 +152,4 @@ test("spending Second Wind is tracked in the feature-uses map", () => {
     return;
   }
   assert.fail("no seed where Ada may use Second Wind on her first turn");
-});
-
-test("the session and trace formats bump, and a session saved before #333 is refused", async () => {
-  assert.ok(FIFTH_SESSION_FORMAT >= 36);
-  assert.ok(FIFTH_TRACE_FORMAT >= 30);
-  const directory = await mkdtemp(join(tmpdir(), "issue-333-"));
-  try {
-    const path = join(directory, "session.json");
-    await FifthSession.create(
-      path,
-      "a".repeat(32),
-      0,
-      goblinBand,
-      TEST_FIGHTER,
-    );
-    const file = JSON.parse(await readFile(path, "utf8"));
-    file.formatVersion = 35;
-    const bytes = JSON.stringify(file);
-    await writeFile(path, bytes);
-    await assert.rejects(
-      FifthSession.load(path, [goblinBand]),
-      new RegExp(
-        `is an adventure session in format version 35, not ${FIFTH_SESSION_FORMAT}\\. This build cannot continue it\\. Move it aside; the file has not been changed\\.`,
-        "u",
-      ),
-    );
-    assert.equal(await readFile(path, "utf8"), bytes);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
 });

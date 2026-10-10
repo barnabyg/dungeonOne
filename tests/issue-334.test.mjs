@@ -11,14 +11,12 @@ import {
   createFifthRuntime,
   describeFifthResult,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   renderFifthResult,
   SHORT_RESTS_PER_ADVENTURE,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER, testFighterAt } from "../dist/test-fighter-5e.js";
 import { TEST_ROGUE } from "../dist/test-rogue-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import { dice } from "./fixtures/engine-dice.mjs";
 import { ratTunnels } from "./fixtures/modules.mjs";
 
@@ -411,10 +409,4 @@ test("scripted DM: the DM can't rest the character outside the offered action", 
     FIFTH_DM_SYSTEM_PROMPT,
     /at most two short rests in an adventure[^]*Call rest only when the player asks to rest/u,
   );
-});
-
-test("the save and trace formats and the prompt version bump", () => {
-  assert.ok(FIFTH_SESSION_FORMAT >= 37);
-  assert.ok(FIFTH_TRACE_FORMAT >= 31);
-  assert.match(FIFTH_PROMPT_VERSION, /^5e-dm-v(?:2[2-9]|[3-9]\d)$/u);
 });

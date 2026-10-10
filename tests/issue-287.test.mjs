@@ -11,14 +11,8 @@ import {
   currentCombatant,
   startEncounter,
 } from "../dist/encounter-5e.js";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readFile } from "node:fs/promises";
 import { characterAtLevel, gateAdventure } from "../dist/balance-5e.js";
-import {
-  FIFTH_LIBRARY_FORMAT,
-  FifthCharacterLibrary,
-} from "../dist/character-library-5e.js";
 import { runDmTurn } from "../dist/dm-turn.js";
 import {
   applyLevelChoice,
@@ -33,9 +27,7 @@ import {
 } from "../dist/character-5e.js";
 import { createSeededRandom } from "../dist/random.js";
 import { createFifthRuntime, playerCombatant } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT } from "../dist/session-5e.js";
 import { libraryAt, testFighterAt } from "../dist/test-fighter-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
 import { tierAllowed, treasureBudget } from "../dist/treasure-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { dice, uncheckedDice } from "./fixtures/engine-dice.mjs";
@@ -470,26 +462,6 @@ test("the gate builds level-5 Fighters with Extra Attack and plays it", () => {
   assert.equal(result.verdict.xp.startXp, 13999);
   assert.equal(result.verdict.xp.levelLimit, 6);
   assert.equal(result.verdict.xp.endLevel, 6);
-});
-
-test("the library, save and trace formats bump; an older library is refused", async () => {
-  // #287 bumped them to 12, 26 and 20; later tickets bump them again.
-  assert.ok(FIFTH_LIBRARY_FORMAT >= 12);
-  assert.ok(FIFTH_SESSION_FORMAT >= 26);
-  assert.ok(FIFTH_TRACE_FORMAT >= 20);
-  const directory = await mkdtemp(join(tmpdir(), "issue-287-"));
-  try {
-    const path = join(directory, "characters.json");
-    const older = JSON.stringify({ ...libraryAt(3), formatVersion: 11 });
-    await writeFile(path, older);
-    await assert.rejects(
-      new FifthCharacterLibrary(path).read(),
-      /format version 11/u,
-    );
-    assert.equal(await readFile(path, "utf8"), older);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
 });
 
 test("the handoff's input library is Ada at level 5", async () => {

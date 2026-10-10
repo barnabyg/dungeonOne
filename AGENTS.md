@@ -25,6 +25,26 @@ git branch -D <merged-branch>
 
 `-D` is needed because squash merges hide the merge from Git; it is safe once GitHub shows the PR as merged. Remove any worktree you created for the work with `git worktree remove <path>`. `git branch -vv` marks branches GitHub has deleted as `[origin/...: gone]`.
 
+## Choosing tests
+
+`npm.cmd test` runs every test file, and `npm.cmd run verify` and CI run it that way. While you work, run the tests your change can break, and leave the full run for before you open or update the PR. The test files fall into tiers (`scripts/test-tiers.mjs`):
+
+| Tier      | What it holds                                                                                      | About                     |
+| --------- | -------------------------------------------------------------------------------------------------- | ------------------------- |
+| `quick`   | engine, rules, harness, server and script tests on fixture modules: no browser, no shipped content | 12 s                      |
+| `browser` | tests that drive a browser or start the real launcher, release handoffs included                   | 60 s                      |
+| `content` | tests of the shipped modules in `adventures/5e/`, including the balance gate over every module     | 60 s; 30 s for one module |
+
+Pick by what you changed:
+
+- **Anything, while you edit:** the test files for it, `npm.cmd test -- tests/x.test.mjs tests/y.test.mjs`, narrowed with `--test-name-pattern "<pattern>"` if you like.
+- **Rules, engine, harness or server code:** `npm.cmd test -- --tier quick` after each step. Add `--tier content` when the change can move the balance gate's numbers (combat, checks, rests, the harness): the gate is the only test of every module's balance.
+- **The browser page, its layout or the launcher:** `npm.cmd test -- --tier quick,browser`.
+- **One shipped module's file:** `npm.cmd test -- --modules <id>` runs the content tests and gates only that module. If the recorded verdicts test fails, run `npm.cmd run gate:verdicts` and commit the file.
+- **Not sure:** `npm.cmd test -- --changed` lists what changed since `origin/main` and runs the tiers that cover it. It runs every test for a change it can't place, such as one to `src/` beyond the browser page and server, or to `package.json`.
+
+Before a commit, run at least the tiers that cover it. Before you push, run `npm.cmd run verify`.
+
 ## 5e and file formats
 
 The game uses the 2024 5e rules in SRD 5.2 under [ADR 0005](docs/adr/0005-start-afresh-on-5e-and-suspend-compatibility.md). Use only SRD 5.2 names, rules and stat blocks. The pre-5e game was removed in #139; git history keeps it. Don't restore any of it.

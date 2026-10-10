@@ -1,10 +1,10 @@
-// #291: The Thornwood Lodge, the level 4–5 Hard module, as the owner
-// approved it: a charcoal-burner who trades at the forest gate, Captain
-// Hesk's hound and mastiffs in the kennel yard, a bear in the hall, an
-// owlbear in the ice house and the captain himself in the solar, with graded
-// checks that open the ways in and reveal what the trophy wall hides.
-// Journeys reach its endings and its checks; shipped-modules.test.mjs checks
-// it qualifies at its declared difficulty.
+// #291: The Thornwood Lodge, the level 4–5 Hard module, as the owner approved
+// it: a charcoal-burner who trades at the forest gate, Captain Hesk's hound
+// and mastiffs in the kennel yard, a bear in the hall, an owlbear in the ice
+// house and the captain himself in the solar, with graded checks that open
+// the ways in and reveal what the trophy wall hides. Journeys reach its
+// endings and its checks; shipped-modules.test.mjs checks it qualifies at its
+// declared difficulty, with the gate figures its proposal quotes.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -16,7 +16,7 @@ import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
-import { gateModule, requiredPath } from "../dist/balance-5e.js";
+import { requiredPath } from "../dist/balance-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { startSavedAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
 import { LODGE_ROUTE, playReleaseRun } from "../dist/release-run-5e.js";
@@ -189,35 +189,6 @@ test("its treasure is 99% of the level-5 budget, the captain's gold rolled from 
   assert.deepEqual(coins.coins, ROLLED_HESK_COINS);
   assert.equal(findableValue(lodge), 73500 + ROLLED_HESK_COINS.gp * 100);
   assert.equal(treasureBudget(5), 75000);
-});
-
-test("the gate qualifies it as Hard for both classes on seeded and always-failing checks (#310)", () => {
-  const gate = gateModule(lodge);
-  assert.equal(gate.qualified, true);
-  const [fighter, rogue] = gate.classes.map(({ result }) => result.verdict);
-  // The Fighter is 8.5 points over the 88% that would make it Medium (4
-  // until the Champion's initiative advantage, #315); the Rogue, 10.5 over
-  // Hard's 75% and 2.5 under 88%, keeps it Hard.
-  for (const [verdict, kit, rate] of [
-    [fighter, "mace", 0.965],
-    [rogue, "shortsword", 0.855],
-  ]) {
-    assert.deepEqual(
-      [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
-      [4, kit, rate],
-    );
-    assert.deepEqual(
-      [verdict.alwaysFail.level, verdict.alwaysFail.rate],
-      [4, rate],
-    );
-    // One of four ordinary enemies, under the more-than-half that fails it.
-    assert.deepEqual(
-      verdict.oneHitKill.overCap.map(({ name }) => name),
-      ["Kennel Mastiff"],
-    );
-    // Every fight's XP and the spoils' 2,350.
-    assert.equal(verdict.xp.available, 200 + 25 + 200 + 700 + 700 + 2350);
-  }
 });
 
 // The checks, with scripted dice. testFighterAt(5): Perception +3,

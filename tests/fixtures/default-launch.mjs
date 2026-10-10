@@ -23,9 +23,9 @@ export async function launchDefault(cwd, args, apiKey = "") {
   const exited = new Promise((resolve) => {
     child.once("exit", resolve);
   });
-  // Startup gates every built-in module on every check policy for both
-  // classes (about 24 s on a busy machine since #321, 52 before it); under
-  // the full parallel suite it takes far longer.
+  // Startup reads the gate's recorded verdicts on the built-in modules
+  // (src/gate-verdicts-5e.ts); a module changed since they were recorded is
+  // gated afresh, which takes far longer under the full parallel suite.
   const url = await new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       child.kill();

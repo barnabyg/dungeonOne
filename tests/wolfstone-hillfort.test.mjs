@@ -1,16 +1,17 @@
 // #289: The Wolfstone Hillfort, the level 3–4 Hard module, as the owner
 // approved it: a drover who trades at the camp below an old hillfort, the
 // Reaver's dire wolf in the ditch, a brown bear in the undercroft and the
-// Reaver himself in the keep, with graded checks that open and close the
-// ways in. Journeys reach its endings and its checks; shipped-modules.test.mjs
-// checks it qualifies at its declared difficulty.
+// Reaver himself in the keep, with graded checks that open and close the ways
+// in. Journeys reach its endings and its checks; shipped-modules.test.mjs
+// checks it qualifies at its declared difficulty, with the gate figures its
+// proposal quotes.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
-import { gateAdventure, requiredPath } from "../dist/balance-5e.js";
+import { requiredPath } from "../dist/balance-5e.js";
 import { createFifthRuntime } from "../dist/runtime-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
@@ -168,27 +169,6 @@ test("its treasure is 97% of the level-4 budget, the Reaver's gold rolled from i
   assert.deepEqual(coins.coins, ROLLED_REAVER_COINS);
   assert.equal(findableValue(hillfort), 58000 + ROLLED_REAVER_COINS.gp * 100);
   assert.equal(treasureBudget(4), 60000);
-});
-
-test("the gate qualifies it as Hard on seeded and always-failing checks, with the figures the proposal quotes", () => {
-  const result = gateAdventure(hillfort);
-  assert.equal(result.ok, true);
-  const { verdict } = result;
-  assert.equal(verdict.qualified, true);
-  // 6 points over Hard's 75%, and 7 under the 88% that would make it
-  // Medium (80.5% until short rests, #334; 83.0% and 84.0% until the
-  // Champion's initiative advantage, #315, moved the dice).
-  assert.deepEqual(
-    [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
-    [3, "two-daggers", 0.81],
-  );
-  assert.deepEqual(
-    [verdict.alwaysFail.level, verdict.alwaysFail.rate],
-    [3, 0.81],
-  );
-  assert.deepEqual(verdict.oneHitKill.overCap, []);
-  // Every fight's XP and the plunder's 500.
-  assert.equal(verdict.xp.available, 200 + 200 + 450 + 500);
 });
 
 // The checks, with scripted dice. testFighterAt(3): Athletics +5,

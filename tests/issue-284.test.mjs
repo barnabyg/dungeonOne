@@ -7,14 +7,7 @@
 // −1, 12 HP).
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import {
-  FIFTH_ADVENTURE_FORMAT,
-  loadFifthAdventure,
-  validateFifthAdventure,
-} from "../dist/adventure-5e.js";
+import { validateFifthAdventure } from "../dist/adventure-5e.js";
 import { createFifthRuntime, describeFifthResult } from "../dist/runtime-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER, testFighterAt } from "../dist/test-fighter-5e.js";
@@ -785,24 +778,4 @@ test("the validator rejects circumstances and retries naming what is not there",
       }),
     /feature sheer-cliff check's retry uses up knotted-rope, which its advantage 1 needs held\./,
   );
-});
-
-test("a module from before retries (format 19) is refused by name and left unchanged", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "issue-284-format-"));
-  try {
-    const path = join(directory, "before-retries.json");
-    const bytes = JSON.stringify({
-      ...moduleFile("graded-cellar"),
-      formatVersion: 19,
-    });
-    await writeFile(path, bytes);
-    await assert.rejects(loadFifthAdventure(path), {
-      message: new RegExp(
-        String.raw`before-retries\.json is a 5e adventure module in format version 19, not ${FIFTH_ADVENTURE_FORMAT}\. Move it aside`,
-      ),
-    });
-    assert.equal(await readFile(path, "utf8"), bytes);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
 });

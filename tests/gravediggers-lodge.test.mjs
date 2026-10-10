@@ -2,14 +2,15 @@
 // approved it: two potions at the lychgate, then a false gravedigger, a
 // Bandit, and the corpse he dug up, a Zombie, fighting together over the
 // stolen grave goods. Journeys reach its endings; shipped-modules.test.mjs
-// checks it qualifies at its declared difficulty.
+// checks it qualifies at its declared difficulty, with the gate figures its
+// proposal quotes.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
-import { gateAdventure, requiredPath } from "../dist/balance-5e.js";
+import { requiredPath } from "../dist/balance-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { firstJourney, xpOf } from "./fixtures/module-journey.mjs";
@@ -89,30 +90,6 @@ test("its treasure is 97% of the level-2 budget, the bandit's coins rolled from 
   // In copper: 291 gp 1 sp of 300 gp.
   assert.equal(findableValue(lodge), 29110);
   assert.equal(treasureBudget(2), 30000);
-});
-
-test("the gate qualifies it as Hard, mid-band, with the figures the proposal quotes", () => {
-  const result = gateAdventure(lodge);
-  assert.equal(result.ok, true);
-  const { verdict } = result;
-  assert.equal(verdict.qualified, true);
-  // 8.5 points over Hard's 75%, and 4.5 under the 88% that would make it Medium.
-  assert.deepEqual(
-    [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
-    [2, "two-daggers", 0.835],
-  );
-  assert.deepEqual(verdict.oneHitKill.overCap, []);
-  assert.deepEqual(
-    verdict.oneHitKill.enemies.map(({ opponentId, chance }) => [
-      opponentId,
-      Math.round(chance * 1000) / 10,
-    ]),
-    [
-      ["false-gravedigger", 2.9],
-      ["risen-corpse", 0.4],
-    ],
-  );
-  assert.equal(verdict.xp.available, 375);
 });
 
 const POTIONS = [

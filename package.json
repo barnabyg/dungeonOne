@@ -17,6 +17,7 @@
     "check:security": "node scripts/security-checks.mjs",
     "eval:dm": "npm run build && node scripts/eval-dm.mjs",
     "estimate": "npm run build && node scripts/estimate-5e.mjs",
+    "gate:verdicts": "npm run build && node scripts/gate-verdicts-5e.mjs",
     "format": "prettier --write \".github/**/*.{yml,yaml}\" \"agent-guidance/**/*.md\" \"src/**/*.ts\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" \"adventures/**/*.json\" \"*.config.mjs\" README.md package.json \"tsconfig*.json\"",
     "format:check": "prettier --check \".github/**/*.{yml,yaml}\" \"agent-guidance/**/*.md\" \"src/**/*.ts\" \"tests/**/*.mjs\" \"scripts/**/*.mjs\" \"adventures/**/*.json\" \"*.config.mjs\" README.md package.json \"tsconfig*.json\"",
     "loot": "npm run build && node scripts/loot-5e.mjs",

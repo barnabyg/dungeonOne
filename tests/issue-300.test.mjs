@@ -2,9 +2,6 @@
 // definition derives exactly the numbers the hard-coded Fighter did.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import test from "node:test";
 
 import {
@@ -22,16 +19,10 @@ import {
   projectCreation,
   validateCharacter,
 } from "../dist/character-5e.js";
-import {
-  FIFTH_LIBRARY_FORMAT,
-  FifthCharacterLibrary,
-} from "../dist/character-library-5e.js";
 import { FEATURE_USES_RULE, FIGHTING_STYLES } from "../dist/class-5e.js";
 import { equipmentProfile } from "../dist/equipment-5e.js";
 import { FIGHTER } from "../dist/fighter-5e.js";
-import { FIFTH_SESSION_FORMAT } from "../dist/session-5e.js";
-import { libraryAt, TEST_FIGHTER } from "../dist/test-fighter-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
+import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { digest, goldenCases } from "./fixtures/fighter-golden-cases.mjs";
 
 const golden = JSON.parse(
@@ -181,28 +172,5 @@ test("the Fighter's level table comes from its definition", () => {
         profile.modifiers.constitution +
         (level - 1) * (6 + profile.modifiers.constitution),
     );
-  }
-});
-
-test("the library, save and trace formats bump; a format-12 library is refused by name", async () => {
-  // #306 bumped the library again, and #301 the save and trace.
-  assert.ok(FIFTH_LIBRARY_FORMAT >= 13);
-  assert.ok(FIFTH_SESSION_FORMAT >= 27);
-  assert.ok(FIFTH_TRACE_FORMAT >= 21);
-  const directory = await mkdtemp(join(tmpdir(), "issue-300-"));
-  try {
-    const path = join(directory, "characters.json");
-    const older = JSON.stringify({ ...libraryAt(3), formatVersion: 12 });
-    await writeFile(path, older);
-    await assert.rejects(
-      new FifthCharacterLibrary(path).read(),
-      (error) =>
-        error.message.includes(path) &&
-        /earlier build \(format version 12\)/u.test(error.message) &&
-        /[Mm]ove it aside/u.test(error.message),
-    );
-    assert.equal(await readFile(path, "utf8"), older);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
   }
 });

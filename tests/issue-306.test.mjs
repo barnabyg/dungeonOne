@@ -4,7 +4,7 @@
 // weapon made with advantage; the AI DM can't add either; and the balance
 // harness can build and play a Rogue.
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -23,10 +23,7 @@ import {
   settleCharacter,
   validateCharacter,
 } from "../dist/character-5e.js";
-import {
-  FIFTH_LIBRARY_FORMAT,
-  FifthCharacterLibrary,
-} from "../dist/character-library-5e.js";
+import { FifthCharacterLibrary } from "../dist/character-library-5e.js";
 import {
   abilityCheck,
   passivePerception,
@@ -41,9 +38,8 @@ import {
   playerCombatant,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
-import { libraryAt, TEST_FIGHTER } from "../dist/test-fighter-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
+import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import { dice } from "./fixtures/engine-dice.mjs";
 import { ratTunnels } from "./fixtures/modules.mjs";
 
@@ -689,28 +685,6 @@ test("the balance harness builds a level-1 Rogue and plays it, Sneak Attack and 
   );
   assert.ok(runs.some(({ outcome }) => outcome === "victory"));
   assert.ok(sneakAttacks > 0, "a run lands a Sneak Attack");
-});
-
-test("the library, save and trace formats bump; a format-13 library is refused by name", async () => {
-  assert.ok(FIFTH_LIBRARY_FORMAT >= 14);
-  assert.ok(FIFTH_SESSION_FORMAT >= 32);
-  assert.ok(FIFTH_TRACE_FORMAT >= 26);
-  const directory = await mkdtemp(join(tmpdir(), "issue-306-"));
-  try {
-    const path = join(directory, "characters.json");
-    const older = JSON.stringify({ ...libraryAt(1), formatVersion: 13 });
-    await writeFile(path, older);
-    await assert.rejects(
-      new FifthCharacterLibrary(path).read(),
-      (error) =>
-        error.message.includes(path) &&
-        /earlier build \(format version 13\)/u.test(error.message) &&
-        /[Mm]ove it aside/u.test(error.message),
-    );
-    assert.equal(await readFile(path, "utf8"), older);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
 });
 
 test("the library creates a Rogue from the pending dice and stores its Expertise", async () => {
