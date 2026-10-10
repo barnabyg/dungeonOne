@@ -331,6 +331,12 @@ export type FeatureEffect = Readonly<
    * against the spells prepared.
    */
   | { kind: "always-prepared"; spells: readonly SpellId[] }
+  /**
+   * Sear Undead (#342): Turn Undead also deals d`sides` radiant damage, as
+   * many as the spellcasting modifier (at least one), to each undead that
+   * fails its save.
+   */
+  | { kind: "sear-undead"; sides: number }
 >;
 
 /** One class or subclass feature, gained at `level`. */

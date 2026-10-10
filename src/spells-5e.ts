@@ -43,7 +43,16 @@
  * - An area spell (#338) declares its shape and size, and so the most
  *   opponents it can catch (`maxTargets`, D4); the caster chooses them.
  * - A spell may take a damage type chosen at casting (`damageTypes`, #339,
- *   #340): the one Resistance resists, or the one Chromatic Orb deals.
+ *   #340): the one Resistance resists, or the one Chromatic Orb deals, or
+ *   the one Protection from Energy (#342) gives resistance to.
+ * - `curse` (#342): the target saves or is cursed while the caster
+ *   concentrates, with the curse chosen at casting (Bestow Curse).
+ * - `guardians` (#342): an area that damages the opponents it catches as
+ *   it is cast and again at the end of each of their turns while the
+ *   caster concentrates (Spirit Guardians).
+ * - Buffs (#342) may also give advantage on Wisdom saves and maximise
+ *   healing (Beacon of Hope), or resistance to the damage type chosen at
+ *   casting (Protection from Energy).
  *
  * Without positions or a clock, ranges are left out and areas and
  * durations are abstracted; the rules document lists what that omits.
@@ -118,7 +127,44 @@ export type Buff = Readonly<
    * Prayer of Healing): it does nothing else.
    */
   | { kind: "lockout" }
+  /**
+   * Beacon of Hope (#342): advantage on Wisdom saving throws, and the most
+   * hit points possible from any healing. There are no death saving throws.
+   */
+  | { kind: "beacon" }
+  /**
+   * Protection from Energy (#342): resistance to the damage type chosen at
+   * casting.
+   */
+  | { kind: "energy-ward" }
+  /**
+   * Bestow Curse's curse on its target (#342), as chosen at casting:
+   * disadvantage on its attack rolls against the caster, or the extra
+   * `damage` whenever the caster damages it with an attack roll or a spell.
+   */
+  | { kind: "curse"; curse: CurseId; damage: SpellDamage }
+  /**
+   * Spirit Guardians around their caster (#342): each opponent they caught
+   * at casting saves on `ability` at the end of each of its turns, taking
+   * the damage, or half on a success.
+   */
+  | { kind: "guardians"; ability: Ability; damage: SpellDamage }
 >;
+
+/**
+ * The curses Bestow Curse may lay (#342, owner-approved): disadvantage on
+ * the target's attack rolls against the caster, or extra necrotic damage
+ * from the caster's attacks and spells. The ability and Dodge curses are
+ * omitted.
+ */
+export const CURSES = ["attacks", "necrotic"] as const;
+export type CurseId = (typeof CURSES)[number];
+
+/** A curse's name as the player sees it (#342). */
+export const CURSE_NAMES: Readonly<Record<CurseId, string>> = {
+  attacks: "disadvantage on its attacks against you",
+  necrotic: "extra necrotic damage from your attacks and spells",
+};
 
 /**
  * The damage types Resistance may be cast against (SRD 5.2, #339): every
@@ -148,6 +194,18 @@ export const CHROMATIC_ORB_DAMAGE_TYPES = [
   "fire",
   "lightning",
   "poison",
+  "thunder",
+] as const satisfies readonly DamageType[];
+
+/**
+ * The damage types Protection from Energy may resist (SRD 5.2, #342),
+ * chosen at casting.
+ */
+export const ENERGY_DAMAGE_TYPES = [
+  "acid",
+  "cold",
+  "fire",
+  "lightning",
   "thunder",
 ] as const satisfies readonly DamageType[];
 
@@ -280,6 +338,32 @@ export type SpellEffect = Readonly<
    */
   | {
       kind: "spectral-weapon";
+      damage: SpellDamage;
+      duration: SpellDuration;
+      concentration: true;
+    }
+  /**
+   * A curse (#342, Bestow Curse): the target saves on `ability` or is
+   * cursed, as chosen at casting, while the caster concentrates; the
+   * necrotic curse deals `damage`.
+   */
+  | {
+      kind: "curse";
+      ability: Ability;
+      damage: SpellDamage;
+      duration: SpellDuration;
+      concentration: true;
+    }
+  /**
+   * Guardians (#342, Spirit Guardians): each opponent caught saves on
+   * `ability` as it is cast and at the end of each of its turns while the
+   * caster concentrates, taking the damage or half on a success. They end
+   * with the fight.
+   */
+  | {
+      kind: "guardians";
+      ability: Ability;
+      onSuccess: "half";
       damage: SpellDamage;
       duration: SpellDuration;
       concentration: true;
@@ -419,6 +503,16 @@ export const SPELLS = {
     name: "Thaumaturgy",
     level: 0,
     school: "transmutation",
+    castingTime: "action",
+    effect: { kind: "flavour" },
+  },
+  // Flavour only (#342, owner-approved), so a level-4 Thaumaturge has a
+  // fifth cantrip to learn.
+  light: {
+    id: "light",
+    name: "Light",
+    level: 0,
+    school: "evocation",
     castingTime: "action",
     effect: { kind: "flavour" },
   },
@@ -741,6 +835,80 @@ export const SPELLS = {
     },
     upcast: { dice: 1 },
   },
+  // The Cleric's 3rd-level spells (#342, owner-approved). Without
+  // companions Mass Healing Word, Beacon of Hope and Protection from Energy
+  // have one target, their caster. Spirit Guardians' 15-foot emanation
+  // catches three (D4), chosen at casting; its slowing is omitted, its
+  // damage is radiant, and it ends with the fight. Beacon of Hope's death
+  // saving throws don't exist (ADR 0005). Bestow Curse lays one of two
+  // curses (`CURSES`).
+  "mass-healing-word": {
+    id: "mass-healing-word",
+    name: "Mass Healing Word",
+    level: 3,
+    school: "abjuration",
+    castingTime: "bonus-action",
+    effect: { kind: "healing", healing: { dice: 2, sides: 4 } },
+    upcast: { dice: 1 },
+  },
+  "spirit-guardians": {
+    id: "spirit-guardians",
+    name: "Spirit Guardians",
+    level: 3,
+    school: "conjuration",
+    castingTime: "action",
+    effect: {
+      kind: "guardians",
+      ability: "wisdom",
+      onSuccess: "half",
+      damage: { dice: 3, sides: 8, type: "radiant" },
+      duration: { minutes: 10 },
+      concentration: true,
+    },
+    area: { shape: "emanation", feet: 15 },
+    upcast: { dice: 1 },
+  },
+  "beacon-of-hope": {
+    id: "beacon-of-hope",
+    name: "Beacon of Hope",
+    level: 3,
+    school: "abjuration",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "beacon" },
+      duration: { minutes: 1 },
+      concentration: true,
+    },
+  },
+  "bestow-curse": {
+    id: "bestow-curse",
+    name: "Bestow Curse",
+    level: 3,
+    school: "necromancy",
+    castingTime: "action",
+    effect: {
+      kind: "curse",
+      ability: "wisdom",
+      damage: { dice: 1, sides: 8, type: "necrotic" },
+      duration: { minutes: 1 },
+      concentration: true,
+    },
+  },
+  "protection-from-energy": {
+    id: "protection-from-energy",
+    name: "Protection from Energy",
+    level: 3,
+    school: "abjuration",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "energy-ward" },
+      duration: { minutes: 60 },
+      concentration: true,
+    },
+    damageTypes: ENERGY_DAMAGE_TYPES,
+  },
   // A reaction to being hit by an attack roll (#337): +5 AC until the start
   // of the caster's next turn, against that attack too.
   shield: {
@@ -830,6 +998,7 @@ export function effectAtSlot(
     case "flavour":
     case "control":
     case "restoration":
+    case "curse":
       return effect;
     default:
       return {

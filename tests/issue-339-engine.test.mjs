@@ -371,8 +371,11 @@ test("in a fight Resistance is offered against the foes' damage types", () => {
     resistance.map(({ spell }) => spell.damageType),
     ["slashing"],
   );
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v29");
-  assert.match(FIFTH_DM_SYSTEM_PROMPT, /Thaumaturgy is flavour only/u);
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v30");
+  assert.match(
+    FIFTH_DM_SYSTEM_PROMPT,
+    /Thaumaturgy and Light are flavour only/u,
+  );
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
     /they never change a check, a roll or an outcome/u,

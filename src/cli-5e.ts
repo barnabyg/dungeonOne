@@ -300,7 +300,7 @@ function renderView(session: FifthSession): string {
         },
         index,
       ) =>
-        `  ${index + 1}. ${retry === undefined ? "" : "Try again: "}${LABELS[action]}${mode === undefined ? "" : `(${mode}) at `}${spell === undefined ? "" : `${spell.name}${spell.damageType === undefined ? "" : ` ${spell.damageTypeUse === "dealt" ? "of" : "against"} ${spell.damageType}`}${spell.slotLevel === undefined ? "" : ` (level ${spell.slotLevel} slot)`} at `}${target === undefined || action === "leave" ? "" : target.name}${approach === undefined ? "" : ` with ${approach.name}${approach.dc === undefined ? "" : ` DC ${approach.dc}`}`}${cunningStrike === undefined ? "" : ` with Cunning Strike (${cunningStrike.name})`}${retry === undefined ? "" : ` (${retry.reason})`}${available ? "" : ` — ${String(reason)}`}`,
+        `  ${index + 1}. ${retry === undefined ? "" : "Try again: "}${LABELS[action]}${mode === undefined ? "" : `(${mode}) at `}${spell === undefined ? "" : `${spell.name}${spell.damageType === undefined ? "" : ` ${spell.damageTypeUse === "dealt" ? "of" : "against"} ${spell.damageType}`}${spell.curseName === undefined ? "" : ` (${spell.curseName})`}${spell.slotLevel === undefined ? "" : ` (level ${spell.slotLevel} slot)`} at `}${target === undefined || action === "leave" ? "" : target.name}${approach === undefined ? "" : ` with ${approach.name}${approach.dc === undefined ? "" : ` DC ${approach.dc}`}`}${cunningStrike === undefined ? "" : ` with Cunning Strike (${cunningStrike.name})`}${retry === undefined ? "" : ` (${retry.reason})`}${available ? "" : ` — ${String(reason)}`}`,
     ),
   ].join("\n");
 }

@@ -2,8 +2,8 @@
 // uses, one back on a short rest) and three 1st-level slots; level 3 the
 // Life Domain (Disciple of Life, Preserve Life and its always-prepared
 // spells) and 2nd-level slots and spells. A new level's spells are chosen
-// on the sheet before the next adventure; a Cleric stays at level 3 for
-// now, keeping its XP. Engine tests are in issue-341-engine.test.mjs.
+// on the sheet before the next adventure. Engine tests are in
+// issue-341-engine.test.mjs.
 import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -19,7 +19,6 @@ import {
   prepareSpells,
   settleCharacter,
   spellsOwed,
-  validateCharacter,
   withOwedSpells,
 } from "../dist/character-5e.js";
 import {
@@ -193,7 +192,7 @@ test("a level-3 Cleric's numbers: the Life Domain and 2nd-level slots", () => {
   // Six chosen, besides the four always prepared.
   assert.equal(sheet.spells.prepared.length, 6);
   assert.ok(!sheet.spells.prepared.includes("bless"));
-  assert.equal(profile.nextLevelXp, undefined);
+  assert.equal(profile.nextLevelXp, 2700);
 });
 
 test("reaching level 3 frees the choices that are now always prepared", () => {
@@ -239,6 +238,7 @@ test("reaching level 3 frees the choices that are now always prepared", () => {
   const changes = levelUpChanges(before, after);
   assert.deepEqual(changes.spells, {
     slots: { before: [3], after: [4, 2] },
+    cantrips: { before: 3, after: 3 },
     prepared: { before: 5, after: 6 },
     alwaysPrepared: ["aid", "bless", "cure-wounds", "lesser-restoration"],
     newSpells: [
@@ -248,6 +248,7 @@ test("reaching level 3 frees the choices that are now always prepared", () => {
       "prayer-of-healing",
     ],
     owed: 3,
+    cantripsOwed: 0,
   });
   assert.deepEqual(
     changes.features.map(({ name }) => name),
@@ -287,14 +288,4 @@ test("a level-3 Cleric fights with Channel Divinity and its domain's spells", ()
     { uses: 4, max: 4 },
     { uses: 2, max: 2 },
   ]);
-});
-
-test("a Cleric stays at level 3 for now, keeping the XP it earns", () => {
-  const settled = earn(level3(), 5000, "far");
-  assert.equal(settled.level, 3);
-  assert.equal(settled.xp, 5900);
-  assert.throws(
-    () => validateCharacter({ ...settled, level: 4 }),
-    /Character level differs from experience points\./u,
-  );
 });

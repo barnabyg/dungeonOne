@@ -46,7 +46,7 @@ import {
 } from "./session-5e.js";
 import { PLAYER_ID, spellSummary, type FifthAction } from "./runtime-5e.js";
 import type { DamageType } from "./encounter-5e.js";
-import { SPELLS, type SpellId } from "./spells-5e.js";
+import { SPELLS, type CurseId, type SpellId } from "./spells-5e.js";
 import { loadGateVerdicts, recordedOrGated } from "./gate-verdicts-5e.js";
 import {
   ammunitionCount,
@@ -76,6 +76,7 @@ import {
   preparableSpells,
   spellCounts,
   spellsOwed,
+  learnableCantrips,
   projectCreation,
   projectLevelChoice,
   settleCharacter,
@@ -340,6 +341,9 @@ function libraryView(
                   sheet.divineOrder,
                 ).prepared,
                 owed: spellsOwed(sheet).prepared,
+                // The cantrips a new level lets it learn (#342).
+                cantripsOwed: spellsOwed(sheet).cantrips,
+                learnable: learnableCantrips(sheet).map(spellView),
                 alwaysPrepared: (
                   characterProfile(sheet).spellcasting?.alwaysPrepared ?? []
                 ).map(spellView),
@@ -842,11 +846,12 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           !hasExactKeys(
             body,
             ["sessionId", "sequence", "spellId", "slotLevel", "targetIds"],
-            // Resistance's damage type (#339).
-            ["damageType"],
+            // Resistance's damage type (#339), Bestow Curse's curse (#342).
+            ["damageType", "curse"],
           ) ||
           (body.damageType !== undefined &&
             typeof body.damageType !== "string") ||
+          (body.curse !== undefined && typeof body.curse !== "string") ||
           typeof body.spellId !== "string" ||
           !Array.isArray(body.targetIds) ||
           !body.targetIds.every((id) => typeof id === "string") ||
@@ -865,6 +870,7 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           ...(body.damageType === undefined
             ? {}
             : { damageType: body.damageType as DamageType }),
+          ...(body.curse === undefined ? {} : { curse: body.curse as CurseId }),
         });
       case "/api/5e/session/long-rest":
         // A long rest at a rest site (#335); the engine refuses it elsewhere.
@@ -1029,6 +1035,24 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             library.prepareSpells(
               body.characterId as string,
               body.prepared,
+              body.revision as string,
+            ),
+          ),
+        );
+      case "/api/5e/characters/learn-cantrips":
+        // A new level's cantrips (#342), learned between adventures.
+        if (
+          !hasExactKeys(body, ["revision", "characterId", "cantrips"]) ||
+          typeof body.revision !== "string" ||
+          typeof body.characterId !== "string"
+        ) {
+          throw new Error("Invalid cantrips request.");
+        }
+        return view(
+          await serialized(() =>
+            library.learnCantrips(
+              body.characterId as string,
+              body.cantrips,
               body.revision as string,
             ),
           ),

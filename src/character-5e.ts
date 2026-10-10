@@ -548,30 +548,62 @@ export function spellsOwed(
 }
 
 /**
- * `sheet` with the spells it owes (#341) prepared in its class list's
- * order, the first it may prepare and hasn't: the balance harness's
- * policy, and a player's default. Unchanged when it owes none.
+ * The cantrips `sheet` could learn (#342): those on its class's list it
+ * doesn't know yet.
  */
-export function withOwedSpells(sheet: CharacterSheet): CharacterSheet {
-  const { prepared: owed } = spellsOwed(sheet);
-  if (owed === 0 || sheet.spells === undefined) {
-    return sheet;
+export function learnableCantrips(
+  sheet: Pick<CharacterSheet, "class" | "spells">,
+): readonly SpellId[] {
+  const casting = classOf(sheet).spellcasting;
+  if (casting === undefined || sheet.spells === undefined) {
+    return [];
   }
-  const chosen = sheet.spells.prepared;
-  const more = preparableSpells(sheet)
-    .filter((id) => !chosen.includes(id))
-    .slice(0, owed);
-  return prepareSpells(sheet, [...chosen, ...more]);
+  const known = sheet.spells.cantrips;
+  return casting.list.filter(
+    (id) => SPELLS[id].level === 0 && !known.includes(id),
+  );
 }
 
-/** "1 more spell to prepare": what `sheet` owes (#341), or undefined. */
+/**
+ * `sheet` with the cantrips (#342) and spells (#341) it owes chosen in its
+ * class list's order, the first it may choose and hasn't: the balance
+ * harness's policy, and a player's default. Unchanged when it owes none.
+ */
+export function withOwedSpells(sheet: CharacterSheet): CharacterSheet {
+  const { cantrips, prepared: owed } = spellsOwed(sheet);
+  const learned =
+    cantrips === 0
+      ? sheet
+      : learnCantrips(sheet, learnableCantrips(sheet).slice(0, cantrips));
+  if (owed === 0 || learned.spells === undefined) {
+    return learned;
+  }
+  const chosen = learned.spells.prepared;
+  const more = preparableSpells(learned)
+    .filter((id) => !chosen.includes(id))
+    .slice(0, owed);
+  return prepareSpells(learned, [...chosen, ...more]);
+}
+
+/**
+ * "1 more cantrip to learn and 2 more spells to prepare": what `sheet`
+ * owes (#341, #342), or undefined.
+ */
 export function spellsOwedWords(
   sheet: Pick<CharacterSheet, "class" | "level" | "spells" | "divineOrder">,
 ): string | undefined {
-  const { prepared } = spellsOwed(sheet);
-  return prepared === 0
-    ? undefined
-    : `${prepared} more ${prepared === 1 ? "spell" : "spells"} to prepare`;
+  const { cantrips, prepared } = spellsOwed(sheet);
+  const owed = [
+    ...(cantrips === 0
+      ? []
+      : [
+          `${cantrips} more ${cantrips === 1 ? "cantrip" : "cantrips"} to learn`,
+        ]),
+    ...(prepared === 0
+      ? []
+      : [`${prepared} more ${prepared === 1 ? "spell" : "spells"} to prepare`]),
+  ];
+  return owed.length === 0 ? undefined : owed.join(" and ");
 }
 
 /**
@@ -1724,6 +1756,8 @@ export type CharacterProfile = Readonly<{
     saveDc: number;
     divineSpark: Readonly<{ dice: number; sides: number; modifier: number }>;
     preserveLife?: number;
+    /** Sear Undead's dice (#342): the Wisdom modifier, at least one. */
+    searUndead?: Readonly<{ dice: number; sides: number }>;
   }>;
   /** Cunning Action (#307): it can Hide as a bonus action. */
   cunningAction?: true;
@@ -1972,6 +2006,7 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
   const [sneak] = effects(definition, level, "sneak-attack");
   const [channel] = effects(definition, level, "channel-divinity");
   const [preserve] = effects(definition, level, "preserve-life");
+  const [sear] = effects(definition, level, "sear-undead");
   const always = alwaysPrepared(definition, level);
   const casting = definition.spellcasting;
   const has = (kind: FeatureEffect["kind"]) =>
@@ -2098,6 +2133,15 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
             ...(preserve === undefined
               ? {}
               : { preserveLife: preserve.effect.perLevel * level }),
+            // Sear Undead (#342).
+            ...(sear === undefined
+              ? {}
+              : {
+                  searUndead: {
+                    dice: Math.max(1, modifiers[casting.ability]),
+                    sides: sear.effect.sides,
+                  },
+                }),
           },
         }),
     // Arcane Recovery (#340): spell slot levels a short rest regains.
@@ -2359,10 +2403,14 @@ export type LevelUpChanges = Readonly<{
    */
   spells?: Readonly<{
     slots: Readonly<{ before: readonly number[]; after: readonly number[] }>;
+    /** Cantrips known (#342): a new one is learned on the sheet. */
+    cantrips: Readonly<{ before: number; after: number }>;
     prepared: Readonly<{ before: number; after: number }>;
     alwaysPrepared: readonly SpellId[];
     newSpells: readonly SpellId[];
     owed: number;
+    /** Cantrips still to learn before the next adventure (#342). */
+    cantripsOwed: number;
   }>;
   /** The class features gained, in the sheet's order. */
   features: readonly Feature[];
@@ -2433,10 +2481,16 @@ function spellChanges(
   const casting = definition.spellcasting!;
   const was = alwaysPrepared(definition, before.level);
   const highest = casting.slots[before.level].length;
+  const owed = spellsOwed({ ...after, spells: after.spells! });
   return {
     slots: {
       before: casting.slots[before.level],
       after: casting.slots[after.level],
+    },
+    cantrips: {
+      before: spellCounts(definition, before.level, before.divineOrder)
+        .cantrips,
+      after: spellCounts(definition, after.level, after.divineOrder).cantrips,
     },
     prepared: {
       before: casting.prepared[before.level],
@@ -2448,7 +2502,8 @@ function spellChanges(
     newSpells: preparableSpells(after).filter(
       (id) => SPELLS[id].level > highest,
     ),
-    owed: spellsOwed({ ...after, spells: after.spells! }).prepared,
+    owed: owed.prepared,
+    cantripsOwed: owed.cantrips,
   };
 }
 
@@ -2630,6 +2685,48 @@ export function prepareSpells(
   return validateCharacter({
     ...sheet,
     spells: { cantrips: sheet.spells.cantrips, prepared: [...prepared] },
+  });
+}
+
+/**
+ * `sheet` having learned `learned` (#342), the cantrips a new level lets it
+ * add: exactly as many as it owes, each on its class's list and not yet
+ * known. Its cantrips are never swapped.
+ */
+export function learnCantrips(
+  sheet: CharacterSheet,
+  learned: unknown,
+): CharacterSheet {
+  if (sheet.spells === undefined) {
+    throw new Error(`${sheet.name} casts no spells.`);
+  }
+  if (!Array.isArray(learned)) {
+    throw new Error("Invalid cantrips.");
+  }
+  const { cantrips: owed } = spellsOwed(sheet);
+  if (owed === 0) {
+    throw new Error(`${sheet.name} has no cantrip to learn.`);
+  }
+  if (learned.length !== owed) {
+    throw new Error(
+      `Choose ${owed} ${owed === 1 ? "cantrip" : "cantrips"} to learn; ${learned.length} chosen.`,
+    );
+  }
+  const open = learnableCantrips(sheet);
+  if (
+    new Set(learned).size !== learned.length ||
+    !learned.every((id) => (open as readonly unknown[]).includes(id))
+  ) {
+    throw new Error(
+      `${sheet.name} learns only cantrips on its list it doesn't know: ${open.map((id) => SPELLS[id].name).join(", ")}.`,
+    );
+  }
+  return validateCharacter({
+    ...sheet,
+    spells: {
+      cantrips: [...sheet.spells.cantrips, ...(learned as SpellId[])],
+      prepared: sheet.spells.prepared,
+    },
   });
 }
 
