@@ -141,6 +141,7 @@ export type FifthToolName =
   | "tactical_mind"
   | "rest"
   | "long_rest"
+  | "cast"
   | "light_attack"
   | "sneak"
   | "ambush"

@@ -881,6 +881,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   "tactical-mind": "tactical_mind",
   rest: "rest",
   "long-rest": "long_rest",
+  cast: "cast",
 };
 const READ_TOOLS = ["look", "get_character_status"];
 /** The actions whose tools take no argument. */
@@ -926,10 +927,14 @@ export function offeredToolsMatchActions(session: FifthSession): boolean {
       ({ available, action, cunningStrike }) =>
         available && TOOL_OF[action] && cunningStrike === undefined,
     )
-    .flatMap(({ action, target, rest }) => {
+    .flatMap(({ action, target, rest, spell }) => {
       // A rest (#334) takes each number of hit dice the engine accepts.
       if (action === "rest") {
         return rest!.hitDice.map((count) => `rest:${count}`);
+      }
+      // A cast (#336) is offered by its spell.
+      if (action === "cast") {
+        return [`cast:${spell!.id}`];
       }
       if (UNTARGETED.includes(action)) {
         return [TOOL_OF[action]!];

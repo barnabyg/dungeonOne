@@ -448,14 +448,16 @@ test("within each table no item is both cheaper and strictly better than another
 });
 
 test("kits hold only common-tier items, are legal loadouts and are of equal value within each class", () => {
-  // Every kit belongs to a class; each class offers two to four.
+  // Every kit belongs to a class creation offers; each offers two to four.
+  // The test-only caster (#336) borrows the Fighter's mace kit.
+  const offered = Object.values(CLASSES).filter(
+    ({ testOnly }) => testOnly !== true,
+  );
   assert.deepEqual(
-    Object.values(CLASSES)
-      .flatMap(({ kits }) => kits)
-      .sort(),
+    offered.flatMap(({ kits }) => kits).sort(),
     Object.keys(STARTING_KITS).sort(),
   );
-  for (const { name, kits } of Object.values(CLASSES)) {
+  for (const { name, kits } of offered) {
     assert.ok(kits.length >= 2 && kits.length <= 4, name);
     for (const kit of kits) {
       assert.ok(isKitId(kit));

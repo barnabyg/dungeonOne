@@ -840,6 +840,9 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   // A long rest at a rest site (#335), taken below the heal threshold
   // before a short rest.
   "long-rest": true,
+  // No class the gate plays casts spells yet (#336); the caster harness
+  // policies come with the casting classes (#348).
+  cast: false,
   // Gear changes are never needed to get through, so no style makes one.
   equip: false,
   unequip: false,

@@ -21,7 +21,7 @@ The data a class is made of: hit die, saving throws, skill choices, armour, weap
 _Avoid_: Class rules, Hard-coded Fighter
 
 **Feature uses**:
-How many more times the character can use each class feature with limited uses (Second Wind, Action Surge) in the current adventure, tracked by feature id. Its class definition gives the most at each level and what a short rest and a long rest each restore.
+How many more times the character can use each class feature with limited uses (Second Wind, Action Surge) in the current adventure, tracked by feature id; spell slots are tracked the same way. Its class definition gives the most at each level and what a short rest and a long rest each restore.
 _Avoid_: Charges, Second Wind counter
 
 **Hit dice**:
@@ -35,6 +35,26 @@ _Avoid_: Breather, Camp
 **Long rest**:
 A rest at a rest site (#335), outside a fight with no foes left, at most one per adventure: it restores every hit point, hit die and feature use.
 _Avoid_: Sleep, Camp
+
+**Spell**:
+Magic a character of a casting class casts (#336), defined as data from SRD 5.2: its level (0 for a cantrip), school, casting time and effect: a spell attack, a saving throw for half or no damage, missiles that always hit, or healing. A character casts the cantrips it knows and the spells it has prepared, both recorded on its sheet.
+_Avoid_: Power, Ability (for a spell)
+
+**Cantrip**:
+A level-0 spell, cast at will without a spell slot; its damage grows at character level 5.
+_Avoid_: Level-0 slot
+
+**Spell slot**:
+What casting a levelled spell spends (#336): one slot of the spell's level or higher, and a higher slot makes the spell stronger. A casting class's definition gives its slots of each level by character level; they are tracked as feature uses, so a long rest restores them and a short rest doesn't. Only one slot may be spent a turn.
+_Avoid_: Mana, Spell points
+
+**Magic action**:
+The action a spell with a casting time of an action takes in a fight (#336); a bonus-action spell takes the bonus action instead.
+_Avoid_: Cast action
+
+**Test caster**:
+A test-only casting class and its fixed character, Sage (#336), that exercise the casting engine until a playable class casts. Creation never offers it and the gate never plays it.
+_Avoid_: Wizard, Cleric (for the test caster)
 
 **Rest site**:
 A room a module marks as a safe place to rest, where a long rest may be taken.

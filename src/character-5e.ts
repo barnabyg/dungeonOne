@@ -33,6 +33,8 @@ import {
   type FightingStyleUse,
   type Level,
   type SkillId,
+  type SpellChoices,
+  SPELL_SLOT_RECOVERY,
 } from "./class-5e.js";
 import {
   AMMUNITION,
@@ -66,12 +68,29 @@ import {
 import { FIGHTER } from "./fighter-5e.js";
 import type { RandomSource } from "./random.js";
 import { ROGUE } from "./rogue-5e.js";
+import {
+  isSpellId,
+  ordinal,
+  slotUsesId,
+  SPELLS,
+  type SpellId,
+} from "./spells-5e.js";
+import { TEST_CASTER_CLASS } from "./test-caster-class-5e.js";
 
-/** Every class a sheet can name, by id, in the order creation offers them. */
+/**
+ * Every class a sheet can name, by id, in the order creation offers them.
+ * Creation never offers a test-only class (#336): see `OFFERED_CLASS_IDS`.
+ */
 export const CLASSES: Readonly<Record<ClassId, ClassDefinition>> = {
   fighter: FIGHTER,
   rogue: ROGUE,
+  "test-caster": TEST_CASTER_CLASS,
 };
+
+/** The classes creation offers, in order: every class but test-only ones. */
+export const OFFERED_CLASS_IDS: readonly ClassId[] = (
+  Object.keys(CLASSES) as ClassId[]
+).filter((id) => CLASSES[id].testOnly !== true);
 
 /**
  * The class creation starts with, and the balance harness, the gate and the
@@ -130,6 +149,8 @@ export type CreationChoices = Readonly<{
   fightingStyle?: FightingStyle;
   /** The skills chosen for Expertise, exactly for a class with it (#306). */
   expertise?: readonly SkillId[];
+  /** Cantrips and prepared spells, exactly for a class that casts (#336). */
+  spells?: SpellChoices;
   /** The starting kit, from `STARTING_KITS`. */
   kit: KitId;
   /** The kinds of weapon mastered, from `MASTERY_WEAPONS`. */
@@ -239,6 +260,11 @@ export type CharacterSheet = Readonly<{
    * exactly when its class has Expertise (#306).
    */
   expertise?: readonly SkillId[];
+  /**
+   * The cantrips it knows and the spells it has prepared, present exactly
+   * when its class casts spells (#336).
+   */
+  spells?: SpellChoices;
   /** The kinds of weapon whose mastery it can use. */
   weaponMasteries: readonly WeaponId[];
   /** What it has equipped; see `Possessions`. */
@@ -282,6 +308,7 @@ const SHEET_KEYS = [
 export const CLASS_CHOICE_KEYS: readonly string[] = [
   "fightingStyle",
   "expertise",
+  "spells",
 ];
 
 export function abilityModifier(score: number): number {
@@ -627,6 +654,66 @@ function validateFightingStyle(value: unknown): FightingStyle {
 }
 
 /** A Fighting Style for a class with one; none for any other. */
+/**
+ * A caster's spell choices at `level` (#336): exactly its class's count of
+ * distinct cantrips and of distinct levelled spells it has slots for, each
+ * on the class's list. A class that casts nothing has none.
+ */
+function validateSpellChoices(
+  definition: ClassDefinition,
+  level: Level,
+  value: unknown,
+): SpellChoices | undefined {
+  const casting = definition.spellcasting;
+  if (casting === undefined) {
+    if (value !== undefined) {
+      throw new Error(`A ${definition.name} casts no spells.`);
+    }
+    return undefined;
+  }
+  const choices = value as SpellChoices;
+  if (
+    !isRecord(value) ||
+    Object.keys(value).sort().join(",") !== "cantrips,prepared" ||
+    !Array.isArray(choices.cantrips) ||
+    !Array.isArray(choices.prepared)
+  ) {
+    throw new Error("Invalid spell choices.");
+  }
+  const highest = casting.slots[level].length;
+  const pick = (
+    ids: readonly unknown[],
+    count: number,
+    fits: (id: SpellId) => boolean,
+    what: string,
+  ): SpellId[] => {
+    if (
+      ids.length !== count ||
+      new Set(ids).size !== ids.length ||
+      !ids.every((id) => isSpellId(id) && casting.list.includes(id) && fits(id))
+    ) {
+      throw new Error(
+        `A level ${level} ${definition.name} ${what} ${count} different spells from its list.`,
+      );
+    }
+    return [...(ids as SpellId[])];
+  };
+  return {
+    cantrips: pick(
+      choices.cantrips,
+      casting.cantrips[level],
+      (id) => SPELLS[id].level === 0,
+      "knows cantrips:",
+    ),
+    prepared: pick(
+      choices.prepared,
+      casting.prepared[level],
+      (id) => SPELLS[id].level >= 1 && SPELLS[id].level <= highest,
+      "prepares levelled spells it has slots for:",
+    ),
+  };
+}
+
 function validateClassStyle(
   definition: ClassDefinition,
   value: unknown,
@@ -857,6 +944,7 @@ export function buildCharacter(
     skills,
     choices.expertise,
   );
+  const spells = validateSpellChoices(definition, 1, choices.spells);
   const base = {
     id,
     name: name.trim(),
@@ -876,6 +964,7 @@ export function buildCharacter(
     skills,
     ...(fightingStyle === undefined ? {} : { fightingStyle }),
     ...(expertise === undefined ? {} : { expertise }),
+    ...(spells === undefined ? {} : { spells }),
     weaponMasteries: validateMasteries(definition, choices.masteries),
     ...(() => {
       const kit: KitData = STARTING_KITS[validateKit(definition, choices.kit)];
@@ -1180,6 +1269,7 @@ export function validateCharacter(value: unknown): CharacterSheet {
     skills,
     sheet.expertise,
   );
+  validateSpellChoices(definition, sheet.level, sheet.spells);
   // Each level choice (#286) is an Ability Score Improvement and its level's
   // new masteries, made together; a sheet may still owe its latest one.
   if (
@@ -1263,6 +1353,8 @@ export type CharacterProfile = Readonly<{
   featureUses: Readonly<Record<string, FeatureUsesProfile>>;
   /** The hit-dice pool (#333): one die of the class's hit die per level. */
   hitDice: Readonly<{ count: number; sides: number }>;
+  /** Its spellcasting (#336), for a class that casts spells. */
+  spellcasting?: SpellcastingProfile;
   /** Cunning Action (#307): it can Hide as a bonus action. */
   cunningAction?: true;
   /** Steady Aim (#307): a bonus action for advantage on its next attack. */
@@ -1361,6 +1453,7 @@ type ProfiledSheet = Pick<
   | "skills"
   | "fightingStyle"
   | "expertise"
+  | "spells"
   | "equipment"
   | "weaponMasteries"
 >;
@@ -1414,6 +1507,7 @@ const PROFILED_FIELDS = Object.keys({
   skills: true,
   fightingStyle: true,
   expertise: true,
+  spells: true,
   equipment: true,
   weaponMasteries: true,
 } satisfies Record<keyof ProfiledSheet, true>) as (keyof ProfiledSheet)[];
@@ -1499,6 +1593,7 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
   });
   const [wind] = effects(definition, level, "second-wind");
   const [sneak] = effects(definition, level, "sneak-attack");
+  const casting = definition.spellcasting;
   const has = (kind: FeatureEffect["kind"]) =>
     effects(definition, level, kind).length > 0;
   const hitDie = definition.hitDie;
@@ -1570,14 +1665,32 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
       : {
           secondWind: { healing: { ...wind.effect.healing, modifier: level } },
         }),
-    featureUses: Object.fromEntries(
-      classFeatures(definition, level).flatMap(({ id, uses, recovery }) =>
+    featureUses: Object.fromEntries([
+      ...classFeatures(definition, level).flatMap(({ id, uses, recovery }) =>
         uses === undefined || uses[level] === 0
           ? []
           : [[id, { max: uses[level], recovery }]],
       ),
-    ),
+      // Spell slots (#336) recover as feature uses do.
+      ...(casting?.slots[level] ?? []).map((max, index) => [
+        slotUsesId(index + 1),
+        { max, recovery: SPELL_SLOT_RECOVERY },
+      ]),
+    ]),
     hitDice: { count: level, sides: hitDie },
+    ...(casting === undefined || sheet.spells === undefined
+      ? {}
+      : {
+          spellcasting: {
+            ability: casting.ability,
+            modifier: modifiers[casting.ability],
+            attackBonus: proficiency + modifiers[casting.ability],
+            saveDc: 8 + proficiency + modifiers[casting.ability],
+            cantrips: sheet.spells.cantrips,
+            prepared: sheet.spells.prepared,
+            slots: casting.slots[level],
+          },
+        }),
     ...(has("cunning-action") ? { cunningAction: true as const } : {}),
     ...(has("steady-aim") ? { steadyAim: true as const } : {}),
     ...(has("fast-hands") ? { fastHands: true as const } : {}),
@@ -1663,6 +1776,38 @@ export function settleCharacter(
     finds: [...sheet.finds, ...finds],
     xpAwards: [...sheet.xpAwards, ...awards.map(({ id }) => id)],
   });
+}
+
+/**
+ * A caster's numbers (#336): its spellcasting ability and modifier, spell
+ * attack bonus (proficiency + modifier), spell save DC (8 + proficiency +
+ * modifier), cantrips known, spells prepared and spell slots by level, 1st
+ * first. Its slots are also feature uses, `spell-slots-1` and on, so rests
+ * restore them as they restore features.
+ */
+export type SpellcastingProfile = Readonly<{
+  ability: Ability;
+  modifier: number;
+  attackBonus: number;
+  saveDc: number;
+  cantrips: readonly SpellId[];
+  prepared: readonly SpellId[];
+  slots: readonly number[];
+}>;
+
+/**
+ * The name of the feature, or the spell slots (#336), whose uses
+ * `featureId` tracks: "Second Wind", "1st-level spell slots".
+ */
+export function featureUsesName(
+  profile: Pick<CharacterProfile, "features">,
+  featureId: string,
+): string {
+  const slot = /^spell-slots-(\d)$/u.exec(featureId);
+  if (slot !== null) {
+    return `${ordinal(Number(slot[1]))}-level spell slots`;
+  }
+  return profile.features.find(({ id }) => id === featureId)?.name ?? featureId;
 }
 
 /** A feature's uses at a level and how they come back (#333). */
