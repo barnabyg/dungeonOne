@@ -1,6 +1,6 @@
 /**
- * The 5e character library (format version 18: a sheet may be a Wizard,
- * with its spellbook, #340).
+ * The 5e character library (format version 19: a Cleric may reach level 3, #341;
+ * a sheet may owe the spells a new level adds).
  *
  * It holds saved 5e characters and at most one pending creation: the dice of
  * a character being created. Each character record names its adventure session
@@ -50,7 +50,7 @@ import {
 import { ABILITIES, type ClassId } from "./class-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 18;
+export const FIFTH_LIBRARY_FORMAT = 19;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 

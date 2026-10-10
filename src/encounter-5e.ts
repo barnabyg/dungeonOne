@@ -2308,6 +2308,30 @@ function channelRefusal(
     : undefined;
 }
 
+/**
+ * `state` with a use of `actor`'s Channel Divinity and its action spent
+ * (#341), and the uses left.
+ */
+function spendChannel(
+  state: EncounterState,
+  actor: Combatant,
+): Readonly<{ state: EncounterState; usesLeft: number }> {
+  const channel = actor.channelDivinity!;
+  const usesLeft = channel.uses - 1;
+  return {
+    usesLeft,
+    state: {
+      ...state,
+      combatants: state.combatants.map((candidate) =>
+        candidate.id === actor.id
+          ? { ...candidate, channelDivinity: { ...channel, uses: usesLeft } }
+          : candidate,
+      ),
+      economy: { ...state.economy, actions: state.economy.actions - 1 },
+    },
+  };
+}
+
 /** The undead opponents of `actor` still in the fight and not turned (#341). */
 function turnable(state: EncounterState, actor: Combatant): Combatant[] {
   return legalTargets(state, actor.id).filter(
@@ -2358,17 +2382,6 @@ function preserveLifeRefusal(
         "Preserve Life heals only the Bloodied, and never above half their hit points: you are at half or more.",
       )
     : undefined;
-}
-
-/**
- * Whether Divine Spark (#341) has a target now: an opponent always, while
- * the fight goes on.
- */
-function divineSparkRefusal(
-  state: EncounterState,
-  actor: Combatant,
-): EncounterRejection | undefined {
-  return channelRefusal(state, actor);
 }
 
 /** The Spiritual Weapon `actor` commands (#341), if any. */
@@ -2459,7 +2472,8 @@ export function availableActions(
       ? (["drink-potion"] as const)
       : []),
     ...(canCast(state, actor) ? (["cast"] as const) : []),
-    ...(divineSparkRefusal(state, actor) === undefined
+    // Divine Spark (#341) always has an opponent while the fight goes on.
+    ...(channelRefusal(state, actor) === undefined
       ? (["divine-spark"] as const)
       : []),
     ...(turnUndeadRefusal(state, actor) === undefined
@@ -3630,8 +3644,14 @@ function fall(
   events: EncounterEvent[],
 ): EncounterState {
   events.push({ type: "defeated", combatantId: target.id });
-  // A fallen caster's concentration ends (#337).
-  const fallen = endConcentration(state, target.id, "fell", events);
+  // A fallen caster's concentration ends (#337), and the turning it gave
+  // (#341).
+  const fallen = endEffects(
+    endConcentration(state, target.id, "fell", events),
+    (effect) => effect.casterId === target.id && controls(effect, "turning"),
+    "fell",
+    events,
+  );
   return checkMorale(
     {
       ...fallen,
@@ -4511,8 +4531,8 @@ function castSpell(
       const rolls = rollDice(random, effect.healing.dice, effect.healing.sides);
       const modifier = effect.noModifier === true ? 0 : casting.modifier;
       const disciple =
-        casting.discipleOfLife === true && slotIndex !== undefined
-          ? 2 + slotIndex + 1
+        casting.discipleOfLife === true && action.slotLevel !== undefined
+          ? 2 + action.slotLevel
           : 0;
       const hpAfter = Math.min(
         target.maxHp,
@@ -4806,22 +4826,15 @@ function turnUndead(
 ): EncounterState {
   const channel = actor.channelDivinity!;
   const targets = turnable(state, actor);
-  const usesLeft = channel.uses - 1;
+  const spent = spendChannel(state, actor);
+  const { usesLeft } = spent;
   events.push({
     type: "turn-undead",
     combatantId: actor.id,
     targetIds: targets.map(({ id }) => id),
     usesLeft,
   });
-  let next: EncounterState = {
-    ...state,
-    combatants: state.combatants.map((candidate) =>
-      candidate.id === actor.id
-        ? { ...candidate, channelDivinity: { ...channel, uses: usesLeft } }
-        : candidate,
-    ),
-    economy: { ...state.economy, actions: state.economy.actions - 1 },
-  };
+  let next = spent.state;
   for (const target of targets) {
     const thrown = savingThrow(
       next,
@@ -4838,7 +4851,11 @@ function turnUndead(
       success: thrown.success,
       save: thrown,
     });
-    if (thrown.success) {
+    // A creature immune to both conditions isn't turned (#341).
+    const kinds = (["frightened", "incapacitated"] as const).filter(
+      (kind) => target.conditionImmunities?.includes(kind) !== true,
+    );
+    if (thrown.success || kinds.length === 0) {
       continue;
     }
     const held: ActiveEffect = {
@@ -4849,16 +4866,14 @@ function turnUndead(
       ends: "fight",
     };
     events.push({ type: "effect", targetId: target.id, ...held });
-    const given = (["frightened", "incapacitated"] as const)
-      .filter((kind) => target.conditionImmunities?.includes(kind) !== true)
-      .map((kind): Condition => ({
-        kind,
-        targetId: target.id,
-        sourceId: actor.id,
-        source: TURN_UNDEAD,
-        turnsLeft: 1,
-        spellId: TURN_UNDEAD_ID,
-      }));
+    const given = kinds.map((kind): Condition => ({
+      kind,
+      targetId: target.id,
+      sourceId: actor.id,
+      source: TURN_UNDEAD,
+      turnsLeft: 1,
+      spellId: TURN_UNDEAD_ID,
+    }));
     for (const condition of given) {
       events.push(conditionEvent(condition));
     }
@@ -4900,16 +4915,7 @@ function divineSpark(
   events: EncounterEvent[],
 ): EncounterState {
   const channel = actor.channelDivinity!;
-  const usesLeft = channel.uses - 1;
-  const spent: EncounterState = {
-    ...state,
-    combatants: state.combatants.map((candidate) =>
-      candidate.id === actor.id
-        ? { ...candidate, channelDivinity: { ...channel, uses: usesLeft } }
-        : candidate,
-    ),
-    economy: { ...state.economy, actions: state.economy.actions - 1 },
-  };
+  const { state: spent, usesLeft } = spendChannel(state, actor);
   const { dice, sides, modifier } = channel.divineSpark;
   const common = {
     type: "divine-spark" as const,
@@ -5521,7 +5527,7 @@ export function act(
       break;
     }
     case "divine-spark": {
-      const refusal = divineSparkRefusal(state, actor);
+      const refusal = channelRefusal(state, actor);
       if (refusal !== undefined) {
         return { state, rejection: refusal };
       }
@@ -5583,9 +5589,9 @@ export function act(
       if (refusal !== undefined) {
         return { state, rejection: refusal };
       }
-      const channel = actor.channelDivinity!;
       const healing = preserved(actor);
-      const usesLeft = channel.uses - 1;
+      const spent = spendChannel(state, actor);
+      const { usesLeft } = spent;
       events.push({
         type: "preserve-life",
         combatantId: actor.id,
@@ -5595,17 +5601,12 @@ export function act(
         usesLeft,
       });
       next = {
-        ...state,
-        combatants: state.combatants.map((candidate) =>
+        ...spent.state,
+        combatants: spent.state.combatants.map((candidate) =>
           candidate.id === actor.id
-            ? {
-                ...candidate,
-                hp: actor.hp + healing,
-                channelDivinity: { ...channel, uses: usesLeft },
-              }
+            ? { ...candidate, hp: actor.hp + healing }
             : candidate,
         ),
-        economy: { ...state.economy, actions: state.economy.actions - 1 },
       };
       break;
     }

@@ -658,3 +658,55 @@ test("Prayer of Healing: only outside a fight, 2d8 with no modifier, once until 
     "You can't benefit from Prayer of Healing again until a long rest.",
   );
 });
+
+test("a turner's fall ends the turning it gave", () => {
+  const bram = {
+    ...ilse(),
+    id: "bram",
+    name: "Bram",
+  };
+  delete bram.channelDivinity;
+  delete bram.spellcasting;
+  delete bram.potions;
+  // Initiative: Ilse 20 (at 1 HP), Zombie 15 − 2, Skeleton 9 + 3, Bram 1.
+  const state = opening(
+    [monster("zombie"), monster("skeleton"), bram],
+    [15, 9, 1],
+    ilse({ hp: 1 }),
+  );
+  // The Zombie fails, the Skeleton saves.
+  const turned = accepted(state, turnUndead, dice([20, 1], [20, 20]));
+  assert.deepEqual(conditionsOn(turned.state, "zombie"), [
+    "frightened",
+    "incapacitated",
+  ]);
+  // The Skeleton picks Ilse (1 of 2) and crits her (2d6 + 3): she falls,
+  // and the Zombie is no longer turned; Bram's turn comes.
+  const felled = accepted(
+    turned.state,
+    endTurn,
+    dice([2, 1], [20, 20], [6, 3], [6, 3]),
+  );
+  assert.equal(combatant(felled.state, "pc").hp, 0);
+  assert.deepEqual(
+    ended(felled.events, "fell").map(({ targetId }) => targetId),
+    ["zombie"],
+  );
+  assert.deepEqual(conditionsOn(felled.state, "zombie"), []);
+  assert.equal(currentCombatant(felled.state).id, "bram");
+});
+
+test("an undead immune to both conditions isn't turned", () => {
+  const state = opening(
+    [
+      monster("zombie", {
+        conditionImmunities: ["exhaustion", "frightened", "incapacitated"],
+      }),
+    ],
+    [15],
+  );
+  const tried = accepted(state, turnUndead, dice([20, 1]));
+  assert.deepEqual(conditionsOn(tried.state, "zombie"), []);
+  assert.equal(combatant(tried.state, "zombie").effects, undefined);
+  assert.equal(everyFoeTurned(tried.state, "pc"), false);
+});
