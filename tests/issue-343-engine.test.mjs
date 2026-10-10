@@ -542,3 +542,23 @@ test("Mirror Image ends when its last duplicate is destroyed; a miss rolls no d6
   const [ended] = ofType(last.events, "effect-ended");
   assert.deepEqual([ended.spell, ended.reason], ["Mirror Image", "destroyed"]);
 });
+
+test("Acid Arrow leaves no acid when a Mirror Image duplicate takes its hit", () => {
+  const images = {
+    spellId: "mirror-image",
+    spell: "Mirror Image",
+    casterId: "bandit",
+    buff: { kind: "mirror-image", duplicates: 3 },
+    ends: "fight",
+  };
+  const state = opening([bandit({ effects: [images] })], [10]);
+  const arrow = accepted(
+    state,
+    cast("acid-arrow", "bandit", 2),
+    dice([20, 15], [6, 6], [6, 1], [6, 1]),
+  );
+  const [attack] = ofType(arrow.events, "attack");
+  assert.equal(attack.mirrorImage.struck, true);
+  assert.equal(combatant(arrow.state, "bandit").hp, 40);
+  assert.equal(effectOn(arrow.state, "bandit", "acid-arrow"), undefined);
+});

@@ -4880,8 +4880,13 @@ function castSpell(
       const standing = () =>
         next.outcome === "ongoing" && !isOut(next, combatant(next, target.id));
       // Acid Arrow (#343): a hit leaves acid for the end of the target's
-      // next turn.
-      if (effect.later !== undefined && attack?.hit === true && standing()) {
+      // next turn, unless a Mirror Image duplicate took it.
+      if (
+        effect.later !== undefined &&
+        attack?.hit === true &&
+        attack.mirrorImage?.struck !== true &&
+        standing()
+      ) {
         const acid: ActiveEffect = {
           spellId: spell.id,
           spell: spell.name,
