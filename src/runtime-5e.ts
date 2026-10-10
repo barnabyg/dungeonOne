@@ -4602,8 +4602,9 @@ export function createFifthRuntime(
   });
 
   /**
-   * The feature uses a short rest would restore now (#334): each feature
-   * below its most regains what its class data gives, up to the most.
+   * The feature uses a rest of kind `rest` would restore now: a short rest
+   * (#334) or a long rest (#335). Each feature below its most regains what
+   * its class data gives for that rest, up to the most.
    */
   const restRecovery = (
     state: FifthState,
