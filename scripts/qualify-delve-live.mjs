@@ -10,8 +10,13 @@
 //          [--output <report.json>] [--max-calls <count>]
 // --live needs OPENAI_API_KEY. --dry-run substitutes a provider that always
 // overclaims, to check the harness itself without credentials or calls.
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { join, relative, resolve } from "node:path";
+// A live run keeps its run folder (the character library and saves) under
+// .verify-artifacts/issue-138-live-*; a dry run plays in a temporary folder it
+// removes, and writes only its report (by default
+// .verify-artifacts/issue-138-dry-run.json, so it never overwrites a live one).
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, relative, resolve } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
   OUTCOME_CLAIM,
@@ -30,10 +35,7 @@ const usage = () => {
   process.stderr.write(`${USAGE}\n`);
   process.exit(2);
 };
-const options = {
-  output: ".verify-artifacts/issue-138-live.json",
-  maxCalls: "40",
-};
+const options = { maxCalls: "40" };
 let mode;
 const args = process.argv.slice(2);
 for (let index = 0; index < args.length; index += 1) {
@@ -57,6 +59,7 @@ const dryRun = mode === "--dry-run";
 if (mode === undefined) {
   usage();
 }
+options.output ??= `.verify-artifacts/issue-138-${dryRun ? "dry-run" : "live"}.json`;
 if (!dryRun && !process.env.OPENAI_API_KEY?.trim()) {
   process.stderr.write("OPENAI_API_KEY is required for --live.\n");
   process.exit(2);
@@ -118,9 +121,11 @@ const turns = [
   },
 ];
 
-const root = resolve(".verify-artifacts");
+const root = dryRun ? tmpdir() : resolve(".verify-artifacts");
 await mkdir(root, { recursive: true });
-const directory = await mkdtemp(join(root, "issue-138-live-"));
+const directory = await mkdtemp(
+  join(root, `issue-138-${dryRun ? "dry-run" : "live"}-`),
+);
 const provider = dryRun
   ? {
       identity: { provider: "scripted-dry-run", model: "overclaimer" },
@@ -138,7 +143,8 @@ const report = {
   issue: 138,
   mode: dryRun ? "dry-run" : "live",
   adventureId: "abandoned-delve",
-  runDirectory: relative(process.cwd(), directory),
+  // A dry run's folder is gone once it finishes.
+  ...(dryRun ? {} : { runDirectory: relative(process.cwd(), directory) }),
   requestedModel: OPENAI_DM_DEFAULT_MODEL,
   startedAt: new Date().toISOString(),
   seed: 0,
@@ -218,6 +224,10 @@ try {
   report.providerCalls = budget.calls();
   report.finishedAt = new Date().toISOString();
   await server.close();
+  if (dryRun) {
+    await rm(directory, { recursive: true, force: true });
+  }
+  await mkdir(dirname(output), { recursive: true });
   await writeFile(output, JSON.stringify(report, null, 2) + "\n");
   process.stdout.write(
     `Wrote ${relative(process.cwd(), output)}: ${report.turns.length} turns, ${report.providerCalls} of at most ${maxProviderCalls} provider calls.\n`,

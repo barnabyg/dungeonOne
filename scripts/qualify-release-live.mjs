@@ -19,7 +19,12 @@
 //          [--seed <seed>]
 // --live needs OPENAI_API_KEY. --dry-run substitutes a provider that always
 // overclaims, to check the harness itself without credentials or calls.
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+// A live run keeps its run folder (the character library and saves) under
+// .verify-artifacts/issue-<n>-live-*; a dry run plays in a temporary folder it
+// removes, and writes only its report (by default
+// .verify-artifacts/issue-<n>-dry-run.json, so it never overwrites a live one).
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import {
@@ -108,9 +113,9 @@ if (mode === undefined || !Object.hasOwn(RUNS, options.adventure)) {
   usage();
 }
 const run = RUNS[options.adventure];
-options.output ??= `.verify-artifacts/issue-${run.issue}-live.json`;
-options.seed ??= run.seed;
 const dryRun = mode === "--dry-run";
+options.output ??= `.verify-artifacts/issue-${run.issue}-${dryRun ? "dry-run" : "live"}.json`;
+options.seed ??= run.seed;
 if (!dryRun && !process.env.OPENAI_API_KEY?.trim()) {
   process.stderr.write("OPENAI_API_KEY is required for --live.\n");
   process.exit(2);
@@ -124,9 +129,11 @@ if (maxProviderCalls < 1 || !/^\d+$/u.test(options.seed)) {
 }
 const seed = Number(options.seed);
 
-const root = resolve(".verify-artifacts");
+const root = dryRun ? tmpdir() : resolve(".verify-artifacts");
 await mkdir(root, { recursive: true });
-const directory = await mkdtemp(join(root, `issue-${run.issue}-live-`));
+const directory = await mkdtemp(
+  join(root, `issue-${run.issue}-${dryRun ? "dry-run" : "live"}-`),
+);
 const provider = dryRun
   ? {
       identity: { provider: "scripted-dry-run", model: "overclaimer" },
@@ -144,7 +151,8 @@ const report = {
   issue: run.issue,
   mode: dryRun ? "dry-run" : "live",
   adventureId: options.adventure,
-  runDirectory: relative(process.cwd(), directory),
+  // A dry run's folder is gone once it finishes.
+  ...(dryRun ? {} : { runDirectory: relative(process.cwd(), directory) }),
   requestedModel: OPENAI_DM_DEFAULT_MODEL,
   startedAt: new Date().toISOString(),
   seed,
@@ -236,6 +244,9 @@ try {
   report.providerCalls = budget.calls();
   report.finishedAt = new Date().toISOString();
   await server.close();
+  if (dryRun) {
+    await rm(directory, { recursive: true, force: true });
+  }
   await mkdir(dirname(output), { recursive: true });
   await writeFile(output, JSON.stringify(report, null, 2) + "\n");
   process.stdout.write(

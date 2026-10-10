@@ -505,6 +505,13 @@ These are for development, not play.
   and pressing a step's button only when the DM's turn left it undone, and
   writes a turn-by-turn report (`src/release-run-5e.ts`); `--seed` changes the
   seed and `--dry-run` checks the harness offline.
+- **Where the live checks write.** Both scripts write their report to
+  `--output`, by default `.verify-artifacts/issue-<n>-live.json` (`<n>` is
+  138 for the delve qualification, otherwise the module's issue), and keep the
+  run's character library and saves in a new
+  `.verify-artifacts/issue-<n>-live-*` folder, named in the report's
+  `runDirectory`. A `--dry-run` plays in a temporary folder it removes and
+  writes only its report, by default `.verify-artifacts/issue-<n>-dry-run.json`.
 - **AI smoke test.** `npm.cmd run smoke:ai -- --model <model-id>` asks the live
   AI DM one question through the command-line adapter and fails unless it gets a
   usable reply.
