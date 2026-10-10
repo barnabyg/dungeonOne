@@ -88,6 +88,14 @@ export function effectEnds(duration: SpellDuration): EffectEnds {
       : "long-rest";
 }
 
+/**
+ * Whether an effect ending `ends` outlasts the fight it was cast in (#337):
+ * one lasting to a rest or a long rest. Only those are cast out of a fight.
+ */
+export function outlastsFight(ends: EffectEnds): boolean {
+  return ends === "rest" || ends === "long-rest";
+}
+
 /** What a spell does to its target. */
 export type SpellEffect = Readonly<
   | { kind: "attack"; range: "melee" | "ranged"; damage: SpellDamage }

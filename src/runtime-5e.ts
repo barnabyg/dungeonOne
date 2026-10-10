@@ -219,6 +219,7 @@ import {
   isSpellId,
   maxTargets,
   ordinal,
+  outlastsFight,
   slotUsesId,
   spellAtLevel,
   SPELLS,
@@ -1958,10 +1959,13 @@ export function buffText(buff: Buff): string {
   }
 }
 
-/** When an ongoing effect ends (#337, D9): "until the fight ends". */
-export function endsText(ends: EffectEnds): string {
+/**
+ * When an ongoing effect ends (#337, D9): "until the fight ends";
+ * `caster` is whose next turn ends Shield's, "your" by default.
+ */
+export function endsText(ends: EffectEnds, caster = "your"): string {
   return {
-    "next-turn": "until the start of the caster's next turn",
+    "next-turn": `until the start of ${caster} next turn`,
     fight: "until the fight ends",
     rest: "until the next rest",
     "long-rest": "until a long rest or the adventure's end",
@@ -1982,8 +1986,8 @@ function effectText(
   const who = (id: string) => (id === PLAYER_ID ? "you" : name(id));
   switch (event.type) {
     case "effect": {
-      const ends = endsText(event.ends).replace(
-        "the caster's",
+      const ends = endsText(
+        event.ends,
         event.casterId === PLAYER_ID ? "your" : `${name(event.casterId)}'s`,
       );
       const concentrating =
@@ -3768,7 +3772,7 @@ function effectViews(holder: Combatant): readonly EffectView[] {
       spell,
       text: buffText(buff),
       ends,
-      until: endsText(ends).replace("the caster's", "your"),
+      until: endsText(ends),
       concentration: concentration === true,
     }),
   );
@@ -3782,7 +3786,7 @@ function effectViews(holder: Combatant): readonly EffectView[] {
 function effectLines(holder: Combatant): string[] {
   return (holder.effects ?? []).map(
     ({ spell, buff, ends, concentration }) =>
-      `${spell} (${buffText(buff)}, ${endsText(ends).replace("the caster's", "your")}${concentration === true ? "; concentration" : ""})`,
+      `${spell} (${buffText(buff)}, ${endsText(ends)}${concentration === true ? "; concentration" : ""})`,
   );
 }
 
@@ -7719,7 +7723,7 @@ export function createFifthRuntime(
             (fight ||
               effect.kind === "healing" ||
               (effect.kind === "buff" &&
-                ["rest", "long-rest"].includes(effectEnds(effect.duration)))),
+                outlastsFight(effectEnds(effect.duration)))),
         )
         .flatMap((spell) =>
           slotLevels(caster, spell).flatMap((slotLevel) => {

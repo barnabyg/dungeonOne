@@ -478,3 +478,21 @@ test("outside a fight: a buff that outlasts one, but not one that doesn't", () =
     "reaction-spell",
   );
 });
+
+test("spell damage tests concentration too", () => {
+  // A goblin concentrating on Bless takes Magic Missile's 6: its save,
+  // 3 + 0 + 1 (Bless) = 4, fails DC 10.
+  const blessed = goblin("goblin", {
+    effects: [{ ...effect("bless"), casterId: "goblin" }],
+  });
+  const state = opening(sage(), blessed);
+  const { state: after, events } = accepted(
+    state,
+    cast("magic-missile", "goblin"),
+    dice([4, 1], [4, 1], [4, 1], [20, 3], [4, 1]),
+  );
+  const save = events.find(({ type }) => type === "concentration");
+  assert.equal(save.damage, 6);
+  assert.equal(save.save.success, false);
+  assert.equal(combatant(after, "goblin").effects, undefined);
+});

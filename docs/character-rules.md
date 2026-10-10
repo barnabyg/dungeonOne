@@ -654,7 +654,7 @@ The game has no grid or map. Each 5e rule that needs distance is listed here wit
 | Movement speed                                         | Omitted                                    |
 | Reach                                                  | Omitted                                    |
 | Opportunity attacks                                    | Omitted                                    |
-| Areas of effect (#338)                                 | A most number of opponents (see below)     |
+| Areas of effect (#338)                                 | A maximum number of opponents (see below)  |
 | Ranged attack within 5 ft of a hostile (disadvantage)  | None in round 1; disadvantage from round 2 |
 | Weapon ranges (normal and long)                        | Omitted: every target is in range          |
 | Weapon masteries that move or need range, such as Push | Omitted                                    |
@@ -686,7 +686,7 @@ The game has no grid or map. Each 5e rule that needs distance is listed here wit
 
 Later tickets add rows when they meet another positional rule.
 
-**Areas of effect (#338, D4).** Without positions an area spell catches a most number of opponents, set by its shape and size: a cone's length ÷ 10, a sphere's or emanation's radius ÷ 5, a line's length ÷ 30, rounded up and at least 1 (`maxTargets` in `src/spells-5e.ts`). The caster chooses which opponents, each once and at most that many; fewer is allowed. Allies and the caster are never caught.
+**Areas of effect (#338, D4).** Without positions an area spell catches a maximum number of opponents, set by its shape and size: a cone's length ÷ 10, a sphere's or emanation's radius ÷ 5, a line's length ÷ 30, rounded up and at least 1 (`maxTargets` in `src/spells-5e.ts`). The caster chooses which opponents, each once and at most that many; fewer is allowed. Allies and the caster are never caught.
 
 | Area spell                | Area                  | Most opponents |
 | ------------------------- | --------------------- | -------------- |

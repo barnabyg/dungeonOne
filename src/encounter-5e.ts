@@ -24,8 +24,9 @@
  *   combatant's turn lasts until it ends it or nothing it could do is left:
  *   an attack takes the action, Second Wind the bonus action, and Action
  *   Surge adds an action. Drinking a potion takes the bonus action (SRD 5.2).
- *   Only Uncanny Dodge and reaction spells (Shield) use a reaction (below). Drawing, stowing or swapping
- *   a weapon uses the turn's one object interaction; it takes no action.
+ *   Only Uncanny Dodge and reaction spells (Shield) use a reaction
+ *   (below). Drawing, stowing or swapping a weapon uses the turn's one
+ *   object interaction; it takes no action.
  * - Extra Attack (#287): a combatant with it makes two attacks, not one,
  *   whenever it takes the Attack action. Each attack is its own action call,
  *   at any living opponent; the first spends the action and the second
@@ -165,6 +166,7 @@ import {
   effectEnds,
   maxTargets,
   ordinal,
+  outlastsFight,
   type Buff,
   type CastingTime,
   type EffectEnds,
@@ -2133,7 +2135,7 @@ function concludeIfOver(
   }
   const ended = endEffects(
     state,
-    ({ ends }) => ends === "fight" || ends === "next-turn",
+    ({ ends }) => !outlastsFight(ends),
     "fight-over",
     events,
   );
@@ -3112,10 +3114,7 @@ function answerReaction(
       : reacting;
   const target = combatant(answered, pending.reactorId);
   const natural = pending.roll.d20 >= pending.weapon.criticalRange;
-  const still =
-    pending.roll.paralysedCritical ||
-    natural ||
-    pending.roll.total >= armorClassOf(target);
+  const still = natural || pending.roll.total >= armorClassOf(target);
   const roll: AttackRoll = still
     ? pending.roll
     : { ...pending.roll, hit: false, critical: false };
@@ -3479,9 +3478,10 @@ function spellDamage(
     ),
     engaged: engage(state, actor, target),
   };
+  // A fall ends concentration; damage that leaves it standing tests it (#337).
   return hpLeft === 0 && target.hp > 0
     ? fall(next, target, random, events)
-    : next;
+    : keepConcentration(next, target.id, damage, random, events);
 }
 
 /**
@@ -3763,8 +3763,7 @@ export function castOutsideFight(
   if (spell !== undefined && spell.castingTime !== "reaction") {
     const { effect } = spell;
     if (effect.kind === "buff") {
-      const ends = effectEnds(effect.duration);
-      if (ends === "fight" || ends === "next-turn") {
+      if (!outlastsFight(effectEnds(effect.duration))) {
         return {
           rejection: refused(
             "fight-only",
