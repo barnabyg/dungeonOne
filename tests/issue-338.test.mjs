@@ -66,9 +66,9 @@ const scriptedDm = (name, args, text = "Done.") => ({
 const attempt = (turn) => turn.toolAttempts[0];
 
 test("the save and trace formats and the prompt version bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 41);
-  assert.equal(FIFTH_TRACE_FORMAT, 35);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v26");
+  assert.equal(FIFTH_SESSION_FORMAT, 42);
+  assert.equal(FIFTH_TRACE_FORMAT, 36);
+  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v27");
 });
 
 test("the bar offers an area spell once per slot level, with its foes and its most", () => {
@@ -158,7 +158,7 @@ test("scripted DM: the cast tool takes a list of targets; too many or a repeat i
   }
   assert.match(
     tool.description,
-    /burning-hands \(Burning Hands, 1st level: slot_level 1 or 2; up to 2 different targets from [a-z0-9-]+ \(Goblin [^)]+\), [a-z0-9-]+ \(Goblin [^)]+\) and [a-z0-9-]+ \(Goblin [^)]+\)\)/u,
+    /burning-hands \(Burning Hands: Dexterity save, 3d6 fire, half on a success; 1st level: slot_level 1 or 2; up to 2 different targets from [a-z0-9-]+ \(Goblin [^)]+\), [a-z0-9-]+ \(Goblin [^)]+\) and [a-z0-9-]+ \(Goblin [^)]+\)\)/u,
   );
   assert.ok(offeredToolsMatchActions(session));
   const before = session.state;

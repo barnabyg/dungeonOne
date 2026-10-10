@@ -752,6 +752,7 @@ test("the API offers both classes and creates a Rogue; another class's choices a
       [
         ["fighter", "Fighter", 2, 0, true],
         ["rogue", "Rogue", 4, 2, false],
+        ["cleric", "Cleric", 2, 0, false],
       ],
     );
     const rogueEntry = classes.find(({ id }) => id === "rogue");

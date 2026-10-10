@@ -1028,7 +1028,8 @@ export type KitData = Readonly<{
  * levels are dangerous, so better gear is found, bought or earned. Each
  * class offers its own (`ClassDefinition.kits`): the Fighter the first
  * three, the Rogue (#306) the shortsword kits, each with thieves' tools
- * (#309).
+ * (#309), and the Cleric (#339) the mace kit, its daggers stowed, and the
+ * club and shield kit.
  */
 export const STARTING_KITS = {
   mace: { name: "Mace and leather", equipment: ["leather", "mace"] },
@@ -1049,6 +1050,15 @@ export const STARTING_KITS = {
     name: "Shortsword, dagger and leather",
     equipment: ["leather", "shortsword", "dagger"],
     stowed: ["thieves-tools"],
+  },
+  "mace-and-daggers": {
+    name: "Mace, two daggers and leather",
+    equipment: ["leather", "mace"],
+    stowed: ["dagger", "dagger"],
+  },
+  "club-and-shield": {
+    name: "Club, shield and leather",
+    equipment: ["leather", "shield", "club"],
   },
 } as const satisfies Record<string, KitData>;
 export type KitId = keyof typeof STARTING_KITS;

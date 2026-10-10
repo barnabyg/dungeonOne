@@ -167,6 +167,7 @@ import {
   maxTargets,
   ordinal,
   outlastsFight,
+  RESISTANCE_DAMAGE_TYPES,
   type Buff,
   type CastingTime,
   type EffectEnds,
@@ -503,6 +504,13 @@ export type ActiveEffect = Readonly<{
   buff: Buff;
   ends: EffectEnds;
   concentration?: true;
+  /** The damage type chosen at casting (#339), for Resistance. */
+  damageType?: DamageType;
+  /**
+   * The turn (`round:turn`) Resistance last reduced damage in (#339): once
+   * a turn.
+   */
+  reducedIn?: string;
 }>;
 
 /** A die an ongoing effect added to a d20 roll (#337): Bless's d4. */
@@ -519,6 +527,8 @@ export type EffectDie = Readonly<{
  * Constitution save, being incapacitated, or falling.
  */
 export type EffectEndReason =
+  /** Its die was added to a check (#339): Guidance's. */
+  | "used"
   | "next-turn"
   | "fight-over"
   | "rest"
@@ -570,6 +580,16 @@ export type EncounterState = Readonly<{
    * round it was given: it lasts to the end of the source's next turn.
    */
   vexed: readonly Readonly<{
+    targetId: string;
+    sourceId: string;
+    round: number;
+  }>[];
+  /**
+   * Targets of Guiding Bolt's hit (#339): the next attack roll against
+   * each has advantage, whoever makes it, until the end of the caster's
+   * (the source's) next turn.
+   */
+  guided?: readonly Readonly<{
     targetId: string;
     sourceId: string;
     round: number;
@@ -760,6 +780,8 @@ export type CastAction = Readonly<{
   spellId: string;
   slotLevel?: number;
   targetIds: readonly string[];
+  /** The damage type chosen for Resistance (#339), and for no other spell. */
+  damageType?: DamageType;
 }>;
 
 export type AttackEvent = Readonly<{
@@ -836,6 +858,19 @@ export type AttackEvent = Readonly<{
    * what the target took, and these what it would have taken.
    */
   uncannyDodge?: Readonly<{ damage: number; riderDamage?: number }>;
+  /**
+   * Resistance (#339) took its die off the damage of its type, the
+   * weapon's or the rider's (`part`), which was `from` before; `damage` or
+   * `rider.damage` already counts it.
+   */
+  reduced?: Readonly<{
+    spell: string;
+    roll: number;
+    part: "weapon" | "rider";
+    from: number;
+  }>;
+  /** A spell attack's hit gave the next attack on its target advantage (#339). */
+  guided?: true;
 }>;
 
 /**
@@ -1044,6 +1079,8 @@ export type EffectEvent = Readonly<{
   buff: Buff;
   ends: EffectEnds;
   concentration?: true;
+  /** The damage type chosen at casting (#339), for Resistance. */
+  damageType?: DamageType;
 }>;
 
 /** An ongoing effect ending (#337), and why. */
@@ -1196,6 +1233,8 @@ export type EncounterRefusalCode =
   | "effect-active"
   | "wearing-armour"
   | "fight-only"
+  | "damage-type"
+  | "no-effect"
   | "paralysed"
   | "fled"
   | "surrendered";
@@ -1432,6 +1471,9 @@ export const HIDDEN = "Hidden";
 /** The advantage Steady Aim gives (#307). */
 export const STEADY_AIM = "Steady Aim";
 
+/** Guiding Bolt's advantage on the next attack on its target (#339). */
+export const GUIDING_BOLT = "Guiding Bolt";
+
 /** Why the combatant's weapon can't shoot: it has no ammunition left. */
 function ammunitionRefusal(actor: Combatant): EncounterRejection | undefined {
   const kind = actor.attack.ammunition;
@@ -1521,6 +1563,10 @@ function attackModes(
   const vexing = state.vexed.some(
     ({ sourceId, targetId }) => sourceId === actor.id && targetId === target.id,
   );
+  // Guiding Bolt (#339): the next attack on its target, whoever makes it.
+  const guided = (state.guided ?? []).some(
+    ({ targetId }) => targetId === target.id,
+  );
   // Hiding and Steady Aim (#307) give the combatant's own next attack
   // advantage, a spell attack's too (#336), never a Rampage or opponent
   // attack.
@@ -1538,6 +1584,7 @@ function attackModes(
   return {
     advantage: [
       ...(vexing ? ["Vex"] : []),
+      ...(guided ? [GUIDING_BOLT] : []),
       ...(hidden ? [HIDDEN] : []),
       ...(aimed ? [STEADY_AIM] : []),
       ...(packTactics ? ["Pack Tactics"] : []),
@@ -1722,6 +1769,11 @@ export function armorClassOf(entrant: Combatant): number {
     (total, { buff }) => total + (buff.kind === "armor-class" ? buff.bonus : 0),
     based,
   );
+}
+
+/** The sides of a die-giving effect (#339): Resistance's or Guidance's. */
+function effectDieSides(buff: Buff): number {
+  return "sides" in buff ? buff.sides : 0;
 }
 
 /** Rolls the dice `entrant`'s effects add to a d20 roll (#337): Bless's. */
@@ -2421,8 +2473,11 @@ function endTurn(
  */
 type AttackOrigin =
   | Readonly<{ kind: "attack" | "light" }>
-  /** A spell attack (#336), with the spell made a weapon (`spellWeapon`). */
-  | Readonly<{ kind: "spell"; weapon: Weapon }>
+  /**
+   * A spell attack (#336), with the spell made a weapon (`spellWeapon`);
+   * `guides` (#339) gives the next attack on its target advantage on a hit.
+   */
+  | Readonly<{ kind: "spell"; weapon: Weapon; guides?: true }>
   | Readonly<{
       kind: "opponent" | "rampage";
       weapon: Weapon;
@@ -2676,10 +2731,48 @@ function landAttack(
               : { damageAdjustment: taken.damageAdjustment }),
           };
         })();
+  // Resistance (#339): once a turn, its die comes off the target's damage
+  // of its type, the weapon's first, then the rider's.
+  const turnKey = `${state.round}:${state.turn}`;
+  const takes = (part: "weapon" | "rider", type: DamageType | undefined) =>
+    part === "weapon"
+      ? type === weapon.damage.type && defended.damage > 0
+      : riderRolled !== undefined &&
+        type === riderRolled.damageType &&
+        riderRolled.damage > 0;
+  const ward = (target.effects ?? []).find(
+    ({ buff, damageType, reducedIn }) =>
+      buff.kind === "damage-reduction" &&
+      reducedIn !== turnKey &&
+      (takes("weapon", damageType) || takes("rider", damageType)),
+  );
+  const reduced =
+    ward === undefined
+      ? undefined
+      : {
+          spell: ward.spell,
+          roll: random.roll(effectDieSides(ward.buff)),
+          part: takes("weapon", ward.damageType)
+            ? ("weapon" as const)
+            : ("rider" as const),
+          from: takes("weapon", ward.damageType)
+            ? defended.damage
+            : (riderRolled?.damage ?? 0),
+        };
+  const weaponTaken =
+    reduced?.part === "weapon"
+      ? Math.max(0, defended.damage - reduced.roll)
+      : defended.damage;
+  const riderTaken =
+    riderRolled === undefined
+      ? 0
+      : reduced?.part === "rider"
+        ? Math.max(0, riderRolled.damage - reduced.roll)
+        : riderRolled.damage;
   // Uncanny Dodge (#308) halves the attack's damage once, rounding down.
   const [damage, riderDamage] = dodged
-    ? halvedOnce(defended.damage, riderRolled?.damage ?? 0)
-    : [defended.damage, riderRolled?.damage ?? 0];
+    ? halvedOnce(weaponTaken, riderTaken)
+    : [weaponTaken, riderTaken];
   const rider =
     riderRolled === undefined
       ? undefined
@@ -2743,13 +2836,12 @@ function landAttack(
       ...(dodged
         ? {
             uncannyDodge: {
-              damage: defended.damage,
-              ...(riderRolled === undefined
-                ? {}
-                : { riderDamage: riderRolled.damage }),
+              damage: weaponTaken,
+              ...(riderRolled === undefined ? {} : { riderDamage: riderTaken }),
             },
           }
         : {}),
+      ...(reduced === undefined ? {} : { reduced }),
     },
   ];
   // Undead Fortitude: reduced to 0 HP by damage that isn't radiant or from
@@ -2766,14 +2858,27 @@ function landAttack(
     random,
     events,
   );
+  // Guiding Bolt's hit (#339) on a target left standing gives the next
+  // attack on it advantage.
+  const guides =
+    origin.kind === "spell" && origin.guides === true && hit && hpLeft > 0;
+  if (guides) {
+    events[0] = { ...(events[0] as AttackEvent), guided: true };
+  }
   // The attack spends any disadvantage Sap gave the attacker, any
-  // advantage Vex gave it against this target, and its hiding and Steady
-  // Aim (#307).
+  // advantage Vex gave it against this target, any advantage Guiding Bolt
+  // gave against it (#339), and its hiding and Steady Aim (#307).
+  // Resistance notes the turn it reduced damage in.
   let next: EncounterState = {
     ...state,
     combatants: state.combatants.map((candidate) =>
       candidate.id === target.id
-        ? { ...candidate, hp: hpLeft }
+        ? withEffects(
+            { ...candidate, hp: hpLeft },
+            (candidate.effects ?? []).map((effect) =>
+              effect === ward ? { ...effect, reducedIn: turnKey } : effect,
+            ),
+          )
         : candidate.id === actor.id && spent !== undefined
           ? {
               ...candidate,
@@ -2789,6 +2894,24 @@ function landAttack(
       ({ sourceId, targetId }) =>
         sourceId !== actor.id || targetId !== target.id,
     ),
+    ...(state.guided === undefined && !guides
+      ? {}
+      : {
+          guided: [
+            ...(state.guided ?? []).filter(
+              ({ targetId }) => targetId !== target.id,
+            ),
+            ...(guides
+              ? [
+                  {
+                    targetId: target.id,
+                    sourceId: actor.id,
+                    round: state.round,
+                  },
+                ]
+              : []),
+          ],
+        }),
     hidden: state.hidden.filter((id) => !hidden || id !== actor.id),
     engaged: engage(state, actor, target),
     economy: {
@@ -2963,6 +3086,14 @@ function advance(
       vexed: next.vexed.filter(
         (vex) => vex.sourceId !== actor.id || round < vex.round + 2,
       ),
+      // Guiding Bolt's advantage (#339) lasts as Vex's does.
+      ...(next.guided === undefined
+        ? {}
+        : {
+            guided: next.guided.filter(
+              (mark) => mark.sourceId !== actor.id || round < mark.round + 2,
+            ),
+          }),
     };
     events.push({ type: "turn", combatantId: actor.id, round: next.round });
     // Its effects lasting until its next turn (Shield, #337) end.
@@ -3218,7 +3349,7 @@ export function slotLevels(
 function spellRefusal(
   state: EncounterState,
   actor: Combatant,
-  action: Pick<CastAction, "spellId" | "slotLevel">,
+  action: Pick<CastAction, "spellId" | "slotLevel" | "damageType">,
   reacting = false,
 ): EncounterRejection | undefined {
   const casting = actor.spellcasting;
@@ -3230,6 +3361,31 @@ function spellRefusal(
     return refused(
       "unknown-spell",
       "You don't know that spell, or haven't prepared it.",
+    );
+  }
+  // Thaumaturgy (#339) is flavour only: nothing to cast in play.
+  if (spell.effect.kind === "flavour") {
+    return refused(
+      "no-effect",
+      `${spell.name} is flavour only: it has no effect in play.`,
+    );
+  }
+  // Resistance (#339) names a damage type it may resist; no other spell does.
+  const resisting =
+    spell.effect.kind === "buff" &&
+    spell.effect.buff.kind === "damage-reduction";
+  if (
+    resisting
+      ? !(RESISTANCE_DAMAGE_TYPES as readonly unknown[]).includes(
+          action.damageType,
+        )
+      : action.damageType !== undefined
+  ) {
+    return refused(
+      "damage-type",
+      resisting
+        ? `Choose the damage type ${spell.name} resists: ${RESISTANCE_DAMAGE_TYPES.join(", ")}.`
+        : `${spell.name} takes no damage type.`,
     );
   }
   if ((spell.castingTime === "reaction") !== reacting) {
@@ -3357,7 +3513,10 @@ function spellTarget(
 function castRefusal(
   state: EncounterState,
   actor: Combatant,
-  action: Pick<CastAction, "spellId" | "slotLevel" | "targetIds">,
+  action: Pick<
+    CastAction,
+    "spellId" | "slotLevel" | "targetIds" | "damageType"
+  >,
   reacting = false,
 ): EncounterRejection | undefined {
   const refusal = spellRefusal(state, actor, action, reacting);
@@ -3397,6 +3556,14 @@ function castRefusal(
   return undefined;
 }
 
+/** Whether `spell` names a damage type when cast (#339): Resistance. */
+export function isResistance(spell: SpellDefinition): boolean {
+  return (
+    spell.effect.kind === "buff" &&
+    spell.effect.buff.kind === "damage-reduction"
+  );
+}
+
 /** Whether `actor` can cast any of its spells at anyone now (#336). */
 function canCast(state: EncounterState, actor: Combatant): boolean {
   return (actor.spellcasting?.spells ?? []).some((spell) =>
@@ -3407,6 +3574,7 @@ function canCast(state: EncounterState, actor: Combatant): boolean {
             spellId: spell.id,
             ...(slotLevel === undefined ? {} : { slotLevel }),
             targetIds: [target.id],
+            ...(isResistance(spell) ? { damageType: "bludgeoning" } : {}),
           }) === undefined,
       ),
     ),
@@ -3548,6 +3716,9 @@ function castSpell(
       const resolved = resolveAttack(spent, caster, target, random, {
         kind: "spell",
         weapon: spellWeapon(casting, spell, effect),
+        ...(effect.nextAttackAdvantage === true
+          ? { guides: true as const }
+          : {}),
       });
       events.push(...resolved.events);
       return resolved.state;
@@ -3593,6 +3764,9 @@ function castSpell(
         }),
       );
     }
+    case "flavour":
+      // Refused before any cast (`spellRefusal`).
+      return spent;
     case "auto-hit": {
       const { damage, missiles } = effect;
       const damageRolls = rollDice(
@@ -3664,6 +3838,10 @@ function castSpell(
         ...(effect.concentration === true
           ? { concentration: true as const }
           : {}),
+        // Resistance's chosen damage type (#339).
+        ...(action.damageType === undefined
+          ? {}
+          : { damageType: action.damageType }),
       };
       events.push({
         type: "effect",
@@ -3763,7 +3941,12 @@ export function castOutsideFight(
   if (spell !== undefined && spell.castingTime !== "reaction") {
     const { effect } = spell;
     if (effect.kind === "buff") {
-      if (!outlastsFight(effectEnds(effect.duration))) {
+      // Guidance (#339) waits for the next check, which is made outside
+      // fights; any other buff must outlast a fight.
+      if (
+        effect.buff.kind !== "check-die" &&
+        !outlastsFight(effectEnds(effect.duration))
+      ) {
         return {
           rejection: refused(
             "fight-only",

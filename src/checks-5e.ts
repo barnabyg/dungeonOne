@@ -15,17 +15,21 @@
  * A module may mark a Strength check as climbing or jumping (#307): a
  * character with Second-Story Work (the Thief) makes it with Dexterity. A
  * Dexterity check made with thieves' tools (#309) adds the proficiency bonus
- * when the character's class is proficient with them.
+ * when the character's class is proficient with them. The Thaumaturge's
+ * Divine Order (#339) adds its Wisdom modifier, at least +1, to Arcana and
+ * Religion checks, and Guidance's die (#339), when the caller passes it,
+ * is rolled after the d20 and added.
  *
  * An authored check grades its outcome into bands (#281): failure by 5 or
  * more, failure, success, and success by 5 or more.
  */
-import { rollD20, type RollMode } from "./encounter-5e.js";
+import { rollD20, type EffectDie, type RollMode } from "./encounter-5e.js";
 import {
   abilityDisadvantages,
   characterProfile,
   checkAdvantages,
   hasExpertise,
+  orderCheckBonus,
   skillProficiency,
   toolProficiency,
   type CharacterSheet,
@@ -81,6 +85,10 @@ export type CheckRoll = Readonly<{
    * marked climb or jump with Dexterity in place of Strength (#307).
    */
   substitute?: typeof SECOND_STORY_WORK;
+  /** A Divine Order's bonus to the check (#339): the Thaumaturge's. */
+  bonus?: Readonly<{ source: string; value: number }>;
+  /** Dice ongoing effects added to the check (#339): Guidance's. */
+  effectDice?: readonly EffectDie[];
   total: number;
   dc: number;
   success: boolean;
@@ -173,16 +181,45 @@ export type Circumstances = Readonly<{
 
 const NO_CIRCUMSTANCES: Circumstances = { advantage: [], disadvantage: [] };
 
+/** A die an ongoing effect adds to a check (#339): Guidance's d4. */
+export type CheckDie = Readonly<{ spell: string; sides: number }>;
+
+/** `roll` with `bonus` and `die` (rolled now) added to its total (#339). */
+function withExtras(
+  roll: CheckRoll,
+  bonus: CheckRoll["bonus"],
+  die: CheckDie | undefined,
+  random: Pick<RandomSource, "roll">,
+): CheckRoll {
+  if (bonus === undefined && die === undefined) {
+    return roll;
+  }
+  const effectDice =
+    die === undefined
+      ? undefined
+      : [{ spell: die.spell, sides: die.sides, roll: random.roll(die.sides) }];
+  const total = roll.total + (bonus?.value ?? 0) + (effectDice?.[0]?.roll ?? 0);
+  return {
+    ...roll,
+    ...(bonus === undefined ? {} : { bonus }),
+    ...(effectDice === undefined ? {} : { effectDice }),
+    total,
+    success: total >= roll.dc,
+  };
+}
+
 /**
  * Rolls an ability check, with the skill's proficiency where the sheet has
  * it (doubled with Expertise, #306), and the advantage and disadvantage `circumstances` name (#284) beside
- * any its class's features and its armour give.
+ * any its class's features and its armour give. A Divine Order's bonus
+ * (#339) applies to its skills, and `die` (Guidance's, #339) is added.
  */
 export function abilityCheck(
   sheet: CharacterSheet,
   spec: CheckSpec,
   random: Pick<RandomSource, "roll">,
   circumstances: Circumstances = NO_CIRCUMSTANCES,
+  die?: CheckDie,
 ): CheckRoll {
   const profile = characterProfile(sheet);
   // Second-Story Work: a marked climb or jump with Dexterity (#307).
@@ -214,7 +251,8 @@ export function abilityCheck(
         ],
       ),
     );
-    return tool === undefined ? roll : { ...roll, tool };
+    const done = withExtras(roll, undefined, die, random);
+    return tool === undefined ? done : { ...done, tool };
   }
   const roll = made(
     rolled(
@@ -230,7 +268,13 @@ export function abilityCheck(
       [...abilityDisadvantages(sheet, ability), ...circumstances.disadvantage],
     ),
   );
-  return hasExpertise(sheet, spec.skill) ? { ...roll, expertise: true } : roll;
+  const done = withExtras(
+    roll,
+    orderCheckBonus(sheet, spec.skill),
+    die,
+    random,
+  );
+  return hasExpertise(sheet, spec.skill) ? { ...done, expertise: true } : done;
 }
 
 /**

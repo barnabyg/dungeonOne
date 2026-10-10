@@ -125,6 +125,8 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </fieldset>
 <fieldset id="skills" aria-describedby="skills-count skills-error"><legend id="skills-legend">Skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
 <fieldset id="expertise" aria-describedby="expertise-count expertise-error" hidden><legend id="expertise-legend">Expertise</legend><p id="expertise-hint" class="hint"></p><p id="expertise-count" class="hint" role="status"></p><div id="expertise-fields" class="checks"></div><p id="expertise-error" class="error" role="alert"></p></fieldset>
+<fieldset id="divine-order" hidden><legend>Divine Order</legend><div id="order-fields" class="checks"></div></fieldset>
+<fieldset id="spells" aria-describedby="spells-count spells-error" hidden><legend>Spells</legend><p class="hint">Cantrips are cast at will; prepared spells use spell slots. Prepared spells change only between adventures, on the character sheet.</p><p id="spells-count" class="hint" role="status"></p><fieldset class="spell-group"><legend id="cantrips-legend">Cantrips</legend><div id="cantrip-fields" class="checks"></div></fieldset><fieldset class="spell-group"><legend id="prepared-legend">Prepared spells</legend><div id="prepared-fields" class="checks"></div></fieldset><p id="spells-error" class="error" role="alert"></p></fieldset>
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
 <fieldset id="kits" aria-describedby="kits-hint"><legend>Starting kit</legend><p id="kits-hint" class="hint">Common gear only, each worth about the same. Better gear is found or bought in adventures.</p><div id="kit-fields" class="checks"></div></fieldset>
 <fieldset id="masteries" aria-describedby="masteries-count masteries-error"><legend id="masteries-legend">Weapon Mastery</legend><p class="hint">A mastery works only while you wield that weapon.</p><p id="masteries-count" class="hint" role="status"></p><div id="mastery-fields" class="checks"></div><p id="masteries-error" class="error" role="alert"></p></fieldset>
@@ -481,7 +483,93 @@ function profileNodes(abilities, profile, hp, carrying) {
     item.append(make("strong", feature.name + ". "), document.createTextNode(feature.text));
     features.append(item);
   }
-  return [stats, abilityTable(abilities, profile, "Ability scores and saving throws"), skills, make("h3", "Features"), features];
+  return [stats, abilityTable(abilities, profile, "Ability scores and saving throws"), skills, ...spellcastingNodes(profile.spellcasting), make("h3", "Features"), features];
+}
+
+/** A spell by id, from the classes' lists (#339). */
+const spellInfo = (id) => library.classes.flatMap(({ spellcasting }) => spellcasting ? spellcasting.spells : []).find((spell) => spell.id === id) || { id, name: id, summary: "" };
+
+/**
+ * A caster's spellcasting (#339): its spell attack bonus and save DC, its
+ * slots, and its cantrips and prepared spells, each with what it does.
+ */
+function spellcastingNodes(casting) {
+  if (!casting) return [];
+  const heading = make("h3", "Spellcasting");
+  heading.id = "spellcasting-title";
+  const numbers = make("p", "Spell attack " + signed(casting.attackBonus) + " · Spell save DC " + casting.saveDc + " · " + titleCase(casting.ability) + " · Spell slots: " + casting.slots.map((count, index) => count + " " + ORDINALS[index + 1] + "-level").join(", ") + ".");
+  numbers.id = "spellcasting-numbers";
+  const list = (title, id, ids) => {
+    const node = make("ul", undefined, "features");
+    node.id = id;
+    node.setAttribute("aria-label", title);
+    node.append(...ids.map((spellId) => {
+      const spell = spellInfo(spellId);
+      const item = make("li");
+      item.append(make("strong", spell.name + ". "), document.createTextNode(spell.summary + "."));
+      return item;
+    }));
+    return [make("h4", title), node];
+  };
+  return [heading, numbers, ...list("Cantrips", "sheet-cantrips", casting.cantrips), ...list("Prepared spells", "sheet-prepared", casting.prepared)];
+}
+
+// The prepared spells being chosen on a sheet (#339), by character.
+let preparing;
+
+/**
+ * Preparing spells (#339, D8): between adventures a tick for each levelled
+ * spell on the class's list and Prepare spells; on an adventure, why not.
+ */
+function prepareNodes(entry) {
+  if (!entry.spells || entry.defeated) return [];
+  const heading = make("h3", "Prepare spells");
+  heading.id = "prepare-title";
+  if (entry.session) return [heading, make("p", "Prepared spells change only between adventures. Finish or abandon the adventure first.", "hint")];
+  if (!preparing || preparing.characterId !== entry.sheet.id) preparing = { characterId: entry.sheet.id, prepared: entry.sheet.spells.prepared.slice() };
+  const limit = entry.sheet.spells.prepared.length;
+  const group = make("fieldset");
+  group.id = "prepare-spells";
+  group.append(make("legend", "Choose " + limit + " spells to prepare"));
+  const fields = make("div", undefined, "checks");
+  const button = make("button", "Prepare spells", "secondary");
+  button.type = "button";
+  button.id = "save-prepared";
+  const count = make("p", "", "hint");
+  count.setAttribute("role", "status");
+  const error = make("p", "", "error");
+  error.id = "prepare-error";
+  error.setAttribute("role", "alert");
+  const update = () => {
+    for (const box of fields.querySelectorAll("input")) box.disabled = !box.checked && preparing.prepared.length >= limit;
+    count.textContent = preparing.prepared.length + " of " + limit + " chosen";
+    const same = preparing.prepared.length === limit && preparing.prepared.every((id) => entry.sheet.spells.prepared.includes(id));
+    button.disabled = isBusy(button) || preparing.prepared.length !== limit || same;
+  };
+  fields.append(...entry.spells.preparable.map((spell) => spellBox("prepared-" + spell.id, spell, preparing.prepared.includes(spell.id), (event) => {
+    preparing.prepared = event.target.checked ? [...preparing.prepared, spell.id] : preparing.prepared.filter((id) => id !== spell.id);
+    update();
+  })));
+  button.addEventListener("click", async () => {
+    if (isBusy(button)) return;
+    setBusy(button, "Preparing…");
+    try {
+      library = await request("/api/5e/characters/prepare-spells", { revision: library.revision, characterId: entry.sheet.id, prepared: preparing.prepared });
+      preparing = undefined;
+      clearBusy(button);
+      openSheet(entry.sheet.id);
+      feedback(entry.sheet.name + "'s prepared spells are changed.");
+    } catch (error) {
+      clearBusy(button);
+      element("prepare-error").textContent = error.message;
+      update();
+    }
+  });
+  group.append(fields, count, error);
+  const controls = make("div", undefined, "controls");
+  controls.append(button);
+  update();
+  return [heading, group, controls];
 }
 
 /** "Fighting Style: Defense [Applies] Applies: you wear armour." for the sheet (#144). */
@@ -503,7 +591,7 @@ function openSheet(id) {
   const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
-  element("sheet-body").replaceChildren(summary, ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
+  element("sheet-body").replaceChildren(summary, ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...prepareNodes(entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
@@ -986,6 +1074,10 @@ function compactRoll(group) {
     case "reaction":
       // 2d6 + the Charisma modifier (#304).
       node.append(...diceChips(group, ", "), withSign(group.modifier) + " Cha = " + group.total);
+      break;
+    case "reduction":
+      // Resistance's die off damage (#339).
+      node.append(group.roller + " ", ...diceChips(group), " off");
       break;
     case "wandering":
       // A rest's d100 against the wandering encounter's chance (#335).
@@ -1679,7 +1771,8 @@ async function leaveAdventure() {
 }
 
 const ORDINALS = ["", "1st", "2nd", "3rd", "4th", "5th"];
-const castKey = ({ spell }) => spell.id + ":" + (spell.slotLevel || "");
+// Resistance's damage type (#339) is part of the choice.
+const castKey = ({ spell }) => spell.id + ":" + (spell.slotLevel || "") + ":" + (spell.damageType || "");
 
 /**
  * Casting (#337): a choice of spell, each at each slot level it may spend
@@ -1715,7 +1808,7 @@ function castPanel(casts) {
   spellSelect.setAttribute("aria-label", "Spell");
   spellSelect.disabled = acting;
   for (const [key, spell] of spells) {
-    const choice = make("option", spell.name + (spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
+    const choice = make("option", spell.name + (spell.damageType ? " against " + spell.damageType : "") + (spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
     choice.value = key;
     choice.selected = key === castChoice;
     spellSelect.append(choice);
@@ -1794,7 +1887,7 @@ function areaTargets(area) {
 }
 
 async function castSpell(spell, targetIds) {
-  await act("/api/5e/session/cast", { spellId: spell.id, slotLevel: spell.slotLevel || null, targetIds }, "button.act[data-action=cast]", ACTIONS.cast.busy + " " + spell.name + "…");
+  await act("/api/5e/session/cast", { spellId: spell.id, slotLevel: spell.slotLevel || null, targetIds, ...(spell.damageType ? { damageType: spell.damageType } : {}) }, "button.act[data-action=cast]", ACTIONS.cast.busy + " " + spell.name + "…");
   keepFocus("cast", "");
 }
 
@@ -2055,6 +2148,10 @@ function renderChoices() {
   element("expertise-hint").textContent = "Doubles your proficiency bonus with " + chosen.expertiseCount + " of your skills.";
   element("expertise").hidden = chosen.expertiseCount === 0;
   element("styles").hidden = !chosen.fightingStyle;
+  // A class without weapon mastery (the Cleric, #339) shows none.
+  element("masteries").hidden = chosen.masteryCount === 0;
+  renderOrders(chosen);
+  renderSpellChoices(chosen);
   renderAbilities();
   element("skill-fields").replaceChildren(...chosen.skills.map((skill) => {
     const label = make("label");
@@ -2122,6 +2219,90 @@ function renderChoices() {
     label.append(box, text);
     return label;
   }));
+}
+
+/**
+ * The Divine Order (#339): a radio for each, for a class with them. A
+ * Thaumaturge knows one more cantrip, so the cantrip limit follows it.
+ */
+function renderOrders(chosen) {
+  const orders = chosen.divineOrders || [];
+  element("divine-order").hidden = orders.length === 0;
+  element("order-fields").replaceChildren(...orders.map((order) => {
+    const label = make("label");
+    const radio = make("input");
+    radio.type = "radio";
+    radio.name = "divine-order";
+    radio.id = "order-" + order.id;
+    radio.checked = choices.divineOrder === order.id;
+    radio.addEventListener("change", () => {
+      choices.divineOrder = order.id;
+      // A cantrip past the new limit is unticked, the last ticked first.
+      choices.spells.cantrips = choices.spells.cantrips.slice(0, cantripLimit(chosen));
+      renderSpellChoices(chosen);
+      refresh();
+    });
+    const text = make("span", order.name);
+    text.append(make("small", order.text));
+    label.append(radio, text);
+    return label;
+  }));
+}
+
+/** How many cantrips the class knows with the Divine Order chosen (#339). */
+const cantripLimit = (chosen) => chosen.spellcasting.cantrips + ((chosen.divineOrders || []).find(({ id }) => id === choices.divineOrder)?.extraCantrips || 0);
+
+/** A spell's tick: its name, and what it does under it (#339). */
+function spellBox(id, spell, checked, change) {
+  const label = make("label");
+  const box = make("input");
+  box.type = "checkbox";
+  box.id = id;
+  box.checked = checked;
+  box.addEventListener("change", change);
+  const text = make("span", spell.name);
+  text.append(make("small", spell.summary));
+  label.append(box, text);
+  return label;
+}
+
+/**
+ * A caster's cantrips and prepared spells (#339): a tick for each spell on
+ * its list, cantrips and levelled spells apart.
+ */
+function renderSpellChoices(chosen) {
+  const casting = chosen.spellcasting;
+  element("spells").hidden = !casting;
+  if (!casting) {
+    element("cantrip-fields").replaceChildren();
+    element("prepared-fields").replaceChildren();
+    return;
+  }
+  element("cantrips-legend").textContent = "Cantrips: choose " + cantripLimit(chosen);
+  element("prepared-legend").textContent = "Prepared spells: choose " + casting.prepared;
+  const ticked = (kind, prefix) => casting.spells.filter(({ level }) => (kind === "cantrips") === (level === 0)).map(({ id }) => id).filter((id) => element(prefix + id).checked);
+  element("cantrip-fields").replaceChildren(...casting.spells.filter(({ level }) => level === 0).map((spell) => spellBox("cantrip-" + spell.id, spell, choices.spells.cantrips.includes(spell.id), () => {
+    choices.spells.cantrips = ticked("cantrips", "cantrip-");
+    refresh();
+  })));
+  element("prepared-fields").replaceChildren(...casting.spells.filter(({ level }) => level > 0).map((spell) => spellBox("prepare-" + spell.id, spell, choices.spells.prepared.includes(spell.id), () => {
+    choices.spells.prepared = ticked("prepared", "prepare-");
+    refresh();
+  })));
+}
+
+/** Like the skills, for cantrips and prepared spells (#339). */
+function renderSpellLimit() {
+  if (!projection.spells) return;
+  const casting = creating().spellcasting;
+  for (const spell of casting.spells) {
+    const cantrip = spell.level === 0;
+    const box = element((cantrip ? "cantrip-" : "prepare-") + spell.id);
+    box.disabled = projection.spells[cantrip ? "cantrips" : "prepared"].full && !box.checked;
+  }
+  const { cantrips, prepared } = projection.spells;
+  const count = "Cantrips " + cantrips.chosen + " of " + cantrips.limit + " chosen; prepared spells " + prepared.chosen + " of " + prepared.limit + " chosen";
+  if (element("spells-count").textContent !== count) element("spells-count").textContent = count;
 }
 
 /**
@@ -2223,12 +2404,14 @@ async function preview() {
     renderScores();
     renderSkillLimit();
     renderExpertiseLimit();
+    renderSpellLimit();
     renderMasteryLimit();
     renderKits();
     renderStyleUses();
     element("increase-error").textContent = result.unfinished.increase || "";
     element("skills-error").textContent = result.unfinished.skills || "";
     element("expertise-error").textContent = result.unfinished.expertise || "";
+    element("spells-error").textContent = result.unfinished.spells || "";
     element("masteries-error").textContent = result.unfinished.masteries || "";
     element("creation-error").textContent = "";
     if (result.sheet) {

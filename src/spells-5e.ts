@@ -18,7 +18,11 @@
  *   its duration's band says (`effectEnds`, D9), some while the caster
  *   concentrates on it: a die added to attack rolls and saving throws
  *   (Bless), a bonus to AC (Shield of Faith, Shield) or a base AC (Mage
- *   Armor).
+ *   Armor); a die added to the next ability check (Guidance, #339), or a
+ *   die taken off damage of a type chosen at casting (Resistance, #339).
+ * - `flavour` (#339): no effect in play (Thaumaturgy); it is never cast.
+ * - An attack may give the next attack roll against its target advantage
+ *   (Guiding Bolt, #339).
  * - An area spell (#338) declares its shape and size, and so the most
  *   opponents it can catch (`maxTargets`, D4); the caster chooses them.
  *
@@ -50,13 +54,36 @@ export type SpellDamage = SpellDice & Readonly<{ type: DamageType }>;
 /**
  * What a buff spell's effect does while it lasts (#337): a die added to the
  * target's attack rolls and saving throws, a bonus to its AC, or a base AC
- * in place of its unarmoured 10 (only while it wears no armour).
+ * in place of its unarmoured 10 (only while it wears no armour). Guidance's
+ * die (#339) is added to the next ability check, which ends it;
+ * Resistance's (#339) is taken off damage of the type chosen at casting,
+ * once a turn.
  */
 export type Buff = Readonly<
   | { kind: "die"; sides: number }
   | { kind: "armor-class"; bonus: number }
   | { kind: "base-armor-class"; base: number }
+  | { kind: "check-die"; sides: number }
+  | { kind: "damage-reduction"; sides: number }
 >;
+
+/**
+ * The damage types Resistance may be cast against (SRD 5.2, #339): every
+ * type but force and psychic.
+ */
+export const RESISTANCE_DAMAGE_TYPES = [
+  "acid",
+  "bludgeoning",
+  "cold",
+  "fire",
+  "lightning",
+  "necrotic",
+  "piercing",
+  "poison",
+  "radiant",
+  "slashing",
+  "thunder",
+] as const satisfies readonly DamageType[];
 
 /**
  * A spell's duration as SRD 5.2 gives it (#337): a number of minutes (1
@@ -98,7 +125,16 @@ export function outlastsFight(ends: EffectEnds): boolean {
 
 /** What a spell does to its target. */
 export type SpellEffect = Readonly<
-  | { kind: "attack"; range: "melee" | "ranged"; damage: SpellDamage }
+  | {
+      kind: "attack";
+      range: "melee" | "ranged";
+      damage: SpellDamage;
+      /**
+       * On a hit, the next attack roll against the target before the end
+       * of the caster's next turn has advantage (Guiding Bolt, #339).
+       */
+      nextAttackAdvantage?: true;
+    }
   | {
       kind: "save";
       ability: Ability;
@@ -126,6 +162,8 @@ export type SpellEffect = Readonly<
       duration: SpellDuration;
       concentration?: true;
     }
+  /** No effect in play (#339): flavour only, so never cast. */
+  | { kind: "flavour" }
 >;
 
 /**
@@ -212,6 +250,41 @@ export const SPELLS = {
     },
     cantripDice: 2,
   },
+  // The Cleric's cantrips (#339).
+  guidance: {
+    id: "guidance",
+    name: "Guidance",
+    level: 0,
+    school: "divination",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "check-die", sides: 4 },
+      duration: { minutes: 1 },
+      concentration: true,
+    },
+  },
+  resistance: {
+    id: "resistance",
+    name: "Resistance",
+    level: 0,
+    school: "abjuration",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "damage-reduction", sides: 4 },
+      duration: { minutes: 1 },
+      concentration: true,
+    },
+  },
+  thaumaturgy: {
+    id: "thaumaturgy",
+    name: "Thaumaturgy",
+    level: 0,
+    school: "transmutation",
+    castingTime: "action",
+    effect: { kind: "flavour" },
+  },
   "shocking-grasp": {
     id: "shocking-grasp",
     name: "Shocking Grasp",
@@ -249,6 +322,21 @@ export const SPELLS = {
       ability: "constitution",
       onSuccess: "half",
       damage: { dice: 2, sides: 10, type: "necrotic" },
+    },
+    upcast: { dice: 1 },
+  },
+  // A ranged spell attack that lights the target up (#339).
+  "guiding-bolt": {
+    id: "guiding-bolt",
+    name: "Guiding Bolt",
+    level: 1,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "attack",
+      range: "ranged",
+      damage: { dice: 4, sides: 6, type: "radiant" },
+      nextAttackAdvantage: true,
     },
     upcast: { dice: 1 },
   },
@@ -428,6 +516,7 @@ export function effectAtSlot(
       };
     case "auto-hit":
     case "buff":
+    case "flavour":
       return effect;
     default:
       return {

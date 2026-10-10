@@ -44,7 +44,9 @@ import {
   settleFifthSession,
   startFifthAdventure,
 } from "./session-5e.js";
-import { PLAYER_ID, type FifthAction } from "./runtime-5e.js";
+import { PLAYER_ID, spellSummary, type FifthAction } from "./runtime-5e.js";
+import type { DamageType } from "./encounter-5e.js";
+import { SPELLS, type SpellId } from "./spells-5e.js";
 import { loadGateVerdicts, recordedOrGated } from "./gate-verdicts-5e.js";
 import {
   ammunitionCount,
@@ -249,6 +251,29 @@ function libraryView(
           text: MASTERIES[WEAPONS[weapon].mastery].text,
         })),
         masteryCount: definition.weaponMasteries[1],
+        // A caster's spell list and counts, and a Cleric's Divine Orders
+        // (#339).
+        ...(definition.spellcasting === undefined
+          ? {}
+          : {
+              spellcasting: {
+                spells: definition.spellcasting.list.map(spellView),
+                cantrips: definition.spellcasting.cantrips[1],
+                prepared: definition.spellcasting.prepared[1],
+              },
+            }),
+        ...(definition.divineOrders === undefined
+          ? {}
+          : {
+              divineOrders: Object.entries(definition.divineOrders).map(
+                ([order, { name, text, extraCantrips }]) => ({
+                  id: order,
+                  name,
+                  text,
+                  extraCantrips: extraCantrips ?? 0,
+                }),
+              ),
+            }),
         defaults: definition.defaults,
       };
     }),
@@ -289,6 +314,19 @@ function libraryView(
           ammunitionCount(id, count),
         ),
         treasure: sheet.treasure.map(treasureView),
+        // A caster's spells (#339), and the spells it may prepare between
+        // adventures.
+        ...(sheet.spells === undefined
+          ? {}
+          : {
+              spells: {
+                cantrips: sheet.spells.cantrips.map((id) => spellView(id)),
+                prepared: sheet.spells.prepared.map((id) => spellView(id)),
+                preparable: (classOf(sheet).spellcasting?.list ?? [])
+                  .filter((id) => SPELLS[id].level >= 1)
+                  .map(spellView),
+              },
+            }),
         ...(session === undefined ? {} : { session }),
         defeated: defeated === true,
         // The level choice still to make (#286), with the level's changes.
@@ -306,6 +344,17 @@ function libraryView(
             }),
       };
     }),
+  };
+}
+
+/** A spell as creation and the sheet show it (#339): its name, level and what it does. */
+function spellView(id: SpellId) {
+  const spell = SPELLS[id];
+  return {
+    id,
+    name: spell.name,
+    level: spell.level,
+    summary: spellSummary(spell),
   };
 }
 
@@ -346,6 +395,17 @@ function choicesFrom(
         : {
             expertise: body.expertise as NonNullable<
               CreationChoices["expertise"]
+            >,
+          }),
+      // A caster's spells and a Cleric's Divine Order (#339).
+      ...(body.spells === undefined
+        ? {}
+        : { spells: body.spells as NonNullable<CreationChoices["spells"]> }),
+      ...(body.divineOrder === undefined
+        ? {}
+        : {
+            divineOrder: body.divineOrder as NonNullable<
+              CreationChoices["divineOrder"]
             >,
           }),
       kit: body.kit as CreationChoices["kit"],
@@ -718,13 +778,14 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
         // targets (#338); the runtime and the engine refuse what they
         // wouldn't take.
         if (
-          !hasExactKeys(body, [
-            "sessionId",
-            "sequence",
-            "spellId",
-            "slotLevel",
-            "targetIds",
-          ]) ||
+          !hasExactKeys(
+            body,
+            ["sessionId", "sequence", "spellId", "slotLevel", "targetIds"],
+            // Resistance's damage type (#339).
+            ["damageType"],
+          ) ||
+          (body.damageType !== undefined &&
+            typeof body.damageType !== "string") ||
           typeof body.spellId !== "string" ||
           !Array.isArray(body.targetIds) ||
           !body.targetIds.every((id) => typeof id === "string") ||
@@ -740,6 +801,9 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           ...(body.slotLevel === null
             ? {}
             : { slotLevel: body.slotLevel as number }),
+          ...(body.damageType === undefined
+            ? {}
+            : { damageType: body.damageType as DamageType }),
         });
       case "/api/5e/session/long-rest":
         // A long rest at a rest site (#335); the engine refuses it elsewhere.
@@ -885,6 +949,25 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
                 increase: body.increase,
                 ...(body.mastery === null ? {} : { mastery: body.mastery }),
               },
+              body.revision as string,
+            ),
+          ),
+        );
+      case "/api/5e/characters/prepare-spells":
+        // Prepared spells change only between adventures (#339, D8); the
+        // library refuses a character on one.
+        if (
+          !hasExactKeys(body, ["revision", "characterId", "prepared"]) ||
+          typeof body.revision !== "string" ||
+          typeof body.characterId !== "string"
+        ) {
+          throw new Error("Invalid prepared spells request.");
+        }
+        return view(
+          await serialized(() =>
+            library.prepareSpells(
+              body.characterId as string,
+              body.prepared,
               body.revision as string,
             ),
           ),

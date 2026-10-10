@@ -49,7 +49,7 @@ What casting a levelled spell spends (#336): one slot of the spell's level or hi
 _Avoid_: Mana, Spell points
 
 **Ongoing effect**:
-What a buff spell leaves on its target while it lasts (#337): a die added to attack rolls and saving throws, a bonus to AC or a base AC. Without a clock it ends by its duration's band: with the fight, at the next rest, at a long rest or the adventure's end, or at the start of the caster's next turn.
+What a buff spell leaves on its target while it lasts (#337): a die added to attack rolls and saving throws, a bonus to AC or a base AC; from #339 a die added to the next ability check (Guidance), or a die taken off damage of a chosen type once a turn (Resistance). Without a clock it ends by its duration's band: with the fight, at the next rest, at a long rest or the adventure's end, or at the start of the caster's next turn.
 _Avoid_: Buff (in player text), Aura
 
 **Concentration**:
@@ -61,6 +61,16 @@ _Avoid_: AoE, Splash
 
 **Reaction spell**:
 A spell cast as a reaction (#337), such as Shield: offered only while an opponent's hit waits for the caster's answer, as Uncanny Dodge is.
+
+**Divine Order**:
+The Cleric's choice at creation (#339): Protector (heavy armour and martial weapons) or Thaumaturge (one more cantrip, and its Wisdom modifier on Arcana and Religion checks).
+
+**Preparing spells**:
+Changing a caster's prepared spells (#339, D8): only between adventures, on its sheet in the library; refused during an adventure. Its cantrips are chosen once, at creation.
+_Avoid_: Memorising (Memorize Spell is a separate spell)
+
+**Reported class**:
+A class the balance gate plays and reports beside the classes it judges, never judging it (#339): the Cleric, until the caster policies (#348). No module's verdict depends on it.
 
 **Magic action**:
 The action a spell with a casting time of an action takes in a fight (#336); a bonus-action spell takes the bonus action instead.
