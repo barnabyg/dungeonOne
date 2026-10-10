@@ -314,6 +314,21 @@ for (const viewport of [
         );
         await fight(page);
         // A short rest: Arcane Recovery regains a slot.
+        if (viewport.width === 375) {
+          // The phone dock, with the Wizard's Cast row, leaves room above it
+          // for Rest in the room panel: before the Cast row wrapped, it
+          // stacked and the dock all but filled the window.
+          const room = await page.evaluate(
+            () =>
+              window.innerHeight -
+              document.getElementById("session-dock").getBoundingClientRect()
+                .height -
+              document
+                .querySelector("#rest-controls button.act")
+                .getBoundingClientRect().height,
+          );
+          assert.ok(room > 0, `Rest fits above the dock (${room} px spare)`);
+        }
         await settled(page, () =>
           page.locator("#rest-controls button.act").click(),
         );
