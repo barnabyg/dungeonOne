@@ -73,6 +73,9 @@ import {
   levelUpChanges,
   masteryOptions,
   pendingLevelUp,
+  preparableSpells,
+  spellCounts,
+  spellsOwed,
   projectCreation,
   projectLevelChoice,
   settleCharacter,
@@ -326,12 +329,19 @@ function libraryView(
               spells: {
                 cantrips: sheet.spells.cantrips.map((id) => spellView(id)),
                 prepared: sheet.spells.prepared.map((id) => spellView(id)),
-                // A Wizard prepares from its spellbook (#340).
-                preparable: (
-                  sheet.spellbook ??
-                  (classOf(sheet).spellcasting?.list ?? []).filter(
-                    (id) => SPELLS[id].level >= 1,
-                  )
+                // A Wizard prepares from its spellbook (#340); spells
+                // without a slot, or always prepared (#341), aren't offered.
+                preparable: preparableSpells(sheet).map(spellView),
+                // How many it prepares at its level, and how many more a
+                // new level lets it choose (#341).
+                limit: spellCounts(
+                  classOf(sheet),
+                  sheet.level,
+                  sheet.divineOrder,
+                ).prepared,
+                owed: spellsOwed(sheet).prepared,
+                alwaysPrepared: (
+                  characterProfile(sheet).spellcasting?.alwaysPrepared ?? []
                 ).map(spellView),
                 ...(sheet.spellbook === undefined
                   ? {}

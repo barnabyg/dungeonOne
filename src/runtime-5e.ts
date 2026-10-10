@@ -1503,6 +1503,14 @@ export function statBlockCombatant(
   };
 }
 
+/** The maximum hit points `effects` add (#341, Aid's). */
+export function raisedHp(effects: readonly ActiveEffect[] | undefined): number {
+  return (effects ?? []).reduce(
+    (sum, { buff }) => sum + (buff.kind === "max-hp" ? buff.bonus : 0),
+    0,
+  );
+}
+
 /** The character's resources at the start of an adventure. */
 export function startingResources(sheet: CharacterSheet): CharacterResources {
   const profile = characterProfile(sheet);
@@ -1538,6 +1546,9 @@ function resourcesAfter(
       ...(pc.actionSurge === undefined
         ? {}
         : { "action-surge": pc.actionSurge.uses }),
+      ...(pc.channelDivinity === undefined
+        ? {}
+        : { "channel-divinity": pc.channelDivinity.uses }),
       // Spell slots (#336) are feature uses too.
       ...Object.fromEntries(
         (pc.spellcasting?.slots ?? []).map(({ uses }, index) => [
@@ -1611,13 +1622,17 @@ export function playerCombatant(
   const initiative = initiativeAdvantages(sheet);
   const wind = profile.featureUses["second-wind"];
   const surge = profile.featureUses["action-surge"];
+  const channel = profile.featureUses["channel-divinity"];
   return {
     id: PLAYER_ID,
     name: sheet.name,
     side: "party",
+    // Every character is a humanoid (#341: Hold Person's target type).
+    creatureType: "humanoid",
     armorClass: profile.armorClass,
     hp: resources.hp,
-    maxHp: profile.maxHp,
+    // Aid raises the maximum while it lasts (#341).
+    maxHp: profile.maxHp + raisedHp(resources.effects),
     dexterity: sheet.abilities.dexterity,
     initiativeBonus: profile.initiative,
     saves: Object.fromEntries(
@@ -1665,6 +1680,16 @@ export function playerCombatant(
             max: surge.max,
           },
         }),
+    // Channel Divinity (#341): Divine Spark, Turn Undead, Preserve Life.
+    ...(profile.channelDivinity === undefined || channel === undefined
+      ? {}
+      : {
+          channelDivinity: {
+            uses: resources.featureUses["channel-divinity"] ?? 0,
+            max: channel.max,
+            ...profile.channelDivinity,
+          },
+        }),
     ...(potions.length === 0 ? {} : { potions }),
     ...(profile.spellcasting === undefined
       ? {}
@@ -1691,13 +1716,19 @@ function combatSpellcasting(
     attackBonus: casting.attackBonus,
     saveDc: casting.saveDc,
     modifier: casting.modifier,
-    spells: [...casting.cantrips, ...casting.prepared].map(
-      (id): SpellDefinition => spellAtLevel(SPELLS[id], sheet.level),
-    ),
+    // The Life Domain's spells are always prepared (#341).
+    spells: [
+      ...casting.cantrips,
+      ...casting.prepared,
+      ...(casting.alwaysPrepared ?? []),
+    ].map((id): SpellDefinition => spellAtLevel(SPELLS[id], sheet.level)),
     slots: casting.slots.map((max, index) => ({
       uses: resources.featureUses[slotUsesId(index + 1)] ?? 0,
       max,
     })),
+    ...(casting.discipleOfLife === true
+      ? { discipleOfLife: true as const }
+      : {}),
   };
 }
 
@@ -4315,7 +4346,10 @@ export function createFifthRuntime(
   probe: FifthRuntimeProbe = {},
 ): FifthRuntime {
   const checkPolicy = probe.checks ?? "seeded";
-  const maxHp = characterProfile(sheet).maxHp;
+  const baseMaxHp = characterProfile(sheet).maxHp;
+  /** The character's maximum hit points now: Aid raises them (#341). */
+  const maxHpOf = (state: FifthState) =>
+    baseMaxHp + raisedHp(state.character.effects);
   const roomById = (roomId: string) =>
     adventure.rooms.find(({ id }) => id === roomId)!;
   const room = (state: FifthState) => roomById(state.roomId);
@@ -5423,7 +5457,7 @@ export function createFifthRuntime(
       damage,
       damageType: effect.damageType,
       hpAfter,
-      maxHp,
+      maxHp: maxHpOf(state),
     };
     if (hpAfter > 0) {
       const kept = concentrationAfterDamage(hurt, damage, dice);
@@ -5636,7 +5670,7 @@ export function createFifthRuntime(
     const left = state.character.hitDice;
     const recovers =
       restRecovery(state).length > 0 || arcaneRecovered(state) !== undefined;
-    const hurt = state.character.hp < maxHp && left > 0;
+    const hurt = state.character.hp < maxHpOf(state) && left > 0;
     if (!hurt) {
       // At full HP no die is spent: only a rest that spends none.
       return recovers ? [0] : [];
@@ -5674,9 +5708,12 @@ export function createFifthRuntime(
     const recovered = restRecovery(state);
     const spent: Extract<FifthEvent, Readonly<{ type: "hit-die" }>>[] = [];
     let { hp } = state.character;
-    while (spent.length < count && hp < maxHp) {
+    while (spent.length < count && hp < maxHpOf(state)) {
       const value = dice.roll(sides);
-      const healing = Math.min(maxHp - hp, Math.max(0, value + modifier));
+      const healing = Math.min(
+        maxHpOf(state) - hp,
+        Math.max(0, value + modifier),
+      );
       hp += healing;
       spent.push({
         type: "hit-die",
@@ -5685,7 +5722,7 @@ export function createFifthRuntime(
         modifier,
         healing,
         hpAfter: hp,
-        maxHp,
+        maxHp: maxHpOf(state),
       });
     }
     // Arcane Recovery (#340) regains slots once per long rest.
@@ -5787,7 +5824,7 @@ export function createFifthRuntime(
    * dice or a feature use.
    */
   const longRestRestores = (state: FifthState) =>
-    state.character.hp < maxHp ||
+    state.character.hp < maxHpOf(state) ||
     state.character.hitDice < characterProfile(sheet).hitDice.count ||
     restRecovery(state, "long").length > 0;
 
@@ -5802,7 +5839,7 @@ export function createFifthRuntime(
       {
         ...state,
         longRests: state.longRests + 1,
-        character: { ...state.character, hp: maxHp, hitDice: total },
+        character: { ...state.character, hp: baseMaxHp, hitDice: total },
       },
       recovered,
     );
@@ -5812,9 +5849,9 @@ export function createFifthRuntime(
       events: [
         {
           type: "long-rest",
-          healing: maxHp - state.character.hp,
-          hpAfter: maxHp,
-          maxHp,
+          healing: baseMaxHp - state.character.hp,
+          hpAfter: baseMaxHp,
+          maxHp: baseMaxHp,
           regainedHitDice: total - state.character.hitDice,
           hitDice: projectHitDice(next),
           longRests: projectRests(next, "long"),
@@ -6411,7 +6448,7 @@ export function createFifthRuntime(
         halved: save.success,
         damageType: trap.damage.type,
         hpAfter,
-        maxHp,
+        maxHp: maxHpOf(state),
       },
     ];
     if (hpAfter > 0) {
@@ -6897,7 +6934,7 @@ export function createFifthRuntime(
         if (!restCounts(state).includes(action.hitDice)) {
           return reject(
             "nothing-to-recover",
-            state.character.hp === maxHp
+            state.character.hp === maxHpOf(state)
               ? restRecovery(state).length > 0
                 ? "You are at full health: a rest spends no hit dice."
                 : "You are at full health with every feature use: a rest would restore nothing."
@@ -7764,7 +7801,7 @@ export function createFifthRuntime(
             reject,
           );
         }
-        if (state.character.hp >= maxHp) {
+        if (state.character.hp >= maxHpOf(state)) {
           return reject(
             "full-hp",
             "You are unhurt, so the potion would heal nothing.",
@@ -7777,7 +7814,7 @@ export function createFifthRuntime(
           PLAYER_ID,
           potionOf(items.get(action.itemId)!)!,
           state.character.hp,
-          maxHp,
+          maxHpOf(state),
           random,
         );
         return {
@@ -8889,7 +8926,7 @@ export function createFifthRuntime(
     const profile = characterProfile(sheetOf(state));
     return {
       hp: state.character.hp,
-      maxHp,
+      maxHp: maxHpOf(state),
       equipment: state.possessions.equipment.map((id) => ({
         id,
         name: itemName(id),
@@ -9062,8 +9099,8 @@ export function createFifthRuntime(
       })(),
       character: {
         hp: state.character.hp,
-        maxHp,
-        health: healthOf(state.character.hp, maxHp),
+        maxHp: maxHpOf(state),
+        health: healthOf(state.character.hp, maxHpOf(state)),
       },
       carrying: { weight: weightOf(state), capacity },
       options: {

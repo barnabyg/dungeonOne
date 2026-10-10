@@ -37,6 +37,8 @@ import {
   levelChoicesOwed,
   masteryOptions,
   pendingLevelChoice,
+  withOwedSpells,
+  alwaysPrepared,
   rollAbilitySet,
   validateCharacter,
   type CharacterSheet,
@@ -181,11 +183,30 @@ export function characterAtLevel(
     },
     classId,
   );
-  const raised = { ...created, level, xp: LEVEL_XP[level] };
-  const sheet = validateCharacter({
-    ...raised,
-    hp: characterProfile(raised).maxHp,
-  });
+  // Spells its level always prepares (#341) leave its choices.
+  const always = alwaysPrepared(definition, level);
+  const raised = {
+    ...created,
+    level,
+    xp: LEVEL_XP[level],
+    ...(created.spells === undefined
+      ? {}
+      : {
+          spells: {
+            ...created.spells,
+            prepared: created.spells.prepared.filter(
+              (id) => !always.includes(id),
+            ),
+          },
+        }),
+  };
+  // A caster prepares the spells its level adds (#341) in its list's order.
+  const sheet = withOwedSpells(
+    validateCharacter({
+      ...raised,
+      hp: characterProfile(raised).maxHp,
+    }),
+  );
   return pendingLevelChoice(sheet) === undefined
     ? sheet
     : applyLevelChoice(sheet, gateLevelChoice(sheet, archer, mastery));

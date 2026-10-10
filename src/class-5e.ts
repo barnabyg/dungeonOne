@@ -223,6 +223,8 @@ export type FeatureContext = Readonly<{
    * Strike's saving throws (#308).
    */
   dexterityDc: number;
+  /** The ability modifiers (#341: Divine Spark adds Wisdom's). */
+  modifiers: Readonly<Record<Ability, number>>;
 }>;
 
 type Words = string | ((context: FeatureContext) => string);
@@ -305,6 +307,30 @@ export type FeatureEffect = Readonly<
    * level or higher.
    */
   | { kind: "arcane-recovery" }
+  /**
+   * Channel Divinity (#341): its uses power Divine Spark (`dice`d`sides`
+   * by level + the spellcasting modifier) and Turn Undead, against the
+   * spell save DC.
+   */
+  | {
+      kind: "channel-divinity";
+      divineSpark: Readonly<{ dice: LevelTable; sides: number }>;
+    }
+  /**
+   * Preserve Life (#341): a use of Channel Divinity heals up to
+   * `perLevel` × the class level, the Bloodied only, to half their maximum.
+   */
+  | { kind: "preserve-life"; perLevel: number }
+  /**
+   * Disciple of Life (#341): a spell cast with a slot that restores hit
+   * points restores 2 + the slot's level more.
+   */
+  | { kind: "disciple-of-life" }
+  /**
+   * Spells always prepared (#341, the Life Domain's): they don't count
+   * against the spells prepared.
+   */
+  | { kind: "always-prepared"; spells: readonly SpellId[] }
 >;
 
 /** One class or subclass feature, gained at `level`. */

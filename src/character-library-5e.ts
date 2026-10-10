@@ -37,6 +37,7 @@ import {
   DEFAULT_CLASS,
   levelChoiceWords,
   pendingLevelChoice,
+  spellsOwedWords,
   rollAbilitySet,
   settleCharacter,
   validateDice,
@@ -379,6 +380,13 @@ export class FifthCharacterLibrary {
     if (level !== undefined) {
       throw new Error(
         `${record.sheet.name} must choose the level ${level} ${levelChoiceWords(record.sheet)} on the character sheet before starting another adventure.`,
+      );
+    }
+    // A new level's spells are chosen first (#341).
+    const owed = spellsOwedWords(record.sheet);
+    if (owed !== undefined) {
+      throw new Error(
+        `${record.sheet.name} has ${owed} on the character sheet before starting another adventure.`,
       );
     }
     return index;
