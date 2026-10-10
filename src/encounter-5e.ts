@@ -130,6 +130,20 @@
  *   react, automatically fails Strength and Dexterity saves, attacks against
  *   it have advantage, and every hit on it is a critical hit. Every condition
  *   ends when the fight does.
+ * - Channel Divinity (#341): a Magic action spending one of its uses.
+ *   Divine Spark rolls its dice + Wisdom modifier and heals another
+ *   creature on the caster's side, or deals radiant or necrotic damage to
+ *   an opponent, halved by a Constitution save. Turn Undead makes each
+ *   undead opponent still in the fight (without positions, every one is
+ *   within 30 feet) save on Wisdom or be Frightened and Incapacitated for
+ *   the fight's minute; damage, an attack on it (D13) or the turner being
+ *   incapacitated ends it. Preserve Life heals the Bloodied caster, never
+ *   above half its hit points. When every opponent left is turned, the
+ *   character may attack them or leave (`everyFoeTurned`).
+ * - Spiritual Weapon (#341): a bonus action on each turn after its cast
+ *   makes the weapon's melee spell attack (`spectral-attack`).
+ * - Disciple of Life (#341): a spell cast with a slot that heals heals 2 +
+ *   the slot's level more.
  * - Pack Tactics: a combatant with it has advantage on its attacks while an
  *   ally on its side is alive and able to act.
  * - Multiattack (#235): an opponent with it makes several attacks on its
@@ -219,10 +233,15 @@ export type DamageAdjustment = Readonly<{
 
 /**
  * The conditions the engine applies: Incapacitated and Unconscious come
- * from Sleep (#340).
+ * from Sleep (#340), Frightened from Turn Undead (#341).
  */
 export type ConditionKind =
-  "poisoned" | "prone" | "paralysed" | "incapacitated" | "unconscious";
+  | "poisoned"
+  | "prone"
+  | "paralysed"
+  | "incapacitated"
+  | "unconscious"
+  | "frightened";
 
 /**
  * What a creature may be immune to (SRD 5.2): a condition the engine
@@ -275,6 +294,13 @@ export const CONDITION_RULES: Readonly<
     incapacitated: true,
     failsSaves: ["strength", "dexterity"],
     criticalHits: true,
+  },
+  // Turn Undead's (#341): without positions its source is always in
+  // sight, and its bar on moving closer changes nothing.
+  frightened: {
+    name: "Frightened",
+    attacks: "disadvantage",
+    checks: "disadvantage",
   },
 };
 
@@ -454,6 +480,12 @@ export type Combatant = DamageDefenses &
     /** Its size, such as "Medium"; Trip can't knock over a Huge one (#308). */
     size?: string;
     /**
+     * Its creature type in lower case, such as "undead" or "humanoid"
+     * (#341): Turn Undead turns only undead, Hold Person holds only
+     * humanoids.
+     */
+    creatureType?: string;
+    /**
      * Its passive Perception, which a hiding foe's Stealth must meet (#307);
      * 10 when not given.
      */
@@ -461,6 +493,14 @@ export type Combatant = DamageDefenses &
     /** Class features with limited uses, with the uses left of their maximum. */
     secondWind?: FeatureUses & Readonly<{ healing: Healing }>;
     actionSurge?: FeatureUses;
+    /**
+     * Channel Divinity (#341): its uses, the spell save DC its effects use,
+     * Divine Spark's dice + Wisdom modifier, and Preserve Life's pool of
+     * hit points (five times the Cleric level) once it has it. Turn Undead
+     * comes with it.
+     */
+    channelDivinity?: FeatureUses &
+      Readonly<{ saveDc: number; divineSpark: Healing; preserveLife?: number }>;
     /** Healing potions the combatant carries, which it can drink. */
     potions?: readonly Potion[];
     /** Its spellcasting (#336), for a combatant that casts spells. */
@@ -529,6 +569,8 @@ export type CombatSpellcasting = Readonly<{
   modifier: number;
   spells: readonly SpellDefinition[];
   slots: readonly FeatureUses[];
+  /** Disciple of Life (#341): slot healing heals 2 + the slot level more. */
+  discipleOfLife?: true;
 }>;
 
 /**
@@ -574,6 +616,12 @@ export type EffectEndReason =
   | "saved"
   /** A control spell's condition ran its turns out (#340). */
   | "lapsed"
+  /** A turned creature took damage (#341). */
+  | "damaged"
+  /** A turned creature was attacked (#341, D13). */
+  | "attacked"
+  /** A spell ended its condition (#341, Lesser Restoration). */
+  | "cured"
   | "next-turn"
   | "fight-over"
   | "rest"
@@ -781,8 +829,20 @@ export type EncounterActionType =
   | "steady-aim"
   | "drink-potion"
   | "cast"
+  | "divine-spark"
+  | "turn-undead"
+  | "preserve-life"
+  | "spectral-attack"
   | "end-turn"
   | ReactionAnswer;
+
+/** What Divine Spark does (#341): heal, or deal radiant or necrotic damage. */
+export const DIVINE_SPARK_MODES = ["heal", "radiant", "necrotic"] as const;
+export type DivineSparkMode = (typeof DIVINE_SPARK_MODES)[number];
+
+/** Turn Undead's name and the id its hold is kept under (#341). */
+export const TURN_UNDEAD = "Turn Undead";
+export const TURN_UNDEAD_ID = "turn-undead";
 
 /** The answers to a hit that Uncanny Dodge could halve (#308). */
 export type ReactionAnswer = "uncanny-dodge" | "take-hit";
@@ -801,11 +861,22 @@ export type EncounterAction =
         | "action-surge"
         | "hide"
         | "steady-aim"
+        | "turn-undead"
+        | "preserve-life"
         | "end-turn"
         | ReactionAnswer;
       actorId: string;
     }>
   | Readonly<{ type: "drink-potion"; actorId: string; itemId: string }>
+  /** Divine Spark (#341) at its target. */
+  | Readonly<{
+      type: "divine-spark";
+      actorId: string;
+      targetId: string;
+      mode: DivineSparkMode;
+    }>
+  /** Spiritual Weapon's attack (#341) with the bonus action. */
+  | Readonly<{ type: "spectral-attack"; actorId: string; targetId: string }>
   | CastAction
   /**
    * Draws, stows or swaps a weapon with the turn's object interaction: the
@@ -1115,7 +1186,11 @@ export type SpellConditionEvent = Readonly<{
 }> &
   (
     | Readonly<{ save: SavingThrow; immune?: never }>
-    | Readonly<{ immune: "exhaustion"; save?: never }>
+    /**
+     * Immune to what the spell needs (#340: Sleep's exhaustion, #341:
+     * Hold Person's paralysis): no roll.
+     */
+    | Readonly<{ immune: ConditionImmunity; save?: never }>
   );
 
 /** A spell that always hits (#336), such as Magic Missile: each missile's roll. */
@@ -1128,7 +1203,11 @@ export type SpellDamageEvent = Readonly<{
 }> &
   SpellDamageDealt;
 
-/** A healing spell (#336): its dice + the caster's spellcasting modifier. */
+/**
+ * A healing spell (#336): its dice + the caster's spellcasting modifier
+ * (none for Prayer of Healing, #341), and Disciple of Life's 2 + the slot
+ * level (#341).
+ */
 export type SpellHealingEvent = Readonly<{
   type: "spell-healing";
   combatantId: string;
@@ -1136,7 +1215,65 @@ export type SpellHealingEvent = Readonly<{
   spell: string;
   rolls: readonly number[];
   modifier: number;
+  /** Disciple of Life's extra healing (#341). */
+  disciple?: number;
   healing: number;
+  hpAfter: number;
+  maxHp: number;
+}>;
+
+/**
+ * Divine Spark (#341): its dice + the Wisdom modifier, healing an ally or,
+ * after the opponent's Constitution save, dealing radiant or necrotic
+ * damage (half on a success). The Channel Divinity uses left.
+ */
+export type DivineSparkEvent = Readonly<{
+  type: "divine-spark";
+  combatantId: string;
+  targetId: string;
+  rolls: readonly number[];
+  modifier: number;
+  total: number;
+  hpAfter: number;
+  usesLeft: number;
+}> &
+  (
+    | Readonly<{ mode: "heal"; healing: number; maxHp: number }>
+    | Readonly<{
+        mode: "radiant" | "necrotic";
+        save: SavingThrow;
+        damage: number;
+        damageAdjustment?: DamageAdjustment;
+      }>
+  );
+
+/**
+ * Turn Undead used (#341): the undead it reaches, each saving next in a
+ * `spell-condition` event, and the Channel Divinity uses left.
+ */
+export type TurnUndeadEvent = Readonly<{
+  type: "turn-undead";
+  combatantId: string;
+  targetIds: readonly string[];
+  usesLeft: number;
+}>;
+
+/** Preserve Life (#341): the hit points it restores, up to half the maximum. */
+export type PreserveLifeEvent = Readonly<{
+  type: "preserve-life";
+  combatantId: string;
+  healing: number;
+  hpAfter: number;
+  maxHp: number;
+  usesLeft: number;
+}>;
+
+/** A spell raising maximum and current hit points (#341, Aid). */
+export type HitPointsRaisedEvent = Readonly<{
+  type: "hit-points-raised";
+  targetId: string;
+  spell: string;
+  bonus: number;
   hpAfter: number;
   maxHp: number;
 }>;
@@ -1212,6 +1349,11 @@ export type EncounterEvent =
       turns: number;
       /** The save it repeats at the end of each of its turns. */
       save?: SaveSpec;
+      /**
+       * It lasts while the spell or turning that gave it does (#341), not
+       * for `turns`.
+       */
+      lasting?: true;
     }>
   | Readonly<{
       type: "condition-ended";
@@ -1219,9 +1361,11 @@ export type EncounterEvent =
       kind: ConditionKind;
       /**
        * A repeat save, its turns running out, standing up, the fight
-       * ending, or the control spell that gave it ending (#340).
+       * ending, the control spell that gave it ending (#340), or a spell
+       * curing it (#341).
        */
-      reason: "saved" | "expired" | "stood" | "fight-over" | "spell-ended";
+      reason:
+        "saved" | "expired" | "stood" | "fight-over" | "spell-ended" | "cured";
     }>
   | Readonly<{
       type: "second-wind";
@@ -1243,6 +1387,10 @@ export type EncounterEvent =
   | SpellConditionEvent
   | SpellDamageEvent
   | SpellHealingEvent
+  | DivineSparkEvent
+  | TurnUndeadEvent
+  | PreserveLifeEvent
+  | HitPointsRaisedEvent
   | EffectEvent
   | EffectEndedEvent
   | ConcentrationEvent
@@ -1313,6 +1461,14 @@ export type EncounterRefusalCode =
   | "fight-only"
   | "damage-type"
   | "no-effect"
+  | "no-channel-divinity"
+  | "no-undead"
+  | "not-bloodied"
+  | "no-spectral-weapon"
+  | "creature-type"
+  | "no-condition"
+  | "not-in-fight"
+  | "not-self"
   | "paralysed"
   | "fled"
   | "surrendered";
@@ -1966,20 +2122,83 @@ function endEffects(
   };
 }
 
+/** Whether `effect` is a hold of kind `by` (#340, #341): Sleep's has none. */
+const controls = (
+  { buff }: ActiveEffect,
+  by: "hold" | "turning" | undefined,
+): boolean => buff.kind === "control" && buff.by === by;
+
 /**
- * Ends the control spell on `targetId` (#340): Sleep, when it takes damage
- * (`woke`) or shakes it off. Its conditions end with it.
+ * Damage on `targetId` (#340, #341) wakes it from Sleep and ends its
+ * turning; a hold (Hold Person) stays.
  */
-function endControl(
+function wake(
   state: EncounterState,
   targetId: string,
-  reason: EffectEndReason,
+  events: EncounterEvent[],
+): EncounterState {
+  const woken = endEffects(
+    state,
+    (effect, holder) => holder.id === targetId && controls(effect, undefined),
+    "woke",
+    events,
+  );
+  return endEffects(
+    woken,
+    (effect, holder) => holder.id === targetId && controls(effect, "turning"),
+    "damaged",
+    events,
+  );
+}
+
+/** Whether `entrant` is turned (#341). */
+function isTurned(entrant: Combatant): boolean {
+  return (entrant.effects ?? []).some((effect) => controls(effect, "turning"));
+}
+
+/**
+ * An attack or harmful spell aimed at `targetIds` (#341, D13) ends their
+ * turning first.
+ */
+function stirTurned(
+  state: EncounterState,
+  targetIds: readonly string[],
   events: EncounterEvent[],
 ): EncounterState {
   return endEffects(
     state,
-    ({ buff }, holder) => holder.id === targetId && buff.kind === "control",
-    reason,
+    (effect, holder) =>
+      targetIds.includes(holder.id) && controls(effect, "turning"),
+    "attacked",
+    events,
+  );
+}
+
+/**
+ * Whether every opponent of `actorId` still in the fight is turned (#341,
+ * D13): the character may then attack them or leave.
+ */
+export function everyFoeTurned(
+  state: EncounterState,
+  actorId: string,
+): boolean {
+  const foes = legalTargets(state, actorId);
+  return foes.length > 0 && foes.every(isTurned);
+}
+
+/**
+ * `entrantId` has just been incapacitated: its concentration ends (#337),
+ * and the turning it gave (#341).
+ */
+function incapacitate(
+  state: EncounterState,
+  entrantId: string,
+  events: EncounterEvent[],
+): EncounterState {
+  return endEffects(
+    endConcentration(state, entrantId, "incapacitated", events),
+    (effect) => effect.casterId === entrantId && controls(effect, "turning"),
+    "incapacitated",
     events,
   );
 }
@@ -2067,6 +2286,128 @@ export function incapacitatedBy(
   );
 }
 
+/**
+ * Why `actor` can't use Channel Divinity now (#341): it lacks it, has no
+ * use left, or its action is spent.
+ */
+function channelRefusal(
+  state: EncounterState,
+  actor: Combatant,
+): EncounterRejection | undefined {
+  if (actor.channelDivinity === undefined) {
+    return refused("no-channel-divinity", "You don't have Channel Divinity.");
+  }
+  if (actor.channelDivinity.uses === 0) {
+    return refused(
+      "no-uses-left",
+      "You have no uses of Channel Divinity left.",
+    );
+  }
+  return state.economy.actions === 0
+    ? refused("action-used", "You have already used your action this turn.")
+    : undefined;
+}
+
+/** The undead opponents of `actor` still in the fight and not turned (#341). */
+function turnable(state: EncounterState, actor: Combatant): Combatant[] {
+  return legalTargets(state, actor.id).filter(
+    (foe) => foe.creatureType === "undead" && !isTurned(foe),
+  );
+}
+
+function turnUndeadRefusal(
+  state: EncounterState,
+  actor: Combatant,
+): EncounterRejection | undefined {
+  return (
+    channelRefusal(state, actor) ??
+    (turnable(state, actor).length === 0
+      ? refused(
+          "no-undead",
+          "Turn Undead turns undead, and no undead opponent here is left to turn.",
+        )
+      : undefined)
+  );
+}
+
+/**
+ * Preserve Life's healing for `actor` now (#341): up to its pool, never
+ * above half its hit points.
+ */
+function preserved(actor: Combatant): number {
+  return Math.min(
+    actor.channelDivinity?.preserveLife ?? 0,
+    Math.max(0, Math.floor(actor.maxHp / 2) - actor.hp),
+  );
+}
+
+function preserveLifeRefusal(
+  state: EncounterState,
+  actor: Combatant,
+): EncounterRejection | undefined {
+  if (actor.channelDivinity?.preserveLife === undefined) {
+    return refused("no-channel-divinity", "You don't have Preserve Life.");
+  }
+  const refusal = channelRefusal(state, actor);
+  if (refusal !== undefined) {
+    return refusal;
+  }
+  return actor.hp * 2 > actor.maxHp || preserved(actor) === 0
+    ? refused(
+        "not-bloodied",
+        "Preserve Life heals only the Bloodied, and never above half their hit points: you are at half or more.",
+      )
+    : undefined;
+}
+
+/**
+ * Whether Divine Spark (#341) has a target now: an opponent always, while
+ * the fight goes on.
+ */
+function divineSparkRefusal(
+  state: EncounterState,
+  actor: Combatant,
+): EncounterRejection | undefined {
+  return channelRefusal(state, actor);
+}
+
+/** The Spiritual Weapon `actor` commands (#341), if any. */
+function spectralWeaponOf(actor: Combatant): ActiveEffect | undefined {
+  return actor.effects?.find(
+    ({ buff, casterId }) =>
+      buff.kind === "spectral-weapon" && casterId === actor.id,
+  );
+}
+
+function spectralRefusal(
+  state: EncounterState,
+  actor: Combatant,
+): EncounterRejection | undefined {
+  if (spectralWeaponOf(actor) === undefined) {
+    return refused(
+      "no-spectral-weapon",
+      "You have no spectral weapon to command: cast Spiritual Weapon first.",
+    );
+  }
+  return state.economy.bonusAction ? undefined : BONUS_ACTION_USED;
+}
+
+/** The weapon Spiritual Weapon's later attacks are made with (#341). */
+function spectralWeapon(actor: Combatant, effect: ActiveEffect): Weapon {
+  const buff = effect.buff as Extract<Buff, { kind: "spectral-weapon" }>;
+  return {
+    name: effect.spell,
+    bonus: actor.spellcasting?.attackBonus ?? 0,
+    damage: {
+      dice: buff.dice,
+      sides: buff.sides,
+      modifier: actor.spellcasting?.modifier ?? 0,
+      type: buff.type,
+    },
+    criticalRange: 20,
+  };
+}
+
 /** What `actorId` may do now; empty unless it is its turn. */
 export function availableActions(
   state: EncounterState,
@@ -2118,6 +2459,18 @@ export function availableActions(
       ? (["drink-potion"] as const)
       : []),
     ...(canCast(state, actor) ? (["cast"] as const) : []),
+    ...(divineSparkRefusal(state, actor) === undefined
+      ? (["divine-spark"] as const)
+      : []),
+    ...(turnUndeadRefusal(state, actor) === undefined
+      ? (["turn-undead"] as const)
+      : []),
+    ...(preserveLifeRefusal(state, actor) === undefined
+      ? (["preserve-life"] as const)
+      : []),
+    ...(spectralRefusal(state, actor) === undefined
+      ? (["spectral-attack"] as const)
+      : []),
     "end-turn",
   ];
 }
@@ -2425,6 +2778,7 @@ export function savingThrow(
   entrant: Combatant,
   save: SaveSpec,
   random: Roller,
+  advantage: readonly string[] = [],
 ): SavingThrow {
   const bonus = entrant.saves[save.ability];
   const fails = conditionWhere(
@@ -2438,7 +2792,7 @@ export function savingThrow(
   }
   const { d20, mode } = rollD20(
     random,
-    [],
+    advantage,
     entrant.abilityDisadvantages?.[save.ability] ?? [],
   );
   // Bless (#337) adds its die to the save.
@@ -2463,13 +2817,49 @@ function rollSave(
   repeat: boolean,
   random: Roller,
 ): SaveEvent {
+  // Protection from Poison (#341): advantage against being poisoned.
+  const ward =
+    condition === "poisoned"
+      ? (entrant.effects ?? []).find(({ buff }) => buff.kind === "poison-ward")
+      : undefined;
   return {
     type: "save",
     combatantId: entrant.id,
     condition,
     repeat,
-    ...savingThrow(state, entrant, save, random),
+    ...savingThrow(
+      state,
+      entrant,
+      save,
+      random,
+      ward === undefined ? [] : [ward.spell],
+    ),
   };
+}
+
+/**
+ * `entrant`'s damage defences with its effects' (#341): Protection from
+ * Poison resists poison damage, and cancels a vulnerability to it.
+ */
+function defencesOf(entrant: Combatant): DamageDefenses {
+  const warded = (entrant.effects ?? []).some(
+    ({ buff }) => buff.kind === "poison-ward",
+  );
+  if (
+    !warded ||
+    entrant.immunities?.includes("poison") === true ||
+    entrant.resistances?.includes("poison") === true
+  ) {
+    return entrant;
+  }
+  return entrant.vulnerabilities?.includes("poison") === true
+    ? {
+        ...entrant,
+        vulnerabilities: entrant.vulnerabilities.filter(
+          (type) => type !== "poison",
+        ),
+      }
+    : { ...entrant, resistances: [...(entrant.resistances ?? []), "poison"] };
 }
 
 /**
@@ -2534,10 +2924,11 @@ function applyCondition(
       },
     ],
   };
-  // An incapacitated combatant loses its concentration (#337).
+  // An incapacitated combatant loses its concentration (#337) and the
+  // turning it gave (#341).
   return incapacitatedBy(given, target.id) === undefined
     ? given
-    : endConcentration(given, target.id, "incapacitated", events);
+    : incapacitate(given, target.id, events);
 }
 
 /**
@@ -2554,7 +2945,11 @@ function endTurn(
   events: EncounterEvent[],
 ): EncounterState {
   const conditions: Condition[] = [];
-  let released: EffectEndReason | undefined;
+  const released: {
+    spellId: string;
+    sourceId: string;
+    reason: EffectEndReason;
+  }[] = [];
   for (const condition of state.conditions) {
     if (condition.targetId !== entrant.id) {
       conditions.push(condition);
@@ -2568,7 +2963,11 @@ function endTurn(
         reason,
       });
       if (condition.spellId !== undefined) {
-        released = reason === "saved" ? "saved" : "lapsed";
+        released.push({
+          spellId: condition.spellId,
+          sourceId: condition.sourceId,
+          reason: reason === "saved" ? "saved" : "lapsed",
+        });
       }
     };
     if (condition.save !== undefined) {
@@ -2610,9 +3009,11 @@ function endTurn(
         continue;
       }
     }
-    // Sleep's Unconscious (#340) lasts until the spell ends on it, whose
-    // minute is the fight (D9): it never runs out by turns.
-    if (condition.spellId !== undefined && condition.save === undefined) {
+    // A spell's condition lasts until the spell ends on it, whose minute is
+    // the fight (D9): Sleep's Unconscious (#340), Hold Person's paralysis
+    // after a failed save and Turn Undead's conditions (#341) never run
+    // out by turns.
+    if (condition.spellId !== undefined) {
       conditions.push(condition);
       continue;
     }
@@ -2622,10 +3023,20 @@ function endTurn(
     }
     conditions.push({ ...condition, turnsLeft: condition.turnsLeft - 1 });
   }
-  const next = { ...state, conditions };
-  return released === undefined
-    ? next
-    : endControl(next, entrant.id, released, events);
+  return released.reduce(
+    (next, { spellId, sourceId, reason }) =>
+      endEffects(
+        next,
+        (effect, holder) =>
+          holder.id === entrant.id &&
+          effect.buff.kind === "control" &&
+          effect.spellId === spellId &&
+          effect.casterId === sourceId,
+        reason,
+        events,
+      ),
+    { ...state, conditions } as EncounterState,
+  );
 }
 
 /** The `condition` event of a condition given (#340). */
@@ -2638,6 +3049,7 @@ function conditionEvent(condition: Condition): EncounterEvent {
     source: condition.source,
     turns: condition.turnsLeft,
     ...(condition.save === undefined ? {} : { save: condition.save }),
+    ...(condition.spellId === undefined ? {} : { lasting: true as const }),
   };
 }
 
@@ -2877,7 +3289,7 @@ function landAttack(
     : graze
       ? weapon.damage.modifier
       : 0;
-  const defended = damageTaken(target, weapon.damage.type, rolled);
+  const defended = damageTaken(defencesOf(target), weapon.damage.type, rolled);
   const dodged = landing.resumed?.dodged === true;
   const damageAdjustment = defended.damageAdjustment;
   // A hit's rider deals its extra damage, its dice doubled by a critical.
@@ -2891,7 +3303,7 @@ function landAttack(
             () => random.roll(extra.sides),
           );
           const taken = damageTaken(
-            target,
+            defencesOf(target),
             extra.type,
             Math.max(
               0,
@@ -3103,9 +3515,9 @@ function landAttack(
       steadyAim: !aimed && state.economy.steadyAim,
     },
   };
-  // Damage wakes a target from Sleep (#340).
+  // Damage wakes a target from Sleep (#340) and ends its turning (#341).
   if (taken > 0) {
-    next = endControl(next, target.id, "woke", events);
+    next = wake(next, target.id, events);
   }
   const defeated = hpLeft === 0 && target.hp > 0;
   if (defeated) {
@@ -3537,6 +3949,7 @@ function spellRefusal(
   actor: Combatant,
   action: Pick<CastAction, "spellId" | "slotLevel" | "damageType">,
   reacting = false,
+  outside = false,
 ): EncounterRejection | undefined {
   const casting = actor.spellcasting;
   if (casting === undefined) {
@@ -3582,6 +3995,14 @@ function spellRefusal(
         `${spell.name} resists only damage your opponents' attacks deal: ${resistible.length === 0 ? "none" : resistible.join(", ")}.`,
       );
     }
+  }
+  // A spell cast in minutes (#341, Prayer of Healing) needs time outside a
+  // fight.
+  if (spell.castingTime === "minutes" && !outside) {
+    return refused(
+      "not-in-fight",
+      `${spell.name} takes ten minutes to cast: only outside a fight.`,
+    );
   }
   if ((spell.castingTime === "reaction") !== reacting) {
     return reacting
@@ -3655,8 +4076,25 @@ function spellTarget(
   targetId: string,
 ): Combatant | EncounterRejection {
   const { effect } = spell;
-  if (effect.kind !== "healing" && effect.kind !== "buff") {
-    return opponentOf(state, actor, targetId);
+  if (
+    effect.kind !== "healing" &&
+    effect.kind !== "buff" &&
+    effect.kind !== "restoration"
+  ) {
+    const foe = opponentOf(state, actor, targetId);
+    // Hold Person (#341) holds only a humanoid.
+    if (
+      "code" in foe ||
+      effect.kind !== "control" ||
+      effect.creatureType === undefined ||
+      foe.creatureType === effect.creatureType
+    ) {
+      return foe;
+    }
+    return refused(
+      "creature-type",
+      `${spell.name} works only on a ${effect.creatureType}, and ${foe.name} is ${foe.creatureType === undefined ? "not one" : `${/^[aeiou]/u.test(foe.creatureType) ? "an" : "a"} ${foe.creatureType}`}.`,
+    );
   }
   const target = state.combatants.find(({ id }) => id === targetId);
   if (target === undefined) {
@@ -3678,12 +4116,32 @@ function spellTarget(
     return refused("already-defeated", `${target.name} is already defeated.`);
   }
   if (effect.kind === "healing") {
-    return target.hp >= target.maxHp
+    if (target.hp >= target.maxHp) {
+      return refused(
+        "full-hp",
+        `${you ? "You are" : `${target.name} is`} unhurt, so ${spell.name} would heal nothing.`,
+      );
+    }
+    // Prayer of Healing (#341) helps a creature once per long rest.
+    return effect.restBenefit === true &&
+      target.effects?.some(({ spellId }) => spellId === spell.id) === true
       ? refused(
-          "full-hp",
-          `${you ? "You are" : `${target.name} is`} unhurt, so ${spell.name} would heal nothing.`,
+          "effect-active",
+          `${you ? "You" : target.name} can't benefit from ${spell.name} again until a long rest.`,
         )
       : target;
+  }
+  // Lesser Restoration (#341) needs a condition it ends.
+  if (effect.kind === "restoration") {
+    return state.conditions.some(
+      ({ targetId: held, kind }) =>
+        held === target.id && effect.conditions.includes(kind),
+    )
+      ? target
+      : refused(
+          "no-condition",
+          `${you ? "You have" : `${target.name} has`} none of the conditions ${spell.name} ends: ${effect.conditions.join(", ")}.`,
+        );
   }
   // A spell already on its target can't be cast on it again (#337): its
   // duration can't be renewed or extended.
@@ -3713,8 +4171,9 @@ function castRefusal(
     "spellId" | "slotLevel" | "targetIds" | "damageType"
   >,
   reacting = false,
+  outside = false,
 ): EncounterRejection | undefined {
-  const refusal = spellRefusal(state, actor, action, reacting);
+  const refusal = spellRefusal(state, actor, action, reacting, outside);
   if (refusal !== undefined) {
     return refusal;
   }
@@ -3851,7 +4310,11 @@ function spellDamage(
     dealt: Pick<SpellDamageDealt, "damage" | "damageAdjustment" | "hpAfter">,
   ) => EncounterEvent,
 ): EncounterState {
-  const { damage, damageAdjustment } = damageTaken(target, type, rolled);
+  const { damage, damageAdjustment } = damageTaken(
+    defencesOf(target),
+    type,
+    rolled,
+  );
   const hpAfter = Math.max(0, target.hp - damage);
   events.push(
     event({
@@ -3875,8 +4338,8 @@ function spellDamage(
     ),
     engaged: engage(state, actor, target),
   };
-  // Damage wakes a target from Sleep (#340).
-  const next = damage > 0 ? endControl(hit, target.id, "woke", events) : hit;
+  // Damage wakes a target from Sleep (#340) and ends its turning (#341).
+  const next = damage > 0 ? wake(hit, target.id, events) : hit;
   // A fall ends concentration; damage that leaves it standing tests it (#337).
   return hpLeft === 0 && target.hp > 0
     ? fall(next, target, random, events)
@@ -3904,15 +4367,16 @@ function castSpell(
     index === slotIndex ? { ...slot, uses: slot.uses - 1 } : slot,
   );
   const caster: Combatant = { ...actor, spellcasting: { ...casting, slots } };
-  const spent: EncounterState = {
+  let spent: EncounterState = {
     ...state,
     combatants: state.combatants.map((candidate) =>
       candidate.id === actor.id ? caster : candidate,
     ),
     // A reaction spell (#337) is cast on another's turn: it spends none of
-    // the turn's actions, nor its one slot.
+    // the turn's actions, nor its one slot; nor does one cast in minutes
+    // outside a fight (#341).
     economy:
-      spell.castingTime === "reaction"
+      spell.castingTime === "reaction" || spell.castingTime === "minutes"
         ? state.economy
         : {
             ...state.economy,
@@ -3940,6 +4404,14 @@ function castSpell(
         }),
     targetIds: action.targetIds,
   });
+  // A spell aimed at a turned opponent ends its turning first (#341, D13).
+  if (
+    effect.kind !== "healing" &&
+    effect.kind !== "buff" &&
+    effect.kind !== "restoration"
+  ) {
+    spent = stirTurned(spent, action.targetIds, events);
+  }
   // Every spell but an area spell (#338) has one target.
   const target = combatant(spent, action.targetIds[0]!);
   switch (effect.kind) {
@@ -4033,11 +4505,18 @@ function castSpell(
       );
     }
     case "healing": {
-      // Its dice + the caster's spellcasting modifier, up to the maximum.
+      // Its dice + the caster's spellcasting modifier (none for Prayer of
+      // Healing, #341), and with a slot Disciple of Life's 2 + its level
+      // (#341), up to the maximum.
       const rolls = rollDice(random, effect.healing.dice, effect.healing.sides);
+      const modifier = effect.noModifier === true ? 0 : casting.modifier;
+      const disciple =
+        casting.discipleOfLife === true && slotIndex !== undefined
+          ? 2 + slotIndex + 1
+          : 0;
       const hpAfter = Math.min(
         target.maxHp,
-        target.hp + Math.max(0, sum(rolls) + casting.modifier),
+        target.hp + Math.max(0, sum(rolls) + modifier) + disciple,
       );
       events.push({
         type: "spell-healing",
@@ -4045,19 +4524,90 @@ function castSpell(
         targetId: target.id,
         spell: spell.name,
         rolls,
-        modifier: casting.modifier,
+        modifier,
+        ...(disciple === 0 ? {} : { disciple }),
         healing: hpAfter - target.hp,
         hpAfter,
         maxHp: target.maxHp,
       });
+      // Prayer of Healing (#341) helps its target once per long rest.
+      const lockout: ActiveEffect | undefined =
+        effect.restBenefit === true
+          ? {
+              spellId: spell.id,
+              spell: spell.name,
+              casterId: actor.id,
+              buff: { kind: "lockout" },
+              ends: "long-rest",
+            }
+          : undefined;
+      if (lockout !== undefined) {
+        events.push({ type: "effect", targetId: target.id, ...lockout });
+      }
       return {
         ...spent,
         combatants: spent.combatants.map((candidate) =>
           candidate.id === target.id
-            ? { ...candidate, hp: hpAfter }
+            ? withEffects({ ...candidate, hp: hpAfter }, [
+                ...(candidate.effects ?? []),
+                ...(lockout === undefined ? [] : [lockout]),
+              ])
             : candidate,
         ),
       };
+    }
+    case "restoration": {
+      // Lesser Restoration (#341): the first condition it ends that the
+      // target has, in the spell's order.
+      const kind = effect.conditions.find((ending) =>
+        spent.conditions.some(
+          ({ targetId, kind: held }) =>
+            targetId === target.id && held === ending,
+        ),
+      )!;
+      return cure(spent, target.id, kind, events);
+    }
+    case "spectral-weapon": {
+      // Spiritual Weapon (#341): the weapon stays with its caster, who
+      // concentrates on it, and attacks at once.
+      const free = endConcentration(
+        spent,
+        actor.id,
+        "new-concentration",
+        events,
+      );
+      const added: ActiveEffect = {
+        spellId: spell.id,
+        spell: spell.name,
+        casterId: actor.id,
+        buff: {
+          kind: "spectral-weapon",
+          dice: effect.damage.dice,
+          sides: effect.damage.sides,
+          type: effect.damage.type,
+        },
+        ends: effectEnds(effect.duration),
+        concentration: true,
+      };
+      events.push({ type: "effect", targetId: actor.id, ...added });
+      const armed: EncounterState = {
+        ...free,
+        combatants: free.combatants.map((candidate) =>
+          candidate.id === actor.id
+            ? withEffects(candidate, [...(candidate.effects ?? []), added])
+            : candidate,
+        ),
+      };
+      const wielder = combatant(armed, actor.id);
+      const resolved = resolveAttack(
+        armed,
+        wielder,
+        combatant(armed, target.id),
+        random,
+        { kind: "spell", weapon: spectralWeapon(wielder, added) },
+      );
+      events.push(...resolved.events);
+      return resolved.state;
     }
     case "buff": {
       // A new concentration spell ends the one before it (#337).
@@ -4084,16 +4634,81 @@ function castSpell(
         targetId: target.id,
         ...added,
       });
-      return {
+      // Aid (#341) raises maximum and current hit points alike.
+      const raise = effect.buff.kind === "max-hp" ? effect.buff.bonus : 0;
+      if (raise > 0) {
+        events.push({
+          type: "hit-points-raised",
+          targetId: target.id,
+          spell: spell.name,
+          bonus: raise,
+          hpAfter: target.hp + raise,
+          maxHp: target.maxHp + raise,
+        });
+      }
+      const buffed: EncounterState = {
         ...free,
         combatants: free.combatants.map((candidate) =>
           candidate.id === target.id
-            ? withEffects(candidate, [...(candidate.effects ?? []), added])
+            ? withEffects(
+                {
+                  ...candidate,
+                  hp: candidate.hp + raise,
+                  maxHp: candidate.maxHp + raise,
+                },
+                [...(candidate.effects ?? []), added],
+              )
             : candidate,
         ),
       };
+      // Protection from Poison (#341) ends being poisoned.
+      return effect.buff.kind === "poison-ward"
+        ? cure(buffed, target.id, "poisoned", events)
+        : buffed;
     }
   }
+}
+
+/**
+ * Ends `kind` on `targetId` (#341, a spell's cure); a control spell's
+ * condition ends the spell on it too.
+ */
+function cure(
+  state: EncounterState,
+  targetId: string,
+  kind: ConditionKind,
+  events: EncounterEvent[],
+): EncounterState {
+  const cured = state.conditions.filter(
+    (condition) => condition.targetId === targetId && condition.kind === kind,
+  );
+  if (cured.length === 0) {
+    return state;
+  }
+  events.push({
+    type: "condition-ended",
+    combatantId: targetId,
+    kind,
+    reason: "cured",
+  });
+  const next: EncounterState = {
+    ...state,
+    conditions: state.conditions.filter(
+      (condition) => !cured.includes(condition),
+    ),
+  };
+  return endEffects(
+    next,
+    (effect, holder) =>
+      holder.id === targetId &&
+      effect.buff.kind === "control" &&
+      cured.some(
+        ({ spellId, sourceId }) =>
+          spellId === effect.spellId && sourceId === effect.casterId,
+      ),
+    "cured",
+    events,
+  );
 }
 
 /**
@@ -4123,8 +4738,9 @@ function controlSpell(
     spell: spell.name,
     condition: effect.condition,
   };
-  if (target.conditionImmunities?.includes("exhaustion") === true) {
-    events.push({ ...common, success: true, immune: "exhaustion" });
+  // Sleep's exhaustion, Hold Person's paralysis (#341).
+  if (target.conditionImmunities?.includes(effect.immunity) === true) {
+    events.push({ ...common, success: true, immune: effect.immunity });
     return free;
   }
   const thrown = savingThrow(free, target, save, random);
@@ -4136,7 +4752,10 @@ function controlSpell(
     spellId: spell.id,
     spell: spell.name,
     casterId: caster.id,
-    buff: { kind: "control" },
+    buff:
+      effect.hold === true
+        ? { kind: "control", by: "hold" }
+        : { kind: "control" },
     ends: effectEnds(effect.duration),
     concentration: true,
   };
@@ -4149,7 +4768,7 @@ function controlSpell(
     turnsLeft: 1,
     save,
     spellId: spell.id,
-    then: effect.then,
+    ...(effect.then === undefined ? {} : { then: effect.then }),
   };
   events.push(conditionEvent(condition));
   const given: EncounterState = {
@@ -4168,8 +4787,185 @@ function controlSpell(
     ],
     engaged: engage(free, caster, target),
   };
-  // An incapacitated combatant loses its concentration (#337).
-  return endConcentration(given, target.id, "incapacitated", events);
+  // An incapacitated combatant loses its concentration (#337) and the
+  // turning it gave (#341).
+  return incapacitate(given, target.id, events);
+}
+
+/**
+ * Turn Undead (#341): each undead opponent still in the fight and not yet
+ * turned saves on Wisdom against the Channel Divinity DC, or is Frightened
+ * and Incapacitated, held by a turning that lasts the fight unless damage,
+ * an attack on it or the turner's incapacitation ends it.
+ */
+function turnUndead(
+  state: EncounterState,
+  actor: Combatant,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  const channel = actor.channelDivinity!;
+  const targets = turnable(state, actor);
+  const usesLeft = channel.uses - 1;
+  events.push({
+    type: "turn-undead",
+    combatantId: actor.id,
+    targetIds: targets.map(({ id }) => id),
+    usesLeft,
+  });
+  let next: EncounterState = {
+    ...state,
+    combatants: state.combatants.map((candidate) =>
+      candidate.id === actor.id
+        ? { ...candidate, channelDivinity: { ...channel, uses: usesLeft } }
+        : candidate,
+    ),
+    economy: { ...state.economy, actions: state.economy.actions - 1 },
+  };
+  for (const target of targets) {
+    const thrown = savingThrow(
+      next,
+      combatant(next, target.id),
+      { ability: "wisdom", dc: channel.saveDc },
+      random,
+    );
+    events.push({
+      type: "spell-condition",
+      actorId: actor.id,
+      targetId: target.id,
+      spell: TURN_UNDEAD,
+      condition: "frightened",
+      success: thrown.success,
+      save: thrown,
+    });
+    if (thrown.success) {
+      continue;
+    }
+    const held: ActiveEffect = {
+      spellId: TURN_UNDEAD_ID,
+      spell: TURN_UNDEAD,
+      casterId: actor.id,
+      buff: { kind: "control", by: "turning" },
+      ends: "fight",
+    };
+    events.push({ type: "effect", targetId: target.id, ...held });
+    const given = (["frightened", "incapacitated"] as const)
+      .filter((kind) => target.conditionImmunities?.includes(kind) !== true)
+      .map((kind): Condition => ({
+        kind,
+        targetId: target.id,
+        sourceId: actor.id,
+        source: TURN_UNDEAD,
+        turnsLeft: 1,
+        spellId: TURN_UNDEAD_ID,
+      }));
+    for (const condition of given) {
+      events.push(conditionEvent(condition));
+    }
+    next = incapacitate(
+      {
+        ...next,
+        combatants: next.combatants.map((candidate) =>
+          candidate.id === target.id
+            ? withEffects(candidate, [...(candidate.effects ?? []), held])
+            : candidate,
+        ),
+        conditions: [
+          ...next.conditions.filter(
+            ({ targetId, kind }) =>
+              targetId !== target.id ||
+              !given.some((condition) => condition.kind === kind),
+          ),
+          ...given,
+        ],
+      },
+      target.id,
+      events,
+    );
+  }
+  return next;
+}
+
+/**
+ * Divine Spark (#341) at `target`: its dice + the Wisdom modifier, healing
+ * an ally, or dealing radiant or necrotic damage to an opponent after its
+ * Constitution save (half on a success).
+ */
+function divineSpark(
+  state: EncounterState,
+  actor: Combatant,
+  target: Combatant,
+  mode: DivineSparkMode,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  const channel = actor.channelDivinity!;
+  const usesLeft = channel.uses - 1;
+  const spent: EncounterState = {
+    ...state,
+    combatants: state.combatants.map((candidate) =>
+      candidate.id === actor.id
+        ? { ...candidate, channelDivinity: { ...channel, uses: usesLeft } }
+        : candidate,
+    ),
+    economy: { ...state.economy, actions: state.economy.actions - 1 },
+  };
+  const { dice, sides, modifier } = channel.divineSpark;
+  const common = {
+    type: "divine-spark" as const,
+    combatantId: actor.id,
+    targetId: target.id,
+    usesLeft,
+  };
+  if (mode === "heal") {
+    const rolls = rollDice(random, dice, sides);
+    const total = Math.max(0, sum(rolls) + modifier);
+    const hpAfter = Math.min(target.maxHp, target.hp + total);
+    events.push({
+      ...common,
+      mode,
+      rolls,
+      modifier,
+      total,
+      healing: hpAfter - target.hp,
+      hpAfter,
+      maxHp: target.maxHp,
+    });
+    return {
+      ...spent,
+      combatants: spent.combatants.map((candidate) =>
+        candidate.id === target.id ? { ...candidate, hp: hpAfter } : candidate,
+      ),
+    };
+  }
+  const stirred = stirTurned(spent, [target.id], events);
+  const aimed = combatant(stirred, target.id);
+  const save = savingThrow(
+    stirred,
+    aimed,
+    { ability: "constitution", dc: channel.saveDc },
+    random,
+  );
+  const rolls = rollDice(random, dice, sides);
+  const total = Math.max(0, sum(rolls) + modifier);
+  return spellDamage(
+    stirred,
+    combatant(stirred, actor.id),
+    aimed,
+    save.success ? Math.floor(total / 2) : total,
+    mode,
+    random,
+    events,
+    (dealt) => ({
+      ...common,
+      mode,
+      rolls,
+      modifier,
+      total,
+      save,
+      ...dealt,
+    }),
+  );
 }
 
 /**
@@ -4276,7 +5072,7 @@ export function castOutsideFight(
     }
   }
   const alone = aloneState(caster);
-  const refusal = castRefusal(alone, caster, action);
+  const refusal = castRefusal(alone, caster, action, false, true);
   if (refusal !== undefined) {
     return { rejection: refusal };
   }
@@ -4483,10 +5279,12 @@ export function act(
       if (strike !== undefined) {
         return { state, rejection: strike };
       }
+      // An attack on a turned opponent ends its turning (#341, D13).
+      const stirred = stirTurned(state, [target.id], events);
       const resolved = resolveAttack(
-        state,
+        stirred,
         actor,
-        target,
+        combatant(stirred, target.id),
         random,
         { kind: "attack" },
         action.cunningStrike,
@@ -4535,10 +5333,11 @@ export function act(
       if (refusal !== undefined) {
         return { state, rejection: refusal };
       }
+      const stirred = stirTurned(state, [target.id], events);
       const resolved = resolveAttack(
-        state,
+        stirred,
         actor,
-        target,
+        combatant(stirred, target.id),
         random,
         { kind: "light" },
         action.cunningStrike,
@@ -4719,6 +5518,122 @@ export function act(
         castSpell(state, actor, action, random, events),
         events,
       );
+      break;
+    }
+    case "divine-spark": {
+      const refusal = divineSparkRefusal(state, actor);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      if (!(DIVINE_SPARK_MODES as readonly unknown[]).includes(action.mode)) {
+        return reject(
+          "damage-type",
+          "Divine Spark heals, or deals radiant or necrotic damage.",
+        );
+      }
+      let target: Combatant | EncounterRejection;
+      if (action.mode === "heal") {
+        const ally = state.combatants.find(({ id }) => id === action.targetId);
+        target =
+          ally === undefined
+            ? refused("no-target", "There is no one here by that name.")
+            : ally.id === actor.id
+              ? refused(
+                  "not-self",
+                  "Divine Spark points at another creature, never at you.",
+                )
+              : ally.side !== actor.side
+                ? refused(
+                    "healing-target",
+                    `Divine Spark heals an ally, not ${ally.name}.`,
+                  )
+                : isOut(state, ally)
+                  ? refused(
+                      "already-defeated",
+                      `${ally.name} is already defeated.`,
+                    )
+                  : ally.hp >= ally.maxHp
+                    ? refused(
+                        "full-hp",
+                        `${ally.name} is unhurt, so Divine Spark would heal nothing.`,
+                      )
+                    : ally;
+      } else {
+        target = targetOf(action.targetId);
+      }
+      if ("code" in target) {
+        return { state, rejection: target };
+      }
+      next = concludeIfOver(
+        divineSpark(state, actor, target, action.mode, random, events),
+        events,
+      );
+      break;
+    }
+    case "turn-undead": {
+      const refusal = turnUndeadRefusal(state, actor);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      next = turnUndead(state, actor, random, events);
+      break;
+    }
+    case "preserve-life": {
+      const refusal = preserveLifeRefusal(state, actor);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      const channel = actor.channelDivinity!;
+      const healing = preserved(actor);
+      const usesLeft = channel.uses - 1;
+      events.push({
+        type: "preserve-life",
+        combatantId: actor.id,
+        healing,
+        hpAfter: actor.hp + healing,
+        maxHp: actor.maxHp,
+        usesLeft,
+      });
+      next = {
+        ...state,
+        combatants: state.combatants.map((candidate) =>
+          candidate.id === actor.id
+            ? {
+                ...candidate,
+                hp: actor.hp + healing,
+                channelDivinity: { ...channel, uses: usesLeft },
+              }
+            : candidate,
+        ),
+        economy: { ...state.economy, actions: state.economy.actions - 1 },
+      };
+      break;
+    }
+    case "spectral-attack": {
+      const target = targetOf(action.targetId);
+      if ("code" in target) {
+        return { state, rejection: target };
+      }
+      const refusal = spectralRefusal(state, actor);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      const stirred = stirTurned(state, [target.id], events);
+      const resolved = resolveAttack(
+        stirred,
+        actor,
+        combatant(stirred, target.id),
+        random,
+        {
+          kind: "spell",
+          weapon: spectralWeapon(actor, spectralWeaponOf(actor)!),
+        },
+      );
+      events.push(...resolved.events);
+      next = {
+        ...resolved.state,
+        economy: { ...resolved.state.economy, bonusAction: false },
+      };
       break;
     }
     case "interact": {

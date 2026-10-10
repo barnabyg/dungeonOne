@@ -96,6 +96,7 @@ import {
   type FifthItem,
   type FifthPassage,
   type FifthTrap,
+  type StatBlock,
 } from "./adventure-5e.js";
 import {
   REACTION_OPTION_NAMES,
@@ -141,6 +142,7 @@ import {
   startEncounter,
   castOutsideFight,
   GUIDING_BOLT,
+  TURN_UNDEAD,
   slotLevels,
   armorClassOf,
   concentrationOf,
@@ -1441,6 +1443,66 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+/**
+ * A stat block's creature type as the engine reads it (#341): its first
+ * word in lower case, "undead" for "Undead", "fey" for "Fey (Goblinoid)".
+ */
+export function creatureTypeOf(type: string): string {
+  return type.split(/[\s(]/u)[0]!.toLowerCase();
+}
+
+/**
+ * An opponent as a combatant (#341: exported for engine tests), from its
+ * module's id and name and its stat block; `surrenders` when its module
+ * lets it yield (#238).
+ */
+export function statBlockCombatant(
+  id: string,
+  name: string,
+  statBlock: StatBlock,
+  surrenders = false,
+): Combatant {
+  const weapons = statBlock.attacks.map((weapon): Weapon => ({
+    name: weapon.name,
+    bonus: weapon.bonus,
+    damage: weapon.damage,
+    criticalRange: 20,
+    ...(weapon.rider === undefined ? {} : { rider: weapon.rider }),
+  }));
+  return {
+    id,
+    name,
+    side: "opponents",
+    armorClass: statBlock.armorClass,
+    hp: statBlock.hitPoints.average,
+    maxHp: statBlock.hitPoints.average,
+    dexterity: statBlock.abilities.dexterity,
+    initiativeBonus: statBlockInitiative(statBlock),
+    saves: statBlockSaves(statBlock),
+    // A hiding character's Stealth must meet it (#307).
+    passivePerception: statBlock.passivePerception,
+    // Trip can't knock over a Huge one (#308).
+    size: statBlock.size,
+    // Turn Undead and Hold Person read it (#341): "Fey (Goblinoid)"
+    // is a fey.
+    creatureType: creatureTypeOf(statBlock.type),
+    // Without Multiattack it makes one attack, its first.
+    attack: weapons[0]!,
+    ...(statBlock.multiattack === undefined
+      ? {}
+      : {
+          multiattack: { attacks: statBlock.multiattack, weapons },
+        }),
+    ...statBlockTraits(statBlock),
+    ...statBlockDefenses(statBlock),
+    ...(statBlock.conditionImmunities === undefined
+      ? {}
+      : { conditionImmunities: statBlock.conditionImmunities }),
+    ...(statBlock.morale === "never" ? {} : { morale: statBlock.morale }),
+    ...(surrenders ? { surrenders: true as const } : {}),
+  };
+}
+
 /** The character's resources at the start of an adventure. */
 export function startingResources(sheet: CharacterSheet): CharacterResources {
   const profile = characterProfile(sheet);
@@ -1648,6 +1710,10 @@ const OPTION_TEXT: Record<EncounterActionType, string> = {
   "steady-aim": "use Steady Aim",
   "drink-potion": "drink a potion",
   cast: "cast a spell",
+  "divine-spark": "use Divine Spark",
+  "turn-undead": "use Turn Undead",
+  "preserve-life": "use Preserve Life",
+  "spectral-attack": "attack with your spiritual weapon",
   "end-turn": "end your turn",
   "uncanny-dodge": "use Uncanny Dodge",
   "take-hit": "take the hit",
@@ -1712,8 +1778,8 @@ function initiativeModeText(mode: RollMode): string {
   return `${sources}, d20s ${d20s.join(" and ")}, kept`;
 }
 
-function uses(count: number): string {
-  return `${count} ${count === 1 ? "use" : "uses"} left`;
+function uses(count: number, of?: string): string {
+  return `${count} ${count === 1 ? "use" : "uses"}${of === undefined ? "" : ` of ${of}`} left`;
 }
 
 function signed(value: number): string {
@@ -1993,13 +2059,23 @@ export function spellSummary(spell: SpellDefinition): string {
     case "auto-hit":
       return `${effect.missiles} darts that always hit, each ${dice(effect.damage)} + ${effect.damage.modifier} ${effect.damage.type}`;
     case "healing":
-      return `heals ${dice(effect.healing)} + your spellcasting modifier`;
+      // Prayer of Healing (#341) adds no modifier, and rests its target.
+      return effect.restBenefit === true
+        ? `heals ${dice(effect.healing)} and gives a short rest's feature uses back, once per long rest; ten minutes to cast, so only outside a fight`
+        : `heals ${dice(effect.healing)} + your spellcasting modifier`;
     case "buff":
-      return `${buffText(effect.buff)}${effect.concentration === true ? ", concentration" : ""}`;
+      return `${buffText(effect.buff)}${effect.concentration === true ? ", concentration" : ""}${effect.buff.kind === "poison-ward" ? "; ends being poisoned" : ""}`;
     case "flavour":
       return "flavour only: no effect in play";
     case "control":
-      return `${titleCase(effect.ability)} save or ${effect.condition} until the end of its next turn, then a second save or ${effect.then} until damaged, concentration; a creature immune to exhaustion is unaffected`;
+      // Hold Person (#341) holds a humanoid until it saves.
+      return effect.then === undefined
+        ? `${effect.creatureType ?? "creature"} only: ${titleCase(effect.ability)} save or ${effect.condition}, a save at the end of each of its turns ends it, concentration`
+        : `${titleCase(effect.ability)} save or ${effect.condition} until the end of its next turn, then a second save or ${effect.then} until damaged, concentration; a creature immune to ${effect.immunity} is unaffected`;
+    case "restoration":
+      return `ends one condition on you: ${listed([...effect.conditions], "or")}`;
+    case "spectral-weapon":
+      return `a melee spell attack, ${dice(effect.damage)} + your spellcasting modifier ${effect.damage.type}, then again with a bonus action each turn, concentration`;
   }
 }
 
@@ -2020,7 +2096,20 @@ export function buffText(buff: Buff, damageType?: string): string {
     case "damage-reduction":
       return `1d${buff.sides} off ${damageType ?? "the chosen"} damage, once a turn`;
     case "control":
-      return "asleep while its conditions last; damage wakes it";
+      // Hold Person's hold and Turn Undead's turning (#341).
+      return buff.by === "hold"
+        ? "held while its condition lasts; a save ends it"
+        : buff.by === "turning"
+          ? "turned: frightened and incapacitated; damage or an attack ends it"
+          : "asleep while its conditions last; damage wakes it";
+    case "max-hp":
+      return `+${buff.bonus} maximum and current hit points`;
+    case "poison-ward":
+      return "resistance to poison damage and advantage on saving throws against being poisoned";
+    case "spectral-weapon":
+      return `a spectral weapon: a bonus action attacks with it for ${buff.dice}d${buff.sides} + your spellcasting modifier ${buff.type}`;
+    case "lockout":
+      return "can't benefit from it again";
   }
 }
 
@@ -2077,6 +2166,9 @@ function effectText(
         woke: "the damage wakes it",
         saved: "it shakes the spell off",
         lapsed: "it has run its course",
+        damaged: "it takes damage",
+        attacked: "it is attacked",
+        cured: "its condition is cured",
       }[event.reason];
       return `${event.spell} ends on ${who(event.targetId)}: ${why}.`;
     }
@@ -2241,11 +2333,58 @@ function spellText(
       return `${event.spell}: ${event.missiles} missiles hit ${target}. Damage ${event.damageRolls.join(" + ")} ${signed(event.damageModifier)} = ${rolled} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
     }
     case "spell-healing": {
+      // Disciple of Life (#341) adds 2 + the slot level.
+      const disciple = event.disciple ?? 0;
       const rolled =
-        event.rolls.reduce((sum, value) => sum + value, 0) + event.modifier;
+        event.rolls.reduce((sum, value) => sum + value, 0) +
+        event.modifier +
+        disciple;
       const self = event.targetId === PLAYER_ID;
-      return `${event.spell}: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; ${self ? "you regain" : `${name(event.targetId)} regains`} ${event.healing} HP and ${self ? "have" : "has"} ${event.hpAfter}/${event.maxHp} HP.`;
+      return `${event.spell}: ${event.rolls.join(" + ")} ${signed(event.modifier)}${disciple === 0 ? "" : ` + ${disciple} (Disciple of Life)`} = ${rolled}; ${self ? "you regain" : `${name(event.targetId)} regains`} ${event.healing} HP and ${self ? "have" : "has"} ${event.hpAfter}/${event.maxHp} HP.`;
     }
+  }
+}
+
+/** Channel Divinity's effects (#341) and Aid's hit points, in words. */
+function channelText(
+  event: Extract<
+    FifthEvent,
+    {
+      type:
+        "divine-spark" | "turn-undead" | "preserve-life" | "hit-points-raised";
+    }
+  >,
+  name: (id: string) => string,
+  maxHp: (id: string) => number,
+): string {
+  const who = (id: string) => (id === PLAYER_ID ? "you" : name(id));
+  switch (event.type) {
+    case "divine-spark": {
+      const left = uses(event.usesLeft, "Channel Divinity");
+      const rolled = `${event.rolls.join(" + ")} ${signed(event.modifier)} = ${event.total}`;
+      if (event.mode === "heal") {
+        return `Divine Spark: ${rolled}; ${name(event.targetId)} regains ${event.healing} HP and has ${event.hpAfter}/${event.maxHp} HP. ${left}.`;
+      }
+      const { save } = event;
+      const target = name(event.targetId);
+      const saved =
+        save.autoFail === undefined
+          ? `${target} makes a Constitution saving throw${save.mode === undefined ? ":" : modeText(save.mode, save.d20)} ${save.d20} ${signed(save.bonus)}${effectDiceText(save.effectDice)} = ${save.total} against DC ${save.dc}. ${save.success ? "Success" : "Failure"}`
+          : `${target} fails a Constitution saving throw without a roll: it is ${save.autoFail}`;
+      const halved = save.success
+        ? `, halved to ${Math.floor(event.total / 2)}`
+        : "";
+      return `Divine Spark: ${saved}. Damage ${rolled} ${event.mode}${halved}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP. ${left}.`;
+    }
+    case "turn-undead":
+      return `${event.combatantId === PLAYER_ID ? "You present" : `${name(event.combatantId)} presents`} a holy symbol: Turn Undead reaches ${listed(
+        event.targetIds.map(name),
+        "and",
+      )}. ${uses(event.usesLeft, "Channel Divinity")}.`;
+    case "preserve-life":
+      return `Preserve Life: ${who(event.combatantId)} ${event.combatantId === PLAYER_ID ? "regain" : "regains"} ${event.healing} HP and ${event.combatantId === PLAYER_ID ? "have" : "has"} ${event.hpAfter}/${event.maxHp} HP. ${uses(event.usesLeft, "Channel Divinity")}.`;
+    case "hit-points-raised":
+      return `${event.spell}: ${event.targetId === PLAYER_ID ? "your" : `${name(event.targetId)}'s`} maximum and current hit points rise by ${event.bonus}, to ${event.hpAfter}/${event.maxHp} HP.`;
   }
 }
 
@@ -2263,6 +2402,16 @@ function conditionText(
         ? "until the end of its next turn"
         : `for ${turns}`
       : `until it succeeds on a DC ${event.save.dc} ${titleCase(event.save.ability)} saving throw at the end of one of its turns, for up to ${turns}`;
+  // Turn Undead's conditions (#341) last the fight's minute.
+  if (event.lasting === true && event.source === TURN_UNDEAD) {
+    return event.kind === "frightened"
+      ? "disadvantage on its attack rolls and ability checks, until damage, an attack on it or the fight's end ends its turning."
+      : "it can't act, until damage, an attack on it or the fight's end ends its turning.";
+  }
+  // Hold Person's paralysis (#341) lasts until it saves or the spell ends.
+  if (event.lasting === true && event.kind === "paralysed") {
+    return `it can't act, it fails Strength and Dexterity saving throws, and attack rolls against it have advantage and every hit is a critical hit, until it succeeds on a DC ${event.save?.dc ?? 0} ${titleCase(event.save?.ability ?? "wisdom")} saving throw at the end of one of its turns or the spell ends.`;
+  }
   // Sleep's conditions (#340) last while the spell does.
   if (event.kind === "unconscious") {
     return "it can't act, it fails Strength and Dexterity saving throws, and attack rolls against it have advantage and every hit is a critical hit, until it takes damage or the spell ends.";
@@ -2292,6 +2441,8 @@ function conditionEndedText(
       return `${who} is no longer ${event.kind}: the fight is over.`;
     case "spell-ended":
       return `${who} is no longer ${event.kind}: the spell has ended.`;
+    case "cured":
+      return `${who} is no longer ${event.kind}: the spell cures it.`;
   }
 }
 
@@ -2439,6 +2590,15 @@ export function renderFifthEvent(
     case "spell-damage":
     case "spell-healing":
       return spellText(
+        event,
+        name,
+        (id) => combatant(state.encounter!, id).maxHp,
+      );
+    case "divine-spark":
+    case "turn-undead":
+    case "preserve-life":
+    case "hit-points-raised":
+      return channelText(
         event,
         name,
         (id) => combatant(state.encounter!, id).maxHp,
@@ -3302,10 +3462,50 @@ export function describeFifthResult(
             roller: name(event.combatantId),
             target: name(event.targetId),
             dice: take(event.rolls),
-            modifier: event.modifier,
+            // Disciple of Life's extra healing (#341) with the modifier.
+            modifier: event.modifier + (event.disciple ?? 0),
             total: event.healing,
             hpAfter: event.hpAfter,
             maxHp: event.maxHp,
+          },
+        ];
+      case "divine-spark":
+        // Divine Spark (#341): the opponent's save, then the dice; or the
+        // healing.
+        if (event.mode === "heal") {
+          return [
+            {
+              purpose: "healing",
+              roller: name(event.combatantId),
+              target: name(event.targetId),
+              dice: take(event.rolls),
+              modifier: event.modifier,
+              total: event.healing,
+              hpAfter: event.hpAfter,
+              maxHp: event.maxHp,
+            },
+          ];
+        }
+        return [
+          ...(event.save.autoFail !== undefined
+            ? []
+            : [
+                saveGroup(
+                  name(event.targetId),
+                  "Constitution saving throw (Divine Spark)",
+                  event.save,
+                ),
+              ]),
+          {
+            purpose: "damage",
+            roller: name(event.combatantId),
+            target: name(event.targetId),
+            dice: take(event.rolls),
+            modifier: event.modifier,
+            total: event.damage,
+            damageType: event.mode,
+            hpAfter: event.hpAfter,
+            maxHp: combatant(state.encounter!, event.targetId).maxHp,
           },
         ];
       case "hit-die":
@@ -3709,6 +3909,14 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "fight-only": "In a fight only",
   "damage-type": "Choose a damage type",
   "no-effect": "Flavour only",
+  "no-channel-divinity": "No Channel Divinity",
+  "no-undead": "No undead to turn",
+  "not-bloodied": "Not Bloodied",
+  "no-spectral-weapon": "No spiritual weapon",
+  "creature-type": "Wrong creature",
+  "no-condition": "Nothing to cure",
+  "not-in-fight": "Not in a fight",
+  "not-self": "Not on yourself",
   paralysed: "Paralysed",
   fled: "Fled",
   surrendered: "Surrendered",
@@ -4637,44 +4845,8 @@ export function createFifthRuntime(
 
   const opponents = (state: FifthState): readonly Combatant[] =>
     (encounterOf(state)?.opponents ?? []).map(
-      ({ id, name, statBlock, surrender }) => {
-        const weapons = statBlock.attacks.map((weapon): Weapon => ({
-          name: weapon.name,
-          bonus: weapon.bonus,
-          damage: weapon.damage,
-          criticalRange: 20,
-          ...(weapon.rider === undefined ? {} : { rider: weapon.rider }),
-        }));
-        return {
-          id,
-          name,
-          side: "opponents",
-          armorClass: statBlock.armorClass,
-          hp: statBlock.hitPoints.average,
-          maxHp: statBlock.hitPoints.average,
-          dexterity: statBlock.abilities.dexterity,
-          initiativeBonus: statBlockInitiative(statBlock),
-          saves: statBlockSaves(statBlock),
-          // A hiding character's Stealth must meet it (#307).
-          passivePerception: statBlock.passivePerception,
-          // Trip can't knock over a Huge one (#308).
-          size: statBlock.size,
-          // Without Multiattack it makes one attack, its first.
-          attack: weapons[0]!,
-          ...(statBlock.multiattack === undefined
-            ? {}
-            : {
-                multiattack: { attacks: statBlock.multiattack, weapons },
-              }),
-          ...statBlockTraits(statBlock),
-          ...statBlockDefenses(statBlock),
-          ...(statBlock.conditionImmunities === undefined
-            ? {}
-            : { conditionImmunities: statBlock.conditionImmunities }),
-          ...(statBlock.morale === "never" ? {} : { morale: statBlock.morale }),
-          ...(surrender === undefined ? {} : { surrenders: true as const }),
-        };
-      },
+      ({ id, name, statBlock, surrender }) =>
+        statBlockCombatant(id, name, statBlock, surrender !== undefined),
     );
 
   /** What the player may do in the fight now; empty when it can't act. */
