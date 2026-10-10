@@ -444,6 +444,39 @@ export const banditTollFile = (() => {
 })();
 export const banditToll = validateModule(structuredClone(banditTollFile));
 
+/**
+ * Long rests and interrupted rests (#335): the rat tunnels as _The Resting
+ * Tunnels_, level 1, hard, whose alcove is a rest site, and whose wandering
+ * encounter, a Prowling Rat (a Giant Rat, 25 XP), interrupts a rest when a
+ * d100 rolls `chance` or less. With no chance given there is no wandering
+ * encounter, so no rest can be interrupted.
+ */
+export function restingTunnelsFile(chance) {
+  const module = moduleFile("rat-tunnels");
+  module.id = "resting-tunnels";
+  module.title = "The Resting Tunnels";
+  room(module, "alcove").restSite = true;
+  if (chance !== undefined) {
+    const rat = module.encounters[0].opponents[0];
+    module.encounters.push({
+      id: "prowling-rat",
+      opponents: [
+        {
+          ...structuredClone(rat),
+          id: "prowler",
+          name: "Prowling Rat",
+          description:
+            "A rat the size of a dog noses out of the dark, drawn by your stillness.",
+        },
+      ],
+      defeatEndingId: "fallen-in-the-cellar",
+    });
+    module.wanderingEncounter = { encounterId: "prowling-rat", chance };
+  }
+  return module;
+}
+export const restingTunnels = validateModule(restingTunnelsFile(25));
+
 /** Every fixture module above, for checks that play each one. */
 export const FIXTURE_MODULES = [
   loneGoblin,
@@ -463,4 +496,5 @@ export const FIXTURE_MODULES = [
   lurkingTunnels,
   waryTunnels,
   banditToll,
+  restingTunnels,
 ];

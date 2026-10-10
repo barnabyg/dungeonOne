@@ -837,6 +837,9 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   "tactical-mind": false,
   // A short rest (#334), taken below the style's heal threshold.
   rest: true,
+  // A long rest at a rest site (#335), taken below the heal threshold
+  // before a short rest.
+  "long-rest": true,
   // Gear changes are never needed to get through, so no style makes one.
   equip: false,
   unequip: false,
@@ -885,12 +888,17 @@ export type RunRecord = Readonly<{
   /** Rooms in the order first entered. */
   roomIds: readonly string[];
   encounters: readonly FightRecord[];
-  /** Healing: Second Winds, potions, short rests and hit dice (#334), and HP. */
+  /**
+   * Healing: Second Winds, potions, short rests and hit dice (#334), long
+   * rests and rests a wandering encounter interrupted (#335), and HP.
+   */
   healing: Readonly<{
     secondWinds: number;
     potions: number;
     shortRests: number;
     hitDice: number;
+    longRests: number;
+    interruptedRests: number;
     hp: number;
   }>;
   /** Hit points lost to traps sprung, outside the fights. */
@@ -1025,6 +1033,8 @@ export function playAdventure(
     potions: 0,
     shortRests: 0,
     hitDice: 0,
+    longRests: 0,
+    interruptedRests: 0,
     hp: 0,
   };
   let trapDamage = 0;
@@ -1055,7 +1065,11 @@ export function playAdventure(
       switch (event.type) {
         case "initiative":
           fight = {
-            id: roomById.get(state.roomId)!.encounterId!,
+            // A wandering encounter (#335) fights in a room not its own.
+            id:
+              state.wandering === true
+                ? adventure.wanderingEncounter!.encounterId
+                : roomById.get(state.roomId)!.encounterId!,
             hpLost: 0,
             fled: 0,
             surrendered: 0,
@@ -1098,6 +1112,14 @@ export function playAdventure(
           break;
         case "short-rest":
           healing.shortRests += 1;
+          break;
+        case "long-rest":
+          healing.longRests += 1;
+          healing.hp += event.healing;
+          hp = event.hpAfter;
+          break;
+        case "wandering-roll":
+          healing.interruptedRests += event.interrupted ? 1 : 0;
           break;
         case "hit-die":
           healing.hitDice += 1;
@@ -1361,8 +1383,13 @@ export function playAdventure(
     if (find !== undefined) {
       return find;
     }
-    // Low, a short rest (#334) before a potion, which also heals in a fight.
-    const heal = [...offered(views, "rest"), ...offered(views, "use")][0];
+    // Low, a long rest at a rest site (#335), then a short rest (#334),
+    // before a potion, which also heals in a fight.
+    const heal = [
+      ...offered(views, "long-rest"),
+      ...offered(views, "rest"),
+      ...offered(views, "use"),
+    ][0];
     if (heal !== undefined && low(state.character.hp)) {
       return heal;
     }
@@ -1532,6 +1559,9 @@ export type BalanceCell = Readonly<{
     meanPotions: number;
     /** Short rests taken (#334). */
     meanShortRests: number;
+    /** Long rests taken, and rests interrupted (#335). */
+    meanLongRests: number;
+    meanInterruptedRests: number;
     meanHp: number;
   }>;
   meanTrapDamage: number;
@@ -1611,6 +1641,10 @@ function summarise(
       meanSecondWinds: mean(runs.map(({ healing }) => healing.secondWinds)),
       meanPotions: mean(runs.map(({ healing }) => healing.potions)),
       meanShortRests: mean(runs.map(({ healing }) => healing.shortRests)),
+      meanLongRests: mean(runs.map(({ healing }) => healing.longRests)),
+      meanInterruptedRests: mean(
+        runs.map(({ healing }) => healing.interruptedRests),
+      ),
       meanHp: mean(runs.map(({ healing }) => healing.hp)),
     },
     meanTrapDamage: mean(runs.map(({ trapDamage }) => trapDamage)),
@@ -1742,7 +1776,7 @@ export function renderBalanceResult(
     lines.push(
       `  ${cell.style}: survived ${percent(cell.survivalRate)}, completed ${percent(cell.completionRate)} of ${cell.runs}; ` +
         `XP ${decimal(cell.meanXp)}, treasure ${decimal(cell.meanTreasure)}; ` +
-        `healed ${decimal(cell.healing.meanHp)} HP (Second Wind ${decimal(cell.healing.meanSecondWinds)}, potions ${decimal(cell.healing.meanPotions)}, short rests ${decimal(cell.healing.meanShortRests)}); ` +
+        `healed ${decimal(cell.healing.meanHp)} HP (Second Wind ${decimal(cell.healing.meanSecondWinds)}, potions ${decimal(cell.healing.meanPotions)}, short rests ${decimal(cell.healing.meanShortRests)}, long rests ${decimal(cell.healing.meanLongRests)}, interrupted ${decimal(cell.healing.meanInterruptedRests)}); ` +
         `trap damage ${decimal(cell.meanTrapDamage)}` +
         (cell.style === "stealth-first"
           ? `; slipped past ${decimal(cell.meanBypassed)} fights`
@@ -1925,6 +1959,8 @@ export type GateVerdict = Readonly<{
   alwaysFail: SurvivalCheck;
   oneHitKill: OneHitKillCheck;
   xp: XpCheck;
+  /** Reported, not judged (#335). */
+  rests: RestReport;
   /** Reported, not judged (#302); absent when not asked for. */
   stealthFirst?: StealthFirstReport;
   /**
@@ -1948,8 +1984,23 @@ export type GateMeasures = Readonly<{
       bonusAction?: Readonly<{ enemies: OneHitKillCheck["enemies"] }>;
     }>;
   xp: XpCheck;
+  rests: RestReport;
   stealthFirst?: StealthFirstReport;
   reactions?: readonly ReactionPolicyReport[];
+}>;
+
+/**
+ * The rests the weakest character took in its judged runs (#335), over
+ * every kit and level on seeded checks: short and long rests a run, and
+ * rests a wandering encounter interrupted. Reported, never judged.
+ */
+export type RestReport = Readonly<{
+  level: number;
+  percentile: number;
+  style: PlayStyle;
+  meanShort: number;
+  meanLong: number;
+  meanInterrupted: number;
 }>;
 
 export type GateResult =
@@ -2201,6 +2252,17 @@ export function gateAdventure(
     };
     const survival = survivalOf("seeded", "seeded");
     const alwaysFail = survivalOf("always-fail", "failing");
+    const judgedRuns = played.flatMap(({ runs }) => branchRuns(runs, "seeded"));
+    const rests: RestReport = {
+      level: survival.level,
+      percentile: WEAKEST_PERCENTILE,
+      style: GATE_STYLE,
+      meanShort: mean(judgedRuns.map(({ healing }) => healing.shortRests)),
+      meanLong: mean(judgedRuns.map(({ healing }) => healing.longRests)),
+      meanInterrupted: mean(
+        judgedRuns.map(({ healing }) => healing.interruptedRests),
+      ),
+    };
     const objective = requiredPath(adventure).objective;
     const stealthy = played.flatMap(({ runs }) => branchRuns(runs, "stealth"));
     const stealthFirst: StealthFirstReport | undefined = reportStealth
@@ -2371,6 +2433,7 @@ export function gateAdventure(
           alwaysFail,
           oneHitKill,
           xp,
+          rests,
           ...(stealthFirst === undefined ? {} : { stealthFirst }),
           ...(reactions === undefined ? {} : { reactions }),
         },
@@ -2448,6 +2511,7 @@ export function gateVerdictAt(
     alwaysFail,
     oneHitKill,
     xp: measures.xp,
+    rests: measures.rests,
     ...(measures.stealthFirst === undefined
       ? {}
       : { stealthFirst: measures.stealthFirst }),
@@ -2569,6 +2633,7 @@ export function renderGateResult(
                   .join(", ")}.`),
         ]),
     `  XP, ${mark(xp.ok)}: its ${Math.max(xp.available, succeeded.mostXp)} XP takes a character from ${xp.startXp} XP to level ${xp.endLevel}; the limit is level ${xp.levelLimit}.`,
+    `  Rests, reported (not judged): on seeded checks the level ${verdict.rests.level}, ${verdict.rests.percentile}th percentile ${who} playing ${verdict.rests.style} took ${decimal(verdict.rests.meanShort)} short and ${decimal(verdict.rests.meanLong)} long rests a run; ${decimal(verdict.rests.meanInterrupted)} rests a run were interrupted.`,
     `  When every check succeeds, the level ${succeeded.level}, ${succeeded.percentile}th percentile ${who} playing ${succeeded.style} earned at most ${succeeded.mostXp} of the ${xp.available} XP offered in ${succeeded.runs} ${succeeded.runs === 1 ? "run" : "runs"}.`,
     ...(stealth === undefined
       ? []

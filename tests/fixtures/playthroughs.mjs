@@ -165,6 +165,9 @@ function madeAction({ action, target, rest }) {
     // does unless the player picks fewer.
     case "rest":
       return { type: "rest", hitDice: rest.hitDice.at(-1) };
+    // A long rest at a rest site (#335).
+    case "long-rest":
+      return { type: "long-rest" };
     default:
       // A new kind must be mapped above, not guessed at.
       throw new Error(`no engine action for ${action}`);

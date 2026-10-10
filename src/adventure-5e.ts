@@ -1,5 +1,5 @@
 /**
- * The 5e adventure module format (format version 27) and its validator.
+ * The 5e adventure module format (format version 28) and its validator.
  *
  * A module declares its recommended levels and difficulty, its rooms and the
  * passages between them, the features to examine, items to take and creatures
@@ -157,7 +157,7 @@ import {
 
 export type { StatBlock, StatBlockAttack } from "./bestiary-5e.js";
 
-export const FIFTH_ADVENTURE_FORMAT = 27;
+export const FIFTH_ADVENTURE_FORMAT = 28;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 /** The most opponents one encounter may have. */
 export const MAX_OPPONENTS = 8;
@@ -582,6 +582,8 @@ export type FifthRoom = Readonly<{
   encounterId?: string;
   /** The character may leave the adventure from here. */
   exit?: true;
+  /** The character may take its one long rest here (#335). */
+  restSite?: true;
   features: readonly FifthFeature[];
   items: readonly FifthItem[];
   creatures: readonly FifthCreature[];
@@ -670,6 +672,19 @@ export type FifthAdventure = Readonly<{
   passages: readonly FifthPassage[];
   encounters: readonly FifthEncounter[];
   endings: readonly FifthEnding[];
+  /**
+   * The one encounter that can interrupt a rest (#335): each short or long
+   * rest rolls a d100, and on `chance` or less the rest restores nothing and
+   * this encounter's fight begins where the character rests. It fires at
+   * most once. It is in no room. Without one, no rest is interrupted.
+   */
+  wanderingEncounter?: WanderingEncounter;
+}>;
+
+/** A module's wandering encounter (#335) and its chance, 1–100 in a d100. */
+export type WanderingEncounter = Readonly<{
+  encounterId: string;
+  chance: number;
 }>;
 
 /**
@@ -1462,7 +1477,7 @@ function validateModule(
       `format version ${String(value.formatVersion)} is not ${FIFTH_ADVENTURE_FORMAT}.`,
     );
   }
-  const module = exactKeys(
+  const module = knownKeys(
     value,
     [
       "kind",
@@ -1478,6 +1493,7 @@ function validateModule(
       "encounters",
       "endings",
     ],
+    ["wanderingEncounter"],
     "the module",
   );
   const moduleId = id(module.id, "id");
@@ -1770,11 +1786,14 @@ function validateModule(
     const room = knownKeys(
       entry,
       ["id", "name", "description", "features", "items"],
-      ["encounterId", "creatures", "exit"],
+      ["encounterId", "creatures", "exit", "restSite"],
       where,
     );
     if (room.exit !== undefined && room.exit !== true) {
       fail(`${where} exit must be true, or left out.`);
+    }
+    if (room.restSite !== undefined && room.restSite !== true) {
+      fail(`${where} restSite must be true, or left out.`);
     }
     if (
       room.encounterId !== undefined &&
@@ -1962,6 +1981,7 @@ function validateModule(
         ? {}
         : { encounterId: room.encounterId as string }),
       ...(room.exit === true ? { exit: true as const } : {}),
+      ...(room.restSite === true ? { restSite: true as const } : {}),
       features,
       items,
       creatures,
@@ -1986,8 +2006,16 @@ function validateModule(
     (encounterId) => encounterId,
     (encounterId) => `encounter ${encounterId} is in more than one room.`,
   );
+  const wanderingEncounter = wandering(
+    module.wanderingEncounter,
+    encounters,
+    rooms,
+  );
   for (const { id: encounterId } of encounters) {
-    if (!placed.includes(encounterId)) {
+    if (
+      !placed.includes(encounterId) &&
+      encounterId !== wanderingEncounter?.encounterId
+    ) {
       fail(`encounter ${encounterId} is in no room.`);
     }
   }
@@ -2738,6 +2766,60 @@ function validateModule(
     passages,
     encounters,
     endings,
+    ...(wanderingEncounter === undefined ? {} : { wanderingEncounter }),
+  };
+}
+
+/**
+ * A module's wandering encounter (#335), validated: it names an encounter in
+ * no room, whose fight can't end the adventure in victory, that no one
+ * sneaks past or up on, that never lies in wait or reacts, and whose
+ * opponents never surrender; its chance is 1–100.
+ */
+function wandering(
+  value: unknown,
+  encounters: readonly FifthEncounter[],
+  rooms: readonly FifthRoom[],
+): WanderingEncounter | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const raw = exactKeys(value, ["encounterId", "chance"], "wanderingEncounter");
+  const encounterId = id(raw.encounterId, "wanderingEncounter encounterId");
+  const fight = encounters.find(({ id: entry }) => entry === encounterId);
+  if (fight === undefined) {
+    fail(`wanderingEncounter names unknown encounter ${encounterId}.`);
+  }
+  const where = `wandering encounter ${encounterId}`;
+  const placedIn = rooms.find((entry) => entry.encounterId === encounterId);
+  if (placedIn !== undefined) {
+    fail(
+      `${where} is in room ${placedIn.id}: it comes to the character as it rests, so it is in no room.`,
+    );
+  }
+  if (fight.victoryEndingId !== undefined) {
+    fail(`${where} can't end the adventure in victory.`);
+  }
+  for (const field of ["bypassXp", "sneakAgain", "lurking"] as const) {
+    if (fight[field] !== undefined) {
+      fail(
+        `${where} can't have ${field}: no one sneaks up on it, and it never lies in wait.`,
+      );
+    }
+  }
+  if (fight.reaction !== undefined) {
+    fail(`${where} can't have a reaction: it comes upon the character.`);
+  }
+  for (const opponent of fight.opponents) {
+    if (opponent.surrender !== undefined) {
+      fail(
+        `${where} opponent ${opponent.id} can't surrender: it is met in no room, so it could never be talked to.`,
+      );
+    }
+  }
+  return {
+    encounterId,
+    chance: integer(raw.chance, "wanderingEncounter chance", 1, 100),
   };
 }
 

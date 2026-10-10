@@ -240,7 +240,12 @@ any list that is empty. Outside a fight, under what you carry, **Short rest**
 shows the short rests (two per adventure) and hit dice you have left: choose how
 many hit dice to spend and press **Rest** to heal and regain Second Wind and
 Action Surge uses. Rest shows only while a rest would restore something, and is
-disabled, with why, in a room with foes or after two short rests. In a fight these details fold away behind a **Room
+disabled, with why, in a room with foes or after two short rests. In a room the
+adventure marks as a safe place to rest, **Long rest** shows the one long rest
+an adventure allows: press **Long rest** to regain every hit point, hit die and
+feature use. A module may have a wandering encounter: before each rest a d100
+is rolled against its chance, and if it comes the rest restores nothing and its
+fight begins (it comes at most once). In a fight these details fold away behind a **Room
 details** button, and the encounter panel lists each combatant in initiative
 order with its roll, hit points, AC, whether it is defeated and whose turn it
 is.
@@ -412,12 +417,12 @@ reason, the history stays readable, and reloading shows the same ending.
 
 - The character library (`characters.json` by default) is format version 15.
 - Each adventure session is saved after every action in the
-  `characters-adventures` directory beside the library, in format version 37.
+  `characters-adventures` directory beside the library, in format version 38.
   Reloading the page or restarting with the same command returns to the
   adventure exactly as it was. The library frees the character and settles it
   in one write, so an interruption never loses or repeats what it holds or
   earned.
-- Adventure modules (`adventures/5e/*.json`) are format version 27. Their
+- Adventure modules (`adventures/5e/*.json`) are format version 28. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
   format version 9, or author a one-off stat block inline.
 

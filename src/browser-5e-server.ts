@@ -202,7 +202,8 @@ function sessionView(session: FifthSession) {
         }),
     ...runtime.projectFight(state),
     hitDice: runtime.projectHitDice(state),
-    shortRests: runtime.projectShortRests(state),
+    shortRests: runtime.projectRests(state, "short"),
+    longRests: runtime.projectRests(state, "long"),
     actions: runtime.projectActions(state),
     history: session.history,
   };
@@ -704,6 +705,12 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           throw new Error("Invalid rest request.");
         }
         return click(body, { type: "rest", hitDice: body.hitDice as number });
+      case "/api/5e/session/long-rest":
+        // A long rest at a rest site (#335); the engine refuses it elsewhere.
+        if (!hasExactKeys(body, ["sessionId", "sequence"])) {
+          throw new Error("Invalid long rest request.");
+        }
+        return click(body, { type: "long-rest" });
       case "/api/5e/session/explore": {
         // A check's approach (#283) and a retry (#284) come with the
         // actions that make checks.

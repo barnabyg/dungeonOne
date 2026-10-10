@@ -880,6 +880,7 @@ const TOOL_OF: Readonly<Record<ActionKind, string | undefined>> = {
   leave: undefined,
   "tactical-mind": "tactical_mind",
   rest: "rest",
+  "long-rest": "long_rest",
 };
 const READ_TOOLS = ["look", "get_character_status"];
 /** The actions whose tools take no argument. */
@@ -892,6 +893,7 @@ const UNTARGETED: readonly ActionKind[] = [
   "uncanny-dodge",
   "take-hit",
   "tactical-mind",
+  "long-rest",
 ];
 
 /**
