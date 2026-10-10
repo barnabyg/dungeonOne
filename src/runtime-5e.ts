@@ -606,6 +606,15 @@ const FEATURE_TOOLS = {
 >;
 type FeatureTool = keyof typeof FEATURE_TOOLS;
 
+/**
+ * The tools that take no argument and name no actor: Tactical Mind (#315)
+ * and a long rest (#335), each the one action it stands for.
+ */
+const BARE_TOOLS: Readonly<Record<string, FifthAction>> = {
+  tactical_mind: { type: "tactical-mind" },
+  long_rest: { type: "long-rest" },
+};
+
 /** Cunning Strike's effects (#308), as the AI DM and the browser name them. */
 const CUNNING_STRIKE_IDS = Object.keys(CUNNING_STRIKES) as CunningStrikeId[];
 const isCunningStrike = (value: unknown): value is CunningStrikeId =>
@@ -8358,26 +8367,24 @@ export function createFifthRuntime(
     }
     const action: FifthAction = isRest
       ? { type: "rest", hitDice: hitDice as number }
-      : call.name === "tactical_mind"
-        ? { type: "tactical-mind" }
-        : call.name === "long_rest"
-          ? { type: "long-rest" }
-          : parameter === undefined
-            ? {
-                type: FEATURE_TOOLS[call.name as FeatureTool],
-                actorId: PLAYER_ID,
-              }
-            : TARGET_TOOLS[call.name as TargetTool].action(
-                parsed[parameter] as string,
-                attackTool
-                  ? typeof strike === "string"
-                    ? strike
-                    : undefined
-                  : typeof approach === "string"
-                    ? approach
-                    : undefined,
-                retry === true,
-              );
+      : Object.hasOwn(BARE_TOOLS, call.name)
+        ? BARE_TOOLS[call.name]!
+        : parameter === undefined
+          ? {
+              type: FEATURE_TOOLS[call.name as FeatureTool],
+              actorId: PLAYER_ID,
+            }
+          : TARGET_TOOLS[call.name as TargetTool].action(
+              parsed[parameter] as string,
+              attackTool
+                ? typeof strike === "string"
+                  ? strike
+                  : undefined
+                : typeof approach === "string"
+                  ? approach
+                  : undefined,
+              retry === true,
+            );
     const result = handleAction(state, action, random);
     if (result.rejection !== undefined) {
       return {
