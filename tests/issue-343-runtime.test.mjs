@@ -17,6 +17,7 @@ import { currentCombatant } from "../dist/encounter-5e.js";
 import {
   createFifthRuntime,
   describeFifthResult,
+  FIFTH_DM_SYSTEM_PROMPT,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
 import { WIZARD } from "../dist/wizard-5e.js";
@@ -265,4 +266,16 @@ test("Acid Arrow: the acid burns at the end of the bandit's turn", () => {
     text,
     /Acid Arrow: the acid burns Bandit as its turn ends\. Damage 2 \+ 2 .*= 4 acid; Bandit has 3\/11 HP\./u,
   );
+});
+
+test("the AI DM's prompt says what the new spells and Potent Cantrip do", () => {
+  for (const words of [
+    /Scorching Ray hurls rays, an attack roll each, split as evenly as they go among the targets named/u,
+    /Acid Arrow deals half its damage on a miss/u,
+    /Mirror Image's duplicates may take a hit instead of the character/u,
+    /deal half their damage on a miss or a successful save \(Potent Cantrip\)/u,
+    /writes a new level's spells into it and chooses Scholar's Expertise there too/u,
+  ]) {
+    assert.match(FIFTH_DM_SYSTEM_PROMPT, words);
+  }
 });
