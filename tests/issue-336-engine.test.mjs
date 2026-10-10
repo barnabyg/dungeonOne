@@ -112,7 +112,7 @@ const cast = (spellId, targetId = "goblin", slotLevel) => ({
   type: "cast",
   actorId: "pc",
   spellId,
-  targetId,
+  targetIds: [targetId],
   ...(slotLevel === undefined ? {} : { slotLevel }),
 });
 
@@ -130,7 +130,7 @@ test("a spell attack rolls d20 + the spell attack bonus against AC", () => {
     spell: "Fire Bolt",
     level: 0,
     castingTime: "action",
-    targetId: "goblin",
+    targetIds: ["goblin"],
   });
   assert.equal(attack.type, "attack");
   assert.equal(attack.spell, true);
@@ -611,7 +611,8 @@ test("outside a fight, only a healing spell, on the caster", () => {
     castOutsideFight(caster, cast("fire-bolt"), dice()).rejection,
     {
       code: "fight-only",
-      reason: "Fire Bolt is cast in a fight: outside one, only healing spells.",
+      reason:
+        "Fire Bolt is cast in a fight: outside one, only healing spells and spells that outlast a fight.",
     },
   );
   assert.equal(

@@ -140,7 +140,13 @@ import {
   startEncounter,
   castOutsideFight,
   slotLevels,
+  armorClassOf,
+  concentrationOf,
+  effectEnded,
+  keepConcentrationOutsideFight,
+  type ActiveEffect,
   type AttackEvent,
+  type EffectDie,
   type CastAction,
   type Combatant,
   type ConditionKind,
@@ -157,6 +163,7 @@ import {
   type Potion,
   type ReactionAnswer,
   type RollMode,
+  type SavingThrow,
   type TurnEconomy,
   type Weapon,
 } from "./encounter-5e.js";
@@ -208,11 +215,16 @@ import {
 import { tradeGoodValue } from "./treasure-5e.js";
 import { ABILITIES, type SkillId } from "./class-5e.js";
 import {
+  effectEnds,
   isSpellId,
+  maxTargets,
   ordinal,
+  outlastsFight,
   slotUsesId,
   spellAtLevel,
   SPELLS,
+  type Buff,
+  type EffectEnds,
   type SpellDefinition,
 } from "./spells-5e.js";
 import {
@@ -248,7 +260,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v24";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v26";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -262,6 +274,12 @@ export type CharacterResources = Readonly<{
   featureUses: Readonly<Record<string, number>>;
   /** The hit dice left in the pool (#333): one per level at the start. */
   hitDice: number;
+  /**
+   * The ongoing spell effects on the character (#337), when it has any:
+   * those that outlast a fight end at a rest or a long rest (D9), and all
+   * end with the adventure.
+   */
+  effects?: readonly ActiveEffect[];
 }>;
 
 /**
@@ -1359,13 +1377,13 @@ Outside a fight, in a room with no foes left to face, the character may take a s
 
 Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
 
-A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, target and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words.
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
 The character's own gear (its catalogue weapons, armour and shield) is named by its id. To put on armour or a shield, or take a second light weapon in the other hand, call equip; to take armour or a shield off or put a second weapon away, call unequip; to wield a different carried weapon in place of the ones held, call swap_weapon; to leave carried gear behind, call drop. Gear found is taken with take, like any item. The engine decides what the character can hold, how long armour takes to don and what the change does to its AC and attacks.
 
-A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; to hide ("I hide behind the crates", "duck out of sight"), call hide; to steady their aim or take careful aim before attacking, call steady_aim; when they end or pass their turn, call end_turn. A character with Cunning Strike may trade Sneak Attack dice for an effect when an attack would deal Sneak Attack: then attack and light_attack take cunning_strike, listing the effects the engine offers against each target. Give the effect only when the player asks for it ("trip him", "poison the blade"), and null otherwise; the engine alone decides whether the attack hits, deals Sneak Attack and whether the target saves. When an opponent's hit on a character with Uncanny Dodge waits for an answer, only uncanny_dodge and take_hit are offered: say what hit the character and ask whether they use Uncanny Dodge to halve its damage, then call uncanny_dodge when they do ("dodge", "roll with it") and take_hit when they decline; nothing else can be done until they answer, and neither is offered at any other time. Hide and Steady Aim each take the bonus action, so a turn has at most one of them; the engine alone rolls the Stealth check for Hide against the opponents' passive Perception and decides whether the character is hidden, and the advantage either gives lasts for one attack. Never declare the character hidden, or give it advantage, yourself. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
+A turn in a fight has one action (an attack), one bonus action and one reaction. A character with Extra Attack makes two attacks with its Attack action: call attack once for each, each against the target the player names for it ("hit the goblin twice" is two calls at the goblin; "one at each" is one call at each). The engine refuses a third attack. A character holding two light weapons may follow an attack with one extra attack with the second weapon: call light_attack with the target the player's words pick out, as for attack, when they ask to strike with their other or off-hand weapon. When the player wants to catch their breath or use their second wind ("catch my breath" or "second wind"), call second_wind; for an extra action ("action surge", "push myself"), call action_surge; to hide ("I hide behind the crates", "duck out of sight"), call hide; to steady their aim or take careful aim before attacking, call steady_aim; when they end or pass their turn, call end_turn. A character with Cunning Strike may trade Sneak Attack dice for an effect when an attack would deal Sneak Attack: then attack and light_attack take cunning_strike, listing the effects the engine offers against each target. Give the effect only when the player asks for it ("trip him", "poison the blade"), and null otherwise; the engine alone decides whether the attack hits, deals Sneak Attack and whether the target saves. When an opponent's hit on the character waits for an answer, only its answers are offered: uncanny_dodge with Uncanny Dodge, cast with a reaction spell such as Shield, and take_hit. Say what hit the character and ask how they answer, then call uncanny_dodge when they use Uncanny Dodge to halve its damage ("dodge", "roll with it"), cast with the reaction spell when they cast it (Shield adds 5 to AC until their next turn, and the engine decides whether the hit now misses), and take_hit when they decline; nothing else can be done until they answer, and none is offered at any other time. Hide and Steady Aim each take the bonus action, so a turn has at most one of them; the engine alone rolls the Stealth check for Hide against the opponents' passive Perception and decides whether the character is hidden, and the advantage either gives lasts for one attack. Never declare the character hidden, or give it advantage, yourself. Drinking a potion in a fight takes the bonus action, and drawing, stowing or swapping a weapon takes the turn's object interaction. Each is offered only while the engine would accept it: if the tool the player wants is not offered, say it is not available now without calling a tool. Advantage, disadvantage, conditions, healing and extra actions come only from the engine's rules; a player cannot gain or shake them off by asking. Class features such as Sneak Attack and Expertise are applied by the engine alone: it adds Sneak Attack's dice to a hit that meets its rules and doubles the proficiency bonus on checks with Expertise skills, and its result says so. No tool takes either: never claim, promise or add one, and when the player asks for a sneak attack, call attack as usual. A paralysed character cannot act: only end_turn is offered, so when the player tries anything else, say they are paralysed and can only wait, and call end_turn only when they wait or pass their turn. Use look for questions about the room, its exits, features and items, the opponents or the fight, and get_character_status for questions about the character's health, conditions, what they carry, or whether they won or lost.
 
 When calling a tool, return only the function call. Each response may hold at most one tool call, and each player message allows at most one action. After a read tool, reply in at most three short sentences in the second person, using only facts from the scene and tool results. There is no map: do not describe distance or positions as rules.`;
 
@@ -1382,7 +1400,7 @@ const featureDescriptions = (
   uncanny_dodge:
     "Use Uncanny Dodge, the character's reaction, on the hit waiting for an answer: the engine halves its damage.",
   take_hit:
-    "Decline Uncanny Dodge: the hit waiting for an answer deals its full damage, and the character keeps its reaction.",
+    "Decline every reaction to the hit waiting for an answer: it deals its full damage, and the character keeps its reaction.",
   end_turn:
     "End the character's turn; the opponents then act until the character's next turn.",
 });
@@ -1421,8 +1439,12 @@ function resourcesAfter(
   resources: CharacterResources,
   pc: Combatant,
 ): CharacterResources {
+  // Its ongoing effects (#337) too.
+  const { effects: _before, ...rest } = resources;
+  void _before;
   return {
-    ...resources,
+    ...rest,
+    ...(pc.effects === undefined ? {} : { effects: pc.effects }),
     hp: pc.hp,
     featureUses: {
       ...resources.featureUses,
@@ -1563,6 +1585,11 @@ export function playerCombatant(
     ...(profile.spellcasting === undefined
       ? {}
       : { spellcasting: combatSpellcasting(sheet, resources) }),
+    // Its ongoing effects (#337), and whether a base-AC one can work.
+    ...(resources.effects === undefined ? {} : { effects: resources.effects }),
+    ...(readLoadout(sheet.equipment).armour === undefined
+      ? {}
+      : { armour: true as const }),
     ammunition: sheet.ammunition,
   };
 }
@@ -1895,6 +1922,7 @@ function attackRollText(
     | "rampage"
     | "light"
     | "spell"
+    | "effectDice"
   >,
 ): string {
   const chosen = [
@@ -1909,7 +1937,89 @@ function attackRollText(
   const weapon = `${event.weapon}${event.light === true ? " (extra attack)" : event.rampage === true ? " (Rampage bonus attack)" : ""}`;
   // A spell attack (#336) names its spell.
   const attacks = event.spell === true ? "makes a spell attack on" : "attacks";
-  return `${attacker} ${attacks} ${target} with ${weapon}${chosen}${mode} ${event.d20} ${signed(event.bonus)} = ${event.total} against AC ${event.armorClass}`;
+  return `${attacker} ${attacks} ${target} with ${weapon}${chosen}${mode} ${event.d20} ${signed(event.bonus)}${effectDiceText(event.effectDice)} = ${event.total} against AC ${event.armorClass}`;
+}
+
+/** " + 3 (Bless)": the dice ongoing effects added to a d20 roll (#337). */
+function effectDiceText(dice: readonly EffectDie[] | undefined): string {
+  return (dice ?? [])
+    .map(({ spell, roll }) => ` + ${roll} (${spell})`)
+    .join("");
+}
+
+/** What an ongoing effect does (#337): "+1d4 to attack rolls and saving throws". */
+export function buffText(buff: Buff): string {
+  switch (buff.kind) {
+    case "die":
+      return `+1d${buff.sides} to attack rolls and saving throws`;
+    case "armor-class":
+      return `+${buff.bonus} AC`;
+    case "base-armor-class":
+      return `base AC ${buff.base} + Dexterity while wearing no armour`;
+  }
+}
+
+/**
+ * When an ongoing effect ends (#337, D9): "until the fight ends";
+ * `caster` is whose next turn ends Shield's, "your" by default.
+ */
+export function endsText(ends: EffectEnds, caster = "your"): string {
+  return {
+    "next-turn": `until the start of ${caster} next turn`,
+    fight: "until the fight ends",
+    rest: "until the next rest",
+    "long-rest": "until a long rest or the adventure's end",
+  }[ends];
+}
+
+/**
+ * An ongoing effect's taking hold, ending, or its concentration save
+ * (#337). The character is "you".
+ */
+function effectText(
+  event: Extract<
+    FifthEvent,
+    { type: "effect" | "effect-ended" | "concentration" }
+  >,
+  name: (id: string) => string,
+): string {
+  const who = (id: string) => (id === PLAYER_ID ? "you" : name(id));
+  switch (event.type) {
+    case "effect": {
+      const ends = endsText(
+        event.ends,
+        event.casterId === PLAYER_ID ? "your" : `${name(event.casterId)}'s`,
+      );
+      const concentrating =
+        event.concentration === true
+          ? ` ${event.casterId === PLAYER_ID ? "You concentrate" : `${name(event.casterId)} concentrates`} on it.`
+          : "";
+      return `${event.spell} takes hold on ${who(event.targetId)}: ${buffText(event.buff)}, ${ends}.${concentrating}`;
+    }
+    case "effect-ended": {
+      const caster = event.casterId === PLAYER_ID;
+      const your = caster ? "your" : `${name(event.casterId)}'s`;
+      const why = {
+        "next-turn": `${caster ? "your" : `${name(event.casterId)}'s`} turn has come round`,
+        "fight-over": "the fight is over",
+        rest: "the rest is over",
+        "long-rest": "the long rest is over",
+        "new-concentration": `${caster ? "you concentrate" : `${name(event.casterId)} concentrates`} on another spell`,
+        "concentration-broken": `${your} concentration is broken`,
+        incapacitated: `${caster ? "you can't" : `${name(event.casterId)} can't`} concentrate while incapacitated`,
+        fell: `${caster ? "you have" : `${name(event.casterId)} has`} fallen`,
+      }[event.reason];
+      return `${event.spell} ends on ${who(event.targetId)}: ${why}.`;
+    }
+    case "concentration": {
+      const { save } = event;
+      const subject =
+        event.combatantId === PLAYER_ID
+          ? "You make"
+          : `${name(event.combatantId)} makes`;
+      return `${subject} a Constitution saving throw to keep concentrating on ${event.spell} after taking ${event.damage} damage${save.autoFail === undefined ? `${save.mode === undefined ? ":" : modeText(save.mode, save.d20)} ${save.d20} ${signed(save.bonus)}${effectDiceText(save.effectDice)} = ${save.total} against DC ${save.dc}. ${save.success ? "Success" : "Failure"}.` : `: it fails without a roll (${save.autoFail}).`}`;
+    }
+  }
 }
 
 function gearText(event: GearEvent): string {
@@ -1977,7 +2087,10 @@ const titleCase = (value: string) =>
 function spellText(
   event: Extract<
     FifthEvent,
-    { type: "cast" | "spell-save" | "spell-damage" | "spell-healing" }
+    {
+      type:
+        "cast" | "spell-area" | "spell-save" | "spell-damage" | "spell-healing";
+    }
   >,
   name: (id: string) => string,
   maxHp: (id: string) => number,
@@ -1991,13 +2104,20 @@ function spellText(
       const bonus =
         event.castingTime === "bonus-action" ? " as a bonus action" : "";
       const player = event.combatantId === PLAYER_ID;
+      const [first] = event.targetIds;
       const target =
-        event.targetId === event.combatantId
+        event.targetIds.length === 1 && first === event.combatantId
           ? player
             ? " on yourself"
             : " on itself"
-          : ` at ${name(event.targetId)}`;
+          : ` at ${listed(event.targetIds.map(name), "and")}`;
       return `${player ? "You cast" : `${name(event.combatantId)} casts`} ${event.spell}${target}${bonus}${slot}.`;
+    }
+    case "spell-area": {
+      // One damage roll for every target (#338), each saving for itself.
+      const full = event.damageRolls.reduce((sum, value) => sum + value, 0);
+      const count = event.targetIds.length;
+      return `${event.spell}: damage ${event.damageRolls.join(" + ")} = ${full} ${event.damageType}, ${count === 1 ? "and its target saves" : `and each of its ${count} targets saves`} against it.`;
     }
     case "spell-save": {
       const { save } = event;
@@ -2005,12 +2125,21 @@ function spellText(
       const ability = titleCase(save.ability);
       const rolled =
         save.autoFail === undefined
-          ? `${target} makes a ${ability} saving throw against ${event.spell}${save.mode === undefined ? ":" : modeText(save.mode, save.d20)} ${save.d20} ${signed(save.bonus)} = ${save.total} against DC ${save.dc}. ${save.success ? "Success" : "Failure"}`
+          ? `${target} makes a ${ability} saving throw against ${event.spell}${save.mode === undefined ? ":" : modeText(save.mode, save.d20)} ${save.d20} ${signed(save.bonus)}${effectDiceText(save.effectDice)} = ${save.total} against DC ${save.dc}. ${save.success ? "Success" : "Failure"}`
           : `${target} fails a ${ability} saving throw against ${event.spell} without a roll: it is ${save.autoFail}`;
       if (event.damageRolls.length === 0) {
         return `${rolled}: no damage.`;
       }
       const full = event.damageRolls.reduce((sum, value) => sum + value, 0);
+      // An area spell's target (#338): its share of the one roll.
+      if (event.area === true) {
+        const share = !save.success
+          ? `the full ${full}`
+          : event.onSuccess === "half"
+            ? `half of ${full}, ${Math.floor(full / 2)},`
+            : "none of it";
+        return `${rolled}: ${target} takes ${share} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
+      }
       const halved = save.success
         ? `, halved to ${Math.floor(full / 2)} by the save`
         : "";
@@ -2102,8 +2231,16 @@ export function renderFifthEvent(
         event.ammunition === undefined
           ? ""
           : ` ${ammunitionCount(event.ammunition.kind, event.ammunition.left)} left.`;
+      const graze =
+        event.graze === true
+          ? ` Graze: ${dealt} damage${adjusted}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.`
+          : "";
+      // A hit a reaction spell turned (#337): its roll was said when offered.
+      if (!event.hit && event.resumed === true) {
+        return `${name(event.actorId)}'s ${event.weapon} now misses ${target.name}: ${event.total} against AC ${event.armorClass}.${graze}`;
+      }
       if (!event.hit) {
-        return `${roll}. Miss.${event.graze === true ? ` Graze: ${dealt} damage${adjusted}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.` : ""}${left}`;
+        return `${roll}. Miss.${graze}${left}`;
       }
       const riderDamage = dodged?.riderDamage ?? event.rider?.damage ?? 0;
       const rider =
@@ -2121,9 +2258,19 @@ export function renderFifthEvent(
       }
       return `${roll}. ${event.paralysedCritical === true ? `Critical hit: ${target.name} is paralysed!` : event.critical ? "Critical hit!" : "Hit."} ${damage}`;
     }
-    case "reaction-offered":
-      // Uncanny Dodge (#308): the hit waits for the answer.
-      return `${attackRollText(name(event.attackerId), name(event.combatantId), event)}. ${event.critical ? "Critical hit!" : "Hit."} Before its damage is rolled, ${name(event.combatantId)} can use Uncanny Dodge to halve it, or take the hit.`;
+    case "reaction-offered": {
+      // Uncanny Dodge (#308) or a reaction spell (#337): the hit waits for
+      // the answer.
+      const answers = [
+        ...event.reactions.map((reaction) =>
+          reaction === "Uncanny Dodge"
+            ? "use Uncanny Dodge to halve it"
+            : `cast ${reaction}`,
+        ),
+        "take the hit",
+      ];
+      return `${attackRollText(name(event.attackerId), name(event.combatantId), event)}. ${event.critical ? "Critical hit!" : "Hit."} Before its damage is rolled, ${name(event.combatantId)} can ${answers.slice(0, -1).join(", ")}, or ${answers.at(-1)!}.`;
+    }
     case "undead-fortitude": {
       const self = combatant(state.encounter!, event.combatantId);
       return `Undead Fortitude: ${self.name} makes a Constitution saving throw against DC 5 + ${event.damage} damage taken: ${event.d20} ${signed(event.bonus)} = ${event.total} against DC ${event.dc}. ${event.success ? `Success: ${self.name} refuses to fall and has ${event.hpAfter}/${self.maxHp} HP.` : `Failure: ${self.name} stays down.`}`;
@@ -2138,7 +2285,7 @@ export function renderFifthEvent(
       if (event.autoFail !== undefined) {
         return `${name(event.combatantId)} fails a ${titleCase(event.ability)} saving throw against being ${event.condition} without a roll: it is ${event.autoFail}.`;
       }
-      return `${name(event.combatantId)} ${event.repeat ? "repeats" : "makes"} a ${titleCase(event.ability)} saving throw against being ${event.condition}${event.mode === undefined ? ":" : modeText(event.mode, event.d20)} ${event.d20} ${signed(event.bonus)} = ${event.total} against DC ${event.dc}. ${event.success ? "Success" : "Failure"}.`;
+      return `${name(event.combatantId)} ${event.repeat ? "repeats" : "makes"} a ${titleCase(event.ability)} saving throw against being ${event.condition}${event.mode === undefined ? ":" : modeText(event.mode, event.d20)} ${event.d20} ${signed(event.bonus)}${effectDiceText(event.effectDice)} = ${event.total} against DC ${event.dc}. ${event.success ? "Success" : "Failure"}.`;
     case "condition":
       return `${name(event.combatantId)} is ${event.kind === "prone" ? "knocked prone" : event.kind} by ${name(event.sourceId)}'s ${event.source}: ${conditionText(event)}`;
     case "condition-ended":
@@ -2171,6 +2318,7 @@ export function renderFifthEvent(
       return `You drink the ${event.name}: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
     }
     case "cast":
+    case "spell-area":
     case "spell-save":
     case "spell-damage":
     case "spell-healing":
@@ -2179,6 +2327,10 @@ export function renderFifthEvent(
         name,
         (id) => combatant(state.encounter!, id).maxHp,
       );
+    case "effect":
+    case "effect-ended":
+    case "concentration":
+      return effectText(event, name);
     case "turn-ended":
       return `${name(event.combatantId)} ends the turn.`;
     case "defeated":
@@ -2432,6 +2584,8 @@ export type ShownDie = Readonly<{
   countsAs?: 3;
   /** A Sneak Attack die (#306). */
   sneakAttack?: true;
+  /** A die an ongoing effect added to a d20 roll (#337), by its spell. */
+  effect?: string;
 }>;
 
 /**
@@ -2541,6 +2695,29 @@ export function describeFifthResult(
       return { ...die, dropped: true as const };
     });
   };
+  /** The dice ongoing effects added to a d20 roll (#337): Bless's. */
+  const effectDice = (dice: readonly EffectDie[] | undefined): ShownDie[] =>
+    take((dice ?? []).map(({ roll }) => roll)).map((die, index) => ({
+      ...die,
+      effect: dice![index]!.spell,
+    }));
+  /** A saving throw's roll group, its effect dice after its d20s (#337). */
+  const saveGroup = (
+    roller: string,
+    label: string,
+    save: Extract<SavingThrow, { d20: number }>,
+  ): RollGroup => ({
+    purpose: "save",
+    roller,
+    label,
+    dice: [...d20Dice(save.mode, save.d20), ...effectDice(save.effectDice)],
+    modifier: save.bonus,
+    proficiency: 0,
+    total: save.total,
+    ...(save.mode === undefined ? {} : { mode: modeLabel(save.mode) }),
+    dc: save.dc,
+    outcome: save.success ? "success" : "failure",
+  });
   /**
    * An attack's damage roll groups: the weapon's dice with Sneak Attack's,
    * then the rider's. Totals Uncanny Dodge halved (#308) say so.
@@ -2827,7 +3004,10 @@ export function describeFifthResult(
           purpose: "attack",
           roller: name(actorId),
           target: name(targetId),
-          dice: d20Dice(event.mode, event.d20),
+          dice: [
+            ...d20Dice(event.mode, event.d20),
+            ...effectDice(event.effectDice),
+          ],
           modifier: event.bonus,
           total: event.total,
           ...(event.mode === undefined ? {} : { mode: modeLabel(event.mode) }),
@@ -2844,21 +3024,23 @@ export function describeFifthResult(
           return [];
         }
         return [
-          {
-            purpose: "save",
-            roller: name(event.combatantId),
-            label: `${titleCase(event.ability)} saving throw`,
-            dice: d20Dice(event.mode, event.d20),
-            modifier: event.bonus,
-            proficiency: 0,
-            total: event.total,
-            ...(event.mode === undefined
-              ? {}
-              : { mode: modeLabel(event.mode) }),
-            dc: event.dc,
-            outcome: event.success ? "success" : "failure",
-          },
+          saveGroup(
+            name(event.combatantId),
+            `${titleCase(event.ability)} saving throw`,
+            event,
+          ),
         ];
+      case "concentration":
+        // A Constitution save to keep concentrating (#337).
+        return event.save.autoFail !== undefined
+          ? []
+          : [
+              saveGroup(
+                name(event.combatantId),
+                `Constitution saving throw (concentration on ${event.spell})`,
+                event.save,
+              ),
+            ];
       case "morale":
         return [
           {
@@ -2926,32 +3108,36 @@ export function describeFifthResult(
             outcome: event.interrupted ? "success" : "failure",
           },
         ];
+      case "spell-area":
+        // An area spell's one damage roll (#338), before each target's save.
+        return [
+          {
+            purpose: "damage",
+            roller: name(event.actorId),
+            dice: take(event.damageRolls),
+            modifier: 0,
+            total: event.damageRolls.reduce((sum, value) => sum + value, 0),
+            damageType: event.damageType,
+          },
+        ];
       case "spell-save": {
         // The target's save (none rolled when a condition fails it), then
-        // the damage, unless a success takes none (#336).
+        // the damage, unless a success takes none (#336); an area spell's
+        // damage was rolled once, before its targets' saves (#338).
         const { save } = event;
         return [
           ...(save.autoFail !== undefined
             ? []
             : [
-                {
-                  purpose: "save" as const,
-                  roller: name(event.targetId),
-                  label: `${titleCase(save.ability)} saving throw (${event.spell})`,
-                  dice: d20Dice(save.mode, save.d20),
-                  modifier: save.bonus,
-                  proficiency: 0,
-                  total: save.total,
-                  ...(save.mode === undefined
-                    ? {}
-                    : { mode: modeLabel(save.mode) }),
-                  dc: save.dc,
-                  outcome: save.success
-                    ? ("success" as const)
-                    : ("failure" as const),
-                },
+                saveGroup(
+                  name(event.targetId),
+                  `${titleCase(save.ability)} saving throw (${event.spell})`,
+                  save,
+                ),
               ]),
-          ...(event.damageRolls.length === 0 ? [] : [spellDamageGroup(event)]),
+          ...(event.damageRolls.length === 0 || event.area === true
+            ? []
+            : [spellDamageGroup(event)]),
         ];
       }
       case "spell-damage":
@@ -3231,7 +3417,15 @@ export type ActionView = Readonly<{
     name: string;
     level: number;
     slotLevel?: number;
+    /** An area spell's most targets (#338), when above 1. */
+    maxTargets?: number;
   }>;
+  /**
+   * An area spell's cast (#338): the foes it may catch, up to its
+   * `maxTargets`, chosen by the player. The entry has no `target`, and
+   * stands for the cast at the first of them.
+   */
+  targets?: readonly Readonly<{ id: string; name: string }>[];
   /**
    * A short rest (#334), listed while it would restore something: the
    * numbers of hit dice it may spend now, fewest first. The action spends
@@ -3253,6 +3447,8 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "no-combatant": "Not in this fight",
   "not-your-turn": "Not your turn",
   "no-target": "No such target",
+  "too-many-targets": "Too many targets",
+  "duplicate-target": "Target named twice",
   "same-side": "On your side",
   "already-defeated": "Already defeated",
   "action-used": "Action used",
@@ -3347,6 +3543,10 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "no-slot": "No slot",
   "slot-spent": "Slot used this turn",
   "healing-target": "Heals allies",
+  "ally-target": "Allies only",
+  "self-target": "On yourself only",
+  "effect-active": "Already on",
+  "wearing-armour": "Wearing armour",
   "fight-only": "In a fight only",
   paralysed: "Paralysed",
   fled: "Fled",
@@ -3401,6 +3601,11 @@ export type FifthRuntime = Omit<
     projectFight(state: FifthState): FightView;
     /** The character's hit-dice pool (#333), for the status strip. */
     projectHitDice(state: FifthState): HitDiceView;
+    /**
+     * The ongoing spell effects on the character (#337), in a fight or out
+     * of one, for the status strip.
+     */
+    projectEffects(state: FifthState): readonly EffectView[];
     /**
      * The rests of `kind` left in the adventure, and the most: short
      * (#334) or long (#335).
@@ -3545,6 +3750,69 @@ function featureUses(self: Combatant): string[] {
   ];
 }
 
+/**
+ * An ongoing spell effect on the character (#337): the spell, what it does,
+ * when it ends ("until the fight ends") and whether it holds the
+ * character's concentration.
+ */
+export type EffectView = Readonly<{
+  spellId: string;
+  spell: string;
+  text: string;
+  ends: EffectEnds;
+  until: string;
+  concentration: boolean;
+}>;
+
+/** The ongoing effects on `holder` (#337), as the browser shows them. */
+function effectViews(holder: Combatant): readonly EffectView[] {
+  return (holder.effects ?? []).map(
+    ({ spellId, spell, buff, ends, concentration }) => ({
+      spellId,
+      spell,
+      text: buffText(buff),
+      ends,
+      until: endsText(ends),
+      concentration: concentration === true,
+    }),
+  );
+}
+
+/**
+ * The ongoing effects on `holder` (#337), each with what it does, when it
+ * ends and whether it holds concentration: "Bless (+1d4 to attack rolls
+ * and saving throws, until the fight ends; concentration)".
+ */
+function effectLines(holder: Combatant): string[] {
+  return (holder.effects ?? []).map(
+    ({ spell, buff, ends, concentration }) =>
+      `${spell} (${buffText(buff)}, ${endsText(ends)}${concentration === true ? "; concentration" : ""})`,
+  );
+}
+
+/**
+ * How the player may answer the hit waiting for a reaction (#308, #337), as
+ * the AI DM's tools take it.
+ */
+function reactionAnswersText(encounter: EncounterState): string {
+  const pc = combatant(encounter, PLAYER_ID);
+  const offered = availableActions(encounter, PLAYER_ID);
+  const spells = (pc.spellcasting?.spells ?? []).filter(
+    ({ castingTime }) => castingTime === "reaction",
+  );
+  const answers = [
+    ...(offered.includes("uncanny-dodge") ? ["uncanny_dodge to halve it"] : []),
+    ...(offered.includes("cast")
+      ? spells.map(
+          ({ id, name }) =>
+            `cast with spell ${id} (${name}) to raise the character's AC first, which may turn the hit into a miss`,
+        )
+      : []),
+    "take_hit",
+  ];
+  return `${answers.slice(0, -1).join(", ")}, or ${answers.at(-1)!}`;
+}
+
 /** "Spell slots: 1st 1 of 2, 2nd 3 of 3 left" (#336). */
 function spellSlotsText(self: Combatant): string {
   return `Spell slots: ${self
@@ -3615,7 +3883,8 @@ function projectFight(
                   side: entrant.side,
                   hp,
                   maxHp: entrant.maxHp,
-                  armorClass: entrant.armorClass,
+                  // With its ongoing effects (#337).
+                  armorClass: armorClassOf(entrant),
                   defeated: hp === 0,
                   ...moraleOf(encounter, entrant.id),
                   sapped: encounter.sapped.some(
@@ -4715,6 +4984,29 @@ export function createFifthRuntime(
   };
 
   /**
+   * After damage outside a fight that left the character standing (#337):
+   * if it concentrates on a spell, its Constitution save to keep it.
+   */
+  const concentrationAfterDamage = (
+    state: FifthState,
+    damage: number,
+    random: Pick<RandomSource, "roll">,
+  ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
+    const pc = self(state);
+    if (concentrationOf([pc], PLAYER_ID) === undefined) {
+      return { state, events: [] };
+    }
+    const kept = keepConcentrationOutsideFight(pc, damage, random);
+    return {
+      state: {
+        ...state,
+        character: resourcesAfter(state.character, kept.entrant),
+      },
+      events: kept.events,
+    };
+  };
+
+  /**
    * Damage a check's band or a retry's cost deals the character (#281,
    * #284): rolled and dealt with no saving throw; at 0 HP the adventure ends
    * in its defeat.
@@ -4754,7 +5046,8 @@ export function createFifthRuntime(
       maxHp,
     };
     if (hpAfter > 0) {
-      return { state: hurt, events: [dealt] };
+      const kept = concentrationAfterDamage(hurt, damage, dice);
+      return { state: kept.state, events: [dealt, ...kept.events] };
     }
     const ending = adventure.endings.find(
       ({ id }) => id === effect.defeatEndingId,
@@ -5010,8 +5303,9 @@ export function createFifthRuntime(
       },
       recovered,
     );
+    const ended = restEndsEffects(next, "short");
     return {
-      state: next,
+      state: ended.state,
       events: [
         {
           type: "short-rest",
@@ -5021,7 +5315,44 @@ export function createFifthRuntime(
         },
         ...spent,
         ...regainedEvents(recovered),
+        ...ended.events,
       ],
+    };
+  };
+
+  /**
+   * The character's ongoing effects a rest of `kind` ends (#337, D9): a
+   * short rest those lasting to the next rest; a long rest those and those
+   * lasting to a long rest. An interrupted rest is no rest, and ends none.
+   */
+  const restEndsEffects = (
+    state: FifthState,
+    kind: RestKind,
+  ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
+    const effects = state.character.effects ?? [];
+    const ending = ({ ends }: ActiveEffect) =>
+      ends === "rest" || (kind === "long" && ends === "long-rest");
+    if (!effects.some(ending)) {
+      return { state, events: [] };
+    }
+    const { effects: _before, ...character } = state.character;
+    void _before;
+    const kept = effects.filter((effect) => !ending(effect));
+    return {
+      state: {
+        ...state,
+        character:
+          kept.length === 0 ? character : { ...character, effects: kept },
+      },
+      events: effects
+        .filter(ending)
+        .map((effect) =>
+          effectEnded(
+            PLAYER_ID,
+            effect,
+            kind === "short" ? "rest" : "long-rest",
+          ),
+        ),
     };
   };
 
@@ -5049,8 +5380,9 @@ export function createFifthRuntime(
       },
       recovered,
     );
+    const ended = restEndsEffects(next, "long");
     return {
-      state: next,
+      state: ended.state,
       events: [
         {
           type: "long-rest",
@@ -5062,6 +5394,7 @@ export function createFifthRuntime(
           longRests: projectRests(next, "long"),
         },
         ...regainedEvents(recovered),
+        ...ended.events,
       ],
     };
   };
@@ -5645,7 +5978,8 @@ export function createFifthRuntime(
       },
     ];
     if (hpAfter > 0) {
-      return { state: hurt, events };
+      const kept = concentrationAfterDamage(hurt, damage, random);
+      return { state: kept.state, events: [...events, ...kept.events] };
     }
     const ending = adventure.endings.find(
       ({ id }) => id === trap.defeatEndingId,
@@ -5763,19 +6097,20 @@ export function createFifthRuntime(
         return { type: "long-rest" };
       case "cast": {
         // A cantrip names no slot level; a levelled spell names a whole one.
+        // Its targets are a list of ids (#338).
         const spellId = field("spellId");
-        const targetId = field("targetId");
-        const { slotLevel } = action;
+        const { slotLevel, targetIds } = action;
         return actorId === undefined ||
           spellId === undefined ||
-          targetId === undefined ||
+          !Array.isArray(targetIds) ||
+          !targetIds.every((id) => typeof id === "string") ||
           (slotLevel !== undefined && !Number.isInteger(slotLevel))
           ? undefined
           : {
               type: "cast",
               actorId,
               spellId,
-              targetId,
+              targetIds: targetIds as string[],
               ...(slotLevel === undefined
                 ? {}
                 : { slotLevel: slotLevel as number }),
@@ -7342,6 +7677,10 @@ export function createFifthRuntime(
                 ...(action.slotLevel === undefined
                   ? {}
                   : { slotLevel: action.slotLevel }),
+                // An area spell's most targets (#338).
+                ...(maxTargets(SPELLS[action.spellId]) === 1
+                  ? {}
+                  : { maxTargets: maxTargets(SPELLS[action.spellId]) }),
               },
             }
           : {}),
@@ -7368,7 +7707,9 @@ export function createFifthRuntime(
     /**
      * Each spell the character can cast (#336), at each slot level it could
      * spend and each target: a foe still in the fight, or the character for
-     * a healing spell. Outside a fight, only healing spells.
+     * a healing spell or a buff (#337). Outside a fight, only healing spells
+     * and buffs that outlast a fight. A reaction spell is offered only as
+     * the answer to a hit.
      */
     const casts = (
       caster: Combatant,
@@ -7376,27 +7717,56 @@ export function createFifthRuntime(
       fight: boolean,
     ): readonly ActionView[] =>
       (caster.spellcasting?.spells ?? [])
-        .filter(({ effect }) => fight || effect.kind === "healing")
+        .filter(
+          ({ castingTime, effect }) =>
+            castingTime !== "reaction" &&
+            (fight ||
+              effect.kind === "healing" ||
+              (effect.kind === "buff" &&
+                outlastsFight(effectEnds(effect.duration)))),
+        )
         .flatMap((spell) =>
-          slotLevels(caster, spell).flatMap((slotLevel) =>
-            (spell.effect.kind === "healing"
-              ? [{ id: PLAYER_ID, name: caster.name }]
-              : foes
-            ).map((target) =>
-              view(
-                "cast",
-                {
-                  type: "cast",
-                  actorId: PLAYER_ID,
-                  spellId: spell.id,
-                  targetId: target.id,
-                  ...(slotLevel === undefined ? {} : { slotLevel }),
-                },
-                target,
-              ),
-            ),
-          ),
+          slotLevels(caster, spell).flatMap((slotLevel) => {
+            const cast = (targetIds: readonly string[]): CastAction => ({
+              type: "cast",
+              actorId: PLAYER_ID,
+              spellId: spell.id,
+              targetIds,
+              ...(slotLevel === undefined ? {} : { slotLevel }),
+            });
+            // An area spell (#338): one entry, its targets chosen from the
+            // foes, up to its most; it dry-runs the first of them.
+            if (spell.area !== undefined) {
+              return foes.length === 0 ? [] : [areaCast(spell, foes, cast)];
+            }
+            return (
+              spell.effect.kind === "healing" || spell.effect.kind === "buff"
+                ? [{ id: PLAYER_ID, name: caster.name }]
+                : foes
+            ).map((target) => view("cast", cast([target.id]), target));
+          }),
         );
+    /**
+     * An area spell's entry (#338): the foes it may catch (`targets`), and
+     * the action it dry-runs, at the first of them up to its most.
+     */
+    const areaCast = (
+      spell: SpellDefinition,
+      foes: readonly Combatant[],
+      cast: (targetIds: readonly string[]) => CastAction,
+    ): ActionView => {
+      const action = cast(foes.slice(0, maxTargets(spell)).map(({ id }) => id));
+      const entry = view("cast", action);
+      if (unasked.has(entry)) {
+        return entry;
+      }
+      const offered: ActionView = {
+        ...entry,
+        targets: foes.map(({ id, name }) => ({ id, name })),
+      };
+      projectedActions.set(offered, action);
+      return offered;
+    };
     /**
      * A short rest (#334), listed while it would restore something, with the
      * numbers of hit dice it may spend; the action spends the most.
@@ -7561,9 +7931,30 @@ export function createFifthRuntime(
       const pc = combatant(state.encounter!, PLAYER_ID);
       const feature = (kind: FeatureActionType) =>
         view(kind, { type: kind, actorId: PLAYER_ID });
-      // A hit waiting for Uncanny Dodge (#308): only its two answers.
+      // A hit waiting for a reaction (#308, #337): only its answers,
+      // Uncanny Dodge, each reaction spell at each slot level, or the hit.
       if (state.encounter!.pendingReaction !== undefined) {
-        return [feature("uncanny-dodge"), feature("take-hit")];
+        return [
+          ...(pc.uncannyDodge === true ? [feature("uncanny-dodge")] : []),
+          ...(pc.spellcasting?.spells ?? [])
+            .filter(({ castingTime }) => castingTime === "reaction")
+            .flatMap((spell) =>
+              slotLevels(pc, spell).map((slotLevel) =>
+                view(
+                  "cast",
+                  {
+                    type: "cast",
+                    actorId: PLAYER_ID,
+                    spellId: spell.id,
+                    targetIds: [PLAYER_ID],
+                    ...(slotLevel === undefined ? {} : { slotLevel }),
+                  },
+                  { id: PLAYER_ID, name: pc.name },
+                ),
+              ),
+            ),
+          feature("take-hit"),
+        ];
       }
       // Paralysed (#234), the character can only wait for its turn to end.
       if (incapacitatedBy(state.encounter!, PLAYER_ID) !== undefined) {
@@ -7970,12 +8361,16 @@ export function createFifthRuntime(
                       `${name} is ${condition.name.toLowerCase()} (${condition.text}).`,
                   ),
                 ),
-                // A hit waiting for Uncanny Dodge (#308).
+                // A hit waiting for a reaction (#308, #337).
                 ...(encounter.pendingReaction === undefined
                   ? []
                   : [
-                      `${combatant(encounter, encounter.pendingReaction.attackerId).name}'s ${encounter.pendingReaction.weapon.name.toLowerCase()} has hit the character, and waits for the player's answer before its damage: uncanny_dodge to halve it, or take_hit.`,
+                      `${combatant(encounter, encounter.pendingReaction.attackerId).name}'s ${encounter.pendingReaction.weapon.name.toLowerCase()} has hit the character, and waits for the player's answer before its damage: ${reactionAnswersText(encounter)}.`,
                     ]),
+                // The character's ongoing effects (#337).
+                ...effectLines(self(state)).map(
+                  (line) => `The character has ${line}.`,
+                ),
                 ...(turn.id === PLAYER_ID
                   ? [
                       `The player has ${encounter.economy.actions} ${encounter.economy.actions === 1 ? "action" : "actions"}${encounter.economy.attacks === 0 ? "" : `, ${encounter.economy.attacks} more ${encounter.economy.attacks === 1 ? "attack" : "attacks"} of the Attack action under way,`} and ${encounter.economy.bonusAction ? "a" : "no"} bonus action left this turn.`,
@@ -8044,6 +8439,8 @@ export function createFifthRuntime(
       outcome: state.status,
       resources: [
         ...featureUses(self(state)),
+        // Its ongoing effects (#337).
+        ...effectLines(self(state)),
         hitDiceText(projectHitDice(state)),
         restsText("short", projectRests(state, "short")),
         // Only a module with a rest site offers a long rest (#335).
@@ -8159,7 +8556,8 @@ export function createFifthRuntime(
           ammunition: ammunitionHeld(ammunitionOf(state)).map(
             ({ id, count }) => ({ id, name: AMMUNITION[id].name, count }),
           ),
-          armorClass: profile.armorClass,
+          // With its ongoing effects, such as Mage Armor (#337).
+          armorClass: armorClassOf(self(state)),
           attack: profile.attack,
           ...(profile.lightAttack === undefined
             ? {}
@@ -8601,14 +8999,22 @@ export function createFifthRuntime(
     }
     const spells = [...new Set(offers.map(({ spell }) => spell!.id))];
     const unique = <T>(values: readonly T[]) => [...new Set(values)];
+    // Each entry's targets: its one, or an area spell's choice (#338).
+    const targetsOf = ({ target, targets }: ActionView) => targets ?? [target!];
     const described = spells.map((id) => {
       const mine = offers.filter(({ spell }) => spell!.id === id);
-      const { name, level } = mine[0]!.spell!;
+      const { name, level, maxTargets: most } = mine[0]!.spell!;
       const slots = unique(mine.map(({ spell }) => spell!.slotLevel));
       const targets = unique(
-        mine.map(({ target }) => `${target!.id} (${target!.name})`),
+        mine.flatMap((offer) =>
+          targetsOf(offer).map((target) => `${target.id} (${target.name})`),
+        ),
       );
-      return `${id} (${name}, ${level === 0 ? "a cantrip: slot_level null" : `${ordinal(level)} level: slot_level ${listed(slots.map(String))}`}; target ${listed(targets)})`;
+      const whom =
+        most === undefined
+          ? `one target: ${listed(targets)}`
+          : `up to ${most} different targets from ${listed(targets, "and")}`;
+      return `${id} (${name}, ${level === 0 ? "a cantrip: slot_level null" : `${ordinal(level)} level: slot_level ${listed(slots.map(String))}`}; ${whom})`;
     });
     const slotLevelsOffered = unique(
       offers.flatMap(({ spell }) =>
@@ -8619,7 +9025,7 @@ export function createFifthRuntime(
       {
         type: "function",
         name: "cast",
-        description: `Only when the player asks to cast a spell: cast it at its target. The engine spends the slot (only one a turn) and the action or bonus action, and rolls the attack, save, damage or healing. Spells: ${described.join("; ")}.`,
+        description: `Only when the player asks to cast a spell: cast it at its targets, one unless an area spell lists more. The engine spends the slot (only one a turn, though a reaction spell's slot isn't the turn's) and the action, bonus action or reaction, and rolls the attack, save, damage or healing, or puts the spell's effect on its target until it ends. Spells: ${described.join("; ")}.`,
         strict: true,
         parameters: {
           type: "object",
@@ -8635,13 +9041,21 @@ export function createFifthRuntime(
               description:
                 "The spell slot level to spend: null for a cantrip; for a levelled spell its lowest listed unless the player asks for a higher one.",
             },
-            target: {
-              type: "string",
-              enum: unique(offers.map(({ target }) => target!.id)),
-              description: "The id of the spell's target.",
+            targets: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: unique(
+                  offers.flatMap((offer) =>
+                    targetsOf(offer).map(({ id }) => id),
+                  ),
+                ),
+              },
+              description:
+                "The ids of the spell's targets: one, or for an area spell up to its most, each once, as the player chose them.",
             },
           },
-          required: ["spell", "slot_level", "target"],
+          required: ["spell", "slot_level", "targets"],
           additionalProperties: false,
         },
       },
@@ -8753,15 +9167,18 @@ export function createFifthRuntime(
     // The rest tool (#334) takes only its whole number of hit dice.
     const isRest = call.name === "rest";
     const hitDice = isRecord(parsed) ? parsed.hit_dice : undefined;
-    // The cast tool (#336) takes its spell, slot level (or null) and target.
+    // The cast tool (#336) takes its spell, slot level (or null) and
+    // targets (#338).
     const isCast = call.name === "cast";
     const slotLevel = isRecord(parsed) ? parsed.slot_level : undefined;
+    const castTargets = isRecord(parsed) ? parsed.targets : undefined;
     if (
       !isRecord(parsed) ||
       (isCast &&
-        (Object.keys(parsed).sort().join(",") !== "slot_level,spell,target" ||
+        (Object.keys(parsed).sort().join(",") !== "slot_level,spell,targets" ||
           typeof parsed.spell !== "string" ||
-          typeof parsed.target !== "string" ||
+          !Array.isArray(castTargets) ||
+          !castTargets.every((id) => typeof id === "string") ||
           (slotLevel !== null && !Number.isInteger(slotLevel)))) ||
       (isCast
         ? false
@@ -8790,7 +9207,7 @@ export function createFifthRuntime(
           type: "cast",
           actorId: PLAYER_ID,
           spellId: parsed.spell as string,
-          targetId: parsed.target as string,
+          targetIds: castTargets as string[],
           ...(slotLevel === null ? {} : { slotLevel: slotLevel as number }),
         }
       : isRest
@@ -9043,6 +9460,7 @@ export function createFifthRuntime(
     projectFight: (state) =>
       projectFight(state, self(state), options(state), attackTargets(state)),
     projectHitDice,
+    projectEffects: (state: FifthState) => effectViews(self(state)),
     projectRests,
     projectRoom,
     projectActions,

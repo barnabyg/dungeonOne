@@ -150,7 +150,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <h2 id="adventure-title" tabindex="-1"></h2>
 <p id="adventure-objective" class="hint"></p>
 <div id="session-layout">
-<section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="conditions" class="conditions" aria-label="Conditions"></ul><ul id="resources" class="resources"></ul><p id="gear-numbers"></p></section>
+<section id="session-status" aria-label="Status"><div id="status-hp" class="status-hp"><p id="character-hp"></p><span class="hp-bar" aria-hidden="true"><span id="hp-fill" class="hp-fill"></span></span></div><p id="turn" aria-live="polite"></p><ul id="conditions" class="conditions" aria-label="Conditions"></ul><ul id="effects" class="conditions" aria-label="Spell effects"></ul><ul id="resources" class="resources"></ul><p id="gear-numbers"></p></section>
 <div id="session-scene">
 <section id="room" aria-labelledby="room-title"><h3 id="room-title"></h3>
 <button id="room-toggle" type="button" class="quiet disclosure" aria-expanded="false" aria-controls="room-details" hidden>Room details</button>
@@ -233,7 +233,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#inventory .action{width:8.5em}#inventory .action button{width:100%}.things .wares{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}.things .wares li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);border:0;padding:0;background:none}.things .wares .controls{margin-top:0}.wares .action{width:8.5em}.wares .action button{width:100%}#sale-confirm{margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
-#gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.condition{color:var(--color-danger)}
+#gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
 .controls.rest-panel{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,.wares,.rest-panel) button>span,:is(#action-bar,#inventory,.wares,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
@@ -636,6 +636,14 @@ let confirmingSale = null;
 let cunningStrike = "";
 // How many hit dice the next short rest spends (#334), or null for the most.
 let restDice = null;
+// The spell and slot level chosen to cast (#337), as "spell:slot", and its
+// target's id; "" until chosen.
+let castChoice = "";
+let castTarget = "";
+// An area spell's chosen targets (#338), in the order ticked, and the
+// spell they were chosen for.
+let castTargets = [];
+let castTargetsOf = "";
 
 const levelText = ({ min, max }) => min === max ? "Level " + min : "Levels " + min + "–" + max;
 
@@ -851,6 +859,16 @@ function renderStatus() {
     const item = make("li");
     item.dataset.condition = condition.kind;
     item.append(conditionTag(condition));
+    return item;
+  }));
+  // The character's ongoing spell effects (#337): the spell, whether it
+  // holds concentration, and when it ends; what it does for screen readers.
+  element("effects").replaceChildren(...session.effects.map((effect) => {
+    const item = make("li");
+    item.dataset.effect = effect.spellId;
+    const tag = make("span", effect.spell, "tag effect");
+    tag.append(spoken(": " + effect.text));
+    item.append(tag, make("span", (effect.concentration ? "concentration, " : "") + effect.until, "effect-until"));
     return item;
   }));
   const items = [];
@@ -1344,6 +1362,8 @@ const ACTIONS = {
   // The answers to a hit Uncanny Dodge could halve (#308).
   "uncanny-dodge": { label: "Uncanny Dodge", busy: "Using Uncanny Dodge", busyLabel: "Dodging…" },
   "take-hit": { label: "Take the hit", busy: "Taking the hit", busyLabel: "Taking…" },
+  // A spell (#337), chosen with its slot level and target beside the button.
+  cast: { label: "Cast", busy: "Casting", busyLabel: "Casting…" },
   "end-turn": { label: "End turn", busy: "Ending turn", busyLabel: "Ending" },
   // On the check just failed (#315): a use of Second Wind adds 1d10.
   "tactical-mind": { label: "Tactical Mind: add 1d10", busy: "Using Tactical Mind", busyLabel: "Adding…" },
@@ -1394,9 +1414,12 @@ function renderActions() {
   const struck = (action, target) => strikes.some((option) => option.action === action && option.target.id === target.id && option.cunningStrike.id === cunningStrike);
   renderRest(session.actions.find(({ action }) => action === "rest"), fighting);
   renderLongRest(session.actions.find(({ action }) => action === "long-rest"));
+  // Spells (#337) go in one choice of spell and target, with Cast.
+  const casts = session.actions.filter(({ action }) => action === "cast");
+  if (casts.length) groups.feature.push(castPanel(casts));
   session.actions.forEach((option, index) => {
     const { action, target } = option;
-    if (option.cunningStrike || action === "rest" || action === "long-rest") return;
+    if (option.cunningStrike || action === "rest" || action === "long-rest" || action === "cast") return;
     const exploring = EXPLORING.includes(action) || (action === "use" && !fighting);
     // Gear changes go on the gear's entry in "You carry" (#209), or in a
     // fight with the turn's other options, as Drink does.
@@ -1653,6 +1676,126 @@ async function leaveAdventure() {
   if (session.ending) confirmingLeave = false;
   renderActions();
   element(session.ending ? "ending-title" : "confirm-leave").focus();
+}
+
+const ORDINALS = ["", "1st", "2nd", "3rd", "4th", "5th"];
+const castKey = ({ spell }) => spell.id + ":" + (spell.slotLevel || "");
+
+/**
+ * Casting (#337): a choice of spell, each at each slot level it may spend
+ * (a cantrip spends none), and of its target, then Cast, disabled with the
+ * engine's reason for that choice. An area spell (#338) offers a box for
+ * each foe it may catch, the first ones ticked, up to its most. Exploring,
+ * only spells cast outside a fight are offered; answering a hit, only
+ * reaction spells.
+ */
+function castPanel(casts) {
+  const spells = [...new Map(casts.map((option) => [castKey(option), option.spell])).entries()];
+  // Keep the player's choice while it is offered; else the first that can
+  // be cast now, or the first.
+  const usable = casts.find(({ available }) => available) || casts[0];
+  if (!spells.some(([key]) => key === castChoice)) castChoice = castKey(usable);
+  const options = casts.filter((option) => castKey(option) === castChoice);
+  const wrap = make("span", undefined, "action cast-choice");
+  // An area spell has one entry, with the foes to choose among.
+  const area = options[0].targets ? options[0] : null;
+  if (area) {
+    const most = area.spell.maxTargets;
+    const ids = area.targets.map(({ id }) => id);
+    // A newly chosen area spell starts with the first foes ticked.
+    if (castTargetsOf !== castChoice) {
+      castTargets = ids.slice(0, most);
+      castTargetsOf = castChoice;
+    }
+    castTargets = castTargets.filter((id) => ids.includes(id)).slice(0, most);
+  } else if (!options.some(({ target }) => target.id === castTarget)) castTarget = (options.find(({ available }) => available) || options[0]).target.id;
+  const chosen = area || options.find(({ target }) => target.id === castTarget);
+  const spellSelect = make("select");
+  spellSelect.id = "cast-spell";
+  spellSelect.setAttribute("aria-label", "Spell");
+  spellSelect.disabled = acting;
+  for (const [key, spell] of spells) {
+    const choice = make("option", spell.name + (spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
+    choice.value = key;
+    choice.selected = key === castChoice;
+    spellSelect.append(choice);
+  }
+  spellSelect.addEventListener("change", () => {
+    castChoice = spellSelect.value;
+    renderActions();
+    element("cast-spell").focus();
+  });
+  const button = make("button");
+  button.append(make("span", ACTIONS.cast.label));
+  button.dataset.busyLabel = ACTIONS.cast.busyLabel;
+  button.type = "button";
+  button.className = "secondary act";
+  button.dataset.action = "cast";
+  // An area spell needs at least one target ticked.
+  const why = !chosen.available ? chosen.reason : area && !castTargets.length ? "Choose a target" : "";
+  button.disabled = acting || Boolean(why);
+  button.addEventListener("click", () => castSpell(chosen.spell, area ? castTargets : [chosen.target.id]));
+  wrap.append(spellSelect, area ? areaTargets(area) : targetChoice(options), button);
+  if (why) {
+    const reason = make("span", why, "reason");
+    reason.id = "cast-reason";
+    button.setAttribute("aria-describedby", reason.id);
+    wrap.append(reason);
+  }
+  return wrap;
+}
+
+// A spell's one target: a foe, or "Yourself" for a healing spell or buff.
+function targetChoice(options) {
+  const select = make("select");
+  select.id = "cast-target";
+  select.setAttribute("aria-label", "Target");
+  select.disabled = acting;
+  for (const { target } of options) {
+    const choice = make("option", target.id === (session.encounter?.playerId ?? "pc") ? "Yourself" : target.name);
+    choice.value = target.id;
+    choice.selected = target.id === castTarget;
+    select.append(choice);
+  }
+  select.addEventListener("change", () => {
+    castTarget = select.value;
+    renderActions();
+    element("cast-target").focus();
+  });
+  return select;
+}
+
+// An area spell's targets (#338): a box per foe, at most its most ticked;
+// the rest are disabled once that many are.
+function areaTargets(area) {
+  const most = area.spell.maxTargets;
+  const group = make("span", undefined, "cast-targets");
+  group.id = "cast-targets";
+  group.setAttribute("role", "group");
+  group.setAttribute("aria-label", "Targets, up to " + most);
+  group.append(make("span", "Up to " + most + ":", "approach"));
+  for (const { id, name } of area.targets) {
+    const label = make("label");
+    const box = make("input");
+    box.type = "checkbox";
+    box.value = id;
+    box.checked = castTargets.includes(id);
+    box.disabled = acting || (!box.checked && castTargets.length >= most);
+    box.addEventListener("change", () => {
+      castTargets = box.checked ? [...castTargets, id] : castTargets.filter((other) => other !== id);
+      renderActions();
+      const again = document.querySelector("#cast-targets input[value=" + JSON.stringify(id) + "]");
+      if (again) again.focus();
+    });
+    label.append(box, " " + name);
+    group.append(label);
+  }
+  return group;
+}
+
+async function castSpell(spell, targetIds) {
+  await act("/api/5e/session/cast", { spellId: spell.id, slotLevel: spell.slotLevel || null, targetIds }, "button.act[data-action=cast]", ACTIONS.cast.busy + " " + spell.name + "…");
+  keepFocus("cast", "");
 }
 
 /**

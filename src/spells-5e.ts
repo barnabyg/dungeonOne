@@ -14,9 +14,16 @@
  * - `auto-hit`: missiles that always hit, each dealing its own roll (Magic
  *   Missile).
  * - `healing`: the dice plus the caster's spellcasting ability modifier.
+ * - `buff` (#337): an ongoing effect on the caster or an ally, lasting as
+ *   its duration's band says (`effectEnds`, D9), some while the caster
+ *   concentrates on it: a die added to attack rolls and saving throws
+ *   (Bless), a bonus to AC (Shield of Faith, Shield) or a base AC (Mage
+ *   Armor).
+ * - An area spell (#338) declares its shape and size, and so the most
+ *   opponents it can catch (`maxTargets`, D4); the caster chooses them.
  *
- * Without positions or a clock, ranges, areas and durations are left out;
- * the rules document lists what that omits.
+ * Without positions or a clock, ranges are left out and areas and
+ * durations are abstracted; the rules document lists what that omits.
  */
 import type { Ability } from "./class-5e.js";
 import type { DamageType } from "./encounter-5e.js";
@@ -40,6 +47,55 @@ export type SpellDice = Readonly<{ dice: number; sides: number }>;
 /** A spell's damage: its dice and type. */
 export type SpellDamage = SpellDice & Readonly<{ type: DamageType }>;
 
+/**
+ * What a buff spell's effect does while it lasts (#337): a die added to the
+ * target's attack rolls and saving throws, a bonus to its AC, or a base AC
+ * in place of its unarmoured 10 (only while it wears no armour).
+ */
+export type Buff = Readonly<
+  | { kind: "die"; sides: number }
+  | { kind: "armor-class"; bonus: number }
+  | { kind: "base-armor-class"; base: number }
+>;
+
+/**
+ * A spell's duration as SRD 5.2 gives it (#337): a number of minutes (1
+ * minute, 10 minutes, 8 hours as 480), or until the start of the caster's
+ * next turn (Shield's one round).
+ */
+export type SpellDuration = Readonly<
+  { minutes: number } | { until: "next-turn" }
+>;
+
+/**
+ * When an ongoing effect ends without a clock (#337, D9): at the start of
+ * the caster's next turn; when the fight ends (up to 1 minute); at the next
+ * rest, short or long (10 minutes to 1 hour); or at a long rest or the
+ * adventure's end (8 hours). Each also ends when the fight or rest says,
+ * and a concentration spell when concentration ends.
+ */
+export type EffectEnds = "next-turn" | "fight" | "rest" | "long-rest";
+
+/** The band a spell's duration falls in (D9). */
+export function effectEnds(duration: SpellDuration): EffectEnds {
+  if ("until" in duration) {
+    return "next-turn";
+  }
+  return duration.minutes <= 1
+    ? "fight"
+    : duration.minutes <= 60
+      ? "rest"
+      : "long-rest";
+}
+
+/**
+ * Whether an effect ending `ends` outlasts the fight it was cast in (#337):
+ * one lasting to a rest or a long rest. Only those are cast out of a fight.
+ */
+export function outlastsFight(ends: EffectEnds): boolean {
+  return ends === "rest" || ends === "long-rest";
+}
+
 /** What a spell does to its target. */
 export type SpellEffect = Readonly<
   | { kind: "attack"; range: "melee" | "ranged"; damage: SpellDamage }
@@ -59,6 +115,17 @@ export type SpellEffect = Readonly<
     }
   /** The dice plus the caster's spellcasting ability modifier. */
   | { kind: "healing"; healing: SpellDice }
+  /**
+   * An ongoing effect on the caster or an ally (#337), for as long as its
+   * duration's band, and while the caster concentrates on it if it needs
+   * concentration.
+   */
+  | {
+      kind: "buff";
+      buff: Buff;
+      duration: SpellDuration;
+      concentration?: true;
+    }
 >;
 
 /**
@@ -66,6 +133,13 @@ export type SpellEffect = Readonly<
  * damage or healing, or more missiles.
  */
 export type Upcast = Readonly<{ dice: number } | { missiles: number }>;
+
+/** An area spell's shape and size in feet (SRD 5.2, #338). */
+export type SpellArea = Readonly<{
+  shape: "cone" | "line" | "sphere" | "emanation";
+  /** A cone's or line's length, a sphere's or emanation's radius. */
+  feet: number;
+}>;
 
 export type SpellDefinition = Readonly<{
   id: string;
@@ -75,11 +149,36 @@ export type SpellDefinition = Readonly<{
   school: SpellSchool;
   castingTime: CastingTime;
   effect: SpellEffect;
+  /** An area spell's shape and size (#338): it may catch several opponents. */
+  area?: SpellArea;
   /** A cantrip's damage dice from character level 5 (SRD 5.2). */
   cantripDice?: number;
   /** A levelled spell's gain from each slot level above its own. */
   upcast?: Upcast;
 }>;
+
+/**
+ * The feet of an area that each opponent it catches stands for (D4, #338):
+ * a cone's length ÷ 10, a line's ÷ 30, a sphere's or emanation's radius ÷ 5.
+ */
+const FEET_PER_TARGET: Readonly<Record<SpellArea["shape"], number>> = {
+  cone: 10,
+  line: 30,
+  sphere: 5,
+  emanation: 5,
+};
+
+/**
+ * The most opponents `spell` can catch (#338): an area spell's size ÷ its
+ * shape's feet per target (D4), rounded up and at least 1; any other spell
+ * has one target.
+ */
+export function maxTargets(spell: SpellDefinition): number {
+  const { area } = spell;
+  return area === undefined
+    ? 1
+    : Math.max(1, Math.ceil(area.feet / FEET_PER_TARGET[area.shape]));
+}
 
 /** The character level at which a cantrip's damage grows (SRD 5.2). */
 export const CANTRIP_UPGRADE_LEVEL = 5;
@@ -171,6 +270,104 @@ export const SPELLS = {
     effect: { kind: "healing", healing: { dice: 2, sides: 4 } },
     upcast: { dice: 2 },
   },
+  bless: {
+    id: "bless",
+    name: "Bless",
+    level: 1,
+    school: "enchantment",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "die", sides: 4 },
+      duration: { minutes: 1 },
+      concentration: true,
+    },
+  },
+  "shield-of-faith": {
+    id: "shield-of-faith",
+    name: "Shield of Faith",
+    level: 1,
+    school: "abjuration",
+    castingTime: "bonus-action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "armor-class", bonus: 2 },
+      duration: { minutes: 10 },
+      concentration: true,
+    },
+  },
+  "mage-armor": {
+    id: "mage-armor",
+    name: "Mage Armor",
+    level: 1,
+    school: "abjuration",
+    castingTime: "action",
+    effect: {
+      kind: "buff",
+      buff: { kind: "base-armor-class", base: 13 },
+      duration: { minutes: 480 },
+    },
+  },
+  // Area spells (#338): a 15-foot cone, 10- and 20-foot spheres.
+  "burning-hands": {
+    id: "burning-hands",
+    name: "Burning Hands",
+    level: 1,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "save",
+      ability: "dexterity",
+      onSuccess: "half",
+      damage: { dice: 3, sides: 6, type: "fire" },
+    },
+    area: { shape: "cone", feet: 15 },
+    upcast: { dice: 1 },
+  },
+  shatter: {
+    id: "shatter",
+    name: "Shatter",
+    level: 2,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "save",
+      ability: "constitution",
+      onSuccess: "half",
+      damage: { dice: 3, sides: 8, type: "thunder" },
+    },
+    area: { shape: "sphere", feet: 10 },
+    upcast: { dice: 1 },
+  },
+  fireball: {
+    id: "fireball",
+    name: "Fireball",
+    level: 3,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "save",
+      ability: "dexterity",
+      onSuccess: "half",
+      damage: { dice: 8, sides: 6, type: "fire" },
+    },
+    area: { shape: "sphere", feet: 20 },
+    upcast: { dice: 1 },
+  },
+  // A reaction to being hit by an attack roll (#337): +5 AC until the start
+  // of the caster's next turn, against that attack too.
+  shield: {
+    id: "shield",
+    name: "Shield",
+    level: 1,
+    school: "abjuration",
+    castingTime: "reaction",
+    effect: {
+      kind: "buff",
+      buff: { kind: "armor-class", bonus: 5 },
+      duration: { until: "next-turn" },
+    },
+  },
 } as const satisfies Record<string, SpellDefinition>;
 
 export type SpellId = keyof typeof SPELLS;
@@ -190,7 +387,7 @@ export function spellAtLevel(
   if (
     definition.cantripDice === undefined ||
     level < CANTRIP_UPGRADE_LEVEL ||
-    definition.effect.kind === "healing"
+    !("damage" in definition.effect)
   ) {
     return definition;
   }
@@ -230,6 +427,7 @@ export function effectAtSlot(
         healing: { ...effect.healing, dice: effect.healing.dice + more },
       };
     case "auto-hit":
+    case "buff":
       return effect;
     default:
       return {

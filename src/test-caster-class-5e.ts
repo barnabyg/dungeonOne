@@ -38,6 +38,13 @@ export const TEST_CASTER_SPELLCASTING: SpellcastingDefinition = {
     "inflict-wounds",
     "cure-wounds",
     "healing-word",
+    "bless",
+    "shield-of-faith",
+    "mage-armor",
+    "shield",
+    "burning-hands",
+    "shatter",
+    "fireball",
   ],
 };
 
