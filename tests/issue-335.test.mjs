@@ -6,6 +6,9 @@
 // most once, and its XP counts once.
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import {
@@ -25,7 +28,7 @@ import {
 } from "../dist/runtime-5e.js";
 import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
 import { TEST_FIGHTER, testFighterAt } from "../dist/test-fighter-5e.js";
-import { FIFTH_TRACE_FORMAT } from "../dist/trace-5e.js";
+import { FIFTH_TRACE_FORMAT, verifyFifthTraceFile } from "../dist/trace-5e.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
 import { dice } from "./fixtures/engine-dice.mjs";
 import {
@@ -605,4 +608,41 @@ test("scripted DM: asking to sleep at a rest site calls long_rest", async () => 
     FIFTH_DM_SYSTEM_PROMPT,
     /one long rest in an adventure: long_rest is offered only then\. Call long_rest only when the player asks for a long rest/u,
   );
+});
+
+test("a session or trace saved before #335 is refused, naming the file", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "issue-335-"));
+  try {
+    const path = join(directory, "session.json");
+    await FifthSession.create(path, "a".repeat(32), 0, quiet, ADA_2);
+    const file = JSON.parse(await readFile(path, "utf8"));
+    file.formatVersion = 37;
+    const bytes = JSON.stringify(file);
+    await writeFile(path, bytes);
+    await assert.rejects(FifthSession.load(path, [quiet]), (error) => {
+      assert.equal(
+        error.message,
+        `${path} is an adventure session in format version 37, not ${FIFTH_SESSION_FORMAT}. This build cannot continue it. Move it aside; the file has not been changed.`,
+      );
+      return true;
+    });
+    assert.equal(await readFile(path, "utf8"), bytes);
+
+    const tracePath = join(directory, "trace.json");
+    const trace = JSON.stringify({
+      kind: "dungeon-one-5e-trace",
+      formatVersion: 31,
+    });
+    await writeFile(tracePath, trace);
+    await assert.rejects(verifyFifthTraceFile(tracePath, [quiet]), (error) => {
+      assert.equal(
+        error.message,
+        `${tracePath} is a trace in format version 31, not ${FIFTH_TRACE_FORMAT}. This build cannot replay it. Move it aside; the file has not been changed.`,
+      );
+      return true;
+    });
+    assert.equal(await readFile(tracePath, "utf8"), trace);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { validateModule } from "./fixtures/bestiary.mjs";
-import { restingTunnelsFile } from "./fixtures/modules.mjs";
+import { restingTunnelsFile, room } from "./fixtures/modules.mjs";
 import {
   clickAction,
   createAndStart,
@@ -41,12 +41,36 @@ const prowled = validateModule(
     return module;
   })(),
 );
+/**
+ * The resting tunnels whose den is a way out: its goblin fights but no
+ * longer ends the adventure, so Ada can come back hurt after her long rest.
+ */
+const denExit = validateModule(
+  (() => {
+    const module = restingTunnelsFile();
+    module.id = "den-exit-tunnels";
+    module.title = "The Den Exit Tunnels";
+    delete module.encounters.find(({ id }) => id === "den-goblin")
+      .victoryEndingId;
+    room(module, "den").exit = true;
+    module.endings = [
+      {
+        id: "out-through-the-den",
+        kind: "escape-without-loot",
+        title: "Out through the den",
+        text: "You climb the den's back stair into the open air.",
+      },
+      module.endings.find(({ kind }) => kind === "defeat"),
+    ];
+    return module;
+  })(),
+);
 
 async function serve(seed) {
   const directory = await mkdtemp(join(tmpdir(), "issue-335-"));
   const libraryPath = join(directory, "characters.json");
   const server = await startFifthBrowserServer({
-    adventures: [quiet, prowled],
+    adventures: [quiet, prowled, denExit],
     // Fixtures are engine material, not gated content: the gate is tested
     // in issue-335.test.mjs.
     qualifies: () => true,
@@ -196,6 +220,60 @@ test(
       assert.match(rested, /You take a short rest and spend 1 hit die/u);
       assert.doesNotMatch(rested, /d100/u);
       assert.equal((await sessionFile(directory)).state.shortRests, 1);
+    } finally {
+      await browser.close();
+      await server.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "a long rest already taken is refused at the rest site, with its reason",
+  { timeout: 120000 },
+  async () => {
+    // With seed 7 Ada survives the rat, and the goblin hurts her again.
+    const { directory, server } = await serve(7);
+    const browser = await launch();
+    const page = await browser.newPage({
+      viewport: { width: 375, height: 812 },
+    });
+    page.setDefaultTimeout(5000);
+    try {
+      await createAndStart(page, server.url, "den-exit-tunnels");
+      await clickAction(page, "move", "rat-cellar");
+      await fight(page);
+      await clickAction(page, "move", "stair-foot");
+      await clickAction(page, "move", "alcove");
+      const longRest = page.locator("#long-rest-controls button.act");
+      await settled(page, () => longRest.click());
+      // The goblin in the den hurts Ada again.
+      await clickAction(page, "move", "stair-foot");
+      await clickAction(page, "move", "rat-cellar");
+      await clickAction(page, "move", "den");
+      await fight(page);
+      const hurt = await sessionFile(directory);
+      assert.equal(hurt.state.status, "playing");
+      assert.ok(hurt.state.character.hp < 13, "the goblin hurts Ada");
+      await clickAction(page, "move", "rat-cellar");
+      await clickAction(page, "move", "stair-foot");
+      await clickAction(page, "move", "alcove");
+      // Long rest shows, disabled, with the engine's reason beside it.
+      assert.equal(await longRest.isDisabled(), true);
+      assert.equal(
+        await page.locator("#long-rest-reason").textContent(),
+        "No long rest left",
+      );
+      assert.equal(
+        await longRest.getAttribute("aria-describedby"),
+        "long-rest-reason",
+      );
+      assert.match(
+        await page.locator("#long-rest-summary").textContent(),
+        /Long rests: 0 of 1 left in this adventure;/u,
+      );
+      await widenFont(page);
+      await assertNoSideScroll(page);
     } finally {
       await browser.close();
       await server.close();
