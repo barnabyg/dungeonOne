@@ -156,9 +156,12 @@ choices, check the derived numbers and save:
   are hurt or attacked; with every foe turned it may leave them behind), and
   at level 3 the **Life Domain** (Disciple of Life, Preserve Life, and Aid,
   Bless, Cure Wounds and Lesser Restoration always prepared) with 2nd-level
-  spells; a new level's spells are prepared on the sheet before the next
-  adventure. A Cleric stays at level 3 for now, keeping the XP it earns.
-  Thaumaturgy is flavour only.
+  spells. At level 4 it chooses an **Ability Score Improvement** and learns a
+  fourth cantrip, and at level 5 it gains **Sear Undead** (Turn Undead also
+  burns the undead it turns) and 3rd-level spells (Mass Healing Word, always
+  prepared, Spirit Guardians, Beacon of Hope, Bestow Curse and Protection
+  from Energy). A new level's choices, cantrips and spells are made on the
+  sheet before the next adventure. Thaumaturgy and Light are flavour only.
 - A **Wizard** (d6 hit die, Intelligence and Wisdom saves, no armour, simple
   weapons) chooses two skills, three cantrips (from Fire Bolt, Ray of Frost,
   Shocking Grasp and Chill Touch), six 1st-level spells for its **spellbook**
