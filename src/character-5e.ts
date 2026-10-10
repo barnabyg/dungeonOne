@@ -1501,10 +1501,6 @@ function validateName(value: unknown): string {
 }
 
 /**
- * A level 1 character of class `classId` with 0 XP at full health from one
- * creation's dice.
- */
-/**
  * The ability scores a creation gives (#347): each placed roll's kept total
  * plus the background increase. Unchecked, so the balance harness can rank
  * thousands of creations without building each.
@@ -1522,6 +1518,10 @@ export function creationAbilities(
   ) as Abilities;
 }
 
+/**
+ * A level 1 character of class `classId` with 0 XP at full health from one
+ * creation's dice.
+ */
 export function buildCharacter(
   id: string,
   name: string,

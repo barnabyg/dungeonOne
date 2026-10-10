@@ -979,7 +979,7 @@ const FIRST_ACTIONS: ReadonlySet<ActionKind> = new Set([
 ]);
 
 /** The first kinds, once everything in the room is examined. */
-const FIRST_UNEXAMINING: ReadonlySet<ActionKind> = new Set(
+const FIRST_WITHOUT_EXAMINING: ReadonlySet<ActionKind> = new Set(
   [...FIRST_ACTIONS].filter((kind) => kind !== "examine"),
 );
 
@@ -988,13 +988,18 @@ const WARD_SPELLS: ReadonlySet<SpellId> = new Set(
   [...CHOSEN_SPELLS].filter((id) => CAST_SPELLS.ward(SPELLS[id])),
 );
 
-/** The kinds of action exploring looks at once it takes none of the first. */
-const EXPLORE_ACTIONS = (hurt: boolean): ReadonlySet<ActionKind> =>
-  new Set(
-    [...(hurt ? CHOSEN_ACTIONS : UNHURT_ACTIONS)].filter(
-      (kind) => !FIRST_ACTIONS.has(kind) || (hurt && kind === "cast"),
-    ),
-  );
+/**
+ * The kinds of action exploring looks at once it takes none of the first:
+ * below the heal threshold with the heals and their casts, and above it.
+ */
+const EXPLORE_ACTIONS_HURT: ReadonlySet<ActionKind> = new Set(
+  [...CHOSEN_ACTIONS].filter(
+    (kind) => !FIRST_ACTIONS.has(kind) || kind === "cast",
+  ),
+);
+const EXPLORE_ACTIONS_UNHURT: ReadonlySet<ActionKind> = new Set(
+  [...UNHURT_ACTIONS].filter((kind) => !FIRST_ACTIONS.has(kind)),
+);
 
 /** The spells exploring looks at then: healing spells, below the threshold. */
 const HEALING_SPELLS: ReadonlySet<SpellId> = new Set(
@@ -1669,7 +1674,7 @@ export function playAdventure(
       (id) => !state.examinedFeatureIds.includes(id),
     );
     const first = project(
-      unexamined ? FIRST_ACTIONS : FIRST_UNEXAMINING,
+      unexamined ? FIRST_ACTIONS : FIRST_WITHOUT_EXAMINING,
       !warded && fights.length === 0 ? WARD_SPELLS : new Set(),
     );
     // Facing a reaction (#304), the policy's kind of option if offered. A
@@ -1691,14 +1696,14 @@ export function playAdventure(
         ...(parley === undefined ? [] : [parley]),
       ];
       const attack = of("attack");
-      const [mine, other] =
+      const [taken, otherwise] =
         reactions === "peaceful"
           ? [peaceful[0] ?? attack[0], attack[0] ?? peaceful[0]]
           : [attack[0] ?? peaceful[0], peaceful[0] ?? attack[0]];
-      if (mine !== other) {
+      if (taken !== otherwise) {
         reactionChoices += 1;
       }
-      return mine;
+      return taken;
     }
     // A Wizard's Mage Armor (#340), once, outside a fight before its first:
     // a base-AC spell on itself that outlasts a fight.
@@ -1725,7 +1730,7 @@ export function playAdventure(
     }
     const hurt = low(state.character.hp);
     const views = project(
-      EXPLORE_ACTIONS(hurt),
+      hurt ? EXPLORE_ACTIONS_HURT : EXPLORE_ACTIONS_UNHURT,
       hurt ? HEALING_SPELLS : new Set(),
     );
     // Low, a long rest at a rest site (#335), then a short rest (#334),
