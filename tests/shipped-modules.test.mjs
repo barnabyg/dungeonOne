@@ -68,8 +68,11 @@ const gated =
 const recorded = JSON.parse(await readFile(GATE_VERDICTS_PATH, "utf8"));
 /** The least survival margin over its difficulty's threshold a module keeps (#252). */
 const SURVIVAL_SLACK = 0.03;
-/** The reference CPU seconds the gate may take over every shipped module. */
-const GATE_BUDGET_SECONDS = 90;
+/**
+ * The reference CPU seconds the gate may take over every shipped module:
+ * 100 from #342 (owner's choice under D12), 90 before.
+ */
+const GATE_BUDGET_SECONDS = 100;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
