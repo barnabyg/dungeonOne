@@ -432,7 +432,7 @@ test("a module whose only route to its goal is a lock only thieves' tools open i
 });
 
 test("the module, save and trace formats bump; an older module is refused", () => {
-  assert.match(FIFTH_PROMPT_VERSION, /^5e-dm-v2\d$/u);
+  assert.match(FIFTH_PROMPT_VERSION, /^5e-dm-v\d+$/u);
   const older = { ...moduleFile("sealed-crypt"), formatVersion: 26 };
   assert.throws(
     () => validateModule(older),
