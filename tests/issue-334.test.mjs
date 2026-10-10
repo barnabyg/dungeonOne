@@ -313,7 +313,7 @@ test("the projection offers Rest with the hit dice the engine accepts", () => {
     /^You are at full health: a rest spends no hit dice.$/u,
   );
   // The short rests left show with the hit dice.
-  assert.deepEqual(using.projectShortRests(tired), { left: 2, max: 2 });
+  assert.deepEqual(using.projectRests(tired, "short"), { left: 2, max: 2 });
   assert.match(
     using.projectCharacterStatus(tired).resources.join("\n"),
     /^Short rests: 2 of 2 left$/mu,

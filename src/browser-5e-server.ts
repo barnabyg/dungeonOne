@@ -202,8 +202,8 @@ function sessionView(session: FifthSession) {
         }),
     ...runtime.projectFight(state),
     hitDice: runtime.projectHitDice(state),
-    shortRests: runtime.projectShortRests(state),
-    longRests: runtime.projectLongRests(state),
+    shortRests: runtime.projectRests(state, "short"),
+    longRests: runtime.projectRests(state, "long"),
     actions: runtime.projectActions(state),
     history: session.history,
   };

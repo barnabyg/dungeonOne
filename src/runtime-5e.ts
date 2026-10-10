@@ -271,20 +271,21 @@ export type HitDiceView = Readonly<{
   sides: number;
 }>;
 
-/** The short rests left in the adventure, and the most (#334). */
-export type ShortRestsView = Readonly<{ left: number; max: number }>;
+/** A short rest (#334) or a long rest (#335). */
+export type RestKind = "short" | "long";
 
-/** The long rests left in the adventure, and the most (#335). */
-export type LongRestsView = Readonly<{ left: number; max: number }>;
+/** How many rests of each kind the character may take in one adventure. */
+const RESTS_PER_ADVENTURE: Readonly<Record<RestKind, number>> = {
+  short: SHORT_RESTS_PER_ADVENTURE,
+  long: LONG_RESTS_PER_ADVENTURE,
+};
 
-/** "Long rests: 1 of 1 left" (#335). */
-export function longRestsText({ left, max }: LongRestsView): string {
-  return `Long rests: ${left} of ${max} left`;
-}
+/** The rests of one kind left in the adventure, and the most. */
+export type RestsView = Readonly<{ left: number; max: number }>;
 
-/** "Short rests: 1 of 2 left" (#334). */
-export function shortRestsText({ left, max }: ShortRestsView): string {
-  return `Short rests: ${left} of ${max} left`;
+/** "Short rests: 1 of 2 left" (#334) or "Long rests: 1 of 1 left" (#335). */
+export function restsText(kind: RestKind, { left, max }: RestsView): string {
+  return `${kind === "short" ? "Short" : "Long"} rests: ${left} of ${max} left`;
 }
 
 /** "Hit dice: 2 of 3 d10 left". */
@@ -424,10 +425,13 @@ export type FifthState = Readonly<{
 /** Who is surprised as a fight begins (#301, #303). */
 type Surprise = Readonly<{ opponents?: boolean; character?: boolean }>;
 
-/** The state without its `unseenBy`, `reactingTo` or `tacticalMind` mark. */
+/**
+ * The state without its `unseenBy`, `reactingTo`, `tacticalMind` or
+ * `wandering` mark.
+ */
 function cleared(
   state: FifthState,
-  mark: "unseenBy" | "reactingTo" | "tacticalMind",
+  mark: "unseenBy" | "reactingTo" | "tacticalMind" | "wandering",
 ): FifthState {
   const { [mark]: gone, ...rest } = state;
   void gone;
@@ -915,7 +919,7 @@ export type FifthEvent =
       type: "short-rest";
       spent: number;
       hitDice: HitDiceView;
-      shortRests: ShortRestsView;
+      shortRests: RestsView;
     }>
   /**
    * A hit die spent in a rest (#334): its roll plus the Constitution
@@ -941,7 +945,7 @@ export type FifthEvent =
       maxHp: number;
       regainedHitDice: number;
       hitDice: HitDiceView;
-      longRests: LongRestsView;
+      longRests: RestsView;
     }>
   /**
    * The d100 a rest rolls against the module's wandering encounter (#335):
@@ -950,7 +954,7 @@ export type FifthEvent =
    */
   | Readonly<{
       type: "wandering-roll";
-      rest: "short" | "long";
+      rest: RestKind;
       roll: number;
       chance: number;
       interrupted: boolean;
@@ -3173,10 +3177,11 @@ export type FifthRuntime = Omit<
     projectFight(state: FifthState): FightView;
     /** The character's hit-dice pool (#333), for the status strip. */
     projectHitDice(state: FifthState): HitDiceView;
-    /** The short rests left in the adventure (#334), and the most. */
-    projectShortRests(state: FifthState): ShortRestsView;
-    /** The long rests left in the adventure (#335), and the most. */
-    projectLongRests(state: FifthState): LongRestsView;
+    /**
+     * The rests of `kind` left in the adventure, and the most: short
+     * (#334) or long (#335).
+     */
+    projectRests(state: FifthState, kind: RestKind): RestsView;
     /** The player-safe room for the browser's room panel. */
     projectRoom(state: FifthState): RoomView;
     /**
@@ -4606,17 +4611,15 @@ export function createFifthRuntime(
    * (#334) or a long rest (#335). Each feature below its most regains what
    * its class data gives for that rest, up to the most.
    */
-  const restRecovery = (
-    state: FifthState,
-    rest: "shortRest" | "longRest" = "shortRest",
-  ) => {
+  const restRecovery = (state: FifthState, rest: RestKind = "short") => {
     const profile = characterProfile(sheet);
     return Object.entries(profile.featureUses).flatMap(
       ([featureId, { max, recovery }]) => {
         const uses = state.character.featureUses[featureId] ?? 0;
+        const regains = recovery[rest === "short" ? "shortRest" : "longRest"];
         const restored = Math.min(
           max,
-          uses + (recovery[rest] === "all" ? max : recovery[rest]),
+          uses + (regains === "all" ? max : regains),
         );
         return restored > uses
           ? [
@@ -4633,6 +4636,61 @@ export function createFifthRuntime(
           : [];
       },
     );
+  };
+
+  /** `state` with each recovered feature's uses (#334, #335) set. */
+  const recover = (
+    state: FifthState,
+    recovered: ReturnType<typeof restRecovery>,
+  ): FifthState => ({
+    ...state,
+    character: {
+      ...state.character,
+      featureUses: {
+        ...state.character.featureUses,
+        ...Object.fromEntries(
+          recovered.map(({ featureId, uses }) => [featureId, uses]),
+        ),
+      },
+    },
+  });
+
+  /** The `uses-regained` event for what a rest recovered, if anything. */
+  const regainedEvents = (
+    recovered: ReturnType<typeof restRecovery>,
+  ): readonly FifthEvent[] =>
+    recovered.length === 0
+      ? []
+      : [{ type: "uses-regained", features: recovered }];
+
+  /**
+   * Why no rest of `kind` may be taken here, whatever is left to restore:
+   * in a fight, away from a rest site (a long rest, #335), or with foes in
+   * the room (#334). Undefined when the place allows it.
+   */
+  const restBlocked = (
+    state: FifthState,
+    kind: RestKind,
+  ): readonly [FifthRefusalCode, string] | undefined => {
+    if (fighting(state)) {
+      return ["fighting", "Not while you are fighting."];
+    }
+    if (kind === "long" && room(state).restSite !== true) {
+      return [
+        "not-rest-site",
+        "You can take a long rest only at a safe place to rest that the adventure marks; this is not one.",
+      ];
+    }
+    const foes = encounterOf(state);
+    return foes !== undefined && !settled(state, foes.id)
+      ? [
+          "hostile-here",
+          `Not with ${listed(
+            foes.opponents.map(({ name }) => `the ${name}`),
+            "and",
+          )} here: you can rest only where no foes are left.`,
+        ]
+      : undefined;
   };
 
   /**
@@ -4682,21 +4740,18 @@ export function createFifthRuntime(
         maxHp,
       });
     }
-    const next: FifthState = {
-      ...state,
-      shortRests: state.shortRests + 1,
-      character: {
-        ...state.character,
-        hp,
-        hitDice: state.character.hitDice - spent.length,
-        featureUses: {
-          ...state.character.featureUses,
-          ...Object.fromEntries(
-            recovered.map(({ featureId, uses }) => [featureId, uses]),
-          ),
+    const next = recover(
+      {
+        ...state,
+        shortRests: state.shortRests + 1,
+        character: {
+          ...state.character,
+          hp,
+          hitDice: state.character.hitDice - spent.length,
         },
       },
-    };
+      recovered,
+    );
     return {
       state: next,
       events: [
@@ -4704,12 +4759,10 @@ export function createFifthRuntime(
           type: "short-rest",
           spent: spent.length,
           hitDice: projectHitDice(next),
-          shortRests: projectShortRests(next),
+          shortRests: projectRests(next, "short"),
         },
         ...spent,
-        ...(recovered.length === 0
-          ? []
-          : [{ type: "uses-regained" as const, features: recovered }]),
+        ...regainedEvents(recovered),
       ],
     };
   };
@@ -4721,30 +4774,23 @@ export function createFifthRuntime(
   const longRestRestores = (state: FifthState) =>
     state.character.hp < maxHp ||
     state.character.hitDice < characterProfile(sheet).hitDice.count ||
-    restRecovery(state, "longRest").length > 0;
+    restRecovery(state, "long").length > 0;
 
   /**
    * A long rest (#335), once the engine has accepted it: every hit point,
    * every hit die and each feature's long-rest uses come back.
    */
   const longRest = (state: FifthState): FifthResult => {
-    const recovered = restRecovery(state, "longRest");
+    const recovered = restRecovery(state, "long");
     const total = characterProfile(sheet).hitDice.count;
-    const next: FifthState = {
-      ...state,
-      longRests: state.longRests + 1,
-      character: {
-        ...state.character,
-        hp: maxHp,
-        hitDice: total,
-        featureUses: {
-          ...state.character.featureUses,
-          ...Object.fromEntries(
-            recovered.map(({ featureId, uses }) => [featureId, uses]),
-          ),
-        },
+    const next = recover(
+      {
+        ...state,
+        longRests: state.longRests + 1,
+        character: { ...state.character, hp: maxHp, hitDice: total },
       },
-    };
+      recovered,
+    );
     return {
       state: next,
       events: [
@@ -4755,11 +4801,9 @@ export function createFifthRuntime(
           maxHp,
           regainedHitDice: total - state.character.hitDice,
           hitDice: projectHitDice(next),
-          longRests: projectLongRests(next),
+          longRests: projectRests(next, "long"),
         },
-        ...(recovered.length === 0
-          ? []
-          : [{ type: "uses-regained" as const, features: recovered }]),
+        ...regainedEvents(recovered),
       ],
     };
   };
@@ -4772,7 +4816,7 @@ export function createFifthRuntime(
    */
   const watchedRest = (
     state: FifthState,
-    kind: "short" | "long",
+    kind: RestKind,
     random: Pick<RandomSource, "roll"> | undefined,
     rest: () => FifthResult,
   ): FifthResult => {
@@ -5774,18 +5818,9 @@ export function createFifthRuntime(
         return tacticalMind(state, state.tacticalMind, sides, random);
       }
       case "rest": {
-        if (fighting(state)) {
-          return reject("fighting", "Not while you are fighting.");
-        }
-        const foes = encounterOf(state);
-        if (foes !== undefined && !settled(state, foes.id)) {
-          return reject(
-            "hostile-here",
-            `Not with ${listed(
-              foes.opponents.map(({ name }) => `the ${name}`),
-              "and",
-            )} here: you can rest only where no foes are left.`,
-          );
+        const blocked = restBlocked(state, "short");
+        if (blocked !== undefined) {
+          return reject(...blocked);
         }
         if (state.shortRests >= SHORT_RESTS_PER_ADVENTURE) {
           return reject(
@@ -5819,24 +5854,9 @@ export function createFifthRuntime(
         );
       }
       case "long-rest": {
-        if (fighting(state)) {
-          return reject("fighting", "Not while you are fighting.");
-        }
-        if (room(state).restSite !== true) {
-          return reject(
-            "not-rest-site",
-            "You can take a long rest only at a safe place to rest that the adventure marks; this is not one.",
-          );
-        }
-        const foes = encounterOf(state);
-        if (foes !== undefined && !settled(state, foes.id)) {
-          return reject(
-            "hostile-here",
-            `Not with ${listed(
-              foes.opponents.map(({ name }) => `the ${name}`),
-              "and",
-            )} here: you can rest only where no foes are left.`,
-          );
+        const blocked = restBlocked(state, "long");
+        if (blocked !== undefined) {
+          return reject(...blocked);
         }
         if (state.longRests >= LONG_RESTS_PER_ADVENTURE) {
           return reject(
@@ -6063,9 +6083,8 @@ export function createFifthRuntime(
         }
         // The fight stays behind: an ended adventure cannot move. A wandering
         // encounter's (#335) stays behind with it.
-        const { encounter: left, wandering: gone, ...kept } = sprung.state;
+        const { encounter: left, ...kept } = cleared(sprung.state, "wandering");
         void left;
-        void gone;
         const arrived: FifthState = { ...kept, roomId: destination.id };
         const fight = encounterOf(arrived);
         const opponentsHere =
@@ -7617,14 +7636,11 @@ export function createFifthRuntime(
     return { available: state.character.hitDice, total: count, sides };
   };
 
-  const projectShortRests = (state: FifthState): ShortRestsView => ({
-    left: SHORT_RESTS_PER_ADVENTURE - state.shortRests,
-    max: SHORT_RESTS_PER_ADVENTURE,
-  });
-
-  const projectLongRests = (state: FifthState): LongRestsView => ({
-    left: LONG_RESTS_PER_ADVENTURE - state.longRests,
-    max: LONG_RESTS_PER_ADVENTURE,
+  const projectRests = (state: FifthState, kind: RestKind): RestsView => ({
+    left:
+      RESTS_PER_ADVENTURE[kind] -
+      (kind === "short" ? state.shortRests : state.longRests),
+    max: RESTS_PER_ADVENTURE[kind],
   });
   /** Whether the module has a rest site (#335), where a long rest may be taken. */
   const hasRestSite = adventure.rooms.some(({ restSite }) => restSite === true);
@@ -7675,9 +7691,11 @@ export function createFifthRuntime(
       resources: [
         ...featureUses(self(state)),
         hitDiceText(projectHitDice(state)),
-        shortRestsText(projectShortRests(state)),
+        restsText("short", projectRests(state, "short")),
         // Only a module with a rest site offers a long rest (#335).
-        ...(hasRestSite ? [longRestsText(projectLongRests(state))] : []),
+        ...(hasRestSite
+          ? [restsText("long", projectRests(state, "long"))]
+          : []),
       ],
       ...(fighting(state)
         ? {
@@ -8221,7 +8239,7 @@ export function createFifthRuntime(
           {
             type: "function",
             name: "long_rest",
-            description: `Only when the player asks for a long rest, to sleep, make camp or rest for the night here: take the adventure's one long rest (${longRestsText(projectLongRests(state)).toLowerCase()}). The engine restores every hit point, every hit die and the feature uses a long rest brings back.`,
+            description: `Only when the player asks for a long rest, to sleep, make camp or rest for the night here: take the adventure's one long rest (${restsText("long", projectRests(state, "long")).toLowerCase()}). The engine restores every hit point, every hit die and the feature uses a long rest brings back.`,
             strict: true,
             parameters: {
               type: "object",
@@ -8244,7 +8262,7 @@ export function createFifthRuntime(
     if (offer?.rest === undefined) {
       return [];
     }
-    const { left, max } = projectShortRests(state);
+    const { left, max } = projectRests(state, "short");
     return [
       {
         type: "function",
@@ -8590,8 +8608,7 @@ export function createFifthRuntime(
     projectFight: (state) =>
       projectFight(state, self(state), options(state), attackTargets(state)),
     projectHitDice,
-    projectShortRests,
-    projectLongRests,
+    projectRests,
     projectRoom,
     projectActions,
     actionOf: (view) => projectedActions.get(view),

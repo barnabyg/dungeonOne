@@ -248,7 +248,7 @@ test("a long rest at a rest site restores every hit point, hit die and feature u
     using.projectCharacterStatus(tired).resources.join("\n"),
     /^Long rests: 1 of 1 left$/mu,
   );
-  assert.deepEqual(using.projectLongRests(state), { left: 0, max: 1 });
+  assert.deepEqual(using.projectRests(state, "long"), { left: 0, max: 1 });
 });
 
 test("a long rest is refused away from a rest site, after one, in a fight, with foes here, and with nothing to restore", () => {
