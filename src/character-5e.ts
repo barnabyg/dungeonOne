@@ -713,6 +713,35 @@ export function spellbookOptions(
 }
 
 /**
+ * The first spells `sheet` may write into its spellbook (#343) for each
+ * level it owes them for, in turn: each level's of a level its slots at
+ * that level allow, so a character raised two levels at once writes what
+ * it would have one level at a time.
+ */
+function owedSpellbookSpells(sheet: CharacterSheet): readonly SpellId[] {
+  const casting = classOf(sheet).spellcasting;
+  const book = sheet.spellbook;
+  if (book === undefined) {
+    return [];
+  }
+  let next = book;
+  for (let level = 2; level <= sheet.level; level++) {
+    const owed = spellbookSize(casting, level as Level)! - next.length;
+    if (owed > 0) {
+      next = [
+        ...next,
+        ...spellbookOptions({
+          class: sheet.class,
+          level: level as Level,
+          spellbook: next,
+        }).slice(0, owed),
+      ];
+    }
+  }
+  return next.slice(book.length);
+}
+
+/**
  * `sheet` with the choices a new level left it chosen, each the first it
  * may make: Expertise (#343), spellbook spells (#343), cantrips (#342) and
  * prepared spells (#341), the last two in its class list's order. The
@@ -724,11 +753,9 @@ export function withOwedChoices(sheet: CharacterSheet): CharacterSheet {
     expertiseOwed(sheet) === 0
       ? sheet
       : chooseExpertise(sheet, expertiseOptions(sheet).slice(0, 1));
-  const writing = spellbookOwed(expert);
+  const writing = owedSpellbookSpells(expert);
   const written =
-    writing === 0
-      ? expert
-      : addToSpellbook(expert, spellbookOptions(expert).slice(0, writing));
+    writing.length === 0 ? expert : addToSpellbook(expert, writing);
   const { cantrips, prepared: owed } = spellsOwed(written);
   const learned =
     cantrips === 0
