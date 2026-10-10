@@ -31,6 +31,7 @@ import {
   classOf,
   DEFAULT_CLASS,
   buildCharacter,
+  creationAbilities,
   defaultPlacement,
   characterProfile,
   LEVEL_XP,
@@ -65,7 +66,12 @@ import {
   type WeaponData,
   type WeaponId,
 } from "./equipment-5e.js";
-import { isSpellId, SPELLS, type SpellId } from "./spells-5e.js";
+import {
+  isSpellId,
+  SPELLS,
+  type SpellDefinition,
+  type SpellId,
+} from "./spells-5e.js";
 import {
   armorClassOf,
   combatant,
@@ -214,8 +220,13 @@ export function characterAtLevel(
 
 /** The sum of a default creation's six ability modifiers, in `classId`. */
 function totalModifier(dice: RolledDice, classId: ClassId): number {
+  const definition = CLASSES[classId];
   return Object.values(
-    characterAtLevel(dice, 1, undefined, false, undefined, classId).abilities,
+    creationAbilities(
+      dice,
+      defaultPlacement(dice, definition),
+      definition.defaults.increase,
+    ),
   ).reduce((sum, score) => sum + abilityModifier(score), 0);
 }
 
@@ -902,6 +913,99 @@ const CHOSEN_ACTIONS: ReadonlySet<ActionKind> = new Set(
   ),
 );
 
+/**
+ * The kinds of spell a style may cast, each chosen by the policy that names
+ * it below: a healing spell (#339), Shield answering a hit and Mage Armor
+ * before the first fight, and an attack cantrip (#340). The other spells
+ * wait for the caster policies (#348).
+ */
+const CAST_SPELLS = {
+  healing: (spell: SpellDefinition) => spell.effect.kind === "healing",
+  shield: (spell: SpellDefinition) =>
+    spell.castingTime === "reaction" &&
+    spell.effect.kind === "buff" &&
+    spell.effect.buff.kind === "armor-class",
+  ward: (spell: SpellDefinition) =>
+    spell.effect.kind === "buff" &&
+    spell.effect.buff.kind === "base-armor-class",
+  cantrip: (spell: SpellDefinition) =>
+    spell.level === 0 && spell.effect.kind === "attack",
+} as const;
+
+/**
+ * The spells the harness asks the runtime to project (#347): those
+ * `CAST_SPELLS` may choose. Dry-running every other cast at every step was
+ * most of a caster's gate time.
+ */
+const CHOSEN_SPELLS: ReadonlySet<SpellId> = new Set(
+  (Object.keys(SPELLS) as SpellId[]).filter((id) =>
+    Object.values(CAST_SPELLS).some((chosen) => chosen(SPELLS[id])),
+  ),
+);
+
+/**
+ * The kinds of action only a heal takes, which every style takes only below
+ * its heal threshold: no other choice reads them, so above it the harness
+ * doesn't ask the runtime to project them, nor its healing spells (#347).
+ */
+const HEALING_ACTIONS: readonly ActionKind[] = [
+  "use",
+  "second-wind",
+  "preserve-life",
+  "rest",
+  "long-rest",
+];
+
+/** The kinds of action the harness projects above its heal threshold. */
+const UNHURT_ACTIONS: ReadonlySet<ActionKind> = new Set(
+  [...CHOSEN_ACTIONS].filter((kind) => !HEALING_ACTIONS.includes(kind)),
+);
+
+/** The spells the harness projects above its heal threshold. */
+const UNHURT_SPELLS: ReadonlySet<SpellId> = new Set(
+  [...CHOSEN_SPELLS].filter((id) => !CAST_SPELLS.healing(SPELLS[id])),
+);
+
+/**
+ * The kinds of action exploring looks at first (#347): answering a
+ * reaction, Mage Armor, and finding something. Only when it takes none of
+ * them does the harness project the rest.
+ */
+const FIRST_ACTIONS: ReadonlySet<ActionKind> = new Set([
+  "react",
+  "cast",
+  "examine",
+  "take",
+]);
+
+/** The first kinds, once everything in the room is examined. */
+const FIRST_WITHOUT_EXAMINING: ReadonlySet<ActionKind> = new Set(
+  [...FIRST_ACTIONS].filter((kind) => kind !== "examine"),
+);
+
+/** The spells exploring looks at first: Mage Armor, before the first fight. */
+const WARD_SPELLS: ReadonlySet<SpellId> = new Set(
+  [...CHOSEN_SPELLS].filter((id) => CAST_SPELLS.ward(SPELLS[id])),
+);
+
+/**
+ * The kinds of action exploring looks at once it takes none of the first:
+ * below the heal threshold with the heals and their casts, and above it.
+ */
+const EXPLORE_ACTIONS_HURT: ReadonlySet<ActionKind> = new Set(
+  [...CHOSEN_ACTIONS].filter(
+    (kind) => !FIRST_ACTIONS.has(kind) || kind === "cast",
+  ),
+);
+const EXPLORE_ACTIONS_UNHURT: ReadonlySet<ActionKind> = new Set(
+  [...UNHURT_ACTIONS].filter((kind) => !FIRST_ACTIONS.has(kind)),
+);
+
+/** The spells exploring looks at then: healing spells, below the threshold. */
+const HEALING_SPELLS: ReadonlySet<SpellId> = new Set(
+  [...CHOSEN_SPELLS].filter((id) => CAST_SPELLS.healing(SPELLS[id])),
+);
+
 /** One fight in a run. */
 export type FightRecord = Readonly<{
   id: string;
@@ -966,6 +1070,11 @@ export type RunRecord = Readonly<{
   surprised: number;
   /** How many encounters ended peacefully after a reaction roll (#304). */
   peaceful: number;
+  /**
+   * How many times the run's reaction policy decided its choice (#347):
+   * none, and a run on the other policy is this run.
+   */
+  reactionChoices: number;
   /**
    * How a surviving ending settles the character (what a career carries to
    * its next module, #290); absent after a defeat.
@@ -1091,6 +1200,7 @@ export function playAdventure(
   };
   let trapDamage = 0;
   let spellsCast = 0;
+  let reactionChoices = 0;
   let channelDivinity = 0;
   /** Whether a base-AC spell (Mage Armor, #340) was cast before a fight. */
   let warded = false;
@@ -1257,7 +1367,7 @@ export function playAdventure(
         ({ spell, target }) =>
           spell !== undefined &&
           isSpellId(spell.id) &&
-          SPELLS[spell.id].effect.kind === "healing" &&
+          CAST_SPELLS.healing(SPELLS[spell.id]) &&
           target?.id === PLAYER_ID,
       )
       .sort(
@@ -1288,9 +1398,9 @@ export function playAdventure(
           if (!isSpellId(spell?.id)) {
             return false;
           }
-          const { castingTime, effect } = SPELLS[spell.id];
+          const { effect } = SPELLS[spell.id];
           return (
-            castingTime === "reaction" &&
+            CAST_SPELLS.shield(SPELLS[spell.id]) &&
             effect.kind === "buff" &&
             effect.buff.kind === "armor-class" &&
             turnsHit(effect.buff.bonus)
@@ -1393,8 +1503,7 @@ export function playAdventure(
       offered(views, "cast").filter(
         ({ spell, target }) =>
           isSpellId(spell?.id) &&
-          SPELLS[spell.id].level === 0 &&
-          SPELLS[spell.id].effect.kind === "attack" &&
+          CAST_SPELLS.cantrip(SPELLS[spell.id]) &&
           target !== undefined,
       ),
     );
@@ -1543,13 +1652,34 @@ export function playAdventure(
           ),
     );
 
-  /** The exploring action to take now, or undefined when there is none. */
+  /**
+   * The exploring action to take now, or undefined when there is none,
+   * from the actions `project` offers of the kinds and spells asked for.
+   */
   const exploreChoice = (
-    views: readonly ActionView[],
+    project: (
+      kinds: ReadonlySet<ActionKind>,
+      spells: ReadonlySet<SpellId>,
+    ) => readonly ActionView[],
   ): ActionView | undefined => {
+    const room = roomById.get(state.roomId)!;
+    const searchable = new Set([
+      ...room.features.map(({ id }) => id),
+      ...(adventure.encounters
+        .find(({ id }) => id === room.encounterId)
+        ?.opponents.map(({ id }) => id) ?? []),
+    ]);
+    // Once everything here is examined, no examination is projected.
+    const unexamined = [...searchable].some(
+      (id) => !state.examinedFeatureIds.includes(id),
+    );
+    const first = project(
+      unexamined ? FIRST_ACTIONS : FIRST_WITHOUT_EXAMINING,
+      !warded && fights.length === 0 ? WARD_SPELLS : new Set(),
+    );
     // Facing a reaction (#304), the policy's kind of option if offered. A
     // toll is offered (enabled) only when the purse holds it.
-    const answers = offered(views, "react");
+    const answers = offered(first, "react");
     if (answers.length > 0) {
       const of = (option: ReactionOption) =>
         answers.filter(({ target }) => target!.id === option);
@@ -1566,30 +1696,23 @@ export function playAdventure(
         ...(parley === undefined ? [] : [parley]),
       ];
       const attack = of("attack");
-      return reactions === "peaceful"
-        ? (peaceful[0] ?? attack[0])
-        : (attack[0] ?? peaceful[0]);
+      const [taken, otherwise] =
+        reactions === "peaceful"
+          ? [peaceful[0] ?? attack[0], attack[0] ?? peaceful[0]]
+          : [attack[0] ?? peaceful[0], peaceful[0] ?? attack[0]];
+      if (taken !== otherwise) {
+        reactionChoices += 1;
+      }
+      return taken;
     }
-    const room = roomById.get(state.roomId)!;
-    const searchable = new Set([
-      ...room.features.map(({ id }) => id),
-      ...(adventure.encounters
-        .find(({ id }) => id === room.encounterId)
-        ?.opponents.map(({ id }) => id) ?? []),
-    ]);
     // A Wizard's Mage Armor (#340), once, outside a fight before its first:
     // a base-AC spell on itself that outlasts a fight.
     if (!warded && fights.length === 0) {
-      const ward = offered(views, "cast").find(
+      const ward = offered(first, "cast").find(
         ({ spell, target }) =>
           isSpellId(spell?.id) &&
           target?.id === PLAYER_ID &&
-          SPELLS[spell.id].effect.kind === "buff" &&
-          (
-            SPELLS[spell.id].effect as Readonly<{
-              buff: Readonly<{ kind: string }>;
-            }>
-          ).buff.kind === "base-armor-class",
+          CAST_SPELLS.ward(SPELLS[spell.id]),
       );
       if (ward !== undefined) {
         warded = true;
@@ -1597,14 +1720,19 @@ export function playAdventure(
       }
     }
     const find =
-      offered(views, "examine").find(
+      offered(first, "examine").find(
         ({ target }) =>
           searchable.has(target!.id) &&
           !state.examinedFeatureIds.includes(target!.id),
-      ) ?? offered(views, "take")[0];
+      ) ?? offered(first, "take")[0];
     if (find !== undefined) {
       return find;
     }
+    const hurt = low(state.character.hp);
+    const views = project(
+      hurt ? EXPLORE_ACTIONS_HURT : EXPLORE_ACTIONS_UNHURT,
+      hurt ? HEALING_SPELLS : new Set(),
+    );
     // Low, a long rest at a rest site (#335), then a short rest (#334),
     // then a healing spell (#339), before a potion, which also heals in a
     // fight.
@@ -1614,7 +1742,7 @@ export function playAdventure(
       ...healingSpells(views, false),
       ...offered(views, "use"),
     ][0];
-    if (heal !== undefined && low(state.character.hp)) {
+    if (heal !== undefined && hurt) {
       return heal;
     }
     if (CAREFUL.includes(style)) {
@@ -1687,9 +1815,16 @@ export function playAdventure(
     }
   };
 
-  apply({ type: "begin" });
-  while (state.status === "playing") {
-    const projected = runtime.projectActions(state, CHOSEN_ACTIONS);
+  /**
+   * The actions the runtime offers now of `kinds` and casting `spells`
+   * (#321, #347): the harness never asks it to dry-run one it would pass
+   * over.
+   */
+  const project = (
+    kinds: ReadonlySet<ActionKind>,
+    spells: ReadonlySet<SpellId>,
+  ): readonly ActionView[] => {
+    const projected = runtime.projectActions(state, kinds, spells);
     const unknown = projected.find(
       ({ action }) => !Object.hasOwn(PLAYED_ACTIONS, action),
     );
@@ -1699,9 +1834,22 @@ export function playAdventure(
         `${adventure.id}: the harness can't play the ${unknown.action} action.`,
       );
     }
-    const views = projected.filter(({ available }) => available);
+    return projected.filter(({ available }) => available);
+  };
+
+  apply({ type: "begin" });
+  while (state.status === "playing") {
     const fighting = state.encounter?.outcome === "ongoing";
-    const choice = fighting ? fightChoice(views) : exploreChoice(views);
+    // Above the heal threshold, no heal is projected: none would be taken.
+    const hurt = fighting && low(combatant(state.encounter!, PLAYER_ID).hp);
+    const choice = fighting
+      ? fightChoice(
+          project(
+            hurt ? CHOSEN_ACTIONS : UNHURT_ACTIONS,
+            hurt ? CHOSEN_SPELLS : UNHURT_SPELLS,
+          ),
+        )
+      : exploreChoice(project);
     if (choice === undefined) {
       const made = checksMade(state, siteChecks);
       const keys = lostKeys().map(({ id, why }) => `key ${id} lost (${why})`);
@@ -1732,6 +1880,7 @@ export function playAdventure(
     bypassed: state.bypassedEncounterIds.length,
     surprised: state.lurks.filter(({ roll }) => roll.success).length,
     peaceful: state.peacefulEncounterIds.length,
+    reactionChoices,
     ...(settlement === undefined ? {} : { settlement }),
   };
 }
@@ -2434,12 +2583,16 @@ export function gateAdventure(
             stealth: reportStealth
               ? playAdventure(seeded, STEALTH_STYLE, seed, limit)
               : undefined,
-            peaceful: reacting
-              ? playAdventure(seeded, GATE_STYLE, seed, {
-                  ...limit,
-                  reactions: "peaceful",
-                })
-              : undefined,
+            // A run its reaction policy never decided is the peaceful
+            // run too (#347).
+            peaceful: !reacting
+              ? undefined
+              : run.reactionChoices === 0
+                ? run
+                : playAdventure(seeded, GATE_STYLE, seed, {
+                    ...limit,
+                    reactions: "peaceful",
+                  }),
           };
         });
         return { kit, level, runs };

@@ -451,6 +451,18 @@ function classFeatures(
   return held;
 }
 
+/**
+ * Each class's feature effects found so far, by level and kind (#347): the
+ * balance gate looks them up at every step.
+ */
+const effectsByKind = new WeakMap<
+  ClassDefinition,
+  Map<
+    string,
+    readonly Readonly<{ feature: HeldFeature; effect: FeatureEffect }>[]
+  >
+>();
+
 /** The effects of the features a character of `level` has, of one kind. */
 function effects<K extends FeatureEffect["kind"]>(
   definition: ClassDefinition,
@@ -460,15 +472,26 @@ function effects<K extends FeatureEffect["kind"]>(
   feature: HeldFeature;
   effect: Extract<FeatureEffect, { kind: K }>;
 }>[] {
-  return classFeatures(definition, level).flatMap((feature) =>
-    ([] as readonly FeatureEffect[])
-      .concat(feature.effect ?? [])
-      .filter(
-        (effect): effect is Extract<FeatureEffect, { kind: K }> =>
-          effect.kind === kind,
-      )
-      .map((effect) => ({ feature, effect })),
-  );
+  let byKind = effectsByKind.get(definition);
+  if (byKind === undefined) {
+    byKind = new Map();
+    effectsByKind.set(definition, byKind);
+  }
+  const key = `${level}:${kind}`;
+  let found = byKind.get(key);
+  if (found === undefined) {
+    found = classFeatures(definition, level).flatMap((feature) =>
+      ([] as readonly FeatureEffect[])
+        .concat(feature.effect ?? [])
+        .filter((effect) => effect.kind === kind)
+        .map((effect) => ({ feature, effect })),
+    );
+    byKind.set(key, found);
+  }
+  return found as readonly Readonly<{
+    feature: HeldFeature;
+    effect: Extract<FeatureEffect, { kind: K }>;
+  }>[];
 }
 
 /** Whether `definition` chooses a Fighting Style at level 1. */
@@ -1478,6 +1501,24 @@ function validateName(value: unknown): string {
 }
 
 /**
+ * The ability scores a creation gives (#347): each placed roll's kept total
+ * plus the background increase. Unchecked, so the balance harness can rank
+ * thousands of creations without building each.
+ */
+export function creationAbilities(
+  dice: RolledDice,
+  placement: Placement,
+  increase: Readonly<Partial<Record<Ability, number>>>,
+): Abilities {
+  return Object.fromEntries(
+    ABILITIES.map((ability) => [
+      ability,
+      keptTotal(dice[placement[ability]]!) + (increase[ability] ?? 0),
+    ]),
+  ) as Abilities;
+}
+
+/**
  * A level 1 character of class `classId` with 0 XP at full health from one
  * creation's dice.
  */
@@ -1519,12 +1560,7 @@ export function buildCharacter(
     abilityRolls,
     backgroundIncrease: increase,
     abilityScoreImprovements: [],
-    abilities: Object.fromEntries(
-      ABILITIES.map((ability) => [
-        ability,
-        keptTotal(abilityRolls[ability]) + (increase[ability] ?? 0),
-      ]),
-    ) as Abilities,
+    abilities: creationAbilities(rolled, placement, increase),
     skills,
     ...(fightingStyle === undefined ? {} : { fightingStyle }),
     ...(expertise === undefined ? {} : { expertise }),

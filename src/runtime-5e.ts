@@ -244,6 +244,7 @@ import {
   type EffectEnds,
   type SpellDefinition,
   type SpellEffect,
+  type SpellId,
 } from "./spells-5e.js";
 import {
   abilityDisadvantages,
@@ -4199,6 +4200,15 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
 class WouldRoll extends Error {}
 /** One instance, thrown every time: building an Error per dry run is slow. */
 const WOULD_ROLL = new WouldRoll("A dry run draws no dice.");
+/**
+ * The entry a projection lists for an action it wasn't asked for, and then
+ * drops (#321): one shared object, since building one per entry was a
+ * tenth of the balance gate's time (#347).
+ */
+const UNASKED: ActionView = Object.freeze({
+  action: "end-turn",
+  available: false,
+});
 const DRY_RUN = {
   roll(): number {
     throw WOULD_ROLL;
@@ -4269,11 +4279,13 @@ export type FifthRuntime = Omit<
      * dry-runs `handleAction` once per state; see the promises in that
      * function's doc. Given `kinds`, it lists and dry-runs only actions of
      * those kinds, in the same order, and keeps nothing for the next call:
-     * the balance harness asks for the kinds it plays (#321).
+     * the balance harness asks for the kinds it plays (#321). Given `spells`
+     * too, it lists and dry-runs only casts of those spells (#347).
      */
     projectActions(
       state: FifthState,
       kinds?: ReadonlySet<ActionKind>,
+      spells?: ReadonlySet<SpellId>,
     ): readonly ActionView[];
     /**
      * How the adventure settles the character once it has ended with the
@@ -5121,11 +5133,24 @@ export function createFifthRuntime(
     }));
   };
 
+  /**
+   * The character as it stands outside a fight, by state (#347): a step's
+   * projection dry-runs every action from one state, and states are
+   * immutable.
+   */
+  const selves = new WeakMap<FifthState, Combatant>();
   /** The character as a combatant: in the fight, or as it stands now. */
-  const self = (state: FifthState): Combatant =>
-    fighting(state)
-      ? combatant(state.encounter!, PLAYER_ID)
-      : playerCombatant(sheetOf(state), state.character);
+  const self = (state: FifthState): Combatant => {
+    if (fighting(state)) {
+      return combatant(state.encounter!, PLAYER_ID);
+    }
+    let found = selves.get(state);
+    if (found === undefined) {
+      found = playerCombatant(sheetOf(state), state.character);
+      selves.set(state, found);
+    }
+    return found;
+  };
 
   /** Whether opponent `opponentId` fell before a fight was left (#341). */
   const fallen = (state: FifthState, encounterId: string, opponentId: string) =>
@@ -8460,25 +8485,26 @@ export function createFifthRuntime(
 
   /**
    * Dry-runs every action of `kinds` the character might take now (every
-   * kind when omitted); see `refusal`. Entries of other kinds are listed
-   * without a dry run, then dropped (#321).
+   * kind when omitted), casting only `spells` (every spell when omitted);
+   * see `refusal`. Other entries are listed without a dry run, then
+   * dropped (#321, #347).
    */
   const dryRunActions = (
     state: FifthState,
     kinds?: ReadonlySet<ActionKind>,
+    spells?: ReadonlySet<SpellId>,
   ): readonly ActionView[] => {
-    const unasked = new WeakSet<ActionView>();
-    const listed = listActions(state, kinds, unasked);
-    return kinds === undefined
+    const listed = listActions(state, kinds, spells);
+    return kinds === undefined && spells === undefined
       ? listed
-      : listed.filter((entry) => !unasked.has(entry));
+      : listed.filter((entry) => entry !== UNASKED);
   };
 
-  /** Every action `dryRunActions` lists, adding each unasked one to `unasked`. */
+  /** Every action `dryRunActions` lists, each unasked one as `UNASKED`. */
   const listActions = (
     state: FifthState,
     kinds: ReadonlySet<ActionKind> | undefined,
-    unasked: WeakSet<ActionView>,
+    spells: ReadonlySet<SpellId> | undefined,
   ): readonly ActionView[] => {
     if (state.status !== "playing") {
       return [];
@@ -8495,86 +8521,92 @@ export function createFifthRuntime(
       approach?: CheckSpec,
       retry?: string,
     ): ActionView => {
-      if (kinds !== undefined && !kinds.has(kind)) {
-        const entry: ActionView = { action: kind, available: false };
-        unasked.add(entry);
-        return entry;
+      if (
+        (kinds !== undefined && !kinds.has(kind)) ||
+        (spells !== undefined &&
+          action.type === "cast" &&
+          !spells.has(action.spellId as SpellId))
+      ) {
+        return UNASKED;
       }
       const refused = refusal(state, action);
-      const entry: ActionView = {
+      // Built field by field, in the entry's order: spreading each optional
+      // field was a tenth of the balance gate's time (#347).
+      const entry: { -readonly [K in keyof ActionView]?: ActionView[K] } = {
         action: kind,
-        ...(target === undefined
-          ? {}
-          : { target: { id: target.id, name: target.name } }),
-        ...(approach === undefined
-          ? {}
-          : {
-              approach: {
-                id: approachId(approach),
-                name: approachName(approach),
-                // A parley shows its DC (#305).
-                ...(kind === "react" ? { dc: approach.dc } : {}),
-              },
-            }),
-        ...(retry === undefined ? {} : { retry: { reason: retry } }),
-        // The spell a cast names (#336), and the slot it would spend.
-        ...(action.type === "cast" && isSpellId(action.spellId)
-          ? {
-              spell: {
-                id: action.spellId,
-                name: SPELLS[action.spellId].name,
-                level: SPELLS[action.spellId].level,
-                ...(action.slotLevel === undefined
-                  ? {}
-                  : { slotLevel: action.slotLevel }),
-                // An area spell's most targets (#338), or Scorching Ray's
-                // rays at its slot (#343).
-                ...(maxTargets(SPELLS[action.spellId], action.slotLevel) === 1
-                  ? {}
-                  : {
-                      maxTargets: maxTargets(
-                        SPELLS[action.spellId],
-                        action.slotLevel,
-                      ),
-                    }),
-                // Resistance's damage type (#339), Chromatic Orb's (#340).
-                ...(action.damageType === undefined
-                  ? {}
-                  : {
-                      damageType: action.damageType,
-                      damageTypeUse: resistsDamage(SPELLS[action.spellId])
-                        ? ("resisted" as const)
-                        : ("dealt" as const),
-                    }),
-                // Bestow Curse's curse (#342).
-                ...(action.curse === undefined
-                  ? {}
-                  : {
-                      curse: action.curse,
-                      curseName: CURSE_NAMES[action.curse],
-                    }),
-              },
-            }
-          : {}),
-        // Divine Spark's choice (#341).
-        ...(action.type === "divine-spark" ? { mode: action.mode } : {}),
-        // Cunning Strike's effect with an attack (#308).
-        ...((action.type === "attack" || action.type === "light-attack") &&
-        action.cunningStrike !== undefined
-          ? {
-              cunningStrike: {
-                id: action.cunningStrike,
-                name: CUNNING_STRIKES[action.cunningStrike].name,
-              },
-            }
-          : {}),
-        available: refused === undefined,
-        ...(refused === undefined
-          ? {}
-          : { reason: SHORT_REASONS[refused.code] }),
       };
-      projectedActions.set(entry, action);
-      return entry;
+      if (target !== undefined) {
+        entry.target = { id: target.id, name: target.name };
+      }
+      if (approach !== undefined) {
+        entry.approach = {
+          id: approachId(approach),
+          name: approachName(approach),
+          // A parley shows its DC (#305).
+          ...(kind === "react" ? { dc: approach.dc } : {}),
+        };
+      }
+      if (retry !== undefined) {
+        entry.retry = { reason: retry };
+      }
+      // The spell a cast names (#336), and the slot it would spend.
+      if (action.type === "cast" && isSpellId(action.spellId)) {
+        entry.spell = {
+          id: action.spellId,
+          name: SPELLS[action.spellId].name,
+          level: SPELLS[action.spellId].level,
+          ...(action.slotLevel === undefined
+            ? {}
+            : { slotLevel: action.slotLevel }),
+          // An area spell's most targets (#338), or Scorching Ray's
+          // rays at its slot (#343).
+          ...(maxTargets(SPELLS[action.spellId], action.slotLevel) === 1
+            ? {}
+            : {
+                maxTargets: maxTargets(
+                  SPELLS[action.spellId],
+                  action.slotLevel,
+                ),
+              }),
+          // Resistance's damage type (#339), Chromatic Orb's (#340).
+          ...(action.damageType === undefined
+            ? {}
+            : {
+                damageType: action.damageType,
+                damageTypeUse: resistsDamage(SPELLS[action.spellId])
+                  ? ("resisted" as const)
+                  : ("dealt" as const),
+              }),
+          // Bestow Curse's curse (#342).
+          ...(action.curse === undefined
+            ? {}
+            : {
+                curse: action.curse,
+                curseName: CURSE_NAMES[action.curse],
+              }),
+        };
+      }
+      // Divine Spark's choice (#341).
+      if (action.type === "divine-spark") {
+        entry.mode = action.mode;
+      }
+      // Cunning Strike's effect with an attack (#308).
+      if (
+        (action.type === "attack" || action.type === "light-attack") &&
+        action.cunningStrike !== undefined
+      ) {
+        entry.cunningStrike = {
+          id: action.cunningStrike,
+          name: CUNNING_STRIKES[action.cunningStrike].name,
+        };
+      }
+      entry.available = refused === undefined;
+      if (refused !== undefined) {
+        entry.reason = SHORT_REASONS[refused.code];
+      }
+      const built = entry as ActionView;
+      projectedActions.set(built, action);
+      return built;
     };
     const use = (item: FifthItem) =>
       view("use", { type: "use-item", itemId: item.id }, item);
@@ -8592,7 +8624,10 @@ export function createFifthRuntime(
     ): readonly ActionView[] =>
       (caster.spellcasting?.spells ?? [])
         .filter(
-          ({ castingTime, effect }) =>
+          ({ id, castingTime, effect }) =>
+            // A cast the harness doesn't ask for is never listed (#347).
+            (kinds === undefined || kinds.has("cast")) &&
+            (spells === undefined || spells.has(id as SpellId)) &&
             castingTime !== "reaction" &&
             // Prayer of Healing (#341) takes minutes: never in a fight.
             !(fight && castingTime === "minutes") &&
@@ -8679,7 +8714,7 @@ export function createFifthRuntime(
     ): ActionView => {
       const action = cast(foes.slice(0, most).map(({ id }) => id));
       const entry = view("cast", action);
-      if (unasked.has(entry)) {
+      if (entry === UNASKED) {
         return entry;
       }
       const offered: ActionView = {
@@ -8700,7 +8735,7 @@ export function createFifthRuntime(
       }
       const most: FifthAction = { type: "rest", hitDice: counts.at(-1)! };
       const entry = view("rest", most);
-      if (unasked.has(entry)) {
+      if (entry === UNASKED) {
         return [entry];
       }
       const offered: ActionView = { ...entry, rest: { hitDice: counts } };
@@ -9115,12 +9150,21 @@ export function createFifthRuntime(
   const projectActions = (
     state: FifthState,
     kinds?: ReadonlySet<ActionKind>,
+    spells?: ReadonlySet<SpellId>,
   ): readonly ActionView[] => {
-    // A projection of some kinds (the balance harness's, #321) isn't kept.
-    if (kinds !== undefined) {
+    // A projection of some kinds or spells (the balance harness's, #321,
+    // #347) isn't kept.
+    if (kinds !== undefined || spells !== undefined) {
       return (
-        projections.get(state)?.filter(({ action }) => kinds.has(action)) ??
-        dryRunActions(state, kinds)
+        projections
+          .get(state)
+          ?.filter(
+            (entry) =>
+              (kinds === undefined || kinds.has(entry.action)) &&
+              (spells === undefined ||
+                entry.spell === undefined ||
+                spells.has(entry.spell.id as SpellId)),
+          ) ?? dryRunActions(state, kinds, spells)
       );
     }
     let actions = projections.get(state);
