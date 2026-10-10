@@ -49,7 +49,7 @@ What casting a levelled spell spends (#336): one slot of the spell's level or hi
 _Avoid_: Mana, Spell points
 
 **Ongoing effect**:
-What a buff spell leaves on its target while it lasts (#337): a die added to attack rolls and saving throws, a bonus to AC or a base AC; from #339 a die added to the next ability check (Guidance), or a die taken off damage of a chosen type once a turn (Resistance); from #340 a control spell's hold on an opponent (Sleep), which ends when it takes damage. Without a clock it ends by its duration's band: with the fight, at the next rest, at a long rest or the adventure's end, or at the start of the caster's next turn.
+What a buff spell leaves on its target while it lasts (#337): a die added to attack rolls and saving throws, a bonus to AC or a base AC; from #339 a die added to the next ability check (Guidance), or a die taken off damage of a chosen type once a turn (Resistance); from #340 a control spell's hold on an opponent (Sleep), which ends when it takes damage; from #341 Hold Person's hold, which damage doesn't end, Turn Undead's turning, more maximum hit points (Aid), a ward against poison, or a spectral weapon the caster attacks with. Without a clock it ends by its duration's band: with the fight, at the next rest, at a long rest or the adventure's end, or at the start of the caster's next turn.
 _Avoid_: Buff (in player text), Aura
 
 **Concentration**:
@@ -74,6 +74,19 @@ A class the balance gate plays and reports beside the classes it judges, never j
 
 **Spellbook**:
 The Wizard's book of levelled spells (#340): six 1st-level spells from its list, chosen at creation and kept on the sheet, not carried as an item. It prepares spells only from it.
+
+**Channel Divinity**:
+The Cleric's feature with uses from level 2 (#341): two uses, one back on a short rest and all on a long rest, each a Magic action spent on Divine Spark, Turn Undead or, in the Life Domain, Preserve Life.
+
+**Turned**:
+An undead opponent that failed its save against Turn Undead (#341): Frightened and Incapacitated, so it can't act, until it takes damage, is attacked, the turner is incapacitated or the fight ends. While every foe left is turned, the character may leave the room; the fight stays unresolved and its fallen stay fallen.
+_Avoid_: Fleeing (a turned undead never leaves the fight)
+
+**Always prepared**:
+A spell a feature keeps prepared (#341, the Life Domain's Aid, Bless, Cure Wounds and Lesser Restoration): it doesn't count against the spells the character chooses, and isn't offered to prepare.
+
+**Spells owed**:
+The spells a new level lets a caster prepare that it hasn't chosen yet (#341): it chooses them on its sheet before the next adventure, which waits until then.
 
 **Arcane Recovery**:
 The Wizard's once-per-long-rest recovery of spent spell slots on a short rest (#340): slot levels up to half its level, rounded up. The engine applies it by itself on the first short rest with a slot to regain.
@@ -375,7 +388,7 @@ What a monster does instead of fleeing when it fails morale and its adventure mo
 _Avoid_: Capture (it is not taken prisoner), Yield (as a term)
 
 **Condition**:
-A state the engine puts on a combatant in a fight, such as poisoned, prone or paralysed, or Sleep's incapacitated and unconscious (#340), with what gave it, how many of the combatant's turns it lasts and the save that ends it. Conditions change rolls (advantage, disadvantage, failed saves and critical hits) and may stop the combatant acting; they end with the fight, and the AI DM can only report them.
+A state the engine puts on a combatant in a fight, such as poisoned, prone or paralysed, or Sleep's incapacitated and unconscious (#340), or Turn Undead's frightened (#341), with what gave it, how many of the combatant's turns it lasts and the save that ends it. Conditions change rolls (advantage, disadvantage, failed saves and critical hits) and may stop the combatant acting; they end with the fight, and the AI DM can only report them.
 _Avoid_: Status effect, Debuff
 
 **Rider**:
