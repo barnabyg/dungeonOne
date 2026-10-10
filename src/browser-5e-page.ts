@@ -161,7 +161,7 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 <div id="room-items-group"><h4 id="room-items-title">Items here</h4><ul id="room-items" class="things" aria-labelledby="room-items-title"></ul></div>
 <p id="room-empty" class="hint" hidden>There is nothing else here.</p>
 <div id="inventory-group"><h4 id="inventory-title">You carry</h4><ul id="inventory" class="things" aria-labelledby="inventory-title"></ul><p id="purse"></p><p id="carrying"></p></div>
-<div id="rest-group" hidden><h4 id="rest-title">Short rest</h4><p id="rest-summary" class="hint"></p><div id="rest-controls" class="controls"></div><div id="long-rest" hidden><h4 id="long-rest-title">Long rest</h4><p id="long-rest-summary" class="hint"></p><div id="long-rest-controls" class="controls"></div></div></div>
+<div id="rest-group" hidden><h4 id="rest-title">Short rest</h4><p id="rest-summary" class="hint"></p><div id="rest-controls" class="controls rest-panel"></div><div id="long-rest" hidden><h4 id="long-rest-title">Long rest</h4><p id="long-rest-summary" class="hint"></p><div id="long-rest-controls" class="controls rest-panel"></div></div></div>
 </div>
 </section>
 <section id="encounter" aria-labelledby="encounter-title"><h3 id="encounter-title">Fight</h3>
@@ -236,7 +236,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-#rest-controls,#long-rest-controls{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares,#rest-controls,#long-rest-controls) button{display:inline-grid}:is(#action-bar,#inventory,.wares,#rest-controls,#long-rest-controls) button>span,:is(#action-bar,#inventory,.wares,#rest-controls,#long-rest-controls) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares,#rest-controls,#long-rest-controls) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares,#rest-controls,#long-rest-controls) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares,#rest-controls,#long-rest-controls) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+.controls.rest-panel{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,.wares,.rest-panel) button>span,:is(#action-bar,#inventory,.wares,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1;min-height:8rem}#log{flex:1;max-height:none}#session-dock{overflow-y:auto}}
@@ -1532,24 +1532,30 @@ function renderRest(option, fighting) {
     label.append(select);
     controls.push(label);
   }
+  controls.push(restButton("rest", option, () => takeRest(Number(element("rest-dice").value))));
+  element("rest-controls").replaceChildren(...controls);
+}
+
+// A rest's button (#334, #335): the action's label, disabled with the engine's
+// reason beside it when it would refuse.
+function restButton(action, option, onClick) {
   const wrap = make("span", undefined, "action");
   const button = make("button");
-  button.append(make("span", ACTIONS.rest.label));
-  button.dataset.busyLabel = ACTIONS.rest.busyLabel;
+  button.append(make("span", ACTIONS[action].label));
+  button.dataset.busyLabel = ACTIONS[action].busyLabel;
   button.type = "button";
   button.className = "secondary act";
-  button.dataset.action = "rest";
+  button.dataset.action = action;
   button.disabled = acting || !option.available;
-  button.addEventListener("click", () => takeRest(Number(element("rest-dice").value)));
+  button.addEventListener("click", onClick);
   wrap.append(button);
   if (!option.available) {
     const reason = make("span", option.reason, "reason");
-    reason.id = "rest-reason";
+    reason.id = action + "-reason";
     button.setAttribute("aria-describedby", reason.id);
     wrap.append(reason);
   }
-  controls.push(wrap);
-  element("rest-controls").replaceChildren(...controls);
+  return wrap;
 }
 
 // A long rest (#335) at a rest site: the long rests left and, while one
@@ -1563,23 +1569,7 @@ function renderLongRest(option) {
     element("long-rest-controls").replaceChildren();
     return;
   }
-  const wrap = make("span", undefined, "action");
-  const button = make("button");
-  button.append(make("span", ACTIONS["long-rest"].label));
-  button.dataset.busyLabel = ACTIONS["long-rest"].busyLabel;
-  button.type = "button";
-  button.className = "secondary act";
-  button.dataset.action = "long-rest";
-  button.disabled = acting || !option.available;
-  button.addEventListener("click", takeLongRest);
-  wrap.append(button);
-  if (!option.available) {
-    const reason = make("span", option.reason, "reason");
-    reason.id = "long-rest-reason";
-    button.setAttribute("aria-describedby", reason.id);
-    wrap.append(reason);
-  }
-  element("long-rest-controls").replaceChildren(wrap);
+  element("long-rest-controls").replaceChildren(restButton("long-rest", option, takeLongRest));
 }
 
 async function takeLongRest() {
