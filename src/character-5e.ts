@@ -26,6 +26,8 @@ import {
   type AbilityScoreImprovement,
   type ClassDefinition,
   type ClassId,
+  type DivineOrderDefinition,
+  type DivineOrderId,
   type FeatureDefinition,
   type FeatureEffect,
   type FeatureRecovery,
@@ -58,13 +60,16 @@ import {
   WEAPONS,
   type Ammunition,
   type AmmunitionId,
+  type ArmourCategory,
   type AttackProfile,
   type ItemId,
   type KitData,
   type KitId,
   type ToolId,
   type WeaponId,
+  type WeaponProficiency,
 } from "./equipment-5e.js";
+import { CLERIC } from "./cleric-5e.js";
 import { FIGHTER } from "./fighter-5e.js";
 import type { RandomSource } from "./random.js";
 import { ROGUE } from "./rogue-5e.js";
@@ -77,6 +82,7 @@ import {
   type SpellId,
 } from "./spells-5e.js";
 import { TEST_CASTER_CLASS } from "./test-caster-class-5e.js";
+import { WIZARD } from "./wizard-5e.js";
 
 /**
  * Every class a sheet can name, by id, in the order creation offers them.
@@ -85,6 +91,8 @@ import { TEST_CASTER_CLASS } from "./test-caster-class-5e.js";
 export const CLASSES: Readonly<Record<ClassId, ClassDefinition>> = {
   fighter: FIGHTER,
   rogue: ROGUE,
+  cleric: CLERIC,
+  wizard: WIZARD,
   "test-caster": TEST_CASTER_CLASS,
 };
 
@@ -152,6 +160,10 @@ export type CreationChoices = Readonly<{
   expertise?: readonly SkillId[];
   /** Cantrips and prepared spells, exactly for a class that casts (#336). */
   spells?: SpellChoices;
+  /** The Divine Order, exactly for a class with one (#339). */
+  divineOrder?: DivineOrderId;
+  /** The spellbook's spells, exactly for a class with one (#340). */
+  spellbook?: readonly SpellId[];
   /** The starting kit, from `STARTING_KITS`. */
   kit: KitId;
   /** The kinds of weapon mastered, from `MASTERY_WEAPONS`. */
@@ -266,6 +278,13 @@ export type CharacterSheet = Readonly<{
    * when its class casts spells (#336).
    */
   spells?: SpellChoices;
+  /** Its Divine Order, present exactly when its class has one (#339). */
+  divineOrder?: DivineOrderId;
+  /**
+   * The levelled spells in its spellbook (#340), present exactly when its
+   * class has one: it prepares only these.
+   */
+  spellbook?: readonly SpellId[];
   /** The kinds of weapon whose mastery it can use. */
   weaponMasteries: readonly WeaponId[];
   /** What it has equipped; see `Possessions`. */
@@ -310,6 +329,8 @@ export const CLASS_CHOICE_KEYS: readonly string[] = [
   "fightingStyle",
   "expertise",
   "spells",
+  "divineOrder",
+  "spellbook",
 ];
 
 export function abilityModifier(score: number): number {
@@ -323,22 +344,37 @@ export function proficiencyBonus(level: Level): number {
   return Math.ceil(level / 4) + 1;
 }
 
-export function levelForXp(xp: number): Level {
+/**
+ * The level `xp` reaches, up to `cap`: `MAX_LEVEL`, or a class's own
+ * `maxLevel` (#339).
+ */
+export function levelForXp(xp: number, cap: Level = MAX_LEVEL): Level {
   if (!Number.isSafeInteger(xp) || xp < 0) {
     throw new Error("Invalid experience points.");
   }
   let level: Level = 1;
   for (const next of [2, 3, 4, 5] as const) {
-    if (xp >= LEVEL_XP[next]) {
+    if (next <= cap && xp >= LEVEL_XP[next]) {
       level = next;
     }
   }
   return level;
 }
 
-/** XP needed for the next level, or undefined at the highest level. */
-export function nextLevelXp(level: Level): number | undefined {
-  return level === MAX_LEVEL ? undefined : LEVEL_XP[(level + 1) as Level];
+/**
+ * XP needed for the next level, or undefined at the highest level: `cap`,
+ * `MAX_LEVEL` or a class's own `maxLevel` (#339).
+ */
+export function nextLevelXp(
+  level: Level,
+  cap: Level = MAX_LEVEL,
+): number | undefined {
+  return level >= cap ? undefined : LEVEL_XP[(level + 1) as Level];
+}
+
+/** The highest level `definition` reaches yet (#339). */
+export function classMaxLevel(definition: ClassDefinition): Level {
+  return definition.maxLevel ?? MAX_LEVEL;
 }
 
 /** The levels at which `definition` brings an Ability Score Improvement. */
@@ -445,6 +481,65 @@ function expertiseCount(definition: ClassDefinition, level: Level): number {
     (sum, { effect }) => sum + effect.count,
     0,
   );
+}
+
+/** The Divine Order (#339) `divineOrder` names in `definition`, if any. */
+function divineOrderOf(
+  definition: ClassDefinition,
+  divineOrder: DivineOrderId | undefined,
+): DivineOrderDefinition | undefined {
+  return divineOrder === undefined
+    ? undefined
+    : definition.divineOrders?.[divineOrder];
+}
+
+/**
+ * The armour training and weapon proficiencies of a character of
+ * `definition`: its class's, and its Divine Order's (#339).
+ */
+export function trainingOf(
+  definition: ClassDefinition,
+  divineOrder: DivineOrderId | undefined,
+): Readonly<{
+  armourTraining: readonly ArmourCategory[];
+  weaponProficiencies: readonly WeaponProficiency[];
+}> {
+  const order = divineOrderOf(definition, divineOrder);
+  return {
+    armourTraining: [
+      ...definition.armourTraining,
+      ...(order?.armourTraining ?? []),
+    ],
+    weaponProficiencies: [
+      ...definition.weaponProficiencies,
+      ...(order?.weaponProficiencies ?? []),
+    ],
+  };
+}
+
+/**
+ * What a sheet's Divine Order adds to a check with `skill` (#339): the
+ * Thaumaturge's Wisdom modifier, at least +1, to Arcana and Religion, named
+ * after the order; undefined when it adds nothing.
+ */
+export function orderCheckBonus(
+  sheet: Pick<CharacterSheet, "class" | "divineOrder" | "abilities">,
+  skill: SkillId,
+): Readonly<{ source: string; value: number }> | undefined {
+  const order = divineOrderOf(classOf(sheet), sheet.divineOrder);
+  const bonus = order?.checkBonus;
+  if (order === undefined || bonus === undefined) {
+    return undefined;
+  }
+  return bonus.skills.includes(skill)
+    ? {
+        source: order.name,
+        value: Math.max(
+          bonus.minimum,
+          abilityModifier(sheet.abilities[bonus.ability]),
+        ),
+      }
+    : undefined;
 }
 
 /**
@@ -655,14 +750,105 @@ function validateFightingStyle(value: unknown): FightingStyle {
 }
 
 /**
- * A caster's spell choices at `level` (#336): exactly its class's count of
+ * A Divine Order for a class with one (#339); none for any other.
+ */
+function validateDivineOrder(
+  definition: ClassDefinition,
+  value: unknown,
+): DivineOrderId | undefined {
+  const orders = definition.divineOrders;
+  if (orders === undefined) {
+    if (value !== undefined) {
+      throw new Error(`A ${definition.name} has no Divine Order.`);
+    }
+    return undefined;
+  }
+  if (typeof value !== "string" || !Object.hasOwn(orders, value)) {
+    throw new Error("Choose a Divine Order.");
+  }
+  return value as DivineOrderId;
+}
+
+/**
+ * A spellbook for a class with one (#340), none for any other: as many
+ * different levelled spells from the class's list as its spellbook holds
+ * (up to that many when `partial`), each of a level it has slots for at
+ * `level`.
+ */
+function validateSpellbook(
+  definition: ClassDefinition,
+  level: Level,
+  value: unknown,
+  partial = false,
+): readonly SpellId[] | undefined {
+  const casting = definition.spellcasting;
+  const count = casting?.spellbook;
+  if (casting === undefined || count === undefined) {
+    if (value !== undefined) {
+      throw new Error(`A ${definition.name} has no spellbook.`);
+    }
+    return undefined;
+  }
+  const highest = casting.slots[level].length;
+  if (
+    !Array.isArray(value) ||
+    (partial ? value.length > count : value.length !== count) ||
+    new Set(value).size !== value.length ||
+    !value.every(
+      (id) =>
+        isSpellId(id) &&
+        casting.list.includes(id) &&
+        SPELLS[id].level >= 1 &&
+        SPELLS[id].level <= highest,
+    )
+  ) {
+    throw new Error(
+      `A level ${level} ${definition.name}'s spellbook holds ${count} different levelled spells from its list that it has slots for.`,
+    );
+  }
+  return [...(value as SpellId[])];
+}
+
+/**
+ * How many cantrips and prepared spells a caster of `level` has (#336):
+ * its class's counts, with its Divine Order's extra cantrips (#339).
+ */
+export function spellCounts(
+  definition: ClassDefinition,
+  level: Level,
+  divineOrder?: DivineOrderId,
+): Readonly<{ cantrips: number; prepared: number }> {
+  const casting = definition.spellcasting;
+  if (casting === undefined) {
+    return { cantrips: 0, prepared: 0 };
+  }
+  const order = divineOrderOf(definition, divineOrder);
+  return {
+    cantrips: casting.cantrips[level] + (order?.extraCantrips ?? 0),
+    prepared: casting.prepared[level],
+  };
+}
+
+/**
+ * A caster's spell choices at `level` (#336), however many are ticked so
+ * far when `partial`: up to (exactly, unless partial) its count of
  * distinct cantrips and of distinct levelled spells it has slots for, each
- * on the class's list. A class that casts nothing has none.
+ * on the class's list, and in its `spellbook` for a class with one (#340).
+ * A class that casts nothing has none.
  */
 function validateSpellChoices(
   definition: ClassDefinition,
   level: Level,
   value: unknown,
+  {
+    divineOrder,
+    partial = false,
+    spellbook,
+  }: Readonly<{
+    divineOrder?: DivineOrderId | undefined;
+    partial?: boolean;
+    spellbook?: readonly SpellId[] | undefined;
+  }> = {},
 ): SpellChoices | undefined {
   const casting = definition.spellcasting;
   if (casting === undefined) {
@@ -681,6 +867,7 @@ function validateSpellChoices(
     throw new Error("Invalid spell choices.");
   }
   const highest = casting.slots[level].length;
+  const counts = spellCounts(definition, level, divineOrder);
   const pick = (
     ids: readonly unknown[],
     count: number,
@@ -688,7 +875,7 @@ function validateSpellChoices(
     what: string,
   ): SpellId[] => {
     if (
-      ids.length !== count ||
+      (partial ? ids.length > count : ids.length !== count) ||
       new Set(ids).size !== ids.length ||
       !ids.every((id) => isSpellId(id) && casting.list.includes(id) && fits(id))
     ) {
@@ -698,20 +885,28 @@ function validateSpellChoices(
     }
     return [...(ids as SpellId[])];
   };
-  return {
-    cantrips: pick(
-      choices.cantrips,
-      casting.cantrips[level],
-      (id) => SPELLS[id].level === 0,
-      "knows cantrips:",
-    ),
-    prepared: pick(
-      choices.prepared,
-      casting.prepared[level],
-      (id) => SPELLS[id].level >= 1 && SPELLS[id].level <= highest,
-      "prepares levelled spells it has slots for:",
-    ),
-  };
+  const cantrips = pick(
+    choices.cantrips,
+    counts.cantrips,
+    (id) => SPELLS[id].level === 0,
+    "knows cantrips:",
+  );
+  const prepared = pick(
+    choices.prepared,
+    counts.prepared,
+    (id) => SPELLS[id].level >= 1 && SPELLS[id].level <= highest,
+    "prepares levelled spells it has slots for:",
+  );
+  // A Wizard prepares only spells in its spellbook (#340).
+  if (
+    spellbook !== undefined &&
+    !prepared.every((id) => spellbook.includes(id))
+  ) {
+    throw new Error(
+      `A ${definition.name} prepares only spells in its spellbook.`,
+    );
+  }
+  return { cantrips, prepared };
 }
 
 /** A Fighting Style for a class with one; none for any other. */
@@ -945,7 +1140,12 @@ export function buildCharacter(
     skills,
     choices.expertise,
   );
-  const spells = validateSpellChoices(definition, 1, choices.spells);
+  const divineOrder = validateDivineOrder(definition, choices.divineOrder);
+  const spellbook = validateSpellbook(definition, 1, choices.spellbook);
+  const spells = validateSpellChoices(definition, 1, choices.spells, {
+    divineOrder,
+    spellbook,
+  });
   const base = {
     id,
     name: name.trim(),
@@ -966,6 +1166,8 @@ export function buildCharacter(
     ...(fightingStyle === undefined ? {} : { fightingStyle }),
     ...(expertise === undefined ? {} : { expertise }),
     ...(spells === undefined ? {} : { spells }),
+    ...(divineOrder === undefined ? {} : { divineOrder }),
+    ...(spellbook === undefined ? {} : { spellbook }),
     weaponMasteries: validateMasteries(definition, choices.masteries),
     ...(() => {
       const kit: KitData = STARTING_KITS[validateKit(definition, choices.kit)];
@@ -1017,6 +1219,16 @@ export type CreationProjection = Readonly<{
    */
   expertise?: Readonly<{ chosen: number; limit: number; full: boolean }>;
   /**
+   * Cantrips and prepared spells ticked, the limits, and whether no more
+   * can be ticked, for a class that casts (#339).
+   */
+  spells?: Readonly<{
+    cantrips: Readonly<{ chosen: number; limit: number; full: boolean }>;
+    prepared: Readonly<{ chosen: number; limit: number; full: boolean }>;
+    /** The spellbook's spells, for a class with one (#340). */
+    spellbook?: Readonly<{ chosen: number; limit: number; full: boolean }>;
+  }>;
+  /**
    * Every starting kit of the class with the AC and attacks it gives these
    * scores, Fighting Style and the masteries ticked so far.
    */
@@ -1031,6 +1243,7 @@ export type CreationProjection = Readonly<{
     increase?: string;
     skills?: string;
     expertise?: string;
+    spells?: string;
     masteries?: string;
   }>;
   /**
@@ -1074,6 +1287,18 @@ export function projectCreation(
   );
   const kitChosen = validateKit(definition, choices.kit);
   const masteries = validatePartialMasteries(definition, choices.masteries);
+  const divineOrder = validateDivineOrder(definition, choices.divineOrder);
+  const training = trainingOf(definition, divineOrder);
+  // Spells ticked so far (#339); the Divine Order may add a cantrip. A
+  // Wizard prepares from the spells ticked for its spellbook (#340).
+  const spellbook = validateSpellbook(definition, 1, choices.spellbook, true);
+  const spells = validateSpellChoices(definition, 1, choices.spells, {
+    divineOrder,
+    partial: true,
+    spellbook,
+  });
+  const spellLimits = spellCounts(definition, 1, divineOrder);
+  const spellbookLimit = definition.spellcasting?.spellbook ?? 0;
   const rows = ABILITIES.map((ability) => {
     const score =
       keptTotal(rolled[placement[ability]]!) + (increase[ability] ?? 0);
@@ -1100,6 +1325,18 @@ export function projectCreation(
       : {
           expertise: `Choose ${expertiseLimit} skills for Expertise; ${expertise.length} chosen.`,
         }),
+    ...(spells === undefined ||
+    (spells.cantrips.length === spellLimits.cantrips &&
+      spells.prepared.length === spellLimits.prepared &&
+      (spellbook?.length ?? 0) === spellbookLimit)
+      ? {}
+      : {
+          // A Wizard's spellbook first (#340).
+          spells:
+            spellbook === undefined
+              ? `Choose ${spellLimits.cantrips} cantrips and ${spellLimits.prepared} spells to prepare; ${spells.cantrips.length} and ${spells.prepared.length} chosen.`
+              : `Choose ${spellLimits.cantrips} cantrips, ${spellbookLimit} spells for your spellbook and ${spellLimits.prepared} of them to prepare; ${spells.cantrips.length}, ${spellbook.length} and ${spells.prepared.length} chosen.`,
+        }),
     ...(masteries.length === masteryCount
       ? {}
       : {
@@ -1117,8 +1354,7 @@ export function projectCreation(
       strengthScore: score("strength"),
       dexterityScore: score("dexterity"),
       proficiency: proficiencyBonus(1),
-      weaponProficiencies: definition.weaponProficiencies,
-      armourTraining: definition.armourTraining,
+      ...training,
       masteries,
       ...(style === undefined ? {} : { fightingStyle: style }),
       criticalRange: criticalRange(definition, 1),
@@ -1158,6 +1394,31 @@ export function projectCreation(
             chosen: expertise.length,
             limit: expertiseLimit,
             full: expertise.length >= expertiseLimit,
+          },
+        }),
+    ...(spells === undefined
+      ? {}
+      : {
+          spells: {
+            cantrips: {
+              chosen: spells.cantrips.length,
+              limit: spellLimits.cantrips,
+              full: spells.cantrips.length >= spellLimits.cantrips,
+            },
+            prepared: {
+              chosen: spells.prepared.length,
+              limit: spellLimits.prepared,
+              full: spells.prepared.length >= spellLimits.prepared,
+            },
+            ...(spellbook === undefined
+              ? {}
+              : {
+                  spellbook: {
+                    chosen: spellbook.length,
+                    limit: spellbookLimit,
+                    full: spellbook.length >= spellbookLimit,
+                  },
+                }),
           },
         }),
     kits,
@@ -1261,7 +1522,7 @@ export function validateCharacter(value: unknown): CharacterSheet {
   }
   validateIds(sheet.finds, TREASURE_ID, "Invalid finds.");
   validateIds(sheet.xpAwards, AWARD_ID, "Invalid XP awards.");
-  if (sheet.level !== levelForXp(sheet.xp)) {
+  if (sheet.level !== levelForXp(sheet.xp, classMaxLevel(definition))) {
     throw new Error("Character level differs from experience points.");
   }
   validateExpertise(
@@ -1270,7 +1531,10 @@ export function validateCharacter(value: unknown): CharacterSheet {
     skills,
     sheet.expertise,
   );
-  validateSpellChoices(definition, sheet.level, sheet.spells);
+  validateSpellChoices(definition, sheet.level, sheet.spells, {
+    divineOrder: validateDivineOrder(definition, sheet.divineOrder),
+    spellbook: validateSpellbook(definition, sheet.level, sheet.spellbook),
+  });
   // Each level choice (#286) is an Ability Score Improvement and its level's
   // new masteries, made together; a sheet may still owe its latest one.
   if (
@@ -1356,6 +1620,11 @@ export type CharacterProfile = Readonly<{
   hitDice: Readonly<{ count: number; sides: number }>;
   /** Its spellcasting (#336), for a class that casts spells. */
   spellcasting?: SpellcastingProfile;
+  /**
+   * Arcane Recovery (#340): once per long rest, a short rest regains spent
+   * spell slots totalling up to `slotLevels` levels.
+   */
+  arcaneRecovery?: Readonly<{ slotLevels: number }>;
   /** Cunning Action (#307): it can Hide as a bonus action. */
   cunningAction?: true;
   /** Steady Aim (#307): a bonus action for advantage on its next attack. */
@@ -1431,7 +1700,7 @@ export function initiativeAdvantages(
  * get the same source from the equipment profile.
  */
 export function abilityDisadvantages(
-  sheet: Pick<CharacterSheet, "class" | "equipment">,
+  sheet: Pick<CharacterSheet, "class" | "equipment" | "divineOrder">,
   ability: Ability,
 ): readonly string[] {
   if (ability !== "strength" && ability !== "dexterity") {
@@ -1439,7 +1708,7 @@ export function abilityDisadvantages(
   }
   const armour = untrainedArmour(
     sheet.equipment,
-    classOf(sheet).armourTraining,
+    trainingOf(classOf(sheet), sheet.divineOrder).armourTraining,
   );
   return armour === undefined ? [] : [untrainedSource(armour)];
 }
@@ -1455,6 +1724,8 @@ type ProfiledSheet = Pick<
   | "fightingStyle"
   | "expertise"
   | "spells"
+  | "divineOrder"
+  | "spellbook"
   | "equipment"
   | "weaponMasteries"
 >;
@@ -1509,6 +1780,8 @@ const PROFILED_FIELDS = Object.keys({
   fightingStyle: true,
   expertise: true,
   spells: true,
+  divineOrder: true,
+  spellbook: true,
   equipment: true,
   weaponMasteries: true,
 } satisfies Record<keyof ProfiledSheet, true>) as (keyof ProfiledSheet)[];
@@ -1554,8 +1827,7 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
     strengthScore: sheet.abilities.strength,
     dexterityScore: sheet.abilities.dexterity,
     proficiency,
-    weaponProficiencies: definition.weaponProficiencies,
-    armourTraining: definition.armourTraining,
+    ...trainingOf(definition, sheet.divineOrder),
     masteries: sheet.weaponMasteries,
     ...(sheet.fightingStyle === undefined
       ? {}
@@ -1578,6 +1850,9 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
         ? {}
         : { fightingStyle: sheet.fightingStyle, fightingStyleUse: styleUse }),
       expertise: sheet.expertise ?? [],
+      ...(sheet.divineOrder === undefined
+        ? {}
+        : { divineOrder: sheet.divineOrder }),
       abilityScoreImprovements: sheet.abilityScoreImprovements,
       dexterityDc,
     };
@@ -1627,7 +1902,11 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
         id,
         name,
         ability,
-        bonus: modifiers[ability] + skillProficiency(sheet, id),
+        // A Divine Order may add to some skills (#339).
+        bonus:
+          modifiers[ability] +
+          skillProficiency(sheet, id) +
+          (orderCheckBonus(sheet, id)?.value ?? 0),
         proficient: sheet.skills.includes(id),
         ...(sheet.expertise?.includes(id) === true
           ? { expertise: true as const }
@@ -1690,8 +1969,16 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
             cantrips: sheet.spells.cantrips,
             prepared: sheet.spells.prepared,
             slots: casting.slots[level],
+            // A Wizard's spellbook (#340).
+            ...(sheet.spellbook === undefined
+              ? {}
+              : { spellbook: sheet.spellbook }),
           },
         }),
+    // Arcane Recovery (#340): spell slot levels a short rest regains.
+    ...(has("arcane-recovery")
+      ? { arcaneRecovery: { slotLevels: Math.ceil(level / 2) } }
+      : {}),
     ...(has("cunning-action") ? { cunningAction: true as const } : {}),
     ...(has("steady-aim") ? { steadyAim: true as const } : {}),
     ...(has("fast-hands") ? { fastHands: true as const } : {}),
@@ -1703,7 +1990,7 @@ function profileOf(sheet: ProfiledSheet): CharacterProfile {
       1,
     ),
     features,
-    nextLevelXp: nextLevelXp(level),
+    nextLevelXp: nextLevelXp(level, classMaxLevel(definition)),
   };
 }
 
@@ -1763,7 +2050,11 @@ export function settleCharacter(
     (id, index, all) => !sheet.finds.includes(id) && all.indexOf(id) === index,
   );
   const xp = sheet.xp + awards.reduce((sum, award) => sum + award.xp, 0);
-  const raised = { ...sheet, xp, level: levelForXp(xp) };
+  const raised = {
+    ...sheet,
+    xp,
+    level: levelForXp(xp, classMaxLevel(classOf(sheet))),
+  };
   return validateCharacter({
     ...raised,
     hp: characterProfile(raised).maxHp,
@@ -1794,6 +2085,8 @@ export type SpellcastingProfile = Readonly<{
   cantrips: readonly SpellId[];
   prepared: readonly SpellId[];
   slots: readonly number[];
+  /** The spells in its spellbook (#340), for a class with one. */
+  spellbook?: readonly SpellId[];
 }>;
 
 /**
@@ -1809,6 +2102,87 @@ export function featureUsesName(
     return `${ordinal(slotLevel)}-level spell slots`;
   }
   return profile.features.find(({ id }) => id === featureId)?.name ?? featureId;
+}
+
+/** The feature-uses id Arcane Recovery's use is tracked under (#340). */
+export const ARCANE_RECOVERY = "arcane-recovery";
+
+/** The lowest spell slot level Arcane Recovery can't regain (SRD 5.2). */
+const ARCANE_RECOVERY_SLOT_LIMIT = 6;
+
+/** Why Arcane Recovery (#340) regains nothing now. */
+export type ArcaneRecoveryRefusal = Readonly<{
+  code:
+    | "no-arcane-recovery"
+    | "not-short-rest"
+    | "arcane-recovery-used"
+    | "no-slot-spent";
+  reason: string;
+}>;
+
+/**
+ * Arcane Recovery (#340, SRD 5.2) on a rest of kind `rest`, for a
+ * character with `profile` and `uses` left of each feature: once per long
+ * rest, on a short rest only, it regains spent spell slots totalling up to
+ * its `slotLevels`, highest slots first, none of 6th level or higher. The
+ * slots regained by level, each with its uses after; or why none are.
+ */
+export function arcaneRecovery(
+  profile: Pick<CharacterProfile, "arcaneRecovery" | "featureUses">,
+  uses: Readonly<Record<string, number>>,
+  rest: "short" | "long",
+):
+  | Readonly<{
+      regained: readonly Readonly<{
+        featureId: string;
+        level: number;
+        count: number;
+        uses: number;
+        max: number;
+      }>[];
+    }>
+  | Readonly<{ rejection: ArcaneRecoveryRefusal }> {
+  const refuse = (
+    code: ArcaneRecoveryRefusal["code"],
+    reason: string,
+  ): Readonly<{ rejection: ArcaneRecoveryRefusal }> => ({
+    rejection: { code, reason },
+  });
+  if (profile.arcaneRecovery === undefined) {
+    return refuse("no-arcane-recovery", "You don't have Arcane Recovery.");
+  }
+  if (rest !== "short") {
+    return refuse(
+      "not-short-rest",
+      "Arcane Recovery works only on a short rest.",
+    );
+  }
+  const max = profile.featureUses[ARCANE_RECOVERY]?.max ?? 0;
+  if ((uses[ARCANE_RECOVERY] ?? max) === 0) {
+    return refuse(
+      "arcane-recovery-used",
+      "You have used Arcane Recovery since your last long rest.",
+    );
+  }
+  let budget = profile.arcaneRecovery.slotLevels;
+  const regained = Object.entries(profile.featureUses)
+    .flatMap(([featureId, { max: most }]) => {
+      const level = slotLevelOf(featureId);
+      return level === undefined || level >= ARCANE_RECOVERY_SLOT_LIMIT
+        ? []
+        : [{ featureId, level, max: most, left: uses[featureId] ?? most }];
+    })
+    .sort((a, b) => b.level - a.level)
+    .flatMap(({ featureId, level, max: most, left }) => {
+      const count = Math.min(most - left, Math.floor(budget / level));
+      budget -= count * level;
+      return count === 0
+        ? []
+        : [{ featureId, level, count, uses: left + count, max: most }];
+    });
+  return regained.length === 0
+    ? refuse("no-slot-spent", "You have no spent spell slot to regain.")
+    : { regained };
 }
 
 /** A feature's uses at a level and how they come back (#333). */
@@ -2037,6 +2411,28 @@ export function applyLevelChoice(
   return validateCharacter({
     ...improved,
     hp: Math.min(maxHp, Math.max(0, sheet.hp + gained)),
+  });
+}
+
+/**
+ * `sheet` with `prepared` as its prepared spells (#339, D8): its class's
+ * count of different levelled spells from its list that it has slots for,
+ * and from its spellbook for a class with one (#340). Its cantrips stay.
+ * The library allows it only between adventures.
+ */
+export function prepareSpells(
+  sheet: CharacterSheet,
+  prepared: unknown,
+): CharacterSheet {
+  if (sheet.spells === undefined) {
+    throw new Error(`${sheet.name} casts no spells.`);
+  }
+  if (!Array.isArray(prepared)) {
+    throw new Error("Invalid prepared spells.");
+  }
+  return validateCharacter({
+    ...sheet,
+    spells: { cantrips: sheet.spells.cantrips, prepared: [...prepared] },
   });
 }
 

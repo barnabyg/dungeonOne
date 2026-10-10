@@ -246,7 +246,7 @@ test("the validator rejects malformed approaches", () => {
     /room 1 feature 1 check must have exactly approaches\./,
   );
   rejects(
-    (m) => (wall(m).check.approaches[0] = { skill: "arcana", dc: 12 }),
+    (m) => (wall(m).check.approaches[0] = { skill: "occultism", dc: 12 }),
     /room 1 feature 1 check approach 1 skill must be one of/,
   );
 });

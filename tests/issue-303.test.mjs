@@ -68,7 +68,7 @@ const initiativeOf = (events, id) =>
     .order.find(({ combatantId }) => combatantId === id);
 
 test("the module, bestiary, save and trace formats bump; lurking and Stealth are validated", () => {
-  assert.equal(FIFTH_BESTIARY_FORMAT, 9);
+  assert.equal(FIFTH_BESTIARY_FORMAT, 10);
   const older = { ...moduleFile("rat-tunnels"), formatVersion: 22 };
   assert.throws(
     () => validateModule(older),

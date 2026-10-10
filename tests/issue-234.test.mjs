@@ -212,7 +212,7 @@ test("attacks against a paralysed combatant have advantage, and a hit is a criti
   });
   assert.equal(claw.hit, true);
   assert.equal(claw.critical, true);
-  assert.equal(claw.paralysedCritical, true);
+  assert.equal(claw.conditionCritical, true);
   assert.deepEqual(claw.damageRolls, [1, 2]);
   assert.equal(claw.damage, 5);
   // The first paralysis goes on, a turn shorter.
@@ -229,7 +229,7 @@ test("a natural 20 against a paralysed combatant is a critical hit of its own", 
   );
   const claw = result.events.find(({ type }) => type === "attack");
   assert.equal(claw.critical, true);
-  assert.equal(claw.paralysedCritical, undefined);
+  assert.equal(claw.conditionCritical, undefined);
 });
 
 test("a miss against a paralysed combatant is still a miss", () => {

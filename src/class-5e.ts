@@ -9,7 +9,8 @@
  * order a fresh creation fills its abilities in, its default choices and its
  * starting kits. `character-5e.ts` derives every number on a sheet from its
  * class's definition and never asks which class it is; each class's
- * definition lives in its own module (`fighter-5e.ts`, `rogue-5e.ts`).
+ * definition lives in its own module (`fighter-5e.ts`, `rogue-5e.ts`,
+ * `cleric-5e.ts`, `wizard-5e.ts`).
  */
 import {
   MASTERIES,
@@ -46,14 +47,18 @@ export const ABILITY_SCORE_CAP = 20;
 export const SKILLS = {
   acrobatics: { name: "Acrobatics", ability: "dexterity" },
   "animal-handling": { name: "Animal Handling", ability: "wisdom" },
+  arcana: { name: "Arcana", ability: "intelligence" },
   athletics: { name: "Athletics", ability: "strength" },
   deception: { name: "Deception", ability: "charisma" },
   history: { name: "History", ability: "intelligence" },
   insight: { name: "Insight", ability: "wisdom" },
   intimidation: { name: "Intimidation", ability: "charisma" },
   investigation: { name: "Investigation", ability: "intelligence" },
+  medicine: { name: "Medicine", ability: "wisdom" },
+  nature: { name: "Nature", ability: "intelligence" },
   perception: { name: "Perception", ability: "wisdom" },
   persuasion: { name: "Persuasion", ability: "charisma" },
+  religion: { name: "Religion", ability: "intelligence" },
   "sleight-of-hand": { name: "Sleight of Hand", ability: "dexterity" },
   stealth: { name: "Stealth", ability: "dexterity" },
   survival: { name: "Survival", ability: "wisdom" },
@@ -210,6 +215,8 @@ export type FeatureContext = Readonly<{
   fightingStyleUse?: FightingStyleUse;
   /** The skills chosen for Expertise, for a class that has it (#306). */
   expertise: readonly SkillId[];
+  /** The Divine Order chosen, for a class with one (#339). */
+  divineOrder?: DivineOrderId;
   abilityScoreImprovements: readonly AbilityScoreImprovement[];
   /**
    * 8 + the Dexterity modifier + the proficiency bonus: the DC of Cunning
@@ -292,6 +299,12 @@ export type FeatureEffect = Readonly<
   | { kind: "uncanny-dodge" }
   /** An Ability Score Improvement, chosen with the level's new mastery. */
   | { kind: "ability-score-improvement" }
+  /**
+   * Arcane Recovery (#340): on a short rest, a use regains spent spell
+   * slots totalling up to half the class level (rounded up), none of 6th
+   * level or higher.
+   */
+  | { kind: "arcane-recovery" }
 >;
 
 /** One class or subclass feature, gained at `level`. */
@@ -345,7 +358,7 @@ export type SubclassDefinition = Readonly<{
  * The test-only caster (#336) exercises the casting engine until a playable
  * class casts: creation never offers it, and the gate never plays it.
  */
-export type ClassId = "fighter" | "rogue" | "test-caster";
+export type ClassId = "fighter" | "rogue" | "cleric" | "wizard" | "test-caster";
 
 /** How many spell slots of each level a caster has: `[1st, 2nd, 3rd]`. */
 export type SlotTable = Readonly<Record<Level, readonly number[]>>;
@@ -354,7 +367,9 @@ export type SlotTable = Readonly<Record<Level, readonly number[]>>;
  * A class's spellcasting (#336): the ability its spell attack bonus and save
  * DC use, how many cantrips it knows and spells it prepares by level, its
  * spell slots by level, and the spells it may choose from. Spell slots come
- * back on a long rest, and between adventures.
+ * back on a long rest, and between adventures. A class with a spellbook
+ * (#340, the Wizard) writes `spellbook` levelled spells from its list into
+ * it at creation, and prepares only spells in it.
  */
 export type SpellcastingDefinition = Readonly<{
   ability: Ability;
@@ -362,6 +377,8 @@ export type SpellcastingDefinition = Readonly<{
   prepared: LevelTable;
   slots: SlotTable;
   list: readonly SpellId[];
+  /** The levelled spells its spellbook holds at creation (#340). */
+  spellbook?: number;
 }>;
 
 /** What a short and a long rest restore of spent spell slots (SRD 5.2). */
@@ -369,6 +386,33 @@ export const SPELL_SLOT_RECOVERY: FeatureRecovery = {
   shortRest: 0,
   longRest: "all",
 };
+
+/**
+ * The Cleric's Divine Order (#339, SRD 5.2), chosen at creation: what
+ * training it adds, how many more cantrips it knows, and a bonus it adds
+ * to checks with some skills.
+ */
+export type DivineOrderId = "protector" | "thaumaturge";
+
+export type DivineOrderDefinition = Readonly<{
+  name: string;
+  text: string;
+  /** Armour training it adds to the class's. */
+  armourTraining?: readonly ArmourCategory[];
+  /** Weapon proficiencies it adds to the class's. */
+  weaponProficiencies?: readonly WeaponProficiency[];
+  /** Cantrips it knows beyond the class's count. */
+  extraCantrips?: number;
+  /**
+   * A bonus to checks with `skills`: the `ability` modifier, at least
+   * `minimum`.
+   */
+  checkBonus?: Readonly<{
+    ability: Ability;
+    minimum: number;
+    skills: readonly SkillId[];
+  }>;
+}>;
 
 /** A caster's cantrips known and spells prepared (#336), by id. */
 export type SpellChoices = Readonly<{
@@ -386,6 +430,10 @@ export type DefaultChoices = Readonly<{
   expertise?: readonly SkillId[];
   /** For a class with spellcasting (#336). */
   spells?: SpellChoices;
+  /** For a class with a Divine Order (#339). */
+  divineOrder?: DivineOrderId;
+  /** For a class with a spellbook (#340). */
+  spellbook?: readonly SpellId[];
   kit: KitId;
   masteries: readonly WeaponId[];
 }>;
@@ -425,6 +473,13 @@ export type ClassDefinition = Readonly<{
   kits: readonly KitId[];
   /** Its spellcasting (#336), for a class that casts spells. */
   spellcasting?: SpellcastingDefinition;
+  /** The Divine Orders it chooses from at creation (#339), for the Cleric. */
+  divineOrders?: Readonly<Record<DivineOrderId, DivineOrderDefinition>>;
+  /**
+   * The highest level it reaches yet (#339), below `MAX_LEVEL` while its
+   * later features are still to come; XP above that level's is kept.
+   */
+  maxLevel?: Level;
   /** Never offered at creation nor played by the gate: a test-only class. */
   testOnly?: true;
 }>;

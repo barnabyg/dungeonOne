@@ -118,6 +118,7 @@ import {
   passivePerception,
   savingThrow,
   type Band,
+  type CheckDie,
   type CheckRoll,
   type CheckSpec,
   type PassivePerception,
@@ -139,6 +140,7 @@ import {
   legalTargets,
   startEncounter,
   castOutsideFight,
+  GUIDING_BOLT,
   slotLevels,
   armorClassOf,
   concentrationOf,
@@ -152,6 +154,9 @@ import {
   type ConditionKind,
   type CunningStrikeId,
   type DamageAdjustment,
+  type DamageType,
+  dealtDamageTypes,
+  reducesDamage,
   type EncounterAction,
   type EncounterActionType,
   type EncounterEvent,
@@ -222,6 +227,7 @@ import {
   outlastsFight,
   slotUsesId,
   spellAtLevel,
+  RESISTANCE_DAMAGE_TYPES,
   SPELLS,
   type Buff,
   type EffectEnds,
@@ -230,6 +236,8 @@ import {
 import {
   abilityDisadvantages,
   abilityModifier,
+  ARCANE_RECOVERY,
+  arcaneRecovery,
   initiativeAdvantages,
   tacticalMindDie,
   hasExpertise,
@@ -260,7 +268,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v26";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v28";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -1005,6 +1013,20 @@ export type FifthEvent =
       interrupted: boolean;
       opponents?: readonly string[];
     }>
+  /**
+   * Arcane Recovery (#340) on a short rest: the spell slots it regained by
+   * level, each with its uses after, and its own uses left.
+   */
+  | Readonly<{
+      type: "arcane-recovery";
+      slots: readonly Readonly<{
+        level: number;
+        count: number;
+        uses: number;
+        max: number;
+      }>[];
+      usesLeft: number;
+    }>
   /** The feature uses a rest restored (#334), each with its uses after. */
   | Readonly<{
       type: "uses-regained";
@@ -1377,7 +1399,7 @@ Outside a fight, in a room with no foes left to face, the character may take a s
 
 Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
 
-A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below.
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, and Chromatic Orb deals the damage type the player chooses: while either is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Thaumaturgy is flavour only: cast never offers it, so describe its harmless signs (a booming voice, flickering flames, a tremor) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -1735,7 +1757,12 @@ function checkText(roll: CheckRoll, band?: Band): string {
         ? "Success"
         : "Failure"
       : BAND_NAMES[band];
-  return `${roll.label}${d20} ${signed(roll.modifier)}${proficiency} = ${roll.total} against DC ${roll.dc}. ${outcome}.`;
+  // A Divine Order's bonus and Guidance's die (#339).
+  const bonus =
+    roll.bonus === undefined
+      ? ""
+      : ` ${signed(roll.bonus.value)} (${roll.bonus.source})`;
+  return `${roll.label}${d20} ${signed(roll.modifier)}${proficiency}${bonus}${effectDiceText(roll.effectDice)} = ${roll.total} against DC ${roll.dc}. ${outcome}.`;
 }
 
 /**
@@ -1947,8 +1974,40 @@ function effectDiceText(dice: readonly EffectDie[] | undefined): string {
     .join("");
 }
 
-/** What an ongoing effect does (#337): "+1d4 to attack rolls and saving throws". */
-export function buffText(buff: Buff): string {
+/**
+ * What a spell does, in a few words (#339), for the cast tool and the
+ * sheet: "ranged spell attack, 4d6 radiant; a hit gives the next attack on
+ * the target advantage".
+ */
+export function spellSummary(spell: SpellDefinition): string {
+  const { effect } = spell;
+  const dice = ({
+    dice: count,
+    sides,
+  }: Readonly<{ dice: number; sides: number }>) => `${count}d${sides}`;
+  switch (effect.kind) {
+    case "attack":
+      return `${effect.range} spell attack, ${dice(effect.damage)} ${effect.damage.type}${effect.nextAttackAdvantage === true ? "; a hit gives the next attack roll on the target advantage" : ""}`;
+    case "save":
+      return `${titleCase(effect.ability)} save, ${dice(effect.damage)} ${effect.damage.type}, ${effect.onSuccess === "half" ? "half" : "none"} on a success`;
+    case "auto-hit":
+      return `${effect.missiles} darts that always hit, each ${dice(effect.damage)} + ${effect.damage.modifier} ${effect.damage.type}`;
+    case "healing":
+      return `heals ${dice(effect.healing)} + your spellcasting modifier`;
+    case "buff":
+      return `${buffText(effect.buff)}${effect.concentration === true ? ", concentration" : ""}`;
+    case "flavour":
+      return "flavour only: no effect in play";
+    case "control":
+      return `${titleCase(effect.ability)} save or ${effect.condition} until the end of its next turn, then a second save or ${effect.then} until damaged, concentration; a creature immune to exhaustion is unaffected`;
+  }
+}
+
+/**
+ * What an ongoing effect does (#337): "+1d4 to attack rolls and saving
+ * throws". Resistance's (#339) names its `damageType`.
+ */
+export function buffText(buff: Buff, damageType?: string): string {
   switch (buff.kind) {
     case "die":
       return `+1d${buff.sides} to attack rolls and saving throws`;
@@ -1956,6 +2015,12 @@ export function buffText(buff: Buff): string {
       return `+${buff.bonus} AC`;
     case "base-armor-class":
       return `base AC ${buff.base} + Dexterity while wearing no armour`;
+    case "check-die":
+      return `+1d${buff.sides} to the next ability check`;
+    case "damage-reduction":
+      return `1d${buff.sides} off ${damageType ?? "the chosen"} damage, once a turn`;
+    case "control":
+      return "asleep while its conditions last; damage wakes it";
   }
 }
 
@@ -1994,12 +2059,13 @@ function effectText(
         event.concentration === true
           ? ` ${event.casterId === PLAYER_ID ? "You concentrate" : `${name(event.casterId)} concentrates`} on it.`
           : "";
-      return `${event.spell} takes hold on ${who(event.targetId)}: ${buffText(event.buff)}, ${ends}.${concentrating}`;
+      return `${event.spell} takes hold on ${who(event.targetId)}: ${buffText(event.buff, event.damageType)}, ${ends}.${concentrating}`;
     }
     case "effect-ended": {
       const caster = event.casterId === PLAYER_ID;
       const your = caster ? "your" : `${name(event.casterId)}'s`;
       const why = {
+        used: "its die is spent",
         "next-turn": `${caster ? "your" : `${name(event.casterId)}'s`} turn has come round`,
         "fight-over": "the fight is over",
         rest: "the rest is over",
@@ -2008,6 +2074,9 @@ function effectText(
         "concentration-broken": `${your} concentration is broken`,
         incapacitated: `${caster ? "you can't" : `${name(event.casterId)} can't`} concentrate while incapacitated`,
         fell: `${caster ? "you have" : `${name(event.casterId)} has`} fallen`,
+        woke: "the damage wakes it",
+        saved: "it shakes the spell off",
+        lapsed: "it has run its course",
       }[event.reason];
       return `${event.spell} ends on ${who(event.targetId)}: ${why}.`;
     }
@@ -2089,7 +2158,12 @@ function spellText(
     FifthEvent,
     {
       type:
-        "cast" | "spell-area" | "spell-save" | "spell-damage" | "spell-healing";
+        | "cast"
+        | "spell-area"
+        | "spell-save"
+        | "spell-condition"
+        | "spell-damage"
+        | "spell-healing";
     }
   >,
   name: (id: string) => string,
@@ -2145,6 +2219,20 @@ function spellText(
         : "";
       return `${rolled}. Damage ${event.damageRolls.join(" + ")} = ${full} ${event.damageType}${halved}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
     }
+    case "spell-condition": {
+      // A control spell's save (#340): Sleep's.
+      const target = name(event.targetId);
+      if (event.immune !== undefined) {
+        return `${target} succeeds on its saving throw against ${event.spell} without a roll: it is immune to exhaustion.`;
+      }
+      const { save } = event;
+      const ability = titleCase(save.ability);
+      const rolled =
+        save.autoFail === undefined
+          ? `${target} makes a ${ability} saving throw against ${event.spell}${save.mode === undefined ? ":" : modeText(save.mode, save.d20)} ${save.d20} ${signed(save.bonus)}${effectDiceText(save.effectDice)} = ${save.total} against DC ${save.dc}. ${save.success ? "Success" : "Failure"}`
+          : `${target} fails a ${ability} saving throw against ${event.spell} without a roll: it is ${save.autoFail}`;
+      return `${rolled}${event.success ? ": the spell has no effect." : "."}`;
+    }
     case "spell-damage": {
       const target = name(event.targetId);
       const rolled =
@@ -2175,6 +2263,13 @@ function conditionText(
         ? "until the end of its next turn"
         : `for ${turns}`
       : `until it succeeds on a DC ${event.save.dc} ${titleCase(event.save.ability)} saving throw at the end of one of its turns, for up to ${turns}`;
+  // Sleep's conditions (#340) last while the spell does.
+  if (event.kind === "unconscious") {
+    return "it can't act, it fails Strength and Dexterity saving throws, and attack rolls against it have advantage and every hit is a critical hit, until it takes damage or the spell ends.";
+  }
+  if (event.kind === "incapacitated") {
+    return `it can't act until the end of its next turn, when it makes a DC ${event.save?.dc ?? 0} ${titleCase(event.save?.ability ?? "wisdom")} saving throw or falls unconscious; damage wakes it.`;
+  }
   const effects =
     event.kind === "paralysed"
       ? "it can't act, it fails Strength and Dexterity saving throws, and attack rolls against it have advantage and every hit is a critical hit,"
@@ -2195,6 +2290,8 @@ function conditionEndedText(
       return `${who} is no longer ${event.kind}: it has run its course.`;
     case "fight-over":
       return `${who} is no longer ${event.kind}: the fight is over.`;
+    case "spell-ended":
+      return `${who} is no longer ${event.kind}: the spell has ended.`;
   }
 }
 
@@ -2223,7 +2320,12 @@ export function renderFifthEvent(
       );
       // Uncanny Dodge (#308) halved what the hit would have dealt.
       const dodged = event.uncannyDodge;
-      const weaponDamage = dodged?.damage ?? event.damage;
+      // Resistance (#339): the damage before its die came off.
+      const reduced = event.reduced;
+      const weaponDamage =
+        reduced?.part === "weapon"
+          ? reduced.from
+          : (dodged?.damage ?? event.damage);
       const dealt = `${rolledDamage(weaponDamage, event.damageAdjustment)} ${event.damageType}`;
       const adjusted = adjustedText(weaponDamage, event.damageAdjustment);
       // A ranged attack says what its shot left (#230).
@@ -2242,7 +2344,14 @@ export function renderFifthEvent(
       if (!event.hit) {
         return `${roll}. Miss.${graze}${left}`;
       }
-      const riderDamage = dodged?.riderDamage ?? event.rider?.damage ?? 0;
+      const riderDamage =
+        reduced?.part === "rider"
+          ? reduced.from
+          : (dodged?.riderDamage ?? event.rider?.damage ?? 0);
+      const resisted =
+        reduced === undefined
+          ? ""
+          : `, less ${reduced.roll} (${reduced.spell})${dodged === undefined ? ` = ${event.damage + (event.rider?.damage ?? 0)}` : ""}`;
       const rider =
         event.rider === undefined
           ? ""
@@ -2251,12 +2360,18 @@ export function renderFifthEvent(
         dodged === undefined
           ? ""
           : `, halved to ${event.damage + (event.rider?.damage ?? 0)} by Uncanny Dodge`;
-      const damage = `Damage ${damageDice(event)} ${signed(event.damageModifier)}${sneakAttackDice(event)} = ${dealt}${adjusted}${rider}${halved}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.${left}`;
+      const damage = `Damage ${damageDice(event)} ${signed(event.damageModifier)}${sneakAttackDice(event)} = ${dealt}${adjusted}${rider}${resisted}${halved}; ${target.name} has ${event.hpAfter}/${target.maxHp} HP.${left}`;
       // A hit offered for Uncanny Dodge first (#308) said its roll then.
       if (event.resumed === true) {
         return `${dodged === undefined ? `${target.name} takes the hit` : `${target.name} uses Uncanny Dodge`} from ${name(event.actorId)}'s ${event.weapon}. ${damage}`;
       }
-      return `${roll}. ${event.paralysedCritical === true ? `Critical hit: ${target.name} is paralysed!` : event.critical ? "Critical hit!" : "Hit."} ${damage}`;
+      // Guiding Bolt (#339) lights the target up.
+      const guided =
+        event.guided === true
+          ? ` The next attack roll against ${target.name} has advantage before the end of ${event.actorId === PLAYER_ID ? "your" : `${name(event.actorId)}'s`} next turn (${GUIDING_BOLT}).`
+          : "";
+      // Paralysed, or unconscious (#340): every hit is critical.
+      return `${roll}. ${event.conditionCritical === true ? `Critical hit: ${target.name} is ${event.criticalCondition ?? "paralysed"}!` : event.critical ? "Critical hit!" : "Hit."} ${damage}${guided}`;
     }
     case "reaction-offered": {
       // Uncanny Dodge (#308) or a reaction spell (#337): the hit waits for
@@ -2320,6 +2435,7 @@ export function renderFifthEvent(
     case "cast":
     case "spell-area":
     case "spell-save":
+    case "spell-condition":
     case "spell-damage":
     case "spell-healing":
       return spellText(
@@ -2491,6 +2607,14 @@ export function renderFifthEvent(
             "and",
           )} ${(event.opponents ?? []).length === 1 ? "comes" : "come"} upon you. Your ${event.rest} rest is interrupted and restores nothing.`
         : `You keep watch as you rest: d100 ${event.roll}, over ${event.chance}: nothing disturbs you.`;
+    case "arcane-recovery":
+      return `Arcane Recovery: you regain ${listed(
+        event.slots.map(
+          ({ level, count, uses, max }) =>
+            `${count === 1 ? "a" : count} ${ordinal(level)}-level spell ${count === 1 ? "slot" : "slots"} (${uses} of ${max} left)`,
+        ),
+        "and",
+      )}. It comes back with a long rest.`;
     case "uses-regained":
       return event.features
         .map(
@@ -2606,7 +2730,9 @@ export type RollGroup = Readonly<{
     | "save"
     | "reaction"
     /** A rest's d100 against the wandering encounter (#335). */
-    | "wandering";
+    | "wandering"
+    /** Resistance's die off damage (#339). */
+    | "reduction";
   roller: string;
   target?: string;
   dice: readonly ShownDie[];
@@ -2795,6 +2921,17 @@ export function describeFifthResult(
         maxHp: combatant(state.encounter!, event.targetId).maxHp,
       });
     }
+    // Resistance's die (#339), rolled after the damage it reduces.
+    if (event.reduced !== undefined) {
+      shown.push({
+        purpose: "reduction",
+        roller: event.reduced.spell,
+        target: name(event.targetId),
+        dice: take([event.reduced.roll]),
+        modifier: 0,
+        total: event.reduced.roll,
+      });
+    }
     return shown;
   };
   const groups = (event: FifthEvent | undefined): RollGroup[] => {
@@ -2806,8 +2943,13 @@ export function describeFifthResult(
             purpose: roll.kind,
             roller: playerName,
             label: roll.label,
-            dice: d20Dice(roll.mode, roll.d20),
-            modifier: roll.modifier,
+            // Guidance's die (#339) after the d20s; a Divine Order's bonus
+            // with the modifier.
+            dice: [
+              ...d20Dice(roll.mode, roll.d20),
+              ...effectDice(roll.effectDice),
+            ],
+            modifier: roll.modifier + (roll.bonus?.value ?? 0),
             proficiency: roll.proficiency,
             total: roll.total,
             ...(roll.mode === undefined ? {} : { mode: modeLabel(roll.mode) }),
@@ -3140,6 +3282,17 @@ export function describeFifthResult(
             : [spellDamageGroup(event)]),
         ];
       }
+      case "spell-condition":
+        // A control spell's save (#340), unless it succeeded without one.
+        return event.save === undefined || event.save.autoFail !== undefined
+          ? []
+          : [
+              saveGroup(
+                name(event.targetId),
+                `${titleCase(event.save.ability)} saving throw (${event.spell})`,
+                event.save,
+              ),
+            ];
       case "spell-damage":
         return [spellDamageGroup(event)];
       case "spell-healing":
@@ -3419,6 +3572,12 @@ export type ActionView = Readonly<{
     slotLevel?: number;
     /** An area spell's most targets (#338), when above 1. */
     maxTargets?: number;
+    /**
+     * The damage type chosen for it: the one Resistance resists (#339), or
+     * the one Chromatic Orb deals (#340), as `damageTypeUse` says.
+     */
+    damageType?: string;
+    damageTypeUse?: "resisted" | "dealt";
   }>;
   /**
    * An area spell's cast (#338): the foes it may catch, up to its
@@ -3548,6 +3707,8 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "effect-active": "Already on",
   "wearing-armour": "Wearing armour",
   "fight-only": "In a fight only",
+  "damage-type": "Choose a damage type",
+  "no-effect": "Flavour only",
   paralysed: "Paralysed",
   fled: "Fled",
   surrendered: "Surrendered",
@@ -3722,11 +3883,14 @@ function conditionsOf(
       const ends =
         condition.kind === "prone"
           ? `gets up at ${turnEnd}`
-          : condition.save === undefined
-            ? condition.turnsLeft === 1
-              ? `ends at ${turnEnd}`
-              : turns
-            : `DC ${condition.save.dc} ${titleCase(condition.save.ability)} save at the end of each of its turns, up to ${turns}`;
+          : // Sleep's Unconscious (#340) lasts while the spell does.
+            condition.spellId !== undefined && condition.save === undefined
+            ? `until it takes damage or ${condition.source} ends`
+            : condition.save === undefined
+              ? condition.turnsLeft === 1
+                ? `ends at ${turnEnd}`
+                : turns
+              : `DC ${condition.save.dc} ${titleCase(condition.save.ability)} save at the end of each of its turns, up to ${turns}`;
       return {
         kind: condition.kind,
         name: CONDITION_RULES[condition.kind].name,
@@ -3767,10 +3931,10 @@ export type EffectView = Readonly<{
 /** The ongoing effects on `holder` (#337), as the browser shows them. */
 function effectViews(holder: Combatant): readonly EffectView[] {
   return (holder.effects ?? []).map(
-    ({ spellId, spell, buff, ends, concentration }) => ({
+    ({ spellId, spell, buff, ends, concentration, damageType }) => ({
       spellId,
       spell,
-      text: buffText(buff),
+      text: buffText(buff, damageType),
       ends,
       until: endsText(ends),
       concentration: concentration === true,
@@ -3785,8 +3949,8 @@ function effectViews(holder: Combatant): readonly EffectView[] {
  */
 function effectLines(holder: Combatant): string[] {
   return (holder.effects ?? []).map(
-    ({ spell, buff, ends, concentration }) =>
-      `${spell} (${buffText(buff)}, ${endsText(ends)}${concentration === true ? "; concentration" : ""})`,
+    ({ spell, buff, ends, concentration, damageType }) =>
+      `${spell} (${buffText(buff, damageType)}, ${endsText(ends)}${concentration === true ? "; concentration" : ""})`,
   );
 }
 
@@ -4878,15 +5042,25 @@ export function createFifthRuntime(
         ? reject("choose-approach", `Choose how to parley: ${ways}.`)
         : reject("unknown-approach", `That way isn't offered; try ${ways}.`);
     }
-    const roll = policyRoll(
-      abilityCheck(sheetOf(state), spec, need(random, "A parley")),
-      spec,
+    // Guidance's die (#339) is spent on the parley.
+    const guided = guidedCheck(state, (die) =>
+      policyRoll(
+        abilityCheck(
+          sheetOf(state),
+          spec,
+          need(random, "A parley"),
+          undefined,
+          die,
+        ),
+        spec,
+      ),
     );
+    const { roll } = guided;
     const band = authoredBand(parley, bandOf(roll));
     const outcome = parley.bands[band];
     const from = reactionBandOf(state, fight)!;
     const parleyed: FifthState = {
-      ...cleared(state, "reactingTo"),
+      ...cleared(guided.state, "reactingTo"),
       parleys: [...state.parleys, { encounterId: fight.id, roll, band }],
     };
     const now = reactionBandOf(parleyed, fight)!;
@@ -4894,6 +5068,7 @@ export function createFifthRuntime(
     const offers = offersOf(fight, options);
     const events: FifthEvent[] = [
       { type: "check", roll, band },
+      ...guided.events,
       ...(outcome?.text === undefined
         ? []
         : [{ type: "outcome" as const, text: outcome.text }]),
@@ -4966,6 +5141,39 @@ export function createFifthRuntime(
       throw new Error(`${what} needs dice.`);
     }
     return random;
+  };
+
+  /**
+   * A graded check with Guidance's die (#339) when the character has it:
+   * the die is rolled with the check, and spending it ends Guidance. The
+   * roll, and the state and events after.
+   */
+  const guidedCheck = (
+    state: FifthState,
+    roll: (die: CheckDie | undefined) => CheckRoll,
+  ): Readonly<{
+    roll: CheckRoll;
+    state: FifthState;
+    events: readonly FifthEvent[];
+  }> => {
+    const effects = state.character.effects ?? [];
+    const guidance = effects.find(({ buff }) => buff.kind === "check-die");
+    if (guidance === undefined || guidance.buff.kind !== "check-die") {
+      return { roll: roll(undefined), state, events: [] };
+    }
+    const made = roll({ spell: guidance.spell, sides: guidance.buff.sides });
+    const kept = effects.filter((effect) => effect !== guidance);
+    const { effects: _before, ...character } = state.character;
+    void _before;
+    return {
+      roll: made,
+      state: {
+        ...state,
+        character:
+          kept.length === 0 ? character : { ...character, effects: kept },
+      },
+      events: [effectEnded(PLAYER_ID, guidance, "used")],
+    };
   };
 
   /**
@@ -5189,10 +5397,13 @@ export function createFifthRuntime(
     );
   };
 
-  /** `state` with each recovered feature's uses (#334, #335) set. */
+  /**
+   * `state` with each recovered feature's uses (#334, #335) set, and
+   * Arcane Recovery's (#340).
+   */
   const recover = (
     state: FifthState,
-    recovered: ReturnType<typeof restRecovery>,
+    recovered: readonly Readonly<{ featureId: string; uses: number }>[],
   ): FifthState => ({
     ...state,
     character: {
@@ -5251,13 +5462,27 @@ export function createFifthRuntime(
    */
   const restCounts = (state: FifthState): readonly number[] => {
     const left = state.character.hitDice;
-    const recovers = restRecovery(state).length > 0;
+    const recovers =
+      restRecovery(state).length > 0 || arcaneRecovered(state) !== undefined;
     const hurt = state.character.hp < maxHp && left > 0;
     if (!hurt) {
       // At full HP no die is spent: only a rest that spends none.
       return recovers ? [0] : [];
     }
     return [...Array(left + 1).keys()].filter((count) => count > 0 || recovers);
+  };
+
+  /**
+   * What Arcane Recovery (#340) would regain on a short rest now, after the
+   * rest's own recovery, or undefined when it would regain nothing.
+   */
+  const arcaneRecovered = (state: FifthState) => {
+    const recovered = arcaneRecovery(
+      characterProfile(sheet),
+      recover(state, restRecovery(state)).character.featureUses,
+      "short",
+    );
+    return "regained" in recovered ? recovered.regained : undefined;
   };
 
   /**
@@ -5291,6 +5516,11 @@ export function createFifthRuntime(
         maxHp,
       });
     }
+    // Arcane Recovery (#340) regains slots once per long rest.
+    const arcane = arcaneRecovered(state);
+    const arcaneUses =
+      (state.character.featureUses[ARCANE_RECOVERY] ?? 0) -
+      (arcane === undefined ? 0 : 1);
     const next = recover(
       {
         ...state,
@@ -5301,7 +5531,13 @@ export function createFifthRuntime(
           hitDice: state.character.hitDice - spent.length,
         },
       },
-      recovered,
+      [
+        ...recovered,
+        ...(arcane ?? []).map(({ featureId, uses }) => ({ featureId, uses })),
+        ...(arcane === undefined
+          ? []
+          : [{ featureId: ARCANE_RECOVERY, uses: arcaneUses }]),
+      ],
     );
     const ended = restEndsEffects(next, "short");
     return {
@@ -5315,6 +5551,20 @@ export function createFifthRuntime(
         },
         ...spent,
         ...regainedEvents(recovered),
+        ...(arcane === undefined
+          ? []
+          : [
+              {
+                type: "arcane-recovery" as const,
+                slots: arcane.map(({ level, count, uses, max }) => ({
+                  level,
+                  count,
+                  uses,
+                  max,
+                })),
+                usesLeft: arcaneUses,
+              },
+            ]),
         ...ended.events,
       ],
     };
@@ -5330,8 +5580,12 @@ export function createFifthRuntime(
     kind: RestKind,
   ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
     const effects = state.character.effects ?? [];
+    // A rest outlasts a fight's minute too: Guidance cast outside a fight
+    // (#339) ends with it.
     const ending = ({ ends }: ActiveEffect) =>
-      ends === "rest" || (kind === "long" && ends === "long-rest");
+      ends === "fight" ||
+      ends === "rest" ||
+      (kind === "long" && ends === "long-rest");
     if (!effects.some(ending)) {
       return { state, events: [] };
     }
@@ -5636,11 +5890,21 @@ export function createFifthRuntime(
     around: (siteEvents: readonly FifthEvent[]) => FifthEvent[];
   }> => {
     const dice = need(random, "A check");
-    // The module's circumstances give advantage or disadvantage (#284).
-    const roll = policyRoll(
-      abilityCheck(sheetOf(state), spec, dice, circumstancesOf(state, spec)),
-      spec,
+    // The module's circumstances give advantage or disadvantage (#284);
+    // Guidance's die (#339) is spent on the check.
+    const guided = guidedCheck(state, (die) =>
+      policyRoll(
+        abilityCheck(
+          sheetOf(state),
+          spec,
+          dice,
+          circumstancesOf(state, spec),
+          die,
+        ),
+        spec,
+      ),
     );
+    const { roll } = guided;
     const band = authoredBand(check, bandOf(roll));
     // A try made while a retry's circumstance holds is not followed by
     // another for it (#284).
@@ -5648,7 +5912,7 @@ export function createFifthRuntime(
       check.retry?.after !== undefined && holds(state, check.retry.after);
     const graded = bandOutcome(
       {
-        ...state,
+        ...guided.state,
         checks: [
           ...state.checks,
           {
@@ -5677,6 +5941,7 @@ export function createFifthRuntime(
       success: isSuccess(band),
       around: (siteEvents) => [
         { type: "check", roll, band },
+        ...guided.events,
         ...siteEvents,
         ...graded.events,
       ],
@@ -6098,13 +6363,17 @@ export function createFifthRuntime(
       case "cast": {
         // A cantrip names no slot level; a levelled spell names a whole one.
         // Its targets are a list of ids (#338).
+        // Resistance (#339) names a damage type it resists, Chromatic Orb
+        // (#340) one it deals.
         const spellId = field("spellId");
+        const damageType = field("damageType");
         const { slotLevel, targetIds } = action;
         return actorId === undefined ||
           spellId === undefined ||
           !Array.isArray(targetIds) ||
           !targetIds.every((id) => typeof id === "string") ||
-          (slotLevel !== undefined && !Number.isInteger(slotLevel))
+          (slotLevel !== undefined && !Number.isInteger(slotLevel)) ||
+          (action.damageType !== undefined && damageType === undefined)
           ? undefined
           : {
               type: "cast",
@@ -6114,6 +6383,9 @@ export function createFifthRuntime(
               ...(slotLevel === undefined
                 ? {}
                 : { slotLevel: slotLevel as number }),
+              ...(damageType === undefined
+                ? {}
+                : { damageType: damageType as DamageType }),
             };
       }
       case "rest": {
@@ -7681,6 +7953,15 @@ export function createFifthRuntime(
                 ...(maxTargets(SPELLS[action.spellId]) === 1
                   ? {}
                   : { maxTargets: maxTargets(SPELLS[action.spellId]) }),
+                // Resistance's damage type (#339), Chromatic Orb's (#340).
+                ...(action.damageType === undefined
+                  ? {}
+                  : {
+                      damageType: action.damageType,
+                      damageTypeUse: reducesDamage(SPELLS[action.spellId])
+                        ? ("resisted" as const)
+                        : ("dealt" as const),
+                    }),
               },
             }
           : {}),
@@ -7720,32 +8001,66 @@ export function createFifthRuntime(
         .filter(
           ({ castingTime, effect }) =>
             castingTime !== "reaction" &&
+            // Thaumaturgy (#339) is flavour only: never cast.
+            effect.kind !== "flavour" &&
             (fight ||
               effect.kind === "healing" ||
               (effect.kind === "buff" &&
-                outlastsFight(effectEnds(effect.duration)))),
+                // Guidance (#339) waits outside a fight for a check.
+                (effect.buff.kind === "check-die" ||
+                  outlastsFight(effectEnds(effect.duration))))),
         )
         .flatMap((spell) =>
-          slotLevels(caster, spell).flatMap((slotLevel) => {
-            const cast = (targetIds: readonly string[]): CastAction => ({
-              type: "cast",
-              actorId: PLAYER_ID,
-              spellId: spell.id,
-              targetIds,
-              ...(slotLevel === undefined ? {} : { slotLevel }),
-            });
-            // An area spell (#338): one entry, its targets chosen from the
-            // foes, up to its most; it dry-runs the first of them.
-            if (spell.area !== undefined) {
-              return foes.length === 0 ? [] : [areaCast(spell, foes, cast)];
-            }
-            return (
-              spell.effect.kind === "healing" || spell.effect.kind === "buff"
-                ? [{ id: PLAYER_ID, name: caster.name }]
-                : foes
-            ).map((target) => view("cast", cast([target.id]), target));
-          }),
+          slotLevels(caster, spell).flatMap((slotLevel) =>
+            // Resistance (#339): an entry for each damage type the foes'
+            // attacks deal; Chromatic Orb (#340): for each it may deal.
+            (reducesDamage(spell)
+              ? foeDamageTypes(foes)
+              : (spell.damageTypes ?? [undefined])
+            ).flatMap((damageType) =>
+              spellCasts(caster, foes, spell, slotLevel, damageType),
+            ),
+          ),
         );
+    /**
+     * The damage types Resistance may resist that `foes`' attacks and
+     * their riders deal (#339), in the spell's order.
+     */
+    const foeDamageTypes = (foes: readonly Combatant[]): DamageType[] => {
+      const dealt = dealtDamageTypes(foes);
+      return RESISTANCE_DAMAGE_TYPES.filter((type) => dealt.has(type));
+    };
+    /**
+     * `spell`'s entries at `slotLevel`, with the `damageType` Resistance
+     * resists (#339) or Chromatic Orb deals (#340).
+     */
+    const spellCasts = (
+      caster: Combatant,
+      foes: readonly Combatant[],
+      spell: SpellDefinition,
+      slotLevel: number | undefined,
+      damageType: DamageType | undefined,
+    ): readonly ActionView[] => {
+      const cast = (targetIds: readonly string[]): CastAction => ({
+        type: "cast",
+        actorId: PLAYER_ID,
+        spellId: spell.id,
+        targetIds,
+        ...(slotLevel === undefined ? {} : { slotLevel }),
+        ...(damageType === undefined ? {} : { damageType }),
+      });
+      // An area spell (#338): one entry, its targets chosen from the
+      // foes, up to its most; it dry-runs the first of them. One that
+      // catches only one (Sleep, #340) is offered at each foe instead.
+      if (spell.area !== undefined && maxTargets(spell) > 1) {
+        return foes.length === 0 ? [] : [areaCast(spell, foes, cast)];
+      }
+      return (
+        spell.effect.kind === "healing" || spell.effect.kind === "buff"
+          ? [{ id: PLAYER_ID, name: caster.name }]
+          : foes
+      ).map((target) => view("cast", cast([target.id]), target));
+    };
     /**
      * An area spell's entry (#338): the foes it may catch (`targets`), and
      * the action it dry-runs, at the first of them up to its most.
@@ -9001,6 +9316,14 @@ export function createFifthRuntime(
     const unique = <T>(values: readonly T[]) => [...new Set(values)];
     // Each entry's targets: its one, or an area spell's choice (#338).
     const targetsOf = ({ target, targets }: ActionView) => targets ?? [target!];
+    // The damage types `views` name: those Resistance (#339) resists and
+    // Chromatic Orb (#340) deals.
+    const damageTypesOf = (views: readonly ActionView[]) =>
+      unique(
+        views.flatMap(({ spell }) =>
+          spell!.damageType === undefined ? [] : [spell!.damageType],
+        ),
+      );
     const described = spells.map((id) => {
       const mine = offers.filter(({ spell }) => spell!.id === id);
       const { name, level, maxTargets: most } = mine[0]!.spell!;
@@ -9014,8 +9337,15 @@ export function createFifthRuntime(
         most === undefined
           ? `one target: ${listed(targets)}`
           : `up to ${most} different targets from ${listed(targets, "and")}`;
-      return `${id} (${name}, ${level === 0 ? "a cantrip: slot_level null" : `${ordinal(level)} level: slot_level ${listed(slots.map(String))}`}; ${whom})`;
+      // Resistance (#339) resists a damage type the player chooses, and
+      // Chromatic Orb (#340) deals one.
+      const types = damageTypesOf(mine);
+      const resists =
+        types.length === 0 ? "" : `; damage_type ${listed(types)}`;
+      const summary = isSpellId(id) ? `: ${spellSummary(SPELLS[id])}` : "";
+      return `${id} (${name}${summary}; ${level === 0 ? "a cantrip: slot_level null" : `${ordinal(level)} level: slot_level ${listed(slots.map(String))}`}; ${whom}${resists})`;
     });
+    const damageTypes = damageTypesOf(offers);
     const slotLevelsOffered = unique(
       offers.flatMap(({ spell }) =>
         spell!.slotLevel === undefined ? [] : [spell!.slotLevel],
@@ -9054,8 +9384,24 @@ export function createFifthRuntime(
               description:
                 "The ids of the spell's targets: one, or for an area spell up to its most, each once, as the player chose them.",
             },
+            // Only while Resistance (#339) or Chromatic Orb (#340) is offered.
+            ...(damageTypes.length === 0
+              ? {}
+              : {
+                  damage_type: {
+                    type: ["string", "null"],
+                    enum: [...damageTypes, null],
+                    description:
+                      "The damage type the player chose from those listed for the spell: the one Resistance resists, or the one Chromatic Orb deals; null for every other spell.",
+                  },
+                }),
           },
-          required: ["spell", "slot_level", "targets"],
+          required: [
+            "spell",
+            "slot_level",
+            "targets",
+            ...(damageTypes.length === 0 ? [] : ["damage_type"]),
+          ],
           additionalProperties: false,
         },
       },
@@ -9172,10 +9518,19 @@ export function createFifthRuntime(
     const isCast = call.name === "cast";
     const slotLevel = isRecord(parsed) ? parsed.slot_level : undefined;
     const castTargets = isRecord(parsed) ? parsed.targets : undefined;
+    // Resistance's damage type (#339), or null, while Resistance is
+    // offered: the tool lists the key only then.
+    const damageType = isRecord(parsed) ? parsed.damage_type : undefined;
     if (
       !isRecord(parsed) ||
       (isCast &&
-        (Object.keys(parsed).sort().join(",") !== "slot_level,spell,targets" ||
+        (![
+          "slot_level,spell,targets",
+          "damage_type,slot_level,spell,targets",
+        ].includes(Object.keys(parsed).sort().join(",")) ||
+          (damageType !== undefined &&
+            damageType !== null &&
+            typeof damageType !== "string") ||
           typeof parsed.spell !== "string" ||
           !Array.isArray(castTargets) ||
           !castTargets.every((id) => typeof id === "string") ||
@@ -9209,6 +9564,9 @@ export function createFifthRuntime(
           spellId: parsed.spell as string,
           targetIds: castTargets as string[],
           ...(slotLevel === null ? {} : { slotLevel: slotLevel as number }),
+          ...(typeof damageType === "string"
+            ? { damageType: damageType as DamageType }
+            : {}),
         }
       : isRest
         ? { type: "rest", hitDice: hitDice as number }

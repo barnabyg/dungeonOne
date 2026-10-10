@@ -1,5 +1,6 @@
 /**
- * The 5e bestiary (format version 9): the shared monsters adventure modules
+ * The 5e bestiary (format version 10: condition immunities may list
+ * exhaustion, #340): the shared monsters adventure modules
  * fight, each an SRD 5.2 stat block (or a house one derived from it) under an
  * id, with the character levels it suits. A module's opponent names a
  * bestiary monster by id, or authors a one-off stat block inline. A stat
@@ -7,7 +8,8 @@
  * Rampage), make several attacks a turn (Multiattack), list saving throw
  * proficiencies, damage resistances,
  * vulnerabilities and immunities (SRD 5.2 damage types) and condition
- * immunities, and give an attack a rider: extra damage on a hit and a
+ * immunities (exhaustion among them, #340, which makes a creature succeed
+ * on Sleep's saves), and give an attack a rider: extra damage on a hit and a
  * condition, after a saving throw if it names one. Every stat block gives a
  * morale DC (#237, a house rule) or `"never"` for one that never checks
  * morale; an Undead never does. Every stat block gives its passive
@@ -27,6 +29,7 @@ import { parseBoundedJson } from "./bounded-json.js";
 import {
   DAMAGE_TYPES,
   type AttackRider,
+  type ConditionImmunity,
   type ConditionKind,
   type DamageType,
 } from "./encounter-5e.js";
@@ -50,7 +53,7 @@ import {
   fail,
 } from "./json-shape.js";
 
-export const FIFTH_BESTIARY_FORMAT = 9;
+export const FIFTH_BESTIARY_FORMAT = 10;
 
 /** The monster traits the engine applies. */
 export const MONSTER_TRAITS = [
@@ -61,10 +64,17 @@ export const MONSTER_TRAITS = [
 ] as const;
 export type MonsterTrait = (typeof MONSTER_TRAITS)[number];
 
+/** The conditions a rider may give. */
 const CONDITION_KINDS: readonly ConditionKind[] = [
   "poisoned",
   "prone",
   "paralysed",
+];
+
+/** What a stat block may be immune to: those, and exhaustion (#340). */
+const IMMUNITY_KINDS: readonly ConditionImmunity[] = [
+  ...CONDITION_KINDS,
+  "exhaustion",
 ];
 
 /** The most turns a rider's condition lasts: 10 turns is 1 minute. */
@@ -118,8 +128,8 @@ export type StatBlock = Readonly<{
   damageResistances?: readonly DamageType[];
   damageVulnerabilities?: readonly DamageType[];
   damageImmunities?: readonly DamageType[];
-  /** Conditions it cannot be given. */
-  conditionImmunities?: readonly ConditionKind[];
+  /** Conditions it cannot be given, and exhaustion (#340). */
+  conditionImmunities?: readonly ConditionImmunity[];
   /**
    * Its morale DC, a house rule (#237): the Wisdom saving throw it makes when its
    * side's first combatant falls and at half strength, fleeing on a failure.
@@ -369,7 +379,7 @@ export function statBlock(value: unknown, where: string): StatBlock {
   );
   const conditionImmunities = chosen(
     block.conditionImmunities,
-    CONDITION_KINDS,
+    IMMUNITY_KINDS,
     where,
     "conditionImmunities",
     "condition immunity",

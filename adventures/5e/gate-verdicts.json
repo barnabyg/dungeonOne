@@ -2,11 +2,11 @@
   "format": 1,
   "verdicts": {
     "abandoned-delve": {
-      "hash": "b656d1eebd85fddf2ee1401aaf7112e3bb28822fc8fa8cb4b73a61f5a36c0cf4",
+      "hash": "b1cae4c2f78acc939a6404ce644d1906be38561bb3c3f869ebe78018502fe131",
       "qualified": true
     },
     "drowned-chapel": {
-      "hash": "fa637a790540e214a50b68df42ffa7ce3d96b6a3d1448e582d3272bb1a06fabc",
+      "hash": "cbe131e7b393870cf7bd427d5df68fc560948dcf0761aafd2c4ba2d24335e680",
       "qualified": true
     },
     "goblin-warren": {
@@ -14,7 +14,7 @@
       "qualified": true
     },
     "gravediggers-lodge": {
-      "hash": "03d94c7739f8e577ab74210c42bd689a75ab7ab1884ed518def5e6599789bc1a",
+      "hash": "d1c33cfc9389b1cf97766dae4279a149eb277acb4ff8c568add31931a3c593e9",
       "qualified": true
     },
     "mallow-counting-house": {
@@ -34,7 +34,7 @@
       "qualified": true
     },
     "silvervein-mine": {
-      "hash": "896149865afbe57aa00529c21a0e01cba7f155655ccb4c856192ee8586bb3d7b",
+      "hash": "15c753a3877610592fc9613eddf2aa58f17343dd8d18d145519b2a2113b24c72",
       "qualified": true
     },
     "smugglers-cellar": {
@@ -50,7 +50,7 @@
       "qualified": true
     },
     "warden-crypt": {
-      "hash": "8efc8bc77053690766c4931a51baccafeaf1e509242de1e1dd350ece23311902",
+      "hash": "3f53c6a8b233b6dbb5e1edd40ee861ba714ab64194b0a4110cd4e7d201df1850",
       "qualified": true
     },
     "wolfstone-hillfort": {

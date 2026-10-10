@@ -3,7 +3,7 @@
 Dungeon One is a TypeScript game played in a local desktop browser with an AI
 Dungeon Master, using the 2024 fifth-edition rules in SRD 5.2
 ([ADR 0005](docs/adr/0005-start-afresh-on-5e-and-suspend-compatibility.md)).
-Players keep persistent Fighters and Rogues in a character library and bring them to
+Players keep persistent Fighters, Rogues, Clerics and Wizards in a character library and bring them to
 adventure modules aimed at a recommended level range, earning experience and
 levels as they go. The game engine rolls every die and decides every result;
 the AI Dungeon Master interprets what the player types, chooses only among the
@@ -116,7 +116,8 @@ can start another.
 
 ### Creating a character
 
-Choose **Create a character**, then a class: **Fighter** or **Rogue**. The six
+Choose **Create a character**, then a class: **Fighter**, **Rogue**,
+**Cleric** or **Wizard**. The six
 4d6-drop-lowest rolls are saved to the library before they are shown, so
 reloading, restarting or leaving the screen shows the same dice; there are no
 rerolls. Choosing a class starts its choices afresh from that class's defaults.
@@ -140,6 +141,29 @@ choices, check the derived numbers and save:
   Its **Sneak Attack** adds 1d6 damage once a turn to a hit with a Finesse or
   ranged weapon made with advantage, such as after a Vex hit; the engine adds
   it, so you never ask for it. Thieves' Cant is flavour only.
+- A **Cleric** (d8 hit die, Wisdom and Charisma saves, light and medium armour
+  and shields, simple weapons) chooses two skills, a **Divine Order**
+  (_Protector_: heavy armour and martial weapons; _Thaumaturge_: a fourth
+  cantrip and its Wisdom modifier on Arcana and Religion checks), its cantrips
+  (Sacred Flame, Guidance, Resistance, Thaumaturgy) and four prepared spells
+  (from Bless, Cure Wounds, Guiding Bolt, Healing Word, Inflict Wounds and
+  Shield of Faith), and a starting kit (_Mace, two daggers and leather_ or
+  _Club, shield and leather_). It casts with Wisdom from two 1st-level spell
+  slots, which come back between adventures. Its sheet shows its spell attack
+  bonus, save DC, slots and spells, and its prepared spells change there, with
+  **Prepare spells**, only between adventures. A Cleric stays at level 1 for
+  now, keeping the XP it earns. Thaumaturgy is flavour only.
+- A **Wizard** (d6 hit die, Intelligence and Wisdom saves, no armour, simple
+  weapons) chooses two skills, three cantrips (from Fire Bolt, Ray of Frost,
+  Shocking Grasp and Chill Touch), six 1st-level spells for its **spellbook**
+  (from Magic Missile, Shield, Mage Armor, Sleep, Burning Hands, Chromatic Orb
+  and Thunderwave), four of those to prepare, and a starting kit
+  (_Quarterstaff and dagger_ or _Two daggers_). It casts with Intelligence from
+  two 1st-level spell slots, and prepares only spells in its spellbook, at
+  creation and on its sheet between adventures. Its **Arcane Recovery**
+  regains a spent slot on its first short rest after a long rest, by itself.
+  A Wizard stays at level 1 for now, keeping the XP it earns. Ritual Adept is
+  omitted, as there is no time for rituals.
 
 Each kit shows the AC, attack and damage it gives your scores before you
 choose. Better gear is found or bought in adventures. A pending creation keeps
@@ -329,7 +353,13 @@ Strike** choice offers **Poison** or **Trip** (each gives up a Sneak Attack
 die: the target saves or is poisoned, or knocked prone) for the next attack you
 click. When a foe hits a level-5 Rogue, the fight waits before the damage:
 **Uncanny Dodge** halves it with your reaction (once a round), or **Take the
-hit**. For a Fighter, from level 5, Extra Attack makes
+hit**. A Cleric casts from a spell choice beside **Cast**: each prepared
+spell and cantrip that can be cast now, with its slot and target (Resistance
+once for each damage type the foes deal); outside a fight it heals or casts
+Guidance, whose d4 goes on your next check. A Wizard casts the same way:
+Mage Armor outside a fight, Chromatic Orb once for each damage type it can
+deal, and Sleep, whose target saves or is incapacitated, then saves again or
+falls unconscious until it takes damage. For a Fighter, from level 5, Extra Attack makes
 the Attack action two attacks: after the first, each living opponent's button reads **Second
 attack on** its name, so the two can go to different opponents. A mastered weapon's mastery works while you wield
 it: Sap gives a creature it hits disadvantage on its next attack, Vex gives you
@@ -424,7 +454,7 @@ reason, the history stays readable, and reloading shows the same ending.
   earned.
 - Adventure modules (`adventures/5e/*.json`) are format version 28. Their
   opponents name monsters in the bestiary (`adventures/5e/bestiary.json`),
-  format version 9, or author a one-off stat block inline.
+  format version 10, or author a one-off stat block inline.
 
 While the game is in development these formats are throwaway: a change bumps a
 file's format version, and a file in an older format, including any file from
@@ -458,7 +488,9 @@ These are for development, not play.
   (`always-fail`) or always in their best (`always-succeed`), and reports
   survival, HP lost and rounds per fight, healing, XP, treasure, one-hit-kill
   chances and each module's balance-gate verdict for both classes, which plays
-  every check policy. See
+  every check policy, with a report on the level-1 Cleric and Wizard that is
+  never judged.
+  See
   [the rules document](docs/character-rules.md#balance-harness).
 - **Recorded gate verdicts.** `npm.cmd run gate:verdicts` gates every built-in
   module for both classes and records the verdicts in
@@ -526,7 +558,8 @@ These are for development, not play.
 - `src/runtime-5e.ts` is the 5e runtime, over the encounter engine in
   `src/encounter-5e.ts`, characters in `src/character-5e.ts` (each derived
   from its class's definition: what classes share in `src/class-5e.ts`, the
-  Fighter in `src/fighter-5e.ts`, the Rogue in `src/rogue-5e.ts`), weapons,
+  Fighter in `src/fighter-5e.ts`, the Rogue in `src/rogue-5e.ts`, the Cleric
+  in `src/cleric-5e.ts`, the Wizard in `src/wizard-5e.ts`), spells in `src/spells-5e.ts`, weapons,
   armour and kits in
   `src/equipment-5e.ts`, and checks in `src/checks-5e.ts`. It implements the generic interface in
   `src/runtime-contract.ts`: create a session, project the player-safe scene and

@@ -457,7 +457,10 @@ test("the validator rejects malformed doors, traps and creatures", () => {
     ],
     [
       (m) =>
-        (passage(m, "stair-to-cell").door.force = { skill: "arcana", dc: 10 }),
+        (passage(m, "stair-to-cell").door.force = {
+          skill: "occultism",
+          dc: 10,
+        }),
       /skill must be one of/,
     ],
     [

@@ -70,6 +70,7 @@ test("every catalogue item weighs what SRD 5.2 says", () => {
     club: 2,
     dagger: 1,
     mace: 4,
+    quarterstaff: 4,
     shortsword: 2,
     longsword: 3,
     greatsword: 6,

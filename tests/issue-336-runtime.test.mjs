@@ -347,7 +347,7 @@ test("scripted DM: the cast tool lists what the engine would take", () => {
   assert.deepEqual(tool.parameters.properties.targets.items.enum, ["goblin"]);
   assert.match(
     tool.description,
-    /magic-missile \(Magic Missile, 1st level: slot_level 1; one target: goblin \(Goblin Warrior\)\)/u,
+    /magic-missile \(Magic Missile: 3 darts that always hit, each 1d4 \+ 1 force; 1st level: slot_level 1; one target: goblin \(Goblin Warrior\)\)/u,
   );
   assert.ok(offeredToolsMatchActions(session));
   assert.match(

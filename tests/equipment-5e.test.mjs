@@ -35,6 +35,16 @@ test("the catalogue holds the SRD 5.2 weapons with price in copper, damage, prop
     ["dagger", 200, "1d4", "piercing", [], "finesse,light", "Nick", "common"],
     ["mace", 500, "1d6", "bludgeoning", [], "", "Sap", "common"],
     [
+      "quarterstaff",
+      20,
+      "1d6",
+      "bludgeoning",
+      ["1d8"],
+      "versatile",
+      "Topple",
+      "common",
+    ],
+    [
       "shortsword",
       1000,
       "1d6",
@@ -457,7 +467,7 @@ test("kits hold only common-tier items, are legal loadouts and are of equal valu
     offered.flatMap(({ kits }) => kits).sort(),
     Object.keys(STARTING_KITS).sort(),
   );
-  for (const { name, kits } of offered) {
+  for (const { name, kits, weaponMasteries } of offered) {
     assert.ok(kits.length >= 2 && kits.length <= 4, name);
     for (const kit of kits) {
       assert.ok(isKitId(kit));
@@ -473,10 +483,14 @@ test("kits hold only common-tier items, are legal loadouts and are of equal valu
         );
       }
     }
-    assert.ok(
-      kits.some((kit) => readLoadout(STARTING_KITS[kit].equipment).offHand),
-      `one ${name} kit holds two light weapons`,
-    );
+    // A class with weapon mastery has a kit with two light weapons; the
+    // Cleric (#339), with none, wields its mace.
+    if (weaponMasteries[1] > 0) {
+      assert.ok(
+        kits.some((kit) => readLoadout(STARTING_KITS[kit].equipment).offHand),
+        `one ${name} kit holds two light weapons`,
+      );
+    }
   }
   assert.equal(isKitId("plate"), false);
 });

@@ -125,6 +125,8 @@ export const FIFTH_BROWSER_HTML = `<!doctype html>
 </fieldset>
 <fieldset id="skills" aria-describedby="skills-count skills-error"><legend id="skills-legend">Skill proficiencies</legend><p id="skills-count" class="hint" role="status"></p><div id="skill-fields" class="checks"></div><p id="skills-error" class="error" role="alert"></p></fieldset>
 <fieldset id="expertise" aria-describedby="expertise-count expertise-error" hidden><legend id="expertise-legend">Expertise</legend><p id="expertise-hint" class="hint"></p><p id="expertise-count" class="hint" role="status"></p><div id="expertise-fields" class="checks"></div><p id="expertise-error" class="error" role="alert"></p></fieldset>
+<fieldset id="divine-order" hidden><legend>Divine Order</legend><div id="order-fields" class="checks"></div></fieldset>
+<fieldset id="spells" aria-describedby="spells-count spells-error" hidden><legend>Spells</legend><p class="hint">Cantrips are cast at will; prepared spells use spell slots. Prepared spells change only between adventures, on the character sheet.</p><p id="spells-count" class="hint" role="status"></p><fieldset class="spell-group"><legend id="cantrips-legend">Cantrips</legend><div id="cantrip-fields" class="checks"></div></fieldset><fieldset id="spellbook-group" class="spell-group" hidden><legend id="spellbook-legend">Spellbook</legend><p class="hint">You prepare spells only from your spellbook.</p><div id="spellbook-fields" class="checks"></div></fieldset><fieldset class="spell-group"><legend id="prepared-legend">Prepared spells</legend><div id="prepared-fields" class="checks"></div></fieldset><p id="spells-error" class="error" role="alert"></p></fieldset>
 <fieldset id="styles"><legend>Fighting Style</legend><div id="style-fields" class="checks"></div></fieldset>
 <fieldset id="kits" aria-describedby="kits-hint"><legend>Starting kit</legend><p id="kits-hint" class="hint">Common gear only, each worth about the same. Better gear is found or bought in adventures.</p><div id="kit-fields" class="checks"></div></fieldset>
 <fieldset id="masteries" aria-describedby="masteries-count masteries-error"><legend id="masteries-legend">Weapon Mastery</legend><p class="hint">A mastery works only while you wield that weapon.</p><p id="masteries-count" class="hint" role="status"></p><div id="mastery-fields" class="checks"></div><p id="masteries-error" class="error" role="alert"></p></fieldset>
@@ -233,7 +235,7 @@ dialog{background:var(--color-paper);color:var(--color-text);border:1px solid va
 h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:var(--color-text-label)}.things{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-family:var(--font-sans);font-size:var(--text-sm)}.things li{border:1px solid var(--color-line);border-radius:var(--radius-sm);padding:6px 10px;background:var(--color-surface)}.things li.none{border:0;background:none;padding:0;color:var(--color-text-muted)}.things p{margin:0}.things .discovery{color:var(--color-discovery);margin-top:var(--space-1)}.things .controls{margin-top:6px}#inventory .action{width:8.5em}#inventory .action button{width:100%}.things .wares{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px}.things .wares li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-1) var(--space-2);border:0;padding:0;background:none}.things .wares .controls{margin-top:0}.wares .action{width:8.5em}.wares .action button{width:100%}#sale-confirm{margin:6px 0 0}.things button{padding:6px 10px}#character-hp{font-weight:600}
 #ending{flex-basis:100%;border:2px solid var(--ending-color);border-left-width:6px;border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);font-family:var(--font-sans)}#ending[data-kind=victory]{--ending-color:var(--color-success)}#ending[data-kind=escape-with-loot]{--ending-color:var(--color-gold-text)}#ending[data-kind=escape-without-loot]{--ending-color:var(--color-ink)}#ending[data-kind=defeat]{--ending-color:var(--color-danger)}#ending-rewards h4{margin:var(--space-2) 0 var(--space-1)}#ending-rewards ul{margin:0 0 var(--space-2);padding-left:18px;font-size:var(--text-sm)}.level-up{border:1px solid var(--color-gold);border-radius:var(--radius-md);background:var(--color-highlight);padding:var(--space-2) var(--space-3);margin:0 0 var(--space-2)}.level-up h4{margin-top:0;color:var(--color-text)}#level-choice{margin:var(--space-3) 0}#level-choice h3{margin-top:0}#level-choice ul{padding-left:18px;font-size:var(--text-sm)}#level-choice h4{margin-top:var(--space-3)}#level-choice fieldset{background:var(--color-surface)}#level-choice .choice-row{background:none}#ending .level-up p{margin:0}#level-up-features{list-style:none;margin:var(--space-1) 0 0;padding:0;font-size:var(--text-sm)}#level-up-features summary{cursor:pointer;padding:var(--space-1) 0;font-weight:600}#ending #level-up-features p{margin:0 0 var(--space-1) 1.1em}.confirm{flex-basis:100%;border:1px solid var(--color-control-border);border-left:4px solid var(--color-ink);border-radius:var(--radius-md);background:var(--color-surface);padding:var(--space-3);margin-bottom:var(--space-3);font-family:var(--font-sans)}.confirm p{margin:0;font-size:var(--text-sm)}#session-actions .confirm{margin-bottom:0}#ending h3{margin:0 0 var(--space-1);font-family:var(--font-serif)}#ending-kind{color:var(--ending-color);margin:0 0 var(--space-2)}#ending p:not(.tag){margin:0 0 var(--space-2);font-size:var(--text-sm)}#ending-consequence{font-weight:600;color:var(--color-danger)}#ending-consequence:empty{display:none}#ending-next{margin-top:var(--space-1)}#composer-reason{margin:var(--space-1) 0 0}#composer-reason:empty{display:none}#message-form label{display:block;font-weight:600;font-size:var(--text-sm)}
 #session-layout{display:flex;flex-direction:column;gap:var(--space-3)}#session-status p{margin:0}
-#gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
+#gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
 .controls.rest-panel{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,.wares,.rest-panel) button>span,:is(#action-bar,#inventory,.wares,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
@@ -481,7 +483,95 @@ function profileNodes(abilities, profile, hp, carrying) {
     item.append(make("strong", feature.name + ". "), document.createTextNode(feature.text));
     features.append(item);
   }
-  return [stats, abilityTable(abilities, profile, "Ability scores and saving throws"), skills, make("h3", "Features"), features];
+  return [stats, abilityTable(abilities, profile, "Ability scores and saving throws"), skills, ...spellcastingNodes(profile.spellcasting), make("h3", "Features"), features];
+}
+
+/** A spell by id, from the classes' lists (#339). */
+const spellInfo = (id) => library.classes.flatMap(({ spellcasting }) => spellcasting ? spellcasting.spells : []).find((spell) => spell.id === id) || { id, name: id, summary: "" };
+
+/**
+ * A caster's spellcasting (#339): its spell attack bonus and save DC, its
+ * slots, and its cantrips and prepared spells, each with what it does.
+ */
+function spellcastingNodes(casting) {
+  if (!casting) return [];
+  const heading = make("h3", "Spellcasting");
+  heading.id = "spellcasting-title";
+  const numbers = make("p", "Spell attack " + signed(casting.attackBonus) + " · Spell save DC " + casting.saveDc + " · " + titleCase(casting.ability) + " · Spell slots: " + casting.slots.map((count, index) => count + " " + ORDINALS[index + 1] + "-level").join(", ") + ".");
+  numbers.id = "spellcasting-numbers";
+  const list = (title, id, ids) => {
+    const node = make("ul", undefined, "features");
+    node.id = id;
+    node.setAttribute("aria-label", title);
+    node.append(...ids.map((spellId) => {
+      const spell = spellInfo(spellId);
+      const item = make("li");
+      item.append(make("strong", spell.name + ". "), document.createTextNode(spell.summary + "."));
+      return item;
+    }));
+    return [make("h4", title), node];
+  };
+  // A Wizard's spellbook (#340), whose spells it prepares from.
+  return [heading, numbers, ...list("Cantrips", "sheet-cantrips", casting.cantrips), ...(casting.spellbook ? list("Spellbook", "sheet-spellbook", casting.spellbook) : []), ...list("Prepared spells", "sheet-prepared", casting.prepared)];
+}
+
+// The prepared spells being chosen on a sheet (#339), by character.
+let preparing;
+
+/**
+ * Preparing spells (#339, D8): between adventures a tick for each levelled
+ * spell on the class's list and Prepare spells; on an adventure, why not.
+ */
+function prepareNodes(entry) {
+  if (!entry.spells || entry.defeated) return [];
+  const heading = make("h3", "Prepare spells");
+  heading.id = "prepare-title";
+  if (entry.session) return [heading, make("p", "Prepared spells change only between adventures. Finish or abandon the adventure first.", "hint")];
+  if (!preparing || preparing.characterId !== entry.sheet.id) preparing = { characterId: entry.sheet.id, prepared: entry.sheet.spells.prepared.slice() };
+  const limit = entry.sheet.spells.prepared.length;
+  const group = make("fieldset");
+  group.id = "prepare-spells";
+  // A Wizard prepares from its spellbook (#340).
+  group.append(make("legend", "Choose " + limit + " spells to prepare" + (entry.spells.spellbook ? " from your spellbook" : "")));
+  const fields = make("div", undefined, "checks");
+  const button = make("button", "Prepare spells", "secondary");
+  button.type = "button";
+  button.id = "save-prepared";
+  const count = make("p", "", "hint");
+  count.setAttribute("role", "status");
+  const error = make("p", "", "error");
+  error.id = "prepare-error";
+  error.setAttribute("role", "alert");
+  const update = () => {
+    for (const box of fields.querySelectorAll("input")) box.disabled = !box.checked && preparing.prepared.length >= limit;
+    count.textContent = preparing.prepared.length + " of " + limit + " chosen";
+    const same = preparing.prepared.length === limit && preparing.prepared.every((id) => entry.sheet.spells.prepared.includes(id));
+    button.disabled = isBusy(button) || preparing.prepared.length !== limit || same;
+  };
+  fields.append(...entry.spells.preparable.map((spell) => spellBox("prepared-" + spell.id, spell, preparing.prepared.includes(spell.id), (event) => {
+    preparing.prepared = event.target.checked ? [...preparing.prepared, spell.id] : preparing.prepared.filter((id) => id !== spell.id);
+    update();
+  })));
+  button.addEventListener("click", async () => {
+    if (isBusy(button)) return;
+    setBusy(button, "Preparing…");
+    try {
+      library = await request("/api/5e/characters/prepare-spells", { revision: library.revision, characterId: entry.sheet.id, prepared: preparing.prepared });
+      preparing = undefined;
+      clearBusy(button);
+      openSheet(entry.sheet.id);
+      feedback(entry.sheet.name + "'s prepared spells are changed.");
+    } catch (error) {
+      clearBusy(button);
+      element("prepare-error").textContent = error.message;
+      update();
+    }
+  });
+  group.append(fields, count, error);
+  const controls = make("div", undefined, "controls");
+  controls.append(button);
+  update();
+  return [heading, group, controls];
 }
 
 /** "Fighting Style: Defense [Applies] Applies: you wear armour." for the sheet (#144). */
@@ -503,7 +593,7 @@ function openSheet(id) {
   const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
-  element("sheet-body").replaceChildren(summary, ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
+  element("sheet-body").replaceChildren(summary, ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...prepareNodes(entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
@@ -986,6 +1076,10 @@ function compactRoll(group) {
     case "reaction":
       // 2d6 + the Charisma modifier (#304).
       node.append(...diceChips(group, ", "), withSign(group.modifier) + " Cha = " + group.total);
+      break;
+    case "reduction":
+      // Resistance's die off damage (#339).
+      node.append(group.roller + " ", ...diceChips(group), " off");
       break;
     case "wandering":
       // A rest's d100 against the wandering encounter's chance (#335).
@@ -1679,7 +1773,8 @@ async function leaveAdventure() {
 }
 
 const ORDINALS = ["", "1st", "2nd", "3rd", "4th", "5th"];
-const castKey = ({ spell }) => spell.id + ":" + (spell.slotLevel || "");
+// Resistance's damage type (#339) is part of the choice.
+const castKey = ({ spell }) => spell.id + ":" + (spell.slotLevel || "") + ":" + (spell.damageType || "");
 
 /**
  * Casting (#337): a choice of spell, each at each slot level it may spend
@@ -1715,7 +1810,9 @@ function castPanel(casts) {
   spellSelect.setAttribute("aria-label", "Spell");
   spellSelect.disabled = acting;
   for (const [key, spell] of spells) {
-    const choice = make("option", spell.name + (spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
+    // Resistance's resisted type (#339); Chromatic Orb's dealt type (#340).
+    const typed = !spell.damageType ? "" : spell.damageTypeUse === "dealt" ? " of " + spell.damageType : " against " + spell.damageType;
+    const choice = make("option", spell.name + typed + (spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
     choice.value = key;
     choice.selected = key === castChoice;
     spellSelect.append(choice);
@@ -1794,7 +1891,7 @@ function areaTargets(area) {
 }
 
 async function castSpell(spell, targetIds) {
-  await act("/api/5e/session/cast", { spellId: spell.id, slotLevel: spell.slotLevel || null, targetIds }, "button.act[data-action=cast]", ACTIONS.cast.busy + " " + spell.name + "…");
+  await act("/api/5e/session/cast", { spellId: spell.id, slotLevel: spell.slotLevel || null, targetIds, ...(spell.damageType ? { damageType: spell.damageType } : {}) }, "button.act[data-action=cast]", ACTIONS.cast.busy + " " + spell.name + "…");
   keepFocus("cast", "");
 }
 
@@ -2055,6 +2152,10 @@ function renderChoices() {
   element("expertise-hint").textContent = "Doubles your proficiency bonus with " + chosen.expertiseCount + " of your skills.";
   element("expertise").hidden = chosen.expertiseCount === 0;
   element("styles").hidden = !chosen.fightingStyle;
+  // A class without weapon mastery (the Cleric, #339) shows none.
+  element("masteries").hidden = chosen.masteryCount === 0;
+  renderOrders(chosen);
+  renderSpellChoices(chosen);
   renderAbilities();
   element("skill-fields").replaceChildren(...chosen.skills.map((skill) => {
     const label = make("label");
@@ -2122,6 +2223,111 @@ function renderChoices() {
     label.append(box, text);
     return label;
   }));
+}
+
+/**
+ * The Divine Order (#339): a radio for each, for a class with them. A
+ * Thaumaturge knows one more cantrip, so the cantrip limit follows it.
+ */
+function renderOrders(chosen) {
+  const orders = chosen.divineOrders || [];
+  element("divine-order").hidden = orders.length === 0;
+  element("order-fields").replaceChildren(...orders.map((order) => {
+    const label = make("label");
+    const radio = make("input");
+    radio.type = "radio";
+    radio.name = "divine-order";
+    radio.id = "order-" + order.id;
+    radio.checked = choices.divineOrder === order.id;
+    radio.addEventListener("change", () => {
+      choices.divineOrder = order.id;
+      // A cantrip past the new limit is unticked, the last ticked first.
+      choices.spells.cantrips = choices.spells.cantrips.slice(0, cantripLimit(chosen));
+      renderSpellChoices(chosen);
+      refresh();
+    });
+    const text = make("span", order.name);
+    text.append(make("small", order.text));
+    label.append(radio, text);
+    return label;
+  }));
+}
+
+/** How many cantrips the class knows with the Divine Order chosen (#339). */
+const cantripLimit = (chosen) => chosen.spellcasting.cantrips + ((chosen.divineOrders || []).find(({ id }) => id === choices.divineOrder)?.extraCantrips || 0);
+
+/** A spell's tick: its name, and what it does under it (#339). */
+function spellBox(id, spell, checked, change) {
+  const label = make("label");
+  const box = make("input");
+  box.type = "checkbox";
+  box.id = id;
+  box.checked = checked;
+  box.addEventListener("change", change);
+  const text = make("span", spell.name);
+  text.append(make("small", spell.summary));
+  label.append(box, text);
+  return label;
+}
+
+/**
+ * A caster's cantrips and prepared spells (#339): a tick for each spell on
+ * its list, cantrips and levelled spells apart. A Wizard (#340) also ticks
+ * its spellbook's spells, and prepares only from those ticked.
+ */
+function renderSpellChoices(chosen) {
+  const casting = chosen.spellcasting;
+  element("spells").hidden = !casting;
+  element("spellbook-group").hidden = !casting || !casting.spellbook;
+  if (!casting) {
+    element("cantrip-fields").replaceChildren();
+    element("spellbook-fields").replaceChildren();
+    element("prepared-fields").replaceChildren();
+    return;
+  }
+  const levelled = casting.spells.filter(({ level }) => level > 0);
+  element("cantrips-legend").textContent = "Cantrips: choose " + cantripLimit(chosen);
+  element("prepared-legend").textContent = "Prepared spells: choose " + casting.prepared + (casting.spellbook ? " from your spellbook" : "");
+  const ticked = (spells, prefix) => spells.map(({ id }) => id).filter((id) => element(prefix + id)?.checked);
+  element("cantrip-fields").replaceChildren(...casting.spells.filter(({ level }) => level === 0).map((spell) => spellBox("cantrip-" + spell.id, spell, choices.spells.cantrips.includes(spell.id), () => {
+    choices.spells.cantrips = ticked(casting.spells, "cantrip-");
+    refresh();
+  })));
+  if (casting.spellbook) {
+    element("spellbook-legend").textContent = "Spellbook: choose " + casting.spellbook;
+    element("spellbook-fields").replaceChildren(...levelled.map((spell) => spellBox("spellbook-" + spell.id, spell, choices.spellbook.includes(spell.id), () => {
+      choices.spellbook = ticked(levelled, "spellbook-");
+      // A spell taken out of the spellbook can't stay prepared.
+      choices.spells.prepared = choices.spells.prepared.filter((id) => choices.spellbook.includes(id));
+      renderSpellChoices(chosen);
+      element("spellbook-" + spell.id).focus();
+      refresh();
+    })));
+  } else {
+    element("spellbook-fields").replaceChildren();
+  }
+  const preparable = casting.spellbook ? levelled.filter(({ id }) => choices.spellbook.includes(id)) : levelled;
+  element("prepared-fields").replaceChildren(...preparable.map((spell) => spellBox("prepare-" + spell.id, spell, choices.spells.prepared.includes(spell.id), () => {
+    choices.spells.prepared = ticked(preparable, "prepare-");
+    refresh();
+  })));
+}
+
+/** Like the skills, for cantrips, the spellbook (#340) and prepared spells (#339). */
+function renderSpellLimit() {
+  if (!projection.spells) return;
+  const casting = creating().spellcasting;
+  const { cantrips, prepared, spellbook } = projection.spells;
+  const limit = (box, group) => {
+    if (box) box.disabled = group.full && !box.checked;
+  };
+  for (const spell of casting.spells) {
+    const cantrip = spell.level === 0;
+    limit(element((cantrip ? "cantrip-" : "prepare-") + spell.id), cantrip ? cantrips : prepared);
+    if (!cantrip && spellbook) limit(element("spellbook-" + spell.id), spellbook);
+  }
+  const count = "Cantrips " + cantrips.chosen + " of " + cantrips.limit + " chosen; " + (spellbook ? "spellbook " + spellbook.chosen + " of " + spellbook.limit + " chosen; " : "") + "prepared spells " + prepared.chosen + " of " + prepared.limit + " chosen";
+  if (element("spells-count").textContent !== count) element("spells-count").textContent = count;
 }
 
 /**
@@ -2223,12 +2429,14 @@ async function preview() {
     renderScores();
     renderSkillLimit();
     renderExpertiseLimit();
+    renderSpellLimit();
     renderMasteryLimit();
     renderKits();
     renderStyleUses();
     element("increase-error").textContent = result.unfinished.increase || "";
     element("skills-error").textContent = result.unfinished.skills || "";
     element("expertise-error").textContent = result.unfinished.expertise || "";
+    element("spells-error").textContent = result.unfinished.spells || "";
     element("masteries-error").textContent = result.unfinished.masteries || "";
     element("creation-error").textContent = "";
     if (result.sheet) {
