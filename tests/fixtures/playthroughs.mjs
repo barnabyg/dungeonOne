@@ -187,6 +187,12 @@ function madeAction({ action, target, rest, spell }) {
   }
 }
 
+/** The test caster with buffs and Shield prepared (#337). */
+const BUFFED = {
+  cantrips: ["fire-bolt", "sacred-flame"],
+  prepared: ["bless", "shield-of-faith", "shield"],
+};
+
 /**
  * The playthroughs' modules, each with the fighters that play it in turn:
  * every fixture module with Ada at level 1 and the veteran (#156), then
@@ -195,7 +201,8 @@ function madeAction({ action, target, rest, spell }) {
  * few arrows to sell, and more tries at the sealed crypt's trap; then a
  * level-3 Thief's fights with Hide and Steady Aim (#307); then a level-5
  * Rogue's, with Cunning Strike and Uncanny Dodge (#308); then the level-3
- * test caster's, with 1st- and 2nd-level slots (#336).
+ * test caster's, with 1st- and 2nd-level slots (#336), and with buffs and
+ * Shield prepared (#337).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -209,6 +216,7 @@ const PLAYTHROUGHS = [
   { adventure: goblinTrio, fighters: [thief()] },
   { adventure: goblinTrio, fighters: [rogueAt5()] },
   { adventure: goblinTrio, fighters: [testCasterAt(3)] },
+  { adventure: goblinTrio, fighters: [testCasterAt(3, BUFFED)] },
 ];
 
 /**

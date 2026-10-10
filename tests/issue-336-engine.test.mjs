@@ -611,7 +611,8 @@ test("outside a fight, only a healing spell, on the caster", () => {
     castOutsideFight(caster, cast("fire-bolt"), dice()).rejection,
     {
       code: "fight-only",
-      reason: "Fire Bolt is cast in a fight: outside one, only healing spells.",
+      reason:
+        "Fire Bolt is cast in a fight: outside one, only healing spells and spells that outlast a fight.",
     },
   );
   assert.equal(

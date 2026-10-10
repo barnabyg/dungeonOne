@@ -204,6 +204,8 @@ function sessionView(session: FifthSession) {
         }),
     ...runtime.projectFight(state),
     hitDice: runtime.projectHitDice(state),
+    // The character's ongoing spell effects (#337).
+    effects: runtime.projectEffects(state),
     shortRests: runtime.projectRests(state, "short"),
     longRests: runtime.projectRests(state, "long"),
     actions: runtime.projectActions(state),
@@ -711,6 +713,32 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
           throw new Error("Invalid rest request.");
         }
         return click(body, { type: "rest", hitDice: body.hitDice as number });
+      case "/api/5e/session/cast":
+        // A spell (#337) with its slot level (null for a cantrip) and its
+        // target; the runtime and the engine refuse what they wouldn't take.
+        if (
+          !hasExactKeys(body, [
+            "sessionId",
+            "sequence",
+            "spellId",
+            "slotLevel",
+            "targetId",
+          ]) ||
+          typeof body.spellId !== "string" ||
+          typeof body.targetId !== "string" ||
+          (body.slotLevel !== null && !Number.isInteger(body.slotLevel))
+        ) {
+          throw new Error("Invalid cast request.");
+        }
+        return click(body, {
+          type: "cast",
+          actorId: PLAYER_ID,
+          spellId: body.spellId,
+          targetId: body.targetId,
+          ...(body.slotLevel === null
+            ? {}
+            : { slotLevel: body.slotLevel as number }),
+        });
       case "/api/5e/session/long-rest":
         // A long rest at a rest site (#335); the engine refuses it elsewhere.
         if (!hasExactKeys(body, ["sessionId", "sequence"])) {

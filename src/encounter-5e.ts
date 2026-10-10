@@ -24,7 +24,7 @@
  *   combatant's turn lasts until it ends it or nothing it could do is left:
  *   an attack takes the action, Second Wind the bonus action, and Action
  *   Surge adds an action. Drinking a potion takes the bonus action (SRD 5.2).
- *   Only Uncanny Dodge uses a reaction (below). Drawing, stowing or swapping
+ *   Only Uncanny Dodge and reaction spells (Shield) use a reaction (below). Drawing, stowing or swapping
  *   a weapon uses the turn's one object interaction; it takes no action.
  * - Extra Attack (#287): a combatant with it makes two attacks, not one,
  *   whenever it takes the Attack action. Each attack is its own action call,
@@ -92,7 +92,26 @@
  *   against the caster's DC (`savingThrow`) for half or no damage; Magic
  *   Missile's darts always hit; a healing spell heals its dice + the
  *   spellcasting modifier. Damage meets defences and Undead Fortitude as an
- *   attack's does. `castOutsideFight` casts a healing spell out of a fight.
+ *   attack's does. `castOutsideFight` casts a healing spell out of a fight,
+ *   or a buff that outlasts one.
+ * - Ongoing effects (#337): a buff spell puts an effect on the caster or an
+ *   ally (`effects`): a die added to its attack rolls and saving throws
+ *   (Bless), a bonus to its AC, or a base AC while it wears no armour
+ *   (`armorClassOf`). Without a clock each ends by its duration's band
+ *   (D9, `effectEnds`): at the start of the caster's next turn, when the
+ *   fight ends, or, outside the engine, at the next rest or a long rest.
+ *   A spell already on its target can't be cast on it again.
+ * - Concentration (#337): a combatant concentrates on one spell at a time;
+ *   casting another concentration spell ends the first. Damage that leaves
+ *   it standing calls for a Constitution saving throw against the higher of
+ *   10 and half the damage (at most 30); a failure ends the spell, as do
+ *   being incapacitated and falling.
+ * - Reaction spells (#337): an opponent's hit on a combatant that can cast
+ *   one (Shield, its reaction free and a slot left) pauses as Uncanny Dodge
+ *   does, and the combatant answers with Uncanny Dodge, the spell or the
+ *   hit. Shield's +5 AC counts against that attack: a hit that no longer
+ *   meets the AC misses (a natural 20 still hits). A reaction spell spends
+ *   a slot without counting as the turn's one.
  * - Conditions (`CONDITION_RULES`): a monster attack's rider may deal extra
  *   damage of its own type on a hit (its dice doubled by a critical hit) and
  *   give the target a condition, after a saving throw if it names one. A
@@ -139,8 +158,11 @@ import type { Ability } from "./class-5e.js";
 import type { RandomSource } from "./random.js";
 import {
   effectAtSlot,
+  effectEnds,
   ordinal,
+  type Buff,
   type CastingTime,
+  type EffectEnds,
   type SpellDefinition,
   type SpellEffect,
 } from "./spells-5e.js";
@@ -399,6 +421,10 @@ export type Combatant = DamageDefenses &
     potions?: readonly Potion[];
     /** Its spellcasting (#336), for a combatant that casts spells. */
     spellcasting?: CombatSpellcasting;
+    /** The ongoing spell effects on it (#337). */
+    effects?: readonly ActiveEffect[];
+    /** It wears body armour (#337): a base-AC effect gives it nothing. */
+    armour?: true;
     /** The arrows and bolts it carries, for a ranged weapon (#230). */
     ammunition?: Ammunition;
     /** Advantage on its attacks while an ally is alive and able to act. */
@@ -457,6 +483,43 @@ export type CombatSpellcasting = Readonly<{
   spells: readonly SpellDefinition[];
   slots: readonly FeatureUses[];
 }>;
+
+/**
+ * An ongoing spell effect on a combatant (#337): the spell, who cast it,
+ * what it does, when it ends (D9) and whether its caster concentrates on
+ * it.
+ */
+export type ActiveEffect = Readonly<{
+  spellId: string;
+  spell: string;
+  casterId: string;
+  buff: Buff;
+  ends: EffectEnds;
+  concentration?: true;
+}>;
+
+/** A die an ongoing effect added to a d20 roll (#337): Bless's d4. */
+export type EffectDie = Readonly<{
+  spell: string;
+  sides: number;
+  roll: number;
+}>;
+
+/**
+ * Why an ongoing effect ended (#337): the start of its caster's next turn,
+ * the fight's end, a rest or a long rest (outside the engine), or the end
+ * of its caster's concentration: another concentration spell, a failed
+ * Constitution save, being incapacitated, or falling.
+ */
+export type EffectEndReason =
+  | "next-turn"
+  | "fight-over"
+  | "rest"
+  | "long-rest"
+  | "new-concentration"
+  | "concentration-broken"
+  | "incapacitated"
+  | "fell";
 
 export type InitiativeRoll = Readonly<{
   combatantId: string;
@@ -560,15 +623,16 @@ export type AttackRoll = Readonly<{
   critical: boolean;
   /** A hit that is critical only because the target is paralysed. */
   paralysedCritical: boolean;
+  /** Dice the attacker's effects added to `total` (#337): Bless's. */
+  effectDice?: readonly EffectDie[];
 }>;
 
 /**
- * An opponent's hit on a combatant that may answer it with Uncanny Dodge
- * (#308): the attack as rolled and chosen, and how far the opponent's turn
- * had got.
+ * An opponent's hit on a combatant that may answer it with its reaction
+ * (#308, #337): Uncanny Dodge or a reaction spell. The attack as rolled and
+ * chosen, and how far the opponent's turn had got.
  */
 export type PendingReaction = Readonly<{
-  reaction: "uncanny-dodge";
   reactorId: string;
   attackerId: string;
   weapon: Weapon;
@@ -703,6 +767,8 @@ export type AttackEvent = Readonly<{
   critical: boolean;
   /** Present when advantage or disadvantage applied; `d20` is the kept die. */
   mode?: RollMode;
+  /** Dice the attacker's effects added to `total` (#337): Bless's. */
+  effectDice?: readonly EffectDie[];
   /** The opponent die that chose this target, when there was a choice. */
   targetRoll?: number;
   /** The opponent die that chose this attack, when it had a choice. */
@@ -765,17 +831,20 @@ export type AttackEvent = Readonly<{
 }>;
 
 /**
- * An opponent's hit that its target may halve with Uncanny Dodge (#308):
- * the attack roll, rolled before the damage, which waits for the answer.
+ * An opponent's hit that its target may answer with its reaction (#308,
+ * #337): the attack roll, rolled before the damage, which waits for the
+ * answer, and the reactions it may answer with, by name.
  */
 export type ReactionOfferedEvent = Readonly<{
   type: "reaction-offered";
-  reaction: "uncanny-dodge";
+  reactions: readonly string[];
   combatantId: string;
   attackerId: string;
   weapon: string;
   d20: number;
   mode?: RollMode;
+  /** Dice the attacker's effects added to `total` (#337). */
+  effectDice?: readonly EffectDie[];
   bonus: number;
   total: number;
   armorClass: number;
@@ -823,6 +892,8 @@ export type SaveEvent = Readonly<
         d20: number;
         /** Present when it rolled with disadvantage (untrained armour). */
         mode?: RollMode;
+        /** Dice its effects added to `total` (#337): Bless's. */
+        effectDice?: readonly EffectDie[];
         total: number;
         autoFail?: never;
       }
@@ -860,6 +931,8 @@ export type SavingThrow = Readonly<
         d20: number;
         /** Present when it rolled with disadvantage (untrained armour). */
         mode?: RollMode;
+        /** Dice its effects added to `total` (#337): Bless's. */
+        effectDice?: readonly EffectDie[];
         total: number;
         autoFail?: never;
       }
@@ -932,6 +1005,42 @@ export type SpellHealingEvent = Readonly<{
   maxHp: number;
 }>;
 
+/**
+ * A buff spell's effect taking hold on its target (#337), and when it ends.
+ */
+export type EffectEvent = Readonly<{
+  type: "effect";
+  casterId: string;
+  targetId: string;
+  spellId: string;
+  spell: string;
+  buff: Buff;
+  ends: EffectEnds;
+  concentration?: true;
+}>;
+
+/** An ongoing effect ending (#337), and why. */
+export type EffectEndedEvent = Readonly<{
+  type: "effect-ended";
+  targetId: string;
+  casterId: string;
+  spellId: string;
+  spell: string;
+  reason: EffectEndReason;
+}>;
+
+/**
+ * A Constitution saving throw to keep concentrating on `spell` after taking
+ * `damage` (#337); a failure ends it.
+ */
+export type ConcentrationEvent = Readonly<{
+  type: "concentration";
+  combatantId: string;
+  spell: string;
+  damage: number;
+  save: SavingThrow;
+}>;
+
 /** A combatant's Wisdom saving throw against its morale DC (#237). */
 export type MoraleEvent = Readonly<{
   type: "morale";
@@ -991,6 +1100,9 @@ export type EncounterEvent =
   | SpellSaveEvent
   | SpellDamageEvent
   | SpellHealingEvent
+  | EffectEvent
+  | EffectEndedEvent
+  | ConcentrationEvent
   | Readonly<{ type: "turn-ended"; combatantId: string }>
   | Readonly<{ type: "defeated"; combatantId: string }>
   | Readonly<{ type: "ended"; outcome: "victory" | "defeat" }>;
@@ -1049,6 +1161,10 @@ export type EncounterRefusalCode =
   | "no-slot"
   | "slot-spent"
   | "healing-target"
+  | "ally-target"
+  | "self-target"
+  | "effect-active"
+  | "wearing-armour"
   | "fight-only"
   | "paralysed"
   | "fled"
@@ -1518,6 +1634,210 @@ function canDodge(state: EncounterState, target: Combatant): boolean {
   );
 }
 
+/**
+ * The reaction spells `target` could cast now (#337): its reaction free,
+ * not incapacitated, and a slot of the spell's level or higher left.
+ */
+function reactionSpells(
+  state: EncounterState,
+  target: Combatant,
+): readonly SpellDefinition[] {
+  if (
+    state.reacted.includes(target.id) ||
+    incapacitatedBy(state, target.id) !== undefined
+  ) {
+    return [];
+  }
+  return (target.spellcasting?.spells ?? []).filter(
+    (spell) =>
+      spell.castingTime === "reaction" &&
+      slotLevels(target, spell).some(
+        (level) =>
+          level !== undefined &&
+          (target.spellcasting!.slots[level - 1]?.uses ?? 0) > 0,
+      ),
+  );
+}
+
+/**
+ * The reactions `target` could answer a hit with now, by name (#308, #337):
+ * Uncanny Dodge and its reaction spells.
+ */
+function reactionsTo(state: EncounterState, target: Combatant): string[] {
+  return [
+    ...(canDodge(state, target) ? ["Uncanny Dodge"] : []),
+    ...reactionSpells(state, target).map(({ name }) => name),
+  ];
+}
+
+/** A combatant's AC without armour, which a base-AC effect replaces (#337). */
+const UNARMOURED_BASE = 10;
+
+/**
+ * `entrant`'s AC with its ongoing effects (#337): a base AC (Mage Armor)
+ * in place of the unarmoured 10, while it wears no armour and if that is
+ * higher, then each AC bonus (Shield of Faith, Shield). An unarmoured AC is
+ * 10 + Dexterity + its shield, so a base AC of 13 adds 3.
+ */
+export function armorClassOf(entrant: Combatant): number {
+  const effects = entrant.effects ?? [];
+  const based = effects.reduce(
+    (best, { buff }) =>
+      buff.kind === "base-armor-class" && entrant.armour !== true
+        ? Math.max(best, entrant.armorClass - UNARMOURED_BASE + buff.base)
+        : best,
+    entrant.armorClass,
+  );
+  return effects.reduce(
+    (total, { buff }) => total + (buff.kind === "armor-class" ? buff.bonus : 0),
+    based,
+  );
+}
+
+/** Rolls the dice `entrant`'s effects add to a d20 roll (#337): Bless's. */
+function rollEffectDice(entrant: Combatant, random: Roller): EffectDie[] {
+  return (entrant.effects ?? []).flatMap(({ spell, buff }) =>
+    buff.kind === "die"
+      ? [{ spell, sides: buff.sides, roll: random.roll(buff.sides) }]
+      : [],
+  );
+}
+
+const effectDiceTotal = (dice: readonly EffectDie[]) =>
+  dice.reduce((total, { roll }) => total + roll, 0);
+
+/**
+ * The effect `casterId` concentrates on (#337), on whichever of
+ * `combatants` holds it.
+ */
+export function concentrationOf(
+  combatants: readonly Combatant[],
+  casterId: string,
+): ActiveEffect | undefined {
+  for (const holder of combatants) {
+    const held = holder.effects?.find(
+      (effect) => effect.casterId === casterId && effect.concentration === true,
+    );
+    if (held !== undefined) {
+      return held;
+    }
+  }
+  return undefined;
+}
+
+/** `holder` with `effects` (#337): none drops the field. */
+export function withEffects(
+  holder: Combatant,
+  effects: readonly ActiveEffect[],
+): Combatant {
+  const { effects: _old, ...rest } = holder;
+  void _old;
+  return effects.length === 0 ? rest : { ...rest, effects };
+}
+
+/** The event of `effect` on `targetId` ending for `reason` (#337). */
+export function effectEnded(
+  targetId: string,
+  effect: ActiveEffect,
+  reason: EffectEndReason,
+): EffectEndedEvent {
+  return {
+    type: "effect-ended",
+    targetId,
+    casterId: effect.casterId,
+    spellId: effect.spellId,
+    spell: effect.spell,
+    reason,
+  };
+}
+
+/**
+ * Ends each effect on any combatant that `ending` picks (#337), with an
+ * event for each saying why.
+ */
+function endEffects(
+  state: EncounterState,
+  ending: (effect: ActiveEffect) => boolean,
+  reason: EffectEndReason,
+  events: EncounterEvent[],
+): EncounterState {
+  if (!state.combatants.some(({ effects }) => effects?.some(ending))) {
+    return state;
+  }
+  return {
+    ...state,
+    combatants: state.combatants.map((holder) => {
+      const effects = holder.effects ?? [];
+      for (const effect of effects.filter(ending)) {
+        events.push(effectEnded(holder.id, effect, reason));
+      }
+      return effects.some(ending)
+        ? withEffects(
+            holder,
+            effects.filter((effect) => !ending(effect)),
+          )
+        : holder;
+    }),
+  };
+}
+
+/** Ends the spell `casterId` concentrates on (#337), saying why. */
+function endConcentration(
+  state: EncounterState,
+  casterId: string,
+  reason: EffectEndReason,
+  events: EncounterEvent[],
+): EncounterState {
+  return endEffects(
+    state,
+    (effect) => effect.casterId === casterId && effect.concentration === true,
+    reason,
+    events,
+  );
+}
+
+/**
+ * The DC of the Constitution save to keep concentrating after `damage`
+ * (SRD 5.2, #337): half the damage, rounded down, at least 10 and at most 30.
+ */
+export function concentrationDc(damage: number): number {
+  return Math.min(30, Math.max(10, Math.floor(damage / 2)));
+}
+
+/**
+ * After `damage` that left `entrantId` standing (#337): if it concentrates
+ * on a spell, its Constitution saving throw to keep it; a failure ends it.
+ */
+function keepConcentration(
+  state: EncounterState,
+  entrantId: string,
+  damage: number,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  const entrant = combatant(state, entrantId);
+  const held = concentrationOf(state.combatants, entrantId);
+  if (damage <= 0 || entrant.hp === 0 || held === undefined) {
+    return state;
+  }
+  const save = savingThrow(
+    state,
+    entrant,
+    { ability: "constitution", dc: concentrationDc(damage) },
+    random,
+  );
+  events.push({
+    type: "concentration",
+    combatantId: entrantId,
+    spell: held.spell,
+    damage,
+    save,
+  });
+  return save.success
+    ? state
+    : endConcentration(state, entrantId, "concentration-broken", events);
+}
+
 type ConditionRule = (typeof CONDITION_RULES)[ConditionKind];
 
 /** The kind of the first condition on `entrantId` whose rule passes `test`. */
@@ -1549,13 +1869,22 @@ export function availableActions(
   state: EncounterState,
   actorId: string,
 ): readonly EncounterActionType[] {
-  // A hit waiting for Uncanny Dodge (#308): its target answers it, and no
-  // one does anything else.
+  // A hit waiting for a reaction (#308, #337): its target answers it with
+  // Uncanny Dodge, a reaction spell or by taking it, and no one does
+  // anything else.
   if (state.pendingReaction !== undefined) {
-    return state.outcome === "ongoing" &&
-      state.pendingReaction.reactorId === actorId
-      ? ["uncanny-dodge", "take-hit"]
-      : [];
+    if (
+      state.outcome !== "ongoing" ||
+      state.pendingReaction.reactorId !== actorId
+    ) {
+      return [];
+    }
+    const reactor = combatant(state, actorId);
+    return [
+      ...(canDodge(state, reactor) ? (["uncanny-dodge"] as const) : []),
+      ...(reactionSpells(state, reactor).length > 0 ? (["cast"] as const) : []),
+      "take-hit",
+    ];
   }
   const actor = currentCombatant(state);
   if (actor?.id !== actorId) {
@@ -1750,7 +2079,10 @@ function checkMorale(
   };
 }
 
-/** Ends the fight once a side is beaten; every condition ends with it. */
+/**
+ * Ends the fight once a side is beaten; every condition ends with it, and
+ * every effect lasting a fight or until a turn (#337).
+ */
 function concludeIfOver(
   state: EncounterState,
   events: EncounterEvent[],
@@ -1771,8 +2103,14 @@ function concludeIfOver(
       reason: "fight-over",
     });
   }
+  const ended = endEffects(
+    state,
+    ({ ends }) => ends === "fight" || ends === "next-turn",
+    "fight-over",
+    events,
+  );
   events.push({ type: "ended", outcome });
-  return { ...state, outcome, conditions: [], fleeing: [] };
+  return { ...ended, outcome, conditions: [], fleeing: [] };
 }
 
 /**
@@ -1899,11 +2237,14 @@ export function savingThrow(
     [],
     entrant.abilityDisadvantages?.[save.ability] ?? [],
   );
-  const total = d20 + bonus;
+  // Bless (#337) adds its die to the save.
+  const effectDice = rollEffectDice(entrant, random);
+  const total = d20 + bonus + effectDiceTotal(effectDice);
   return {
     ...common,
     d20,
     ...(mode === undefined ? {} : { mode }),
+    ...(effectDice.length === 0 ? {} : { effectDice }),
     total,
     success: total >= save.dc,
   };
@@ -1972,7 +2313,7 @@ function applyCondition(
     turns,
     ...repeat,
   });
-  return {
+  const given: EncounterState = {
     ...state,
     conditions: [
       ...state.conditions.filter(
@@ -1989,6 +2330,10 @@ function applyCondition(
       },
     ],
   };
+  // An incapacitated combatant loses its concentration (#337).
+  return incapacitatedBy(given, target.id) === undefined
+    ? given
+    : endConcentration(given, target.id, "incapacitated", events);
 }
 
 /**
@@ -2082,9 +2427,11 @@ function rollAttack(
     origin,
   );
   const { d20, mode } = rollD20(random, advantage, disadvantage);
+  // Bless (#337) adds its die to the attack roll.
+  const effectDice = rollEffectDice(actor, random);
   const natural = d20 >= weapon.criticalRange;
-  const total = d20 + weapon.bonus;
-  const hit = d20 !== 1 && (natural || total >= target.armorClass);
+  const total = d20 + weapon.bonus + effectDiceTotal(effectDice);
+  const hit = d20 !== 1 && (natural || total >= armorClassOf(target));
   // Paralysed: every hit on it is a critical hit.
   const paralysedCritical =
     hit &&
@@ -2101,13 +2448,15 @@ function rollAttack(
     hit,
     critical: natural || paralysedCritical,
     paralysedCritical,
+    ...(effectDice.length === 0 ? {} : { effectDice }),
   };
 }
 
 /**
  * Rolls an attack. An opponent's hit on a combatant that can answer it with
- * Uncanny Dodge (#308) stops before its damage: the fight waits on the
- * answer (`pendingReaction`), and `landAttack` finishes it.
+ * its reaction (Uncanny Dodge, #308, or a reaction spell, #337) stops
+ * before its damage: the fight waits on the answer (`pendingReaction`), and
+ * `landAttack` finishes it.
  */
 function resolveAttack(
   state: EncounterState,
@@ -2118,13 +2467,14 @@ function resolveAttack(
   cunningStrike?: CunningStrikeId,
 ): { state: EncounterState; events: EncounterEvent[] } {
   const roll = rollAttack(state, actor, target, random, origin);
-  if (roll.hit && "progress" in origin && canDodge(state, target)) {
+  const reactions =
+    roll.hit && "progress" in origin ? reactionsTo(state, target) : [];
+  if (reactions.length > 0 && "progress" in origin) {
     const { weapon, targetRoll, weaponRoll, progress } = origin;
     return {
       state: {
         ...state,
         pendingReaction: {
-          reaction: "uncanny-dodge",
           reactorId: target.id,
           attackerId: actor.id,
           weapon,
@@ -2137,15 +2487,18 @@ function resolveAttack(
       events: [
         {
           type: "reaction-offered",
-          reaction: "uncanny-dodge",
+          reactions,
           combatantId: target.id,
           attackerId: actor.id,
           weapon: weapon.name,
           d20: roll.d20,
           ...(roll.mode === undefined ? {} : { mode: roll.mode }),
+          ...(roll.effectDice === undefined
+            ? {}
+            : { effectDice: roll.effectDice }),
           bonus: weapon.bonus,
           total: roll.total,
-          armorClass: target.armorClass,
+          armorClass: armorClassOf(target),
           critical: roll.critical,
           ...(targetRoll === undefined ? {} : { targetRoll }),
           ...(weaponRoll === undefined ? {} : { weaponRoll }),
@@ -2198,7 +2551,15 @@ function landAttack(
   target: Combatant,
   random: Roller,
   origin: AttackOrigin,
-  { d20, mode, total, hit, critical, paralysedCritical }: AttackRoll,
+  {
+    d20,
+    mode,
+    total,
+    hit,
+    critical,
+    paralysedCritical,
+    effectDice,
+  }: AttackRoll,
   landing: Landing,
 ): { state: EncounterState; events: EncounterEvent[] } {
   const light = origin.kind === "light";
@@ -2312,10 +2673,11 @@ function landAttack(
       d20,
       bonus: weapon.bonus,
       total,
-      armorClass: target.armorClass,
+      armorClass: armorClassOf(target),
       hit,
       critical: hit && critical,
       ...(mode === undefined ? {} : { mode }),
+      ...(effectDice === undefined ? {} : { effectDice }),
       ...(chosen?.targetRoll === undefined
         ? {}
         : { targetRoll: chosen.targetRoll }),
@@ -2428,6 +2790,10 @@ function landAttack(
     };
     events.push({ type: "vexed", targetId: target.id, sourceId: actor.id });
   }
+  // Damage that leaves the target standing tests its concentration (#337).
+  if (!defeated) {
+    next = keepConcentration(next, target.id, taken, random, events);
+  }
   // Cunning Strike's effect (#308) follows the damage, on a target still up.
   if (sneak !== undefined && strike !== undefined && !defeated) {
     next = applyCondition(
@@ -2513,13 +2879,15 @@ function fall(
   events: EncounterEvent[],
 ): EncounterState {
   events.push({ type: "defeated", combatantId: target.id });
+  // A fallen caster's concentration ends (#337).
+  const fallen = endConcentration(state, target.id, "fell", events);
   return checkMorale(
     {
-      ...state,
-      conditions: state.conditions.filter(
+      ...fallen,
+      conditions: fallen.conditions.filter(
         ({ targetId }) => targetId !== target.id,
       ),
-      fleeing: state.fleeing.filter((id) => id !== target.id),
+      fleeing: fallen.fleeing.filter((id) => id !== target.id),
     },
     target.side,
     random,
@@ -2539,7 +2907,7 @@ function advance(
 ): EncounterState {
   let next = state;
   let first = startWithCurrent;
-  // A hit waiting for Uncanny Dodge (#308) stops the fight until answered.
+  // A hit waiting for a reaction (#308, #337) stops the fight until answered.
   while (next.outcome === "ongoing" && next.pendingReaction === undefined) {
     if (!first) {
       const ending = combatant(next, next.order[next.turn]!.combatantId);
@@ -2567,6 +2935,13 @@ function advance(
       ),
     };
     events.push({ type: "turn", combatantId: actor.id, round: next.round });
+    // Its effects lasting until its next turn (Shield, #337) end.
+    next = endEffects(
+      next,
+      (effect) => effect.casterId === actor.id && effect.ends === "next-turn",
+      "next-turn",
+      events,
+    );
     // A fleeing combatant leaves, or surrenders, on its turn, unless it
     // can't act.
     if (
@@ -2667,24 +3042,57 @@ function opponentTurn(
 }
 
 /**
- * Answers the hit waiting for Uncanny Dodge (#308): halved with the
- * reactor's reaction, or taken in full. The hit lands, then the opponent's
- * turn and the fight go on until a party combatant is to act, another hit
- * waits, or the fight ends.
+ * How the hit waiting for a reaction is answered (#308, #337): halved with
+ * Uncanny Dodge, a reaction spell cast first, or taken.
+ */
+type ReactionReply =
+  | Readonly<{ kind: "uncanny-dodge" | "take-hit" }>
+  | Readonly<{ kind: "cast"; cast: CastAction }>;
+
+/**
+ * Answers the hit waiting for a reaction (#308, #337): halved with Uncanny
+ * Dodge, taken in full, or met with a reaction spell cast first (Shield),
+ * after which a hit that no longer meets the target's AC misses; a natural
+ * critical hit still hits. The hit lands, then the opponent's turn and the
+ * fight go on until a party combatant is to act, another hit waits, or the
+ * fight ends.
  */
 function answerReaction(
   state: EncounterState,
   pending: PendingReaction,
-  dodged: boolean,
+  reply: ReactionReply,
   random: Roller,
 ): EncounterResult {
   const { pendingReaction: _answered, ...rest } = state;
   void _answered;
   const attacker = combatant(state, pending.attackerId);
-  const target = combatant(state, pending.reactorId);
   const events: EncounterEvent[] = [];
+  const dodged = reply.kind === "uncanny-dodge";
+  const reacting: EncounterState =
+    reply.kind === "take-hit"
+      ? rest
+      : { ...rest, reacted: [...rest.reacted, pending.reactorId] };
+  const answered =
+    reply.kind === "cast"
+      ? castSpell(
+          reacting,
+          combatant(reacting, pending.reactorId),
+          reply.cast,
+          random,
+          events,
+        )
+      : reacting;
+  const target = combatant(answered, pending.reactorId);
+  const natural = pending.roll.d20 >= pending.weapon.criticalRange;
+  const still =
+    pending.roll.paralysedCritical ||
+    natural ||
+    pending.roll.total >= armorClassOf(target);
+  const roll: AttackRoll = still
+    ? pending.roll
+    : { ...pending.roll, hit: false, critical: false };
   const landed = landAttack(
-    dodged ? { ...rest, reacted: [...rest.reacted, target.id] } : rest,
+    answered,
     attacker,
     target,
     random,
@@ -2695,7 +3103,7 @@ function answerReaction(
       weaponRoll: pending.weaponRoll,
       progress: pending.progress,
     },
-    pending.roll,
+    roll,
     { resumed: { dodged } },
   );
   events.push(...landed.events);
@@ -2775,14 +3183,16 @@ export function slotLevels(
 /**
  * Why `actor` can't cast `action`'s spell with its slot now, whatever the
  * target (#336): no spellcasting, a spell it doesn't know or hasn't
- * prepared, a reaction spell, a slot level the spell can't use or the
- * caster has none of, a second slot this turn, or its action or bonus
- * action spent.
+ * prepared, a reaction spell with nothing to react to, a slot level the
+ * spell can't use or the caster has none of, a second slot this turn, or
+ * its action or bonus action spent. `reacting` (#337) casts a reaction
+ * spell in answer to a hit: its slot isn't the turn's one.
  */
 function spellRefusal(
   state: EncounterState,
   actor: Combatant,
   action: Pick<CastAction, "spellId" | "slotLevel">,
+  reacting = false,
 ): EncounterRejection | undefined {
   const casting = actor.spellcasting;
   if (casting === undefined) {
@@ -2795,11 +3205,16 @@ function spellRefusal(
       "You don't know that spell, or haven't prepared it.",
     );
   }
-  if (spell.castingTime === "reaction") {
-    return refused(
-      "reaction-spell",
-      `${spell.name} is cast as a reaction, when its trigger comes; nothing triggers it now.`,
-    );
+  if ((spell.castingTime === "reaction") !== reacting) {
+    return reacting
+      ? refused(
+          "reaction-pending",
+          `${spell.name} isn't cast as a reaction: answer the hit with a reaction, or take it.`,
+        )
+      : refused(
+          "reaction-spell",
+          `${spell.name} is cast as a reaction, when its trigger comes; nothing triggers it now.`,
+        );
   }
   const { slotLevel } = action;
   if (spell.level === 0) {
@@ -2832,7 +3247,7 @@ function spellRefusal(
         `You have no ${ordinal(slotLevel)}-level spell slots left.`,
       );
     }
-    if (state.economy.slotSpent) {
+    if (state.economy.slotSpent && !reacting) {
       return refused(
         "slot-spent",
         "You have already spent a spell slot this turn: only one a turn, so only a cantrip now.",
@@ -2861,39 +3276,72 @@ function spellTarget(
   spell: SpellDefinition,
   targetId: string,
 ): Combatant | EncounterRejection {
-  if (spell.effect.kind !== "healing") {
+  const { effect } = spell;
+  if (effect.kind !== "healing" && effect.kind !== "buff") {
     return opponentOf(state, actor, targetId);
   }
   const target = state.combatants.find(({ id }) => id === targetId);
   if (target === undefined) {
     return refused("no-target", "There is no one here by that name.");
   }
+  const you = target.id === actor.id;
   if (target.side !== actor.side) {
-    return refused(
-      "healing-target",
-      `${spell.name} heals you or an ally, not ${target.name}.`,
-    );
+    return effect.kind === "healing"
+      ? refused(
+          "healing-target",
+          `${spell.name} heals you or an ally, not ${target.name}.`,
+        )
+      : refused(
+          "ally-target",
+          `${spell.name} is cast on you or an ally, not ${target.name}.`,
+        );
   }
   if (isOut(state, target)) {
     return refused("already-defeated", `${target.name} is already defeated.`);
   }
-  return target.hp >= target.maxHp
+  if (effect.kind === "healing") {
+    return target.hp >= target.maxHp
+      ? refused(
+          "full-hp",
+          `${you ? "You are" : `${target.name} is`} unhurt, so ${spell.name} would heal nothing.`,
+        )
+      : target;
+  }
+  // A spell already on its target can't be cast on it again (#337): its
+  // duration can't be renewed or extended.
+  if (target.effects?.some(({ spellId }) => spellId === spell.id) === true) {
+    return refused(
+      "effect-active",
+      `${spell.name} is already on ${you ? "you" : target.name}: it can't be cast again until it ends.`,
+    );
+  }
+  return effect.buff.kind === "base-armor-class" && target.armour === true
     ? refused(
-        "full-hp",
-        `${target.id === actor.id ? "You are" : `${target.name} is`} unhurt, so ${spell.name} would heal nothing.`,
+        "wearing-armour",
+        `${spell.name} works only on someone wearing no armour, and ${you ? "you are" : `${target.name} is`} wearing armour.`,
       )
     : target;
 }
 
-/** Why `actor` can't cast `action` now, or undefined when it can (#336). */
+/**
+ * Why `actor` can't cast `action` now, or undefined when it can (#336). A
+ * reaction spell (#337), `reacting`, is cast on the reactor itself.
+ */
 function castRefusal(
   state: EncounterState,
   actor: Combatant,
   action: Pick<CastAction, "spellId" | "slotLevel" | "targetId">,
+  reacting = false,
 ): EncounterRejection | undefined {
-  const refusal = spellRefusal(state, actor, action);
+  const refusal = spellRefusal(state, actor, action, reacting);
   if (refusal !== undefined) {
     return refusal;
+  }
+  if (reacting && action.targetId !== actor.id) {
+    return refused(
+      "self-target",
+      `${spellOf(actor, action.spellId)!.name} is cast on yourself.`,
+    );
   }
   const target = spellTarget(
     state,
@@ -2992,8 +3440,9 @@ function spellDamage(
 
 /**
  * Casts `action`, which `castRefusal` has accepted (#336): the slot (a
- * levelled spell's) and the action or bonus action are spent, then the
- * effect lands. The fight is not concluded here.
+ * levelled spell's) and the action or bonus action are spent (a reaction
+ * spell's reaction is its answer's, #337), then the effect lands. The
+ * fight is not concluded here.
  */
 function castSpell(
   state: EncounterState,
@@ -3015,13 +3464,18 @@ function castSpell(
     combatants: state.combatants.map((candidate) =>
       candidate.id === actor.id ? caster : candidate,
     ),
-    economy: {
-      ...state.economy,
-      ...(spell.castingTime === "bonus-action"
-        ? { bonusAction: false }
-        : { actions: state.economy.actions - 1 }),
-      slotSpent: state.economy.slotSpent || slotIndex !== undefined,
-    },
+    // A reaction spell (#337) is cast on another's turn: it spends none of
+    // the turn's actions, nor its one slot.
+    economy:
+      spell.castingTime === "reaction"
+        ? state.economy
+        : {
+            ...state.economy,
+            ...(spell.castingTime === "bonus-action"
+              ? { bonusAction: false }
+              : { actions: state.economy.actions - 1 }),
+            slotSpent: state.economy.slotSpent || slotIndex !== undefined,
+          },
   };
   events.push({
     type: "cast",
@@ -3142,13 +3596,44 @@ function castSpell(
         ),
       };
     }
+    case "buff": {
+      // A new concentration spell ends the one before it (#337).
+      const free =
+        effect.concentration === true
+          ? endConcentration(spent, actor.id, "new-concentration", events)
+          : spent;
+      const added: ActiveEffect = {
+        spellId: spell.id,
+        spell: spell.name,
+        casterId: actor.id,
+        buff: effect.buff,
+        ends: effectEnds(effect.duration),
+        ...(effect.concentration === true
+          ? { concentration: true as const }
+          : {}),
+      };
+      events.push({
+        type: "effect",
+        targetId: target.id,
+        ...added,
+      });
+      return {
+        ...free,
+        combatants: free.combatants.map((candidate) =>
+          candidate.id === target.id
+            ? withEffects(candidate, [...(candidate.effects ?? []), added])
+            : candidate,
+        ),
+      };
+    }
   }
 }
 
 /**
- * Casts a spell outside a fight (#336): only a healing spell, with no turn
- * to spend, on the caster itself. The caster afterwards, its slot spent,
- * and the events; or why it can't.
+ * Casts a spell outside a fight (#336): a healing spell, or a buff whose
+ * effect outlasts a fight (#337), with no turn to spend, on the caster
+ * itself. The caster afterwards, its slot spent and its effects, and the
+ * events; or why it can't.
  */
 export function castOutsideFight(
   caster: Combatant,
@@ -3158,19 +3643,58 @@ export function castOutsideFight(
   | Readonly<{ caster: Combatant; events: readonly EncounterEvent[] }>
   | Readonly<{ rejection: EncounterRejection }> {
   const spell = spellOf(caster, action.spellId);
-  if (spell !== undefined && spell.effect.kind !== "healing") {
-    return {
-      rejection: refused(
-        "fight-only",
-        `${spell.name} is cast in a fight: outside one, only healing spells.`,
-      ),
-    };
+  if (spell !== undefined && spell.castingTime !== "reaction") {
+    const { effect } = spell;
+    if (effect.kind === "buff") {
+      const ends = effectEnds(effect.duration);
+      if (ends === "fight" || ends === "next-turn") {
+        return {
+          rejection: refused(
+            "fight-only",
+            `${spell.name} lasts no longer than a fight: cast it in one.`,
+          ),
+        };
+      }
+    } else if (effect.kind !== "healing") {
+      return {
+        rejection: refused(
+          "fight-only",
+          `${spell.name} is cast in a fight: outside one, only healing spells and spells that outlast a fight.`,
+        ),
+      };
+    }
   }
-  // The caster alone, at the start of a turn of its own.
-  const alone: EncounterState = {
-    combatants: [caster],
+  const alone = aloneState(caster);
+  const refusal = castRefusal(alone, caster, action);
+  if (refusal !== undefined) {
+    return { rejection: refusal };
+  }
+  const events: EncounterEvent[] = [];
+  const after = castSpell(alone, caster, action, random, events);
+  return { caster: combatant(after, caster.id), events };
+}
+
+/**
+ * What waits on the hit `pending` (#308, #337): its target's answers.
+ */
+function pendingText(state: EncounterState, pending: PendingReaction): string {
+  const reactor = combatant(state, pending.reactorId);
+  const answers = [
+    ...(canDodge(state, reactor)
+      ? ["use Uncanny Dodge to halve its damage"]
+      : []),
+    ...reactionSpells(state, reactor).map(({ name }) => `cast ${name}`),
+    "take the hit",
+  ];
+  return `${combatant(state, pending.attackerId).name}'s ${pending.weapon.name.toLowerCase()} has hit ${reactor.name}: first ${answers.slice(0, -1).join(", ")}, or ${answers.at(-1)!}.`;
+}
+
+/** `entrant` alone, outside a fight, at the start of a turn of its own. */
+function aloneState(entrant: Combatant): EncounterState {
+  return {
+    combatants: [entrant],
     order: [
-      { combatantId: caster.id, d20: 1, bonus: 0, total: 1, tieBreaks: [] },
+      { combatantId: entrant.id, d20: 1, bonus: 0, total: 1, tieBreaks: [] },
     ],
     round: 1,
     turn: 0,
@@ -3187,13 +3711,27 @@ export function castOutsideFight(
     moraleChecks: [],
     reacted: [],
   };
-  const refusal = castRefusal(alone, caster, action);
-  if (refusal !== undefined) {
-    return { rejection: refusal };
-  }
+}
+
+/**
+ * Damage outside a fight (a trap's, #337) that left `entrant` standing: if
+ * it concentrates on a spell, its Constitution save to keep it. The
+ * combatant afterwards and the events.
+ */
+export function keepConcentrationOutsideFight(
+  entrant: Combatant,
+  damage: number,
+  random: Roller,
+): Readonly<{ entrant: Combatant; events: readonly EncounterEvent[] }> {
   const events: EncounterEvent[] = [];
-  const after = castSpell(alone, caster, action, random, events);
-  return { caster: combatant(after, caster.id), events };
+  const after = keepConcentration(
+    aloneState(entrant),
+    entrant.id,
+    damage,
+    random,
+    events,
+  );
+  return { entrant: combatant(after, entrant.id), events };
 }
 
 /**
@@ -3255,24 +3793,26 @@ export function act(
   if (actor === undefined) {
     return reject("no-combatant", "There is no such combatant in this fight.");
   }
-  // Uncanny Dodge (#308): a hit waiting for its target's answer takes only
-  // that answer; outside its trigger, there is nothing to answer.
+  // A hit waiting for its target's answer (#308, #337) takes only that
+  // answer: Uncanny Dodge, a reaction spell, or taking it. Outside its
+  // trigger, there is nothing to answer.
   const pending = state.pendingReaction;
   const answer = action.type === "uncanny-dodge" || action.type === "take-hit";
   if (pending !== undefined) {
-    const attacker = combatant(state, pending.attackerId);
-    if (!answer || actor.id !== pending.reactorId) {
-      return reject(
-        "reaction-pending",
-        `${attacker.name}'s ${pending.weapon.name.toLowerCase()} has hit ${combatant(state, pending.reactorId).name}: first use Uncanny Dodge to halve its damage, or take the hit.`,
-      );
+    const reacting = actor.id === pending.reactorId;
+    if (reacting && action.type === "cast") {
+      const refusal = castRefusal(state, actor, action, true);
+      return refusal === undefined
+        ? answerReaction(state, pending, { kind: "cast", cast: action }, random)
+        : { state, rejection: refusal };
     }
-    return answerReaction(
-      state,
-      pending,
-      action.type === "uncanny-dodge",
-      random,
-    );
+    if (!answer || !reacting) {
+      return reject("reaction-pending", pendingText(state, pending));
+    }
+    if (action.type === "uncanny-dodge" && !canDodge(state, actor)) {
+      return reject("no-uncanny-dodge", "You don't have Uncanny Dodge.");
+    }
+    return answerReaction(state, pending, { kind: action.type }, random);
   }
   if (answer) {
     return actor.uncannyDodge === true

@@ -527,7 +527,7 @@ test("Uncanny Dodge: a hit waits for the answer, halves the damage, and only onc
   assert.equal(hit.state.pendingReaction.attackerId, "lookout");
   assert.deepEqual(hit.events.at(-1), {
     type: "reaction-offered",
-    reaction: "uncanny-dodge",
+    reactions: ["Uncanny Dodge"],
     combatantId: "pc",
     attackerId: "lookout",
     weapon: "Greatclub",
@@ -935,7 +935,7 @@ test("scripted DM: a waiting hit offers only uncanny_dodge and take_hit, and not
   );
   assert.match(
     FIFTH_DM_SYSTEM_PROMPT,
-    /only uncanny_dodge and take_hit are offered/u,
+    /only its answers are offered: uncanny_dodge with Uncanny Dodge/u,
   );
 });
 

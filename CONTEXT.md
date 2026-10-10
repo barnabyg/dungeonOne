@@ -48,6 +48,16 @@ _Avoid_: Level-0 slot
 What casting a levelled spell spends (#336): one slot of the spell's level or higher, and a higher slot makes the spell stronger. A casting class's definition gives its slots of each level by character level; they are tracked as feature uses, so a long rest restores them and a short rest doesn't. Only one slot may be spent a turn.
 _Avoid_: Mana, Spell points
 
+**Ongoing effect**:
+What a buff spell leaves on its target while it lasts (#337): a die added to attack rolls and saving throws, a bonus to AC or a base AC. Without a clock it ends by its duration's band: with the fight, at the next rest, at a long rest or the adventure's end, or at the start of the caster's next turn.
+_Avoid_: Buff (in player text), Aura
+
+**Concentration**:
+Holding one spell going (#337): a caster concentrates on one at a time, and casting another concentration spell ends the first. Damage calls for a Constitution saving throw to keep it; being incapacitated or falling ends it.
+
+**Reaction spell**:
+A spell cast as a reaction (#337), such as Shield: offered only while an opponent's hit waits for the caster's answer, as Uncanny Dodge is.
+
 **Magic action**:
 The action a spell with a casting time of an action takes in a fight (#336); a bonus-action spell takes the bonus action instead.
 _Avoid_: Cast action

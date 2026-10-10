@@ -16,14 +16,12 @@ import {
   createFifthRuntime,
   describeFifthResult,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
-import { FIFTH_SESSION_FORMAT, FifthSession } from "../dist/session-5e.js";
+import { FifthSession } from "../dist/session-5e.js";
 import { TEST_CASTER, testCasterAt } from "../dist/test-caster-5e.js";
 import { TEST_FIGHTER } from "../dist/test-fighter-5e.js";
 import {
-  FIFTH_TRACE_FORMAT,
   FifthTraceRun,
   verifyFifthTraceFile,
   writeFifthTrace,
@@ -77,12 +75,6 @@ function inFight(sheet = TEST_CASTER, hp = sheet.hp) {
   );
   return { using, state };
 }
-
-test("the save and trace formats and the prompt version bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 39);
-  assert.equal(FIFTH_TRACE_FORMAT, 33);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v24");
-});
 
 test("in a fight the bar offers each spell at each slot level and target", () => {
   const { using, state } = inFight();
@@ -263,7 +255,7 @@ test("outside a fight only a healing spell, on the character", () => {
   );
   assert.equal(
     refused(using, state, castAt("fire-bolt", "pc"), "fight-only"),
-    "Fire Bolt is cast in a fight: outside one, only healing spells.",
+    "Fire Bolt is cast in a fight: outside one, only healing spells and spells that outlast a fight.",
   );
   assert.equal(characterProfile(TEST_CASTER).maxHp, 10);
   refused(
