@@ -76,7 +76,9 @@ const earn = (sheet, xp, id = "cellar") =>
 
 /** Level 3 with its spells chosen, 900 XP. */
 const level3 = (choices) =>
-  withOwedChoices(earn(withOwedChoices(earn(mira(choices), 300)), 600, "barrow"));
+  withOwedChoices(
+    earn(withOwedChoices(earn(mira(choices), 300)), 600, "barrow"),
+  );
 /** Level 4 at 2,700 XP, its choices still owed. */
 const level4 = (choices) => earn(level3(choices), 1800, "crypt");
 /** Level 4 with +1 Wisdom and +1 Constitution, its spells chosen. */
