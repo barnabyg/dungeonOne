@@ -167,19 +167,19 @@ export function fightingStyleUse(
 }
 
 /**
- * How limited feature uses recover: a short rest (#334) restores what each
- * feature's recovery gives. The sheet, the creation preview and the fight
+ * How limited feature uses recover: a short rest (#334) or a long rest
+ * (#335) restores what each feature's recovery gives. The sheet, the creation preview and the fight
  * all show these words.
  */
 export const FEATURE_USES_RULE =
-  "A short rest restores some spent uses, at most twice an adventure; a rest between adventures restores them all and every hit point.";
+  "A short rest restores some spent uses, at most twice an adventure, and a long rest at a rest site restores them all; a rest between adventures restores them all and every hit point.";
 
 /** What a rest restores of a feature's spent uses: a number of them, or all. */
 export type RestRecovery = number | "all";
 
 /**
  * How a feature's spent uses come back (#333), as SRD 5.2 gives it: what a
- * short rest (#334) and a long rest each restore. Every use also comes back
+ * short rest (#334) and a long rest (#335) each restore. Every use also comes back
  * between adventures (FEATURE_USES_RULE).
  */
 export type FeatureRecovery = Readonly<{

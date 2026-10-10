@@ -16,9 +16,9 @@ import { FEATURE_USES_RULE } from "../dist/class-5e.js";
 import { saveFighter, startAdventure } from "./fixtures/browser-journey.mjs";
 
 const RULE =
-  "A short rest restores some spent uses, at most twice an adventure; a rest between adventures restores them all and every hit point.";
-// Long rests come later (#335).
-const STALE = /long rest|stay spent|return after the adventure/i;
+  "A short rest restores some spent uses, at most twice an adventure, and a long rest at a rest site restores them all; a rest between adventures restores them all and every hit point.";
+// Long rests arrived in #335; uses no longer stay spent.
+const STALE = /stay spent|return after the adventure/i;
 
 test("Second Wind and Action Surge state the rule that applies now (#166)", () => {
   assert.equal(FEATURE_USES_RULE, RULE);

@@ -93,7 +93,7 @@ test("the validator rejects malformed modules", () => {
       (m) => (m.recommendedLevels = { min: 2, max: 1 }),
       /recommendedLevels max/,
     ],
-    [(m) => (m.surprise = true), /exactly/],
+    [(m) => (m.surprise = true), /and nothing else/],
     [
       (m) => m.rooms.push(structuredClone(m.rooms[0])),
       /duplicate room id cellar/,
