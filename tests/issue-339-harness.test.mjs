@@ -73,18 +73,14 @@ test("the gate reports the Cleric and never judges it", () => {
     /^The Rat Tunnels \(rat-tunnels\) for the Cleric, reported \(not judged\): the level 1, 5th percentile Cleric playing cautious survived \d+\.\d% of 2 runs with its weakest kit, [a-z-]+ \(mace-and-daggers level 1 \d+\.\d%, club-and-shield level 1 \d+\.\d%\), casting \d+\.\d spells a run, \d+\.\d of them healing\.$/mu,
   );
   // A level-2 module is played for the Cleric since it reaches level 3
-  // (#341), not yet for the Wizard.
+  // (#341), and for the Wizard since #343.
   const higher = gateModule(goblinBand, { seeds: [0] });
   assert.deepEqual(
     higher.reported.map(({ classId, levels }) => [classId, levels]),
     [
       ["cleric", [2]],
-      ["wizard", []],
+      ["wizard", [2]],
     ],
-  );
-  assert.match(
-    renderModuleGateResult(goblinBand, higher),
-    /for the Wizard, not reported: the Wizard reaches only level 1 yet, and the module is for level 2\.$/mu,
   );
   // Leaving the report out changes no verdict.
   const plain = gateModule(ratTunnels, { seeds: [0, 1], reportClasses: false });

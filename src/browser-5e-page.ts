@@ -489,6 +489,9 @@ function profileNodes(abilities, profile, hp, carrying) {
 /** A spell by id, from the classes' lists (#339). */
 const spellInfo = (id) => library.classes.flatMap(({ spellcasting }) => spellcasting ? spellcasting.spells : []).find((spell) => spell.id === id) || { id, name: id, summary: "" };
 
+/** A skill's name by id (#343), from the classes' skill choices. */
+const skillName = (id) => (library.classes.flatMap(({ skills }) => skills).find((skill) => skill.id === id) || { name: id }).name;
+
 /**
  * A caster's spellcasting (#339): its spell attack bonus and save DC, its
  * slots, and its cantrips and prepared spells, each with what it does.
@@ -568,6 +571,104 @@ function learnNodes(entry) {
   controls.append(button);
   update();
   return [heading, group, controls];
+}
+
+// The picks being made on a sheet (#343), by character and kind.
+const picks = {};
+
+/**
+ * A pick a new level asks for on the sheet (#343), between adventures: a
+ * level-up card with a tick for each option, at most owed of them, and a
+ * button that saves them through its path as its field.
+ */
+function pickNodes(entry, pick) {
+  const key = entry.sheet.id + ":" + pick.kind;
+  if (!picks[key]) picks[key] = [];
+  const chosen = () => picks[key];
+  const card = make("section", undefined, "level-up level-pick");
+  card.id = pick.kind + "-card";
+  const heading = make("h3", pick.title);
+  heading.id = pick.kind + "-title";
+  card.setAttribute("aria-labelledby", heading.id);
+  const group = make("fieldset");
+  group.id = pick.kind + "-choices";
+  group.append(make("legend", pick.legend));
+  const fields = make("div", undefined, "checks");
+  const button = make("button", pick.label, "secondary");
+  button.type = "button";
+  button.id = "save-" + pick.kind;
+  const error = make("p", "", "error");
+  error.id = pick.kind + "-error";
+  error.setAttribute("role", "alert");
+  const update = () => {
+    for (const box of fields.querySelectorAll("input")) box.disabled = !box.checked && chosen().length >= pick.owed;
+    button.disabled = isBusy(button) || chosen().length !== pick.owed;
+  };
+  fields.append(...pick.options.map((option) => spellBox(pick.kind + "-" + option.id, option, chosen().includes(option.id), (event) => {
+    picks[key] = event.target.checked ? [...chosen(), option.id] : chosen().filter((id) => id !== option.id);
+    update();
+  })));
+  button.addEventListener("click", async () => {
+    if (isBusy(button)) return;
+    setBusy(button, pick.busy);
+    try {
+      library = await request(pick.path, { revision: library.revision, characterId: entry.sheet.id, [pick.field]: chosen() });
+      delete picks[key];
+      clearBusy(button);
+      openSheet(entry.sheet.id);
+      feedback(pick.done);
+    } catch (failure) {
+      clearBusy(button);
+      element(error.id).textContent = failure.message;
+      update();
+    }
+  });
+  group.append(fields, error);
+  const controls = make("div", undefined, "controls");
+  controls.append(button);
+  card.append(heading, group, controls);
+  update();
+  return [card];
+}
+
+/**
+ * A new level's choices a Wizard makes on the sheet (#343): Scholar's
+ * Expertise, then the spells to write into its spellbook.
+ */
+function levelPickNodes(entry) {
+  if (entry.defeated || entry.session) return [];
+  const name = entry.sheet.name;
+  const nodes = [];
+  if (entry.expertise) {
+    nodes.push(...pickNodes(entry, {
+      kind: "expertise",
+      title: "Level " + entry.sheet.level + ": Scholar",
+      legend: "Choose a skill for Expertise: your proficiency bonus is doubled for checks with it.",
+      owed: entry.expertise.owed,
+      options: entry.expertise.options.map(({ id, name: skill }) => ({ id, name: skill, summary: "" })),
+      path: "/api/5e/characters/choose-expertise",
+      field: "skills",
+      label: "Choose Expertise",
+      busy: "Choosing…",
+      done: name + " has Expertise now.",
+    }));
+  }
+  const owed = entry.spells && entry.spells.spellbookOwed;
+  if (owed) {
+    nodes.push(...pickNodes(entry, {
+      kind: "spellbook",
+      title: "Level " + entry.sheet.level + ": write " + (owed === 1 ? "a spell" : owed + " spells") + " into your spellbook",
+      legend: "Choose " + (owed === 1 ? "one Wizard spell" : owed + " Wizard spells") + " of a level you have slots for. You prepare spells only from your spellbook.",
+      owed,
+      options: entry.spells.writable,
+      path: "/api/5e/characters/write-spellbook",
+      field: "spells",
+      label: "Write into spellbook",
+      busy: "Writing…",
+      done: name + " wrote " + (owed === 1 ? "a new spell" : owed + " new spells") + " into the spellbook.",
+    }));
+  }
+  return nodes;
 }
 
 // The prepared spells being chosen on a sheet (#339), by character.
@@ -657,7 +758,7 @@ function openSheet(id) {
   const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
-  element("sheet-body").replaceChildren(summary, ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...learnNodes(entry), ...prepareNodes(entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
+  element("sheet-body").replaceChildren(summary, ...levelPickNodes(entry), ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...learnNodes(entry), ...prepareNodes(entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
@@ -707,11 +808,16 @@ function renderAdventureChoices(entry) {
     choices.replaceChildren(make("p", "Choose " + entry.sheet.name + "'s level " + entry.levelChoice.levelUp.to + " " + choiceWords(entry.levelChoice.levelUp) + " above before starting another adventure.", "hint level-choice-notice"));
     return;
   }
-  // A new level's cantrips (#342) and spells (#341) are chosen first.
-  if (entry.spells && (entry.spells.owed || entry.spells.cantripsOwed) && !entry.session) {
-    const learn = entry.spells.cantripsOwed ? ["learn " + entry.spells.cantripsOwed + " more " + (entry.spells.cantripsOwed === 1 ? "cantrip" : "cantrips")] : [];
-    const prepare = entry.spells.owed ? ["prepare " + entry.spells.owed + " more " + (entry.spells.owed === 1 ? "spell" : "spells")] : [];
-    const words = [...learn, ...prepare].join(" and ");
+  // A new level's Expertise (#343), cantrips (#342), spellbook spells
+  // (#343) and spells (#341) are chosen first.
+  const spells = entry.spells || {};
+  if ((entry.expertise || spells.owed || spells.cantripsOwed || spells.spellbookOwed) && !entry.session) {
+    const expertise = entry.expertise ? ["choose Scholar's Expertise"] : [];
+    const learn = spells.cantripsOwed ? ["learn " + spells.cantripsOwed + " more " + (spells.cantripsOwed === 1 ? "cantrip" : "cantrips")] : [];
+    const write = spells.spellbookOwed ? ["write " + spells.spellbookOwed + " more " + (spells.spellbookOwed === 1 ? "spell" : "spells") + " into the spellbook"] : [];
+    const prepare = spells.owed ? ["prepare " + spells.owed + " more " + (spells.owed === 1 ? "spell" : "spells")] : [];
+    const owed = [...expertise, ...learn, ...write, ...prepare];
+    const words = owed.length === 1 ? owed[0] : owed.slice(0, -1).join(", ") + " and " + owed.at(-1);
     choices.replaceChildren(make("p", words[0].toUpperCase() + words.slice(1) + " above before starting another adventure.", "hint level-choice-notice"));
     return;
   }
@@ -975,6 +1081,12 @@ function rewardNodes(rewards, name) {
     // the new slot level's spells (each opening to what it does) and the
     // spells to prepare on the sheet before the next adventure.
     if (up.spells) card.append(...levelUpSpellNodes(up.spells, name));
+    // Scholar's Expertise (#343), chosen on the sheet.
+    if (up.expertise) {
+      const expertise = make("p", "Scholar: choose Expertise in " + up.expertise.options.map(skillName).join(" or ") + " on " + name + "'s sheet before the next adventure.");
+      expertise.id = "level-up-expertise";
+      card.append(expertise);
+    }
     // Level 4 (#286): the choices wait on the sheet, and block the next adventure.
     if (up.choices.length) {
       const owed = make("p", "Choose " + (up.choices.includes("weapon-mastery") ? "an Ability Score Improvement and a fourth weapon mastery" : "an Ability Score Improvement") + " on " + name + "'s sheet before the next adventure.");
@@ -1018,6 +1130,11 @@ function levelUpSpellNodes(spells, name) {
     const learn = make("p", "Learn " + spells.cantripsOwed + " more " + (spells.cantripsOwed === 1 ? "cantrip" : "cantrips") + " on " + name + "'s sheet before the next adventure.");
     learn.id = "level-up-learn";
     nodes.push(learn);
+  }
+  // A Wizard's spellbook (#343): the spells it may write, each opening to
+  // what it does, written on the sheet.
+  if (spells.spellbookOwed) {
+    nodes.push(...list("Write " + spells.spellbookOwed + " of these into your spellbook on " + name + "'s sheet before the next adventure:", "level-up-spellbook", spells.spellbookOptions));
   }
   if (spells.owed) {
     const owed = make("p", "Prepare " + spells.owed + " more " + (spells.owed === 1 ? "spell" : "spells") + " on " + name + "'s sheet before the next adventure.");
@@ -1201,6 +1318,10 @@ function compactRoll(group) {
     case "wandering":
       // A rest's d100 against the wandering encounter's chance (#335).
       node.append(...diceChips(group), " vs " + group.dc + " or less");
+      break;
+    case "duplicates":
+      // Mirror Image's d6s (#343): a 3 or higher strikes a duplicate.
+      node.append("Mirror Image ", ...diceChips(group, ", "), group.outcome === "success" ? ": a duplicate takes it" : ": no duplicate");
       break;
   }
   return node;

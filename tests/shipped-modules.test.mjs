@@ -70,9 +70,9 @@ const recorded = JSON.parse(await readFile(GATE_VERDICTS_PATH, "utf8"));
 const SURVIVAL_SLACK = 0.03;
 /**
  * The reference CPU seconds the gate may take over every shipped module:
- * 100 from #342 (owner's choice under D12), 90 before.
+ * 110 from #343, 100 from #342 (owner's choices under D12), 90 before.
  */
-const GATE_BUDGET_SECONDS = 100;
+const GATE_BUDGET_SECONDS = 110;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);

@@ -77,6 +77,10 @@ import {
   spellCounts,
   spellsOwed,
   learnableCantrips,
+  spellbookOptions,
+  spellbookOwed,
+  expertiseOptions,
+  expertiseOwed,
   projectCreation,
   projectLevelChoice,
   settleCharacter,
@@ -347,9 +351,27 @@ function libraryView(
                 alwaysPrepared: (
                   characterProfile(sheet).spellcasting?.alwaysPrepared ?? []
                 ).map(spellView),
+                // A Wizard's spellbook (#340), and the spells a new level
+                // lets it write into it (#343).
                 ...(sheet.spellbook === undefined
                   ? {}
-                  : { spellbook: sheet.spellbook.map(spellView) }),
+                  : {
+                      spellbook: sheet.spellbook.map(spellView),
+                      spellbookOwed: spellbookOwed(sheet),
+                      writable: spellbookOptions(sheet).map(spellView),
+                    }),
+              },
+            }),
+        // Scholar's Expertise a new level asks for (#343).
+        ...(expertiseOwed(sheet) === 0
+          ? {}
+          : {
+              expertise: {
+                owed: expertiseOwed(sheet),
+                options: expertiseOptions(sheet).map((id) => ({
+                  id,
+                  name: SKILLS[id].name,
+                })),
               },
             }),
         ...(session === undefined ? {} : { session }),
@@ -1053,6 +1075,42 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
             library.learnCantrips(
               body.characterId as string,
               body.cantrips,
+              body.revision as string,
+            ),
+          ),
+        );
+      case "/api/5e/characters/write-spellbook":
+        // A new level's spellbook spells (#343), written between adventures.
+        if (
+          !hasExactKeys(body, ["revision", "characterId", "spells"]) ||
+          typeof body.revision !== "string" ||
+          typeof body.characterId !== "string"
+        ) {
+          throw new Error("Invalid spellbook request.");
+        }
+        return view(
+          await serialized(() =>
+            library.addToSpellbook(
+              body.characterId as string,
+              body.spells,
+              body.revision as string,
+            ),
+          ),
+        );
+      case "/api/5e/characters/choose-expertise":
+        // Scholar's Expertise (#343), chosen between adventures.
+        if (
+          !hasExactKeys(body, ["revision", "characterId", "skills"]) ||
+          typeof body.revision !== "string" ||
+          typeof body.characterId !== "string"
+        ) {
+          throw new Error("Invalid Expertise request.");
+        }
+        return view(
+          await serialized(() =>
+            library.chooseExpertise(
+              body.characterId as string,
+              body.skills,
               body.revision as string,
             ),
           ),
