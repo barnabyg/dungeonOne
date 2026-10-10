@@ -516,6 +516,60 @@ function spellcastingNodes(casting) {
   return [heading, numbers, ...list("Cantrips", "sheet-cantrips", casting.cantrips), ...(casting.spellbook ? list("Spellbook", "sheet-spellbook", casting.spellbook) : []), ...list("Prepared spells", "sheet-prepared", casting.prepared), ...(casting.alwaysPrepared ? list("Always prepared", "sheet-always-prepared", casting.alwaysPrepared) : [])];
 }
 
+// The cantrips being learned on a sheet (#342), by character.
+let learning;
+
+/**
+ * Learning a new level's cantrips (#342): between adventures, while some
+ * are owed, a tick for each cantrip on the class's list not yet known and
+ * Learn.
+ */
+function learnNodes(entry) {
+  if (!entry.spells || entry.defeated || entry.session || !entry.spells.cantripsOwed) return [];
+  const owed = entry.spells.cantripsOwed;
+  if (!learning || learning.characterId !== entry.sheet.id) learning = { characterId: entry.sheet.id, cantrips: [] };
+  const heading = make("h3", "Learn " + (owed === 1 ? "a cantrip" : owed + " cantrips"));
+  heading.id = "learn-title";
+  const group = make("fieldset");
+  group.id = "learn-cantrips";
+  group.append(make("legend", "Level " + entry.sheet.level + " lets you learn " + (owed === 1 ? "a new cantrip: choose it" : owed + " new cantrips: choose them") + " before the next adventure."));
+  const fields = make("div", undefined, "checks");
+  const button = make("button", owed === 1 ? "Learn cantrip" : "Learn cantrips", "secondary");
+  button.type = "button";
+  button.id = "save-cantrips";
+  const error = make("p", "", "error");
+  error.id = "learn-error";
+  error.setAttribute("role", "alert");
+  const update = () => {
+    for (const box of fields.querySelectorAll("input")) box.disabled = !box.checked && learning.cantrips.length >= owed;
+    button.disabled = isBusy(button) || learning.cantrips.length !== owed;
+  };
+  fields.append(...entry.spells.learnable.map((spell) => spellBox("learn-" + spell.id, spell, learning.cantrips.includes(spell.id), (event) => {
+    learning.cantrips = event.target.checked ? [...learning.cantrips, spell.id] : learning.cantrips.filter((id) => id !== spell.id);
+    update();
+  })));
+  button.addEventListener("click", async () => {
+    if (isBusy(button)) return;
+    setBusy(button, "Learning…");
+    try {
+      library = await request("/api/5e/characters/learn-cantrips", { revision: library.revision, characterId: entry.sheet.id, cantrips: learning.cantrips });
+      learning = undefined;
+      clearBusy(button);
+      openSheet(entry.sheet.id);
+      feedback(entry.sheet.name + " learned a new cantrip.");
+    } catch (error) {
+      clearBusy(button);
+      element("learn-error").textContent = error.message;
+      update();
+    }
+  });
+  group.append(fields, error);
+  const controls = make("div", undefined, "controls");
+  controls.append(button);
+  update();
+  return [heading, group, controls];
+}
+
 // The prepared spells being chosen on a sheet (#339), by character.
 let preparing;
 
@@ -603,7 +657,7 @@ function openSheet(id) {
   const summary = make("p", "Level " + sheet.level + " " + entry.className + " · " + sheet.xp + " XP" + (profile.nextLevelXp === undefined ? "" : " (level " + (sheet.level + 1) + " at " + profile.nextLevelXp + ")") + " · " + profile.equipment.map(({ name }) => name).join(", ") + (stowed.length ? " · Carried: " + stowed.join(", ") : "") + (ammunition.length ? " · Ammunition: " + ammunition.join(", ") : ""), "hint");
   const rolls = make("p", "Rolled: " + library.abilities.map((ability) => titleCase(ability) + " " + sheet.abilityRolls[ability].join(", ")).join("; ") + ". Background: " + Object.entries(sheet.backgroundIncrease).map(([ability, amount]) => "+" + amount + " " + titleCase(ability)).join(", ") + "." + (sheet.abilityScoreImprovements.length ? " Ability Score Improvement: " + sheet.abilityScoreImprovements.map(increaseText).join("; ") + "." : ""), "hint");
   renderLevelChoice(entry);
-  element("sheet-body").replaceChildren(summary, ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...prepareNodes(entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
+  element("sheet-body").replaceChildren(summary, ...(profile.fightingStyle ? [styleUseNode(profile.fightingStyle)] : []), ...profileNodes(sheet.abilities, profile, sheet.hp, carrying), ...learnNodes(entry), ...prepareNodes(entry), ...treasureNodes(treasure), ...purseNodes(sheet.purse, purse), rolls);
   renderAdventureChoices(entry);
   show("sheet", sheet.name, [{ label: sheet.name }]);
   element("sheet-name").focus();
@@ -653,9 +707,12 @@ function renderAdventureChoices(entry) {
     choices.replaceChildren(make("p", "Choose " + entry.sheet.name + "'s level " + entry.levelChoice.levelUp.to + " " + choiceWords(entry.levelChoice.levelUp) + " above before starting another adventure.", "hint level-choice-notice"));
     return;
   }
-  // A new level's spells (#341) are prepared first.
-  if (entry.spells && entry.spells.owed && !entry.session) {
-    choices.replaceChildren(make("p", "Prepare " + entry.spells.owed + " more " + (entry.spells.owed === 1 ? "spell" : "spells") + " above before starting another adventure.", "hint level-choice-notice"));
+  // A new level's cantrips (#342) and spells (#341) are chosen first.
+  if (entry.spells && (entry.spells.owed || entry.spells.cantripsOwed) && !entry.session) {
+    const learn = entry.spells.cantripsOwed ? ["learn " + entry.spells.cantripsOwed + " more " + (entry.spells.cantripsOwed === 1 ? "cantrip" : "cantrips")] : [];
+    const prepare = entry.spells.owed ? ["prepare " + entry.spells.owed + " more " + (entry.spells.owed === 1 ? "spell" : "spells")] : [];
+    const words = [...learn, ...prepare].join(" and ");
+    choices.replaceChildren(make("p", words[0].toUpperCase() + words.slice(1) + " above before starting another adventure.", "hint level-choice-notice"));
     return;
   }
   if (entry.session) {
@@ -935,7 +992,9 @@ const slotWords = (slots) => slots.map((count, index) => count + " " + ORDINALS[
 /** The level-up card's spell lines (#341), from the server's level-up view. */
 function levelUpSpellNodes(spells, name) {
   const nodes = [];
-  const slots = make("p", "Spell slots: " + slotWords(spells.slots.before) + " → " + slotWords(spells.slots.after) + ". Prepared spells: " + spells.prepared.before + " → " + spells.prepared.after + ".");
+  // A new cantrip (#342) shows beside the prepared count.
+  const cantrips = spells.cantrips.after > spells.cantrips.before ? " Cantrips: " + spells.cantrips.before + " → " + spells.cantrips.after + "." : "";
+  const slots = make("p", "Spell slots: " + slotWords(spells.slots.before) + " → " + slotWords(spells.slots.after) + ". Prepared spells: " + spells.prepared.before + " → " + spells.prepared.after + "." + cantrips);
   slots.id = "level-up-slots";
   nodes.push(slots);
   const list = (title, id, ids) => {
@@ -955,6 +1014,11 @@ function levelUpSpellNodes(spells, name) {
   };
   if (spells.alwaysPrepared.length) nodes.push(...list("Always prepared, beside the spells you choose:", "level-up-always", spells.alwaysPrepared));
   if (spells.newSpells.length) nodes.push(...list("New spells you may prepare:", "level-up-spells", spells.newSpells));
+  if (spells.cantripsOwed) {
+    const learn = make("p", "Learn " + spells.cantripsOwed + " more " + (spells.cantripsOwed === 1 ? "cantrip" : "cantrips") + " on " + name + "'s sheet before the next adventure.");
+    learn.id = "level-up-learn";
+    nodes.push(learn);
+  }
   if (spells.owed) {
     const owed = make("p", "Prepare " + spells.owed + " more " + (spells.owed === 1 ? "spell" : "spells") + " on " + name + "'s sheet before the next adventure.");
     owed.id = "level-up-prepare";
@@ -1835,8 +1899,9 @@ async function leaveAdventure() {
 }
 
 const ORDINALS = ["", "1st", "2nd", "3rd", "4th", "5th"];
-// Resistance's damage type (#339) is part of the choice.
-const castKey = ({ spell }) => spell.id + ":" + (spell.slotLevel || "") + ":" + (spell.damageType || "");
+// Resistance's damage type (#339) and Bestow Curse's curse (#342) are part
+// of the choice.
+const castKey = ({ spell }) => spell.id + ":" + (spell.slotLevel || "") + ":" + (spell.damageType || "") + ":" + (spell.curse || "");
 
 /**
  * Casting (#337): a choice of spell, each at each slot level it may spend
@@ -1874,7 +1939,9 @@ function castPanel(casts) {
   for (const [key, spell] of spells) {
     // Resistance's resisted type (#339); Chromatic Orb's dealt type (#340).
     const typed = !spell.damageType ? "" : spell.damageTypeUse === "dealt" ? " of " + spell.damageType : " against " + spell.damageType;
-    const choice = make("option", spell.name + typed + (spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
+    // Bestow Curse's curse (#342).
+    const cursed = spell.curseName ? ": " + spell.curseName : "";
+    const choice = make("option", spell.name + typed + cursed + (spell.level === 0 ? " (cantrip)" : " (" + ORDINALS[spell.slotLevel] + "-level slot)"));
     choice.value = key;
     choice.selected = key === castChoice;
     spellSelect.append(choice);
@@ -2003,7 +2070,7 @@ function areaTargets(area) {
 }
 
 async function castSpell(spell, targetIds) {
-  await act("/api/5e/session/cast", { spellId: spell.id, slotLevel: spell.slotLevel || null, targetIds, ...(spell.damageType ? { damageType: spell.damageType } : {}) }, "button.act[data-action=cast]", ACTIONS.cast.busy + " " + spell.name + "…");
+  await act("/api/5e/session/cast", { spellId: spell.id, slotLevel: spell.slotLevel || null, targetIds, ...(spell.damageType ? { damageType: spell.damageType } : {}), ...(spell.curse ? { curse: spell.curse } : {}) }, "button.act[data-action=cast]", ACTIONS.cast.busy + " " + spell.name + "…");
   keepFocus("cast", "");
 }
 
