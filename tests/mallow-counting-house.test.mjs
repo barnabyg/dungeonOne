@@ -1,10 +1,11 @@
-// #311: The Counting-House on Mallow Quay, the increment 15 release module, as
-// the owner approved it: Snikk's toll at the arch (a reaction with a parley,
-// a toll and trade), a goblin lurking in the counting hall, a bugbear
+// #311: The Counting-House on Mallow Quay, the increment 15 release module,
+// as the owner approved it: Snikk's toll at the arch (a reaction with a
+// parley, a toll and trade), a goblin lurking in the counting hall, a bugbear
 // lurking in the records loft with the strongroom key, a scything blade on
 // the gallery stair, and the strongroom's iron door, opened by its key,
 // picked with thieves' tools or broken open. Journeys reach its endings;
-// shipped-modules.test.mjs checks it qualifies at its declared difficulty.
+// shipped-modules.test.mjs checks it qualifies at its declared difficulty,
+// with the gate figures its proposal quotes.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
@@ -16,7 +17,7 @@ import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
-import { gateModule, requiredPath } from "../dist/balance-5e.js";
+import { requiredPath } from "../dist/balance-5e.js";
 import { startFifthBrowserServer } from "../dist/browser-5e-server.js";
 import { startSavedAdventureOverHttp } from "../dist/dm-evaluation-5e.js";
 import {
@@ -234,31 +235,6 @@ test("its treasure is 84% of the level-4 budget, the carried loot rolled from it
   // 9 sp and a 25 gp trinket.
   assert.equal(findableValue(quay), 5000 + 600 + 5000 + 37500 + 4 + 90 + 2500);
   assert.equal(treasureBudget(4), 60000);
-});
-
-test("the gate qualifies it as Medium for both classes on seeded and always-failing checks", () => {
-  const gate = gateModule(quay);
-  assert.equal(gate.qualified, true);
-  const [fighter, rogue] = gate.classes.map(({ result }) => result.verdict);
-  // The Fighter is 5.5 points over Medium's 85% with its slack (83.0% and
-  // 81.5% when every check fails until short rests, #334; 81.5% until the
-  // Champion's initiative advantage, #315).
-  for (const [verdict, kit, rate, failing] of [
-    [fighter, "mace", 0.905, 0.905],
-    [rogue, "shortsword", 0.975, 0.975],
-  ]) {
-    assert.deepEqual(
-      [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
-      [3, kit, rate],
-    );
-    assert.deepEqual(
-      [verdict.alwaysFail.level, verdict.alwaysFail.rate],
-      [3, failing],
-    );
-    assert.deepEqual(verdict.oneHitKill.overCap, []);
-    // Every fight's XP and the ending's 400.
-    assert.equal(verdict.xp.available, 200 + 50 + 200 + 400);
-  }
 });
 
 // The checks and reactions, with scripted dice. testFighterAt(3): Athletics

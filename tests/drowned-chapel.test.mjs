@@ -2,14 +2,14 @@
 // it: the drowned sexton, a Zombie, guards the chapel's silver in a flooded
 // nave, and the vestry beyond holds the parish alms. Journeys reach its
 // endings; shipped-modules.test.mjs checks it qualifies at its declared
-// difficulty.
+// difficulty, with the gate figures its proposal quotes.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
-import { gateAdventure, requiredPath } from "../dist/balance-5e.js";
+import { requiredPath } from "../dist/balance-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { firstJourney, xpOf } from "./fixtures/module-journey.mjs";
@@ -85,28 +85,6 @@ test("its treasure is 94% of the level-3 budget", () => {
   // In copper: 425 gp of 450 gp.
   assert.equal(findableValue(chapel), 42500);
   assert.equal(treasureBudget(3), 45000);
-});
-
-test("the gate qualifies it as Easy with the figures the proposal quotes", () => {
-  const result = gateAdventure(chapel);
-  assert.equal(result.ok, true);
-  const { verdict } = result;
-  assert.equal(verdict.qualified, true);
-  // 1 point over the 98% the #252 slack rule asks of an Easy module (1.5
-  // until the Champion's initiative advantage, #315, moved the dice).
-  assert.deepEqual(
-    [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
-    [3, "two-daggers", 0.99],
-  );
-  assert.deepEqual(verdict.oneHitKill.overCap, []);
-  assert.deepEqual(
-    verdict.oneHitKill.enemies.map(({ opponentId, chance }) => [
-      opponentId,
-      Math.round(chance * 1000) / 10,
-    ]),
-    [["drowned-sexton", 0.8]],
-  );
-  assert.equal(verdict.xp.available, 350);
 });
 
 const FULL_CLEAR = [

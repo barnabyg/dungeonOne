@@ -2,14 +2,14 @@
 // it: a lone Bandit in a moorland bothy with the market's takings, and a
 // lean-to behind it with a potion and a bloodstone. Journeys reach its
 // endings; shipped-modules.test.mjs checks it qualifies at its declared
-// difficulty.
+// difficulty, with the gate figures its proposal quotes.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
   findableValue,
   loadBuiltInFifthAdventures,
 } from "../dist/adventure-5e.js";
-import { gateAdventure, requiredPath } from "../dist/balance-5e.js";
+import { requiredPath } from "../dist/balance-5e.js";
 import { testFighterAt } from "../dist/test-fighter-5e.js";
 import { treasureBudget } from "../dist/treasure-5e.js";
 import { firstJourney, xpOf } from "./fixtures/module-journey.mjs";
@@ -83,26 +83,6 @@ test("its treasure is 95% of the level-2 budget, the bandit's coins rolled from 
   // In copper: 286 gp 1 sp of 300 gp.
   assert.equal(findableValue(bothy), 28610);
   assert.equal(treasureBudget(2), 30000);
-});
-
-test("the gate qualifies it as Easy with the figures the proposal quotes", () => {
-  const result = gateAdventure(bothy);
-  assert.equal(result.ok, true);
-  const { verdict } = result;
-  assert.equal(verdict.qualified, true);
-  assert.deepEqual(
-    [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
-    [2, "mace", 1],
-  );
-  assert.deepEqual(verdict.oneHitKill.overCap, []);
-  assert.deepEqual(
-    verdict.oneHitKill.enemies.map(({ opponentId, chance }) => [
-      opponentId,
-      Math.round(chance * 1000) / 10,
-    ]),
-    [["bothy-bandit", 2.9]],
-  );
-  assert.equal(verdict.xp.available, 225);
 });
 
 const FULL_CLEAR = [

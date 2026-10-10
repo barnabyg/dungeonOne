@@ -460,6 +460,11 @@ These are for development, not play.
   chances and each module's balance-gate verdict for both classes, which plays
   every check policy. See
   [the rules document](docs/character-rules.md#balance-harness).
+- **Recorded gate verdicts.** `npm.cmd run gate:verdicts` gates every built-in
+  module for both classes and records the verdicts in
+  `adventures/5e/gate-verdicts.json`, which the browser reads at startup in
+  place of gating them. Run it after changing a shipped module, or when
+  `npm.cmd test` reports the file out of date.
 - **Career simulation.** `npm.cmd run career -- [--seeds <count>]
 [--required-level <level>] [--class <class>] [--json] [module.json ...]` plays
   a new level-1 Fighter (or Rogue, with `--class rogue`) through the built-in modules (or the files named) in the browser's
@@ -580,8 +585,21 @@ verification.
   terminal and cannot change gate order, gate outcomes, or the final exit
   status.
 
-Focused tests can be run with `npm.cmd test -- --test-name-pattern "pattern"`;
-they do not start the dashboard.
+`npm.cmd test` runs every test file, as verify does. To run fewer while you
+work (none of these start the dashboard):
+
+- `npm.cmd test -- tests/x.test.mjs ...` runs those files, and
+  `--test-name-pattern "pattern"` only the tests it matches;
+- `npm.cmd test -- --tier quick` runs the engine, rules and server tests on
+  fixture modules, `--tier browser` the browser and launcher tests, and
+  `--tier content` the tests of the shipped modules (tiers combine:
+  `--tier quick,browser`);
+- `npm.cmd test -- --modules <id,id>` runs the content tests, gating only those
+  shipped modules;
+- `npm.cmd test -- --changed [<base>]` runs the tiers the changes since `base`
+  (by default `origin/main`) call for, or every test file when it can't tell.
+
+`AGENTS.md` says which to run for which change.
 
 ## SRD 5.2 attribution
 

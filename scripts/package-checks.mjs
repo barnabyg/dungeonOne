@@ -56,8 +56,8 @@ const packOutput = run(["pack", "--dry-run", "--json"], true);
 const [manifest] = JSON.parse(packOutput);
 const packagedFiles = new Set(manifest.files.map((entry) => entry.path));
 
-// 5e adventure modules and the bestiary they name: the browser loads them
-// at startup.
+// 5e adventure modules, the bestiary they name and the gate's recorded
+// verdicts on them: the browser loads them at startup.
 const { FIFTH_ADVENTURE_FILES, loadFifthAdventure } =
   await import("../dist/adventure-5e.js");
 const { FIFTH_BESTIARY_FILE, loadFifthBestiary } =
@@ -79,6 +79,7 @@ for (const required of [
   "dist/browser-5e-server.js",
   ...fifthAdventures,
   fifthBestiary,
+  "adventures/5e/gate-verdicts.json",
   "package.json",
   "README.md",
 ]) {

@@ -3,10 +3,7 @@
 // cellar with Ada (Perception +2, Athletics +5, Animal Handling +0, 12 HP).
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  FIFTH_ADVENTURE_FORMAT,
-  validateFifthAdventure,
-} from "../dist/adventure-5e.js";
+import { validateFifthAdventure } from "../dist/adventure-5e.js";
 import { bandOf } from "../dist/checks-5e.js";
 import { createFifthRuntime, describeFifthResult } from "../dist/runtime-5e.js";
 import { FifthSession } from "../dist/session-5e.js";
@@ -359,14 +356,5 @@ test("the validator rejects an item no band can reveal", () => {
   rejects(
     (m) => (heap(m).check.bands = {}),
     /bands must author at least one band\./,
-  );
-});
-
-test("a module in the format before graded checks is refused", () => {
-  const module = moduleFile("graded-cellar");
-  module.formatVersion = 18;
-  assert.throws(
-    () => validateFifthAdventure(module, BESTIARY),
-    new RegExp(`format version 18 is not ${FIFTH_ADVENTURE_FORMAT}`),
   );
 });

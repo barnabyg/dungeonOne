@@ -1,0 +1,61 @@
+{
+  "format": 1,
+  "verdicts": {
+    "abandoned-delve": {
+      "hash": "b656d1eebd85fddf2ee1401aaf7112e3bb28822fc8fa8cb4b73a61f5a36c0cf4",
+      "qualified": true
+    },
+    "drowned-chapel": {
+      "hash": "fa637a790540e214a50b68df42ffa7ce3d96b6a3d1448e582d3272bb1a06fabc",
+      "qualified": true
+    },
+    "goblin-warren": {
+      "hash": "7b4cdb213715b844047706bda98cf3765446a9301e62b1c02346b8d8c17fafd6",
+      "qualified": true
+    },
+    "gravediggers-lodge": {
+      "hash": "03d94c7739f8e577ab74210c42bd689a75ab7ab1884ed518def5e6599789bc1a",
+      "qualified": true
+    },
+    "mallow-counting-house": {
+      "hash": "81a50f21a40ddadce17ea05423cc2da8e00a069ceb8ffc8834c37cfc07dfd8fb",
+      "qualified": true
+    },
+    "ravagers-tower": {
+      "hash": "8f7d7649b23b817355b674d59e8bf9de562b3cf099af29b78f20923cb5d03161",
+      "qualified": true
+    },
+    "robbers-barrow": {
+      "hash": "7e41e8d85ea1001801d20d119991f887338c991f407f71d0ee9dc55bced59ad0",
+      "qualified": true
+    },
+    "shepherds-bothy": {
+      "hash": "5cc94c0ce038004c9ed28f654acd25815d98d1bbeae33d5199aa6a83b4ca6901",
+      "qualified": true
+    },
+    "silvervein-mine": {
+      "hash": "896149865afbe57aa00529c21a0e01cba7f155655ccb4c856192ee8586bb3d7b",
+      "qualified": true
+    },
+    "smugglers-cellar": {
+      "hash": "c74c177a2f28e0d9fd47c3bcda8096dddc7d0df6aba9ff2d0ffe4651f1accf03",
+      "qualified": true
+    },
+    "thornwood-lodge": {
+      "hash": "64855c460296375910826ebd8647ded7aa5270f78ba47307498a34e00e4aef22",
+      "qualified": true
+    },
+    "tinkers-toll": {
+      "hash": "d480bb82ea627af29e61208829f9693d66b29decd8598dfc1e61e5eb9b0e8877",
+      "qualified": true
+    },
+    "warden-crypt": {
+      "hash": "8efc8bc77053690766c4931a51baccafeaf1e509242de1e1dd350ece23311902",
+      "qualified": true
+    },
+    "wolfstone-hillfort": {
+      "hash": "d4eda9b364954d42ad307bebf6a4621d1e166a43d85b411572e37c4b71a6e9b8",
+      "qualified": true
+    }
+  }
+}
