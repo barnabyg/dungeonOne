@@ -3149,7 +3149,6 @@ export function describeFifthResult(
    * An attack's damage roll groups: the weapon's dice with Sneak Attack's,
    * then the rider's. Totals Uncanny Dodge halved (#308) say so.
    */
-  /** A save or missile spell's damage (#336): its dice, and what it dealt. */
   /** Healing dice (#342): drawn, or at their most with Beacon of Hope. */
   const healingDice = (
     values: readonly number[],
@@ -3180,6 +3179,7 @@ export function describeFifthResult(
             maxHp: combatant(state.encounter!, event.targetId).maxHp,
           },
         ];
+  /** A save or missile spell's damage (#336): its dice, and what it dealt. */
   const spellDamageGroup = (
     event: Extract<FifthEvent, { type: "spell-save" | "spell-damage" }>,
   ): RollGroup => ({

@@ -556,7 +556,7 @@ function learnNodes(entry) {
       learning = undefined;
       clearBusy(button);
       openSheet(entry.sheet.id);
-      feedback(entry.sheet.name + " learned a new cantrip.");
+      feedback(entry.sheet.name + " learned " + (owed === 1 ? "a new cantrip." : owed + " new cantrips."));
     } catch (error) {
       clearBusy(button);
       element("learn-error").textContent = error.message;

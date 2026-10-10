@@ -5,7 +5,7 @@
 // always prepared, and cantrips that deal two dice. Engine tests are in
 // issue-342-engine.test.mjs.
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -335,6 +335,32 @@ test("the library won't start a level-4 Cleric's adventure until its choices are
       data.revision,
     );
     await library.attachSession(sheet.id, session, 1, data.revision);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("the library refuses cantrips for a defeated Cleric, writing nothing", async () => {
+  const sheet = level4();
+  const directory = await mkdtemp(join(tmpdir(), "dungeon-342-"));
+  try {
+    const path = join(directory, "characters.json");
+    const contents = JSON.stringify({
+      kind: "dungeon-one-characters",
+      formatVersion: FIFTH_LIBRARY_FORMAT,
+      revision: "a".repeat(32),
+      creationsStarted: 1,
+      sessionsStarted: 0,
+      characters: [{ sheet, revision: 1, defeated: true }],
+    });
+    await writeFile(path, contents);
+    const library = new FifthCharacterLibrary(path, 3);
+    const data = await library.read();
+    await assert.rejects(
+      library.learnCantrips(sheet.id, ["light"], data.revision),
+      /Mira was defeated\./u,
+    );
+    assert.equal(await readFile(path, "utf8"), contents);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

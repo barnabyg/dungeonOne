@@ -3850,7 +3850,7 @@ function advance(
       const ending = combatant(next, next.order[next.turn]!.combatantId);
       if (!isOut(next, ending)) {
         // Spirit Guardians (#342) strike as the turn ends.
-        next = guard(
+        next = guardiansStrike(
           endTurn(next, ending, random, events),
           ending,
           random,
@@ -4886,7 +4886,7 @@ function castSpell(
     case "guardians": {
       // Spirit Guardians (#342): their caster concentrates on them, and
       // they hit the opponents caught now, then at the end of each of those
-      // opponents' turns (`guard`). Without a clock they end with the
+      // opponents' turns (`guardiansStrike`). Without a clock they end with the
       // fight.
       const free = endConcentration(
         spent,
@@ -5166,7 +5166,7 @@ function bestowCurse(
  * caster whose guardians caught it, still concentrating on them, it saves
  * against their damage, rolled afresh, taking it or half on a success.
  */
-function guard(
+function guardiansStrike(
   state: EncounterState,
   entrant: Combatant,
   random: Roller,
