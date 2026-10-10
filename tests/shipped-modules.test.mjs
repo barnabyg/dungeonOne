@@ -21,8 +21,6 @@ import {
   GATE_CLASSES,
   gateModule,
   gateVerdictAt,
-  passesGate,
-  qualifyAdventure,
   renderGateResult,
   renderModuleGateResult,
 } from "../dist/balance-5e.js";
@@ -49,6 +47,8 @@ const moduleFiles = Object.fromEntries(
 );
 /** The least survival margin over its difficulty's threshold a module keeps (#252). */
 const SURVIVAL_SLACK = 0.03;
+/** The reference CPU seconds the gate may take over every shipped module. */
+const GATE_BUDGET_SECONDS = 90;
 const monster = (id) => bestiary.monsters.find((entry) => entry.id === id);
 const opponents = (module) =>
   module.encounters.flatMap((encounter) => encounter.opponents);
@@ -75,35 +75,36 @@ test("the built-in modules are the shipped ones (#252, #275, #289, #291, #311)",
   );
 });
 
-test("the default run qualifies every shipped module for every class within its time budget (#310)", () => {
+/** Each shipped module's full gate result for every class, reports included. */
+const gates = new Map();
+const gateOf = (adventure) => {
+  if (!gates.has(adventure.id)) {
+    gates.set(adventure.id, gateModule(adventure));
+  }
+  return gates.get(adventure.id);
+};
+
+test("every shipped module qualifies at its declared difficulty for every class within the gate's time budget (#310, #321)", () => {
+  assert.deepEqual(GATE_CLASSES, ["fighter", "rogue"]);
   // CPU time scaled to the reference machine (cpu-reference.mjs): runners
   // differ in speed by nearly 2×, so plain CPU seconds judge the runner.
+  // The other gate tests below read the results this fills.
   const seconds = referenceCpuSeconds(() => {
     for (const adventure of shipped) {
-      for (const classId of GATE_CLASSES) {
-        const result = qualifyAdventure(adventure, { classId });
-        assert.equal(result.ok, true, `${adventure.id} ${classId}`);
-        assert.equal(result.report.classId, classId);
-        assert.ok(result.report.cells.every(({ runs }) => runs === 200));
-      }
+      gateOf(adventure);
     }
   });
-  // docs/character-rules.md records the budget: 90 s for both classes
-  // since #321 (150 s from #310, 45 s for the Fighter alone before it).
-  assert.ok(
-    seconds < 90,
-    `the default run took ${seconds.toFixed(1)} s of reference CPU`,
-  );
-});
-
-test("every shipped module qualifies at its declared difficulty for every class (#310)", () => {
-  assert.deepEqual(GATE_CLASSES, ["fighter", "rogue"]);
-  // passesGate keeps its verdicts, so the adventure list below reuses them.
   for (const adventure of shipped) {
-    if (!passesGate(adventure)) {
-      assert.fail(renderModuleGateResult(adventure, gateModule(adventure)));
+    const gate = gateOf(adventure);
+    if (!gate.qualified) {
+      assert.fail(renderModuleGateResult(adventure, gate));
     }
   }
+  // docs/character-rules.md records the budget.
+  assert.ok(
+    seconds < GATE_BUDGET_SECONDS,
+    `the gate took ${seconds.toFixed(1)} s of reference CPU`,
+  );
 });
 
 test("a new character's career through the shipped modules reaches the required level in every class (#290, #310)", () => {
@@ -119,15 +120,6 @@ test("a new character's career through the shipped modules reaches the required 
     );
   }
 });
-
-/** Each shipped module's full gate result for every class, reports included. */
-const gates = new Map();
-const gateOf = (adventure) => {
-  if (!gates.has(adventure.id)) {
-    gates.set(adventure.id, gateModule(adventure));
-  }
-  return gates.get(adventure.id);
-};
 
 test("every shipped module declares the strictest difficulty every class passes with 3 points of slack (#252, #310)", () => {
   // Survival must clear the threshold by at least 3 points for every class,
@@ -299,13 +291,14 @@ test("only bestiary monsters with a treasure type carry loot in the shipped modu
 
 test("the browser offers the shipped modules by level, then difficulty (#165)", () => {
   assert.deepEqual(
-    orderFifthAdventures(shipped, passesGate).map(
-      ({ id, recommendedLevels: { min, max }, difficulty }) => [
-        id,
-        `${min}–${max}`,
-        difficulty,
-      ],
-    ),
+    orderFifthAdventures(
+      shipped,
+      (adventure) => gateOf(adventure).qualified,
+    ).map(({ id, recommendedLevels: { min, max }, difficulty }) => [
+      id,
+      `${min}–${max}`,
+      difficulty,
+    ]),
     [
       ["robbers-barrow", "1–1", "medium"],
       ["smugglers-cellar", "1–1", "hard"],
