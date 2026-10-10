@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -194,17 +194,22 @@ test("the live release script needs --live or --dry-run, and a dry run records e
   const directory = await mkdtemp(join(tmpdir(), "issue-140-script-"));
   try {
     const output = join(directory, "report.json");
+    // Run from the empty directory: a live run keeps its saves under
+    // .verify-artifacts there, but a dry run leaves only its report.
     const result = spawnSync(
       process.execPath,
       [script, "--dry-run", "--output", output, "--max-calls", "20"],
       {
+        cwd: directory,
         encoding: "utf8",
         env: { ...process.env, OPENAI_API_KEY: "" },
         timeout: 60000,
       },
     );
     assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(await readdir(directory), ["report.json"]);
     const report = JSON.parse(await readFile(output, "utf8"));
+    assert.equal(report.runDirectory, undefined);
     assert.equal(report.issue, 140);
     assert.equal(report.mode, "dry-run");
     assert.equal(report.seed, RELEASE_SEED);

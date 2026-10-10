@@ -9,11 +9,9 @@
 // quotes.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { spawnSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   findableValue,
   loadBuiltInFifthAdventures,
@@ -443,41 +441,6 @@ test("the release run clears the mine through the server to the library file", a
     assert.equal(ada.sheet.xp, 1762);
   } finally {
     await server.close();
-    await rm(directory, { recursive: true, force: true });
-  }
-});
-
-test("the live release script plays the mine with --adventure silvervein-mine from a level-3 Ada", async () => {
-  const script = fileURLToPath(
-    new URL("../scripts/qualify-release-live.mjs", import.meta.url),
-  );
-  const env = { ...process.env, OPENAI_API_KEY: "" };
-  const directory = await mkdtemp(join(tmpdir(), "issue-241-script-"));
-  try {
-    const output = join(directory, "report.json");
-    const result = spawnSync(
-      process.execPath,
-      [
-        script,
-        "--dry-run",
-        "--adventure",
-        "silvervein-mine",
-        "--output",
-        output,
-        "--max-calls",
-        "10",
-      ],
-      { encoding: "utf8", env, timeout: 60000 },
-    );
-    assert.equal(result.status, 0, result.stderr);
-    const report = JSON.parse(await readFile(output, "utf8"));
-    assert.equal(report.issue, 241);
-    assert.equal(report.adventureId, "silvervein-mine");
-    assert.equal(report.seed, RELEASE_SEED);
-    assert.equal(report.providerCalls, 10);
-    assert.equal(report.ending.kind, "escape-with-loot");
-    assert.equal(report.summary.roomsVisited, 6);
-  } finally {
     await rm(directory, { recursive: true, force: true });
   }
 });

@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -392,13 +392,18 @@ test("the live qualification runs only with --live and a key, and its dry run fl
       process.execPath,
       [qualify, "--dry-run", "--output", output, "--max-calls", "5"],
       {
+        // From the empty directory: a dry run leaves only its report, no
+        // run folder under .verify-artifacts.
+        cwd: directory,
         encoding: "utf8",
         env,
         timeout: 20000,
       },
     );
     assert.equal(dry.status, 0, dry.stderr);
+    assert.deepEqual(await readdir(directory), ["report.json"]);
     const report = await readJson(output);
+    assert.equal(report.runDirectory, undefined);
     assert.equal(report.adventureId, "abandoned-delve");
     assert.equal(report.maxProviderCalls, 5);
     assert.ok(report.providerCalls <= 5);

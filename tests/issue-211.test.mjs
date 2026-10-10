@@ -159,7 +159,9 @@ test("the release run clears the toll, trades with the tinker and walks out, thr
   }
 });
 
-test("the live release script plays the toll with --adventure tinkers-toll, and refuses an unknown module", async () => {
+// The release script's dry run is spawned once, in issue-140.test.mjs; the
+// toll's route is played in-process above.
+test("the live release script refuses an unknown module", () => {
   const script = fileURLToPath(
     new URL("../scripts/qualify-release-live.mjs", import.meta.url),
   );
@@ -171,33 +173,4 @@ test("the live release script plays the toll with --adventure tinkers-toll, and 
   );
   assert.equal(unknown.status, 2);
   assert.match(unknown.stderr, /\[--adventure <id>\]/);
-
-  const directory = await mkdtemp(join(tmpdir(), "issue-211-script-"));
-  try {
-    const output = join(directory, "report.json");
-    const result = spawnSync(
-      process.execPath,
-      [
-        script,
-        "--dry-run",
-        "--adventure",
-        "tinkers-toll",
-        "--output",
-        output,
-        "--max-calls",
-        "10",
-      ],
-      { encoding: "utf8", env, timeout: 60000 },
-    );
-    assert.equal(result.status, 0, result.stderr);
-    const report = JSON.parse(await readFile(output, "utf8"));
-    assert.equal(report.issue, 211);
-    assert.equal(report.adventureId, "tinkers-toll");
-    assert.equal(report.seed, RELEASE_SEED);
-    assert.equal(report.providerCalls, 10);
-    assert.equal(report.ending.kind, "escape-with-loot");
-    assert.equal(report.summary.roomsVisited, 4);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
 });
