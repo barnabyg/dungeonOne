@@ -26,7 +26,7 @@ import {
   FIFTH_LIBRARY_FORMAT,
   FifthCharacterLibrary,
 } from "../dist/character-library-5e.js";
-import { FIGHTING_STYLES } from "../dist/class-5e.js";
+import { FEATURE_USES_RULE, FIGHTING_STYLES } from "../dist/class-5e.js";
 import { equipmentProfile } from "../dist/equipment-5e.js";
 import { FIGHTER } from "../dist/fighter-5e.js";
 import { FIFTH_SESSION_FORMAT } from "../dist/session-5e.js";
@@ -89,8 +89,19 @@ const api = {
   },
 };
 
+/**
+ * The feature-uses rule as the hard-coded Fighter worded it, before short
+ * rests (#334) changed it.
+ */
+const RECORDED_RULE =
+  "Spent uses stay spent for the rest of the adventure; a rest between adventures restores them and every hit point.";
+const asWorded = (value) =>
+  JSON.parse(
+    JSON.stringify(value).replaceAll(FEATURE_USES_RULE, RECORDED_RULE),
+  );
+
 test("a Fighter derives the hard-coded Fighter's numbers at every level, style and kit", () => {
-  const { cases, levelUps, creation } = goldenCases(api);
+  const { cases, levelUps, creation } = asWorded(goldenCases(api));
   assert.equal(cases.length, Object.keys(golden.digests).length);
   const differing = cases
     .filter(({ id, ...rest }) => digest(rest) !== golden.digests[id])

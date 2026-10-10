@@ -110,7 +110,7 @@ export function engineAction(view) {
   };
 }
 
-function madeAction({ action, target }) {
+function madeAction({ action, target, rest }) {
   switch (action) {
     case "attack":
     case "light-attack":
@@ -161,6 +161,10 @@ function madeAction({ action, target }) {
     // Tactical Mind on the check just failed (#315).
     case "tactical-mind":
       return { type: "tactical-mind" };
+    // A short rest (#334) spends the most hit dice, as the browser's choice
+    // does unless the player picks fewer.
+    case "rest":
+      return { type: "rest", hitDice: rest.hitDice.at(-1) };
     default:
       // A new kind must be mapped above, not guessed at.
       throw new Error(`no engine action for ${action}`);

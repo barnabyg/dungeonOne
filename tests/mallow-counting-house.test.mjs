@@ -40,10 +40,11 @@ const room = (id) => quay.rooms.find((entry) => entry.id === id);
 const itemsIn = (roomId) =>
   room(roomId).items.map(({ id, kind, hiddenIn }) => [id, kind, hiddenIn]);
 
-test("the counting-house is a six-room level 3–4 Hard module, entered and left by the quay steps", () => {
+test("the counting-house is a six-room level 3–4 Medium module, entered and left by the quay steps", () => {
   assert.equal(quay.title, "The Counting-House on Mallow Quay");
   assert.deepEqual(quay.recommendedLevels, { min: 3, max: 4 });
-  assert.equal(quay.difficulty, "hard");
+  // Hard until short rests (#334) raised its survival past Medium's.
+  assert.equal(quay.difficulty, "medium");
   assert.equal(quay.startRoomId, "quay-steps");
   assert.deepEqual(
     quay.rooms.map(({ id, encounterId }) => [id, encounterId]),
@@ -235,15 +236,16 @@ test("its treasure is 84% of the level-4 budget, the carried loot rolled from it
   assert.equal(treasureBudget(4), 60000);
 });
 
-test("the gate qualifies it as Hard for both classes on seeded and always-failing checks", () => {
+test("the gate qualifies it as Medium for both classes on seeded and always-failing checks", () => {
   const gate = gateModule(quay);
   assert.equal(gate.qualified, true);
   const [fighter, rogue] = gate.classes.map(({ result }) => result.verdict);
-  // The Fighter is 8 points over Hard's 75% and 5 under Medium's 88% (81.5%
-  // until the Champion's initiative advantage, #315).
+  // The Fighter is 5.5 points over Medium's 85% with its slack (83.0% and
+  // 81.5% when every check fails until short rests, #334; 81.5% until the
+  // Champion's initiative advantage, #315).
   for (const [verdict, kit, rate, failing] of [
-    [fighter, "mace", 0.83, 0.815],
-    [rogue, "shortsword", 0.94, 0.925],
+    [fighter, "mace", 0.905, 0.905],
+    [rogue, "shortsword", 0.975, 0.975],
   ]) {
     assert.deepEqual(
       [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],

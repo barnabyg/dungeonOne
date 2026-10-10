@@ -835,6 +835,8 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   // Tactical Mind (#315) trades a Second Wind's healing for a check: the
   // harness keeps every use for healing, so the gate stays a lower bound.
   "tactical-mind": false,
+  // A short rest (#334), taken below the style's heal threshold.
+  rest: true,
   // Gear changes are never needed to get through, so no style makes one.
   equip: false,
   unequip: false,
@@ -883,7 +885,14 @@ export type RunRecord = Readonly<{
   /** Rooms in the order first entered. */
   roomIds: readonly string[];
   encounters: readonly FightRecord[];
-  healing: Readonly<{ secondWinds: number; potions: number; hp: number }>;
+  /** Healing: Second Winds, potions, short rests and hit dice (#334), and HP. */
+  healing: Readonly<{
+    secondWinds: number;
+    potions: number;
+    shortRests: number;
+    hitDice: number;
+    hp: number;
+  }>;
   /** Hit points lost to traps sprung, outside the fights. */
   trapDamage: number;
   /** What a surviving ending credited: XP and how many finds of treasure or coin. */
@@ -1011,7 +1020,13 @@ export function playAdventure(
   const roomIds = [state.roomId];
   const fights: FightRecord[] = [];
   let fight: FightTally | undefined;
-  const healing = { secondWinds: 0, potions: 0, hp: 0 };
+  const healing = {
+    secondWinds: 0,
+    potions: 0,
+    shortRests: 0,
+    hitDice: 0,
+    hp: 0,
+  };
   let trapDamage = 0;
   /** The character's hit points, so a blow costs only what was left. */
   let hp = state.character.hp;
@@ -1078,6 +1093,14 @@ export function playAdventure(
           break;
         case "potion":
           healing.potions += 1;
+          healing.hp += event.healing;
+          hp = event.hpAfter;
+          break;
+        case "short-rest":
+          healing.shortRests += 1;
+          break;
+        case "hit-die":
+          healing.hitDice += 1;
           healing.hp += event.healing;
           hp = event.hpAfter;
           break;
@@ -1338,9 +1361,10 @@ export function playAdventure(
     if (find !== undefined) {
       return find;
     }
-    const potion = offered(views, "use")[0];
-    if (potion !== undefined && low(state.character.hp)) {
-      return potion;
+    // Low, a short rest (#334) before a potion, which also heals in a fight.
+    const heal = [...offered(views, "rest"), ...offered(views, "use")][0];
+    if (heal !== undefined && low(state.character.hp)) {
+      return heal;
     }
     if (CAREFUL.includes(style)) {
       const careful = [
@@ -1506,6 +1530,8 @@ export type BalanceCell = Readonly<{
   healing: Readonly<{
     meanSecondWinds: number;
     meanPotions: number;
+    /** Short rests taken (#334). */
+    meanShortRests: number;
     meanHp: number;
   }>;
   meanTrapDamage: number;
@@ -1584,6 +1610,7 @@ function summarise(
     healing: {
       meanSecondWinds: mean(runs.map(({ healing }) => healing.secondWinds)),
       meanPotions: mean(runs.map(({ healing }) => healing.potions)),
+      meanShortRests: mean(runs.map(({ healing }) => healing.shortRests)),
       meanHp: mean(runs.map(({ healing }) => healing.hp)),
     },
     meanTrapDamage: mean(runs.map(({ trapDamage }) => trapDamage)),
@@ -1715,7 +1742,7 @@ export function renderBalanceResult(
     lines.push(
       `  ${cell.style}: survived ${percent(cell.survivalRate)}, completed ${percent(cell.completionRate)} of ${cell.runs}; ` +
         `XP ${decimal(cell.meanXp)}, treasure ${decimal(cell.meanTreasure)}; ` +
-        `healed ${decimal(cell.healing.meanHp)} HP (Second Wind ${decimal(cell.healing.meanSecondWinds)}, potions ${decimal(cell.healing.meanPotions)}); ` +
+        `healed ${decimal(cell.healing.meanHp)} HP (Second Wind ${decimal(cell.healing.meanSecondWinds)}, potions ${decimal(cell.healing.meanPotions)}, short rests ${decimal(cell.healing.meanShortRests)}); ` +
         `trap damage ${decimal(cell.meanTrapDamage)}` +
         (cell.style === "stealth-first"
           ? `; slipped past ${decimal(cell.meanBypassed)} fights`

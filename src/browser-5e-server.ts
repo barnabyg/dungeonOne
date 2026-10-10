@@ -202,6 +202,7 @@ function sessionView(session: FifthSession) {
         }),
     ...runtime.projectFight(state),
     hitDice: runtime.projectHitDice(state),
+    shortRests: runtime.projectShortRests(state),
     actions: runtime.projectActions(state),
     history: session.history,
   };
@@ -693,6 +694,16 @@ export async function startFifthBrowserServer(options: FifthBrowserOptions) {
                 actorId: PLAYER_ID,
               },
         );
+      case "/api/5e/session/rest":
+        // A short rest (#334) with the number of hit dice to spend; the
+        // engine refuses a number it doesn't accept.
+        if (
+          !hasExactKeys(body, ["sessionId", "sequence", "hitDice"]) ||
+          !Number.isInteger(body.hitDice)
+        ) {
+          throw new Error("Invalid rest request.");
+        }
+        return click(body, { type: "rest", hitDice: body.hitDice as number });
       case "/api/5e/session/explore": {
         // A check's approach (#283) and a retry (#284) come with the
         // actions that make checks.

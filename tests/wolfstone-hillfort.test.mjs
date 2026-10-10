@@ -175,12 +175,12 @@ test("the gate qualifies it as Hard on seeded and always-failing checks, with th
   assert.equal(result.ok, true);
   const { verdict } = result;
   assert.equal(verdict.qualified, true);
-  // 5.5 points over Hard's 75%, and 7.5 under the 88% that would make it
-  // Medium (83.0% and 84.0% until the Champion's initiative advantage, #315,
-  // moved the dice).
+  // 6 points over Hard's 75%, and 7 under the 88% that would make it
+  // Medium (80.5% until short rests, #334; 83.0% and 84.0% until the
+  // Champion's initiative advantage, #315, moved the dice).
   assert.deepEqual(
     [verdict.survival.level, verdict.survival.kit, verdict.survival.rate],
-    [3, "two-daggers", 0.805],
+    [3, "two-daggers", 0.81],
   );
   assert.deepEqual(
     [verdict.alwaysFail.level, verdict.alwaysFail.rate],

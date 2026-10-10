@@ -153,7 +153,7 @@ for (const viewport of [
         assert.equal(await page.locator("#economy").count(), 0);
         assert.match(
           await page.locator("#feature-rule").textContent(),
-          /^Spent uses stay spent/,
+          /^A short rest restores some spent uses/,
         );
         let shown = await status(page);
         const maxHp = firstFighter(seed).hp;
