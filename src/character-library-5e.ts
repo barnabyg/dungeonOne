@@ -445,27 +445,12 @@ export class FifthCharacterLibrary {
     prepared: unknown,
     revision: string,
   ): Promise<FifthLibraryData> {
-    return this.update(revision, (data) => {
-      const index = data.characters.findIndex(
-        ({ sheet }) => sheet.id === characterId,
-      );
-      const record = data.characters[index];
-      if (record === undefined) {
-        throw new Error("There is no such character in the library.");
-      }
-      if (record.defeated === true) {
-        throw new Error(`${record.sheet.name} was defeated.`);
-      }
-      if (record.session !== undefined) {
-        throw new Error(
-          `${record.sheet.name} is on an adventure: prepared spells change only between adventures.`,
-        );
-      }
-      data.characters[index] = {
-        sheet: prepareSpells(record.sheet, prepared),
-        revision: record.revision + 1,
-      };
-    });
+    return this.changeBetweenAdventures(
+      characterId,
+      revision,
+      "prepared spells change only between adventures",
+      (sheet) => prepareSpells(sheet, prepared),
+    );
   }
 
   /**
@@ -479,27 +464,12 @@ export class FifthCharacterLibrary {
     learned: unknown,
     revision: string,
   ): Promise<FifthLibraryData> {
-    return this.update(revision, (data) => {
-      const index = data.characters.findIndex(
-        ({ sheet }) => sheet.id === characterId,
-      );
-      const record = data.characters[index];
-      if (record === undefined) {
-        throw new Error("There is no such character in the library.");
-      }
-      if (record.defeated === true) {
-        throw new Error(`${record.sheet.name} was defeated.`);
-      }
-      if (record.session !== undefined) {
-        throw new Error(
-          `${record.sheet.name} is on an adventure: cantrips are learned only between adventures.`,
-        );
-      }
-      data.characters[index] = {
-        sheet: learnCantrips(record.sheet, learned),
-        revision: record.revision + 1,
-      };
-    });
+    return this.changeBetweenAdventures(
+      characterId,
+      revision,
+      "cantrips are learned only between adventures",
+      (sheet) => learnCantrips(sheet, learned),
+    );
   }
 
   /**
@@ -541,7 +511,7 @@ export class FifthCharacterLibrary {
   }
 
   /**
-   * Changes `characterId`'s sheet by `change` (#343) when it is neither
+   * Changes `characterId`'s sheet by `change` (#339, #342, #343) when it is neither
    * defeated nor on an adventure (`onAdventure` says why not).
    */
   private async changeBetweenAdventures(
