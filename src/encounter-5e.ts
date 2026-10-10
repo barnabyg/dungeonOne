@@ -2398,10 +2398,7 @@ function landAttack(
         sourceId !== actor.id || targetId !== target.id,
     ),
     hidden: state.hidden.filter((id) => !hidden || id !== actor.id),
-    engaged: [
-      ...state.engaged,
-      ...[actor.id, target.id].filter((id) => !state.engaged.includes(id)),
-    ],
+    engaged: engage(state, actor, target),
     economy: {
       ...state.economy,
       // Sneak Attack is dealt once a turn.
@@ -2712,10 +2709,18 @@ function answerReaction(
   return { state: next, events };
 }
 
-/**
- * Rolls initiative and plays opponents' turns until the first party
- * combatant's turn.
- */
+/** `engaged` with `actor` and `target` added: they have exchanged blows. */
+function engage(
+  state: EncounterState,
+  actor: Combatant,
+  target: Combatant,
+): readonly string[] {
+  return [
+    ...state.engaged,
+    ...[actor.id, target.id].filter((id) => !state.engaged.includes(id)),
+  ];
+}
+
 /** The opponent `actor` aims an attack or spell at, or why it can't be. */
 function opponentOf(
   state: EncounterState,
@@ -2978,10 +2983,7 @@ function spellDamage(
     combatants: state.combatants.map((candidate) =>
       candidate.id === target.id ? { ...candidate, hp: hpLeft } : candidate,
     ),
-    engaged: [
-      ...state.engaged,
-      ...[actor.id, target.id].filter((id) => !state.engaged.includes(id)),
-    ],
+    engaged: engage(state, actor, target),
   };
   return hpLeft === 0 && target.hp > 0
     ? fall(next, target, random, events)
@@ -3194,6 +3196,10 @@ export function castOutsideFight(
   return { caster: combatant(after, caster.id), events };
 }
 
+/**
+ * Rolls initiative and plays opponents' turns until the first party
+ * combatant's turn.
+ */
 export function startEncounter(
   combatants: readonly Combatant[],
   random: Roller,

@@ -71,6 +71,7 @@ import { ROGUE } from "./rogue-5e.js";
 import {
   isSpellId,
   ordinal,
+  slotLevelOf,
   slotUsesId,
   SPELLS,
   type SpellId,
@@ -653,7 +654,6 @@ function validateFightingStyle(value: unknown): FightingStyle {
   return value as FightingStyle;
 }
 
-/** A Fighting Style for a class with one; none for any other. */
 /**
  * A caster's spell choices at `level` (#336): exactly its class's count of
  * distinct cantrips and of distinct levelled spells it has slots for, each
@@ -714,6 +714,7 @@ function validateSpellChoices(
   };
 }
 
+/** A Fighting Style for a class with one; none for any other. */
 function validateClassStyle(
   definition: ClassDefinition,
   value: unknown,
@@ -1803,9 +1804,9 @@ export function featureUsesName(
   profile: Pick<CharacterProfile, "features">,
   featureId: string,
 ): string {
-  const slot = /^spell-slots-(\d)$/u.exec(featureId);
-  if (slot !== null) {
-    return `${ordinal(Number(slot[1]))}-level spell slots`;
+  const slotLevel = slotLevelOf(featureId);
+  if (slotLevel !== undefined) {
+    return `${ordinal(slotLevel)}-level spell slots`;
   }
   return profile.features.find(({ id }) => id === featureId)?.name ?? featureId;
 }

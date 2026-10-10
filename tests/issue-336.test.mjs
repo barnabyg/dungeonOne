@@ -6,6 +6,9 @@
 // issue-336-engine.test.mjs.
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
   buildCharacter,
@@ -14,7 +17,17 @@ import {
   OFFERED_CLASS_IDS,
   validateCharacter,
 } from "../dist/character-5e.js";
-import { effectAtSlot, SPELLS, spellAtLevel } from "../dist/spells-5e.js";
+import {
+  FIFTH_LIBRARY_FORMAT,
+  FifthCharacterLibrary,
+} from "../dist/character-library-5e.js";
+import {
+  effectAtSlot,
+  slotLevelOf,
+  slotUsesId,
+  SPELLS,
+  spellAtLevel,
+} from "../dist/spells-5e.js";
 import {
   TEST_CASTER,
   testCasterAt,
@@ -130,4 +143,33 @@ test("a caster knows and prepares exactly its class's counts from its list", () 
     () => validateCharacter({ ...TEST_FIGHTER, spells: TEST_CASTER.spells }),
     /A Fighter casts no spells\./u,
   );
+});
+
+test("a slot level's feature-uses id reads back to its level", () => {
+  assert.equal(slotUsesId(2), "spell-slots-2");
+  assert.equal(slotLevelOf(slotUsesId(2)), 2);
+  assert.equal(slotLevelOf("second-wind"), undefined);
+});
+
+test("a library saved before sheets had spells (#336) is refused, naming the file", async () => {
+  assert.equal(FIFTH_LIBRARY_FORMAT, 16);
+  const directory = await mkdtemp(join(tmpdir(), "issue-336-"));
+  try {
+    const path = join(directory, "characters.json");
+    const older = JSON.stringify({
+      kind: "dungeon-one-characters",
+      formatVersion: 15,
+      revision: "0".repeat(32),
+      creationsStarted: 0,
+      sessionsStarted: 0,
+      characters: [],
+    });
+    await writeFile(path, older);
+    await assert.rejects(new FifthCharacterLibrary(path, 7).read(), {
+      message: `${path} is a character library in format version 15, not 16. This build creates 5e characters and cannot read it. Move it aside, or choose another --characters path; the file has not been changed.`,
+    });
+    assert.equal(await readFile(path, "utf8"), older);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

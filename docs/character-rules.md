@@ -23,7 +23,7 @@ A class is data. `src/class-5e.ts` holds what every class shares (the abilities,
 
 A class may be **test-only** (#336): creation never offers it and the gate never plays it. The one test-only class, the Test Caster (`src/test-caster-class-5e.ts`), exercises the casting engine until a playable class casts.
 
-`src/character-5e.ts` builds, validates and derives every sheet from its class's definition and never asks which class it is. A sheet names its class by id (`"class": "fighter"` or `"rogue"`); it has a `fightingStyle` exactly when its class chooses one and an `expertise` list exactly when its class has Expertise (library format 14, #306). The browser's creation screen and sheet, the runtime's offered actions and the AI DM's tool descriptions, ability checks, the balance harness, the gate and the career simulation all read the definition. Creation offers the Fighter or the Rogue; the gate and the career simulation still play the default class, the Fighter, and the balance harness builds and plays either (qualifying the shipped modules for the Rogue is #310).
+`src/character-5e.ts` builds, validates and derives every sheet from its class's definition and never asks which class it is. A sheet names its class by id (`"class": "fighter"` or `"rogue"`); it has a `fightingStyle` exactly when its class chooses one and an `expertise` list exactly when its class has Expertise (library format 14, #306; a caster's `spells`, library format 16, #336). The browser's creation screen and sheet, the runtime's offered actions and the AI DM's tool descriptions, ability checks, the balance harness, the gate and the career simulation all read the definition. Creation offers the Fighter or the Rogue; the gate and the career simulation still play the default class, the Fighter, and the balance harness builds and plays either (qualifying the shipped modules for the Rogue is #310).
 
 ## Creating a character
 
@@ -625,7 +625,7 @@ Before writing a fight into a module, an author can estimate its danger from bes
 - At most one long rest per adventure, only at a module's rest site (#335); SRD 5.2 allows one a day anywhere safe. An interrupted rest takes no time and may be taken again.
 - At most two short rests per adventure (#334), each in a room with no unresolved hostile encounter; SRD 5.2 limits them only by time. A short rest takes no time, as there is no clock, and a rest that would restore nothing is refused.
 - A Potion of Healing is refused at full health for the same reason, and so is a healing spell (#336).
-- Magic Missile's darts all strike the one target the spell names (#336); SRD 5.2 lets them be split among targets.
+- Magic Missile's darts all strike the one target the spell names (#336); SRD 5.2 lets them be split among targets. Their damage is added up and lands as one: resistance halves the total, and Undead Fortitude's DC counts it all.
 - Ability scores are rolled once with 4d6-drop-lowest and placed freely; there are no rerolls.
 - Starting gear is common tier only: each class's kits of leather armour and its weapons, of equal value within one class, and no starting coin.
 - Sneak Attack (#306) is dealt whenever its rules are met; SRD 5.2 lets the Rogue choose. Without a choice of when to deal it, it is never saved for a later attack.

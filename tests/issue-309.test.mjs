@@ -16,7 +16,6 @@ import {
   defaultPlacement,
   validateCharacter,
 } from "../dist/character-5e.js";
-import { FIFTH_LIBRARY_FORMAT } from "../dist/character-library-5e.js";
 import { FIFTH_ADVENTURE_FORMAT } from "../dist/adventure-5e.js";
 import {
   equipItem,
@@ -432,8 +431,7 @@ test("a module whose only route to its goal is a lock only thieves' tools open i
   assert.equal(validateModule(keyed).id, "picklock-cellar");
 });
 
-test("the module, save, trace and library formats bump; an older module is refused", () => {
-  assert.equal(FIFTH_LIBRARY_FORMAT, 15);
+test("the module, save and trace formats bump; an older module is refused", () => {
   assert.match(FIFTH_PROMPT_VERSION, /^5e-dm-v2\d$/u);
   const older = { ...moduleFile("sealed-crypt"), formatVersion: 26 };
   assert.throws(

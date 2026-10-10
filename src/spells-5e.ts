@@ -179,11 +179,6 @@ export function isSpellId(value: unknown): value is SpellId {
   return typeof value === "string" && Object.hasOwn(SPELLS, value);
 }
 
-/** The spell `id` names, as data. */
-export function spell(id: SpellId): SpellDefinition {
-  return SPELLS[id];
-}
-
 /**
  * `definition` as a caster of `level` casts it: a cantrip's damage dice grow
  * at level 5; a levelled spell is unchanged until it is cast with a slot.
@@ -249,12 +244,13 @@ export function ordinal(level: number): string {
   return `${level}${level === 1 ? "st" : level === 2 ? "nd" : level === 3 ? "rd" : "th"}`;
 }
 
-/** "a cantrip" or "a 1st-level spell". */
-export function spellLevelText(level: number): string {
-  return level === 0 ? "a cantrip" : `a ${ordinal(level)}-level spell`;
-}
-
 /** The feature-uses id a spell slot level is tracked under (#336): `spell-slots-1`. */
 export function slotUsesId(level: number): string {
   return `spell-slots-${level}`;
+}
+
+/** The spell slot level a feature-uses id tracks, or undefined for a feature's. */
+export function slotLevelOf(featureId: string): number | undefined {
+  const slot = /^spell-slots-(\d+)$/u.exec(featureId);
+  return slot === null ? undefined : Number(slot[1]);
 }
