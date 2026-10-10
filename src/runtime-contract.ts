@@ -156,7 +156,11 @@ export type FifthToolName =
   | "unequip"
   | "swap_weapon"
   | "drop"
-  | "trade";
+  | "trade"
+  | "divine_spark"
+  | "turn_undead"
+  | "preserve_life"
+  | "spiritual_weapon";
 
 /** A bounded tool the AI DM may call; the runtime offers only legal ones. */
 export type GameToolDefinition = Readonly<{

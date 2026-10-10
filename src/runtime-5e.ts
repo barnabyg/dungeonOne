@@ -58,7 +58,7 @@
  * The AI DM reads with `look` and `get_character_status`, and acts with
  * `move`, `sneak`, `ambush`, `react`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
  * `break_door`, `unlock`, `search`, `disarm`, `talk`, `trade`, `attack`,
- * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge`, `take_hit`, `tactical_mind`, `rest`, `long_rest` and `cast`. Each is offered only while the engine would
+ * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge`, `take_hit`, `tactical_mind`, `rest`, `long_rest`, `cast`, `divine_spark`, `turn_undead`, `preserve_life` and `spiritual_weapon`. Each is offered only while the engine would
  * accept it, listing only what is visible and legal: the tools come from the
  * same projection (`projectActions`) as the browser's action bar, which asks
  * the engine about each action. The engine authors the
@@ -138,11 +138,15 @@ import {
   moraleStatus,
   type MoraleStatus,
   incapacitatedBy,
+  isDefeated,
   legalTargets,
   startEncounter,
   castOutsideFight,
   GUIDING_BOLT,
   TURN_UNDEAD,
+  DIVINE_SPARK_MODES,
+  everyFoeTurned,
+  type DivineSparkMode,
   slotLevels,
   armorClassOf,
   concentrationOf,
@@ -234,6 +238,7 @@ import {
   type Buff,
   type EffectEnds,
   type SpellDefinition,
+  type SpellEffect,
 } from "./spells-5e.js";
 import {
   abilityDisadvantages,
@@ -270,7 +275,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v28";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v29";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -421,6 +426,15 @@ export type FifthState = Readonly<{
    */
   bypassedEncounterIds: readonly string[];
   /**
+   * Opponents defeated in a fight the character left with every foe still
+   * standing turned (#341, D13): the fight stays unresolved, and is met
+   * again without them on coming back.
+   */
+  fallenOpponents?: readonly Readonly<{
+    encounterId: string;
+    opponentId: string;
+  }>[];
+  /**
    * Each reaction roll (#304), by encounter: made when its fight would first
    * begin with no one surprised, and remembered, never rerolled.
    */
@@ -502,6 +516,15 @@ export type FifthAction =
       type: FeatureActionType;
       actorId: string;
     }>
+  /** Divine Spark (#341) at a target: healing, or radiant or necrotic damage. */
+  | Readonly<{
+      type: "divine-spark";
+      actorId: string;
+      targetId: string;
+      mode: DivineSparkMode;
+    }>
+  /** Spiritual Weapon's attack (#341), with the bonus action. */
+  | Readonly<{ type: "spectral-attack"; actorId: string; targetId: string }>
   | Readonly<{ type: "move"; destinationId: string }>
   /**
    * Sneaking into a neighbouring room where a fight waits (#301): a Stealth
@@ -624,6 +647,8 @@ export type FeatureActionType =
   | "action-surge"
   | "hide"
   | "steady-aim"
+  | "turn-undead"
+  | "preserve-life"
   | "end-turn"
   | ReactionAnswer;
 
@@ -633,6 +658,8 @@ const FEATURE_TOOLS = {
   action_surge: "action-surge",
   hide: "hide",
   steady_aim: "steady-aim",
+  turn_undead: "turn-undead",
+  preserve_life: "preserve-life",
   end_turn: "end-turn",
   uncanny_dodge: "uncanny-dodge",
   take_hit: "take-hit",
@@ -643,6 +670,8 @@ const FEATURE_TOOLS = {
     | "action_surge"
     | "hide"
     | "steady_aim"
+    | "turn_undead"
+    | "preserve_life"
     | "end_turn"
     | "uncanny_dodge"
     | "take_hit"
@@ -709,6 +738,15 @@ const TARGET_TOOLS = {
       actorId: PLAYER_ID,
       targetId,
       ...(isCunningStrike(cunningStrike) ? { cunningStrike } : {}),
+    }),
+  },
+  // Spiritual Weapon's attack (#341), with the bonus action.
+  spiritual_weapon: {
+    parameter: "target",
+    action: (targetId: string): FifthAction => ({
+      type: "spectral-attack",
+      actorId: PLAYER_ID,
+      targetId,
     }),
   },
   move: {
@@ -866,10 +904,22 @@ const MUTATION_TOOLS: readonly string[] = [
   "rest",
   "long_rest",
   "cast",
+  "divine_spark",
 ];
 
 export type FifthEvent =
   | EncounterEvent
+  /**
+   * Leaving a fight's room with every foe still in it turned (#341, D13):
+   * the fight stays unresolved, its standing opponents met again on coming
+   * back.
+   */
+  | Readonly<{
+      type: "turned-away";
+      encounterId: string;
+      room: string;
+      opponents: readonly string[];
+    }>
   | Readonly<{
       type: "entered";
       roomId: string;
@@ -1401,7 +1451,7 @@ Outside a fight, in a room with no foes left to face, the character may take a s
 
 Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
 
-A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, and Chromatic Orb deals the damage type the player chooses: while either is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Thaumaturgy is flavour only: cast never offers it, so describe its harmless signs (a booming voice, flickering flames, a tremor) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so.
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, targets and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. A spell has one target, except an area spell such as Burning Hands, which lists the most opponents it can catch: give the targets the player names, each once and no more than that; if they name more, or don't say which, ask which ones, listing the offered names, without calling a tool. The engine rolls the area's damage once and each target's save. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell or a spell that outlasts a fight, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words. Some spells last: the engine puts the effect on its target and ends it when it says (with the fight, at the next rest, or at a long rest), and a character concentrates on one spell at a time, so casting another concentration spell ends the first and damage may break it. The character status lists each effect and when it ends. No tool extends an effect or keeps two concentration spells: if the player asks, say the engine doesn't allow it, without calling a tool. A reaction spell such as Shield is cast only as the answer to a hit, below. The cast tool describes each spell it offers. Guidance adds a d4 to the character's next ability check, which spends it; it may be cast outside a fight, and the engine rolls the die with the check. Resistance takes a d4 off damage of one type, once a turn, and Chromatic Orb deals the damage type the player chooses: while either is offered, cast takes damage_type, the type the player chooses from those listed for that spell (null for every other spell), and if they don't say which, ask, listing them, without calling a tool. Sleep makes its target save or be incapacitated, then save again or fall unconscious while the character concentrates; damage wakes it, and a creature immune to exhaustion is unaffected. Guiding Bolt's hit gives the next attack roll against its target advantage. Thaumaturgy is flavour only: cast never offers it, so describe its harmless signs (a booming voice, flickering flames, a tremor) in your words without calling a tool; they never change a check, a roll or an outcome. Prepared spells change only between adventures, in the character library, and a Wizard prepares only spells in its spellbook: if the player asks to prepare another spell during an adventure, say it can't be done until the adventure is over, without calling a tool. A Wizard's Arcane Recovery is no tool: once per long rest, the engine regains a spent spell slot with the first short rest that has one to regain, and says so. A Cleric with Channel Divinity may spend a use on Turn Undead (call turn_undead when the player turns undead, presents a holy symbol or drives the dead back), on Divine Spark (call divine_spark with the target and the mode the player chooses: radiant or necrotic damage to a foe, or healing for an ally, never the character), or, in the Life Domain, on Preserve Life (call preserve_life when the player asks for it while Bloodied); each takes the action, and the engine rolls every save and die. A turned undead can't act until it takes damage or is attacked, which ends its turning. When every foe left is turned, move is offered: the character may leave, the fight stays unresolved, and the standing foes wait there; never let the character leave a fight otherwise. Spiritual Weapon's later attacks take the bonus action: call spiritual_weapon with the target. Hold Person paralyses only a humanoid, which saves again at the end of each of its turns. Lesser Restoration ends the character's paralysis or poison; Protection from Poison ends poison and wards against it; Aid raises the character's maximum hit points until a long rest. Prayer of Healing takes ten minutes, so it is cast only outside a fight, and also gives back a short rest's feature uses without counting as a short rest, once per long rest.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -1421,6 +1471,10 @@ const featureDescriptions = (
   hide: "Hide, with the character's bonus action (Cunning Action): the engine rolls Stealth against the opponents' best passive Perception; on a success the character's next attack roll has advantage.",
   steady_aim:
     "Use Steady Aim, the character's bonus action: advantage on its next attack roll this turn.",
+  turn_undead:
+    "Use Turn Undead, a use of Channel Divinity and the character's action: the engine rolls each undead opponent's Wisdom save; one that fails is turned, Frightened and Incapacitated, until it takes damage or is attacked, or the fight ends.",
+  preserve_life:
+    "Use Preserve Life, a use of Channel Divinity and the character's action: the engine restores hit points to the Bloodied character, up to half its maximum.",
   uncanny_dodge:
     "Use Uncanny Dodge, the character's reaction, on the hit waiting for an answer: the engine halves its damage.",
   take_hit:
@@ -2715,6 +2769,11 @@ export function renderFifthEvent(
           : `now ${event.band} (was ${event.from})`;
       return `${who} ${one ? "is" : "are"} ${now}. You may ${optionsText(event.options, event.offers)}.`;
     }
+    case "turned-away":
+      return `You leave the ${event.room} with ${listed(
+        event.opponents.map((name) => `the ${name}`),
+        "and",
+      )} still turned. The fight is unresolved: ${event.opponents.length === 1 ? "it waits" : "they wait"} there if you come back, and the fallen stay fallen.`;
     case "bypassed":
       return `You slip out of the ${event.room} unseen, past ${listed(event.opponents, "and")}. The fight there is left unfought.`;
     case "cleared":
@@ -3691,6 +3750,11 @@ export type ActionKind =
   | "action-surge"
   | "hide"
   | "steady-aim"
+  /** Channel Divinity (#341) and Spiritual Weapon's attack. */
+  | "divine-spark"
+  | "turn-undead"
+  | "preserve-life"
+  | "spectral-attack"
   | "end-turn"
   | ReactionAnswer
   | "move"
@@ -3728,6 +3792,10 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   "action-surge": true,
   hide: true,
   "steady-aim": true,
+  "divine-spark": true,
+  "turn-undead": true,
+  "preserve-life": true,
+  "spectral-attack": true,
   "end-turn": true,
   "uncanny-dodge": true,
   "take-hit": true,
@@ -3791,6 +3859,8 @@ export type ActionView = Readonly<{
    * engine would accept it, beside the plain attack on the same target.
    */
   cunningStrike?: Readonly<{ id: CunningStrikeId; name: string }>;
+  /** What Divine Spark does (#341): heal, or radiant or necrotic damage. */
+  mode?: DivineSparkMode;
   /**
    * A spell cast (#336): the spell, its level (0 for a cantrip) and the slot
    * level it would spend, for a levelled spell; `target` is whom it is
@@ -4065,6 +4135,8 @@ export type FightView = Readonly<{
     secondWind: Readonly<{ uses: number; max: number }>;
     actionSurge?: Readonly<{ uses: number; max: number }>;
   }>;
+  /** Channel Divinity's uses (#341), for a character with it. */
+  channelDivinity?: Readonly<{ uses: number; max: number }>;
   encounter?: Readonly<{
     round: number;
     playerId: string;
@@ -4149,6 +4221,9 @@ function featureUses(self: Combatant): string[] {
     ...(self.actionSurge === undefined
       ? []
       : [text("Action Surge", self.actionSurge)]),
+    ...(self.channelDivinity === undefined
+      ? []
+      : [text("Channel Divinity", self.channelDivinity)]),
     ...(self.spellcasting === undefined ? [] : [spellSlotsText(self)]),
   ];
 }
@@ -4247,6 +4322,9 @@ function projectFight(
             options,
           },
         }),
+    ...(self.channelDivinity === undefined
+      ? {}
+      : { channelDivinity: uses(self.channelDivinity) }),
     ...(self.secondWind === undefined
       ? {}
       : {
@@ -4877,11 +4955,70 @@ export function createFifthRuntime(
       ? combatant(state.encounter!, PLAYER_ID)
       : playerCombatant(sheetOf(state), state.character);
 
-  const opponents = (state: FifthState): readonly Combatant[] =>
-    (encounterOf(state)?.opponents ?? []).map(
-      ({ id, name, statBlock, surrender }) =>
-        statBlockCombatant(id, name, statBlock, surrender !== undefined),
+  /** Whether opponent `opponentId` fell before a fight was left (#341). */
+  const fallen = (state: FifthState, encounterId: string, opponentId: string) =>
+    (state.fallenOpponents ?? []).some(
+      (record) =>
+        record.encounterId === encounterId && record.opponentId === opponentId,
     );
+  /** The opponents of the room's fight still to face (#341: not the fallen). */
+  const standing = (state: FifthState) => {
+    const fight = encounterOf(state);
+    return (fight?.opponents ?? []).filter(
+      ({ id }) => !fallen(state, fight!.id, id),
+    );
+  };
+  const opponents = (state: FifthState): readonly Combatant[] =>
+    standing(state).map(({ id, name, statBlock, surrender }) =>
+      statBlockCombatant(id, name, statBlock, surrender !== undefined),
+    );
+  /**
+   * Leaving the fight's room with every foe left turned (#341, D13): the
+   * fight stays unresolved, remembering who fell; the character keeps what
+   * its combatant has left, and its effects lasting the fight end.
+   */
+  const turnAway = (
+    state: FifthState,
+  ): Readonly<{ state: FifthState; events: readonly FifthEvent[] }> => {
+    const encounter = state.encounter!;
+    const fight = encounterOf(state)!;
+    const pc = combatant(encounter, PLAYER_ID);
+    const foes = encounter.combatants.filter(
+      ({ side }) => side === "opponents",
+    );
+    const effects = pc.effects ?? [];
+    const lasting = effects.filter(({ ends }) => outlastsFight(ends));
+    const { effects: _before, ...character } = state.character;
+    void _before;
+    return {
+      state: {
+        ...state,
+        character:
+          lasting.length === 0 ? character : { ...character, effects: lasting },
+        possessions: {
+          ...state.possessions,
+          ammunition: pc.ammunition ?? state.possessions.ammunition,
+        },
+        fallenOpponents: [
+          ...(state.fallenOpponents ?? []),
+          ...foes
+            .filter(isDefeated)
+            .map(({ id }) => ({ encounterId: fight.id, opponentId: id })),
+        ],
+      },
+      events: [
+        ...effects
+          .filter((effect) => !lasting.includes(effect))
+          .map((effect) => effectEnded(PLAYER_ID, effect, "fight-over")),
+        {
+          type: "turned-away",
+          encounterId: fight.id,
+          room: room(state).name,
+          opponents: legalTargets(encounter, PLAYER_ID).map(({ name }) => name),
+        },
+      ],
+    };
+  };
 
   /** What the player may do in the fight now; empty when it can't act. */
   const options = (state: FifthState): readonly EncounterActionType[] =>
@@ -5334,7 +5471,9 @@ export function createFifthRuntime(
         ? undefined
         : ["unknown-spell", `You don't know the ${name} cantrip.`];
     }
-    return casting.prepared.includes(spellId)
+    // The Life Domain's spells are always prepared (#341).
+    return casting.prepared.includes(spellId) ||
+      casting.alwaysPrepared?.includes(spellId) === true
       ? undefined
       : ["unprepared-spell", `You haven't prepared ${name}.`];
   };
@@ -6511,12 +6650,35 @@ export function createFifthRuntime(
       case "action-surge":
       case "hide":
       case "steady-aim":
+      case "turn-undead":
+      case "preserve-life":
       case "end-turn":
       case "uncanny-dodge":
       case "take-hit":
         return actorId === undefined
           ? undefined
           : { type: action.type, actorId };
+      case "divine-spark": {
+        // Divine Spark (#341) names its target and what it does.
+        const targetId = field("targetId");
+        const mode = action.mode;
+        return actorId === undefined ||
+          targetId === undefined ||
+          !(DIVINE_SPARK_MODES as readonly unknown[]).includes(mode)
+          ? undefined
+          : {
+              type: "divine-spark",
+              actorId,
+              targetId,
+              mode: mode as DivineSparkMode,
+            };
+      }
+      case "spectral-attack": {
+        const targetId = field("targetId");
+        return actorId === undefined || targetId === undefined
+          ? undefined
+          : { type: "spectral-attack", actorId, targetId };
+      }
       case "move":
       case "sneak": {
         const destinationId = field("destinationId");
@@ -6987,12 +7149,22 @@ export function createFifthRuntime(
         if ("rejection" in cast) {
           return { state, rejection: cast.rejection };
         }
+        const after: FifthState = {
+          ...state,
+          character: resourcesAfter(state.character, cast.caster),
+        };
+        // Prayer of Healing (#341) gives a short rest's feature uses back,
+        // without counting as one of the adventure's short rests.
+        const effect: SpellEffect | undefined = isSpellId(action.spellId)
+          ? SPELLS[action.spellId].effect
+          : undefined;
+        if (effect?.kind !== "healing" || effect.restBenefit !== true) {
+          return { state: after, events: cast.events };
+        }
+        const recovered = restRecovery(after);
         return {
-          state: {
-            ...state,
-            character: resourcesAfter(state.character, cast.caster),
-          },
-          events: cast.events,
+          state: recover(after, recovered),
+          events: [...cast.events, ...regainedEvents(recovered)],
         };
       }
       case "react": {
@@ -7135,13 +7307,22 @@ export function createFifthRuntime(
       case "action-surge":
       case "hide":
       case "steady-aim":
+      case "divine-spark":
+      case "turn-undead":
+      case "preserve-life":
+      case "spectral-attack":
       case "end-turn":
       case "uncanny-dodge":
       case "take-hit":
         return fightAction(state, action, random, reject);
       case "move":
       case "sneak": {
-        if (fighting(state)) {
+        // With every foe left turned (#341, D13) the character may go.
+        const turnedAll =
+          fighting(state) &&
+          action.type === "move" &&
+          everyFoeTurned(state.encounter!, PLAYER_ID);
+        if (fighting(state) && !turnedAll) {
           return reject(
             "fighting",
             "You can't leave in the middle of a fight.",
@@ -7186,8 +7367,13 @@ export function createFifthRuntime(
             `You already tried to sneak up on the fight in the ${destination.name}; going in again starts it.`,
           );
         }
-        // Leaving a fight's room unseen bypasses it (#302).
-        const slipped = slipOut(state);
+        // Leaving a fight's room unseen bypasses it (#302); leaving it with
+        // every foe turned leaves it unresolved (#341).
+        const away = turnedAll ? turnAway(state) : undefined;
+        const slipped =
+          away === undefined
+            ? slipOut(state)
+            : { state: away.state, event: undefined };
         const trap = way.passage.trap;
         const sprung: Readonly<{
           state: FifthState;
@@ -7200,7 +7386,12 @@ export function createFifthRuntime(
                 trap,
                 need(random, "Springing a trap"),
               );
-        const before = slipped === undefined ? [] : [slipped.event];
+        const before =
+          away !== undefined
+            ? away.events
+            : slipped === undefined
+              ? []
+              : [slipped.event!];
         if (sprung.state.status !== "playing") {
           return { state: sprung.state, events: [...before, ...sprung.events] };
         }
@@ -7213,7 +7404,9 @@ export function createFifthRuntime(
         const opponentsHere =
           fight === undefined || settled(state, fight.id)
             ? []
-            : fight.opponents.map(({ description }) => description);
+            : fight.opponents
+                .filter(({ id }) => !fallen(arrived, fight.id, id))
+                .map(({ description }) => description);
         const sneaked =
           action.type === "sneak"
             ? sneakUp(arrived, ahead!, destination.name, random)
@@ -8174,6 +8367,8 @@ export function createFifthRuntime(
               },
             }
           : {}),
+        // Divine Spark's choice (#341).
+        ...(action.type === "divine-spark" ? { mode: action.mode } : {}),
         // Cunning Strike's effect with an attack (#308).
         ...((action.type === "attack" || action.type === "light-attack") &&
         action.cunningStrike !== undefined
@@ -8210,6 +8405,8 @@ export function createFifthRuntime(
         .filter(
           ({ castingTime, effect }) =>
             castingTime !== "reaction" &&
+            // Prayer of Healing (#341) takes minutes: never in a fight.
+            !(fight && castingTime === "minutes") &&
             // Thaumaturgy (#339) is flavour only: never cast.
             effect.kind !== "flavour" &&
             (fight ||
@@ -8265,7 +8462,10 @@ export function createFifthRuntime(
         return foes.length === 0 ? [] : [areaCast(spell, foes, cast)];
       }
       return (
-        spell.effect.kind === "healing" || spell.effect.kind === "buff"
+        spell.effect.kind === "healing" ||
+        spell.effect.kind === "buff" ||
+        // Lesser Restoration (#341) ends the character's own condition.
+        spell.effect.kind === "restoration"
           ? [{ id: PLAYER_ID, name: caster.name }]
           : foes
       ).map((target) => view("cast", cast([target.id]), target));
@@ -8518,8 +8718,55 @@ export function createFifthRuntime(
         ...(pc.actionSurge === undefined ? [] : [feature("action-surge")]),
         ...(pc.hide === undefined ? [] : [feature("hide")]),
         ...(pc.steadyAim === undefined ? [] : [feature("steady-aim")]),
+        // Channel Divinity (#341): Turn Undead, Preserve Life with the Life
+        // Domain, and Divine Spark's damage at each foe (its healing needs
+        // an ally, and the character has none).
+        ...(pc.channelDivinity === undefined
+          ? []
+          : [
+              feature("turn-undead"),
+              ...(pc.channelDivinity.preserveLife === undefined
+                ? []
+                : [feature("preserve-life")]),
+              ...targets.flatMap((target) =>
+                (["radiant", "necrotic"] as const).map((mode) =>
+                  view(
+                    "divine-spark",
+                    {
+                      type: "divine-spark",
+                      actorId: PLAYER_ID,
+                      targetId: target.id,
+                      mode,
+                    },
+                    target,
+                  ),
+                ),
+              ),
+            ]),
+        // Spiritual Weapon's attack (#341), while it is out.
+        ...((pc.effects ?? []).some(
+          ({ buff }) => buff.kind === "spectral-weapon",
+        )
+          ? targets.map((target) =>
+              view(
+                "spectral-attack",
+                {
+                  type: "spectral-attack",
+                  actorId: PLAYER_ID,
+                  targetId: target.id,
+                },
+                target,
+              ),
+            )
+          : []),
         ...casts(pc, targets, true),
         ...gearViews(true),
+        // Every foe turned (#341, D13): the character may leave.
+        ...(everyFoeTurned(state.encounter!, PLAYER_ID)
+          ? exits(state).map((exit) =>
+              view("move", { type: "move", destinationId: exit.id }, exit),
+            )
+          : []),
         feature("end-turn"),
       ];
     }
@@ -9325,9 +9572,11 @@ export function createFifthRuntime(
       },
       ...targetTool(
         "move",
-        state.unseenBy === undefined
-          ? "Go through an exit to a neighbouring room. A fight there begins at once. Exits:"
-          : "Slip past the opponents here, unseen, through an exit to a neighbouring room, leaving their fight unfought; it is met again on coming back. A fight in the next room begins at once. Exits:",
+        fighting(state)
+          ? "Only when the player asks to leave while every opponent here is turned (Turn Undead): go through an exit, leaving the fight unresolved; its standing opponents are met again on coming back, and the fallen stay fallen. Exits:"
+          : state.unseenBy === undefined
+            ? "Go through an exit to a neighbouring room. A fight there begins at once. Exits:"
+            : "Slip past the opponents here, unseen, through an exit to a neighbouring room, leaving their fight unfought; it is met again on coming back. A fight in the next room begins at once. Exits:",
         choices("move"),
         "The id of the room to go to.",
       ),
@@ -9483,6 +9732,15 @@ export function createFifthRuntime(
         [],
         strikeChoices("light-attack"),
       ),
+      // Spiritual Weapon's attack (#341), while it is out.
+      ...targetTool(
+        "spiritual_weapon",
+        "Only when the player asks to strike with their spiritual weapon: its melee spell attack, with the character's bonus action. The engine rolls the attack and damage. Targets:",
+        choices("spectral-attack"),
+        "The id of the opponent to attack.",
+      ),
+      // Divine Spark (#341), a use of Channel Divinity.
+      ...divineSparkTool(actions),
       ...features,
       // Only right after a failed check (#315).
       ...(actions.some(
@@ -9504,6 +9762,52 @@ export function createFifthRuntime(
       ...longRestTool(state, actions),
       // Only while the engine would accept some spell (#336).
       ...castTool(actions),
+    ];
+  };
+
+  /**
+   * The divine_spark tool (#341): the targets the engine would accept, and
+   * what Divine Spark may do to each.
+   */
+  const divineSparkTool = (
+    actions: readonly ActionView[],
+  ): readonly GameToolDefinition[] => {
+    const offers = actions.filter(
+      ({ action, available }) => action === "divine-spark" && available,
+    );
+    if (offers.length === 0) {
+      return [];
+    }
+    const targets = [...new Set(offers.map(({ target }) => target!.id))];
+    const described = targets.map((id) => {
+      const mine = offers.filter(({ target }) => target!.id === id);
+      return `${id} (${mine[0]!.target!.name}: ${listed(mine.map(({ mode }) => mode!))})`;
+    });
+    return [
+      {
+        type: "function",
+        name: "divine_spark",
+        description: `Only when the player asks to use Divine Spark: spend a use of Channel Divinity and the character's action. The engine rolls 1d8 + the Wisdom modifier and heals an ally (never the character) by it, or makes an opponent save on Constitution and deals that much radiant or necrotic damage, half on a success. Targets and modes: ${described.join("; ")}.`,
+        strict: true,
+        parameters: {
+          type: "object",
+          properties: {
+            target: {
+              type: "string",
+              enum: targets,
+              description: "The id of the creature the player aimed it at.",
+            },
+            mode: {
+              type: "string",
+              enum: [...new Set(offers.map(({ mode }) => mode!))],
+              description:
+                "heal, radiant or necrotic, as the player chose; radiant when they ask only to harm a foe.",
+            },
+          },
+          required: ["target", "mode"],
+          additionalProperties: false,
+        },
+      },
     ];
   };
 
@@ -9730,8 +10034,14 @@ export function createFifthRuntime(
     // Resistance's damage type (#339), or null, while Resistance is
     // offered: the tool lists the key only then.
     const damageType = isRecord(parsed) ? parsed.damage_type : undefined;
+    // Divine Spark (#341) takes its target and mode.
+    const isSpark = call.name === "divine_spark";
     if (
       !isRecord(parsed) ||
+      (isSpark &&
+        (Object.keys(parsed).sort().join(",") !== "mode,target" ||
+          typeof parsed.target !== "string" ||
+          !(DIVINE_SPARK_MODES as readonly unknown[]).includes(parsed.mode))) ||
       (isCast &&
         (![
           "slot_level,spell,targets",
@@ -9744,7 +10054,7 @@ export function createFifthRuntime(
           !Array.isArray(castTargets) ||
           !castTargets.every((id) => typeof id === "string") ||
           (slotLevel !== null && !Number.isInteger(slotLevel)))) ||
-      (isCast
+      (isCast || isSpark
         ? false
         : isRest
           ? !Number.isInteger(hitDice) ||
@@ -9766,37 +10076,44 @@ export function createFifthRuntime(
             modelOutput: { ok: true, status: projectCharacterStatus(state) },
           };
     }
-    const action: FifthAction = isCast
+    const action: FifthAction = isSpark
       ? {
-          type: "cast",
+          type: "divine-spark",
           actorId: PLAYER_ID,
-          spellId: parsed.spell as string,
-          targetIds: castTargets as string[],
-          ...(slotLevel === null ? {} : { slotLevel: slotLevel as number }),
-          ...(typeof damageType === "string"
-            ? { damageType: damageType as DamageType }
-            : {}),
+          targetId: parsed.target as string,
+          mode: parsed.mode as DivineSparkMode,
         }
-      : isRest
-        ? { type: "rest", hitDice: hitDice as number }
-        : Object.hasOwn(BARE_TOOLS, call.name)
-          ? BARE_TOOLS[call.name]!
-          : parameter === undefined
-            ? {
-                type: FEATURE_TOOLS[call.name as FeatureTool],
-                actorId: PLAYER_ID,
-              }
-            : TARGET_TOOLS[call.name as TargetTool].action(
-                parsed[parameter] as string,
-                attackTool
-                  ? typeof strike === "string"
-                    ? strike
-                    : undefined
-                  : typeof approach === "string"
-                    ? approach
-                    : undefined,
-                retry === true,
-              );
+      : isCast
+        ? {
+            type: "cast",
+            actorId: PLAYER_ID,
+            spellId: parsed.spell as string,
+            targetIds: castTargets as string[],
+            ...(slotLevel === null ? {} : { slotLevel: slotLevel as number }),
+            ...(typeof damageType === "string"
+              ? { damageType: damageType as DamageType }
+              : {}),
+          }
+        : isRest
+          ? { type: "rest", hitDice: hitDice as number }
+          : Object.hasOwn(BARE_TOOLS, call.name)
+            ? BARE_TOOLS[call.name]!
+            : parameter === undefined
+              ? {
+                  type: FEATURE_TOOLS[call.name as FeatureTool],
+                  actorId: PLAYER_ID,
+                }
+              : TARGET_TOOLS[call.name as TargetTool].action(
+                  parsed[parameter] as string,
+                  attackTool
+                    ? typeof strike === "string"
+                      ? strike
+                      : undefined
+                    : typeof approach === "string"
+                      ? approach
+                      : undefined,
+                  retry === true,
+                );
     const result = handleAction(state, action, random);
     if (result.rejection !== undefined) {
       return {
@@ -9965,7 +10282,7 @@ export function createFifthRuntime(
     rulesVersion: FIFTH_RULES_VERSION,
     promptVersion: FIFTH_PROMPT_VERSION,
     systemPrompt: FIFTH_DM_SYSTEM_PROMPT,
-    toolSchemaVersion: "5e-tools-v11",
+    toolSchemaVersion: "5e-tools-v12",
     readToolNames: ["look", "get_character_status"],
     mutationToolNames: MUTATION_TOOLS,
     adventure,

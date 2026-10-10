@@ -845,6 +845,13 @@ const PLAYED_ACTIONS: Readonly<Record<ActionKind, boolean>> = {
   // Hide and Steady Aim, by the Rogue policy (#307).
   hide: true,
   "steady-aim": true,
+  // Channel Divinity, by the Cleric policy (#341): Turn Undead against
+  // undead, Preserve Life when Bloodied, Divine Spark's radiant damage.
+  "divine-spark": true,
+  "turn-undead": true,
+  "preserve-life": true,
+  // Spiritual Weapon waits for the caster policies (#348).
+  "spectral-attack": false,
   "end-turn": true,
   // Uncanny Dodge, by the Rogue policy: every hit it can halve (#308).
   "uncanny-dodge": true,

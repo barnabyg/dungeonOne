@@ -15,6 +15,7 @@ import {
   levelForXp,
   validateCharacter,
 } from "../../dist/character-5e.js";
+import { CLERIC } from "../../dist/cleric-5e.js";
 import { ROGUE } from "../../dist/rogue-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
@@ -94,6 +95,39 @@ export function rogueAt5() {
 }
 
 /**
+ * A level-3 Life Cleric at full health (#341), with Spiritual Weapon and
+ * Hold Person prepared: Channel Divinity, Preserve Life and Spiritual
+ * Weapon's attacks reach the bar.
+ */
+export function lifeCleric() {
+  const xp = 900;
+  const cleric = buildCharacter(
+    "e".repeat(32),
+    "Mira",
+    ADA_DICE,
+    { ...CLERIC.defaults, placement: defaultPlacement(ADA_DICE, CLERIC) },
+    "cleric",
+  );
+  const leveled = {
+    ...cleric,
+    xp,
+    level: levelForXp(xp, 3),
+    spells: {
+      cantrips: cleric.spells.cantrips,
+      prepared: [
+        "guiding-bolt",
+        "healing-word",
+        "shield-of-faith",
+        "spiritual-weapon",
+        "hold-person",
+        "protection-from-poison",
+      ],
+    },
+  };
+  return validateCharacter({ ...leveled, hp: characterProfile(leveled).maxHp });
+}
+
+/**
  * The engine action a projected action stands for, as the browser server
  * makes it from a click: every `ActionKind` in `src/runtime-5e.ts`.
  */
@@ -112,15 +146,21 @@ export function engineAction(view) {
   };
 }
 
-function madeAction({ action, target, targets, rest, spell }) {
+function madeAction({ action, target, targets, rest, spell, mode }) {
   switch (action) {
     case "attack":
     case "light-attack":
+    case "spectral-attack":
       return { type: action, actorId: PLAYER, targetId: target.id };
+    // Divine Spark (#341), with what it does.
+    case "divine-spark":
+      return { type: action, actorId: PLAYER, targetId: target.id, mode };
     case "second-wind":
     case "action-surge":
     case "hide":
     case "steady-aim":
+    case "turn-undead":
+    case "preserve-life":
     case "end-turn":
     case "uncanny-dodge":
     case "take-hit":
@@ -184,6 +224,10 @@ function madeAction({ action, target, targets, rest, spell }) {
         ...(spell.slotLevel === undefined
           ? {}
           : { slotLevel: spell.slotLevel }),
+        // Resistance's damage type (#339).
+        ...(spell.damageType === undefined
+          ? {}
+          : { damageType: spell.damageType }),
       };
     default:
       // A new kind must be mapped above, not guessed at.
@@ -212,7 +256,8 @@ const AREAS = {
  * level-3 Thief's fights with Hide and Steady Aim (#307); then a level-5
  * Rogue's, with Cunning Strike and Uncanny Dodge (#308); then the level-3
  * test caster's, with 1st- and 2nd-level slots (#336), with buffs and
- * Shield prepared (#337), and with area spells (#338).
+ * Shield prepared (#337), and with area spells (#338); then a level-3
+ * Life Cleric's (#341).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -228,6 +273,9 @@ const PLAYTHROUGHS = [
   { adventure: goblinTrio, fighters: [testCasterAt(3)] },
   { adventure: goblinTrio, fighters: [testCasterAt(3, BUFFED)] },
   { adventure: goblinTrio, fighters: [testCasterAt(3, AREAS)] },
+  // A level-3 Life Cleric against a zombie and goblins (#341).
+  { adventure: sealedCrypt, fighters: [lifeCleric()] },
+  { adventure: goblinTrio, fighters: [lifeCleric()] },
 ];
 
 /**
