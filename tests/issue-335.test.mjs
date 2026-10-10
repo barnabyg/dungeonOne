@@ -22,7 +22,6 @@ import {
   createFifthRuntime,
   describeFifthResult,
   FIFTH_DM_SYSTEM_PROMPT,
-  FIFTH_PROMPT_VERSION,
   LONG_RESTS_PER_ADVENTURE,
   renderFifthResult,
 } from "../dist/runtime-5e.js";
@@ -542,12 +541,6 @@ test("the gate's XP check counts the wandering encounter, and it reports rests",
     renderGateResult(cellarRest(25), result),
     /^ {2}Rests, reported \(not judged\): on seeded checks the level 1, 5th percentile Fighter playing cautious took \d+\.\d short and \d+\.\d long rests a run; \d+\.\d rests a run were interrupted\.$/mu,
   );
-});
-
-test("the save and trace formats and the prompt version bump", () => {
-  assert.equal(FIFTH_SESSION_FORMAT, 38);
-  assert.equal(FIFTH_TRACE_FORMAT, 32);
-  assert.equal(FIFTH_PROMPT_VERSION, "5e-dm-v23");
 });
 
 // The AI DM's long_rest tool.

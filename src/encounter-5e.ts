@@ -83,6 +83,16 @@
  *   that took the hit still has its reaction; one used comes back at the
  *   start of its next turn. Without positions or unseen attackers, every
  *   attacker can be seen.
+ * - Spells (#336): a combatant with `spellcasting` casts the spells it
+ *   carries (`spells-5e.ts` data). An action spell takes the action (the
+ *   Magic action), a bonus-action spell the bonus action; a levelled spell
+ *   spends a slot of its level or higher, only one slot a turn (SRD 5.2). A
+ *   spell attack rolls like a weapon attack with the spell attack bonus (a
+ *   ranged one at disadvantage from round 2); a save spell's target saves
+ *   against the caster's DC (`savingThrow`) for half or no damage; Magic
+ *   Missile's darts always hit; a healing spell heals its dice + the
+ *   spellcasting modifier. Damage meets defences and Undead Fortitude as an
+ *   attack's does. `castOutsideFight` casts a healing spell out of a fight.
  * - Conditions (`CONDITION_RULES`): a monster attack's rider may deal extra
  *   damage of its own type on a hit (its dice doubled by a critical hit) and
  *   give the target a condition, after a saving throw if it names one. A
@@ -127,6 +137,13 @@
 import type { Ammunition, AmmunitionId } from "./equipment-5e.js";
 import type { Ability } from "./class-5e.js";
 import type { RandomSource } from "./random.js";
+import {
+  effectAtSlot,
+  ordinal,
+  type CastingTime,
+  type SpellDefinition,
+  type SpellEffect,
+} from "./spells-5e.js";
 
 export type Side = "party" | "opponents";
 
@@ -308,6 +325,11 @@ export type Weapon = Readonly<{
   ammunition?: AmmunitionId;
   /** Loading (SRD 5.2): it fires once per action, whatever Extra Attack allows (#291). */
   loading?: true;
+  /**
+   * A ranged spell attack (#336): it spends no ammunition, but like a
+   * ranged weapon it attacks at disadvantage from the fight's second round.
+   */
+  ranged?: true;
 }>;
 
 export type Combatant = DamageDefenses &
@@ -375,6 +397,8 @@ export type Combatant = DamageDefenses &
     actionSurge?: FeatureUses;
     /** Healing potions the combatant carries, which it can drink. */
     potions?: readonly Potion[];
+    /** Its spellcasting (#336), for a combatant that casts spells. */
+    spellcasting?: CombatSpellcasting;
     /** The arrows and bolts it carries, for a ranged weapon (#230). */
     ammunition?: Ammunition;
     /** Advantage on its attacks while an ally is alive and able to act. */
@@ -420,6 +444,19 @@ export type Healing = Readonly<{
 export type Potion = Readonly<{ id: string; name: string; healing: Healing }>;
 
 export type FeatureUses = Readonly<{ uses: number; max: number }>;
+
+/**
+ * A combatant's spellcasting (#336): its spell attack bonus and save DC, the
+ * modifier its healing adds, the spells it can cast (its cantrips already
+ * grown for its level) and its spell slots left, 1st level first.
+ */
+export type CombatSpellcasting = Readonly<{
+  attackBonus: number;
+  saveDc: number;
+  modifier: number;
+  spells: readonly SpellDefinition[];
+  slots: readonly FeatureUses[];
+}>;
 
 export type InitiativeRoll = Readonly<{
   combatantId: string;
@@ -566,6 +603,11 @@ export type TurnEconomy = Readonly<{
   sneakAttack: boolean;
   /** Steady Aim taken this turn (#307): advantage on the next attack. */
   steadyAim: boolean;
+  /**
+   * A spell slot spent this turn (#336): SRD 5.2 allows one a turn, so a
+   * second levelled spell, by action or bonus action, is refused.
+   */
+  slotSpent: boolean;
 }>;
 
 const FRESH_TURN: TurnEconomy = {
@@ -577,6 +619,7 @@ const FRESH_TURN: TurnEconomy = {
   lightAttack: "unready",
   sneakAttack: true,
   steadyAim: false,
+  slotSpent: false,
 };
 
 /**
@@ -597,6 +640,7 @@ export type EncounterActionType =
   | "hide"
   | "steady-aim"
   | "drink-potion"
+  | "cast"
   | "end-turn"
   | ReactionAnswer;
 
@@ -622,6 +666,7 @@ export type EncounterAction =
       actorId: string;
     }>
   | Readonly<{ type: "drink-potion"; actorId: string; itemId: string }>
+  | CastAction
   /**
    * Draws, stows or swaps a weapon with the turn's object interaction: the
    * combatant attacks with `attack`, and `lightAttack` if any, from now on.
@@ -632,6 +677,18 @@ export type EncounterAction =
       attack: Weapon;
       lightAttack?: Weapon;
     }>;
+
+/**
+ * Casting a spell (#336) the combatant can cast, at a target: a cantrip with
+ * no slot, a levelled spell with a slot of its level or higher.
+ */
+export type CastAction = Readonly<{
+  type: "cast";
+  actorId: string;
+  spellId: string;
+  slotLevel?: number;
+  targetId: string;
+}>;
 
 export type AttackEvent = Readonly<{
   type: "attack";
@@ -671,6 +728,8 @@ export type AttackEvent = Readonly<{
   ammunition?: Readonly<{ kind: AmmunitionId; left: number }>;
   /** A miss that still dealt `damage` through the Graze mastery. */
   graze?: true;
+  /** A spell attack (#336): `weapon` names the spell. */
+  spell?: true;
   /** Great Weapon Fighting counted each 1 or 2 in `damageRolls` as 3. */
   greatWeaponFighting?: true;
   /**
@@ -791,6 +850,88 @@ export type HideEvent = Readonly<{
   success: boolean;
 }>;
 
+/**
+ * A saving throw (#336): rolled d20 + bonus against a DC, or failed without
+ * a roll when a condition (paralysed) fails saves of its ability.
+ */
+export type SavingThrow = Readonly<
+  { ability: Ability; bonus: number; dc: number; success: boolean } & (
+    | {
+        d20: number;
+        /** Present when it rolled with disadvantage (untrained armour). */
+        mode?: RollMode;
+        total: number;
+        autoFail?: never;
+      }
+    | { autoFail: ConditionKind; d20?: never; total?: never }
+  )
+>;
+
+/**
+ * A spell cast (#336): the spell, its level and casting time, the slot it
+ * spent (a levelled spell's) with the slots of that level left, and its
+ * target. Its effect's event follows.
+ */
+export type CastEvent = Readonly<{
+  type: "cast";
+  combatantId: string;
+  spellId: string;
+  spell: string;
+  level: number;
+  castingTime: CastingTime;
+  slot?: Readonly<{ level: number; left: number; max: number }>;
+  targetId: string;
+}>;
+
+/** A spell's damage as dealt, after any resistance, vulnerability or immunity. */
+type SpellDamageDealt = Readonly<{
+  damageRolls: readonly number[];
+  damageModifier: number;
+  damage: number;
+  damageType: DamageType;
+  damageAdjustment?: DamageAdjustment;
+  /** The target's HP once it lands: 0 even when Undead Fortitude then leaves it at 1. */
+  hpAfter: number;
+}>;
+
+/**
+ * A spell's saving throw and its damage (#336): a failure takes the damage,
+ * a success half of it (rounded down) or none, as the spell says. No damage
+ * dice are rolled when a success takes none.
+ */
+export type SpellSaveEvent = Readonly<{
+  type: "spell-save";
+  actorId: string;
+  targetId: string;
+  spell: string;
+  save: SavingThrow;
+  onSuccess: "half" | "none";
+}> &
+  SpellDamageDealt;
+
+/** A spell that always hits (#336), such as Magic Missile: each missile's roll. */
+export type SpellDamageEvent = Readonly<{
+  type: "spell-damage";
+  actorId: string;
+  targetId: string;
+  spell: string;
+  missiles: number;
+}> &
+  SpellDamageDealt;
+
+/** A healing spell (#336): its dice + the caster's spellcasting modifier. */
+export type SpellHealingEvent = Readonly<{
+  type: "spell-healing";
+  combatantId: string;
+  targetId: string;
+  spell: string;
+  rolls: readonly number[];
+  modifier: number;
+  healing: number;
+  hpAfter: number;
+  maxHp: number;
+}>;
+
 /** A combatant's Wisdom saving throw against its morale DC (#237). */
 export type MoraleEvent = Readonly<{
   type: "morale";
@@ -846,6 +987,10 @@ export type EncounterEvent =
   | Readonly<{ type: "steady-aim"; combatantId: string }>
   | ReactionOfferedEvent
   | PotionEvent
+  | CastEvent
+  | SpellSaveEvent
+  | SpellDamageEvent
+  | SpellHealingEvent
   | Readonly<{ type: "turn-ended"; combatantId: string }>
   | Readonly<{ type: "defeated"; combatantId: string }>
   | Readonly<{ type: "ended"; outcome: "victory" | "defeat" }>;
@@ -897,6 +1042,14 @@ export type EncounterRefusalCode =
   | "interaction-used"
   | "no-arrows"
   | "no-bolts"
+  | "no-spellcasting"
+  | "unknown-spell"
+  | "reaction-spell"
+  | "slot-level"
+  | "no-slot"
+  | "slot-spent"
+  | "healing-target"
+  | "fight-only"
   | "paralysed"
   | "fled"
   | "surrendered";
@@ -1198,6 +1351,15 @@ function steadyAimRefusal(
       );
 }
 
+/** The combatant's own attack, with a weapon or a spell (#336). */
+function ownAttack(origin: AttackOrigin): boolean {
+  return (
+    origin.kind === "attack" ||
+    origin.kind === "light" ||
+    origin.kind === "spell"
+  );
+}
+
 /**
  * The engine rules that give an attack advantage and disadvantage, by name,
  * before it is rolled.
@@ -1214,8 +1376,9 @@ function attackModes(
     ({ sourceId, targetId }) => sourceId === actor.id && targetId === target.id,
   );
   // Hiding and Steady Aim (#307) give the combatant's own next attack
-  // advantage, never a Rampage or opponent attack.
-  const own = origin.kind === "attack" || origin.kind === "light";
+  // advantage, a spell attack's too (#336), never a Rampage or opponent
+  // attack.
+  const own = ownAttack(origin);
   const hidden = own && state.hidden.includes(actor.id);
   const aimed = own && state.economy.steadyAim;
   const packTactics =
@@ -1239,8 +1402,10 @@ function attackModes(
     disadvantage: [
       ...(sapped ? ["Sap"] : []),
       ...(weapon.disadvantage ?? []),
-      // Round 1 is the opening volley; then every foe is close (#230).
-      ...(weapon.ammunition !== undefined && state.round >= 2
+      // Round 1 is the opening volley; then every foe is close (#230), for
+      // a ranged spell attack too (#336, D6).
+      ...((weapon.ammunition !== undefined || weapon.ranged === true) &&
+      state.round >= 2
         ? [CLOSE_COMBAT]
         : []),
       ...conditionSources(state, actor.id, "attacks"),
@@ -1420,6 +1585,7 @@ export function availableActions(
     ...(potionRefusal(state, actor) === undefined
       ? (["drink-potion"] as const)
       : []),
+    ...(canCast(state, actor) ? (["cast"] as const) : []),
     "end-turn",
   ];
 }
@@ -1707,32 +1873,24 @@ function conditionSources(
 }
 
 /**
- * Rolls `entrant`'s saving throw against a condition, or fails it without a
- * roll when one of its conditions (paralysed) fails saves of that ability.
+ * `entrant`'s saving throw against `save` (#336), in a fight: d20 + its
+ * save bonus, with disadvantage from its ability's disadvantages, or failed
+ * without a roll when one of its conditions (paralysed) fails saves of that
+ * ability. Conditions and spells both make their saves through it.
  */
-function rollSave(
+export function savingThrow(
   state: EncounterState,
   entrant: Combatant,
   save: SaveSpec,
-  condition: ConditionKind,
-  repeat: boolean,
   random: Roller,
-): SaveEvent {
+): SavingThrow {
   const bonus = entrant.saves[save.ability];
   const fails = conditionWhere(
     state,
     entrant.id,
     ({ failsSaves }) => failsSaves?.includes(save.ability) === true,
   );
-  const common = {
-    type: "save",
-    combatantId: entrant.id,
-    ability: save.ability,
-    bonus,
-    dc: save.dc,
-    condition,
-    repeat,
-  } as const;
+  const common = { ability: save.ability, bonus, dc: save.dc };
   if (fails !== undefined) {
     return { ...common, success: false, autoFail: fails };
   }
@@ -1748,6 +1906,24 @@ function rollSave(
     ...(mode === undefined ? {} : { mode }),
     total,
     success: total >= save.dc,
+  };
+}
+
+/** Rolls `entrant`'s saving throw against a condition (`savingThrow`). */
+function rollSave(
+  state: EncounterState,
+  entrant: Combatant,
+  save: SaveSpec,
+  condition: ConditionKind,
+  repeat: boolean,
+  random: Roller,
+): SaveEvent {
+  return {
+    type: "save",
+    combatantId: entrant.id,
+    condition,
+    repeat,
+    ...savingThrow(state, entrant, save, random),
   };
 }
 
@@ -1870,6 +2046,8 @@ function endTurn(
  */
 type AttackOrigin =
   | Readonly<{ kind: "attack" | "light" }>
+  /** A spell attack (#336), with the spell made a weapon (`spellWeapon`). */
+  | Readonly<{ kind: "spell"; weapon: Weapon }>
   | Readonly<{
       kind: "opponent" | "rampage";
       weapon: Weapon;
@@ -2024,9 +2202,12 @@ function landAttack(
   landing: Landing,
 ): { state: EncounterState; events: EncounterEvent[] } {
   const light = origin.kind === "light";
-  const chosen = "weapon" in origin ? origin : undefined;
+  const chosen =
+    origin.kind === "opponent" || origin.kind === "rampage"
+      ? origin
+      : undefined;
   const weapon = originWeapon(actor, origin);
-  const own = origin.kind === "attack" || origin.kind === "light";
+  const own = ownAttack(origin);
   const hidden = own && state.hidden.includes(actor.id);
   const aimed = own && state.economy.steadyAim;
   const damageRolls: number[] = [];
@@ -2151,6 +2332,7 @@ function landAttack(
       ...(light ? { light: true as const } : {}),
       ...(spent === undefined ? {} : { ammunition: spent }),
       ...(graze ? { graze: true as const } : {}),
+      ...(origin.kind === "spell" ? { spell: true as const } : {}),
       ...(hit && weapon.greatWeaponFighting === true
         ? { greatWeaponFighting: true as const }
         : {}),
@@ -2184,31 +2366,14 @@ function landAttack(
   const radiant =
     (weapon.damage.type === "radiant" && damage > 0) ||
     (rider?.damageType === "radiant" && rider.damage > 0);
-  let hpLeft = hpAfter;
-  if (
-    hpAfter === 0 &&
-    target.hp > 0 &&
-    target.undeadFortitude === true &&
-    !(hit && critical) &&
-    !radiant
-  ) {
-    const d20 = random.roll(20);
-    const bonus = target.saves.constitution;
-    const dc = 5 + taken;
-    const success = d20 + bonus >= dc;
-    hpLeft = success ? 1 : 0;
-    events.push({
-      type: "undead-fortitude",
-      combatantId: target.id,
-      damage: taken,
-      d20,
-      bonus,
-      total: d20 + bonus,
-      dc,
-      success,
-      hpAfter: hpLeft,
-    });
-  }
+  const hpLeft = fortitude(
+    target,
+    hpAfter,
+    taken,
+    (hit && critical) || radiant,
+    random,
+    events,
+  );
   // The attack spends any disadvantage Sap gave the attacker, any
   // advantage Vex gave it against this target, and its hiding and Steady
   // Aim (#307).
@@ -2233,10 +2398,7 @@ function landAttack(
         sourceId !== actor.id || targetId !== target.id,
     ),
     hidden: state.hidden.filter((id) => !hidden || id !== actor.id),
-    engaged: [
-      ...state.engaged,
-      ...[actor.id, target.id].filter((id) => !state.engaged.includes(id)),
-    ],
+    engaged: engage(state, actor, target),
     economy: {
       ...state.economy,
       // Sneak Attack is dealt once a turn.
@@ -2246,19 +2408,7 @@ function landAttack(
   };
   const defeated = hpLeft === 0 && target.hp > 0;
   if (defeated) {
-    events.push({ type: "defeated", combatantId: target.id });
-    next = checkMorale(
-      {
-        ...next,
-        conditions: next.conditions.filter(
-          ({ targetId }) => targetId !== target.id,
-        ),
-        fleeing: next.fleeing.filter((id) => id !== target.id),
-      },
-      target.side,
-      random,
-      events,
-    );
+    next = fall(next, target, random, events);
   } else if (hit && weapon.mastery === "Sap") {
     next = {
       ...next,
@@ -2309,6 +2459,72 @@ function landAttack(
     );
   }
   return { state: concludeIfOver(next, events), events };
+}
+
+/**
+ * Undead Fortitude (SRD 5.2): `target`, with it, reduced from above 0 to 0
+ * HP by `taken` damage that isn't radiant or from a critical hit
+ * (`bypassed`), makes a Constitution save against DC 5 + the damage taken,
+ * and is left at 1 HP on a success. The HP it is left with.
+ */
+function fortitude(
+  target: Combatant,
+  hpAfter: number,
+  taken: number,
+  bypassed: boolean,
+  random: Roller,
+  events: EncounterEvent[],
+): number {
+  if (
+    hpAfter > 0 ||
+    target.hp === 0 ||
+    target.undeadFortitude !== true ||
+    bypassed
+  ) {
+    return hpAfter;
+  }
+  const d20 = random.roll(20);
+  const bonus = target.saves.constitution;
+  const dc = 5 + taken;
+  const success = d20 + bonus >= dc;
+  const hpLeft = success ? 1 : 0;
+  events.push({
+    type: "undead-fortitude",
+    combatantId: target.id,
+    damage: taken,
+    d20,
+    bonus,
+    total: d20 + bonus,
+    dc,
+    success,
+    hpAfter: hpLeft,
+  });
+  return hpLeft;
+}
+
+/**
+ * `target` has just fallen to 0 HP: it is defeated, its conditions and its
+ * flight end, and its side checks morale.
+ */
+function fall(
+  state: EncounterState,
+  target: Combatant,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  events.push({ type: "defeated", combatantId: target.id });
+  return checkMorale(
+    {
+      ...state,
+      conditions: state.conditions.filter(
+        ({ targetId }) => targetId !== target.id,
+      ),
+      fleeing: state.fleeing.filter((id) => id !== target.id),
+    },
+    target.side,
+    random,
+    events,
+  );
 }
 
 /**
@@ -2493,6 +2709,493 @@ function answerReaction(
   return { state: next, events };
 }
 
+/** `engaged` with `actor` and `target` added: they have exchanged blows. */
+function engage(
+  state: EncounterState,
+  actor: Combatant,
+  target: Combatant,
+): readonly string[] {
+  return [
+    ...state.engaged,
+    ...[actor.id, target.id].filter((id) => !state.engaged.includes(id)),
+  ];
+}
+
+/** The opponent `actor` aims an attack or spell at, or why it can't be. */
+function opponentOf(
+  state: EncounterState,
+  actor: Combatant,
+  targetId: string,
+): Combatant | EncounterRejection {
+  const target = state.combatants.find(({ id }) => id === targetId);
+  if (target === undefined) {
+    return refused("no-target", "There is no such opponent here to attack.");
+  }
+  if (target.side === actor.side) {
+    return refused("same-side", `${target.name} is on your side.`);
+  }
+  if (hasFled(state, target.id)) {
+    return refused("fled", `${target.name} has fled.`);
+  }
+  if (hasSurrendered(state, target.id)) {
+    return refused("surrendered", `${target.name} has surrendered.`);
+  }
+  return isDefeated(target)
+    ? refused("already-defeated", `${target.name} is already defeated.`)
+    : target;
+}
+
+/** The spell `actor` casts by `spellId`, if it can cast it (#336). */
+function spellOf(
+  actor: Combatant,
+  spellId: string,
+): SpellDefinition | undefined {
+  return actor.spellcasting?.spells.find(({ id }) => id === spellId);
+}
+
+/**
+ * The slot levels `actor` could cast `spell` with (#336): none for a
+ * cantrip; for a levelled spell, its own level up to the highest slot level
+ * `actor` has.
+ */
+export function slotLevels(
+  actor: Combatant,
+  spell: SpellDefinition,
+): readonly (number | undefined)[] {
+  if (spell.level === 0) {
+    return [undefined];
+  }
+  const highest = actor.spellcasting?.slots.length ?? 0;
+  return Array.from(
+    { length: Math.max(0, highest - spell.level + 1) },
+    (_, index) => spell.level + index,
+  );
+}
+
+/**
+ * Why `actor` can't cast `action`'s spell with its slot now, whatever the
+ * target (#336): no spellcasting, a spell it doesn't know or hasn't
+ * prepared, a reaction spell, a slot level the spell can't use or the
+ * caster has none of, a second slot this turn, or its action or bonus
+ * action spent.
+ */
+function spellRefusal(
+  state: EncounterState,
+  actor: Combatant,
+  action: Pick<CastAction, "spellId" | "slotLevel">,
+): EncounterRejection | undefined {
+  const casting = actor.spellcasting;
+  if (casting === undefined) {
+    return refused("no-spellcasting", "You can't cast spells.");
+  }
+  const spell = spellOf(actor, action.spellId);
+  if (spell === undefined) {
+    return refused(
+      "unknown-spell",
+      "You don't know that spell, or haven't prepared it.",
+    );
+  }
+  if (spell.castingTime === "reaction") {
+    return refused(
+      "reaction-spell",
+      `${spell.name} is cast as a reaction, when its trigger comes; nothing triggers it now.`,
+    );
+  }
+  const { slotLevel } = action;
+  if (spell.level === 0) {
+    if (slotLevel !== undefined) {
+      return refused(
+        "slot-level",
+        `${spell.name} is a cantrip: it spends no spell slot.`,
+      );
+    }
+  } else if (
+    slotLevel === undefined ||
+    !Number.isInteger(slotLevel) ||
+    slotLevel < spell.level
+  ) {
+    return refused(
+      "slot-level",
+      `${spell.name} needs a spell slot of ${ordinal(spell.level)} level or higher.`,
+    );
+  } else {
+    const slots = casting.slots[slotLevel - 1];
+    if (slots === undefined || slots.max === 0) {
+      return refused(
+        "no-slot",
+        `You have no ${ordinal(slotLevel)}-level spell slots.`,
+      );
+    }
+    if (slots.uses === 0) {
+      return refused(
+        "no-slot",
+        `You have no ${ordinal(slotLevel)}-level spell slots left.`,
+      );
+    }
+    if (state.economy.slotSpent) {
+      return refused(
+        "slot-spent",
+        "You have already spent a spell slot this turn: only one a turn, so only a cantrip now.",
+      );
+    }
+  }
+  if (spell.castingTime === "action" && state.economy.actions === 0) {
+    return refused(
+      "action-used",
+      "You have already used your action this turn.",
+    );
+  }
+  return spell.castingTime === "bonus-action" && !state.economy.bonusAction
+    ? BONUS_ACTION_USED
+    : undefined;
+}
+
+/**
+ * The target `actor` casts `spell` at, or why it can't be (#336): an
+ * opponent still in the fight for a harmful spell; for a healing spell, the
+ * caster or an ally still standing, and hurt.
+ */
+function spellTarget(
+  state: EncounterState,
+  actor: Combatant,
+  spell: SpellDefinition,
+  targetId: string,
+): Combatant | EncounterRejection {
+  if (spell.effect.kind !== "healing") {
+    return opponentOf(state, actor, targetId);
+  }
+  const target = state.combatants.find(({ id }) => id === targetId);
+  if (target === undefined) {
+    return refused("no-target", "There is no one here by that name.");
+  }
+  if (target.side !== actor.side) {
+    return refused(
+      "healing-target",
+      `${spell.name} heals you or an ally, not ${target.name}.`,
+    );
+  }
+  if (isOut(state, target)) {
+    return refused("already-defeated", `${target.name} is already defeated.`);
+  }
+  return target.hp >= target.maxHp
+    ? refused(
+        "full-hp",
+        `${target.id === actor.id ? "You are" : `${target.name} is`} unhurt, so ${spell.name} would heal nothing.`,
+      )
+    : target;
+}
+
+/** Why `actor` can't cast `action` now, or undefined when it can (#336). */
+function castRefusal(
+  state: EncounterState,
+  actor: Combatant,
+  action: Pick<CastAction, "spellId" | "slotLevel" | "targetId">,
+): EncounterRejection | undefined {
+  const refusal = spellRefusal(state, actor, action);
+  if (refusal !== undefined) {
+    return refusal;
+  }
+  const target = spellTarget(
+    state,
+    actor,
+    spellOf(actor, action.spellId)!,
+    action.targetId,
+  );
+  return "code" in target ? target : undefined;
+}
+
+/** Whether `actor` can cast any of its spells at anyone now (#336). */
+function canCast(state: EncounterState, actor: Combatant): boolean {
+  return (actor.spellcasting?.spells ?? []).some((spell) =>
+    slotLevels(actor, spell).some((slotLevel) =>
+      state.combatants.some(
+        (target) =>
+          castRefusal(state, actor, {
+            spellId: spell.id,
+            ...(slotLevel === undefined ? {} : { slotLevel }),
+            targetId: target.id,
+          }) === undefined,
+      ),
+    ),
+  );
+}
+
+/** A spell attack (#336) as the engine attacks with a weapon. */
+function spellWeapon(
+  casting: CombatSpellcasting,
+  spell: SpellDefinition,
+  effect: Extract<SpellEffect, { kind: "attack" }>,
+): Weapon {
+  return {
+    name: spell.name,
+    bonus: casting.attackBonus,
+    damage: { ...effect.damage, modifier: 0 },
+    criticalRange: 20,
+    ...(effect.range === "ranged" ? { ranged: true as const } : {}),
+  };
+}
+
+/** Rolls `count` dice of `sides`, in order. */
+function rollDice(random: Roller, count: number, sides: number): number[] {
+  return Array.from({ length: count }, () => random.roll(sides));
+}
+
+const sum = (values: readonly number[]) =>
+  values.reduce((total, value) => total + value, 0);
+
+/**
+ * A spell's `rolled` damage of `type` landing on `target` (#336): its
+ * defences, then Undead Fortitude (which radiant damage bypasses) and its
+ * fall. The spell's event, made by `event` from what was dealt, comes
+ * before Undead Fortitude's.
+ */
+function spellDamage(
+  state: EncounterState,
+  actor: Combatant,
+  target: Combatant,
+  rolled: number,
+  type: DamageType,
+  random: Roller,
+  events: EncounterEvent[],
+  event: (
+    dealt: Pick<SpellDamageDealt, "damage" | "damageAdjustment" | "hpAfter">,
+  ) => EncounterEvent,
+): EncounterState {
+  const { damage, damageAdjustment } = damageTaken(target, type, rolled);
+  const hpAfter = Math.max(0, target.hp - damage);
+  events.push(
+    event({
+      damage,
+      ...(damageAdjustment === undefined ? {} : { damageAdjustment }),
+      hpAfter,
+    }),
+  );
+  const hpLeft = fortitude(
+    target,
+    hpAfter,
+    damage,
+    type === "radiant" && damage > 0,
+    random,
+    events,
+  );
+  const next: EncounterState = {
+    ...state,
+    combatants: state.combatants.map((candidate) =>
+      candidate.id === target.id ? { ...candidate, hp: hpLeft } : candidate,
+    ),
+    engaged: engage(state, actor, target),
+  };
+  return hpLeft === 0 && target.hp > 0
+    ? fall(next, target, random, events)
+    : next;
+}
+
+/**
+ * Casts `action`, which `castRefusal` has accepted (#336): the slot (a
+ * levelled spell's) and the action or bonus action are spent, then the
+ * effect lands. The fight is not concluded here.
+ */
+function castSpell(
+  state: EncounterState,
+  actor: Combatant,
+  action: CastAction,
+  random: Roller,
+  events: EncounterEvent[],
+): EncounterState {
+  const casting = actor.spellcasting!;
+  const spell = spellOf(actor, action.spellId)!;
+  const effect = effectAtSlot(spell, action.slotLevel);
+  const slotIndex = spell.level === 0 ? undefined : action.slotLevel! - 1;
+  const slots = casting.slots.map((slot, index) =>
+    index === slotIndex ? { ...slot, uses: slot.uses - 1 } : slot,
+  );
+  const caster: Combatant = { ...actor, spellcasting: { ...casting, slots } };
+  const spent: EncounterState = {
+    ...state,
+    combatants: state.combatants.map((candidate) =>
+      candidate.id === actor.id ? caster : candidate,
+    ),
+    economy: {
+      ...state.economy,
+      ...(spell.castingTime === "bonus-action"
+        ? { bonusAction: false }
+        : { actions: state.economy.actions - 1 }),
+      slotSpent: state.economy.slotSpent || slotIndex !== undefined,
+    },
+  };
+  events.push({
+    type: "cast",
+    combatantId: actor.id,
+    spellId: spell.id,
+    spell: spell.name,
+    level: spell.level,
+    castingTime: spell.castingTime,
+    ...(slotIndex === undefined
+      ? {}
+      : {
+          slot: {
+            level: slotIndex + 1,
+            left: slots[slotIndex]!.uses,
+            max: slots[slotIndex]!.max,
+          },
+        }),
+    targetId: action.targetId,
+  });
+  const target = combatant(spent, action.targetId);
+  switch (effect.kind) {
+    case "attack": {
+      const resolved = resolveAttack(spent, caster, target, random, {
+        kind: "spell",
+        weapon: spellWeapon(casting, spell, effect),
+      });
+      events.push(...resolved.events);
+      return resolved.state;
+    }
+    case "save": {
+      const save = savingThrow(
+        spent,
+        target,
+        { ability: effect.ability, dc: casting.saveDc },
+        random,
+      );
+      // A success that takes no damage rolls no damage dice.
+      const damageRolls =
+        save.success && effect.onSuccess === "none"
+          ? []
+          : rollDice(random, effect.damage.dice, effect.damage.sides);
+      const full = sum(damageRolls);
+      return spellDamage(
+        spent,
+        caster,
+        target,
+        save.success ? Math.floor(full / 2) : full,
+        effect.damage.type,
+        random,
+        events,
+        (dealt) => ({
+          type: "spell-save",
+          actorId: actor.id,
+          targetId: target.id,
+          spell: spell.name,
+          save,
+          onSuccess: effect.onSuccess,
+          damageRolls,
+          damageModifier: 0,
+          damageType: effect.damage.type,
+          ...dealt,
+        }),
+      );
+    }
+    case "auto-hit": {
+      const { damage, missiles } = effect;
+      const damageRolls = rollDice(
+        random,
+        missiles * damage.dice,
+        damage.sides,
+      );
+      const damageModifier = missiles * damage.modifier;
+      return spellDamage(
+        spent,
+        caster,
+        target,
+        Math.max(0, sum(damageRolls) + damageModifier),
+        damage.type,
+        random,
+        events,
+        (dealt) => ({
+          type: "spell-damage",
+          actorId: actor.id,
+          targetId: target.id,
+          spell: spell.name,
+          missiles,
+          damageRolls,
+          damageModifier,
+          damageType: damage.type,
+          ...dealt,
+        }),
+      );
+    }
+    case "healing": {
+      // Its dice + the caster's spellcasting modifier, up to the maximum.
+      const rolls = rollDice(random, effect.healing.dice, effect.healing.sides);
+      const hpAfter = Math.min(
+        target.maxHp,
+        target.hp + Math.max(0, sum(rolls) + casting.modifier),
+      );
+      events.push({
+        type: "spell-healing",
+        combatantId: actor.id,
+        targetId: target.id,
+        spell: spell.name,
+        rolls,
+        modifier: casting.modifier,
+        healing: hpAfter - target.hp,
+        hpAfter,
+        maxHp: target.maxHp,
+      });
+      return {
+        ...spent,
+        combatants: spent.combatants.map((candidate) =>
+          candidate.id === target.id
+            ? { ...candidate, hp: hpAfter }
+            : candidate,
+        ),
+      };
+    }
+  }
+}
+
+/**
+ * Casts a spell outside a fight (#336): only a healing spell, with no turn
+ * to spend, on the caster itself. The caster afterwards, its slot spent,
+ * and the events; or why it can't.
+ */
+export function castOutsideFight(
+  caster: Combatant,
+  action: CastAction,
+  random: Roller,
+):
+  | Readonly<{ caster: Combatant; events: readonly EncounterEvent[] }>
+  | Readonly<{ rejection: EncounterRejection }> {
+  const spell = spellOf(caster, action.spellId);
+  if (spell !== undefined && spell.effect.kind !== "healing") {
+    return {
+      rejection: refused(
+        "fight-only",
+        `${spell.name} is cast in a fight: outside one, only healing spells.`,
+      ),
+    };
+  }
+  // The caster alone, at the start of a turn of its own.
+  const alone: EncounterState = {
+    combatants: [caster],
+    order: [
+      { combatantId: caster.id, d20: 1, bonus: 0, total: 1, tieBreaks: [] },
+    ],
+    round: 1,
+    turn: 0,
+    outcome: "ongoing",
+    economy: FRESH_TURN,
+    sapped: [],
+    vexed: [],
+    conditions: [],
+    hidden: [],
+    fleeing: [],
+    fled: [],
+    surrendered: [],
+    engaged: [],
+    moraleChecks: [],
+    reacted: [],
+  };
+  const refusal = castRefusal(alone, caster, action);
+  if (refusal !== undefined) {
+    return { rejection: refusal };
+  }
+  const events: EncounterEvent[] = [];
+  const after = castSpell(alone, caster, action, random, events);
+  return { caster: combatant(after, caster.id), events };
+}
+
 /**
  * Rolls initiative and plays opponents' turns until the first party
  * combatant's turn.
@@ -2594,25 +3297,7 @@ export function act(
   }
   const events: EncounterEvent[] = [];
   let next: EncounterState;
-  /** The opponent an attack is aimed at, or why it can't be. */
-  const targetOf = (targetId: string): Combatant | EncounterRejection => {
-    const target = state.combatants.find(({ id }) => id === targetId);
-    if (target === undefined) {
-      return refused("no-target", "There is no such opponent here to attack.");
-    }
-    if (target.side === actor.side) {
-      return refused("same-side", `${target.name} is on your side.`);
-    }
-    if (hasFled(state, target.id)) {
-      return refused("fled", `${target.name} has fled.`);
-    }
-    if (hasSurrendered(state, target.id)) {
-      return refused("surrendered", `${target.name} has surrendered.`);
-    }
-    return isDefeated(target)
-      ? refused("already-defeated", `${target.name} is already defeated.`)
-      : target;
-  };
+  const targetOf = (targetId: string) => opponentOf(state, actor, targetId);
   switch (action.type) {
     case "attack": {
       const target = targetOf(action.targetId);
@@ -2872,6 +3557,17 @@ export function act(
         ),
         economy: { ...state.economy, bonusAction: false },
       };
+      break;
+    }
+    case "cast": {
+      const refusal = castRefusal(state, actor, action);
+      if (refusal !== undefined) {
+        return { state, rejection: refusal };
+      }
+      next = concludeIfOver(
+        castSpell(state, actor, action, random, events),
+        events,
+      );
       break;
     }
     case "interact": {

@@ -58,7 +58,7 @@
  * The AI DM reads with `look` and `get_character_status`, and acts with
  * `move`, `sneak`, `ambush`, `react`, `examine`, `take`, `use_item`, `force_door`, `pick_lock`,
  * `break_door`, `unlock`, `search`, `disarm`, `talk`, `trade`, `attack`,
- * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge`, `take_hit`, `tactical_mind`, `rest` and `long_rest`. Each is offered only while the engine would
+ * `light_attack`, `second_wind`, `action_surge`, `hide`, `steady_aim`, `end_turn`, `uncanny_dodge`, `take_hit`, `tactical_mind`, `rest`, `long_rest` and `cast`. Each is offered only while the engine would
  * accept it, listing only what is visible and legal: the tools come from the
  * same projection (`projectActions`) as the browser's action bar, which asks
  * the engine about each action. The engine authors the
@@ -138,7 +138,10 @@ import {
   incapacitatedBy,
   legalTargets,
   startEncounter,
+  castOutsideFight,
+  slotLevels,
   type AttackEvent,
+  type CastAction,
   type Combatant,
   type ConditionKind,
   type CunningStrikeId,
@@ -205,6 +208,14 @@ import {
 import { tradeGoodValue } from "./treasure-5e.js";
 import { ABILITIES, type SkillId } from "./class-5e.js";
 import {
+  isSpellId,
+  ordinal,
+  slotUsesId,
+  spellAtLevel,
+  SPELLS,
+  type SpellDefinition,
+} from "./spells-5e.js";
+import {
   abilityDisadvantages,
   abilityModifier,
   initiativeAdvantages,
@@ -213,6 +224,7 @@ import {
   skillProficiency,
   characterProfile,
   classOf,
+  featureUsesName,
   type Carrying,
   type CharacterSheet,
   possessionsOf,
@@ -236,7 +248,7 @@ import type {
 } from "./runtime-contract.js";
 
 export const FIFTH_RULES_VERSION = "5e-srd-5.2";
-export const FIFTH_PROMPT_VERSION = "5e-dm-v23";
+export const FIFTH_PROMPT_VERSION = "5e-dm-v24";
 /** The player character's combatant id. */
 export const PLAYER_ID = "pc";
 
@@ -523,7 +535,12 @@ export type FifthAction =
    * A long rest (#335), only at a rest site: every hit point, hit die and
    * feature use comes back.
    */
-  | Readonly<{ type: "long-rest" }>;
+  | Readonly<{ type: "long-rest" }>
+  /**
+   * Casting a spell (#336) at a target: in a fight on the character's turn,
+   * outside one only a healing spell on itself (`PLAYER_ID`).
+   */
+  | CastAction;
 
 /** How an action making a check chooses it: its approach, and a retry. */
 export type CheckChoice = Readonly<{ approach?: string; retry?: true }>;
@@ -820,6 +837,7 @@ const MUTATION_TOOLS: readonly string[] = [
   "tactical_mind",
   "rest",
   "long_rest",
+  "cast",
 ];
 
 export type FifthEvent =
@@ -1293,6 +1311,7 @@ export type FifthRefusalCode =
   | "nothing-to-recover"
   | "not-rest-site"
   | "no-long-rests-left"
+  | "unprepared-spell"
   | "not-here"
   | "no-traps"
   | "already-searched"
@@ -1339,6 +1358,8 @@ Right after the character fails an ability check, a character with Tactical Mind
 Outside a fight, in a room with no foes left to face, the character may take a short rest, at most two short rests in an adventure: rest is offered only then. Call rest only when the player asks to rest, take a breather, bind their wounds or recover, with hit_dice the number of hit dice the player asks to spend, or the most rest lists when they name none. The engine rolls each hit die, adds the Constitution modifier, stops spending once the character is at full health, and restores the feature uses a short rest brings back. If rest is not offered, say why (a fight, foes here, both short rests taken, or nothing to recover) without calling a tool. Never heal, restore a use, or grant a rest in your words.
 
 Only at a safe place to rest that the adventure marks, outside a fight with no foes left, the character may take one long rest in an adventure: long_rest is offered only then. Call long_rest only when the player asks for a long rest, to sleep, make camp or rest for the night; a request just to rest or take a breather is a short rest. The engine restores every hit point, hit die and feature use. A module's wandering encounter may interrupt any rest: the engine rolls for it, and an interrupted rest restores nothing and starts that fight, which you narrate from the events. If long_rest is not offered, say why (not a place to rest, a fight, foes here, the long rest already taken, or nothing to restore) without calling a tool.
+
+A character who casts spells may cast the cantrips it knows and the spells it has prepared: cast is offered only while one can be cast now. Call cast only when the player asks to cast a spell, with spell, target and slot_level from those listed: a cantrip takes no slot (null); a levelled spell takes a slot of its level or higher, the lowest listed when the player names none, and a higher slot makes it stronger. In a fight it takes the character's action or bonus action, and only one spell slot may be spent a turn; outside a fight only a healing spell, on the character. The engine checks the spell, the slot and the target, spends the slot and rolls every attack, save, damage and healing die. If cast is not offered, or the player names a spell the character doesn't know or hasn't prepared, say so without calling a tool. Never cast a spell, spend a slot or describe its effect in your words.
 
 Where a merchant is, call trade with the one offer the player's words pick out: buy:<item> to buy an item the merchant stocks, sell:<item> to sell carried gear that is not equipped, sell-treasure:<item> to sell a carried gem or art object for its full value. The engine sets every price and takes the coin; the player cannot haggle a price or buy what is not offered. Selling equipped gear is the player's own choice, confirmed in the panel; you have no offer for it, so tell them to use Sell on it under You carry.
 
@@ -1411,6 +1432,13 @@ function resourcesAfter(
       ...(pc.actionSurge === undefined
         ? {}
         : { "action-surge": pc.actionSurge.uses }),
+      // Spell slots (#336) are feature uses too.
+      ...Object.fromEntries(
+        (pc.spellcasting?.slots ?? []).map(({ uses }, index) => [
+          slotUsesId(index + 1),
+          uses,
+        ]),
+      ),
     },
   };
 }
@@ -1532,7 +1560,33 @@ export function playerCombatant(
           },
         }),
     ...(potions.length === 0 ? {} : { potions }),
+    ...(profile.spellcasting === undefined
+      ? {}
+      : { spellcasting: combatSpellcasting(sheet, resources) }),
     ammunition: sheet.ammunition,
+  };
+}
+
+/**
+ * The character's spellcasting as the engine casts it (#336): its cantrips
+ * grown for its level, its prepared spells, and the spell slots it has left.
+ */
+function combatSpellcasting(
+  sheet: CharacterSheet,
+  resources: CharacterResources,
+): NonNullable<Combatant["spellcasting"]> {
+  const casting = characterProfile(sheet).spellcasting!;
+  return {
+    attackBonus: casting.attackBonus,
+    saveDc: casting.saveDc,
+    modifier: casting.modifier,
+    spells: [...casting.cantrips, ...casting.prepared].map(
+      (id): SpellDefinition => spellAtLevel(SPELLS[id], sheet.level),
+    ),
+    slots: casting.slots.map((max, index) => ({
+      uses: resources.featureUses[slotUsesId(index + 1)] ?? 0,
+      max,
+    })),
   };
 }
 
@@ -1544,6 +1598,7 @@ const OPTION_TEXT: Record<EncounterActionType, string> = {
   hide: "hide",
   "steady-aim": "use Steady Aim",
   "drink-potion": "drink a potion",
+  cast: "cast a spell",
   "end-turn": "end your turn",
   "uncanny-dodge": "use Uncanny Dodge",
   "take-hit": "take the hit",
@@ -1839,6 +1894,7 @@ function attackRollText(
     | "weaponRoll"
     | "rampage"
     | "light"
+    | "spell"
   >,
 ): string {
   const chosen = [
@@ -1851,7 +1907,9 @@ function attackRollText(
   ].join("");
   const mode = event.mode === undefined ? ":" : modeText(event.mode, event.d20);
   const weapon = `${event.weapon}${event.light === true ? " (extra attack)" : event.rampage === true ? " (Rampage bonus attack)" : ""}`;
-  return `${attacker} attacks ${target} with ${weapon}${chosen}${mode} ${event.d20} ${signed(event.bonus)} = ${event.total} against AC ${event.armorClass}`;
+  // A spell attack (#336) names its spell.
+  const attacks = event.spell === true ? "makes a spell attack on" : "attacks";
+  return `${attacker} ${attacks} ${target} with ${weapon}${chosen}${mode} ${event.d20} ${signed(event.bonus)} = ${event.total} against AC ${event.armorClass}`;
 }
 
 function gearText(event: GearEvent): string {
@@ -1911,6 +1969,68 @@ function gearText(event: GearEvent): string {
 
 const titleCase = (value: string) =>
   value.charAt(0).toUpperCase() + value.slice(1);
+
+/**
+ * A spell cast (#336) and what it did: the slot it spent, a saving throw
+ * and its damage, missiles that hit, or healing. The character is "you".
+ */
+function spellText(
+  event: Extract<
+    FifthEvent,
+    { type: "cast" | "spell-save" | "spell-damage" | "spell-healing" }
+  >,
+  name: (id: string) => string,
+  maxHp: (id: string) => number,
+): string {
+  switch (event.type) {
+    case "cast": {
+      const slot =
+        event.slot === undefined
+          ? ""
+          : ` with a ${ordinal(event.slot.level)}-level spell slot (${event.slot.left} of ${event.slot.max} left)`;
+      const bonus =
+        event.castingTime === "bonus-action" ? " as a bonus action" : "";
+      const player = event.combatantId === PLAYER_ID;
+      const target =
+        event.targetId === event.combatantId
+          ? player
+            ? " on yourself"
+            : " on itself"
+          : ` at ${name(event.targetId)}`;
+      return `${player ? "You cast" : `${name(event.combatantId)} casts`} ${event.spell}${target}${bonus}${slot}.`;
+    }
+    case "spell-save": {
+      const { save } = event;
+      const target = name(event.targetId);
+      const ability = titleCase(save.ability);
+      const rolled =
+        save.autoFail === undefined
+          ? `${target} makes a ${ability} saving throw against ${event.spell}${save.mode === undefined ? ":" : modeText(save.mode, save.d20)} ${save.d20} ${signed(save.bonus)} = ${save.total} against DC ${save.dc}. ${save.success ? "Success" : "Failure"}`
+          : `${target} fails a ${ability} saving throw against ${event.spell} without a roll: it is ${save.autoFail}`;
+      if (event.damageRolls.length === 0) {
+        return `${rolled}: no damage.`;
+      }
+      const full = event.damageRolls.reduce((sum, value) => sum + value, 0);
+      const halved = save.success
+        ? `, halved to ${Math.floor(full / 2)} by the save`
+        : "";
+      return `${rolled}. Damage ${event.damageRolls.join(" + ")} = ${full} ${event.damageType}${halved}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
+    }
+    case "spell-damage": {
+      const target = name(event.targetId);
+      const rolled =
+        event.damageRolls.reduce((sum, value) => sum + value, 0) +
+        event.damageModifier;
+      return `${event.spell}: ${event.missiles} missiles hit ${target}. Damage ${event.damageRolls.join(" + ")} ${signed(event.damageModifier)} = ${rolled} ${event.damageType}${adjustedText(event.damage, event.damageAdjustment)}; ${target} has ${event.hpAfter}/${maxHp(event.targetId)} HP.`;
+    }
+    case "spell-healing": {
+      const rolled =
+        event.rolls.reduce((sum, value) => sum + value, 0) + event.modifier;
+      const self = event.targetId === PLAYER_ID;
+      return `${event.spell}: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; ${self ? "you regain" : `${name(event.targetId)} regains`} ${event.healing} HP and ${self ? "have" : "has"} ${event.hpAfter}/${event.maxHp} HP.`;
+    }
+  }
+}
 
 /** What a condition just given does, and how it ends. */
 function conditionText(
@@ -2050,6 +2170,15 @@ export function renderFifthEvent(
         event.rolls.reduce((sum, value) => sum + value, 0) + event.modifier;
       return `You drink the ${event.name}: ${event.rolls.join(" + ")} ${signed(event.modifier)} = ${rolled}; you regain ${event.healing} HP and have ${event.hpAfter}/${event.maxHp} HP.`;
     }
+    case "cast":
+    case "spell-save":
+    case "spell-damage":
+    case "spell-healing":
+      return spellText(
+        event,
+        name,
+        (id) => combatant(state.encounter!, id).maxHp,
+      );
     case "turn-ended":
       return `${name(event.combatantId)} ends the turn.`;
     case "defeated":
@@ -2416,6 +2545,26 @@ export function describeFifthResult(
    * An attack's damage roll groups: the weapon's dice with Sneak Attack's,
    * then the rider's. Totals Uncanny Dodge halved (#308) say so.
    */
+  /** A save or missile spell's damage (#336): its dice, and what it dealt. */
+  const spellDamageGroup = (
+    event: Extract<FifthEvent, { type: "spell-save" | "spell-damage" }>,
+  ): RollGroup => ({
+    purpose: "damage",
+    roller: name(event.actorId),
+    target: name(event.targetId),
+    dice: take(event.damageRolls),
+    modifier: event.damageModifier,
+    total: event.damage,
+    damageType: event.damageType,
+    ...(event.damageAdjustment === undefined
+      ? {}
+      : { adjustment: event.damageAdjustment.by }),
+    ...(event.type === "spell-save" && event.save.success
+      ? { halved: true as const }
+      : {}),
+    hpAfter: event.hpAfter,
+    maxHp: combatant(state.encounter!, event.targetId).maxHp,
+  });
   const damageGroups = (event: AttackEvent): RollGroup[] => {
     const shown: RollGroup[] = [];
     const halved =
@@ -2777,6 +2926,49 @@ export function describeFifthResult(
             outcome: event.interrupted ? "success" : "failure",
           },
         ];
+      case "spell-save": {
+        // The target's save (none rolled when a condition fails it), then
+        // the damage, unless a success takes none (#336).
+        const { save } = event;
+        return [
+          ...(save.autoFail !== undefined
+            ? []
+            : [
+                {
+                  purpose: "save" as const,
+                  roller: name(event.targetId),
+                  label: `${titleCase(save.ability)} saving throw (${event.spell})`,
+                  dice: d20Dice(save.mode, save.d20),
+                  modifier: save.bonus,
+                  proficiency: 0,
+                  total: save.total,
+                  ...(save.mode === undefined
+                    ? {}
+                    : { mode: modeLabel(save.mode) }),
+                  dc: save.dc,
+                  outcome: save.success
+                    ? ("success" as const)
+                    : ("failure" as const),
+                },
+              ]),
+          ...(event.damageRolls.length === 0 ? [] : [spellDamageGroup(event)]),
+        ];
+      }
+      case "spell-damage":
+        return [spellDamageGroup(event)];
+      case "spell-healing":
+        return [
+          {
+            purpose: "healing",
+            roller: name(event.combatantId),
+            target: name(event.targetId),
+            dice: take(event.rolls),
+            modifier: event.modifier,
+            total: event.healing,
+            hpAfter: event.hpAfter,
+            maxHp: event.maxHp,
+          },
+        ];
       case "hit-die":
         return [
           {
@@ -2954,7 +3146,9 @@ export type ActionKind =
   /** A short rest (#334). */
   | "rest"
   /** A long rest at a rest site (#335). */
-  | "long-rest";
+  | "long-rest"
+  /** Casting a spell (#336). */
+  | "cast";
 
 const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   attack: true,
@@ -2992,6 +3186,7 @@ const ACTION_KIND_SET: Readonly<Record<ActionKind, true>> = {
   "tactical-mind": true,
   rest: true,
   "long-rest": true,
+  cast: true,
 };
 
 /**
@@ -3026,6 +3221,17 @@ export type ActionView = Readonly<{
    * engine would accept it, beside the plain attack on the same target.
    */
   cunningStrike?: Readonly<{ id: CunningStrikeId; name: string }>;
+  /**
+   * A spell cast (#336): the spell, its level (0 for a cantrip) and the slot
+   * level it would spend, for a levelled spell; `target` is whom it is
+   * cast at.
+   */
+  spell?: Readonly<{
+    id: string;
+    name: string;
+    level: number;
+    slotLevel?: number;
+  }>;
   /**
    * A short rest (#334), listed while it would restore something: the
    * numbers of hit dice it may spend now, fewest first. The action spends
@@ -3133,6 +3339,15 @@ export const SHORT_REASONS: Readonly<Record<FifthRefusalCode, string>> = {
   "short-bundle": "Fewer than 20",
   "no-arrows": "No arrows",
   "no-bolts": "No bolts",
+  "no-spellcasting": "No spells",
+  "unknown-spell": "Unknown spell",
+  "unprepared-spell": "Not prepared",
+  "reaction-spell": "A reaction",
+  "slot-level": "Wrong slot",
+  "no-slot": "No slot",
+  "slot-spent": "Slot used this turn",
+  "healing-target": "Heals allies",
+  "fight-only": "In a fight only",
   paralysed: "Paralysed",
   fled: "Fled",
   surrendered: "Surrendered",
@@ -3326,7 +3541,17 @@ function featureUses(self: Combatant): string[] {
     ...(self.actionSurge === undefined
       ? []
       : [text("Action Surge", self.actionSurge)]),
+    ...(self.spellcasting === undefined ? [] : [spellSlotsText(self)]),
   ];
+}
+
+/** "Spell slots: 1st 1 of 2, 2nd 3 of 3 left" (#336). */
+function spellSlotsText(self: Combatant): string {
+  return `Spell slots: ${self
+    .spellcasting!.slots.map(
+      ({ uses, max }, index) => `${ordinal(index + 1)} ${uses} of ${max}`,
+    )
+    .join(", ")} left`;
 }
 
 function projectFight(
@@ -4438,6 +4663,32 @@ export function createFifthRuntime(
   };
 
   /** The dice an accepted action draws from; refusals never reach this. */
+  /**
+   * Why the character can't cast `spellId` at all (#336): no such spell, a
+   * cantrip it doesn't know, or a spell it hasn't prepared. The engine
+   * refuses everything else: slots, the turn, the target.
+   */
+  const spellChoiceRefusal = (
+    spellId: string,
+  ): readonly [FifthRefusalCode, string] | undefined => {
+    const casting = characterProfile(sheet).spellcasting;
+    if (casting === undefined) {
+      return ["no-spellcasting", "You can't cast spells."];
+    }
+    if (!isSpellId(spellId)) {
+      return ["unknown-spell", "There is no such spell for you to cast."];
+    }
+    const { name, level } = SPELLS[spellId];
+    if (level === 0) {
+      return casting.cantrips.includes(spellId)
+        ? undefined
+        : ["unknown-spell", `You don't know the ${name} cantrip.`];
+    }
+    return casting.prepared.includes(spellId)
+      ? undefined
+      : ["unprepared-spell", `You haven't prepared ${name}.`];
+  };
+
   const need = (
     random: Pick<RandomSource, "roll"> | undefined,
     what: string,
@@ -4634,9 +4885,7 @@ export function createFifthRuntime(
           ? [
               {
                 featureId,
-                name:
-                  profile.features.find(({ id }) => id === featureId)?.name ??
-                  featureId,
+                name: featureUsesName(profile, featureId),
                 regained: restored - uses,
                 uses: restored,
                 max,
@@ -5512,6 +5761,26 @@ export function createFifthRuntime(
         return { type: "tactical-mind" };
       case "long-rest":
         return { type: "long-rest" };
+      case "cast": {
+        // A cantrip names no slot level; a levelled spell names a whole one.
+        const spellId = field("spellId");
+        const targetId = field("targetId");
+        const { slotLevel } = action;
+        return actorId === undefined ||
+          spellId === undefined ||
+          targetId === undefined ||
+          (slotLevel !== undefined && !Number.isInteger(slotLevel))
+          ? undefined
+          : {
+              type: "cast",
+              actorId,
+              spellId,
+              targetId,
+              ...(slotLevel === undefined
+                ? {}
+                : { slotLevel: slotLevel as number }),
+            };
+      }
       case "rest": {
         // A whole number of hit dice, none or more.
         const { hitDice } = action;
@@ -5880,6 +6149,35 @@ export function createFifthRuntime(
           );
         }
         return watchedRest(state, "long", random, () => longRest(state));
+      }
+      case "cast": {
+        const unknown = spellChoiceRefusal(action.spellId);
+        if (unknown !== undefined) {
+          return reject(...unknown);
+        }
+        if (fighting(state)) {
+          return fightAction(state, action, random, reject);
+        }
+        if (action.actorId !== PLAYER_ID) {
+          return reject(
+            "no-combatant",
+            "Only you cast spells here, and outside a fight only on yourself.",
+          );
+        }
+        // Outside a fight only a healing spell, on the character (#336).
+        const cast = castOutsideFight(self(state), action, {
+          roll: (sides) => need(random, "Casting a spell").roll(sides),
+        });
+        if ("rejection" in cast) {
+          return { state, rejection: cast.rejection };
+        }
+        return {
+          state: {
+            ...state,
+            character: resourcesAfter(state.character, cast.caster),
+          },
+          events: cast.events,
+        };
       }
       case "react": {
         const fight = encounterOf(state);
@@ -7034,6 +7332,19 @@ export function createFifthRuntime(
               },
             }),
         ...(retry === undefined ? {} : { retry: { reason: retry } }),
+        // The spell a cast names (#336), and the slot it would spend.
+        ...(action.type === "cast" && isSpellId(action.spellId)
+          ? {
+              spell: {
+                id: action.spellId,
+                name: SPELLS[action.spellId].name,
+                level: SPELLS[action.spellId].level,
+                ...(action.slotLevel === undefined
+                  ? {}
+                  : { slotLevel: action.slotLevel }),
+              },
+            }
+          : {}),
         // Cunning Strike's effect with an attack (#308).
         ...((action.type === "attack" || action.type === "light-attack") &&
         action.cunningStrike !== undefined
@@ -7054,6 +7365,38 @@ export function createFifthRuntime(
     };
     const use = (item: FifthItem) =>
       view("use", { type: "use-item", itemId: item.id }, item);
+    /**
+     * Each spell the character can cast (#336), at each slot level it could
+     * spend and each target: a foe still in the fight, or the character for
+     * a healing spell. Outside a fight, only healing spells.
+     */
+    const casts = (
+      caster: Combatant,
+      foes: readonly Combatant[],
+      fight: boolean,
+    ): readonly ActionView[] =>
+      (caster.spellcasting?.spells ?? [])
+        .filter(({ effect }) => fight || effect.kind === "healing")
+        .flatMap((spell) =>
+          slotLevels(caster, spell).flatMap((slotLevel) =>
+            (spell.effect.kind === "healing"
+              ? [{ id: PLAYER_ID, name: caster.name }]
+              : foes
+            ).map((target) =>
+              view(
+                "cast",
+                {
+                  type: "cast",
+                  actorId: PLAYER_ID,
+                  spellId: spell.id,
+                  targetId: target.id,
+                  ...(slotLevel === undefined ? {} : { slotLevel }),
+                },
+                target,
+              ),
+            ),
+          ),
+        );
     /**
      * A short rest (#334), listed while it would restore something, with the
      * numbers of hit dice it may spend; the action spends the most.
@@ -7260,6 +7603,7 @@ export function createFifthRuntime(
         ...(pc.actionSurge === undefined ? [] : [feature("action-surge")]),
         ...(pc.hide === undefined ? [] : [feature("hide")]),
         ...(pc.steadyAim === undefined ? [] : [feature("steady-aim")]),
+        ...casts(pc, targets, true),
         ...gearViews(true),
         feature("end-turn"),
       ];
@@ -7389,6 +7733,7 @@ export function createFifthRuntime(
       ),
       ...gearViews(),
       ...tradeViews(),
+      ...casts(self(state), [], false),
       ...rest(),
       // A long rest (#335) at a rest site, while it would restore something.
       ...(here.restSite === true && longRestRestores(state)
@@ -8235,6 +8580,71 @@ export function createFifthRuntime(
       ...restTool(state, actions),
       // Only where the engine would accept a long rest (#335).
       ...longRestTool(state, actions),
+      // Only while the engine would accept some spell (#336).
+      ...castTool(actions),
+    ];
+  };
+
+  /**
+   * The cast tool (#336): the spells the engine would accept now, each with
+   * the slot levels and targets it accepts.
+   */
+  const castTool = (
+    actions: readonly ActionView[],
+  ): readonly GameToolDefinition[] => {
+    const offers = actions.filter(
+      ({ action, available, spell }) =>
+        action === "cast" && available && spell !== undefined,
+    );
+    if (offers.length === 0) {
+      return [];
+    }
+    const spells = [...new Set(offers.map(({ spell }) => spell!.id))];
+    const unique = <T>(values: readonly T[]) => [...new Set(values)];
+    const described = spells.map((id) => {
+      const mine = offers.filter(({ spell }) => spell!.id === id);
+      const { name, level } = mine[0]!.spell!;
+      const slots = unique(mine.map(({ spell }) => spell!.slotLevel));
+      const targets = unique(
+        mine.map(({ target }) => `${target!.id} (${target!.name})`),
+      );
+      return `${id} (${name}, ${level === 0 ? "a cantrip: slot_level null" : `${ordinal(level)} level: slot_level ${listed(slots.map(String))}`}; target ${listed(targets)})`;
+    });
+    const slotLevelsOffered = unique(
+      offers.flatMap(({ spell }) =>
+        spell!.slotLevel === undefined ? [] : [spell!.slotLevel],
+      ),
+    ).sort((a, b) => a - b);
+    return [
+      {
+        type: "function",
+        name: "cast",
+        description: `Only when the player asks to cast a spell: cast it at its target. The engine spends the slot (only one a turn) and the action or bonus action, and rolls the attack, save, damage or healing. Spells: ${described.join("; ")}.`,
+        strict: true,
+        parameters: {
+          type: "object",
+          properties: {
+            spell: {
+              type: "string",
+              enum: spells,
+              description: "The id of the spell the player asked to cast.",
+            },
+            slot_level: {
+              type: ["integer", "null"],
+              enum: [...slotLevelsOffered, null],
+              description:
+                "The spell slot level to spend: null for a cantrip; for a levelled spell its lowest listed unless the player asks for a higher one.",
+            },
+            target: {
+              type: "string",
+              enum: unique(offers.map(({ target }) => target!.id)),
+              description: "The id of the spell's target.",
+            },
+          },
+          required: ["spell", "slot_level", "target"],
+          additionalProperties: false,
+        },
+      },
     ];
   };
 
@@ -8343,17 +8753,27 @@ export function createFifthRuntime(
     // The rest tool (#334) takes only its whole number of hit dice.
     const isRest = call.name === "rest";
     const hitDice = isRecord(parsed) ? parsed.hit_dice : undefined;
+    // The cast tool (#336) takes its spell, slot level (or null) and target.
+    const isCast = call.name === "cast";
+    const slotLevel = isRecord(parsed) ? parsed.slot_level : undefined;
     if (
       !isRecord(parsed) ||
-      (isRest
-        ? !Number.isInteger(hitDice) ||
-          !Object.keys(parsed).every((key) => key === "hit_dice")
-        : parameter === undefined
-          ? Object.keys(parsed).length > 0
-          : typeof parsed[parameter] !== "string" ||
-            !Object.keys(parsed).every(
-              (key) => key === parameter || extraOk(key),
-            ))
+      (isCast &&
+        (Object.keys(parsed).sort().join(",") !== "slot_level,spell,target" ||
+          typeof parsed.spell !== "string" ||
+          typeof parsed.target !== "string" ||
+          (slotLevel !== null && !Number.isInteger(slotLevel)))) ||
+      (isCast
+        ? false
+        : isRest
+          ? !Number.isInteger(hitDice) ||
+            !Object.keys(parsed).every((key) => key === "hit_dice")
+          : parameter === undefined
+            ? Object.keys(parsed).length > 0
+            : typeof parsed[parameter] !== "string" ||
+              !Object.keys(parsed).every(
+                (key) => key === parameter || extraOk(key),
+              ))
     ) {
       return invalid("invalid-arguments");
     }
@@ -8365,26 +8785,34 @@ export function createFifthRuntime(
             modelOutput: { ok: true, status: projectCharacterStatus(state) },
           };
     }
-    const action: FifthAction = isRest
-      ? { type: "rest", hitDice: hitDice as number }
-      : Object.hasOwn(BARE_TOOLS, call.name)
-        ? BARE_TOOLS[call.name]!
-        : parameter === undefined
-          ? {
-              type: FEATURE_TOOLS[call.name as FeatureTool],
-              actorId: PLAYER_ID,
-            }
-          : TARGET_TOOLS[call.name as TargetTool].action(
-              parsed[parameter] as string,
-              attackTool
-                ? typeof strike === "string"
-                  ? strike
-                  : undefined
-                : typeof approach === "string"
-                  ? approach
-                  : undefined,
-              retry === true,
-            );
+    const action: FifthAction = isCast
+      ? {
+          type: "cast",
+          actorId: PLAYER_ID,
+          spellId: parsed.spell as string,
+          targetId: parsed.target as string,
+          ...(slotLevel === null ? {} : { slotLevel: slotLevel as number }),
+        }
+      : isRest
+        ? { type: "rest", hitDice: hitDice as number }
+        : Object.hasOwn(BARE_TOOLS, call.name)
+          ? BARE_TOOLS[call.name]!
+          : parameter === undefined
+            ? {
+                type: FEATURE_TOOLS[call.name as FeatureTool],
+                actorId: PLAYER_ID,
+              }
+            : TARGET_TOOLS[call.name as TargetTool].action(
+                parsed[parameter] as string,
+                attackTool
+                  ? typeof strike === "string"
+                    ? strike
+                    : undefined
+                  : typeof approach === "string"
+                    ? approach
+                    : undefined,
+                retry === true,
+              );
     const result = handleAction(state, action, random);
     if (result.rejection !== undefined) {
       return {

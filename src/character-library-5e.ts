@@ -47,7 +47,7 @@ import {
 import { ABILITIES, type ClassId } from "./class-5e.js";
 import { createSeededRandom } from "./random.js";
 
-export const FIFTH_LIBRARY_FORMAT = 15;
+export const FIFTH_LIBRARY_FORMAT = 16;
 const MAX_LIBRARY_BYTES = 16 * 1024 * 1024;
 const MAX_CHARACTERS = 1000;
 

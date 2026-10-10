@@ -62,6 +62,7 @@ import {
   DEFAULT_CLASS,
   defaultPlacement,
   isClassId,
+  OFFERED_CLASS_IDS,
   droppedDie,
   characterCarrying,
   characterProfile,
@@ -306,10 +307,10 @@ function libraryView(
   };
 }
 
-/** Every class creation offers (#306), the default first. */
+/** Every class creation offers (#306), the default first: never a test-only one (#336). */
 const CLASS_IDS: readonly ClassId[] = [
   DEFAULT_CLASS,
-  ...(Object.keys(CLASSES) as ClassId[]).filter((id) => id !== DEFAULT_CLASS),
+  ...OFFERED_CLASS_IDS.filter((id) => id !== DEFAULT_CLASS),
 ];
 
 /**
@@ -319,7 +320,10 @@ const CLASS_IDS: readonly ClassId[] = [
 function choicesFrom(
   body: Record<string, unknown>,
 ): Readonly<{ classId: ClassId; choices: CreationChoices }> {
-  if (body.class !== undefined && !isClassId(body.class)) {
+  if (
+    body.class !== undefined &&
+    (!isClassId(body.class) || !CLASS_IDS.includes(body.class))
+  ) {
     throw new Error("Choose a class to create.");
   }
   return {

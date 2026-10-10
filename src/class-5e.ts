@@ -22,6 +22,7 @@ import {
   type WeaponId,
   type WeaponProficiency,
 } from "./equipment-5e.js";
+import type { SpellId } from "./spells-5e.js";
 
 export const ABILITIES = [
   "strength",
@@ -340,7 +341,40 @@ export type SubclassDefinition = Readonly<{
   features: readonly FeatureDefinition[];
 }>;
 
-export type ClassId = "fighter" | "rogue";
+/**
+ * The test-only caster (#336) exercises the casting engine until a playable
+ * class casts: creation never offers it, and the gate never plays it.
+ */
+export type ClassId = "fighter" | "rogue" | "test-caster";
+
+/** How many spell slots of each level a caster has: `[1st, 2nd, 3rd]`. */
+export type SlotTable = Readonly<Record<Level, readonly number[]>>;
+
+/**
+ * A class's spellcasting (#336): the ability its spell attack bonus and save
+ * DC use, how many cantrips it knows and spells it prepares by level, its
+ * spell slots by level, and the spells it may choose from. Spell slots come
+ * back on a long rest, and between adventures.
+ */
+export type SpellcastingDefinition = Readonly<{
+  ability: Ability;
+  cantrips: LevelTable;
+  prepared: LevelTable;
+  slots: SlotTable;
+  list: readonly SpellId[];
+}>;
+
+/** What a short and a long rest restore of spent spell slots (SRD 5.2). */
+export const SPELL_SLOT_RECOVERY: FeatureRecovery = {
+  shortRest: 0,
+  longRest: "all",
+};
+
+/** A caster's cantrips known and spells prepared (#336), by id. */
+export type SpellChoices = Readonly<{
+  cantrips: readonly SpellId[];
+  prepared: readonly SpellId[];
+}>;
 
 /** The choices a creation makes besides placing the rolls. */
 export type DefaultChoices = Readonly<{
@@ -350,6 +384,8 @@ export type DefaultChoices = Readonly<{
   fightingStyle?: FightingStyle;
   /** For a class with Expertise (#306). */
   expertise?: readonly SkillId[];
+  /** For a class with spellcasting (#336). */
+  spells?: SpellChoices;
   kit: KitId;
   masteries: readonly WeaponId[];
 }>;
@@ -387,4 +423,8 @@ export type ClassDefinition = Readonly<{
   defaults: DefaultChoices;
   /** The starting kits it is offered, in order. */
   kits: readonly KitId[];
+  /** Its spellcasting (#336), for a class that casts spells. */
+  spellcasting?: SpellcastingDefinition;
+  /** Never offered at creation nor played by the gate: a test-only class. */
+  testOnly?: true;
 }>;

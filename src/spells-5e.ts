@@ -1,0 +1,256 @@
+/**
+ * Spells as data (SRD 5.2, #336): each spell's level, school, casting time
+ * and what the engine does with it. The casting engine in `encounter-5e.ts`
+ * reads only this data, so it never asks which spell it is casting.
+ *
+ * Effect kinds:
+ * - `attack`: a melee or ranged spell attack (d20 + the spell attack bonus
+ *   against AC); a hit deals the damage, its dice doubled by a critical hit.
+ *   A ranged one follows the ranged-weapon rule: disadvantage from the
+ *   fight's second round (D6).
+ * - `save`: the target makes a saving throw against the caster's spell save
+ *   DC; a failure takes the damage, a success half of it (rounded down) or
+ *   none.
+ * - `auto-hit`: missiles that always hit, each dealing its own roll (Magic
+ *   Missile).
+ * - `healing`: the dice plus the caster's spellcasting ability modifier.
+ *
+ * Without positions or a clock, ranges, areas and durations are left out;
+ * the rules document lists what that omits.
+ */
+import type { Ability } from "./class-5e.js";
+import type { DamageType } from "./encounter-5e.js";
+
+/** How long a spell takes to cast: the Magic action, a bonus action or a reaction. */
+export type CastingTime = "action" | "bonus-action" | "reaction";
+
+export type SpellSchool =
+  | "abjuration"
+  | "conjuration"
+  | "divination"
+  | "enchantment"
+  | "evocation"
+  | "illusion"
+  | "necromancy"
+  | "transmutation";
+
+/** Dice of a spell's damage or healing. */
+export type SpellDice = Readonly<{ dice: number; sides: number }>;
+
+/** A spell's damage: its dice and type. */
+export type SpellDamage = SpellDice & Readonly<{ type: DamageType }>;
+
+/** What a spell does to its target. */
+export type SpellEffect = Readonly<
+  | { kind: "attack"; range: "melee" | "ranged"; damage: SpellDamage }
+  | {
+      kind: "save";
+      ability: Ability;
+      /** What a successful save takes: half the damage, or none. */
+      onSuccess: "half" | "none";
+      damage: SpellDamage;
+    }
+  | {
+      kind: "auto-hit";
+      /** The missiles cast at the spell's own level. */
+      missiles: number;
+      /** Each missile's damage: its dice, its flat bonus and its type. */
+      damage: SpellDamage & Readonly<{ modifier: number }>;
+    }
+  /** The dice plus the caster's spellcasting ability modifier. */
+  | { kind: "healing"; healing: SpellDice }
+>;
+
+/**
+ * What each slot level above a levelled spell's own adds: more dice of its
+ * damage or healing, or more missiles.
+ */
+export type Upcast = Readonly<{ dice: number } | { missiles: number }>;
+
+export type SpellDefinition = Readonly<{
+  id: string;
+  name: string;
+  /** 0 for a cantrip. */
+  level: 0 | 1 | 2 | 3;
+  school: SpellSchool;
+  castingTime: CastingTime;
+  effect: SpellEffect;
+  /** A cantrip's damage dice from character level 5 (SRD 5.2). */
+  cantripDice?: number;
+  /** A levelled spell's gain from each slot level above its own. */
+  upcast?: Upcast;
+}>;
+
+/** The character level at which a cantrip's damage grows (SRD 5.2). */
+export const CANTRIP_UPGRADE_LEVEL = 5;
+
+/** The spells the game knows, by id (SRD 5.2). */
+export const SPELLS = {
+  "fire-bolt": {
+    id: "fire-bolt",
+    name: "Fire Bolt",
+    level: 0,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "attack",
+      range: "ranged",
+      damage: { dice: 1, sides: 10, type: "fire" },
+    },
+    cantripDice: 2,
+  },
+  "sacred-flame": {
+    id: "sacred-flame",
+    name: "Sacred Flame",
+    level: 0,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "save",
+      ability: "dexterity",
+      onSuccess: "none",
+      damage: { dice: 1, sides: 8, type: "radiant" },
+    },
+    cantripDice: 2,
+  },
+  "shocking-grasp": {
+    id: "shocking-grasp",
+    name: "Shocking Grasp",
+    level: 0,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "attack",
+      range: "melee",
+      damage: { dice: 1, sides: 8, type: "lightning" },
+    },
+    cantripDice: 2,
+  },
+  "magic-missile": {
+    id: "magic-missile",
+    name: "Magic Missile",
+    level: 1,
+    school: "evocation",
+    castingTime: "action",
+    effect: {
+      kind: "auto-hit",
+      missiles: 3,
+      damage: { dice: 1, sides: 4, modifier: 1, type: "force" },
+    },
+    upcast: { missiles: 1 },
+  },
+  "inflict-wounds": {
+    id: "inflict-wounds",
+    name: "Inflict Wounds",
+    level: 1,
+    school: "necromancy",
+    castingTime: "action",
+    effect: {
+      kind: "save",
+      ability: "constitution",
+      onSuccess: "half",
+      damage: { dice: 2, sides: 10, type: "necrotic" },
+    },
+    upcast: { dice: 1 },
+  },
+  "cure-wounds": {
+    id: "cure-wounds",
+    name: "Cure Wounds",
+    level: 1,
+    school: "abjuration",
+    castingTime: "action",
+    effect: { kind: "healing", healing: { dice: 2, sides: 8 } },
+    upcast: { dice: 2 },
+  },
+  "healing-word": {
+    id: "healing-word",
+    name: "Healing Word",
+    level: 1,
+    school: "abjuration",
+    castingTime: "bonus-action",
+    effect: { kind: "healing", healing: { dice: 2, sides: 4 } },
+    upcast: { dice: 2 },
+  },
+} as const satisfies Record<string, SpellDefinition>;
+
+export type SpellId = keyof typeof SPELLS;
+
+export function isSpellId(value: unknown): value is SpellId {
+  return typeof value === "string" && Object.hasOwn(SPELLS, value);
+}
+
+/**
+ * `definition` as a caster of `level` casts it: a cantrip's damage dice grow
+ * at level 5; a levelled spell is unchanged until it is cast with a slot.
+ */
+export function spellAtLevel(
+  definition: SpellDefinition,
+  level: number,
+): SpellDefinition {
+  if (
+    definition.cantripDice === undefined ||
+    level < CANTRIP_UPGRADE_LEVEL ||
+    definition.effect.kind === "healing"
+  ) {
+    return definition;
+  }
+  return {
+    ...definition,
+    effect: {
+      ...definition.effect,
+      damage: { ...definition.effect.damage, dice: definition.cantripDice },
+    },
+  } as SpellDefinition;
+}
+
+/**
+ * `definition`'s effect cast with a slot of `slotLevel` (#336): each level
+ * above the spell's own adds its upcast dice or missiles. A cantrip, cast
+ * with no slot, is unchanged.
+ */
+export function effectAtSlot(
+  definition: SpellDefinition,
+  slotLevel: number | undefined,
+): SpellEffect {
+  const { effect, upcast } = definition;
+  const above = slotLevel === undefined ? 0 : slotLevel - definition.level;
+  if (upcast === undefined || above <= 0) {
+    return effect;
+  }
+  if ("missiles" in upcast) {
+    return effect.kind === "auto-hit"
+      ? { ...effect, missiles: effect.missiles + upcast.missiles * above }
+      : effect;
+  }
+  const more = upcast.dice * above;
+  switch (effect.kind) {
+    case "healing":
+      return {
+        ...effect,
+        healing: { ...effect.healing, dice: effect.healing.dice + more },
+      };
+    case "auto-hit":
+      return effect;
+    default:
+      return {
+        ...effect,
+        damage: { ...effect.damage, dice: effect.damage.dice + more },
+      };
+  }
+}
+
+/** "1st", "2nd", "3rd": a spell slot's level as the sheet says it. */
+export function ordinal(level: number): string {
+  return `${level}${level === 1 ? "st" : level === 2 ? "nd" : level === 3 ? "rd" : "th"}`;
+}
+
+/** The feature-uses id a spell slot level is tracked under (#336): `spell-slots-1`. */
+export function slotUsesId(level: number): string {
+  return `spell-slots-${level}`;
+}
+
+/** The spell slot level a feature-uses id tracks, or undefined for a feature's. */
+export function slotLevelOf(featureId: string): number | undefined {
+  const slot = /^spell-slots-(\d+)$/u.exec(featureId);
+  return slot === null ? undefined : Number(slot[1]);
+}

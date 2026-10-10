@@ -298,14 +298,14 @@ test("an action the harness can't play fails the run with a named reason", () =>
     loneGoblin,
     characterAtLevel(STRONG_DICE, 1),
   );
-  const casting = {
+  const teleporting = {
     ...runtime,
     projectActions: (state) => [
       ...runtime.projectActions(state),
-      { action: "cast", available: true },
+      { action: "teleport", available: true },
     ],
   };
-  assert.throws(() => playAdventure(casting, "direct", 1), {
+  assert.throws(() => playAdventure(teleporting, "direct", 1), {
     name: "BalanceError",
     code: "unsupported-action",
   });

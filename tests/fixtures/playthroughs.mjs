@@ -1,6 +1,7 @@
 // Seeded playthroughs of every fixture module (#156), of merchants and a
-// fighter holding two daggers (#269), and of a level-3 Thief's and a level-5
-// Rogue's fights (#307, #308): a character picks a random enabled action
+// fighter holding two daggers (#269), of a level-3 Thief's and a level-5
+// Rogue's fights (#307, #308), and of the test caster's (#336): a character
+// picks a random enabled action
 // from the bar at each step. The bar-projection tests (#156, #182, #183)
 // check each state these reach, and the engine action each projected action
 // stands for is mapped here once, so a new kind of action can't leave one
@@ -17,6 +18,7 @@ import {
 import { ROGUE } from "../../dist/rogue-5e.js";
 import { createSeededRandom } from "../../dist/random.js";
 import { createFifthRuntime } from "../../dist/runtime-5e.js";
+import { testCasterAt } from "../../dist/test-caster-5e.js";
 import { archer, archeryBarrow } from "./archery-barrow.mjs";
 import { gemMarket } from "./gem-market.mjs";
 import { FIXTURE_MODULES, goblinTrio, sealedCrypt } from "./modules.mjs";
@@ -110,7 +112,7 @@ export function engineAction(view) {
   };
 }
 
-function madeAction({ action, target, rest }) {
+function madeAction({ action, target, rest, spell }) {
   switch (action) {
     case "attack":
     case "light-attack":
@@ -168,6 +170,17 @@ function madeAction({ action, target, rest }) {
     // A long rest at a rest site (#335).
     case "long-rest":
       return { type: "long-rest" };
+    // A spell (#336), with the slot level the bar offers it at.
+    case "cast":
+      return {
+        type: "cast",
+        actorId: PLAYER,
+        spellId: spell.id,
+        targetId: target.id,
+        ...(spell.slotLevel === undefined
+          ? {}
+          : { slotLevel: spell.slotLevel }),
+      };
     default:
       // A new kind must be mapped above, not guessed at.
       throw new Error(`no engine action for ${action}`);
@@ -181,7 +194,8 @@ function madeAction({ action, target, rest }) {
  * one who sells ammunition with an archer who has a stowed weapon and too
  * few arrows to sell, and more tries at the sealed crypt's trap; then a
  * level-3 Thief's fights with Hide and Steady Aim (#307); then a level-5
- * Rogue's, with Cunning Strike and Uncanny Dodge (#308).
+ * Rogue's, with Cunning Strike and Uncanny Dodge (#308); then the level-3
+ * test caster's, with 1st- and 2nd-level slots (#336).
  */
 const PLAYTHROUGHS = [
   ...FIXTURE_MODULES.map((adventure) => ({
@@ -194,6 +208,7 @@ const PLAYTHROUGHS = [
   { adventure: sealedCrypt, fighters: [twin, thief()] },
   { adventure: goblinTrio, fighters: [thief()] },
   { adventure: goblinTrio, fighters: [rogueAt5()] },
+  { adventure: goblinTrio, fighters: [testCasterAt(3)] },
 ];
 
 /**
