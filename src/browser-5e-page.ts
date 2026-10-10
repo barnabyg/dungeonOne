@@ -238,7 +238,7 @@ h4{font:600 var(--text-sm) var(--font-sans);margin:var(--space-3) 0 6px;color:va
 #gear-numbers{flex-basis:100%}#session-status{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) 6px;font:var(--text-xs) var(--font-sans)}#character-hp{font-size:var(--text-sm)}.status-hp{display:grid;justify-items:start;gap:2px;white-space:nowrap;--hp-color:var(--color-hp-healthy)}.status-hp[data-health=bloodied]{--hp-color:var(--color-hp-wounded)}.status-hp[data-health=critical]{--hp-color:var(--color-hp-critical)}.status-hp[data-health=down]{--hp-color:var(--color-hp-down)}.status-hp .tag{color:var(--hp-color)}.hp-bar{display:block;justify-self:stretch;height:6px;border:1px solid var(--color-control-border);border-radius:999px;background:var(--color-surface);overflow:hidden}.hp-fill{display:block;height:100%;width:0;background:var(--hp-color)}#turn{white-space:nowrap;font-weight:400}#turn:empty{display:none}.conditions{display:contents}.conditions li{display:flex}.tag.effect{color:var(--color-text-label)}.effect-until{color:var(--color-text-muted)}.action.cast-choice{flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--space-1)}.cast-choice select{width:auto;max-width:100%;margin:0}.cast-targets{display:inline-flex;flex-wrap:wrap;align-items:center;gap:var(--space-1) var(--space-2)}.cast-targets label{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-sm)}.cast-targets input{width:auto;margin:0}.tag.condition{color:var(--color-danger)}
 .resources{display:contents}.resources li{display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:.72rem}.pips{display:inline-flex;gap:2px}.pip{width:9px;height:9px;border:1.5px solid var(--color-ink);border-radius:50%}.pip.full{background:var(--color-ink)}.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}#session-scene{min-width:0}#session-scene>section:first-child h3{margin-top:0}
 #session-dock{position:sticky;bottom:0;z-index:1;display:flex;flex-direction:column;gap:var(--space-2);min-width:0;background:var(--color-paper);border-top:1px solid var(--color-line);padding:var(--space-2) 0 var(--space-3)}#session-history{order:1;display:flex;flex-direction:column;min-height:0}#session-actions{order:2;display:flex;flex-wrap:wrap;gap:var(--space-2)}#session-composer{order:3}
-.controls.rest-panel{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}.action button{max-width:100%}:is(#action-bar,#inventory,.wares,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,.wares,.rest-panel) button>span,:is(#action-bar,#inventory,.wares,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
+.controls.rest-panel{align-items:flex-end}#rest-controls label{display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)}#rest-controls select{width:auto;margin:0}#session-actions .controls{margin-top:0;min-width:0;max-width:100%}#session-actions .controls:empty{display:none}#action-bar{display:contents}.action{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%;min-width:0}.action button{max-width:100%}:is(#action-bar,#inventory,.wares,.rest-panel) button{display:inline-grid}:is(#action-bar,#inventory,.wares,.rest-panel) button>span,:is(#action-bar,#inventory,.wares,.rest-panel) button::after{grid-area:1/1}:is(#action-bar,#inventory,.wares,.rest-panel) button::after{content:attr(data-busy-label);visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]>span{visibility:hidden}:is(#action-bar,#inventory,.wares,.rest-panel) button[aria-busy=true]::after{visibility:visible}.reason{font:var(--text-xs) var(--font-sans);color:var(--color-text-muted)}.approach,.retry{font:var(--text-xs) var(--font-sans);color:var(--color-text-label)}#session-actions .error{margin:0;flex-basis:100%}#history-title{margin:0 0 var(--space-2)}#log{max-height:min(26dvh,260px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding-right:var(--space-1)}.composer-row{display:flex;gap:var(--space-2);margin-top:var(--space-1)}.composer-row input{flex:1;margin:0}#dm-notice{margin:var(--space-1) 0 0}
 button.disclosure{padding:6px 2px;margin-bottom:var(--space-2)}button.disclosure::before{content:"▸ "/"";display:inline-block;width:1.1em}button.disclosure[aria-expanded=true]::before{content:"▾ "/""}#initiative-breakdown{font:var(--text-sm) var(--font-sans);margin-bottom:var(--space-3)}#initiative-breakdown summary{cursor:pointer;color:var(--color-ink);text-decoration:underline;text-underline-offset:3px;padding:var(--space-1) 0}.breakdown{padding-left:18px;margin:0}.breakdown li{margin:2px 0}#explore-controls{display:grid;grid-template-columns:fit-content(40%) minmax(0,1fr);gap:var(--space-2) var(--space-4)}.thing-actions{display:grid;grid-column:1/-1;grid-template-columns:subgrid;align-items:start;font:var(--text-sm) var(--font-sans)}.thing-name{font-weight:600;color:var(--color-text-label);overflow-wrap:anywhere;line-height:1.4;padding-top:11px}.thing-verbs{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-2);min-width:0}.thing-verbs .action{width:8.5em}.thing-verbs button{width:100%}
 html{scroll-padding-bottom:var(--session-dock-height,0px)}
 @media(min-width:900px) and (min-height:560px){body:has(#adventure:not([hidden])){height:100dvh;min-height:0;display:flex;flex-direction:column}body:has(#adventure:not([hidden])) .masthead,body:has(#adventure:not([hidden])) main{max-width:1240px;width:100%}body:has(#adventure:not([hidden])) main{flex:1;min-height:0;display:flex;flex-direction:column}#adventure{flex:1;min-height:0;display:flex;flex-direction:column}#session-layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"status dock" "scene dock";gap:var(--space-3) var(--space-5)}#session-status{grid-area:status}#session-scene{grid-area:scene;min-height:0;overflow-y:auto;padding-right:var(--space-2)}#session-dock{grid-area:dock;position:static;min-height:0;border-top:0;border-left:1px solid var(--color-line);padding:0 0 0 var(--space-5)}#session-history{flex:1;min-height:8rem}#log{flex:1;max-height:none}#session-dock{overflow-y:auto}}
@@ -511,8 +511,9 @@ function spellcastingNodes(casting) {
     }));
     return [make("h4", title), node];
   };
-  // A Wizard's spellbook (#340), whose spells it prepares from.
-  return [heading, numbers, ...list("Cantrips", "sheet-cantrips", casting.cantrips), ...(casting.spellbook ? list("Spellbook", "sheet-spellbook", casting.spellbook) : []), ...list("Prepared spells", "sheet-prepared", casting.prepared)];
+  // A Wizard's spellbook (#340), whose spells it prepares from; the Life
+  // Domain's always-prepared spells (#341).
+  return [heading, numbers, ...list("Cantrips", "sheet-cantrips", casting.cantrips), ...(casting.spellbook ? list("Spellbook", "sheet-spellbook", casting.spellbook) : []), ...list("Prepared spells", "sheet-prepared", casting.prepared), ...(casting.alwaysPrepared ? list("Always prepared", "sheet-always-prepared", casting.alwaysPrepared) : [])];
 }
 
 // The prepared spells being chosen on a sheet (#339), by character.
@@ -527,12 +528,21 @@ function prepareNodes(entry) {
   const heading = make("h3", "Prepare spells");
   heading.id = "prepare-title";
   if (entry.session) return [heading, make("p", "Prepared spells change only between adventures. Finish or abandon the adventure first.", "hint")];
-  if (!preparing || preparing.characterId !== entry.sheet.id) preparing = { characterId: entry.sheet.id, prepared: entry.sheet.spells.prepared.slice() };
-  const limit = entry.sheet.spells.prepared.length;
+  // A draft starts again when the sheet's own choice changed under it: a
+  // new level (#341) may have freed spells now always prepared.
+  const base = entry.sheet.spells.prepared.join(",");
+  if (!preparing || preparing.characterId !== entry.sheet.id || preparing.base !== base) preparing = { characterId: entry.sheet.id, base, prepared: entry.sheet.spells.prepared.slice() };
+  // The level's count (#341): a new level may leave some to choose.
+  const limit = entry.spells.limit;
   const group = make("fieldset");
   group.id = "prepare-spells";
   // A Wizard prepares from its spellbook (#340).
   group.append(make("legend", "Choose " + limit + " spells to prepare" + (entry.spells.spellbook ? " from your spellbook" : "")));
+  if (entry.spells.owed) {
+    const owed = make("p", "Level " + entry.sheet.level + " lets you prepare " + entry.spells.owed + " more: choose " + (entry.spells.owed === 1 ? "it" : "them") + " before the next adventure.", "hint level-choice-notice");
+    owed.id = "prepare-owed";
+    group.append(owed);
+  }
   const fields = make("div", undefined, "checks");
   const button = make("button", "Prepare spells", "secondary");
   button.type = "button";
@@ -641,6 +651,11 @@ function renderAdventureChoices(entry) {
   }
   if (entry.levelChoice) {
     choices.replaceChildren(make("p", "Choose " + entry.sheet.name + "'s level " + entry.levelChoice.levelUp.to + " " + choiceWords(entry.levelChoice.levelUp) + " above before starting another adventure.", "hint level-choice-notice"));
+    return;
+  }
+  // A new level's spells (#341) are prepared first.
+  if (entry.spells && entry.spells.owed && !entry.session) {
+    choices.replaceChildren(make("p", "Prepare " + entry.spells.owed + " more " + (entry.spells.owed === 1 ? "spell" : "spells") + " above before starting another adventure.", "hint level-choice-notice"));
     return;
   }
   if (entry.session) {
@@ -899,6 +914,10 @@ function rewardNodes(rewards, name) {
       }));
       card.append(features);
     }
+    // A caster's spells (#341): its slots, the spells now always prepared,
+    // the new slot level's spells (each opening to what it does) and the
+    // spells to prepare on the sheet before the next adventure.
+    if (up.spells) card.append(...levelUpSpellNodes(up.spells, name));
     // Level 4 (#286): the choices wait on the sheet, and block the next adventure.
     if (up.choices.length) {
       const owed = make("p", "Choose " + (up.choices.includes("weapon-mastery") ? "an Ability Score Improvement and a fourth weapon mastery" : "an Ability Score Improvement") + " on " + name + "'s sheet before the next adventure.");
@@ -906,6 +925,40 @@ function rewardNodes(rewards, name) {
       card.append(owed);
     }
     nodes.push(card);
+  }
+  return nodes;
+}
+
+/** "4 1st-level, 2 2nd-level": spell slots in words (#341). */
+const slotWords = (slots) => slots.map((count, index) => count + " " + ORDINALS[index + 1] + "-level").join(", ");
+
+/** The level-up card's spell lines (#341), from the server's level-up view. */
+function levelUpSpellNodes(spells, name) {
+  const nodes = [];
+  const slots = make("p", "Spell slots: " + slotWords(spells.slots.before) + " → " + slotWords(spells.slots.after) + ". Prepared spells: " + spells.prepared.before + " → " + spells.prepared.after + ".");
+  slots.id = "level-up-slots";
+  nodes.push(slots);
+  const list = (title, id, ids) => {
+    const heading = make("p", title);
+    const items = make("ul");
+    items.id = id;
+    items.setAttribute("aria-label", title.replace(/:$/u, ""));
+    items.append(...ids.map((spellId) => {
+      const spell = spellInfo(spellId);
+      const disclosure = make("details");
+      disclosure.append(make("summary", spell.name), make("p", spell.summary + "."));
+      const item = make("li");
+      item.append(disclosure);
+      return item;
+    }));
+    return [heading, items];
+  };
+  if (spells.alwaysPrepared.length) nodes.push(...list("Always prepared, beside the spells you choose:", "level-up-always", spells.alwaysPrepared));
+  if (spells.newSpells.length) nodes.push(...list("New spells you may prepare:", "level-up-spells", spells.newSpells));
+  if (spells.owed) {
+    const owed = make("p", "Prepare " + spells.owed + " more " + (spells.owed === 1 ? "spell" : "spells") + " on " + name + "'s sheet before the next adventure.");
+    owed.id = "level-up-prepare";
+    nodes.push(owed);
   }
   return nodes;
 }
@@ -1453,6 +1506,12 @@ const ACTIONS = {
   "action-surge": { label: "Action Surge", busy: "Using Action Surge", busyLabel: "Using Action Surge…" },
   hide: { label: "Hide", busy: "Hiding", busyLabel: "Hiding…" },
   "steady-aim": { label: "Steady Aim", busy: "Steadying your aim", busyLabel: "Aiming…" },
+  // Channel Divinity (#341): Divine Spark is chosen with its target and
+  // mode beside the button; Spiritual Weapon's attack names its target.
+  "divine-spark": { label: "Divine Spark", busy: "Using Divine Spark", busyLabel: "Channelling…" },
+  "turn-undead": { label: "Turn Undead", busy: "Turning undead", busyLabel: "Turning…" },
+  "preserve-life": { label: "Preserve Life", busy: "Using Preserve Life", busyLabel: "Healing…" },
+  "spectral-attack": { label: "Spiritual Weapon: ", busy: "Striking with your spiritual weapon at ", busyLabel: "Striking…" },
   // The answers to a hit Uncanny Dodge could halve (#308).
   "uncanny-dodge": { label: "Uncanny Dodge", busy: "Using Uncanny Dodge", busyLabel: "Dodging…" },
   "take-hit": { label: "Take the hit", busy: "Taking the hit", busyLabel: "Taking…" },
@@ -1478,7 +1537,7 @@ const wordsOf = (action) => action === "end-turn" && paralysed() ? WAIT : ACTION
 // Leave names the adventure, not the room it is taken from.
 const named = (action, target) => target && action !== "leave" ? target.name : "";
 const busyName = ({ action, target }) => wordsOf(action).busy + named(action, target) + "…";
-const FIGHT_FEATURES = ["second-wind", "action-surge", "hide", "steady-aim", "end-turn", "uncanny-dodge", "take-hit"];
+const FIGHT_FEATURES = ["second-wind", "action-surge", "hide", "steady-aim", "turn-undead", "preserve-life", "end-turn", "uncanny-dodge", "take-hit"];
 const GEAR = ["equip", "unequip", "swap", "drop"];
 // The "You carry" slot each verb on the character's gear goes on.
 const EQUIPPED_VERBS = ["unequip", "sell-equipped"];
@@ -1511,14 +1570,17 @@ function renderActions() {
   // Spells (#337) go in one choice of spell and target, with Cast.
   const casts = session.actions.filter(({ action }) => action === "cast");
   if (casts.length) groups.feature.push(castPanel(casts));
+  // Divine Spark (#341): one choice of target and mode, with its button.
+  const sparks = session.actions.filter(({ action }) => action === "divine-spark");
+  if (sparks.length) groups.feature.push(sparkPanel(sparks));
   session.actions.forEach((option, index) => {
     const { action, target } = option;
-    if (option.cunningStrike || action === "rest" || action === "long-rest" || action === "cast") return;
+    if (option.cunningStrike || action === "rest" || action === "long-rest" || action === "cast" || action === "divine-spark") return;
     const exploring = EXPLORING.includes(action) || (action === "use" && !fighting);
     // Gear changes go on the gear's entry in "You carry" (#209), or in a
     // fight with the turn's other options, as Drink does.
     // Trades go on the merchant's wares and on "You carry" (#210).
-    const group = ATTACKS.includes(action) ? "attack" : action === "leave" ? "leave" : action === "buy" ? "wares" : SALES.includes(action) ? "carried" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
+    const group = ATTACKS.includes(action) || action === "spectral-attack" ? "attack" : action === "leave" ? "leave" : action === "buy" ? "wares" : SALES.includes(action) ? "carried" : GEAR.includes(action) ? (fighting ? "feature" : "carried") : exploring && carried.has(target.id) ? "carried" : exploring ? "explore" : "feature";
     const words = wordsOf(action);
     // A check with several approaches (#283) offers one button per skill;
     // a parley (#305) names its DC too.
@@ -1528,7 +1590,7 @@ function renderActions() {
     const again = option.retry ? "Try again: " : "";
     // Extra Attack's second attack (#287) says so; any opponent may take it.
     const second = action === "attack" && session.turn && session.turn.attacks > 0;
-    const label = again + (second ? "Second attack on " : words.label) + named(action, target) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
+    const label = again + (second ? "Second attack on " : words.label) + named(action, target) + way + (action === "second-wind" ? left(features.secondWind) : action === "action-surge" ? left(features.actionSurge) : (action === "turn-undead" || action === "preserve-life") && session.channelDivinity ? left(session.channelDivinity) : action === "tactical-mind" ? " (" + features.secondWind.uses + " of " + features.secondWind.max + " Second Wind left)" : "");
     const short = group === "explore" || group === "carried" || group === "wares";
     const button = make("button");
     // A parley's button keeps the verb; its skill and DC go under it (#305).
@@ -1538,7 +1600,7 @@ function renderActions() {
     button.type = "button";
     if (short || parley) button.setAttribute("aria-label", label);
     // One opponent makes attacking the fight's primary action; several are peers.
-    button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + " secondary";
+    button.className = action === "attack" ? "attack " + (attacks === 1 ? "primary" : "secondary") : action === "light-attack" || action === "spectral-attack" ? "attack secondary" : action === "end-turn" ? "secondary" : group + " secondary";
     // "act" marks an action control, in the bar or on a carried item.
     button.classList.add("act");
     button.dataset.action = action;
@@ -1842,6 +1904,56 @@ function castPanel(casts) {
   return wrap;
 }
 
+// Divine Spark's choice (#341): kept while it is offered.
+let sparkChoice = "";
+
+/**
+ * Divine Spark (#341): one choice of each target and what it does to it
+ * ("Zombie: radiant"), and the button, with the uses of Channel Divinity
+ * left; disabled with the engine's reason when it would refuse.
+ */
+function sparkPanel(sparks) {
+  const key = ({ target, mode }) => target.id + ":" + mode;
+  if (!sparks.some((option) => key(option) === sparkChoice)) sparkChoice = key(sparks.find(({ available }) => available) || sparks[0]);
+  const chosen = sparks.find((option) => key(option) === sparkChoice);
+  const wrap = make("span", undefined, "action cast-choice");
+  const select = make("select");
+  select.id = "spark-choice";
+  select.setAttribute("aria-label", "Divine Spark's target");
+  select.disabled = acting;
+  for (const option of sparks) {
+    const choice = make("option", option.target.name + ": " + (option.mode === "heal" ? "heal" : option.mode + " damage"));
+    choice.value = key(option);
+    choice.selected = key(option) === sparkChoice;
+    select.append(choice);
+  }
+  select.addEventListener("change", () => {
+    sparkChoice = select.value;
+    renderActions();
+    element("spark-choice").focus();
+  });
+  const button = make("button");
+  const uses = session.channelDivinity;
+  button.append(make("span", ACTIONS["divine-spark"].label + (uses ? " (" + uses.uses + " of " + uses.max + " left)" : "")));
+  button.dataset.busyLabel = ACTIONS["divine-spark"].busyLabel;
+  button.type = "button";
+  button.className = "secondary act";
+  button.dataset.action = "divine-spark";
+  button.disabled = acting || !chosen.available;
+  button.addEventListener("click", async () => {
+    await act("/api/5e/session/divine-spark", { targetId: chosen.target.id, mode: chosen.mode }, "button.act[data-action=divine-spark]", ACTIONS["divine-spark"].busy + "…");
+    keepFocus("divine-spark", "");
+  });
+  wrap.append(select, button);
+  if (!chosen.available) {
+    const reason = make("span", chosen.reason, "reason");
+    reason.id = "spark-reason";
+    button.setAttribute("aria-describedby", reason.id);
+    wrap.append(reason);
+  }
+  return wrap;
+}
+
 // A spell's one target: a foe, or "Yourself" for a healing spell or buff.
 function targetChoice(options) {
   const select = make("select");
@@ -1930,7 +2042,8 @@ async function perform({ action, target, approach, retry, cunningStrike: effect 
   if (action === "attack" || action === "light-attack") {
     cunningStrike = "";
     await act("/api/5e/session/" + action, { actorId: session.encounter.playerId, targetId, ...(effect ? { cunningStrike: effect } : {}) }, control, busy);
-  } else if (FIGHT_FEATURES.includes(action) || action === "tactical-mind") await act("/api/5e/session/action", { action }, control, busy);
+  } else if (action === "spectral-attack") await act("/api/5e/session/spectral-attack", { targetId }, control, busy);
+  else if (FIGHT_FEATURES.includes(action) || action === "tactical-mind") await act("/api/5e/session/action", { action }, control, busy);
   else await act("/api/5e/session/explore", { action, target: targetId, ...(approach ? { approach: approach.id } : {}), ...(retry ? { retry: true } : {}) }, control, busy);
   keepFocus(action, targetId);
 }
@@ -2285,7 +2398,8 @@ function renderSpellChoices(chosen) {
     element("prepared-fields").replaceChildren();
     return;
   }
-  const levelled = casting.spells.filter(({ level }) => level > 0);
+  // A level-1 character has only 1st-level slots (#341).
+  const levelled = casting.spells.filter(({ level }) => level === 1);
   element("cantrips-legend").textContent = "Cantrips: choose " + cantripLimit(chosen);
   element("prepared-legend").textContent = "Prepared spells: choose " + casting.prepared + (casting.spellbook ? " from your spellbook" : "");
   const ticked = (spells, prefix) => spells.map(({ id }) => id).filter((id) => element(prefix + id)?.checked);
